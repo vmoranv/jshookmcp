@@ -20,32 +20,22 @@ type ConsoleMonitorStub = Pick<
   'setPlaywrightPage' | 'enable' | 'isNetworkEnabled'
 >;
 type CamoufoxPageStub = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   goto: (url: string, options?: { waitUntil?: string; timeout?: number }) => Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   reload: () => Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   goBack: () => Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   goForward: () => Promise<any>;
   url: () => string;
   title: () => Promise<string>;
 };
 
 function mockDeps(driver: Driver = 'chrome') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const gotoMock = vi.fn<CamoufoxPageStub['goto']>().mockResolvedValue(undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const camoufoxReloadMock = vi.fn<CamoufoxPageStub['reload']>().mockResolvedValue(undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const camoufoxGoBackMock = vi.fn<CamoufoxPageStub['goBack']>().mockResolvedValue(undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const camoufoxGoForwardMock = vi.fn<CamoufoxPageStub['goForward']>().mockResolvedValue(undefined);
   const camoufoxUrlMock = vi
     .fn<CamoufoxPageStub['url']>()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     .mockReturnValue('https://example.com/page');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const camoufoxTitleMock = vi.fn<CamoufoxPageStub['title']>().mockResolvedValue('Example');
 
   const camoufoxPage = {
@@ -57,23 +47,17 @@ function mockDeps(driver: Driver = 'chrome') {
     title: camoufoxTitleMock,
   } satisfies CamoufoxPageStub;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const navigateMock = vi.fn<PageControllerStub['navigate']>().mockResolvedValue({
     url: 'https://example.com/chrome',
     title: 'Chrome Page',
     loadTime: 0,
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const reloadMock = vi.fn<PageControllerStub['reload']>().mockResolvedValue(undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const goBackMock = vi.fn<PageControllerStub['goBack']>().mockResolvedValue(undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const goForwardMock = vi.fn<PageControllerStub['goForward']>().mockResolvedValue(undefined);
   const getURLMock = vi
     .fn<PageControllerStub['getURL']>()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     .mockResolvedValue('https://example.com/chrome');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const getTitleMock = vi.fn<PageControllerStub['getTitle']>().mockResolvedValue('Chrome Page');
 
   const pageController = {
@@ -87,13 +71,10 @@ function mockDeps(driver: Driver = 'chrome') {
 
   const setPlaywrightPageMock = vi
     .fn<ConsoleMonitorStub['setPlaywrightPage']>()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     .mockImplementation(() => undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const enableMock = vi.fn<ConsoleMonitorStub['enable']>().mockResolvedValue(undefined);
   const isNetworkEnabledMock = vi
     .fn<ConsoleMonitorStub['isNetworkEnabled']>()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     .mockReturnValue(false);
 
   const consoleMonitor = {
@@ -105,9 +86,7 @@ function mockDeps(driver: Driver = 'chrome') {
   const deps = {
     pageController: pageController as unknown as PageNavigationDeps['pageController'],
     consoleMonitor: consoleMonitor as unknown as PageNavigationDeps['consoleMonitor'],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getActiveDriver: vi.fn<PageNavigationDeps['getActiveDriver']>().mockReturnValue(driver),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getCamoufoxPage: vi.fn<PageNavigationDeps['getCamoufoxPage']>().mockResolvedValue(camoufoxPage),
   } satisfies PageNavigationDeps;
 

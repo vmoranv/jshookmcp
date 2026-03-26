@@ -25,13 +25,10 @@ describe('debugger tool definitions', () => {
       (_name, tool) => {
         expect(tool).toEqual(
           expect.objectContaining({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             name: expect.any(String),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             description: expect.any(String),
             inputSchema: expect.objectContaining({
               type: 'object',
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               properties: expect.any(Object),
             }),
           }),
@@ -195,13 +192,10 @@ describe('debugger tool definitions', () => {
       (_name, tool) => {
         expect(tool).toEqual(
           expect.objectContaining({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             name: expect.any(String),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             description: expect.any(String),
             inputSchema: expect.objectContaining({
               type: 'object',
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               properties: expect.any(Object),
             }),
           }),

@@ -14,6 +14,8 @@ import {
   type ToolNodeOptions,
 } from '@extension-sdk/workflow';
 
+const alwaysTruePredicate = () => true;
+
 /* ================================================================== */
 /*  Factory functions — return Builder instances                        */
 /* ================================================================== */
@@ -110,13 +112,11 @@ describe('Workflow node factory functions', () => {
     });
 
     it('accepts predicateFn', () => {
-      // oxlint-disable-next-line consistent-function-scoping
-      const fn = () => true;
       const node = branchNode('gate', 'hasAuth')
-        .predicateFn(fn)
+        .predicateFn(alwaysTruePredicate)
         .whenTrue(toolNode('y', 'tool_y'))
         .build();
-      expect(node.predicateFn).toBe(fn);
+      expect(node.predicateFn).toBe(alwaysTruePredicate);
     });
 
     it('throws if whenTrue is not set', () => {

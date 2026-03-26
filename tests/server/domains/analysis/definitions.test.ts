@@ -11,9 +11,7 @@ describe('server/domains/analysis/definitions', () => {
     coreTools.forEach((tool) => {
       expect(tool).toEqual(
         expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           name: expect.any(String),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           description: expect.any(String),
           inputSchema: expect.objectContaining({
             type: 'object',

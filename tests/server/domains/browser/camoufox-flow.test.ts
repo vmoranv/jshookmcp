@@ -10,7 +10,6 @@ const mockManager = vi.hoisted(() => ({
   connectToServer: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
   CamoufoxBrowserManager: class MockCamoufoxBrowserManager {
     launch = mockManager.launch;
@@ -25,9 +24,7 @@ import {
 
 describe('camoufox-flow', () => {
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockManager.launch.mockResolvedValue(undefined);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockManager.connectToServer.mockResolvedValue(undefined);
   });
 
@@ -44,11 +41,8 @@ describe('camoufox-flow', () => {
       const ctx = makeContext();
       const result = await handleCamoufoxLaunchFlow(ctx, {});
       const body = parseJson<BrowserLaunchResponse>(result);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.mode).toBe('launch');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.driver).toBe('camoufox');
       expect(ctx.setCamoufoxManager).toHaveBeenCalled();
       expect(ctx.setActiveDriver).toHaveBeenCalledWith('camoufox');
@@ -62,11 +56,8 @@ describe('camoufox-flow', () => {
         wsEndpoint: 'ws://localhost:1234',
       });
       const body = parseJson<BrowserLaunchResponse>(result);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.mode).toBe('connect');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.wsEndpoint).toBe('ws://localhost:1234');
       expect(ctx.setCamoufoxManager).toHaveBeenCalled();
     });
@@ -75,9 +66,7 @@ describe('camoufox-flow', () => {
       const ctx = makeContext();
       const result = await handleCamoufoxLaunchFlow(ctx, { mode: 'connect' });
       const body = parseJson<BrowserLaunchResponse>(result);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('wsEndpoint is required');
     });
 
@@ -91,16 +80,12 @@ describe('camoufox-flow', () => {
   describe('handleCamoufoxNavigateFlow', () => {
     function makeContext() {
       const page = {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         goto: vi.fn().mockResolvedValue(undefined),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         url: vi.fn().mockReturnValue('https://example.com'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         title: vi.fn().mockResolvedValue('Example'),
       };
       return {
         context: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           getCamoufoxPage: vi.fn().mockResolvedValue(page),
           setConsoleMonitorPage: vi.fn(),
         },
@@ -112,13 +97,9 @@ describe('camoufox-flow', () => {
       const { context, page } = makeContext();
       const result = await handleCamoufoxNavigateFlow(context, { url: 'https://test.com' });
       const body = parseJson<PageInteractionResponse & { url: string; title: string }>(result);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.driver).toBe('camoufox');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.url).toBe('https://example.com');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.title).toBe('Example');
       expect(page.goto).toHaveBeenCalledWith('https://test.com', {
         waitUntil: 'networkidle',

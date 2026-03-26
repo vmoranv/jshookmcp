@@ -17,7 +17,6 @@ const state = vi.hoisted(() => ({
   auditEntries: [] as Array<Record<string, unknown>>,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -44,7 +43,6 @@ vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock(import('@src/modules/process/memory/AuditTrail'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -70,7 +68,6 @@ vi.mock(import('@src/modules/process/memory/AuditTrail'), async (importOriginal)
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -89,11 +86,8 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     vi.clearAllMocks();
     state.auditEntries.length = 0;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkAvailability.mockResolvedValue({ available: true });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.getProcessByPid.mockResolvedValue(null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.checkMemoryProtection.mockResolvedValue({
       success: true,
       protection: 'RW',
@@ -102,16 +96,12 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       isReadable: true,
       isWritable: true,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.enumerateModules.mockResolvedValue({
       success: true,
       modules: [{ name: 'kernel32.dll', baseAddress: '0x1000', size: 4096 }],
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readMemory.mockResolvedValue({ success: true, data: '90', error: undefined });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 1, error: undefined });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.scanMemory.mockResolvedValue({ success: true, addresses: ['0x1000'], error: undefined });
 
     handler = new ProcessToolHandlersMemory();
@@ -121,64 +111,45 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryRead', () => {
     it('returns success on valid read', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.readMemory.mockResolvedValue({ success: true, data: 'AABB', error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.data).toBe('AABB');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.pid).toBe(1234);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.address).toBe('0x1000');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.size).toBe(4);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.platform).toBe('win32');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeUndefined();
     });
 
     it('includes diagnostics when read fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.readMemory.mockResolvedValue({ success: false, data: null, error: 'Access denied' });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.getProcessByPid.mockResolvedValue({ pid: 1234, name: 'test.exe' });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Access denied');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeDefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics.process.exists).toBe(true);
     });
 
     it('handles unavailable memory operations', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'Need admin' });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.reason).toBe('Need admin');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeDefined();
     });
 
@@ -187,9 +158,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryRead({ address: '0x1000', size: 4 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
@@ -198,9 +167,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryRead({ pid: 1234, size: 4 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('address');
     });
 
@@ -209,9 +176,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('size');
     });
 
@@ -220,9 +185,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryRead({ pid: -5, address: '0x1000', size: 4 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
@@ -240,7 +203,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     });
 
     it('records audit entry on failed read', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.readMemory.mockResolvedValue({ success: false, data: null, error: 'No access' });
 
       await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 });
@@ -269,7 +231,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryWrite', () => {
     it('returns success on valid write', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 2, error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
@@ -281,22 +242,15 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.bytesWritten).toBe(2);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.pid).toBe(1234);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.address).toBe('0x2000');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.encoding).toBe('hex');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeUndefined();
     });
 
     it('includes diagnostics when write fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.writeMemory.mockResolvedValue({
         success: false,
         bytesWritten: 0,
@@ -312,16 +266,12 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Permission denied');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeDefined();
     });
 
     it('handles unavailable memory operations for write', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'Not supported' });
 
       const body = parseJson<ProcessFindResponse>(
@@ -333,14 +283,11 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
 
     it('handles base64 encoding for size calculation', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 5, error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
@@ -352,21 +299,17 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.encoding).toBe('base64');
     });
 
     it('defaults encoding to hex', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 1, error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({ pid: 1234, address: '0x2000', data: 'AA' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.encoding).toBe('hex');
     });
 
@@ -375,9 +318,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryWrite({ pid: 1234, address: '0x2000' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('data');
     });
 
@@ -386,9 +327,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryWrite({ pid: 'abc', address: '0x2000', data: 'AA' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
@@ -414,7 +353,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryScan', () => {
     it('returns addresses on successful scan', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.scanMemory.mockResolvedValue({
         success: true,
         addresses: ['0x1000', '0x2000'],
@@ -425,108 +363,86 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AABB', patternType: 'hex' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.addresses).toEqual(['0x1000', '0x2000']);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.pattern).toBe('AABB');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('hex');
     });
 
     it('includes diagnostics when scan fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.scanMemory.mockResolvedValue({ success: false, addresses: [], error: 'Scan timeout' });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Scan timeout');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.diagnostics).toBeDefined();
     });
 
     it('handles unavailable memory for scan', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'No ptrace' });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'hex' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
 
     it('normalizes unknown patternType to hex', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AA', patternType: 'unknown' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('hex');
     });
 
     it('accepts int32 patternType', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: '42', patternType: 'int32' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('int32');
     });
 
     it('accepts string patternType', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'hello', patternType: 'string' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('string');
     });
 
     it('accepts float patternType', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: '3.14', patternType: 'float' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('float');
     });
 
     it('accepts double patternType', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: '3.14', patternType: 'double' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('double');
     });
 
     it('accepts int64 patternType', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.scanMemory.mockResolvedValue({ success: true, addresses: [], error: undefined });
 
       const body = parseJson<ProcessFindResponse>(
@@ -537,16 +453,13 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patternType).toBe('int64');
     });
 
     it('handles exception in scan path (missing pattern)', async () => {
       const body = parseJson<ProcessFindResponse>(await handler.handleMemoryScan({ pid: 1234 }));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('pattern');
     });
 
@@ -568,13 +481,9 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('exports empty audit trail', async () => {
       const body = parseJson<ProcessFindResponse>(await handler.handleMemoryAuditExport({}));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.cleared).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.entries).toEqual([]);
     });
 
@@ -585,9 +494,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryAuditExport({ clear: false }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.cleared).toBe(false);
       expect(state.auditEntries).toHaveLength(1);
     });
@@ -599,9 +506,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryAuditExport({ clear: true }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.cleared).toBe(true);
       expect(state.auditEntries).toHaveLength(0);
     });
@@ -617,9 +522,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
       const body = parseJson<ProcessFindResponse>(await handler.handleMemoryAuditExport({}));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(2);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.entries).toHaveLength(2);
     });
   });
@@ -628,7 +531,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryCheckProtection', () => {
     it('returns protection info on success', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkMemoryProtection.mockResolvedValue({
         success: true,
         protection: 'RWX',
@@ -642,13 +544,9 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryCheckProtection({ pid: 1234, address: '0x1000' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.protection).toBe('RWX');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.regionStart).toBe('0x1000');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.regionSize).toBe(4096);
     });
 
@@ -657,9 +555,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryCheckProtection({ address: '0x1000' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
@@ -668,23 +564,18 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryCheckProtection({ pid: 1234 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('address');
     });
 
     it('handles checkMemoryProtection failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkMemoryProtection.mockRejectedValue(new Error('Access failed'));
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryCheckProtection({ pid: 1234, address: '0x1000' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Access failed');
     });
   });
@@ -693,7 +584,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryScanFiltered', () => {
     it('returns filtered scan results', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.scanMemoryFiltered.mockResolvedValue({
         success: true,
         addresses: ['0x1000'],
@@ -708,14 +598,11 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.addresses).toEqual(['0x1000']);
     });
 
     it('handles unavailable memory for filtered scan', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'disabled' });
 
       const body = parseJson<ProcessFindResponse>(
@@ -727,9 +614,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.reason).toBe('disabled');
     });
 
@@ -743,9 +628,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
   });
@@ -754,7 +637,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryBatchWrite', () => {
     it('returns batch write results', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.batchMemoryWrite.mockResolvedValue({
         success: true,
         results: [{ address: '0x1000', success: true, bytesWritten: 1 }],
@@ -767,12 +649,10 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
     });
 
     it('handles unavailable memory for batch write', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockResolvedValue({ available: false, reason: 'no write' });
 
       const body = parseJson<ProcessFindResponse>(
@@ -782,9 +662,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.reason).toBe('no write');
     });
 
@@ -796,9 +674,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
   });
@@ -807,7 +683,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryDumpRegion', () => {
     it('returns dump result on success', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.dumpMemoryRegion.mockResolvedValue({
         success: true,
         path: 'dump.bin',
@@ -823,9 +698,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.path).toBe('dump.bin');
     });
 
@@ -839,9 +712,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('relative path');
     });
 
@@ -855,9 +726,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('parent directory traversal');
     });
 
@@ -871,9 +740,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('relative path');
     });
 
@@ -887,9 +754,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('relative path');
     });
 
@@ -902,9 +767,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
@@ -917,9 +780,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('outputPath');
     });
   });
@@ -928,7 +789,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryListRegions', () => {
     it('returns regions on success', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.enumerateRegions.mockResolvedValue({
         success: true,
         regions: [
@@ -941,9 +801,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryListRegions({ pid: 1234 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.regions).toHaveLength(2);
     });
 
@@ -952,23 +810,18 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         await handler.handleMemoryListRegions({ pid: 'not-a-number' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('PID');
     });
 
     it('handles enumerateRegions failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.enumerateRegions.mockRejectedValue(new Error('Enumeration failed'));
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryListRegions({ pid: 1234 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Enumeration failed');
     });
   });
@@ -979,7 +832,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
     it('handles diagnostics failure gracefully for read', async () => {
       // Force diagnostics to fail by making both checkAvailability throw on second call
       let callCount = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockImplementation(async () => {
         callCount++;
         if (callCount === 1) {
@@ -989,7 +841,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         // Second call: inside buildMemoryDiagnostics — throw
         throw new Error('diagnostics crash');
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.readMemory.mockResolvedValue({ success: false, data: null, error: 'Boom' });
 
       const body = parseJson<ProcessFindResponse>(
@@ -997,49 +848,39 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
       );
 
       // Should still succeed with diagnostics being undefined
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('Boom');
     });
 
     it('handles non-Error exceptions in read path', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockRejectedValue('string exception');
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('string exception');
     });
 
     it('handles non-Error exceptions in write path', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockRejectedValue(42);
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryWrite({ pid: 1234, address: '0x1000', data: 'AA' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toBe('42');
     });
 
     it('handles non-Error exceptions in scan path', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockRejectedValue(null);
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
     });
   });
@@ -1048,7 +889,6 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryWrite — unavailability diagnostics', () => {
     it('includes diagnostics on unavailability with reason=undefined', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockResolvedValue({ available: false });
 
       const body = parseJson<ProcessFindResponse>(
@@ -1060,9 +900,7 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
   });
@@ -1071,16 +909,13 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryRead — unavailability diagnostics', () => {
     it('includes diagnostics on unavailability with reason=undefined', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockResolvedValue({ available: false });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryRead({ pid: 1234, address: '0x1000', size: 4 }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
   });
@@ -1089,16 +924,13 @@ describe('ProcessToolHandlersMemory — additional coverage', () => {
 
   describe('handleMemoryScan — unavailability diagnostics', () => {
     it('includes diagnostics on unavailability with reason=undefined', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.checkAvailability.mockResolvedValue({ available: false });
 
       const body = parseJson<ProcessFindResponse>(
         await handler.handleMemoryScan({ pid: 1234, pattern: 'AA' }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('Memory operations not available');
     });
   });

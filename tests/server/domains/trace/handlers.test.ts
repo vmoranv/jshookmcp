@@ -16,12 +16,9 @@ function createTmpDbPath(): string {
 function createMockContext(): Partial<MCPServerContext> {
   return {
     eventBus: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       onAny: vi.fn().mockReturnValue(() => {}),
       emit: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       on: vi.fn().mockReturnValue(() => {}),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       once: vi.fn().mockReturnValue(() => {}),
     } as unknown as MCPServerContext['eventBus'],
     collector: undefined,
@@ -79,7 +76,6 @@ describe('TraceToolHandlers', () => {
 
       // Create handler with a mock recorder that returns our DB
       const recorder = new TraceRecorder();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(recorder, 'getDB').mockReturnValue(db);
       const ctx = createMockContext() as MCPServerContext;
       const handler = new TraceToolHandlers(recorder, ctx);
@@ -122,7 +118,6 @@ describe('TraceToolHandlers', () => {
       const result = (await handler.handleQueryTraceSql({
         sql: 'SELECT COUNT(*) as cnt FROM events',
         dbPath,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       })) as { rows: any[][] };
 
       expect(result.rows[0]![0]).toBe(1);
@@ -177,13 +172,9 @@ describe('TraceToolHandlers', () => {
         windowMs: 100,
       })) as {
         seekTimestamp: number;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         events: any[];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         debuggerState: { recentEvents: any[] };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         memoryState: { addressValues: any[] };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         networkState: { completedRequests: any[] };
       };
 
@@ -229,7 +220,6 @@ describe('TraceToolHandlers', () => {
       })) as {
         diff: {
           added: Array<{ name: string }>;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           removed: any[];
           changed: Array<{ name: string; delta: number }>;
           totalSizeDelta: number;

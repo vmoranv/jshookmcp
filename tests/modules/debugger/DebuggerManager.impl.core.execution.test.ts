@@ -7,7 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -34,8 +33,6 @@ describe('DebuggerManager execution core helpers', () => {
 
   it('updates pause-on-exception state and issues pause/resume/step commands', async () => {
     const send = vi.fn(async () => ({}));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: true,
       cdpSession: { send },
@@ -69,8 +66,6 @@ describe('DebuggerManager execution core helpers', () => {
       callFrames: [{ callFrameId: 'cf-1' }],
       timestamp: 1,
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: true,
       cdpSession: { send },
@@ -91,8 +86,6 @@ describe('DebuggerManager execution core helpers', () => {
   });
 
   it('throws prerequisite errors when execution APIs are used without a debugger or pause state', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: false,
       cdpSession: null,
@@ -104,9 +97,7 @@ describe('DebuggerManager execution core helpers', () => {
     await expect(pauseCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
     await expect(waitForPausedCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.enabled = true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession = { send: vi.fn(async () => ({})) };
     await expect(
       evaluateOnCallFrameCore(ctx, {

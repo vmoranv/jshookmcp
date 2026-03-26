@@ -7,7 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -27,7 +26,6 @@ describe('DebuggerManager scope core helpers', () => {
   it('collects scope variables and optional nested object properties for the active frame', async () => {
     const send = vi
       .fn()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: [
           {
@@ -46,12 +44,9 @@ describe('DebuggerManager scope core helpers', () => {
           },
         ],
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: [{ name: 'name', value: { type: 'string', value: 'alice' } }],
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: true,
       cdpSession: { send },
@@ -85,8 +80,6 @@ describe('DebuggerManager scope core helpers', () => {
   });
 
   it('maps expired object handles to a stable reacquire message', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: true,
       cdpSession: {
@@ -103,8 +96,6 @@ describe('DebuggerManager scope core helpers', () => {
   });
 
   it('returns safe defaults for nested properties and enforces debugger prerequisites', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: false,
       cdpSession: null,
@@ -114,9 +105,7 @@ describe('DebuggerManager scope core helpers', () => {
     await expect(getScopeVariablesCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
     expect(await getObjectPropertiesCore(ctx, 'obj-1', 0)).toEqual([]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.enabled = true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession = {
       send: vi.fn(async () => {
         throw new Error('boom');

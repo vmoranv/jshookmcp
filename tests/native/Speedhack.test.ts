@@ -8,7 +8,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Speedhack } from '@native/Speedhack';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   openProcessForMemory: vi.fn(() => 1n),
   CloseHandle: vi.fn(() => true),
@@ -27,7 +26,6 @@ vi.mock('@native/Win32API', () => ({
   MEM: { COMMIT: 0x1000, RESERVE: 0x2000, RELEASE: 0x8000 },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32Debug', () => ({
   FlushInstructionCache: vi.fn(),
 }));

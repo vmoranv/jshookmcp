@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// oxlint-disable-next-line import/no-unassigned-import
-import '../shared/manifest-test-mocks';
+import { manifestTestMocksInstalled } from '../shared/manifest-test-mocks';
+
+void manifestTestMocksInstalled;
 
 describe('server/domains/browser/manifest', () => {
   beforeEach(() => {
@@ -19,9 +20,7 @@ describe('server/domains/browser/manifest', () => {
         domain: 'browser',
         depKey: 'browserHandlers',
         profiles: ['workflow', 'full'],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ensure: expect.any(Function),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         registrations: expect.any(Array),
       }),
     );
@@ -138,8 +137,6 @@ describe('server/domains/browser/manifest', () => {
       consoleMonitor: {},
       llm: {},
       browserHandlers: undefined,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const result = manifest.ensure(ctx);
@@ -159,8 +156,6 @@ describe('server/domains/browser/manifest', () => {
       consoleMonitor: {},
       llm: {},
       browserHandlers: existingHandlers,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const result = manifest.ensure(ctx);

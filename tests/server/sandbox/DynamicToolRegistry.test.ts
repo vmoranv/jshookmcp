@@ -9,6 +9,8 @@ function createMockContext(): MCPServerContext {
   } as unknown as MCPServerContext;
 }
 
+const resultHandler = async () => 'result';
+
 describe('DynamicToolRegistry', () => {
   it('registers tool with sandbox_ prefix', () => {
     const ctx = createMockContext();
@@ -62,13 +64,11 @@ describe('DynamicToolRegistry', () => {
     const ctx = createMockContext();
     const registry = new DynamicToolRegistry(ctx);
 
-    // oxlint-disable-next-line consistent-function-scoping
-    const handler = async () => 'result';
-    registry.registerDynamicTool('test', 'Test', handler);
+    registry.registerDynamicTool('test', 'Test', resultHandler);
 
     const entry = registry.getHandler('sandbox_test');
     expect(entry).toBeDefined();
-    expect(entry!.handler).toBe(handler);
+    expect(entry!.handler).toBe(resultHandler);
   });
 
   it('clearAll removes all dynamic tools', () => {

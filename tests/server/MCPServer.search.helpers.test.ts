@@ -21,35 +21,27 @@ const mocks = vi.hoisted(() => ({
     { domain: 'browser', tool: tool('page_navigate') },
     { domain: 'network', tool: tool('network_get_requests') },
   ],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   engineInstances: [] as any[],
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   allTools: mocks.allTools,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/registry/index', () => ({
   getAllRegistrations: () => mocks.registrations,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@src/constants')>()),
   SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 1.5,
   SEARCH_VECTOR_ENABLED: false,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolSearch', () => ({
   ToolSearchEngine: class MockToolSearchEngine {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     public args: any[];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     constructor(...args: any[]) {
       this.args = args;
       mocks.engineInstances.push(this);
@@ -75,8 +67,6 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     extensionWorkflowRuntimeById: new Map(),
     config: { search: structuredClone(DEFAULT_SEARCH_CONFIG) },
     ...overrides,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -156,18 +146,14 @@ describe('MCPServer.search.helpers', () => {
 
     expect(first).toBe(second);
     expect(mocks.engineInstances).toHaveLength(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(mocks.engineInstances[0].args[0]).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: 'browser_launch' }),
         expect.objectContaining({ name: 'custom_tool' }),
       ]),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(mocks.engineInstances[0].args[1]).toEqual(new Map([['custom_tool', 'workflow']]));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(mocks.engineInstances[0].args[2]).toEqual(new Map([['workflow', 1.5]]));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(mocks.engineInstances[0].args[3]).toEqual(
       new Map([
         ['custom_tool', 1.12],
@@ -176,7 +162,6 @@ describe('MCPServer.search.helpers', () => {
       ]),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.extensionWorkflowRuntimeById.set('wf-2', {});
     const third = getSearchEngine(ctx);
     expect(third).not.toBe(first);

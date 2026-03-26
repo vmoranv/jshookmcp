@@ -6,7 +6,6 @@ const mockBuildHookCode = vi.hoisted(() =>
   ),
 );
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/hooks/preset-builder', () => ({
   buildHookCode: mockBuildHookCode,
 }));
@@ -17,7 +16,6 @@ import { SECURITY_PRESETS } from '@server/domains/hooks/preset-definitions.secur
 
 describe('PRESETS (combined)', () => {
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockBuildHookCode.mockClear();
   });
 

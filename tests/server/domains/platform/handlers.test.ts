@@ -16,78 +16,46 @@ const bridgeMocks = {
 
 const toolRegistryCtor = vi.fn();
 const externalRunnerCtor = vi.fn();
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const miniappCtor = vi.fn<(...args: any[]) => any>(() => miniappMocks);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const electronCtor = vi.fn<(...args: any[]) => any>(() => electronMocks);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const bridgeCtor = vi.fn<(...args: any[]) => any>(() => bridgeMocks);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/external/ToolRegistry', () => ({
-  // oxlint-disable-next-line no-extraneous-class
-  ToolRegistry: class {
-    constructor() {
-      toolRegistryCtor();
-    }
+  ToolRegistry: function ToolRegistryMock() {
+    toolRegistryCtor();
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/external/ExternalToolRunner', () => ({
-  // oxlint-disable-next-line no-extraneous-class
-  ExternalToolRunner: class {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    constructor(registry: any) {
-      externalRunnerCtor(registry);
-    }
+  ExternalToolRunner: function ExternalToolRunnerMock(registry: any) {
+    externalRunnerCtor(registry);
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/platform/handlers/miniapp-handlers', () => ({
-  // oxlint-disable-next-line no-extraneous-class
-  MiniappHandlers: class {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    constructor(runner: any, collector: any) {
-      miniappCtor(runner, collector);
-      return miniappMocks;
-    }
+  MiniappHandlers: function MiniappHandlersMock(runner: any, collector: any) {
+    miniappCtor(runner, collector);
+    return miniappMocks;
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/platform/handlers/electron-handlers', () => ({
-  // oxlint-disable-next-line no-extraneous-class
-  ElectronHandlers: class {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    constructor(collector: any) {
-      electronCtor(collector);
-      return electronMocks;
-    }
+  ElectronHandlers: function ElectronHandlersMock(collector: any) {
+    electronCtor(collector);
+    return electronMocks;
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/platform/handlers/bridge-handlers', () => ({
-  // oxlint-disable-next-line no-extraneous-class
-  BridgeHandlers: class {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    constructor(runner: any) {
-      bridgeCtor(runner);
-      return bridgeMocks;
-    }
+  BridgeHandlers: function BridgeHandlersMock(runner: any) {
+    bridgeCtor(runner);
+    return bridgeMocks;
   },
 }));
 
 import { PlatformToolHandlers } from '@server/domains/platform/handlers';
 
 describe('PlatformToolHandlers', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const collector = { getActivePage: vi.fn() } as any;
 
   beforeEach(() => {

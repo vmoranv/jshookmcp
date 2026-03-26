@@ -9,7 +9,6 @@ describe('memory/monitor', () => {
 
   it('start returns monitor id and polls with provided interval', async () => {
     const manager = new MemoryMonitorManager();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readMemory = vi.fn().mockResolvedValue({ success: true, data: 'AA' });
     const id = manager.start(1, '0x10', 4, 1000, readMemory);
 
@@ -24,9 +23,7 @@ describe('memory/monitor', () => {
     const manager = new MemoryMonitorManager();
     const readMemory = vi
       .fn()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ success: true, data: 'AA' })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ success: true, data: 'BB' });
     const onChange = vi.fn();
     const id = manager.start(2, '0x20', 4, 500, readMemory, onChange);
@@ -40,7 +37,6 @@ describe('memory/monitor', () => {
 
   it('does not fire onChange when value remains the same', async () => {
     const manager = new MemoryMonitorManager();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readMemory = vi.fn().mockResolvedValue({ success: true, data: 'AA' });
     const onChange = vi.fn();
     const id = manager.start(3, '0x30', 4, 400, readMemory, onChange);
@@ -53,18 +49,15 @@ describe('memory/monitor', () => {
 
   it('stop returns true for active monitor and prevents further polling', async () => {
     const manager = new MemoryMonitorManager();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readMemory = vi.fn().mockResolvedValue({ success: true, data: 'AA' });
     const id = manager.start(4, '0x40', 4, 300, readMemory);
 
     await vi.advanceTimersByTimeAsync(600);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const callsBeforeStop = readMemory.mock.calls.length;
     const stopped = manager.stop(id);
     await vi.advanceTimersByTimeAsync(900);
 
     expect(stopped).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(readMemory.mock.calls.length).toBe(callsBeforeStop);
   });
 

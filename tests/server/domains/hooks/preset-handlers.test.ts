@@ -16,8 +16,6 @@ describe('HookPresetToolHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handlers = new HookPresetToolHandlers(pageController as any);
   });
 
@@ -33,11 +31,8 @@ describe('HookPresetToolHandlers', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.presets.some((preset: { id: string }) => preset.id === 'eval')).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.presets.some((preset: { id: string }) => preset.id === 'deobfuscation-sinks')).toBe(
       true,
     );
@@ -64,12 +59,9 @@ describe('HookPresetToolHandlers', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.injected).toEqual(['zero-trust-fetch']);
     expect(page.evaluate).toHaveBeenCalledOnce();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.evaluate.mock.calls[0]![0]).toContain('preset-zero-trust-fetch');
   });
 
@@ -84,9 +76,7 @@ describe('HookPresetToolHandlers', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('conflicts with built-in preset');
   });
 });

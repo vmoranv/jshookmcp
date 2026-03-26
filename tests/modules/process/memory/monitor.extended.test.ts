@@ -15,7 +15,6 @@ describe('MemoryMonitorManager', () => {
   });
 
   it('start returns a unique monitor ID', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readFn = vi.fn().mockResolvedValue({ success: true, data: 'AABB' });
     const id = manager.start(100, '0x1000', 4, 1000, readFn);
 
@@ -24,7 +23,6 @@ describe('MemoryMonitorManager', () => {
   });
 
   it('calls readMemoryFn on each interval tick', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readFn = vi.fn().mockResolvedValue({ success: true, data: 'AABB' });
     const id = manager.start(100, '0x1000', 4, 500, readFn);
 
@@ -41,11 +39,8 @@ describe('MemoryMonitorManager', () => {
   it('invokes onChange when value changes after initial read', async () => {
     const readFn = vi
       .fn()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ success: true, data: 'AA' })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ success: true, data: 'BB' })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ success: true, data: 'BB' });
 
     const onChange = vi.fn();
@@ -69,9 +64,7 @@ describe('MemoryMonitorManager', () => {
   it('does not invoke onChange when read fails', async () => {
     const readFn = vi
       .fn()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ success: true, data: 'AA' })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ success: false, error: 'read error' });
 
     const onChange = vi.fn();
@@ -86,7 +79,6 @@ describe('MemoryMonitorManager', () => {
   });
 
   it('stop returns true for active monitor and false for unknown', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readFn = vi.fn().mockResolvedValue({ success: true, data: 'AA' });
     const id = manager.start(100, '0x1000', 4, 1000, readFn);
 
@@ -96,7 +88,6 @@ describe('MemoryMonitorManager', () => {
   });
 
   it('stops polling after monitor is stopped', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readFn = vi.fn().mockResolvedValue({ success: true, data: 'AA' });
     const id = manager.start(100, '0x1000', 4, 200, readFn);
 
@@ -110,9 +101,7 @@ describe('MemoryMonitorManager', () => {
   });
 
   it('supports multiple concurrent monitors', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readFn1 = vi.fn().mockResolvedValue({ success: true, data: 'AA' });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readFn2 = vi.fn().mockResolvedValue({ success: true, data: 'BB' });
 
     const id1 = manager.start(100, '0x1000', 4, 100, readFn1);
@@ -128,7 +117,6 @@ describe('MemoryMonitorManager', () => {
   });
 
   it('uses default size of 4 and interval of 1000', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const readFn = vi.fn().mockResolvedValue({ success: true, data: 'AA' });
     const id = manager.start(100, '0x1000', undefined, undefined, readFn);
 

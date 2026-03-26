@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -14,9 +13,7 @@ vi.mock('@src/utils/logger', () => ({
 import { ScriptManager } from '@modules/debugger/ScriptManager';
 
 function createSession() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const listeners = new Map<string, Set<(payload: any) => void>>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const send = vi.fn(async (method: string, params?: any) => {
     if (method === 'Debugger.getScriptSource') {
       return {
@@ -31,13 +28,11 @@ function createSession() {
     }
     return { params };
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const on = vi.fn((event: string, handler: (payload: any) => void) => {
     const group = listeners.get(event) ?? new Set();
     group.add(handler);
     listeners.set(event, group);
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const emit = (event: string, payload: any) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
@@ -47,10 +42,7 @@ function createSession() {
       send,
       on,
       off: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       detach: vi.fn().mockResolvedValue(undefined),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any,
     send,
     emit,
@@ -63,12 +55,8 @@ describe('ScriptManager', () => {
 
   beforeEach(async () => {
     cdp = createSession();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const page = { createCDPSession: vi.fn().mockResolvedValue(cdp.session) };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const collector = { getActivePage: vi.fn().mockResolvedValue(page) };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     manager = new ScriptManager(collector as any);
     await manager.init();
   });
@@ -107,7 +95,6 @@ describe('ScriptManager', () => {
 
   it('loads multiple script sources concurrently in getAllScripts', async () => {
     const pendingResolvers: Array<() => void> = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     cdp.send.mockImplementation((method: string, params?: any) => {
       if (method === 'Debugger.getScriptSource') {
         return new Promise((resolve) => {
@@ -138,7 +125,6 @@ describe('ScriptManager', () => {
     await Promise.resolve();
 
     expect(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       cdp.send.mock.calls.filter(([method]) => method === 'Debugger.getScriptSource'),
     ).toHaveLength(3);
 

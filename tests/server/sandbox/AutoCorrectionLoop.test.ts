@@ -6,7 +6,6 @@ import type { SandboxResult } from '@server/sandbox/types';
 function createMockSandbox(results: SandboxResult[]): QuickJSSandbox {
   let callIndex = 0;
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     execute: vi.fn().mockImplementation(async () => {
       const result = results[callIndex] ?? results[results.length - 1];
       callIndex++;
@@ -58,7 +57,6 @@ describe('AutoCorrectionLoop', () => {
     expect(sandbox.execute).toHaveBeenCalledTimes(2);
 
     // Second call should include error context
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const secondCall = (sandbox.execute as ReturnType<typeof vi.fn>).mock.calls[1]!;
     expect(secondCall[0]).toContain('Previous error');
     expect(secondCall[0]).toContain('ReferenceError');

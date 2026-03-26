@@ -3,8 +3,6 @@ import { EncodingHandlersBase } from '@server/domains/encoding/handlers.base';
 
 class TestableFormat extends EncodingHandlersBase {
   constructor() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     super(null as any);
   }
 
@@ -49,14 +47,12 @@ class TestableFormat extends EncodingHandlersBase {
   }
 
   // Not part of the requested "pure utility" list, but still protected on the class.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public renderDecodedOutput(params: any) {
     return super.renderDecodedOutput(params);
   }
   public ok(payload: Record<string, unknown>) {
     return super.ok(payload);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public fail(tool: string, error: any) {
     return super.fail(tool, error);
   }
@@ -507,7 +503,6 @@ describe('EncodingHandlersBase (format utilities)', () => {
       expect(format.toSafeUtf8(Buffer.from('\uFFFD', 'utf8'))).toBeNull();
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     it('returns null when valid text contains U+FFFD anywhere', () => {
       expect(format.toSafeUtf8(Buffer.from(`ok\uFFFD`, 'utf8'))).toBeNull();
     });

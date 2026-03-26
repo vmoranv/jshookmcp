@@ -11,36 +11,30 @@ const { mockEnsureWorkflowsLoaded } = vi.hoisted(() => ({
   mockEnsureWorkflowsLoaded: vi.fn(async () => undefined),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: mockIsSsrfTarget,
   isPrivateHost: mockIsPrivateHost,
   isLoopbackHost: mockIsLoopbackHost,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:dns/promises', () => ({
   lookup: mockLookup,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),
   writeFile: vi.fn(async () => undefined),
   realpath: vi.fn(async (p: string) => p),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/outputPaths', () => ({
   getProjectRoot: vi.fn(() => '/project'),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/extensions/ExtensionManager', () => ({
   ensureWorkflowsLoaded: mockEnsureWorkflowsLoaded,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/workflows/WorkflowEngine', () => ({
   executeExtensionWorkflow: vi.fn(),
 }));
@@ -99,7 +93,6 @@ class TestWorkflowHandlersBase extends WorkflowHandlersBase {
     steps: string[];
     warnings: string[];
     totalCaptured: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     authFindings: any[];
     harExported: boolean;
     harOutputPath?: string;
@@ -107,12 +100,10 @@ class TestWorkflowHandlersBase extends WorkflowHandlersBase {
     return this.buildWebApiCaptureReportMarkdown(args);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public getOptionalStringExposed(value: any): string | undefined {
     return this.getOptionalString(value);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public getOptionalRecordExposed(value: any): Record<string, unknown> | undefined {
     return this.getOptionalRecord(value);
   }
@@ -205,9 +196,7 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowScriptRegisterResponse>(
         await handlers.handlePageScriptRegister({ name: '', code: 'x' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('name and code are required');
     });
 
@@ -215,7 +204,6 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowScriptRegisterResponse>(
         await handlers.handlePageScriptRegister({ name: 'test', code: '' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
     });
 
@@ -223,7 +211,6 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowScriptRegisterResponse>(
         await handlers.handlePageScriptRegister({}),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
     });
 
@@ -236,15 +223,10 @@ describe('WorkflowHandlersBase', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.action).toBe('registered');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.name).toBe('my_script');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.description).toBe('A test script');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.available).toContain('my_script');
     });
 
@@ -262,9 +244,7 @@ describe('WorkflowHandlersBase', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.action).toBe('updated');
     });
 
@@ -301,7 +281,6 @@ describe('WorkflowHandlersBase', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       const registry = handlers.scriptRegistryExposed;
       expect(registry.has('overflow_script')).toBe(true);
@@ -317,9 +296,7 @@ describe('WorkflowHandlersBase', () => {
         }),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.description).toBe('');
     });
   });
@@ -331,16 +308,12 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowScriptRunResponse>(
         await handlers.handlePageScriptRun({ name: 'nonexistent' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('not found');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(Array.isArray(body.available)).toBe(true);
     });
 
     it('runs script without params', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue({
         content: [{ type: 'text', text: JSON.stringify({ value: 'ok' }) }],
       });
@@ -356,7 +329,6 @@ describe('WorkflowHandlersBase', () => {
     });
 
     it('injects params when provided', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue({
         content: [{ type: 'text', text: JSON.stringify({ value: 'ok' }) }],
       });
@@ -371,14 +343,12 @@ describe('WorkflowHandlersBase', () => {
         params: { key: 'value' },
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('__params__');
       expect(call.code).toContain('JSON.parse');
     });
 
     it('returns error when script execution throws', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockRejectedValue(
         new Error('Eval failed'),
       );
@@ -391,16 +361,12 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowScriptRunResponse>(
         await handlers.handlePageScriptRun({ name: 'failing' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Eval failed');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.script).toBe('failing');
     });
 
     it('runs built-in auth_extract script', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue({
         content: [{ type: 'text', text: JSON.stringify({ token: 'abc' }) }],
       });
@@ -668,9 +634,7 @@ describe('WorkflowHandlersBase', () => {
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe('text');
       const parsed = JSON.parse(result.content[0].text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.data).toBe('test');
     });
   });
@@ -686,9 +650,7 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowListExtensionsResponse>(
         await h.handleListExtensionWorkflows(),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('unavailable');
     });
 
@@ -697,11 +659,8 @@ describe('WorkflowHandlersBase', () => {
         await handlers.handleListExtensionWorkflows(),
       );
       expect(mockEnsureWorkflowsLoaded).toHaveBeenCalledWith(deps.serverContext);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows).toEqual([]);
     });
 
@@ -743,13 +702,9 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowListExtensionsResponse>(
         await handlers.handleListExtensionWorkflows(),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.count).toBe(2);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows[0].id).toBe('a-workflow');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows[0].route).toEqual({
         kind: 'workflow',
         triggerPatterns: ['alpha'],
@@ -764,7 +719,6 @@ describe('WorkflowHandlersBase', () => {
           },
         ],
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.workflows[1].id).toBe('z-workflow');
     });
 
@@ -807,9 +761,7 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowRunExtensionResponse>(
         await h.handleRunExtensionWorkflow({ workflowId: 'test' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('unavailable');
     });
 
@@ -817,9 +769,7 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowRunExtensionResponse>(
         await handlers.handleRunExtensionWorkflow({}),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('workflowId is required');
     });
 
@@ -828,11 +778,8 @@ describe('WorkflowHandlersBase', () => {
         await handlers.handleRunExtensionWorkflow({ workflowId: 'nonexistent' }),
       );
       expect(mockEnsureWorkflowsLoaded).toHaveBeenCalledWith(deps.serverContext);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('not found');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(Array.isArray(body.available)).toBe(true);
     });
 
@@ -840,9 +787,7 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowRunExtensionResponse>(
         await handlers.handleRunExtensionWorkflow({ id: 'nonexistent' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('nonexistent');
     });
 
@@ -884,14 +829,11 @@ describe('WorkflowHandlersBase', () => {
     it('handles workflow execution failure', async () => {
       const ctx = deps.serverContext as MCPServerContext;
       ctx.extensionWorkflowRuntimeById.set('failing', {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         workflow: {} as any,
         source: 'fail.ts',
       });
 
       const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(executeExtensionWorkflow).mockRejectedValue(
         new Error('Workflow execution timeout'),
       );
@@ -899,9 +841,7 @@ describe('WorkflowHandlersBase', () => {
       const body = parseJson<WorkflowRunExtensionResponse>(
         await handlers.handleRunExtensionWorkflow({ workflowId: 'failing' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('Workflow execution timeout');
     });
   });

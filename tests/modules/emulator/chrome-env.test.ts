@@ -362,7 +362,6 @@ describe('chromeEnvironmentTemplate', () => {
     });
 
     it('localStorage getItem returns null and key returns null', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(chromeEnvironmentTemplate.storage.localStorage.getItem('any')).toBeNull();
       expect(chromeEnvironmentTemplate.storage.localStorage.key(0)).toBeNull();
     });

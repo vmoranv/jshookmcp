@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 type Listener = (payload: any) => void;
 
 const sandboxState = vi.hoisted(() => {
@@ -20,7 +19,6 @@ const sandboxState = vi.hoisted(() => {
       return this;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     emit(event: string, payload?: any) {
       const callbacks = this.listeners.get(event) ?? [];
       callbacks.forEach((callback) => callback(payload));
@@ -33,7 +31,6 @@ const sandboxState = vi.hoisted(() => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:worker_threads', () => ({
   Worker: class WorkerCtor {
     private readonly inner: InstanceType<typeof sandboxState.WorkerMock>;
@@ -52,9 +49,7 @@ vi.mock('node:worker_threads', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/concurrency', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   cpuLimit: vi.fn(async (fn: () => Promise<any> | unknown) => fn()),
 }));
 

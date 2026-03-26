@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -14,14 +13,11 @@ vi.mock('@src/utils/logger', () => ({
 import { XHRBreakpointManager } from '@modules/debugger/XHRBreakpointManager';
 
 describe('XHRBreakpointManager', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let session: any;
   let manager: XHRBreakpointManager;
 
   beforeEach(() => {
     session = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send: vi.fn().mockResolvedValue({}),
       on: vi.fn(),
       off: vi.fn(),
@@ -35,7 +31,6 @@ describe('XHRBreakpointManager', () => {
 
     expect(id).toBe('xhr_1');
     expect(manager.getXHRBreakpoint(id)?.urlPattern).toBe('/api/');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(session.send).toHaveBeenCalledWith('DOMDebugger.setXHRBreakpoint', { url: '/api/' });
   });
 
@@ -49,15 +44,12 @@ describe('XHRBreakpointManager', () => {
 
     expect(removed).toBe(true);
     expect(manager.getXHRBreakpoint(id)).toBeUndefined();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(session.send).toHaveBeenCalledWith('DOMDebugger.removeXHRBreakpoint', { url: '/v1/' });
   });
 
   it('clearAll removes all known breakpoints even when a removal fails', async () => {
     await manager.setXHRBreakpoint('/a/');
     await manager.setXHRBreakpoint('/b/');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session.send.mockRejectedValueOnce(new Error('remove failed'));
 
     await manager.clearAllXHRBreakpoints();
@@ -65,7 +57,6 @@ describe('XHRBreakpointManager', () => {
   });
 
   it('close delegates to clearAllXHRBreakpoints', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const spy = vi.spyOn(manager, 'clearAllXHRBreakpoints').mockResolvedValue(undefined);
     await manager.close();
     expect(spy).toHaveBeenCalledTimes(1);

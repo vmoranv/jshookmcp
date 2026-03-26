@@ -12,17 +12,14 @@ const promptState = vi.hoisted(() => ({
   generateVMAnalysisMessages: vi.fn(() => [{ role: 'user', content: 'analyze vm' }]),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@services/prompts/deobfuscation', () => ({
   generateVMAnalysisMessages: promptState.generateVMAnalysisMessages,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/security/ExecutionSandbox', () => ({
   ExecutionSandbox: {},
 }));
@@ -35,15 +32,12 @@ import {
 describe('JSVMPDeobfuscator.restore', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => fn.mockReset());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateVMAnalysisMessages.mockClear();
   });
 
   it('restores obfuscator.io string-array references through the sandbox', async () => {
     const sandbox = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       execute: vi.fn().mockResolvedValue({
         ok: true,
         output: ['hello', 'world'],
@@ -51,8 +45,6 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       { sandbox } as any,
       'var _0xabc=["hello","world"];console.log(_0xabc[1],0x10);',
       'obfuscator.io',
@@ -74,8 +66,6 @@ describe('JSVMPDeobfuscator.restore', () => {
       execute: vi.fn(),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = await restoreJSVMPCode({ sandbox } as any, '+[]'.repeat(50001), 'jsfuck', false);
 
     expect(sandbox.execute).not.toHaveBeenCalled();
@@ -90,15 +80,12 @@ describe('JSVMPDeobfuscator.restore', () => {
 
   it('returns decoded JSFuck output when the sandbox resolves to a string', async () => {
     const sandbox = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       execute: vi.fn().mockResolvedValue({
         ok: true,
         output: 'decoded-jsfuck',
       }),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = await restoreJSVMPCode({ sandbox } as any, '[]+[]', 'jsfuck', false);
 
     expect(sandbox.execute).toHaveBeenCalledWith({
@@ -114,7 +101,6 @@ describe('JSVMPDeobfuscator.restore', () => {
 
   it('returns decoded JJEncode output when the sandbox invocation succeeds', async () => {
     const sandbox = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       execute: vi.fn().mockResolvedValue({
         ok: true,
         output: 'decoded-jjencode',
@@ -122,8 +108,6 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       { sandbox } as any,
       'var message = 1;\n$$$$',
       'jjencode',
@@ -147,8 +131,6 @@ describe('JSVMPDeobfuscator.restore', () => {
     };
 
     const result = await restoreJSVMPCode(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       { sandbox } as any,
       'debugger; "" + value; if (a) {}',
       'custom',
@@ -179,7 +161,6 @@ describe('JSVMPDeobfuscator.restore', () => {
       execute: vi.fn(),
     };
     const llm = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       chat: vi.fn().mockResolvedValue({
         content: JSON.stringify({
           vmType: 'stack-vm',
@@ -189,8 +170,6 @@ describe('JSVMPDeobfuscator.restore', () => {
       }),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = await restoreJSVMPCode({ llm, sandbox } as any, 'vm();', 'custom', false);
 
     expect(promptState.generateVMAnalysisMessages).toHaveBeenCalledWith('vm();');
@@ -212,15 +191,12 @@ describe('JSVMPDeobfuscator.restore', () => {
       execute: vi.fn(),
     };
     const llm = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       chat: vi.fn().mockResolvedValue({
         content: 'not-json',
       }),
     };
 
     const result = await restoreJSVMPCode(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       { llm, sandbox } as any,
       'debugger; "" + value;',
       'custom',
@@ -241,8 +217,6 @@ describe('JSVMPDeobfuscator.restore', () => {
       'debugger; if (flag) {} "" + value; cond ? same : same;',
       true,
       warnings,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       unresolvedParts as any,
     );
 

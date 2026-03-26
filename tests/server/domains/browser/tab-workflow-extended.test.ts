@@ -4,7 +4,6 @@ import type { TabWorkflowResponse } from '@tests/shared/common-test-types';
 
 import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -15,17 +14,11 @@ vi.mock('@utils/logger', () => ({
 }));
 
 interface PageMock {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   goto: Mock<(url: string, options?: any) => Promise<void>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   waitForSelector: Mock<(selector: string, options?: any) => Promise<void>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   evaluate: Mock<(fn: any) => Promise<any>>;
   url: Mock<() => string>;
   title: Mock<() => Promise<string>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   context?: Mock<() => any>;
 }
 
@@ -41,38 +34,22 @@ function createPage(overrides: Partial<PageMock> = {}): PageMock {
 }
 
 interface TabRegistryMock {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   getCurrentTabInfo: Mock<() => any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   getSharedContextMap: Mock<() => any>;
   clear: Mock<() => void>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   bindAliasByIndex: Mock<(alias: string, index: number) => any>;
   reconcilePages: Mock<() => void>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   registerPage: Mock<(page: any) => string>;
   bindAlias: Mock<(alias: string, pageId: string) => void>;
   resolveAlias: Mock<(alias: string) => string | null>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   getPageById: Mock<(id: string) => any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   setSharedContext: Mock<(key: string, value: any) => void>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   getSharedContext: Mock<(key: string) => any>;
 }
 
 describe('TabWorkflowHandlers — extended coverage', () => {
   let activeDriver: 'chrome' | 'camoufox';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let camoufoxPage: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let pageController: { getBrowser: Mock<() => Promise<any>> };
   let registry: TabRegistryMock;
   let handlers: TabWorkflowHandlers;
@@ -107,10 +84,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     handlers = new TabWorkflowHandlers({
       getActiveDriver: () => activeDriver,
       getCamoufoxPage: async () => camoufoxPage,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getPageController: () => pageController as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getTabRegistry: () => registry as any,
     });
   });
@@ -121,9 +95,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'alias_bind', index: '0' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('alias is required');
   });
 
@@ -131,9 +103,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'alias_bind', alias: 'main' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('index is required');
   });
 
@@ -142,17 +112,13 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       newPage: vi.fn(),
       pages: vi.fn(async () => []),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getBrowser.mockResolvedValueOnce(browser);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.bindAliasByIndex.mockReturnValueOnce(null);
 
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'alias_bind', alias: 'tab', index: 99 }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('No active page at index');
   });
 
@@ -162,9 +128,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'alias_open', url: 'https://test.com' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('alias is required');
   });
 
@@ -172,9 +136,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'alias_open', alias: 'new-tab' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('url is required');
   });
 
@@ -187,9 +149,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       newPage: vi.fn(async () => newPage),
       pages: vi.fn(async () => [createPage(), newPage]),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getBrowser.mockResolvedValueOnce(browser);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.registerPage.mockReturnValueOnce('tab-3');
 
     const body = parseJson<TabWorkflowResponse>(
@@ -206,14 +166,11 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     });
     expect(registry.registerPage).toHaveBeenCalled();
     expect(registry.bindAlias).toHaveBeenCalledWith('app', 'tab-3');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.pageId).toBe('tab-3');
   });
 
   it('returns error when chrome browser is not accessible for alias_open', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getBrowser.mockResolvedValueOnce(null);
 
     const body = parseJson<TabWorkflowResponse>(
@@ -224,9 +181,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('browser instance not accessible');
   });
 
@@ -236,9 +191,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'navigate', url: 'https://test.com' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('alias is required');
   });
 
@@ -246,14 +199,11 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'navigate', alias: 'main' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('url is required');
   });
 
   it('returns error when navigate alias is not found', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.resolveAlias.mockReturnValueOnce(null);
 
     const body = parseJson<TabWorkflowResponse>(
@@ -264,9 +214,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('No tab found for alias');
   });
 
@@ -276,9 +224,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'wait_for', selector: '#btn' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('alias is required');
   });
 
@@ -286,17 +232,13 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'wait_for', alias: 'main' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('selector or waitForText is required');
   });
 
   it('uses custom timeout for wait_for', async () => {
     const page = createPage();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.resolveAlias.mockReturnValueOnce('tab-1');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getPageById.mockReturnValueOnce(page);
 
     const body = parseJson<TabWorkflowResponse>(
@@ -309,7 +251,6 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     );
 
     expect(page.waitForSelector).toHaveBeenCalledWith('#element', { timeout: 5000 });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
   });
 
@@ -319,9 +260,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'context_set', value: 'val' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('key is required');
   });
 
@@ -329,25 +268,19 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'context_get' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('key is required');
   });
 
   it('context_get returns found: false for missing keys', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getSharedContext.mockReturnValueOnce({ value: null, found: false });
 
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'context_get', key: 'missing' }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.found).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.value).toBeNull();
   });
 
@@ -361,9 +294,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
         expression: 'window.t',
       }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('fromAlias is required');
   });
 
@@ -375,9 +306,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
         expression: 'window.t',
       }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('key is required');
   });
 
@@ -389,14 +318,11 @@ describe('TabWorkflowHandlers — extended coverage', () => {
         key: 'token',
       }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('expression is required');
   });
 
   it('returns error when transfer alias does not exist', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.resolveAlias.mockReturnValueOnce(null);
 
     const body = parseJson<TabWorkflowResponse>(
@@ -408,9 +334,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('No tab found for alias');
   });
 
@@ -426,7 +350,6 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       })),
     });
     camoufoxPage = page;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.bindAliasByIndex.mockReturnValueOnce('tab-cf-1');
 
     const body = parseJson<TabWorkflowResponse>(
@@ -438,11 +361,8 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     );
 
     expect(registry.reconcilePages).toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     if (body.bound) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.bound.alias).toBe('main');
     }
   });
@@ -460,16 +380,13 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('camoufox page context not accessible');
   });
 
   // ─── list with stale aliases ──────────────────────────────────────
 
   it('includes stale aliases in list output', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getCurrentTabInfo.mockReturnValueOnce({
       aliases: [{ alias: 'main', pageId: 'tab-1', index: 0, stale: false }],
       staleAliases: [{ alias: 'old', pageId: 'tab-0', index: 0, stale: true }],
@@ -478,22 +395,16 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       url: 'https://app.test',
       title: 'App',
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.getSharedContextMap.mockReturnValueOnce({});
 
     const body = parseJson<TabWorkflowResponse>(
       await handlers.handleTabWorkflow({ action: 'list' }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     if (body.aliases && body.staleAliases) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.aliases).toHaveLength(1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.staleAliases).toHaveLength(1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.staleAliases[0].alias).toBe('old');
     }
   });
@@ -501,7 +412,6 @@ describe('TabWorkflowHandlers — extended coverage', () => {
   // ─── error handler catch ──────────────────────────────────────────
 
   it('catches and returns errors thrown during action execution', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.resolveAlias.mockImplementation(() => {
       throw new Error('Registry exploded');
     });
@@ -514,9 +424,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('Registry exploded');
   });
 
@@ -527,9 +435,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       newPage: vi.fn(),
       pages: vi.fn(async () => [createPage()]),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.getBrowser.mockResolvedValueOnce(browser);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registry.bindAliasByIndex.mockReturnValueOnce('tab-0');
 
     const body = parseJson<TabWorkflowResponse>(
@@ -541,7 +447,6 @@ describe('TabWorkflowHandlers — extended coverage', () => {
     );
 
     expect(registry.bindAliasByIndex).toHaveBeenCalledWith('first', 0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
   });
 
@@ -554,9 +459,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('index is required');
   });
 });

@@ -7,7 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -34,7 +33,6 @@ describe('ConsoleMonitor object cache helpers', () => {
       cdpSession: { send },
       objectCache: new Map(),
       MAX_OBJECT_CACHE_SIZE: 2,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extractValue: vi.fn((value: any) => value.value ?? `[${value.type}]`),
     };
 
@@ -50,19 +48,16 @@ describe('ConsoleMonitor object cache helpers', () => {
   });
 
   it('evicts the oldest cached entry when the cache is at capacity and can be cleared', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const send = vi.fn(async ({ objectId }: any) => ({
       result: [{ name: 'id', value: { type: 'string', value: objectId } }],
     }));
     const ctx = {
       ensureSession: vi.fn(async () => {}),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       cdpSession: { send: vi.fn(async (_method: string, params: any) => send(params)) },
       objectCache: new Map<string, Record<string, unknown>>([
         ['oldest', { id: { value: 'oldest', type: 'string' } }],
       ]),
       MAX_OBJECT_CACHE_SIZE: 1,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       extractValue: vi.fn((value: any) => value.value),
     };
 

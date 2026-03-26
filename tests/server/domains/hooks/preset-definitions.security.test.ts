@@ -6,7 +6,6 @@ const mockBuildHookCode = vi.hoisted(() =>
   ),
 );
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/hooks/preset-builder', () => ({
   buildHookCode: mockBuildHookCode,
 }));
@@ -17,7 +16,6 @@ const EXPECTED_SECURITY_IDS = ['anti-debug-bypass', 'crypto-key-capture', 'webas
 
 describe('SECURITY_PRESETS', () => {
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockBuildHookCode.mockClear();
   });
 
@@ -67,7 +65,6 @@ describe('SECURITY_PRESETS', () => {
       const result = SECURITY_PRESETS['anti-debug-bypass']!.buildCode(true, false);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'anti-debug-bypass',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         true,
         false,
@@ -79,7 +76,6 @@ describe('SECURITY_PRESETS', () => {
       const result = SECURITY_PRESETS['crypto-key-capture']!.buildCode(false, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'crypto-key-capture',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
         true,
@@ -91,7 +87,6 @@ describe('SECURITY_PRESETS', () => {
       const result = SECURITY_PRESETS['webassembly-full']!.buildCode(true, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'webassembly-full',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         true,
         true,
@@ -107,12 +102,10 @@ describe('SECURITY_PRESETS', () => {
       [false, true],
       [false, false],
     ] as const)('anti-debug-bypass preset with captureStack=%s, logToConsole=%s', (cs, lc) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS['anti-debug-bypass']!.buildCode(cs, lc);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'anti-debug-bypass',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         cs,
         lc,
@@ -128,10 +121,8 @@ describe('SECURITY_PRESETS', () => {
     it.each(PRESETS_WITH_PLACEHOLDERS)(
       '"%s" body passed to buildHookCode contains STACK_CODE and LOG_FN placeholders',
       (id) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         mockBuildHookCode.mockClear();
         SECURITY_PRESETS[id]!.buildCode(false, false);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
         expect(bodyArg).toContain('{{STACK_CODE}}');
         expect(bodyArg).toContain('{{LOG_FN}}');
@@ -139,10 +130,8 @@ describe('SECURITY_PRESETS', () => {
     );
 
     it('anti-debug-bypass body does not use standard placeholders', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS['anti-debug-bypass']!.buildCode(false, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
       expect(bodyArg).not.toContain('{{STACK_CODE}}');
       expect(bodyArg).not.toContain('{{LOG_FN}}');
@@ -151,10 +140,8 @@ describe('SECURITY_PRESETS', () => {
 
   describe('body templates reference the correct __aiHooks key', () => {
     it.each(EXPECTED_SECURITY_IDS)('"%s" body contains its __aiHooks collection key', (id) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS[id]!.buildCode(false, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
       expect(bodyArg).toContain(`preset-${id}`);
     });
@@ -188,10 +175,8 @@ describe('SECURITY_PRESETS', () => {
 
   describe('security preset body content characteristics', () => {
     it('anti-debug-bypass body contains debugger detection logic', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS['anti-debug-bypass']!.buildCode(false, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
       expect(bodyArg).toContain('debugger');
       expect(bodyArg).toContain('console.clear');
@@ -200,20 +185,16 @@ describe('SECURITY_PRESETS', () => {
     });
 
     it('crypto-key-capture body forces extractable:true', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS['crypto-key-capture']!.buildCode(false, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
       expect(bodyArg).toContain('importKey');
       expect(bodyArg).toContain('true');
     });
 
     it('webassembly-full body hooks WebAssembly.Memory', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS['webassembly-full']!.buildCode(false, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
       expect(bodyArg).toContain('WebAssembly.Memory');
       expect(bodyArg).toContain('memory_created');

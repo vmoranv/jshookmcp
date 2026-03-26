@@ -31,11 +31,9 @@ describe('network tool definitions', () => {
 
   it('every tool has a name, description, and inputSchema', () => {
     for (const tool of advancedTools) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(tool.name).toEqual(expect.any(String));
       expect(tool.name.length).toBeGreaterThan(0);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(tool.description).toEqual(expect.any(String));
       expect((tool.description ?? '').length).toBeGreaterThan(0);
 

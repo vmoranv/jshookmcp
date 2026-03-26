@@ -11,7 +11,6 @@ const state = vi.hoisted(() => ({
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   get allTools() {
     return state.allTools;
@@ -19,7 +18,6 @@ vi.mock('@server/ToolCatalog', () => ({
   getToolDomain: state.getToolDomain,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', () => ({
   SEARCH_TFIDF_COSINE_WEIGHT: 0.3,
   SEARCH_AFFINITY_BOOST_FACTOR: 0.2,
@@ -47,7 +45,6 @@ function makeTool(name: string, description: string): Tool {
 describe('search/ToolSearchEngineImpl', () => {
   beforeEach(() => {
     vi.resetModules();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.getToolDomain.mockClear();
     state.allTools = [
       makeTool('page_navigate', 'Navigate a page. Opens a URL in the current tab.'),
@@ -141,7 +138,6 @@ describe('search/ToolSearchEngineImpl', () => {
 describe('Hybrid Vector Search', () => {
   beforeEach(() => {
     vi.resetModules();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.getToolDomain.mockClear();
     state.allTools = [
       makeTool('page_navigate', 'Navigate a page'),

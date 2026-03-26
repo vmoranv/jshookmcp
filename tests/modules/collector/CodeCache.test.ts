@@ -175,7 +175,6 @@ describe('CodeCache', () => {
 
   it('warmup calls get for each provided URL', async () => {
     const cache = new CodeCache({ cacheDir });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const getSpy = vi.spyOn(cache, 'get').mockResolvedValue(null);
     await cache.warmup([
       'https://vmoranv.github.io/jshookmcp/one',

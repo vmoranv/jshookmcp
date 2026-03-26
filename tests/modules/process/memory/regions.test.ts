@@ -6,14 +6,12 @@ const state = vi.hoisted(() => ({
   execFileAsync: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
   execFileAsync: state.execFileAsync,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -33,11 +31,8 @@ import {
 describe('memory/regions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValue({ stdout: '', stderr: '' });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execFileAsync.mockResolvedValue({ stdout: '', stderr: '' });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({ stdout: '', stderr: '' });
   });
 
@@ -58,7 +53,6 @@ describe('memory/regions', () => {
   });
 
   it('parses successful darwin lldb dump output', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execFileAsync.mockResolvedValue({ stdout: '16 bytes written to file', stderr: '' });
     const result = await dumpMemoryRegion('darwin', 2, '0x20', 16, '/tmp/out.bin');
 
@@ -67,7 +61,6 @@ describe('memory/regions', () => {
   });
 
   it('enumerateRegions parses darwin vmmap output', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValue({
       stdout: 'MALLOC_LARGE  0000000100000000-0000000100001000 [  4K] rw-/rwx',
       stderr: '',
@@ -82,7 +75,6 @@ describe('memory/regions', () => {
   });
 
   it('checkMemoryProtection(darwin) returns not-found for unmatched address', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValue({
       stdout: 'STACK GUARD 0000000101000000-0000000101001000 [4K] r--/r--',
       stderr: '',
@@ -100,7 +92,6 @@ describe('memory/regions', () => {
   });
 
   it('enumerateModules parses PowerShell JSON on windows', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({
       stdout: '{"success":true,"modules":[{"name":"a.dll","baseAddress":"0x1000","size":4096}]}',
       stderr: '',

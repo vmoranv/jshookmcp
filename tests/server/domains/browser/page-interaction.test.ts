@@ -11,13 +11,10 @@ import type {
 import { PageInteractionHandlers } from '@server/domains/browser/handlers/page-interaction';
 
 interface CamoufoxPageMock {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   click: Mock<(selector: string, options: any) => Promise<void>>;
   fill: Mock<(selector: string, text: string) => Promise<void>>;
   hover: Mock<(selector: string) => Promise<void>>;
   selectOption: Mock<(selector: string, values: string[]) => Promise<string[]>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   evaluate: Mock<(fn: any, args?: any) => Promise<any>>;
   keyboard: {
     press: Mock<(key: string) => Promise<void>>;
@@ -38,9 +35,7 @@ function createCamoufoxPage(): CamoufoxPageMock {
 }
 
 interface PageControllerMock {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   click: Mock<(selector: string, options: any) => Promise<void>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   type: Mock<(selector: string, text: string, options: any) => Promise<void>>;
   select: Mock<(selector: string, ...values: string[]) => Promise<void>>;
   hover: Mock<(selector: string) => Promise<void>>;
@@ -70,8 +65,6 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
@@ -85,9 +78,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
       clickCount: 1,
       delay: undefined,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('#btn');
   });
 
@@ -105,92 +96,71 @@ describe('PageInteractionHandlers – handlePageClick', () => {
       clickCount: 2,
       delay: 100,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
   });
 
   it('returns error when selector is empty', async () => {
     const body = parseJson<PageClickResponse>(await handlers.handlePageClick({ selector: '' }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('selector parameter is required');
   });
 
   it('returns error when selector is whitespace-only', async () => {
     const body = parseJson<PageClickResponse>(await handlers.handlePageClick({ selector: '   ' }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
   });
 
   it('returns error when selector is missing', async () => {
     const body = parseJson<PageClickResponse>(await handlers.handlePageClick({}));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
   });
 
   it('treats navigation-triggering click errors as success', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('Execution context was destroyed'));
     const body = parseJson<PageClickResponse>(
       await handlers.handlePageClick({ selector: '#nav-link' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.navigated).toBe(true);
   });
 
   it('treats "detached" error as navigation success', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('Node is detached from document'));
     const body = parseJson<PageClickResponse>(
       await handlers.handlePageClick({ selector: '.link' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.navigated).toBe(true);
   });
 
   it('treats "timed out" error as navigation success', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('waiting for selector timed out'));
     const body = parseJson<PageClickResponse>(
       await handlers.handlePageClick({ selector: '.link' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.navigated).toBe(true);
   });
 
   it('treats "Target closed" error as navigation success', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('Target closed'));
     const body = parseJson<PageClickResponse>(
       await handlers.handlePageClick({ selector: '.link' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.navigated).toBe(true);
   });
 
   it('treats "callFunctionOn" error as navigation success', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('callFunctionOn failed'));
     const body = parseJson<PageClickResponse>(
       await handlers.handlePageClick({ selector: '.link' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.navigated).toBe(true);
   });
 
   it('re-throws non-navigation errors', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController.click.mockRejectedValueOnce(new Error('Element not visible'));
     await expect(handlers.handlePageClick({ selector: '#hidden' })).rejects.toThrow(
       'Element not visible',
@@ -200,12 +170,8 @@ describe('PageInteractionHandlers – handlePageClick', () => {
   it('clicks on camoufox driver', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCamoufoxPage: async () => camoPage as any,
     });
 
@@ -215,9 +181,7 @@ describe('PageInteractionHandlers – handlePageClick', () => {
       clickCount: 1,
       delay: undefined,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
   });
 
@@ -300,8 +264,6 @@ describe('PageInteractionHandlers – handlePageType', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
@@ -319,21 +281,15 @@ describe('PageInteractionHandlers – handlePageType', () => {
     expect(pageController.type).toHaveBeenCalledWith('#input', 'hello', {
       delay: 50,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('#input');
   });
 
   it('types on camoufox using fill', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCamoufoxPage: async () => camoPage as any,
     });
 
@@ -342,9 +298,7 @@ describe('PageInteractionHandlers – handlePageType', () => {
     );
     expect(camoPage.fill).toHaveBeenCalledWith('#email', 'test@a.com');
     expect(pageController.type).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
   });
 });
@@ -359,8 +313,6 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
@@ -375,23 +327,16 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
       }),
     );
     expect(pageController.select).toHaveBeenCalledWith('#dropdown', 'opt1', 'opt2');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('#dropdown');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('opt1');
   });
 
   it('selects on camoufox using selectOption', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCamoufoxPage: async () => camoPage as any,
     });
 
@@ -402,9 +347,7 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
       }),
     );
     expect(camoPage.selectOption).toHaveBeenCalledWith('#plan', ['premium']);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
   });
 });
@@ -419,8 +362,6 @@ describe('PageInteractionHandlers – handlePageHover', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
@@ -432,21 +373,15 @@ describe('PageInteractionHandlers – handlePageHover', () => {
       await handlers.handlePageHover({ selector: '#menu' }),
     );
     expect(pageController.hover).toHaveBeenCalledWith('#menu');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('#menu');
   });
 
   it('hovers on camoufox', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCamoufoxPage: async () => camoPage as any,
     });
 
@@ -454,9 +389,7 @@ describe('PageInteractionHandlers – handlePageHover', () => {
       await handlers.handlePageHover({ selector: '.tooltip' }),
     );
     expect(camoPage.hover).toHaveBeenCalledWith('.tooltip');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
   });
 });
@@ -471,8 +404,6 @@ describe('PageInteractionHandlers – handlePageScroll', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
@@ -484,21 +415,15 @@ describe('PageInteractionHandlers – handlePageScroll', () => {
       await handlers.handlePageScroll({ x: 0, y: 500 }),
     );
     expect(pageController.scroll).toHaveBeenCalledWith({ x: 0, y: 500 });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('y=500');
   });
 
   it('scrolls on camoufox via page.evaluate', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCamoufoxPage: async () => camoPage as any,
     });
 
@@ -506,25 +431,19 @@ describe('PageInteractionHandlers – handlePageScroll', () => {
       await handlers.handlePageScroll({ x: 10, y: 200 }),
     );
     expect(camoPage.evaluate).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(camoPage.evaluate.mock.calls[0]?.[1]).toEqual({
       x: 10,
       y: 200,
     });
     expect(pageController.scroll).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
   });
 
   it('defaults missing coordinates to 0', async () => {
     const body = parseJson<PageInteractionResponse>(await handlers.handlePageScroll({}));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('x=0');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('y=0');
   });
 });
@@ -539,8 +458,6 @@ describe('PageInteractionHandlers – handlePagePressKey', () => {
     vi.clearAllMocks();
     pageController = createPageController();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'chrome',
       getCamoufoxPage: async () => null,
@@ -552,21 +469,15 @@ describe('PageInteractionHandlers – handlePagePressKey', () => {
       await handlers.handlePagePressKey({ key: 'Enter' }),
     );
     expect(pageController.pressKey).toHaveBeenCalledWith('Enter');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.key).toBe('Enter');
   });
 
   it('presses a key on camoufox', async () => {
     const camoPage = createCamoufoxPage();
     handlers = new PageInteractionHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: pageController as any,
       getActiveDriver: () => 'camoufox',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getCamoufoxPage: async () => camoPage as any,
     });
 
@@ -575,11 +486,8 @@ describe('PageInteractionHandlers – handlePagePressKey', () => {
     );
     expect(camoPage.keyboard.press).toHaveBeenCalledWith('Escape');
     expect(pageController.pressKey).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.key).toBe('Escape');
   });
 });

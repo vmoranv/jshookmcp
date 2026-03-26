@@ -116,7 +116,6 @@ describe('ToolSearchEngine', () => {
   it('scores name matches higher than description matches', async () => {
     const engine = new ToolSearchEngine(testTools);
     const results = await engine.search('wasm');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // wasm_dump should score higher than anything that just mentions wasm in description
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]!.name).toBe('wasm_dump');

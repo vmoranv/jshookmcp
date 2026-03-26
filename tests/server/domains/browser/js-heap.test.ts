@@ -12,25 +12,20 @@ const { cdpLimitMock, smartHandleMock, loggerMocks } = vi.hoisted(() => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function noopChunkListener(_params: any): void {}
+
 vi.mock('@src/utils/concurrency', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   cdpLimit: (...args: any[]) => (cdpLimitMock as any)(...args),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/DetailedDataManager', () => ({
   DetailedDataManager: {
     getInstance: () => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       smartHandle: (...args: any[]) => (smartHandleMock as any)(...args),
     }),
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerMocks,
 }));
@@ -40,9 +35,7 @@ import { JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
 describe('JSHeapSearchHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     cdpLimitMock.mockImplementation(async (fn: () => Promise<any>) => fn());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     smartHandleMock.mockImplementation((value: any) => value);
   });
 
@@ -55,18 +48,14 @@ describe('JSHeapSearchHandlers', () => {
 
     const body = parseJson<BrowserStatusResponse>(await handlers.handleJSHeapSearch({}));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('pattern is required');
     expect(cdpLimitMock).not.toHaveBeenCalled();
     expect(getActivePage).not.toHaveBeenCalled();
   });
 
   it('takes a heap snapshot with default options and returns matched strings', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // oxlint-disable-next-line consistent-function-scoping
-    let chunkListener = (_params: any) => {};
+    let chunkListener = noopChunkListener;
     const snapshot = JSON.stringify({
       snapshot: {
         meta: {
@@ -86,7 +75,6 @@ describe('JSHeapSearchHandlers', () => {
           chunkListener({ chunk: snapshot.slice(midpoint) });
         }
       }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       on: vi.fn((event: string, listener: (params: any) => void) => {
         if (event === 'HeapProfiler.addHeapSnapshotChunk') {
           chunkListener = listener;
@@ -112,7 +100,6 @@ describe('JSHeapSearchHandlers', () => {
     expect(page.createCDPSession).toHaveBeenCalledOnce();
     expect(cdpSession.on).toHaveBeenCalledWith(
       'HeapProfiler.addHeapSnapshotChunk',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Function),
     );
     expect(cdpSession.send).toHaveBeenNthCalledWith(1, 'HeapProfiler.enable');
@@ -132,18 +119,14 @@ describe('JSHeapSearchHandlers', () => {
       }),
       51200,
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.matchCount).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.matches[0]).toMatchObject({
       nodeId: 101,
       nodeType: 'string',
       objectPath: '[HeapNode #101]',
       value: 'secret token',
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.tip).toContain('page_evaluate');
     expect(cdpSession.detach).toHaveBeenCalledOnce();
   });
@@ -176,9 +159,7 @@ describe('JSHeapSearchHandlers', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBe('snapshot failed');
     expect(cdpSession.detach).toHaveBeenCalledOnce();
   });

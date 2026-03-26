@@ -11,7 +11,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
@@ -40,13 +39,10 @@ class TestCaptchaDetector extends CaptchaDetector {
 interface PageMock {
   url: Mock<() => string>;
   title: Mock<() => Promise<string>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   $: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   evaluate: any;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createPage(overrides: Partial<PageMock> = {}): any {
   return {
     url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp'),
@@ -61,7 +57,6 @@ describe('CaptchaDetector', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => (fn as Mock).mockReset?.());
   });
 
@@ -122,7 +117,6 @@ describe('CaptchaDetector', () => {
   it('returns immediately when URL check detects captcha', async () => {
     const detector = new TestCaptchaDetector();
     const page = createPage();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
       detected: true,
       type: 'unknown',
@@ -165,12 +159,10 @@ describe('CaptchaDetector', () => {
 
   it('detects visible slider captcha elements and surfaces a generic provider hint', async () => {
     const detector = new TestCaptchaDetector();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const element = { isIntersectingViewport: vi.fn(async () => true) } as any;
     const page = createPage({
       $: vi.fn(async (selector: string) => (selector.includes('captcha-slider') ? element : null)),
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'verifySliderElement').mockResolvedValue(true);
 
     const result = await detector.checkDOMElements(page);
@@ -182,7 +174,6 @@ describe('CaptchaDetector', () => {
 
   it('detects embedded widget DOM rules through generic widget selectors', async () => {
     const detector = new TestCaptchaDetector();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const element = { isIntersectingViewport: vi.fn(async () => true) } as any;
     const page = createPage({
       $: vi.fn(async (selector: string) => (selector.includes('data-sitekey') ? element : null)),
@@ -212,9 +203,7 @@ describe('CaptchaDetector', () => {
     const detector = new CaptchaDetector();
     const page = createPage();
     vi.spyOn(detector, 'detect')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ detected: true, type: 'unknown', confidence: 90 })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ detected: false, type: 'none', confidence: 0 });
 
     const promise = detector.waitForCompletion(page, 5000);
@@ -228,7 +217,6 @@ describe('CaptchaDetector', () => {
     vi.useFakeTimers();
     const detector = new CaptchaDetector();
     const page = createPage();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'detect').mockResolvedValue({
       detected: true,
       type: 'unknown',
@@ -245,7 +233,6 @@ describe('CaptchaDetector', () => {
   it('returns safe fallback when detect pipeline throws', async () => {
     const detector = new TestCaptchaDetector();
     const page = createPage();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkUrl').mockRejectedValue(new Error('boom'));
 
     const result = await detector.detect(page);
@@ -258,7 +245,6 @@ describe('CaptchaDetector', () => {
     const detector = new TestCaptchaDetector();
     const page = createPage();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
       detected: true,
       type: 'browser_check',
@@ -266,25 +252,21 @@ describe('CaptchaDetector', () => {
       providerHint: 'edge_service',
       confidence: 95,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkTitle').mockResolvedValue({
       detected: false,
       type: 'none',
       confidence: 0,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
       detected: false,
       type: 'none',
       confidence: 0,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkPageText').mockResolvedValue({
       detected: false,
       type: 'none',
       confidence: 0,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
       detected: false,
       type: 'none',
@@ -316,33 +298,28 @@ describe('CaptchaDetector', () => {
     const detector = new TestCaptchaDetector();
     const page = createPage();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
       detected: true,
       type: 'url_redirect',
       url: 'https://vmoranv.github.io/jshookmcp/challenge',
       confidence: 70,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkTitle').mockResolvedValue({
       detected: false,
       type: 'none',
       confidence: 88,
       falsePositiveReason: 'Title exclusion: verification code',
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
       detected: false,
       type: 'none',
       confidence: 0,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkPageText').mockResolvedValue({
       detected: false,
       type: 'none',
       confidence: 0,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
       detected: false,
       type: 'none',
@@ -362,7 +339,6 @@ describe('CaptchaDetector', () => {
       type: 'none',
       confidence: 0,
       details: expect.objectContaining({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         candidates: expect.any(Array),
       }),
     });

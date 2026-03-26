@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// oxlint-disable-next-line import/no-unassigned-import
-import '../shared/manifest-test-mocks';
+import { manifestTestMocksInstalled } from '../shared/manifest-test-mocks';
+
+void manifestTestMocksInstalled;
 
 interface Tool {
   name: string;
@@ -30,19 +31,12 @@ interface Context extends Record<string, unknown> {
   scriptManager: Record<string, unknown>;
   consoleMonitor: Record<string, unknown>;
   llm: Record<string, unknown>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   coreAnalysisHandlers?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   deobfuscator?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   advancedDeobfuscator?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   obfuscationDetector?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   analyzer?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   cryptoDetector?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   hookManager?: any;
 }
 
@@ -64,9 +58,7 @@ describe('server/domains/analysis/manifest', () => {
         domain: 'core',
         depKey: 'coreAnalysisHandlers',
         profiles: ['workflow', 'full'],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ensure: expect.any(Function),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         registrations: expect.any(Array),
       }),
     );

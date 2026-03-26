@@ -8,7 +8,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
@@ -27,13 +26,9 @@ function createConfig(overrides?: Partial<{ enabled: boolean; dir: string; ttl: 
 describe('CacheManager – additional coverage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.debug.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.info.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.warn.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.error.mockReset();
   });
 
@@ -43,7 +38,6 @@ describe('CacheManager – additional coverage', () => {
 
   describe('init – disabled cache', () => {
     it('skips directory creation when disabled', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const mkdirSpy = vi.spyOn(fs, 'mkdir').mockResolvedValue(undefined);
       const manager = new CacheManager(createConfig({ enabled: false }));
 
@@ -55,7 +49,6 @@ describe('CacheManager – additional coverage', () => {
 
   describe('init – mkdir failure', () => {
     it('logs error when mkdir fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'mkdir').mockRejectedValue(new Error('permission denied'));
       const manager = new CacheManager(createConfig());
 
@@ -63,7 +56,6 @@ describe('CacheManager – additional coverage', () => {
 
       expect(loggerState.error).toHaveBeenCalledWith(
         'Failed to initialize cache directory',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error),
       );
     });
@@ -71,7 +63,6 @@ describe('CacheManager – additional coverage', () => {
 
   describe('get – cache miss (lines 71-80)', () => {
     it('returns null and logs cache miss on read error', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'readFile').mockRejectedValue(
         Object.assign(new Error('no such file'), { code: 'ENOENT' }),
       );
@@ -84,7 +75,6 @@ describe('CacheManager – additional coverage', () => {
     });
 
     it('returns null on JSON parse error', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'readFile').mockResolvedValue('not valid json{{{');
       const manager = new CacheManager(createConfig());
 
@@ -97,7 +87,6 @@ describe('CacheManager – additional coverage', () => {
 
   describe('set – disabled cache', () => {
     it('skips write when disabled', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const writeSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
       const manager = new CacheManager(createConfig({ enabled: false }));
 
@@ -109,20 +98,17 @@ describe('CacheManager – additional coverage', () => {
 
   describe('set – write failure (lines 72-74)', () => {
     it('logs error when write fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'writeFile').mockRejectedValue(new Error('disk full'));
       const manager = new CacheManager(createConfig());
 
       await manager.set('key', { data: 'value' });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(loggerState.error).toHaveBeenCalledWith('Failed to set cache', expect.any(Error));
     });
   });
 
   describe('delete – disabled cache', () => {
     it('skips delete when disabled', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const unlinkSpy = vi.spyOn(fs, 'unlink').mockResolvedValue(undefined);
       const manager = new CacheManager(createConfig({ enabled: false }));
 
@@ -134,8 +120,6 @@ describe('CacheManager – additional coverage', () => {
 
   describe('clear – disabled cache', () => {
     it('skips clear when disabled', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const readdirSpy = vi.spyOn(fs, 'readdir').mockResolvedValue([] as any);
       const manager = new CacheManager(createConfig({ enabled: false }));
 
@@ -147,7 +131,6 @@ describe('CacheManager – additional coverage', () => {
 
   describe('clear – non-ENOENT error (lines 102-106)', () => {
     it('logs error for non-ENOENT readdir failures', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'readdir').mockRejectedValue(
         Object.assign(new Error('permission denied'), { code: 'EACCES' }),
       );
@@ -155,7 +138,6 @@ describe('CacheManager – additional coverage', () => {
 
       await manager.clear();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(loggerState.error).toHaveBeenCalledWith('Failed to clear cache', expect.any(Error));
     });
   });
@@ -163,7 +145,6 @@ describe('CacheManager – additional coverage', () => {
   describe('TTL expiry', () => {
     it('returns cached value when within TTL', async () => {
       const now = Date.now();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'readFile').mockResolvedValue(
         JSON.stringify({ timestamp: now - 500, value: { fresh: true } }),
       );
@@ -174,11 +155,9 @@ describe('CacheManager – additional coverage', () => {
     });
 
     it('returns null and deletes when past TTL', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(fs, 'readFile').mockResolvedValue(
         JSON.stringify({ timestamp: Date.now() - 60_000, value: { stale: true } }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const unlinkSpy = vi.spyOn(fs, 'unlink').mockResolvedValue(undefined);
       const manager = new CacheManager(createConfig({ ttl: 5 }));
 
@@ -190,7 +169,6 @@ describe('CacheManager – additional coverage', () => {
 
   describe('key hashing', () => {
     it('uses consistent hashing for the same key', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const writeSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
       const manager = new CacheManager(createConfig());
 
@@ -198,24 +176,19 @@ describe('CacheManager – additional coverage', () => {
       await manager.set('test-key-123', 'value2');
 
       // Both writes should use the same cache path
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const path1 = writeSpy.mock.calls[0]?.[0];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const path2 = writeSpy.mock.calls[1]?.[0];
       expect(path1).toBe(path2);
     });
 
     it('uses different paths for different keys', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const writeSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
       const manager = new CacheManager(createConfig());
 
       await manager.set('key-A', 'value1');
       await manager.set('key-B', 'value2');
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const path1 = writeSpy.mock.calls[0]?.[0];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const path2 = writeSpy.mock.calls[1]?.[0];
       expect(path1).not.toBe(path2);
     });

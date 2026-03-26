@@ -13,8 +13,6 @@ const promptState = vi.hoisted(() => ({
 }));
 
 const webcrackState = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   runWebcrack: vi.fn<(...args: any[]) => Promise<any>>(async (code: string) => ({
     applied: true,
     code: `decoded:${code}`,
@@ -22,17 +20,14 @@ const webcrackState = vi.hoisted(() => ({
   })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@services/prompts/deobfuscation', () => ({
   generateDeobfuscationPrompt: promptState.generateDeobfuscationPrompt,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/deobfuscator/webcrack', () => ({
   runWebcrack: webcrackState.runWebcrack,
 }));
@@ -42,16 +37,10 @@ import { Deobfuscator } from '@modules/deobfuscator/Deobfuscator';
 describe('Deobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateDeobfuscationPrompt.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateDeobfuscationPrompt.mockReturnValue([{ role: 'user', content: 'analyze' }]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockImplementation(async (code: string) => ({
       applied: true,
       code: `decoded:${code}`,
@@ -60,7 +49,6 @@ describe('Deobfuscator', () => {
   });
 
   it('uses webcrack as the only deobfuscation engine', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockResolvedValue({
       applied: true,
       code: 'const answer = 42;',
@@ -99,12 +87,8 @@ describe('Deobfuscator', () => {
 
   it('caches deobfuscation results and avoids repeated webcrack and LLM calls', async () => {
     const chat = vi.fn(async () => ({ content: 'LLM summary' }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const deobfuscator = new Deobfuscator({ chat } as any);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const options = { code: 'var v = 5;', llm: 'provider-a' as any };
     const first = await deobfuscator.deobfuscate(options);
     const second = await deobfuscator.deobfuscate(options);
@@ -162,7 +146,6 @@ describe('Deobfuscator', () => {
   });
 
   it('throws immediately when webcrack does not produce a result', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockResolvedValue({
       applied: false,
       code: 'raw',

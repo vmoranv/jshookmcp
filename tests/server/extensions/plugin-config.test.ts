@@ -9,7 +9,6 @@ describe('plugin-config', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.getConfig.mockReset();
   });
 
@@ -19,7 +18,6 @@ describe('plugin-config', () => {
 
   it('prefers plugin-scoped env booleans over config values', () => {
     process.env.PLUGIN_IDA_BRIDGE_FEATURE_FLAG = 'yes';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.getConfig.mockReturnValue(false);
 
     expect(getPluginBooleanConfig(ctx as never, 'ida-bridge', 'feature flag', false)).toBe(true);
@@ -28,7 +26,6 @@ describe('plugin-config', () => {
 
   it('falls back to context config when env boolean is invalid', () => {
     process.env.PLUGINS_IDA_BRIDGE_FEATURE_FLAG = 'maybe';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.getConfig.mockReturnValue(true);
 
     expect(getPluginBooleanConfig(ctx as never, 'ida-bridge', 'feature flag', false)).toBe(true);

@@ -47,13 +47,9 @@ describe('CryptoRulesManager', () => {
     const out = manager.exportToJSON();
     const parsed = JSON.parse(out);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(Array.isArray(parsed.keywords)).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(Array.isArray(parsed.libraries)).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(Array.isArray(parsed.constants)).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(Array.isArray(parsed.security)).toBe(true);
   });
 

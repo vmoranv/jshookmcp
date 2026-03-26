@@ -9,18 +9,15 @@ const state = vi.hoisted(() => ({
   errorResponse: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/extensions/plugin-config', () => ({
   getPluginBooleanConfig: state.getPluginBooleanConfig,
   getPluginBoostTier: state.getPluginBoostTier,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/extensions/plugin-env', () => ({
   loadPluginEnv: state.loadPluginEnv,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/plugins/PluginContract', () => ({
   createExtension: state.createExtension,
   jsonResponse: state.jsonResponse,

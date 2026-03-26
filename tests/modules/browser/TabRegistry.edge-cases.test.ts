@@ -7,7 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -527,12 +526,10 @@ describe('TabRegistry — additional coverage', () => {
       registry.reconcilePages([page1], [{ index: 0, url: 'https://a.com', title: 'A' }]);
 
       // Second reconcile still without page2 — should not re-log
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       loggerState.debug.mockClear();
       registry.reconcilePages([page1], [{ index: 0, url: 'https://a.com', title: 'A' }]);
 
       // Should not log "marked stale" again since it's already stale
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const staleLogCalls = loggerState.debug.mock.calls.filter(
         (args) => typeof args[0] === 'string' && args[0].includes('marked stale'),
       );

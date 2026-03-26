@@ -9,11 +9,8 @@ describe('AdaptiveDataSerializer', () => {
   beforeEach(() => {
     serializer = new AdaptiveDataSerializer();
     storeMock = vi.fn(() => 'detail_test_123');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(DetailedDataManager, 'getInstance').mockReturnValue({
       store: storeMock,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
   });
 
@@ -28,7 +25,6 @@ describe('AdaptiveDataSerializer', () => {
       type: string;
       length: number;
       detailId: string;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       sample: any[];
     };
 
@@ -65,7 +61,6 @@ describe('AdaptiveDataSerializer', () => {
     const output = JSON.parse(serializer.serialize(requests)) as {
       type: string;
       count: number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       summary: any[];
     };
 
@@ -83,11 +78,8 @@ describe('AdaptiveDataSerializer', () => {
 
   it('limits depth for deep objects', () => {
     const deep = { a: { b: { c: { d: { e: 'value' } } } } };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const output = JSON.parse(serializer.serialize(deep, { maxDepth: 3 })) as Record<string, any>;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(output.a.b.c).toBe('[Max depth reached]');
   });
 

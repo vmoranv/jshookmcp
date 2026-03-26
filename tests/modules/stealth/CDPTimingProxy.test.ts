@@ -6,13 +6,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CDPTimingProxy, wrapWithJitter } from '@modules/stealth/CDPTimingProxy';
 import type { CDPSessionLike } from '@modules/stealth/CDPTimingProxy';
 
+function eventHandler() {}
+
 function createMockSession(): CDPSessionLike & {
   _calls: Array<{ method: string; params?: Record<string, unknown> }>;
 } {
   const calls: Array<{ method: string; params?: Record<string, unknown> }> = [];
   return {
     _calls: calls,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     send: vi.fn().mockImplementation(async (method: string, params?: Record<string, unknown>) => {
       calls.push({ method, params });
       return { result: 'ok' };
@@ -95,13 +96,11 @@ describe('CDPTimingProxy', () => {
   });
 
   it('on/off pass through to wrapped session', () => {
-    // oxlint-disable-next-line consistent-function-scoping
-    const handler = () => {};
-    proxy.on('event', handler);
-    expect(mockSession.on).toHaveBeenCalledWith('event', handler);
+    proxy.on('event', eventHandler);
+    expect(mockSession.on).toHaveBeenCalledWith('event', eventHandler);
 
-    proxy.off('event', handler);
-    expect(mockSession.off).toHaveBeenCalledWith('event', handler);
+    proxy.off('event', eventHandler);
+    expect(mockSession.off).toHaveBeenCalledWith('event', eventHandler);
   });
 
   it('getWrappedSession returns original session', () => {

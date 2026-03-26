@@ -55,8 +55,6 @@ describe('config utilities', () => {
 
     const config = getConfig();
     expect(config.llm.provider).toBe(alternateProvider);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((config.llm as Record<string, any>)[alternateProvider].apiKey).toBe('k-provider');
   });
 

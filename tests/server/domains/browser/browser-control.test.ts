@@ -9,7 +9,6 @@ import type {
   BrowserStatusResponse,
 } from '@tests/shared/common-test-types';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -19,13 +18,11 @@ vi.mock('@utils/logger', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('fs/promises', () => ({
   readFile: vi.fn(),
   writeFile: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/config', () => ({
   projectRoot: '/fake/project',
 }));
@@ -33,9 +30,7 @@ vi.mock('@utils/config', () => ({
 import { BrowserControlHandlers } from '@server/domains/browser/handlers/browser-control';
 
 interface CollectorMock {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   connect: Mock<(args: any) => Promise<void>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   init: Mock<(args: any) => Promise<void>>;
   close: Mock<() => Promise<void>>;
   listPages: Mock<() => Promise<Array<{ index: number; url: string; title: string }>>>;
@@ -50,8 +45,6 @@ interface ConsoleMonitorMock {
 }
 
 interface TabRegistryMock {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   reconcilePages: Mock<() => any[]>;
   setCurrentByIndex: Mock<(index: number) => { pageId: string; aliases: string[] }>;
   getTabByIndex: Mock<(index: number) => { pageId: string; aliases: string[] }>;
@@ -88,19 +81,12 @@ function createMocks() {
   };
 
   const deps = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector: collector as any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pageController: createPageMock() as any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor: consoleMonitor as any,
     getActiveDriver: () => 'chrome' as const,
     getCamoufoxManager: () => null,
     getCamoufoxPage: async () => null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getTabRegistry: () => tabRegistry as any,
   };
 
@@ -121,20 +107,15 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
   });
 
   it('launches chrome in default mode and returns status', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true, pages: 1 });
     const body = parseJson<BrowserLaunchResponse>(await handlers.handleBrowserLaunch({}));
     expect(collector.init).toHaveBeenCalledWith(undefined);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('chrome');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.status.connected).toBe(true);
   });
 
   it('connects chrome when mode=connect with browserURL', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     const body = parseJson<BrowserLaunchResponse>(
       await handlers.handleBrowserLaunch({
@@ -149,16 +130,12 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
       userDataDir: undefined,
       channel: undefined,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.mode).toBe('connect');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.endpoint).toBe('http://127.0.0.1:9222');
   });
 
   it('connects chrome when mode=connect with wsEndpoint', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     const body = parseJson<BrowserLaunchResponse>(
       await handlers.handleBrowserLaunch({
@@ -173,7 +150,6 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
       userDataDir: undefined,
       channel: undefined,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
   });
 
@@ -181,9 +157,7 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
     const body = parseJson<BrowserLaunchResponse>(
       await handlers.handleBrowserLaunch({ mode: 'connect' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain(
       'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required',
     );
@@ -193,11 +167,8 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
     const body = parseJson<BrowserLaunchResponse>(
       await handlers.handleBrowserLaunch({ driver: 'camoufox' }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.mode).toBe('launch');
   });
 
@@ -209,13 +180,9 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
         wsEndpoint: 'ws://localhost:1234',
       }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.mode).toBe('connect');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.wsEndpoint).toBe('ws://localhost:1234');
   });
 
@@ -226,70 +193,59 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
         mode: 'connect',
       }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain('wsEndpoint is required');
   });
 
   it('passes headless boolean true to collector.init', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: true });
     expect(collector.init).toHaveBeenCalledWith(true);
   });
 
   it('passes headless boolean false to collector.init', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: false });
     expect(collector.init).toHaveBeenCalledWith(false);
   });
 
   it('parses headless string "true" correctly', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 'true' });
     expect(collector.init).toHaveBeenCalledWith(true);
   });
 
   it('parses headless string "false" correctly', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 'false' });
     expect(collector.init).toHaveBeenCalledWith(false);
   });
 
   it('parses headless string "yes"/"no" correctly', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 'yes' });
     expect(collector.init).toHaveBeenCalledWith(true);
   });
 
   it('parses headless number 1 as true', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 1 });
     expect(collector.init).toHaveBeenCalledWith(true);
   });
 
   it('parses headless number 0 as false', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 0 });
     expect(collector.init).toHaveBeenCalledWith(false);
   });
 
   it('treats unrecognized headless values as undefined', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 'maybe' });
     expect(collector.init).toHaveBeenCalledWith(undefined);
   });
 
   it('re-throws non-linux-display errors from init', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.init.mockRejectedValueOnce(new Error('some other error'));
     await expect(handlers.handleBrowserLaunch({})).rejects.toThrow('some other error');
   });
@@ -311,9 +267,7 @@ describe('BrowserControlHandlers – handleBrowserClose', () => {
   it('closes the browser and returns success', async () => {
     const body = parseJson<BrowserCloseResponse>(await handlers.handleBrowserClose({}));
     expect(collector.close).toHaveBeenCalledOnce();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.message).toContain('closed');
   });
 });
@@ -332,14 +286,10 @@ describe('BrowserControlHandlers – handleBrowserStatus', () => {
   });
 
   it('returns the collector status with driver field', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true, pages: 2 });
     const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('chrome');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.connected).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.pages).toBe(2);
   });
 });
@@ -358,7 +308,6 @@ describe('BrowserControlHandlers – handleBrowserListTabs', () => {
   });
 
   it('lists pages enriched with tab registry info', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([
       { index: 0, url: 'https://a.com', title: 'A' },
       { index: 1, url: 'https://b.com', title: 'B' },
@@ -366,22 +315,15 @@ describe('BrowserControlHandlers – handleBrowserListTabs', () => {
 
     const body = parseJson<BrowserListTabsResponse>(await handlers.handleBrowserListTabs({}));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.count).toBe(2);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.pages).toHaveLength(2);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.pages[0].pageId).toBe('page-0');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.pages[1].aliases).toEqual(['alias-1']);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.currentPageId).toBe('page-0');
   });
 
   it('connects first when browserURL is provided', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([]);
     await handlers.handleBrowserListTabs({
       browserURL: 'http://127.0.0.1:9222',
@@ -396,14 +338,10 @@ describe('BrowserControlHandlers – handleBrowserListTabs', () => {
   });
 
   it('returns error payload when listPages throws', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockRejectedValueOnce(new Error('no browser'));
     const body = parseJson<BrowserListTabsResponse>(await handlers.handleBrowserListTabs({}));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBe('no browser');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.hint).toBeDefined();
   });
 });
@@ -426,7 +364,6 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
   });
 
   it('selects a tab by index', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([
       { index: 0, url: 'https://a.com', title: 'A' },
       { index: 1, url: 'https://b.com', title: 'B' },
@@ -438,20 +375,14 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
     expect(tabRegistry.setCurrentByIndex).toHaveBeenCalledWith(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.selectedIndex).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.url).toBe('https://b.com');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.title).toBe('B');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.activeContextRefreshed).toBe(true);
   });
 
   it('selects a tab by urlPattern', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([
       { index: 0, url: 'https://a.com/page', title: 'A' },
       { index: 1, url: 'https://b.com/target', title: 'B' },
@@ -462,14 +393,11 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     );
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.selectedIndex).toBe(1);
   });
 
   it('selects a tab by titlePattern', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([
       { index: 0, url: 'https://a.com', title: 'First' },
       { index: 1, url: 'https://b.com', title: 'Second Tab' },
@@ -479,72 +407,55 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
       await handlers.handleBrowserSelectTab({ titlePattern: 'Second' }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.selectedIndex).toBe(1);
   });
 
   it('returns error when no matching tab found', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
 
     const body = parseJson<BrowserSelectTabResponse>(
       await handlers.handleBrowserSelectTab({ urlPattern: 'notfound' }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBe('No matching tab found');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.availablePages).toBeDefined();
   });
 
   it('returns error payload when selectPage throws', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.selectPage.mockRejectedValueOnce(new Error('select failed'));
 
     const body = parseJson<BrowserSelectTabResponse>(
       await handlers.handleBrowserSelectTab({ index: 0 }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBe('select failed');
   });
 
   it('continues with monitoring disabled when consoleMonitor.disable fails', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.disable.mockRejectedValueOnce(new Error('disable fail'));
 
     const body = parseJson<BrowserSelectTabResponse>(
       await handlers.handleBrowserSelectTab({ index: 0 }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
     expect(consoleMonitor.enable).toHaveBeenCalled();
   });
 
   it('reports monitoring disabled when consoleMonitor.enable fails', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     consoleMonitor.enable.mockRejectedValueOnce(new Error('enable fail'));
 
     const body = parseJson<BrowserSelectTabResponse>(
       await handlers.handleBrowserSelectTab({ index: 0 }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.networkMonitoringEnabled).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.consoleMonitoringEnabled).toBe(false);
   });
 });
@@ -564,20 +475,16 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
 
   it('returns error when no endpoint provided', async () => {
     const body = parseJson<BrowserAttachResponse>(await handlers.handleBrowserAttach({}));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toContain(
       'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required',
     );
   });
 
   it('attaches to browser and selects the default page 0', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([
       { index: 0, url: 'https://example.com', title: 'Example' },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
     const body = parseJson<BrowserAttachResponse>(
@@ -592,23 +499,17 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
       channel: undefined,
     });
     expect(collector.selectPage).toHaveBeenCalledWith(0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.selectedIndex).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.totalPages).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.takeoverReady).toBe(true);
   });
 
   it('attaches and selects the requested pageIndex', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([
       { index: 0, url: 'https://a.com', title: 'A' },
       { index: 1, url: 'https://b.com', title: 'B' },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
     const body = parseJson<BrowserAttachResponse>(
@@ -619,16 +520,12 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     );
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.selectedIndex).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.currentUrl).toBe('https://b.com');
   });
 
   it('falls back to page 0 when pageIndex is out of range', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
     const body = parseJson<BrowserAttachResponse>(
@@ -639,17 +536,14 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     );
 
     expect(collector.selectPage).toHaveBeenCalledWith(0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.selectedIndex).toBe(0);
   });
 
   it('parses string pageIndex correctly', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([
       { index: 0, url: 'https://a.com', title: 'A' },
       { index: 1, url: 'https://b.com', title: 'B' },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
     const body = parseJson<BrowserAttachResponse>(
@@ -660,12 +554,10 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     );
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.selectedIndex).toBe(1);
   });
 
   it('returns error payload when connect throws', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.connect.mockRejectedValueOnce(new Error('connection refused'));
 
     const body = parseJson<BrowserAttachResponse>(
@@ -674,16 +566,12 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBe('connection refused');
   });
 
   it('handles empty pages list gracefully', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.listPages.mockResolvedValueOnce([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
     const body = parseJson<BrowserAttachResponse>(
@@ -692,11 +580,8 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.totalPages).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.selectedIndex).toBe(0);
   });
 });

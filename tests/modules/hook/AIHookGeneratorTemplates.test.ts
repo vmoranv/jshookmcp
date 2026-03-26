@@ -24,8 +24,6 @@ describe('AIHookGeneratorTemplates', () => {
         condition: {
           argFilter: 'args[0] !== null',
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
       'hook-token',
     );
@@ -51,8 +49,6 @@ describe('AIHookGeneratorTemplates', () => {
       {
         target: {},
         behavior: {},
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
       'hook-default',
     );
@@ -81,8 +77,6 @@ describe('AIHookGeneratorTemplates', () => {
         condition: {
           maxCalls: 3,
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
       'hook-submit',
     );
@@ -106,8 +100,6 @@ describe('AIHookGeneratorTemplates', () => {
         behavior: {
           blockExecution: true,
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
       'hook-all-events',
     );

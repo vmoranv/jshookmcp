@@ -6,40 +6,24 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // ── vi.mock declarations (hoisted) ──────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   AdvancedDeobfuscator: vi.fn().mockImplementation(() => ({ _mock: 'AdvancedDeobfuscator' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   CodeAnalyzer: vi.fn().mockImplementation(() => ({ _mock: 'CodeAnalyzer' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   CodeCollector: vi.fn().mockImplementation(() => ({ _mock: 'CodeCollector', on: vi.fn() })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   CryptoDetector: vi.fn().mockImplementation(() => ({ _mock: 'CryptoDetector' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   Deobfuscator: vi.fn().mockImplementation(() => ({ _mock: 'Deobfuscator' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   HookManager: vi.fn().mockImplementation(() => ({ _mock: 'HookManager' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ObfuscationDetector: vi.fn().mockImplementation(() => ({ _mock: 'ObfuscationDetector' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   DebuggerManager: vi.fn().mockImplementation(() => ({ _mock: 'DebuggerManager' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   RuntimeInspector: vi.fn().mockImplementation(() => ({ _mock: 'RuntimeInspector' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ScriptManager: vi.fn().mockImplementation(() => ({ _mock: 'ScriptManager' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ConsoleMonitor: vi.fn().mockImplementation(() => ({ _mock: 'ConsoleMonitor' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   PageController: vi.fn().mockImplementation(() => ({ _mock: 'PageController' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   DOMInspector: vi.fn().mockImplementation(() => ({ _mock: 'DOMInspector' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/registry/ensure-browser-core', () => ({
   ensureBrowserCore: vi.fn((ctx: Record<string, unknown>) => {
     if (!ctx.collector) ctx.collector = { on: vi.fn(), _mock: 'collector' };
@@ -51,112 +35,76 @@ vi.mock('@server/registry/ensure-browser-core', () => ({
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@services/LLMService', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   LLMService: vi.fn().mockImplementation(() => ({ _mock: 'LLMService' })),
 }));
 
 // Handler class mocks — each returns a unique instance
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/analysis/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   CoreAnalysisHandlers: vi.fn().mockImplementation(() => ({ _mock: 'CoreAnalysisHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/antidebug/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   AntiDebugToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'AntiDebugToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/browser/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   BrowserToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'BrowserToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/debugger/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   DebuggerToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'DebuggerToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/encoding/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   EncodingToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'EncodingToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/graphql/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   GraphQLToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'GraphQLToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/hooks/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   AIHookToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'AIHookToolHandlers' })),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   HookPresetToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'HookPresetToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/maintenance/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   CoreMaintenanceHandlers: vi.fn().mockImplementation(() => ({ _mock: 'CoreMaintenanceHandlers' })),
   ExtensionManagementHandlers: vi
     .fn()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     .mockImplementation(() => ({ _mock: 'ExtensionManagementHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/network/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   AdvancedToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'AdvancedToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/platform/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   PlatformToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'PlatformToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/process/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ProcessToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'ProcessToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/sourcemap/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   SourcemapToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'SourcemapToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/streaming/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   StreamingToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'StreamingToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/transform/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   TransformToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'TransformToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/wasm/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   WasmToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'WasmToolHandlers' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/workflow/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   WorkflowHandlers: vi.fn().mockImplementation(() => ({ _mock: 'WorkflowHandlers' })),
 }));
 
@@ -191,7 +139,6 @@ interface ManifestLike {
   registrations: ReadonlyArray<{
     tool: Record<string, unknown>;
     domain: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     bind: any;
   }>;
 }
@@ -200,7 +147,6 @@ function mockContext(): Record<string, unknown> {
   return {
     config: { puppeteer: {}, llm: {} },
     llm: { _mock: 'llm' },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registerCaches: vi.fn().mockResolvedValue(undefined),
     tokenBudget: { _mock: 'tokenBudget' },
     unifiedCache: { _mock: 'unifiedCache' },
@@ -378,10 +324,8 @@ describe('domain manifests', () => {
         for (const reg of manifest.registrations) {
           expect(reg).toEqual(
             expect.objectContaining({
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               tool: expect.objectContaining({ name: expect.any(String) }),
               domain: expectedDomain,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               bind: expect.any(Function),
             }),
           );

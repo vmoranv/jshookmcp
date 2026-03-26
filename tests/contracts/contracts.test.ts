@@ -10,6 +10,8 @@ import {
   type ParallelNode,
   type BranchNode,
 } from '@server/workflows/WorkflowContract';
+
+const alwaysTruePredicate = () => true;
 import {
   NoopInstrumentation,
   SpanNames,
@@ -77,13 +79,11 @@ describe('WorkflowContract - builder helpers', () => {
   });
 
   it('BranchNodeBuilder accepts optional predicateFn', () => {
-    // oxlint-disable-next-line consistent-function-scoping
-    const fn = () => true;
     const node = new BranchNodeBuilder('br2', 'pred')
       .whenTrue(new ToolNodeBuilder('t', 'tool_t'))
-      .predicateFn(fn)
+      .predicateFn(alwaysTruePredicate)
       .build();
-    expect(node.predicateFn).toBe(fn);
+    expect(node.predicateFn).toBe(alwaysTruePredicate);
     expect(node.whenFalse).toBeUndefined();
   });
 });
@@ -117,8 +117,6 @@ describe('WorkflowContract - node composition', () => {
     expect(contract.id).toBe('wf1');
     expect(contract.displayName).toBe('Test Workflow');
     expect(contract.timeoutMs).toBe(10000);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(contract.build({} as any).kind).toBe('tool');
   });
 });

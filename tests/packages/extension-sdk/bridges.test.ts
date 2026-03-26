@@ -19,16 +19,13 @@ describe('toTextResponse', () => {
     expect(res.content).toHaveLength(1);
     expect(res.content[0]!.type).toBe('text');
     const parsed = JSON.parse((res.content[0] as { type: 'text'; text: string }).text);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.data).toBe(42);
   });
 
   it('handles nested objects', () => {
     const res = toTextResponse({ a: { b: [1, 2, 3] } });
     const parsed = JSON.parse((res.content[0] as { type: 'text'; text: string }).text);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.a.b).toEqual([1, 2, 3]);
   });
 });
@@ -37,27 +34,21 @@ describe('toErrorResponse', () => {
   it('wraps Error instance', () => {
     const res = toErrorResponse('my_tool', new Error('boom'));
     const parsed = JSON.parse((res.content[0] as { type: 'text'; text: string }).text);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.tool).toBe('my_tool');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.error).toBe('boom');
   });
 
   it('wraps string error', () => {
     const res = toErrorResponse('my_tool', 'string error');
     const parsed = JSON.parse((res.content[0] as { type: 'text'; text: string }).text);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.error).toBe('string error');
   });
 
   it('merges extra fields', () => {
     const res = toErrorResponse('my_tool', new Error('fail'), { code: 'TIMEOUT' });
     const parsed = JSON.parse((res.content[0] as { type: 'text'; text: string }).text);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.code).toBe('TIMEOUT');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.success).toBe(false);
   });
 });

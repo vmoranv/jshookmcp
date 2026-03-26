@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// oxlint-disable-next-line import/no-unassigned-import
-import '../shared/manifest-test-mocks';
+import { manifestTestMocksInstalled } from '../shared/manifest-test-mocks';
 import { assertDomainExportContract } from '../shared/export-contract-helpers';
+
+void manifestTestMocksInstalled;
 
 describe('server/domains/encoding exports', () => {
   beforeEach(() => {

@@ -60,13 +60,9 @@ describe('ToolCatalog', () => {
   it('unknown domains are ignored by discovery and profile domain lists', () => {
     expect(parseToolDomains('obsolete_domain')).toBeNull();
     expect(parseToolDomains('browser,obsolete_domain')).toEqual(['browser']);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(getToolsByDomains(['obsolete_domain' as any])).toEqual([]);
 
     for (const profile of ['search', 'workflow', 'full'] as const) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(getProfileDomains(profile)).not.toContain('obsolete_domain' as any);
     }
   });
@@ -117,8 +113,6 @@ describe('Three-Tier Boost Hierarchy', () => {
   });
 
   it('getTierIndex returns -1 for unknown profiles', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(getTierIndex('nonexistent' as any)).toBe(-1);
   });
 
@@ -203,8 +197,6 @@ describe('Three-Tier Boost Hierarchy', () => {
       'graphql',
       'workflow',
     ]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(workflowDomains.has(domain as any)).toBe(true);
     }
   });
@@ -220,8 +212,6 @@ describe('Three-Tier Boost Hierarchy', () => {
       'sourcemap',
       'transform',
     ]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(fullDomains.has(domain as any)).toBe(true);
     }
   });

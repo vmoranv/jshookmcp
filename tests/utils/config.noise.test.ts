@@ -15,9 +15,7 @@ describe('config env loading noise', () => {
   });
 
   it('does not warn when .env is missing and config is loaded lazily', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
     const { getConfig } = await import('@utils/config');

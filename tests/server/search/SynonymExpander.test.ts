@@ -3,7 +3,6 @@ import { SynonymExpander } from '@server/search/SynonymExpander';
 
 import { vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', () => ({
   SEARCH_SYNONYM_EXPANSION_LIMIT: 3,
 }));

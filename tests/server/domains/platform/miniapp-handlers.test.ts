@@ -21,7 +21,6 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   readFile: mocks.readFile,
   mkdir: mocks.mkdir,
@@ -31,12 +30,10 @@ vi.mock('node:fs/promises', () => ({
   open: mocks.open,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: { warn: vi.fn(), debug: vi.fn(), info: vi.fn(), error: vi.fn() },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/artifacts', () => ({
   resolveArtifactPath: vi.fn(async () => ({
     absolutePath: '/tmp/artifacts/test.tmpdir',
@@ -140,7 +137,6 @@ describe('MiniappHandlers', () => {
   describe('handleMiniappPkgScan', () => {
     it('returns success with empty results when no pkg files are found', async () => {
       // stat for candidate roots - all fail
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValue(new Error('ENOENT'));
 
       const result = parsePayload(await handlers.handleMiniappPkgScan({}));
@@ -152,10 +148,8 @@ describe('MiniappHandlers', () => {
 
     it('scans a custom searchPath when provided', async () => {
       // stat for the custom path - is directory
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
       // readdir returns empty
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([]);
 
       const result = parsePayload(
@@ -170,10 +164,8 @@ describe('MiniappHandlers', () => {
 
     it('skips roots that are not directories', async () => {
       // stat for candidate root - is a file, not directory
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true, isDirectory: false }));
       // Remaining roots throw
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValue(new Error('ENOENT'));
 
       const result = parsePayload(await handlers.handleMiniappPkgScan({}));
@@ -187,7 +179,6 @@ describe('MiniappHandlers', () => {
       // When stat throws synchronously (not as a rejected promise),
       // the for-loop catch handles it and pushes to skippedRoots.
       // The function still returns success: true with empty results.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValue(new Error('ENOENT'));
 
       const result = parsePayload(await handlers.handleMiniappPkgScan({}));
@@ -210,7 +201,6 @@ describe('MiniappHandlers', () => {
     });
 
     it('returns error when inputPath is not a file', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: false, isDirectory: true }));
 
       const result = parsePayload(
@@ -222,7 +212,6 @@ describe('MiniappHandlers', () => {
     });
 
     it('falls back to internal parser when external tool is unavailable', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
 
       // Build a minimal valid miniapp pkg buffer
@@ -234,10 +223,8 @@ describe('MiniappHandlers', () => {
       header.writeUInt8(0, 13); // lastIdent
       header.writeUInt32BE(0, 14); // fileCount = 0
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(header);
       // readdir for walkDirectory after external unpack
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValue([]);
 
       const result = parsePayload(
@@ -276,19 +263,15 @@ describe('MiniappHandlers', () => {
       });
 
       const customHandlers = new MiniappHandlers(customRunner, collector);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
 
       // walkDirectory for counting extracted files
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([
         { name: 'index.js', isDirectory: () => false, isFile: () => true },
         { name: 'app.json', isDirectory: () => false, isFile: () => true },
       ]);
       // stat for each file in walkDirectory
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats());
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats());
 
       const result = parsePayload(
@@ -304,13 +287,10 @@ describe('MiniappHandlers', () => {
     });
 
     it('handles parse errors gracefully', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
       // readdir for walkDirectory after external unpack attempt
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValue([]);
       // Provide a buffer that is too small for the parser
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(Buffer.alloc(5));
 
       const result = parsePayload(
@@ -325,14 +305,11 @@ describe('MiniappHandlers', () => {
     });
 
     it('handles invalid magic byte in pkg buffer', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValue([]);
 
       const badBuffer = Buffer.alloc(20);
       badBuffer.writeUInt8(0x00, 0); // wrong magic (not 0xBE)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(badBuffer);
 
       const result = parsePayload(
@@ -358,7 +335,6 @@ describe('MiniappHandlers', () => {
     });
 
     it('returns error when unpackedDir is not a directory', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true, isDirectory: false }));
 
       const result = parsePayload(
@@ -370,9 +346,7 @@ describe('MiniappHandlers', () => {
     });
 
     it('analyzes an empty unpacked directory', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([]);
 
       const result = parsePayload(
@@ -388,24 +362,19 @@ describe('MiniappHandlers', () => {
 
     it('discovers app.json and extracts pages', async () => {
       // stat for unpackedDir
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
 
       // readdir returns app.json and a js file
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([
         { name: 'app.json', isDirectory: () => false, isFile: () => true },
         { name: 'app.js', isDirectory: () => false, isFile: () => true },
       ]);
 
       // stat for each file in walkDirectory
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ size: 200 }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ size: 500 }));
 
       // readJsonFileSafe for app.json
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(
         JSON.stringify({
           pages: ['pages/index/index', 'pages/home/home'],
@@ -435,7 +404,6 @@ describe('MiniappHandlers', () => {
     });
 
     it('handles unexpected errors gracefully', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('EPERM'));
 
       const result = parsePayload(
@@ -447,15 +415,11 @@ describe('MiniappHandlers', () => {
     });
 
     it('extracts appId from app.json when present', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([
         { name: 'app.json', isDirectory: () => false, isFile: () => true },
       ]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ size: 100 }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(
         JSON.stringify({
           pages: [],
@@ -471,15 +435,11 @@ describe('MiniappHandlers', () => {
     });
 
     it('discovers subPackages pages and merges with root prefix', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([
         { name: 'app.json', isDirectory: () => false, isFile: () => true },
       ]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ size: 100 }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(
         JSON.stringify({
           pages: ['pages/main'],

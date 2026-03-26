@@ -1,64 +1,52 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   CodeCollector: vi.fn(function (this: any, config: any) {
     this.kind = 'collector';
     this.config = config;
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   PageController: vi.fn(function (this: any, collector: any) {
     this.kind = 'pageController';
     this.collector = collector;
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   DOMInspector: vi.fn(function (this: any, collector: any) {
     this.kind = 'domInspector';
     this.collector = collector;
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ScriptManager: vi.fn(function (this: any, collector: any) {
     this.kind = 'scriptManager';
     this.collector = collector;
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ConsoleMonitor: vi.fn(function (this: any, collector: any) {
     this.kind = 'consoleMonitor';
     this.collector = collector;
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   LLMService: vi.fn(function (this: any, config: any) {
     this.kind = 'llm';
     this.config = config;
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/collector/CodeCollector', () => ({
   CodeCollector: state.CodeCollector,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/collector/PageController', () => ({
   PageController: state.PageController,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/collector/DOMInspector', () => ({
   DOMInspector: state.DOMInspector,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/ScriptManager', () => ({
   ScriptManager: state.ScriptManager,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/monitor/ConsoleMonitor', () => ({
   ConsoleMonitor: state.ConsoleMonitor,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@services/LLMService', () => ({
   LLMService: state.LLMService,
 }));

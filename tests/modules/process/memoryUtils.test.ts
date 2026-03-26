@@ -46,7 +46,6 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/MemoryManager', () => ({
   MemoryManager: mocks.MemoryManagerMock,
 }));
@@ -59,7 +58,6 @@ describe('memoryUtils wrappers', () => {
   });
 
   it('scanMemory wrapper delegates with default pattern type', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.scanMemoryMock.mockResolvedValue({ success: true, addresses: ['0x1'] });
     const result = await memoryUtils.scanMemory(1, 'AA BB');
 
@@ -68,11 +66,8 @@ describe('memoryUtils wrappers', () => {
   });
 
   it('dumpMemory/listMemoryRegions/checkProtection wrappers delegate correctly', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.dumpMemoryRegionMock.mockResolvedValue({ success: true });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.enumerateRegionsMock.mockResolvedValue({ success: true, regions: [] });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.checkMemoryProtectionMock.mockResolvedValue({ success: true, isReadable: true });
 
     await memoryUtils.dumpMemory(2, '0x1000', 16, '/tmp/a.bin');
@@ -85,9 +80,7 @@ describe('memoryUtils wrappers', () => {
   });
 
   it('scanFiltered and batchWrite wrappers delegate', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.scanMemoryFilteredMock.mockResolvedValue({ success: true, addresses: [] });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.batchMemoryWriteMock.mockResolvedValue({ success: true, results: [] });
 
     await memoryUtils.scanFiltered(3, 'AA', ['0x10'], 'hex');
@@ -109,13 +102,9 @@ describe('memoryUtils wrappers', () => {
   });
 
   it('injection/debug/module wrappers delegate', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.injectDllMock.mockResolvedValue({ success: true });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.injectShellcodeMock.mockResolvedValue({ success: true });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.checkDebugPortMock.mockResolvedValue({ success: true, isDebugged: false });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.enumerateModulesMock.mockResolvedValue({ success: true, modules: [] });
 
     await memoryUtils.injectDll(5, 'a.dll');

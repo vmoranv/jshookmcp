@@ -8,7 +8,6 @@ const { execFileMock, existsSyncMock, mkdirMock, readFileMock, writeFileMock } =
     (
       _file: string,
       _args: string[],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       options: any,
       callback?: (error: Error | null, stdout: string, stderr: string) => void,
     ) => {
@@ -22,24 +21,20 @@ const { execFileMock, existsSyncMock, mkdirMock, readFileMock, writeFileMock } =
   writeFileMock: vi.fn(async () => undefined),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:child_process', () => ({
   execFile: execFileMock,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs', () => ({
   existsSync: existsSyncMock,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   mkdir: mkdirMock,
   readFile: readFileMock,
   writeFile: writeFileMock,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -56,19 +51,12 @@ describe('ExtensionManagementHandlers', () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     execFileMock.mockClear();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockClear();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockReturnValue(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mkdirMock.mockClear();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     readFileMock.mockClear();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     readFileMock.mockResolvedValue(JSON.stringify({ packageManager: 'pnpm@10.28.2' }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     writeFileMock.mockClear();
     process.env = { ...originalEnv };
     global.fetch = vi.fn(async (url: string | URL | Request) => ({
@@ -77,8 +65,6 @@ describe('ExtensionManagementHandlers', () => {
       statusText: 'OK',
       json: async () => ({ plugins: [], workflows: [] }),
       url: String(url),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     })) as any;
   });
 
@@ -89,8 +75,6 @@ describe('ExtensionManagementHandlers', () => {
 
   it('reads EXTENSION_REGISTRY_BASE_URL at call time instead of import time', async () => {
     delete process.env.EXTENSION_REGISTRY_BASE_URL;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new ExtensionManagementHandlers({} as any);
 
     process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
@@ -98,13 +82,9 @@ describe('ExtensionManagementHandlers', () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((response.content[0] as any).type).toBe('text');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((response.content[0] as any).text).toContain('"success": true');
   });
 
@@ -118,11 +98,8 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation((value: string | PathLike) =>
       normalizePath(value).endsWith('/dist/index.js'),
     );
@@ -169,15 +146,12 @@ describe('ExtensionManagementHandlers', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(global.fetch).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/registry/workflows.index.json',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(global.fetch).toHaveBeenCalledWith(
       'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const metadataCall = writeFileMock.mock.calls.find((call) =>
       normalizePath(call[0] as string).endsWith(
         '/workflows/web-api-capture-session/.jshook-install.json',
@@ -197,9 +171,7 @@ describe('ExtensionManagementHandlers', () => {
         'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
         expect.stringContaining('workflows'),
       ],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.objectContaining({ timeout: expect.any(Number) }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Function),
     );
     expect(ctx.reloadExtensions).toHaveBeenCalledOnce();
@@ -215,11 +187,8 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation((value: string | PathLike) =>
       normalizePath(value).endsWith('/dist/index.js'),
     );
@@ -267,7 +236,6 @@ describe('ExtensionManagementHandlers', () => {
 
     expect(body.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(2);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const metadataCall = writeFileMock.mock.calls.find((call) =>
       normalizePath(call[0] as string).endsWith('/plugins/ida-bridge/.jshook-install.json'),
     );
@@ -285,9 +253,7 @@ describe('ExtensionManagementHandlers', () => {
         'https://github.com/vmoranv/jshook_plugin_ida_bridge',
         expect.stringContaining('plugins'),
       ],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.objectContaining({ timeout: expect.any(Number) }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Function),
     );
   });
@@ -302,12 +268,9 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation((value: string | PathLike) => {
       const path = normalizePath(value);
       return path.endsWith('/package.json') || path.endsWith('/workflow.ts');
@@ -339,18 +302,13 @@ describe('ExtensionManagementHandlers', () => {
           },
         ],
       }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     })) as any;
 
     const response = await handlers.handleInstallExtension('batch-register');
     const content = response.content[0] as { type: string; text: string };
     const body = JSON.parse(content.text);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const thirdCall = execFileMock.mock.calls[2];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const fourthCall = execFileMock.mock.calls[3];
 
     if (process.platform === 'win32') {
@@ -366,7 +324,6 @@ describe('ExtensionManagementHandlers', () => {
           cwd: expect.stringContaining('workflows'),
           env: expect.objectContaining({ CI: 'true' }),
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
       ]);
       expect(fourthCall).toEqual([
@@ -381,7 +338,6 @@ describe('ExtensionManagementHandlers', () => {
           cwd: expect.stringContaining('workflows'),
           env: expect.objectContaining({ CI: 'true' }),
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
       ]);
     } else {
@@ -392,7 +348,6 @@ describe('ExtensionManagementHandlers', () => {
           cwd: expect.stringContaining('workflows'),
           env: expect.objectContaining({ CI: 'true' }),
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
       ]);
       expect(fourthCall).toEqual([
@@ -402,7 +357,6 @@ describe('ExtensionManagementHandlers', () => {
           cwd: expect.stringContaining('workflows'),
           env: expect.objectContaining({ CI: 'true' }),
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
       ]);
     }
@@ -418,11 +372,9 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation((value: string | PathLike) => {
       const path = normalizePath(value);
       return (
@@ -470,9 +422,7 @@ describe('ExtensionManagementHandlers', () => {
     expect(normalizePath(body.installed.projectDir)).toContain(
       '/workflows/nested-flow/packages/workflow',
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const thirdCall = execFileMock.mock.calls[2];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const fourthCall = execFileMock.mock.calls[3];
     expect(normalizePath(thirdCall[2].cwd as string)).toContain(
       '/workflows/nested-flow/packages/workflow',
@@ -480,7 +430,6 @@ describe('ExtensionManagementHandlers', () => {
     expect(normalizePath(fourthCall[2].cwd as string)).toContain(
       '/workflows/nested-flow/packages/workflow',
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const metadataCall = writeFileMock.mock.calls.find((call) =>
       normalizePath(call[0] as string).endsWith(
         '/workflows/nested-flow/packages/workflow/.jshook-install.json',
@@ -504,7 +453,6 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 
@@ -560,7 +508,6 @@ describe('ExtensionManagementHandlers', () => {
         errors: [],
         warnings: [],
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
 

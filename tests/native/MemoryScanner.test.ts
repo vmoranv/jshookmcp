@@ -60,17 +60,14 @@ const mockProvider = {
 };
 
 // Mock platform factory to return our mock provider
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/platform/factory.js', () => ({
   createPlatformProvider: vi.fn(() => mockProvider),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32Debug', () => ({
   FlushInstructionCache: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/NativeMemoryManager.utils', () => ({
   parsePattern: vi.fn((value: string, type: string) => {
     if (type === 'string' || type === 'hex') return { patternBytes: [], mask: [] };
@@ -84,7 +81,6 @@ vi.mock('@native/NativeMemoryManager.utils', () => ({
   isExecutable: vi.fn(() => false),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/ScanComparators', () => ({
   compareScanValues: vi.fn(
     (
@@ -136,14 +132,11 @@ vi.mock('@native/ScanComparators', () => ({
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/MemoryScanSession', () => {
   const sessions = new Map<string, ScanSessionState>();
   let counter = 0;
   return {
     scanSessionManager: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       createSession: vi.fn((_pid: number, _opts: { valueType: any; alignment?: number }) => {
         const id = `session-${++counter}`;
         sessions.set(id, {
@@ -176,7 +169,6 @@ vi.mock('@native/MemoryScanSession', () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/NativeMemoryManager.impl', () => ({
   nativeMemoryManager: {
     scanMemory: vi.fn(async () => ({
@@ -190,7 +182,6 @@ vi.mock('@native/NativeMemoryManager.impl', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', () => ({
   SCAN_MAX_RESULTS_PER_SCAN: 1000,
   SCAN_DISPLAY_RESULTS_LIMIT: 100,
@@ -207,14 +198,10 @@ describe('MemoryScanner', () => {
   let scanner: MemoryScanner;
 
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     scanner = new MemoryScanner(nativeMemoryManager as any);
     vi.clearAllMocks();
     // Restore mock provider defaults after clearAllMocks
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockProvider.openProcess.mockReturnValue({ pid: 1234, writeAccess: false });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockProvider.readMemory.mockImplementation(
       (_handle: ProcessHandle, addr: bigint, size: number) => {
         const offset = Number(addr - 0x10000n);
@@ -224,7 +211,6 @@ describe('MemoryScanner', () => {
         return { data: Buffer.alloc(size), bytesRead: size };
       },
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockProvider.queryRegion.mockImplementation((_handle: ProcessHandle, addr: bigint) => {
       if (addr <= 0x10000n) {
         return {

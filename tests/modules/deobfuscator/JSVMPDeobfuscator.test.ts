@@ -14,22 +14,17 @@ const promptState = vi.hoisted(() => ({
 }));
 
 const sandboxState = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   instances: [] as any[],
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/services/prompts/deobfuscation', () => ({
   generateVMAnalysisMessages: promptState.generateVMAnalysisMessages,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/security/ExecutionSandbox', () => {
   class ExecutionSandbox {
     execute = vi.fn(async () => ({ ok: true, output: 'sandbox-output' }));
@@ -46,21 +41,14 @@ describe('JSVMPDeobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     sandboxState.instances.length = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateVMAnalysisMessages.mockClear();
   });
 
   it('returns non-JSVMP result when VM patterns are not detected', async () => {
     const deobfuscator = new JSVMPDeobfuscator();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(deobfuscator as any, 'detectJSVMP').mockReturnValue(null);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = await deobfuscator.deobfuscate({ code: 'const x = 1;' } as any);
 
     expect(result.isJSVMP).toBe(false);
@@ -70,8 +58,6 @@ describe('JSVMPDeobfuscator', () => {
 
   it('returns full deobfuscation payload for detected VM code', async () => {
     const deobfuscator = new JSVMPDeobfuscator();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(deobfuscator as any, 'detectJSVMP').mockReturnValue({
       instructionCount: 15,
       interpreterLocation: 'Line 1',
@@ -80,15 +66,10 @@ describe('JSVMPDeobfuscator', () => {
       hasInstructionArray: true,
       hasProgramCounter: true,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(deobfuscator as any, 'identifyVMType').mockReturnValue('custom');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(deobfuscator as any, 'extractInstructions').mockReturnValue([
       { opcode: 1, name: 'INST_1', type: 'load', description: 'x' },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(deobfuscator as any, 'restoreCode').mockResolvedValue({
       code: 'decoded-code',
       confidence: 0.77,
@@ -99,8 +80,6 @@ describe('JSVMPDeobfuscator', () => {
     const result = await deobfuscator.deobfuscate({
       code: 'vm-code',
       extractInstructions: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     expect(result.isJSVMP).toBe(true);
@@ -112,14 +91,10 @@ describe('JSVMPDeobfuscator', () => {
 
   it('handles unexpected errors and returns safe failure payload', async () => {
     const deobfuscator = new JSVMPDeobfuscator();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(deobfuscator as any, 'detectJSVMP').mockImplementation(() => {
       throw new Error('boom');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = await deobfuscator.deobfuscate({ code: 'x' } as any);
 
     expect(result.isJSVMP).toBe(false);
@@ -128,26 +103,19 @@ describe('JSVMPDeobfuscator', () => {
 
   it('detects VM hints using regex fallback', () => {
     const deobfuscator = new JSVMPDeobfuscator();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = (deobfuscator as any).detectJSVMPWithRegex(
       'while(true){switch(i){case 1:break;} a.apply(b,c); parseInt("" + arr[i],16);}',
     );
 
     expect(result).not.toBeNull();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.hasSwitch).toBe(true);
   });
 
   it('applies basic custom VM restoration cleanup heuristics', () => {
     const deobfuscator = new JSVMPDeobfuscator();
     const warnings: string[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const unresolved: any[] = [];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const output = (deobfuscator as any).restoreCustomVMBasic(
       'debugger; if(a){}; "" + value; cond ? same : same;',
       true,
@@ -155,25 +123,17 @@ describe('JSVMPDeobfuscator', () => {
       unresolved,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(output.code).not.toContain('debugger');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(output.warnings.length).toBeGreaterThan(0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(output.unresolvedParts?.length).toBeGreaterThan(0);
   });
 
   it('infers arithmetic opcode type from switch case content', () => {
     const deobfuscator = new JSVMPDeobfuscator();
     const ast = parser.parse('switch(x){case 1: a + b; break;}', { sourceType: 'script' });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const switchNode = ast.program.body[0] as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const caseNode = switchNode.cases[0];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const type = (deobfuscator as any).inferInstructionType(caseNode);
     expect(type).toBe('arithmetic');
   });

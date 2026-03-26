@@ -133,7 +133,6 @@ describe('MCPServer.schema – buildZodShape', () => {
         weird: { type: 'custom_type' },
       },
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(shape.weird!.safeParse('anything').success).toBe(true);
     expect(shape.weird!.safeParse(42).success).toBe(true);
   });

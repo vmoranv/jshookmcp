@@ -440,7 +440,6 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
     name: string,
     args: Record<string, unknown> | undefined,
     timeoutMs: number,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ): Promise<{ parsed: any; result: ToolResult }> {
     if (!toolMap.has(name)) {
       const result = client.recordSynthetic(

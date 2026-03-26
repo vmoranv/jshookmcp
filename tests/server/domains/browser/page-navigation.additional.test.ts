@@ -2,12 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PageNavigationHandlers', () => {
   // We need to mock the module dependencies before importing
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let PageNavigationHandlers: any;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   function createMockDeps(overrides: Record<string, any> = {}) {
     return {
       pageController: {
@@ -47,16 +43,11 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handlePageNavigate({ url: 'https://example.com' });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(result.content[0].text);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.url).toBe('https://example.com/current');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.title).toBe('Example Page');
       expect(deps.pageController.navigate).toHaveBeenCalledWith(
         'https://example.com',
@@ -68,7 +59,6 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await handler.handlePageNavigate({ url: 'https://example.com', waitUntil: 'commit' });
 
       expect(deps.pageController.navigate).toHaveBeenCalledWith(
@@ -81,7 +71,6 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await handler.handlePageNavigate({
         url: 'https://example.com',
         waitUntil: 'domcontentloaded',
@@ -97,7 +86,6 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await handler.handlePageNavigate({ url: 'https://example.com', timeout: 10000 });
 
       expect(deps.pageController.navigate).toHaveBeenCalledWith(
@@ -110,7 +98,6 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await handler.handlePageNavigate({
         url: 'https://example.com',
         enableNetworkMonitoring: true,
@@ -126,7 +113,6 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await handler.handlePageNavigate({ url: 'https://example.com' });
 
       expect(deps.consoleMonitor.enable).not.toHaveBeenCalled();
@@ -137,15 +123,12 @@ describe('PageNavigationHandlers', () => {
       deps.consoleMonitor.isNetworkEnabled = vi.fn(() => true);
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handlePageNavigate({
         url: 'https://example.com',
         enableNetworkMonitoring: true,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(result.content[0].text);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.network_monitoring.enabled).toBe(true);
     });
   });
@@ -163,18 +146,12 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handlePageNavigate({ url: 'https://example.com' });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(result.content[0].text);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.driver).toBe('camoufox');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.url).toBe('https://example.com/cam');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.title).toBe('Cam Title');
       expect(camoufoxPage.goto).toHaveBeenCalled();
     });
@@ -191,7 +168,6 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await handler.handlePageNavigate({ url: 'https://example.com', waitUntil: 'networkidle2' });
 
       expect(camoufoxPage.goto).toHaveBeenCalledWith('https://example.com', {
@@ -212,7 +188,6 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await handler.handlePageNavigate({ url: 'https://example.com' });
 
       expect(deps.consoleMonitor.setPlaywrightPage).toHaveBeenCalledWith(camoufoxPage);
@@ -230,7 +205,6 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await handler.handlePageNavigate({
         url: 'https://example.com',
         enableNetworkMonitoring: true,
@@ -248,14 +222,10 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handlePageReload({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(result.content[0].text);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.message).toBe('Page reloaded');
       expect(deps.pageController.reload).toHaveBeenCalled();
     });
@@ -270,14 +240,10 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handlePageReload({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(result.content[0].text);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.driver).toBe('camoufox');
       expect(camoufoxPage.reload).toHaveBeenCalled();
     });
@@ -288,14 +254,10 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handlePageBack({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(result.content[0].text);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.url).toBe('https://example.com/current');
       expect(deps.pageController.goBack).toHaveBeenCalled();
     });
@@ -311,16 +273,11 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handlePageBack({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(result.content[0].text);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.driver).toBe('camoufox');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.url).toBe('https://example.com/previous');
       expect(camoufoxPage.goBack).toHaveBeenCalled();
     });
@@ -331,14 +288,10 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handlePageForward({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(result.content[0].text);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.url).toBe('https://example.com/current');
       expect(deps.pageController.goForward).toHaveBeenCalled();
     });
@@ -354,16 +307,11 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await handler.handlePageForward({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const parsed = JSON.parse(result.content[0].text);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.driver).toBe('camoufox');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.url).toBe('https://example.com/next');
       expect(camoufoxPage.goForward).toHaveBeenCalled();
     });

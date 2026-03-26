@@ -3,13 +3,11 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/artifacts', () => ({
   getArtifactsRoot: () => '/mocked/artifacts',
   getArtifactDir: (category: string) => `/mocked/artifacts/${category}`,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/outputPaths', () => ({
   getProjectRoot: () => '/mocked/project',
   resolveOutputDirectory: (_dir: string | undefined, fallback: string) => `/mocked/${fallback}`,
@@ -229,7 +227,6 @@ describe('ArtifactRetention – additional coverage', () => {
 
   describe('cleanupArtifacts – removedSample limit', () => {
     it('caps removedSample at 20 entries', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const dir = join(root, 'many-files');
       await mkdir(dir, { recursive: true });
       const oldTime = new Date('2024-01-01T00:00:00.000Z');

@@ -22,7 +22,6 @@ export interface BrowserStatusResponse extends CommonSuccessResponse {
   driver?: 'chrome' | 'camoufox' | 'playwright' | string;
   pageCount?: number;
   pages?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -60,7 +59,6 @@ export interface BrowserSelectTabResponse extends CommonSuccessResponse {
   activeContextRefreshed: boolean;
   networkMonitoringEnabled?: boolean;
   consoleMonitoringEnabled?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   availablePages?: any[];
 }
 
@@ -72,7 +70,6 @@ export interface BrowserAttachResponse extends CommonSuccessResponse {
 }
 
 export interface PageEvaluateResponse extends CommonSuccessResponse {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   result: any;
   driver?: string;
 }
@@ -139,12 +136,9 @@ export interface TabWorkflowResponse extends CommonSuccessResponse {
     alias: string;
     pageId: string;
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   aliases?: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   staleAliases?: any[];
   found?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   value?: any;
 }
 
@@ -153,7 +147,6 @@ export interface GenericDataResponse<T> extends CommonSuccessResponse {
 }
 
 export interface AnalysisResult extends CommonSuccessResponse {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   findings: any[]; // Still some any here but localized
   summary: string;
 }
@@ -240,9 +233,7 @@ export interface NetworkStatusResponse extends CommonSuccessResponse {
   responseCount?: number;
   listenerCount?: number;
   cdpSessionActive?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   usage?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   nextSteps?: any;
   example?: string;
 }
@@ -251,14 +242,12 @@ export interface NetworkExtractAuthResponse extends CommonSuccessResponse {
   message?: string;
   scannedRequests: number;
   found: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   findings: any[];
 }
 
 export interface NetworkExportHarResponse extends CommonSuccessResponse {
   message?: string;
   entryCount: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   har?: any;
 }
 
@@ -271,7 +260,6 @@ export interface NetworkReplayResponse extends CommonSuccessResponse {
 
 export interface PerformanceGetMetricsResponse extends CommonSuccessResponse {
   metrics: Record<string, number>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   timeline?: any[];
 }
 
@@ -279,7 +267,6 @@ export interface PerformanceCoverageResponse extends CommonSuccessResponse {
   message?: string;
   totalScripts?: number;
   avgCoverage?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   coverage?: any[];
 }
 
@@ -303,7 +290,6 @@ export interface ProfilerCpuResponse extends CommonSuccessResponse {
   totalNodes?: number;
   totalSamples?: number;
   durationMs?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   hotFunctions?: any[];
 }
 
@@ -311,7 +297,6 @@ export interface ProfilerHeapSamplingResponse extends CommonSuccessResponse {
   message?: string;
   artifactPath?: string;
   sampleCount?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   topAllocations?: any[];
 }
 
@@ -323,7 +308,6 @@ export interface BinaryDetectFormatResponse extends CommonSuccessResponse {
   assessment: string;
   previewHex: string;
   magicFormats?: string[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   topBytes?: any[];
   requestBodyUsed?: boolean;
   requestId?: string | null;
@@ -332,7 +316,6 @@ export interface BinaryDetectFormatResponse extends CommonSuccessResponse {
 export interface BinaryDecodeResponse extends CommonSuccessResponse {
   encoding: string;
   outputFormat: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   result: any;
   byteLength?: number;
   hexDump?: string;
@@ -349,9 +332,7 @@ export interface BinaryEntropyAnalysisResponse extends CommonSuccessResponse {
   source: string;
   overallEntropy: number;
   assessment: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   blockEntropies: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   byteFrequency: any[];
   byteLength: number;
   blockSize?: number;
@@ -360,7 +341,6 @@ export interface BinaryEntropyAnalysisResponse extends CommonSuccessResponse {
 export interface ProtobufDecodeRawResponse extends CommonSuccessResponse {
   byteLength: number;
   parsedBytes: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   fields: any[];
   maxDepth?: number;
 }
@@ -373,7 +353,6 @@ export interface WorkflowScriptRegisterResponse extends CommonSuccessResponse {
 }
 
 export interface WorkflowScriptRunResponse extends CommonSuccessResponse {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   value?: any;
   script?: string;
   available?: string[];

@@ -39,7 +39,6 @@ const state = vi.hoisted(() => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   ...state,
   PAGE: state.PAGE,
@@ -56,9 +55,7 @@ describe('Win32MemoryProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     provider = new Win32MemoryProvider();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.openProcessForMemory.mockReturnValue(0x1234n);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.CloseHandle.mockReturnValue(true);
   });
 
@@ -74,7 +71,6 @@ describe('Win32MemoryProvider', () => {
     });
 
     it('returns unavailable when not Windows', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isWindows.mockReturnValue(false);
       const result = await provider.checkAvailability();
       expect(result.available).toBe(false);
@@ -82,7 +78,6 @@ describe('Win32MemoryProvider', () => {
     });
 
     it('returns unavailable when koffi missing', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isKoffiAvailable.mockReturnValue(false);
       const result = await provider.checkAvailability();
       expect(result.available).toBe(false);
@@ -109,7 +104,6 @@ describe('Win32MemoryProvider', () => {
     it('reads memory and returns MemoryReadResult', () => {
       const handle = provider.openProcess(1, false);
       const buf = Buffer.from([0xaa, 0xbb]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.ReadProcessMemory.mockReturnValue(buf);
 
       const result = provider.readMemory(handle, 0x1000n, 2);
@@ -122,7 +116,6 @@ describe('Win32MemoryProvider', () => {
   describe('writeMemory', () => {
     it('writes memory and returns bytesWritten', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.WriteProcessMemory.mockReturnValue(4);
 
       const result = provider.writeMemory(handle, 0x2000n, Buffer.from([1, 2, 3, 4]));
@@ -133,7 +126,6 @@ describe('Win32MemoryProvider', () => {
   describe('queryRegion', () => {
     it('maps Win32 MEMORY_BASIC_INFORMATION to MemoryRegionInfo', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualQueryEx.mockReturnValue({
         success: true,
         info: {
@@ -158,7 +150,6 @@ describe('Win32MemoryProvider', () => {
 
     it('returns null when VirtualQueryEx fails', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualQueryEx.mockReturnValue({
         success: false,
         info: { BaseAddress: 0n, RegionSize: 0n, State: 0, Protect: 0, Type: 0 },
@@ -169,7 +160,6 @@ describe('Win32MemoryProvider', () => {
 
     it('returns null when RegionSize is zero', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualQueryEx.mockReturnValue({
         success: true,
         info: { BaseAddress: 0x10000n, RegionSize: 0n, State: 0, Protect: 0, Type: 0 },
@@ -180,7 +170,6 @@ describe('Win32MemoryProvider', () => {
 
     it('maps EXECUTE_READ protection correctly', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualQueryEx.mockReturnValue({
         success: true,
         info: {
@@ -201,7 +190,6 @@ describe('Win32MemoryProvider', () => {
 
     it('maps MEM_RESERVE to "reserved" state', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualQueryEx.mockReturnValue({
         success: true,
         info: {
@@ -219,7 +207,6 @@ describe('Win32MemoryProvider', () => {
 
     it('maps MEM_MAPPED type correctly', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualQueryEx.mockReturnValue({
         success: true,
         info: {
@@ -239,7 +226,6 @@ describe('Win32MemoryProvider', () => {
   describe('changeProtection', () => {
     it('delegates to VirtualProtectEx and returns old protection', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualProtectEx.mockReturnValue({ success: true, oldProtect: state.PAGE.READONLY });
 
       const result = provider.changeProtection(handle, 0x1000n, 4096, MemoryProtection.ReadWrite);
@@ -249,7 +235,6 @@ describe('Win32MemoryProvider', () => {
 
     it('throws when VirtualProtectEx fails', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualProtectEx.mockReturnValue({ success: false, oldProtect: 0 });
 
       expect(() =>
@@ -261,7 +246,6 @@ describe('Win32MemoryProvider', () => {
   describe('allocateMemory', () => {
     it('allocates and returns address', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualAllocEx.mockReturnValue(0x50000n);
 
       const result = provider.allocateMemory(handle, 4096, MemoryProtection.ReadWrite);
@@ -270,7 +254,6 @@ describe('Win32MemoryProvider', () => {
 
     it('throws when VirtualAllocEx returns null', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.VirtualAllocEx.mockReturnValue(0n);
 
       expect(() => provider.allocateMemory(handle, 4096, MemoryProtection.ReadWrite)).toThrow(
@@ -290,28 +273,19 @@ describe('Win32MemoryProvider', () => {
   describe('enumerateModules', () => {
     it('returns mapped module list', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.EnumProcessModules.mockReturnValue({
         success: true,
         modules: [0x10000n, 0x20000n],
         count: 2,
       });
-      state.GetModuleBaseName
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        .mockReturnValueOnce('kernel32.dll')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        .mockReturnValueOnce('ntdll.dll');
-      state.GetModuleInformation
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        .mockReturnValueOnce({
-          success: true,
-          info: { lpBaseOfDll: 0x10000n, SizeOfImage: 4096, EntryPoint: 0n },
-        })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        .mockReturnValueOnce({
-          success: true,
-          info: { lpBaseOfDll: 0x20000n, SizeOfImage: 8192, EntryPoint: 0n },
-        });
+      state.GetModuleBaseName.mockReturnValueOnce('kernel32.dll').mockReturnValueOnce('ntdll.dll');
+      state.GetModuleInformation.mockReturnValueOnce({
+        success: true,
+        info: { lpBaseOfDll: 0x10000n, SizeOfImage: 4096, EntryPoint: 0n },
+      }).mockReturnValueOnce({
+        success: true,
+        info: { lpBaseOfDll: 0x20000n, SizeOfImage: 8192, EntryPoint: 0n },
+      });
 
       const modules = provider.enumerateModules(handle);
       expect(modules).toHaveLength(2);
@@ -323,7 +297,6 @@ describe('Win32MemoryProvider', () => {
 
     it('throws when EnumProcessModules fails', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.EnumProcessModules.mockReturnValue({
         success: false,
         modules: [],
@@ -335,22 +308,19 @@ describe('Win32MemoryProvider', () => {
 
     it('skips modules where GetModuleInformation fails', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.EnumProcessModules.mockReturnValue({
         success: true,
         modules: [0x10000n, 0x20000n],
         count: 2,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.GetModuleBaseName.mockReturnValue('test.dll');
-      state.GetModuleInformation
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        .mockReturnValueOnce({ success: false, info: null })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        .mockReturnValueOnce({
-          success: true,
-          info: { lpBaseOfDll: 0x20000n, SizeOfImage: 2048, EntryPoint: 0n },
-        });
+      state.GetModuleInformation.mockReturnValueOnce({
+        success: false,
+        info: null,
+      }).mockReturnValueOnce({
+        success: true,
+        info: { lpBaseOfDll: 0x20000n, SizeOfImage: 2048, EntryPoint: 0n },
+      });
 
       const modules = provider.enumerateModules(handle);
       expect(modules).toHaveLength(1);

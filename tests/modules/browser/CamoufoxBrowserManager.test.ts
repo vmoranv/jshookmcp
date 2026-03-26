@@ -6,7 +6,6 @@ import {
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let reject!: (reason?: any) => void;
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
@@ -24,12 +23,10 @@ const loggerState = vi.hoisted(() => ({
 const camoufoxLaunchMock = vi.hoisted(() => vi.fn());
 const camoufoxServerLaunchMock = vi.hoisted(() => vi.fn());
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('camoufox-js', () => ({
   Camoufox: camoufoxLaunchMock,
   launchServer: camoufoxServerLaunchMock,
@@ -47,7 +44,6 @@ describe('CamoufoxBrowserManager', () => {
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
     } as unknown as CamoufoxBrowserLike;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     camoufoxLaunchMock.mockReturnValue(deferred.promise);
 
     const manager = new CamoufoxBrowserManager();
@@ -73,7 +69,6 @@ describe('CamoufoxBrowserManager', () => {
       close: vi.fn(async () => {}),
       isConnected: vi.fn(() => true),
     } as unknown as CamoufoxBrowserLike;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     camoufoxLaunchMock.mockReturnValue(deferred.promise);
 
     const manager = new CamoufoxBrowserManager();

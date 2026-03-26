@@ -39,7 +39,6 @@ describe('StealthScripts', () => {
   it('UA strings contain Chrome 131', () => {
     expect(typeof StealthScripts.setRealisticUserAgent).toBe('function');
     expect(typeof StealthScripts.hideWebDriver).toBe('function');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(typeof StealthScripts.mockChrome).toBe('function');
   });
 

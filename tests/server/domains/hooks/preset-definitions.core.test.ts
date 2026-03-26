@@ -6,7 +6,6 @@ const mockBuildHookCode = vi.hoisted(() =>
   ),
 );
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/hooks/preset-builder', () => ({
   buildHookCode: mockBuildHookCode,
 }));
@@ -38,7 +37,6 @@ const EXPECTED_CORE_IDS = [
 
 describe('CORE_PRESETS', () => {
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mockBuildHookCode.mockClear();
   });
 
@@ -86,7 +84,6 @@ describe('CORE_PRESETS', () => {
   describe('buildCode delegation to buildHookCode', () => {
     it('eval preset calls buildHookCode with name "eval"', () => {
       const result = CORE_PRESETS['eval']!.buildCode(true, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mockBuildHookCode).toHaveBeenCalledWith('eval', expect.any(String), true, false);
       expect(result).toBe('[mock:eval:cs=true:lc=false]');
     });
@@ -95,7 +92,6 @@ describe('CORE_PRESETS', () => {
       const result = CORE_PRESETS['function-constructor']!.buildCode(false, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'function-constructor',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
         true,
@@ -105,7 +101,6 @@ describe('CORE_PRESETS', () => {
 
     it('atob-btoa preset calls buildHookCode correctly', () => {
       CORE_PRESETS['atob-btoa']!.buildCode(true, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mockBuildHookCode).toHaveBeenCalledWith('atob-btoa', expect.any(String), true, true);
     });
 
@@ -113,7 +108,6 @@ describe('CORE_PRESETS', () => {
       CORE_PRESETS['crypto-subtle']!.buildCode(false, false);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'crypto-subtle',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
         false,
@@ -122,7 +116,6 @@ describe('CORE_PRESETS', () => {
 
     it('settimeout preset calls buildHookCode correctly', () => {
       CORE_PRESETS['settimeout']!.buildCode(true, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mockBuildHookCode).toHaveBeenCalledWith('settimeout', expect.any(String), true, false);
     });
 
@@ -130,7 +123,6 @@ describe('CORE_PRESETS', () => {
       CORE_PRESETS['addeventlistener']!.buildCode(false, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'addeventlistener',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
         true,
@@ -139,7 +131,6 @@ describe('CORE_PRESETS', () => {
 
     it('postmessage preset calls buildHookCode correctly', () => {
       CORE_PRESETS['postmessage']!.buildCode(true, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mockBuildHookCode).toHaveBeenCalledWith('postmessage', expect.any(String), true, true);
     });
 
@@ -147,7 +138,6 @@ describe('CORE_PRESETS', () => {
       CORE_PRESETS['history-pushstate']!.buildCode(false, false);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'history-pushstate',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(String),
         false,
         false,
@@ -162,10 +152,8 @@ describe('CORE_PRESETS', () => {
       [false, true],
       [false, false],
     ] as const)('eval preset with captureStack=%s, logToConsole=%s', (cs, lc) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockBuildHookCode.mockClear();
       CORE_PRESETS['eval']!.buildCode(cs, lc);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mockBuildHookCode).toHaveBeenCalledWith('eval', expect.any(String), cs, lc);
     });
   });
@@ -174,10 +162,8 @@ describe('CORE_PRESETS', () => {
     it.each(EXPECTED_CORE_IDS)(
       '"%s" body passed to buildHookCode contains STACK_CODE and LOG_FN placeholders',
       (id) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         mockBuildHookCode.mockClear();
         CORE_PRESETS[id]!.buildCode(false, false);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
         expect(bodyArg).toContain('{{STACK_CODE}}');
         expect(bodyArg).toContain('{{LOG_FN}}');
@@ -187,10 +173,8 @@ describe('CORE_PRESETS', () => {
 
   describe('body templates reference the correct __aiHooks key', () => {
     it.each(EXPECTED_CORE_IDS)('"%s" body contains its __aiHooks collection key', (id) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mockBuildHookCode.mockClear();
       CORE_PRESETS[id]!.buildCode(false, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
       expect(bodyArg).toContain(`preset-${id}`);
     });

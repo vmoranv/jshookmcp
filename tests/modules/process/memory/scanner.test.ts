@@ -13,7 +13,6 @@ const state = vi.hoisted(() => ({
   parseProcMaps: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock(import('node:fs'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -27,30 +26,25 @@ vi.mock(import('node:fs'), async (importOriginal) => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/NativeMemoryManager', () => ({
   nativeMemoryManager: {
     scanMemory: state.nativeScanMemory,
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/NativeMemoryManager.utils', () => ({
   isKoffiAvailable: state.isKoffiAvailable,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/memory/linux/mapsParser', () => ({
   parseProcMaps: state.parseProcMaps,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -97,7 +91,6 @@ describe('memory/scanner', () => {
   });
 
   it('scanMemory(win32) parses successful PowerShell JSON', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({
       stdout:
         '{"success":true,"addresses":["0x100","0x200"],"stats":{"patternLength":2,"resultsFound":2}}',
@@ -111,7 +104,6 @@ describe('memory/scanner', () => {
   });
 
   it('scanMemory(win32) returns stderr failure when PowerShell reports error', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({
       stdout: '{}',
       stderr: 'Error: access denied',
@@ -136,7 +128,6 @@ describe('memory/scanner', () => {
       ['0x1000'],
       'hex',
       vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.fn().mockResolvedValue({
         success: true,
         addresses: ['0x0F50', '0x10F0', '0x2000', '0x10F0'],
@@ -150,15 +141,12 @@ describe('memory/scanner', () => {
 
   describe('Windows native fallback to PowerShell', () => {
     it('falls back to PowerShell when native scan fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isKoffiAvailable.mockReturnValue(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.nativeScanMemory.mockResolvedValue({
         success: false,
         addresses: [],
         error: 'Native scan failed',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockResolvedValue({
         stdout:
           '{"success":true,"addresses":["0x300"],"stats":{"patternLength":2,"resultsFound":1}}',
@@ -174,11 +162,8 @@ describe('memory/scanner', () => {
     });
 
     it('falls back to PowerShell when native scan throws', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isKoffiAvailable.mockReturnValue(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.nativeScanMemory.mockRejectedValue(new Error('Native crash'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockResolvedValue({
         stdout:
           '{"success":true,"addresses":["0x400"],"stats":{"patternLength":2,"resultsFound":1}}',
@@ -193,9 +178,7 @@ describe('memory/scanner', () => {
     });
 
     it('skips native when koffi not available', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isKoffiAvailable.mockReturnValue(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockResolvedValue({
         stdout:
           '{"success":true,"addresses":["0x500"],"stats":{"patternLength":2,"resultsFound":1}}',

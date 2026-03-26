@@ -19,7 +19,6 @@ const mockBlocks = [
 
 let blockIdx = 0;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   openProcessForMemory: vi.fn(() => 1n),
   CloseHandle: vi.fn(() => true),
@@ -31,7 +30,6 @@ vi.mock('@native/Win32API', () => ({
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', () => ({
   HEAP_ENUMERATE_MAX_BLOCKS: 10000,
   HEAP_SPRAY_THRESHOLD: 3, // Lower threshold for testing
@@ -40,7 +38,6 @@ vi.mock('@src/constants', () => ({
 }));
 
 // Mock the koffi-based Toolhelp32 APIs used internally by HeapAnalyzer
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('koffi', () => {
   const heapListCalled = { value: false };
   return {

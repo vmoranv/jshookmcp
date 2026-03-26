@@ -25,17 +25,14 @@ const state = vi.hoisted(() => ({
   readFile: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs', () => ({
   existsSync: state.existsSync,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   readFile: state.readFile,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('tinyglobby', () => ({
   glob: state.glob,
 }));
@@ -43,25 +40,19 @@ vi.mock('tinyglobby', () => ({
 describe('ExtensionManager.discovery', () => {
   beforeEach(() => {
     vi.resetModules();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.existsSync.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.existsSync.mockReturnValue(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readFile.mockReset();
   });
 
   it('prefers installed plugin entry metadata over manifest filename guessing', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === pluginRoot) {
         return [pluginAlphaMetadata, pluginAlphaManifest, pluginAlphaEntry, pluginBetaManifest];
       }
       return [];
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readFile.mockImplementation(async (path: string | PathLike) => {
       if (normalizePath(path) === normalizePath(pluginAlphaMetadata)) {
         return JSON.stringify({
@@ -81,7 +72,6 @@ describe('ExtensionManager.discovery', () => {
       }
       throw new Error(`Unexpected read: ${String(path)}`);
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.existsSync.mockImplementation(
       (path: string | PathLike) => normalizePath(path) === normalizePath(pluginAlphaEntry),
     );
@@ -94,7 +84,6 @@ describe('ExtensionManager.discovery', () => {
   });
 
   it('prefers installed workflow entry metadata over workflow filename guessing', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === workflowRoot) {
         return [
@@ -106,7 +95,6 @@ describe('ExtensionManager.discovery', () => {
       }
       return [];
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readFile.mockImplementation(async (path: string | PathLike) => {
       if (normalizePath(path) === normalizePath(workflowAlphaMetadata)) {
         return JSON.stringify({
@@ -126,7 +114,6 @@ describe('ExtensionManager.discovery', () => {
       }
       throw new Error(`Unexpected read: ${String(path)}`);
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.existsSync.mockImplementation(
       (path: string | PathLike) => normalizePath(path) === normalizePath(workflowAlphaEntry),
     );
@@ -139,14 +126,12 @@ describe('ExtensionManager.discovery', () => {
   });
 
   it('falls back to legacy scans when installed metadata is invalid or missing output', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === pluginRoot) {
         return [pluginAlphaMetadata, pluginAlphaManifest, pluginAlphaEntry, pluginBetaManifest];
       }
       return [];
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readFile.mockResolvedValue('{"kind":"plugin"}');
     const { discoverPluginFiles } = await import('@server/extensions/ExtensionManager.discovery');
 
@@ -161,7 +146,6 @@ describe('ExtensionManager.discovery', () => {
     const workflowB = resolve(workflowRoot, 'b', 'build.workflow.js');
     const workflowC = resolve(workflowRoot, 'c', 'workflow.md');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === workflowRoot) {
         return [workflowA, workflowB, workflowC];
@@ -176,7 +160,6 @@ describe('ExtensionManager.discovery', () => {
   it('skips roots whose glob scan fails', async () => {
     const okManifest = resolve(okRoot, 'plugin', 'manifest.ts');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === brokenRoot) {
         throw new Error('scan failed');

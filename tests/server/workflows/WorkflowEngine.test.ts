@@ -5,7 +5,6 @@ const state = vi.hoisted(() => ({
   randomUUID: vi.fn(() => 'run-123'),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:crypto', () => ({
   randomUUID: state.randomUUID,
 }));
@@ -67,11 +66,9 @@ describe('workflows/WorkflowEngine', () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const executeToolWithTracking = vi
       .fn()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         content: [{ type: 'text', text: JSON.stringify({ success: false, error: 'retry me' }) }],
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(successResponse({ ok: true }));
     const ctx = {
       baseTier: 'workflow',
@@ -174,7 +171,6 @@ describe('workflows/WorkflowEngine', () => {
 
       const promise = executeExtensionWorkflow(ctx as never, workflow);
       // Catch early to prevent unhandled rejection
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const caught = promise.catch((e: any) => e);
       await vi.advanceTimersByTimeAsync(30);
 

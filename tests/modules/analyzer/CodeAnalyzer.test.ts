@@ -13,17 +13,14 @@ const promptState = vi.hoisted(() => ({
   generateTaintAnalysisPrompt: vi.fn(() => [{ role: 'user', content: 'analyze taint' }]),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/services/prompts/analysis', () => ({
   generateCodeAnalysisPrompt: promptState.generateCodeAnalysisPrompt,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/services/prompts/taint', () => ({
   generateTaintAnalysisPrompt: promptState.generateTaintAnalysisPrompt,
 }));
@@ -39,33 +36,22 @@ function createLLM(responses: Array<string | Error>) {
     }
     return { content: next };
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return { llm: { chat } as any, chat };
 }
 
 describe('CodeAnalyzer', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.debug.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.info.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.warn.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.error.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     loggerState.success.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateCodeAnalysisPrompt.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateCodeAnalysisPrompt.mockReturnValue([
       { role: 'user', content: 'analyze code' },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateTaintAnalysisPrompt.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     promptState.generateTaintAnalysisPrompt.mockReturnValue([
       { role: 'user', content: 'analyze taint' },
     ]);

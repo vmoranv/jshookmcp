@@ -9,7 +9,6 @@ import { EventBus } from '@server/EventBus';
 import type { ServerEventMap } from '@server/EventBus';
 
 // Mock resolveArtifactPath BEFORE importing TraceRecorder
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/artifacts', () => {
   return {
     resolveArtifactPath: async () => {
@@ -21,28 +20,22 @@ vi.mock('@utils/artifacts', () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 // Import TraceRecorder AFTER mock is set up (vi.mock is hoisted anyway)
 const { TraceRecorder } = await import('@modules/trace/TraceRecorder');
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function createMockCDPSession(): CDPSessionLike & {
   _listeners: Map<string, Set<(params: any) => void>>;
 } {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const listeners = new Map<string, Set<(params: any) => void>>();
   return {
     _listeners: listeners,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     on(event: string, handler: (params: any) => void) {
       if (!listeners.has(event)) listeners.set(event, new Set());
       listeners.get(event)!.add(handler);
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     off(event: string, handler: (params: any) => void) {
       listeners.get(event)?.delete(handler);
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     send: vi.fn().mockResolvedValue({}),
   };
 }

@@ -92,65 +92,46 @@ const {
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function classFactory(spy: ReturnType<typeof vi.fn>, instance: any) {
-  // oxlint-disable-next-line no-extraneous-class
-  return class {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    constructor(deps: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      (spy as any)(deps);
-      return instance;
-    }
+  return function MockHandler(deps: any) {
+    (spy as any)(deps);
+    return instance;
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/debugger-control', () => ({
   DebuggerControlHandlers: classFactory(ctorSpies.control, debuggerControl),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/debugger-stepping', () => ({
   DebuggerSteppingHandlers: classFactory(ctorSpies.stepping, debuggerStepping),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/debugger-evaluate', () => ({
   DebuggerEvaluateHandlers: classFactory(ctorSpies.evaluate, debuggerEvaluate),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/debugger-state', () => ({
   DebuggerStateHandlers: classFactory(ctorSpies.state, debuggerState),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/session-management', () => ({
   SessionManagementHandlers: classFactory(ctorSpies.session, sessionManagement),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/breakpoint-basic', () => ({
   BreakpointBasicHandlers: classFactory(ctorSpies.basic, breakpointBasic),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/breakpoint-exception', () => ({
   BreakpointExceptionHandlers: classFactory(ctorSpies.exception, breakpointException),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/xhr-breakpoint', () => ({
   XHRBreakpointHandlers: classFactory(ctorSpies.xhr, xhrBreakpoint),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/event-breakpoint', () => ({
   EventBreakpointHandlers: classFactory(ctorSpies.event, eventBreakpoint),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/watch-expressions', () => ({
   WatchExpressionsHandlers: classFactory(ctorSpies.watch, watchExpressions),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/scope-inspection', () => ({
   ScopeInspectionHandlers: classFactory(ctorSpies.scope, scopeInspection),
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/debugger/handlers/blackbox-handlers', () => ({
   BlackboxHandlers: classFactory(ctorSpies.blackbox, blackbox),
 }));
@@ -172,10 +153,7 @@ import {
 } from '@server/domains/debugger/handlers';
 
 describe('DebuggerToolHandlers', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const debuggerManager = { id: 'dm' } as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const runtimeInspector = { id: 'ri' } as any;
   let handlers: DebuggerToolHandlers;
 
@@ -707,8 +685,6 @@ describe('DebuggerToolHandlers', () => {
     });
 
     it.each(allMethods)('%s is a function on the instance', (method) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(typeof (handlers as any)[method]).toBe('function');
     });
   });

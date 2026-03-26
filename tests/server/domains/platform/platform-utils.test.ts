@@ -9,18 +9,13 @@ type TestDirent = Pick<Dirent, 'name' | 'isDirectory' | 'isFile'>;
 
 const mocks = vi.hoisted(() => {
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     readFile: vi.fn<(...args: any[]) => Promise<string>>(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     readdir: vi.fn<(...args: any[]) => Promise<TestDirent[]>>(async () => []),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     stat: vi.fn<(...args: any[]) => Promise<any>>(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mkdir: vi.fn<(...args: any[]) => Promise<void>>(async () => undefined),
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   readFile: mocks.readFile,
   readdir: mocks.readdir,
@@ -28,12 +23,10 @@ vi.mock('node:fs/promises', () => ({
   mkdir: mocks.mkdir,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: { warn: vi.fn(), debug: vi.fn(), info: vi.fn(), error: vi.fn() },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/artifacts', () => ({
   resolveArtifactPath: vi.fn(async () => ({
     absolutePath: '/tmp/artifacts/test.tmpdir',
@@ -85,9 +78,7 @@ describe('platform-utils', () => {
       const content = getFirstTextContent(result);
       expect(content.type).toBe('text');
       const parsed = JSON.parse(content.text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.data).toBe('hello');
     });
 
@@ -101,14 +92,12 @@ describe('platform-utils', () => {
     it('handles nested objects', () => {
       const result = toTextResponse({ outer: { inner: 'val' } });
       const parsed = JSON.parse(getFirstTextContent(result).text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.outer.inner).toBe('val');
     });
 
     it('handles arrays in payload', () => {
       const result = toTextResponse({ items: [1, 2, 3] });
       const parsed = JSON.parse(getFirstTextContent(result).text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.items).toEqual([1, 2, 3]);
     });
   });
@@ -120,25 +109,20 @@ describe('platform-utils', () => {
     it('formats an Error object', () => {
       const result = toErrorResponse('my_tool', new Error('something broke'));
       const parsed = JSON.parse(getFirstTextContent(result).text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.tool).toBe('my_tool');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('something broke');
     });
 
     it('formats a string error', () => {
       const result = toErrorResponse('my_tool', 'plain string error');
       const parsed = JSON.parse(getFirstTextContent(result).text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('plain string error');
     });
 
     it('formats a number error', () => {
       const result = toErrorResponse('my_tool', 42);
       const parsed = JSON.parse(getFirstTextContent(result).text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.error).toBe('42');
     });
 
@@ -147,7 +131,6 @@ describe('platform-utils', () => {
         hint: 'try again',
       });
       const parsed = JSON.parse(getFirstTextContent(result).text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.hint).toBe('try again');
     });
 
@@ -159,7 +142,6 @@ describe('platform-utils', () => {
       const parsed = JSON.parse(getFirstTextContent(result).text);
       // Extra fields are spread after success/tool/error, so they override
       // This tests the actual behavior
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed.tool).toBe('override');
     });
   });
@@ -169,16 +151,11 @@ describe('platform-utils', () => {
   // =========================================================================
   describe('getCollectorState', () => {
     it('always returns "attached"', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const fakeCollector = {} as any;
       expect(getCollectorState(fakeCollector)).toBe('attached');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     it('works with any collector-like object', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(getCollectorState(null as any)).toBe('attached');
     });
   });
@@ -333,13 +310,11 @@ describe('platform-utils', () => {
   // =========================================================================
   describe('pathExists', () => {
     it('returns true when stat succeeds', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce({});
       expect(await pathExists('/existing/path')).toBe(true);
     });
 
     it('returns false when stat throws', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
       expect(await pathExists('/missing/path')).toBe(false);
     });
@@ -436,7 +411,6 @@ describe('platform-utils', () => {
 
     it('creates directory recursively', async () => {
       await resolveOutputDirectory('test', 'target', '/deep/nested/dir');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(mocks.mkdir).toHaveBeenCalledWith(expect.any(String), { recursive: true });
     });
   });
@@ -446,42 +420,36 @@ describe('platform-utils', () => {
   // =========================================================================
   describe('readJsonFileSafe', () => {
     it('returns parsed JSON for valid file', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce('{"key": "value"}');
       const result = await readJsonFileSafe('/path/to/file.json');
       expect(result).toEqual({ key: 'value' });
     });
 
     it('returns null when file does not exist', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockRejectedValueOnce(new Error('ENOENT'));
       const result = await readJsonFileSafe('/missing.json');
       expect(result).toBeNull();
     });
 
     it('returns null for invalid JSON', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce('not json');
       const result = await readJsonFileSafe('/path/to/bad.json');
       expect(result).toBeNull();
     });
 
     it('returns null for non-object JSON (array)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce('[1, 2, 3]');
       const result = await readJsonFileSafe('/path/to/array.json');
       expect(result).toBeNull();
     });
 
     it('returns null for primitive JSON', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce('"just a string"');
       const result = await readJsonFileSafe('/path/to/string.json');
       expect(result).toBeNull();
     });
 
     it('returns null for null JSON literal', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce('null');
       const result = await readJsonFileSafe('/path/to/null.json');
       expect(result).toBeNull();
@@ -551,7 +519,6 @@ describe('platform-utils', () => {
   // =========================================================================
   describe('walkDirectory', () => {
     it('calls onFile for each file found', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([
         { name: 'a.js', isDirectory: () => false, isFile: () => true },
         { name: 'b.js', isDirectory: () => false, isFile: () => true },
@@ -562,7 +529,6 @@ describe('platform-utils', () => {
         size: 100,
         mtime: new Date(),
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValue(fileStats);
 
       const files: string[] = [];
@@ -575,12 +541,10 @@ describe('platform-utils', () => {
 
     it('recurses into subdirectories', async () => {
       // First readdir: root dir
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([
         { name: 'subdir', isDirectory: () => true, isFile: () => false },
       ]);
       // Second readdir: subdir
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([
         { name: 'nested.js', isDirectory: () => false, isFile: () => true },
       ]);
@@ -590,7 +554,6 @@ describe('platform-utils', () => {
         size: 50,
         mtime: new Date(),
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValue(fileStats);
 
       const files: string[] = [];
@@ -603,7 +566,6 @@ describe('platform-utils', () => {
     });
 
     it('skips unreadable directories gracefully', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockRejectedValueOnce(new Error('EACCES'));
 
       const files: string[] = [];
@@ -615,7 +577,6 @@ describe('platform-utils', () => {
     });
 
     it('skips non-file non-directory entries (e.g. symlinks)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([
         { name: 'link', isDirectory: () => false, isFile: () => false },
       ]);
@@ -629,15 +590,12 @@ describe('platform-utils', () => {
     });
 
     it('handles stat errors on individual files', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readdir.mockResolvedValueOnce([
         { name: 'bad.js', isDirectory: () => false, isFile: () => true },
         { name: 'good.js', isDirectory: () => false, isFile: () => true },
       ]);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('EACCES'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce({
         isFile: () => true,
         size: 100,
@@ -661,7 +619,6 @@ describe('platform-utils', () => {
   describe('toDisplayPath', () => {
     it('returns relative path when within cwd', () => {
       const cwd = process.cwd().replace(/\\/g, '/');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const testPath = `${cwd}/src/file.js`.replace(/\//g, require('node:path').sep);
       const result = toDisplayPath(testPath);
       // Should be a relative path not starting with ..

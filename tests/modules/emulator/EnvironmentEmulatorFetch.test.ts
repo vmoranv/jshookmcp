@@ -12,16 +12,15 @@ const puppeteerState = vi.hoisted(() => ({
   launch: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
     launch: puppeteerState.launch,
   },
+  launch: puppeteerState.launch,
 }));
 
 import { fetchRealEnvironmentData } from '@modules/emulator/EnvironmentEmulatorFetch';
@@ -39,22 +38,16 @@ function createDetected() {
 
 function createPage(extractedValues: Record<string, unknown>) {
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     setUserAgent: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     goto: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluate: vi.fn().mockResolvedValue(extractedValues),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     close: vi.fn().mockResolvedValue(undefined),
   };
 }
 
 function createBrowser(page: ReturnType<typeof createPage>) {
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     newPage: vi.fn().mockResolvedValue(page),
   };
 }
@@ -62,9 +55,7 @@ function createBrowser(page: ReturnType<typeof createPage>) {
 describe('EnvironmentEmulatorFetch', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => fn.mockReset());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     puppeteerState.launch.mockReset();
   });
 
@@ -77,7 +68,6 @@ describe('EnvironmentEmulatorFetch', () => {
     const resolveExecutablePath = vi.fn(() => 'C:/Browsers/chrome.exe');
     const buildManifestFromTemplate = vi.fn();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     puppeteerState.launch.mockResolvedValue(browser);
 
     const result = await fetchRealEnvironmentData({
@@ -120,8 +110,6 @@ describe('EnvironmentEmulatorFetch', () => {
     const browser = createBrowser(page);
 
     const result = await fetchRealEnvironmentData({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser: browser as any,
       url: 'https://example.com',
       detected: createDetected(),
@@ -140,14 +128,11 @@ describe('EnvironmentEmulatorFetch', () => {
 
   it('falls back to the template manifest when extraction fails and still closes the page', async () => {
     const page = createPage({});
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockRejectedValueOnce(new Error('evaluate failed'));
     const browser = createBrowser(page);
     const buildManifestFromTemplate = vi.fn(() => ({ fallback: true }));
 
     const result = await fetchRealEnvironmentData({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       browser: browser as any,
       url: 'https://example.com',
       detected: createDetected(),
@@ -158,7 +143,6 @@ describe('EnvironmentEmulatorFetch', () => {
 
     expect(buildManifestFromTemplate).toHaveBeenCalledWith(createDetected(), 'chrome');
     expect(page.close).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(loggerState.warn).toHaveBeenCalledWith('Variable extraction failed', expect.any(Error));
     expect(result).toEqual({
       manifest: { fallback: true },

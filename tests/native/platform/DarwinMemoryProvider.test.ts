@@ -39,7 +39,6 @@ const state = vi.hoisted(() => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/platform/darwin/DarwinAPI.js', () => state);
 
 import { DarwinMemoryProvider } from '@src/native/platform/darwin/DarwinMemoryProvider.js';
@@ -51,9 +50,7 @@ describe('DarwinMemoryProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     provider = new DarwinMemoryProvider();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.taskForPid.mockReturnValue({ kr: 0, task: 200 });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.machTaskSelf.mockReturnValue(100);
   });
 
@@ -69,7 +66,6 @@ describe('DarwinMemoryProvider', () => {
     });
 
     it('returns unavailable when not Darwin', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isDarwin.mockReturnValue(false);
       const result = await provider.checkAvailability();
       expect(result.available).toBe(false);
@@ -77,7 +73,6 @@ describe('DarwinMemoryProvider', () => {
     });
 
     it('returns unavailable when koffi missing', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.isKoffiAvailableOnDarwin.mockReturnValue(false);
       const result = await provider.checkAvailability();
       expect(result.available).toBe(false);
@@ -85,7 +80,6 @@ describe('DarwinMemoryProvider', () => {
     });
 
     it('returns unavailable when task_for_pid fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.taskForPid.mockReturnValue({ kr: 5, task: 0 }); // KERN_FAILURE
       const result = await provider.checkAvailability();
       expect(result.available).toBe(false);
@@ -93,7 +87,6 @@ describe('DarwinMemoryProvider', () => {
     });
 
     it('returns unavailable when task_for_pid throws', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.taskForPid.mockImplementation(() => {
         throw new Error('no entitlement');
       });
@@ -112,13 +105,11 @@ describe('DarwinMemoryProvider', () => {
     });
 
     it('throws descriptive error on KERN_FAILURE', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.taskForPid.mockReturnValue({ kr: 5, task: 0 });
       expect(() => provider.openProcess(42, false)).toThrow('sudo');
     });
 
     it('throws descriptive error on KERN_INVALID_ARGUMENT', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.taskForPid.mockReturnValue({ kr: 4, task: 0 });
       expect(() => provider.openProcess(999, false)).toThrow('Invalid PID');
     });
@@ -134,7 +125,6 @@ describe('DarwinMemoryProvider', () => {
     it('reads memory and returns MemoryReadResult', () => {
       const handle = provider.openProcess(1, false);
       const buf = Buffer.from([0xaa, 0xbb, 0xcc]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmReadOverwrite.mockReturnValue({ kr: 0, data: buf, outsize: 3n });
 
       const result = provider.readMemory(handle, 0x1000n, 3);
@@ -144,7 +134,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('throws on non-SUCCESS kern_return', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmReadOverwrite.mockReturnValue({ kr: 1, data: Buffer.alloc(0), outsize: 0n });
 
       expect(() => provider.readMemory(handle, 0x1000n, 4)).toThrow(
@@ -156,7 +145,6 @@ describe('DarwinMemoryProvider', () => {
   describe('writeMemory', () => {
     it('writes memory and returns bytesWritten', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmWrite.mockReturnValue(0);
 
       const data = Buffer.from([1, 2, 3, 4]);
@@ -167,7 +155,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('throws on non-SUCCESS kern_return', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmWrite.mockReturnValue(1);
 
       expect(() => provider.writeMemory(handle, 0x2000n, Buffer.alloc(4))).toThrow(
@@ -179,7 +166,6 @@ describe('DarwinMemoryProvider', () => {
   describe('queryRegion', () => {
     it('maps Mach region info to MemoryRegionInfo', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
         kr: 0,
         address: 0x10000n,
@@ -200,7 +186,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('returns null when kern_return is not SUCCESS', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
         kr: 1,
         address: 0n,
@@ -213,7 +198,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('maps READ+EXECUTE protection correctly', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
         kr: 0,
         address: 0x10000n,
@@ -230,7 +214,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('maps SM_COW to private', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
         kr: 0,
         address: 0n,
@@ -243,7 +226,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('maps SM_EMPTY to unknown', () => {
       const handle = provider.openProcess(1, false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
         kr: 0,
         address: 0n,
@@ -258,7 +240,6 @@ describe('DarwinMemoryProvider', () => {
   describe('changeProtection', () => {
     it('changes protection and returns old protection', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
         kr: 0,
         address: 0n,
@@ -273,7 +254,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('adjusts max protection for W^X when write+execute requested', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
         kr: 0,
         address: 0n,
@@ -291,14 +271,12 @@ describe('DarwinMemoryProvider', () => {
 
     it('throws when machVmProtect fails', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockReturnValue({
         kr: 0,
         address: 0n,
         size: 4096n,
         info: { protection: 1, behavior: 0 },
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmProtect.mockReturnValue(5); // KERN_FAILURE
 
       expect(() =>
@@ -324,7 +302,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('throws on allocation failure', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmAllocate.mockReturnValue({ kr: 5, address: 0n });
 
       expect(() => provider.allocateMemory(handle, 4096, MemoryProtection.ReadWrite)).toThrow(
@@ -334,7 +311,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('deallocates on protection change failure', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmProtect.mockReturnValue(5); // KERN_FAILURE
 
       expect(() => provider.allocateMemory(handle, 4096, MemoryProtection.Read)).toThrow(
@@ -353,7 +329,6 @@ describe('DarwinMemoryProvider', () => {
 
     it('throws on deallocation failure', () => {
       const handle = provider.openProcess(1, true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmDeallocate.mockReturnValue(1);
 
       expect(() => provider.freeMemory(handle, 0x50000n, 4096)).toThrow(
@@ -379,7 +354,6 @@ describe('DarwinMemoryProvider', () => {
 
       // One region with Mach-O header, one without
       let callCount = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmRegion.mockImplementation((_task: number, _addr: bigint) => {
         callCount++;
         if (callCount === 1) {
@@ -396,7 +370,6 @@ describe('DarwinMemoryProvider', () => {
       // Return MH_MAGIC_64 header
       const header = Buffer.alloc(4);
       header.writeUInt32LE(0xfeedfacf, 0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmReadOverwrite.mockReturnValue({ kr: 0, data: header, outsize: 4n });
 
       const modules = provider.enumerateModules(handle);
@@ -409,7 +382,6 @@ describe('DarwinMemoryProvider', () => {
   describe('handle validation', () => {
     it('throws for invalid handle on readMemory', () => {
       const fakeHandle = { pid: 99, writeAccess: false };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.machVmReadOverwrite.mockReturnValue({ kr: 0, data: Buffer.alloc(0), outsize: 0n });
       expect(() => provider.readMemory(fakeHandle, 0n, 1)).toThrow('Invalid ProcessHandle');
     });

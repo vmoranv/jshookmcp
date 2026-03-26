@@ -11,13 +11,10 @@ function createMockCollector(hasPage = true) {
     ? {
         evaluate: vi
           .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValue({ challengeType: 'image', taskKind: 'image', siteKey: '' }),
         url: () => 'http://test.local/page',
       }
     : null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return { getActivePage: vi.fn().mockResolvedValue(page) } as any;
 }
 
@@ -32,11 +29,8 @@ describe('handleCaptchaVisionSolve', () => {
     const result = parseJson<BrowserStatusResponse>(
       await handleCaptchaVisionSolve({ mode: 'manual' }, collector),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.mode).toBe('manual');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.instruction).toBeDefined();
   });
 
@@ -52,9 +46,7 @@ describe('handleCaptchaVisionSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.error).toContain('implemented');
   });
 
@@ -70,9 +62,7 @@ describe('handleCaptchaVisionSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.error).toContain('implemented');
   });
 
@@ -88,9 +78,7 @@ describe('handleCaptchaVisionSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.error).toContain('Unsupported');
   });
 
@@ -108,9 +96,7 @@ describe('handleCaptchaVisionSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.error).toContain('credentials');
 
     process.env.CAPTCHA_API_KEY = origKey;
@@ -129,7 +115,6 @@ describe('handleCaptchaVisionSolve', () => {
       ),
     );
     // Manual mode doesn't expose timeoutMs in response, but no error means it clamped properly
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(true);
   });
 
@@ -144,7 +129,6 @@ describe('handleCaptchaVisionSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(true);
   });
 
@@ -159,7 +143,6 @@ describe('handleCaptchaVisionSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.challengeType).toBeDefined();
   });
 });
@@ -173,10 +156,7 @@ describe('handleWidgetChallengeSolve', () => {
   it('requires siteKey detection or manual input', async () => {
     const collector = createMockCollector(true);
     // evaluate returns empty string for siteKey
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (collector.getActivePage as any).mockResolvedValue({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       evaluate: vi.fn().mockResolvedValue(''),
       url: () => 'http://test.local',
     });
@@ -184,18 +164,13 @@ describe('handleWidgetChallengeSolve', () => {
     const result = parseJson<BrowserStatusResponse>(
       await handleWidgetChallengeSolve({ mode: 'external_service' }, collector),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.error).toContain('siteKey');
   });
 
   it('returns manual mode when mode is manual', async () => {
     const collector = createMockCollector(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (collector.getActivePage as any).mockResolvedValue({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       evaluate: vi.fn().mockResolvedValue('test-site-key'),
       url: () => 'http://test.local',
     });
@@ -209,11 +184,8 @@ describe('handleWidgetChallengeSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.mode).toBe('manual');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.challengeType).toBe('widget');
   });
 
@@ -229,9 +201,7 @@ describe('handleWidgetChallengeSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.error).toContain('implemented');
   });
 
@@ -249,9 +219,7 @@ describe('handleWidgetChallengeSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.error).toContain('credentials');
 
     process.env.CAPTCHA_API_KEY = origKey;
@@ -270,7 +238,6 @@ describe('handleWidgetChallengeSolve', () => {
         collector,
       ),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.success).toBe(true);
   });
 });

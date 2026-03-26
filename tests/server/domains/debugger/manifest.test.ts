@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ToolRegistration } from '@server/registry/contracts';
 
-// oxlint-disable-next-line import/no-unassigned-import
-import '../shared/manifest-test-mocks';
+import { manifestTestMocksInstalled } from '../shared/manifest-test-mocks';
+
+void manifestTestMocksInstalled;
+
+async function loadManifest() {
+  const mod = await import('@server/domains/debugger/manifest');
+  return mod.default;
+}
 
 function getToolName(registration: ToolRegistration): string {
   return (registration.tool as { name: string }).name;
@@ -13,12 +19,6 @@ describe('debugger manifest', () => {
     vi.clearAllMocks();
     vi.resetModules();
   });
-
-  // oxlint-disable-next-line consistent-function-scoping
-  async function loadManifest() {
-    const mod = await import('@server/domains/debugger/manifest');
-    return mod.default;
-  }
 
   // ── Manifest shape ─────────────────────────────────────────
 
@@ -70,10 +70,8 @@ describe('debugger manifest', () => {
       for (const reg of manifest.registrations) {
         expect(reg).toEqual(
           expect.objectContaining({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             tool: expect.objectContaining({ name: expect.any(String) }),
             domain: 'debugger',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             bind: expect.any(Function),
           }),
         );

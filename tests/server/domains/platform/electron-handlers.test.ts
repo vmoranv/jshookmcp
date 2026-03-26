@@ -27,7 +27,6 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   readFile: mocks.readFile,
   mkdir: mocks.mkdir,
@@ -35,7 +34,6 @@ vi.mock('node:fs/promises', () => ({
   stat: mocks.stat,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/platform/handlers/electron-asar-helpers', () => ({
   parseAsarBuffer: mocks.parseAsarBuffer,
   parseBrowserWindowHints: mocks.parseBrowserWindowHints,
@@ -43,12 +41,10 @@ vi.mock('@server/domains/platform/handlers/electron-asar-helpers', () => ({
   findFilesystemPreloadScripts: mocks.findFilesystemPreloadScripts,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: { warn: vi.fn(), debug: vi.fn(), info: vi.fn(), error: vi.fn() },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/artifacts', () => ({
   resolveArtifactPath: vi.fn(async () => ({
     absolutePath: '/tmp/artifacts/test.tmpdir',
@@ -138,7 +134,6 @@ describe('ElectronHandlers', () => {
     });
 
     it('returns error when inputPath is not a file', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: false, isDirectory: true }));
 
       const result = parsePayload(await handlers.handleAsarExtract({ inputPath: '/some/dir' }));
@@ -149,11 +144,8 @@ describe('ElectronHandlers', () => {
 
     it('lists files in listOnly mode without extracting', async () => {
       const fakeBuffer = Buffer.alloc(200);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(
         makeParsedAsar([
           { path: 'index.js', size: 50, offset: 0 },
@@ -179,11 +171,8 @@ describe('ElectronHandlers', () => {
 
     it('extracts files to output directory', async () => {
       const fakeBuffer = Buffer.alloc(200);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(
         makeParsedAsar([{ path: 'main.js', size: 10, offset: 0 }]),
       );
@@ -202,11 +191,8 @@ describe('ElectronHandlers', () => {
 
     it('skips unpacked entries and reports them as failed', async () => {
       const fakeBuffer = Buffer.alloc(200);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(
         makeParsedAsar([
           { path: 'native.node', size: 10, offset: 0, unpacked: true },
@@ -234,11 +220,8 @@ describe('ElectronHandlers', () => {
 
     it('reports entries with out-of-bounds data ranges', async () => {
       const smallBuffer = Buffer.alloc(50);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(smallBuffer);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(
         makeParsedAsar([{ path: 'huge.js', size: 9999, offset: 0 }]),
       );
@@ -261,15 +244,11 @@ describe('ElectronHandlers', () => {
 
     it('handles file write errors gracefully', async () => {
       const fakeBuffer = Buffer.alloc(200);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(
         makeParsedAsar([{ path: 'index.js', size: 10, offset: 0 }]),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.writeFile.mockRejectedValueOnce(new Error('EACCES'));
 
       const result = parsePayload(
@@ -300,26 +279,17 @@ describe('ElectronHandlers', () => {
       expect(result.error).toContain('appPath');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     it('returns failure when no package.json can be found anywhere', async () => {
       // stat(appPath) -> directory
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
       // pathExists for 3 asar candidates -> all fail
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
       // readJsonFileSafe for 4 filesystem package.json candidates -> all fail
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockRejectedValueOnce(new Error('ENOENT'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockRejectedValueOnce(new Error('ENOENT'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockRejectedValueOnce(new Error('ENOENT'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockRejectedValueOnce(new Error('ENOENT'));
 
       const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));
@@ -336,22 +306,16 @@ describe('ElectronHandlers', () => {
       ]);
 
       // 1. stat(appPath) -> directory
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
       // 2. pathExists for first asar candidate (resources/app.asar) -> found (stat succeeds)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
       // 3. stat for the same asar candidate to check isFile -> true
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
       // readFile for asar
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(fakeParsedAsar);
 
       // readAsarEntryText for package.json
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readAsarEntryText.mockReturnValueOnce(
         JSON.stringify({
           name: 'test-app',
@@ -362,12 +326,10 @@ describe('ElectronHandlers', () => {
       );
 
       // readAsarEntryText for main.js content (first candidate path)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readAsarEntryText.mockReturnValueOnce(
         'const { app, BrowserWindow } = require("electron");',
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseBrowserWindowHints.mockReturnValueOnce({
         preloadScripts: ['preload.js'],
         devToolsEnabled: true,
@@ -388,18 +350,13 @@ describe('ElectronHandlers', () => {
 
     it('falls back to filesystem package.json when asar is not found', async () => {
       // 1. stat(appPath) -> file (exe)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true, isDirectory: false }));
       // 2-4. pathExists for 3 asar candidates -> all fail
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
 
       // readJsonFileSafe: first filesystem candidate found (readFile succeeds)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(
         JSON.stringify({
           name: 'fs-app',
@@ -409,24 +366,19 @@ describe('ElectronHandlers', () => {
       );
 
       // pathExists for main script (stat succeeds)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
       // stat for main script to check isFile
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
 
       // readFile for main script
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce('console.log("hello");');
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseBrowserWindowHints.mockReturnValueOnce({
         preloadScripts: [],
         devToolsEnabled: null,
       });
 
       // findFilesystemPreloadScripts returns empty
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.findFilesystemPreloadScripts.mockResolvedValueOnce([]);
 
       const result = parsePayload(
@@ -441,25 +393,18 @@ describe('ElectronHandlers', () => {
 
     it('uses "index.js" as mainEntry when packageJson.main is missing', async () => {
       // stat(appPath) -> directory
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
       // pathExists for 3 asar candidates -> all fail
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
 
       // readJsonFileSafe: first candidate found
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(JSON.stringify({ name: 'no-main-app' }));
 
       // pathExists for index.js -> not found
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.findFilesystemPreloadScripts.mockResolvedValueOnce([]);
 
       const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));
@@ -469,7 +414,6 @@ describe('ElectronHandlers', () => {
     });
 
     it('handles general errors gracefully', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockRejectedValueOnce(new Error('EPERM'));
 
       const result = parsePayload(
@@ -491,29 +435,21 @@ describe('ElectronHandlers', () => {
       const fakeBuffer = Buffer.alloc(300);
 
       // 1. stat(appPath) -> directory
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
       // 2. pathExists for first asar candidate -> found
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
       // 3. stat to check isFile -> true
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(fakeParsedAsar);
 
       // readAsarEntryText for package.json
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readAsarEntryText.mockReturnValueOnce(JSON.stringify({ name: 'app', main: 'main.js' }));
       // readAsarEntryText for main.js
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readAsarEntryText.mockReturnValueOnce('// main entry');
 
       // parseBrowserWindowHints returns empty preload list to trigger fallback
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseBrowserWindowHints.mockReturnValueOnce({
         preloadScripts: [],
         devToolsEnabled: null,
@@ -531,19 +467,13 @@ describe('ElectronHandlers', () => {
       const fakeParsedAsar = makeParsedAsar([{ path: 'package.json', size: 50, offset: 0 }]);
       const fakeBuffer = Buffer.alloc(200);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readFile.mockResolvedValueOnce(fakeBuffer);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.parseAsarBuffer.mockReturnValueOnce(fakeParsedAsar);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readAsarEntryText.mockReturnValueOnce(
         JSON.stringify({
           name: 'deps-app',
@@ -552,7 +482,6 @@ describe('ElectronHandlers', () => {
         }),
       );
       // No main script found
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.readAsarEntryText.mockReturnValue(undefined);
 
       const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));

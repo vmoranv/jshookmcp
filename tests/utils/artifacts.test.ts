@@ -3,12 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ROOT = resolve('virtual-project-root');
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/outputPaths', () => ({
   getProjectRoot: vi.fn(() => ROOT),
 }));
@@ -20,7 +18,6 @@ describe('artifacts utils', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2025-03-04T05:06:07.000Z'));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
   });
 

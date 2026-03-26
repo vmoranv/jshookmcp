@@ -12,21 +12,16 @@ const promptState = vi.hoisted(() => ({
 }));
 
 const sanitizerState = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   checkSanitizer: vi.fn((call: any) => {
     const callee = call.callee;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     return callee?.type === 'Identifier' && callee.name === 'sanitize';
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({ logger: loggerState }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@services/prompts/taint', () => ({
   generateTaintAnalysisPrompt: promptState.generateTaintAnalysisPrompt,
 }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/analyzer/SecurityCodeAnalyzer', () => ({
   checkSanitizer: sanitizerState.checkSanitizer,
 }));
@@ -272,7 +267,6 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
 
   describe('sanitizer detection', () => {
     it('removes taint when sanitizer applied', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       sanitizerState.checkSanitizer.mockReturnValue(true);
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\nconst c = sanitize(s);\ndocument.body.innerHTML = c;',
@@ -302,32 +296,25 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
   describe('LLM enhanced taint analysis', () => {
     it('skips LLM when no taint paths', async () => {
       const llm = { chat: vi.fn() };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await analyzeDataFlowWithTaint('const x = 1;', llm as any);
       expect(llm.chat).not.toHaveBeenCalled();
     });
     it('calls LLM and adds unique paths', async () => {
       const llm = {
-        chat: vi
-          .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          .mockResolvedValue({
-            content: JSON.stringify({
-              taintPaths: [
-                {
-                  source: { type: 'network', location: { file: 'current', line: 99 } },
-                  sink: { type: 'eval', location: { file: 'current', line: 100 } },
-                  path: [],
-                },
-              ],
-            }),
+        chat: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            taintPaths: [
+              {
+                source: { type: 'network', location: { file: 'current', line: 99 } },
+                sink: { type: 'eval', location: { file: 'current', line: 100 } },
+                path: [],
+              },
+            ],
           }),
+        }),
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         llm as any,
       );
       expect(llm.chat).toHaveBeenCalled();
@@ -335,61 +322,47 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
     });
     it('skips duplicate LLM paths', async () => {
       const llm = {
-        chat: vi
-          .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          .mockResolvedValue({
-            content: JSON.stringify({
-              taintPaths: [
-                {
-                  source: { type: 'user_input', location: { file: 'current', line: 1 } },
-                  sink: { type: 'xss', location: { file: 'current', line: 2 } },
-                  path: [],
-                },
-              ],
-            }),
+        chat: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            taintPaths: [
+              {
+                source: { type: 'user_input', location: { file: 'current', line: 1 } },
+                sink: { type: 'xss', location: { file: 'current', line: 2 } },
+                path: [],
+              },
+            ],
           }),
+        }),
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         llm as any,
       );
       const xssPaths = r.taintPaths.filter((p) => p.sink.type === 'xss');
       expect(xssPaths.length).toBe(1);
     });
     it('handles non-JSON LLM response', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const llm = { chat: vi.fn().mockResolvedValue({ content: 'This is not JSON at all' }) };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         llm as any,
       );
       expect(r.taintPaths.length).toBeGreaterThan(0);
     });
     it('handles LLM response without taintPaths', async () => {
       const llm = {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         chat: vi.fn().mockResolvedValue({ content: JSON.stringify({ analysis: 'no paths' }) }),
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         llm as any,
       );
       expect(r.taintPaths.length).toBeGreaterThan(0);
     });
     it('handles LLM chat throwing', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const llm = { chat: vi.fn().mockRejectedValue(new Error('LLM fail')) };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         llm as any,
       );
       expect(r.taintPaths.length).toBeGreaterThan(0);
@@ -398,13 +371,9 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       const longCode =
         'const s = location.href;\ndocument.body.innerHTML = s;\n' + 'x'.repeat(5000);
       const llm = {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         chat: vi.fn().mockResolvedValue({ content: JSON.stringify({ taintPaths: [] }) }),
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await analyzeDataFlowWithTaint(longCode, llm as any);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const calls = promptState.generateTaintAnalysisPrompt.mock.calls;
       if (calls.length > 0) {
         const codeArg = (calls as unknown as string[][])[0]![0]!;
@@ -413,46 +382,36 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
     });
     it('handles LLM path without source or sink', async () => {
       const llm = {
-        chat: vi
-          .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          .mockResolvedValue({
-            content: JSON.stringify({
-              taintPaths: [
-                { source: null, sink: null, path: [] },
-                { source: { type: 'network', location: { file: 'current', line: 50 } } },
-              ],
-            }),
+        chat: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            taintPaths: [
+              { source: null, sink: null, path: [] },
+              { source: { type: 'network', location: { file: 'current', line: 50 } } },
+            ],
           }),
+        }),
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         llm as any,
       );
       expect(r.taintPaths.every((p) => p.source && p.sink)).toBe(true);
     });
     it('uses empty array for missing LLM path', async () => {
       const llm = {
-        chat: vi
-          .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          .mockResolvedValue({
-            content: JSON.stringify({
-              taintPaths: [
-                {
-                  source: { type: 'network', location: { file: 'current', line: 88 } },
-                  sink: { type: 'eval', location: { file: 'current', line: 89 } },
-                },
-              ],
-            }),
+        chat: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            taintPaths: [
+              {
+                source: { type: 'network', location: { file: 'current', line: 88 } },
+                sink: { type: 'eval', location: { file: 'current', line: 89 } },
+              },
+            ],
           }),
+        }),
       };
       const r = await analyzeDataFlowWithTaint(
         'const s = location.href;\ndocument.body.innerHTML = s;',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         llm as any,
       );
       const llmPath = r.taintPaths.find((p) => p.source.location.line === 88);

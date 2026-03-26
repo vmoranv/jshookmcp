@@ -6,7 +6,6 @@ const state = vi.hoisted(() => ({
   getuid: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
@@ -33,7 +32,6 @@ describe('memory/availability extended', () => {
 
   describe('checkAvailability - win32', () => {
     it('returns unavailable with unexpected PowerShell output', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockResolvedValue({ stdout: 'unexpected output', stderr: '' });
       const { checkAvailability } = await loadModule();
 
@@ -43,7 +41,6 @@ describe('memory/availability extended', () => {
     });
 
     it('returns unavailable with empty PowerShell output', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockResolvedValue({ stdout: '', stderr: '' });
       const { checkAvailability } = await loadModule();
 
@@ -54,7 +51,6 @@ describe('memory/availability extended', () => {
 
     it('maps "is not recognized" error to PowerShell unavailable', async () => {
       const error = new Error('is not recognized as an internal or external command');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockRejectedValue(error);
       const { checkAvailability } = await loadModule();
 
@@ -65,7 +61,6 @@ describe('memory/availability extended', () => {
 
     it('maps "command not found" error to PowerShell unavailable', async () => {
       const error = new Error('command not found');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockRejectedValue(error);
       const { checkAvailability } = await loadModule();
 
@@ -78,7 +73,6 @@ describe('memory/availability extended', () => {
       const error = Object.assign(new Error('exec failed'), {
         stderr: 'cannot find the path for powershell',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockRejectedValue(error);
       const { checkAvailability } = await loadModule();
 
@@ -88,7 +82,6 @@ describe('memory/availability extended', () => {
     });
 
     it('maps generic errors to execution-failed reason', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockRejectedValue(new Error('timeout'));
       const { checkAvailability } = await loadModule();
 
@@ -101,9 +94,7 @@ describe('memory/availability extended', () => {
   describe('checkAvailability - linux', () => {
     it('returns unavailable for non-root without ptrace capability', async () => {
       state.execAsync
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({ stdout: '1000\n', stderr: '' }) // id -u
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockRejectedValueOnce(new Error('capsh failed')); // capsh check fails
       const { checkAvailability } = await loadModule();
 
@@ -113,7 +104,6 @@ describe('memory/availability extended', () => {
     });
 
     it('returns unavailable when id -u throws', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockRejectedValueOnce(new Error('id failed'));
       const { checkAvailability } = await loadModule();
 
@@ -125,11 +115,8 @@ describe('memory/availability extended', () => {
 
   describe('checkAvailability - darwin', () => {
     it('returns available when lldb exists and running as root', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: '/usr/bin/lldb', stderr: '' });
       const origGetuid = process.getuid;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       process.getuid = (() => 0) as any;
 
       try {
@@ -144,11 +131,8 @@ describe('memory/availability extended', () => {
     });
 
     it('returns available with warning when not root', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.execAsync.mockResolvedValue({ stdout: '/usr/bin/lldb', stderr: '' });
       const origGetuid = process.getuid;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       process.getuid = (() => 1000) as any;
 
       try {
@@ -173,7 +157,6 @@ describe('memory/availability extended', () => {
     });
 
     it('returns parsed JSON from PowerShell on Windows', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockResolvedValue({
         stdout: '{"success":true,"isDebugged":true}',
         stderr: '',
@@ -186,7 +169,6 @@ describe('memory/availability extended', () => {
     });
 
     it('returns error when PowerShell returns empty output', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockResolvedValue({ stdout: '', stderr: '' });
 
       const { checkDebugPort } = await loadModule();
@@ -197,7 +179,6 @@ describe('memory/availability extended', () => {
     });
 
     it('returns error when PowerShell throws', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockRejectedValue(new Error('ps failed'));
 
       const { checkDebugPort } = await loadModule();
@@ -208,7 +189,6 @@ describe('memory/availability extended', () => {
     });
 
     it('returns generic error for non-Error thrown value', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       state.executePowerShellScript.mockRejectedValue('string error');
 
       const { checkDebugPort } = await loadModule();

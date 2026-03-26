@@ -7,7 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -36,8 +35,6 @@ function makePausedCtx(overrides: Record<string, unknown> = {}) {
       ],
     },
     ...overrides,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -47,22 +44,16 @@ describe('getScopeVariablesCore - prerequisite checks', () => {
   });
 
   it('throws PrerequisiteError when not enabled', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: false, cdpSession: null, pausedState: null } as any;
     await expect(getScopeVariablesCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
   });
 
   it('throws PrerequisiteError when cdpSession is null', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: null, pausedState: null } as any;
     await expect(getScopeVariablesCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
   });
 
   it('throws PrerequisiteError when not in paused state', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send: vi.fn() }, pausedState: null } as any;
     await expect(getScopeVariablesCore(ctx)).rejects.toBeInstanceOf(PrerequisiteError);
     await expect(getScopeVariablesCore(ctx)).rejects.toThrow('Not in paused state');
@@ -135,8 +126,6 @@ describe('getScopeVariablesCore - __proto__ filtering', () => {
 
   it('filters out __proto__ properties', async () => {
     const ctx = makePausedCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({
       result: [
         { name: '__proto__', value: { type: 'object', value: {} } },
@@ -174,14 +163,10 @@ describe('getScopeVariablesCore - scope error handling', () => {
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: [{ name: 'a', value: { type: 'number', value: 1 } }],
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockRejectedValueOnce(new Error('Scope error'));
 
     const result = await getScopeVariablesCore(ctx);
@@ -196,8 +181,6 @@ describe('getScopeVariablesCore - scope error handling', () => {
 
   it('throws on scope error when skipErrors is false', async () => {
     const ctx = makePausedCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockRejectedValueOnce(new Error('Fatal scope error'));
 
     await expect(getScopeVariablesCore(ctx, { skipErrors: false })).rejects.toThrow(
@@ -207,8 +190,6 @@ describe('getScopeVariablesCore - scope error handling', () => {
 
   it('handles non-Error thrown from scope with toErrorMessage', async () => {
     const ctx = makePausedCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockRejectedValueOnce('string error');
 
     const result = await getScopeVariablesCore(ctx, { skipErrors: true });
@@ -234,8 +215,6 @@ describe('getScopeVariablesCore - scope error handling', () => {
         ],
       },
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({
       result: [{ name: 'g', value: { type: 'string', value: 'hello' } }],
     });
@@ -255,9 +234,7 @@ describe('getScopeVariablesCore - nested object properties', () => {
 
   it('resolves nested object properties when includeObjectProperties is true', async () => {
     const ctx = makePausedCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: [
           {
@@ -269,8 +246,6 @@ describe('getScopeVariablesCore - nested object properties', () => {
           },
         ],
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: [{ name: 'name', value: { type: 'string', value: 'Alice' } }],
       });
@@ -290,8 +265,6 @@ describe('getScopeVariablesCore - nested object properties', () => {
 
   it('does not resolve nested properties when includeObjectProperties is false', async () => {
     const ctx = makePausedCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({
       result: [
         {
@@ -307,15 +280,12 @@ describe('getScopeVariablesCore - nested object properties', () => {
 
     expect(result.variables).toHaveLength(1);
     // Should only have called send once (for the scope)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.cdpSession.send).toHaveBeenCalledTimes(1);
   });
 
   it('handles failure in nested property resolution gracefully', async () => {
     const ctx = makePausedCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         result: [
           {
@@ -324,8 +294,6 @@ describe('getScopeVariablesCore - nested object properties', () => {
           },
         ],
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockRejectedValueOnce(new Error('nested fail'));
 
     const result = await getScopeVariablesCore(ctx, {
@@ -340,15 +308,12 @@ describe('getScopeVariablesCore - nested object properties', () => {
     // The debug log comes from getObjectPropertiesCore's internal catch
     expect(loggerState.debug).toHaveBeenCalledWith(
       expect.stringContaining('Failed to get object properties for obj-data'),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.anything(),
     );
   });
 
   it('respects maxDepth=0 and does not resolve nested', async () => {
     const ctx = makePausedCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({
       result: [
         {
@@ -364,7 +329,6 @@ describe('getScopeVariablesCore - nested object properties', () => {
     });
 
     expect(result.variables).toHaveLength(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.cdpSession.send).toHaveBeenCalledTimes(1);
   });
 });
@@ -403,8 +367,6 @@ describe('getScopeVariablesCore - variable property mapping', () => {
 
   it('maps writable, configurable, enumerable, and objectId fields', async () => {
     const ctx = makePausedCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({
       result: [
         {
@@ -428,8 +390,6 @@ describe('getScopeVariablesCore - variable property mapping', () => {
 
   it('sets type to unknown when prop.value.type is missing', async () => {
     const ctx = makePausedCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.cdpSession.send.mockResolvedValueOnce({
       result: [{ name: 'mystery', value: { value: 'hello' } }],
     });
@@ -446,15 +406,11 @@ describe('getObjectPropertiesByIdCore', () => {
   });
 
   it('throws when debugger not enabled', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: false, cdpSession: null } as any;
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-1')).rejects.toThrow('Debugger not enabled');
   });
 
   it('throws when objectId is empty string', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
     await expect(getObjectPropertiesByIdCore(ctx, '')).rejects.toThrow(
       'objectId parameter is required',
@@ -462,10 +418,7 @@ describe('getObjectPropertiesByIdCore', () => {
   });
 
   it('throws when objectId is not a string', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     await expect(getObjectPropertiesByIdCore(ctx, 123 as any)).rejects.toThrow(
       'objectId parameter is required',
     );
@@ -479,8 +432,6 @@ describe('getObjectPropertiesByIdCore', () => {
         { name: 'noVal' }, // skipped
       ],
     }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesByIdCore(ctx, 'obj-1');
@@ -499,8 +450,6 @@ describe('getObjectPropertiesByIdCore', () => {
         },
       ],
     }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesByIdCore(ctx, 'obj-fn');
@@ -513,8 +462,6 @@ describe('getObjectPropertiesByIdCore', () => {
     const send = vi.fn(async () => {
       throw new Error('Could not find object with given id');
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-x')).rejects.toThrow(
@@ -526,8 +473,6 @@ describe('getObjectPropertiesByIdCore', () => {
     const send = vi.fn(async () => {
       throw new Error('Invalid remote object id');
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-y')).rejects.toThrow(
@@ -539,8 +484,6 @@ describe('getObjectPropertiesByIdCore', () => {
     const send = vi.fn(async () => {
       throw new Error('Random CDP error');
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     await expect(getObjectPropertiesByIdCore(ctx, 'obj-z')).rejects.toThrow('Random CDP error');
@@ -550,8 +493,6 @@ describe('getObjectPropertiesByIdCore', () => {
     const send = vi.fn(async () => ({
       result: [{ name: 'x', value: { value: 'hello' } }],
     }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesByIdCore(ctx, 'obj-1');
@@ -565,18 +506,13 @@ describe('getObjectPropertiesCore', () => {
   });
 
   it('returns empty array when maxDepth is 0', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send: vi.fn() } } as any;
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 0);
     expect(result).toEqual([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.cdpSession.send).not.toHaveBeenCalled();
   });
 
   it('returns empty array when cdpSession is null', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: null } as any;
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
     expect(result).toEqual([]);
@@ -589,8 +525,6 @@ describe('getObjectPropertiesCore', () => {
         { name: 'valid', value: { type: 'number', value: 10 } },
       ],
     }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
@@ -606,13 +540,10 @@ describe('getObjectPropertiesCore', () => {
         { name: 'b', value: { type: 'number', value: 42 } },
       ],
     }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.every((v: any) => v.scope === 'local')).toBe(true);
   });
 
@@ -620,8 +551,6 @@ describe('getObjectPropertiesCore', () => {
     const send = vi.fn(async () => {
       throw new Error('Connection lost');
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
@@ -629,7 +558,6 @@ describe('getObjectPropertiesCore', () => {
     expect(result).toEqual([]);
     expect(loggerState.debug).toHaveBeenCalledWith(
       expect.stringContaining('Failed to get object properties'),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.anything(),
     );
   });
@@ -638,8 +566,6 @@ describe('getObjectPropertiesCore', () => {
     const send = vi.fn(async () => ({
       result: [{ name: 'nested', value: { type: 'object', objectId: 'obj-nested', value: {} } }],
     }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);
@@ -651,8 +577,6 @@ describe('getObjectPropertiesCore', () => {
     const send = vi.fn(async () => ({
       result: [{ name: 'untyped', value: { value: 'data' } }],
     }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx = { enabled: true, cdpSession: { send } } as any;
 
     const result = await getObjectPropertiesCore(ctx, 'obj-1', 1);

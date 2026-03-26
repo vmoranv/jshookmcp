@@ -16,8 +16,6 @@ describe('AntiDebugToolHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handlers = new AntiDebugToolHandlers(collector as any);
   });
 
@@ -47,7 +45,6 @@ describe('AntiDebugToolHandlers', () => {
   });
 
   it('returns error payload when timing bypass injection fails', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('page unavailable'));
     const body = parseJson<TimingBypassResponse>(await handlers.handleAntiDebugBypassTiming({}));
     expect(body.success).toBe(false);
@@ -74,12 +71,10 @@ describe('AntiDebugToolHandlers', () => {
     success: boolean;
     detected: boolean;
     count: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     protections: any[];
   }
 
   it('maps detect protections result fields', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (page.evaluate as Mock).mockResolvedValueOnce({
       success: true,
       detected: true,
@@ -101,7 +96,6 @@ describe('AntiDebugToolHandlers', () => {
   });
 
   it('returns default empty detect protections payload when page returns null', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (page.evaluate as Mock).mockResolvedValueOnce(null);
     const body = parseJson<DetectProtectionsResponse>(
       await handlers.handleAntiDebugDetectProtections({}),
@@ -150,7 +144,6 @@ describe('AntiDebugToolHandlers', () => {
     });
 
     it('returns error on page failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('no page'));
       const body = parseJson<BypassAllResponse>(await handlers.handleAntiDebugBypassAll({}));
       expect(body.success).toBe(false);
@@ -207,7 +200,6 @@ describe('AntiDebugToolHandlers', () => {
     });
 
     it('returns error on failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('crash'));
       const body = parseJson<StackTraceResponse>(
         await handlers.handleAntiDebugBypassStackTrace({}),
@@ -233,7 +225,6 @@ describe('AntiDebugToolHandlers', () => {
     });
 
     it('returns error on failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('no page'));
       const body = parseJson<ConsoleDetectResponse>(
         await handlers.handleAntiDebugBypassConsoleDetect({}),
@@ -268,7 +259,6 @@ describe('AntiDebugToolHandlers', () => {
     });
 
     it('returns error on page failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('err'));
       const body = parseJson<DebuggerBypassResponse>(
         await handlers.handleAntiDebugBypassDebuggerStatement({}),
@@ -283,7 +273,6 @@ describe('AntiDebugToolHandlers', () => {
       const body1 = parseJson<BypassAllResponse>(
         await handlers.handleAntiDebugBypassAll({ persistent: 1 }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body1.persistent).toBe(true);
 
       vi.clearAllMocks();
@@ -291,7 +280,6 @@ describe('AntiDebugToolHandlers', () => {
       const body0 = parseJson<BypassAllResponse>(
         await handlers.handleAntiDebugBypassAll({ persistent: 0 }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body0.persistent).toBe(false);
     });
 
@@ -299,7 +287,6 @@ describe('AntiDebugToolHandlers', () => {
       const bodyTrue = parseJson<BypassAllResponse>(
         await handlers.handleAntiDebugBypassAll({ persistent: 'yes' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(bodyTrue.persistent).toBe(true);
 
       vi.clearAllMocks();
@@ -307,7 +294,6 @@ describe('AntiDebugToolHandlers', () => {
       const bodyFalse = parseJson<BypassAllResponse>(
         await handlers.handleAntiDebugBypassAll({ persistent: 'off' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(bodyFalse.persistent).toBe(false);
     });
   });
@@ -344,7 +330,6 @@ describe('AntiDebugToolHandlers', () => {
 
   describe('detect protections error path', () => {
     it('returns error on evaluate failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('timeout'));
       const body = parseJson<DetectProtectionsResponse>(
         await handlers.handleAntiDebugDetectProtections({}),

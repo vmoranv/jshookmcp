@@ -7,7 +7,6 @@ import {
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: vi.fn(async () => isSsrfTargetMock()),
 }));
@@ -17,7 +16,6 @@ import type { CallGraphEdge } from '@server/domains/graphql/handlers.impl.core.r
 
 interface CallGraphResponse {
   success: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   nodes: any[];
   edges: CallGraphEdge[];
   stats: {
@@ -36,10 +34,7 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     isSsrfTargetMock.mockResolvedValue(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handlers = new GraphQLToolHandlersCallGraph(collector as any);
   });
 
@@ -50,7 +45,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
   describe('page.evaluate callback logic', () => {
     it('executes the evaluate callback and processes empty globals', async () => {
       // Simulate a window with no trace data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         // Execute the callback with a mock window that has no data
         const fakeWindow = {};
@@ -82,7 +76,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('processes __aiHooks records with caller and callee', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -121,7 +114,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('processes stack trace frames from records', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -161,7 +153,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('processes __functionTraceRecords global array', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __functionTraceRecords: [
@@ -193,7 +184,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('processes __functionTracer.records', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __functionTracer: {
@@ -226,7 +216,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('skips non-array __aiHooks entries', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -258,7 +247,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('skips non-object entries in hook arrays', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -288,7 +276,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('normalizes empty/whitespace callee names to fallback', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -322,7 +309,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('deduplicates edges and increments counts', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -357,7 +343,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('skips self-referencing edges (source === target)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -390,7 +375,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('applies filterPattern to include only matching edges', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -427,7 +411,6 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
     });
 
     it('handles Firefox-style stack traces (function@file)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -463,7 +446,6 @@ callerFn@app.js:20:10`,
     });
 
     it('handles single stack frame that differs from callee', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -499,7 +481,6 @@ callerFn@app.js:20:10`,
     });
 
     it('handles single stack frame matching callee (no extra edge)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -536,7 +517,6 @@ callerFn@app.js:20:10`,
     });
 
     it('handles empty stack string', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -570,7 +550,6 @@ callerFn@app.js:20:10`,
     });
 
     it('uses alternate record field names (method, target)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __functionCalls: [
@@ -602,7 +581,6 @@ callerFn@app.js:20:10`,
     });
 
     it('handles non-string stack values', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __callTrace: [
@@ -635,7 +613,6 @@ callerFn@app.js:20:10`,
     });
 
     it('handles records with no caller and no stack (callee only uses fallback)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __traceCalls: [{ callee: 'orphanFn' }],
@@ -665,7 +642,6 @@ callerFn@app.js:20:10`,
     });
 
     it('respects maxDepth for deep stack traces', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -710,7 +686,6 @@ callerFn@app.js:20:10`,
     });
 
     it('handles __functionTracer that is not an object', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __functionTracer: 'not-an-object',
@@ -738,7 +713,6 @@ callerFn@app.js:20:10`,
     });
 
     it('handles __functionTracer.records that is not an array', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __functionTracer: {
@@ -768,7 +742,6 @@ callerFn@app.js:20:10`,
     });
 
     it('sorts nodes by callCount descending and edges by count descending', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -810,7 +783,6 @@ callerFn@app.js:20:10`,
     });
 
     it('handles __aiHooks that is falsy', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: null,
@@ -838,7 +810,6 @@ callerFn@app.js:20:10`,
     });
 
     it('processes stackTrace and trace fields as stack aliases', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __functionTracerRecords: [
@@ -878,7 +849,6 @@ at caller2 (b.js:2:1)`,
     });
 
     it('handles non-numeric callee values via normalization', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, evalArgs: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {

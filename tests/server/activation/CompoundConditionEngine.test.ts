@@ -92,9 +92,7 @@ describe('activation/CompoundConditionEngine', () => {
   it('event_count condition counts events in window', () => {
     const engine = new CompoundConditionEngine([
       {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         id: 'many-calls',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         name: 'Many tool calls',
         conditions: [{ type: 'event_count', event: 'tool:called', minCount: 3, windowMs: 60_000 }],
         boostDomains: ['workflow'],

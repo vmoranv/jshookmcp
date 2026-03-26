@@ -15,32 +15,26 @@ const exportMocks = vi.hoisted(() => ({
   sessionManager: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: exportMocks.logger,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/WatchExpressionManager', () => ({
   WatchExpressionManager: exportMocks.watchManager,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/XHRBreakpointManager', () => ({
   XHRBreakpointManager: exportMocks.xhrManager,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/EventBreakpointManager', () => ({
   EventBreakpointManager: exportMocks.eventManager,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/BlackboxManager', () => ({
   BlackboxManager: exportMocks.blackboxManager,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/DebuggerSessionManager', () => ({
   DebuggerSessionManager: exportMocks.sessionManager,
 }));

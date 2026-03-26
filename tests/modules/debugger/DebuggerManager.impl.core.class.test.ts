@@ -3,13 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const classMocks = vi.hoisted(() => {
   const createManagerClass = () =>
     class {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       public session: any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       public close = vi.fn().mockResolvedValue(undefined);
       public clearAll = vi.fn();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       constructor(session: any) {
         this.session = session;
       }
@@ -28,50 +25,35 @@ const classMocks = vi.hoisted(() => {
     EventBreakpointManager: createManagerClass(),
     BlackboxManager: createManagerClass(),
     DebuggerSessionManager: class {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       public exportSession = vi.fn().mockReturnValue({ metadata: {} });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       public saveSession = vi.fn().mockResolvedValue('session.json');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       public loadSessionFromFile = vi.fn().mockResolvedValue(undefined);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       public importSession = vi.fn().mockResolvedValue(undefined);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       public listSavedSessions = vi.fn().mockResolvedValue([]);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // oxlint-disable-next-line no-useless-constructor
-      constructor(_manager: any) {}
     },
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: classMocks.logger,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/WatchExpressionManager', () => ({
   WatchExpressionManager: classMocks.WatchExpressionManager,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/XHRBreakpointManager', () => ({
   XHRBreakpointManager: classMocks.XHRBreakpointManager,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/EventBreakpointManager', () => ({
   EventBreakpointManager: classMocks.EventBreakpointManager,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/BlackboxManager', () => ({
   BlackboxManager: classMocks.BlackboxManager,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/debugger/DebuggerSessionManager', () => ({
   DebuggerSessionManager: classMocks.DebuggerSessionManager,
 }));
@@ -79,26 +61,20 @@ vi.mock('@modules/debugger/DebuggerSessionManager', () => ({
 import { DebuggerManager } from '@modules/debugger/DebuggerManager.impl.core.class';
 
 function createCDPSession() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const listeners = new Map<string, Set<(payload?: any) => void>>();
 
   return {
     session: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       send: vi.fn().mockResolvedValue({}),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       on: vi.fn((event: string, handler: (payload?: any) => void) => {
         const set = listeners.get(event) ?? new Set();
         set.add(handler);
         listeners.set(event, set);
       }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       off: vi.fn((event: string, handler: (payload?: any) => void) => {
         listeners.get(event)?.delete(handler);
       }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       detach: vi.fn().mockResolvedValue(undefined),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       emit(event: string, payload?: any) {
         listeners.get(event)?.forEach((handler) => handler(payload));
       },
@@ -115,9 +91,7 @@ describe('DebuggerManager core class internals', () => {
   it('initializes advanced feature managers and tracks the active session', async () => {
     const cdp = createCDPSession();
     const collector = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         createCDPSession: vi.fn().mockResolvedValue(cdp.session),
       }),
     };
@@ -131,17 +105,13 @@ describe('DebuggerManager core class internals', () => {
     expect(manager.getXHRManager()).toBeInstanceOf(classMocks.XHRBreakpointManager);
     expect(manager.getEventManager()).toBeInstanceOf(classMocks.EventBreakpointManager);
     expect(manager.getBlackboxManager()).toBeInstanceOf(classMocks.BlackboxManager);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((manager as any).advancedFeatureSession).toBe(cdp.session);
   });
 
   it('marks itself disconnected and clears advanced managers on session disconnect', async () => {
     const cdp = createCDPSession();
     const collector = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getActivePage: vi.fn().mockResolvedValue({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         createCDPSession: vi.fn().mockResolvedValue(cdp.session),
       }),
     };
@@ -152,18 +122,10 @@ describe('DebuggerManager core class internals', () => {
     cdp.session.emit('disconnected');
 
     expect(manager.isEnabled()).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((manager as any).cdpSession).toBeNull();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((manager as any).advancedFeatureSession).toBeNull();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((manager as any)._xhrManager).toBeNull();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((manager as any)._eventManager).toBeNull();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((manager as any)._blackboxManager).toBeNull();
   });
 
@@ -173,27 +135,15 @@ describe('DebuggerManager core class internals', () => {
     };
     const manager = new DebuggerManager(collector as never);
     const currentSession = { send: vi.fn() };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).cdpSession = currentSession;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).advancedFeatureSession = { send: vi.fn() };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any)._xhrManager = null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any)._eventManager = {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any)._blackboxManager = {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ensureSessionSpy = vi.spyOn(manager, 'ensureSession').mockResolvedValue(undefined);
     const initAdvancedSpy = vi
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .spyOn(manager as any, 'initAdvancedFeatures')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValue(undefined);
 
     await manager.ensureAdvancedFeatures();
@@ -201,12 +151,8 @@ describe('DebuggerManager core class internals', () => {
     expect(ensureSessionSpy).toHaveBeenCalledTimes(1);
     expect(initAdvancedSpy).toHaveBeenCalledTimes(1);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).advancedFeatureSession = currentSession;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any)._xhrManager = {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     initAdvancedSpy.mockClear();
 
     await manager.ensureAdvancedFeatures();
@@ -216,8 +162,6 @@ describe('DebuggerManager core class internals', () => {
   it('normalizes paused and breakpoint-resolved event payloads defensively', () => {
     const manager = new DebuggerManager({ getActivePage: vi.fn() } as never);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const paused = (manager as any).normalizePausedEventParams({
       callFrames: [
         {
@@ -282,8 +226,6 @@ describe('DebuggerManager core class internals', () => {
     });
 
     expect(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).normalizeBreakpointResolvedParams({
         breakpointId: 5,
         location: { scriptId: 'script-1' },
@@ -296,15 +238,10 @@ describe('DebuggerManager core class internals', () => {
 
   it('calls disable during close when enabled and detaches residual sessions', async () => {
     const manager = new DebuggerManager({ getActivePage: vi.fn() } as never);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const detach = vi.fn().mockResolvedValue(undefined);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).enabled = true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (manager as any).cdpSession = { detach };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const disableSpy = vi.spyOn(manager, 'disable').mockResolvedValue(undefined);
 
     await manager.close();
@@ -313,17 +250,12 @@ describe('DebuggerManager core class internals', () => {
     expect(detach).toHaveBeenCalledTimes(1);
 
     const secondManager = new DebuggerManager({ getActivePage: vi.fn() } as never);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const secondDetach = vi.fn().mockResolvedValue(undefined);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (secondManager as any).cdpSession = { detach: secondDetach };
 
     await secondManager.close();
 
     expect(secondDetach).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((secondManager as any).cdpSession).toBeNull();
   });
 });

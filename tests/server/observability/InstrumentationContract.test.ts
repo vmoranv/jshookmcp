@@ -25,7 +25,6 @@ describe('observability/InstrumentationContract', () => {
   });
 
   it('returns a no-op span with the current timestamp', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(Date, 'now').mockReturnValue(12345);
     const instrumentation = new NoopInstrumentation();
 

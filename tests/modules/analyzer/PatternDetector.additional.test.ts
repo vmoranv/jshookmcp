@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // No external dependencies to mock for PatternDetector -
 // it imports types and functions from sibling modules which we can mock.
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/analyzer/PatternDetectorAuthPatterns', () => ({
   detectSignaturePatternsInternal: vi.fn(() => []),
   detectTokenPatternsInternal: vi.fn(() => []),
@@ -364,12 +363,8 @@ describe('PatternDetector additional coverage', () => {
         { type: 'AES', location: 'loc1', confidence: 0.9 },
         { type: 'AES', location: 'loc1', confidence: 0.5 },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const deduped = deduplicatePatterns(patterns as any);
       expect(deduped.length).toBe(1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((deduped[0] as any).confidence).toBe(0.9);
     });
   });

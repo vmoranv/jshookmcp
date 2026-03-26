@@ -6,13 +6,11 @@ const promptState = vi.hoisted(() => ({
   generateMissingVariablesMessages: vi.fn(() => [{ role: 'user', content: 'vars' }]),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/services/prompts/environment', () => ({
   generateMissingAPIImplementationsMessages: promptState.generateMissingAPIImplementationsMessages,
   generateMissingVariablesMessages: promptState.generateMissingVariablesMessages,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -22,7 +20,6 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/browserExecutable', () => ({
   findBrowserExecutable: vi.fn(() => undefined),
 }));
@@ -31,11 +28,11 @@ const puppeteerState = vi.hoisted(() => ({
   launch: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
     launch: puppeteerState.launch,
   },
+  launch: puppeteerState.launch,
 }));
 
 import { EnvironmentEmulator } from '@modules/emulator/EnvironmentEmulator';
@@ -62,7 +59,6 @@ describe('EnvironmentEmulator', () => {
   });
 
   it('falls back to regex detection when parser throws', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const parseSpy = vi.spyOn(parser, 'parse').mockImplementation(() => {
       throw new Error('parse-failed');
     });
@@ -75,19 +71,15 @@ describe('EnvironmentEmulator', () => {
 
     expect(result.detectedVariables.document).toContain('document.title');
     expect(result.detectedVariables.window).toContain('window.outerWidth');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     parseSpy.mockRestore();
   });
 
   it('applies AI-inferred variables into manifest', async () => {
     const llm = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       chat: vi.fn().mockResolvedValueOnce({
         content: '```json\n{"window.customThing":"hello"}\n```',
       }),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const emulator = new EnvironmentEmulator(llm as any);
 
     const result = await emulator.analyze({
@@ -105,15 +97,11 @@ describe('EnvironmentEmulator', () => {
     const llm = {
       chat: vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({ content: '```json\n{}\n```' }) // inferMissingVariablesWithAI
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           content: '```json\n{"window.missingFn":"function() { return 1; }"}\n```',
         }),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const emulator = new EnvironmentEmulator(llm as any);
 
     const result = await emulator.analyze({
@@ -128,10 +116,7 @@ describe('EnvironmentEmulator', () => {
   });
 
   it('cleanup closes browser instance and clears internal reference', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const emulator = new EnvironmentEmulator() as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const close = vi.fn().mockResolvedValue(undefined);
     emulator.browser = { close };
 
@@ -142,8 +127,6 @@ describe('EnvironmentEmulator', () => {
   });
 
   it('throws when configured executable path does not exist', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const emulator = new EnvironmentEmulator() as any;
     const old = process.env.CHROME_PATH;
     process.env.CHROME_PATH = '/definitely/not/exist/browser-bin';

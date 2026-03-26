@@ -9,16 +9,13 @@ const state = vi.hoisted(() => {
   return { execAsync, execFileAsync, promisify, spawn };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('child_process', () => ({
   exec: vi.fn(),
   execFile: vi.fn(),
   spawn: state.spawn,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('util', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   promisify: vi.fn((fn: any) => {
     if (fn === (require('child_process') as { execFile: unknown }).execFile) {
       return state.execFileAsync;
@@ -27,7 +24,6 @@ vi.mock('util', () => ({
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -40,7 +36,6 @@ vi.mock('@src/utils/logger', () => ({
 import { MacProcessManager } from '@modules/process/MacProcessManager';
 
 function setupExecByCommand(map: Record<string, { stdout: string; stderr?: string }>) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   state.execAsync.mockImplementation(async (cmd: string) => {
     for (const [key, value] of Object.entries(map)) {
       if (cmd.includes(key)) return { stdout: value.stdout, stderr: value.stderr ?? '' };
@@ -116,7 +111,6 @@ describe('MacProcessManager', () => {
   it('checkDebugPort reads debug port from command-line first', async () => {
     setupExecByCommand({});
     const manager = new MacProcessManager();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(manager, 'getProcessCommandLine').mockResolvedValue({
       commandLine: '--remote-debugging-port=9229',
     });
@@ -127,16 +121,12 @@ describe('MacProcessManager', () => {
 
   it('launchWithDebug spawns detached process and returns info', async () => {
     vi.useFakeTimers();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const child = new EventEmitter() as any;
     child.pid = 777;
     child.unref = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.spawn.mockReturnValue(child);
     setupExecByCommand({});
     const manager = new MacProcessManager();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({
       pid: 777,
       name: 'primary-browser',
@@ -164,12 +154,9 @@ describe('MacProcessManager', () => {
 
   it('launchWithDebug returns null when spawn returns undefined PID', async () => {
     vi.useFakeTimers();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const child = new EventEmitter() as any;
     child.pid = undefined;
     child.unref = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.spawn.mockReturnValue(child);
     setupExecByCommand({});
     const manager = new MacProcessManager();

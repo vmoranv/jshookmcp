@@ -6,17 +6,14 @@ const state = vi.hoisted(() => {
   return { execFileAsync, promisify };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:child_process', () => ({
   execFile: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:util', () => ({
   promisify: state.promisify,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -35,9 +32,7 @@ describe('ToolProbe', () => {
 
   it('returns available=true with path and version when both probes succeed', async () => {
     state.execFileAsync
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ stdout: '/usr/bin/tool\n', stderr: '' })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ stdout: 'tool 1.2.3\n', stderr: '' });
 
     const result = await probeCommand('tool', ['-v'], 1000);
@@ -51,9 +46,7 @@ describe('ToolProbe', () => {
 
   it('keeps command available even when version probe fails', async () => {
     state.execFileAsync
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ stdout: '/usr/local/bin/tool\n', stderr: '' })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockRejectedValueOnce(new Error('version failed'));
 
     const result = await probeCommand('tool');
@@ -64,7 +57,6 @@ describe('ToolProbe', () => {
   });
 
   it('reports command-not-found when executable lookup returns ENOENT', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execFileAsync.mockRejectedValueOnce({ code: 'ENOENT', message: 'not found' });
 
     const result = await probeCommand('missing-tool');
@@ -74,7 +66,6 @@ describe('ToolProbe', () => {
   });
 
   it('returns generic probe failure reason for other errors', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execFileAsync.mockRejectedValueOnce(new Error('boom'));
 
     const result = await probeCommand('broken');
@@ -85,7 +76,6 @@ describe('ToolProbe', () => {
 
   it('probes all commands and returns map keyed by command name', async () => {
     const whichCmd = process.platform === 'win32' ? 'where' : 'which';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execFileAsync.mockImplementation(async (cmd: string, args: string[]) => {
       if (cmd === whichCmd && args[0] === 'tool-a') return { stdout: '/bin/tool-a\n', stderr: '' };
       if (cmd === whichCmd && args[0] === 'tool-b') return { stdout: '/bin/tool-b\n', stderr: '' };

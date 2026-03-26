@@ -5,7 +5,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn<(message: string) => void>(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -20,8 +19,6 @@ type SteppingDebuggerManager = Pick<
 function parseJson(response: { content: Array<{ text: string }> }): unknown {
   const firstContent = response.content[0];
   expect(firstContent).toBeDefined();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return JSON.parse(firstContent!.text) as any;
 }
 
@@ -45,12 +42,9 @@ describe('DebuggerSteppingHandlers', () => {
   });
 
   it('returns a helpful error when step into is requested while disabled', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.isEnabled.mockReturnValueOnce(false);
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
     expect(body).toEqual({
@@ -61,14 +55,10 @@ describe('DebuggerSteppingHandlers', () => {
   });
 
   it('returns a helpful error when step over is requested while running', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.isEnabled.mockReturnValueOnce(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.isPaused.mockReturnValueOnce(false);
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
     expect(body).toEqual({
@@ -80,14 +70,10 @@ describe('DebuggerSteppingHandlers', () => {
   });
 
   it('steps out successfully when the debugger is paused', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.isEnabled.mockReturnValueOnce(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.isPaused.mockReturnValueOnce(true);
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
     expect(debuggerManager.stepOut).toHaveBeenCalledOnce();
@@ -98,16 +84,11 @@ describe('DebuggerSteppingHandlers', () => {
   });
 
   it('logs and returns a structured failure when stepping into throws', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.isEnabled.mockReturnValueOnce(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.isPaused.mockReturnValueOnce(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.stepInto.mockRejectedValueOnce(new Error('step failed'));
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
     expect(loggerState.error).toHaveBeenCalledWith('Step into failed: step failed');

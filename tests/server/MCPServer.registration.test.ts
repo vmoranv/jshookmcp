@@ -9,12 +9,10 @@ const mocks = vi.hoisted(() => ({
   parseToolDomains: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: mocks.logger,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   getToolsForProfile: mocks.getToolsForProfile,
   getToolsByDomains: mocks.getToolsByDomains,
@@ -27,18 +25,14 @@ describe('MCPServer.registration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.getToolsForProfile.mockReturnValue([{ name: 'browser_launch' }]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.getToolsByDomains.mockReturnValue([{ name: 'network_enable' }]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.parseToolDomains.mockReturnValue(null);
   });
 
   it('uses explicit domains when provided and falls back invalid profiles to search tier', () => {
     vi.stubEnv('MCP_TOOL_PROFILE', 'invalid');
     vi.stubEnv('MCP_TOOL_DOMAINS', 'browser,network');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.parseToolDomains.mockReturnValue(['browser', 'network']);
 
     const result = resolveToolsForRegistration();
@@ -57,7 +51,6 @@ describe('MCPServer.registration', () => {
   it('keeps a valid explicit profile when domains are used', () => {
     vi.stubEnv('MCP_TOOL_PROFILE', 'full');
     vi.stubEnv('MCP_TOOL_DOMAINS', 'browser,network');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.parseToolDomains.mockReturnValue(['browser', 'network']);
 
     const result = resolveToolsForRegistration();

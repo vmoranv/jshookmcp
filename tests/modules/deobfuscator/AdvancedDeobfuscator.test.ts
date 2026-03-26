@@ -9,8 +9,6 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const webcrackState = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   runWebcrack: vi.fn<(...args: any[]) => Promise<any>>(async (code: string) => ({
     applied: true,
     code: `decoded:${code}`,
@@ -18,12 +16,10 @@ const webcrackState = vi.hoisted(() => ({
   })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/deobfuscator/webcrack', () => ({
   runWebcrack: webcrackState.runWebcrack,
 }));
@@ -33,12 +29,8 @@ import { AdvancedDeobfuscator } from '@modules/deobfuscator/AdvancedDeobfuscator
 describe('AdvancedDeobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockImplementation(async (code: string) => ({
       applied: true,
       code: `decoded:${code}`,
@@ -61,7 +53,6 @@ describe('AdvancedDeobfuscator', () => {
   });
 
   it('passes options straight through to webcrack and returns bundle metadata', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockResolvedValue({
       applied: true,
       code: 'const view = <App />;',
@@ -129,7 +120,6 @@ describe('AdvancedDeobfuscator', () => {
   });
 
   it('throws when webcrack does not produce a result', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockResolvedValue({
       applied: false,
       code: 'raw',

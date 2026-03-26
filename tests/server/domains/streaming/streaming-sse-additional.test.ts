@@ -6,8 +6,6 @@ import type { TextToolResponse } from '@server/domains/streaming/handlers.impl.s
 // Helpers
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function parseJson(response: TextToolResponse): any {
   return JSON.parse(response.content[0].text);
 }
@@ -18,11 +16,9 @@ function parseJson(response: TextToolResponse): any {
 
 function createMocks() {
   const session = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     send: vi.fn().mockResolvedValue(undefined),
     on: vi.fn(),
     off: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detach: vi.fn().mockResolvedValue(undefined),
   };
 
@@ -33,8 +29,6 @@ function createMocks() {
 
   const collector = {
     getActivePage: vi.fn(async () => page),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   return { session, page, collector };
@@ -59,23 +53,17 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
   // -----------------------------------------------------------------------
   describe('enableSseInterceptor — evaluate callback returns', () => {
     it('returns success:false when EventSource is unavailable', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: false,
         error: 'EventSource is not available in current page context',
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({}));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.error).toContain('EventSource');
     });
 
     it('preserves existing events count from interceptor', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -84,17 +72,12 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 150,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({}));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.existingEvents).toBe(150);
     });
 
     it('handles patched=false on first enable', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -103,17 +86,12 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({}));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.patched).toBe(false);
     });
 
     it('forwards urlFilter in interceptor result', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -123,18 +101,13 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: '/api/.*' }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.urlFilter).toBe('/api/.*');
     });
 
     it('does not update sseConfig when interceptor returns success:false', async () => {
       // First enable successfully
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValueOnce({
         success: true,
         message: 'SSE monitor enabled',
@@ -142,22 +115,15 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         maxEvents: 500,
         existingEvents: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const first = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 500 }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(first.config.maxEvents).toBe(500);
 
       // Second enable fails
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValueOnce({
         success: false,
         error: 'EventSource is not available in current page context',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const second = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 999 }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(second.success).toBe(false);
       // sseConfig should NOT have been updated to 999
     });
@@ -168,7 +134,6 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
   // -----------------------------------------------------------------------
   describe('handleSseMonitorEnable — argument edge cases', () => {
     it('handles non-finite maxEvents by using default', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -177,18 +142,13 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: Infinity }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
       // Infinity is not finite, should fall back to default
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(2000);
     });
 
     it('handles NaN maxEvents by using default', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -197,17 +157,12 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: NaN }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(2000);
     });
 
     it('handles null urlFilter (not string)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -216,17 +171,12 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: null }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.urlFilter).toBeNull();
     });
 
     it('handles numeric urlFilter (not string)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -235,17 +185,12 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({ urlFilter: 12345 }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.urlFilter).toBeNull();
     });
 
     it('handles boolean maxEvents (falls back to default)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -254,17 +199,12 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: true }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(2000);
     });
 
     it('handles object maxEvents (falls back to default)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -273,12 +213,8 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseMonitorEnable({ maxEvents: {} }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.config.maxEvents).toBe(2000);
     });
   });
@@ -288,7 +224,6 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
   // -----------------------------------------------------------------------
   describe('handleSseGetEvents — additional edge cases', () => {
     it('handles whitespace-only sourceUrl by treating as undefined', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
@@ -312,14 +247,11 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       await handler.handleSseGetEvents({ sourceUrl: '   ' });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(evaluateArgs.sourceUrl).toBeUndefined();
     });
 
     it('handles whitespace-only eventType by treating as undefined', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
@@ -343,14 +275,11 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       await handler.handleSseGetEvents({ eventType: '   ' });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(evaluateArgs.eventType).toBeUndefined();
     });
 
     it('handles boolean sourceUrl by treating as undefined', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
@@ -374,14 +303,11 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       await handler.handleSseGetEvents({ sourceUrl: true });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(evaluateArgs.sourceUrl).toBeUndefined();
     });
 
     it('handles Infinity limit by clamping to max 5000', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
@@ -406,14 +332,11 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       await handler.handleSseGetEvents({ limit: Infinity });
 
       // Infinity is not finite, so default kicks in
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(evaluateArgs.limit).toBe(100);
     });
 
     it('passes all four arguments to page.evaluate', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: 'http://a.com', eventType: 'data' },
@@ -442,7 +365,6 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         offset: 5,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
       expect(evaluateArgs).toEqual({
         sourceUrl: 'http://a.com',
@@ -453,7 +375,6 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
     });
 
     it('handles monitor state with multiple sources', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
@@ -500,14 +421,9 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         ],
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseGetEvents({}));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events).toHaveLength(3);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.monitor.sourceCount).toBe(3);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.events[1]!.lastEventId).toBe('2');
     });
   });
@@ -517,7 +433,6 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
   // -----------------------------------------------------------------------
   describe('handleSseMonitorEnable — sequential enables', () => {
     it('can enable, then re-enable with different config', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValueOnce({
         success: true,
         message: 'SSE monitor enabled',
@@ -526,13 +441,9 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 0,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const first = parseJson(await handler.handleSseMonitorEnable({ maxEvents: 100 }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(first.config.maxEvents).toBe(100);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValueOnce({
         success: true,
         message: 'SSE monitor enabled',
@@ -541,21 +452,15 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         existingEvents: 10,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const second = parseJson(
         await handler.handleSseMonitorEnable({ maxEvents: 5000, urlFilter: '/events/.*' }),
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(second.config.maxEvents).toBe(5000);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(second.config.urlFilter).toBe('/events/.*');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(second.existingEvents).toBe(10);
     });
 
     it('page.evaluate receives the function as first arg and config as second', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         message: 'SSE monitor enabled',
@@ -567,7 +472,6 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       await handler.handleSseMonitorEnable({});
 
       expect(mocks.page.evaluate).toHaveBeenCalledOnce();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const call = mocks.page.evaluate.mock.calls[0]!;
       expect(typeof call[0]).toBe('function');
       expect(call[1]).toEqual({ maxEvents: 2000, urlFilterRaw: undefined });
@@ -579,7 +483,6 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
   // -----------------------------------------------------------------------
   describe('handleSseGetEvents — response shape', () => {
     it('returns proper TextToolResponse shape', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
@@ -609,7 +512,6 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
     });
 
     it('returns monitor info block in getEvents response', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.evaluate.mockResolvedValue({
         success: true,
         filters: { sourceUrl: null, eventType: null },
@@ -631,18 +533,11 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         events: [],
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson(await handler.handleSseGetEvents({}));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.monitor.enabled).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.monitor.patched).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.monitor.maxEvents).toBe(5000);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.monitor.urlFilter).toBe('/stream');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.monitor.sourceCount).toBe(2);
     });
   });

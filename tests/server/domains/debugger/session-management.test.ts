@@ -16,8 +16,6 @@ type SessionManagementDebuggerManager = Pick<
 function parseJson(response: { content: Array<{ text: string }> }): unknown {
   const firstContent = response.content[0];
   expect(firstContent).toBeDefined();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return JSON.parse(firstContent!.text) as any;
 }
 
@@ -41,23 +39,18 @@ describe('SessionManagementHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.listBreakpoints.mockReturnValue([{ breakpointId: 'bp-1' }] as ReturnType<
       SessionManagementDebuggerManager['listBreakpoints']
     >);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPauseOnExceptionsState.mockReturnValue(
       'all' as ReturnType<SessionManagementDebuggerManager['getPauseOnExceptionsState']>,
     );
   });
 
   it('saves a session and reports the current breakpoint count', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.saveSession.mockResolvedValueOnce('/tmp/session.json');
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleSaveSession({
         filePath: '/tmp/session.json',
@@ -77,12 +70,9 @@ describe('SessionManagementHandlers', () => {
   });
 
   it('returns a structured error when saving a session fails', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.saveSession.mockRejectedValueOnce(new Error('disk full'));
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleSaveSession({}));
 
     expect(body).toEqual({
@@ -95,8 +85,6 @@ describe('SessionManagementHandlers', () => {
   it('loads a session from file when filePath is provided', async () => {
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleLoadSession({ filePath: '/tmp/session.json' }),
     );
@@ -114,8 +102,6 @@ describe('SessionManagementHandlers', () => {
   it('loads a session from raw session data', async () => {
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleLoadSession({ sessionData: '{"breakpoints":[]}' }),
     );
@@ -127,8 +113,6 @@ describe('SessionManagementHandlers', () => {
   it('returns a structured error when load arguments are missing', async () => {
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleLoadSession({}));
 
     expect(body).toEqual({
@@ -139,15 +123,12 @@ describe('SessionManagementHandlers', () => {
   });
 
   it('exports the current session snapshot', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.exportSession.mockReturnValueOnce({
       metadata: { label: 'snapshot' },
       breakpoints: [],
     } as unknown as ReturnType<SessionManagementDebuggerManager['exportSession']>);
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleExportSession({ metadata: { label: 'snapshot' } }),
     );
@@ -166,7 +147,6 @@ describe('SessionManagementHandlers', () => {
   });
 
   it('lists saved sessions with ISO dates', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.listSavedSessions.mockResolvedValueOnce([
       {
         path: '/tmp/session.json',
@@ -176,8 +156,6 @@ describe('SessionManagementHandlers', () => {
     ]);
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleListSessions({}));
 
     expect(body).toEqual({

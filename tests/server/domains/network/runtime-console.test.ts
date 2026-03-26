@@ -32,20 +32,16 @@ const mocks = vi.hoisted(() => {
   return { consoleMonitorMock, performanceMonitorMock, collectorMock, loggerMock };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: mocks.loggerMock,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
   PerformanceMonitor: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/DetailedDataManager', () => ({
   DetailedDataManager: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getInstance: vi.fn().mockReturnValue({}),
   },
 }));
@@ -113,7 +109,6 @@ describe('AdvancedHandlersBase (console)', () => {
         { message: 'Error 1', url: 'https://a.com/script.js' },
         { message: 'Error 2', url: 'https://b.com/app.js' },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
       const result = await handler.handleConsoleGetExceptions({});
@@ -130,7 +125,6 @@ describe('AdvancedHandlersBase (console)', () => {
         { message: 'Error 2', url: 'https://b.com/app.js' },
         { message: 'Error 3', url: 'https://a.com/other.js' },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
       const result = await handler.handleConsoleGetExceptions({ url: 'a.com' });
@@ -147,7 +141,6 @@ describe('AdvancedHandlersBase (console)', () => {
         message: `Error ${i}`,
         url: `https://example.com/${i}.js`,
       }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
       const result = await handler.handleConsoleGetExceptions({});
@@ -161,7 +154,6 @@ describe('AdvancedHandlersBase (console)', () => {
         message: `Error ${i}`,
         url: `https://example.com/${i}.js`,
       }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
       const result = await handler.handleConsoleGetExceptions({ limit: 5 });
@@ -175,7 +167,6 @@ describe('AdvancedHandlersBase (console)', () => {
         message: `Error ${i}`,
         url: i < 3 ? 'https://target.com/script.js' : `https://other.com/${i}.js`,
       }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
       const result = await handler.handleConsoleGetExceptions({ url: 'target.com', limit: 2 });
@@ -185,7 +176,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('returns empty array when no exceptions exist', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.getExceptions.mockReturnValue([]);
 
       const result = await handler.handleConsoleGetExceptions({});
@@ -201,7 +191,6 @@ describe('AdvancedHandlersBase (console)', () => {
         { message: 'Error 1', url: undefined },
         { message: 'Error 2', url: 'https://a.com/script.js' },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
       const result = await handler.handleConsoleGetExceptions({ url: 'a.com' });
@@ -212,7 +201,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('returns content with correct MCP text format', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.getExceptions.mockReturnValue([]);
 
       const result = await handler.handleConsoleGetExceptions({});
@@ -227,7 +215,6 @@ describe('AdvancedHandlersBase (console)', () => {
   // -----------------------------------------------------------------------
   describe('handleConsoleInjectScriptMonitor', () => {
     it('calls enableDynamicScriptMonitoring and returns success', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.enableDynamicScriptMonitoring.mockResolvedValue(undefined);
 
       const result = await handler.handleConsoleInjectScriptMonitor({});
@@ -239,7 +226,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('propagates errors from enableDynamicScriptMonitoring', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.enableDynamicScriptMonitoring.mockRejectedValue(
         new Error('CDP session closed'),
       );
@@ -255,7 +241,6 @@ describe('AdvancedHandlersBase (console)', () => {
   // -----------------------------------------------------------------------
   describe('handleConsoleInjectXhrInterceptor', () => {
     it('calls injectXHRInterceptor and returns success', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectXHRInterceptor.mockResolvedValue(undefined);
 
       const result = await handler.handleConsoleInjectXhrInterceptor({});
@@ -267,7 +252,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('propagates errors from injectXHRInterceptor', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectXHRInterceptor.mockRejectedValue(
         new Error('Injection failed'),
       );
@@ -283,7 +267,6 @@ describe('AdvancedHandlersBase (console)', () => {
   // -----------------------------------------------------------------------
   describe('handleConsoleInjectFetchInterceptor', () => {
     it('calls injectFetchInterceptor and returns success', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectFetchInterceptor.mockResolvedValue(undefined);
 
       const result = await handler.handleConsoleInjectFetchInterceptor({});
@@ -295,7 +278,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('propagates errors from injectFetchInterceptor', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectFetchInterceptor.mockRejectedValue(
         new Error('Page not available'),
       );
@@ -311,7 +293,6 @@ describe('AdvancedHandlersBase (console)', () => {
   // -----------------------------------------------------------------------
   describe('handleConsoleClearInjectedBuffers', () => {
     it('calls clearInjectedBuffers and returns merged result', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.clearInjectedBuffers.mockResolvedValue({
         buffersCleared: 3,
         totalEntries: 150,
@@ -328,7 +309,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('returns success with empty result from clearInjectedBuffers', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.clearInjectedBuffers.mockResolvedValue({});
 
       const result = await handler.handleConsoleClearInjectedBuffers({});
@@ -339,7 +319,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('propagates errors from clearInjectedBuffers', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.clearInjectedBuffers.mockRejectedValue(new Error('Clear failed'));
 
       await expect(handler.handleConsoleClearInjectedBuffers({})).rejects.toThrow('Clear failed');
@@ -351,7 +330,6 @@ describe('AdvancedHandlersBase (console)', () => {
   // -----------------------------------------------------------------------
   describe('handleConsoleResetInjectedInterceptors', () => {
     it('calls resetInjectedInterceptors and returns merged result', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.resetInjectedInterceptors.mockResolvedValue({
         interceptorsReset: 2,
       });
@@ -366,7 +344,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('propagates errors from resetInjectedInterceptors', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.resetInjectedInterceptors.mockRejectedValue(
         new Error('Reset failed'),
       );
@@ -382,7 +359,6 @@ describe('AdvancedHandlersBase (console)', () => {
   // -----------------------------------------------------------------------
   describe('handleConsoleInjectFunctionTracer', () => {
     it('injects function tracer for the given function name', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectFunctionTracer.mockResolvedValue(undefined);
 
       const result = await handler.handleConsoleInjectFunctionTracer({ functionName: 'myFunc' });
@@ -409,7 +385,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('handles dot-notation function names', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectFunctionTracer.mockResolvedValue(undefined);
 
       const result = await handler.handleConsoleInjectFunctionTracer({
@@ -425,7 +400,6 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('propagates errors from injectFunctionTracer', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectFunctionTracer.mockRejectedValue(
         new Error('Function not found'),
       );
@@ -445,7 +419,6 @@ describe('AdvancedHandlersBase (console)', () => {
       handler.setPerformanceMonitorForTest(
         mocks.performanceMonitorMock as unknown as PerformanceMonitor,
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.performanceMonitorMock.close.mockResolvedValue(undefined);
 
       await handler.cleanup();
@@ -473,19 +446,12 @@ describe('AdvancedHandlersBase (console)', () => {
   // -----------------------------------------------------------------------
   describe('response format', () => {
     it('all handlers return content array with single text entry', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.getExceptions.mockReturnValue([]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.enableDynamicScriptMonitoring.mockResolvedValue(undefined);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectXHRInterceptor.mockResolvedValue(undefined);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectFetchInterceptor.mockResolvedValue(undefined);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.clearInjectedBuffers.mockResolvedValue({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.resetInjectedInterceptors.mockResolvedValue({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.consoleMonitorMock.injectFunctionTracer.mockResolvedValue(undefined);
 
       const methods = [
@@ -502,7 +468,6 @@ describe('AdvancedHandlersBase (console)', () => {
         const result = await method();
         expect(result.content).toHaveLength(1);
         const parsed = JSON.parse(getTextContent(result));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(parsed.success).toBe(true);
       }
     });

@@ -36,13 +36,9 @@ describe('XHRBreakpointHandlers', () => {
 
   it('sets an XHR breakpoint and initializes advanced features when supported', async () => {
     const debuggerManager = createDebuggerManager(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     xhrManager.setXHRBreakpoint.mockResolvedValueOnce('xhr-1');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleXHRBreakpointSet({ urlPattern: '/api/' }));
 
     expect(debuggerManager.ensureAdvancedFeatures).toHaveBeenCalledOnce();
@@ -57,13 +53,9 @@ describe('XHRBreakpointHandlers', () => {
 
   it('reports when an XHR breakpoint id is not found during removal', async () => {
     const debuggerManager = createDebuggerManager(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     xhrManager.removeXHRBreakpoint.mockResolvedValueOnce(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(
       await handlers.handleXHRBreakpointRemove({ breakpointId: 'missing' }),
     );
@@ -77,13 +69,9 @@ describe('XHRBreakpointHandlers', () => {
 
   it('returns a structured failure when setting an XHR breakpoint fails', async () => {
     const debuggerManager = createDebuggerManager(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     xhrManager.setXHRBreakpoint.mockRejectedValueOnce(new Error('xhr boom'));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleXHRBreakpointSet({ urlPattern: '/broken/' }));
 
     expect(body).toEqual({
@@ -95,7 +83,6 @@ describe('XHRBreakpointHandlers', () => {
 
   it('lists all XHR breakpoints without requiring optional advanced support', async () => {
     const debuggerManager = createDebuggerManager(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     xhrManager.getAllXHRBreakpoints.mockReturnValueOnce([
       {
         id: 'xhr-1',
@@ -105,11 +92,8 @@ describe('XHRBreakpointHandlers', () => {
         createdAt: 1,
       },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handlers = new XHRBreakpointHandlers({ debuggerManager } as any);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleXHRBreakpointList({}));
 
     expect(body).toEqual({

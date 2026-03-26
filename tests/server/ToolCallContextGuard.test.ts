@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -83,9 +82,7 @@ describe('ToolCallContextGuard', () => {
     const parsed = JSON.parse(getText(enriched));
 
     expect(getText(enriched)).toContain('\n  "_tabContext":');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.process.pid).toBe(1234);
   });
 
@@ -152,7 +149,6 @@ describe('ToolCallContextGuard', () => {
     const enriched = guard.enrichResponse('console_execute', response);
     const parsed = JSON.parse(getText(enriched));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
   });
 
@@ -187,9 +183,7 @@ describe('ToolCallContextGuard', () => {
     const parsed = JSON.parse(getText(result));
 
     // Should preserve the original _tabContext, not inject a new one
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext.url).toBe('https://old.example.com');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext.pageId).toBe('p-0');
   });
 
@@ -203,11 +197,8 @@ describe('ToolCallContextGuard', () => {
     const enriched = guard.enrichResponse('page_evaluate', tricky);
     const parsed = JSON.parse(getText(enriched));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.code).toBe('function() {\n  return 1;\n}');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.ok).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
   });
 
@@ -220,9 +211,7 @@ describe('ToolCallContextGuard', () => {
     const enriched = guard.enrichResponse('dom_get_structure', padded);
     const parsed = JSON.parse(getText(enriched));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.key).toBe('value');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
   });
 
@@ -230,8 +219,6 @@ describe('ToolCallContextGuard', () => {
     const guard = new ToolCallContextGuard(() => ({
       getContextMeta: () => meta,
     }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const emptyContent = { isError: false, content: [] as any[] };
 
     const result = guard.enrichResponse('page_navigate', emptyContent);
@@ -254,7 +241,6 @@ describe('ToolCallContextGuard', () => {
     const first = JSON.parse(getText(result));
     const second = getText(result, 1);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(first._tabContext).toEqual(meta);
     expect(second).toBe('{"second":true}'); // untouched
   });
@@ -270,13 +256,9 @@ describe('ToolCallContextGuard', () => {
     const enriched = guard.enrichResponse('console_execute', unicode);
     const parsed = JSON.parse(getText(enriched));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.msg).toBe('你好世界 🌍');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.emoji).toBe('✅');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.path).toBe('C:\\Users\\test');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed._tabContext).toEqual(meta);
   });
 
@@ -324,15 +306,10 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('stealth_inject', response);
       const parsed = JSON.parse(getText(enriched));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeDefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.detected).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.consecutiveCount).toBe(3);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.suggestedTools).toContain('page_navigate');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.suggestedTools).not.toContain('stealth_inject');
     });
 
@@ -353,11 +330,9 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('stealth_inject', response);
       const parsed = JSON.parse(getText(enriched));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeUndefined();
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     it('does not warn for meta-tools even after many repeats', () => {
       const guard = new ToolCallContextGuard(() => null);
 
@@ -371,7 +346,6 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('search_tools', response);
       const parsed = JSON.parse(getText(enriched));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeUndefined();
     });
 
@@ -389,7 +363,6 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('stealth_inject', response);
       const parsed = JSON.parse(getText(enriched));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeUndefined();
     });
 
@@ -407,9 +380,7 @@ describe('ToolCallContextGuard', () => {
       const parsed = JSON.parse(getText(enriched));
 
       // Both should be present
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning).toBeDefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._tabContext).toEqual(meta);
     });
 
@@ -426,7 +397,6 @@ describe('ToolCallContextGuard', () => {
       // Non-context-sensitive, so no _tabContext, but repeat warning should be appended
       expect(enriched.content.length).toBe(2);
       const warningItem = JSON.parse(getText(enriched, 1));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(warningItem._repeatWarning.detected).toBe(true);
     });
 
@@ -443,9 +413,7 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('page_navigate', response);
       const parsed = JSON.parse(getText(enriched));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.suggestedTools).toContain('dom_get_structure');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(parsed._repeatWarning.suggestedTools).not.toContain('page_navigate');
     });
 

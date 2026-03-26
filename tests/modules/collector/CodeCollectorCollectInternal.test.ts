@@ -21,12 +21,10 @@ const collectorHelpers = vi.hoisted(() => ({
   setupWebWorkerTracking: vi.fn(async () => undefined),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/collector/PageScriptCollectors', () => ({
   collectInlineScripts: collectorHelpers.collectInlineScripts,
   collectServiceWorkers: collectorHelpers.collectServiceWorkers,
@@ -65,18 +63,14 @@ interface MockDependencyGraph {
 type MockSmartCollectResult = Array<MockCollectedFile | MockCodeSummary>;
 
 function createPageAndSession() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const listeners = new Map<string, Set<(payload: any) => void>>();
   const session = {
     send: vi.fn(async () => ({})),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     on: vi.fn((event: string, handler: (payload: any) => void) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const group = listeners.get(event) ?? new Set<(payload: any) => void>();
       group.add(handler);
       listeners.set(event, group);
     }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     off: vi.fn((event: string, handler: (payload: any) => void) => {
       listeners.get(event)?.delete(handler);
     }),
@@ -93,7 +87,6 @@ function createPageAndSession() {
   return { page, session };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 type ResponseListener = (params: any) => Promise<void> | void;
 
 interface HarnessOptions {
@@ -106,7 +99,6 @@ interface HarnessOptions {
   concurrentGotoResponses?: boolean;
   responseBodyDelayMs?: number;
   cacheEnabled?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   cachedResult?: any;
 }
 
@@ -151,15 +143,12 @@ function createHarness(options: HarnessOptions = {}) {
       }
     }),
     off: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detach: vi.fn().mockResolvedValue(undefined),
   };
 
   const page = {
     setDefaultTimeout: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     setUserAgent: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     createCDPSession: vi.fn().mockResolvedValue(cdpSession),
     goto: vi.fn(async () => {
       if (!responseListener) return;
@@ -173,29 +162,23 @@ function createHarness(options: HarnessOptions = {}) {
         await responseListener(response);
       }
     }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     close: vi.fn().mockResolvedValue(undefined),
   };
 
   const self = {
     cacheEnabled: options.cacheEnabled ?? false,
     cache: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       get: vi.fn().mockResolvedValue(options.cachedResult ?? null),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       set: vi.fn().mockResolvedValue(undefined),
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     init: vi.fn().mockResolvedValue(undefined),
     browser: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       newPage: vi.fn().mockResolvedValue(page),
     },
     config: {
       timeout: 1000,
     },
     userAgent: 'ua',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     applyAntiDetection: vi.fn().mockResolvedValue(undefined),
     cdpSession: null,
     cdpListeners: {},
@@ -214,11 +197,8 @@ function createHarness(options: HarnessOptions = {}) {
       smartCollect: vi.fn(async (): Promise<MockSmartCollectResult> => []),
     },
     compressor: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       shouldCompress: vi.fn().mockReturnValue(false),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       compressBatch: vi.fn().mockResolvedValue([]),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getStats: vi.fn().mockReturnValue({
         totalOriginalSize: 0,
         totalCompressedSize: 0,
@@ -235,18 +215,13 @@ function createHarness(options: HarnessOptions = {}) {
 describe('CodeCollector collect internals', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.collectInlineScripts.mockResolvedValue([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.collectServiceWorkers.mockResolvedValue([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.collectWebWorkers.mockResolvedValue([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.analyzeDependencies.mockImplementation((files: Array<{ url: string }>) => ({
       nodes: files.map((file) => ({ id: file.url, url: file.url, type: 'external' })),
       edges: [],
     }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.setupWebWorkerTracking.mockResolvedValue(undefined);
   });
 
@@ -296,13 +271,9 @@ describe('CodeCollector collect internals', () => {
 
     await expect(
       collectInnerImpl(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx as any,
         {
           url: 'https://example.com',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as any,
       ),
     ).rejects.toThrow('Browser not initialized');
@@ -360,14 +331,10 @@ describe('CodeCollector collect internals', () => {
     };
 
     const result = await collectInnerImpl(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ctx as any,
       {
         url: 'https://example.com',
         smartMode: 'summary',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any,
     );
 
@@ -381,7 +348,6 @@ describe('CodeCollector collect internals', () => {
       ],
       dependencies: { nodes: [], edges: [] },
       totalSize: 0,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       collectTime: expect.any(Number),
     });
     expect(session.detach).toHaveBeenCalled();
@@ -399,9 +365,7 @@ describe('CodeCollector collect internals', () => {
     });
 
     expect(collectorHelpers.setupWebWorkerTracking).toHaveBeenCalledWith(page);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(collectorHelpers.setupWebWorkerTracking.mock.invocationCallOrder[0]).toBeLessThan(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.goto.mock.invocationCallOrder[0]!,
     );
   });
@@ -423,7 +387,6 @@ describe('CodeCollector collect internals', () => {
 
   it('skips web worker tracking and collection when includeWebWorker=false', async () => {
     const { self } = createHarness();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.collectWebWorkers.mockResolvedValue([
       {
         url: 'https://site/worker.js',
@@ -447,12 +410,10 @@ describe('CodeCollector collect internals', () => {
   it('applies filterRules and global file cap across all collector sources', async () => {
     const { self } = createHarness();
     self.MAX_FILES_PER_COLLECT = 2;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.collectInlineScripts.mockResolvedValue([
       { url: 'inline-script-0', content: 'a', size: 1, type: 'inline' },
       { url: 'inline-script-1', content: 'b', size: 1, type: 'inline' },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.collectServiceWorkers.mockResolvedValue([
       { url: 'https://site/sw.js', content: 'sw', size: 2, type: 'service-worker' },
     ]);
@@ -475,7 +436,6 @@ describe('CodeCollector collect internals', () => {
       gotoResponses: [],
     });
     self.MAX_FILES_PER_COLLECT = 1;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.collectWebWorkers.mockResolvedValue([
       { url: 'https://site/worker-0.js', content: 'worker-0', size: 8, type: 'web-worker' },
       { url: 'https://other/worker-1.js', content: 'worker-1', size: 8, type: 'web-worker' },
@@ -597,7 +557,6 @@ describe('CodeCollector collect internals', () => {
       nodes: [{ id: 'https://site/app.js', url: 'https://site/app.js', type: 'external' }],
       edges: [{ from: 'https://site/app.js', to: 'https://site/dep.js', type: 'import' as const }],
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collectorHelpers.analyzeDependencies.mockReturnValue(dependencyGraph);
 
     const { self } = createHarness({
@@ -613,22 +572,16 @@ describe('CodeCollector collect internals', () => {
 
     expect(result.dependencies).toEqual(dependencyGraph);
     expect(self.cache.set).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(self.cache.set.mock.calls[0]?.[0]).toBe('https://site');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(self.cache.set.mock.calls[0]?.[1]).toMatchObject({
       dependencies: dependencyGraph,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(self.cache.set.mock.calls[0]?.[1]?.summaries).toBeUndefined();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(self.cache.set.mock.calls[0]?.[2]).toMatchObject({ url: 'https://site' });
   });
 
   it('recomputes totalSize from processed files after smart collection', async () => {
     const { self } = createHarness();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     self.smartCollector.smartCollect = vi.fn().mockResolvedValue([
       {
         url: 'https://site/app.js',
@@ -660,9 +613,7 @@ describe('CodeCollector collect internals', () => {
         },
       ],
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     self.compressor.shouldCompress = vi.fn().mockReturnValue(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     self.compressor.compressBatch = vi.fn().mockResolvedValue([
       {
         url: 'https://site/app.js',
@@ -671,7 +622,6 @@ describe('CodeCollector collect internals', () => {
         compressionRatio: 50,
       },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     self.compressor.getStats = vi.fn().mockReturnValue({
       totalOriginalSize: 20,
       totalCompressedSize: 10,
@@ -712,7 +662,6 @@ describe('CodeCollector collect internals', () => {
         preview: 'preview',
       },
     ];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     self.smartCollector.smartCollect = vi.fn().mockResolvedValue(summaries);
 
     const result = await collectInnerImpl(self, {

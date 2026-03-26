@@ -19,23 +19,19 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/MCPServer.schema', () => ({
   buildZodShape: mocks.buildZodShape,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/response', () => ({
   toolErrorToResponse: mocks.toolErrorToResponse,
   asErrorResponse: mocks.asErrorResponse,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: mocks.logger,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@errors/ToolError', () => ({
   ToolError: mocks.MockToolError,
 }));
@@ -46,7 +42,6 @@ function createCtx(overrides: Record<string, unknown> = {}) {
   const registrations: Array<{
     name: string;
     config: Record<string, unknown>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handler: (args?: Record<string, unknown>) => Promise<any>;
   }> = [];
 
@@ -56,7 +51,6 @@ function createCtx(overrides: Record<string, unknown> = {}) {
         (
           name: string,
           config: Record<string, unknown>,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           handler: (args?: Record<string, unknown>) => Promise<any>,
         ) => {
           const registered = { name, config, handler, remove: vi.fn() };
@@ -70,8 +64,6 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     })),
     __registrations: registrations,
     ...overrides,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   return ctx;
@@ -83,7 +75,6 @@ describe('MCPServer.tools', () => {
   });
 
   it('registers tools with generated zod input schemas and forwards tool args', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.buildZodShape.mockReturnValue({
       url: { safeParse: vi.fn() },
     });
@@ -94,24 +85,17 @@ describe('MCPServer.tools', () => {
       inputSchema: { type: 'object', properties: { url: { type: 'string' } } },
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const registered = registerSingleTool(ctx, toolDef as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handler = ctx.__registrations[0].handler;
     const result = await handler({ url: 'https://example.com' });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(registered).toBe(ctx.__registrations[0]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.registerTool).toHaveBeenCalledWith(
       'page_navigate',
       {
         description: 'Navigate a page',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         inputSchema: { url: { safeParse: expect.any(Function) } },
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Function),
     );
     expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('page_navigate', {
@@ -123,7 +107,6 @@ describe('MCPServer.tools', () => {
   });
 
   it('registers tools without schemas using the tool name as fallback description', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.buildZodShape.mockReturnValue({});
     const ctx = createCtx();
     const toolDef = {
@@ -131,25 +114,19 @@ describe('MCPServer.tools', () => {
       inputSchema: { type: 'object', properties: {} },
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     registerSingleTool(ctx, toolDef as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const handler = ctx.__registrations[0].handler;
     await handler({ ignored: true });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.server.registerTool).toHaveBeenCalledWith(
       'extensions_list',
       { description: 'extensions_list' },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Function),
     );
     expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('extensions_list', {});
   });
 
   it('converts ToolError failures into structured tool responses', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.buildZodShape.mockReturnValue({});
     const ctx = createCtx({
       executeToolWithTracking: vi.fn(async () => {
@@ -161,23 +138,18 @@ describe('MCPServer.tools', () => {
       name: 'page_navigate',
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await ctx.__registrations[0].handler();
 
     expect(response).toEqual({
       content: [{ type: 'text', text: 'tool:missing prerequisite' }],
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(mocks.toolErrorToResponse).toHaveBeenCalledWith(expect.any(mocks.MockToolError));
     expect(mocks.asErrorResponse).not.toHaveBeenCalled();
     expect(mocks.logger.error).not.toHaveBeenCalled();
   });
 
   it('converts unknown failures into generic error responses and logs them', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     mocks.buildZodShape.mockReturnValue({});
     const ctx = createCtx({
       executeToolWithTracking: vi.fn(async () => {
@@ -189,10 +161,7 @@ describe('MCPServer.tools', () => {
       name: 'page_navigate',
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const response = await ctx.__registrations[0].handler();
 
     expect(response).toEqual({
@@ -201,10 +170,8 @@ describe('MCPServer.tools', () => {
     });
     expect(mocks.logger.error).toHaveBeenCalledWith(
       'Tool execution failed: page_navigate',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(Error),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(mocks.asErrorResponse).toHaveBeenCalledWith(expect.any(Error));
   });
 });

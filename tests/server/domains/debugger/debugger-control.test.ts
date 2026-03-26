@@ -12,8 +12,6 @@ type ControlRuntimeInspector = Pick<RuntimeInspector, 'init' | 'disable'>;
 function parseJson(response: { content: Array<{ text: string }> }): unknown {
   const firstContent = response.content[0];
   expect(firstContent).toBeDefined();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return JSON.parse(firstContent!.text) as any;
 }
 
@@ -44,12 +42,9 @@ describe('DebuggerControlHandlers', () => {
   });
 
   it('enables the debugger and runtime inspector', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerEnable({}));
 
     expect(debuggerManager.init).toHaveBeenCalledOnce();
@@ -65,8 +60,6 @@ describe('DebuggerControlHandlers', () => {
   it('disables the debugger and runtime inspector', async () => {
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerDisable({}));
 
     expect(debuggerManager.disable).toHaveBeenCalledOnce();
@@ -80,8 +73,6 @@ describe('DebuggerControlHandlers', () => {
   it('pauses execution', async () => {
     const handlers = createHandlers();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerPause({}));
 
     expect(debuggerManager.pause).toHaveBeenCalledOnce();
@@ -92,7 +83,6 @@ describe('DebuggerControlHandlers', () => {
   });
 
   it('propagates resume failures', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.resume.mockRejectedValueOnce(new Error('resume failed'));
     const handlers = createHandlers();
 

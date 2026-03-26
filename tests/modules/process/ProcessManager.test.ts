@@ -22,25 +22,21 @@ const state = vi.hoisted(() => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('child_process', () => ({
   exec: vi.fn(),
   spawn: state.spawn,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('util', () => ({
   promisify: state.promisify,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/ScriptLoader', () => ({
   ScriptLoader: class {
     getScriptPath = state.getScriptPath;
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/browser/BrowserDiscovery', () => ({
   BrowserDiscovery: class {
     discoverBrowsers = state.discoverBrowsers;
@@ -50,7 +46,6 @@ vi.mock('@src/modules/browser/BrowserDiscovery', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -64,12 +59,8 @@ import { ProcessManager } from '@modules/process/ProcessManager';
 import { mockAs } from '../../test-utils';
 
 function createSpawnChild(pid = 9999) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const child = mockAs<any>(new EventEmitter());
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   child.pid = pid;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   child.unref = vi.fn();
   return child;
 }
@@ -80,7 +71,6 @@ describe('ProcessManager', () => {
   });
 
   it('findProcesses sanitizes pattern and parses process list', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValue({
       stdout: JSON.stringify([
         { Id: 101, ProcessName: 'browser-bin', Path: 'C:/Browser/browser-bin.exe' },
@@ -93,7 +83,6 @@ describe('ProcessManager', () => {
     expect(results).toEqual([
       { pid: 101, name: 'browser-bin', executablePath: 'C:/Browser/browser-bin.exe' },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const cmd = state.execAsync.mock.calls[0]?.[0] as string;
     expect(cmd).toContain('*browser-bin*');
     expect(cmd).not.toContain('`');
@@ -101,7 +90,6 @@ describe('ProcessManager', () => {
   });
 
   it('getProcessByPid returns null when process is not found', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValue({ stdout: 'null', stderr: '' });
     const manager = new ProcessManager();
     const result = await manager.getProcessByPid(1234);
@@ -110,7 +98,6 @@ describe('ProcessManager', () => {
   });
 
   it('getProcessWindows loads external script and parses single window object', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValue({
       stdout: JSON.stringify({
         Handle: '0x100',
@@ -137,7 +124,6 @@ describe('ProcessManager', () => {
 
   it('checkDebugPort returns port from command-line argument when present', async () => {
     const manager = new ProcessManager();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(manager, 'getProcessCommandLine').mockResolvedValue({
       commandLine: '--remote-debugging-port=9333',
     });
@@ -158,15 +144,12 @@ describe('ProcessManager', () => {
 
   it('launchWithDebug returns process details from resolved listener PID', async () => {
     vi.useFakeTimers();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.spawn.mockReturnValue(createSpawnChild(5000));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValue({
       stdout: JSON.stringify({ OwningProcess: 5000 }),
       stderr: '',
     });
     const manager = new ProcessManager();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({
       pid: 5000,
       name: 'app.exe',
@@ -186,13 +169,9 @@ describe('ProcessManager', () => {
   });
 
   it('delegates browser discovery APIs', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.discoverBrowsers.mockResolvedValue([{ type: 'chrome', pid: 1 }]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.findByWindowClass.mockResolvedValue([{ type: 'edge', pid: 2 }]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.findByProcessName.mockResolvedValue([{ type: 'firefox', pid: 3 }]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.detectDebugPort.mockResolvedValue(9222);
     const manager = new ProcessManager();
 

@@ -12,11 +12,8 @@ import type {
 
 function makeDeps(overrides?: Partial<ChromiumDiscoveryDeps>): ChromiumDiscoveryDeps {
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     findProcesses: vi.fn().mockResolvedValue([]),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getProcessCommandLine: vi.fn().mockResolvedValue({}),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getProcessWindows: vi.fn().mockResolvedValue([]),
     logInfo: vi.fn(),
     logError: vi.fn(),
@@ -67,17 +64,12 @@ describe('ProcessManager.chromium', () => {
       ];
 
       const deps = makeDeps({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         findProcesses: vi.fn().mockResolvedValue(procs),
         getProcessCommandLine: vi
           .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValueOnce({ commandLine: 'chromium --no-sandbox' })
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValueOnce({ commandLine: 'chromium --type=renderer --pid=2' })
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValueOnce({ commandLine: 'chromium --type=gpu-process' })
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValueOnce({ commandLine: 'chromium --type=utility' }),
       });
 
@@ -96,9 +88,7 @@ describe('ProcessManager.chromium', () => {
 
     it('assigns mainProcess when commandLine is missing', async () => {
       const deps = makeDeps({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         findProcesses: vi.fn().mockResolvedValue([makeProcess({ pid: 10 })]),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         getProcessCommandLine: vi.fn().mockResolvedValue({}),
       });
 
@@ -118,9 +108,7 @@ describe('ProcessManager.chromium', () => {
       ];
 
       const deps = makeDeps({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         findProcesses: vi.fn().mockResolvedValue(allProcs),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         getProcessCommandLine: vi.fn().mockResolvedValue({ commandLine: 'chrome --no-sandbox' }),
       });
 
@@ -149,13 +137,10 @@ describe('ProcessManager.chromium', () => {
 
     it('matches target window by title pattern', async () => {
       const deps = makeDeps({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         findProcesses: vi.fn().mockResolvedValue([makeProcess({ pid: 5 })]),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         getProcessCommandLine: vi.fn().mockResolvedValue({ commandLine: 'chromium' }),
         getProcessWindows: vi
           .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValue([makeWindow({ title: 'Google - Chrome', processId: 5 })]),
       });
 
@@ -172,13 +157,10 @@ describe('ProcessManager.chromium', () => {
 
     it('matches target window by className pattern', async () => {
       const deps = makeDeps({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         findProcesses: vi.fn().mockResolvedValue([makeProcess({ pid: 7 })]),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         getProcessCommandLine: vi.fn().mockResolvedValue({ commandLine: 'chromium' }),
         getProcessWindows: vi
           .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValue([
             makeWindow({ className: 'Chrome_WidgetWin_1', title: 'No Match Title' }),
           ]),
@@ -196,13 +178,10 @@ describe('ProcessManager.chromium', () => {
 
     it('matches target window with regex patterns', async () => {
       const deps = makeDeps({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         findProcesses: vi.fn().mockResolvedValue([makeProcess({ pid: 8 })]),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         getProcessCommandLine: vi.fn().mockResolvedValue({ commandLine: 'chromium' }),
         getProcessWindows: vi
           .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValue([makeWindow({ title: 'My App v2.0', className: 'Electron' })]),
       });
 
@@ -220,7 +199,6 @@ describe('ProcessManager.chromium', () => {
     it('returns empty result and logs error when findProcesses throws', async () => {
       const logError = vi.fn();
       const deps = makeDeps({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         findProcesses: vi.fn().mockRejectedValue(new Error('access denied')),
         logError,
       });
@@ -234,7 +212,6 @@ describe('ProcessManager.chromium', () => {
       expect(result.utilityProcesses).toEqual([]);
       expect(logError).toHaveBeenCalledWith(
         'Failed to find Chromium processes:',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error),
       );
     });
@@ -243,13 +220,10 @@ describe('ProcessManager.chromium', () => {
       const deps = makeDeps({
         findProcesses: vi
           .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValue([makeProcess({ pid: 1 }), makeProcess({ pid: 2 })]),
         getProcessCommandLine: vi
           .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValueOnce({ commandLine: 'chromium --main' })
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValueOnce({}),
       });
 
@@ -265,21 +239,16 @@ describe('ProcessManager.chromium', () => {
     it('scans renderer PIDs for windows as well', async () => {
       const getProcessWindows = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce([]) // main process has no matching window
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce([makeWindow({ title: 'Target Tab', processId: 20 })]); // renderer does
 
       const deps = makeDeps({
         findProcesses: vi
           .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValue([makeProcess({ pid: 10 }), makeProcess({ pid: 20 })]),
         getProcessCommandLine: vi
           .fn()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValueOnce({ commandLine: 'chromium' })
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValueOnce({ commandLine: 'chromium --type=renderer' }),
         getProcessWindows,
       });

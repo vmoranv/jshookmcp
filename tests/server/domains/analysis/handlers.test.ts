@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 
 const webcrackState = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   runWebcrack: vi.fn<(...args: any[]) => Promise<Record<string, unknown>>>(async () => ({
     applied: true,
     code: 'decoded-bundle',
@@ -19,7 +18,6 @@ const webcrackState = vi.hoisted(() => ({
   })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/deobfuscator/webcrack', () => ({
   runWebcrack: webcrackState.runWebcrack,
 }));
@@ -70,7 +68,6 @@ describe('CoreAnalysisHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockClear();
     handlers = new CoreAnalysisHandlers(
       deps as unknown as ConstructorParameters<typeof CoreAnalysisHandlers>[0],
@@ -84,7 +81,6 @@ describe('CoreAnalysisHandlers', () => {
   });
 
   it('delegates deobfuscate to deobfuscator', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     deps.deobfuscator.deobfuscate.mockResolvedValue({ success: true, code: 'x' });
     const body = parseJson<DeobfuscateResponse>(
       await handlers.handleDeobfuscate({
@@ -102,7 +98,6 @@ describe('CoreAnalysisHandlers', () => {
   });
 
   it('passes webcrack-specific options through deobfuscate', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     deps.deobfuscator.deobfuscate.mockResolvedValue({ success: true, code: 'decoded' });
 
     await handlers.handleDeobfuscate({
@@ -137,7 +132,6 @@ describe('CoreAnalysisHandlers', () => {
   });
 
   it('creates hook with default action in manage hooks', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     deps.hookManager.createHook.mockResolvedValue({ success: true, id: 'h1' });
     const body = parseJson<ManageHooksResponse>(
       await handlers.handleManageHooks({
@@ -163,7 +157,6 @@ describe('CoreAnalysisHandlers', () => {
   });
 
   it('delegates advanced deobfuscate directly to webcrack-backed implementation', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({
       code: 'raw',
       success: true,
@@ -195,7 +188,6 @@ describe('CoreAnalysisHandlers', () => {
   });
 
   it('does not inject deprecated defaults when advanced args are omitted', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({ code: 'raw2', success: true });
 
     await handlers.handleAdvancedDeobfuscate({ code: 'obf' });
@@ -228,7 +220,6 @@ describe('CoreAnalysisHandlers', () => {
   });
 
   it('returns structured error when webcrack_unpack fails', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockResolvedValueOnce({
       applied: false,
       code: 'original-code',
@@ -252,13 +243,10 @@ describe('CoreAnalysisHandlers', () => {
   });
 
   it('returns structured error when webcrack_unpack fails without reason', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     webcrackState.runWebcrack.mockResolvedValueOnce({
       applied: false,
       code: 'original-code',
       optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any);
 
     const response = parseJson<BaseResponse>(

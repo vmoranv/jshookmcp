@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/deobfuscator/JSVMPDeobfuscator', () => {
   return {
     JSVMPDeobfuscator: class {

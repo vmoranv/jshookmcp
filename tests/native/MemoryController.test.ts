@@ -10,7 +10,6 @@ import { MemoryController } from '@native/MemoryController';
 import { VirtualProtectEx, WriteProcessMemory } from '@native/Win32API';
 
 // Mock Win32API
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   openProcessForMemory: vi.fn(() => 1n),
   CloseHandle: vi.fn(() => true),
@@ -26,14 +25,12 @@ vi.mock('@native/Win32API', () => ({
 }));
 
 // Mock NativeMemoryManager.utils
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/NativeMemoryManager.utils', () => ({
   parsePattern: vi.fn((value: string, _type: string) => ({
     patternBytes: Buffer.from([parseInt(value) & 0xff, 0, 0, 0]),
   })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', () => ({
   FREEZE_DEFAULT_INTERVAL_MS: 100,
   WRITE_HISTORY_MAX: 50,

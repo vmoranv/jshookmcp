@@ -116,11 +116,9 @@ interface MockCDPSession {
 
 function createMocks() {
   const session: MockCDPSession = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     send: vi.fn().mockResolvedValue(undefined),
     on: vi.fn(),
     off: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detach: vi.fn().mockResolvedValue(undefined),
   };
 
@@ -168,7 +166,6 @@ class TestableWs extends StreamingToolHandlersWs {
     return this.wsFramesByRequest;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   callHandleWsFrame(direction: 'sent' | 'received', params: any) {
     this.handleWsFrame(direction, params);
   }
@@ -215,8 +212,6 @@ describe('StreamingToolHandlersWs', () => {
     it('registers all five CDP event listeners', async () => {
       await handler.handleWsMonitorEnable({});
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const registeredEvents = mocks.session.on.mock.calls.map((c: any[]) => c[0]);
       expect(registeredEvents).toContain('Network.webSocketCreated');
       expect(registeredEvents).toContain('Network.webSocketClosed');
@@ -273,14 +268,11 @@ describe('StreamingToolHandlersWs', () => {
 
       // Reset mocks for second call (simulate new session)
       const newSession = {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         send: vi.fn().mockResolvedValue(undefined),
         on: vi.fn(),
         off: vi.fn(),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         detach: vi.fn().mockResolvedValue(undefined),
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.createCDPSession.mockResolvedValue(newSession);
 
       // Enable again
@@ -305,14 +297,11 @@ describe('StreamingToolHandlersWs', () => {
 
       // Re-enable
       const newSession = {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         send: vi.fn().mockResolvedValue(undefined),
         on: vi.fn(),
         off: vi.fn(),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         detach: vi.fn().mockResolvedValue(undefined),
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.page.createCDPSession.mockResolvedValue(newSession);
       await handler.handleWsMonitorEnable({});
 
@@ -683,8 +672,6 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 3,
         createdTimestamp: 200,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
       handler._wsConnections.set('a', {
         requestId: 'a',
@@ -692,8 +679,6 @@ describe('StreamingToolHandlersWs', () => {
         status: 'closed',
         framesCount: 1,
         createdTimestamp: 100,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
@@ -710,8 +695,6 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 42,
         createdTimestamp: 1,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
@@ -732,8 +715,6 @@ describe('StreamingToolHandlersWs', () => {
         createdTimestamp: 999,
         closedTimestamp: undefined,
         handshakeStatus: 101,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
@@ -802,8 +783,6 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callHandleWsFrame('sent', {
@@ -823,8 +802,6 @@ describe('StreamingToolHandlersWs', () => {
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       } as any);
 
       handler.callHandleWsFrame('received', {
@@ -943,8 +920,6 @@ describe('StreamingToolHandlersWs', () => {
       await handler.callTeardownWsSession();
 
       expect(mocks.session.off).toHaveBeenCalledTimes(5);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const removedEvents = mocks.session.off.mock.calls.map((c: any[]) => c[0]);
       expect(removedEvents).toContain('Network.webSocketCreated');
       expect(removedEvents).toContain('Network.webSocketClosed');
@@ -978,8 +953,6 @@ describe('StreamingToolHandlersWs', () => {
 
     it('handles detach failure gracefully', async () => {
       await handler.handleWsMonitorEnable({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.session.detach.mockRejectedValue(new Error('detach failed'));
 
       // Should not throw
@@ -989,8 +962,6 @@ describe('StreamingToolHandlersWs', () => {
 
     it('handles listener removal failure gracefully', async () => {
       await handler.handleWsMonitorEnable({});
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mocks.session.off.mockImplementation(() => {
         throw new Error('off failed');
       });
@@ -1004,7 +975,6 @@ describe('StreamingToolHandlersWs', () => {
   // CDP listener callbacks (via enable + simulate)
   // -----------------------------------------------------------------------
   describe('CDP listener callbacks', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     let listeners: Record<string, (...args: any[]) => void>;
 
     beforeEach(async () => {
@@ -1012,11 +982,7 @@ describe('StreamingToolHandlersWs', () => {
 
       // Capture registered listeners
       listeners = {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       for (const call of mocks.session.on.mock.calls) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         listeners[call[0] as string] = call[1] as (...args: any[]) => void;
       }
     });
@@ -1052,8 +1018,6 @@ describe('StreamingToolHandlersWs', () => {
           framesCount: 5,
           createdTimestamp: 100,
           handshakeStatus: 101,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         } as any);
 
         listeners['Network.webSocketCreated']!({
@@ -1220,13 +1184,8 @@ describe('StreamingToolHandlersWs', () => {
     it('filters connections by URL on created event', async () => {
       await handler.handleWsMonitorEnable({ urlFilter: 'api\\.example' });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const listeners: Record<string, (...args: any[]) => void> = {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       for (const call of mocks.session.on.mock.calls) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         listeners[call[0] as string] = call[1] as (...args: any[]) => void;
       }
 

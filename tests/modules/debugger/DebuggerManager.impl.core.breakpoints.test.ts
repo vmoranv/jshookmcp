@@ -7,7 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -30,20 +29,14 @@ describe('DebuggerManager breakpoint core helpers', () => {
   it('auto-reconnects and stores breakpoints created by url and script id', async () => {
     const send = vi
       .fn()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ breakpointId: 'bp-url' })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ breakpointId: 'bp-script' });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: false,
       cdpSession: null,
       breakpoints: new Map(),
       ensureSession: vi.fn(async () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx.enabled = true;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx.cdpSession = { send };
       }),
       removeBreakpoint: vi.fn(),
@@ -67,8 +60,6 @@ describe('DebuggerManager breakpoint core helpers', () => {
   });
 
   it('validates breakpoint params and removal preconditions', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: true,
       cdpSession: { send: vi.fn(async () => ({})) },
@@ -85,7 +76,6 @@ describe('DebuggerManager breakpoint core helpers', () => {
     );
     await expect(removeBreakpointCore(ctx, 'missing')).rejects.toThrow('Breakpoint not found');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.enabled = false;
     await expect(removeBreakpointCore(ctx, 'bp')).rejects.toBeInstanceOf(PrerequisiteError);
   });
@@ -93,8 +83,6 @@ describe('DebuggerManager breakpoint core helpers', () => {
   it('removes and clears breakpoints through the context callbacks', async () => {
     const send = vi.fn(async () => ({}));
     const removed: string[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       enabled: true,
       cdpSession: { send },
@@ -105,7 +93,6 @@ describe('DebuggerManager breakpoint core helpers', () => {
       ensureSession: vi.fn(),
       removeBreakpoint: vi.fn(async (id: string) => {
         removed.push(id);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         ctx.breakpoints.delete(id);
       }),
     };

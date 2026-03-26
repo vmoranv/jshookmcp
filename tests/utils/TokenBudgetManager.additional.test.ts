@@ -14,8 +14,6 @@ describe('TokenBudgetManager – additional coverage', () => {
     it('suggests smartMode for collect_code when it uses >30% tokens', () => {
       // Directly inject history to control percentages
       const now = Date.now();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).toolCallHistory = [
         {
           toolName: 'collect_code_scripts',
@@ -34,8 +32,6 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 90000,
         },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).currentUsage = 90000;
 
       const stats = manager.getStats();
@@ -46,8 +42,6 @@ describe('TokenBudgetManager – additional coverage', () => {
 
     it('suggests preview=true for get_script_source when it uses >30% tokens', () => {
       const now = Date.now();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).toolCallHistory = [
         {
           toolName: 'get_script_source_viewer',
@@ -66,8 +60,6 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 80000,
         },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).currentUsage = 80000;
 
       const stats = manager.getStats();
@@ -78,8 +70,6 @@ describe('TokenBudgetManager – additional coverage', () => {
 
     it('suggests reducing limit for network_get_requests when >30% tokens', () => {
       const now = Date.now();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).toolCallHistory = [
         {
           toolName: 'network_get_requests_tool',
@@ -98,8 +88,6 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 70000,
         },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).currentUsage = 70000;
 
       const stats = manager.getStats();
@@ -110,8 +98,6 @@ describe('TokenBudgetManager – additional coverage', () => {
 
     it('suggests specific properties for page_evaluate when >30% tokens', () => {
       const now = Date.now();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).toolCallHistory = [
         {
           toolName: 'page_evaluate_helper',
@@ -130,8 +116,6 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 75000,
         },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).currentUsage = 75000;
 
       const stats = manager.getStats();
@@ -143,10 +127,7 @@ describe('TokenBudgetManager – additional coverage', () => {
 
   describe('generateSuggestions – ratio-based suggestions (lines 382-388)', () => {
     it('shows MODERATE suggestion at 80-89% usage', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).currentUsage = 165000; // 82.5% of 200000
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).toolCallHistory = [
         {
           toolName: 'tool1',
@@ -163,10 +144,7 @@ describe('TokenBudgetManager – additional coverage', () => {
     });
 
     it('shows HIGH suggestion at 90-94% usage', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).currentUsage = 185000; // 92.5% of 200000
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).toolCallHistory = [
         {
           toolName: 'tool1',
@@ -183,10 +161,7 @@ describe('TokenBudgetManager – additional coverage', () => {
     });
 
     it('shows CRITICAL suggestion at >=95% usage', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).currentUsage = 195000; // 97.5% of 200000
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).toolCallHistory = [
         {
           toolName: 'tool1',
@@ -233,8 +208,6 @@ describe('TokenBudgetManager – additional coverage', () => {
       manager.setExternalCleanup(failingCleanup);
 
       const now = Date.now();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).toolCallHistory = [
         {
           toolName: 'old_call',
@@ -245,8 +218,6 @@ describe('TokenBudgetManager – additional coverage', () => {
           cumulativeTokens: 50,
         },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (manager as any).currentUsage = 50;
 
       // manualCleanup invokes autoCleanup
@@ -307,14 +278,10 @@ describe('TokenBudgetManager – additional coverage', () => {
     });
 
     it('handles deeply nested objects', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const deep: any = {};
       let current = deep;
       for (let i = 0; i < 10; i++) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         current.child = {};
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         current = current.child;
       }
       expect(() => manager.recordToolCall('test', deep, { ok: true })).not.toThrow();
@@ -325,15 +292,11 @@ describe('TokenBudgetManager – additional coverage', () => {
       expect(() => manager.recordToolCall('test', bigArray, { ok: true })).not.toThrow();
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     it('handles objects with many keys', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const manyKeys: Record<string, number> = {};
       for (let i = 0; i < 100; i++) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         manyKeys[`key_${i}`] = i;
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(() => manager.recordToolCall('test', manyKeys, { ok: true })).not.toThrow();
     });
   });

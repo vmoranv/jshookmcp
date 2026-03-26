@@ -17,8 +17,6 @@ describe('CacheAdapters', () => {
       clear: vi.fn(),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const adapter = new DetailedDataManagerAdapter(manager as any);
     expect(adapter.name).toBe('DetailedDataManager');
     expect(adapter.getStats()).toEqual({
@@ -41,8 +39,6 @@ describe('CacheAdapters', () => {
       clear: vi.fn(),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const adapter = new DetailedDataManagerAdapter(manager as any);
     adapter.clear();
     expect(manager.clear).toHaveBeenCalledOnce();
@@ -54,8 +50,6 @@ describe('CacheAdapters', () => {
       cleanup: vi.fn(async () => undefined),
       clear: vi.fn(async () => undefined),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const adapter = new CodeCacheAdapter(cache as any);
 
     await expect(adapter.getStats()).resolves.toEqual({
@@ -77,8 +71,6 @@ describe('CacheAdapters', () => {
       getCacheSize: vi.fn(() => 5),
       clearCache: vi.fn(),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const adapter = new CodeCompressorAdapter(compressor as any);
 
     expect(adapter.getStats()).toEqual({
@@ -96,8 +88,6 @@ describe('CacheAdapters', () => {
       getCacheSize: vi.fn(() => 0),
       clearCache: vi.fn(),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const adapter = new CodeCompressorAdapter(compressor as any);
     expect(adapter.getStats().size).toBe(0);
   });
@@ -106,8 +96,6 @@ describe('CacheAdapters', () => {
     const manager = { getStats: vi.fn(), clear: vi.fn() };
     const cache = { getStats: vi.fn(), cleanup: vi.fn(), clear: vi.fn() };
     const compressor = { getStats: vi.fn(), getCacheSize: vi.fn(), clearCache: vi.fn() };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const adapters = createCacheAdapters(manager as any, cache as any, compressor as any);
 
     expect(adapters).toHaveLength(3);

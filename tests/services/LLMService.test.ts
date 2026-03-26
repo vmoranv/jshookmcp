@@ -4,17 +4,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const openaiCreateMock = vi.fn();
 const anthropicCreateMock = vi.fn();
 // Track constructor args manually (vi.fn() gets reset by vitest's mockReset)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 let openaiConstructorArgs: any[][] = [];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 let anthropicConstructorArgs: any[][] = [];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('openai', () => {
   return {
     default: class MockOpenAI {
       chat = { completions: { create: openaiCreateMock } };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       constructor(...args: any[]) {
         openaiConstructorArgs.push(args);
       }
@@ -22,12 +18,10 @@ vi.mock('openai', () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@anthropic-ai/sdk', () => {
   return {
     default: class MockAnthropic {
       messages = { create: anthropicCreateMock };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       constructor(...args: any[]) {
         anthropicConstructorArgs.push(args);
       }
@@ -35,9 +29,7 @@ vi.mock('@anthropic-ai/sdk', () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('fs/promises', () => ({ readFile: vi.fn() }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() },
 }));
@@ -53,9 +45,7 @@ const sampleMessages: LLMMessage[] = [
 
 describe('LLMService', () => {
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     openaiCreateMock.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     anthropicCreateMock.mockReset();
     openaiConstructorArgs = [];
     anthropicConstructorArgs = [];
@@ -123,7 +113,6 @@ describe('LLMService', () => {
     });
 
     it('returns content and usage from OpenAI response', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockResolvedValueOnce({
         choices: [{ message: { content: 'Hi there' } }],
         usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
@@ -134,7 +123,6 @@ describe('LLMService', () => {
     });
 
     it('returns undefined usage when OpenAI omits it', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockResolvedValueOnce({
         choices: [{ message: { content: 'response' } }],
       });
@@ -143,13 +131,11 @@ describe('LLMService', () => {
     });
 
     it('throws when OpenAI returns empty choices', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockResolvedValueOnce({ choices: [{}] });
       await expect(service.chat(sampleMessages)).rejects.toThrow('No response from OpenAI');
     });
 
     it('passes temperature and maxTokens to OpenAI', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockResolvedValueOnce({
         choices: [{ message: { content: 'ok' } }],
       });
@@ -178,7 +164,6 @@ describe('LLMService', () => {
     });
 
     it('returns content and usage from Anthropic response', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       anthropicCreateMock.mockResolvedValueOnce({
         content: [{ type: 'text', text: 'Hello from Claude' }],
         usage: { input_tokens: 8, output_tokens: 4 },
@@ -189,7 +174,6 @@ describe('LLMService', () => {
     });
 
     it('separates system message from user messages for Anthropic', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       anthropicCreateMock.mockResolvedValueOnce({
         content: [{ type: 'text', text: 'ok' }],
         usage: { input_tokens: 1, output_tokens: 1 },
@@ -204,7 +188,6 @@ describe('LLMService', () => {
     });
 
     it('throws when Anthropic returns unexpected content type', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       anthropicCreateMock.mockResolvedValueOnce({
         content: [{ type: 'image', data: 'abc' }],
         usage: { input_tokens: 1, output_tokens: 1 },
@@ -215,7 +198,6 @@ describe('LLMService', () => {
     });
 
     it('throws when Anthropic returns empty content', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       anthropicCreateMock.mockResolvedValueOnce({
         content: [],
         usage: { input_tokens: 1, output_tokens: 1 },
@@ -249,9 +231,7 @@ describe('LLMService', () => {
         { maxRetries: 2, initialDelay: 1, maxDelay: 10, backoffMultiplier: 2 },
       );
       openaiCreateMock
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockRejectedValueOnce(new Error('rate limit exceeded'))
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({ choices: [{ message: { content: 'ok' } }] });
 
       const result = await svc.chat(sampleMessages);
@@ -264,7 +244,6 @@ describe('LLMService', () => {
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
         { maxRetries: 3, initialDelay: 1 },
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockRejectedValueOnce(new Error('invalid_api_key'));
       await expect(svc.chat(sampleMessages)).rejects.toThrow('invalid_api_key');
       expect(openaiCreateMock).toHaveBeenCalledTimes(1);
@@ -275,7 +254,6 @@ describe('LLMService', () => {
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
         { maxRetries: 2, initialDelay: 1, maxDelay: 5, backoffMultiplier: 2 },
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockRejectedValue(new Error('503 service unavailable'));
       await expect(svc.chat(sampleMessages)).rejects.toThrow('503 service unavailable');
       expect(openaiCreateMock).toHaveBeenCalledTimes(3);
@@ -283,16 +261,13 @@ describe('LLMService', () => {
 
     it('retries on various retryable error patterns', async () => {
       for (const pattern of ['timeout', 'network error', 'econnreset', '429', '502']) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         openaiCreateMock.mockReset();
         const svc = new LLMService(
           { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
           { maxRetries: 1, initialDelay: 1 },
         );
         openaiCreateMock
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockRejectedValueOnce(new Error(pattern))
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           .mockResolvedValueOnce({ choices: [{ message: { content: 'ok' } }] });
         const result = await svc.chat(sampleMessages);
         expect(result.content).toBe('ok');
@@ -304,7 +279,6 @@ describe('LLMService', () => {
         { provider: 'openai', openai: { apiKey: 'k', model: 'gpt-4' } },
         { maxRetries: 0 },
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockRejectedValueOnce('string error');
       await expect(svc.chat(sampleMessages)).rejects.toThrow('string error');
     });
@@ -323,7 +297,6 @@ describe('LLMService', () => {
     });
 
     it('sends base64 image to OpenAI vision model', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockResolvedValueOnce({
         choices: [{ message: { content: 'I see a cat' } }],
       });
@@ -332,11 +305,9 @@ describe('LLMService', () => {
     });
 
     it('reads file from disk when isFilePath is true', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockResolvedValueOnce({
         choices: [{ message: { content: 'file image' } }],
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.mocked(readFile).mockResolvedValueOnce(Buffer.from('png-data'));
       const result = await service.analyzeImage('/path/to/image.png', 'describe', true);
       expect(result).toBe('file image');
@@ -365,7 +336,6 @@ describe('LLMService', () => {
     });
 
     it('returns empty string when response content is null', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       openaiCreateMock.mockResolvedValueOnce({
         choices: [{ message: { content: null } }],
       });
@@ -392,7 +362,6 @@ describe('LLMService', () => {
     });
 
     it('sends base64 image to Anthropic', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       anthropicCreateMock.mockResolvedValueOnce({
         content: [{ type: 'text', text: 'Anthropic sees a dog' }],
       });
@@ -401,7 +370,6 @@ describe('LLMService', () => {
     });
 
     it('returns empty when no text content block found', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       anthropicCreateMock.mockResolvedValueOnce({
         content: [{ type: 'image', data: 'something' }],
       });

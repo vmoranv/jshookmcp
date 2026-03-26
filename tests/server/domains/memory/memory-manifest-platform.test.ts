@@ -8,28 +8,17 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock all native dependencies that manifest imports at module level
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/MemoryScanner', () => ({ memoryScanner: {} }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/MemoryScanSession', () => ({ scanSessionManager: {} }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/PointerChainEngine', () => ({ pointerChainEngine: {} }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/StructureAnalyzer', () => ({ structureAnalyzer: {} }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/CodeInjector', () => ({ codeInjector: {} }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/MemoryController', () => ({ memoryController: {} }));
 // Win32-only engines — may not be importable on macOS
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/HardwareBreakpoint', () => ({ hardwareBreakpointEngine: {} }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Speedhack', () => ({ speedhack: {} }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/HeapAnalyzer', () => ({ heapAnalyzer: {} }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/PEAnalyzer', () => ({ peAnalyzer: {} }));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/AntiCheatDetector', () => ({ antiCheatDetector: {} }));
 
 const IS_WIN32 = process.platform === 'win32';

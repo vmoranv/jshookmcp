@@ -12,18 +12,15 @@ const state = vi.hoisted(() => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   readdir: state.readdir,
   stat: state.stat,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:url', () => ({
   fileURLToPath: state.fileURLToPath,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: state.logger,
 }));
@@ -43,7 +40,6 @@ describe('registry/discovery', () => {
     vi.resetModules();
     vi.clearAllMocks();
     delete process.env.DISCOVERY_STRICT;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.fileURLToPath.mockImplementation((value: URL | string) => {
       const href = typeof value === 'string' ? value : value.href;
       if (href.includes('/domains/')) {
@@ -54,7 +50,6 @@ describe('registry/discovery', () => {
   });
 
   it('returns an empty list when the domains directory cannot be read', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readdir.mockRejectedValue(new Error('cannot read'));
     const { discoverDomainManifests } = await import('@server/registry/discovery');
 
@@ -63,7 +58,6 @@ describe('registry/discovery', () => {
   });
 
   it('loads valid manifests, skips invalid ones, and warns on duplicate domain or depKey', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readdir.mockResolvedValue([
       makeDir('valid-default'),
       makeDir('valid-named'),
@@ -72,7 +66,6 @@ describe('registry/discovery', () => {
       makeDir('duplicate-domain'),
       makeDir('duplicate-dep'),
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.stat.mockImplementation(async (filePath: string) => {
       if (
         filePath === join(fixtureRoot, 'valid-default', 'manifest.ts') ||
@@ -106,9 +99,7 @@ describe('registry/discovery', () => {
   });
 
   it('prefers manifest.js before manifest.ts and rethrows import errors in strict mode', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.readdir.mockResolvedValue([makeDir('js-first'), makeDir('throw-on-import')]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.stat.mockImplementation(async (filePath: string) => {
       if (
         filePath === join(fixtureRoot, 'js-first', 'manifest.js') ||

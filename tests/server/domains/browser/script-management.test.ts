@@ -8,13 +8,9 @@ describe('ScriptManagementHandlers', () => {
   const scriptManager = {
     getAllScripts: vi.fn(),
     getScriptSource: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
   const detailedDataManager = {
     smartHandle: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: ScriptManagementHandlers;
@@ -26,11 +22,7 @@ describe('ScriptManagementHandlers', () => {
 
   it('wraps getAllScripts results and applies default includeSource/maxScripts values', async () => {
     const scripts = [{ scriptId: '1' }, { scriptId: '2' }];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     scriptManager.getAllScripts.mockResolvedValue(scripts);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detailedDataManager.smartHandle.mockReturnValue({
       success: true,
       wrapped: { count: 2, scripts },
@@ -50,8 +42,6 @@ describe('ScriptManagementHandlers', () => {
   });
 
   it('returns not found payload when script source is missing', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     scriptManager.getScriptSource.mockResolvedValue(null);
 
     const body = parseJson<BrowserStatusResponse>(
@@ -72,8 +62,6 @@ describe('ScriptManagementHandlers', () => {
   });
 
   it('returns preview content with default maxLines and small-script hint', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     scriptManager.getScriptSource.mockResolvedValue({
       scriptId: 'script-1',
       url: 'https://example.test/app.js',
@@ -98,8 +86,6 @@ describe('ScriptManagementHandlers', () => {
 
   it('supports ranged previews and large-script hint', async () => {
     const largeLines = ['line-1', 'line-2', 'line-3', 'x'.repeat(52010)];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     scriptManager.getScriptSource.mockResolvedValue({
       scriptId: 'script-2',
       url: 'https://example.test/large.js',
@@ -114,15 +100,10 @@ describe('ScriptManagementHandlers', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.showingLines).toBe('2-3');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.content).toBe(['line-2', 'line-3'].join('\n'));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.hint).toContain('Script is large');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.hint).toContain('startLine/endLine');
   });
 
@@ -132,11 +113,7 @@ describe('ScriptManagementHandlers', () => {
       url: 'https://example.test/full.js',
       source: 'console.log("hello");',
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     scriptManager.getScriptSource.mockResolvedValue(script);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detailedDataManager.smartHandle.mockReturnValue({
       detailId: 'detail-123',
       truncated: true,

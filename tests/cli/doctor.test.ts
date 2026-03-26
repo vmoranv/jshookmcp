@@ -5,7 +5,6 @@ const state = vi.hoisted(() => ({
   formatEnvironmentDoctorReport: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/environmentDoctor', () => ({
   runEnvironmentDoctor: state.runEnvironmentDoctor,
   formatEnvironmentDoctorReport: state.formatEnvironmentDoctorReport,
@@ -23,14 +22,10 @@ describe('cli/doctor', () => {
       generatedAt: '2026-03-15T00:00:00.000Z',
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.runEnvironmentDoctor.mockResolvedValue(report);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.formatEnvironmentDoctorReport.mockReturnValue('formatted report');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const stdoutWrite = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const exit = vi.spyOn(process, 'exit').mockImplementation((() => {
       return undefined as never;
     }) as typeof process.exit);

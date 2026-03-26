@@ -4,7 +4,6 @@ import { logger } from '@utils/logger';
 describe('logger', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(console, 'error').mockImplementation(() => {});
     logger.setLevel('debug');
   });
@@ -18,8 +17,6 @@ describe('logger', () => {
     logger.debug('debug message', { x: 1 });
 
     expect(console.error).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const output = String((console.error as any).mock.calls[0]![0]);
     expect(output).toContain('[DEBUG]');
     expect(output).toContain('debug message');
@@ -32,8 +29,6 @@ describe('logger', () => {
     logger.warn('visible warn');
 
     expect(console.error).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const output = String((console.error as any).mock.calls[0]![0]);
     expect(output).toContain('[WARN]');
     expect(output).toContain('visible warn');
@@ -46,8 +41,6 @@ describe('logger', () => {
       normalField: 'safe',
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const output = String((console.error as any).mock.calls[0]![0]);
     expect(output).toContain('[REDACTED]');
     expect(output).not.toContain('plain-token-value');
@@ -61,8 +54,6 @@ describe('logger', () => {
       another: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature',
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const output = String((console.error as any).mock.calls[0]![0]);
     expect(output).toContain('[REDACTED]');
     expect(output).not.toContain('very-secret-token');
@@ -75,8 +66,6 @@ describe('logger', () => {
 
     logger.info('circular', circular);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const output = String((console.error as any).mock.calls[0]![0]);
     expect(output).toContain('[unserializable]');
   });
@@ -86,8 +75,6 @@ describe('logger', () => {
     logger.success('operation completed');
 
     expect(console.error).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const output = String((console.error as any).mock.calls[0]![0]);
     expect(output).toContain('[INFO]');
     expect(output).toContain('operation completed');

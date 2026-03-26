@@ -1,16 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransformToolHandlersBase } from '@server/domains/transform/handlers.impl.transform-base';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/WorkerPool', () => ({
   WorkerPool: class MockWorkerPool {
     submit = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     close = vi.fn().mockResolvedValue(undefined);
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
@@ -25,20 +22,15 @@ vi.mock('@src/constants', async (importOriginal) => {
 
 class TestableBase extends TransformToolHandlersBase {
   constructor() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     super(null as any);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public testParseTransforms(raw: any) {
     return this.parseTransforms(raw);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public testParseBoolean(raw: any, def: boolean) {
     return this.parseBoolean(raw, def);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public testRequireString(raw: any, field: string) {
     return this.requireString(raw, field);
   }
@@ -51,7 +43,6 @@ class TestableBase extends TransformToolHandlersBase {
   public testIsValidIdentifier(v: string) {
     return this.isValidIdentifier(v);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public testParseTestInputs(raw: any) {
     return this.parseTestInputs(raw);
   }
@@ -138,8 +129,6 @@ describe('TransformToolHandlersBase', () => {
     });
 
     it('throws on non-string', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(() => base.testRequireString(123 as any, 'code')).toThrow(
         'code must be a non-empty string',
       );
@@ -220,8 +209,6 @@ describe('TransformToolHandlersBase', () => {
     });
 
     it('throws when input is not an array', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(() => base.testParseTestInputs('nope' as any)).toThrow(
         'testInputs must be an array of strings',
       );

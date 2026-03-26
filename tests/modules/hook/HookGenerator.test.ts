@@ -20,8 +20,6 @@ describe('HookGenerator', () => {
   });
 
   it('throws for unsupported hook type', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(() => generateHookScript('window.x', 'not-real-type' as any, 'log')).toThrow(
       'Unsupported hook type',
     );

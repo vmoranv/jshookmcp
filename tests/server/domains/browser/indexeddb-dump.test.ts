@@ -4,9 +4,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 type EvaluateFn = (pageFunction: any, ...args: any[]) => Promise<any>;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 type GetActivePageFn = () => Promise<any>;
 
 describe('IndexedDBDumpHandlers', () => {
@@ -24,7 +22,6 @@ describe('IndexedDBDumpHandlers', () => {
   });
 
   it('uses default dump options when args are omitted', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       appDb: {
         users: [{ id: 1, name: 'alice' }],
@@ -34,7 +31,6 @@ describe('IndexedDBDumpHandlers', () => {
     const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
     expect(getActivePage).toHaveBeenCalledOnce();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
       database: '',
       store: '',
@@ -48,7 +44,6 @@ describe('IndexedDBDumpHandlers', () => {
   });
 
   it('passes explicit database, store, and maxRecords values through to page.evaluate', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockResolvedValueOnce({
       analyticsDb: {
         events: [{ id: 9, type: 'click' }],
@@ -63,18 +58,15 @@ describe('IndexedDBDumpHandlers', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), {
       database: 'analyticsDb',
       store: 'events',
       maxRecords: 10,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.analyticsDb.events).toEqual([{ id: 9, type: 'click' }]);
   });
 
   it('returns an error payload when the dump fails', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.evaluate.mockRejectedValueOnce(new Error('indexeddb failed'));
 
     const body = parseJson<BrowserStatusResponse>(
@@ -83,9 +75,7 @@ describe('IndexedDBDumpHandlers', () => {
       }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.error).toBe('indexeddb failed');
   });
 });

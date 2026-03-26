@@ -7,18 +7,15 @@ import { describe, expect, it, vi } from 'vitest';
  * and the CLI fast path module independently.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/MCPServer', () => ({
   MCPServer: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/config', () => ({
   getConfig: vi.fn(),
   validateConfig: vi.fn(() => ({ valid: true, errors: [] })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -28,12 +25,21 @@ vi.mock('@utils/logger', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+function formatUnknownError(input: any): string {
+  if (input instanceof Error) {
+    return `${input.name}: ${input.message}`;
+  }
+  try {
+    return typeof input === 'string' ? input : JSON.stringify(input);
+  } catch {
+    return String(input);
+  }
+}
+
 vi.mock('@server/registry/index', () => ({
   initRegistry: vi.fn(async () => {}),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/artifactRetention', () => ({
   cleanupArtifacts: vi.fn(async () => ({ removedFiles: 0, removedBytes: 0 })),
   getArtifactRetentionConfig: vi.fn(() => ({
@@ -157,19 +163,6 @@ describe('src/index.ts — formatUnknownError logic', () => {
   /**
    * Testing the formatting logic for unknown error inputs.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // oxlint-disable-next-line consistent-function-scoping
-  function formatUnknownError(input: any): string {
-    if (input instanceof Error) {
-      return `${input.name}: ${input.message}`;
-    }
-    try {
-      return typeof input === 'string' ? input : JSON.stringify(input);
-    } catch {
-      return String(input);
-    }
-  }
-
   it('formats Error instances', () => {
     const err = new TypeError('bad type');
     expect(formatUnknownError(err)).toBe('TypeError: bad type');
@@ -192,10 +185,7 @@ describe('src/index.ts — formatUnknownError logic', () => {
   });
 
   it('handles circular references with fallback', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const circular: any = {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     circular.self = circular;
     // Should not throw, falls back to String()
     expect(typeof formatUnknownError(circular)).toBe('string');

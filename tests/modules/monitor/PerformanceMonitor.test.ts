@@ -13,7 +13,6 @@ const writeState = vi.hoisted(() => ({
 }));
 
 const cdpState = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   cdpLimit: vi.fn(async (fn: any) => fn()),
 }));
 
@@ -24,22 +23,18 @@ const artifactState = vi.hoisted(() => ({
   })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:fs/promises', () => ({
   writeFile: writeState.writeFile,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/concurrency', () => ({
   cdpLimit: cdpState.cdpLimit,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/artifacts', () => ({
   resolveArtifactPath: artifactState.resolveArtifactPath,
 }));
@@ -47,38 +42,28 @@ vi.mock('@src/utils/artifacts', () => ({
 import { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';
 
 function createSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   sendImpl?: (method: string, params: any, emit: (e: string, p?: any) => void) => any,
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const listeners = new Map<string, Set<(payload: any) => void>>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const emit = (event: string, payload?: any) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const send = vi.fn(async (method: string, params?: any) => {
     if (sendImpl) return sendImpl(method, params, emit);
     return {};
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const on = vi.fn((event: string, handler: (payload: any) => void) => {
     const set = listeners.get(event) ?? new Set();
     set.add(handler);
     listeners.set(event, set);
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const off = vi.fn((event: string, handler: (payload: any) => void) => {
     listeners.get(event)?.delete(handler);
   });
   const detach = vi.fn(async () => {});
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return { session: { send, on, off, detach } as any, send, on, off, detach, emit };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function createCollector(session: any, evaluateResult?: any) {
   const page = {
     createCDPSession: vi.fn(async () => session),
@@ -112,14 +97,9 @@ function createCollector(session: any, evaluateResult?: any) {
 describe('PerformanceMonitor', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     writeState.writeFile.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     cdpState.cdpLimit.mockImplementation(async (fn: any) => fn());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     artifactState.resolveArtifactPath.mockResolvedValue({
       absolutePath: '/tmp/artifact.json',
       displayPath: 'tmp/artifact.json',
@@ -130,8 +110,6 @@ describe('PerformanceMonitor', () => {
     const { session } = createSession();
     const metrics = { fcp: 111, lcp: 222, cls: 0.01, ttfb: 45 };
     const { collector, page } = createCollector(session, metrics);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PerformanceMonitor(collector as any);
 
     const result = await monitor.getPerformanceMetrics();
@@ -143,7 +121,6 @@ describe('PerformanceMonitor', () => {
   it('starts and stops precise coverage with computed percentages', async () => {
     const { session } = createSession();
     const { collector, page } = createCollector(session);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.coverage.stopJSCoverage.mockResolvedValue([
       {
         url: 'a.js',
@@ -151,10 +128,7 @@ describe('PerformanceMonitor', () => {
         ranges: [{ start: 0, end: 10 }],
       },
     ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.coverage.stopCSSCoverage.mockResolvedValue([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startCoverage();
@@ -173,8 +147,6 @@ describe('PerformanceMonitor', () => {
   it('throws when stopCoverage is called before startCoverage', async () => {
     const { session } = createSession();
     const { collector } = createCollector(session);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PerformanceMonitor(collector as any);
 
     await expect(monitor.stopCoverage()).rejects.toThrow('Coverage not enabled');
@@ -193,8 +165,6 @@ describe('PerformanceMonitor', () => {
       return {};
     });
     const { collector } = createCollector(session);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startCPUProfiling();
@@ -213,26 +183,19 @@ describe('PerformanceMonitor', () => {
       return {};
     });
     const { collector } = createCollector(session);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PerformanceMonitor(collector as any);
 
     const snapshot = await monitor.takeHeapSnapshot();
 
     expect(snapshot).toBe('partApartB');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(on).toHaveBeenCalledWith('HeapProfiler.addHeapSnapshotChunk', expect.any(Function));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(off).toHaveBeenCalledWith('HeapProfiler.addHeapSnapshotChunk', expect.any(Function));
   });
 
   it('stops tracing, reads stream and saves artifact', async () => {
     const { session } = createSession();
     const { collector, page } = createCollector(session);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.tracing.stop.mockResolvedValue(Buffer.from('{"traceEvents":[{"ph":"X"}]}'));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startTracing();
@@ -240,13 +203,11 @@ describe('PerformanceMonitor', () => {
 
     expect(page.tracing.start).toHaveBeenCalledWith(
       expect.objectContaining({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         categories: expect.any(Array),
       }),
     );
     expect(writeState.writeFile).toHaveBeenCalledWith(
       '/tmp/custom-trace.json',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(String),
       'utf-8',
     );
@@ -257,10 +218,7 @@ describe('PerformanceMonitor', () => {
     const parseSpy = vi.spyOn(JSON, 'parse');
     const { session } = createSession();
     const { collector, page } = createCollector(session);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     page.tracing.stop.mockResolvedValue(Buffer.from('{"traceEvents":[{"ph":"B"},{"ph":"E"}]}'));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startTracing();
@@ -292,8 +250,6 @@ describe('PerformanceMonitor', () => {
       return {};
     });
     const { collector } = createCollector(session);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const monitor = new PerformanceMonitor(collector as any);
 
     await monitor.startHeapSampling({ samplingInterval: 1024 });
@@ -303,7 +259,6 @@ describe('PerformanceMonitor', () => {
     expect(result.topAllocations[0]!.functionName).toBe('heavy');
     expect(writeState.writeFile).toHaveBeenCalledWith(
       '/tmp/heap.json',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect.any(String),
       'utf-8',
     );

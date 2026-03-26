@@ -19,24 +19,18 @@ describe('DebuggerStateHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     handlers = new DebuggerStateHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       debuggerManager: debuggerManager as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       runtimeInspector: runtimeInspector as any,
     });
   });
 
   it('waits for paused state and returns the top frame location', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.waitForPaused.mockResolvedValueOnce({
       reason: 'breakpoint',
       callFrames: [{ location: { url: 'app.js', lineNumber: 7, columnNumber: 1 } }],
       hitBreakpoints: ['bp-1'],
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerWaitForPaused({ timeout: 1234 }));
 
     expect(debuggerManager.waitForPaused).toHaveBeenCalledWith(1234);
@@ -50,11 +44,8 @@ describe('DebuggerStateHandlers', () => {
   });
 
   it('returns a failure payload for generic wait errors', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.waitForPaused.mockRejectedValueOnce(new Error('timed out'));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerWaitForPaused({}));
 
     expect(debuggerManager.waitForPaused).toHaveBeenCalledWith(30000);
@@ -66,7 +57,6 @@ describe('DebuggerStateHandlers', () => {
   });
 
   it('rethrows ToolError instances from waitForPaused', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.waitForPaused.mockRejectedValueOnce(
       new ToolError('PREREQUISITE', 'debugger not enabled'),
     );
@@ -75,11 +65,8 @@ describe('DebuggerStateHandlers', () => {
   });
 
   it('returns a non-paused payload when the debugger is running', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValueOnce(undefined);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerGetPausedState({}));
 
     expect(body).toEqual({
@@ -89,7 +76,6 @@ describe('DebuggerStateHandlers', () => {
   });
 
   it('returns paused state details', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValueOnce({
       reason: 'exception',
       callFrames: [
@@ -102,8 +88,6 @@ describe('DebuggerStateHandlers', () => {
       timestamp: 1710000000000,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleDebuggerGetPausedState({}));
 
     expect(body).toEqual({
@@ -120,11 +104,8 @@ describe('DebuggerStateHandlers', () => {
   });
 
   it('returns guidance when call stack is unavailable', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     runtimeInspector.getCallStack.mockResolvedValueOnce(undefined);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetCallStack({}));
 
     expect(body).toEqual({
@@ -134,7 +115,6 @@ describe('DebuggerStateHandlers', () => {
   });
 
   it('maps call stack frames into response payload', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     runtimeInspector.getCallStack.mockResolvedValueOnce({
       reason: 'breakpoint',
       callFrames: [
@@ -151,8 +131,6 @@ describe('DebuggerStateHandlers', () => {
       ],
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const body = parseJson<any>(await handlers.handleGetCallStack({}));
 
     expect(body).toEqual({

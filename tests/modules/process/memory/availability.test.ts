@@ -5,7 +5,6 @@ const state = vi.hoisted(() => ({
   execAsync: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
   execAsync: state.execAsync,
@@ -22,7 +21,6 @@ describe('memory/availability', () => {
   });
 
   it('caches successful Windows availability checks within TTL', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({ stdout: 'True\n', stderr: '' });
     const { checkAvailability } = await loadAvailabilityModule();
 
@@ -35,7 +33,6 @@ describe('memory/availability', () => {
   });
 
   it('returns administrator-required reason when PowerShell outputs false', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({ stdout: 'False\n', stderr: '' });
     const { checkAvailability } = await loadAvailabilityModule();
 
@@ -45,7 +42,6 @@ describe('memory/availability', () => {
   });
 
   it('maps PowerShell-not-found errors to a specific reason', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockRejectedValue(new Error('spawn ENOENT powershell'));
     const { checkAvailability } = await loadAvailabilityModule();
 
@@ -55,7 +51,6 @@ describe('memory/availability', () => {
   });
 
   it('reports Linux available when running as root', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockResolvedValueOnce({ stdout: '0\n', stderr: '' });
     const { checkAvailability } = await loadAvailabilityModule();
 
@@ -65,9 +60,7 @@ describe('memory/availability', () => {
 
   it('reports Linux available when CAP_SYS_PTRACE exists for non-root', async () => {
     state.execAsync
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ stdout: '1000\n', stderr: '' }) // id -u
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({ stdout: '', stderr: '' }); // capsh check
     const { checkAvailability } = await loadAvailabilityModule();
 
@@ -76,7 +69,6 @@ describe('memory/availability', () => {
   });
 
   it('reports missing lldb on macOS', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.execAsync.mockRejectedValue(new Error('lldb not found'));
     const { checkAvailability } = await loadAvailabilityModule();
 
@@ -94,7 +86,6 @@ describe('memory/availability', () => {
   });
 
   it('checkDebugPort parses successful windows JSON output', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.executePowerShellScript.mockResolvedValue({
       stdout: '{"success":true,"isDebugged":false}',
       stderr: '',

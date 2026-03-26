@@ -9,13 +9,12 @@ class TestStealthScripts extends StealthScripts {
   }
 }
 
+function NotificationCtor() {}
+
 function createPageMock() {
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     evaluateOnNewDocument: vi.fn(async (_fn: Function, ..._args: any[]) => undefined),
     setUserAgent: vi.fn(async () => undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -23,13 +22,10 @@ function resetInjectedPages() {
   TestStealthScripts.reset();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function getInjectedFn(page: { evaluateOnNewDocument: { mock: { calls: any[][] } } }): {
   fn: Function;
   extraArgs: any[];
 } {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const call = page.evaluateOnNewDocument.mock.calls[0]!;
   return { fn: call[0] as Function, extraArgs: call.slice(1) };
 }
@@ -60,7 +56,6 @@ describe('StealthScripts injected browser-side scripts', () => {
   describe('mockChrome injected script', () => {
     it('sets window.chrome with runtime loadTimes csi', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockChrome(page);
       const { fn } = getInjectedFn(page);
       const ow = (globalThis as unknown as Record<string, unknown>).window;
@@ -69,23 +64,16 @@ describe('StealthScripts injected browser-side scripts', () => {
         fn();
         const win = (globalThis as unknown as Record<string, unknown>).window;
         expect(win.chrome).toBeDefined();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(typeof win.chrome.runtime.connect).toBe('function');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(typeof win.chrome.runtime.sendMessage).toBe('function');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(typeof win.chrome.runtime.onMessage.addListener).toBe('function');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const lt = win.chrome.loadTimes();
         expect(lt).toHaveProperty('connectionInfo', 'http/1.1');
         expect(lt).toHaveProperty('navigationType', 'Other');
         expect(lt).toHaveProperty('wasAlternateProtocolAvailable', false);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const cs = win.chrome.csi();
         expect(cs).toHaveProperty('tran', 15);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(typeof cs.onloadT).toBe('number');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(win.chrome.app).toEqual({
           isInstalled: false,
           InstallState: {
@@ -109,18 +97,14 @@ describe('StealthScripts injected browser-side scripts', () => {
   describe('mockPlugins injected script', () => {
     it('overrides navigator.plugins with 3 entries', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockPlugins(page);
       getInjectedFn(page).fn();
       const d = Object.getOwnPropertyDescriptor(navigator, 'plugins');
       if (d?.get) {
         const plugins = d.get();
         expect(plugins).toHaveLength(3);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(plugins[0].name).toBe('Chrome PDF Plugin');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(plugins[1].name).toBe('Chrome PDF Viewer');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect(plugins[2].name).toBe('Native Client');
       }
     });
@@ -141,13 +125,11 @@ describe('StealthScripts injected browser-side scripts', () => {
   describe('mockBattery injected script', () => {
     it('does not throw when getBattery does not exist', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockBattery(page);
       expect(() => getInjectedFn(page).fn()).not.toThrow();
     });
     it('wraps getBattery when it exists', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockBattery(page);
       const { fn } = getInjectedFn(page);
       const orig = (navigator as unknown as Record<string, unknown>).getBattery;
@@ -164,15 +146,14 @@ describe('StealthScripts injected browser-side scripts', () => {
   describe('mockNotifications injected script', () => {
     it('patches when Notification exists in window', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockNotifications(page);
       const { fn } = getInjectedFn(page);
       const ow = (globalThis as unknown as Record<string, unknown>).window;
       const oNotif = (globalThis as unknown as Record<string, unknown>).Notification;
-      // oxlint-disable-next-line consistent-function-scoping
-      const NotifCtor = function N() {};
-      (globalThis as unknown as Record<string, unknown>).window = { Notification: NotifCtor };
-      (globalThis as unknown as Record<string, unknown>).Notification = NotifCtor;
+      (globalThis as unknown as Record<string, unknown>).window = {
+        Notification: NotificationCtor,
+      };
+      (globalThis as unknown as Record<string, unknown>).Notification = NotificationCtor;
       try {
         expect(() => fn()).not.toThrow();
       } finally {
@@ -185,7 +166,6 @@ describe('StealthScripts injected browser-side scripts', () => {
     });
     it('does nothing when Notification not in window', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockNotifications(page);
       const { fn } = getInjectedFn(page);
       const ow = (globalThis as unknown as Record<string, unknown>).window;
@@ -242,7 +222,6 @@ describe('StealthScripts injected browser-side scripts', () => {
         'fixMediaDevices',
         'mockNotifications',
       ] as const;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spies = methods.map((m) => vi.spyOn(StealthScripts, m).mockResolvedValue(undefined));
       const page = createPageMock();
       await StealthScripts.injectAll(page);
@@ -251,7 +230,6 @@ describe('StealthScripts injected browser-side scripts', () => {
       for (const s of spies) expect(s).toHaveBeenCalledTimes(1);
     });
     it('allows injection after WeakSet reset', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const spy = vi.spyOn(StealthScripts, 'hideWebDriver').mockResolvedValue(undefined);
       [
         'mockChrome',
@@ -263,7 +241,6 @@ describe('StealthScripts injected browser-side scripts', () => {
         'mockBattery',
         'fixMediaDevices',
         'mockNotifications',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ].forEach((m) =>
         vi.spyOn(StealthScripts, m as keyof typeof StealthScripts).mockResolvedValue(undefined),
       );
@@ -284,13 +261,11 @@ describe('StealthScripts injected browser-side scripts', () => {
     });
     it('mockCanvas is a valid function', async () => {
       const p = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockCanvas(p);
       expect(typeof getInjectedFn(p).fn).toBe('function');
     });
     it('mockWebGL is a valid function', async () => {
       const p = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await StealthScripts.mockWebGL(p);
       expect(typeof getInjectedFn(p).fn).toBe('function');
     });

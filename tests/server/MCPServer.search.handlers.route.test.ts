@@ -4,7 +4,6 @@ const state = vi.hoisted(() => ({
   routeToolRequest: vi.fn(),
   describeTool: vi.fn(),
   buildCallToolCommand: vi.fn(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (name: string, _schema: any) => `call_tool({ name: "${name}", args: {} })`,
   ),
   activateToolNames: vi.fn(),
@@ -12,36 +11,30 @@ const state = vi.hoisted(() => ({
   getSearchEngine: vi.fn(() => ({ kind: 'engine' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/response', () => ({
   asTextResponse: (text: string) => ({
     content: [{ type: 'text', text }],
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolRouter', () => ({
   routeToolRequest: state.routeToolRequest,
   describeTool: state.describeTool,
   buildCallToolCommand: state.buildCallToolCommand,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/MCPServer.search.handlers.activate', () => ({
   activateToolNames: state.activateToolNames,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/MCPServer.search.handlers.domain', () => ({
   handleActivateDomain: state.handleActivateDomain,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/MCPServer.search.helpers', () => ({
   getSearchEngine: state.getSearchEngine,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@src/constants')>()),
   ACTIVATION_TTL_MINUTES: 30,
@@ -54,30 +47,23 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     enabledDomains: new Set<string>(),
     activatedToolNames: new Set<string>(),
     ...overrides,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 function parseResponse(response: any) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   return JSON.parse(response.content[0].text);
 }
 
 describe('MCPServer.search.handlers.route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.getSearchEngine.mockReturnValue({ kind: 'engine' });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.activateToolNames.mockResolvedValue({
       activated: [],
       alreadyActive: [],
       notFound: [],
       totalActive: 0,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.handleActivateDomain.mockResolvedValue({
       content: [{ type: 'text', text: '{"success":true}' }],
     });
@@ -94,7 +80,6 @@ describe('MCPServer.search.handlers.route', () => {
 
   it('passes through route results when autoActivate is disabled', async () => {
     const ctx = createCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.routeToolRequest.mockResolvedValueOnce({
       recommendations: [],
       nextActions: [{ step: 1, action: 'call', command: 'page_navigate', description: 'Call it' }],
@@ -119,7 +104,6 @@ describe('MCPServer.search.handlers.route', () => {
   it('auto-activates inactive recommendation domains and reroutes with autoActivate disabled', async () => {
     const ctx = createCtx();
     state.routeToolRequest
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         recommendations: [
           { name: 'page_navigate', domain: 'browser', isActive: false },
@@ -127,7 +111,6 @@ describe('MCPServer.search.handlers.route', () => {
         ],
         nextActions: [],
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         recommendations: [
           { name: 'page_navigate', domain: 'browser', isActive: true },
@@ -137,18 +120,13 @@ describe('MCPServer.search.handlers.route', () => {
           { step: 1, action: 'call', command: 'page_navigate', description: 'Call it' },
         ],
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.handleActivateDomain.mockImplementation(async (innerCtx: any, args: any) => {
       if (args.domain === 'browser') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         innerCtx.enabledDomains.add('browser');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         innerCtx.activatedToolNames.add('page_navigate');
       }
       if (args.domain === 'network') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         innerCtx.enabledDomains.add('network');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         innerCtx.activatedToolNames.add('network_get_requests');
       }
       return { content: [{ type: 'text', text: '{"success":true}' }] };
@@ -171,9 +149,7 @@ describe('MCPServer.search.handlers.route', () => {
       ctx,
       { kind: 'engine' },
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.autoActivated).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.activatedNames).toEqual(['page_navigate', 'network_get_requests']);
   });
 
@@ -182,7 +158,6 @@ describe('MCPServer.search.handlers.route', () => {
       enabledDomains: new Set(['browser']),
     });
     state.routeToolRequest
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         recommendations: [
           { name: 'page_navigate', domain: 'browser', isActive: false },
@@ -191,7 +166,6 @@ describe('MCPServer.search.handlers.route', () => {
         ],
         nextActions: [],
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce({
         recommendations: [
           { name: 'page_navigate', domain: 'browser', isActive: true },
@@ -199,15 +173,12 @@ describe('MCPServer.search.handlers.route', () => {
         ],
         nextActions: [{ step: 1, action: 'call', command: 'custom_tool', description: 'Call it' }],
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.activateToolNames.mockImplementation(async (innerCtx: any, names: string[]) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       for (const name of names) innerCtx.activatedToolNames.add(name);
       return {
         activated: names,
         alreadyActive: [],
         notFound: [],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         totalActive: innerCtx.activatedToolNames.size,
       };
     });
@@ -216,20 +187,16 @@ describe('MCPServer.search.handlers.route', () => {
 
     expect(state.handleActivateDomain).not.toHaveBeenCalled();
     expect(state.activateToolNames).toHaveBeenCalledWith(ctx, ['page_navigate', 'custom_tool']);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.autoActivated).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(response.activatedNames).toEqual(['page_navigate', 'page_navigate', 'custom_tool']);
   });
 
   it('returns the original route response when activation fails and nothing becomes active', async () => {
     const ctx = createCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.routeToolRequest.mockResolvedValueOnce({
       recommendations: [{ name: 'page_navigate', domain: 'browser', isActive: false }],
       nextActions: [],
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.handleActivateDomain.mockRejectedValueOnce(new Error('activate failed'));
 
     const response = parseResponse(await handleRouteTool(ctx, { task: 'navigate' }));
@@ -260,7 +227,6 @@ describe('MCPServer.search.handlers.route', () => {
 
   it('returns not found when describe_tool cannot resolve a tool', async () => {
     const ctx = createCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.describeTool.mockReturnValueOnce(undefined);
 
     expect(parseResponse(await handleDescribeTool(ctx, { name: 'missing_tool' }))).toEqual({
@@ -271,7 +237,6 @@ describe('MCPServer.search.handlers.route', () => {
 
   it('returns tool details from describe_tool', async () => {
     const ctx = createCtx();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.describeTool.mockReturnValueOnce({
       name: 'page_navigate',
       description: 'Navigate page',

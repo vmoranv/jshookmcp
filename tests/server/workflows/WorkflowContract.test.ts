@@ -8,6 +8,8 @@ import {
   createWorkflow,
 } from '@server/workflows/WorkflowContract';
 
+const alwaysTruePredicate = () => true;
+
 describe('workflows/WorkflowContract', () => {
   beforeEach(() => {
     // Keep a stable test structure.
@@ -181,23 +183,19 @@ describe('workflows/WorkflowContract', () => {
       })
       .build();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const branch = node.steps[0] as any;
     expect(branch.kind).toBe('branch');
     expect(branch.whenFalse).toBeDefined();
   });
 
   it('BranchNodeBuilder supports predicateFn', () => {
-    // oxlint-disable-next-line consistent-function-scoping
-    const predFn = () => true;
     const node = new BranchNodeBuilder('br', 'pred')
-      .predicateFn(predFn)
+      .predicateFn(alwaysTruePredicate)
       .whenTrue(new ToolNodeBuilder('true', 'tool'))
       .whenFalse(new ToolNodeBuilder('false', 'tool'))
       .build();
 
-    expect(node.predicateFn).toBe(predFn);
+    expect(node.predicateFn).toBe(alwaysTruePredicate);
     expect(node.whenTrue).toMatchObject({ kind: 'tool', id: 'true' });
     expect(node.whenFalse).toMatchObject({ kind: 'tool', id: 'false' });
   });

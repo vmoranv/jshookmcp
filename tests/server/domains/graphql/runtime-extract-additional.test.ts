@@ -7,7 +7,6 @@ import {
 
 const isSsrfTargetMock = vi.fn(async () => false);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/server/domains/network/replay', () => ({
   isSsrfTarget: vi.fn(async () => isSsrfTargetMock()),
 }));
@@ -16,8 +15,6 @@ import { GraphQLToolHandlersExtract } from '@server/domains/graphql/handlers.imp
 
 interface ExtractQueriesResponse {
   success: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   queries: any[];
   stats: {
     totalExtracted: number;
@@ -36,10 +33,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     isSsrfTargetMock.mockResolvedValue(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     handlers = new GraphQLToolHandlersExtract(collector as any);
   });
 
@@ -49,7 +43,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
 
   describe('page.evaluate callback logic', () => {
     it('extracts queries from __fetchRequests', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -88,12 +81,10 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
       );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].operationName).toBe('GetUser');
     });
 
     it('extracts queries from __xhrRequests', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __xhrRequests: [
@@ -130,12 +121,10 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         await handlers.handleGraphqlExtractQueries({}),
       );
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].operationName).toBe('UpdateUser');
     });
 
     it('extracts queries from __networkRequests', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __networkRequests: [
@@ -173,7 +162,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('extracts queries from __aiHooks entries', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -212,12 +200,10 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
       );
       expect(body.success).toBe(true);
       expect(body.stats.totalExtracted).toBeGreaterThan(0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].source).toContain('__aiHooks.myHook');
     });
 
     it('parses URL-encoded body with query param', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -255,7 +241,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('parses URL-encoded body with non-JSON variables', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -291,7 +276,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles body passed as object directly (not string)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -330,7 +314,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('extracts query from postData field', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -368,7 +351,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('extracts query from options.body field', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -408,7 +390,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles application/graphql content type with raw query string', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -445,7 +426,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('deduplicates identical queries', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -488,7 +468,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('sorts extracted queries by timestamp descending', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -538,7 +517,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('infers operation name from query text', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -588,16 +566,12 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
       );
       expect(body.success).toBe(true);
       expect(body.queries).toHaveLength(3);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].operationName).toBe('InferredOp');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[1].operationName).toBe('CreateThing');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[2].operationName).toBe('OnEvent');
     });
 
     it('skips records with empty query string', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -638,7 +612,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('skips non-object entries in request arrays', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -676,7 +649,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles non-JSON, non-URL-encoded body (raw graphql string)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -713,7 +685,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles mutation and subscription raw strings', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -754,7 +725,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles missing url and method with defaults', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -784,14 +754,11 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         await handlers.handleGraphqlExtractQueries({}),
       );
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].url).toBe('');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.queries[0].method).toBe('POST');
     });
 
     it('handles requestHeaders as alternate header source', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -828,7 +795,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('returns empty when all globals are missing', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {};
         const origWindow = globalThis.window;
@@ -857,7 +823,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles null/falsy body gracefully', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -900,7 +865,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('skips body that is an array', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -936,7 +900,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles URL-encoded body without query param', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -972,7 +935,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles non-query payload with query field that is not a string', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -1007,7 +969,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles getHeader with non-string header value', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -1043,7 +1004,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('respects limit in extraction', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const requests = Array.from({ length: 10 }, (_, i) => ({
           url: 'https://api.example.com/graphql',
@@ -1070,17 +1030,12 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         }
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = parseJson<any>(await handlers.handleGraphqlExtractQueries({ limit: 3 }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.stats.returned).toBeLessThanOrEqual(3);
     });
 
     it('handles options that is an array (skipped)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
@@ -1116,7 +1071,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     });
 
     it('handles __aiHooks with null entry in hook array', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
           __aiHooks: {
@@ -1157,7 +1111,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
 
   describe('limit argument edge cases', () => {
     it('accepts string limit', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockResolvedValueOnce({
         scannedRecords: 0,
         totalExtracted: 0,
@@ -1166,12 +1119,10 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
 
       await handlers.handleGraphqlExtractQueries({ limit: '25' });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 25);
     });
 
     it('handles negative limit by clamping to 1', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (page.evaluate as Mock).mockResolvedValueOnce({
         scannedRecords: 0,
         totalExtracted: 0,
@@ -1180,7 +1131,6 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
 
       await handlers.handleGraphqlExtractQueries({ limit: -10 });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 1);
     });
   });

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -33,20 +32,14 @@ function makeFiles() {
       size: 2000,
       type: 'external',
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   ] as any[];
 }
 
 describe('SmartCodeCollector', () => {
   it('summary mode returns code heuristics and previews', async () => {
     const collector = new SmartCodeCollector();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = (await collector.smartCollect({} as any, makeFiles(), {
       mode: 'summary',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     })) as any[];
 
     expect(result).toHaveLength(3);
@@ -58,37 +51,27 @@ describe('SmartCodeCollector', () => {
 
   it('priority mode sorts by score and truncates oversized files', async () => {
     const collector = new SmartCodeCollector();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = (await collector.smartCollect({} as any, makeFiles(), {
       mode: 'priority',
       priorities: ['crypto', 'main'],
       maxFileSize: 100,
       maxTotalSize: 260,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     })) as any[];
 
     expect(result.length).toBeGreaterThan(0);
     expect(result[0]?.url).toContain('crypto');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result[0]?.metadata?.priorityScore).toBeTypeOf('number');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(result.some((f) => f.metadata?.truncated)).toBe(true);
   });
 
   it('incremental mode applies include and exclude patterns', async () => {
     const collector = new SmartCodeCollector();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = (await collector.smartCollect({} as any, makeFiles(), {
       mode: 'incremental',
       includePatterns: ['main|crypto'],
       excludePatterns: ['main'],
       maxTotalSize: 10_000,
       maxFileSize: 10_000,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     })) as any[];
 
     expect(result).toHaveLength(1);
@@ -97,14 +80,10 @@ describe('SmartCodeCollector', () => {
 
   it('full mode enforces total size ceiling', async () => {
     const collector = new SmartCodeCollector();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = (await collector.smartCollect({} as any, makeFiles(), {
       mode: 'full',
       maxTotalSize: 250,
       maxFileSize: 10_000,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     })) as any[];
 
     expect(result).toHaveLength(2);
@@ -114,15 +93,10 @@ describe('SmartCodeCollector', () => {
 
   it('unknown mode falls back to full collection behavior', async () => {
     const collector = new SmartCodeCollector();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const result = (await collector.smartCollect({} as any, makeFiles(), {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       mode: 'unknown' as any,
       maxTotalSize: 250,
       maxFileSize: 10_000,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     })) as any[];
 
     expect(result).toHaveLength(2);

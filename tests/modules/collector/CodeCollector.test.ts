@@ -6,20 +6,19 @@ const launchMock = vi.hoisted(() => vi.fn());
 const connectMock = vi.hoisted(() => vi.fn());
 const findBrowserExecutableMock = vi.hoisted(() => vi.fn());
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
     launch: launchMock,
     connect: connectMock,
   },
+  launch: launchMock,
+  connect: connectMock,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/browserExecutable', () => ({
   findBrowserExecutable: findBrowserExecutableMock,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -39,39 +38,25 @@ class TestCodeCollector extends CodeCollector {
 }
 
 interface BrowserMock extends Browser {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   on: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   pages: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   targets: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   newPage: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   close: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   disconnect: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   version: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   process: any;
 }
 
 function createBrowserMock(): BrowserMock {
   return {
     on: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     pages: vi.fn().mockResolvedValue([]),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     targets: vi.fn().mockReturnValue([]),
     newPage: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     close: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     disconnect: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     version: vi.fn().mockResolvedValue('Chrome/123'),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     process: vi.fn().mockReturnValue({ pid: 12345 }),
   } as unknown as BrowserMock;
 }
@@ -81,13 +66,11 @@ const defaultConfig: PuppeteerConfig = { headless: true, timeout: 1000 };
 describe('CodeCollector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     findBrowserExecutableMock.mockReturnValue(undefined);
   });
 
   it('initializes browser and reports running status', async () => {
     const browser = createBrowserMock();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     launchMock.mockResolvedValue(browser);
 
     const collector = new CodeCollector(defaultConfig);
@@ -114,7 +97,6 @@ describe('CodeCollector', () => {
   it('does not auto-relaunch after an explicit close until init is called again', async () => {
     const browser = createBrowserMock();
     const relaunchedBrowser = createBrowserMock();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     launchMock.mockResolvedValueOnce(browser).mockResolvedValueOnce(relaunchedBrowser);
 
     const collector = new CodeCollector(defaultConfig);
@@ -148,7 +130,6 @@ describe('CodeCollector', () => {
   it('retries navigation until success', async () => {
     const collector = new CodeCollector(defaultConfig);
     const page = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       goto: vi.fn().mockRejectedValueOnce(new Error('temporary')).mockResolvedValueOnce(undefined),
     } as unknown as Page;
 
@@ -165,7 +146,6 @@ describe('CodeCollector', () => {
 
   it('throws last navigation error after max retries', async () => {
     const collector = new CodeCollector(defaultConfig);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const page = { goto: vi.fn().mockRejectedValue(new Error('fatal')) } as unknown as Page;
 
     await expect(

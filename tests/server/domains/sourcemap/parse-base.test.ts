@@ -3,8 +3,6 @@ import { SourcemapToolHandlersParseBase } from '@server/domains/sourcemap/handle
 
 class TestableParseBase extends SourcemapToolHandlersParseBase {
   constructor() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     super(null as any);
   }
 
@@ -20,7 +18,6 @@ class TestableParseBase extends SourcemapToolHandlersParseBase {
     return this.fromVlqSigned(value);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public testNormalizeSourceMap(value: any) {
     return this.normalizeSourceMap(value);
   }
@@ -45,12 +42,10 @@ class TestableParseBase extends SourcemapToolHandlersParseBase {
     return this.hasProtocol(value);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public testAsRecord(value: any) {
     return this.asRecord(value);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public testAsString(value: any) {
     return this.asString(value);
   }

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -28,30 +27,19 @@ function createSession() {
     }),
     on: vi.fn(),
     off: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     detach: vi.fn().mockResolvedValue(undefined),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
 describe('RuntimeInspector', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let session: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let collector: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let debuggerManager: any;
   let inspector: RuntimeInspector;
 
   beforeEach(() => {
     session = createSession();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const page = { createCDPSession: vi.fn().mockResolvedValue(session) };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector = { getActivePage: vi.fn().mockResolvedValue(page) };
     debuggerManager = {
       getPausedState: vi.fn(),
@@ -62,7 +50,6 @@ describe('RuntimeInspector', () => {
 
   it('initializes runtime domain and enables inspector', async () => {
     await inspector.init();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(session.send).toHaveBeenCalledWith('Runtime.enable');
   });
 
@@ -73,16 +60,12 @@ describe('RuntimeInspector', () => {
   });
 
   it('returns null call stack when debugger is not paused', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue(null);
     await expect(inspector.getCallStack()).resolves.toBeNull();
   });
 
   it('retrieves scope variables for paused call frame', async () => {
     await inspector.init();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       reason: 'breakpoint',
       timestamp: Date.now(),
@@ -104,18 +87,13 @@ describe('RuntimeInspector', () => {
   });
 
   it('evaluates expression on paused call frame via debugger manager', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.getPausedState.mockReturnValue({
       callFrames: [{ callFrameId: 'cf-1' }],
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     debuggerManager.evaluateOnCallFrame.mockResolvedValue({ type: 'number', value: 7 });
 
     const value = await inspector.evaluate('x + 1');
     expect(value).toBe(7);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(debuggerManager.evaluateOnCallFrame).toHaveBeenCalledWith({
       callFrameId: 'cf-1',
       expression: 'x + 1',
@@ -128,7 +106,6 @@ describe('RuntimeInspector', () => {
     const value = await inspector.evaluateGlobal('6 * 7');
 
     expect(value).toBe(42);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(session.send).toHaveBeenCalledWith('Runtime.evaluate', {
       expression: '6 * 7',
       returnByValue: true,

@@ -5,7 +5,6 @@ const state = vi.hoisted(() => ({
   createExtension: vi.fn(() => ({ id: 'plugin' })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@jshookmcp/extension-sdk/plugin', () => ({
   ExtensionBuilder: state.ExtensionBuilder,
   createExtension: state.createExtension,

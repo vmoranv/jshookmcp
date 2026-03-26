@@ -1,5 +1,7 @@
 import { vi } from 'vitest';
 
+export const manifestTestMocksInstalled = true;
+
 const manifestTestMocks = vi.hoisted(() => ({
   bindByDepKey: vi.fn((_depKey: string, _invoke: (...args: unknown[]) => unknown) => {
     const bindFn = vi.fn();

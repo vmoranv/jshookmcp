@@ -7,7 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
@@ -16,63 +15,48 @@ import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
 import { createPageMock } from '../../server/domains/shared/mock-factories';
 
 class TestCaptchaDetector extends CaptchaDetector {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override toAssessmentSignal(source: any, result: any) {
     return super.toAssessmentSignal(source, result);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override toAssessmentCandidate(source: any, result: any) {
     return super.toAssessmentCandidate(source, result);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override getSignalValue(source: any, result: any) {
     return super.getSignalValue(source, result);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override matchRule(value: any, rules: any) {
     return super.matchRule(value, rules);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async confirmRuleWithDOM(page: any, rule: any) {
     return super.confirmRuleWithDOM(page, rule);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override buildExcludeResult(sourceLabel: any, rule: any, matchText: any) {
     return super.buildExcludeResult(sourceLabel, rule, matchText);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override buildCaptchaResult(payload: any) {
     return super.buildCaptchaResult(payload);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async evaluateDomRule(page: any, rule: any) {
     return super.evaluateDomRule(page, rule);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async checkUrl(page: any) {
     return super.checkUrl(page);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async checkTitle(page: any) {
     return super.checkTitle(page);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async checkDOMElements(page: any) {
     return super.checkDOMElements(page);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async checkPageText(page: any) {
     return super.checkPageText(page);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async checkVendorSpecific(page: any) {
     return super.checkVendorSpecific(page);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async verifyByDOM(page: any) {
     return super.verifyByDOM(page);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   public override async verifySliderElement(page: any, selector: any) {
     return super.verifySliderElement(page, selector);
   }
@@ -84,8 +68,6 @@ describe('CaptchaDetector — coverage expansion', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
     detector = new TestCaptchaDetector();
   });
@@ -95,27 +77,22 @@ describe('CaptchaDetector — coverage expansion', () => {
   describe('assess — error handling', () => {
     it('continues running remaining checks when one check throws', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockRejectedValue(new Error('url fail'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -126,7 +103,6 @@ describe('CaptchaDetector — coverage expansion', () => {
 
       expect(loggerState.warn).toHaveBeenCalledWith(
         expect.stringContaining('url'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error),
       );
       expect(assessment.likelyCaptcha).toBe(false);
@@ -135,7 +111,6 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('accumulates signals from multiple detected sources', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: true,
         type: 'browser_check',
@@ -143,14 +118,12 @@ describe('CaptchaDetector — coverage expansion', () => {
         providerHint: 'edge_service',
         url: 'https://example.com/cdn-cgi/challenge',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
         type: 'page_redirect',
         confidence: 78,
         title: 'Verify',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: true,
         type: 'widget',
@@ -158,13 +131,11 @@ describe('CaptchaDetector — coverage expansion', () => {
         selector: '[data-sitekey]',
         providerHint: 'embedded_widget',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -187,31 +158,26 @@ describe('CaptchaDetector — coverage expansion', () => {
   describe('getRecommendedNextStep', () => {
     it('returns ignore when no candidates', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -224,7 +190,6 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('returns observe when likely captcha with moderate confidence and no exclude signals', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: true,
         type: 'widget',
@@ -232,25 +197,21 @@ describe('CaptchaDetector — coverage expansion', () => {
         providerHint: 'embedded_widget',
         url: 'https://example.com/captcha-frame',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -266,7 +227,6 @@ describe('CaptchaDetector — coverage expansion', () => {
       const page = createPageMock();
 
       // Score: 95 + 90 = 185, excludeScore = 0, score - excludeScore = 185 >= 120
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: true,
         type: 'browser_check',
@@ -274,7 +234,6 @@ describe('CaptchaDetector — coverage expansion', () => {
         providerHint: 'edge_service',
         url: 'https://example.com/challenge',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
         type: 'page_redirect',
@@ -282,19 +241,16 @@ describe('CaptchaDetector — coverage expansion', () => {
         providerHint: 'edge_service',
         title: 'Verify',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -310,33 +266,28 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns ask_ai when likely captcha but has excludeScore > 0', async () => {
       const page = createPageMock();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: true,
         type: 'url_redirect',
         confidence: 90,
         url: 'https://example.com/challenge',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 88,
         falsePositiveReason: 'Title exclusion: verification code',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -353,7 +304,6 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns manual when candidateCount >= 2', async () => {
       const page = createPageMock();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: true,
         type: 'browser_check',
@@ -361,26 +311,22 @@ describe('CaptchaDetector — coverage expansion', () => {
         providerHint: 'edge_service',
         url: 'https://example.com/challenge',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
         type: 'page_redirect',
         confidence: 78,
         title: 'Verify',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -401,32 +347,27 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('wraps candidates in details when likelyCaptcha is false and candidates exist', async () => {
       const page = createPageMock();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: true,
         type: 'url_redirect',
         confidence: 50,
         url: 'https://example.com/verify',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -438,7 +379,6 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(assessment.likelyCaptcha).toBe(false);
       expect(assessment.primaryDetection.detected).toBe(false);
       expect(assessment.primaryDetection.details).toEqual({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         candidates: expect.any(Array),
         reason: expect.stringContaining('ambiguous'),
       });
@@ -447,31 +387,26 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('omits details when likelyCaptcha is false and no candidates exist', async () => {
       const page = createPageMock();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -730,13 +665,9 @@ describe('CaptchaDetector — coverage expansion', () => {
       // Need separate evaluate calls for text and DOM verification
       const mockEvaluate = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('Slide to verify that you are human')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true) // hasSlider
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true) // hasWidget
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true); // hasBrowserCheck
       const page2 = createPageMock({ evaluate: mockEvaluate });
 
@@ -748,13 +679,9 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('detects captcha from Chinese body text', async () => {
       const mockEvaluate = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('请完成安全验证以继续')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true);
       const page = createPageMock({ evaluate: mockEvaluate });
 
@@ -783,13 +710,9 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('handles text rule requiring DOM confirmation when DOM is absent', async () => {
       const mockEvaluate = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce('Please verify you are human')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false) // hasSlider
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false) // hasWidget
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false); // hasBrowserCheck
       const page = createPageMock({ evaluate: mockEvaluate });
 
@@ -805,11 +728,8 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('requires and passes DOM confirmation for generic URL patterns', async () => {
       const mockEvaluate = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true) // hasSlider
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true) // hasWidget
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true); // hasBrowserCheck
       const page = createPageMock({
         url: vi.fn(() => 'https://example.com/verify'),
@@ -824,11 +744,8 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('fails DOM confirmation for generic URL patterns', async () => {
       const mockEvaluate = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false) // hasSlider
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false) // hasWidget
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false); // hasBrowserCheck
       const page = createPageMock({
         url: vi.fn(() => 'https://example.com/verify'),
@@ -849,7 +766,6 @@ describe('CaptchaDetector — coverage expansion', () => {
       const page = createPageMock({
         $: vi.fn(async (sel: string) => (sel.includes('captcha-slider') ? element : null)),
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'verifySliderElement').mockResolvedValue(true);
 
       await detector.checkDOMElements(page);
@@ -895,7 +811,6 @@ describe('CaptchaDetector — coverage expansion', () => {
           return null;
         }),
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'verifySliderElement').mockResolvedValue(false);
 
       await detector.checkDOMElements(page);
@@ -913,11 +828,8 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns true when slider elements found', async () => {
       const mockEvaluate = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true) // hasSlider
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false) // hasWidget
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false); // hasBrowserCheck
       const page = createPageMock({ evaluate: mockEvaluate });
 
@@ -928,11 +840,8 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns true when widget elements found', async () => {
       const mockEvaluate = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false) // hasSlider
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true) // hasWidget
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false); // hasBrowserCheck
       const page = createPageMock({ evaluate: mockEvaluate });
 
@@ -943,11 +852,8 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns true when browser check elements found', async () => {
       const mockEvaluate = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false) // hasSlider
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false) // hasWidget
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(true); // hasBrowserCheck
       const page = createPageMock({ evaluate: mockEvaluate });
 
@@ -958,11 +864,8 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns false when no DOM elements found', async () => {
       const mockEvaluate = vi
         .fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(false);
       const page = createPageMock({ evaluate: mockEvaluate });
 
@@ -972,7 +875,6 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('returns false and logs error when evaluate throws', async () => {
       const page = createPageMock({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockRejectedValue(new Error('page crashed')),
       });
 
@@ -980,7 +882,6 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(result).toBe(false);
       expect(loggerState.error).toHaveBeenCalledWith(
         expect.stringContaining('DOM verification failed'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error),
       );
     });
@@ -991,7 +892,6 @@ describe('CaptchaDetector — coverage expansion', () => {
   describe('verifySliderElement', () => {
     it('returns false and logs error when evaluate throws', async () => {
       const page = createPageMock({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockRejectedValue(new Error('eval failed')),
       });
 
@@ -999,24 +899,20 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(result).toBe(false);
       expect(loggerState.error).toHaveBeenCalledWith(
         expect.stringContaining('Slider element verification failed'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Error),
       );
     });
 
     it('calls evaluate with selector and exclude selectors', async () => {
       const page = createPageMock({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         evaluate: vi.fn().mockResolvedValue(true),
       });
 
       const result = await detector.verifySliderElement(page, '.captcha-slider');
       expect(result).toBe(true);
       expect(page.evaluate).toHaveBeenCalledWith(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Function),
         '.captcha-slider',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         expect.any(Array), // EXCLUDE_SELECTORS
       );
     });
@@ -1027,13 +923,11 @@ describe('CaptchaDetector — coverage expansion', () => {
   describe('detect — flow shortcuts', () => {
     it('returns immediately when title check detects captcha', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
         type: 'page_redirect',
@@ -1050,19 +944,16 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('returns immediately when DOM check detects captcha', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: true,
         type: 'widget',
@@ -1078,25 +969,21 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('returns immediately when text check detects captcha', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: true,
         type: 'unknown',
@@ -1112,31 +999,26 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('returns not-detected when all checks fail', async () => {
       const page = createPageMock();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkUrl').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkDOMElements').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkPageText').mockResolvedValue({
         detected: false,
         type: 'none',
         confidence: 0,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       vi.spyOn(detector, 'checkVendorSpecific').mockResolvedValue({
         detected: false,
         type: 'none',
@@ -1156,8 +1038,6 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns true when rule does not require DOM confirmation', async () => {
       const page = createPageMock();
       const rule = { requiresDomConfirmation: false };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await detector.confirmRuleWithDOM(page, rule as any);
       expect(result).toBe(true);
     });
@@ -1165,8 +1045,6 @@ describe('CaptchaDetector — coverage expansion', () => {
     it('returns true when rule requires DOM confirmation and none is set (undefined)', async () => {
       const page = createPageMock();
       const rule = {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const result = await detector.confirmRuleWithDOM(page, rule as any);
       expect(result).toBe(true);
     });

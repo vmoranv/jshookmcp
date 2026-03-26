@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -14,7 +13,6 @@ vi.mock('@src/utils/logger', () => ({
 import { DebuggerManager } from '@modules/debugger/DebuggerManager';
 
 function createMockCDPSession() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const listeners = new Map<string, Set<(payload: any) => void>>();
   const send = vi.fn(async (method: string) => {
     if (method === 'Debugger.setBreakpointByUrl') {
@@ -28,26 +26,20 @@ function createMockCDPSession() {
     }
     return {};
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const on = vi.fn((event: string, handler: (payload: any) => void) => {
     const group = listeners.get(event) ?? new Set();
     group.add(handler);
     listeners.set(event, group);
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const off = vi.fn((event: string, handler: (payload: any) => void) => {
     listeners.get(event)?.delete(handler);
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const detach = vi.fn().mockResolvedValue(undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const emit = (event: string, payload: any) => {
     listeners.get(event)?.forEach((handler) => void handler(payload));
   };
 
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session: { send, on, off, detach } as any,
     send,
     off,
@@ -76,15 +68,11 @@ function pausedPayload(hitBreakpoints: string[] = []) {
 describe('DebuggerManager', () => {
   let cdp: ReturnType<typeof createMockCDPSession>;
   let manager: DebuggerManager;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   let collector: any;
 
   beforeEach(() => {
     cdp = createMockCDPSession();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const page = { createCDPSession: vi.fn().mockResolvedValue(cdp.session) };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     collector = { getActivePage: vi.fn().mockResolvedValue(page) };
     manager = new DebuggerManager(collector);
   });
@@ -94,9 +82,7 @@ describe('DebuggerManager', () => {
 
     expect(cdp.send).toHaveBeenCalledWith('Debugger.enable');
     expect(manager.isEnabled()).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(cdp.session.on).toHaveBeenCalledWith('Debugger.paused', expect.any(Function));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(cdp.session.on).toHaveBeenCalledWith('Debugger.resumed', expect.any(Function));
   });
 

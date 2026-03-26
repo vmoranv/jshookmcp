@@ -7,7 +7,6 @@ import {
 
 const getScriptPathMock = vi.fn((name: string) => `C:/scripts/${name}`);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/native/ScriptLoader', () => ({
   ScriptLoader: class {
     getScriptPath(name: string) {
@@ -78,11 +77,8 @@ describe('BrowserDiscovery', () => {
         },
         'findBySignature',
       )
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce([{ type: 'chrome', pid: 1 }])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce([{ type: 'edge', pid: 2 }])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce([{ type: 'firefox', pid: 3 }]);
 
     const result = await discovery.discoverBrowsers();
@@ -150,7 +146,6 @@ describe('BrowserDiscovery', () => {
         checkDebugPortFromCommandLine: (pid: number) => Promise<number | null>;
       },
       'checkDebugPortFromCommandLine',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ).mockResolvedValue(9555);
     const checkPort = vi
       .spyOn(
@@ -158,7 +153,6 @@ describe('BrowserDiscovery', () => {
           checkPort: (pid: number, port: number) => Promise<boolean>;
         },
         'checkPort',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       )
       .mockResolvedValue(true);
 
@@ -173,7 +167,6 @@ describe('BrowserDiscovery', () => {
         checkDebugPortFromCommandLine: (pid: number) => Promise<number | null>;
       },
       'checkDebugPortFromCommandLine',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ).mockResolvedValue(null);
     vi.spyOn(
       discovery as unknown as {
@@ -181,9 +174,7 @@ describe('BrowserDiscovery', () => {
       },
       'checkPort',
     )
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(false)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(true);
 
     const port = await discovery.detectDebugPort(100, [9222, 9333]);
@@ -196,14 +187,12 @@ describe('BrowserDiscovery', () => {
         checkDebugPortFromCommandLine: (pid: number) => Promise<number | null>;
       },
       'checkDebugPortFromCommandLine',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ).mockResolvedValue(null);
     vi.spyOn(
       discovery as unknown as {
         checkPort: (pid: number, port: number) => Promise<boolean>;
       },
       'checkPort',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ).mockResolvedValue(false);
 
     const port = await discovery.detectDebugPort(100, [9222]);

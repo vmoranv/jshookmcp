@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 type Listener = (payload: any) => void;
 
 const workerState = vi.hoisted(() => {
@@ -29,7 +28,6 @@ const workerState = vi.hoisted(() => {
       return this;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     emit(event: string, payload?: any) {
       const callbacks = this.listeners.get(event) ?? [];
       callbacks.forEach((callback) => callback(payload));
@@ -42,7 +40,6 @@ const workerState = vi.hoisted(() => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:worker_threads', () => {
   class WorkerCtor {
     private readonly inner: InstanceType<typeof workerState.WorkerMock>;
@@ -84,16 +81,10 @@ describe('WorkerPool', () => {
   });
 
   it('validates constructor options', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(() => new WorkerPool<any, any>({ workerScript: '   ' })).toThrow('workerScript');
     expect(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       () => new WorkerPool<any, any>({ workerScript: 'x', minWorkers: 3, maxWorkers: 2 }),
     ).toThrow('minWorkers cannot be greater than maxWorkers');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(() => new WorkerPool<any, any>({ workerScript: 'x', maxWorkers: 0 })).toThrow(
       'maxWorkers',
     );

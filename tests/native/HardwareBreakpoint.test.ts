@@ -8,7 +8,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HardwareBreakpointEngine } from '@native/HardwareBreakpoint';
 
 // Mock Win32Debug and Win32API modules
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32Debug', () => ({
   OpenThread: vi.fn(() => 1n),
   SuspendThread: vi.fn(() => 0),
@@ -57,12 +56,10 @@ vi.mock('@native/Win32Debug', () => ({
   DBG: { CONTINUE: 0x00010002 },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   CloseHandle: vi.fn(() => true),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', () => ({
   BREAKPOINT_HIT_TIMEOUT_MS: 5000,
   BREAKPOINT_TRACE_MAX_HITS: 10,

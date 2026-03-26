@@ -4,14 +4,12 @@
 export * from '@tests/shared/common-test-types';
 
 export interface BaseResponse {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   [key: string]: any;
 }
 
 export interface ErrorResponse {
   error: string;
   code?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   details?: any;
 }
 
@@ -140,6 +138,5 @@ export interface ListHooksResponse extends BaseResponse {
 export interface AIHookResponse extends BaseResponse {
   suggestion: string;
   confidence: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   context?: any;
 }

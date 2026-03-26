@@ -30,7 +30,6 @@ const mockImports = [
   },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/Win32API', () => ({
   openProcessForMemory: vi.fn(() => 1n),
   CloseHandle: vi.fn(() => true),
@@ -65,7 +64,6 @@ vi.mock('@native/Win32API', () => ({
   })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@native/PEAnalyzer', () => ({
   PEAnalyzer: class {
     async parseImports() {
@@ -165,7 +163,6 @@ describe('AntiCheatDetector', () => {
 
     it('should return empty when no guard pages', async () => {
       const { VirtualQueryEx } = await import('@native/Win32API');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (VirtualQueryEx as ReturnType<typeof vi.fn>).mockReturnValue({ success: false, info: {} });
       const pages = await detector.findGuardPages(1234);
       expect(pages.length).toBe(0);

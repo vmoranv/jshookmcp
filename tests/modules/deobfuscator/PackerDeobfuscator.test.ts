@@ -9,24 +9,18 @@ const loggerState = vi.hoisted(() => ({
 }));
 
 const sandboxState = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   executeImpl: vi.fn<(...args: any[]) => Promise<{ ok: boolean; output: any }>>(async () => ({
     ok: false,
     output: null,
   })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/modules/security/ExecutionSandbox', () => {
   class ExecutionSandbox {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     execute = vi.fn((...args: any[]) => (sandboxState.executeImpl as any)(...args));
   }
   return { ExecutionSandbox };
@@ -44,10 +38,7 @@ const PACKER_LIKE = "eval(function(p,a,c,k,e,d){return p;}('0',62,1,'x'.split('|
 describe('Packer-family deobfuscators', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     sandboxState.executeImpl.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
   });
 
@@ -58,12 +49,8 @@ describe('Packer-family deobfuscators', () => {
 
   it('iterates unpacking until code stops changing', async () => {
     const deobfuscator = new PackerDeobfuscator();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn(deobfuscator as any, 'unpack')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(PACKER_LIKE + ';')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(PACKER_LIKE + ';');
 
     const result = await deobfuscator.deobfuscate({ code: PACKER_LIKE, maxIterations: 3 });
@@ -75,30 +62,20 @@ describe('Packer-family deobfuscators', () => {
 
   it('parses packer params from sandbox output', async () => {
     const deobfuscator = new PackerDeobfuscator();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     sandboxState.executeImpl.mockResolvedValue({
       ok: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       output: ['payload', 62, 2, 'foo|bar'] as any,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const parsed = await (deobfuscator as any).parsePackerParams("'payload',62,2,'foo|bar'");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.p).toBe('payload');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.a).toBe(62);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(parsed.k).toEqual(['foo', 'bar']);
   });
 
   it('decodes AAEncode payload through sandbox execution', async () => {
     const aa = new AAEncodeDeobfuscator();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     sandboxState.executeImpl.mockResolvedValue({ ok: true, output: 'decoded-aa' as any });
 
     const output = await aa.deobfuscate('ω゜)');
@@ -116,8 +93,6 @@ describe('Packer-family deobfuscators', () => {
 
   it('dispatches through UniversalUnpacker by detected obfuscation type', async () => {
     const unpacker = new UniversalUnpacker();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     vi.spyOn((unpacker as any).packerDeobfuscator, 'deobfuscate').mockResolvedValue({
       code: 'decoded-packer',
       success: true,

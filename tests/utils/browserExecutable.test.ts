@@ -3,20 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const existsSyncMock = vi.fn();
 const executablePathMock = vi.fn();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('fs', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   existsSync: (...args: any[]) => existsSyncMock(...args),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('rebrowser-puppeteer-core', () => ({
   default: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     executablePath: (...args: any[]) => executablePathMock(...args),
   },
+  executablePath: (...args: any[]) => executablePathMock(...args),
 }));
 
 async function loadModule() {
@@ -33,7 +28,6 @@ describe('browserExecutable utils', () => {
 
   it('resolves from BROWSER_EXECUTABLE_PATH when file exists', async () => {
     process.env.BROWSER_EXECUTABLE_PATH = '/browser-bin';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation((p: string) => p === '/browser-bin');
 
     const { findBrowserExecutable } = await loadModule();
@@ -41,9 +35,7 @@ describe('browserExecutable utils', () => {
   });
 
   it('falls back to puppeteer executable path when env missing', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     executablePathMock.mockReturnValue('/managed-browser-bin');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation((p: string) => p === '/managed-browser-bin');
 
     const { findBrowserExecutable } = await loadModule();
@@ -51,9 +43,7 @@ describe('browserExecutable utils', () => {
   });
 
   it('returns undefined when no executable is available', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     executablePathMock.mockReturnValue('/none');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockReturnValue(false);
 
     const { findBrowserExecutable } = await loadModule();
@@ -62,7 +52,6 @@ describe('browserExecutable utils', () => {
 
   it('uses cache on repeated calls', async () => {
     process.env.BROWSER_EXECUTABLE_PATH = '/cached-browser';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation((p: string) => p === '/cached-browser');
 
     const { findBrowserExecutable } = await loadModule();
@@ -73,7 +62,6 @@ describe('browserExecutable utils', () => {
 
   it('clearBrowserPathCache forces re-resolution', async () => {
     process.env.BROWSER_EXECUTABLE_PATH = '/first-browser';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     existsSyncMock.mockImplementation(
       (p: string) => p === '/first-browser' || p === '/second-browser',
     );
@@ -88,16 +76,11 @@ describe('browserExecutable utils', () => {
 
   it('re-resolves when cached path no longer exists', async () => {
     process.env.BROWSER_EXECUTABLE_PATH = '/stale-browser';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     executablePathMock.mockReturnValue('/fresh-browser');
     existsSyncMock
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockReturnValueOnce(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockReturnValueOnce(false)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockReturnValueOnce(false)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockReturnValueOnce(true);
 
     const mod = await loadModule();

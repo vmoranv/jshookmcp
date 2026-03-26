@@ -25,17 +25,14 @@ const state = vi.hoisted(() => ({
   buildListResult: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/ToolCatalog', () => ({
   allTools: state.allTools,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: state.logger,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/extensions/ExtensionManager.roots', () => ({
   DEFAULT_PLUGIN_ROOTS: ['default-plugin-root'],
   DEFAULT_WORKFLOW_ROOTS: ['default-workflow-root'],
@@ -43,7 +40,6 @@ vi.mock('@server/extensions/ExtensionManager.roots', () => ({
   resolveRoots: state.resolveRoots,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/extensions/ExtensionManager.integrity', () => ({
   sha256Hex: state.sha256Hex,
   normalizeHex: state.normalizeHex,
@@ -52,19 +48,16 @@ vi.mock('@server/extensions/ExtensionManager.integrity', () => ({
   verifyPluginIntegrity: state.verifyPluginIntegrity,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/extensions/ExtensionManager.guards', () => ({
   isExtensionBuilder: state.isExtensionBuilder,
   isWorkflowContract: state.isWorkflowContract,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/extensions/ExtensionManager.discovery', () => ({
   discoverPluginFiles: state.discoverPluginFiles,
   discoverWorkflowFiles: state.discoverWorkflowFiles,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/extensions/ExtensionManager.lifecycle', () => ({
   extractConfigValue: state.extractConfigValue,
   createFreshImportUrl: state.createFreshImportUrl,
@@ -102,8 +95,6 @@ function createCtx(overrides: Record<string, unknown> = {}) {
       sendToolListChanged: vi.fn(async () => undefined),
     },
     ...overrides,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 }
 
@@ -116,38 +107,24 @@ describe('ExtensionManager', () => {
     delete (globalThis as Record<string, unknown>).__rolledBack;
     vi.resetModules();
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.parseDigestAllowlist.mockReturnValue(new Set());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isPluginStrictLoad.mockReturnValue(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.clearLoadedExtensionTools.mockResolvedValue(0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.discoverPluginFiles.mockResolvedValue([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.discoverWorkflowFiles.mockResolvedValue([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.buildListResult.mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (ctx: any, pluginRoots: string[], workflowRoots: string[]) => ({
         pluginRoots,
         workflowRoots,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         pluginCount: ctx.extensionPluginsById.size,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         workflowCount: ctx.extensionWorkflowsById.size,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         toolCount: ctx.extensionToolsByName.size,
         lastReloadAt: ctx.lastExtensionReloadAt,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         plugins: [...ctx.extensionPluginsById.values()],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         workflows: [...ctx.extensionWorkflowsById.values()],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         tools: [...ctx.extensionToolsByName.values()],
       }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.extractConfigValue.mockImplementation((ctx: any, path: string, fallback: any) => {
       const segments = path.split('.');
       let current: unknown = ctx.config;
@@ -159,29 +136,22 @@ describe('ExtensionManager', () => {
       }
       return current ?? fallback;
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isExtensionBuilder.mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (value: any) =>
         !!value &&
         typeof value === 'object' &&
         typeof (value as Record<string, unknown>).id === 'string' &&
         Array.isArray((value as Record<string, unknown>).tools),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isWorkflowContract.mockImplementation(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (value: any) =>
         !!value &&
         typeof value === 'object' &&
         (value as Record<string, unknown>).kind === 'workflow-contract' &&
         typeof (value as Record<string, unknown>).build === 'function',
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.sha256Hex.mockResolvedValue('digest-1');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.verifyPluginIntegrity.mockResolvedValue({ ok: true, warnings: [], errors: [] });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.createFreshImportUrl.mockImplementation(
       (_modulePath: string, kind: 'plugin' | 'workflow') => {
         if (kind === 'workflow') {
@@ -255,9 +225,7 @@ describe('ExtensionManager', () => {
   });
 
   it('blocks plugin loading in strict mode without an allowlist but still loads workflows', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.isPluginStrictLoad.mockReturnValue(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.discoverWorkflowFiles.mockResolvedValue(['/workflows/wf-1.ts']);
     const ctx = createCtx();
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
@@ -267,7 +235,6 @@ describe('ExtensionManager', () => {
     expect(result.addedTools).toBe(0);
     expect(result.errors[0]).toContain('MCP_PLUGIN_ALLOWED_DIGESTS is required');
     expect(result.workflowCount).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.extensionWorkflowsById.has('wf-1')).toBe(true);
     expect(ctx.extensionWorkflowsById.get('wf-1')?.route?.kind).toBe('workflow');
     expect(ctx.extensionWorkflowRuntimeById.get('wf-1')?.route?.priority).toBe(80);
@@ -381,7 +348,6 @@ describe('ExtensionManager', () => {
   });
 
   it('builds plugin lifecycle context and enforces invokeTool restrictions', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.discoverPluginFiles.mockResolvedValue(['/plugins/plugin-1/dist/index.js']);
     const ctx = createCtx();
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
@@ -389,17 +355,13 @@ describe('ExtensionManager', () => {
     const result = await reloadExtensions(ctx);
     const lifecycleContext = (globalThis as Record<string, unknown>).__pluginCtx as {
       pluginRoot: string;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       invokeTool: (name: string, args?: Record<string, unknown>) => Promise<any>;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       getConfig: (path: string, fallback?: any) => unknown;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       setRuntimeData: (key: string, value: any) => void;
       getRuntimeData: (key: string) => unknown;
     };
 
     expect(result.pluginCount).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.extensionPluginsById.has('plugin-1')).toBe(true);
     expect(lifecycleContext).toBeDefined();
     expect(lifecycleContext.pluginRoot.replace(/\\/g, '/')).toContain('/plugins/plugin-1');
@@ -414,8 +376,6 @@ describe('ExtensionManager', () => {
       'can only invoke built-in tools',
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ctx.router.has.mockReturnValueOnce(false).mockReturnValueOnce(true);
     await expect(lifecycleContext.invokeTool('allowed_tool')).rejects.toThrow(
       'Tool "allowed_tool" is not available in the current active profile.',
@@ -536,9 +496,7 @@ describe('ExtensionManager', () => {
   });
 
   it('rolls back activated plugins when activation fails', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.discoverPluginFiles.mockResolvedValue(['/plugins/plugin-bad.ts']);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     state.createFreshImportUrl.mockImplementationOnce(() =>
       makeDataModule(`
         export default {
@@ -569,15 +527,12 @@ describe('ExtensionManager', () => {
       expect.stringContaining('Plugin lifecycle failed for plugin-bad: Error: activate failed'),
     ]);
     expect((globalThis as Record<string, unknown>).__rolledBack).toBeUndefined();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.extensionPluginsById.size).toBe(0);
   });
 
   it('releases the reload mutex after a failure so later reloads can proceed', async () => {
     state.clearLoadedExtensionTools
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockRejectedValueOnce(new Error('cleanup failed'))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       .mockResolvedValueOnce(0);
     const ctx = createCtx();
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');

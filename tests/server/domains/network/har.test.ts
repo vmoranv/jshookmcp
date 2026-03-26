@@ -56,9 +56,7 @@ describe('buildHar', () => {
   // Basic structure
   // -----------------------------------------------------------------------
   it('returns a valid HAR 1.2 envelope with creator metadata', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -75,9 +73,7 @@ describe('buildHar', () => {
   });
 
   it('uses "unknown" as default creator version when not specified', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -110,9 +106,7 @@ describe('buildHar', () => {
   // Request mapping
   // -----------------------------------------------------------------------
   it('maps request method, URL, and httpVersion correctly', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -129,9 +123,7 @@ describe('buildHar', () => {
   });
 
   it('converts headers from Record to name/value pairs', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -147,9 +139,7 @@ describe('buildHar', () => {
   });
 
   it('handles undefined request headers as empty array', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -166,9 +156,7 @@ describe('buildHar', () => {
   // Query string extraction
   // -----------------------------------------------------------------------
   it('extracts query string parameters from the URL', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -184,9 +172,7 @@ describe('buildHar', () => {
   });
 
   it('returns empty queryString for URLs without query parameters', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -200,9 +186,7 @@ describe('buildHar', () => {
   });
 
   it('returns empty queryString for malformed URLs', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -219,9 +203,7 @@ describe('buildHar', () => {
   // Cookies
   // -----------------------------------------------------------------------
   it('parses request cookies from the Cookie header', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -237,9 +219,7 @@ describe('buildHar', () => {
   });
 
   it('handles cookie values containing equals signs', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -254,9 +234,7 @@ describe('buildHar', () => {
   });
 
   it('handles cookies without an equals sign', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -271,11 +249,9 @@ describe('buildHar', () => {
   });
 
   it('parses response cookies from Set-Cookie header', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(
       makeResponse({ headers: { 'set-cookie': 'token=xyz789; sid=aaa' } }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -290,9 +266,7 @@ describe('buildHar', () => {
   });
 
   it('returns empty cookies when no cookie header is present', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse({ headers: {} }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -310,9 +284,7 @@ describe('buildHar', () => {
   // Post data
   // -----------------------------------------------------------------------
   it('includes postData when the request has a body', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -337,9 +309,7 @@ describe('buildHar', () => {
   });
 
   it('uses application/octet-stream when content-type header is missing for postData', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -353,9 +323,7 @@ describe('buildHar', () => {
   });
 
   it('omits postData when request has no body', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -373,7 +341,6 @@ describe('buildHar', () => {
   // Response mapping
   // -----------------------------------------------------------------------
   it('maps response status, statusText, and headers', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(
       makeResponse({
         status: 404,
@@ -381,7 +348,6 @@ describe('buildHar', () => {
         headers: { 'x-powered-by': 'test' },
       }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -398,9 +364,7 @@ describe('buildHar', () => {
   });
 
   it('handles missing response gracefully (undefined)', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(undefined);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -418,14 +382,12 @@ describe('buildHar', () => {
   });
 
   it('extracts redirect URL from location header', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(
       makeResponse({
         status: 302,
         headers: { location: 'https://example.com/redirected' },
       }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -442,9 +404,7 @@ describe('buildHar', () => {
   // Timings
   // -----------------------------------------------------------------------
   it('populates timings from response timing data', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse({ timing: { receiveHeadersEnd: 250 } }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -462,9 +422,7 @@ describe('buildHar', () => {
   });
 
   it('defaults timings to 0 when response has no timing data', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse({ timing: undefined }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -482,9 +440,7 @@ describe('buildHar', () => {
   // Date / timestamp
   // -----------------------------------------------------------------------
   it('converts request timestamp to ISO 8601 startedDateTime', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -499,9 +455,7 @@ describe('buildHar', () => {
   });
 
   it('uses current time when request has no timestamp', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const before = new Date().toISOString();
@@ -523,9 +477,7 @@ describe('buildHar', () => {
   // Response bodies (includeBodies)
   // -----------------------------------------------------------------------
   it('fetches and includes response bodies when includeBodies is true', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue({ body: '{"result":42}', base64Encoded: false });
 
     const har = await buildHar({
@@ -542,9 +494,7 @@ describe('buildHar', () => {
   });
 
   it('does not fetch bodies when includeBodies is false', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -559,9 +509,7 @@ describe('buildHar', () => {
   });
 
   it('marks body as unavailable when getResponseBody returns null', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -575,9 +523,7 @@ describe('buildHar', () => {
   });
 
   it('marks body as unavailable when getResponseBody throws', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockRejectedValue(new Error('CDP error'));
 
     const har = await buildHar({
@@ -600,9 +546,7 @@ describe('buildHar', () => {
       makeRequest({ requestId: 'r3', url: 'https://c.com/3', method: 'PUT' }),
     ];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -626,12 +570,10 @@ describe('buildHar', () => {
       makeRequest({ requestId: `r-${i}`, url: `https://example.com/${i}` }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
 
     let concurrentCalls = 0;
     let maxConcurrent = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockImplementation(async () => {
       concurrentCalls++;
       maxConcurrent = Math.max(maxConcurrent, concurrentCalls);
@@ -655,9 +597,7 @@ describe('buildHar', () => {
   // _requestId field
   // -----------------------------------------------------------------------
   it('includes _requestId in each entry for correlation', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
@@ -674,9 +614,7 @@ describe('buildHar', () => {
   // Mime type fallback
   // -----------------------------------------------------------------------
   it('defaults content mimeType to application/octet-stream when response has no mimeType', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseMock.mockReturnValue(makeResponse({ mimeType: undefined }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({

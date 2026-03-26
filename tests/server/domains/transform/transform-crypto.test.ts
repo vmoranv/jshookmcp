@@ -1,16 +1,13 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/WorkerPool', () => ({
   WorkerPool: class MockWorkerPool {
     submit = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     close = vi.fn().mockResolvedValue(undefined);
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@src/constants', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
@@ -23,7 +20,6 @@ vi.mock('@src/constants', async (importOriginal) => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/domains/shared/modules', () => ({
   ScriptManager: vi.fn(),
 }));
@@ -84,8 +80,6 @@ describe('TransformToolHandlersCrypto', () => {
   const collector = {
     getActivePage: vi.fn(async () => page),
     getFileByUrl: vi.fn(() => null),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   } as any;
 
   let handlers: TransformToolHandlersCrypto;
@@ -123,7 +117,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('returns error when no crypto function found on page', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         targetPath: null,
         targetSource: '',
@@ -140,7 +133,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('returns error when targetSource is whitespace only', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         targetPath: 'window.encrypt',
         targetSource: '   ',
@@ -156,7 +148,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('extracts standalone code with polyfills included', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         targetPath: 'window.mySign',
         targetSource: 'function mySign(data) { return data + "signed"; }',
@@ -189,7 +180,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('extracts standalone code without polyfills', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         targetPath: 'window.mySign',
         targetSource: 'function mySign(data) { return data; }',
@@ -213,7 +203,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles dot-separated targetFunction for function name resolution', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         targetPath: 'window.CryptoJS.AES.encrypt',
         targetSource: 'function encrypt(data) { return data; }',
@@ -238,7 +227,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('falls back to function name from source when target is not valid identifier', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         targetPath: null,
         targetSource: 'function computeHmac(key, msg) { return key + msg; }',
@@ -259,7 +247,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('uses default fallback name when no valid identifier found', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         targetPath: null,
         targetSource: '(a, b) => a + b',
@@ -278,7 +265,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles page.evaluate rejection', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockRejectedValueOnce(new Error('Page not responding'));
 
       const body = parseJson<CryptoExtractResponse>(
@@ -289,7 +275,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles includePolyfills default to true', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         targetPath: 'window.fn',
         targetSource: 'function fn() { return 1; }',
@@ -308,7 +293,6 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles extracted with empty dependency snippets', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       page.evaluate.mockResolvedValueOnce({
         targetPath: 'window.fn',
         targetSource: 'function fn() { return "hello"; }',
@@ -371,7 +355,6 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('returns successful harness results', async () => {
       const pool = handlers.getCryptoHarnessPool();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pool.submit.mockResolvedValueOnce({
         ok: true,
         results: [
@@ -397,7 +380,6 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('handles worker returning errors for some inputs', async () => {
       const pool = handlers.getCryptoHarnessPool();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pool.submit.mockResolvedValueOnce({
         ok: true,
         results: [
@@ -422,7 +404,6 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('handles worker overall failure', async () => {
       const pool = handlers.getCryptoHarnessPool();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pool.submit.mockResolvedValueOnce({
         ok: false,
         error: 'Syntax error in code',
@@ -445,7 +426,6 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('handles worker pool submit rejection', async () => {
       const pool = handlers.getCryptoHarnessPool();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pool.submit.mockRejectedValueOnce(new Error('Worker timed out'));
 
       const body = parseJson<CryptoHarnessResponse>(
@@ -504,7 +484,6 @@ describe('TransformToolHandlersCrypto', () => {
     it('returns matching results when both implementations agree', async () => {
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: true,
           results: [
@@ -512,7 +491,6 @@ describe('TransformToolHandlersCrypto', () => {
             { input: 'world', output: 'WORLD', duration: 0.1 },
           ],
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: true,
           results: [
@@ -541,12 +519,10 @@ describe('TransformToolHandlersCrypto', () => {
     it('detects mismatches when implementations differ', async () => {
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: true,
           results: [{ input: 'abc', output: 'ABC', duration: 0.1 }],
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: true,
           results: [{ input: 'abc', output: 'abc_v2', duration: 0.1 }],
@@ -571,12 +547,10 @@ describe('TransformToolHandlersCrypto', () => {
     it('handles one implementation erroring and the other succeeding', async () => {
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: true,
           results: [{ input: 'test', output: 'ok', duration: 0.1 }],
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: true,
           results: [{ input: 'test', output: '', duration: 0.0, error: 'fn is not defined' }],
@@ -599,13 +573,11 @@ describe('TransformToolHandlersCrypto', () => {
     it('handles both implementations failing', async () => {
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: false,
           error: 'Syntax error',
           results: [],
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: false,
           error: 'Syntax error',
@@ -628,12 +600,10 @@ describe('TransformToolHandlersCrypto', () => {
     it('includes duration data for both implementations', async () => {
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: true,
           results: [{ input: 'x', output: 'y', duration: 1.5 }],
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce({
           ok: true,
           results: [{ input: 'x', output: 'y', duration: 3.2 }],
@@ -655,7 +625,6 @@ describe('TransformToolHandlersCrypto', () => {
 
     it('handles pool rejection for crypto compare', async () => {
       const pool = handlers.getCryptoHarnessPool();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pool.submit.mockRejectedValue(new Error('Pool exhausted'));
 
       const body = parseJson<CryptoCompareResponse>(

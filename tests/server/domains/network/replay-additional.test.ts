@@ -2,10 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const lookupMock = vi.fn();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('node:dns/promises', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   lookup: (...args: any[]) => lookupMock(...args),
 }));
 
@@ -23,7 +20,6 @@ function buildPublicIp(): string {
 
 describe('replay — additional coverage', () => {
   const fetchMock = vi.fn();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const getFetchCall = (index: number) => fetchMock.mock.calls[index]!;
 
   beforeEach(() => {
@@ -165,19 +161,16 @@ describe('replay — additional coverage', () => {
     });
 
     it('denies when DNS resolves to private IP', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: '127.0.0.1' });
       expect(await isSsrfTarget('https://evil.example.com/')).toBe(true);
     });
 
     it('denies when DNS resolution fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockRejectedValue(new Error('NXDOMAIN'));
       expect(await isSsrfTarget('https://nonexistent.example.com/')).toBe(true);
     });
 
     it('allows public DNS resolution', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
       expect(await isSsrfTarget('https://example.com/')).toBe(false);
     });
@@ -192,7 +185,6 @@ describe('replay — additional coverage', () => {
   // ────────────────────────────────────────────────────────────────
   describe('replayRequest — header sanitization', () => {
     it('strips dangerous headers from request', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       const result = await replayRequest(
@@ -215,31 +207,19 @@ describe('replay — additional coverage', () => {
       );
 
       expect(result.dryRun).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const preview = (result as any).preview;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['X-Custom']).toBe('preserved');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['Host']).toBeUndefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['Content-Length']).toBeUndefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['Transfer-Encoding']).toBeUndefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['Connection']).toBeUndefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['Keep-Alive']).toBeUndefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['__proto__']).toBeUndefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['constructor']).toBeUndefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['prototype']).toBeUndefined();
     });
 
     it('strips case-insensitive dangerous headers', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       const result = await replayRequest(
@@ -260,10 +240,7 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: true },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const preview = (result as any).preview;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(Object.keys(preview.headers)).toHaveLength(0);
     });
   });
@@ -273,7 +250,6 @@ describe('replay — additional coverage', () => {
   // ────────────────────────────────────────────────────────────────
   describe('replayRequest — dry run', () => {
     it('returns dry run preview with defaults (dryRun not set)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       const result = await replayRequest(
@@ -287,19 +263,13 @@ describe('replay — additional coverage', () => {
       );
 
       expect(result.dryRun).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const preview = (result as any).preview;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.url).toBe('https://example.com/api');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.method).toBe('POST');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.body).toBe('{"key":"value"}');
     });
 
     it('returns dry run preview with dryRun=true', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       const result = await replayRequest(
@@ -324,7 +294,6 @@ describe('replay — additional coverage', () => {
     });
 
     it('applies url/method/header/body overrides in dry run', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       const result = await replayRequest(
@@ -344,21 +313,14 @@ describe('replay — additional coverage', () => {
         },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const preview = (result as any).preview;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.url).toBe('https://new.example.com/api');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.method).toBe('POST');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['X-Custom']).toBe('new');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.body).toBe('new-body');
     });
 
     it('uses postData when bodyPatch is not provided', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       const result = await replayRequest(
@@ -371,15 +333,11 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: true },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const preview = (result as any).preview;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.body).toBe('original-body');
     });
 
     it('uses undefined body when neither bodyPatch nor postData provided', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       const result = await replayRequest(
@@ -391,10 +349,7 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: true },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const preview = (result as any).preview;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.body).toBeUndefined();
     });
   });
@@ -404,9 +359,7 @@ describe('replay — additional coverage', () => {
   // ────────────────────────────────────────────────────────────────
   describe('replayRequest — live mode', () => {
     it('makes fetch call and returns response', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(
         new Response('response body', {
           status: 200,
@@ -425,8 +378,6 @@ describe('replay — additional coverage', () => {
       );
 
       expect(result.dryRun).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const live = result as any;
       expect(live.status).toBe(200);
       expect(live.body).toBe('response body');
@@ -435,10 +386,8 @@ describe('replay — additional coverage', () => {
     });
 
     it('truncates body when response exceeds maxBodyBytes', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
       const largeBody = 'x'.repeat(200);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(new Response(largeBody, { status: 200 }));
 
       const result = await replayRequest(
@@ -451,16 +400,12 @@ describe('replay — additional coverage', () => {
         100, // small maxBodyBytes
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const live = result as any;
       expect(live.bodyTruncated).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(live.body.length).toBe(100);
     });
 
     it('blocks HTTP for non-loopback targets', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       await expect(
@@ -505,7 +450,6 @@ describe('replay — additional coverage', () => {
     });
 
     it('blocks when DNS resolves to private IP', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: '10.0.0.1' });
 
       await expect(
@@ -521,7 +465,6 @@ describe('replay — additional coverage', () => {
     });
 
     it('blocks when DNS resolution fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockRejectedValue(new Error('NXDOMAIN'));
 
       await expect(
@@ -537,9 +480,7 @@ describe('replay — additional coverage', () => {
     });
 
     it('does not send body for GET method', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       await replayRequest(
@@ -553,14 +494,11 @@ describe('replay — additional coverage', () => {
       );
 
       const fetchCall = getFetchCall(0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(fetchCall[1].body).toBeUndefined();
     });
 
     it('does not send body for HEAD method', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(new Response('', { status: 200 }));
 
       await replayRequest(
@@ -574,14 +512,11 @@ describe('replay — additional coverage', () => {
       );
 
       const fetchCall = getFetchCall(0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(fetchCall[1].body).toBeUndefined();
     });
 
     it('sends body for POST method', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(new Response('created', { status: 201 }));
 
       await replayRequest(
@@ -595,14 +530,11 @@ describe('replay — additional coverage', () => {
       );
 
       const fetchCall = getFetchCall(0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(fetchCall[1].body).toBe('{"key":"value"}');
     });
 
     it('uppercases method', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       await replayRequest(
@@ -615,14 +547,11 @@ describe('replay — additional coverage', () => {
       );
 
       const fetchCall = getFetchCall(0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(fetchCall[1].method).toBe('GET');
     });
 
     it('uses methodOverride when provided', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       await replayRequest(
@@ -635,14 +564,11 @@ describe('replay — additional coverage', () => {
       );
 
       const fetchCall = getFetchCall(0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(fetchCall[1].method).toBe('DELETE');
     });
 
     it('uses urlOverride when provided', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       await replayRequest(
@@ -659,9 +585,7 @@ describe('replay — additional coverage', () => {
     });
 
     it('collects response headers', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(
         new Response('ok', {
           status: 200,
@@ -681,17 +605,12 @@ describe('replay — additional coverage', () => {
         { requestId: 'r1', dryRun: false },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const live = result as any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(live.headers['x-response-1']).toBe('value1');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(live.headers['x-response-2']).toBe('value2');
     });
 
     it('handles IP literal hostname (no DNS lookup needed)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
       const result = await replayRequest(
@@ -703,8 +622,6 @@ describe('replay — additional coverage', () => {
         { requestId: 'r-ip', dryRun: false },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const live = result as any;
       expect(live.status).toBe(200);
       // Should NOT call DNS lookup for IP literals
@@ -717,18 +634,15 @@ describe('replay — additional coverage', () => {
   // ────────────────────────────────────────────────────────────────
   describe('replayRequest — redirects', () => {
     it('follows 302 redirect and converts to GET', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       fetchMock
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(
           new Response(null, {
             status: 302,
             headers: { Location: 'https://example.com/new-path' },
           }),
         )
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(new Response('redirected', { status: 200 }));
 
       const result = await replayRequest(
@@ -741,33 +655,26 @@ describe('replay — additional coverage', () => {
         { requestId: 'r-redir', dryRun: false },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const live = result as any;
       expect(live.status).toBe(200);
       expect(live.body).toBe('redirected');
 
       // Second fetch should be GET with no body (302 → GET)
       const secondCall = getFetchCall(1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(secondCall[1].method).toBe('GET');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(secondCall[1].body).toBeUndefined();
     });
 
     it('follows 301 redirect and converts to GET', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       fetchMock
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(
           new Response(null, {
             status: 301,
             headers: { Location: 'https://example.com/new' },
           }),
         )
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(new Response('final', { status: 200 }));
 
       const result = await replayRequest(
@@ -779,25 +686,20 @@ describe('replay — additional coverage', () => {
         { requestId: 'r-301', dryRun: false },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const live = result as any;
       expect(live.status).toBe(200);
     });
 
     it('follows 303 redirect and converts to GET', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       fetchMock
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(
           new Response(null, {
             status: 303,
             headers: { Location: 'https://example.com/see-other' },
           }),
         )
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         .mockResolvedValueOnce(new Response('final', { status: 200 }));
 
       const result = await replayRequest(
@@ -809,21 +711,15 @@ describe('replay — additional coverage', () => {
         { requestId: 'r-303', dryRun: false },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const live = result as any;
       expect(live.status).toBe(200);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     it('throws on redirect without Location header (treated as too many redirects)', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       // A redirect without Location header breaks out of the redirect loop,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       // but the final response is still a 3xx, triggering the "too many redirects" error
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       fetchMock.mockResolvedValueOnce(
         new Response(null, { status: 302 }),
         // No Location header
@@ -838,18 +734,14 @@ describe('replay — additional coverage', () => {
           },
           { requestId: 'r-noloc', dryRun: false },
         ),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ).rejects.toThrow('too many redirects');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     it('throws on too many redirects', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       // 6 consecutive redirects (max is 5)
       for (let i = 0; i < 6; i++) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         fetchMock.mockResolvedValueOnce(
           new Response(null, {
             status: 302,
@@ -867,7 +759,6 @@ describe('replay — additional coverage', () => {
           },
           { requestId: 'r-loops', dryRun: false },
         ),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       ).rejects.toThrow('too many redirects');
     });
   });
@@ -877,7 +768,6 @@ describe('replay — additional coverage', () => {
   // ────────────────────────────────────────────────────────────────
   describe('replayRequest — header merging', () => {
     it('merges headerPatch with base headers', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
 
       const result = await replayRequest(
@@ -893,14 +783,9 @@ describe('replay — additional coverage', () => {
         },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const preview = (result as any).preview;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['Authorization']).toBe('Bearer new');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['Accept']).toBe('text/html');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(preview.headers['X-Custom']).toBe('added');
     });
   });

@@ -178,8 +178,6 @@ describe('HttpMiddleware', () => {
         headers: { 'content-length': '999999999' },
       });
       // Add EventEmitter-like methods
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn();
       const res = mockRes();
 
@@ -190,13 +188,9 @@ describe('HttpMiddleware', () => {
     it('parses valid JSON body', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).destroy = vi.fn();
       const res = mockRes();
 
@@ -211,8 +205,6 @@ describe('HttpMiddleware', () => {
     it('rejects invalid JSON body with 400', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
@@ -229,13 +221,9 @@ describe('HttpMiddleware', () => {
     it('rejects body exceeding limit during streaming', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).destroy = vi.fn();
       const res = mockRes();
 
@@ -249,8 +237,6 @@ describe('HttpMiddleware', () => {
     it('rejects on request error event', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
@@ -265,13 +251,9 @@ describe('HttpMiddleware', () => {
     it('ignores data chunks after overflow', async () => {
       const handlers: Record<string, Function> = {};
       const req = mockReq({ headers: {} });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).on = vi.fn((event: string, cb: Function) => {
         handlers[event] = cb;
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (req as any).destroy = vi.fn();
       const res = mockRes();
 

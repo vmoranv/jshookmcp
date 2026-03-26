@@ -17,16 +17,12 @@ describe('PageNavigationHandlers', () => {
       })),
       getURL: vi.fn(async () => 'https://target.example'),
       getTitle: vi.fn(async () => 'Target'),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const consoleMonitor = {
       enable: vi.fn(async () => {}),
       isNetworkEnabled: vi.fn(() => false),
       setPlaywrightPage: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const handlers = new PageNavigationHandlers({
@@ -40,9 +36,7 @@ describe('PageNavigationHandlers', () => {
       await handlers.handlePageNavigate({ url: 'https://target.example' }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.url).toBe('https://target.example');
     expect(body).not.toHaveProperty('captcha_detected');
   });
@@ -58,13 +52,9 @@ describe('PageNavigationHandlers', () => {
       enable: vi.fn(async () => {}),
       isNetworkEnabled: vi.fn(() => false),
       setPlaywrightPage: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     } as any;
 
     const handlers = new PageNavigationHandlers({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pageController: {} as any,
       consoleMonitor,
       getActiveDriver: () => 'camoufox',
@@ -75,11 +65,8 @@ describe('PageNavigationHandlers', () => {
       await handlers.handlePageNavigate({ url: 'https://target.example' }),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.driver).toBe('camoufox');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(body.url).toBe('https://target.example');
     expect(body).not.toHaveProperty('captcha_detected');
   });

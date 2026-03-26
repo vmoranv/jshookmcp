@@ -18,33 +18,23 @@ describe('shared response helpers', () => {
 
   it('asTextResponse marks error responses when requested', () => {
     const res = asTextResponse('bad', true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((res as any).isError).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((res.content[0] as any)?.text).toBe('bad');
   });
 
   it('asJsonResponse formats JSON content', () => {
     const res = asJsonResponse({ a: 1, b: 'x' });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((res.content[0] as any)?.text).toBe('{\n  "a": 1,\n  "b": "x"\n}');
   });
 
   it('asErrorResponse uses message from Error instances', () => {
     const res = asErrorResponse(new Error('boom'));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((res as any).isError).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((res.content[0] as any)?.text).toBe('Error: boom');
   });
 
   it('asErrorResponse stringifies non-Error values', () => {
     const res = asErrorResponse({ code: 500 });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect((res.content[0] as any)?.text).toContain('Error: [object Object]');
   });
 
@@ -63,16 +53,10 @@ describe('shared response helpers', () => {
     it('formats user-correctable ToolError (VALIDATION) without isError', () => {
       const err = new ToolError('VALIDATION', 'bad input', { toolName: 'test_tool' });
       const res = toolErrorToResponse(err);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = JSON.parse((res.content[0] as any).text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.success).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.code).toBe('VALIDATION');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.message).toBe('bad input');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.tool).toBe('test_tool');
       expect(res).not.toHaveProperty('isError');
     });
@@ -94,60 +78,41 @@ describe('shared response helpers', () => {
         details: { stack: 'trace' },
       });
       const res = toolErrorToResponse(err);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = JSON.parse((res.content[0] as any).text);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.code).toBe('RUNTIME');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect(body.details).toEqual({ stack: 'trace' });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((res as any).isError).toBe(true);
     });
 
     it('formats TIMEOUT error with isError=true', () => {
       const res = toolErrorToResponse(new ToolError('TIMEOUT', 'slow'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((res as any).isError).toBe(true);
     });
 
     it('formats CONNECTION error with isError=true', () => {
       const res = toolErrorToResponse(new ToolError('CONNECTION', 'lost'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((res as any).isError).toBe(true);
     });
 
     it('formats PERMISSION error with isError=true', () => {
       const res = toolErrorToResponse(new ToolError('PERMISSION', 'denied'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((res as any).isError).toBe(true);
     });
 
     it('falls back to asErrorResponse for non-ToolError', () => {
       const res = toolErrorToResponse(new Error('generic'));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((res.content[0] as any).text).toBe('Error: generic');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((res as any).isError).toBe(true);
     });
 
     it('falls back for string errors', () => {
       const res = toolErrorToResponse('plain');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       expect((res.content[0] as any).text).toBe('Error: plain');
     });
 
     it('omits tool and details when not provided', () => {
       const err = new ToolError('RUNTIME', 'err');
       const res = toolErrorToResponse(err);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const body = JSON.parse((res.content[0] as any).text);
       expect(body).not.toHaveProperty('tool');
       expect(body).not.toHaveProperty('details');

@@ -7,7 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -29,16 +28,11 @@ describe('DebuggerManager event core helpers', () => {
 
   it('registers callbacks and dispatches breakpoint hit events with variables', async () => {
     const callback = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     let resolvedState: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
       breakpointHitCallbacks: new Set(),
       breakpoints: new Map([['bp-1', { breakpointId: 'bp-1', hitCount: 0 }]]),
       pausedState: null,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       pausedResolvers: [(state: any) => (resolvedState = state)],
       getScopeVariables: vi.fn(async () => ({
         variables: [{ name: 'token', value: 'abc', type: 'string' }],
@@ -63,7 +57,6 @@ describe('DebuggerManager event core helpers', () => {
       ],
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.breakpoints.get('bp-1')?.hitCount).toBe(1);
     expect(callback).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -71,18 +64,13 @@ describe('DebuggerManager event core helpers', () => {
         variables: [{ name: 'token', value: 'abc', type: 'string' }],
       }),
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(resolvedState.reason).toBe('other');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.pausedResolvers).toEqual([]);
   });
 
   it('supports unregistering callbacks and clearing paused state', () => {
     const callback = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const ctx: any = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       breakpointHitCallbacks: new Set<any>([callback]),
       breakpoints: new Map(),
       pausedState: { reason: 'other' },
@@ -97,7 +85,6 @@ describe('DebuggerManager event core helpers', () => {
     handleResumedCore(ctx);
     handleBreakpointResolvedCore(ctx, { breakpointId: 'missing' });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     expect(ctx.pausedState).toBeNull();
   });
 });

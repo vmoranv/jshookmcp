@@ -12,25 +12,20 @@ const promptState = vi.hoisted(() => ({
 }));
 
 const sanitizerState = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   checkSanitizer: vi.fn((call: any) => {
     const callee = call.callee;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     return callee?.type === 'Identifier' && callee.name === 'sanitize';
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@services/prompts/taint', () => ({
   generateTaintAnalysisPrompt: promptState.generateTaintAnalysisPrompt,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@modules/analyzer/SecurityCodeAnalyzer', () => ({
   checkSanitizer: sanitizerState.checkSanitizer,
 }));
@@ -59,7 +54,6 @@ describe('CodeAnalyzer data flow analysis', () => {
 
   it('uses llm taint enhancement to add additional unique taint paths', async () => {
     const llm = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       chat: vi.fn().mockResolvedValue({
         content: JSON.stringify({
           taintPaths: [
@@ -81,8 +75,6 @@ describe('CodeAnalyzer data flow analysis', () => {
         const source = location.href;
         document.body.innerHTML = source;
       `,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       llm as any,
     );
 

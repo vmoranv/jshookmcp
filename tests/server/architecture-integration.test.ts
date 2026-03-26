@@ -50,7 +50,6 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@server/registry/index', () => ({
   getRegistrations: () => mocks.registrations,
   getAllRegistrations: () => mocks.registrations,
@@ -70,7 +69,6 @@ vi.mock('@server/registry/index', () => ({
   buildHandlerMapFromRegistry: () => ({}),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));

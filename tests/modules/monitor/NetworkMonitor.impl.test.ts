@@ -7,7 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
@@ -15,29 +14,21 @@ vi.mock('@utils/logger', () => ({
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor.impl';
 
 function createMockSession() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const listeners = new Map<string, Set<(payload: any) => void>>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const send = vi.fn(async (..._args: any[]) => ({}));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const on = vi.fn((event: string, handler: (payload: any) => void) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const group = listeners.get(event) ?? new Set<(payload: any) => void>();
     group.add(handler);
     listeners.set(event, group);
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const off = vi.fn((event: string, handler: (payload: any) => void) => {
     listeners.get(event)?.delete(handler);
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const emit = (event: string, payload?: any) => {
     listeners.get(event)?.forEach((handler) => handler(payload));
   };
 
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     session: { send, on, off } as any,
     send,
     emit,

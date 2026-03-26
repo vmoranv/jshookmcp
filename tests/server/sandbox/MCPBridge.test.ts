@@ -9,7 +9,6 @@ function createMockContext(tools: string[] = ['tool_a', 'tool_b']): MCPServerCon
       description: '',
       inputSchema: { type: 'object' },
     })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     executeToolWithTracking: vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: '{"result":"ok"}' }],
     }),
@@ -73,7 +72,6 @@ describe('MCPBridge', () => {
 
   it('returns plain text when JSON parsing fails', async () => {
     const ctx = createMockContext();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (ctx.executeToolWithTracking as ReturnType<typeof vi.fn>).mockResolvedValue({
       content: [{ type: 'text', text: 'plain text result' }],
     });

@@ -80,7 +80,6 @@ describe('NetworkMonitor.types.ts', () => {
     const initiator: NetworkInitiator = { type: 'parser', url: 'https://example.com' };
     const timing: NetworkTiming = { requestTime: 1, proxyStart: -1 };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     // These are typed as `unknown`, so they accept any shape
     expect(initiator).toBeDefined();
     expect(timing).toBeDefined();
