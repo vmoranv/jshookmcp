@@ -1,258 +1,59 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
 
 export const TRACE_TOOLS: Tool[] = [
-  {
-    name: 'start_trace_recording',
-    description: `Start recording CDP events, debugger state, and memory writes into a SQLite trace database.
+  tool('start_trace_recording')
+    .desc('Start recording CDP events, debugger state, and memory writes into a SQLite trace database.\n\nRecording captures events from:\n- Debugger: breakpoints, pauses, script parsing\n- Runtime: console calls, exceptions\n- Network: requests, responses\n- Page: navigation events\n- EventBus: tool calls, memory scans, browser events\n\nCall stop_trace_recording to end the recording session.\n\nExamples:\nstart_trace_recording()\nstart_trace_recording(cdpDomains=["Debugger", "Network"])')
+    .array('cdpDomains', { type: 'string' }, 'CDP domains to record (default: Debugger, Runtime, Network, Page)')
+    .boolean('recordMemoryDeltas', 'Record memory write deltas', { default: true })
+    .idempotent()
+    .build(),
 
-Recording captures events from:
-- Debugger: breakpoints, pauses, script parsing
-- Runtime: console calls, exceptions
-- Network: requests, responses
-- Page: navigation events
-- EventBus: tool calls, memory scans, browser events
+  tool('stop_trace_recording')
+    .desc('Stop the active trace recording and finalize the SQLite database.\n\nReturns session summary including:\n- Database file path\n- Total event count\n- Memory delta count\n- Heap snapshot count\n- Recording duration\n\nExamples:\nstop_trace_recording()')
+    .build(),
 
-Call stop_trace_recording to end the recording session.
+  tool('query_trace_sql')
+    .desc("Execute a read-only SQL query against a trace database.\n\nAvailable tables:\n- events(id, timestamp, category, event_type, data, script_id, line_number)\n- memory_deltas(id, timestamp, address, old_value, new_value, size, value_type)\n- heap_snapshots(id, timestamp, snapshot_data, summary)\n- metadata(key, value)\n\nReturns columns, rows, and row count.\n\nExamples:\nquery_trace_sql(sql=\"SELECT * FROM events WHERE category='debugger' ORDER BY timestamp\")\nquery_trace_sql(sql=\"SELECT address, COUNT(*) as writes FROM memory_deltas GROUP BY address ORDER BY writes DESC LIMIT 10\")\nquery_trace_sql(sql=\"SELECT * FROM events WHERE timestamp BETWEEN 1000 AND 2000\", dbPath=\"artifacts/traces/my-trace.db\")")
+    .string('sql', 'SQL query to execute (SELECT only — write operations are rejected)')
+    .string('dbPath', 'Path to trace DB file. Uses the active recording if omitted.')
+    .required('sql')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-Examples:
-start_trace_recording()
-start_trace_recording(cdpDomains=["Debugger", "Network"])`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        cdpDomains: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'CDP domains to record (default: Debugger, Runtime, Network, Page)',
-        },
-        recordMemoryDeltas: {
-          type: 'boolean',
-          description: 'Record memory write deltas (default: true)',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('seek_to_timestamp')
+    .desc('Reconstruct application state at a specific timestamp from a recorded trace.\n\nReturns a structured snapshot including:\n- Events near the timestamp\n- Debugger state (last pause, call stack)\n- Memory state (latest values per address)\n- Network state (completed requests)\n- Nearest heap snapshot\n\nExamples:\nseek_to_timestamp(timestamp=1711000000000)\nseek_to_timestamp(timestamp=1711000000000, windowMs=500)\nseek_to_timestamp(timestamp=1711000000000, dbPath="artifacts/traces/my-trace.db")')
+    .number('timestamp', 'Target timestamp in milliseconds since epoch')
+    .string('dbPath', 'Path to trace DB file. Uses the active recording if omitted.')
+    .number('windowMs', 'Time window around timestamp to include in ms', { default: 100 })
+    .required('timestamp')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-  {
-    name: 'stop_trace_recording',
-    description: `Stop the active trace recording and finalize the SQLite database.
+  tool('diff_heap_snapshots')
+    .desc('Compare two heap snapshots from a trace and return the differences.\n\nShows:\n- New object types (in snapshot 2 but not 1)\n- Deleted object types (in snapshot 1 but not 2)\n- Changed objects (count or size differs)\n- Total size delta\n\nUseful for identifying state changes in obfuscated code.\n\nExamples:\ndiff_heap_snapshots(snapshotId1=1, snapshotId2=2)\ndiff_heap_snapshots(snapshotId1=1, snapshotId2=3, dbPath="artifacts/traces/my-trace.db")')
+    .number('snapshotId1', 'First snapshot ID (earlier)')
+    .number('snapshotId2', 'Second snapshot ID (later)')
+    .string('dbPath', 'Path to trace DB file. Uses the active recording if omitted.')
+    .required('snapshotId1', 'snapshotId2')
+    .readOnly()
+    .idempotent()
+    .build(),
 
-Returns session summary including:
-- Database file path
-- Total event count
-- Memory delta count
-- Heap snapshot count
-- Recording duration
+  tool('export_trace')
+    .desc('Export a trace database to Chrome Trace Event JSON format.\n\nThe resulting file can be loaded in:\n- chrome://tracing\n- Perfetto UI (ui.perfetto.dev)\n\nMaps events to the standard trace event format with name, category, phase, timestamp.\n\nExamples:\nexport_trace()\nexport_trace(dbPath="artifacts/traces/my-trace.db")\nexport_trace(outputPath="my-export.json")')
+    .string('dbPath', 'Path to trace DB file. Uses the active recording if omitted.')
+    .string('outputPath', 'Output JSON file path. Auto-generated if omitted.')
+    .idempotent()
+    .build(),
 
-Examples:
-stop_trace_recording()`,
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-
-  {
-    name: 'query_trace_sql',
-    description: `Execute a read-only SQL query against a trace database.
-
-Available tables:
-- events(id, timestamp, category, event_type, data, script_id, line_number)
-- memory_deltas(id, timestamp, address, old_value, new_value, size, value_type)
-- heap_snapshots(id, timestamp, snapshot_data, summary)
-- metadata(key, value)
-
-Returns columns, rows, and row count.
-
-Examples:
-query_trace_sql(sql="SELECT * FROM events WHERE category='debugger' ORDER BY timestamp")
-query_trace_sql(sql="SELECT address, COUNT(*) as writes FROM memory_deltas GROUP BY address ORDER BY writes DESC LIMIT 10")
-query_trace_sql(sql="SELECT * FROM events WHERE timestamp BETWEEN 1000 AND 2000", dbPath="artifacts/traces/my-trace.db")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        sql: {
-          type: 'string',
-          description: 'SQL query to execute (SELECT only — write operations are rejected)',
-        },
-        dbPath: {
-          type: 'string',
-          description: 'Path to trace DB file. Uses the active recording if omitted.',
-        },
-      },
-      required: ['sql'],
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-
-  {
-    name: 'seek_to_timestamp',
-    description: `Reconstruct application state at a specific timestamp from a recorded trace.
-
-Returns a structured snapshot including:
-- Events near the timestamp
-- Debugger state (last pause, call stack)
-- Memory state (latest values per address)
-- Network state (completed requests)
-- Nearest heap snapshot
-
-Examples:
-seek_to_timestamp(timestamp=1711000000000)
-seek_to_timestamp(timestamp=1711000000000, windowMs=500)
-seek_to_timestamp(timestamp=1711000000000, dbPath="artifacts/traces/my-trace.db")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        timestamp: {
-          type: 'number',
-          description: 'Target timestamp in milliseconds since epoch',
-        },
-        dbPath: {
-          type: 'string',
-          description: 'Path to trace DB file. Uses the active recording if omitted.',
-        },
-        windowMs: {
-          type: 'number',
-          description: 'Time window around timestamp to include in ms (default: 100)',
-        },
-      },
-      required: ['timestamp'],
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-
-  {
-    name: 'diff_heap_snapshots',
-    description: `Compare two heap snapshots from a trace and return the differences.
-
-Shows:
-- New object types (in snapshot 2 but not 1)
-- Deleted object types (in snapshot 1 but not 2)
-- Changed objects (count or size differs)
-- Total size delta
-
-Useful for identifying state changes in obfuscated code.
-
-Examples:
-diff_heap_snapshots(snapshotId1=1, snapshotId2=2)
-diff_heap_snapshots(snapshotId1=1, snapshotId2=3, dbPath="artifacts/traces/my-trace.db")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        snapshotId1: {
-          type: 'number',
-          description: 'First snapshot ID (earlier)',
-        },
-        snapshotId2: {
-          type: 'number',
-          description: 'Second snapshot ID (later)',
-        },
-        dbPath: {
-          type: 'string',
-          description: 'Path to trace DB file. Uses the active recording if omitted.',
-        },
-      },
-      required: ['snapshotId1', 'snapshotId2'],
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-
-  {
-    name: 'export_trace',
-    description: `Export a trace database to Chrome Trace Event JSON format.
-
-The resulting file can be loaded in:
-- chrome://tracing
-- Perfetto UI (ui.perfetto.dev)
-
-Maps events to the standard trace event format with name, category, phase, timestamp.
-
-Examples:
-export_trace()
-export_trace(dbPath="artifacts/traces/my-trace.db")
-export_trace(outputPath="my-export.json")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        dbPath: {
-          type: 'string',
-          description: 'Path to trace DB file. Uses the active recording if omitted.',
-        },
-        outputPath: {
-          type: 'string',
-          description: 'Output JSON file path. Auto-generated if omitted.',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-
-  {
-    name: 'summarize_trace',
-    description: `Generate a compact, LLM-friendly summary of a trace database.
-
-Avoids sending raw trace data that may exceed context windows. Three detail levels:
-- compact: category aggregation + timeline overview (~10% of raw size)
-- balanced: compact + key moments (breakpoints, exceptions, network completions) [DEFAULT]
-- full: passthrough — returns all events without compression
-
-Also detects memory anomalies: addresses with significantly more writes than average.
-
-Examples:
-summarize_trace()
-summarize_trace(detail="compact")
-summarize_trace(detail="balanced", dbPath="artifacts/traces/my-trace.db")`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        detail: {
-          type: 'string',
-          enum: ['compact', 'balanced', 'full'],
-          description: 'Summary detail level (default: balanced)',
-        },
-        dbPath: {
-          type: 'string',
-          description: 'Path to trace DB file. Uses the active recording if omitted.',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('summarize_trace')
+    .desc('Generate a compact, LLM-friendly summary of a trace database.\n\nAvoids sending raw trace data that may exceed context windows. Three detail levels:\n- compact: category aggregation + timeline overview (~10% of raw size)\n- balanced: compact + key moments (breakpoints, exceptions, network completions) [DEFAULT]\n- full: passthrough — returns all events without compression\n\nAlso detects memory anomalies: addresses with significantly more writes than average.\n\nExamples:\nsummarize_trace()\nsummarize_trace(detail="compact")\nsummarize_trace(detail="balanced", dbPath="artifacts/traces/my-trace.db")')
+    .enum('detail', ['compact', 'balanced', 'full'], 'Summary detail level', { default: 'balanced' })
+    .string('dbPath', 'Path to trace DB file. Uses the active recording if omitted.')
+    .readOnly()
+    .idempotent()
+    .build(),
 ];

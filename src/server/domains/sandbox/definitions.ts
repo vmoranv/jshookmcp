@@ -1,40 +1,13 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
 
 export const sandboxTools: Tool[] = [
-  {
-    name: 'execute_sandbox_script',
-    description:
-      'Execute JavaScript code in a WASM-isolated QuickJS sandbox with optional MCP tool bridging, session persistence, and auto-correction.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        code: {
-          type: 'string',
-          description: 'JavaScript source code to execute inside the sandbox.',
-        },
-        sessionId: {
-          type: 'string',
-          description:
-            'Optional session ID for scratchpad persistence across executions. If omitted, no persistence.',
-        },
-        timeoutMs: {
-          type: 'number',
-          description: 'Execution timeout in ms (default: 1000).',
-        },
-        autoCorrect: {
-          type: 'boolean',
-          description:
-            'When true, failed scripts are retried up to 2 times with error context appended.',
-          default: false,
-        },
-      },
-      required: ['code'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('execute_sandbox_script')
+    .desc('Execute JavaScript in a WASM-isolated QuickJS sandbox with optional tool bridging and auto-correction')
+    .string('code', 'JavaScript source code to execute')
+    .string('sessionId', 'Session ID for scratchpad persistence across executions')
+    .number('timeoutMs', 'Execution timeout in ms', { default: 1000 })
+    .boolean('autoCorrect', 'Retry failed scripts up to 2 times with error context', { default: false })
+    .required('code')
+    .build(),
 ];

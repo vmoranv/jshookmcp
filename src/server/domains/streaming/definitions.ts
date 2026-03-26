@@ -1,156 +1,45 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
 
 export const streamingTools: Tool[] = [
-  {
-    name: 'ws_monitor_enable',
-    description:
-      'Enable WebSocket frame capture via CDP Network events (webSocketFrameSent / webSocketFrameReceived).',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        urlFilter: {
-          type: 'string',
-          description:
-            'Optional regex filter for WebSocket URL (only matching connections are tracked).',
-        },
-        maxFrames: {
-          type: 'number',
-          description: 'Maximum frames to keep in memory (default: 1000).',
-          default: 1000,
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'ws_monitor_disable',
-    description: 'Disable WebSocket monitoring and return capture summary.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'ws_get_frames',
-    description: 'Get captured WebSocket frames with pagination and optional payload regex filter.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        direction: {
-          type: 'string',
-          enum: ['sent', 'received', 'all'],
-          description: 'Frame direction filter (default: all).',
-          default: 'all',
-        },
-        limit: {
-          type: 'number',
-          description: 'Maximum frames to return (default: 100, max: 5000).',
-          default: 100,
-        },
-        offset: {
-          type: 'number',
-          description: 'Pagination offset (default: 0).',
-          default: 0,
-        },
-        payloadFilter: {
-          type: 'string',
-          description: 'Optional regex filter applied to frame payload sample.',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'ws_get_connections',
-    description: 'Get tracked WebSocket connections and frame counts.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'sse_monitor_enable',
-    description:
-      'Enable SSE monitoring by injecting an EventSource constructor interceptor in page context. Supports persistent mode to survive navigations.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        urlFilter: {
-          type: 'string',
-          description: 'Optional regex filter for EventSource URL.',
-        },
-        maxEvents: {
-          type: 'number',
-          description: 'Maximum SSE events to keep in memory (default: 2000).',
-          default: 2000,
-        },
-        persistent: {
-          type: 'boolean',
-          description:
-            'When true, interceptor survives page navigations (uses evaluateOnNewDocument). Default: false.',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'sse_get_events',
-    description: 'Get captured SSE events with filters and pagination.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        sourceUrl: {
-          type: 'string',
-          description: 'Filter by EventSource URL (exact match).',
-        },
-        eventType: {
-          type: 'string',
-          description: 'Filter by SSE event type (e.g. "message", custom event name).',
-        },
-        limit: {
-          type: 'number',
-          description: 'Maximum events to return (default: 100, max: 5000).',
-          default: 100,
-        },
-        offset: {
-          type: 'number',
-          description: 'Pagination offset (default: 0).',
-          default: 0,
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('ws_monitor_enable')
+    .desc('Enable WebSocket frame capture via CDP Network events')
+    .string('urlFilter', 'Regex filter for WebSocket URL')
+    .number('maxFrames', 'Maximum frames in memory', { default: 1000 })
+    .build(),
+
+  tool('ws_monitor_disable')
+    .desc('Disable WebSocket monitoring and return capture summary')
+    .destructive()
+    .build(),
+
+  tool('ws_get_frames')
+    .desc('Get captured WebSocket frames with pagination and payload filter')
+    .enum('direction', ['sent', 'received', 'all'], 'Frame direction filter', { default: 'all' })
+    .number('limit', 'Maximum frames to return', { default: 100 })
+    .number('offset', 'Pagination offset', { default: 0 })
+    .string('payloadFilter', 'Regex filter on frame payload')
+    .readOnly()
+    .build(),
+
+  tool('ws_get_connections')
+    .desc('Get tracked WebSocket connections and frame counts')
+    .readOnly()
+    .build(),
+
+  tool('sse_monitor_enable')
+    .desc('Enable SSE monitoring by injecting EventSource interceptor')
+    .string('urlFilter', 'Regex filter for EventSource URL')
+    .number('maxEvents', 'Maximum SSE events in memory', { default: 2000 })
+    .boolean('persistent', 'Survive page navigations via evaluateOnNewDocument')
+    .build(),
+
+  tool('sse_get_events')
+    .desc('Get captured SSE events with filters and pagination')
+    .string('sourceUrl', 'Filter by EventSource URL')
+    .string('eventType', 'Filter by SSE event type')
+    .number('limit', 'Maximum events', { default: 100 })
+    .number('offset', 'Pagination offset', { default: 0 })
+    .readOnly()
+    .build(),
 ];

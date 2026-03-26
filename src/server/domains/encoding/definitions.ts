@@ -1,163 +1,51 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
 
 export const encodingTools: Tool[] = [
-  {
-    name: 'binary_detect_format',
-    description:
-      'Detect binary payload format/encoding via magic bytes, encoding heuristics, and Shannon entropy.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'string',
-          description:
-            'Input payload string. For source=file, this is optional. For source=raw + requestId, this can be omitted.',
-        },
-        source: {
-          type: 'string',
-          enum: ['base64', 'hex', 'file', 'raw'],
-          description: 'How to interpret input payload',
-        },
-        filePath: {
-          type: 'string',
-          description: 'File path when source=file (reads first 512 bytes)',
-        },
-        requestId: {
-          type: 'string',
-          description:
-            'Optional captured network requestId to resolve response body from active page context',
-        },
-      },
-      required: ['source'],
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'binary_decode',
-    description:
-      'Decode binary payloads (base64/hex/url/protobuf/msgpack) into hex, utf8, or json output.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'string',
-          description: 'Input encoded payload',
-        },
-        encoding: {
-          type: 'string',
-          enum: ['base64', 'hex', 'url', 'protobuf', 'msgpack'],
-          description: 'Declared input encoding/format',
-        },
-        outputFormat: {
-          type: 'string',
-          enum: ['hex', 'utf8', 'json'],
-          description: 'Target output format',
-          default: 'hex',
-        },
-      },
-      required: ['data', 'encoding'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'binary_encode',
-    description: 'Encode utf8/hex/json input into base64/hex/url output.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'string',
-          description: 'Input payload',
-        },
-        inputFormat: {
-          type: 'string',
-          enum: ['utf8', 'hex', 'json'],
-          description: 'How to parse input payload',
-        },
-        outputEncoding: {
-          type: 'string',
-          enum: ['base64', 'hex', 'url'],
-          description: 'Desired output encoding',
-        },
-      },
-      required: ['data', 'inputFormat', 'outputEncoding'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'binary_entropy_analysis',
-    description:
-      'Compute Shannon entropy + byte frequency distribution to assess plaintext/encoded/compressed/encrypted/random likelihood.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'string',
-          description: 'Input payload string (optional when source=file)',
-        },
-        source: {
-          type: 'string',
-          enum: ['base64', 'hex', 'raw', 'file'],
-          description: 'How to interpret input payload',
-        },
-        filePath: {
-          type: 'string',
-          description: 'File path when source=file',
-        },
-        blockSize: {
-          type: 'number',
-          description: 'Block size for per-block entropy (default: 256)',
-          default: 256,
-        },
-      },
-      required: ['source'],
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'protobuf_decode_raw',
-    description:
-      'Decode base64 protobuf bytes without schema using wire-type aware recursive parser.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'string',
-          description: 'Base64-encoded protobuf payload',
-        },
-        maxDepth: {
-          type: 'number',
-          description: 'Maximum recursive decode depth (default: 5)',
-          default: 5,
-        },
-      },
-      required: ['data'],
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  tool('binary_detect_format')
+    .desc('Detect binary payload format/encoding via magic bytes, encoding heuristics, and Shannon entropy')
+    .string('data', 'Input payload')
+    .enum('source', ['base64', 'hex', 'file', 'raw'], 'How to interpret input payload')
+    .string('filePath', 'File path when source=file')
+    .string('requestId', 'Captured network requestId to resolve response body')
+    .required('source')
+    .readOnly()
+    .idempotent()
+    .build(),
+
+  tool('binary_decode')
+    .desc('Decode binary payloads into hex, utf8, or json output')
+    .string('data', 'Input encoded payload')
+    .enum('encoding', ['base64', 'hex', 'url', 'protobuf', 'msgpack'], 'Declared input encoding')
+    .enum('outputFormat', ['hex', 'utf8', 'json'], 'Target output format', { default: 'hex' })
+    .required('data', 'encoding')
+    .build(),
+
+  tool('binary_encode')
+    .desc('Encode utf8/hex/json input into base64/hex/url output')
+    .string('data', 'Input payload')
+    .enum('inputFormat', ['utf8', 'hex', 'json'], 'How to parse input')
+    .enum('outputEncoding', ['base64', 'hex', 'url'], 'Desired output encoding')
+    .required('data', 'inputFormat', 'outputEncoding')
+    .build(),
+
+  tool('binary_entropy_analysis')
+    .desc('Compute Shannon entropy + byte frequency to assess plaintext/encoded/compressed/encrypted likelihood')
+    .string('data', 'Input payload')
+    .enum('source', ['base64', 'hex', 'raw', 'file'], 'How to interpret input payload')
+    .string('filePath', 'File path when source=file')
+    .number('blockSize', 'Block size for per-block entropy', { default: 256 })
+    .required('source')
+    .readOnly()
+    .idempotent()
+    .build(),
+
+  tool('protobuf_decode_raw')
+    .desc('Decode base64 protobuf bytes without schema using wire-type aware recursive parser')
+    .string('data', 'Base64-encoded protobuf payload')
+    .number('maxDepth', 'Maximum recursive decode depth', { default: 5 })
+    .required('data')
+    .readOnly()
+    .idempotent()
+    .build(),
 ];

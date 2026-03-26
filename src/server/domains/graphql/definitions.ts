@@ -1,150 +1,47 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
 
 export const graphqlTools: Tool[] = [
-  {
-    name: 'call_graph_analyze',
-    description:
-      'Analyze runtime function call graph from in-page traces (__aiHooks / tracer records). Returns nodes, edges, and stats.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        maxDepth: {
-          type: 'number',
-          description: 'Maximum stack-derived edge depth to include (default: 5, min: 1, max: 20).',
-          default: 5,
-        },
-        filterPattern: {
-          type: 'string',
-          description: 'Optional regex string to filter function names (source or target).',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'script_replace_persist',
-    description:
-      'Persistently replace matching script responses via request interception, and register metadata with evaluateOnNewDocument.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: {
-          type: 'string',
-          description: 'Script URL match pattern.',
-        },
-        replacement: {
-          type: 'string',
-          description: 'Replacement JavaScript source (full script content).',
-        },
-        matchType: {
-          type: 'string',
-          enum: ['exact', 'contains', 'regex'],
-          description: "URL matching strategy. Defaults to 'contains'.",
-          default: 'contains',
-        },
-      },
-      required: ['url', 'replacement'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-    },
-  },
-  {
-    name: 'graphql_introspect',
-    description:
-      'Run GraphQL introspection query against a target endpoint and return schema payload.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        endpoint: {
-          type: 'string',
-          description: 'GraphQL endpoint URL.',
-        },
-        headers: {
-          type: 'object',
-          description: 'Optional custom request headers.',
-          additionalProperties: {
-            type: 'string',
-          },
-        },
-      },
-      required: ['endpoint'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-    },
-  },
-  {
-    name: 'graphql_extract_queries',
-    description:
-      'Extract GraphQL queries/mutations from captured in-page network traces (fetch/xhr/aiHook records).',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        limit: {
-          type: 'number',
-          description: 'Maximum number of extracted operations to return (default: 50, max: 200).',
-          default: 50,
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'graphql_replay',
-    description:
-      'Replay a GraphQL operation with optional variables and headers via in-page fetch.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        endpoint: {
-          type: 'string',
-          description: 'GraphQL endpoint URL.',
-        },
-        query: {
-          type: 'string',
-          description: 'GraphQL query/mutation string.',
-        },
-        variables: {
-          type: 'object',
-          description: 'GraphQL variables object.',
-          additionalProperties: true,
-        },
-        operationName: {
-          type: 'string',
-          description: 'Optional GraphQL operationName.',
-        },
-        headers: {
-          type: 'object',
-          description: 'Optional custom request headers.',
-          additionalProperties: {
-            type: 'string',
-          },
-        },
-      },
-      required: ['endpoint', 'query'],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-    },
-  },
+  tool('call_graph_analyze')
+    .desc('Analyze runtime function call graph from in-page traces')
+    .number('maxDepth', 'Maximum stack-derived edge depth', { default: 5 })
+    .string('filterPattern', 'Regex filter for function names')
+    .readOnly()
+    .idempotent()
+    .build(),
+
+  tool('script_replace_persist')
+    .desc('Persistently replace matching script responses via request interception')
+    .string('url', 'Script URL match pattern')
+    .string('replacement', 'Replacement JavaScript source')
+    .enum('matchType', ['exact', 'contains', 'regex'], 'URL matching strategy', { default: 'contains' })
+    .required('url', 'replacement')
+    .openWorld()
+    .build(),
+
+  tool('graphql_introspect')
+    .desc('Run GraphQL introspection query against a target endpoint')
+    .string('endpoint', 'GraphQL endpoint URL')
+    .prop('headers', { type: 'object', description: 'Custom request headers', additionalProperties: { type: 'string' } })
+    .required('endpoint')
+    .openWorld()
+    .build(),
+
+  tool('graphql_extract_queries')
+    .desc('Extract GraphQL queries/mutations from captured network traces')
+    .number('limit', 'Maximum extracted operations', { default: 50 })
+    .readOnly()
+    .idempotent()
+    .build(),
+
+  tool('graphql_replay')
+    .desc('Replay a GraphQL operation with optional variables via in-page fetch')
+    .string('endpoint', 'GraphQL endpoint URL')
+    .string('query', 'GraphQL query/mutation string')
+    .prop('variables', { type: 'object', description: 'GraphQL variables', additionalProperties: true })
+    .string('operationName', 'GraphQL operationName')
+    .prop('headers', { type: 'object', description: 'Custom request headers', additionalProperties: { type: 'string' } })
+    .required('endpoint', 'query')
+    .openWorld()
+    .build(),
 ];

@@ -1,122 +1,32 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
 
 export const antidebugTools: Tool[] = [
-  {
-    name: 'antidebug_bypass_all',
-    description:
-      'Inject all anti-anti-debug bypass scripts into the current page. Uses evaluateOnNewDocument + evaluate dual injection.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        persistent: {
-          type: 'boolean',
-          description: 'Whether to also inject persistently for future documents (default: true).',
-          default: true,
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'antidebug_bypass_debugger_statement',
-    description:
-      'Bypass debugger-statement based protection by patching Function constructor and monitoring dynamic script insertion.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        mode: {
-          type: 'string',
-          description: 'remove = strip debugger statements, noop = replace with void 0',
-          enum: ['remove', 'noop'],
-          default: 'remove',
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'antidebug_bypass_timing',
-    description:
-      'Bypass timing-based anti-debug checks by stabilizing performance.now / Date.now and console.time APIs.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        maxDrift: {
-          type: 'number',
-          description: 'Maximum logical time drift allowed per call in milliseconds (default: 50).',
-          default: 50,
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'antidebug_bypass_stack_trace',
-    description:
-      'Bypass Error.stack based anti-debug checks by filtering suspicious stack frames and hardening function toString.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        filterPatterns: {
-          type: 'array',
-          description:
-            'Additional stack frame patterns to filter. Defaults include puppeteer/devtools/__puppeteer/CDP.',
-          items: {
-            type: 'string',
-          },
-        },
-      },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'antidebug_bypass_console_detect',
-    description:
-      'Bypass console-based devtools detection by wrapping console methods and sanitizing getter-based payloads.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
-  {
-    name: 'antidebug_detect_protections',
-    description:
-      'Detect anti-debug protections in the current page and return detected techniques with bypass recommendations.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-  },
+  tool('antidebug_bypass_all')
+    .desc('Inject all anti-anti-debug bypass scripts via dual injection')
+    .boolean('persistent', 'Also inject persistently for future documents', { default: true })
+    .build(),
+
+  tool('antidebug_bypass_debugger_statement')
+    .desc('Bypass debugger-statement protection by patching Function constructor')
+    .enum('mode', ['remove', 'noop'], 'remove = strip statements, noop = replace with void 0', { default: 'remove' })
+    .build(),
+
+  tool('antidebug_bypass_timing')
+    .desc('Bypass timing-based anti-debug by stabilizing performance.now / Date.now')
+    .number('maxDrift', 'Max logical time drift per call in ms', { default: 50 })
+    .build(),
+
+  tool('antidebug_bypass_stack_trace')
+    .desc('Bypass Error.stack anti-debug by filtering suspicious frames and hardening toString')
+    .array('filterPatterns', { type: 'string' }, 'Additional stack frame patterns to filter')
+    .build(),
+
+  tool('antidebug_bypass_console_detect')
+    .desc('Bypass console-based devtools detection by wrapping console methods')
+    .build(),
+
+  tool('antidebug_detect_protections')
+    .desc('Detect anti-debug protections in current page with bypass recommendations')
+    .build(),
 ];
