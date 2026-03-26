@@ -206,8 +206,7 @@ function sseInjectionFn(config: { maxEvents: number; urlFilterRaw?: string }) {
           const wrapped: EventListener = (evt: Event) => {
             const messageEvent = evt as MessageEvent;
             const lastEventId =
-              typeof messageEvent.lastEventId === 'string' &&
-              messageEvent.lastEventId.length > 0
+              typeof messageEvent.lastEventId === 'string' && messageEvent.lastEventId.length > 0
                 ? messageEvent.lastEventId
                 : null;
 

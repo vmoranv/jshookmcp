@@ -285,7 +285,6 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
     const evaluateExpr = (args.evaluate as string | undefined) ?? '';
     const pageUrl = (args.pageUrl as string | undefined) ?? '';
 
-
     try {
       type CdpTarget = {
         id: string;

@@ -95,7 +95,6 @@ export class WorkflowHandlersBatch extends WorkflowHandlersAccountBundle {
       );
     };
 
-
     // Chunk by maxConcurrency (forced to 1 — shared page)
     for (let i = 0; i < accounts.length; i += maxConcurrency) {
       const chunk = accounts.slice(i, i + maxConcurrency);
