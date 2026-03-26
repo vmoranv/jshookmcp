@@ -1,15 +1,16 @@
 {
   "categories": {
-    "correctness": "warn",
-    "suspicious": "warn",
+    "correctness": "error",
+    "suspicious": "error",
     "pedantic": "off",
     "nursery": "off"
   },
   "rules": {
-    "no-unused-vars": "warn",
-    "prefer-const": "warn",
-    "eqeqeq": "warn",
-    "no-constant-condition": "warn"
+    "no-unused-vars": "error",
+    "prefer-const": "error",
+    "eqeqeq": "error",
+    "no-constant-condition": "error",
+    "unicorn/require-post-message-target-origin": "off"
   },
   "plugins": ["unicorn", "import", "typescript"],
   "ignorePatterns": ["dist/**", "node_modules/**"]
