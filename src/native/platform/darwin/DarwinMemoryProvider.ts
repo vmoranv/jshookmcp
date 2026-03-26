@@ -140,9 +140,14 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
         };
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const isCrash = /signal|bus error|segfault|abort/i.test(message);
       return {
         available: false,
-        reason: `task_for_pid permission check failed: ${err instanceof Error ? err.message : String(err)}`,
+        reason: isCrash
+          ? `Mach API call crashed (${message}). This may be caused by SIP (System Integrity Protection) on ARM64 macOS. ` +
+            'Disable SIP or use a code-signed binary with com.apple.security.cs.debugger entitlement.'
+          : `task_for_pid permission check failed: ${message}. Run with sudo or add debugger entitlement.`,
         platform: 'darwin',
       };
     }

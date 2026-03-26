@@ -72,25 +72,12 @@ export class MemoryManager {
 
   // ── Read / Write ──
 
-  /**
-   * Read memory from a process
-   * @param pid Target process ID
-   * @param address Memory address (hex string like "0x12345678")
-   * @param size Number of bytes to read
-   */
   async readMemory(pid: number, address: string, size: number): Promise<MemoryReadResult> {
     return _readMemory(this.platform, pid, address, size, (p, a) =>
       _checkMemoryProtection(this.platform, p, a),
     );
   }
 
-  /**
-   * Write memory to a process
-   * @param pid Target process ID
-   * @param address Memory address (hex string)
-   * @param data Data to write (hex string)
-   * @param encoding 'hex' or 'base64'
-   */
   async writeMemory(
     pid: number,
     address: string,
@@ -102,9 +89,6 @@ export class MemoryManager {
     );
   }
 
-  /**
-   * Batch memory write (NOP sled, patch multiple addresses)
-   */
   async batchMemoryWrite(
     pid: number,
     patches: MemoryPatch[],
@@ -120,12 +104,6 @@ export class MemoryManager {
 
   // ── Scan ──
 
-  /**
-   * Scan memory for a pattern
-   * @param pid Target process ID
-   * @param pattern Pattern to search (hex bytes like "48 8B 05" or value)
-   * @param patternType Type of pattern
-   */
   async scanMemory(
     pid: number,
     pattern: string,
@@ -134,10 +112,6 @@ export class MemoryManager {
     return _scanMemory(this.platform, pid, pattern, patternType);
   }
 
-  /**
-   * Scan within specific addresses (filtered scan)
-   * For secondary scanning within previous results
-   */
   async scanMemoryFiltered(
     pid: number,
     pattern: string,
@@ -156,9 +130,6 @@ export class MemoryManager {
 
   // ── Regions / Modules / Protection ──
 
-  /**
-   * Dump memory region to file
-   */
   async dumpMemoryRegion(
     pid: number,
     startAddress: string,
@@ -168,23 +139,14 @@ export class MemoryManager {
     return _dumpMemoryRegion(this.platform, pid, startAddress, size, outputPath);
   }
 
-  /**
-   * Enumerate memory regions
-   */
   async enumerateRegions(pid: number): ReturnType<typeof _enumerateRegions> {
     return _enumerateRegions(this.platform, pid);
   }
 
-  /**
-   * Check memory protection at specific address
-   */
   async checkMemoryProtection(pid: number, address: string): Promise<MemoryProtectionInfo> {
     return _checkMemoryProtection(this.platform, pid, address);
   }
 
-  /**
-   * Enumerate loaded modules in target process
-   */
   async enumerateModules(pid: number): Promise<{
     success: boolean;
     modules?: { name: string; baseAddress: string; size: number }[];
@@ -220,9 +182,6 @@ export class MemoryManager {
 
   // ── Anti-Detection ──
 
-  /**
-   * Check for debugger attachment in target process (Windows only)
-   */
   async checkDebugPort(
     pid: number,
   ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
@@ -231,10 +190,6 @@ export class MemoryManager {
 
   // ── Monitor ──
 
-  /**
-   * Monitor memory address for changes (polling-based)
-   * Returns a monitoring session ID
-   */
   startMemoryMonitor(
     pid: number,
     address: string,
@@ -258,9 +213,6 @@ export class MemoryManager {
 
   // ── Availability ──
 
-  /**
-   * Check if memory operations are available on current platform
-   */
   async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
     return _checkAvailability(this.platform);
   }

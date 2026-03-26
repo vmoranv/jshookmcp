@@ -51,9 +51,6 @@ export {
 
 export type Platform = 'win32' | 'linux' | 'darwin' | 'unknown';
 
-/**
- * Detect current platform
- */
 export function detectPlatform(): Platform {
   const platform = process.platform;
 
@@ -70,9 +67,6 @@ export function detectPlatform(): Platform {
   }
 }
 
-/**
- * Create appropriate ProcessManager for current platform
- */
 export function createProcessManager():
   | WindowsProcessManager
   | LinuxProcessManager
@@ -95,9 +89,6 @@ export function createProcessManager():
   }
 }
 
-/**
- * Check if process management is supported on current platform
- */
 export function isProcessManagementSupported(): boolean {
   return detectPlatform() !== 'unknown';
 }
@@ -115,58 +106,34 @@ export class UnifiedProcessManager {
     this.manager = createProcessManager();
   }
 
-  /**
-   * Get current platform
-   */
   getPlatform(): Platform {
     return this.platform;
   }
 
-  /**
-   * Find processes by name pattern
-   */
   async findProcesses(pattern: string) {
     return this.manager.findProcesses(pattern);
   }
 
-  /**
-   * Get process by PID
-   */
   async getProcessByPid(pid: number) {
     return this.manager.getProcessByPid(pid);
   }
 
-  /**
-   * Get windows for a process
-   */
   async getProcessWindows(pid: number) {
     return this.manager.getProcessWindows(pid);
   }
 
-  /**
-   * Check debug port
-   */
   async checkDebugPort(pid: number, options?: { commandLine?: string }) {
     return this.manager.checkDebugPort(pid, options);
   }
 
-  /**
-   * Launch process with debug port
-   */
   async launchWithDebug(executablePath: string, debugPort?: number, args?: string[]) {
     return this.manager.launchWithDebug(executablePath, debugPort, args);
   }
 
-  /**
-   * Kill process
-   */
   async killProcess(pid: number) {
     return this.manager.killProcess(pid);
   }
 
-  /**
-   * Get process command line
-   */
   async getProcessCommandLine(pid: number) {
     return this.manager.getProcessCommandLine(pid);
   }

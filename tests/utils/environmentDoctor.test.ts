@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Hoisted mocks — available inside vi.mock factories
 const { probeAllMock, execFileMock, mockFetch } = vi.hoisted(() => ({
@@ -137,6 +137,47 @@ describe('runEnvironmentDoctor', () => {
     expect(python!.status).toBe('warn');
   });
 
+  it('uses stderr when stdout is empty', async () => {
+    execFileMock.mockImplementation((cmd: string) => {
+      if (cmd === 'git') return Promise.resolve({ stdout: '', stderr: 'git version 2.43.0' });
+      return Promise.resolve({ stdout: 'ok', stderr: '' });
+    });
+
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const git = report.commands.find((c) => c.name === 'git');
+    expect(git!.detail).toContain('git version 2.43.0');
+  });
+
+  it('falls back to "available" when stdout and stderr are empty', async () => {
+    execFileMock.mockImplementation((cmd: string) => {
+      if (cmd === 'git') return Promise.resolve({ stdout: '', stderr: '' });
+      return Promise.resolve({ stdout: 'ok', stderr: '' });
+    });
+
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const git = report.commands.find((c) => c.name === 'git');
+    expect(git!.detail).toBe('available');
+  });
+
+  it('handles non-Error rejection from command', async () => {
+    execFileMock.mockImplementation((cmd: string) => {
+      if (cmd === 'python') return Promise.reject('raw string error');
+      return Promise.resolve({ stdout: 'ok', stderr: '' });
+    });
+
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const python = report.commands.find((c) => c.name === 'python');
+    expect(python!.detail).toBe('raw string error');
+  });
+
+  it('handles non-Error rejection from bridge fetch', async () => {
+    mockFetch.mockRejectedValue('network down');
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: true });
+    const ghidra = report.bridges.find((b) => b.name === 'ghidra-bridge');
+    expect(ghidra!.status).toBe('warn');
+    expect(ghidra!.detail).toContain('network down');
+  });
+
   it('includes external tool registry results in commands', async () => {
     probeAllMock.mockResolvedValue({
       'wabt.wasm2wat': { available: true, path: '/usr/bin/wasm2wat', version: '1.0' },
@@ -148,6 +189,54 @@ describe('runEnvironmentDoctor', () => {
     expect(wasm2wat!.status).toBe('ok');
     const decompile = report.commands.find((c) => c.name === 'wabt.wasm-decompile');
     expect(decompile!.status).toBe('missing');
+  });
+
+  it('external tool uses PATH fallback when path is undefined', async () => {
+    probeAllMock.mockResolvedValue({
+      'tool.nop': { available: true },
+    });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const nop = report.commands.find((c) => c.name === 'tool.nop');
+    expect(nop!.detail).toBe('PATH');
+  });
+
+  it('external tool uses Unavailable fallback when reason is undefined', async () => {
+    probeAllMock.mockResolvedValue({
+      'tool.gone': { available: false },
+    });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const gone = report.commands.find((c) => c.name === 'tool.gone');
+    expect(gone!.status).toBe('missing');
+    expect(gone!.detail).toBe('Unavailable');
+  });
+
+  it('external tool omits version when version is falsy', async () => {
+    probeAllMock.mockResolvedValue({
+      'tool.noversion': { available: true, path: '/usr/bin/x' },
+    });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const t = report.commands.find((c) => c.name === 'tool.noversion');
+    expect(t!.detail).toBe('/usr/bin/x');
+    expect(t!.detail).not.toContain('(');
+  });
+
+  it('uses production defaults when NODE_ENV is production', async () => {
+    const origSig = process.env.MCP_PLUGIN_SIGNATURE_REQUIRED;
+    const origStrict = process.env.MCP_PLUGIN_STRICT_LOAD;
+    const origEnv = process.env.NODE_ENV;
+    delete process.env.MCP_PLUGIN_SIGNATURE_REQUIRED;
+    delete process.env.MCP_PLUGIN_STRICT_LOAD;
+    process.env.NODE_ENV = 'production';
+
+    try {
+      const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+      expect(report.config.pluginSignatureRequired).toBe('true (production default)');
+      expect(report.config.pluginStrictLoad).toBe('true (production default)');
+    } finally {
+      process.env.MCP_PLUGIN_SIGNATURE_REQUIRED = origSig;
+      process.env.MCP_PLUGIN_STRICT_LOAD = origStrict;
+      process.env.NODE_ENV = origEnv;
+    }
   });
 
   it('checks bridge health when includeBridgeHealth is true', async () => {
@@ -199,9 +288,19 @@ describe('runEnvironmentDoctor', () => {
 
   it('includes platform limitations', async () => {
     const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
-    if (process.platform !== 'win32') {
-      expect(report.limitations.some((l) => l.includes('Windows-only'))).toBe(true);
+    if (process.platform === 'darwin') {
+      expect(report.limitations.some((l) => l.includes('cross-platform memory tools'))).toBe(true);
+      expect(report.limitations.some((l) => l.includes('SIP'))).toBe(true);
+    } else if (process.platform === 'linux') {
+      expect(report.limitations.some((l) => l.includes('/proc'))).toBe(true);
     }
+  });
+
+  it('includes native-memory check in packages', async () => {
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const nativeMem = report.packages.find((p) => p.name === 'native-memory');
+    expect(nativeMem).toBeDefined();
+    expect(['ok', 'warn', 'missing']).toContain(nativeMem!.status);
   });
 
   it('recommends camoufox install when package is missing', async () => {
@@ -224,6 +323,99 @@ describe('runEnvironmentDoctor', () => {
     });
     const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
     expect(report.recommendations.some((r) => r.includes('wabt'))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildPlatformLimitations — platform-mocked tests
+// ---------------------------------------------------------------------------
+
+describe('buildPlatformLimitations (via runEnvironmentDoctor)', () => {
+  const originalPlatform = process.platform;
+
+  beforeEach(() => {
+    probeAllMock.mockReset().mockResolvedValue({});
+    execFileMock.mockReset().mockResolvedValue({ stdout: 'ok', stderr: '' });
+    mockFetch.mockReset().mockRejectedValue(new Error('refused'));
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+  });
+
+  it('darwin: mentions cross-platform memory tools and SIP', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    expect(report.limitations.some((l) => l.includes('26 cross-platform memory tools'))).toBe(
+      true,
+    );
+    expect(report.limitations.some((l) => l.includes('SIP'))).toBe(true);
+  });
+
+  it('linux: mentions /proc and Camoufox', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    expect(report.limitations.some((l) => l.includes('/proc'))).toBe(true);
+    expect(report.limitations.some((l) => l.includes('Camoufox'))).toBe(true);
+  });
+
+  it('win32: returns no limitations', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    expect(report.limitations).toHaveLength(0);
+  });
+
+  it('unsupported platform: mentions platform name', async () => {
+    Object.defineProperty(process, 'platform', { value: 'freebsd' });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    expect(report.limitations.some((l) => l.includes('freebsd'))).toBe(true);
+    expect(report.limitations.some((l) => l.includes('not supported'))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// checkNativeMemory — platform-mocked tests
+// ---------------------------------------------------------------------------
+
+describe('checkNativeMemory (via runEnvironmentDoctor)', () => {
+  const originalPlatform = process.platform;
+
+  beforeEach(() => {
+    probeAllMock.mockReset().mockResolvedValue({});
+    execFileMock.mockReset().mockResolvedValue({ stdout: 'ok', stderr: '' });
+    mockFetch.mockReset().mockRejectedValue(new Error('refused'));
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+  });
+
+  it('darwin: reports ok with libSystem.B.dylib detail', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const nativeMem = report.packages.find((p) => p.name === 'native-memory');
+    expect(nativeMem).toBeDefined();
+    // koffi is installed in this environment, so it should be ok
+    expect(nativeMem!.status).toBe('ok');
+    expect(nativeMem!.detail).toContain('libSystem.B.dylib');
+  });
+
+  it('win32: reports ok with Win32 detail', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const nativeMem = report.packages.find((p) => p.name === 'native-memory');
+    expect(nativeMem).toBeDefined();
+    expect(nativeMem!.status).toBe('ok');
+    expect(nativeMem!.detail).toContain('Win32');
+  });
+
+  it('linux: reports warn with proc-based detail', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const nativeMem = report.packages.find((p) => p.name === 'native-memory');
+    expect(nativeMem).toBeDefined();
+    expect(nativeMem!.status).toBe('warn');
+    expect(nativeMem!.detail).toContain('proc-based');
   });
 });
 

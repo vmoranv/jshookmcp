@@ -98,18 +98,12 @@ export class NativeMemoryManager {
     return this._provider;
   }
 
-  /**
-   * Check if native memory operations are available
-   */
   async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
     return checkNativeMemoryAvailability(execAsync);
   }
 
   // ── Memory Read Operations ──
 
-  /**
-   * Read memory from a process
-   */
   async readMemory(pid: number, address: string, size: number): Promise<NativeMemoryReadResult> {
     try {
       const addrNum = BigInt(address.startsWith('0x') ? address : `0x${address}`);
@@ -140,9 +134,6 @@ export class NativeMemoryManager {
 
   // ── Memory Write Operations ──
 
-  /**
-   * Write memory to a process
-   */
   async writeMemory(
     pid: number,
     address: string,
@@ -186,9 +177,6 @@ export class NativeMemoryManager {
 
   // ── Memory Region Operations ──
 
-  /**
-   * Enumerate all memory regions in a process
-   */
   async enumerateRegions(
     pid: number,
   ): Promise<{ success: boolean; regions?: MemoryRegion[]; error?: string }> {
@@ -227,9 +215,6 @@ export class NativeMemoryManager {
     }
   }
 
-  /**
-   * Check memory protection at a specific address
-   */
   async checkMemoryProtection(
     pid: number,
     address: string,
@@ -281,9 +266,6 @@ export class NativeMemoryManager {
 
   // ── Memory Scan Operations ──
 
-  /**
-   * Scan memory for a pattern
-   */
   async scanMemory(
     pid: number,
     pattern: string,
@@ -387,9 +369,6 @@ export class NativeMemoryManager {
 
   // ── Module Operations ──
 
-  /**
-   * Enumerate loaded modules in a process
-   */
   async enumerateModules(
     pid: number,
   ): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }> {
@@ -423,9 +402,7 @@ export class NativeMemoryManager {
 
   // ── Injection Operations (Win32-only) ──
 
-  /**
-   * Inject DLL into target process (Windows only)
-   */
+  /** Win32 only — uses CreateRemoteThread + LoadLibraryA */
   async injectDll(
     pid: number,
     dllPath: string,
@@ -501,9 +478,7 @@ export class NativeMemoryManager {
     }
   }
 
-  /**
-   * Inject shellcode into target process (Windows only)
-   */
+  /** Win32 only — uses VirtualAllocEx + CreateRemoteThread */
   async injectShellcode(
     pid: number,
     shellcode: string,
@@ -588,9 +563,7 @@ export class NativeMemoryManager {
 
   // ── Anti-Debug Operations (Win32-only) ──
 
-  /**
-   * Check if process is being debugged (Windows only)
-   */
+  /** Win32 only — uses NtQueryInformationProcess */
   async checkDebugPort(
     pid: number,
   ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {

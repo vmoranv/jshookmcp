@@ -94,6 +94,16 @@ describe('DarwinMemoryProvider', () => {
       expect(result.available).toBe(false);
       expect(result.reason).toContain('no entitlement');
     });
+
+    it('returns SIP-specific message when crash signal detected', async () => {
+      state.taskForPid.mockImplementation(() => {
+        throw new Error('bus error');
+      });
+      const result = await provider.checkAvailability();
+      expect(result.available).toBe(false);
+      expect(result.reason).toContain('SIP');
+      expect(result.reason).toContain('ARM64');
+    });
   });
 
   describe('openProcess / closeProcess', () => {

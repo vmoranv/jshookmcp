@@ -47,6 +47,7 @@ export async function runEnvironmentDoctor(options?: {
     checkPackage('rebrowser-puppeteer-core'),
     checkPackage('camoufox-js', 'Optional Firefox anti-detect driver'),
     checkPackage('playwright-core', 'Optional browser automation dependency'),
+    checkNativeMemory(),
   ];
 
   const commands: DoctorCheck[] = [
@@ -167,6 +168,59 @@ function checkPackage(packageName: string, missingHint?: string): DoctorCheck {
   }
 }
 
+/**
+ * Check koffi + platform-specific native library availability for memory tools.
+ * Only loads/unloads the library — does NOT call any native functions (avoids SIGBUS on SIP macOS).
+ */
+function checkNativeMemory(): DoctorCheck {
+  try {
+    const koffiPkg = require.resolve('koffi/package.json');
+    const koffiJson = require(koffiPkg) as { version?: string };
+    const koffiVersion = koffiJson.version ?? 'unknown';
+
+    if (process.platform === 'win32') {
+      return {
+        name: 'native-memory',
+        status: 'ok',
+        detail: `koffi ${koffiVersion} — Win32 kernel32.dll available`,
+      };
+    }
+
+    if (process.platform === 'darwin') {
+      try {
+        // Attempt to load libSystem.B.dylib without calling functions (safe under SIP)
+        const koffi = require('koffi') as { load: (path: string) => { unload: () => void } };
+        const lib = koffi.load('/usr/lib/libSystem.B.dylib');
+        lib.unload();
+        return {
+          name: 'native-memory',
+          status: 'ok',
+          detail: `koffi ${koffiVersion} — macOS libSystem.B.dylib available (Mach APIs need root + SIP config)`,
+        };
+      } catch {
+        return {
+          name: 'native-memory',
+          status: 'warn',
+          detail: `koffi ${koffiVersion} installed but cannot load libSystem.B.dylib`,
+        };
+      }
+    }
+
+    // Linux or other platforms
+    return {
+      name: 'native-memory',
+      status: 'warn',
+      detail: `koffi ${koffiVersion} — no native FFI memory provider for ${process.platform} (proc-based ops available on Linux)`,
+    };
+  } catch {
+    return {
+      name: 'native-memory',
+      status: 'missing',
+      detail: 'koffi not installed — native memory tools unavailable. Install with: pnpm add koffi',
+    };
+  }
+}
+
 async function checkCommand(command: string, args: string[]): Promise<DoctorCheck> {
   try {
     const { stdout, stderr } = await execFileAsync(command, args, {
@@ -208,19 +262,24 @@ async function checkHttpEndpoint(name: string, url: string): Promise<DoctorCheck
 
 function buildPlatformLimitations(): string[] {
   const limitations: string[] = [];
-  if (process.platform !== 'win32') {
+  if (process.platform === 'darwin') {
     limitations.push(
-      'Memory write / injection tools are Windows-only; on Linux/macOS prefer browser hooks, network capture, or Frida-based alternatives.',
+      '26 cross-platform memory tools available (scan, pointer-chain, structure-analysis, heap). ' +
+        '15 Windows-only tools unavailable (PE analysis, anti-cheat, code injection, speedhack, hardware breakpoints).',
     );
-  }
-  if (process.platform === 'linux') {
+    limitations.push(
+      'Native memory operations (mach_vm_read/write) require root privileges and may require SIP configuration on ARM64.',
+    );
+  } else if (process.platform === 'linux') {
+    limitations.push(
+      'Process management available via /proc. Native FFI memory provider not implemented — memory read/write uses /proc/pid/mem (requires root or CAP_SYS_PTRACE).',
+    );
     limitations.push(
       'Camoufox runs on Linux, but some Chrome/CDP-heavy workflows are better served by the Chrome driver.',
     );
-  }
-  if (process.platform === 'darwin') {
+  } else if (process.platform !== 'win32') {
     limitations.push(
-      'macOS users should expect some Windows-native process tooling to be unavailable.',
+      `Platform ${process.platform} is not supported for native memory operations. Use Windows or macOS.`,
     );
   }
   return limitations;

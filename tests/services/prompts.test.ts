@@ -76,7 +76,7 @@ describe('generateCryptoDetectionPrompt', () => {
 
   it('truncates code longer than 4000 chars', () => {
     const msgs = generateCryptoDetectionPrompt(LONG_CODE);
-    expect(msgs[1]!.content).toContain('// ... (code truncated)');
+    expect(msgs[1]!.content).toContain('// ... (truncated)');
     expect(msgs[1]!.content).not.toContain('a'.repeat(5000));
   });
 
@@ -114,7 +114,7 @@ describe('generateCodeAnalysisPrompt', () => {
 
   it('truncates code longer than 5000 chars', () => {
     const msgs = generateCodeAnalysisPrompt(LONG_CODE, 'general');
-    expect(msgs[1]!.content).toContain('// ... (code truncated for analysis)');
+    expect(msgs[1]!.content).toContain('// ... (truncated)');
   });
 
   it('preserves code at exactly 5000 chars without truncation', () => {
@@ -201,8 +201,8 @@ describe('generateCodeCleanupMessages', () => {
     expect(msgs).toHaveLength(2);
     expect(msgs[0]!.role).toBe('system');
     expect(msgs[1]!.role).toBe('user');
-    expect(msgs[1]!.content).toContain('- string-array');
-    expect(msgs[1]!.content).toContain('- dead-code');
+    expect(msgs[1]!.content).toContain('string-array');
+    expect(msgs[1]!.content).toContain('dead-code');
   });
 
   it('truncates code longer than 2000 chars', () => {
@@ -263,7 +263,7 @@ describe('generateDeobfuscationPrompt', () => {
 
   it('truncates code longer than 3000 chars', () => {
     const msgs = generateDeobfuscationPrompt(LONG_CODE);
-    expect(msgs[1]!.content).toContain('// ... (code truncated)');
+    expect(msgs[1]!.content).toContain('// ... (truncated)');
   });
 
   it('does not truncate code at exactly 3000 chars', () => {
@@ -413,7 +413,7 @@ describe('generateEnvironmentSuggestionsMessages', () => {
     expect(msgs).toHaveLength(2);
     expect(msgs[1]!.content).toContain('CHROME');
     expect(msgs[1]!.content).toContain('navigator.plugins');
-    expect(msgs[1]!.content).toContain('2 environment variables accessed');
+    expect(msgs[1]!.content).toContain('2 vars detected');
   });
 
   it('limits missing API display to 20 entries', () => {
@@ -422,14 +422,14 @@ describe('generateEnvironmentSuggestionsMessages', () => {
       type: 'function',
     }));
     const msgs = generateEnvironmentSuggestionsMessages({}, missing, 'firefox');
-    expect(msgs[1]!.content).toContain('and 10 more');
+    expect(msgs[1]!.content).toContain('+10 more');
   });
 
   it('handles empty detected and missing', () => {
     const msgs = generateEnvironmentSuggestionsMessages({}, [], 'safari');
     assertValidMessages(msgs);
-    expect(msgs[1]!.content).toContain('0 environment variables accessed');
-    expect(msgs[1]!.content).toContain('0 APIs need implementation');
+    expect(msgs[1]!.content).toContain('0 vars detected');
+    expect(msgs[1]!.content).toContain('0 APIs missing');
   });
 });
 
