@@ -71,35 +71,31 @@ export const browserPageSystemTools: Tool[] = [
 
   tool('page_set_cookies')
     .desc('Set cookies for the page')
-    .array('cookies', {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        value: { type: 'string' },
-        domain: { type: 'string' },
-        path: { type: 'string' },
-        expires: { type: 'number' },
-        httpOnly: { type: 'boolean' },
-        secure: { type: 'boolean' },
-        sameSite: { type: 'string', enum: ['Strict', 'Lax', 'None'] },
+    .array(
+      'cookies',
+      {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          value: { type: 'string' },
+          domain: { type: 'string' },
+          path: { type: 'string' },
+          expires: { type: 'number' },
+          httpOnly: { type: 'boolean' },
+          secure: { type: 'boolean' },
+          sameSite: { type: 'string', enum: ['Strict', 'Lax', 'None'] },
+        },
+        required: ['name', 'value'],
       },
-      required: ['name', 'value'],
-    }, 'Array of cookie objects')
+      'Array of cookie objects',
+    )
     .required('cookies')
     .idempotent()
     .build(),
 
-  tool('page_get_cookies')
-    .desc('Get all cookies for the page')
-    .readOnly()
-    .idempotent()
-    .build(),
+  tool('page_get_cookies').desc('Get all cookies for the page').readOnly().idempotent().build(),
 
-  tool('page_clear_cookies')
-    .desc('Clear all cookies')
-    .destructive()
-    .idempotent()
-    .build(),
+  tool('page_clear_cookies').desc('Clear all cookies').destructive().idempotent().build(),
 
   tool('page_set_viewport')
     .desc('Set viewport size')
@@ -111,16 +107,15 @@ export const browserPageSystemTools: Tool[] = [
 
   tool('page_emulate_device')
     .desc('Emulate mobile device (iPhone, iPad, Android)')
-    .string('device', 'Device to emulate. Supports canonical values (iPhone, iPad, Android) and aliases like "iPhone 13" / "iPhone 14".')
+    .string(
+      'device',
+      'Device to emulate. Supports canonical values (iPhone, iPad, Android) and aliases like "iPhone 13" / "iPhone 14".',
+    )
     .required('device')
     .idempotent()
     .build(),
 
-  tool('page_get_local_storage')
-    .desc('Get all localStorage items')
-    .readOnly()
-    .idempotent()
-    .build(),
+  tool('page_get_local_storage').desc('Get all localStorage items').readOnly().idempotent().build(),
 
   tool('page_set_local_storage')
     .desc('Set localStorage item')
@@ -137,9 +132,5 @@ export const browserPageSystemTools: Tool[] = [
     .openWorld()
     .build(),
 
-  tool('page_get_all_links')
-    .desc('Get all links on the page')
-    .readOnly()
-    .idempotent()
-    .build(),
+  tool('page_get_all_links').desc('Get all links on the page').readOnly().idempotent().build(),
 ];

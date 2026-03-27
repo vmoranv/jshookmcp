@@ -4,7 +4,10 @@ import { tool } from '@server/registry/tool-builder';
 export const platformTools: Tool[] = [
   tool('miniapp_pkg_scan')
     .desc('扫描本地小程序缓存目录，列出所有 小程序包文件。默认扫描常见 Windows 路径。')
-    .string('searchPath', '可选。指定扫描根目录；不提供时使用默认路径（MiniApp/Cache 与 MiniApp/Plugin）。')
+    .string(
+      'searchPath',
+      '可选。指定扫描根目录；不提供时使用默认路径（MiniApp/Cache 与 MiniApp/Plugin）。',
+    )
     .build(),
 
   tool('miniapp_pkg_unpack')
@@ -24,21 +27,29 @@ export const platformTools: Tool[] = [
     .desc('提取 Electron app.asar（纯 Node.js 实现，不依赖 @electron/asar）。支持仅列文件模式。')
     .string('inputPath', '必填。asar 文件路径。')
     .string('outputDir', '可选。提取目录；不提供时自动生成 artifacts 临时目录。')
-    .boolean('listOnly', '可选。默认 false；true 时仅列出文件清单，不执行提取。', { default: false })
+    .boolean('listOnly', '可选。默认 false；true 时仅列出文件清单，不执行提取。', {
+      default: false,
+    })
     .required('inputPath')
     .build(),
 
   tool('electron_inspect_app')
-    .desc('分析 Electron 应用结构（.exe 或 app 目录）：package.json、main、preload、dependencies、devToolsEnabled。')
+    .desc(
+      '分析 Electron 应用结构（.exe 或 app 目录）：package.json、main、preload、dependencies、devToolsEnabled。',
+    )
     .string('appPath', '必填。Electron .exe 路径或应用目录路径。')
     .required('appPath')
     .build(),
 
   tool('electron_scan_userdata')
-    .desc('扫描指定目录中的所有 JSON 文件，返回 raw 内容。适用于 Electron 应用的用户数据目录（Windows: %APPDATA%, macOS: ~/Library/Application Support, Linux: ~/.config）。Agent 自行解读数据。')
+    .desc(
+      '扫描指定目录中的所有 JSON 文件，返回 raw 内容。适用于 Electron 应用的用户数据目录（Windows: %APPDATA%, macOS: ~/Library/Application Support, Linux: ~/.config）。Agent 自行解读数据。',
+    )
     .string('dirPath', '必填。要扫描的目录绝对路径（任意平台）。')
     .number('maxFiles', '可选。最多读取的 JSON 文件数量。默认 20。', { default: 20 })
-    .number('maxFileSizeKB', '可选。单个文件大小上限（KB）。超限文件跳过。默认 1024。', { default: 1024 })
+    .number('maxFileSizeKB', '可选。单个文件大小上限（KB）。超限文件跳过。默认 1024。', {
+      default: 1024,
+    })
     .required('dirPath')
     .readOnly()
     .idempotent()
@@ -64,17 +75,30 @@ export const platformTools: Tool[] = [
     .build(),
 
   tool('electron_patch_fuses')
-    .desc('Patch Electron binary fuses to enable/disable debug capabilities. Creates backup before patching. Use profile="debug" to enable RunAsNode, NodeOptions, InspectArguments and disable OnlyLoadAppFromAsar.')
+    .desc(
+      'Patch Electron binary fuses to enable/disable debug capabilities. Creates backup before patching. Use profile="debug" to enable RunAsNode, NodeOptions, InspectArguments and disable OnlyLoadAppFromAsar.',
+    )
     .string('exePath', 'Required. Path to the Electron .exe file to patch.')
-    .enum('profile', ['debug', 'custom'], 'Patch profile. "debug" enables debug-related fuses. "custom" requires a fuses object.', { default: 'debug' })
-    .object('fuses', {}, 'For profile="custom". Map of fuse names to ENABLE/DISABLE. E.g. {"RunAsNode": "ENABLE"}.')
+    .enum(
+      'profile',
+      ['debug', 'custom'],
+      'Patch profile. "debug" enables debug-related fuses. "custom" requires a fuses object.',
+      { default: 'debug' },
+    )
+    .object(
+      'fuses',
+      {},
+      'For profile="custom". Map of fuse names to ENABLE/DISABLE. E.g. {"RunAsNode": "ENABLE"}.',
+    )
     .boolean('createBackup', 'Create a .exe.bak backup before patching.', { default: true })
     .required('exePath')
     .destructive()
     .build(),
 
   tool('v8_bytecode_decompile')
-    .desc('Decompile V8 bytecode (.jsc / bytenode) files. Uses view8 Python package for full decompilation (preferred), falls back to built-in constant pool extraction. Returns pseudocode or extracted strings for LLM analysis.')
+    .desc(
+      'Decompile V8 bytecode (.jsc / bytenode) files. Uses view8 Python package for full decompilation (preferred), falls back to built-in constant pool extraction. Returns pseudocode or extracted strings for LLM analysis.',
+    )
     .string('filePath', 'Required. Path to the .jsc or V8 bytecode file.')
     .required('filePath')
     .readOnly()
@@ -82,7 +106,9 @@ export const platformTools: Tool[] = [
     .build(),
 
   tool('electron_launch_debug')
-    .desc('Launch Electron app with dual CDP debugging: --inspect for main process (Node.js) and --remote-debugging-port for renderer (Chromium). Auto-checks fuse status.')
+    .desc(
+      'Launch Electron app with dual CDP debugging: --inspect for main process (Node.js) and --remote-debugging-port for renderer (Chromium). Auto-checks fuse status.',
+    )
     .string('exePath', 'Required. Path to the Electron .exe file.')
     .number('mainPort', 'Main process inspect port.', { default: 9229 })
     .number('rendererPort', 'Renderer remote debugging port.', { default: 9222 })
@@ -101,21 +127,37 @@ export const platformTools: Tool[] = [
     .build(),
 
   tool('frida_bridge')
-    .desc('Dynamic instrumentation bridge via Frida. Actions: check_env (verify frida installed), generate_script (hook template), attach (live-attach to process), run_script (inject script), detach (disconnect), list_sessions, guide (usage help).')
-    .enum('action', ['check_env', 'generate_script', 'attach', 'run_script', 'detach', 'list_sessions', 'guide'], 'Action to perform.', { default: 'guide' })
+    .desc(
+      'Dynamic instrumentation bridge via Frida. Actions: check_env (verify frida installed), generate_script (hook template), attach (live-attach to process), run_script (inject script), detach (disconnect), list_sessions, guide (usage help).',
+    )
+    .enum(
+      'action',
+      ['check_env', 'generate_script', 'attach', 'run_script', 'detach', 'list_sessions', 'guide'],
+      'Action to perform.',
+      { default: 'guide' },
+    )
     .number('pid', 'Process ID for attach/run_script.')
     .string('processName', 'Process name for attach (alternative to pid).')
     .string('sessionId', 'Session ID for run_script/detach.')
     .string('script', 'Frida JS script to inject (for run_script).')
-    .enum('hookType', ['intercept', 'replace', 'stalker', 'module_export'], 'Hook template type (for generate_script).', { default: 'intercept' })
+    .enum(
+      'hookType',
+      ['intercept', 'replace', 'stalker', 'module_export'],
+      'Hook template type (for generate_script).',
+      { default: 'intercept' },
+    )
     .string('functionName', 'Target function name (for generate_script).')
     .string('target', 'Target process name (for generate_script usage hint).')
     .openWorld()
     .build(),
 
   tool('electron_ipc_sniff')
-    .desc('Sniff Electron IPC messages by injecting hooks into ipcRenderer via CDP. Captures invoke/send/sendSync with channel names and arguments. Actions: start (inject hooks), dump (retrieve captured messages), stop (end session), list (show sessions), guide.')
-    .enum('action', ['start', 'dump', 'stop', 'list', 'guide'], 'Action to perform.', { default: 'guide' })
+    .desc(
+      'Sniff Electron IPC messages by injecting hooks into ipcRenderer via CDP. Captures invoke/send/sendSync with channel names and arguments. Actions: start (inject hooks), dump (retrieve captured messages), stop (end session), list (show sessions), guide.',
+    )
+    .enum('action', ['start', 'dump', 'stop', 'list', 'guide'], 'Action to perform.', {
+      default: 'guide',
+    })
     .number('port', 'Renderer CDP port (--remote-debugging-port).', { default: 9222 })
     .string('sessionId', 'Session ID for dump/stop.')
     .boolean('clear', 'Clear captured messages after dump.', { default: true })
@@ -123,11 +165,17 @@ export const platformTools: Tool[] = [
     .build(),
 
   tool('jadx_bridge')
-    .desc('JADX decompiler bridge for Android APK/DEX/AAR files. Actions: check_env (verify jadx installed), decompile (run jadx on input), guide (usage help).')
+    .desc(
+      'JADX decompiler bridge for Android APK/DEX/AAR files. Actions: check_env (verify jadx installed), decompile (run jadx on input), guide (usage help).',
+    )
     .enum('action', ['check_env', 'decompile', 'guide'], 'Action to perform.', { default: 'guide' })
     .string('inputPath', 'Required for decompile. Path to APK/DEX/AAR file.')
     .string('outputDir', 'Optional. Output directory for decompiled sources.')
-    .array('extraArgs', { type: 'string' }, 'Extra jadx CLI arguments (e.g. ["--deobf", "--show-bad-code"]).')
+    .array(
+      'extraArgs',
+      { type: 'string' },
+      'Extra jadx CLI arguments (e.g. ["--deobf", "--show-bad-code"]).',
+    )
     .openWorld()
     .build(),
 ];

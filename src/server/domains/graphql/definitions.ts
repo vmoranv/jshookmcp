@@ -14,7 +14,9 @@ export const graphqlTools: Tool[] = [
     .desc('Persistently replace matching script responses via request interception')
     .string('url', 'Script URL match pattern')
     .string('replacement', 'Replacement JavaScript source')
-    .enum('matchType', ['exact', 'contains', 'regex'], 'URL matching strategy', { default: 'contains' })
+    .enum('matchType', ['exact', 'contains', 'regex'], 'URL matching strategy', {
+      default: 'contains',
+    })
     .required('url', 'replacement')
     .openWorld()
     .build(),
@@ -22,7 +24,11 @@ export const graphqlTools: Tool[] = [
   tool('graphql_introspect')
     .desc('Run GraphQL introspection query against a target endpoint')
     .string('endpoint', 'GraphQL endpoint URL')
-    .prop('headers', { type: 'object', description: 'Custom request headers', additionalProperties: { type: 'string' } })
+    .prop('headers', {
+      type: 'object',
+      description: 'Custom request headers',
+      additionalProperties: { type: 'string' },
+    })
     .required('endpoint')
     .openWorld()
     .build(),
@@ -38,9 +44,17 @@ export const graphqlTools: Tool[] = [
     .desc('Replay a GraphQL operation with optional variables via in-page fetch')
     .string('endpoint', 'GraphQL endpoint URL')
     .string('query', 'GraphQL query/mutation string')
-    .prop('variables', { type: 'object', description: 'GraphQL variables', additionalProperties: true })
+    .prop('variables', {
+      type: 'object',
+      description: 'GraphQL variables',
+      additionalProperties: true,
+    })
     .string('operationName', 'GraphQL operationName')
-    .prop('headers', { type: 'object', description: 'Custom request headers', additionalProperties: { type: 'string' } })
+    .prop('headers', {
+      type: 'object',
+      description: 'Custom request headers',
+      additionalProperties: { type: 'string' },
+    })
     .required('endpoint', 'query')
     .openWorld()
     .build(),

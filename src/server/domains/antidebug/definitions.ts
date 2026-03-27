@@ -9,7 +9,9 @@ export const antidebugTools: Tool[] = [
 
   tool('antidebug_bypass_debugger_statement')
     .desc('Bypass debugger-statement protection by patching Function constructor')
-    .enum('mode', ['remove', 'noop'], 'remove = strip statements, noop = replace with void 0', { default: 'remove' })
+    .enum('mode', ['remove', 'noop'], 'remove = strip statements, noop = replace with void 0', {
+      default: 'remove',
+    })
     .build(),
 
   tool('antidebug_bypass_timing')

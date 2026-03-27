@@ -416,7 +416,10 @@ describe('CodeCollector – additional coverage', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.connect('ws://127.0.0.1:9222');
 
-      expect(mocks.connect).toHaveBeenCalledWith({ browserWSEndpoint: 'ws://127.0.0.1:9222', defaultViewport: null });
+      expect(mocks.connect).toHaveBeenCalledWith({
+        browserWSEndpoint: 'ws://127.0.0.1:9222',
+        defaultViewport: null,
+      });
     });
 
     it('connects via HTTP URL endpoint', async () => {
@@ -426,7 +429,10 @@ describe('CodeCollector – additional coverage', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       await collector.connect('http://127.0.0.1:9222');
 
-      expect(mocks.connect).toHaveBeenCalledWith({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
+      expect(mocks.connect).toHaveBeenCalledWith({
+        browserURL: 'http://127.0.0.1:9222',
+        defaultViewport: null,
+      });
     });
 
     it('disconnects existing browser before connecting', async () => {

@@ -12,28 +12,20 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
     .destructive()
     .build(),
 
-  tool('debugger_pause')
-    .desc('Pause execution at the next statement')
-    .build(),
+  tool('debugger_pause').desc('Pause execution at the next statement').build(),
 
-  tool('debugger_resume')
-    .desc('Resume execution (continue)')
-    .build(),
+  tool('debugger_resume').desc('Resume execution (continue)').build(),
 
-  tool('debugger_step_into')
-    .desc('Step into the next function call')
-    .build(),
+  tool('debugger_step_into').desc('Step into the next function call').build(),
 
-  tool('debugger_step_over')
-    .desc('Step over the next function call')
-    .build(),
+  tool('debugger_step_over').desc('Step over the next function call').build(),
 
-  tool('debugger_step_out')
-    .desc('Step out of the current function')
-    .build(),
+  tool('debugger_step_out').desc('Step out of the current function').build(),
 
   tool('breakpoint_set')
-    .desc('Set a breakpoint at a specific location. Supports URL-based and scriptId-based breakpoints with optional conditions.')
+    .desc(
+      'Set a breakpoint at a specific location. Supports URL-based and scriptId-based breakpoints with optional conditions.',
+    )
     .string('url', 'URL of the script (e.g., "app.js", "https://cdn.example.com/app.js")')
     .string('scriptId', 'Script ID (alternative to URL, get from get_all_scripts)')
     .number('lineNumber', 'Line number (0-based)')
@@ -50,11 +42,7 @@ export const DEBUGGER_CORE_TOOLS: Tool[] = [
     .idempotent()
     .build(),
 
-  tool('breakpoint_list')
-    .desc('List all active breakpoints')
-    .readOnly()
-    .idempotent()
-    .build(),
+  tool('breakpoint_list').desc('List all active breakpoints').readOnly().idempotent().build(),
 
   tool('get_call_stack')
     .desc('Get the current call stack (only available when paused at a breakpoint)')
@@ -123,9 +111,13 @@ Examples:
 get_scope_variables_enhanced()
 get_scope_variables_enhanced(callFrameId="xxx", includeObjectProperties=true)`)
     .string('callFrameId', 'Call frame ID (from get_call_stack, defaults to current frame)')
-    .boolean('includeObjectProperties', 'Expand object properties recursively (default: false)', { default: false })
+    .boolean('includeObjectProperties', 'Expand object properties recursively (default: false)', {
+      default: false,
+    })
     .number('maxDepth', 'Maximum traversal depth for nested objects (default: 1)', { default: 1 })
-    .boolean('skipErrors', 'Skip properties that throw errors during access (default: true)', { default: true })
+    .boolean('skipErrors', 'Skip properties that throw errors during access (default: true)', {
+      default: true,
+    })
     .readOnly()
     .idempotent()
     .build(),

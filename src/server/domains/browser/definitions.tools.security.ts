@@ -60,7 +60,10 @@ Parameters:
 - autoSwitchHeadless: allow supported integrations to switch to headed mode when CAPTCHA is detected
 - captchaTimeout: timeout for waiting user to solve CAPTCHA in ms (default: 300000)`)
     .boolean('autoDetectCaptcha', 'Whether to automatically detect CAPTCHA after navigation')
-    .boolean('autoSwitchHeadless', 'Whether to automatically switch to headed mode when CAPTCHA detected')
+    .boolean(
+      'autoSwitchHeadless',
+      'Whether to automatically switch to headed mode when CAPTCHA detected',
+    )
     .number('captchaTimeout', 'Timeout for waiting user to complete CAPTCHA (milliseconds)')
     .idempotent()
     .build(),
@@ -163,11 +166,26 @@ Workflow:
 Can also connect and list in one call:
 browser_list_tabs(browserURL="http://127.0.0.1:9222")
 browser_list_tabs(autoConnect=true, channel="stable")`)
-    .string('browserURL', 'Optional: connect to this browser URL before listing (e.g. http://127.0.0.1:9222)')
+    .string(
+      'browserURL',
+      'Optional: connect to this browser URL before listing (e.g. http://127.0.0.1:9222)',
+    )
     .string('wsEndpoint', 'Optional: connect to this browser WebSocket endpoint before listing.')
-    .boolean('autoConnect', 'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.', { default: false })
-    .enum('channel', ['stable', 'beta', 'dev', 'canary'], 'Chrome channel used for autoConnect when userDataDir is not provided.', { default: 'stable' })
-    .string('userDataDir', 'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.')
+    .boolean(
+      'autoConnect',
+      'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.',
+      { default: false },
+    )
+    .enum(
+      'channel',
+      ['stable', 'beta', 'dev', 'canary'],
+      'Chrome channel used for autoConnect when userDataDir is not provided.',
+      { default: 'stable' },
+    )
+    .string(
+      'userDataDir',
+      'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
+    )
     .readOnly()
     .idempotent()
     .openWorld()
@@ -190,16 +208,28 @@ Examples:
     .build(),
 
   tool('framework_state_extract')
-    .desc('Extract component state from the live page. Supports React, Vue 2/3, Svelte 3/4/5, Solid.js, and Preact. Also detects Next.js/Nuxt meta-framework metadata (routes, build info, payload). Useful for debugging frontend applications, reverse-engineering SPA state, and finding hidden data.')
-    .enum('framework', ['auto', 'react', 'vue2', 'vue3', 'svelte', 'solid', 'preact'], 'Framework to target. auto = detect automatically.', { default: 'auto' })
-    .string('selector', 'CSS selector of root element to inspect (default: #root, #app, [data-reactroot], body)')
+    .desc(
+      'Extract component state from the live page. Supports React, Vue 2/3, Svelte 3/4/5, Solid.js, and Preact. Also detects Next.js/Nuxt meta-framework metadata (routes, build info, payload). Useful for debugging frontend applications, reverse-engineering SPA state, and finding hidden data.',
+    )
+    .enum(
+      'framework',
+      ['auto', 'react', 'vue2', 'vue3', 'svelte', 'solid', 'preact'],
+      'Framework to target. auto = detect automatically.',
+      { default: 'auto' },
+    )
+    .string(
+      'selector',
+      'CSS selector of root element to inspect (default: #root, #app, [data-reactroot], body)',
+    )
     .number('maxDepth', 'Maximum component tree depth to traverse', { default: 5 })
     .readOnly()
     .idempotent()
     .build(),
 
   tool('indexeddb_dump')
-    .desc('Dump all IndexedDB databases and their contents. Useful for analyzing PWA data, stored tokens, or offline application state.')
+    .desc(
+      'Dump all IndexedDB databases and their contents. Useful for analyzing PWA data, stored tokens, or offline application state.',
+    )
     .string('database', 'Specific database name to dump (default: all databases)')
     .string('store', 'Specific object store to dump (default: all stores)')
     .number('maxRecords', 'Maximum records per store to return', { default: 100 })

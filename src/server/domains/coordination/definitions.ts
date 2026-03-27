@@ -3,7 +3,9 @@ import { tool } from '@server/registry/tool-builder';
 
 export const coordinationTools: Tool[] = [
   tool('create_task_handoff')
-    .desc('Create a sub-task handoff for specialist agent delegation. Auto-captures active page URL.')
+    .desc(
+      'Create a sub-task handoff for specialist agent delegation. Auto-captures active page URL.',
+    )
     .string('description', 'What the specialist should accomplish')
     .array('constraints', { type: 'string' }, 'Constraints for the specialist')
     .string('targetDomain', 'Suggested domain for the specialist')
@@ -20,7 +22,9 @@ export const coordinationTools: Tool[] = [
     .build(),
 
   tool('get_task_context')
-    .desc('Read task handoff context. Without taskId returns all active handoffs + session insights.')
+    .desc(
+      'Read task handoff context. Without taskId returns all active handoffs + session insights.',
+    )
     .string('taskId', 'Specific task ID to retrieve')
     .readOnly()
     .idempotent()
@@ -28,7 +32,11 @@ export const coordinationTools: Tool[] = [
 
   tool('append_session_insight')
     .desc('Append a discovery to the session-level knowledge accumulator shared across handoffs')
-    .enum('category', ['auth', 'crypto', 'api', 'anti_debug', 'architecture', 'vulnerability', 'other'], 'Insight category')
+    .enum(
+      'category',
+      ['auth', 'crypto', 'api', 'anti_debug', 'architecture', 'vulnerability', 'other'],
+      'Insight category',
+    )
     .string('content', 'The insight content')
     .prop('confidence', {
       type: 'number',

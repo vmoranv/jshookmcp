@@ -16,21 +16,27 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Hoisted mocks — available inside vi.mock factories
 // ---------------------------------------------------------------------------
 
-const { probeAllMock, execFileMock, mockFetch, blockedPackages, koffiLoadShouldFail, koffiVersionless, versionlessPackages } = vi.hoisted(
-  () => ({
-    probeAllMock: vi.fn().mockResolvedValue({}),
-    execFileMock: vi.fn(),
-    mockFetch: vi.fn(),
-    /** Set of package patterns that should cause require.resolve to throw */
-    blockedPackages: new Set<string>(),
-    /** If true, koffi.load() will throw (simulates libSystem.B.dylib failure) */
-    koffiLoadShouldFail: { value: false },
-    /** If true, koffi/package.json returns {} (no version field) */
-    koffiVersionless: { value: false },
-    /** Set of packages whose package.json should return {} (no version) */
-    versionlessPackages: new Set<string>(),
-  }),
-);
+const {
+  probeAllMock,
+  execFileMock,
+  mockFetch,
+  blockedPackages,
+  koffiLoadShouldFail,
+  koffiVersionless,
+  versionlessPackages,
+} = vi.hoisted(() => ({
+  probeAllMock: vi.fn().mockResolvedValue({}),
+  execFileMock: vi.fn(),
+  mockFetch: vi.fn(),
+  /** Set of package patterns that should cause require.resolve to throw */
+  blockedPackages: new Set<string>(),
+  /** If true, koffi.load() will throw (simulates libSystem.B.dylib failure) */
+  koffiLoadShouldFail: { value: false },
+  /** If true, koffi/package.json returns {} (no version field) */
+  koffiVersionless: { value: false },
+  /** Set of packages whose package.json should return {} (no version) */
+  versionlessPackages: new Set<string>(),
+}));
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -209,9 +215,9 @@ describe('environmentDoctor edge cases (require-mocked)', () => {
     Object.defineProperty(process, 'platform', { value: 'darwin' });
     const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
     expect(report.limitations.length).toBeGreaterThan(0);
-    expect(
-      report.recommendations.some((r) => r.includes('Review platform limitations')),
-    ).toBe(true);
+    expect(report.recommendations.some((r) => r.includes('Review platform limitations'))).toBe(
+      true,
+    );
   });
 
   // ── checkNativeMemory koffiVersion ?? 'unknown' branch (L179) ──

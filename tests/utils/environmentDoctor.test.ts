@@ -346,9 +346,7 @@ describe('buildPlatformLimitations (via runEnvironmentDoctor)', () => {
   it('darwin: mentions cross-platform memory tools and SIP', async () => {
     Object.defineProperty(process, 'platform', { value: 'darwin' });
     const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
-    expect(report.limitations.some((l) => l.includes('26 cross-platform memory tools'))).toBe(
-      true,
-    );
+    expect(report.limitations.some((l) => l.includes('26 cross-platform memory tools'))).toBe(true);
     expect(report.limitations.some((l) => l.includes('SIP'))).toBe(true);
   });
 
