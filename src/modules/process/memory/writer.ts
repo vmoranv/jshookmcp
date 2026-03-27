@@ -184,6 +184,12 @@ async function writeMemoryMac(
 
 // ── Public dispatchers ──
 
+/** Strict hex address pattern — rejects embedded shell metacharacters. */
+const HEX_ADDR = /^(?:0x)?[0-9a-fA-F]{1,16}$/;
+
+/** Hard cap on a single write to prevent OOM (matches macOS guard). */
+const MAX_WRITE_SIZE = 16 * 1024; // 16 KB
+
 export async function writeMemory(
   platform: Platform,
   pid: number,
@@ -193,6 +199,9 @@ export async function writeMemory(
   checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>,
 ): Promise<MemoryWriteResult> {
   try {
+    if (!HEX_ADDR.test(address)) {
+      return { success: false, error: 'Invalid address format. Use hex like "0x12345678"' };
+    }
     const addrNum = parseInt(address, 16);
     if (isNaN(addrNum)) {
       return { success: false, error: 'Invalid address format' };
@@ -208,6 +217,10 @@ export async function writeMemory(
       }
     } catch {
       return { success: false, error: `Invalid ${encoding} data` };
+    }
+
+    if (buffer.length === 0 || buffer.length > MAX_WRITE_SIZE) {
+      return { success: false, error: `Write size must be 1–${MAX_WRITE_SIZE} bytes (16 KB)` };
     }
 
     // Try native FFI first on Windows (10-100x faster)
@@ -243,6 +256,8 @@ export async function writeMemory(
   }
 }
 
+const MAX_BATCH_PATCHES = 1000;
+
 export async function batchMemoryWrite(
   pid: number,
   patches: MemoryPatch[],
@@ -257,6 +272,13 @@ export async function batchMemoryWrite(
   results: { address: string; success: boolean; error?: string }[];
   error?: string;
 }> {
+  if (patches.length > MAX_BATCH_PATCHES) {
+    return {
+      success: false,
+      results: [],
+      error: `Too many patches (${patches.length}), max ${MAX_BATCH_PATCHES}`,
+    };
+  }
   const results: { address: string; success: boolean; error?: string }[] = [];
 
   for (const patch of patches) {

@@ -22,7 +22,7 @@ export class MemoryAuditTrail {
 
   constructor(capacity: number = 5000) {
     this.capacity = Number.isInteger(capacity) && capacity > 0 ? capacity : 5000;
-    this.buffer = [];
+    this.buffer = new Array<AuditEntry>(this.capacity);
   }
 
   record(entry: Omit<AuditEntry, 'timestamp' | 'user'>): void {

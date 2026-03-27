@@ -107,6 +107,9 @@ export class DetailedDataManager {
     data: T,
     threshold = DETAILED_DATA_SMART_THRESHOLD_BYTES,
   ): T | DetailedDataResponse {
+    // Fast path: primitives are always under threshold — skip serialization
+    if (data === null || data === undefined || typeof data !== 'object') return data;
+
     const { json: jsonStr, size } = this.serializeWithMemo(data);
 
     if (size <= threshold) {

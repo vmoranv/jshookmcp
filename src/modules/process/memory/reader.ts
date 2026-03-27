@@ -186,6 +186,12 @@ async function readMemoryMac(
 
 // ── Public dispatcher ──
 
+/** Strict hex address pattern — rejects embedded shell metacharacters. */
+const HEX_ADDR = /^(?:0x)?[0-9a-fA-F]{1,16}$/;
+
+/** Hard cap on a single read to prevent OOM (matches macOS guard). */
+const MAX_READ_SIZE = 16 * 1024 * 1024; // 16 MB
+
 export async function readMemory(
   platform: Platform,
   pid: number,
@@ -194,9 +200,15 @@ export async function readMemory(
   checkProtectionFn: (pid: number, address: string) => Promise<MemoryProtectionInfo>,
 ): Promise<MemoryReadResult> {
   try {
+    if (!HEX_ADDR.test(address)) {
+      return { success: false, error: 'Invalid address format. Use hex like "0x12345678"' };
+    }
     const addrNum = parseInt(address, 16);
     if (isNaN(addrNum)) {
       return { success: false, error: 'Invalid address format. Use hex like "0x12345678"' };
+    }
+    if (size <= 0 || size > MAX_READ_SIZE) {
+      return { success: false, error: `Read size must be 1–${MAX_READ_SIZE} bytes (16 MB)` };
     }
 
     // Try native FFI first on Windows (10-100x faster)
