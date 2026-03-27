@@ -17,8 +17,9 @@ pre-commit:
       run: npx oxlint {staged_files}
 
 pre-push:
-  parallel: true
   commands:
+    refresh-git-noise:
+      run: npx pnpm@10.28.2 run git:refresh-noise
     oxlint:
       run: npx pnpm@10.28.2 run lint
     oxfmt-check:

@@ -89,6 +89,7 @@
     "package:verify-install": "node scripts/verify-packed-install.mjs",
     "package:verify-release": "node scripts/verify-release-artifact.mjs",
     "audit:tools": "tsx scripts/audit-tools.mjs",
+    "git:refresh-noise": "node scripts/refresh-git-noise.mjs",
     "check": "pnpm run metadata:check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
     "package": "pnpm pack",
     "prepublishOnly": "pnpm run check",
