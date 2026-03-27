@@ -149,11 +149,34 @@ async function writeMemoryMac(
   if (address === 0) {
     return { success: false, error: 'Invalid address: null pointer (0x0)' };
   }
-  const MAX_WRITE_SIZE = 16 * 1024;
-  if (data.length === 0 || data.length > MAX_WRITE_SIZE) {
-    return { success: false, error: `Invalid write size: must be 1–${MAX_WRITE_SIZE} bytes` };
+  if (data.length === 0 || data.length > MEMORY_MAX_WRITE_BYTES) {
+    return {
+      success: false,
+      error: `Invalid write size: must be 1–${MEMORY_MAX_WRITE_BYTES} bytes`,
+    };
   }
   const addrHex = `0x${address.toString(16)}`;
+
+  // ── Native fast-path: task_for_pid + mach_vm_write (zero-pause) ──
+  try {
+    const { createPlatformProvider } = await import('@native/platform/factory.js');
+    const provider = createPlatformProvider();
+    const avail = await provider.checkAvailability();
+    if (avail.available) {
+      const handle = provider.openProcess(pid, true);
+      try {
+        const result = provider.writeMemory(handle, BigInt(address), data);
+        logger.debug('Native Mach memory write succeeded (zero-pause)');
+        return { success: true, bytesWritten: result.bytesWritten };
+      } finally {
+        provider.closeProcess(handle);
+      }
+    }
+  } catch (nativeErr) {
+    logger.debug('Native Mach write failed, falling back to lldb:', nativeErr);
+  }
+
+  // ── Fallback: lldb subprocess (pauses target briefly) ──
   const prot = await checkProtectionFn(pid, addrHex);
   if (!prot.success) {
     return { success: false, error: `Cannot verify memory region: ${prot.error}` };

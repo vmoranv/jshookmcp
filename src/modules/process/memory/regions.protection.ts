@@ -152,6 +152,41 @@ export async function checkMemoryProtection(
   }
 
   if (platform === 'darwin') {
+    // ── Native fast-path: mach_vm_region (no subprocess) ──
+    try {
+      const { createPlatformProvider } = await import('@native/platform/factory.js');
+      const provider = createPlatformProvider();
+      const avail = await provider.checkAvailability();
+      if (avail.available) {
+        const handle = provider.openProcess(pid, false);
+        try {
+          const region = provider.queryRegion(handle, addrNum);
+          if (region) {
+            const protStr = [
+              region.isReadable ? 'r' : '-',
+              region.isWritable ? 'w' : '-',
+              region.isExecutable ? 'x' : '-',
+            ].join('');
+            return {
+              success: true,
+              protection: protStr,
+              isReadable: region.isReadable,
+              isWritable: region.isWritable,
+              isExecutable: region.isExecutable,
+              regionStart: `0x${region.baseAddress.toString(16)}`,
+              regionSize: region.size,
+            };
+          }
+          return { success: false, error: `Address ${address} not found in any memory region` };
+        } finally {
+          provider.closeProcess(handle);
+        }
+      }
+    } catch {
+      // Fall through to vmmap fallback
+    }
+
+    // ── Fallback: vmmap subprocess ──
     try {
       const darwinAddr = parseInt(address, 16);
       if (isNaN(darwinAddr)) return { success: false, error: 'Invalid address format' };

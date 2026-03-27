@@ -148,11 +148,34 @@ async function readMemoryMac(
   if (address === 0) {
     return { success: false, error: 'Invalid address: null pointer (0x0)' };
   }
-  const MAX_READ_SIZE = 16 * 1024 * 1024;
-  if (size <= 0 || size > MAX_READ_SIZE) {
-    return { success: false, error: `Invalid size: must be 1–${MAX_READ_SIZE} bytes` };
+  if (size <= 0 || size > MEMORY_MAX_READ_BYTES) {
+    return { success: false, error: `Invalid size: must be 1–${MEMORY_MAX_READ_BYTES} bytes` };
   }
   const addrHex = `0x${address.toString(16)}`;
+
+  // ── Native fast-path: task_for_pid + mach_vm_read_overwrite (zero-pause) ──
+  try {
+    const { createPlatformProvider } = await import('@native/platform/factory.js');
+    const provider = createPlatformProvider();
+    const avail = await provider.checkAvailability();
+    if (avail.available) {
+      const handle = provider.openProcess(pid, false);
+      try {
+        const result = provider.readMemory(handle, BigInt(address), size);
+        const hex = Array.from(result.data.subarray(0, result.bytesRead))
+          .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+          .join(' ');
+        logger.debug('Native Mach memory read succeeded (zero-pause)');
+        return { success: true, data: hex };
+      } finally {
+        provider.closeProcess(handle);
+      }
+    }
+  } catch (nativeErr) {
+    logger.debug('Native Mach read failed, falling back to lldb:', nativeErr);
+  }
+
+  // ── Fallback: lldb subprocess (pauses target briefly) ──
   const prot = await checkProtectionFn(pid, addrHex);
   if (!prot.success) {
     return { success: false, error: `Cannot verify memory region: ${prot.error}` };
