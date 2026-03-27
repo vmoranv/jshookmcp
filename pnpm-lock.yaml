@@ -35,6 +35,9 @@ importers:
       '@babel/types':
         specifier: ^7.29.0
         version: 7.29.0
+      '@huggingface/transformers':
+        specifier: ^3.8.1
+        version: 3.8.1
       '@modelcontextprotocol/sdk':
         specifier: ^1.27.1
         version: 1.27.1(zod@4.3.6)
@@ -75,9 +78,6 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      '@huggingface/transformers':
-        specifier: ^3.8.1
-        version: 3.8.1
       '@types/babel__generator':
         specifier: ^7.27.0
         version: 7.27.0
