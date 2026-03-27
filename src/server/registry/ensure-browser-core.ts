@@ -2,7 +2,7 @@
  * Shared browser-core initialization helper.
  *
  * Centralizes the lazy initialization of CodeCollector, PageController,
- * DOMInspector, ScriptManager, ConsoleMonitor, and LLMService that was
+ * DOMInspector, ScriptManager, and ConsoleMonitor that was
  * previously duplicated across browser, workflow, hooks, and other manifests.
  *
  * Usage in manifest ensure():
@@ -19,7 +19,6 @@ import { PageController } from '@modules/collector/PageController';
 import { DOMInspector } from '@modules/collector/DOMInspector';
 import { ScriptManager } from '@modules/debugger/ScriptManager';
 import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor';
-import { LLMService } from '@services/LLMService';
 
 /**
  * Ensure all browser-core dependencies are initialized on the context.
@@ -34,5 +33,4 @@ export function ensureBrowserCore(ctx: MCPServerContext): void {
   if (!ctx.domInspector) ctx.domInspector = new DOMInspector(ctx.collector);
   if (!ctx.scriptManager) ctx.scriptManager = new ScriptManager(ctx.collector);
   if (!ctx.consoleMonitor) ctx.consoleMonitor = new ConsoleMonitor(ctx.collector);
-  if (!ctx.llm) ctx.llm = new LLMService(ctx.config.llm);
 }

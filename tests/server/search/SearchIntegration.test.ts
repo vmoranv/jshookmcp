@@ -131,9 +131,9 @@ describe('search/SearchIntegration', () => {
   });
 
   it('extractParamTokens handles nested schemas', async () => {
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+    const { QueryNormalizer } = await import('@server/search/QueryNormalizer');
 
-    const tokens = ToolSearchEngine.extractParamTokens({
+    const tokens = QueryNormalizer.extractParamTokens({
       type: 'object',
       properties: {
         urlPattern: { type: 'string', description: 'URL pattern to blackbox' },
@@ -153,11 +153,11 @@ describe('search/SearchIntegration', () => {
   });
 
   it('extractParamTokens returns empty for invalid schemas', async () => {
-    const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+    const { QueryNormalizer } = await import('@server/search/QueryNormalizer');
 
-    expect(ToolSearchEngine.extractParamTokens(null)).toEqual([]);
-    expect(ToolSearchEngine.extractParamTokens(undefined)).toEqual([]);
-    expect(ToolSearchEngine.extractParamTokens({})).toEqual([]);
-    expect(ToolSearchEngine.extractParamTokens({ properties: 'invalid' })).toEqual([]);
+    expect(QueryNormalizer.extractParamTokens(null)).toEqual([]);
+    expect(QueryNormalizer.extractParamTokens(undefined)).toEqual([]);
+    expect(QueryNormalizer.extractParamTokens({})).toEqual([]);
+    expect(QueryNormalizer.extractParamTokens({ properties: 'invalid' })).toEqual([]);
   });
 });

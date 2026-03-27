@@ -348,7 +348,6 @@ export class CoreAnalysisHandlers {
 
     const result = await this.deobfuscator.deobfuscate({
       code,
-      llm: argString(args, 'llm') as 'gpt-4' | 'claude' | undefined,
       aggressive: argBool(args, 'aggressive'),
       ...this.extractWebcrackArgs(args),
     });

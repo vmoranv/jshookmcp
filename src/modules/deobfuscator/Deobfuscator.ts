@@ -1,9 +1,7 @@
 import crypto from 'crypto';
 import type { DeobfuscateOptions, DeobfuscateResult, ObfuscationType } from '@internal-types/index';
 import { logger } from '@utils/logger';
-import { DEOBF_LLM_MAX_TOKENS } from '@src/constants';
-import { type LLMService } from '@services/LLMService';
-import { generateDeobfuscationPrompt } from '@services/prompts/deobfuscation';
+
 import {
   calculateReadabilityScore as calculateReadabilityScoreUtil,
   detectObfuscationType as detectObfuscationTypeUtil,
@@ -11,12 +9,11 @@ import {
 import { runWebcrack } from '@modules/deobfuscator/webcrack';
 
 export class Deobfuscator {
-  private llm?: LLMService;
   private resultCache = new Map<string, DeobfuscateResult>();
   private maxCacheSize = 100;
 
-  constructor(llm?: LLMService) {
-    this.llm = llm;
+  constructor(legacyDependency?: unknown) {
+    void legacyDependency;
   }
 
   private generateCacheKey(options: DeobfuscateOptions): string {
@@ -25,7 +22,7 @@ export class Deobfuscator {
       forceOutput: options.forceOutput,
       includeModuleCode: options.includeModuleCode,
       jsx: options.jsx,
-      llm: options.llm,
+      llm: false /* llm removed */,
       mangle: options.mangle ?? options.renameVariables,
       mappings: options.mappings,
       maxBundleModules: options.maxBundleModules,
@@ -80,13 +77,7 @@ export class Deobfuscator {
       throw new Error(reason);
     }
 
-    let analysis = this.buildAnalysis(webcrackResult, obfuscationType);
-    if (this.llm && options.llm) {
-      const llmResult = await this.llmAnalysis(webcrackResult.code);
-      if (llmResult) {
-        analysis = llmResult;
-      }
-    }
+    const analysis = this.buildAnalysis(webcrackResult, obfuscationType);
 
     const transformations = [
       {
@@ -108,15 +99,6 @@ export class Deobfuscator {
             {
               type: 'webcrack-save',
               description: `Saved webcrack artifacts to ${webcrackResult.savedTo}`,
-              success: true,
-            },
-          ]
-        : []),
-      ...(this.llm && options.llm
-        ? [
-            {
-              type: 'llm-analysis',
-              description: 'AI-assisted analysis completed after webcrack deobfuscation',
               success: true,
             },
           ]
@@ -201,22 +183,5 @@ export class Deobfuscator {
     }
 
     return parts.join(' ');
-  }
-
-  private async llmAnalysis(code: string): Promise<string | null> {
-    if (!this.llm) return null;
-
-    try {
-      const messages = generateDeobfuscationPrompt(code);
-      const response = await this.llm.chat(messages, {
-        temperature: 0.3,
-        maxTokens: DEOBF_LLM_MAX_TOKENS,
-      });
-
-      return response.content;
-    } catch (error) {
-      logger.warn('LLM analysis failed after webcrack deobfuscation', error);
-      return null;
-    }
   }
 }

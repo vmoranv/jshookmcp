@@ -2,16 +2,11 @@ import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 import type { DataFlow } from '@internal-types/index';
-import type { LLMService } from '@services/LLMService';
-import { generateTaintAnalysisPrompt } from '@services/prompts/taint';
+
 import { logger } from '@utils/logger';
 import { checkSanitizer } from '@modules/analyzer/SecurityCodeAnalyzer';
 
-type DataFlowTaintPath = DataFlow['taintPaths'][number];
-type LlmTaintPathCandidate = Partial<Pick<DataFlowTaintPath, 'source' | 'sink' | 'path'>>;
-type LlmTaintAnalysisResult = { taintPaths?: unknown[] };
-
-export async function analyzeDataFlowWithTaint(code: string, llm?: LLMService): Promise<DataFlow> {
+export async function analyzeDataFlowWithTaint(code: string): Promise<DataFlow> {
   const graph: DataFlow['graph'] = { nodes: [], edges: [] };
   const sources: DataFlow['sources'] = [];
   const sinks: DataFlow['sinks'] = [];
@@ -381,74 +376,12 @@ export async function analyzeDataFlowWithTaint(code: string, llm?: LLMService): 
     logger.warn('Data flow analysis failed', error);
   }
 
-  if (taintPaths.length > 0 && llm) {
-    try {
-      await enhanceTaintAnalysisWithLLM(llm, code, sources, sinks, taintPaths);
-    } catch (error) {
-      logger.warn('LLM-enhanced taint analysis failed', error);
-    }
-  }
-
   return {
     graph,
     sources,
     sinks,
     taintPaths,
   };
-}
-
-async function enhanceTaintAnalysisWithLLM(
-  llm: LLMService,
-  code: string,
-  sources: DataFlow['sources'],
-  sinks: DataFlow['sinks'],
-  taintPaths: DataFlow['taintPaths'],
-): Promise<void> {
-  if (taintPaths.length === 0) return;
-
-  try {
-    const sourcesList = sources.map((s) => `${s.type} at line ${s.location.line}`);
-    const sinksList = sinks.map((s) => `${s.type} at line ${s.location.line}`);
-
-    const messages = generateTaintAnalysisPrompt(
-      code.length > 4000 ? code.substring(0, 4000) : code,
-      sourcesList,
-      sinksList,
-    );
-
-    const response = await llm.chat(messages, {
-      temperature: 0.2,
-      maxTokens: 2000,
-    });
-
-    const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const llmResult = JSON.parse(jsonMatch[0]) as LlmTaintAnalysisResult;
-
-      if (Array.isArray(llmResult.taintPaths)) {
-        logger.info(`LLM identified ${llmResult.taintPaths.length} additional taint paths`);
-
-        llmResult.taintPaths.forEach((rawPath) => {
-          const path = rawPath as LlmTaintPathCandidate;
-          const exists = taintPaths.some(
-            (p) =>
-              p.source.location.line === path.source?.location?.line &&
-              p.sink.location.line === path.sink?.location?.line,
-          );
-
-          if (!exists && path.source && path.sink) {
-            taintPaths.push({
-              source: path.source,
-              sink: path.sink,
-              path: path.path || [],
-            });
-          }
-        });
-      }
-    }
-  } catch (error) {
-    logger.debug('LLM taint analysis enhancement failed', error);
-  }
 }
 
 function checkTaintedArguments(

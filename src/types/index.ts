@@ -1,7 +1,6 @@
 export type { CodeLocation, Result } from '@internal-types/common';
 export type {
   Config,
-  LLMConfig,
   PuppeteerConfig,
   MCPConfig,
   CacheConfig,

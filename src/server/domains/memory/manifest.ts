@@ -9,12 +9,6 @@ import type { DomainManifest } from '@server/registry/contracts';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { memoryScanToolDefinitions } from './definitions';
 import { MemoryScanHandlers } from './handlers.impl';
-import { memoryScanner } from '@native/MemoryScanner';
-import { scanSessionManager } from '@native/MemoryScanSession';
-import { pointerChainEngine } from '@native/PointerChainEngine';
-import { structureAnalyzer } from '@native/StructureAnalyzer';
-import { codeInjector } from '@native/CodeInjector';
-import { memoryController } from '@native/MemoryController';
 
 const DOMAIN = 'memory' as const;
 const DEP_KEY = 'memoryScanHandlers' as const;
@@ -27,51 +21,67 @@ const EFFECTIVE_PLATFORM =
 const IS_WIN32 = EFFECTIVE_PLATFORM === 'win32';
 type H = MemoryScanHandlers;
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
   const ctxAny = ctx as unknown as Record<string, unknown>;
-  if (!ctxAny[DEP_KEY]) {
-    if (IS_WIN32) {
-      // Lazy import Win32-only engines — only on Windows
+  if (ctxAny[DEP_KEY]) return ctxAny[DEP_KEY] as H;
 
-      const { hardwareBreakpointEngine } = require('@native/HardwareBreakpoint');
+  // Dynamic imports: load native koffi modules lazily — only when memory domain is accessed.
+  // Cross-platform modules (always loaded)
+  const [
+    memoryScanner,
+    scanSessionManager,
+    pointerChainEngine,
+    structureAnalyzer,
+    codeInjector,
+    memoryController,
+  ] = await Promise.all([
+    import('@native/MemoryScanner'),
+    import('@native/MemoryScanSession'),
+    import('@native/PointerChainEngine'),
+    import('@native/StructureAnalyzer'),
+    import('@native/CodeInjector'),
+    import('@native/MemoryController'),
+  ]);
 
-      const { speedhack } = require('@native/Speedhack');
+  if (IS_WIN32) {
+    // Lazy-load Win32-only engines — only load on Windows
+    const [hardwareBreakpointEngine, speedhack, heapAnalyzer, peAnalyzer, antiCheatDetector] =
+      await Promise.all([
+        import('@native/HardwareBreakpoint'),
+        import('@native/Speedhack'),
+        import('@native/HeapAnalyzer'),
+        import('@native/PEAnalyzer'),
+        import('@native/AntiCheatDetector'),
+      ]);
 
-      const { heapAnalyzer } = require('@native/HeapAnalyzer');
-
-      const { peAnalyzer } = require('@native/PEAnalyzer');
-
-      const { antiCheatDetector } = require('@native/AntiCheatDetector');
-
-      ctxAny[DEP_KEY] = new MemoryScanHandlers(
-        memoryScanner,
-        scanSessionManager,
-        pointerChainEngine,
-        structureAnalyzer,
-        hardwareBreakpointEngine,
-        codeInjector,
-        memoryController,
-        speedhack,
-        heapAnalyzer,
-        peAnalyzer,
-        antiCheatDetector,
-      );
-    } else {
-      // macOS: Win32-only engines not available — pass null
-      ctxAny[DEP_KEY] = new MemoryScanHandlers(
-        memoryScanner,
-        scanSessionManager,
-        pointerChainEngine,
-        structureAnalyzer,
-        null, // hardwareBreakpointEngine
-        codeInjector,
-        memoryController,
-        null, // speedhack
-        null, // heapAnalyzer
-        null, // peAnalyzer
-        null, // antiCheatDetector
-      );
-    }
+    ctxAny[DEP_KEY] = new MemoryScanHandlers(
+      memoryScanner.memoryScanner,
+      scanSessionManager.scanSessionManager,
+      pointerChainEngine.pointerChainEngine,
+      structureAnalyzer.structureAnalyzer,
+      hardwareBreakpointEngine.hardwareBreakpointEngine,
+      codeInjector.codeInjector,
+      memoryController.memoryController,
+      speedhack.speedhack,
+      heapAnalyzer.heapAnalyzer,
+      peAnalyzer.peAnalyzer,
+      antiCheatDetector.antiCheatDetector,
+    );
+  } else {
+    // macOS/Linux: Win32-only engines not available — pass null
+    ctxAny[DEP_KEY] = new MemoryScanHandlers(
+      memoryScanner.memoryScanner,
+      scanSessionManager.scanSessionManager,
+      pointerChainEngine.pointerChainEngine,
+      structureAnalyzer.structureAnalyzer,
+      null, // hardwareBreakpointEngine
+      codeInjector.codeInjector,
+      memoryController.memoryController,
+      null, // speedhack
+      null, // heapAnalyzer
+      null, // peAnalyzer
+      null, // antiCheatDetector
+    );
   }
   return ctxAny[DEP_KEY] as H;
 }

@@ -50,6 +50,19 @@ const csv = (key: string, fallback: string[]): string[] => {
 };
 
 /* ================================================================== */
+/*  HIGH — server lifecycle                                            */
+/* ================================================================== */
+
+/** Maximum time allowed for graceful shutdown before force-exiting. */
+export const SHUTDOWN_TIMEOUT_MS = int('SHUTDOWN_TIMEOUT_MS', 10_000);
+
+/** Sliding window (ms) for counting runtime errors before entering degraded mode. */
+export const RUNTIME_ERROR_WINDOW_MS = int('RUNTIME_ERROR_WINDOW_MS', 60_000);
+
+/** Max recoverable errors within the window before enabling degraded mode. */
+export const RUNTIME_ERROR_THRESHOLD = int('RUNTIME_ERROR_THRESHOLD', 5);
+
+/* ================================================================== */
 /*  HIGH — debug ports & endpoints                                     */
 /* ================================================================== */
 
@@ -297,9 +310,7 @@ export const PARALLEL_RETRY_BACKOFF_BASE_MS = int('PARALLEL_RETRY_BACKOFF_BASE_M
 // ── MEDIUM — cache & budget limits ──
 
 export const CACHE_GLOBAL_MAX_SIZE_BYTES = int('CACHE_GLOBAL_MAX_SIZE_BYTES', 500 * 1024 * 1024);
-export const CACHE_LOW_HIT_RATE_THRESHOLD = parseFloat(
-  process.env.CACHE_LOW_HIT_RATE_THRESHOLD || '0.3',
-);
+export const CACHE_LOW_HIT_RATE_THRESHOLD = float('CACHE_LOW_HIT_RATE_THRESHOLD', 0.3);
 export const TOKEN_BUDGET_MAX_TOKENS = int('TOKEN_BUDGET_MAX_TOKENS', 200_000);
 export const DETAILED_DATA_DEFAULT_TTL_MS = int('DETAILED_DATA_DEFAULT_TTL_MS', 30 * 60 * 1000);
 export const DETAILED_DATA_MAX_TTL_MS = int('DETAILED_DATA_MAX_TTL_MS', 60 * 60 * 1000);

@@ -7,10 +7,7 @@ import type {
   CryptoAlgorithm,
   CryptoLibrary,
 } from '@internal-types/index';
-import { type LLMService } from '@services/LLMService';
-import { generateCryptoDetectionPrompt } from '@services/prompts/crypto';
 import { logger } from '@utils/logger';
-import { CRYPTO_DETECT_LLM_MAX_TOKENS } from '@src/constants';
 import { CryptoRulesManager } from '@modules/crypto/CryptoRules';
 
 export interface SecurityIssue {
@@ -33,11 +30,9 @@ export interface CryptoStrength {
 }
 
 export class CryptoDetector {
-  private llm: LLMService;
   private rulesManager: CryptoRulesManager;
 
-  constructor(llm: LLMService, customRules?: CryptoRulesManager) {
-    this.llm = llm;
+  constructor(_llm?: any, customRules?: CryptoRulesManager) {
     this.rulesManager = customRules || new CryptoRulesManager();
   }
 
@@ -71,12 +66,6 @@ export class CryptoDetector {
       algorithms.push(...astResults.algorithms);
       if (astResults.parameters) {
         this.mergeParameters(algorithms, astResults.parameters);
-      }
-
-      const useAI = (options as unknown as { useAI?: boolean }).useAI !== false;
-      if (useAI) {
-        const aiResults = await this.detectByAI(code);
-        algorithms.push(...aiResults);
       }
 
       const mergedAlgorithms = this.mergeResults(algorithms);
@@ -131,37 +120,6 @@ export class CryptoDetector {
 
   private escapeRegex(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  private async detectByAI(code: string): Promise<CryptoAlgorithm[]> {
-    try {
-      const messages = generateCryptoDetectionPrompt(code);
-      const response = await this.llm.chat(messages, {
-        temperature: 0.2,
-        maxTokens: CRYPTO_DETECT_LLM_MAX_TOKENS,
-      });
-
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return [];
-
-      const result = JSON.parse(jsonMatch[0]) as { algorithms?: unknown[] };
-      if (!Array.isArray(result.algorithms)) return [];
-
-      return result.algorithms.map((algo: unknown) => {
-        const a = algo as Record<string, unknown>;
-        return {
-          name: (a.name as string) || 'Unknown',
-          type: (a.type as CryptoAlgorithm['type']) || 'other',
-          confidence: (a.confidence as number) || 0.5,
-          location: { file: 'current', line: 0 },
-          parameters: a.parameters as CryptoAlgorithm['parameters'],
-          usage: (a.usage as string) || '',
-        };
-      });
-    } catch (error) {
-      logger.warn('AI crypto detection failed', error);
-      return [];
-    }
   }
 
   private detectLibraries(code: string): CryptoLibrary[] {

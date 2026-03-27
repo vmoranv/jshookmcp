@@ -20,7 +20,6 @@ function ensure(ctx: MCPServerContext): H {
       ctx.domInspector!,
       ctx.scriptManager!,
       ctx.consoleMonitor!,
-      ctx.llm!,
     );
   }
   return ctx.browserHandlers;

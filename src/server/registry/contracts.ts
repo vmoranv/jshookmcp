@@ -67,7 +67,8 @@ export interface DomainManifest<
 
   // Lazy factory - called once (via Proxy) to create the domain handler.
   // The returned object is cached by the domain proxy in MCPServer.
-  readonly ensure: (ctx: MCPServerContext) => THandler;
+  // Supports async factories for dynamic imports (e.g., native koffi modules).
+  readonly ensure: (ctx: MCPServerContext) => THandler | Promise<THandler>;
 
   // ── Optional routing metadata (used by ToolRouter) ──
 

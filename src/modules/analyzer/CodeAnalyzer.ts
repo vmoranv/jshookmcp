@@ -11,8 +11,6 @@ import type {
   ClassInfo,
   CallGraph,
 } from '@internal-types/index';
-import { type LLMService } from '@services/LLMService';
-import { generateCodeAnalysisPrompt } from '@services/prompts/analysis';
 import { logger } from '@utils/logger';
 import { identifySecurityRisks } from '@modules/analyzer/SecurityCodeAnalyzer';
 import {
@@ -44,10 +42,8 @@ const isTraversablePath = (value: unknown): value is TraversablePath =>
   typeof (value as { traverse?: unknown }).traverse === 'function';
 
 export class CodeAnalyzer {
-  private llm: LLMService;
-
-  constructor(llm: LLMService) {
-    this.llm = llm;
+  constructor(legacyDependency?: unknown) {
+    void legacyDependency;
   }
 
   async understand(options: UnderstandCodeOptions): Promise<UnderstandCodeResult> {
@@ -237,21 +233,9 @@ export class CodeAnalyzer {
     };
   }
 
-  private async aiAnalyze(code: string, focus: string): Promise<Record<string, unknown>> {
-    try {
-      const messages = generateCodeAnalysisPrompt(code, focus);
-      const response = await this.llm.chat(messages, { temperature: 0.3, maxTokens: 2000 });
-
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]) as Record<string, unknown>;
-      }
-
-      return { rawAnalysis: response.content };
-    } catch (error) {
-      logger.warn('AI analysis failed, using fallback', error);
-      return {};
-    }
+  private async aiAnalyze(_code: string, _focus: string): Promise<Record<string, unknown>> {
+    // LLM-based analysis removed — return empty analysis
+    return {};
   }
 
   private detectTechStack(code: string, aiAnalysis: Record<string, unknown>): TechStack {
@@ -454,6 +438,6 @@ export class CodeAnalyzer {
   }
 
   private async analyzeDataFlow(code: string): Promise<DataFlow> {
-    return analyzeDataFlowWithTaint(code, this.llm);
+    return analyzeDataFlowWithTaint(code);
   }
 }

@@ -1,12 +1,6 @@
 import type { NetworkRequest, NetworkResponse } from '@modules/monitor/ConsoleMonitor';
 import type { ConsoleMessage, ExceptionInfo } from '@modules/monitor/ConsoleMonitor';
 import { logger } from '@utils/logger';
-import type { LLMService } from '@services/LLMService';
-import {
-  generateRequestAnalysisMessages,
-  generateLogAnalysisMessages,
-  generateKeywordExpansionMessages,
-} from '@services/prompts/intelligence';
 
 import {
   filterCriticalRequests,
@@ -74,15 +68,8 @@ export interface AntiDebugPattern {
 }
 
 export class IntelligentAnalyzer {
-  private llmService?: LLMService;
-
-  constructor(llmService?: LLMService) {
-    this.llmService = llmService;
-    if (llmService) {
-      logger.info('IntelligentAnalyzer initialized with LLM support');
-    } else {
-      logger.warn('IntelligentAnalyzer initialized without LLM (using rule-based analysis only)');
-    }
+  constructor(legacyDependency?: unknown) {
+    void legacyDependency;
   }
 
   analyze(data: {
@@ -224,205 +211,12 @@ export class IntelligentAnalyzer {
     return lines.join('\n');
   }
 
-  async analyzeCriticalRequestsWithLLM(requests: NetworkRequest[]): Promise<{
-    encryption: EncryptionPattern[];
-    signature: SignaturePattern[];
-    token: TokenPattern[];
-    customPatterns: Array<{
-      type: string;
-      description: string;
-      location: string;
-      confidence: number;
-    }>;
-  }> {
-    if (!this.llmService) {
-      logger.warn('LLM service not available, skipping LLM analysis');
-      return { encryption: [], signature: [], token: [], customPatterns: [] };
-    }
-
-    logger.info('Starting LLM-enhanced request analysis...');
-
-    const requestSummary = requests.slice(0, 20).map((req) => {
-      const urlObj = new URL(req.url, 'http://localhost');
-      const params = Object.fromEntries(urlObj.searchParams.entries());
-
-      return {
-        url: req.url,
-        method: req.method,
-        urlParams: params,
-        headers: req.headers,
-        postData: req.postData?.substring(0, 500),
-      };
-    });
-
-    try {
-      const response = await this.llmService.chat(generateRequestAnalysisMessages(requestSummary), {
-        temperature: 0.2,
-        maxTokens: 3000,
-      });
-
-      const result = JSON.parse(response.content);
-
-      logger.success('LLM request analysis completed', {
-        encryption: result.encryption?.length || 0,
-        signature: result.signature?.length || 0,
-        token: result.token?.length || 0,
-        custom: result.customPatterns?.length || 0,
-      });
-
-      return result;
-    } catch (error) {
-      logger.error('LLM request analysis failed:', error);
-      return { encryption: [], signature: [], token: [], customPatterns: [] };
-    }
-  }
-
-  async analyzeCriticalLogsWithLLM(logs: ConsoleMessage[]): Promise<{
-    keyFunctions: Array<{
-      name: string;
-      purpose: string;
-      confidence: number;
-    }>;
-    dataFlow: string;
-    suspiciousPatterns: Array<{
-      type: string;
-      description: string;
-      location: string;
-    }>;
-  }> {
-    if (!this.llmService) {
-      logger.warn('LLM service not available, skipping LLM log analysis');
-      return { keyFunctions: [], dataFlow: '', suspiciousPatterns: [] };
-    }
-
-    logger.info('Starting LLM-enhanced log analysis...');
-
-    const logSummary = logs.slice(0, 50).map((log, index) => ({
-      index,
-      type: log.type,
-      text: log.text.substring(0, 300),
-      url: log.url,
-      lineNumber: log.lineNumber,
-      stackTrace: log.stackTrace?.slice(0, 3),
-    }));
-
-    try {
-      const response = await this.llmService.chat(generateLogAnalysisMessages(logSummary), {
-        temperature: 0.2,
-        maxTokens: 2500,
-      });
-
-      const result = JSON.parse(response.content);
-
-      logger.success('LLM log analysis completed', {
-        keyFunctions: result.keyFunctions?.length || 0,
-        suspiciousPatterns: result.suspiciousPatterns?.length || 0,
-      });
-
-      return result;
-    } catch (error) {
-      logger.error('LLM log analysis failed:', error);
-      return { keyFunctions: [], dataFlow: '', suspiciousPatterns: [] };
-    }
-  }
-
-  async expandKeywordsWithLLM(context: {
-    domain: string;
-    requests: NetworkRequest[];
-    logs: ConsoleMessage[];
-  }): Promise<{
-    apiKeywords: string[];
-    cryptoKeywords: string[];
-    frameworkKeywords: string[];
-    businessKeywords: string[];
-  }> {
-    if (!this.llmService) {
-      return { apiKeywords: [], cryptoKeywords: [], frameworkKeywords: [], businessKeywords: [] };
-    }
-
-    logger.info('Expanding keywords with LLM...');
-
-    const urlPatterns = context.requests.slice(0, 15).map((r) => {
-      try {
-        const url = new URL(r.url);
-        return {
-          path: url.pathname,
-          params: Array.from(url.searchParams.keys()),
-          method: r.method,
-        };
-      } catch {
-        /* URL parse failed — fallback to raw url as path */
-        return { path: r.url, params: [], method: r.method };
-      }
-    });
-
-    const logKeywords = context.logs.slice(0, 20).map((l) => l.text.substring(0, 150));
-
-    try {
-      const response = await this.llmService.chat(
-        generateKeywordExpansionMessages(context.domain, urlPatterns, logKeywords),
-        { temperature: 0.4, maxTokens: 800 },
-      );
-
-      const result = JSON.parse(response.content);
-
-      logger.success('Keywords expanded', {
-        api: result.apiKeywords?.length || 0,
-        crypto: result.cryptoKeywords?.length || 0,
-        framework: result.frameworkKeywords?.length || 0,
-      });
-
-      return result;
-    } catch (error) {
-      logger.error('Keyword expansion failed:', error);
-      return { apiKeywords: [], cryptoKeywords: [], frameworkKeywords: [], businessKeywords: [] };
-    }
-  }
-
   async analyzeWithLLM(data: {
     requests: NetworkRequest[];
     responses: NetworkResponse[];
     logs: ConsoleMessage[];
     exceptions: ExceptionInfo[];
   }): Promise<AnalysisResult> {
-    logger.info('Starting hybrid analysis (rules + LLM)...');
-
-    const ruleBasedResult = this.analyze(data);
-
-    if (this.llmService) {
-      try {
-        const llmRequestAnalysis = await this.analyzeCriticalRequestsWithLLM(
-          ruleBasedResult.criticalRequests,
-        );
-
-        const llmLogAnalysis = await this.analyzeCriticalLogsWithLLM(ruleBasedResult.criticalLogs);
-
-        ruleBasedResult.patterns.encryption = [
-          ...(ruleBasedResult.patterns.encryption || []),
-          ...llmRequestAnalysis.encryption,
-        ];
-
-        ruleBasedResult.patterns.signature = [
-          ...(ruleBasedResult.patterns.signature || []),
-          ...llmRequestAnalysis.signature,
-        ];
-
-        ruleBasedResult.patterns.token = [
-          ...(ruleBasedResult.patterns.token || []),
-          ...llmRequestAnalysis.token,
-        ];
-
-        ruleBasedResult.summary.keyFunctions = [
-          ...ruleBasedResult.summary.keyFunctions,
-          ...llmLogAnalysis.keyFunctions.map((f) => f.name),
-        ];
-
-        logger.success('Hybrid analysis completed with LLM enhancement');
-      } catch (error) {
-        logger.error('LLM enhancement failed, using rule-based results only:', error);
-      }
-    }
-
-    return ruleBasedResult;
+    return this.analyze(data);
   }
 }

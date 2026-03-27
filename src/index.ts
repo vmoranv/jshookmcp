@@ -10,15 +10,17 @@ import {
   getArtifactRetentionConfig,
   startArtifactRetentionScheduler,
 } from '@utils/artifactRetention';
+import {
+  SHUTDOWN_TIMEOUT_MS,
+  RUNTIME_ERROR_WINDOW_MS,
+  RUNTIME_ERROR_THRESHOLD,
+} from '@src/constants';
 
 interface RuntimeRecoveryState {
   windowStart: number;
   errorCount: number;
   degradedMode: boolean;
 }
-
-/** Maximum time allowed for graceful shutdown before force-exiting. */
-const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 /** Error codes that indicate unrecoverable system-level failures — process must exit. */
 const FATAL_ERROR_CODES: ReadonlySet<string> = new Set([
@@ -79,17 +81,6 @@ async function main() {
       process.exit(1);
     }
 
-    if (config.llm.provider === 'openai' && !config.llm.openai?.apiKey) {
-      logger.warn(
-        'OPENAI_API_KEY is not configured. AI-assisted tools may return configuration errors.',
-      );
-    }
-    if (config.llm.provider === 'anthropic' && !config.llm.anthropic?.apiKey) {
-      logger.warn(
-        'ANTHROPIC_API_KEY is not configured. AI-assisted tools may return configuration errors.',
-      );
-    }
-
     const artifactRetention = getArtifactRetentionConfig();
     if (artifactRetention.cleanupOnStart && artifactRetention.enabled) {
       const cleanup = await cleanupArtifacts();
@@ -104,14 +95,8 @@ async function main() {
     await initRegistry();
     const server = new MCPServer(config);
     const stopArtifactRetentionScheduler = startArtifactRetentionScheduler();
-    const recoveryWindowMs = Math.max(
-      1000,
-      parseInt(process.env.RUNTIME_ERROR_WINDOW_MS ?? '60000', 10),
-    );
-    const maxRecoverableErrors = Math.max(
-      1,
-      parseInt(process.env.RUNTIME_ERROR_THRESHOLD ?? '5', 10),
-    );
+    const recoveryWindowMs = Math.max(1000, RUNTIME_ERROR_WINDOW_MS);
+    const maxRecoverableErrors = Math.max(1, RUNTIME_ERROR_THRESHOLD);
     const runtimeRecovery: RuntimeRecoveryState = {
       windowStart: Date.now(),
       errorCount: 0,

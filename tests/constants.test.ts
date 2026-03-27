@@ -149,7 +149,7 @@ describe('constants env parsing', () => {
     ).toBe('');
   });
 
-  it('preserves direct parseFloat behavior for CACHE_LOW_HIT_RATE_THRESHOLD', async () => {
+  it('uses float() helper for CACHE_LOW_HIT_RATE_THRESHOLD with proper fallback', async () => {
     expect(
       (await loadConstants({ CACHE_LOW_HIT_RATE_THRESHOLD: undefined }))
         .CACHE_LOW_HIT_RATE_THRESHOLD,
@@ -157,10 +157,9 @@ describe('constants env parsing', () => {
     expect(
       (await loadConstants({ CACHE_LOW_HIT_RATE_THRESHOLD: '0.75' })).CACHE_LOW_HIT_RATE_THRESHOLD,
     ).toBe(0.75);
+    // With float() helper, invalid input returns fallback instead of NaN
     expect(
-      Number.isNaN(
-        (await loadConstants({ CACHE_LOW_HIT_RATE_THRESHOLD: 'abc' })).CACHE_LOW_HIT_RATE_THRESHOLD,
-      ),
-    ).toBe(true);
+      (await loadConstants({ CACHE_LOW_HIT_RATE_THRESHOLD: 'abc' })).CACHE_LOW_HIT_RATE_THRESHOLD,
+    ).toBe(0.3);
   });
 });

@@ -34,7 +34,6 @@ export interface Transformation {
 
 export interface DeobfuscateOptions {
   code: string;
-  llm?: 'gpt-4' | 'claude';
   aggressive?: boolean;
   preserveLogic?: boolean;
   renameVariables?: boolean;

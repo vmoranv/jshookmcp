@@ -50,15 +50,6 @@ const envBool = (fallback: boolean) =>
     .transform((v) => (v === undefined ? fallback : v === 'true'));
 
 const ConfigSchema = z.object({
-  // LLM
-  DEFAULT_LLM_PROVIDER: z.enum(['openai', 'anthropic']).optional().default('openai'),
-  OPENAI_API_KEY: z.string().optional().default(''),
-  OPENAI_MODEL: z.string().optional().default('gpt-4-turbo-preview'),
-  OPENAI_BASE_URL: z.string().optional(),
-  ANTHROPIC_API_KEY: z.string().optional().default(''),
-  ANTHROPIC_MODEL: z.string().optional().default('claude-3-5-sonnet-20241022'),
-  ANTHROPIC_BASE_URL: z.string().optional(),
-
   // Puppeteer
   PUPPETEER_HEADLESS: envBool(false),
   PUPPETEER_TIMEOUT: envInt(30000).pipe(z.number().min(1000).max(300000)),
@@ -246,19 +237,6 @@ export function getConfig(): Config {
   const search = buildSearchConfig();
 
   return {
-    llm: {
-      provider: ((env.DEFAULT_LLM_PROVIDER as string) || 'openai') as 'openai' | 'anthropic',
-      openai: {
-        apiKey: (env.OPENAI_API_KEY as string) || '',
-        model: (env.OPENAI_MODEL as string) || 'gpt-4-turbo-preview',
-        baseURL: env.OPENAI_BASE_URL as string | undefined,
-      },
-      anthropic: {
-        apiKey: (env.ANTHROPIC_API_KEY as string) || '',
-        model: (env.ANTHROPIC_MODEL as string) || 'claude-3-5-sonnet-20241022',
-        baseURL: env.ANTHROPIC_BASE_URL as string | undefined,
-      },
-    },
     puppeteer: {
       headless: parsed.success
         ? (env.PUPPETEER_HEADLESS as unknown as boolean)

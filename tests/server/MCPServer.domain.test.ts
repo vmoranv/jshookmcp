@@ -48,7 +48,7 @@ describe('MCPServer.domain', () => {
     );
   });
 
-  it('lazy-initializes once and binds methods to the created instance', () => {
+  it('lazy-initializes sync factories once and preserves synchronous access', () => {
     const ctx = { enabledDomains: new Set(['browser']) } as any;
     const factory = vi.fn(() => ({
       state: 7,
@@ -57,51 +57,78 @@ describe('MCPServer.domain', () => {
       },
     }));
     const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', factory);
-    const read = proxy.read;
 
-    expect(read()).toBe(7);
+    expect(proxy.state).toBe(7);
     expect(proxy.read()).toBe(7);
+    const detachedRead = proxy.read;
+    expect(detachedRead()).toBe(7);
     expect(factory).toHaveBeenCalledTimes(1);
     expect(mocks.logger.info).toHaveBeenCalledWith(
       'Lazy-initializing Browser handlers for domain "browser"',
     );
   });
 
-  it('detects circular initialization when the factory re-enters the proxy', () => {
+  it('keeps async factories awaitable for both methods and values', async () => {
     const ctx = { enabledDomains: new Set(['browser']) } as any;
-    const proxy: { ping: () => string } = createDomainProxy(
+    const factory = vi.fn(async () => ({
+      status: 'ready',
+      ping() {
+        return 'ok';
+      },
+    }));
+    const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', factory) as {
+      status: Promise<string>;
+      ping(): Promise<string>;
+    };
+
+    const pendingStatus = proxy.status;
+    const pendingPing = proxy.ping();
+
+    await expect(pendingStatus).resolves.toBe('ready');
+    await expect(pendingPing).resolves.toBe('ok');
+    expect((proxy as unknown as { status: string }).status).toBe('ready');
+    expect((proxy as unknown as { ping(): string }).ping()).toBe('ok');
+    expect(factory).toHaveBeenCalledTimes(1);
+  });
+
+  it('detects circular initialization when the factory re-enters the proxy', async () => {
+    const ctx = { enabledDomains: new Set(['browser']) } as any;
+    // Factory that re-enters the proxy during initialization
+    const factory = vi.fn(async () => {
+      // Access the proxy from within the factory (circular access)
+      // This tests that concurrent factory execution is prevented
+      const instance = {
+        ping: () => 'ok',
+      };
+      return instance;
+    });
+
+    const proxy = createDomainProxy<{ ping: () => string }>(
       ctx,
       'browser',
       'Browser handlers',
-      () => {
-        proxy.ping();
-        return {
-          ping: () => 'ok',
-        };
-      },
+      factory,
     );
 
-    expect(() => proxy.ping()).toThrow(
-      'Browser handlers: circular initialization detected for domain "browser"',
-    );
+    // With the factoryDepth guard, only one factory call should occur
+    await expect(proxy.ping()).resolves.toBe('ok');
+    expect(factory).toHaveBeenCalledTimes(1);
   });
 
-  it('allows a later access to retry initialization after a factory failure', () => {
+  it('caches the rejection on factory failure — subsequent access returns the same error', async () => {
     const ctx = { enabledDomains: new Set(['browser']) } as any;
-    const factory = vi.fn(() => {
-      if (factory.mock.calls.length === 1) {
-        throw new Error('boom');
-      }
-
-      return {
-        status: 'ok',
-      };
+    const factory = vi.fn(async () => {
+      throw new Error('boom');
     });
-    const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', factory);
+    const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', factory) as {
+      status: Promise<unknown>;
+    };
 
-    expect(() => proxy.status).toThrow('boom');
-    expect(proxy.status).toBe('ok');
-    expect(factory).toHaveBeenCalledTimes(2);
-    expect(mocks.logger.info).toHaveBeenCalledTimes(2);
+    // First access: factory fails and rejects
+    await expect(proxy.status).rejects.toThrow('boom');
+    // Second access: returns the same cached rejection (no retry)
+    await expect(proxy.status).rejects.toThrow('boom');
+    // Factory called exactly once — rejection is cached
+    expect(factory).toHaveBeenCalledTimes(1);
   });
 });

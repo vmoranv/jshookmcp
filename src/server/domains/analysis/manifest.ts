@@ -19,11 +19,11 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 function ensure(ctx: MCPServerContext): H {
   ensureBrowserCore(ctx);
 
-  if (!ctx.deobfuscator) ctx.deobfuscator = new Deobfuscator(ctx.llm!);
+  if (!ctx.deobfuscator) ctx.deobfuscator = new Deobfuscator();
   if (!ctx.advancedDeobfuscator) ctx.advancedDeobfuscator = new AdvancedDeobfuscator();
   if (!ctx.obfuscationDetector) ctx.obfuscationDetector = new ObfuscationDetector();
-  if (!ctx.analyzer) ctx.analyzer = new CodeAnalyzer(ctx.llm!);
-  if (!ctx.cryptoDetector) ctx.cryptoDetector = new CryptoDetector(ctx.llm!);
+  if (!ctx.analyzer) ctx.analyzer = new CodeAnalyzer();
+  if (!ctx.cryptoDetector) ctx.cryptoDetector = new CryptoDetector();
   if (!ctx.hookManager) ctx.hookManager = new HookManager();
 
   if (!ctx.coreAnalysisHandlers) {

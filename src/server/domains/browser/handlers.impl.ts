@@ -6,7 +6,6 @@ import type { DOMInspector } from '@server/domains/shared/modules';
 import type { ScriptManager } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import { AICaptchaDetector } from '@server/domains/shared/modules';
-import { type LLMService } from '@services/LLMService';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { resolveOutputDirectory } from '@utils/outputPaths';
@@ -90,7 +89,6 @@ export class BrowserToolHandlers {
     domInspector: DOMInspector,
     scriptManager: ScriptManager,
     consoleMonitor: ConsoleMonitor,
-    llmService: LLMService,
   ) {
     this.collector = collector;
     this.pageController = pageController;
@@ -102,7 +100,7 @@ export class BrowserToolHandlers {
       process.env.CAPTCHA_SCREENSHOT_DIR,
       'screenshots/captcha',
     );
-    this.captchaDetector = new AICaptchaDetector(llmService, screenshotDir);
+    this.captchaDetector = new AICaptchaDetector(screenshotDir);
     this.detailedDataManager = DetailedDataManager.getInstance();
 
     const modules = initializeBrowserHandlerModules({

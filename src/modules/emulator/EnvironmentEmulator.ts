@@ -9,12 +9,7 @@ import type {
 } from '@internal-types/index';
 import { logger } from '@utils/logger';
 import { chromeEnvironmentTemplate } from '@modules/emulator/templates/chrome-env';
-import type { LLMService } from '@services/LLMService';
 import type { Browser } from 'rebrowser-puppeteer-core';
-import {
-  generateMissingAPIImplementationsMessages,
-  generateMissingVariablesMessages,
-} from '@services/prompts/environment';
 import { generateEmulationCode, generateRecommendations } from '@modules/emulator/EmulatorCodeGen';
 import { findBrowserExecutable } from '@utils/browserExecutable';
 import { fetchRealEnvironmentData } from '@modules/emulator/EnvironmentEmulatorFetch';
@@ -39,13 +34,9 @@ interface MemberExpressionNodeLike {
 
 export class EnvironmentEmulator {
   private browser?: Browser;
-  private llm?: LLMService;
 
-  constructor(llm?: LLMService) {
-    this.llm = llm;
-    if (!llm) {
-      logger.debug('LLM service unavailable, skipping AI environment analysis');
-    }
+  constructor(legacyDependency?: unknown) {
+    void legacyDependency;
   }
 
   async analyze(options: EnvironmentEmulatorOptions): Promise<EnvironmentEmulatorResult> {
@@ -78,23 +69,7 @@ export class EnvironmentEmulator {
         variableManifest = this.buildManifestFromTemplate(detectedVariables, browserType);
       }
 
-      if (this.llm) {
-        logger.info(' AI...');
-        const aiInferredVars = await this.inferMissingVariablesWithAI(
-          code,
-          detectedVariables,
-          variableManifest,
-          browserType,
-        );
-        Object.assign(variableManifest, { ...aiInferredVars, ...variableManifest });
-      }
-
       const missingAPIs = this.identifyMissingAPIs(detectedVariables, variableManifest);
-
-      if (this.llm && missingAPIs.length > 0) {
-        logger.info(` AI ${missingAPIs.length} API...`);
-        await this.generateMissingAPIImplementationsWithAI(missingAPIs, code, variableManifest);
-      }
 
       logger.info(' ...');
       const emulationCode = generateEmulationCode(variableManifest, targetRuntime, includeComments);
@@ -404,104 +379,6 @@ export class EnvironmentEmulator {
       return `: ${path} = {}`;
     } else {
       return `null: ${path} = null`;
-    }
-  }
-
-  private async generateMissingAPIImplementationsWithAI(
-    missingAPIs: MissingAPI[],
-    code: string,
-    manifest: UnknownRecord,
-  ): Promise<void> {
-    if (!this.llm || missingAPIs.length === 0) {
-      return;
-    }
-
-    try {
-      const apisToGenerate = missingAPIs.slice(0, 10);
-
-      const response = await this.llm.chat(
-        generateMissingAPIImplementationsMessages(apisToGenerate, code),
-      );
-
-      const jsonMatch =
-        response.content.match(/```json\s*([\s\S]*?)\s*```/) ||
-        response.content.match(/\{[\s\S]*\}/);
-
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[1] || jsonMatch[0];
-        const implementations = JSON.parse(jsonStr) as unknown;
-        if (!this.isRecord(implementations)) {
-          return;
-        }
-
-        let addedCount = 0;
-        for (const [path, impl] of Object.entries(implementations)) {
-          if (typeof impl === 'string' && impl.trim()) {
-            manifest[path] = impl;
-            addedCount++;
-          }
-        }
-
-        logger.info(` AI ${addedCount} API`);
-      }
-    } catch (error) {
-      logger.error('AIAPI', error);
-    }
-  }
-
-  private async inferMissingVariablesWithAI(
-    code: string,
-    detected: DetectedEnvironmentVariables,
-    existingManifest: UnknownRecord,
-    browserType: string,
-  ): Promise<UnknownRecord> {
-    if (!this.llm) {
-      return {};
-    }
-
-    try {
-      const allDetectedPaths = [
-        ...detected.window,
-        ...detected.document,
-        ...detected.navigator,
-        ...detected.location,
-        ...detected.screen,
-        ...detected.other,
-      ];
-
-      const missingPaths = allDetectedPaths.filter((path) => !(path in existingManifest));
-
-      if (missingPaths.length === 0) {
-        logger.info('Environment analysis complete, AI suggestions applied');
-        return {};
-      }
-
-      logger.info(` AI ${missingPaths.length} ...`);
-
-      const response = await this.llm.chat(
-        generateMissingVariablesMessages(browserType, missingPaths, code, existingManifest),
-      );
-
-      const jsonMatch =
-        response.content.match(/```json\s*([\s\S]*?)\s*```/) ||
-        response.content.match(/\{[\s\S]*\}/);
-
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[1] || jsonMatch[0];
-        const inferredVars = JSON.parse(jsonStr) as unknown;
-        if (!this.isRecord(inferredVars)) {
-          logger.warn('AIJSON');
-          return {};
-        }
-        logger.info(` AI ${Object.keys(inferredVars).length} `);
-        return inferredVars;
-      }
-
-      logger.warn('AIJSON');
-      return {};
-    } catch (error) {
-      logger.error('AI', error);
-      return {};
     }
   }
 

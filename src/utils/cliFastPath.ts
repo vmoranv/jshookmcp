@@ -43,8 +43,6 @@ function buildHelpText(version: string): string {
     '  Starts the MCP server by default.',
     '',
     'Common environment variables:',
-    '  OPENAI_API_KEY',
-    '  DEFAULT_LLM_PROVIDER=openai|anthropic',
     '  MCP_TRANSPORT=stdio|http',
     '  MCP_TOOL_PROFILE=search|workflow|full',
     '',

@@ -1,5 +1,3 @@
-import type { LLMService } from '@services/LLMService';
-import { generateVMAnalysisMessages } from '@services/prompts/deobfuscation';
 import type { UnresolvedPart, VMType } from '@internal-types/index';
 import { logger } from '@utils/logger';
 import { type ExecutionSandbox } from '@modules/security/ExecutionSandbox';
@@ -12,7 +10,7 @@ type RestoreResult = {
 };
 
 type RestoreContext = {
-  llm?: LLMService;
+  llm?: any;
   sandbox: ExecutionSandbox;
 };
 
@@ -242,76 +240,14 @@ async function restoreJJEncode(
 }
 
 async function restoreCustomVM(
-  context: RestoreContext,
+  _context: RestoreContext,
   code: string,
   aggressive: boolean,
   warnings: string[],
   unresolvedParts: UnresolvedPart[],
 ): Promise<RestoreResult> {
-  if (!context.llm) {
-    warnings.push('LLM service unavailable, using fallback');
-    warnings.push('Configure DeepSeek/OpenAI API key for AI-assisted deobfuscation');
-
-    return restoreCustomVMBasic(code, aggressive, warnings, unresolvedParts);
-  }
-
-  try {
-    logger.info(' LLMVM...');
-
-    const response = await context.llm.chat(generateVMAnalysisMessages(code));
-
-    const analysisText = response.content;
-
-    logger.info(' LLM');
-    logger.info(`: ${analysisText.substring(0, 200)}...`);
-
-    let vmAnalysis: Record<string, unknown> | undefined;
-    try {
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed && typeof parsed === 'object') {
-          vmAnalysis = parsed as Record<string, unknown>;
-        }
-      }
-    } catch {
-      warnings.push('LLM analysis failed, using fallback');
-      return restoreCustomVMBasic(code, aggressive, warnings, unresolvedParts);
-    }
-
-    if (vmAnalysis) {
-      warnings.push(
-        `LLMVM: ${typeof vmAnalysis.vmType === 'string' ? vmAnalysis.vmType : 'Unknown'}`,
-      );
-
-      const vmWarnings = vmAnalysis.warnings;
-      if (Array.isArray(vmWarnings)) {
-        warnings.push(...(vmWarnings as string[]));
-      }
-
-      const restorationSteps = vmAnalysis.restorationSteps;
-      if (Array.isArray(restorationSteps)) {
-        unresolvedParts.push({
-          location: 'VM Restoration',
-          reason: 'LLM',
-          suggestion: (restorationSteps as unknown[]).join('\n'),
-        });
-      }
-
-      return {
-        code,
-        confidence: 0.6,
-        warnings,
-        unresolvedParts: unresolvedParts.length > 0 ? unresolvedParts : undefined,
-      };
-    }
-
-    return restoreCustomVMBasic(code, aggressive, warnings, unresolvedParts);
-  } catch (error) {
-    logger.error('LLM', error);
-    warnings.push(`LLM: ${error}`);
-    return restoreCustomVMBasic(code, aggressive, warnings, unresolvedParts);
-  }
+  warnings.push('AI-assisted deobfuscation removed, using fallback directly.');
+  return restoreCustomVMBasic(code, aggressive, warnings, unresolvedParts);
 }
 
 export function restoreCustomVMBasic(

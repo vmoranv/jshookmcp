@@ -1,13 +1,5 @@
-import type { LLMService } from '@services/LLMService';
 import type { DetectedEnvironmentVariables, MissingAPI } from '@internal-types/index';
 import type { BrowserType } from '@modules/emulator/BrowserEnvironmentRules';
-import { logger } from '@utils/logger';
-import {
-  generateBrowserEnvAnalysisMessages,
-  generateAntiCrawlAnalysisMessages,
-  generateAPIImplementationMessages,
-  generateEnvironmentSuggestionsMessages,
-} from '@services/prompts/environment';
 
 export interface AIAnalysisResult {
   recommendedVariables: Record<string, unknown>;
@@ -31,62 +23,17 @@ export interface AIAnalysisResult {
 }
 
 export class AIEnvironmentAnalyzer {
-  constructor(private llm?: LLMService) {}
-
-  async analyze(
-    code: string,
-    detected: DetectedEnvironmentVariables,
-    missing: MissingAPI[],
-    browserType: BrowserType = 'chrome',
-  ): Promise<AIAnalysisResult> {
-    if (!this.llm) {
-      logger.warn('LLM service unavailable, skipping AI environment analysis');
-      return this.getEmptyResult();
-    }
-
-    try {
-      logger.info(' AI...');
-
-      const response = await this.llm.chat(
-        generateBrowserEnvAnalysisMessages(code, detected, missing, browserType),
-      );
-
-      const result = this.parseAIResponse(response.content);
-      logger.info(
-        `AI environment analysis complete, confidence: ${(result.confidence * 100).toFixed(1)}%`,
-      );
-
-      return result;
-    } catch (error) {
-      logger.error('AI', error);
-      return this.getEmptyResult();
-    }
+  constructor(legacyDependency?: unknown) {
+    void legacyDependency;
   }
 
-  private parseAIResponse(response: string): AIAnalysisResult {
-    try {
-      const jsonMatch =
-        response.match(/```json\s*([\s\S]*?)\s*```/) || response.match(/\{[\s\S]*\}/);
-
-      if (!jsonMatch) {
-        logger.warn('AIJSON');
-        return this.getEmptyResult();
-      }
-
-      const jsonStr = jsonMatch[1] || jsonMatch[0];
-      const parsed = JSON.parse(jsonStr);
-
-      return {
-        recommendedVariables: parsed.recommendedVariables || {},
-        recommendedAPIs: parsed.recommendedAPIs || [],
-        antiCrawlFeatures: parsed.antiCrawlFeatures || [],
-        suggestions: parsed.suggestions || [],
-        confidence: parsed.confidence || 0.5,
-      };
-    } catch (error) {
-      logger.error('AI', error);
-      return this.getEmptyResult();
-    }
+  async analyze(
+    _code: string,
+    _detected: DetectedEnvironmentVariables,
+    _missing: MissingAPI[],
+    _browserType: BrowserType = 'chrome',
+  ): Promise<AIAnalysisResult> {
+    return this.getEmptyResult();
   }
 
   private getEmptyResult(): AIAnalysisResult {
@@ -99,90 +46,20 @@ export class AIEnvironmentAnalyzer {
     };
   }
 
-  async analyzeAntiCrawl(code: string): Promise<AIAnalysisResult['antiCrawlFeatures']> {
-    if (!this.llm) {
-      return [];
-    }
-
-    try {
-      const response = await this.llm.chat(generateAntiCrawlAnalysisMessages(code));
-
-      const jsonMatch =
-        response.content.match(/```json\s*([\s\S]*?)\s*```/) ||
-        response.content.match(/\[[\s\S]*\]/);
-
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[1] || jsonMatch[0];
-        return JSON.parse(jsonStr);
-      }
-
-      return [];
-    } catch (error) {
-      logger.error('', error);
-      return [];
-    }
+  async analyzeAntiCrawl(_code: string): Promise<AIAnalysisResult['antiCrawlFeatures']> {
+    return [];
   }
 
-  async inferAPIImplementation(apiPath: string, context: string): Promise<string | null> {
-    if (!this.llm) {
-      return null;
-    }
-
-    try {
-      const response = await this.llm.chat(generateAPIImplementationMessages(apiPath, context));
-
-      const codeMatch = response.content.match(/```(?:javascript|js)?\s*([\s\S]*?)\s*```/);
-      if (codeMatch?.[1]) {
-        return codeMatch[1].trim();
-      }
-
-      const trimmed = response.content.trim();
-      if (trimmed.includes('function') || trimmed.includes('const') || trimmed.includes('var')) {
-        return trimmed;
-      }
-
-      return null;
-    } catch (error) {
-      logger.error('API', error);
-      return null;
-    }
+  async inferAPIImplementation(_apiPath: string, _context: string): Promise<string | null> {
+    return null;
   }
 
   async generateSuggestions(
     detected: DetectedEnvironmentVariables,
     missing: MissingAPI[],
-    browserType: BrowserType,
+    _browserType: BrowserType,
   ): Promise<string[]> {
-    if (!this.llm) {
-      return this.getDefaultSuggestions(detected, missing);
-    }
-
-    try {
-      const response = await this.llm.chat(
-        generateEnvironmentSuggestionsMessages(
-          detected as unknown as Record<string, string[]>,
-          missing,
-          browserType,
-        ),
-      );
-
-      const jsonMatch =
-        response.content.match(/```json\s*([\s\S]*?)\s*```/) ||
-        response.content.match(/\[[\s\S]*\]/);
-
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[1] || jsonMatch[0];
-        const suggestions = JSON.parse(jsonStr);
-        if (Array.isArray(suggestions) && suggestions.every((s) => typeof s === 'string')) {
-          return suggestions;
-        }
-      }
-
-      return this.getDefaultSuggestions(detected, missing);
-    } catch (error) {
-      logger.error('', error);
-      return this.getDefaultSuggestions(detected, missing);
-    }
+    return this.getDefaultSuggestions(detected, missing);
   }
 
   private getDefaultSuggestions(

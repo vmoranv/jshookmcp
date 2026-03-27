@@ -103,7 +103,6 @@ export interface DomainInstances {
   debuggerManager?: import('@modules/debugger/DebuggerManager').DebuggerManager;
   runtimeInspector?: import('@modules/debugger/RuntimeInspector').RuntimeInspector;
   consoleMonitor?: import('@modules/monitor/ConsoleMonitor').ConsoleMonitor;
-  llm?: import('@services/LLMService').LLMService;
   browserHandlers?: import('@server/domains/browser/index').BrowserToolHandlers;
   debuggerHandlers?: import('@server/domains/debugger/index').DebuggerToolHandlers;
   advancedHandlers?: import('@server/domains/network/index').AdvancedToolHandlers;

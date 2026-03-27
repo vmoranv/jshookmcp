@@ -38,12 +38,13 @@ import {
   SEARCH_RRF_K,
   SEARCH_PARAM_TOKEN_WEIGHT,
   SEARCH_VECTOR_ENABLED,
-  SEARCH_VECTOR_COSINE_WEIGHT,
 } from '@src/constants';
 import { BM25ScorerImpl } from './BM25Scorer';
 import { EmbeddingEngine } from './EmbeddingEngine';
 import { IntentBoostImpl } from './IntentBoost';
 import { TrigramIndex } from './TrigramIndex';
+import { FeedbackTracker } from './FeedbackTracker';
+import { QueryNormalizer } from './QueryNormalizer';
 
 // ── public types ──
 
@@ -146,10 +147,10 @@ export class ToolSearchEngine {
   // ── Dense vector search (Phase 8) ──
   private readonly embeddingEngine: EmbeddingEngine | null;
   private toolEmbeddings: Float32Array[] | null = null;
-  /** Current weight of the vector cosine signal in RRF fusion. */
-  private vectorWeight: number;
-  /** Last vector ranking for feedback tracking (tool name → rank). */
-  private lastVectorRanking: Map<string, number> | null = null;
+  /** Feedback tracking for adaptive vector weight adjustment. */
+  private readonly feedbackTracker: FeedbackTracker;
+  /** Monotonic epoch counter — incremented on feedback events to lazily invalidate cache. */
+  private feedbackEpoch = 0;
 
   // Extracted modules
   private readonly bm25Scorer: BM25ScorerImpl;
@@ -174,7 +175,7 @@ export class ToolSearchEngine {
     // Initialize vector search (Phase 8)
     const vectorEnabled = searchConfig?.vectorEnabled ?? SEARCH_VECTOR_ENABLED;
     this.embeddingEngine = vectorEnabled ? new EmbeddingEngine() : null;
-    this.vectorWeight = searchConfig?.vectorCosineWeight ?? SEARCH_VECTOR_COSINE_WEIGHT;
+    this.feedbackTracker = new FeedbackTracker(searchConfig);
     this.intentBoost = new IntentBoostImpl(searchConfig?.intentToolBoostRules);
 
     let totalLength = 0;
@@ -182,13 +183,13 @@ export class ToolSearchEngine {
       const tool = source[i]!;
       const domain = this.domainOverrides?.get(tool.name) ?? getToolDomain(tool.name);
       const description = tool.description ?? '';
-      const shortDescription = extractShortDescription(description);
+      const shortDescription = QueryNormalizer.extractShortDescription(description);
 
       const nameTokens = this.bm25Scorer.tokenise(tool.name);
       const nameTokenSet = new Set(nameTokens);
       const domainTokens = domain ? this.bm25Scorer.tokenise(domain) : [];
       const descTokens = this.bm25Scorer.tokenise(description);
-      const paramTokens = ToolSearchEngine.extractParamTokens(tool.inputSchema);
+      const paramTokens = QueryNormalizer.extractParamTokens(tool.inputSchema);
 
       const allTokens = [...nameTokens, ...domainTokens, ...descTokens, ...paramTokens];
 
@@ -334,8 +335,8 @@ export class ToolSearchEngine {
       return bestTool;
     })();
 
-    // ── Cache check (§4.3 CSAPC) ──
-    const cacheKey = `${query}\0${topK}`;
+    // ── Cache check (§4.3 CSAPC) — include feedbackEpoch for lazy invalidation ──
+    const cacheKey = `${query}\0${topK}\0${this.feedbackEpoch}`;
     const cached = this.queryCache.get(cacheKey);
     if (cached) {
       // Update isActive flags from current context
@@ -562,10 +563,11 @@ export class ToolSearchEngine {
 
     // Store last vector ranking for feedback tracking (Plan 08-04)
     if (vectorRanked.size > 0) {
-      this.lastVectorRanking = new Map<string, number>();
+      const ranking = new Map<string, number>();
       for (const [docIdx, rank] of vectorRanked) {
-        this.lastVectorRanking.set(this.docs[docIdx]!.name, rank);
+        ranking.set(this.docs[docIdx]!.name, rank);
       }
+      this.feedbackTracker.recordVectorRanking(ranking);
     }
 
     // ── Fuse via RRF ──
@@ -589,8 +591,8 @@ export class ToolSearchEngine {
       }
 
       const vectorRank = vectorRanked.get(i);
-      if (vectorRank !== undefined && this.vectorWeight > 0) {
-        rrfScore += this.vectorWeight * (1 / (k + vectorRank));
+      if (vectorRank !== undefined && this.feedbackTracker.getVectorWeight() > 0) {
+        rrfScore += this.feedbackTracker.getVectorWeight() * (1 / (k + vectorRank));
       }
 
       // Scale RRF score up to be comparable with original BM25 magnitude
@@ -733,25 +735,16 @@ export class ToolSearchEngine {
 
   /**
    * Record feedback from a tool call to adjust the vector weight.
-   * If the invoked tool was in the top-5 of the vector ranking, increase weight.
-   * Otherwise, slightly decrease it. This creates a self-tuning feedback loop.
+   * Delegates to FeedbackTracker and increments the epoch to lazily invalidate cache.
    *
    * @param toolName The tool that was invoked
    * @param _lastQuery The search query that led to this tool call (reserved for future use)
    */
   recordToolCallFeedback(toolName: string, _lastQuery: string): void {
-    if (!this.lastVectorRanking || !this.embeddingEngine) return;
-
-    const vectorRank = this.lastVectorRanking.get(toolName);
-
-    if (vectorRank !== undefined && vectorRank < 5) {
-      // Tool was in vector top-5 — vector signal is working well, increase weight
-      this.vectorWeight = Math.min(0.8, this.vectorWeight + 0.02);
-      this.queryCache.clear(); // Results will differ with new weight
-    } else {
-      // Tool was NOT in vector top-5 — vector signal missed, decrease weight
-      this.vectorWeight = Math.max(0.1, this.vectorWeight - 0.01);
-      this.queryCache.clear();
+    const adjusted = this.feedbackTracker.recordToolCallFeedback(toolName, !!this.embeddingEngine);
+    if (adjusted) {
+      // Increment epoch to lazily invalidate cached search results
+      this.feedbackEpoch += 1;
     }
   }
 
@@ -806,92 +799,6 @@ export class ToolSearchEngine {
       }
       scores[docIndex]! += bonusBand * tier;
     }
-  }
-
-  /**
-   * Extract parameter names from a tool's inputSchema for indexing.
-   * Handles both simple flat properties and nested object properties.
-   */
-  static extractParamTokens(inputSchema: unknown): string[] {
-    const tokens: string[] = [];
-    if (!inputSchema || typeof inputSchema !== 'object') return tokens;
-
-    const schema = inputSchema as Record<string, unknown>;
-    const properties = schema.properties;
-    if (!properties || typeof properties !== 'object') return tokens;
-
-    for (const [paramName, paramDef] of Object.entries(properties as Record<string, unknown>)) {
-      // Add the parameter name itself (split on camelCase)
-      const nameParts = paramName.replace(/([a-z])([A-Z])/g, '$1 $2').split(/[\s_-]+/);
-      for (const part of nameParts) {
-        const lower = part.toLowerCase();
-        if (lower.length > 1) {
-          tokens.push(lower);
-        }
-      }
-
-      // Add description tokens if available
-      if (paramDef && typeof paramDef === 'object') {
-        const desc = (paramDef as Record<string, unknown>).description;
-        if (typeof desc === 'string') {
-          // Extract only key terms from description (skip very common words)
-          const STOP_WORDS = new Set([
-            'the',
-            'a',
-            'an',
-            'is',
-            'are',
-            'was',
-            'were',
-            'be',
-            'been',
-            'to',
-            'of',
-            'in',
-            'for',
-            'on',
-            'with',
-            'at',
-            'by',
-            'from',
-            'or',
-            'and',
-            'not',
-            'this',
-            'that',
-            'it',
-            'its',
-            'if',
-            'as',
-            'will',
-            'can',
-            'may',
-            'must',
-            'should',
-            'would',
-            'could',
-            'e',
-            'g',
-            'default',
-            'optional',
-            'required',
-            'when',
-            'set',
-          ]);
-          const descWords = desc
-            .toLowerCase()
-            .split(/[^a-z0-9]+/)
-            .filter(Boolean);
-          for (const w of descWords) {
-            if (w.length > 2 && !STOP_WORDS.has(w)) {
-              tokens.push(w);
-            }
-          }
-        }
-      }
-    }
-
-    return tokens;
   }
 
   /**
@@ -1006,14 +913,4 @@ export class ToolSearchEngine {
       }
     }
   }
-}
-
-function extractShortDescription(description: string): string {
-  if (!description) return '';
-  const firstSentence = description.match(/^[^.!?\n]+[.!?]?/);
-  if (firstSentence) {
-    const result = firstSentence[0]!.trim();
-    return result.length > 120 ? result.slice(0, 117) + '...' : result;
-  }
-  return description.length > 120 ? description.slice(0, 117) + '...' : description;
 }

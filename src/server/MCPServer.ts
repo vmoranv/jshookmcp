@@ -104,7 +104,6 @@ export class MCPServer implements MCPServerContext {
     | import('@modules/debugger/RuntimeInspector').RuntimeInspector
     | undefined;
   declare consoleMonitor: import('@modules/monitor/ConsoleMonitor').ConsoleMonitor | undefined;
-  declare llm: import('@services/LLMService').LLMService | undefined;
   declare browserHandlers: import('@server/domains/browser/index').BrowserToolHandlers | undefined;
   declare debuggerHandlers:
     | import('@server/domains/debugger/index').DebuggerToolHandlers
@@ -201,9 +200,10 @@ export class MCPServer implements MCPServerContext {
           if (!depsEntries.some(([k]) => k === key)) {
             depsEntries.push([
               key,
-              createDomainProxy(this, m.domain, `${m.domain}:${key}`, () => {
-                m.ensure(this);
-                return (this as Record<string, unknown>)[key]!;
+              createDomainProxy(this, m.domain, `${m.domain}:${key}`, async () => {
+                // Wait for primary ensure() to complete, then return ctx[key]
+                await m.ensure(this);
+                return (this as Record<string, unknown>)[key] as object;
               }),
             ]);
           }
@@ -378,7 +378,6 @@ const DOMAIN_INSTANCE_KEYS: ReadonlyArray<
   'debuggerManager',
   'runtimeInspector',
   'consoleMonitor',
-  'llm',
   'browserHandlers',
   'debuggerHandlers',
   'advancedHandlers',
