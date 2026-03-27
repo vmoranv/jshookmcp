@@ -3,7 +3,9 @@ import { tool } from '@server/registry/tool-builder';
 
 export const encodingTools: Tool[] = [
   tool('binary_detect_format')
-    .desc('Detect binary payload format/encoding via magic bytes, encoding heuristics, and Shannon entropy')
+    .desc(
+      'Detect binary payload format/encoding via magic bytes, encoding heuristics, and Shannon entropy',
+    )
     .string('data', 'Input payload')
     .enum('source', ['base64', 'hex', 'file', 'raw'], 'How to interpret input payload')
     .string('filePath', 'File path when source=file')
@@ -30,7 +32,9 @@ export const encodingTools: Tool[] = [
     .build(),
 
   tool('binary_entropy_analysis')
-    .desc('Compute Shannon entropy + byte frequency to assess plaintext/encoded/compressed/encrypted likelihood')
+    .desc(
+      'Compute Shannon entropy + byte frequency to assess plaintext/encoded/compressed/encrypted likelihood',
+    )
     .string('data', 'Input payload')
     .enum('source', ['base64', 'hex', 'raw', 'file'], 'How to interpret input payload')
     .string('filePath', 'File path when source=file')

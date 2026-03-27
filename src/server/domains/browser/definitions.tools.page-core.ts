@@ -21,32 +21,33 @@ page_navigate(url="https:")
 -> Page loads
 -> Use network_get_requests to see captured requests`)
     .string('url', 'Target URL to navigate to')
-    .enum('waitUntil', ['load', 'domcontentloaded', 'networkidle', 'commit'], 'When to consider navigation succeeded', { default: 'networkidle' })
+    .enum(
+      'waitUntil',
+      ['load', 'domcontentloaded', 'networkidle', 'commit'],
+      'When to consider navigation succeeded',
+      { default: 'networkidle' },
+    )
     .number('timeout', 'Navigation timeout in milliseconds', { default: 30000 })
-    .boolean('enableNetworkMonitoring', 'Auto-enable network monitoring before navigation to capture all requests. If already enabled, this has no effect.', { default: false })
+    .boolean(
+      'enableNetworkMonitoring',
+      'Auto-enable network monitoring before navigation to capture all requests. If already enabled, this has no effect.',
+      { default: false },
+    )
     .required('url')
     .idempotent()
     .openWorld()
     .build(),
 
-  tool('page_reload')
-    .desc('Reload current page')
-    .idempotent()
-    .openWorld()
-    .build(),
+  tool('page_reload').desc('Reload current page').idempotent().openWorld().build(),
 
-  tool('page_back')
-    .desc('Navigate back in history')
-    .openWorld()
-    .build(),
+  tool('page_back').desc('Navigate back in history').openWorld().build(),
 
-  tool('page_forward')
-    .desc('Navigate forward in history')
-    .openWorld()
-    .build(),
+  tool('page_forward').desc('Navigate forward in history').openWorld().build(),
 
   tool('dom_query_selector')
-    .desc('Query single element (like document.querySelector). AI should use this BEFORE clicking to verify element exists.')
+    .desc(
+      'Query single element (like document.querySelector). AI should use this BEFORE clicking to verify element exists.',
+    )
     .string('selector', 'CSS selector')
     .boolean('getAttributes', 'Whether to get element attributes', { default: true })
     .required('selector')
@@ -76,8 +77,12 @@ Best Practices:
 Example:
 dom_get_structure(maxDepth=2, includeText=false)
 -> Returns compact structure without text content`)
-    .number('maxDepth', 'Maximum depth of DOM tree (default: 3, recommend: 2 for large pages)', { default: 3 })
-    .boolean('includeText', 'Whether to include text content (set false to reduce size)', { default: true })
+    .number('maxDepth', 'Maximum depth of DOM tree (default: 3, recommend: 2 for large pages)', {
+      default: 3,
+    })
+    .boolean('includeText', 'Whether to include text content (set false to reduce size)', {
+      default: true,
+    })
     .readOnly()
     .idempotent()
     .build(),
@@ -93,8 +98,13 @@ dom_get_structure(maxDepth=2, includeText=false)
     .desc('Click an element. Use dom_query_selector FIRST to verify element exists.')
     .string('selector', 'CSS selector of element to click')
     .enum('button', ['left', 'right', 'middle'], 'Mouse button to click', { default: 'left' })
-    .number('clickCount', 'Number of clicks (numeric string is accepted and auto-normalized)', { default: 1 })
-    .number('delay', 'Delay between mousedown and mouseup in milliseconds (numeric string is accepted)')
+    .number('clickCount', 'Number of clicks (numeric string is accepted and auto-normalized)', {
+      default: 1,
+    })
+    .number(
+      'delay',
+      'Delay between mousedown and mouseup in milliseconds (numeric string is accepted)',
+    )
     .required('selector')
     .openWorld()
     .build(),
@@ -158,9 +168,19 @@ page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.
 -> If you need full object, use the returned detailId`)
     .string('code', 'JavaScript code to execute')
     .boolean('autoSummarize', 'Auto-summarize large results (default: true)', { default: true })
-    .number('maxSize', 'Max result size in bytes before auto-summarizing (default: 50KB)', { default: 51200 })
-    .array('fieldFilter', { type: 'string' }, 'Server-side field filter: remove keys matching these names from the result object (recursive). Useful to strip noise fields like "icon", "avatar", "base64Image".')
-    .boolean('stripBase64', 'Strip data URI and bare base64 strings from the result, replacing them with a size placeholder. Prevents context overflow from embedded images/fonts (default: false).', { default: false })
+    .number('maxSize', 'Max result size in bytes before auto-summarizing (default: 50KB)', {
+      default: 51200,
+    })
+    .array(
+      'fieldFilter',
+      { type: 'string' },
+      'Server-side field filter: remove keys matching these names from the result object (recursive). Useful to strip noise fields like "icon", "avatar", "base64Image".',
+    )
+    .boolean(
+      'stripBase64',
+      'Strip data URI and bare base64 strings from the result, replacing them with a size placeholder. Prevents context overflow from embedded images/fonts (default: false).',
+      { default: false },
+    )
     .required('code')
     .openWorld()
     .build(),
@@ -176,20 +196,35 @@ Modes:
     .prop('selector', {
       oneOf: [
         { type: 'string', description: 'Single CSS selector' },
-        { type: 'array', items: { type: 'string' }, description: 'Array of CSS selectors for batch element screenshots' }
+        {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of CSS selectors for batch element screenshots',
+        },
       ],
-      description: 'CSS selector(s) of the element(s) to screenshot. Omit or pass "all" for full page viewport.',
+      description:
+        'CSS selector(s) of the element(s) to screenshot. Omit or pass "all" for full page viewport.',
     })
-    .object('clip', {
-      x: { type: 'number', description: 'Left offset in pixels' },
-      y: { type: 'number', description: 'Top offset in pixels' },
-      width: { type: 'number', description: 'Region width in pixels' },
-      height: { type: 'number', description: 'Region height in pixels' },
-    }, 'Pixel region to capture (ignored when selector is set)', { required: ['x', 'y', 'width', 'height'] })
-    .string('path', 'File path to save screenshot (optional). For batch mode, used as directory or base name.')
+    .object(
+      'clip',
+      {
+        x: { type: 'number', description: 'Left offset in pixels' },
+        y: { type: 'number', description: 'Top offset in pixels' },
+        width: { type: 'number', description: 'Region width in pixels' },
+        height: { type: 'number', description: 'Region height in pixels' },
+      },
+      'Pixel region to capture (ignored when selector is set)',
+      { required: ['x', 'y', 'width', 'height'] },
+    )
+    .string(
+      'path',
+      'File path to save screenshot (optional). For batch mode, used as directory or base name.',
+    )
     .enum('type', ['png', 'jpeg'], 'Image format', { default: 'png' })
     .number('quality', 'Image quality (0-100, only for jpeg)')
-    .boolean('fullPage', 'Capture full scrollable page (ignored when selector or clip is set)', { default: false })
+    .boolean('fullPage', 'Capture full scrollable page (ignored when selector or clip is set)', {
+      default: false,
+    })
     .readOnly()
     .idempotent()
     .build(),
@@ -224,5 +259,5 @@ get_script_source(scriptId="abc", preview=true)
     .number('endLine', 'End line number (1-based, for partial fetch)')
     .readOnly()
     .idempotent()
-    .build()
+    .build(),
 ];

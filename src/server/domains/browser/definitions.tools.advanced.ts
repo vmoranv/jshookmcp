@@ -36,11 +36,24 @@ Actions:
 USE THIS for:
 - Registration page ↔ email verification page workflows
 - Any flow requiring coordination between multiple open tabs`)
-    .enum('action', [
-      'list', 'alias_bind', 'alias_open', 'navigate', 'wait_for', 
-      'context_set', 'context_get', 'transfer'
-    ], 'Tab workflow action to perform')
-    .string('alias', 'Tab alias name (used by alias_bind, alias_open, navigate, wait_for, transfer)')
+    .enum(
+      'action',
+      [
+        'list',
+        'alias_bind',
+        'alias_open',
+        'navigate',
+        'wait_for',
+        'context_set',
+        'context_get',
+        'transfer',
+      ],
+      'Tab workflow action to perform',
+    )
+    .string(
+      'alias',
+      'Tab alias name (used by alias_bind, alias_open, navigate, wait_for, transfer)',
+    )
     .string('fromAlias', 'Source tab alias for transfer action')
     .number('index', 'Tab index (0-based) for alias_bind')
     .string('url', 'URL for alias_open or navigate')
@@ -49,7 +62,9 @@ USE THIS for:
     .string('key', 'Context key for context_set, context_get, transfer')
     .string('value', 'Value to store (context_set action)')
     .string('expression', 'JavaScript expression to evaluate in the source tab (transfer action)')
-    .number('timeoutMs', 'Timeout in milliseconds for wait_for (default: 10000)', { default: 10000 })
+    .number('timeoutMs', 'Timeout in milliseconds for wait_for (default: 10000)', {
+      default: 10000,
+    })
     .required('action')
     .openWorld()
     .build(),

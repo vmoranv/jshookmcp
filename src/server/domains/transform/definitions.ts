@@ -1,11 +1,19 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
-const transformsEnum = ['constant_fold', 'string_decrypt', 'dead_code_remove', 'control_flow_flatten', 'rename_vars'] as const;
+const transformsEnum = [
+  'constant_fold',
+  'string_decrypt',
+  'dead_code_remove',
+  'control_flow_flatten',
+  'rename_vars',
+] as const;
 
 export const transformTools: Tool[] = [
   tool('ast_transform_preview')
-    .desc('Preview lightweight AST-like transforms (string/regex based) and return before/after diff.')
+    .desc(
+      'Preview lightweight AST-like transforms (string/regex based) and return before/after diff.',
+    )
     .string('code', 'Source code to transform.')
     .array('transforms', { type: 'string', enum: transformsEnum }, 'Ordered transform list.')
     .boolean('preview', 'Whether to generate line diff output.', { default: true })
@@ -25,18 +33,26 @@ export const transformTools: Tool[] = [
     .string('scriptId', 'Target script ID from page debugger context.')
     .string('code', 'Direct source code input.')
     .string('chainName', 'Use a saved transform chain by name.')
-    .array('transforms', { type: 'string', enum: transformsEnum }, 'Direct transform list (used when chainName is not provided).')
+    .array(
+      'transforms',
+      { type: 'string', enum: transformsEnum },
+      'Direct transform list (used when chainName is not provided).',
+    )
     .build(),
 
   tool('crypto_extract_standalone')
-    .desc('Extract crypto/sign/encrypt function from current page and generate standalone runnable code.')
+    .desc(
+      'Extract crypto/sign/encrypt function from current page and generate standalone runnable code.',
+    )
     .string('targetFunction', 'Target function name/path, e.g. "window.sign".')
     .boolean('includePolyfills', 'Include minimal runtime polyfills.', { default: true })
     .required('targetFunction')
     .build(),
 
   tool('crypto_test_harness')
-    .desc('Run extracted crypto code in worker_threads + vm sandbox and return deterministic test results.')
+    .desc(
+      'Run extracted crypto code in worker_threads + vm sandbox and return deterministic test results.',
+    )
     .string('code', 'Standalone function code.')
     .string('functionName', 'Exported function name to execute.')
     .array('testInputs', { type: 'string' }, 'Input list for test execution.')

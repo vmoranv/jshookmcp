@@ -24,11 +24,7 @@ watch_add(expression="window.byted_acrawler", name="acrawler")`)
     .idempotent()
     .build(),
 
-  tool('watch_list')
-    .desc('List all watch expressions')
-    .readOnly()
-    .idempotent()
-    .build(),
+  tool('watch_list').desc('List all watch expressions').readOnly().idempotent().build(),
 
   tool('watch_evaluate_all')
     .desc(`Evaluate all enabled watch expressions
@@ -44,10 +40,7 @@ Best used when paused at a breakpoint.`)
     .idempotent()
     .build(),
 
-  tool('watch_clear_all')
-    .desc('Clear all watch expressions')
-    .destructive()
-    .build(),
+  tool('watch_clear_all').desc('Clear all watch expressions').destructive().build(),
 
   tool('xhr_breakpoint_set')
     .desc(` Set XHR/Fetch breakpoint (pause before network requests)
@@ -76,11 +69,7 @@ xhr_breakpoint_set(urlPattern="*aweme/v1/*")`)
     .idempotent()
     .build(),
 
-  tool('xhr_breakpoint_list')
-    .desc('List all XHR breakpoints')
-    .readOnly()
-    .idempotent()
-    .build(),
+  tool('xhr_breakpoint_list').desc('List all XHR breakpoints').readOnly().idempotent().build(),
 
   tool('event_breakpoint_set')
     .desc(` Set event listener breakpoint (pause on event)
@@ -123,11 +112,7 @@ event_breakpoint_set_category(category="mouse")`)
     .idempotent()
     .build(),
 
-  tool('event_breakpoint_list')
-    .desc('List all event breakpoints')
-    .readOnly()
-    .idempotent()
-    .build(),
+  tool('event_breakpoint_list').desc('List all event breakpoints').readOnly().idempotent().build(),
 
   tool('blackbox_add')
     .desc(` Blackbox scripts (skip during debugging)
@@ -163,9 +148,5 @@ blackbox_add_common()`)
     .idempotent()
     .build(),
 
-  tool('blackbox_list')
-    .desc('List all blackboxed patterns')
-    .readOnly()
-    .idempotent()
-    .build(),
+  tool('blackbox_list').desc('List all blackboxed patterns').readOnly().idempotent().build(),
 ];

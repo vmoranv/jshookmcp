@@ -99,7 +99,10 @@ export function generateEnvironmentSuggestionsMessages(
   const userPrompt = `Target: ${browserType.toUpperCase()} | ${totalVars} vars detected | ${missing.length} APIs missing
 
 Missing:
-${missing.slice(0, 20).map((m) => `- \`${m.path}\` (${m.type})`).join('\n')}${missing.length > 20 ? `\n... +${missing.length - 20} more` : ''}
+${missing
+  .slice(0, 20)
+  .map((m) => `- \`${m.path}\` (${m.type})`)
+  .join('\n')}${missing.length > 20 ? `\n... +${missing.length - 20} more` : ''}
 
 Patterns: Navigator ${(detected.navigator || []).length}, Window ${(detected.window || []).length}, Document ${(detected.document || []).length}, Screen ${(detected.screen || []).length}
 

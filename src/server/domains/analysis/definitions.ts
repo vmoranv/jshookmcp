@@ -43,12 +43,16 @@ function withWebcrackOpts(b: ReturnType<typeof tool>) {
 
 export const coreTools: Tool[] = [
   tool('collect_code')
-    .desc('Collect JavaScript from a target website in summary, priority, incremental, or full mode')
+    .desc(
+      'Collect JavaScript from a target website in summary, priority, incremental, or full mode',
+    )
     .string('url', 'Target website URL')
     .boolean('includeInline', 'Include inline scripts', { default: true })
     .boolean('includeExternal', 'Include external scripts', { default: true })
     .boolean('includeDynamic', 'Include dynamically loaded scripts', { default: false })
-    .enum('smartMode', ['summary', 'priority', 'incremental', 'full'], 'Collection mode', { default: 'full' })
+    .enum('smartMode', ['summary', 'priority', 'incremental', 'full'], 'Collection mode', {
+      default: 'full',
+    })
     .boolean('compress', 'Enable compression', { default: false })
     .number('maxTotalSize', 'Maximum total size in bytes', { default: 2097152 })
     .number('maxFileSize', 'Maximum single file size in KB', { default: 500 })
@@ -87,7 +91,7 @@ export const coreTools: Tool[] = [
       .desc('Run webcrack-powered JavaScript deobfuscation with bundle unpacking')
       .string('code', 'Obfuscated JavaScript source')
       .enum('llm', ['gpt-4', 'claude'], 'Preferred LLM for analysis', { default: 'gpt-4' })
-      .boolean('aggressive', 'Aggressive deobfuscation strategy', { default: false })
+      .boolean('aggressive', 'Aggressive deobfuscation strategy', { default: false }),
   )
     .required('code')
     .build(),
@@ -96,7 +100,9 @@ export const coreTools: Tool[] = [
     .desc('Run semantic code analysis for structure, behavior, and risks')
     .string('code', 'Source code to analyze')
     .prop('context', { type: 'object', description: 'Additional contextual data' })
-    .enum('focus', ['structure', 'business', 'security', 'all'], 'Analysis focus', { default: 'all' })
+    .enum('focus', ['structure', 'business', 'security', 'all'], 'Analysis focus', {
+      default: 'all',
+    })
     .required('code')
     .build(),
 
@@ -112,7 +118,11 @@ export const coreTools: Tool[] = [
     .desc('Create, inspect, and clear JavaScript runtime hooks')
     .enum('action', ['create', 'list', 'records', 'clear'], 'Hook management operation')
     .string('target', 'Hook target identifier')
-    .enum('type', ['function', 'xhr', 'fetch', 'websocket', 'localstorage', 'cookie'], 'Hook target type')
+    .enum(
+      'type',
+      ['function', 'xhr', 'fetch', 'websocket', 'localstorage', 'cookie'],
+      'Hook target type',
+    )
     .enum('hookAction', ['log', 'block', 'modify'], 'Hook behavior', { default: 'log' })
     .string('customCode', 'Custom JavaScript hook payload')
     .string('hookId', 'Hook identifier')
@@ -135,8 +145,10 @@ export const coreTools: Tool[] = [
       .string('code', 'Obfuscated JavaScript source')
       .boolean('detectOnly', 'Detect only without transformation', { default: false })
       .boolean('aggressiveVM', 'Aggressive VM deobfuscation', { default: false })
-      .boolean('useASTOptimization', 'Apply AST optimization after transformation', { default: true })
-      .number('timeout', 'Operation timeout in ms', { default: 60000 })
+      .boolean('useASTOptimization', 'Apply AST optimization after transformation', {
+        default: true,
+      })
+      .number('timeout', 'Operation timeout in ms', { default: 60000 }),
   )
     .required('code')
     .build(),
@@ -144,7 +156,7 @@ export const coreTools: Tool[] = [
   withWebcrackOpts(
     tool('webcrack_unpack')
       .desc('Run webcrack bundle unpacking and return extracted module graph')
-      .string('code', 'Bundled or obfuscated JavaScript source')
+      .string('code', 'Bundled or obfuscated JavaScript source'),
   )
     .required('code')
     .build(),

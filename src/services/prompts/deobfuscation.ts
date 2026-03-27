@@ -35,16 +35,18 @@ Return ONLY the cleaned JavaScript code.`;
 export function generateVMAnalysisMessages(code: string): LLMMessage[] {
   const codeSnippet = code.substring(0, 5000);
 
-  return [{
-    role: 'user',
-    content: `Analyze this JSVMP-protected JavaScript:
+  return [
+    {
+      role: 'user',
+      content: `Analyze this JSVMP-protected JavaScript:
 
 \`\`\`javascript
 ${codeSnippet}
 \`\`\`
 
 Return JSON: { "vmType", "programCounter", "stack", "registers", "bytecodeArray", "interpreterFunction", "restorationSteps": [], "warnings": [] }`,
-  }];
+    },
+  ];
 }
 
 export function generateDeobfuscationPrompt(code: string): LLMMessage[] {
