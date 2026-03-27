@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import { logger } from '@utils/logger';
 import { nativeMemoryManager } from '@native/NativeMemoryManager';
 import { isKoffiAvailable } from '@native/Win32API';
+import { MEMORY_MAX_READ_BYTES } from '@src/constants';
 import {
   execAsync,
   executePowerShellScript,
@@ -14,7 +15,8 @@ import {
   type MemoryProtectionInfo,
 } from '@modules/process/memory/types';
 
-// ── Windows ──
+/** Strict hex address pattern — rejects embedded shell metacharacters. */
+const HEX_ADDR = /^(?:0x)?[0-9a-fA-F]{1,16}$/;
 
 async function readMemoryWindows(
   pid: number,
@@ -186,12 +188,6 @@ async function readMemoryMac(
 
 // ── Public dispatcher ──
 
-/** Strict hex address pattern — rejects embedded shell metacharacters. */
-const HEX_ADDR = /^(?:0x)?[0-9a-fA-F]{1,16}$/;
-
-/** Hard cap on a single read to prevent OOM (matches macOS guard). */
-const MAX_READ_SIZE = 16 * 1024 * 1024; // 16 MB
-
 export async function readMemory(
   platform: Platform,
   pid: number,
@@ -207,8 +203,11 @@ export async function readMemory(
     if (isNaN(addrNum)) {
       return { success: false, error: 'Invalid address format. Use hex like "0x12345678"' };
     }
-    if (size <= 0 || size > MAX_READ_SIZE) {
-      return { success: false, error: `Read size must be 1–${MAX_READ_SIZE} bytes (16 MB)` };
+    if (size <= 0 || size > MEMORY_MAX_READ_BYTES) {
+      return {
+        success: false,
+        error: `Read size must be 1–${MEMORY_MAX_READ_BYTES} bytes (${(MEMORY_MAX_READ_BYTES / 1024 / 1024).toFixed(0)} MB)`,
+      };
     }
 
     // Try native FFI first on Windows (10-100x faster)

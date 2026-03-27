@@ -5,6 +5,7 @@
 import { logger } from '@utils/logger';
 import { nativeMemoryManager } from '@native/NativeMemoryManager';
 import { isKoffiAvailable } from '@native/Win32API';
+import { MEMORY_MAX_WRITE_BYTES } from '@src/constants';
 import {
   execAsync,
   executePowerShellScript,
@@ -187,9 +188,6 @@ async function writeMemoryMac(
 /** Strict hex address pattern — rejects embedded shell metacharacters. */
 const HEX_ADDR = /^(?:0x)?[0-9a-fA-F]{1,16}$/;
 
-/** Hard cap on a single write to prevent OOM (matches macOS guard). */
-const MAX_WRITE_SIZE = 16 * 1024; // 16 KB
-
 export async function writeMemory(
   platform: Platform,
   pid: number,
@@ -219,8 +217,11 @@ export async function writeMemory(
       return { success: false, error: `Invalid ${encoding} data` };
     }
 
-    if (buffer.length === 0 || buffer.length > MAX_WRITE_SIZE) {
-      return { success: false, error: `Write size must be 1–${MAX_WRITE_SIZE} bytes (16 KB)` };
+    if (buffer.length === 0 || buffer.length > MEMORY_MAX_WRITE_BYTES) {
+      return {
+        success: false,
+        error: `Write size must be 1–${MEMORY_MAX_WRITE_BYTES} bytes (${(MEMORY_MAX_WRITE_BYTES / 1024).toFixed(0)} KB)`,
+      };
     }
 
     // Try native FFI first on Windows (10-100x faster)

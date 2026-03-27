@@ -8,7 +8,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { promises as fs } from 'node:fs';
 import { logger } from '@utils/logger';
 import {
   openProcessForMemory,
@@ -246,7 +246,7 @@ export class AntiCheatDetector {
 
       for (const mod of targets) {
         try {
-          const diskData = readFileSync(mod.path);
+          const diskData = await fs.readFile(mod.path);
           const sections = await this.peAnalyzer.listSections(pid, mod.base);
 
           for (const sec of sections) {

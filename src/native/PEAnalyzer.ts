@@ -8,7 +8,7 @@
  * @module PEAnalyzer
  */
 
-import { readFileSync } from 'node:fs';
+import { promises as fs } from 'node:fs';
 import { logger } from '@utils/logger';
 import {
   openProcessForMemory,
@@ -288,7 +288,7 @@ export class PEAnalyzer {
       for (const mod of targets) {
         try {
           // Read disk file
-          const diskData = readFileSync(mod.path);
+          const diskData = await fs.readFile(mod.path);
 
           // Get exports for this module
           const exports = await this.parseExports(pid, mod.base);
