@@ -10,7 +10,7 @@
  * Tool and domain counts are NOT hardcoded — the audit discovers them
  * dynamically from manifests, avoiding CI breakage on every tool change.
  *
- * Usage: node scripts/audit-tools.mjs
+ * Usage: tsx scripts/audit-tools.mjs
  * Exit code 0 = pass, 1 = fail
  */
 

@@ -15,14 +15,14 @@ export interface AuditEntry {
 }
 
 export class MemoryAuditTrail {
-  private buffer: AuditEntry[];
+  private buffer: Array<AuditEntry | undefined>;
   private head = 0;
   private count = 0;
   private readonly capacity: number;
 
   constructor(capacity: number = 5000) {
     this.capacity = Number.isInteger(capacity) && capacity > 0 ? capacity : 5000;
-    this.buffer = new Array<AuditEntry>(this.capacity);
+    this.buffer = Array.from({ length: this.capacity });
   }
 
   record(entry: Omit<AuditEntry, 'timestamp' | 'user'>): void {
