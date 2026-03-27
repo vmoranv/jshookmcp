@@ -1,5 +1,9 @@
 /**
  * MacroToolHandlers — Handles macro domain MCP tool calls.
+ *
+ * Built-in macros are simple MacroDefinition data objects (step lists).
+ * Complex workflow-based macros (DAG, BranchNode) should be registered
+ * as extension workflows via the ExtensionManager.
  */
 
 import { resolve } from 'node:path';
@@ -84,7 +88,6 @@ export class MacroToolHandlers {
 
     const result = await this.runner.execute(def, inputOverrides);
     const report = this.runner.formatProgressReport(result);
-
     return {
       content: [{ type: 'text', text: report }],
     };
