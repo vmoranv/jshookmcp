@@ -14,16 +14,22 @@ import { parentPort } from 'worker_threads';
 
 // ── Lazy model singleton ──
 
-let embedder: any = null;
+/** Pipeline function type — loosened to accept Transformers.js Tensor output. */
+type EmbedderPipeline = (
+  text: string | string[],
+  options?: Record<string, unknown>,
+) => Promise<{ data: Float32Array | ArrayLike<number> }>;
+
+let embedder: EmbedderPipeline | null = null;
 
 const MODEL_ID = 'Xenova/bge-micro-v2';
 
-async function getEmbedder() {
+async function getEmbedder(): Promise<EmbedderPipeline> {
   if (!embedder) {
     const { pipeline } = await import('@huggingface/transformers');
-    embedder = await pipeline('feature-extraction', MODEL_ID, {
+    embedder = (await pipeline('feature-extraction', MODEL_ID, {
       quantized: true,
-    } as Record<string, unknown>);
+    } as Record<string, unknown>)) as unknown as EmbedderPipeline;
   }
   return embedder;
 }
