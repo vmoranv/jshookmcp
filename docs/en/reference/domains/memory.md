@@ -78,4 +78,4 @@ Memory analysis domain for native scans, pointer-chain discovery, structure infe
 | `memory_inline_hook_detect` | Detect inline hooks by comparing the first 16 bytes of each exported function on disk vs in memory. Identifies JMP rel32, JMP abs64, PUSH+RET hooks and decodes jump targets. |
 | `memory_anticheat_detect` | Scan process imports for anti-debug/anti-cheat mechanisms: IsDebuggerPresent, NtQueryInformationProcess, timing checks (QPC, GetTickCount), thread hiding, heap flag checks, and DR register inspection. Each detection includes a bypass suggestion. |
 | `memory_guard_pages` | Find all memory regions with PAGE_GUARD protection in a process. Guard pages are often used as anti-tampering mechanisms or stack overflow detection. |
-| `memory_integrity_check` | Check code section integrity by comparing SHA-256 hashes of disk bytes vs memory bytes. Detects patches, hooks, and other runtime modifications to executable sections. |
+| `memory_integrity_check` | Check executable memory regions against their corresponding on-disk PE files (.text sections) to detect modifications like inline hooks or code patches. |
