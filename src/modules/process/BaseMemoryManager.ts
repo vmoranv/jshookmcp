@@ -23,6 +23,7 @@ export abstract class BaseMemoryManager {
     pid: number,
     pattern: string,
     patternType: PatternType,
+    suspendTarget?: boolean,
   ): Promise<MemoryScanResult>;
 
   abstract checkMemoryProtection(pid: number, address: number): Promise<MemoryProtectionInfo>;

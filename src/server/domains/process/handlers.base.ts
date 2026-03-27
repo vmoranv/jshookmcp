@@ -310,6 +310,7 @@ export class ProcessHandlersBase extends ProcessHandlersCore {
       const pid = validatePid(args.pid);
       const pattern = requireString(args.pattern, 'pattern');
       const patternType = normalizePatternType(args.patternType);
+      const suspendTarget = args.suspendTarget === true;
 
       const availability = await this.memoryManager.checkAvailability();
       if (!availability.available) {
@@ -352,7 +353,7 @@ export class ProcessHandlersBase extends ProcessHandlersCore {
         };
       }
 
-      const result = await this.memoryManager.scanMemory(pid, pattern, patternType);
+      const result = await this.memoryManager.scanMemory(pid, pattern, patternType, suspendTarget);
       const diagnostics = !result.success
         ? await this.safeBuildMemoryDiagnostics({
             pid,

@@ -94,6 +94,11 @@ export const processToolDefinitions: Tool[] = [
       'Type of pattern to search',
       { default: 'hex' },
     )
+    .boolean(
+      'suspendTarget',
+      'Suspend the target process during scan for a consistent memory snapshot (default: false)',
+      { default: false },
+    )
     .required('pid', 'pattern')
     .build(),
 

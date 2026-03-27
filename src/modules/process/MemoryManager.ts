@@ -108,8 +108,9 @@ export class MemoryManager {
     pid: number,
     pattern: string,
     patternType: PatternType = 'hex',
+    suspendTarget = false,
   ): Promise<MemoryScanResult> {
-    return _scanMemory(this.platform, pid, pattern, patternType);
+    return _scanMemory(this.platform, pid, pattern, patternType, suspendTarget);
   }
 
   async scanMemoryFiltered(

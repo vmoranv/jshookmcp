@@ -402,6 +402,33 @@ export function machVmDeallocate(task: number, address: bigint, size: bigint): n
   return fn(task, address, size);
 }
 
+// ── Task Suspend / Resume ──
+
+/**
+ * Suspend all threads in a task (freeze target process).
+ *
+ * This pauses the entire process — useful for consistent memory snapshots.
+ * Must be paired with `taskResume()` to avoid leaving the target frozen.
+ *
+ * @param task - Target task port (from taskForPid)
+ * @returns kern_return_t
+ */
+export function taskSuspend(task: number): number {
+  const fn = getLibSystem().func('int32 task_suspend(uint32)');
+  return fn(task);
+}
+
+/**
+ * Resume all threads in a previously-suspended task.
+ *
+ * @param task - Target task port (from taskForPid)
+ * @returns kern_return_t
+ */
+export function taskResume(task: number): number {
+  const fn = getLibSystem().func('int32 task_resume(uint32)');
+  return fn(task);
+}
+
 // ── dyld Image Enumeration ──
 
 /**
