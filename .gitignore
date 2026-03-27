@@ -88,3 +88,4 @@ AGENTS.md
 # VitePress build output
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+.ace-tool/
