@@ -146,13 +146,38 @@ function collectSuccessStats(value: unknown): { success: number; failure: number
   return { success: 0, failure: 0 };
 }
 
+function resolveInputFrom(
+  mapping: Record<string, string>,
+  stepResults: Map<string, unknown>,
+): Record<string, unknown> {
+  const resolved: Record<string, unknown> = {};
+  for (const [targetKey, sourceRef] of Object.entries(mapping)) {
+    const dotIndex = sourceRef.indexOf('.');
+    if (dotIndex === -1) {
+      resolved[targetKey] = stepResults.get(sourceRef);
+      continue;
+    }
+    const stepId = sourceRef.slice(0, dotIndex);
+    const fieldPath = sourceRef.slice(dotIndex + 1);
+    const stepResult = stepResults.get(stepId);
+    const payload = parseToolPayload(stepResult) ?? (stepResult as JsonRecord | undefined);
+    resolved[targetKey] = payload?.[fieldPath];
+  }
+  return resolved;
+}
+
 async function runToolNode(
   ctx: MCPServerContext,
   node: ToolNode,
   overrides: ExecuteWorkflowOptions['nodeInputOverrides'],
+  executionContext: InternalExecutionContext,
 ): Promise<unknown> {
+  const fromResolved = node.inputFrom
+    ? resolveInputFrom(node.inputFrom, executionContext.stepResults)
+    : {};
   const mergedInput: ToolArgs = {
     ...node.input,
+    ...fromResolved,
     ...overrides?.[node.id],
   };
 
@@ -278,7 +303,7 @@ async function executeNode(
   let result: unknown;
   switch (node.kind) {
     case 'tool':
-      result = await runToolNode(ctx, node, options.nodeInputOverrides);
+      result = await runToolNode(ctx, node, options.nodeInputOverrides, executionContext);
       break;
     case 'sequence': {
       const sequenceNode = node as SequenceNode;

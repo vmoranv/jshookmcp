@@ -36,11 +36,13 @@ export class MacroRunner {
       .buildGraph(() => {
         const seq = new SequenceNodeBuilder(`${def.id}-root`);
         for (const step of def.steps) {
-          seq.step(
-            new ToolNodeBuilder(step.id, step.toolName)
-              .input(step.input ?? {})
-              .timeout(step.timeoutMs ?? 0),
-          );
+          const toolBuilder = new ToolNodeBuilder(step.id, step.toolName)
+            .input(step.input ?? {})
+            .timeout(step.timeoutMs ?? 0);
+          if (step.inputFrom) {
+            toolBuilder.inputFrom(step.inputFrom);
+          }
+          seq.step(toolBuilder);
         }
         return seq;
       })
