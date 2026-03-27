@@ -20,12 +20,12 @@ pre-push:
   parallel: true
   commands:
     oxlint:
-      run: pnpm run lint
+      run: npx pnpm@10.28.2 run lint
     oxfmt-check:
-      run: pnpm run format:check
+      run: npx pnpm@10.28.2 run format:check
     markdownlint:
-      run: pnpm run lint:md
+      run: npx pnpm@10.28.2 run lint:md
     typecheck:
-      run: pnpm run typecheck
+      run: npx pnpm@10.28.2 run typecheck
     audit-tools:
-      run: pnpm run audit:tools
+      run: npx pnpm@10.28.2 run audit:tools
