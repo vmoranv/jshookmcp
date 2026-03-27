@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { promises as fsAsync } from 'fs';
 import { logger } from '@utils/logger';
 import {
   execAsync,
@@ -131,7 +131,7 @@ export async function checkMemoryProtection(
   // Linux: synchronous /proc/pid/maps read
   if (platform === 'linux') {
     try {
-      const mapsContent = readFileSync(`/proc/${pid}/maps`, 'utf-8');
+      const mapsContent = await fsAsync.readFile(`/proc/${pid}/maps`, 'utf-8');
       const regions = parseProcMaps(mapsContent);
       const region = regions.find((r) => addrNum >= r.start && addrNum < r.end);
       if (!region) {
