@@ -27,6 +27,8 @@ export interface ToolNode {
   readonly id: string;
   readonly toolName: string;
   readonly input?: Record<string, unknown>;
+  /** Map of input keys to `step_id.field` references resolved from stepResults at runtime. */
+  readonly inputFrom?: Record<string, string>;
   readonly timeoutMs?: number;
   readonly retry?: RetryPolicy;
 }
@@ -72,6 +74,8 @@ export type WorkflowNode = ToolNode | SequenceNode | ParallelNode | BranchNode;
 export interface WorkflowExecutionContext {
   readonly workflowRunId: string;
   readonly profile: string;
+  /** Read-only view of step results — used by BranchNode predicates to inspect prior step outputs. */
+  readonly stepResults: ReadonlyMap<string, unknown>;
   invokeTool(toolName: string, args: Record<string, unknown>): Promise<unknown>;
   emitSpan(name: string, attrs?: Record<string, unknown>): void;
   emitMetric(
@@ -152,6 +156,7 @@ type AnyWorkflowNodeBuilder = WorkflowNodeBuilder<WorkflowNode>;
 export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
   private toolName: string;
   private _input?: Record<string, unknown>;
+  private _inputFrom?: Record<string, string>;
   private _retry?: RetryPolicy;
   private _timeoutMs?: number;
 
@@ -162,6 +167,11 @@ export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
 
   input(input: Record<string, unknown>): this {
     this._input = input;
+    return this;
+  }
+
+  inputFrom(mapping: Record<string, string>): this {
+    this._inputFrom = mapping;
     return this;
   }
 
@@ -181,6 +191,7 @@ export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
       id: this.id,
       toolName: this.toolName,
       input: this._input,
+      inputFrom: this._inputFrom,
       retry: this._retry,
       timeoutMs: this._timeoutMs,
     };
