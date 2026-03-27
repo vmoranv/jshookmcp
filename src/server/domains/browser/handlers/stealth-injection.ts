@@ -17,9 +17,9 @@ let fingerprintManagerInstance: FingerprintManagerLike | null = null;
 
 interface FingerprintManagerLike {
   isAvailable(): boolean;
-  generateFingerprint(options?: Record<string, unknown>): Promise<any>;
-  injectFingerprint(page: any, profile: any): Promise<void>;
-  getActiveProfile(): any;
+  generateFingerprint(options?: Record<string, unknown>): Promise<unknown>;
+  injectFingerprint(page: unknown, profile: unknown): Promise<void>;
+  getActiveProfile(): unknown;
 }
 
 async function getFingerprintManager(): Promise<FingerprintManagerLike | null> {

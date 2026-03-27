@@ -558,11 +558,24 @@ export async function evaluateOnNewDocumentWithTimeout<Args extends readonly unk
   ]);
 }
 
+/** Structural type for pages with coverage API (Puppeteer / rebrowser-puppeteer). */
+interface CoveragePage {
+  coverage: {
+    startJSCoverage(options?: {
+      resetOnNavigation?: boolean;
+      reportAnonymousScripts?: boolean;
+    }): Promise<void>;
+    stopJSCoverage(): Promise<unknown>;
+    startCSSCoverage(options?: { resetOnNavigation?: boolean }): Promise<void>;
+    stopCSSCoverage(): Promise<unknown>;
+  };
+}
+
 /**
  * Wrap page.coverage.startJSCoverage() with a timeout.
  */
 export async function coverageStartJSWithTimeout(
-  page: any,
+  page: CoveragePage,
   options?: { resetOnNavigation?: boolean; reportAnonymousScripts?: boolean },
 ): Promise<void> {
   const timeoutMs = 30000;
@@ -581,7 +594,7 @@ export async function coverageStartJSWithTimeout(
  * Wrap page.coverage.startCSSCoverage() with a timeout.
  */
 export async function coverageStartCSSWithTimeout(
-  page: any,
+  page: CoveragePage,
   options?: { resetOnNavigation?: boolean },
 ): Promise<void> {
   const timeoutMs = 30000;
@@ -599,7 +612,7 @@ export async function coverageStartCSSWithTimeout(
 /**
  * Wrap page.coverage.stopJSCoverage() with a timeout.
  */
-export async function coverageStopJSWithTimeout(page: any): Promise<unknown> {
+export async function coverageStopJSWithTimeout(page: CoveragePage): Promise<unknown> {
   const timeoutMs = 30000;
   return Promise.race([
     page.coverage.stopJSCoverage(),
@@ -615,7 +628,7 @@ export async function coverageStopJSWithTimeout(page: any): Promise<unknown> {
 /**
  * Wrap page.coverage.stopCSSCoverage() with a timeout.
  */
-export async function coverageStopCSSWithTimeout(page: any): Promise<unknown> {
+export async function coverageStopCSSWithTimeout(page: CoveragePage): Promise<unknown> {
   const timeoutMs = 30000;
   return Promise.race([
     page.coverage.stopCSSCoverage(),
