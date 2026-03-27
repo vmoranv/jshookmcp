@@ -21,9 +21,10 @@ import type {
 } from '@server/sandbox/types';
 import type { MCPBridge } from '@server/sandbox/MCPBridge';
 import { SANDBOX_HELPER_SOURCE } from '@server/sandbox/SandboxHelpers';
+import { SANDBOX_EXEC_TIMEOUT_MS, SANDBOX_MEMORY_LIMIT_MB } from '@src/constants';
 
-const DEFAULT_TIMEOUT_MS = 1_000;
-const DEFAULT_MEMORY_LIMIT_BYTES = 8 * 1024 * 1024; // 8 MB
+const DEFAULT_TIMEOUT_MS = SANDBOX_EXEC_TIMEOUT_MS;
+const DEFAULT_MEMORY_LIMIT_BYTES = SANDBOX_MEMORY_LIMIT_MB * 1024 * 1024;
 const DEFAULT_MAX_BRIDGE_CALLS = 10;
 
 /**
