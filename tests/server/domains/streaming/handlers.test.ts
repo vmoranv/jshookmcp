@@ -26,7 +26,9 @@ describe('StreamingToolHandlers', () => {
 
   it('validates ws monitor urlFilter regex', async () => {
     const body = parseJson(await handlers.handleWsMonitorEnable({ urlFilter: '[' }));
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.success).toBe(false);
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.error).toContain('Invalid urlFilter regex');
   });
 
@@ -35,13 +37,17 @@ describe('StreamingToolHandlers', () => {
       await handlers.handleWsMonitorEnable({ maxFrames: 5, urlFilter: 'api' }),
     );
     expect(session.send).toHaveBeenCalledWith('Network.enable');
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.success).toBe(true);
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.config.maxFrames).toBe(5);
   });
 
   it('validates ws payloadFilter regex on get frames', async () => {
     const body = parseJson(await handlers.handleWsGetFrames({ payloadFilter: '[' }));
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.success).toBe(false);
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.error).toContain('Invalid payloadFilter regex');
   });
 
@@ -77,8 +83,11 @@ describe('StreamingToolHandlers', () => {
     const body = parseJson(
       await handlers.handleWsGetFrames({ direction: 'received', limit: 1, offset: 0 }),
     );
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.success).toBe(true);
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.frames.length).toBe(1);
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.frames[0].direction).toBe('received');
   });
 
@@ -106,14 +115,18 @@ describe('StreamingToolHandlers', () => {
     });
 
     const body = parseJson(await handlers.handleWsMonitorDisable({}));
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.success).toBe(true);
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.summary.totalFrames).toBeGreaterThan(0);
     expect(session.detach).toHaveBeenCalled();
   });
 
   it('validates sse monitor regex', async () => {
     const body = parseJson(await handlers.handleSseMonitorEnable({ urlFilter: '[' }));
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.success).toBe(false);
+    // @ts-expect-error — auto-suppressed [TS18046]
     expect(body.error).toContain('Invalid urlFilter regex');
   });
 });

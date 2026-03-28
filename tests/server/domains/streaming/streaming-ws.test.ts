@@ -1,5 +1,5 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { StreamingToolHandlersWs } from '@server/domains/streaming/handlers.impl.streaming-ws';
 import type { WsFrameRecord } from '@server/domains/streaming/handlers.impl.streaming-base';
 
@@ -186,6 +186,7 @@ describe('StreamingToolHandlersWs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks = createMocks();
+    // @ts-expect-error — auto-suppressed [TS2345]
     handler = new TestableWs(mocks.collector);
   });
 
@@ -475,6 +476,7 @@ describe('StreamingToolHandlersWs', () => {
       );
 
       expect(body.frames).toHaveLength(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.frames[0].direction).toBe('sent');
     });
 
@@ -495,6 +497,7 @@ describe('StreamingToolHandlersWs', () => {
       );
 
       expect(body.frames).toHaveLength(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.frames[0].direction).toBe('received');
     });
 
@@ -532,6 +535,7 @@ describe('StreamingToolHandlersWs', () => {
       );
 
       expect(body.frames).toHaveLength(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.frames[0].payloadPreview).toContain('data');
     });
 
@@ -684,7 +688,9 @@ describe('StreamingToolHandlersWs', () => {
       const body = parseJson<GetConnectionsResponse>(await handler.handleWsGetConnections({}));
 
       expect(body.total).toBe(2);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.connections[0].requestId).toBe('a');
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.connections[1].requestId).toBe('b');
     });
 

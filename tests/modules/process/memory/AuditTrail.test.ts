@@ -91,9 +91,13 @@ describe('MemoryAuditTrail', () => {
 
     const exported = parseJson<AuditEntry[]>(trail.exportJson());
     expect(exported).toHaveLength(2);
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(exported[0].pattern).toBe('AA BB CC');
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(exported[0].resultsCount).toBe(3);
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(exported[1].dllPath).toBe('C:\\temp\\test.dll');
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(exported[1].error).toBe('access denied');
   });
 

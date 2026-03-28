@@ -110,6 +110,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       expect(b1).toBe(firstBrowser);
 
       // Simulate disconnection
+      // @ts-expect-error — auto-suppressed [TS2339]
       firstBrowser.isConnected.mockReturnValue(false);
 
       // Second launch - triggers doLaunch which closes first browser
@@ -123,6 +124,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('handles close error on previous browser during relaunch gracefully', async () => {
       const firstBrowser = createFakeBrowser(true);
+      // @ts-expect-error — auto-suppressed [TS2339]
       firstBrowser.close.mockRejectedValue(new Error('close err'));
       const secondBrowser = createFakeBrowser(true);
 
@@ -131,6 +133,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       const manager = new CamoufoxBrowserManager();
 
       await manager.launch();
+      // @ts-expect-error — auto-suppressed [TS2339]
       firstBrowser.isConnected.mockReturnValue(false);
 
       // Should not throw even if first browser.close fails
@@ -194,6 +197,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('resets isClosing even when browser.close throws', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // @ts-expect-error — auto-suppressed [TS2339]
       fakeBrowser.close.mockRejectedValue(new Error('Close error'));
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
@@ -233,6 +237,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
     it('creates new page when none provided and navigates', async () => {
       const fakeBrowser = createFakeBrowser(true);
       const fakePage = createFakePage();
+      // @ts-expect-error — auto-suppressed [TS2339]
       fakeBrowser.newPage.mockResolvedValue(fakePage);
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
 
@@ -374,6 +379,7 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
 
     it('handles close error on existing browser when connecting', async () => {
       const existingBrowser = createFakeBrowser(true);
+      // @ts-expect-error — auto-suppressed [TS2339]
       existingBrowser.close.mockRejectedValue(new Error('disconnect fail'));
       camoufoxLaunchMock.mockResolvedValue(existingBrowser);
 

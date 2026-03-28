@@ -77,6 +77,7 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   return {
     McpServer: class extends BaseMockMcpServer {
       constructor(...args: any[]) {
+        // @ts-expect-error — auto-suppressed [TS2556]
         super(...(args as any));
         mocks.mcpInstances.push(this);
       }

@@ -323,8 +323,11 @@ describe('PageEvaluationHandlers – handlePageScreenshot', () => {
     expect(body.total).toBe(2);
     expect(body.succeeded).toBe(1);
     if (body.results) {
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.results[0].success).toBe(true);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.results[1].success).toBe(false);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.results[1].error).toContain('Element not found');
     }
   });

@@ -63,17 +63,24 @@ describe('StealthScripts injected browser-side scripts', () => {
       try {
         fn();
         const win = (globalThis as unknown as Record<string, unknown>).window;
+        // @ts-expect-error — auto-suppressed [TS18046]
         expect(win.chrome).toBeDefined();
+        // @ts-expect-error — auto-suppressed [TS18046]
         expect(typeof win.chrome.runtime.connect).toBe('function');
+        // @ts-expect-error — auto-suppressed [TS18046]
         expect(typeof win.chrome.runtime.sendMessage).toBe('function');
+        // @ts-expect-error — auto-suppressed [TS18046]
         expect(typeof win.chrome.runtime.onMessage.addListener).toBe('function');
+        // @ts-expect-error — auto-suppressed [TS18046]
         const lt = win.chrome.loadTimes();
         expect(lt).toHaveProperty('connectionInfo', 'http/1.1');
         expect(lt).toHaveProperty('navigationType', 'Other');
         expect(lt).toHaveProperty('wasAlternateProtocolAvailable', false);
+        // @ts-expect-error — auto-suppressed [TS18046]
         const cs = win.chrome.csi();
         expect(cs).toHaveProperty('tran', 15);
         expect(typeof cs.onloadT).toBe('number');
+        // @ts-expect-error — auto-suppressed [TS18046]
         expect(win.chrome.app).toEqual({
           isInstalled: false,
           InstallState: {
@@ -136,6 +143,7 @@ describe('StealthScripts injected browser-side scripts', () => {
       (navigator as unknown as Record<string, unknown>).getBattery = () =>
         Promise.resolve({ charging: false, chargingTime: 100, dischargingTime: 500, level: 0.5 });
       fn();
+      // @ts-expect-error — auto-suppressed [TS2571]
       const bat = await (navigator as unknown as Record<string, unknown>).getBattery();
       expect(bat).toBeDefined();
       if (orig) (navigator as unknown as Record<string, unknown>).getBattery = orig;
@@ -242,6 +250,7 @@ describe('StealthScripts injected browser-side scripts', () => {
         'fixMediaDevices',
         'mockNotifications',
       ].forEach((m) =>
+        // @ts-expect-error — auto-suppressed [TS2345]
         vi.spyOn(StealthScripts, m as keyof typeof StealthScripts).mockResolvedValue(undefined),
       );
       const page = createPageMock();

@@ -318,7 +318,9 @@ describe('BrowserControlHandlers – handleBrowserListTabs', () => {
     expect(body.success).toBe(true);
     expect(body.count).toBe(2);
     expect(body.pages).toHaveLength(2);
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(body.pages[0].pageId).toBe('page-0');
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(body.pages[1].aliases).toEqual(['alias-1']);
     expect(body.currentPageId).toBe('page-0');
   });

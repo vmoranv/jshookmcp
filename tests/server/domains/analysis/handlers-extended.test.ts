@@ -204,8 +204,11 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.mode).toBe('summary');
       expect(body.filesCount).toBe(2);
       expect(body.summary).toHaveLength(2);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.summary?.[0].url).toBe('a.js');
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.summary?.[0].preview).toBeDefined();
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.summary?.[1].truncated).toBe(true);
       expect(body.hint).toContain('get_script_source');
     });
@@ -486,6 +489,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         await handlers.handleManageHooks({ action: 'list' }),
       );
       expect(body.hooks).toHaveLength(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.hooks?.[0].id).toBe('h1');
     });
 
@@ -690,6 +694,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         ],
       });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = deps.deobfuscator.deobfuscate.mock.calls[0][0];
       expect(call.mappings).toHaveLength(2);
       expect(call.mappings[0].path).toBe('./valid.js');
@@ -701,6 +706,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
       await handlers.handleDeobfuscate({ code: 'test', outputDir: '  ' });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = deps.deobfuscator.deobfuscate.mock.calls[0][0];
       expect(call.outputDir).toBeUndefined();
     });

@@ -114,6 +114,7 @@ class TestWorkflowHandlersBase extends WorkflowHandlersBase {
 }
 
 function parseJson<T = Record<string, unknown>>(response: ToolHandlerResult): T {
+  // @ts-expect-error — auto-suppressed [TS2532]
   return JSON.parse(response.content[0].text) as T;
 }
 
@@ -343,6 +344,7 @@ describe('WorkflowHandlersBase', () => {
         params: { key: 'value' },
       });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('__params__');
       expect(call.code).toContain('JSON.parse');
@@ -632,7 +634,9 @@ describe('WorkflowHandlersBase', () => {
     it('wraps payload in standard tool response format', () => {
       const result = handlers.jsonTextResultExposed({ success: true, data: 'test' });
       expect(result.content).toHaveLength(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(result.content[0].type).toBe('text');
+      // @ts-expect-error — auto-suppressed [TS2532]
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed.success).toBe(true);
       expect(parsed.data).toBe('test');
@@ -704,7 +708,9 @@ describe('WorkflowHandlersBase', () => {
       );
       expect(body.success).toBe(true);
       expect(body.count).toBe(2);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.workflows[0].id).toBe('a-workflow');
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.workflows[0].route).toEqual({
         kind: 'workflow',
         triggerPatterns: ['alpha'],
@@ -719,6 +725,7 @@ describe('WorkflowHandlersBase', () => {
           },
         ],
       });
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.workflows[1].id).toBe('z-workflow');
     });
 

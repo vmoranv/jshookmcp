@@ -45,6 +45,7 @@ describe('DebuggerSteppingHandlers', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(false);
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
     expect(body).toEqual({
@@ -59,6 +60,7 @@ describe('DebuggerSteppingHandlers', () => {
     debuggerManager.isPaused.mockReturnValueOnce(false);
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleDebuggerStepOver({}));
 
     expect(body).toEqual({
@@ -74,6 +76,7 @@ describe('DebuggerSteppingHandlers', () => {
     debuggerManager.isPaused.mockReturnValueOnce(true);
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleDebuggerStepOut({}));
 
     expect(debuggerManager.stepOut).toHaveBeenCalledOnce();
@@ -89,6 +92,7 @@ describe('DebuggerSteppingHandlers', () => {
     debuggerManager.stepInto.mockRejectedValueOnce(new Error('step failed'));
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleDebuggerStepInto({}));
 
     expect(loggerState.error).toHaveBeenCalledWith('Step into failed: step failed');

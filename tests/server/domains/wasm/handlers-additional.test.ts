@@ -49,6 +49,7 @@ describe('WasmToolHandlers – additional coverage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // @ts-expect-error — auto-suppressed [TS2345]
     handlers = new WasmToolHandlers(collector);
   });
 

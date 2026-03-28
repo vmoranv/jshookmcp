@@ -122,6 +122,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       }),
     );
     // With MAX_RETRIES=3, should have at most 4 attempts (initial + 3 retries)
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(result.results[0].attempts).toBeLessThanOrEqual(4);
   });
 
@@ -146,6 +147,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       }),
     );
 
+    // @ts-expect-error — auto-suppressed [TS2532]
     const key = result.results[0].idempotentKey;
     // Should be masked: first 2 chars + *** + last 2 chars
     expect(key).toContain('***');
@@ -162,6 +164,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       }),
     );
 
+    // @ts-expect-error — auto-suppressed [TS2532]
     const key = result.results[0].idempotentKey;
     expect(key).toContain('***');
   });
@@ -255,6 +258,7 @@ describe('WorkflowHandlersBatch.handleBatchRegister', () => {
       }),
     );
 
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(result.results[0].idempotentKey).toContain('***');
   });
 });

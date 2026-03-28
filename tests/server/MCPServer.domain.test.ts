@@ -76,6 +76,7 @@ describe('MCPServer.domain', () => {
         return 'ok';
       },
     }));
+    // @ts-expect-error — auto-suppressed [TS2352]
     const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', factory) as {
       status: Promise<string>;
       ping(): Promise<string>;

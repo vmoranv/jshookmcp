@@ -99,6 +99,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const assessment = await detector.assess(page);
 
       expect(loggerState.warn).toHaveBeenCalledWith(
@@ -142,6 +143,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const assessment = await detector.assess(page);
 
       expect(assessment.signals.length).toBeGreaterThanOrEqual(3);
@@ -184,6 +186,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const assessment = await detector.assess(page);
       expect(assessment.recommendedNextStep).toBe('ignore');
     });
@@ -218,6 +221,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const assessment = await detector.assess(page);
       expect(assessment.likelyCaptcha).toBe(true);
       expect(assessment.recommendedNextStep).toBe('observe');
@@ -257,6 +261,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const assessment = await detector.assess(page);
 
       expect(assessment.likelyCaptcha).toBe(true);
@@ -294,6 +299,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const assessment = await detector.assess(page);
 
       expect(assessment.excludeScore).toBeGreaterThan(0);
@@ -333,6 +339,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const assessment = await detector.assess(page);
 
       expect(assessment.candidates.length).toBe(2);
@@ -374,6 +381,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const assessment = await detector.assess(page);
 
       expect(assessment.likelyCaptcha).toBe(false);
@@ -413,6 +421,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const assessment = await detector.assess(page);
 
       expect(assessment.likelyCaptcha).toBe(false);
@@ -605,6 +614,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         title: vi.fn(async () => 'Please verify you are human'),
         evaluate: vi.fn(async () => true), // verifyByDOM returns true
       });
+      // @ts-expect-error — auto-suppressed [TS2345]
       const result = await detector.detect(page);
       // If URL does not match, falls through to title
       expect(result.type).not.toBe('none');
@@ -615,6 +625,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         title: vi.fn(async () => '安全验证 - 请完成'),
         evaluate: vi.fn(async () => true),
       });
+      // @ts-expect-error — auto-suppressed [TS2345]
       const result = await detector.detect(page);
       expect(result.detected).toBe(true);
     });
@@ -935,6 +946,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       });
       const domSpy = vi.spyOn(detector, 'checkDOMElements');
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const result = await detector.detect(page);
 
       expect(result.detected).toBe(true);
@@ -961,6 +973,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       });
       const textSpy = vi.spyOn(detector, 'checkPageText');
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const result = await detector.detect(page);
 
       expect(result.detected).toBe(true);
@@ -991,6 +1004,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       });
       const vendorSpy = vi.spyOn(detector, 'checkVendorSpecific');
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const result = await detector.detect(page);
 
       expect(result.detected).toBe(true);
@@ -1025,6 +1039,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 0,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2345]
       const result = await detector.detect(page);
 
       expect(result).toEqual({ detected: false, type: 'none', confidence: 0 });

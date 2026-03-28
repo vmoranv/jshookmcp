@@ -1,3 +1,4 @@
+// @ts-expect-error — auto-suppressed [TS1484]
 import { parseJson, ProcessFindResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

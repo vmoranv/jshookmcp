@@ -259,6 +259,7 @@ interface CommonSuccessResponse {
 }
 
 function parseResponse<T>(response: McpResponse): T {
+  // @ts-expect-error — auto-suppressed [TS2532]
   return JSON.parse(response.content[0].text) as T;
 }
 
@@ -313,7 +314,9 @@ describe('MCPServer.search', () => {
       await searchHandler({ query: 'page', top_k: 5 }),
     );
 
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(first.results[0].name).toBe('engine_1');
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(second.results[0].name).toBe('engine_1');
     expect(state.constructors).toHaveLength(1);
     expect(state.searches).toHaveLength(2);
@@ -464,6 +467,7 @@ describe('MCPServer.search', () => {
     const searchHandler = ctx.__registered.get('search_tools')!.handler;
 
     parseResponse<SearchToolsResponse>(await searchHandler({ query: 'page', top_k: 5 }));
+    // @ts-expect-error — auto-suppressed [TS2345]
     ctx.extensionToolsByName.set('custom_tool', {
       name: 'custom_tool',
       domain: 'workflow',
@@ -474,6 +478,7 @@ describe('MCPServer.search', () => {
     );
 
     expect(state.constructors).toHaveLength(2);
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(second.results[0].name).toBe('engine_2');
   });
 
@@ -483,6 +488,7 @@ describe('MCPServer.search', () => {
     const searchHandler = ctx.__registered.get('search_tools')!.handler;
 
     parseResponse<SearchToolsResponse>(await searchHandler({ query: 'network', top_k: 5 }));
+    // @ts-expect-error — auto-suppressed [TS2345]
     ctx.extensionWorkflowRuntimeById.set('wf-1', {});
     parseResponse<SearchToolsResponse>(await searchHandler({ query: 'network', top_k: 5 }));
 
@@ -642,6 +648,7 @@ describe('MCPServer.search', () => {
       }),
     );
 
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(response.recommendations[0].name).toBe('browser_launch');
     expect(response.recommendations.slice(0, 2).map((item) => item.name)).not.toContain(
       'get_token_budget_stats',
@@ -696,6 +703,7 @@ describe('MCPServer.search', () => {
       }),
     );
 
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(response.recommendations[0].name).toBe('network_enable');
   });
 
@@ -739,6 +747,7 @@ describe('MCPServer.search', () => {
       }),
     );
 
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(response.recommendations[0].name).toBe('network_get_requests');
   });
 
@@ -783,6 +792,7 @@ describe('MCPServer.search', () => {
       ]),
       registerSingleTool: vi.fn(() => registeredTool),
     });
+    // @ts-expect-error — auto-suppressed [TS2339]
     ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('notify failed'));
 
     registerSearchMetaTools(ctx);
@@ -830,6 +840,7 @@ describe('MCPServer.search', () => {
         ],
       ]),
     });
+    // @ts-expect-error — auto-suppressed [TS2339]
     ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('notify failed'));
 
     registerSearchMetaTools(ctx);
@@ -886,6 +897,7 @@ describe('MCPServer.search', () => {
       ]),
       registerSingleTool: vi.fn(() => registeredTool),
     });
+    // @ts-expect-error — auto-suppressed [TS2339]
     ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('notify failed'));
 
     registerSearchMetaTools(ctx);

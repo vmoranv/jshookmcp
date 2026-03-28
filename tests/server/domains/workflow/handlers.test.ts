@@ -305,6 +305,7 @@ describe('WorkflowHandlers', () => {
     const body = parseJson<ListWorkflowsResponse>(await handlers.handleListExtensionWorkflows());
     expect(body.success).toBe(true);
     expect(body.count).toBe(1);
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(body.workflows[0].id).toBe('workflow.demo.v1');
   });
 

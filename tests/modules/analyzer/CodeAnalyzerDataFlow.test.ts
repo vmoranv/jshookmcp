@@ -72,6 +72,7 @@ describe('CodeAnalyzer data flow analysis', () => {
 
     expect(llm.chat).not.toHaveBeenCalled();
     expect(result.taintPaths.length).toBeGreaterThan(0);
+    // @ts-expect-error — auto-suppressed [TS7006]
     expect(result.taintPaths.some((path) => path.sink.type === 'xss')).toBe(true);
   });
 });

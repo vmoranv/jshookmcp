@@ -354,6 +354,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('returns successful harness results', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: true,
@@ -379,6 +380,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles worker returning errors for some inputs', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: true,
@@ -403,6 +405,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles worker overall failure', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: false,
@@ -425,6 +428,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles worker pool submit rejection', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockRejectedValueOnce(new Error('Worker timed out'));
 
@@ -482,6 +486,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('returns matching results when both implementations agree', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
@@ -517,6 +522,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('detects mismatches when implementations differ', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
@@ -545,6 +551,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles one implementation erroring and the other succeeding', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
@@ -571,6 +578,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles both implementations failing', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
@@ -598,6 +606,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('includes duration data for both implementations', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
@@ -624,6 +633,7 @@ describe('TransformToolHandlersCrypto', () => {
     });
 
     it('handles pool rejection for crypto compare', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockRejectedValue(new Error('Pool exhausted'));
 
@@ -645,6 +655,7 @@ describe('TransformToolHandlersCrypto', () => {
 
   describe('close', () => {
     it('closes the crypto harness pool', async () => {
+      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       await handlers.close();
       expect(pool.close).toHaveBeenCalledOnce();
