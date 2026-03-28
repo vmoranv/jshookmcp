@@ -131,7 +131,6 @@
   "blackbox_add": "将脚本加入黑盒列表，调试时自动跳过。",
   "blackbox_add_common": "一键将常见第三方库加入黑盒列表。",
   "blackbox_list": "列出全部黑盒脚本匹配规则。",
-  "ai_hook_generate": "为目标函数、API 或对象方法生成 Hook 代码。",
   "ai_hook_inject": "将生成的 Hook 注入当前页面。",
   "ai_hook_get_data": "获取活动 Hook 捕获的数据，如参数、返回值和调用次数。",
   "ai_hook_list": "列出全部活动 Hook 及其状态信息。",

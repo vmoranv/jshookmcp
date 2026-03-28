@@ -20,7 +20,6 @@ vi.mock('@server/domains/shared/modules', () => ({
   BlackboxManager: vi.fn(),
   ExternalToolRunner: vi.fn(),
   ToolRegistry: vi.fn(),
-  AIHookGenerator: vi.fn(),
   HookManager: vi.fn(),
   ConsoleMonitor: vi.fn(),
   PerformanceMonitor: vi.fn(),

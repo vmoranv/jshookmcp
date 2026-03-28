@@ -155,14 +155,6 @@ const TOOLS = [
   ['detect_crypto', { code: 'crypto.subtle.digest("SHA-256", data)' }],
   ['extract_function_tree', { scriptId: '__placeholder__' }],
   ['manage_hooks', { action: 'list' }],
-  [
-    'ai_hook_generate',
-    {
-      target: { type: 'api', name: 'fetch' },
-      description: 'log fetch calls',
-      behavior: { captureArgs: true, captureReturn: true },
-    },
-  ],
   ['ai_hook_inject', { hookId: '__placeholder__', code: 'console.log("e2e hook")' }],
   ['ai_hook_toggle', { hookId: '__placeholder__', enabled: true }],
   ['ai_hook_get_data', { hookId: '__placeholder__' }],

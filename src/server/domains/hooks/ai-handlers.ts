@@ -1,4 +1,3 @@
-import { AIHookGenerator, type AIHookRequest } from '@server/domains/shared/modules';
 import type { PageController } from '@server/domains/shared/modules';
 import {
   evaluateWithTimeout,
@@ -8,84 +7,9 @@ import { logger } from '@utils/logger';
 import { argString, argStringRequired, argBool } from '@server/domains/shared/parse-args';
 
 export class AIHookToolHandlers {
-  private hookGenerator: AIHookGenerator;
   private injectedHooks: Map<string, { code: string; injectionTime: number }> = new Map();
 
-  constructor(private pageController: PageController) {
-    this.hookGenerator = new AIHookGenerator();
-  }
-
-  async handleAIHookGenerate(args: Record<string, unknown>) {
-    try {
-      let target: AIHookRequest['target'];
-      if (args.target) {
-        target = args.target as AIHookRequest['target'];
-      } else {
-        const pattern = argString(args, 'pattern', '');
-        let targetType: AIHookRequest['target']['type'] = 'function';
-        let targetName = pattern;
-        if (pattern === 'fetch' || pattern === 'XMLHttpRequest') {
-          targetType = 'api';
-        } else if (pattern.includes('.')) {
-          targetType = 'object-method';
-          targetName = pattern.split('.').pop() || pattern;
-        }
-        target = { type: targetType, name: targetName };
-      }
-
-      const request: AIHookRequest = {
-        description: argString(args, 'description') || `Hook ${target.name || 'target'}`,
-        target,
-        behavior: (args.behavior as AIHookRequest['behavior']) || {
-          captureArgs: true,
-          captureReturn: true,
-          logToConsole: true,
-        },
-        condition: args.condition as AIHookRequest['condition'],
-        customCode: args.customCode as AIHookRequest['customCode'],
-      };
-
-      const response = this.hookGenerator.generateHook(request);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: response.success,
-                hookId: response.hookId,
-                generatedCode: response.generatedCode,
-                explanation: response.explanation,
-                injectionMethod: response.injectionMethod,
-                warnings: response.warnings,
-                usage: ` ai_hook_inject(hookId: "${response.hookId}") Hook`,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    } catch (error) {
-      logger.error('AI Hook generation failed', error);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    }
-  }
+  constructor(private pageController: PageController) {}
 
   async handleAIHookInject(args: Record<string, unknown>) {
     try {

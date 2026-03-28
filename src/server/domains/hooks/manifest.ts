@@ -51,7 +51,6 @@ const manifest = {
   profiles: ['workflow', 'full'],
   ensure,
   registrations: [
-    { tool: t('ai_hook_generate'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookGenerate(a)) },
     { tool: t('ai_hook_inject'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookInject(a)) },
     { tool: t('ai_hook_get_data'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookGetData(a)) },
     { tool: t('ai_hook_list'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookList(a)) },

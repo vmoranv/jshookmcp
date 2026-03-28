@@ -34,7 +34,6 @@ export const analysisPhases: Phase[] = [
     setup: [],
     tools: [
       'manage_hooks',
-      'ai_hook_generate',
       'ai_hook_inject',
       'ai_hook_toggle',
       'ai_hook_get_data',

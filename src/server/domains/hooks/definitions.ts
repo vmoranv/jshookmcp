@@ -2,79 +2,12 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const aiHookTools: Tool[] = [
-  tool('ai_hook_generate')
-    .desc(
-      'Generate hook code for a target function, API, or object method.\n\nHook types:\n- function: Hook a named global function (e.g. window.btoa)\n- object-method: Hook a method on an object (e.g. crypto.subtle.encrypt)\n- api: Hook a built-in API (e.g. fetch, XMLHttpRequest)\n- property: Hook a property getter/setter\n- event: Hook an event listener\n- custom: Provide custom hook code\n\nAfter generating, inject the hook with ai_hook_inject.',
-    )
-    .string('description', 'What the hook should do (e.g., "Capture all fetch requests to /api")')
-    .prop('target', {
-      type: 'object',
-      properties: {
-        type: {
-          type: 'string',
-          enum: ['function', 'object-method', 'api', 'property', 'event', 'custom'],
-          description: 'Hook type',
-        },
-        name: { type: 'string', description: 'Function or API name (e.g., "btoa", "fetch")' },
-        pattern: { type: 'string', description: 'Pattern for matching (used with api type)' },
-        object: { type: 'string', description: 'Object path (e.g., "window.crypto.subtle")' },
-        property: { type: 'string', description: 'Property name to hook' },
-      },
-      required: ['type'],
-      description: 'Hook target specification',
-    })
-    .prop('behavior', {
-      type: 'object',
-      properties: {
-        captureArgs: { type: 'boolean', description: 'Capture function arguments', default: true },
-        captureReturn: { type: 'boolean', description: 'Capture return value', default: true },
-        captureStack: { type: 'boolean', description: 'Capture call stack', default: false },
-        modifyArgs: { type: 'boolean', description: 'Allow argument modification', default: false },
-        modifyReturn: {
-          type: 'boolean',
-          description: 'Allow return value modification',
-          default: false,
-        },
-        blockExecution: {
-          type: 'boolean',
-          description: 'Block the original function from executing',
-          default: false,
-        },
-        logToConsole: { type: 'boolean', description: 'Log hook events to console', default: true },
-      },
-      description: 'Hook behavior configuration',
-    })
-    .prop('condition', {
-      type: 'object',
-      properties: {
-        argFilter: {
-          type: 'string',
-          description: 'JS expression to filter by args (e.g., "args[0].includes(\'password\')")',
-        },
-        returnFilter: { type: 'string', description: 'JS expression to filter by return value' },
-        urlPattern: { type: 'string', description: 'Regex pattern to match request URL' },
-        maxCalls: { type: 'number', description: 'Stop capturing after this many calls' },
-      },
-      description: 'Conditional trigger for the hook',
-    })
-    .prop('customCode', {
-      type: 'object',
-      properties: {
-        before: { type: 'string', description: 'Code to run before the original function' },
-        after: { type: 'string', description: 'Code to run after the original function' },
-        replace: { type: 'string', description: 'Code to replace the original function entirely' },
-      },
-      description: 'Custom code to inject at hook points',
-    })
-    .required('description', 'target', 'behavior')
-    .build(),
-
   tool('ai_hook_inject')
     .desc(
       'Inject a generated hook into the page.\n\nMethods:\n- evaluateOnNewDocument: Runs before page scripts (use for API hooks like fetch/XHR)\n- evaluate: Runs in current page context (use for hooking already-loaded code)',
     )
-    .string('hookId', 'Hook ID returned by ai_hook_generate')
-    .string('code', 'Hook code returned by ai_hook_generate')
+    .string('hookId', 'Hook ID for injection')
+    .string('code', 'Hook code to inject')
     .enum('method', ['evaluateOnNewDocument', 'evaluate'], 'Injection method', {
       default: 'evaluate',
     })

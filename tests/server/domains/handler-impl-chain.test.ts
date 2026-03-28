@@ -35,7 +35,6 @@ vi.mock('@server/domains/shared/modules', () => ({
   BlackboxManager: mockClass(),
   ExternalToolRunner: mockClass(),
   ToolRegistry: mockClass(),
-  AIHookGenerator: mockClass(),
   HookManager: mockClass(),
   ConsoleMonitor: mockClass(),
   PerformanceMonitor: mockClass(),

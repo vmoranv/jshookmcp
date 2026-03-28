@@ -224,11 +224,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     binary_entropy_analysis: { data: 'SGVsbG8gV29ybGQ=', source: 'base64' },
     protobuf_decode_raw: { data: 'CAESBXdvcmxk' },
     manage_hooks: { action: 'list' },
-    ai_hook_generate: {
-      target: { type: 'api', name: 'fetch' },
-      description: 'log fetch calls',
-      behavior: { captureArgs: true, captureReturn: true },
-    },
     ...(ctx.hookId
       ? {
           ai_hook_inject: { hookId: ctx.hookId, code: 'console.log("e2e hook")' },

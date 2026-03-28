@@ -112,7 +112,7 @@ export function applyContextCapture(
   }
 
   // ── AI Hooks ──
-  if (toolName === 'ai_hook_generate' && isRecord(parsed)) {
+  if (toolName === 'ai_hook_inject' && isRecord(parsed)) {
     const hookId = parsed.hookId ?? parsed.id;
     if (hookId !== undefined && hookId !== null) {
       ctx.hookId = String(hookId);

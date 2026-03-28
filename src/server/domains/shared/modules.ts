@@ -23,8 +23,6 @@ export { ScriptManager } from '@modules/debugger/ScriptManager';
 export { BlackboxManager } from '@modules/debugger/BlackboxManager';
 export { ExternalToolRunner } from '@modules/external/ExternalToolRunner';
 export { ToolRegistry } from '@modules/external/ToolRegistry';
-export { AIHookGenerator } from '@modules/hook/AIHookGenerator';
-export type { AIHookRequest } from '@modules/hook/AIHookGenerator';
 export { HookManager } from '@modules/hook/HookManager';
 export { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor';
 export { PerformanceMonitor } from '@modules/monitor/PerformanceMonitor';

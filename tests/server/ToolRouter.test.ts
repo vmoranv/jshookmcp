@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => {
     tool('network_replay_request', 'Replay a captured request'),
     tool('debugger_enable', 'Enable the debugger'),
     tool('detect_crypto', 'Detect cryptographic code'),
-    tool('ai_hook_generate', 'Generate a runtime hook'),
+    tool('ai_hook_inject', 'Inject a runtime hook'),
     tool('binary_decode', 'Decode binary data'),
     tool('js_bundle_search', 'Search a JavaScript bundle'),
     tool('sourcemap_discover', 'Discover a source map'),
@@ -57,7 +57,7 @@ const mocks = vi.hoisted(() => {
     ['network_replay_request', 'network'],
     ['debugger_enable', 'debugger'],
     ['detect_crypto', 'core'],
-    ['ai_hook_generate', 'hooks'],
+    ['ai_hook_inject', 'hooks'],
     ['binary_decode', 'encoding'],
     ['js_bundle_search', 'workflow'],
     ['sourcemap_discover', 'sourcemap'],
@@ -368,9 +368,9 @@ describe('ToolRouter', () => {
                 },
                 {
                   id: 'hook',
-                  toolName: 'ai_hook_generate',
+                  toolName: 'ai_hook_inject',
                   description:
-                    'Generate a hook for the candidate signing function to capture inputs and outputs',
+                    'Inject a hook for the candidate signing function once the hook code is ready',
                   prerequisites: ['locate'],
                 },
               ],
@@ -423,9 +423,9 @@ describe('ToolRouter', () => {
                 },
                 {
                   id: 'hook',
-                  toolName: 'ai_hook_generate',
+                  toolName: 'ai_hook_inject',
                   description:
-                    'Generate a hook for the candidate signing function to capture inputs and outputs',
+                    'Inject a hook for the candidate signing function once the hook code is ready',
                   prerequisites: ['locate'],
                 },
               ],
@@ -477,9 +477,9 @@ describe('ToolRouter', () => {
                   },
                   {
                     id: 'hook',
-                    toolName: 'ai_hook_generate',
+                    toolName: 'ai_hook_inject',
                     description:
-                      'Generate a hook for the candidate signing function to capture inputs and outputs',
+                      'Inject a hook for the candidate signing function once the hook code is ready',
                     prerequisites: ['locate'],
                   },
                 ],
@@ -516,7 +516,7 @@ describe('ToolRouter', () => {
       action: 'activate',
       toolName: undefined,
       command:
-        'activate_tools with names: ["browser_launch", "browser_attach", "network_enable", "network_get_requests", "debugger_enable", "detect_crypto", "ai_hook_generate"]',
+        'activate_tools with names: ["browser_launch", "browser_attach", "network_enable", "network_get_requests", "debugger_enable", "detect_crypto", "ai_hook_inject"]',
       description: 'Activate 7 preset tools for 签名定位 / Signature Locate',
     });
     expect(response.nextActions[1]).toEqual({

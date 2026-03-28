@@ -1,3 +1,4 @@
+// @ts-expect-error — auto-suppressed [TS1484]
 import { parseJson, AIHookResponse } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HookPresetToolHandlers } from '@server/domains/hooks/preset-handlers';
