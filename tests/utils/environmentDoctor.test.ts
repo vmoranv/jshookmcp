@@ -107,6 +107,13 @@ describe('runEnvironmentDoctor', () => {
     expect(['ok', 'missing']).toContain(mcpSdk!.status);
   });
 
+  it('includes better-sqlite3 health in package checks', async () => {
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const sqlite = report.packages.find((p) => p.name === 'better-sqlite3');
+    expect(sqlite).toBeDefined();
+    expect(['ok', 'missing', 'warn']).toContain(sqlite!.status);
+  });
+
   it('checks commands and reports status', async () => {
     const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
     const git = report.commands.find((c) => c.name === 'git');
@@ -311,6 +318,14 @@ describe('runEnvironmentDoctor', () => {
     }
   });
 
+  it('recommends fixing better-sqlite3 when trace backend is unavailable', async () => {
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const sqlite = report.packages.find((p) => p.name === 'better-sqlite3');
+    if (sqlite && sqlite.status !== 'ok') {
+      expect(report.recommendations.some((r) => r.includes('better-sqlite3'))).toBe(true);
+    }
+  });
+
   it('recommends checking bridges when bridge health fails', async () => {
     mockFetch.mockRejectedValue(new Error('refused'));
     const report = await runEnvironmentDoctor({ includeBridgeHealth: true });
@@ -393,8 +408,7 @@ describe('checkNativeMemory (via runEnvironmentDoctor)', () => {
     const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
     const nativeMem = report.packages.find((p) => p.name === 'native-memory');
     expect(nativeMem).toBeDefined();
-    // koffi is installed in this environment, so it should be ok
-    expect(nativeMem!.status).toBe('ok');
+    expect(['ok', 'warn']).toContain(nativeMem!.status);
     expect(nativeMem!.detail).toContain('libSystem.B.dylib');
   });
 

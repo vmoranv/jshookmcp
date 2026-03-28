@@ -136,6 +136,9 @@ importers:
         specifier: ^3.5.30
         version: 3.5.30(typescript@5.9.3)
     optionalDependencies:
+      better-sqlite3:
+        specifier: 12.6.2
+        version: 12.6.2
       camoufox-js:
         specifier: ^0.9.1
         version: 0.9.1(playwright-core@1.58.2)

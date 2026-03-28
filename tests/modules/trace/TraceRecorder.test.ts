@@ -2,9 +2,10 @@
  * TraceRecorder unit tests — event capture engine lifecycle.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, unlinkSync } from 'node:fs';
-import type { CDPSessionLike } from '@modules/trace/TraceRecorder';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EventBus } from '@server/EventBus';
 import type { ServerEventMap } from '@server/EventBus';
 
@@ -12,16 +13,40 @@ import type { ServerEventMap } from '@server/EventBus';
 vi.mock('@utils/artifacts', () => {
   return {
     resolveArtifactPath: async () => {
-      const path = `/tmp/test-trace-recorder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`;
+      const path = join(
+        tmpdir(),
+        `test-trace-recorder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`,
+      );
       return { absolutePath: path, displayPath: path };
     },
-    getArtifactDir: () => '/tmp',
-    getArtifactsRoot: () => '/tmp',
+    getArtifactDir: () => tmpdir(),
+    getArtifactsRoot: () => tmpdir(),
   };
 });
 
-// Import TraceRecorder AFTER mock is set up (vi.mock is hoisted anyway)
 const { TraceRecorder } = await import('@modules/trace/TraceRecorder');
+type TraceRecorderInstance = InstanceType<typeof TraceRecorder>;
+type CDPSessionLike = import('@modules/trace/TraceRecorder').CDPSessionLike;
+
+function cleanupDbArtifacts(path?: string | null): void {
+  if (!path) return;
+
+  try {
+    if (existsSync(path)) unlinkSync(path);
+  } catch {
+    /* cleanup best-effort */
+  }
+  try {
+    if (existsSync(path + '-wal')) unlinkSync(path + '-wal');
+  } catch {
+    /* cleanup best-effort */
+  }
+  try {
+    if (existsSync(path + '-shm')) unlinkSync(path + '-shm');
+  } catch {
+    /* cleanup best-effort */
+  }
+}
 
 function createMockCDPSession(): CDPSessionLike & {
   _listeners: Map<string, Set<(params: any) => void>>;
@@ -41,9 +66,9 @@ function createMockCDPSession(): CDPSessionLike & {
 }
 
 describe('TraceRecorder', () => {
-  let recorder: InstanceType<typeof TraceRecorder>;
+  let recorder: TraceRecorderInstance;
   let eventBus: EventBus<ServerEventMap>;
-  let cleanupPaths: string[];
+  let cleanupPaths: string[] = [];
 
   beforeEach(() => {
     recorder = new TraceRecorder();
@@ -61,21 +86,7 @@ describe('TraceRecorder', () => {
       }
     }
     for (const p of cleanupPaths) {
-      try {
-        if (existsSync(p)) unlinkSync(p);
-      } catch {
-        /* ok */
-      }
-      try {
-        if (existsSync(p + '-wal')) unlinkSync(p + '-wal');
-      } catch {
-        /* ok */
-      }
-      try {
-        if (existsSync(p + '-shm')) unlinkSync(p + '-shm');
-      } catch {
-        /* ok */
-      }
+      cleanupDbArtifacts(p);
     }
   });
 

@@ -142,6 +142,7 @@
     "vue": "^3.5.30"
   },
   "optionalDependencies": {
+    "better-sqlite3": "12.6.2",
     "camoufox-js": "^0.9.1",
     "playwright-core": "^1.58.2",
     "webcrack": "^2.15.1"

@@ -2,15 +2,33 @@
  * TraceDB unit tests — SQLite storage engine for time-travel tracing.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { join } from 'node:path';
 import { existsSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TraceDB } from '@modules/trace/TraceDB';
 import type { TraceEvent, MemoryDelta } from '@modules/trace/TraceDB.types';
 
-const tmpDir = '/tmp';
-
 function createTmpDbPath(): string {
-  return `${tmpDir}/test-trace-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`;
+  return join(tmpdir(), `test-trace-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`);
+}
+
+function cleanupDbArtifacts(path: string): void {
+  try {
+    if (existsSync(path)) unlinkSync(path);
+  } catch {
+    /* cleanup best-effort */
+  }
+  try {
+    if (existsSync(path + '-wal')) unlinkSync(path + '-wal');
+  } catch {
+    /* cleanup best-effort */
+  }
+  try {
+    if (existsSync(path + '-shm')) unlinkSync(path + '-shm');
+  } catch {
+    /* cleanup best-effort */
+  }
 }
 
 function makeEvent(overrides?: Partial<TraceEvent>): TraceEvent {
@@ -52,22 +70,7 @@ describe('TraceDB', () => {
     } catch {
       /* already closed */
     }
-    try {
-      if (existsSync(dbPath)) unlinkSync(dbPath);
-    } catch {
-      /* cleanup best-effort */
-    }
-    // Also clean WAL/SHM files
-    try {
-      if (existsSync(dbPath + '-wal')) unlinkSync(dbPath + '-wal');
-    } catch {
-      /* ok */
-    }
-    try {
-      if (existsSync(dbPath + '-shm')) unlinkSync(dbPath + '-shm');
-    } catch {
-      /* ok */
-    }
+    cleanupDbArtifacts(dbPath);
   });
 
   it('creates database with correct schema — 4 tables', () => {

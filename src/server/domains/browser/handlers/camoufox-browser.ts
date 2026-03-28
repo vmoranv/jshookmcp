@@ -1,5 +1,6 @@
 import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
+import { formatBetterSqlite3Error, isBetterSqlite3RelatedError } from '@utils/betterSqlite3';
 import { logger } from '@utils/logger';
 
 interface CamoufoxBrowserHandlersDeps {
@@ -20,9 +21,8 @@ async function checkCamoufoxDependencies(): Promise<string | null> {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
 
-    // Check for better-sqlite3 missing
-    if (errorMsg.includes('better-sqlite3') || errorMsg.includes('bindings file')) {
-      return `Camoufox requires native dependencies that are not installed. Run: pnpm add better-sqlite3 or npm rebuild better-sqlite3. Original error: ${errorMsg}`;
+    if (isBetterSqlite3RelatedError(error)) {
+      return `Camoufox requires the same native SQLite backend used by trace tooling. ${formatBetterSqlite3Error(error)}`;
     }
 
     // Check for camoufox-js not installed

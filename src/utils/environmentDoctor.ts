@@ -5,6 +5,7 @@ import { ToolRegistry } from '@modules/external/ToolRegistry';
 import { GHIDRA_BRIDGE_ENDPOINT, IDA_BRIDGE_ENDPOINT } from '@src/constants';
 import { getProjectRoot } from '@utils/outputPaths';
 import { getArtifactRetentionConfig } from '@utils/artifactRetention';
+import { probeBetterSqlite3 } from '@utils/betterSqlite3';
 
 const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);
@@ -45,6 +46,7 @@ export async function runEnvironmentDoctor(options?: {
   const packages: DoctorCheck[] = [
     checkPackage('@modelcontextprotocol/sdk'),
     checkPackage('rebrowser-puppeteer-core'),
+    checkBetterSqlite3(),
     checkPackage('camoufox-js', 'Optional Firefox anti-detect driver'),
     checkPackage('playwright-core', 'Optional browser automation dependency'),
     checkNativeMemory(),
@@ -166,6 +168,15 @@ function checkPackage(packageName: string, missingHint?: string): DoctorCheck {
       detail: missingHint ?? 'Not installed',
     };
   }
+}
+
+function checkBetterSqlite3(): DoctorCheck {
+  const result = probeBetterSqlite3();
+  return {
+    name: 'better-sqlite3',
+    status: result.status,
+    detail: result.detail,
+  };
 }
 
 /**
@@ -292,6 +303,11 @@ function buildRecommendations(
   limitations: string[],
 ): string[] {
   const recommendations: string[] = [];
+  if (packages.some((item) => item.name === 'better-sqlite3' && item.status !== 'ok')) {
+    recommendations.push(
+      'Install or rebuild the optional SQLite trace backend with `pnpm add -O better-sqlite3@12.6.2` or `npm rebuild better-sqlite3 --foreground-scripts` under the active Node version if you need trace tooling.',
+    );
+  }
   if (packages.some((item) => item.name === 'camoufox-js' && item.status !== 'ok')) {
     recommendations.push(
       'Install optional browser dependencies with `pnpm run install:full` if you need Camoufox support.',

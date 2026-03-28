@@ -2,15 +2,37 @@
  * Trace domain handler unit tests.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { existsSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TraceToolHandlers } from '@server/domains/trace/handlers';
 import { TraceRecorder } from '@modules/trace/TraceRecorder';
 import { TraceDB } from '@modules/trace/TraceDB';
 import type { MCPServerContext } from '@server/MCPServer.context';
 
 function createTmpDbPath(): string {
-  return `/tmp/test-handler-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`;
+  return join(tmpdir(), `test-handler-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`);
+}
+
+function cleanupDbArtifacts(path?: string | null): void {
+  if (!path) return;
+
+  try {
+    if (existsSync(path)) unlinkSync(path);
+  } catch {
+    /* cleanup best-effort */
+  }
+  try {
+    if (existsSync(path + '-wal')) unlinkSync(path + '-wal');
+  } catch {
+    /* cleanup best-effort */
+  }
+  try {
+    if (existsSync(path + '-shm')) unlinkSync(path + '-shm');
+  } catch {
+    /* cleanup best-effort */
+  }
 }
 
 function createMockContext(): Partial<MCPServerContext> {
@@ -26,9 +48,9 @@ function createMockContext(): Partial<MCPServerContext> {
 }
 
 describe('TraceToolHandlers', () => {
-  let dbPath: string;
-  let db: TraceDB;
-  let cleanupPaths: string[];
+  let dbPath = '';
+  let db: TraceDB | null = null;
+  let cleanupPaths: string[] = [];
 
   beforeEach(() => {
     dbPath = createTmpDbPath();
@@ -43,21 +65,7 @@ describe('TraceToolHandlers', () => {
       /* already closed */
     }
     for (const p of cleanupPaths) {
-      try {
-        if (existsSync(p)) unlinkSync(p);
-      } catch {
-        /* ok */
-      }
-      try {
-        if (existsSync(p + '-wal')) unlinkSync(p + '-wal');
-      } catch {
-        /* ok */
-      }
-      try {
-        if (existsSync(p + '-shm')) unlinkSync(p + '-shm');
-      } catch {
-        /* ok */
-      }
+      cleanupDbArtifacts(p);
     }
   });
 
@@ -259,7 +267,7 @@ describe('TraceToolHandlers', () => {
       const ctx = createMockContext() as MCPServerContext;
       const handler = new TraceToolHandlers(recorder, ctx);
 
-      const outputPath = `/tmp/test-export-${Date.now()}.json`;
+      const outputPath = join(tmpdir(), `test-export-${Date.now()}.json`);
       cleanupPaths.push(outputPath);
 
       const result = (await handler.handleExportTrace({

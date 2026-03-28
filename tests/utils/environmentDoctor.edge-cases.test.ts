@@ -24,6 +24,7 @@ const {
   koffiLoadShouldFail,
   koffiVersionless,
   versionlessPackages,
+  betterSqlite3ConstructorError,
 } = vi.hoisted(() => ({
   probeAllMock: vi.fn().mockResolvedValue({}),
   execFileMock: vi.fn(),
@@ -36,6 +37,8 @@ const {
   koffiVersionless: { value: false },
   /** Set of packages whose package.json should return {} (no version) */
   versionlessPackages: new Set<string>(),
+  /** If set, constructing better-sqlite3 throws this message */
+  betterSqlite3ConstructorError: { value: null as string | null },
 }));
 
 // ---------------------------------------------------------------------------
@@ -84,13 +87,19 @@ vi.mock('node:module', async (importOriginal) => {
       // Proxy to intercept resolve & require for blocked packages
       const proxyRequire = Object.assign(
         (id: string) => {
+          const normalizedId = id.replaceAll('\\', '/');
           // Return versionless koffi package.json if flag is set
-          if (id.endsWith('koffi/package.json') && koffiVersionless.value) {
+          if (normalizedId.endsWith('koffi/package.json') && koffiVersionless.value) {
             return {}; // no version field
+          }
+          if (id === 'better-sqlite3' && betterSqlite3ConstructorError.value) {
+            return function MockBetterSqlite3() {
+              throw new Error(betterSqlite3ConstructorError.value!);
+            };
           }
           // Return versionless package.json for packages in the set
           for (const pkg of versionlessPackages) {
-            if (id.endsWith(`${pkg}/package.json`)) {
+            if (normalizedId.endsWith(`${pkg}/package.json`)) {
               return {}; // no version field
             }
           }
@@ -148,6 +157,7 @@ describe('environmentDoctor edge cases (require-mocked)', () => {
     koffiLoadShouldFail.value = false;
     koffiVersionless.value = false;
     versionlessPackages.clear();
+    betterSqlite3ConstructorError.value = null;
   });
 
   afterEach(() => {
@@ -156,6 +166,7 @@ describe('environmentDoctor edge cases (require-mocked)', () => {
     koffiLoadShouldFail.value = false;
     koffiVersionless.value = false;
     versionlessPackages.clear();
+    betterSqlite3ConstructorError.value = null;
   });
 
   // ── checkPackage catch branch (L163) ──
@@ -175,6 +186,25 @@ describe('environmentDoctor edge cases (require-mocked)', () => {
     expect(pw).toBeDefined();
     expect(pw!.status).toBe('missing');
     expect(pw!.detail).toContain('Optional browser automation');
+  });
+
+  it('reports better-sqlite3 as missing when trace backend is not installed', async () => {
+    blockedPackages.add('better-sqlite3');
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const sqlite = report.packages.find((p) => p.name === 'better-sqlite3');
+    expect(sqlite).toBeDefined();
+    expect(sqlite!.status).toBe('missing');
+    expect(sqlite!.detail).toContain('trace tools');
+  });
+
+  it('reports better-sqlite3 as warn when native ABI is incompatible', async () => {
+    betterSqlite3ConstructorError.value =
+      'The module better_sqlite3.node was compiled against a different Node.js version using NODE_MODULE_VERSION 137';
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const sqlite = report.packages.find((p) => p.name === 'better-sqlite3');
+    expect(sqlite).toBeDefined();
+    expect(sqlite!.status).toBe('warn');
+    expect(sqlite!.detail).toContain('native binary is incompatible');
   });
 
   // ── checkNativeMemory outer catch (L216) — koffi not installed ──
@@ -207,6 +237,13 @@ describe('environmentDoctor edge cases (require-mocked)', () => {
     const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
     expect(report.recommendations.some((r) => r.includes('Camoufox'))).toBe(true);
     expect(report.recommendations.some((r) => r.includes('pnpm run install:full'))).toBe(true);
+  });
+
+  it('recommends rebuilding better-sqlite3 when trace backend is unhealthy', async () => {
+    betterSqlite3ConstructorError.value =
+      'The module better_sqlite3.node was compiled against a different Node.js version using NODE_MODULE_VERSION 137';
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    expect(report.recommendations.some((r) => r.includes('npm rebuild better-sqlite3'))).toBe(true);
   });
 
   // ── buildRecommendations limitations branch (L310-313) ──

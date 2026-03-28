@@ -12,6 +12,7 @@ import type {
   MemoryDelta,
   HeapSnapshotRecord,
 } from '@modules/trace/TraceDB.types';
+import { formatBetterSqlite3Error } from '@utils/betterSqlite3';
 
 // better-sqlite3 is an optional dependency — lazy-load to fail gracefully
 let Database: typeof import('better-sqlite3');
@@ -40,10 +41,14 @@ export class TraceDB {
 
   constructor(private readonly options: TraceDBOptions) {
     if (!Database) {
-      throw new Error('better-sqlite3 is not installed. Install it with: pnpm add better-sqlite3');
+      throw new Error(formatBetterSqlite3Error(new Error("Cannot find package 'better-sqlite3'")));
     }
 
-    this.db = new Database(options.dbPath);
+    try {
+      this.db = new Database(options.dbPath);
+    } catch (error) {
+      throw new Error(formatBetterSqlite3Error(error), { cause: error });
+    }
     this.batchSize = options.batchSize ?? 200;
 
     // Performance pragmas
