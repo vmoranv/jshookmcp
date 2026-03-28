@@ -20,6 +20,7 @@ AI hook generation, injection, export, and built-in/custom preset management.
 - browser + hooks + debugger
 
 ## Representative tools
+
 - `ai_hook_inject` — Inject a generated hook into the page.
 - `ai_hook_get_data` — Retrieve captured data from an active hook (arguments, return values, timestamps, call count)
 - `ai_hook_list` — List all active hooks with their IDs, types, creation time, and call counts
