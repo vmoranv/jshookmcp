@@ -1,18 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-const promptState = vi.hoisted(() => ({
-  generateBrowserEnvAnalysisMessages: vi.fn(() => [{ role: 'user', content: 'analyze' }]),
-  generateAntiCrawlAnalysisMessages: vi.fn(() => [{ role: 'user', content: 'anti' }]),
-  generateAPIImplementationMessages: vi.fn(() => [{ role: 'user', content: 'api' }]),
-  generateEnvironmentSuggestionsMessages: vi.fn(() => [{ role: 'user', content: 'suggest' }]),
-}));
-
-vi.mock('@src/services/prompts/environment', () => ({
-  generateBrowserEnvAnalysisMessages: promptState.generateBrowserEnvAnalysisMessages,
-  generateAntiCrawlAnalysisMessages: promptState.generateAntiCrawlAnalysisMessages,
-  generateAPIImplementationMessages: promptState.generateAPIImplementationMessages,
-  generateEnvironmentSuggestionsMessages: promptState.generateEnvironmentSuggestionsMessages,
-}));
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@src/utils/logger', () => ({
   logger: {
@@ -52,66 +38,40 @@ describe('AIEnvironmentAnalyzer', () => {
     });
   });
 
-  it('parses fenced JSON analysis response', async () => {
-    const llm = {
+  it('ignores legacy dependencies and still returns empty analysis', async () => {
+    const legacy = {
       chat: vi.fn().mockResolvedValue({
-        content: `\`\`\`json
-{"recommendedVariables":{"window.foo":"bar"},"recommendedAPIs":[{"path":"window.fetch","implementation":"function(){}","reason":"needed"}],"antiCrawlFeatures":[{"feature":"fp","severity":"high","description":"x","mitigation":"y"}],"suggestions":["a"],"confidence":0.88}
-\`\`\``,
+        content: '{"recommendedVariables":{"window.foo":"bar"}}',
       }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
+    const analyzer = new AIEnvironmentAnalyzer(legacy as any);
     const result = await analyzer.analyze('window.foo', detectedBase, []);
 
-    expect(llm.chat).toHaveBeenCalledOnce();
-    expect(result.recommendedVariables['window.foo']).toBe('bar');
-    expect(result.recommendedAPIs[0]?.path).toBe('window.fetch');
-    expect(result.confidence).toBe(0.88);
+    expect(result).toEqual({
+      recommendedVariables: {},
+      recommendedAPIs: [],
+      antiCrawlFeatures: [],
+      suggestions: [],
+      confidence: 0,
+    });
+    expect(legacy.chat).not.toHaveBeenCalled();
   });
 
-  it('falls back to empty result on invalid JSON', async () => {
-    const llm = {
-      chat: vi.fn().mockResolvedValue({ content: 'not-json-response' }),
-    };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
-    const result = await analyzer.analyze('window.foo', detectedBase, []);
-
-    expect(result.confidence).toBe(0);
-    expect(result.recommendedAPIs).toEqual([]);
-  });
-
-  it('extracts anti-crawl list from JSON array response', async () => {
-    const llm = {
+  it('returns empty anti-crawl features and null API implementations without AI inference', async () => {
+    const legacy = {
       chat: vi.fn().mockResolvedValue({
-        content: `\`\`\`json
-[{"feature":"webdriver","severity":"critical","description":"d","mitigation":"m"}]
-\`\`\``,
+        content: '[{"feature":"webdriver","severity":"critical"}]',
       }),
     };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
-    const features = await analyzer.analyzeAntiCrawl('navigator.webdriver');
+    const analyzer = new AIEnvironmentAnalyzer(legacy as any);
 
-    expect(features).toHaveLength(1);
-    expect(features[0]?.feature).toBe('webdriver');
+    await expect(analyzer.analyzeAntiCrawl('navigator.webdriver')).resolves.toEqual([]);
+    await expect(analyzer.inferAPIImplementation('window.test', 'ctx')).resolves.toBeNull();
+    expect(legacy.chat).not.toHaveBeenCalled();
   });
 
-  it('infers API implementation from fenced code block', async () => {
-    const llm = {
-      chat: vi.fn().mockResolvedValue({
-        content: '```js\nfunction test(){ return 1; }\n```',
-      }),
-    };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
-    const impl = await analyzer.inferAPIImplementation('window.test', 'ctx');
-
-    expect(impl).toBe('function test(){ return 1; }');
-  });
-
-  it('generates default suggestions when LLM output is unusable', async () => {
-    const llm = {
-      chat: vi.fn().mockResolvedValue({ content: '{"unexpected":true}' }),
-    };
-    const analyzer = new AIEnvironmentAnalyzer(llm as any);
+  it('generates default suggestions without AI assistance', async () => {
+    const analyzer = new AIEnvironmentAnalyzer();
     const suggestions = await analyzer.generateSuggestions(
       {
         ...detectedBase,

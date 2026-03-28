@@ -8,36 +8,11 @@ const loggerState = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
-const promptState = vi.hoisted(() => ({
-  generateCodeAnalysisPrompt: vi.fn(() => [{ role: 'user', content: 'analyze code' }]),
-  generateTaintAnalysisPrompt: vi.fn(() => [{ role: 'user', content: 'analyze taint' }]),
-}));
-
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('@src/services/prompts/analysis', () => ({
-  generateCodeAnalysisPrompt: promptState.generateCodeAnalysisPrompt,
-}));
-
-vi.mock('@src/services/prompts/taint', () => ({
-  generateTaintAnalysisPrompt: promptState.generateTaintAnalysisPrompt,
-}));
-
 import { CodeAnalyzer } from '@modules/analyzer/CodeAnalyzer';
-
-function createLLM(responses: Array<string | Error>) {
-  const queue = [...responses];
-  const chat = vi.fn(async () => {
-    const next = queue.shift() ?? '{}';
-    if (next instanceof Error) {
-      throw next;
-    }
-    return { content: next };
-  });
-  return { llm: { chat } as any, chat };
-}
 
 describe('CodeAnalyzer', () => {
   beforeEach(() => {
@@ -47,19 +22,10 @@ describe('CodeAnalyzer', () => {
     loggerState.warn.mockReset();
     loggerState.error.mockReset();
     loggerState.success.mockReset();
-    promptState.generateCodeAnalysisPrompt.mockReset();
-    promptState.generateCodeAnalysisPrompt.mockReturnValue([
-      { role: 'user', content: 'analyze code' },
-    ]);
-    promptState.generateTaintAnalysisPrompt.mockReset();
-    promptState.generateTaintAnalysisPrompt.mockReturnValue([
-      { role: 'user', content: 'analyze taint' },
-    ]);
   });
 
   it('extracts structure with functions, classes, modules and call graph edges', async () => {
-    const { llm } = createLLM(['{"businessLogic":{"mainFeatures":["auth"]}}']);
-    const analyzer = new CodeAnalyzer(llm);
+    const analyzer = new CodeAnalyzer();
     const code = `
       import helper from './helper';
       function b() { return 1; }
@@ -85,8 +51,7 @@ describe('CodeAnalyzer', () => {
   });
 
   it('detects non-empty tech stack heuristics from common code patterns', async () => {
-    const { llm } = createLLM(['{}']);
-    const analyzer = new CodeAnalyzer(llm);
+    const analyzer = new CodeAnalyzer();
     const code = `
       function view() { const [v] = useState(1); return v; }
       export { view };
@@ -98,11 +63,9 @@ describe('CodeAnalyzer', () => {
     expect((result.techStack.framework ?? '').length).toBeGreaterThan(0);
   });
 
-  it('merges AI business logic output with provided context data model', async () => {
-    const { llm } = createLLM([
-      '{"businessLogic":{"mainFeatures":["checkout"],"dataFlow":"calculate totals"}}',
-    ]);
-    const analyzer = new CodeAnalyzer(llm);
+  it('keeps context data model even when AI business logic is disabled', async () => {
+    const legacy = { chat: vi.fn() } as any;
+    const analyzer = new CodeAnalyzer(legacy);
 
     const result = await analyzer.understand({
       code: 'function pay(total){ return total; }',
@@ -110,17 +73,17 @@ describe('CodeAnalyzer', () => {
       focus: 'business',
     });
 
-    expect(result.businessLogic.mainFeatures).toEqual(['checkout']);
-    expect(result.businessLogic.rules).toContain('calculate totals');
+    expect(result.businessLogic.mainFeatures).toEqual([]);
+    expect(result.businessLogic.rules).toEqual([]);
     expect(result.businessLogic.dataModel).toMatchObject({
       tenant: 'acme',
       region: 'us-east-1',
     });
+    expect(legacy.chat).not.toHaveBeenCalled();
   });
 
   it('tracks tainted data paths from sources to eval sinks', async () => {
-    const { llm } = createLLM(['{}', '{}']);
-    const analyzer = new CodeAnalyzer(llm);
+    const analyzer = new CodeAnalyzer();
     const code = `
       const payload = location.search;
       eval(payload);
@@ -133,16 +96,16 @@ describe('CodeAnalyzer', () => {
     expect(result.dataFlow.taintPaths.length).toBeGreaterThan(0);
   });
 
-  it('falls back gracefully when LLM analysis fails', async () => {
-    const { llm, chat } = createLLM([new Error('LLM unavailable')]);
-    const analyzer = new CodeAnalyzer(llm);
+  it('ignores legacy dependencies during understanding', async () => {
+    const legacy = { chat: vi.fn() } as any;
+    const analyzer = new CodeAnalyzer(legacy);
 
     const result = await analyzer.understand({
       code: 'function fallback(x){ return x + 1; }',
       focus: 'all',
     });
 
-    expect(chat).toHaveBeenCalledTimes(1);
+    expect(legacy.chat).not.toHaveBeenCalled();
     expect(result.structure.functions.some((fn) => fn.name === 'fallback')).toBe(true);
     expect(result.qualityScore).toBeGreaterThanOrEqual(0);
     expect(result.qualityScore).toBeLessThanOrEqual(100);

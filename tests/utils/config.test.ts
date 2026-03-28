@@ -1,18 +1,25 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { join } from 'node:path';
-import { getConfig, validateConfig } from '@utils/config';
 import { getProjectRoot } from '@utils/outputPaths';
-
-function getSupportedProviders(): string[] {
-  return Object.keys(getConfig().llm).filter((key) => key !== 'provider');
-}
 
 describe('config utilities', () => {
   const originalEnv = { ...process.env };
 
+  const mockMissingEnvFile = () => {
+    const missingEnvError = Object.assign(new Error('ENOENT: no such file or directory'), {
+      code: 'ENOENT',
+    });
+    vi.doMock('dotenv', () => ({
+      config: () => ({ error: missingEnvError }),
+    }));
+  };
+
   beforeEach(() => {
+    vi.resetModules();
+    vi.restoreAllMocks();
     process.env = { ...originalEnv };
-    delete process.env.DEFAULT_LLM_PROVIDER;
+    delete process.env.MCP_SERVER_NAME;
+    delete process.env.MCP_SERVER_VERSION;
     delete process.env.PUPPETEER_HEADLESS;
     delete process.env.PUPPETEER_EXECUTABLE_PATH;
     delete process.env.BROWSER_EXECUTABLE_PATH;
@@ -22,21 +29,18 @@ describe('config utilities', () => {
     delete process.env.SEARCH_QUERY_CATEGORY_PROFILES_JSON;
     delete process.env.SEARCH_CJK_QUERY_ALIASES_JSON;
     delete process.env.SEARCH_INTENT_TOOL_BOOST_RULES_JSON;
-    for (const provider of getSupportedProviders()) {
-      delete process.env[`${provider.toUpperCase()}_API_KEY`];
-      delete process.env[`${provider.toUpperCase()}_MODEL`];
-      delete process.env[`${provider.toUpperCase()}_BASE_URL`];
-    }
+    mockMissingEnvFile();
   });
 
   afterEach(() => {
     process.env = { ...originalEnv };
   });
 
-  it('returns sane defaults when environment is empty', () => {
+  it('returns sane defaults when environment is empty', async () => {
+    const { getConfig } = await import('@utils/config');
     const config = getConfig();
-    expect(typeof config.llm.provider).toBe('string');
-    expect(config.llm.provider.length).toBeGreaterThan(0);
+    expect(config.mcp.name).toBe('jshookmcp');
+    expect(config.mcp.version.length).toBeGreaterThan(0);
     expect(config.puppeteer.timeout).toBe(30000);
     expect(config.cache.ttl).toBe(3600);
     expect(config.performance.maxConcurrentAnalysis).toBe(3);
@@ -45,28 +49,27 @@ describe('config utilities', () => {
     expect(config.search.intentToolBoostRules.length).toBeGreaterThan(0);
   });
 
-  it('reads provider and credentials from environment', () => {
-    const defaultProvider = getConfig().llm.provider;
-    const alternateProvider = getSupportedProviders().find(
-      (provider) => provider !== defaultProvider,
-    )!;
-    process.env.DEFAULT_LLM_PROVIDER = alternateProvider;
-    process.env[`${alternateProvider.toUpperCase()}_API_KEY`] = 'k-provider';
+  it('reads MCP server metadata from environment', async () => {
+    process.env.MCP_SERVER_NAME = 'custom-server';
+    process.env.MCP_SERVER_VERSION = '9.9.9';
 
+    const { getConfig } = await import('@utils/config');
     const config = getConfig();
-    expect(config.llm.provider).toBe(alternateProvider);
-    expect((config.llm as Record<string, any>)[alternateProvider].apiKey).toBe('k-provider');
+    expect(config.mcp.name).toBe('custom-server');
+    expect(config.mcp.version).toBe('9.9.9');
   });
 
-  it('resolves executable path by priority order', () => {
+  it('resolves executable path by priority order', async () => {
     process.env.BROWSER_EXECUTABLE_PATH = 'browser-path';
     process.env.PUPPETEER_EXECUTABLE_PATH = 'puppeteer-path';
 
+    const { getConfig } = await import('@utils/config');
     const config = getConfig();
     expect(config.puppeteer.executablePath).toBe('puppeteer-path');
   });
 
-  it('parses boolean headless flag correctly', () => {
+  it('parses boolean headless flag correctly', async () => {
+    const { getConfig } = await import('@utils/config');
     process.env.PUPPETEER_HEADLESS = 'true';
     expect(getConfig().puppeteer.headless).toBe(true);
 
@@ -74,13 +77,15 @@ describe('config utilities', () => {
     expect(getConfig().puppeteer.headless).toBe(false);
   });
 
-  it('resolves relative cache directory against project root', () => {
+  it('resolves relative cache directory against project root', async () => {
     process.env.CACHE_DIR = '.cache/custom';
+    const { getConfig } = await import('@utils/config');
     const config = getConfig();
     expect(config.cache.dir).toBe(join(getProjectRoot(), '.cache/custom'));
   });
 
-  it('validateConfig reports invalid performance settings', () => {
+  it('validateConfig reports invalid performance settings', async () => {
+    const { getConfig, validateConfig } = await import('@utils/config');
     const config = getConfig();
     config.performance.maxConcurrentAnalysis = 0;
     config.performance.maxCodeSizeMB = 0;
@@ -91,7 +96,7 @@ describe('config utilities', () => {
     expect(result.errors).toContain('maxCodeSizeMB must be at least 1');
   });
 
-  it('reads search rule overrides from environment json', () => {
+  it('reads search rule overrides from environment json', async () => {
     process.env.SEARCH_QUERY_CATEGORY_PROFILES_JSON = JSON.stringify([
       {
         pattern: 'custom-query',
@@ -113,6 +118,7 @@ describe('config utilities', () => {
       },
     ]);
 
+    const { getConfig } = await import('@utils/config');
     const config = getConfig();
 
     expect(config.search.queryCategoryProfiles).toEqual([

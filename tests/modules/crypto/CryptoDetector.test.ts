@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
 import { CryptoDetector } from '@modules/crypto/CryptoDetector';
 
 describe('CryptoDetector', () => {
@@ -19,16 +20,18 @@ describe('CryptoDetector', () => {
     expect(result.strength?.score).toBeLessThan(100);
   });
 
-  it('merges AI results when AI detection is enabled', async () => {
-    const detector = new CryptoDetector({
-      chat: async () => ({
+  it('ignores legacy AI dependencies and keeps rule-based results', async () => {
+    const legacy = {
+      chat: vi.fn(async () => ({
         content:
           '{"algorithms":[{"name":"AIHash","type":"hash","confidence":0.92,"usage":"from model"}]}',
-      }),
-    } as any);
+      })),
+    } as any;
+    const detector = new CryptoDetector(legacy);
 
     const result = await detector.detect({ code: 'const x = 1;' } as any);
-    expect(result.algorithms.some((a) => a.name === 'AIHash')).toBe(true);
+    expect(result.algorithms).toEqual([]);
+    expect(legacy.chat).not.toHaveBeenCalled();
   });
 
   it('handles malformed AI output gracefully', async () => {

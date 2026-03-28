@@ -21,10 +21,6 @@ const state = vi.hoisted(() => ({
     this.kind = 'consoleMonitor';
     this.collector = collector;
   }),
-  LLMService: vi.fn(function (this: any, config: any) {
-    this.kind = 'llm';
-    this.config = config;
-  }),
 }));
 
 vi.mock('@modules/collector/CodeCollector', () => ({
@@ -45,10 +41,6 @@ vi.mock('@modules/debugger/ScriptManager', () => ({
 
 vi.mock('@modules/monitor/ConsoleMonitor', () => ({
   ConsoleMonitor: state.ConsoleMonitor,
-}));
-
-vi.mock('@services/LLMService', () => ({
-  LLMService: state.LLMService,
 }));
 
 describe('registry/ensure-browser-core', () => {
@@ -73,7 +65,6 @@ describe('registry/ensure-browser-core', () => {
     expect(state.DOMInspector).toHaveBeenCalledTimes(1);
     expect(state.ScriptManager).toHaveBeenCalledTimes(1);
     expect(state.ConsoleMonitor).toHaveBeenCalledTimes(1);
-    expect(state.LLMService).toHaveBeenCalledWith({ model: 'gpt-test' });
     expect(ctx.registerCaches).toHaveBeenCalledTimes(1);
   });
 
@@ -101,7 +92,6 @@ describe('registry/ensure-browser-core', () => {
     expect(state.DOMInspector).not.toHaveBeenCalled();
     expect(state.ScriptManager).not.toHaveBeenCalled();
     expect(state.ConsoleMonitor).not.toHaveBeenCalled();
-    expect(state.LLMService).not.toHaveBeenCalled();
     expect(ctx.registerCaches).not.toHaveBeenCalled();
     expect(ctx.collector).toBe(collector);
   });

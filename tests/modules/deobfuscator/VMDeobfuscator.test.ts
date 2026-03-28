@@ -8,16 +8,8 @@ const loggerState = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
-const promptState = vi.hoisted(() => ({
-  generateVMDeobfuscationMessages: vi.fn((prompt: string) => [{ role: 'user', content: prompt }]),
-}));
-
 vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
-}));
-
-vi.mock('@src/services/prompts/deobfuscation', () => ({
-  generateVMDeobfuscationMessages: promptState.generateVMDeobfuscationMessages,
 }));
 
 import { VMDeobfuscator } from '@modules/deobfuscator/VMDeobfuscator';
@@ -26,7 +18,6 @@ describe('VMDeobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
-    promptState.generateVMDeobfuscationMessages.mockClear();
   });
 
   it('detects VM protection based on structural signatures', () => {
@@ -45,25 +36,49 @@ describe('VMDeobfuscator', () => {
     expect(new VMDeobfuscator().countVMInstructions(code)).toBe(3);
   });
 
-  it('uses LLM output when deobfuscated code is valid JavaScript', async () => {
-    const llm = {
-      chat: vi.fn(async () => ({ content: '```js\nconst restored = 1;\n```' })),
-    } as any;
-    const deobfuscator = new VMDeobfuscator(llm);
+  it('deobfuscates using local VM simplification and ignores legacy dependencies', async () => {
+    const legacy = { chat: vi.fn() } as any;
+    const deobfuscator = new VMDeobfuscator(legacy);
 
-    const result = await deobfuscator.deobfuscateVM('while(true){switch(pc){case 1:break;}}', {
-      type: 'custom-vm',
-      instructionCount: 1,
-    });
+    const result = await deobfuscator.deobfuscateVM(
+      `
+        var vmIns = [
+          1,2,3,4,5,6,7,8,9,10,
+          11,12,13,14,15,16,17,18,19,20,
+          21,22,23,24,25,26,27,28,29,30,
+          31,32,33,34,35,36,37,38,39,40,
+          41,42,43,44,45,46,47,48,49,50,
+          51
+        ];
+        function runVm(pc){
+          switch(pc){
+            case 1: break;
+            case 2: break;
+            case 3: break;
+            case 4: break;
+            case 5: break;
+            case 6: break;
+            case 7: break;
+            case 8: break;
+            case 9: break;
+            case 10: break;
+            case 11: break;
+          }
+          return vmIns[pc];
+        }
+        runVm(0);
+      `,
+      { type: 'custom-vm', instructionCount: 1 },
+    );
 
     expect(result.success).toBe(true);
-    expect(result.code).toContain('const restored = 1;');
-    expect(llm.chat).toHaveBeenCalledTimes(1);
+    expect(result.code).toContain('vm interpreter removed');
+    expect(result.code).toContain('vm instruction array removed');
+    expect(legacy.chat).not.toHaveBeenCalled();
   });
 
-  it('falls back to simplified code when LLM output is invalid', async () => {
-    const llm = { chat: vi.fn(async () => ({ content: '```js\nfunction {' })) } as any;
-    const deobfuscator = new VMDeobfuscator(llm);
+  it('returns the simplifyVMCode result when local simplification is stubbed', async () => {
+    const deobfuscator = new VMDeobfuscator();
     vi.spyOn(deobfuscator, 'simplifyVMCode').mockReturnValue('simplified-code');
 
     const result = await deobfuscator.deobfuscateVM('function interp(){switch(x){case 1:break;}}', {
@@ -72,27 +87,6 @@ describe('VMDeobfuscator', () => {
     });
 
     expect(result).toEqual({ success: true, code: 'simplified-code' });
-  });
-
-  it('builds VM prompt with profile and component sections', () => {
-    const prompt = new VMDeobfuscator().buildVMDeobfuscationPrompt(
-      'const code = 1;',
-      { type: 'custom-vm', instructionCount: 12 },
-      { hasInterpreter: true, hasStack: true, hasRegisters: false, instructionTypes: ['01'] },
-      { instructionArray: 'arr', interpreterFunction: 'run' },
-    );
-
-    expect(prompt).toContain('Architecture');
-    expect(prompt).toContain('Instruction Count');
-    expect(prompt).toContain('arr');
-    expect(prompt).toContain('run');
-  });
-
-  it('strips markdown code fences from LLM response', () => {
-    const output = new VMDeobfuscator().extractCodeFromLLMResponse(
-      '```javascript\nconst x = 1;\n```',
-    );
-    expect(output).toBe('const x = 1;');
   });
 
   it('simplifies interpreter and instruction array declarations', () => {

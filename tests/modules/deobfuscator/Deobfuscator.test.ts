@@ -8,10 +8,6 @@ const loggerState = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
-const promptState = vi.hoisted(() => ({
-  generateDeobfuscationPrompt: vi.fn(() => [{ role: 'user', content: 'analyze' }]),
-}));
-
 const webcrackState = vi.hoisted(() => ({
   runWebcrack: vi.fn<(...args: any[]) => Promise<any>>(async (code: string) => ({
     applied: true,
@@ -24,10 +20,6 @@ vi.mock('@utils/logger', () => ({
   logger: loggerState,
 }));
 
-vi.mock('@services/prompts/deobfuscation', () => ({
-  generateDeobfuscationPrompt: promptState.generateDeobfuscationPrompt,
-}));
-
 vi.mock('@modules/deobfuscator/webcrack', () => ({
   runWebcrack: webcrackState.runWebcrack,
 }));
@@ -38,8 +30,6 @@ describe('Deobfuscator', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
-    promptState.generateDeobfuscationPrompt.mockReset();
-    promptState.generateDeobfuscationPrompt.mockReturnValue([{ role: 'user', content: 'analyze' }]);
     webcrackState.runWebcrack.mockReset();
     webcrackState.runWebcrack.mockImplementation(async (code: string) => ({
       applied: true,
@@ -85,17 +75,17 @@ describe('Deobfuscator', () => {
     expect(result.transformations.some((t) => t.type === 'webcrack' && t.success)).toBe(true);
   });
 
-  it('caches deobfuscation results and avoids repeated webcrack and LLM calls', async () => {
-    const chat = vi.fn(async () => ({ content: 'LLM summary' }));
-    const deobfuscator = new Deobfuscator({ chat } as any);
+  it('caches deobfuscation results and ignores legacy LLM dependencies', async () => {
+    const legacy = { chat: vi.fn(async () => ({ content: 'LLM summary' })) };
+    const deobfuscator = new Deobfuscator(legacy as any);
 
     const options = { code: 'var v = 5;', llm: 'provider-a' as any };
     const first = await deobfuscator.deobfuscate(options);
     const second = await deobfuscator.deobfuscate(options);
 
-    expect(first.analysis).toBe('LLM summary');
+    expect(first.analysis).toBe('webcrack completed deobfuscation for detected types: unknown.');
     expect(webcrackState.runWebcrack).toHaveBeenCalledTimes(1);
-    expect(chat).toHaveBeenCalledTimes(1);
+    expect(legacy.chat).not.toHaveBeenCalled();
     expect(second).toBe(first);
   });
 

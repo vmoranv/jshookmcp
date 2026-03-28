@@ -1,15 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as parser from '@babel/parser';
-
-const promptState = vi.hoisted(() => ({
-  generateMissingAPIImplementationsMessages: vi.fn(() => [{ role: 'user', content: 'api' }]),
-  generateMissingVariablesMessages: vi.fn(() => [{ role: 'user', content: 'vars' }]),
-}));
-
-vi.mock('@src/services/prompts/environment', () => ({
-  generateMissingAPIImplementationsMessages: promptState.generateMissingAPIImplementationsMessages,
-  generateMissingVariablesMessages: promptState.generateMissingVariablesMessages,
-}));
 
 vi.mock('@src/utils/logger', () => ({
   logger: {
@@ -74,45 +65,25 @@ describe('EnvironmentEmulator', () => {
     parseSpy.mockRestore();
   });
 
-  it('applies AI-inferred variables into manifest', async () => {
-    const llm = {
-      chat: vi.fn().mockResolvedValueOnce({
-        content: '```json\n{"window.customThing":"hello"}\n```',
+  it('ignores legacy dependencies and leaves unknown variables unresolved', async () => {
+    const legacy = {
+      chat: vi.fn().mockResolvedValue({
+        content: '{"window.customThing":"hello","window.missingFn":"function() { return 1; }"}',
       }),
     };
-    const emulator = new EnvironmentEmulator(llm as any);
+    const emulator = new EnvironmentEmulator(legacy as any);
 
     const result = await emulator.analyze({
-      code: 'window.customThing;',
+      code: 'window.customThing; window.missingFn;',
       autoFetch: false,
       includeComments: false,
     });
 
-    expect(llm.chat).toHaveBeenCalledTimes(1);
-    expect(result.variableManifest['window.customThing']).toBe('hello');
-    expect(result.missingAPIs).toHaveLength(0);
-  });
-
-  it('uses AI API implementation generation for missing APIs', async () => {
-    const llm = {
-      chat: vi
-        .fn()
-        .mockResolvedValueOnce({ content: '```json\n{}\n```' }) // inferMissingVariablesWithAI
-        .mockResolvedValueOnce({
-          content: '```json\n{"window.missingFn":"function() { return 1; }"}\n```',
-        }),
-    };
-    const emulator = new EnvironmentEmulator(llm as any);
-
-    const result = await emulator.analyze({
-      code: 'window.missingFn;',
-      autoFetch: false,
-      includeComments: false,
-    });
-
-    expect(llm.chat).toHaveBeenCalledTimes(2);
-    expect(result.missingAPIs.length).toBeGreaterThan(0);
-    expect(result.variableManifest['window.missingFn']).toContain('function()');
+    expect(legacy.chat).not.toHaveBeenCalled();
+    expect(result.variableManifest['window.customThing']).toBeUndefined();
+    expect(result.variableManifest['window.missingFn']).toBeUndefined();
+    expect(result.missingAPIs.some((api) => api.path === 'window.customThing')).toBe(true);
+    expect(result.missingAPIs.some((api) => api.path === 'window.missingFn')).toBe(true);
   });
 
   it('cleanup closes browser instance and clears internal reference', async () => {

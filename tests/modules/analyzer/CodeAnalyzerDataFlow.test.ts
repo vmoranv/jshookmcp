@@ -7,10 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-const promptState = vi.hoisted(() => ({
-  generateTaintAnalysisPrompt: vi.fn(() => [{ role: 'user', content: 'analyze taint' }]),
-}));
-
 const sanitizerState = vi.hoisted(() => ({
   checkSanitizer: vi.fn((call: any) => {
     const callee = call.callee;
@@ -20,10 +16,6 @@ const sanitizerState = vi.hoisted(() => ({
 
 vi.mock('@utils/logger', () => ({
   logger: loggerState,
-}));
-
-vi.mock('@services/prompts/taint', () => ({
-  generateTaintAnalysisPrompt: promptState.generateTaintAnalysisPrompt,
 }));
 
 vi.mock('@modules/analyzer/SecurityCodeAnalyzer', () => ({
@@ -52,16 +44,16 @@ describe('CodeAnalyzer data flow analysis', () => {
     expect(result.taintPaths.some((path) => path.sink.type === 'eval')).toBe(true);
   });
 
-  it('uses llm taint enhancement to add additional unique taint paths', async () => {
+  it('ignores legacy extra arguments and keeps local taint analysis', async () => {
     const llm = {
       chat: vi.fn().mockResolvedValue({
         content: JSON.stringify({
           taintPaths: [
             {
-              source: { type: 'network', location: { file: 'current', line: 1 } },
+              source: { type: 'network', location: { file: 'current', line: 99 } },
               sink: { type: 'eval', location: { file: 'current', line: 5 } },
               path: [
-                { file: 'current', line: 1 },
+                { file: 'current', line: 99 },
                 { file: 'current', line: 5 },
               ],
             },
@@ -70,16 +62,16 @@ describe('CodeAnalyzer data flow analysis', () => {
       }),
     };
 
-    const result = await analyzeDataFlowWithTaint(
+    const result = await (analyzeDataFlowWithTaint as any)(
       `
         const source = location.href;
         document.body.innerHTML = source;
       `,
-      llm as any,
+      llm,
     );
 
-    expect(promptState.generateTaintAnalysisPrompt).toHaveBeenCalled();
-    expect(llm.chat).toHaveBeenCalled();
-    expect(result.taintPaths.some((path) => path.source.location.line === 1)).toBe(true);
+    expect(llm.chat).not.toHaveBeenCalled();
+    expect(result.taintPaths.length).toBeGreaterThan(0);
+    expect(result.taintPaths.some((path) => path.sink.type === 'xss')).toBe(true);
   });
 });

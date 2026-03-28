@@ -7,10 +7,6 @@ const loggerState = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-const promptState = vi.hoisted(() => ({
-  generateTaintAnalysisPrompt: vi.fn(() => [{ role: 'user', content: 'analyze taint' }]),
-}));
-
 const sanitizerState = vi.hoisted(() => ({
   checkSanitizer: vi.fn((call: any) => {
     const callee = call.callee;
@@ -19,9 +15,6 @@ const sanitizerState = vi.hoisted(() => ({
 }));
 
 vi.mock('@utils/logger', () => ({ logger: loggerState }));
-vi.mock('@services/prompts/taint', () => ({
-  generateTaintAnalysisPrompt: promptState.generateTaintAnalysisPrompt,
-}));
 vi.mock('@modules/analyzer/SecurityCodeAnalyzer', () => ({
   checkSanitizer: sanitizerState.checkSanitizer,
 }));
@@ -290,132 +283,6 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       expect(r).toHaveProperty('sources');
       expect(r).toHaveProperty('sinks');
       expect(r).toHaveProperty('taintPaths');
-    });
-  });
-
-  describe('LLM enhanced taint analysis', () => {
-    it('skips LLM when no taint paths', async () => {
-      const llm = { chat: vi.fn() };
-      await analyzeDataFlowWithTaint('const x = 1;', llm as any);
-      expect(llm.chat).not.toHaveBeenCalled();
-    });
-    it('calls LLM and adds unique paths', async () => {
-      const llm = {
-        chat: vi.fn().mockResolvedValue({
-          content: JSON.stringify({
-            taintPaths: [
-              {
-                source: { type: 'network', location: { file: 'current', line: 99 } },
-                sink: { type: 'eval', location: { file: 'current', line: 100 } },
-                path: [],
-              },
-            ],
-          }),
-        }),
-      };
-      const r = await analyzeDataFlowWithTaint(
-        'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any,
-      );
-      expect(llm.chat).toHaveBeenCalled();
-      expect(r.taintPaths.some((p) => p.source.location.line === 99)).toBe(true);
-    });
-    it('skips duplicate LLM paths', async () => {
-      const llm = {
-        chat: vi.fn().mockResolvedValue({
-          content: JSON.stringify({
-            taintPaths: [
-              {
-                source: { type: 'user_input', location: { file: 'current', line: 1 } },
-                sink: { type: 'xss', location: { file: 'current', line: 2 } },
-                path: [],
-              },
-            ],
-          }),
-        }),
-      };
-      const r = await analyzeDataFlowWithTaint(
-        'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any,
-      );
-      const xssPaths = r.taintPaths.filter((p) => p.sink.type === 'xss');
-      expect(xssPaths.length).toBe(1);
-    });
-    it('handles non-JSON LLM response', async () => {
-      const llm = { chat: vi.fn().mockResolvedValue({ content: 'This is not JSON at all' }) };
-      const r = await analyzeDataFlowWithTaint(
-        'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any,
-      );
-      expect(r.taintPaths.length).toBeGreaterThan(0);
-    });
-    it('handles LLM response without taintPaths', async () => {
-      const llm = {
-        chat: vi.fn().mockResolvedValue({ content: JSON.stringify({ analysis: 'no paths' }) }),
-      };
-      const r = await analyzeDataFlowWithTaint(
-        'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any,
-      );
-      expect(r.taintPaths.length).toBeGreaterThan(0);
-    });
-    it('handles LLM chat throwing', async () => {
-      const llm = { chat: vi.fn().mockRejectedValue(new Error('LLM fail')) };
-      const r = await analyzeDataFlowWithTaint(
-        'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any,
-      );
-      expect(r.taintPaths.length).toBeGreaterThan(0);
-    });
-    it('truncates code to 4000 chars', async () => {
-      const longCode =
-        'const s = location.href;\ndocument.body.innerHTML = s;\n' + 'x'.repeat(5000);
-      const llm = {
-        chat: vi.fn().mockResolvedValue({ content: JSON.stringify({ taintPaths: [] }) }),
-      };
-      await analyzeDataFlowWithTaint(longCode, llm as any);
-      const calls = promptState.generateTaintAnalysisPrompt.mock.calls;
-      if (calls.length > 0) {
-        const codeArg = (calls as unknown as string[][])[0]![0]!;
-        expect(codeArg.length).toBeLessThanOrEqual(4000);
-      }
-    });
-    it('handles LLM path without source or sink', async () => {
-      const llm = {
-        chat: vi.fn().mockResolvedValue({
-          content: JSON.stringify({
-            taintPaths: [
-              { source: null, sink: null, path: [] },
-              { source: { type: 'network', location: { file: 'current', line: 50 } } },
-            ],
-          }),
-        }),
-      };
-      const r = await analyzeDataFlowWithTaint(
-        'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any,
-      );
-      expect(r.taintPaths.every((p) => p.source && p.sink)).toBe(true);
-    });
-    it('uses empty array for missing LLM path', async () => {
-      const llm = {
-        chat: vi.fn().mockResolvedValue({
-          content: JSON.stringify({
-            taintPaths: [
-              {
-                source: { type: 'network', location: { file: 'current', line: 88 } },
-                sink: { type: 'eval', location: { file: 'current', line: 89 } },
-              },
-            ],
-          }),
-        }),
-      };
-      const r = await analyzeDataFlowWithTaint(
-        'const s = location.href;\ndocument.body.innerHTML = s;',
-        llm as any,
-      );
-      const llmPath = r.taintPaths.find((p) => p.source.location.line === 88);
-      if (llmPath) expect(llmPath.path).toEqual([]);
     });
   });
 
