@@ -140,10 +140,11 @@ describe('constants env parsing', () => {
     expect(
       (
         await loadConstants({
-          EXTENSION_REGISTRY_BASE_URL: ' https://vmoranv.github.io/jshookmcp/registry ',
+          EXTENSION_REGISTRY_BASE_URL:
+            ' https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry ',
         })
       ).EXTENSION_REGISTRY_BASE_URL,
-    ).toBe('https://vmoranv.github.io/jshookmcp/registry');
+    ).toBe('https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry');
     expect(
       (await loadConstants({ EXTENSION_REGISTRY_BASE_URL: '   ' })).EXTENSION_REGISTRY_BASE_URL,
     ).toBe('');

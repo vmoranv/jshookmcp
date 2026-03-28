@@ -77,11 +77,12 @@ describe('ExtensionManagementHandlers', () => {
     delete process.env.EXTENSION_REGISTRY_BASE_URL;
     const handlers = new ExtensionManagementHandlers({} as any);
 
-    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    process.env.EXTENSION_REGISTRY_BASE_URL =
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry';
     const response = await handlers.handleBrowseExtensionRegistry('plugin');
 
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry/plugins.index.json',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect((response.content[0] as any).type).toBe('text');
@@ -89,7 +90,8 @@ describe('ExtensionManagementHandlers', () => {
   });
 
   it('installs workflow extension when workflow slug is found during concurrent registry lookup', async () => {
-    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    process.env.EXTENSION_REGISTRY_BASE_URL =
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry';
     const ctx = {
       reloadExtensions: vi.fn(async () => ({
         addedTools: 0,
@@ -145,11 +147,11 @@ describe('ExtensionManagementHandlers', () => {
     expect(body.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://vmoranv.github.io/jshookmcp/registry/workflows.index.json',
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry/workflows.index.json',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://vmoranv.github.io/jshookmcp/registry/plugins.index.json',
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry/plugins.index.json',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     const metadataCall = writeFileMock.mock.calls.find((call) =>
@@ -178,7 +180,8 @@ describe('ExtensionManagementHandlers', () => {
   });
 
   it('falls back to plugin registry when workflow lookup fails during concurrent registry lookup', async () => {
-    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    process.env.EXTENSION_REGISTRY_BASE_URL =
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry';
     const ctx = {
       reloadExtensions: vi.fn(async () => ({
         addedTools: 0,
@@ -259,7 +262,8 @@ describe('ExtensionManagementHandlers', () => {
   });
 
   it('uses powershell wrapper for package manager commands on Windows', async () => {
-    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    process.env.EXTENSION_REGISTRY_BASE_URL =
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry';
     const ctx = {
       reloadExtensions: vi.fn(async () => ({
         addedTools: 0,
@@ -363,7 +367,8 @@ describe('ExtensionManagementHandlers', () => {
   });
 
   it('uses source.subpath as package manager cwd and metadata root', async () => {
-    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    process.env.EXTENSION_REGISTRY_BASE_URL =
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry';
     const ctx = {
       reloadExtensions: vi.fn(async () => ({
         addedTools: 0,
@@ -444,7 +449,8 @@ describe('ExtensionManagementHandlers', () => {
   });
 
   it('fails install when declared registry entry is missing after build', async () => {
-    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    process.env.EXTENSION_REGISTRY_BASE_URL =
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry';
     const ctx = {
       reloadExtensions: vi.fn(async () => ({
         addedTools: 0,
@@ -499,7 +505,8 @@ describe('ExtensionManagementHandlers', () => {
   });
 
   it('fails install before clone when registry entry escapes project root', async () => {
-    process.env.EXTENSION_REGISTRY_BASE_URL = 'https://vmoranv.github.io/jshookmcp/registry';
+    process.env.EXTENSION_REGISTRY_BASE_URL =
+      'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry';
     const ctx = {
       reloadExtensions: vi.fn(async () => ({
         addedTools: 0,
