@@ -32,10 +32,10 @@ vi.mock('@src/constants', () => ({
   IDA_BRIDGE_ENDPOINT: 'http://127.0.0.1:18081',
 }));
 
-vi.mock('node:child_process', () => ({ execFile: vi.fn() }));
-vi.mock('node:util', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:util')>();
-  return { ...actual, promisify: vi.fn(() => execFileMock) };
+vi.mock('node:child_process', () => {
+  const custom = Symbol.for('nodejs.util.promisify.custom');
+  (execFileMock as any)[custom] = execFileMock;
+  return { execFile: execFileMock };
 });
 
 vi.stubGlobal('fetch', mockFetch);
@@ -123,8 +123,9 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('reports missing commands with ENOENT as missing', async () => {
-    execFileMock.mockImplementation((cmd: string) => {
-      if (cmd === 'python') return Promise.reject(new Error('ENOENT: python not found'));
+    execFileMock.mockImplementation((cmd: string, args?: string[]) => {
+      const targetCmd = cmd === 'cmd' && args ? args[1] : cmd;
+      if (targetCmd === 'python') return Promise.reject(new Error('ENOENT: python not found'));
       return Promise.resolve({ stdout: 'ok', stderr: '' });
     });
 
@@ -134,8 +135,9 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('reports warn for non-ENOENT command errors', async () => {
-    execFileMock.mockImplementation((cmd: string) => {
-      if (cmd === 'python') return Promise.reject(new Error('permission denied'));
+    execFileMock.mockImplementation((cmd: string, args?: string[]) => {
+      const targetCmd = cmd === 'cmd' && args ? args[1] : cmd;
+      if (targetCmd === 'python') return Promise.reject(new Error('permission denied'));
       return Promise.resolve({ stdout: 'ok', stderr: '' });
     });
 
@@ -167,14 +169,74 @@ describe('runEnvironmentDoctor', () => {
   });
 
   it('handles non-Error rejection from command', async () => {
-    execFileMock.mockImplementation((cmd: string) => {
-      if (cmd === 'python') return Promise.reject('raw string error');
+    execFileMock.mockImplementation((cmd: string, args?: string[]) => {
+      const targetCmd = cmd === 'cmd' && args ? args[1] : cmd;
+      if (targetCmd === 'python') return Promise.reject('raw string error');
       return Promise.resolve({ stdout: 'ok', stderr: '' });
     });
 
     const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
     const python = report.commands.find((c) => c.name === 'python');
     expect(python!.detail).toBe('raw string error');
+  });
+
+  it('reports pnpm as warn when only npx fallback works', async () => {
+    execFileMock.mockImplementation((cmd: string, args?: string[]) => {
+      const targetCmd = cmd === 'cmd' && args ? args[1] : cmd;
+      if (targetCmd === 'git') {
+        return Promise.resolve({ stdout: 'git version 2.43.0', stderr: '' });
+      }
+      if (targetCmd === 'python') {
+        return Promise.resolve({ stdout: 'Python 3.12.0', stderr: '' });
+      }
+      if (targetCmd === 'pnpm') {
+        return Promise.reject(new Error('ENOENT: pnpm not found'));
+      }
+      if (targetCmd === 'npx') {
+        return Promise.resolve({ stdout: '10.28.2', stderr: '' });
+      }
+      if (targetCmd === 'corepack') {
+        return Promise.reject(new Error('ENOENT: corepack not found'));
+      }
+      return Promise.resolve({ stdout: 'ok', stderr: '' });
+    });
+
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+    const pnpm = report.commands.find((c) => c.name === 'pnpm');
+    const corepack = report.commands.find((c) => c.name === 'corepack');
+
+    expect(pnpm!.status).toBe('warn');
+    expect(pnpm!.detail).toContain('npx fallback works');
+    expect(corepack!.status).toBe('warn');
+    expect(corepack!.detail).toContain('npx pnpm');
+  });
+
+  it('recommends installing pnpm when neither pnpm nor npx fallback is available', async () => {
+    execFileMock.mockImplementation((cmd: string, args?: string[]) => {
+      const targetCmd = cmd === 'cmd' && args ? args[1] : cmd;
+      if (targetCmd === 'git') {
+        return Promise.resolve({ stdout: 'git version 2.43.0', stderr: '' });
+      }
+      if (targetCmd === 'python') {
+        return Promise.resolve({ stdout: 'Python 3.12.0', stderr: '' });
+      }
+      if (targetCmd === 'pnpm') {
+        return Promise.reject(new Error('ENOENT: pnpm not found'));
+      }
+      if (targetCmd === 'npx') {
+        return Promise.reject(new Error('ENOENT: npx not found'));
+      }
+      if (targetCmd === 'corepack') {
+        return Promise.reject(new Error('ENOENT: corepack not found'));
+      }
+      return Promise.resolve({ stdout: 'ok', stderr: '' });
+    });
+
+    const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+
+    expect(report.recommendations).toContain(
+      'Install pnpm or enable Corepack (`corepack enable`) before running package-management workflows.',
+    );
   });
 
   it('handles non-Error rejection from bridge fetch', async () => {

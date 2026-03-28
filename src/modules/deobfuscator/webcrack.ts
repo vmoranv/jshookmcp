@@ -1,5 +1,6 @@
 import { readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
+import vm from 'node:vm';
 import type {
   DeobfuscateBundleModuleSummary,
   DeobfuscateBundleSummary,
@@ -34,6 +35,7 @@ type WebcrackRuntimeOptions = {
   deobfuscate?: boolean;
   unminify?: boolean;
   mangle?: boolean;
+  sandbox?: unknown;
 };
 
 type WebcrackModuleImport = {
@@ -221,6 +223,20 @@ export async function runWebcrack(
     };
   }
 
+  let sandboxOption: unknown;
+  try {
+    // @ts-expect-error -- optional dependency that may fail to compile on Node 24+
+    await import('isolated-vm');
+  } catch {
+    logger.warn(
+      'isolated-vm is unavailable (likely Node 24 incompatibility). Falling back to native node:vm for deobfuscation sandbox.',
+    );
+    sandboxOption = async (evalCode: string) => {
+      const context = vm.createContext(Object.create(null));
+      return vm.runInContext(evalCode, context, { timeout: 8000 });
+    };
+  }
+
   try {
     const { webcrack } = (await import('webcrack')) as WebcrackModuleImport;
     const result = await webcrack(code, {
@@ -229,6 +245,7 @@ export async function runWebcrack(
       deobfuscate: true,
       unminify: optionsUsed.unminify,
       mangle: optionsUsed.mangle,
+      ...(sandboxOption ? { sandbox: sandboxOption } : {}),
     });
 
     const remapped = result.bundle

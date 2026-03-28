@@ -42,6 +42,13 @@ export async function runEnvironmentDoctor(options?: {
   const includeBridgeHealth = options?.includeBridgeHealth ?? true;
   const registry = new ToolRegistry();
   const externalResults = await registry.probeAll(true);
+  const gitCommand = await checkCommand('git', ['--version']);
+  const pythonCommand = await checkCommand('python', ['--version']);
+  const pnpmCommand = await checkPnpmCommand();
+  const corepackCommand = normalizeCorepackCheck(
+    await checkCommand('corepack', ['--version']),
+    pnpmCommand,
+  );
 
   const packages: DoctorCheck[] = [
     checkPackage('@modelcontextprotocol/sdk'),
@@ -53,9 +60,10 @@ export async function runEnvironmentDoctor(options?: {
   ];
 
   const commands: DoctorCheck[] = [
-    await checkCommand('git', ['--version']),
-    await checkCommand('python', ['--version']),
-    await checkCommand('pnpm', ['--version']),
+    gitCommand,
+    pythonCommand,
+    pnpmCommand,
+    corepackCommand,
     ...Object.entries(externalResults).map(([name, result]) => ({
       name,
       status: (result.available ? 'ok' : 'missing') as DoctorStatus,
@@ -179,6 +187,49 @@ function checkBetterSqlite3(): DoctorCheck {
   };
 }
 
+function isPnpmOperational(pnpm: DoctorCheck): boolean {
+  return pnpm.status === 'ok' || pnpm.detail.includes('npx fallback works');
+}
+
+async function checkPnpmCommand(): Promise<DoctorCheck> {
+  const direct = await checkCommand('pnpm', ['--version']);
+  if (direct.status === 'ok') {
+    return direct;
+  }
+
+  // `npx pnpm --version` is noticeably slower on some Windows/npm setups,
+  // especially when pnpm is only reachable through the npm shim layer.
+  const npxFallback = await checkCommand('npx', ['pnpm', '--version'], 10_000);
+  if (npxFallback.status === 'ok') {
+    return {
+      name: 'pnpm',
+      status: 'warn',
+      detail: `direct pnpm command unavailable; npx fallback works (${npxFallback.detail})`,
+    };
+  }
+
+  return direct;
+}
+
+function normalizeCorepackCheck(corepack: DoctorCheck, pnpm: DoctorCheck): DoctorCheck {
+  if (corepack.status !== 'missing' || !isPnpmOperational(pnpm)) {
+    return corepack;
+  }
+
+  return {
+    name: corepack.name,
+    status: 'warn',
+    detail:
+      process.platform === 'win32'
+        ? pnpm.detail.includes('npx fallback works')
+          ? 'corepack not found; use `npx pnpm` directly (common with nvm4w-managed Node on Windows)'
+          : 'corepack not found; standalone pnpm is available (common with nvm4w-managed Node on Windows)'
+        : pnpm.detail.includes('npx fallback works')
+          ? 'corepack not found; use `npx pnpm` directly'
+          : 'corepack not found; standalone pnpm is available',
+  };
+}
+
 /**
  * Check koffi + platform-specific native library availability for memory tools.
  * Only loads/unloads the library — does NOT call any native functions (avoids SIGBUS on SIP macOS).
@@ -232,16 +283,30 @@ function checkNativeMemory(): DoctorCheck {
   }
 }
 
-async function checkCommand(command: string, args: string[]): Promise<DoctorCheck> {
+async function checkCommand(command: string, args: string[], timeout = 4000): Promise<DoctorCheck> {
   try {
     const { stdout, stderr } = await execFileAsync(command, args, {
-      timeout: 4000,
+      timeout,
       windowsHide: true,
     });
     const detail = `${stdout || stderr}`.trim().split(/\r?\n/)[0] || 'available';
     return { name: command, status: 'ok', detail };
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
+    let finalError: unknown = error;
+    if (process.platform === 'win32') {
+      try {
+        const { stdout, stderr } = await execFileAsync('cmd', ['/c', command, ...args], {
+          timeout,
+          windowsHide: true,
+        });
+        const detail = `${stdout || stderr}`.trim().split(/\r?\n/)[0] || 'available';
+        return { name: command, status: 'ok', detail: `${detail} (via cmd)` };
+      } catch (cmdError) {
+        finalError = cmdError;
+      }
+    }
+
+    const detail = finalError instanceof Error ? finalError.message : String(finalError);
     const missing = /ENOENT|not recognized|not found/i.test(detail);
     return {
       name: command,
@@ -303,6 +368,8 @@ function buildRecommendations(
   limitations: string[],
 ): string[] {
   const recommendations: string[] = [];
+  const pnpmCommand = commands.find((item) => item.name === 'pnpm');
+  const corepackCommand = commands.find((item) => item.name === 'corepack');
   if (packages.some((item) => item.name === 'better-sqlite3' && item.status !== 'ok')) {
     recommendations.push(
       'Install or rebuild the optional SQLite trace backend with `pnpm add -O better-sqlite3@12.6.2` or `npm rebuild better-sqlite3 --foreground-scripts` under the active Node version if you need trace tooling.',
@@ -316,6 +383,22 @@ function buildRecommendations(
   if (commands.some((item) => item.name.startsWith('wabt.') && item.status !== 'ok')) {
     recommendations.push(
       'Install wabt if you need full WASM disassembly/decompilation; otherwise the server will stay in basic mode.',
+    );
+  }
+  if (pnpmCommand && !isPnpmOperational(pnpmCommand)) {
+    recommendations.push(
+      'Install pnpm or enable Corepack (`corepack enable`) before running package-management workflows.',
+    );
+  } else if (pnpmCommand?.detail.includes('npx fallback works')) {
+    recommendations.push(
+      'Use `npx pnpm` directly on this machine or repair the local pnpm/Corepack shim if scripts expect bare `pnpm`.',
+    );
+  } else if (
+    corepackCommand?.status === 'warn' &&
+    corepackCommand.detail.includes('standalone pnpm')
+  ) {
+    recommendations.push(
+      'Use `pnpm` or `npx pnpm` directly on this machine; `corepack` is optional and may be absent on nvm4w-managed Windows installs.',
     );
   }
   if (bridges.some((item) => item.status !== 'ok')) {
