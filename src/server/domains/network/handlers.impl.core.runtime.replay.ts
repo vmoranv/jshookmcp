@@ -221,6 +221,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
             text: JSON.stringify(
               {
                 success: false,
+
                 error: error instanceof Error ? error.message : String(error),
               },
               null,

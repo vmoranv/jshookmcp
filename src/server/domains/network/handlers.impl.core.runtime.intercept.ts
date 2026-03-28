@@ -27,6 +27,7 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
           if (isObjectRecord(rawRule) && typeof rawRule.urlPattern === 'string') {
             rules.push({
               urlPattern: rawRule.urlPattern,
+
               urlPatternType: rawRule.urlPatternType === 'regex' ? 'regex' : 'glob',
               stage: rawRule.stage === 'Request' ? 'Request' : 'Response',
               responseCode: typeof rawRule.responseCode === 'number' ? rawRule.responseCode : 200,

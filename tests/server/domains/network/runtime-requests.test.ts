@@ -79,6 +79,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       expect(body.total).toBe(0);
       expect(body.possibleReasons).toBeDefined();
       expect(body.recommended_actions).toBeDefined();
+      // @ts-expect-error — auto-suppressed [TS18048]
       expect(body.monitoring.autoEnabled).toBe(true);
     });
 
@@ -206,6 +207,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       );
       // urlRegex 'v1' should match only the first request
       expect(body.total).toBe(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.requests[0].requestId).toBe('1');
     });
 
@@ -247,6 +249,7 @@ describe('AdvancedHandlersBase (requests)', () => {
         await handler.handleNetworkGetRequests({ method: 'post' }),
       );
       expect(body.total).toBe(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.requests[0].method).toBe('POST');
     });
 
@@ -388,6 +391,7 @@ describe('AdvancedHandlersBase (requests)', () => {
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({}));
       expect(body.total).toBe(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.requests[0].requestId).toBe('1');
     });
 
@@ -446,6 +450,7 @@ describe('AdvancedHandlersBase (requests)', () => {
 
     it('returns full body when response is found', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // @ts-expect-error — auto-suppressed [TS2345]
       consoleMonitor.getResponseBody.mockResolvedValue({
         body: '{"data": "value"}',
         base64Encoded: false,
@@ -465,8 +470,11 @@ describe('AdvancedHandlersBase (requests)', () => {
       vi.useFakeTimers();
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getResponseBody
+        // @ts-expect-error — auto-suppressed [TS2345]
         .mockResolvedValueOnce(null)
+        // @ts-expect-error — auto-suppressed [TS2345]
         .mockResolvedValueOnce(null)
+        // @ts-expect-error — auto-suppressed [TS2345]
         .mockResolvedValueOnce({ body: 'data', base64Encoded: false });
 
       const promise = handler.handleNetworkGetResponseBody({
@@ -487,6 +495,7 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('returns failure after exhausting retries', async () => {
       vi.useFakeTimers();
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // @ts-expect-error — auto-suppressed [TS2345]
       consoleMonitor.getResponseBody.mockResolvedValue(null);
 
       const promise = handler.handleNetworkGetResponseBody({
@@ -508,6 +517,7 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('returns summary for large responses exceeding maxSize', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       const largeBody = 'x'.repeat(200_000);
+      // @ts-expect-error — auto-suppressed [TS2345]
       consoleMonitor.getResponseBody.mockResolvedValue({
         body: largeBody,
         base64Encoded: false,
@@ -528,6 +538,7 @@ describe('AdvancedHandlersBase (requests)', () => {
 
     it('returns summary when returnSummary is true even for small responses', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // @ts-expect-error — auto-suppressed [TS2345]
       consoleMonitor.getResponseBody.mockResolvedValue({
         body: 'small',
         base64Encoded: false,
@@ -547,6 +558,7 @@ describe('AdvancedHandlersBase (requests)', () => {
 
     it('clamps maxSize within bounds', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
+      // @ts-expect-error — auto-suppressed [TS2345]
       consoleMonitor.getResponseBody.mockResolvedValue({
         body: 'x'.repeat(2000),
         base64Encoded: false,

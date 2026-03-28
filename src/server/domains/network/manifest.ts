@@ -12,9 +12,11 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 
 function ensure(ctx: MCPServerContext): H {
   ensureBrowserCore(ctx);
+
   if (!ctx.advancedHandlers) {
     ctx.advancedHandlers = new AdvancedToolHandlers(ctx.collector!, ctx.consoleMonitor!);
   }
+
   return ctx.advancedHandlers;
 }
 

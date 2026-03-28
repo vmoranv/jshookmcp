@@ -131,6 +131,7 @@ export async function buildHar(params: BuildHarParams): Promise<Har> {
           const val = result.value;
           bodyResults.set(
             val.requestId,
+
             '_bodyUnavailable' in val ? { _bodyUnavailable: true } : { text: val.text },
           );
         }

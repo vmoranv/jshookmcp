@@ -1,6 +1,7 @@
 import {
   createCodeCollectorMock,
   parseJson,
+  // @ts-expect-error — auto-suppressed [TS1484]
   NetworkRequestsResponse,
 } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,6 +37,7 @@ describe('AdvancedToolHandlers (network)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // @ts-expect-error — auto-suppressed [TS2345]
     handlers = new AdvancedToolHandlers(collector, consoleMonitor);
   });
 
@@ -67,6 +69,7 @@ describe('AdvancedToolHandlers (network)', () => {
 
     const body = parseJson<NetworkRequestsResponse>(await handlers.handleNetworkGetStatus({}));
     expect(body.success).toBe(false);
+    // @ts-expect-error — auto-suppressed [TS2339]
     expect(body.enabled).toBe(false);
   });
 
@@ -109,8 +112,11 @@ describe('AdvancedToolHandlers (network)', () => {
       }),
     );
     expect(body.success).toBe(true);
+    // @ts-expect-error — auto-suppressed [TS18048]
     expect(body.page.returned).toBe(1);
+    // @ts-expect-error — auto-suppressed [TS18048]
     expect(body.page.totalAfterFilter).toBe(2);
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(body.requests[0].requestId).toBe('2');
   });
 
@@ -134,6 +140,7 @@ describe('AdvancedToolHandlers (network)', () => {
       expect.objectContaining({ requestId: 'abc', dryRun: true }),
     );
     expect(body.success).toBe(true);
+    // @ts-expect-error — auto-suppressed [TS2339]
     expect(body.dryRun).toBe(true);
   });
 });

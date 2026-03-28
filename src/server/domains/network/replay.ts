@@ -219,16 +219,15 @@ export async function replayRequest(
     let resp!: Response;
 
     for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
-      const { pinnedUrl, originalHost } = await resolvePinned(currentUrl);
+      const { pinnedUrl } = await resolvePinned(currentUrl);
+
       if (!pinnedUrl.startsWith('https://') && !LOOPBACK_HTTP_URL_RE.test(pinnedUrl)) {
         throw new Error(
           `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`,
         );
       }
+
       const hopHeaders = { ...mergedHeaders };
-      if (pinnedUrl !== currentUrl && !hopHeaders['host'] && !hopHeaders['Host']) {
-        hopHeaders['Host'] = originalHost;
-      }
 
       resp = await fetch(pinnedUrl, {
         method: currentMethod,
@@ -243,6 +242,7 @@ export async function replayRequest(
         if (!location) break; // no location header → treat as final response
         currentUrl = new URL(location, currentUrl).toString();
         // 301/302/303 → method becomes GET, body dropped; 307/308 → preserve
+
         if (resp.status === 301 || resp.status === 302 || resp.status === 303) {
           currentMethod = 'GET';
           currentBody = undefined;

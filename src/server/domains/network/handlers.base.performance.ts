@@ -148,6 +148,7 @@ export class NetworkHandlersPerformance extends NetworkHandlersCore {
   async handleProfilerCpuStop(args: Record<string, unknown>) {
     const monitor = this.getPerformanceMonitor();
     const profileRaw = await monitor.stopCPUProfiling();
+
     const profile = toCpuProfilePayload(profileRaw) || (profileRaw as CpuProfilePayload);
 
     const { writeFile } = await import('node:fs/promises');
@@ -172,7 +173,9 @@ export class NetworkHandlersPerformance extends NetworkHandlersCore {
 
     const hotFunctions = profile.nodes
       .filter((n) => (n.hitCount || 0) > 0)
+
       .toSorted((a, b) => (b.hitCount || 0) - (a.hitCount || 0))
+
       .slice(0, 20)
       .map((n) => ({
         functionName: n.callFrame?.functionName || '(anonymous)',

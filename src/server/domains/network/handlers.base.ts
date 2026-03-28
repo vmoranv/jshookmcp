@@ -67,6 +67,7 @@ export class AdvancedHandlersBase extends NetworkHandlersPerformance {
           text: JSON.stringify(
             {
               success: true,
+
               message: persistent
                 ? 'Dynamic script monitoring enabled (persistent — survives navigations)'
                 : 'Dynamic script monitoring enabled',
@@ -184,6 +185,7 @@ export class AdvancedHandlersBase extends NetworkHandlersPerformance {
           text: JSON.stringify(
             {
               success: true,
+
               message: persistent
                 ? `Function tracer injected for: ${functionName} (persistent — survives navigations)`
                 : `Function tracer injected for: ${functionName}`,
