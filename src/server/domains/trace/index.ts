@@ -1,1 +1,2 @@
-export { TraceToolHandlers } from '@server/domains/trace/handlers';
+export * from './definitions.tools';
+export { TraceToolHandlers } from './handlers';

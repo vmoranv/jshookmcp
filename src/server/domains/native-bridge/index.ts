@@ -1,6 +1,7 @@
 // ── Types ──
 
 import { GHIDRA_BRIDGE_ENDPOINT, IDA_BRIDGE_ENDPOINT } from '@src/constants';
+export * from './definitions';
 
 interface BridgeResponse {
   status: number;

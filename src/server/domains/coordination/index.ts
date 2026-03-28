@@ -8,7 +8,8 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { MCPServerContext } from '@server/MCPServer.context';
+import type { MCPServerContext } from '@server/domains/shared/registry';
+export * from './definitions';
 
 // ── Types ──
 
