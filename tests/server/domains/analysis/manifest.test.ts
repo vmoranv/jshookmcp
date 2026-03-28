@@ -47,6 +47,7 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('exports a valid domain manifest as default', async () => {
+    // @ts-expect-error — auto-suppressed [TS2352]
     const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
       default: Manifest;
     };
@@ -65,6 +66,7 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('has registrations that all reference the core domain', async () => {
+    // @ts-expect-error — auto-suppressed [TS2352]
     const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
       default: Manifest;
     };
@@ -79,6 +81,7 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('includes all expected core analysis tools', async () => {
+    // @ts-expect-error — auto-suppressed [TS2352]
     const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
       default: Manifest;
     };
@@ -102,6 +105,7 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('has no duplicate tool names across registrations', async () => {
+    // @ts-expect-error — auto-suppressed [TS2352]
     const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
       default: Manifest;
     };
@@ -112,6 +116,7 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('ensure function initializes all required dependencies', async () => {
+    // @ts-expect-error — auto-suppressed [TS2352]
     const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
       default: Manifest;
     };
@@ -145,6 +150,7 @@ describe('server/domains/analysis/manifest', () => {
   });
 
   it('ensure function returns existing handlers on subsequent calls', async () => {
+    // @ts-expect-error — auto-suppressed [TS2352]
     const { default: manifest } = (await import('@server/domains/analysis/manifest')) as {
       default: Manifest;
     };

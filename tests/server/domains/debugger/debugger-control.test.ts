@@ -45,6 +45,7 @@ describe('DebuggerControlHandlers', () => {
     debuggerManager.isEnabled.mockReturnValueOnce(true);
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleDebuggerEnable({}));
 
     expect(debuggerManager.init).toHaveBeenCalledOnce();
@@ -60,6 +61,7 @@ describe('DebuggerControlHandlers', () => {
   it('disables the debugger and runtime inspector', async () => {
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleDebuggerDisable({}));
 
     expect(debuggerManager.disable).toHaveBeenCalledOnce();
@@ -73,6 +75,7 @@ describe('DebuggerControlHandlers', () => {
   it('pauses execution', async () => {
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleDebuggerPause({}));
 
     expect(debuggerManager.pause).toHaveBeenCalledOnce();

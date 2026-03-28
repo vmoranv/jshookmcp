@@ -1,3 +1,4 @@
+// @ts-expect-error — auto-suppressed [TS2724]
 import type { WorkflowRunResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,6 +38,7 @@ import type {
 import type { MCPServerContext } from '@server/MCPServer.context';
 
 function parseJson<T = Record<string, unknown>>(response: ToolHandlerResult): T {
+  // @ts-expect-error — auto-suppressed [TS2532]
   return JSON.parse(response.content[0].text) as T;
 }
 
@@ -192,6 +194,7 @@ describe('WorkflowHandlersApi', () => {
       });
 
       expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('api.example.com');
       expect(call.code).toContain('users');
@@ -208,6 +211,7 @@ describe('WorkflowHandlersApi', () => {
         paths: ['/test'],
       });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       // The baseUrl should not have trailing slash in the injected code
       expect(call.code).toContain('"https://api.example.com"');
@@ -223,6 +227,7 @@ describe('WorkflowHandlersApi', () => {
         paths: ['/test'],
       });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('"GET"');
     });
@@ -238,6 +243,7 @@ describe('WorkflowHandlersApi', () => {
         method: 'post',
       });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('"POST"');
     });
@@ -253,6 +259,7 @@ describe('WorkflowHandlersApi', () => {
         headers: { 'X-Custom': 'value' },
       });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('X-Custom');
     });
@@ -269,6 +276,7 @@ describe('WorkflowHandlersApi', () => {
         bodyTemplate: '{"key":"value"}',
       });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('bodyTemplate');
     });
@@ -300,6 +308,7 @@ describe('WorkflowHandlersApi', () => {
         maxBodySnippetLength: 99999,
       });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('10000');
     });
@@ -314,6 +323,7 @@ describe('WorkflowHandlersApi', () => {
         paths: ['/test'],
       });
 
+      // @ts-expect-error — auto-suppressed [TS2532]
       const call = vi.mocked(deps.browserHandlers.handlePageEvaluate).mock.calls[0][0];
       expect(call.code).toContain('[200,201,204]');
     });

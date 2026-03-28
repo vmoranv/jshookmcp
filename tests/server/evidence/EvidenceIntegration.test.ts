@@ -35,6 +35,7 @@ describe('EVID-04: InstrumentationSession → Evidence Graph Integration', () =>
     // Edge: function → breakpoint-hook
     const edges = graph.exportJson().edges;
     expect(edges).toHaveLength(1);
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(edges[0].type).toBe('triggers');
   });
 

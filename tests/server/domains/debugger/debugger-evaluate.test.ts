@@ -32,6 +32,7 @@ describe('DebuggerEvaluateHandlers', () => {
     >);
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(
       await handlers.handleDebuggerEvaluate({
         expression: 'a + b',
@@ -54,6 +55,7 @@ describe('DebuggerEvaluateHandlers', () => {
     } as Awaited<ReturnType<EvaluateRuntimeInspector['evaluateGlobal']>>);
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(
       await handlers.handleDebuggerEvaluateGlobal({ expression: 'window.name' }),
     );

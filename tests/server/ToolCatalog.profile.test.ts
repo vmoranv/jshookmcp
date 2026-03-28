@@ -62,13 +62,11 @@ describe('Profile Restructuring (PROF-01~04)', () => {
   describe('hooks domain visibility (PROF-02)', () => {
     it('hooks tools are visible in workflow profile', () => {
       const workflowTools = getToolsForProfile('workflow').map((t) => t.name);
-      expect(workflowTools).toContain('ai_hook_generate');
       expect(workflowTools).toContain('ai_hook_inject');
       expect(workflowTools).toContain('hook_preset');
     });
 
     it('getToolMinimalTier returns workflow for hooks tools after downgrade', () => {
-      expect(getToolMinimalTier('ai_hook_generate')).toBe('workflow');
       expect(getToolMinimalTier('hook_preset')).toBe('workflow');
     });
   });

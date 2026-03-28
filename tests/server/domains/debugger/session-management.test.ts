@@ -51,6 +51,7 @@ describe('SessionManagementHandlers', () => {
     debuggerManager.saveSession.mockResolvedValueOnce('/tmp/session.json');
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(
       await handlers.handleSaveSession({
         filePath: '/tmp/session.json',
@@ -73,6 +74,7 @@ describe('SessionManagementHandlers', () => {
     debuggerManager.saveSession.mockRejectedValueOnce(new Error('disk full'));
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleSaveSession({}));
 
     expect(body).toEqual({
@@ -85,6 +87,7 @@ describe('SessionManagementHandlers', () => {
   it('loads a session from file when filePath is provided', async () => {
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(
       await handlers.handleLoadSession({ filePath: '/tmp/session.json' }),
     );
@@ -102,6 +105,7 @@ describe('SessionManagementHandlers', () => {
   it('loads a session from raw session data', async () => {
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(
       await handlers.handleLoadSession({ sessionData: '{"breakpoints":[]}' }),
     );
@@ -113,6 +117,7 @@ describe('SessionManagementHandlers', () => {
   it('returns a structured error when load arguments are missing', async () => {
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleLoadSession({}));
 
     expect(body).toEqual({
@@ -129,6 +134,7 @@ describe('SessionManagementHandlers', () => {
     } as unknown as ReturnType<SessionManagementDebuggerManager['exportSession']>);
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(
       await handlers.handleExportSession({ metadata: { label: 'snapshot' } }),
     );
@@ -156,6 +162,7 @@ describe('SessionManagementHandlers', () => {
     ]);
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleListSessions({}));
 
     expect(body).toEqual({

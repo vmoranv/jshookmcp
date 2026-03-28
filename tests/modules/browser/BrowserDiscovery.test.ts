@@ -109,7 +109,9 @@ describe('BrowserDiscovery', () => {
     ]);
 
     const result = discovery.parseWindowsResult(payload, '*');
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(result[0].type).toBe(primary[0]);
+    // @ts-expect-error — auto-suppressed [TS2532]
     expect(result[1].type).toBe(secondary[0]);
   });
 

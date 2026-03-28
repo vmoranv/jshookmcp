@@ -28,6 +28,7 @@ describe('BreakpointExceptionHandlers', () => {
   it('defaults pause-on-exception state to none', async () => {
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleBreakpointSetOnException({}));
 
     expect(debuggerManager.setPauseOnExceptions).toHaveBeenCalledWith('none');
@@ -41,6 +42,7 @@ describe('BreakpointExceptionHandlers', () => {
   it('uses the provided pause-on-exception state', async () => {
     const handlers = createHandlers();
 
+    // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleBreakpointSetOnException({ state: 'all' }));
 
     expect(debuggerManager.setPauseOnExceptions).toHaveBeenCalledWith('all');

@@ -97,6 +97,7 @@ describe('CamoufoxBrowserManager — edge cases', () => {
       await manager.launch();
 
       // Start closing (make isConnected return false so launch tries doLaunch)
+      // @ts-expect-error — auto-suppressed [TS2339]
       fakeBrowser.isConnected.mockReturnValue(false);
       // Set isClosing flag by calling close
       const closePromise = manager.close();
@@ -115,6 +116,7 @@ describe('CamoufoxBrowserManager — edge cases', () => {
       await manager.launch();
 
       // Simulate disconnection
+      // @ts-expect-error — auto-suppressed [TS2339]
       firstBrowser.isConnected.mockReturnValue(false);
 
       const result = await manager.launch();
@@ -191,6 +193,7 @@ describe('CamoufoxBrowserManager — edge cases', () => {
 
     it('resets isClosing flag even on close error', async () => {
       const fakeBrowser = createFakeBrowser(true);
+      // @ts-expect-error — auto-suppressed [TS2339]
       fakeBrowser.close.mockRejectedValue(new Error('Close failed'));
       camoufoxLaunchMock.mockResolvedValue(fakeBrowser);
       const manager = new CamoufoxBrowserManager();

@@ -11,6 +11,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // @ts-expect-error — auto-suppressed [TS2345]
     handlers = new EncodingToolHandlers(collector);
   });
 

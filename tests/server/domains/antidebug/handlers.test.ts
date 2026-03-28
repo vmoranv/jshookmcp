@@ -6,6 +6,11 @@ import {
   parseJson,
 } from '@tests/server/domains/shared/mock-factories';
 
+interface BypassAllResponse {
+  persistent: boolean;
+  [key: string]: unknown;
+}
+
 describe('AntiDebugToolHandlers', () => {
   const page = createPageMock();
   const collector = createCodeCollectorMock({
@@ -107,7 +112,7 @@ describe('AntiDebugToolHandlers', () => {
   });
 
   describe('handleAntiDebugBypassAll', () => {
-    interface BypassAllResponse {
+    interface BypassAllHandlerResponse {
       success: boolean;
       tool: string;
       persistent: boolean;
@@ -117,7 +122,7 @@ describe('AntiDebugToolHandlers', () => {
     }
 
     it('injects all bypass scripts with persistence by default', async () => {
-      const body = parseJson<BypassAllResponse>(await handlers.handleAntiDebugBypassAll({}));
+      const body = parseJson<BypassAllHandlerResponse>(await handlers.handleAntiDebugBypassAll({}));
       expect(body.success).toBe(true);
       expect(body.tool).toBe('antidebug_bypass_all');
       expect(body.persistent).toBe(true);
@@ -134,7 +139,7 @@ describe('AntiDebugToolHandlers', () => {
     });
 
     it('skips evaluateOnNewDocument when persistent=false', async () => {
-      const body = parseJson<BypassAllResponse>(
+      const body = parseJson<BypassAllHandlerResponse>(
         await handlers.handleAntiDebugBypassAll({ persistent: false }),
       );
       expect(body.success).toBe(true);
@@ -145,7 +150,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('returns error on page failure', async () => {
       (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('no page'));
-      const body = parseJson<BypassAllResponse>(await handlers.handleAntiDebugBypassAll({}));
+      const body = parseJson<BypassAllHandlerResponse>(await handlers.handleAntiDebugBypassAll({}));
       expect(body.success).toBe(false);
       expect(body.error).toContain('no page');
     });
@@ -335,6 +340,7 @@ describe('AntiDebugToolHandlers', () => {
         await handlers.handleAntiDebugDetectProtections({}),
       );
       expect(body.success).toBe(false);
+      // @ts-expect-error — auto-suppressed [TS2339]
       expect(body.tool).toBe('antidebug_detect_protections');
     });
   });

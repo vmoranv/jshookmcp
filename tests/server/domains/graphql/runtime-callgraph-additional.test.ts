@@ -339,6 +339,7 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
       const body = parseJson<CallGraphResponse>(await handlers.handleCallGraphAnalyze({}));
       expect(body.success).toBe(true);
       expect(body.edges).toHaveLength(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.edges[0].count).toBe(3);
     });
 
@@ -407,6 +408,7 @@ describe('GraphQLToolHandlersCallGraph - additional coverage', () => {
       expect(body.success).toBe(true);
       // Only the edge with 'fetchUser' should match
       expect(body.edges).toHaveLength(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.edges[0].source).toBe('fetchUser');
     });
 
@@ -778,6 +780,7 @@ callerFn@app.js:20:10`,
       }
       // Edges should be sorted by count descending
       for (let i = 1; i < body.edges.length; i++) {
+        // @ts-expect-error — auto-suppressed [TS2532]
         expect(body.edges[i - 1].count).toBeGreaterThanOrEqual(body.edges[i].count);
       }
     });

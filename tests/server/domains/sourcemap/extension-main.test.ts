@@ -45,6 +45,7 @@ describe('SourcemapToolHandlersExtension', () => {
     detach: vi.fn(),
   };
   const page = createPageMock({
+    // @ts-expect-error — auto-suppressed [TS2353]
     createCDPSession: vi.fn(async () => session),
   });
   const collector = {
@@ -88,7 +89,9 @@ describe('SourcemapToolHandlersExtension', () => {
 
       const targets = await handlers.getExtensionTargets(session);
       expect(targets).toHaveLength(2);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(targets[0].type).toBe('service_worker');
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(targets[1].type).toBe('background_page');
     });
 
@@ -105,6 +108,7 @@ describe('SourcemapToolHandlersExtension', () => {
       });
 
       const targets = await handlers.getExtensionTargets(session);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(targets[0].extensionId).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
 
@@ -131,6 +135,7 @@ describe('SourcemapToolHandlersExtension', () => {
         'ponmlkjihgfedcbaponmlkjihgfedcba',
       );
       expect(targets).toHaveLength(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(targets[0].extensionId).toBe('ponmlkjihgfedcbaponmlkjihgfedcba');
     });
 
@@ -178,6 +183,7 @@ describe('SourcemapToolHandlersExtension', () => {
       });
 
       const targets = await handlers.getExtensionTargets(session);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(targets[0].name).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
 
@@ -200,7 +206,9 @@ describe('SourcemapToolHandlersExtension', () => {
       });
 
       const targets = await handlers.getExtensionTargets(session);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(targets[0].type).toBe('service_worker');
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(targets[1].type).toBe('background_page');
     });
 
@@ -333,8 +341,11 @@ describe('SourcemapToolHandlersExtension', () => {
 
       const body = parseJson<unknown[]>(await handlers.handleExtensionListInstalled({}));
       expect(body).toHaveLength(2);
+      // @ts-expect-error — auto-suppressed [TS2571]
       expect(body[0].extensionId).toBe('ext1');
+      // @ts-expect-error — auto-suppressed [TS2571]
       expect(body[1].extensionId).toBe('ext2');
+      // @ts-expect-error — auto-suppressed [TS2571]
       expect(body[0].name).toBe('Extension A');
     });
 
@@ -424,6 +435,7 @@ describe('SourcemapToolHandlersMain', () => {
     detach: vi.fn(),
   };
   const page = createPageMock({
+    // @ts-expect-error — auto-suppressed [TS2353]
     createCDPSession: vi.fn(async () => session),
     evaluate: vi.fn(),
   });

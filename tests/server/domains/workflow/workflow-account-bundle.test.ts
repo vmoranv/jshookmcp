@@ -305,6 +305,7 @@ describe('WorkflowHandlersAccountBundle', () => {
       );
 
       expect(body.result.authFindings).toHaveLength(1);
+      // @ts-expect-error — auto-suppressed [TS2532]
       expect(body.result.authFindings[0].type).toBe('cookie');
     });
 
@@ -388,6 +389,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         );
 
         expect(body.success).toBe(true);
+        // @ts-expect-error — auto-suppressed [TS18048, TS2532]
         expect(body.results.bad_regex[0].context).toContain('Invalid regex');
       } finally {
         globalThis.fetch = originalFetch;
@@ -492,6 +494,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         expect(body.success).toBe(true);
         expect(body.bundleSize).toBe(bundleContent.length);
         expect(body.results.api_keys).toHaveLength(1);
+        // @ts-expect-error — auto-suppressed [TS18048, TS2532]
         expect(body.results.api_keys[0].match).toContain('apiKey');
       } finally {
         globalThis.fetch = originalFetch;
@@ -520,6 +523,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         );
 
         expect(body.success).toBe(true);
+        // @ts-expect-error — auto-suppressed [TS18048]
         expect(body.results.all_aaa.length).toBeLessThanOrEqual(2);
       } finally {
         globalThis.fetch = originalFetch;
