@@ -20,6 +20,7 @@ AI Hook 生成、注入、数据导出，以及内置/自定义 preset 管理。
 - browser + hooks + debugger
 
 ## 代表工具
+
 - `ai_hook_inject` — 将生成的 Hook 注入当前页面。
 - `ai_hook_get_data` — 获取活动 Hook 捕获的数据，如参数、返回值和调用次数。
 - `ai_hook_list` — 列出全部活动 Hook 及其状态信息。
