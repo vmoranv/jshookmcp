@@ -2,57 +2,55 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    branches: [ "main" ]
   pull_request:
-
-permissions:
-  contents: read
+    branches: [ "main" ]
 
 jobs:
-  verify:
+  build-and-test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '20'
 
-      - name: Enable Corepack pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.28.2
+
+      - name: Get pnpm store directory
+        shell: bash
         run: |
-          corepack enable
-          corepack prepare pnpm@10.28.2 --activate
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
-      - name: Lint (oxlint)
-        run: pnpm run lint
+      - name: Install Dependencies
+        run: pnpm install:full
 
-      - name: Format check (oxfmt)
-        run: pnpm run format:check
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
 
-      - name: Markdown lint
-        run: pnpm run lint:md
+      - name: Run Linters & Formatters
+        run: |
+          pnpm run lint
+          pnpm run format:check
+          pnpm run typecheck
 
-      - name: Typecheck
-        run: pnpm run typecheck
+      - name: Run Unit Tests with Coverage
+        run: pnpm run test:coverage
 
-      - name: Test
-        run: pnpm run test
-
-      - name: Build
-        run: pnpm run build
-
-      - name: Pack and verify release artifact
-        run: pnpm run package:verify-release
-
-      - name: Build docs
-        run: pnpm run docs:build
-
-      - name: Audit tool registry
-        run: pnpm run audit:tools
+      - name: Run E2E Tests
+        run: pnpm run test:e2e

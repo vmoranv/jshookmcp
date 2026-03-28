@@ -85,13 +85,11 @@ describe('CoreAnalysisHandlers', () => {
     const body = parseJson<DeobfuscateResponse>(
       await handlers.handleDeobfuscate({
         code: 'a()',
-        llm: 'provider-a' as unknown as string,
         aggressive: true,
       }),
     );
     expect(deps.deobfuscator.deobfuscate).toHaveBeenCalledWith({
       code: 'a()',
-      llm: 'provider-a',
       aggressive: true,
     });
     expect(body.success).toBe(true);

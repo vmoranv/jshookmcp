@@ -379,4 +379,15 @@ describe('MCPServer', () => {
     expect(mocks.detailedShutdown).toHaveBeenCalledOnce();
     expect(mcp.close).toHaveBeenCalledOnce();
   });
+
+  it('throws when required configuration sections are missing', () => {
+    expect(() => new MCPServer({} as any)).toThrow();
+  });
+
+  it('handles reconnect/disconnect abnormal logic safely', async () => {
+    const server = new MCPServer(baseConfig);
+    await server.start();
+    await server.close();
+    await expect(server.close()).resolves.toBeUndefined();
+  });
 });

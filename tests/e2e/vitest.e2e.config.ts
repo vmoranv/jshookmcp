@@ -22,5 +22,7 @@ export default defineConfig({
     testTimeout: 120_000,
     hookTimeout: 120_000,
     pool: 'forks',
+    maxConcurrency: 1,
+    setupFiles: [fileURLToPath(new URL('./setup.ts', import.meta.url))],
   },
 });
