@@ -182,7 +182,7 @@ export class PEAnalyzer {
 
         // Read thunk array (simplified — just collect names)
         const originalFirstThunkRva = desc.readUInt32LE(0) || desc.readUInt32LE(16);
-        const functions = await this._readThunkArray(
+        const functions = this._readThunkArray(
           hProcess,
           base,
           originalFirstThunkRva,
@@ -415,12 +415,12 @@ export class PEAnalyzer {
     return { numSections, isPE32Plus, firstSectionOffset, dataDirectories };
   }
 
-  private async _readThunkArray(
+  private _readThunkArray(
     hProcess: bigint,
     base: bigint,
     thunkRva: number,
     isPE32Plus: boolean,
-  ): Promise<ImportFunction[]> {
+  ): ImportFunction[] {
     const thunkSize = isPE32Plus ? 8 : 4;
     const functions: ImportFunction[] = [];
     const IMAGE_ORDINAL_FLAG = isPE32Plus ? 0x8000000000000000n : 0x80000000n;
