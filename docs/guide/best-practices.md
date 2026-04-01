@@ -1,180 +1,169 @@
 # 最佳实践
 
-基于真实逆向场景沉淀的工作流与扩展推荐。
+面向初次配置 jshookmcp 的用户，帮你快速上手并避免常见坑。
 
-## 推荐的 Extension Workflow
+## 推荐 `.env` 配置
 
-以下 workflow 已按逆向任务类型分类，可直接通过 `run_extension_workflow` 调用：
+### 最小可用配置
 
-### 签名算法定位
-
-**`signature_hunter`** — 从一次页面动作出发，自动完成：
-1. 启用网络监控并导航到目标页
-2. 捕获请求并识别含签名的参数
-3. 并行搜索脚本、检测加密/混淆、读取 Cookie/Storage
-4. 抽取函数依赖树
-5. 对签名路径下 Hook 并捕获明文/密文
-6. 提取鉴权面信息并写入证据图
-
-```json
-{
-  "name": "run_extension_workflow",
-  "arguments": {
-    "workflowId": "signature_hunter",
-    "input": {
-      "url": "https://example.com/login",
-      "targetParam": "sign",
-      "enableHook": true
-    }
-  }
-}
+```bash
+# .env — 最小启动配置
+PUPPETEER_HEADLESS=true
+MCP_TOOL_PROFILE=workflow        # 推荐默认档位，覆盖 90% 逆向场景
+DYNAMIC_BOOST_ENABLED=true       # 按需自动升级缺失域
 ```
 
-### WebSocket 协议逆向
+### 需要 AI 辅助分析时
 
-**`ws_protocol_lifter`** — 自动聚类 WS 消息、尝试解码（JSON/base64/protobuf/msgpack）、关联 handler 函数并生成协议摘要。
+```bash
+# LLM 配置（反混淆、智能 Hook 生成等功能需要）
+DEFAULT_LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-xxx
+OPENAI_MODEL=gpt-4-turbo-preview
+OPENAI_BASE_URL=https://api.openai.com/v1
+```
 
-### Bundle 恢复
+### 需要扩展生态时
 
-**`bundle_recovery`** — 采集脚本 → 识别 webpack/source-map → 恢复模块结构 → 可选 webcrack 解包 → 抽取函数树。
-
-### 反检测诊断
-
-**`anti_bot_diagnoser`** — 对比普通模式与 stealth 模式的指纹差异，定位 webdriver/CDP/canvas/WebRTC 等检测点。
-
-### 证据打包
-
-**`evidence_pack`** — 一键收集请求、Cookie、Storage、本地快照、HAR 导出，生成可回放的证据包。
+```bash
+# 扩展 registry（安装官方 workflow/plugin 需要）
+EXTENSION_REGISTRY_BASE_URL=https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry
+```
 
 ---
 
-## 推荐的 Extension Plugin
+## Profile 选择建议
 
-| Plugin | 用途 | 安装方式 |
+| 场景 | 推荐 Profile | 理由 |
+|------|-------------|------|
+| 日常逆向 | `workflow` | 浏览器、网络、调试、Hook 常驻，token 开销适中 |
+| 只做搜索/探索 | `search` | 极简模式，仅暴露元工具，token 最省 |
+| 深度分析（WASM/进程/内存） | `full` | 全域预载，适合重型任务 |
+
+```bash
+# 切换方式
+MCP_TOOL_PROFILE=workflow   # 在 .env 中设置
+```
+
+开启 `DYNAMIC_BOOST_ENABLED=true` 后，即使用 `search` 档也能自动按需升级到所需域，无需手动切到 `full`。
+
+---
+
+## 推荐安装的 Extension
+
+通过 `install_extension` 工具安装官方扩展：
+
+### Workflow（任务流）
+
+| Workflow | 用途 | 安装命令 |
+|----------|------|----------|
+| `signature_hunter` | 签名算法定位：自动抓请求、识别加密参数、Hook 签名路径 | `install_extension("workflow:signature_hunter")` |
+| `ws_protocol_lifter` | WebSocket 协议逆向：消息聚类、编码识别、handler 关联 | `install_extension("workflow:ws_protocol_lifter")` |
+| `bundle_recovery` | Bundle 恢复：webpack 枚举、source map 恢复、模块结构还原 | `install_extension("workflow:bundle_recovery")` |
+| `anti_bot_diagnoser` | 反检测诊断：对比 stealth/normal 指纹差异 | `install_extension("workflow:anti_bot_diagnoser")` |
+| `evidence_pack` | 证据打包：一键收集请求、Cookie、快照为可回放包 | `install_extension("workflow:evidence_pack")` |
+
+### Plugin（工具插件）
+
+| Plugin | 用途 | 安装命令 |
 |--------|------|----------|
+| `pl-auth-extract` | 从页面提取 token/device-id 等鉴权要素 | `install_extension("plugin:pl-auth-extract")` |
 | `pl-qwen-mail-open-latest` | 打开最新 QQ 邮件并提取正文 | `install_extension("plugin:pl-qwen-mail-open-latest")` |
-| `pl-temp-mail-open-latest` | 打开临时邮箱最新邮件 | 同上 |
-| `pl-auth-extract` | 从页面提取 token/device-id 等鉴权要素 | 同上 |
+| `pl-temp-mail-open-latest` | 打开临时邮箱最新邮件 | `install_extension("plugin:pl-temp-mail-open-latest")` |
+
+安装后通过 `list_extension_workflows()` / `run_extension_workflow()` 调用。
 
 ---
 
-## 典型逆向工作流
+## 环境调优
 
-### 场景 1：登录流签名定位
+### 浏览器配置
 
-```
-1. run_extension_workflow("signature_hunter", { url, targetParam: "sign" })
-   → 返回签名函数路径 + hook 点 + 证据图节点 ID
+```bash
+# 指定 Chrome 路径（自动检测失败时）
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
+# 或
+CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
 
-2. manage_hooks({ action: "list" })
-   → 确认 hook 已注入
-
-3. network_extract_auth({ requestId: "..." })
-   → 提取完整鉴权参数链
-
-4. evidence_export({ format: "json" })
-   → 导出证据图供后续复盘
+# 调试端口（连接已运行的浏览器）
+DEFAULT_DEBUG_PORT=9222
 ```
 
-### 场景 2：私有 API 批量探测
+### 性能调优
 
+```bash
+# Token 预算（防止上下文爆炸）
+TOKEN_BUDGET_MAX_TOKENS=200000
+
+# 并发控制
+jshook_IO_CONCURRENCY=4       # I/O 并发上限
+jshook_CDP_CONCURRENCY=2       # CDP 操作并发上限
+MAX_CONCURRENT_ANALYSIS=3      # 分析任务并发上限
+
+# 缓存（推荐开启，减少重复采集）
+ENABLE_CACHE=true
+CACHE_TTL=3600
 ```
-1. api_probe_batch({ baseUrl, patterns: ["swagger", "openapi", "graphql"] })
-   → 返回发现的端点列表
 
-2. web_api_capture_session({ url, actions: [...] })
-   → 执行预设动作并捕获所有请求
+### 超时设置
 
-3. search_in_scripts({ keyword: "Authorization" })
-   → 定位 header 注入点
-```
+```bash
+# 浏览器操作超时
+PUPPETEER_TIMEOUT=30000
 
-### 场景 3：Electron 应用桥接面映射
+# 外部工具超时
+EXTERNAL_TOOL_TIMEOUT_MS=30000
 
-```
-1. electron_bridge_mapper({ appPath: "/path/to/app" })
-   → 扫描 preload/asar/IPC 端点
-
-2. manage_hooks({ action: "inject", preset: "electron-ipc" })
-   → 注入 IPC 拦截器
-
-3. page_navigate({ url: "file:///path/to/index.html" })
-   → 触发 IPC 调用并捕获
+# Workflow 批处理超时
+WORKFLOW_BATCH_MAX_TIMEOUT_MS=300000
 ```
 
 ---
 
-## 性能与稳定性建议
+## 常见问题
 
-### 1. 使用 profile 分层控制工具可见性
+### 搜索不到工具
 
-- **默认启动** = `search` 档（~12 个工具），token 开销最小
-- 需要运行时分析时调用 `activate_tools(["debugger", "hooks"])`
-- 需要深层逆向时调用 `boost_profile("workflow")` 或 `boost_profile("full")`
-
-### 2. 用 instrumentation session 收束 hook 生命周期
-
-```javascript
-// workflow 内推荐模式
-onStart: async (ctx) => {
-  const sessionId = await ctx.invokeTool('instrumentation_session_create', {
-    name: 'signature-capture-session',
-  });
-  ctx.setSessionData('sessionId', sessionId);
-}
-
-onFinish: async (ctx) => {
-  const sessionId = ctx.getSessionData('sessionId');
-  await ctx.invokeTool('instrumentation_session_close', { id: sessionId });
-  await ctx.invokeTool('instrumentation_artifact_record', { sessionId });
-}
-```
-
-### 3. 避免重复采集
-
-- 先用 `page_get_cookies` / `page_get_local_storage` 读缓存
-- 必须刷新时才调用 `page_navigate` + `collect_code`
-- 大脚本采集后写入 `save_page_snapshot`，后续步骤复用快照
-
-### 4. 超时与重试策略
-
-- 单步 tool call 设置 `timeoutMs: 30000`（默认 30s）
-- 网络请求类工具加 `retry: { maxAttempts: 3, backoffMs: 500 }`
-- workflow 整体设置 `.timeoutMs(10 * 60_000)`（10 分钟）
-
----
-
-## 故障排查
-
-### 问题：extension workflow 找不到
-
-**检查**：
-```javascript
-list_extension_workflows()
-// 返回空数组？
-```
+**原因**：当前 profile 未包含目标域。
 
 **解决**：
-1. 确认 `workflows/` 目录下有 `*/workflow.js` 或 `*/workflow.ts`
-2. 运行 `pnpm install` 确保 extension registry 已同步
-3. 检查 `server.json` 中 `EXTENSION_REGISTRY_BASE_URL` 配置
 
-### 问题：hook 注入后无数据捕获
+1. 开启自动升级：`DYNAMIC_BOOST_ENABLED=true`
+2. 或切到更高档位：`MCP_TOOL_PROFILE=workflow`
+3. 或运行时调用 `activate_tools(["debugger", "hooks"])`
+
+### Extension 安装失败
+
+**检查**：
+
+1. 确认 registry URL 已配置：`EXTENSION_REGISTRY_BASE_URL=https://...`
+2. 确认网络可达（需要访问 GitHub raw 内容）
+3. 运行 `doctor_environment()` 诊断环境
+
+### Hook 注入后无数据
 
 **可能原因**：
-- 目标函数在 iframe/worker 内，需要切换上下文
-- hook 路径错误（如 `window.fetch` vs `globalThis.fetch`）
-- 页面已启用 CSP，阻止注入脚本
 
-**排查步骤**：
-1. `manage_hooks({ action: "list" })` 确认 hook 状态
-2. `console_execute({ expression: "document.querySelectorAll('iframe')" })` 检查 iframe
-3. 尝试 `page_inject_script({ content: "...", persistent: true })` 手动注入测试
+- 目标函数在 iframe/worker 内，需要切换上下文
+- 页面启用了 CSP，阻止注入脚本
+- Hook 路径不正确（如 `window.fetch` vs `globalThis.fetch`）
+
+**排查**：调用 `manage_hooks({ action: "list" })` 确认状态。
+
+### 浏览器启动失败
+
+**排查顺序**：
+
+1. 运行 `doctor_environment()` 检查依赖
+2. 显式指定浏览器路径：`PUPPETEER_EXECUTABLE_PATH=...`
+3. 检查端口是否被占用：`DEFAULT_DEBUG_PORT=9222`
 
 ---
 
 ## 下一步
 
-- [域矩阵](/reference/) — 查看所有域的完整工具清单
-- [Workflow 开发](/extensions/workflow-development) — 编写自己的 mission workflow
+- [.env 与配置](/guide/configuration) — 完整配置项参考
+- [工具路由](/guide/tool-selection) — Profile 与路由机制详解
+- [域矩阵](/reference/) — 所有域的完整工具清单
+- [Workflow 开发](/extensions/workflow-development) — 编写自己的 workflow
 - [环境诊断](/operations/doctor-and-artifacts) — 检查 bridge 健康状态

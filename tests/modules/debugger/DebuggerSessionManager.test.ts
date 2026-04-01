@@ -149,9 +149,8 @@ describe('DebuggerSessionManager', () => {
     } as any;
     const sessionManager = new DebuggerSessionManager(managerMock);
 
-    const forbiddenPath =
-      process.platform === 'win32' ? 'C:\\forbidden\\session.json' : '/forbidden/session.json';
-    await expect(sessionManager.saveSession(forbiddenPath)).rejects.toThrow(
+    // Use a path that is guaranteed absolute and outside cwd/tmpdir on any OS
+    await expect(sessionManager.saveSession('/forbidden/session.json')).rejects.toThrow(
       'filePath must be within the current working directory or system temp dir.',
     );
   });

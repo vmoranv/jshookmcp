@@ -1,180 +1,169 @@
 # Best Practices
 
-Practical workflows and extension recommendations distilled from real reverse-engineering scenarios.
+A hands-on guide for first-time jshookmcp users — get running quickly and avoid common pitfalls.
 
-## Recommended Extension Workflows
+## Recommended `.env` Configuration
 
-The following workflows are organized by reverse-engineering task and can be invoked directly via `run_extension_workflow`:
+### Minimal Startup
 
-### Signature Algorithm Location
-
-**`signature_hunter`** — Starting from a single page action, automatically:
-1. Enable network monitoring and navigate to the target page
-2. Capture requests and identify signature-bearing parameters
-3. Search scripts, detect crypto/obfuscation, and read Cookie/Storage in parallel
-4. Extract the function dependency tree
-5. Hook the signing path to capture plaintext/ciphertext
-6. Extract auth surface and write findings to the evidence graph
-
-```json
-{
-  "name": "run_extension_workflow",
-  "arguments": {
-    "workflowId": "signature_hunter",
-    "input": {
-      "url": "https://example.com/login",
-      "targetParam": "sign",
-      "enableHook": true
-    }
-  }
-}
+```bash
+# .env — minimal working config
+PUPPETEER_HEADLESS=true
+MCP_TOOL_PROFILE=workflow        # recommended default, covers 90% of RE tasks
+DYNAMIC_BOOST_ENABLED=true       # auto-upgrade missing domains on demand
 ```
 
-### WebSocket Protocol Reverse Engineering
+### When You Need AI-Assisted Analysis
 
-**`ws_protocol_lifter`** — Automatically cluster WebSocket messages, attempt decoding (JSON/base64/protobuf/msgpack), correlate handler functions, and produce a protocol summary.
+```bash
+# LLM config (required for deobfuscation, smart hook generation, etc.)
+DEFAULT_LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-xxx
+OPENAI_MODEL=gpt-4-turbo-preview
+OPENAI_BASE_URL=https://api.openai.com/v1
+```
 
-### Bundle Recovery
+### When You Need the Extension Ecosystem
 
-**`bundle_recovery`** — Collect scripts → detect webpack/source maps → recover module structure → optionally unpack with webcrack → extract function tree.
-
-### Anti-Detection Diagnostics
-
-**`anti_bot_diagnoser`** — Compare fingerprint differences between normal and stealth execution modes, identifying webdriver/CDP/canvas/WebRTC detection points.
-
-### Evidence Packaging
-
-**`evidence_pack`** — Collect requests, cookies, storage, local snapshots, and HAR exports in one step, producing a replayable evidence package.
+```bash
+# Extension registry (required to install official workflows/plugins)
+EXTENSION_REGISTRY_BASE_URL=https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry
+```
 
 ---
 
-## Recommended Extension Plugins
+## Profile Selection Guide
+
+| Scenario | Recommended Profile | Why |
+|----------|-------------------|-----|
+| Day-to-day reverse engineering | `workflow` | Browser, network, debugger, hooks always resident; moderate token cost |
+| Search/exploration only | `search` | Minimal mode, only meta-tools exposed, lowest token cost |
+| Deep analysis (WASM/process/memory) | `full` | All domains pre-loaded, designed for heavy tasks |
+
+```bash
+# Set in .env
+MCP_TOOL_PROFILE=workflow
+```
+
+With `DYNAMIC_BOOST_ENABLED=true`, even the `search` profile will auto-upgrade to needed domains on demand — no need to manually switch to `full`.
+
+---
+
+## Recommended Extensions to Install
+
+Install official extensions via the `install_extension` tool:
+
+### Workflows (Task Pipelines)
+
+| Workflow | Purpose | Install |
+|----------|---------|---------|
+| `signature_hunter` | Signature algorithm locator: auto-capture requests, identify crypto params, hook signing paths | `install_extension("workflow:signature_hunter")` |
+| `ws_protocol_lifter` | WebSocket protocol RE: message clustering, encoding detection, handler correlation | `install_extension("workflow:ws_protocol_lifter")` |
+| `bundle_recovery` | Bundle recovery: webpack enumeration, source map recovery, module structure restoration | `install_extension("workflow:bundle_recovery")` |
+| `anti_bot_diagnoser` | Anti-detection diagnostics: compare stealth/normal fingerprint differences | `install_extension("workflow:anti_bot_diagnoser")` |
+| `evidence_pack` | Evidence packaging: one-click collect requests, cookies, snapshots into replayable bundle | `install_extension("workflow:evidence_pack")` |
+
+### Plugins (Tool Extensions)
 
 | Plugin | Purpose | Install |
 |--------|---------|---------|
+| `pl-auth-extract` | Extract token/device-id auth elements from page | `install_extension("plugin:pl-auth-extract")` |
 | `pl-qwen-mail-open-latest` | Open latest QQ Mail and extract body | `install_extension("plugin:pl-qwen-mail-open-latest")` |
-| `pl-temp-mail-open-latest` | Open latest temp-mail message | same pattern |
-| `pl-auth-extract` | Extract token/device-id auth elements from page | same pattern |
+| `pl-temp-mail-open-latest` | Open latest temp-mail message | `install_extension("plugin:pl-temp-mail-open-latest")` |
+
+After installing, use `list_extension_workflows()` / `run_extension_workflow()` to invoke them.
 
 ---
 
-## Typical Reverse-Engineering Workflows
+## Environment Tuning
 
-### Scenario 1: Login Flow Signature Location
+### Browser Configuration
 
-```
-1. run_extension_workflow("signature_hunter", { url, targetParam: "sign" })
-   → Returns signing function path + hook points + evidence node IDs
+```bash
+# Specify Chrome path (when auto-detection fails)
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
+# or on Windows
+CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
 
-2. manage_hooks({ action: "list" })
-   → Confirm hooks are injected
-
-3. network_extract_auth({ requestId: "..." })
-   → Extract the full auth parameter chain
-
-4. evidence_export({ format: "json" })
-   → Export evidence graph for post-analysis
+# Debug port (connect to an already-running browser)
+DEFAULT_DEBUG_PORT=9222
 ```
 
-### Scenario 2: Bulk Private API Probing
+### Performance Tuning
 
+```bash
+# Token budget (prevent context explosion)
+TOKEN_BUDGET_MAX_TOKENS=200000
+
+# Concurrency controls
+jshook_IO_CONCURRENCY=4       # I/O concurrency cap
+jshook_CDP_CONCURRENCY=2       # CDP operation concurrency cap
+MAX_CONCURRENT_ANALYSIS=3      # Analysis task concurrency cap
+
+# Cache (recommended — reduces redundant collection)
+ENABLE_CACHE=true
+CACHE_TTL=3600
 ```
-1. api_probe_batch({ baseUrl, patterns: ["swagger", "openapi", "graphql"] })
-   → Returns discovered endpoint list
 
-2. web_api_capture_session({ url, actions: [...] })
-   → Execute preset actions and capture all requests
+### Timeout Settings
 
-3. search_in_scripts({ keyword: "Authorization" })
-   → Locate header injection points
-```
+```bash
+# Browser operation timeout
+PUPPETEER_TIMEOUT=30000
 
-### Scenario 3: Electron App Bridge Surface Mapping
+# External tool timeout
+EXTERNAL_TOOL_TIMEOUT_MS=30000
 
-```
-1. electron_bridge_mapper({ appPath: "/path/to/app" })
-   → Scan preload/asar/IPC endpoints
-
-2. manage_hooks({ action: "inject", preset: "electron-ipc" })
-   → Inject IPC interceptors
-
-3. page_navigate({ url: "file:///path/to/index.html" })
-   → Trigger IPC calls and capture
+# Workflow batch timeout
+WORKFLOW_BATCH_MAX_TIMEOUT_MS=300000
 ```
 
 ---
 
-## Performance and Stability Tips
+## Common Issues
 
-### 1. Use Profile Tiers to Control Tool Visibility
+### Can't Find Tools
 
-- **Default startup** = `search` profile (~12 tools), minimal token overhead
-- For runtime analysis, call `activate_tools(["debugger", "hooks"])`
-- For deep reverse engineering, call `boost_profile("workflow")` or `boost_profile("full")`
-
-### 2. Use Instrumentation Sessions to Manage Hook Lifecycle
-
-```javascript
-// Recommended pattern inside workflows
-onStart: async (ctx) => {
-  const sessionId = await ctx.invokeTool('instrumentation_session_create', {
-    name: 'signature-capture-session',
-  });
-  ctx.setSessionData('sessionId', sessionId);
-}
-
-onFinish: async (ctx) => {
-  const sessionId = ctx.getSessionData('sessionId');
-  await ctx.invokeTool('instrumentation_session_close', { id: sessionId });
-  await ctx.invokeTool('instrumentation_artifact_record', { sessionId });
-}
-```
-
-### 3. Avoid Redundant Data Collection
-
-- Read cached data first via `page_get_cookies` / `page_get_local_storage`
-- Only call `page_navigate` + `collect_code` when a refresh is required
-- After collecting large scripts, persist with `save_page_snapshot` and reuse
-
-### 4. Timeout and Retry Strategy
-
-- Set `timeoutMs: 30000` for individual tool calls (default 30s)
-- Add `retry: { maxAttempts: 3, backoffMs: 500 }` for network-related tools
-- Set workflow-level timeout: `.timeoutMs(10 * 60_000)` (10 minutes)
-
----
-
-## Troubleshooting
-
-### Extension workflows not found
-
-**Check**:
-```javascript
-list_extension_workflows()
-// Returns empty array?
-```
+**Cause**: Current profile doesn't include the target domain.
 
 **Fix**:
-1. Verify `workflows/*/workflow.js` or `*/workflow.ts` exist in the workflows directory
-2. Run `pnpm install` to ensure the extension registry is synced
-3. Check `EXTENSION_REGISTRY_BASE_URL` in your server configuration
 
-### Hook injected but no data captured
+1. Enable auto-upgrade: `DYNAMIC_BOOST_ENABLED=true`
+2. Or switch to a higher profile: `MCP_TOOL_PROFILE=workflow`
+3. Or activate at runtime: `activate_tools(["debugger", "hooks"])`
+
+### Extension Installation Fails
+
+**Check**:
+
+1. Verify registry URL is configured: `EXTENSION_REGISTRY_BASE_URL=https://...`
+2. Verify network connectivity (requires access to GitHub raw content)
+3. Run `doctor_environment()` for diagnostics
+
+### Hook Injected But No Data Captured
 
 **Possible causes**:
-- Target function runs inside an iframe/worker — context switch needed
-- Hook path incorrect (e.g., `window.fetch` vs `globalThis.fetch`)
-- Page has CSP enabled, blocking injected scripts
 
-**Debug steps**:
-1. `manage_hooks({ action: "list" })` — confirm hook status
-2. `console_execute({ expression: "document.querySelectorAll('iframe')" })` — check iframes
-3. Try `page_inject_script({ content: "...", persistent: true })` for manual injection test
+- Target function runs inside an iframe/worker — context switch needed
+- Page has CSP enabled, blocking injected scripts
+- Hook path incorrect (e.g., `window.fetch` vs `globalThis.fetch`)
+
+**Debug**: Call `manage_hooks({ action: "list" })` to check status.
+
+### Browser Won't Start
+
+**Check in order**:
+
+1. Run `doctor_environment()` to check dependencies
+2. Explicitly set browser path: `PUPPETEER_EXECUTABLE_PATH=...`
+3. Check if port is in use: `DEFAULT_DEBUG_PORT=9222`
 
 ---
 
 ## Next Steps
 
+- [.env and Configuration](/en/guide/configuration) — Full configuration reference
+- [Tool Routing](/en/guide/tool-selection) — Profile and routing mechanism details
 - [Domain Matrix](/en/reference/) — Full tool inventory across all domains
-- [Workflow Development](/en/extensions/workflow-development) — Build your own mission workflows
+- [Workflow Development](/en/extensions/workflow-development) — Build your own workflows
 - [Environment Diagnostics](/en/operations/doctor-and-artifacts) — Check bridge health status

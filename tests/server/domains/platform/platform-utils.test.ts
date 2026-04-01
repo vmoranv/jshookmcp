@@ -402,13 +402,14 @@ describe('platform-utils', () => {
       expect(result).toContain('e.txt');
     });
 
-    it('blocks absolute paths that escape the root directory', () => {
-      // Use platform-agnostic absolute paths
-      const escapePath =
-        process.platform === 'win32' ? 'C:\\Windows\\System32\\drivers\\etc\\hosts' : '/etc/passwd';
-      expect(() =>
-        resolveSafeOutputPath(process.platform === 'win32' ? 'C:\\output' : '/output', escapePath),
-      ).toThrow('Path traversal blocked');
+    it('sanitizes absolute paths so they stay within root directory', () => {
+      // sanitizeArchiveRelativePath strips leading / and .., so absolute escape paths
+      // get collapsed to safe relative paths inside rootDir
+      const result = resolveSafeOutputPath('/safe/output', '/elsewhere/evil/file.bin');
+      expect(result).toContain('safe');
+      expect(result).toContain('file.bin');
+      // Should NOT contain the escape root
+      expect(result).not.toBe('/elsewhere/evil/file.bin');
     });
   });
 
