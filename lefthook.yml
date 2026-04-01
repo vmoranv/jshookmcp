@@ -15,18 +15,21 @@ pre-commit:
     oxlint:
       glob: "*.{ts,tsx,js,mjs}"
       run: npx oxlint {staged_files}
+    coverage-gate:
+      glob: "*.{ts,tsx}"
+      run: pnpm run test:coverage
 
 pre-push:
   commands:
     refresh-git-noise:
-      run: npx pnpm@10.28.2 run git:refresh-noise
+      run: pnpm run git:refresh-noise
     oxlint:
-      run: npx pnpm@10.28.2 run lint
+      run: pnpm run lint
     oxfmt-check:
-      run: npx pnpm@10.28.2 run format:check
+      run: pnpm run format:check
     markdownlint:
-      run: npx pnpm@10.28.2 run lint:md
+      run: pnpm run lint:md
     typecheck:
-      run: npx pnpm@10.28.2 run typecheck
+      run: pnpm run typecheck
     audit-tools:
-      run: npx pnpm@10.28.2 run audit:tools
+      run: pnpm run audit:tools
