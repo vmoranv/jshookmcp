@@ -4,8 +4,6 @@ Domain: `trace`
 
 Time-travel debugging domain that records CDP events into SQLite for SQL-based querying and heap snapshot comparison.
 
-> Note: the `trace` domain depends on the optional native SQLite backend `better-sqlite3`. If you switch Node versions and hit an ABI mismatch, run `npm rebuild better-sqlite3 --foreground-scripts`.
-
 ## Profiles
 
 - workflow

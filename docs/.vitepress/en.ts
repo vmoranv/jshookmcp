@@ -19,6 +19,7 @@ export const en = defineConfig({
           text: 'Guide',
           items: [
             { text: 'Getting Started', link: '/en/guide/getting-started' },
+            { text: 'Best Practices', link: '/en/guide/best-practices' },
             { text: '.env and Configuration', link: '/en/guide/configuration' },
             { text: 'Tool Selection', link: '/en/guide/tool-selection' },
           ],

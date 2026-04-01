@@ -6,6 +6,7 @@ AST/字符串变换与加密实现抽取、测试、对比域。
 
 ## Profile
 
+- workflow
 - full
 
 ## 典型场景

@@ -4,8 +4,6 @@
 
 时间旅行调试域，录制 CDP 事件并写入 SQLite，支持 SQL 查询与堆快照对比。
 
-> 说明：`trace` 域依赖可选原生 SQLite 后端 `better-sqlite3`。切换 Node 版本后如果出现 ABI 不匹配，请执行 `npm rebuild better-sqlite3 --foreground-scripts`。
-
 ## Profile
 
 - workflow

@@ -6,6 +6,7 @@ Source map discovery, fetching, parsing, and source tree reconstruction.
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios

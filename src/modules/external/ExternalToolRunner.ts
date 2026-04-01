@@ -214,7 +214,7 @@ export class ExternalToolRunner {
     const rel = relative(projectRoot, resolved);
 
     // Allow project root subdirectories
-    if (rel && !rel.startsWith('..') && !isAbsolute(rel) && !resolve(rel).startsWith(sep)) {
+    if (rel && !rel.startsWith('..') && !isAbsolute(rel)) {
       return resolved;
     }
 

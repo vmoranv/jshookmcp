@@ -403,8 +403,11 @@ describe('platform-utils', () => {
     });
 
     it('blocks absolute paths that escape the root directory', () => {
+      // Use platform-agnostic absolute paths
+      const escapePath =
+        process.platform === 'win32' ? 'C:\\Windows\\System32\\drivers\\etc\\hosts' : '/etc/passwd';
       expect(() =>
-        resolveSafeOutputPath('C:\\output', 'C:\\Windows\\System32\\drivers\\etc\\hosts'),
+        resolveSafeOutputPath(process.platform === 'win32' ? 'C:\\output' : '/output', escapePath),
       ).toThrow('Path traversal blocked');
     });
   });

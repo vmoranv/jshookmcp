@@ -433,10 +433,16 @@ describe('ExtensionManagementHandlers', () => {
       expect(data.success).toBe(true);
       // It should have executed npm, not pnpm
       const execCalls = vi.mocked(child_process.execFile).mock.calls;
-      const installCallArgs = execCalls
-        .map((c) => c[1])
-        .find((args) => (args as string[]).join(' ').includes('install'));
-      expect(installCallArgs?.join(' ')).toContain('npm install');
+      // On Windows, package manager commands are wrapped via powershell.exe
+      // Find the install call: either direct 'npm' or powershell wrapping 'npm install'
+      const installCall = execCalls.find((c) => {
+        const cmd = c[0] as string;
+        const args = (c[1] || []) as string[];
+        const fullCommand = [cmd, ...args].join(' ');
+        return fullCommand.includes('npm') && fullCommand.includes('install');
+      });
+      expect(installCall).toBeDefined();
+      expect([installCall?.[0], ...(installCall?.[1] || [])].join(' ')).toContain('npm install');
     });
 
     it('resolves package manager pnpm if pnpm-lock.yaml exists', async () => {

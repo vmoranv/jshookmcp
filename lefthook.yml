@@ -11,6 +11,9 @@ pre-commit:
     block-planning:
       glob: ".planning/**"
       run: "echo '❌ .planning/ files must not be committed' && exit 1"
+    docs-generate:
+      run: pnpm docs:generate
+      stage_fixed: true
     oxfmt:
       glob: "*.{ts,tsx,js,mjs,json}"
       run: npx oxfmt {staged_files} --write

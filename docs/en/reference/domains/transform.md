@@ -6,6 +6,7 @@ AST/string transform domain plus crypto extraction, harnessing, and comparison t
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios

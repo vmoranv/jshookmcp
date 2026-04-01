@@ -1,6 +1,6 @@
 # Tool Routing & Lifecycle Management
 
-`jshookmcp` implements a declarative, dynamically loaded routing architecture (249+ Tools / 17 Domains) using strict namespace isolation and on-demand activation. Hardcoding tool signatures or assuming payload availability in dispatcher layers is prohibited; all dependencies must be resolved dynamically via the routing bus.
+`jshookmcp` implements a declarative, dynamically loaded routing architecture using strict namespace isolation and on-demand activation. Hardcoding tool signatures or assuming payload availability in dispatcher layers is prohibited; all dependencies must be resolved dynamically via the routing bus.
 
 ## Core Routing Protocols
 
@@ -27,7 +27,7 @@ The global tool surface is gated by memory-resident strategies dictated by the `
 | -------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------- |
 | `search`             | maintenance                                                                                | Stripped variant exposing only meta-tooling. All operational dependencies are lazily loaded via `route_tool`             | Maximum |
 | `workflow` (Default) | analysis, browser, coordination, debugger, encoding, graphql, network, streaming, workflow | Covers 90% of Web/RE workflows. Core suites held memory-resident.                                                        | Low     |
-| `full`               | Static Preload (17 Domains)                                                                | Mounts all 249+ tools natively, eliminating JIT loading delay. Designed for heavy static analysis and full-stack audits. | Zero    |
+| `full`               | Static Preload (all domains)                                                               | Mounts all tools natively, eliminating JIT loading delay. Designed for heavy static analysis and full-stack audits. | Zero    |
 
 ---
 
