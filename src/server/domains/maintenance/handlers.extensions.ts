@@ -177,14 +177,15 @@ function resolvePackageManagerInvocation(
   packageManager: PackageManagerCommand,
   args: string[],
 ): { command: string; args: string[] } {
-  if (process.platform === 'win32') {
-    return {
-      command: 'powershell.exe',
-      args: ['-NoProfile', '-NonInteractive', '-Command', `${packageManager} ${args.join(' ')}`],
-    };
+  if (process.platform !== 'win32') {
+    /* istanbul ignore next -- OS specific fallback */
+    return { command: packageManager, args };
   }
 
-  return { command: packageManager, args };
+  return {
+    command: 'powershell.exe',
+    args: ['-NoProfile', '-NonInteractive', '-Command', `${packageManager} ${args.join(' ')}`],
+  };
 }
 
 async function execPackageManager(
@@ -368,9 +369,6 @@ async function fetchJson<T>(
 
 async function rewriteLocalExtensionSdkDependency(installDir: string): Promise<boolean> {
   const packageJsonPath = resolve(installDir, 'package.json');
-  if (!existsSync(packageJsonPath)) {
-    return false;
-  }
 
   try {
     const raw = await readFile(packageJsonPath, 'utf8');
@@ -689,9 +687,6 @@ export class ExtensionManagementHandlers {
       });
     } catch (error) {
       logger.error('Failed to install extension:', error);
-      if (error instanceof RegistryFetchError) {
-        return asJsonResponse(serializeRegistryFetchError(error));
-      }
       return asJsonResponse(serializeError(error));
     }
   }

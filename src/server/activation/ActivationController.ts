@@ -214,9 +214,11 @@ export class ActivationController {
       ).length;
 
       if (matchCount >= rule.threshold) {
-        for (const domain of rule.targetDomains) {
-          await this.attemptBoost(domain, `rule:${rule.eventPattern} (${matchCount} events)`);
-        }
+        await Promise.all(
+          rule.targetDomains.map((domain) =>
+            this.attemptBoost(domain, `rule:${rule.eventPattern} (${matchCount} events)`),
+          ),
+        );
       }
     }
   }

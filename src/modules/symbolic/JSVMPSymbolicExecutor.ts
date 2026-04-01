@@ -108,7 +108,7 @@ export class JSVMPSymbolicExecutor extends SymbolicExecutor {
 
         executionTrace.push(this.cloneStateInternal(state));
 
-        state = this.executeInstruction(state, instruction);
+        state = this.executeInstruction(state, instruction, instructions);
 
         if (instruction.opcode === JSVMPOpcode.HALT) {
           break;
@@ -138,7 +138,11 @@ export class JSVMPSymbolicExecutor extends SymbolicExecutor {
     }
   }
 
-  private executeInstruction(state: SymbolicState, instruction: JSVMPInstruction): SymbolicState {
+  private executeInstruction(
+    state: SymbolicState,
+    instruction: JSVMPInstruction,
+    instructions: JSVMPInstruction[],
+  ): SymbolicState {
     const newState = this.cloneStateInternal(state);
 
     switch (instruction.opcode) {
@@ -161,6 +165,72 @@ export class JSVMPSymbolicExecutor extends SymbolicExecutor {
       case JSVMPOpcode.MUL:
         this.executeMul(newState);
         break;
+
+      case JSVMPOpcode.DIV:
+        this.executeDiv(newState);
+        break;
+
+      case JSVMPOpcode.MOD:
+        this.executeMod(newState);
+        break;
+
+      case JSVMPOpcode.AND:
+        this.executeAnd(newState);
+        break;
+
+      case JSVMPOpcode.OR:
+        this.executeOr(newState);
+        break;
+
+      case JSVMPOpcode.NOT:
+        this.executeNot(newState);
+        break;
+
+      case JSVMPOpcode.XOR:
+        this.executeXor(newState);
+        break;
+
+      case JSVMPOpcode.EQ:
+        this.executeEq(newState);
+        break;
+
+      case JSVMPOpcode.NE:
+        this.executeNe(newState);
+        break;
+
+      case JSVMPOpcode.LT:
+        this.executeLt(newState);
+        break;
+
+      case JSVMPOpcode.LE:
+        this.executeLe(newState);
+        break;
+
+      case JSVMPOpcode.GT:
+        this.executeGt(newState);
+        break;
+
+      case JSVMPOpcode.GE:
+        this.executeGe(newState);
+        break;
+
+      case JSVMPOpcode.JNZ:
+        this.executeJnz(newState, this.asNumberOperand(instruction.operands[0]));
+        return newState;
+
+      case JSVMPOpcode.RET:
+        // RET terminates the current execution context
+        newState.pc = instructions.length;
+        return newState;
+
+      case JSVMPOpcode.DUP:
+        this.executeDup(newState);
+        break;
+
+      case JSVMPOpcode.LOAD_CONST:
+        this.executePush(newState, instruction.operands[0]);
+        newState.pc++;
+        return newState;
 
       case JSVMPOpcode.LOAD:
         this.executeLoad(newState, this.asStringOperand(instruction.operands[0]));
@@ -238,6 +308,162 @@ export class JSVMPSymbolicExecutor extends SymbolicExecutor {
       const result = this.createSymbolicValue('number', `${a.name} * ${b.name}`);
       this.addConstraint(result, 'custom', `${result.name} = ${a.name} * ${b.name}`, '');
       state.stack.push(result);
+    }
+  }
+
+  private executeDiv(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('number', `${a.name} / ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} / ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeMod(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('number', `${a.name} % ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} % ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeAnd(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('boolean', `${a.name} && ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} && ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeOr(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('boolean', `${a.name} || ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} || ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeNot(state: SymbolicState): void {
+    const a = state.stack.pop();
+
+    if (a) {
+      const result = this.createSymbolicValue('boolean', `!${a.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = !${a.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeXor(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('boolean', `${a.name} ^ ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} ^ ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeEq(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('boolean', `${a.name} === ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} === ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeNe(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('boolean', `${a.name} !== ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} !== ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeLt(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('boolean', `${a.name} < ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} < ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeLe(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('boolean', `${a.name} <= ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} <= ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeGt(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('boolean', `${a.name} > ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} > ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeGe(state: SymbolicState): void {
+    const b = state.stack.pop();
+    const a = state.stack.pop();
+
+    if (a && b) {
+      const result = this.createSymbolicValue('boolean', `${a.name} >= ${b.name}`);
+      this.addConstraint(result, 'custom', `${result.name} = ${a.name} >= ${b.name}`, '');
+      state.stack.push(result);
+    }
+  }
+
+  private executeJnz(state: SymbolicState, target: number): void {
+    const condition = state.stack.pop();
+    if (condition) {
+      const constraint: Constraint = {
+        type: 'inequality',
+        expression: `${condition.name} != 0`,
+        description: '',
+      };
+      state.pathConstraints.push(constraint);
+      state.pc = target;
+    }
+  }
+
+  private executeDup(state: SymbolicState): void {
+    const value = state.stack[state.stack.length - 1];
+    if (value) {
+      const dup = this.createSymbolicValue(value.type, value.name, value.source);
+      dup.constraints = [...value.constraints];
+      if (value.possibleValues) {
+        dup.possibleValues = [...value.possibleValues];
+      }
+      state.stack.push(dup);
     }
   }
 

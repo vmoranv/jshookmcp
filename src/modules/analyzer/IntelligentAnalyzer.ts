@@ -172,7 +172,9 @@ export class IntelligentAnalyzer {
       result.patterns.encryption.slice(0, 5).forEach((pattern) => {
         const evidence = Array.isArray(pattern.evidence)
           ? pattern.evidence.join(', ')
-          : String(pattern.evidence ?? '');
+          : pattern.evidence
+            ? String(pattern.evidence)
+            : '';
         lines.push(`  - ${pattern.type} (confidence: ${(pattern.confidence * 100).toFixed(0)}%)`);
         lines.push(`    location: ${pattern.location}`);
         lines.push(`    evidence: ${evidence}`);
@@ -185,7 +187,9 @@ export class IntelligentAnalyzer {
       result.patterns.signature.slice(0, 5).forEach((pattern) => {
         const parameters = Array.isArray(pattern.parameters)
           ? pattern.parameters.join(', ')
-          : String(pattern.parameters ?? '');
+          : pattern.parameters
+            ? String(pattern.parameters)
+            : '';
         lines.push(`  - ${pattern.type}`);
         lines.push(`    parameters: ${parameters}`);
       });

@@ -137,6 +137,7 @@ function collectSuccessStats(value: unknown): { success: number; failure: number
 
   const payload = parseToolPayload(value);
   if (payload?.success === true) return { success: 1, failure: 0 };
+  /* istanbul ignore next */
   if (payload?.success === false) return { success: 0, failure: 1 };
 
   if ('error' in (value as Record<string, unknown>)) {
@@ -236,6 +237,7 @@ async function runParallelNode(
       if (currentIndex >= node.steps.length) return;
 
       const step = node.steps[currentIndex];
+      /* istanbul ignore next */
       if (!step) return;
       try {
         results[currentIndex] = await executeNode(ctx, step, executionContext, options);

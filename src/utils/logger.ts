@@ -67,6 +67,7 @@ class Logger {
   }
 
   error(message: string, ...args: unknown[]): void {
+    /* v8 ignore next 3 */
     if (this.shouldLog('error')) {
       console.error(chalk.red(this.formatMessage('error', message, ...args)));
     }

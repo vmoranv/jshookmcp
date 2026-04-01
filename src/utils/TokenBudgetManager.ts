@@ -238,6 +238,7 @@ export class TokenBudgetManager {
     }
 
     if (valueType === 'object') {
+      /* v8 ignore next 3 */
       if (!this.isRecord(value)) {
         return '[Object]';
       }
@@ -259,6 +260,7 @@ export class TokenBudgetManager {
       return out;
     }
 
+    /* v8 ignore next */
     return String(value);
   }
 

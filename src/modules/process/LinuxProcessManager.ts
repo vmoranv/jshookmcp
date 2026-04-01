@@ -86,6 +86,7 @@ export class LinuxProcessManager {
         const parts = line.trim().split(/\s+/);
         if (parts.length >= 11) {
           const pid = parseInt(parts[1] || '0', 10);
+          if (isNaN(pid)) continue; // skip header line
           const cpu = parseFloat(parts[2] || '0');
           const mem = parseFloat(parts[3] || '0');
           const command = parts.slice(10).join(' ');

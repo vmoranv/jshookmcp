@@ -13,7 +13,6 @@ import {
   STRUCT_ANALYZE_DEFAULT_SIZE,
   STRUCT_VTABLE_MAX_FUNCTIONS,
   STRUCT_RTTI_MAX_STRING_LEN,
-  STRUCT_CSTRING_MAX_LEN,
 } from '@src/constants';
 import type {
   InferredField,
@@ -434,16 +433,14 @@ export class StructureAnalyzer {
         let zeroLen = 0;
         for (let i = offset; i < buf.length && buf[i] === 0; i++) zeroLen++;
         const padSize = Math.min(zeroLen, remaining);
-        // Align to 4 or 8
-        const alignedPad = padSize >= 8 ? padSize & ~7 : padSize >= 4 ? padSize & ~3 : padSize;
-        if (alignedPad > 0) {
-          return {
-            type: 'padding',
-            size: alignedPad,
-            value: `0x${'00'.repeat(Math.min(alignedPad, 8))}`,
-            confidence: 0.6,
-          };
-        }
+        // Align to 8 (since we only enter if remaining >= 8 and zeroLen >= 8)
+        const alignedPad = padSize & ~7;
+        return {
+          type: 'padding',
+          size: alignedPad,
+          value: `0x${'00'.repeat(Math.min(alignedPad, 8))}`,
+          confidence: 0.6,
+        };
       }
 
       // Single zero → might be int32 with value 0 or bool
@@ -551,10 +548,9 @@ export class StructureAnalyzer {
     }
   }
 
-  private readCString(handle: ProcessHandle, address: bigint, maxLen?: number): string | null {
-    const len = maxLen ?? STRUCT_CSTRING_MAX_LEN;
+  private readCString(handle: ProcessHandle, address: bigint, maxLen: number): string | null {
     try {
-      const buf = this.provider.readMemory(handle, address, len).data;
+      const buf = this.provider.readMemory(handle, address, maxLen).data;
       const nullIdx = buf.indexOf(0);
       if (nullIdx < 0) return null;
       const str = buf.subarray(0, nullIdx).toString('ascii');

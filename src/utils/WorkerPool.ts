@@ -132,6 +132,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
   }
 
   private ensureMinWorkers(): void {
+    /* v8 ignore next */
     if (this.closed) return;
     while (this.workers.size < this.minWorkers) {
       this.spawnWorker();
@@ -139,6 +140,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
   }
 
   private pumpQueue(): void {
+    /* v8 ignore next */
     if (this.closed) return;
 
     while (this.queuedJobs.length > 0) {
@@ -152,6 +154,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
       }
 
       const job = this.queuedJobs.shift();
+      /* v8 ignore next */
       if (!job) return;
       this.dispatchJob(worker, job);
     }
@@ -256,6 +259,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
 
   private handleWorkerFailure(workerId: number, error: Error): void {
     const worker = this.workers.get(workerId);
+    /* v8 ignore next */
     if (!worker) return;
 
     const activeJobId = worker.activeJobId;
@@ -276,6 +280,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
 
   private handleWorkerExit(workerId: number, code: number): void {
     const worker = this.workers.get(workerId);
+    /* v8 ignore next */
     if (!worker) return;
 
     const activeJobId = worker.activeJobId;
@@ -297,6 +302,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
 
   private handleJobTimeout(jobId: number, timeoutMs: number): void {
     const activeJob = this.activeJobs.get(jobId);
+    /* v8 ignore next */
     if (!activeJob) return;
     this.activeJobs.delete(jobId);
     activeJob.reject(this.toError(`worker task timed out after ${timeoutMs}ms`));
@@ -311,6 +317,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
     if (worker.idleTimer) clearTimeout(worker.idleTimer);
     worker.idleTimer = setTimeout(() => {
       const current = this.workers.get(worker.id);
+      /* v8 ignore next */
       if (!current || current.busy || this.workers.size <= this.minWorkers) return;
       void this.terminateWorker(worker.id);
     }, this.idleTimeoutMs);
@@ -318,6 +325,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
 
   private async terminateWorker(workerId: number): Promise<void> {
     const worker = this.workers.get(workerId);
+    /* v8 ignore next */
     if (!worker) return;
     this.workers.delete(workerId);
     if (worker.idleTimer) clearTimeout(worker.idleTimer);

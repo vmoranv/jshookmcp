@@ -10,7 +10,7 @@
 
 import koffi from 'koffi';
 import { logger } from '@utils/logger';
-import { GetLastError } from './Win32API';
+import { GetLastError, CloseHandle } from './Win32API';
 
 // ── Constants ──
 
@@ -373,8 +373,6 @@ export function EnumerateProcessThreads(pid: number): number[] {
   entry.writeUInt32LE(28, 0); // dwSize
 
   try {
-    const { CloseHandle } = require('./Win32API') as typeof import('./Win32API');
-
     if (fnFirst(snapshot, entry) !== 0) {
       do {
         const ownerPid = entry.readUInt32LE(0x0c);
@@ -386,8 +384,9 @@ export function EnumerateProcessThreads(pid: number): number[] {
     }
 
     CloseHandle(snapshot);
-  } catch {
+  } catch (e) {
     // Best effort cleanup
+    console.error('[EnumerateProcessThreads] cleanup error:', e);
   }
 
   return threads;

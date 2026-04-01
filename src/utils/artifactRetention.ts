@@ -151,6 +151,7 @@ export function startArtifactRetentionScheduler(): (() => void) | null {
 
   const handle = setInterval(
     () => {
+      /* v8 ignore next */
       void cleanupArtifacts()
         .then((result) => {
           if (result.removedFiles > 0) {

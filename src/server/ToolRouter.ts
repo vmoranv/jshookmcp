@@ -306,34 +306,32 @@ export async function routeToolRequest(
       });
     }
   } else if (routeMatchMetadata?.kind === 'workflow') {
-    const workflowRecommendation =
-      recommendations.find((recommendation) => recommendation.name === 'run_extension_workflow') ??
-      recommendations[0];
+    const workflowRecommendation = recommendations.find(
+      (recommendation) => recommendation.name === 'run_extension_workflow',
+    )!;
 
-    if (workflowRecommendation) {
-      let stepNumber = 1;
-      if (!workflowRecommendation.isActive) {
-        nextActions.push({
-          step: stepNumber++,
-          action: 'activate',
-          toolName: workflowRecommendation.name,
-          command: `activate_tools with names: ["${workflowRecommendation.name}"]`,
-          description: `Activate workflow runner for ${routeMatchMetadata.name}`,
-        });
-      }
-
+    let stepNumber = 1;
+    if (!workflowRecommendation.isActive) {
       nextActions.push({
-        step: stepNumber,
-        action: 'call',
-        toolName: 'run_extension_workflow',
-        command: 'run_extension_workflow',
-        exampleArgs: {
-          ...generateExampleArgs(workflowRecommendation.inputSchema ?? { type: 'object' }),
-          workflowId: routeMatchMetadata.id,
-        },
-        description: `Execute routed workflow ${routeMatchMetadata.name}`,
+        step: stepNumber++,
+        action: 'activate',
+        toolName: workflowRecommendation.name,
+        command: `activate_tools with names: ["${workflowRecommendation.name}"]`,
+        description: `Activate workflow runner for ${routeMatchMetadata.name}`,
       });
     }
+
+    nextActions.push({
+      step: stepNumber,
+      action: 'call',
+      toolName: 'run_extension_workflow',
+      command: 'run_extension_workflow',
+      exampleArgs: {
+        ...generateExampleArgs(workflowRecommendation.inputSchema!),
+        workflowId: routeMatchMetadata.id,
+      },
+      description: `Execute routed workflow ${routeMatchMetadata.name}`,
+    });
   } else if (recommendations.length > 0 && recommendations[0]?.isActive) {
     nextActions.push({
       step: 1,

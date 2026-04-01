@@ -15,8 +15,8 @@ export function normalizeHex(value: string): string {
   return value.trim().toLowerCase().replace(/^0x/, '');
 }
 
-function isTruthyEnv(value: string | undefined): boolean {
-  return ['1', 'true'].includes((value ?? '').toLowerCase());
+function isTruthyEnv(value: string): boolean {
+  return ['1', 'true'].includes(value.toLowerCase());
 }
 
 export function isPluginSignatureRequired(): boolean {

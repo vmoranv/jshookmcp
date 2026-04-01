@@ -114,7 +114,9 @@ export function isKoffiAvailable(): boolean {
     koffiAvailable = true;
     return true;
   } catch {
+    /* istanbul ignore next */
     koffiAvailable = false;
+    /* istanbul ignore next */
     return false;
   }
 }

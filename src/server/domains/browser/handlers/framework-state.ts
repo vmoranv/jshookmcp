@@ -473,29 +473,43 @@ export class FrameworkStateHandlers {
           const rootEl = getRootEl();
           const rootObj = rootEl as unknown as AnyObj;
           const keys = Object.keys(rootObj);
+          const hasReactMarker = keys.some(
+            (k) =>
+              k.startsWith('__reactFiber') ||
+              k.startsWith('__reactInternalInstance') ||
+              k.startsWith('__reactFiberContainer'),
+          );
+          const hasVue3Marker = keys.some(
+            (k) => k === '__vueParentComponent' || k === '__vue_app__',
+          );
+          const hasVue2Marker = keys.some((k) => k === '__vue__');
+          const hasSvelteMarker = keys.some(
+            (k) => k === '$$' || k === '__svelte_meta' || k.startsWith('__s'),
+          );
+          const hasSolidMarker =
+            win['_$DX'] !== undefined ||
+            win['_$HY'] !== undefined ||
+            Boolean(document.querySelector('[data-hk]'));
+          const hasPreactMarker = keys.some(
+            (k) => k === '__k' || k === '__e' || k === '_dom' || k === '_children',
+          );
 
           let detectedFramework = opts.framework;
+          if (detectedFramework === 'preact' && hasReactMarker) {
+            detectedFramework = 'react';
+          }
           if (detectedFramework === 'auto') {
-            if (
-              keys.some(
-                (k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance'),
-              )
-            ) {
+            if (hasReactMarker) {
               detectedFramework = 'react';
-            } else if (keys.some((k) => k === '__vueParentComponent' || k === '__vue_app__')) {
+            } else if (hasVue3Marker) {
               detectedFramework = 'vue3';
-            } else if (keys.some((k) => k === '__vue__')) {
+            } else if (hasVue2Marker) {
               detectedFramework = 'vue2';
-            } else if (
-              keys.some((k) => k === '$$' || k === '__svelte_meta' || k.startsWith('__s'))
-            ) {
+            } else if (hasSvelteMarker) {
               detectedFramework = 'svelte';
-            } else if (win['_$DX'] || win['_$HY'] || document.querySelector('[data-hk]')) {
+            } else if (hasSolidMarker) {
               detectedFramework = 'solid';
-            } else if (
-              !keys.some((k) => k.startsWith('__reactFiber')) &&
-              keys.some((k) => k === '__k' || k === '__e' || k === '_dom')
-            ) {
+            } else if (hasPreactMarker) {
               detectedFramework = 'preact';
             }
           }

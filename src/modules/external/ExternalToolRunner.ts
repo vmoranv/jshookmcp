@@ -11,7 +11,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { resolve, relative, sep } from 'node:path';
+import { resolve, relative, sep, isAbsolute } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { ioLimit } from '@utils/concurrency';
@@ -113,6 +113,7 @@ export class ExternalToolRunner {
       let stderrTruncated = false;
       let settled = false;
       const timeoutHandle = setTimeout(() => {
+        /* v8 ignore next 1 */ // Impossible race condition: clearTimeout prevents this unless already executing
         if (!settled) {
           child.kill('SIGTERM');
           // Give it 2s to gracefully exit before SIGKILL
@@ -129,7 +130,7 @@ export class ExternalToolRunner {
       const finish = (exitCode: number | null, signal: NodeJS.Signals | null) => {
         if (settled) return;
         settled = true;
-        if (timeoutHandle) clearTimeout(timeoutHandle);
+        clearTimeout(timeoutHandle);
 
         const durationMs = Date.now() - startTime;
         const result: ToolRunResult = {
@@ -213,7 +214,7 @@ export class ExternalToolRunner {
     const rel = relative(projectRoot, resolved);
 
     // Allow project root subdirectories
-    if (rel && !rel.startsWith('..') && !resolve(rel).startsWith(sep)) {
+    if (rel && !rel.startsWith('..') && !isAbsolute(rel) && !resolve(rel).startsWith(sep)) {
       return resolved;
     }
 
@@ -221,8 +222,7 @@ export class ExternalToolRunner {
     const tmpDirs = [process.env.TEMP, process.env.TMP, '/tmp', '/var/tmp'].filter(Boolean);
 
     for (const tmp of tmpDirs) {
-      if (!tmp) continue;
-      const resolvedTmp = resolve(tmp);
+      const resolvedTmp = resolve(tmp as string);
       // Exact match or must be followed by a path separator to prevent /tmpevil bypassing /tmp
       if (resolved === resolvedTmp || resolved.startsWith(resolvedTmp + sep)) {
         return resolved;

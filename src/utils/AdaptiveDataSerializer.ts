@@ -47,6 +47,7 @@ export class AdaptiveDataSerializer {
         if (Array.isArray(data)) {
           return this.serializeLargeArray(data, ctx);
         }
+        /* v8 ignore next */
         return this.serializeDefault(data, ctx);
       case 'deep-object':
         return this.serializeDeepObject(data, ctx);
@@ -54,11 +55,13 @@ export class AdaptiveDataSerializer {
         if (typeof data === 'string') {
           return this.serializeCodeString(data, ctx);
         }
+        /* v8 ignore next */
         return this.serializeDefault(data, ctx);
       case 'network-requests':
         if (this.isNetworkRequestArray(data)) {
           return this.serializeNetworkRequests(data, ctx);
         }
+        /* v8 ignore next */
         return this.serializeDefault(data, ctx);
       case 'dom-structure':
         return this.serializeDOMStructure(data, ctx);

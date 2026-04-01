@@ -11,7 +11,18 @@ import {
 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
+const defaultProjectRoot = fileURLToPath(new URL('../..', import.meta.url));
+
+function resolveProjectRoot(env: NodeJS.ProcessEnv = process.env): string {
+  const requestedRoot = env.MCP_PROJECT_ROOT?.trim();
+  if (!requestedRoot) {
+    return defaultProjectRoot;
+  }
+
+  return normalize(
+    isAbsolute(requestedRoot) ? requestedRoot : resolve(defaultProjectRoot, requestedRoot),
+  );
+}
 
 function isInside(baseDir: string, targetPath: string): boolean {
   const rel = relative(baseDir, targetPath);
@@ -21,12 +32,12 @@ function isInside(baseDir: string, targetPath: string): boolean {
   return true;
 }
 
-function resolveWithinProject(inputPath: string): string {
-  const candidate = isAbsolute(inputPath) ? normalize(inputPath) : resolve(projectRoot, inputPath);
-  return isInside(projectRoot, candidate)
+function resolveWithinProject(inputPath: string, baseRoot = getProjectRoot()): string {
+  const candidate = isAbsolute(inputPath) ? normalize(inputPath) : resolve(baseRoot, inputPath);
+  return isInside(baseRoot, candidate)
     ? candidate
     : resolve(
-        projectRoot,
+        baseRoot,
         'screenshots',
         'external',
         normalize(inputPath).split(/[\\/]/).pop() || 'output.bin',
@@ -41,22 +52,24 @@ function withDefaultExtension(filePath: string, extension: string): string {
 }
 
 export function getProjectRoot(): string {
-  return projectRoot;
+  return resolveProjectRoot();
 }
 
 export function resolveOutputDirectory(
   inputDir: string | undefined,
   fallbackDir = 'screenshots',
 ): string {
+  const projectRoot = getProjectRoot();
   const requested = inputDir?.trim();
   if (!requested) {
     return resolve(projectRoot, fallbackDir);
   }
 
-  const resolved = resolveWithinProject(requested);
+  const resolved = resolveWithinProject(requested, projectRoot);
   if (isInside(projectRoot, resolved)) {
     return resolved;
   }
+  /* v8 ignore next */
   return resolve(projectRoot, fallbackDir);
 }
 
@@ -66,6 +79,7 @@ export async function resolveScreenshotOutputPath(options: {
   fallbackName?: string;
   fallbackDir?: string;
 }): Promise<{ absolutePath: string; displayPath: string; pathRewritten: boolean }> {
+  const projectRoot = getProjectRoot();
   const extension = options.type === 'jpeg' ? 'jpg' : 'png';
   const fallbackDir = options.fallbackDir || 'screenshots/manual';
   const fallbackName = options.fallbackName || 'page';

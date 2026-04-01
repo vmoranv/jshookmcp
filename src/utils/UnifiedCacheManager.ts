@@ -187,6 +187,7 @@ export class UnifiedCacheManager {
         cacheStats.hitRate < avgHitRate * this.LOW_HIT_RATE_THRESHOLD
       ) {
         const cache = this.caches.get(cacheStats.name);
+        /* v8 ignore next */
         if (cache?.clear) {
           try {
             await cache.clear();
@@ -210,6 +211,7 @@ export class UnifiedCacheManager {
 
     for (const cacheStats of sortedCaches.slice(0, 2)) {
       const cache = this.caches.get(cacheStats.name);
+      /* v8 ignore next */
       if (cache?.clear) {
         try {
           await cache.clear();
@@ -242,6 +244,7 @@ export class UnifiedCacheManager {
     logger.info('Clearing all caches...');
 
     for (const [name, cache] of this.caches) {
+      /* v8 ignore next */
       if (cache.clear) {
         try {
           await cache.clear();

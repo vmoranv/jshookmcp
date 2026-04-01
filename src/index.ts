@@ -69,8 +69,17 @@ function formatUnknownError(input: unknown): string {
   }
 }
 
-async function main() {
+export async function main() {
   try {
+    const cliFastPath = resolveCliFastPath(process.argv.slice(2), import.meta.url);
+    if (cliFastPath.handled) {
+      if (cliFastPath.output) {
+        process.stdout.write(cliFastPath.output);
+      }
+      process.exit(cliFastPath.exitCode);
+      return;
+    }
+
     const config = getConfig();
     logger.debug('Configuration loaded:', config);
 
@@ -79,6 +88,7 @@ async function main() {
       logger.error('Configuration validation failed:');
       validation.errors.forEach((error) => logger.error(`  - ${error}`));
       process.exit(1);
+      return; // prevent further execution conceptually
     }
 
     const artifactRetention = getArtifactRetentionConfig();
@@ -225,14 +235,6 @@ async function main() {
 
     process.exit(1);
   }
-}
-
-const cliFastPath = resolveCliFastPath(process.argv.slice(2), import.meta.url);
-if (cliFastPath.handled) {
-  if (cliFastPath.output) {
-    process.stdout.write(cliFastPath.output);
-  }
-  process.exit(cliFastPath.exitCode);
 }
 
 void main();

@@ -83,14 +83,9 @@ export async function parallelExecute<T, R>(
       };
     })();
 
-    const wrappedTask = task.then(
-      () => {
-        executing.delete(wrappedTask);
-      },
-      () => {
-        executing.delete(wrappedTask);
-      },
-    );
+    const wrappedTask = task.finally(() => {
+      executing.delete(wrappedTask);
+    });
     executing.add(wrappedTask);
 
     if (executing.size >= maxConcurrency) {

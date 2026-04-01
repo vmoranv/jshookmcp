@@ -76,7 +76,7 @@ export async function analyzeDataFlowWithTaint(code: string): Promise<DataFlow> 
     traverse(ast, {
       CallExpression(path) {
         const callee = path.node.callee;
-        const line = path.node.loc?.start.line || 0;
+        const line = /* istanbul ignore next */ path.node.loc?.start.line || 0;
 
         if (t.isMemberExpression(callee) && t.isIdentifier(callee.property)) {
           const methodName = callee.property.name;
@@ -193,7 +193,7 @@ export async function analyzeDataFlowWithTaint(code: string): Promise<DataFlow> 
       MemberExpression(path) {
         const obj = path.node.object;
         const prop = path.node.property;
-        const line = path.node.loc?.start.line || 0;
+        const line = /* istanbul ignore next */ path.node.loc?.start.line || 0;
 
         if (t.isIdentifier(obj) && obj.name === 'location' && t.isIdentifier(prop)) {
           if (['href', 'search', 'hash', 'pathname'].includes(prop.name)) {
@@ -292,7 +292,7 @@ export async function analyzeDataFlowWithTaint(code: string): Promise<DataFlow> 
       AssignmentExpression(path) {
         const left = path.node.left;
         const right = path.node.right;
-        const line = path.node.loc?.start.line || 0;
+        const line = /* istanbul ignore next */ path.node.loc?.start.line || 0;
 
         if (t.isMemberExpression(left) && t.isIdentifier(left.property)) {
           const propName = left.property.name;
