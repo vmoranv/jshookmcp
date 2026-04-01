@@ -2,6 +2,9 @@
 # pre-commit: auto-format with oxfmt + fast oxlint on staged files
 # pre-push:   parallel checks — all run regardless of individual failures,
 #             so you see every issue in one shot instead of one-at-a-time.
+#
+# NOTE: test/coverage moved to pre-push to avoid 4-minute waits per commit.
+# Run `pnpm test` manually before pushing if you want early feedback.
 
 pre-commit:
   commands:
@@ -15,9 +18,6 @@ pre-commit:
     oxlint:
       glob: "*.{ts,tsx,js,mjs}"
       run: npx oxlint {staged_files}
-    coverage-gate:
-      glob: "*.{ts,tsx}"
-      run: pnpm run test:coverage
 
 pre-push:
   commands:
@@ -31,5 +31,7 @@ pre-push:
       run: pnpm run lint:md
     typecheck:
       run: pnpm run typecheck
+    coverage-gate:
+      run: pnpm run test:coverage
     audit-tools:
       run: pnpm run audit:tools

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 import { getEffectivePrerequisites } from '@server/ToolRouter.policy';
 import { getRoutingState } from '@server/ToolRouter.probe';
 import type { ToolArgs, ToolResponse } from '@server/types';
@@ -36,8 +37,24 @@ interface InternalExecutionContext extends WorkflowExecutionContext {
 export interface ExecuteWorkflowOptions {
   profile?: string;
   config?: JsonRecord;
+  /** Preflight mode: 'warn' (default) logs warnings, 'strict' throws, 'skip' bypasses. */
+  preflightMode?: 'warn' | 'strict' | 'skip';
   nodeInputOverrides?: Record<string, Record<string, unknown>>;
   timeoutMs?: number;
+}
+
+interface PreflightWarning {
+  nodeId: string;
+  toolName: string;
+  condition: string;
+  fix: string;
+}
+
+class PreflightError extends Error {
+  constructor(readonly warnings: PreflightWarning[]) {
+    super(`Workflow preflight failed with ${warnings.length} unsatisfied prerequisite(s)`);
+    this.name = 'PreflightError';
+  }
 }
 
 export interface ExecuteWorkflowResult {
@@ -363,12 +380,27 @@ function collectToolNodes(node: WorkflowNode): ToolNode[] {
  * Collect unsatisfied prerequisites for all tool nodes in the workflow graph.
  * Returns an array of warnings (not errors — preflight is warn-only mode).
  */
+function getEvidenceState(ctx: MCPServerContext): {
+  hasGraph: boolean;
+  nodeCount: number;
+  edgeCount: number;
+} {
+  try {
+    const evidenceGraph = ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');
+    return evidenceGraph
+      ? { hasGraph: true, nodeCount: evidenceGraph.nodeCount, edgeCount: evidenceGraph.edgeCount }
+      : { hasGraph: false, nodeCount: 0, edgeCount: 0 };
+  } catch {
+    return { hasGraph: false, nodeCount: 0, edgeCount: 0 };
+  }
+}
+
 function collectUnsatisfiedPrerequisites(
   graph: WorkflowNode,
   routingState: Awaited<ReturnType<typeof getRoutingState>>,
-): Array<{ nodeId: string; toolName: string; condition: string; fix: string }> {
+): PreflightWarning[] {
   const prerequisites = getEffectivePrerequisites();
-  const warnings: Array<{ nodeId: string; toolName: string; condition: string; fix: string }> = [];
+  const warnings: PreflightWarning[] = [];
 
   for (const toolNode of collectToolNodes(graph)) {
     const toolPrerequisites = prerequisites[toolNode.toolName] ?? [];
@@ -428,27 +460,46 @@ export async function executeExtensionWorkflow(
     await workflow.onStart?.(executionContext);
     const graph = workflow.build(executionContext);
 
-    // ── Preflight Gate (warn-only) ────────────────────────────────
-    let preflightWarnings: Array<{
-      nodeId: string;
-      toolName: string;
-      condition: string;
-      fix: string;
-    }> = [];
-    try {
-      const routingState = await getRoutingState(ctx);
-      preflightWarnings = collectUnsatisfiedPrerequisites(graph, routingState);
+    // ── Preflight Gate ────────────────────────────────────────────
+    const preflightMode = options.preflightMode ?? 'warn';
+    let preflightWarnings: PreflightWarning[] = [];
+
+    if (preflightMode === 'skip') {
       executionContext.emitSpan('workflow.preflight', {
-        routingState,
-        warningCount: preflightWarnings.length,
-        warnings: preflightWarnings,
-      });
-    } catch {
-      // Preflight is best-effort — registry may not be initialised in tests
-      executionContext.emitSpan('workflow.preflight', {
-        warningCount: 0,
+        mode: preflightMode,
         skipped: true,
+        evidenceState: getEvidenceState(ctx),
+        warningCount: 0,
       });
+    } else {
+      try {
+        const routingState = await getRoutingState(ctx);
+        const evidenceState = getEvidenceState(ctx);
+        preflightWarnings = collectUnsatisfiedPrerequisites(graph, routingState);
+        executionContext.emitSpan('workflow.preflight', {
+          mode: preflightMode,
+          routingState,
+          evidenceState,
+          warningCount: preflightWarnings.length,
+          warnings: preflightWarnings,
+        });
+
+        if (preflightMode === 'strict' && preflightWarnings.length > 0) {
+          throw new PreflightError(preflightWarnings);
+        }
+      } catch (error) {
+        if (error instanceof PreflightError) {
+          throw error;
+        }
+        // Preflight is best-effort — registry may not be initialised in tests
+        executionContext.emitSpan('workflow.preflight', {
+          mode: preflightMode,
+          warningCount: 0,
+          skipped: true,
+          error: error instanceof Error ? error.message : String(error),
+          evidenceState: getEvidenceState(ctx),
+        });
+      }
     }
 
     const result = await withTimeout(
@@ -457,6 +508,27 @@ export async function executeExtensionWorkflow(
       `Workflow "${workflow.id}"`,
     );
     await workflow.onFinish?.(executionContext, result);
+
+    // ── Evidence Auto-Export ─────────────────────────────────────
+    try {
+      const evidenceGraph =
+        typeof ctx.getDomainInstance === 'function'
+          ? ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph')
+          : undefined;
+      if (evidenceGraph && evidenceGraph.nodeCount > 0) {
+        stepResults.set('__evidenceSnapshot', evidenceGraph.exportJson());
+        executionContext.emitSpan('workflow.evidence.auto-export', {
+          nodeCount: evidenceGraph.nodeCount,
+          edgeCount: evidenceGraph.edgeCount,
+        });
+      }
+    } catch (exportError) {
+      executionContext.emitSpan('workflow.evidence.auto-export', {
+        skipped: true,
+        error: exportError instanceof Error ? exportError.message : String(exportError),
+      });
+    }
+
     return {
       workflowId: workflow.id,
       displayName: workflow.displayName,

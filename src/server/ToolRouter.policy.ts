@@ -47,6 +47,18 @@ function buildPrerequisiteCheck(condition: string): (state: RoutingState) => boo
     return (state) => state.hasActivePage;
   }
 
+  if (condition.includes('Debugger must be attached')) {
+    return (state) => state.hasActivePage;
+  }
+
+  if (condition.includes('Page must be navigated')) {
+    return (state) => state.hasActivePage;
+  }
+
+  if (condition.includes('WebSocket monitoring')) {
+    return (state) => state.hasActivePage;
+  }
+
   // Unknown condition — cannot be checked at runtime, assume not satisfied
   return () => false;
 }
