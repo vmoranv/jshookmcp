@@ -1,6 +1,6 @@
 {
   "name": "@jshookmcp/jshook",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "MCP server with 327 built-in tools across 23 domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "keywords": [
     "ai",

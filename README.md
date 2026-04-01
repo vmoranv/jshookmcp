@@ -50,7 +50,7 @@ Provides a comprehensive suite of tools for AI-assisted JavaScript analysis, bro
 The built-in surface below is generated from the runtime registry and checked in CI.
 
 <!-- metadata-sync:start -->
-- Package version: `0.2.4`
+- Package version: `0.2.5`
 - Built-in domains: `23`
 - Built-in tools: `327`
 - Domains: `antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `evidence`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `network`, `platform`, `process`, `sandbox`, `sourcemap`, `streaming`, `trace`, `transform`, `wasm`, `workflow`
