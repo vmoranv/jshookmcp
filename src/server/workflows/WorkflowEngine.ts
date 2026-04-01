@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { getEffectivePrerequisites } from '@server/ToolRouter.policy';
+import { getRoutingState } from '@server/ToolRouter.probe';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import type {
   BranchNode,
@@ -339,6 +341,55 @@ async function executeNode(
   return result;
 }
 
+/** Recursively collect all ToolNode instances from a workflow graph. */
+function collectToolNodes(node: WorkflowNode): ToolNode[] {
+  switch (node.kind) {
+    case 'tool':
+      return [node];
+    case 'sequence':
+    case 'parallel':
+      return node.steps.flatMap((step) => collectToolNodes(step));
+    case 'branch':
+      return [
+        ...collectToolNodes(node.whenTrue),
+        ...(node.whenFalse ? collectToolNodes(node.whenFalse) : []),
+      ];
+    default:
+      return [];
+  }
+}
+
+/**
+ * Collect unsatisfied prerequisites for all tool nodes in the workflow graph.
+ * Returns an array of warnings (not errors — preflight is warn-only mode).
+ */
+function collectUnsatisfiedPrerequisites(
+  graph: WorkflowNode,
+  routingState: Awaited<ReturnType<typeof getRoutingState>>,
+): Array<{ nodeId: string; toolName: string; condition: string; fix: string }> {
+  const prerequisites = getEffectivePrerequisites();
+  const warnings: Array<{ nodeId: string; toolName: string; condition: string; fix: string }> = [];
+
+  for (const toolNode of collectToolNodes(graph)) {
+    const toolPrerequisites = prerequisites[toolNode.toolName] ?? [];
+    for (const prerequisite of toolPrerequisites) {
+      // check() returns true when SATISFIED, false when not
+      if (prerequisite.check(routingState)) {
+        continue;
+      }
+
+      warnings.push({
+        nodeId: toolNode.id,
+        toolName: toolNode.toolName,
+        condition: prerequisite.condition,
+        fix: prerequisite.fix,
+      });
+    }
+  }
+
+  return warnings;
+}
+
 export async function executeExtensionWorkflow(
   ctx: MCPServerContext,
   workflow: WorkflowContract,
@@ -376,6 +427,30 @@ export async function executeExtensionWorkflow(
   try {
     await workflow.onStart?.(executionContext);
     const graph = workflow.build(executionContext);
+
+    // ── Preflight Gate (warn-only) ────────────────────────────────
+    let preflightWarnings: Array<{
+      nodeId: string;
+      toolName: string;
+      condition: string;
+      fix: string;
+    }> = [];
+    try {
+      const routingState = await getRoutingState(ctx);
+      preflightWarnings = collectUnsatisfiedPrerequisites(graph, routingState);
+      executionContext.emitSpan('workflow.preflight', {
+        routingState,
+        warningCount: preflightWarnings.length,
+        warnings: preflightWarnings,
+      });
+    } catch {
+      // Preflight is best-effort — registry may not be initialised in tests
+      executionContext.emitSpan('workflow.preflight', {
+        warningCount: 0,
+        skipped: true,
+      });
+    }
+
     const result = await withTimeout(
       executeNode(ctx, graph, executionContext, options),
       options.timeoutMs ?? workflow.timeoutMs ?? 0,
