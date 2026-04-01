@@ -28,6 +28,29 @@ interface PlannedTool {
   description: string;
 }
 
+// ── Prerequisite Check Builders ──
+
+/**
+ * Build a real runtime check function from the prerequisite condition string.
+ * Returns true when the prerequisite IS satisfied, false when it is not.
+ */
+function buildPrerequisiteCheck(condition: string): (state: RoutingState) => boolean {
+  if (condition.includes('Browser must be launched')) {
+    return (state) => state.hasActivePage;
+  }
+
+  if (condition.includes('Network monitoring must be enabled')) {
+    return (state) => state.networkEnabled;
+  }
+
+  if (condition.includes('Debugger must be enabled')) {
+    return (state) => state.hasActivePage;
+  }
+
+  // Unknown condition — cannot be checked at runtime, assume not satisfied
+  return () => false;
+}
+
 // ── Prerequisite Cache ──
 
 let _cachedPrerequisites: Record<string, PrerequisiteEntry[]> | null = null;
@@ -44,7 +67,7 @@ export function getEffectivePrerequisites(): Record<string, PrerequisiteEntry[]>
       for (const [toolName, entries] of Object.entries(m.prerequisites)) {
         merged[toolName] = entries.map((e) => ({
           condition: e.condition,
-          check: () => false,
+          check: buildPrerequisiteCheck(e.condition),
           fix: e.fix,
         }));
       }

@@ -34,7 +34,12 @@ type ContextSensitiveToolDomain =
   | 'indexeddb'
   | 'js_heap'
   | 'script'
-  | 'captcha';
+  | 'captcha'
+  | 'ai_hook'
+  | 'instrumentation'
+  | 'hook_preset'
+  | 'ws'
+  | 'evidence';
 
 type ContextSensitiveToolPrefix = `${ContextSensitiveToolDomain}_`;
 
@@ -50,6 +55,11 @@ const CONTEXT_SENSITIVE_PREFIXES = [
   'js_heap_',
   'script_',
   'captcha_',
+  'ai_hook_',
+  'instrumentation_',
+  'hook_preset_',
+  'ws_',
+  'evidence_',
 ] as const satisfies readonly ContextSensitiveToolPrefix[];
 
 /** Max consecutive identical calls before injecting a warning. */
@@ -73,6 +83,9 @@ const DOMAIN_ALTERNATIVES: ReadonlyMap<string, readonly string[]> = new Map([
   ['console', ['page_evaluate', 'page_screenshot']],
   ['network', ['network_get_requests', 'page_navigate']],
   ['captcha', ['captcha_wait', 'page_screenshot']],
+  ['ai_hook', ['manage_hooks', 'page_evaluate', 'ai_hook_inject']],
+  ['instrumentation', ['instrumentation_session_list', 'instrumentation_artifact_query']],
+  ['evidence', ['evidence_query_url', 'evidence_chain']],
 ]);
 
 export class ToolCallContextGuard {
