@@ -1,6 +1,6 @@
 # Reference Overview
 
-当前内置域共 **23** 个，域工具总数 **328**。
+当前内置域共 **23** 个，域工具总数 **327**。
 
 ## 推荐阅读路径
 
@@ -20,7 +20,7 @@
 | `encoding` | Encoding | 5 | workflow, full | 二进制格式检测、编码转换、熵分析与 protobuf 原始解码。 |
 | `evidence` | Evidence | 6 | workflow, full | 逆向证据图域，用图结构串联 URL、脚本、函数、Hook 与捕获产物之间的溯源关系。 |
 | `graphql` | GraphQL | 5 | workflow, full | GraphQL 发现、提取、重放与 introspection 能力。 |
-| `hooks` | Hooks | 8 | workflow, full | AI Hook 生成、注入、数据导出，以及内置/自定义 preset 管理。 |
+| `hooks` | Hooks | 7 | workflow, full | AI Hook 生成、注入、数据导出，以及内置/自定义 preset 管理。 |
 | `instrumentation` | Instrumentation | 10 | workflow, full | 统一仪器化会话域，将 Hook、拦截、Trace 与产物记录收束到可查询的 session 中。 |
 | `macro` | Macro | 2 | full | 子代理宏编排域，将多步工具调用组合为可复用的宏流程。 |
 | `maintenance` | Maintenance | 12 | search, workflow, full | 运维与维护域，覆盖缓存、token 预算、环境诊断、产物清理与扩展管理。 |
@@ -29,10 +29,10 @@
 | `platform` | Platform | 15 | full | 宿主平台与包格式分析域，覆盖 miniapp、asar、Electron。 |
 | `process` | Process | 26 | full | 进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。 |
 | `sandbox` | Sandbox | 1 | full | 基于 QuickJS WASM 的安全沙箱域，支持执行自定义脚本并调用 MCP 工具。 |
-| `sourcemap` | SourceMap | 5 | full | SourceMap 发现、抓取、解析与源码树重建。 |
+| `sourcemap` | SourceMap | 5 | workflow, full | SourceMap 发现、抓取、解析与源码树重建。 |
 | `streaming` | Streaming | 6 | workflow, full | WebSocket 与 SSE 监控域。 |
 | `trace` | Trace | 7 | workflow, full | 时间旅行调试域，录制 CDP 事件并写入 SQLite，支持 SQL 查询与堆快照对比。 |
-| `transform` | Transform | 6 | full | AST/字符串变换与加密实现抽取、测试、对比域。 |
+| `transform` | Transform | 6 | workflow, full | AST/字符串变换与加密实现抽取、测试、对比域。 |
 | `wasm` | WASM | 8 | full | WebAssembly dump、反汇编、反编译、优化与离线执行域。 |
 | `workflow` | Workflow | 9 | workflow, full | 复合工作流与脚本库域，是 built-in 高层编排入口。 |
 

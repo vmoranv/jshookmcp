@@ -1,6 +1,6 @@
 # Reference Overview
 
-There are **23** built-in domains and **328** domain tools in the current build.
+There are **23** built-in domains and **327** domain tools in the current build.
 
 ## Recommended reading order
 
@@ -20,7 +20,7 @@ There are **23** built-in domains and **328** domain tools in the current build.
 | `encoding` | Encoding | 5 | workflow, full | Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding. |
 | `evidence` | Evidence | 6 | workflow, full | Evidence-graph domain that models provenance between URLs, scripts, functions, hooks, and captured artifacts. |
 | `graphql` | GraphQL | 5 | workflow, full | GraphQL discovery, extraction, replay, and introspection tooling. |
-| `hooks` | Hooks | 8 | workflow, full | AI hook generation, injection, export, and built-in/custom preset management. |
+| `hooks` | Hooks | 7 | workflow, full | AI hook generation, injection, export, and built-in/custom preset management. |
 | `instrumentation` | Instrumentation | 10 | workflow, full | Unified instrumentation-session domain that groups hooks, intercepts, traces, and artifacts into a queryable session. |
 | `macro` | Macro | 2 | full | Sub-agent macro orchestration domain that chains multiple tool calls into reusable macro workflows. |
 | `maintenance` | Maintenance | 12 | search, workflow, full | Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management. |
@@ -29,10 +29,10 @@ There are **23** built-in domains and **328** domain tools in the current build.
 | `platform` | Platform | 15 | full | Platform and package analysis domain covering miniapps, ASAR archives, and Electron apps. |
 | `process` | Process | 26 | full | Process, module, memory diagnostics, and controlled injection domain for host-level inspection, troubleshooting, and Windows process experimentation workflows. |
 | `sandbox` | Sandbox | 1 | full | WASM-isolated QuickJS sandbox domain for secure custom script execution with MCP tool access. |
-| `sourcemap` | SourceMap | 5 | full | Source map discovery, fetching, parsing, and source tree reconstruction. |
+| `sourcemap` | SourceMap | 5 | workflow, full | Source map discovery, fetching, parsing, and source tree reconstruction. |
 | `streaming` | Streaming | 6 | workflow, full | WebSocket and SSE monitoring domain. |
 | `trace` | Trace | 7 | workflow, full | Time-travel debugging domain that records CDP events into SQLite for SQL-based querying and heap snapshot comparison. |
-| `transform` | Transform | 6 | full | AST/string transform domain plus crypto extraction, harnessing, and comparison tooling. |
+| `transform` | Transform | 6 | workflow, full | AST/string transform domain plus crypto extraction, harnessing, and comparison tooling. |
 | `wasm` | WASM | 8 | full | WebAssembly dump, disassembly, decompilation, optimization, and offline execution domain. |
 | `workflow` | Workflow | 9 | workflow, full | Composite workflow and script-library domain; the main built-in orchestration layer. |
 
