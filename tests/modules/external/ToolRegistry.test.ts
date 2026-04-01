@@ -24,6 +24,19 @@ describe('ToolRegistry', () => {
     vi.restoreAllMocks();
   });
 
+  it('registers additional specs on construction', () => {
+    const registry = new ToolRegistry([
+      {
+        name: 'custom.tool' as any,
+        command: 'custom',
+        required: false,
+        versionArgs: [],
+        envAllowlist: [],
+      },
+    ]);
+    expect(registry.isRegistered('custom.tool')).toBe(true);
+  });
+
   it('contains default registered tools', () => {
     const registry = new ToolRegistry();
     const tools = registry.getRegisteredTools();

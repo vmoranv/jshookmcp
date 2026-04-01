@@ -13,6 +13,29 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+function MockWin32Provider() {}
+function MockDarwinProvider() {}
+
+const state = vi.hoisted(() => {
+  const createRequire = vi.fn(() => (specifier: string) => {
+    if (specifier === './win32/Win32MemoryProvider.js') {
+      return { Win32MemoryProvider: MockWin32Provider };
+    }
+
+    if (specifier === './darwin/DarwinMemoryProvider.js') {
+      return { DarwinMemoryProvider: MockDarwinProvider };
+    }
+
+    throw new Error(`Unexpected platform provider import: ${specifier}`);
+  });
+
+  return { MockWin32Provider, MockDarwinProvider, createRequire };
+});
+
+vi.mock('module', () => ({
+  createRequire: state.createRequire,
+}));
+
 describe('platform/factory', () => {
   const originalPlatform = process.platform;
 
@@ -46,6 +69,30 @@ describe('platform/factory', () => {
   });
 
   describe('createPlatformProvider', () => {
+    it('creates and caches the win32 provider', async () => {
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+      const { createPlatformProvider } = await import('@src/native/platform/factory.js');
+
+      const first = createPlatformProvider();
+      const second = createPlatformProvider();
+
+      expect(first).toBeInstanceOf(state.MockWin32Provider);
+      expect(second).toBe(first);
+      expect(state.createRequire).toHaveBeenCalled();
+    });
+
+    it('creates and caches the darwin provider', async () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin' });
+      const { createPlatformProvider } = await import('@src/native/platform/factory.js');
+
+      const first = createPlatformProvider();
+      const second = createPlatformProvider();
+
+      expect(first).toBeInstanceOf(state.MockDarwinProvider);
+      expect(second).toBe(first);
+      expect(state.createRequire).toHaveBeenCalled();
+    });
+
     it('throws on unsupported platform', async () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
       const { createPlatformProvider } = await import('@src/native/platform/factory.js');

@@ -12,6 +12,7 @@ import {
   filterCriticalLogs,
   filterCriticalRequests,
   filterCriticalResponses,
+  calculateLogPriority,
 } from '@modules/analyzer/PatternDetector';
 
 function request(overrides: Partial<NetworkRequest>): NetworkRequest {
@@ -80,6 +81,34 @@ describe('PatternDetector', () => {
     );
   });
 
+  it('filters critical requests: missing branches', () => {
+    const requests = [
+      request({
+        requestId: 'r-get-query',
+        url: 'https://example.com/items/view?q=1',
+        method: 'GET',
+      }),
+      request({
+        requestId: 'r-get-no-query',
+        url: 'https://example.com/items/view', // No keyword, no query
+        method: 'GET',
+      }),
+      request({
+        requestId: 'r-head',
+        url: 'https://example.com/items/view?q=1',
+        method: 'HEAD',
+      }),
+      request({
+        requestId: 'r-put-keyword',
+        url: 'https://example.com/login', // Keyword 'login'
+        method: 'PUT',
+      }),
+    ];
+
+    const critical = filterCriticalRequests(requests);
+    expect(critical.map((item) => item.requestId)).toEqual(['r-put-keyword', 'r-get-query']);
+  });
+
   it('filters critical responses by mime type, keyword, and timestamp order', () => {
     const responses = [
       response({
@@ -106,6 +135,26 @@ describe('PatternDetector', () => {
     expect(filtered.map((item) => item.requestId)).toEqual(['keyword', 'json']);
   });
 
+  it('filters critical responses: missing branches', () => {
+    const responses = [
+      response({
+        requestId: 'boring',
+        url: 'https://vmoranv.github.io/jshookmcp/boring',
+        mimeType: 'text/plain',
+        timestamp: 1,
+      }),
+      response({
+        requestId: 'js-mime',
+        url: 'https://vmoranv.github.io/jshookmcp/app.js',
+        mimeType: 'application/javascript',
+        timestamp: 2, // Should be kept
+      }),
+    ];
+
+    const filtered = filterCriticalResponses(responses);
+    expect(filtered.map((item) => item.requestId)).toEqual(['js-mime']);
+  });
+
   it('filters console logs and removes framework noise', () => {
     const logs = [
       log({ text: '[HMR] connected', type: 'info' }),
@@ -118,6 +167,19 @@ describe('PatternDetector', () => {
     expect(critical).toHaveLength(2);
     expect(critical[0]!.type).toBe('warn');
     expect(critical[1]!.text).toContain('auth');
+  });
+
+  it('filters critical logs: missing branches', () => {
+    const logs = [
+      log({ text: 'just a normal random string', type: 'info' }), // Unmatched, returns false
+      log({ text: '', type: 'log' }), // Empty length 0
+      log({ text: 'error happened', type: 'error' }), // Error keeping
+    ];
+
+    const critical = filterCriticalLogs(logs);
+    expect(critical).toHaveLength(1);
+    expect(critical[0]!.type).toBe('error');
+    // Test that empty text does not crash when parsing (already partially covered but ensures empty string length=0 check)
   });
 
   it('detects encryption patterns and deduplicates repeated locations', () => {
@@ -197,5 +259,99 @@ describe('PatternDetector', () => {
     expect(functions).toContain('signPayload');
     expect(functions).toContain('verifyToken');
     expect(functions).not.toContain('console');
+  });
+
+  it('detectEncryptionPatterns: invalid prototype branch coverage', () => {
+    // Temporarily inject an invalid property to hit the !isEncryptionPatternType(type) branches
+    const originalEntries = Object.entries;
+    Object.entries = (obj: any) => {
+      const entries = originalEntries(obj);
+      entries.push(['INVALID_TYPE', ['invalidkeyword']]);
+      return entries;
+    };
+
+    try {
+      const patterns = detectEncryptionPatterns(
+        [
+          request({
+            url: 'https://vmoranv.github.io/jshookmcp/invalidkeyword',
+            postData: 'invalidkeyword',
+          }),
+        ],
+        [log({ text: 'invalidkeyword output' })],
+      );
+
+      // The invalid keyword should be ignored because of the prototype check
+      expect(patterns.some((p) => (p.type as string) === 'INVALID_TYPE')).toBe(false);
+    } finally {
+      Object.entries = originalEntries;
+    }
+  });
+
+  it('detectAntiDebugPatterns: missing branches', () => {
+    const patterns = detectAntiDebugPatterns([
+      // A log that doesn't trigger anything to cover the false paths:
+      log({ text: 'just a normal log with no anti-debug indicators' }),
+      // A log with no url:
+      log({ text: 'debugger; console.log=1; devtools firebug performance.now Date.now' }),
+    ]);
+    expect(patterns.length).toBeGreaterThan(0);
+    expect(patterns.some((p) => p.location === 'unknown')).toBe(true);
+  });
+
+  it('extractSuspiciousAPIs: missing branches', () => {
+    const apis = extractSuspiciousAPIs([
+      request({
+        requestId: 'normal',
+        url: 'https://vmoranv.github.io/jshookmcp/static/image.png',
+        method: 'GET',
+      }),
+      request({
+        requestId: 'invalid-url',
+        url: 'not-a-valid-url-at-all',
+        method: 'GET',
+      }),
+    ]);
+    expect(apis).toEqual([]); // Neither path includes /api/ nor is structurally matched
+  });
+
+  it('covers trivial falsy branches for full coverage', () => {
+    // calculateRequestPriority falsy postData
+    expect(
+      calculateRequestPriority(
+        request({ method: 'GET', url: 'http://example.com/', postData: '' }),
+      ),
+    ).toBe(0);
+
+    // filterCriticalRequests isBlacklisted = true
+    expect(
+      filterCriticalRequests([
+        request({ requestId: 'blacklisted', url: 'https://google-analytics.com/collect' }),
+      ]).length,
+    ).toBe(0);
+
+    // calculateLogPriority falsy error/warn
+    expect(calculateLogPriority(log({ text: 'normal log', type: 'info' }))).toBe(0);
+
+    // detectEncryptionPatterns missing postData and log.url
+    const result = detectEncryptionPatterns(
+      [request({ method: 'GET', url: 'http://example.com/', postData: undefined })],
+      [log({ text: 'base64 init', url: '' })],
+    );
+    expect(result.length).toBe(1);
+    expect(result[0]!.location).toBe('console');
+  });
+
+  it('covers trivial truthy branches for full coverage', () => {
+    // calculateRequestPriority truthy postData
+    expect(
+      calculateRequestPriority(
+        request({ method: 'POST', url: 'http://example.com/', postData: 'truthy' }),
+      ),
+    ).toBe(15);
+
+    // calculateLogPriority truthy error/warn
+    expect(calculateLogPriority(log({ text: 'normal log', type: 'error' }))).toBe(20);
+    expect(calculateLogPriority(log({ text: 'normal log', type: 'warn' }))).toBe(10);
   });
 });

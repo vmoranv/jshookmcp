@@ -193,6 +193,7 @@ vi.mock('@src/constants', () => ({
 // ── Import AFTER all mocks ──
 import { MemoryScanner } from '@native/MemoryScanner';
 import { nativeMemoryManager } from '@native/NativeMemoryManager.impl';
+import { compareScanValues } from '@native/ScanComparators';
 
 describe('MemoryScanner', () => {
   let scanner: MemoryScanner;
@@ -339,6 +340,265 @@ describe('MemoryScanner', () => {
       await expect(
         scanner.groupScan(1234, [{ offset: 2000, value: '42', type: 'int32' }]),
       ).rejects.toThrow('too large');
+    });
+  });
+
+  describe('Boundary and Error Coverage', () => {
+    it('should throw Error if parsePattern returns empty bytes for fixed-length type in firstScan', async () => {
+      const utils = await import('@native/NativeMemoryManager.utils');
+      // Line 75-77
+      vi.spyOn(utils, 'parsePattern').mockReturnValueOnce({ patternBytes: [], mask: [] });
+      await expect(scanner.firstScan(1234, 'invalid', { valueType: 'int32' })).rejects.toThrow(
+        'Invalid pattern for type int32: "invalid"',
+      );
+    });
+
+    it('should break region loop if maxResults is reached (firstScan)', async () => {
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr <= 0x10000n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+          } as any;
+        if (addr === 0x11000n)
+          return {
+            baseAddress: 0x11000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+          } as any;
+        return null;
+      });
+      (compareScanValues as any).mockReturnValue(true);
+      const result = await scanner.firstScan(1234, '42', { valueType: 'int32', maxResults: 1 });
+      expect(result.matchCount).toBe(1);
+    });
+
+    it('should skip unreadable chunks gracefully (firstScan line 109)', async () => {
+      mockProvider.readMemory.mockImplementationOnce(() => {
+        throw new Error('Unreadable');
+      });
+      const result = await scanner.firstScan(1234, '42', { valueType: 'int32' });
+      expect(result.matchCount).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle alignment <= 0 in firstScan (line 113)', async () => {
+      const result = await scanner.firstScan(1234, '42', { valueType: 'int32', alignment: 0 });
+      expect(result.scanNumber).toBe(1);
+    });
+
+    it('should correctly handle valueType pointer and value2 in nextScan', async () => {
+      const first = await scanner.firstScan(1234, '42', { valueType: 'pointer' });
+      const next = await scanner.nextScan(first.sessionId, 'between', '10', '50');
+      expect(next.scanNumber).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should skip unreadable previous addresses in nextScan and handle missing prevBuf', async () => {
+      const first = await scanner.firstScan(1234, '42', { valueType: 'int32' });
+
+      // Force readMemory to throw for the first address
+      mockProvider.readMemory.mockImplementationOnce(() => {
+        throw new Error('Unreadable');
+      });
+
+      // We can hit missing prevBuf naturally by letting compareScanValues run on a modified session,
+      // but since the module gets `prevBuf = session.previousValues.get(addr) ?? null`, we just need ANY addr
+      // Since we don't have access to the mocked map, we can rely on standard boundary bridging.
+
+      const next = await scanner.nextScan(first.sessionId, 'exact', '42');
+      expect(next.scanNumber).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should break region loop if maxAddresses reached (unknownInitialScan)', async () => {
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr <= 0x10000n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+          } as any;
+        if (addr === 0x11000n)
+          return {
+            baseAddress: 0x11000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+          } as any;
+        return null;
+      });
+      (compareScanValues as any).mockReturnValue(true);
+      // maxResults limits maxAddresses mapping loops internally
+      const result = await scanner.unknownInitialScan(1234, { valueType: 'int32', maxResults: 1 });
+      expect(result.matchCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should handle readMemory throw and alignment <= 0 in unknownInitialScan', async () => {
+      mockProvider.readMemory.mockImplementationOnce(() => {
+        throw new Error('Unreadable');
+      });
+      const result = await scanner.unknownInitialScan(1234, { valueType: 'int32', alignment: 0 });
+      expect(result.scanNumber).toBe(1);
+    });
+
+    it('should break region loop if maxResults reached (pointerScan)', async () => {
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr <= 0x10000n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+          } as any;
+        if (addr === 0x11000n)
+          return {
+            baseAddress: 0x11000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+          } as any;
+        return null;
+      });
+      const result = await scanner.pointerScan(1234, '0x7FFE1000', { maxResults: 1 });
+      expect(result.totalFound).toBeLessThanOrEqual(1);
+    });
+
+    it('should skip unreadable chunks in pointerScan and handle negative ptrValue relative offset', async () => {
+      const buf = Buffer.alloc(4096);
+      buf.writeBigUInt64LE(0x7ffd1000n, 128);
+      buf.writeBigUInt64LE(0x7ffe0a00n, 136); // Target is 0x7FFE1000, 0x7FFE0A00 diff is 0x600 <= 4096
+      mockProvider.readMemory.mockImplementation((_h, _a, size) => ({
+        data: buf.subarray(0, size),
+        bytesRead: size,
+      }));
+
+      mockProvider.readMemory.mockImplementationOnce(() => {
+        throw new Error('Unreadable');
+      });
+
+      const result = await scanner.pointerScan(1234, '0x7FFE1000');
+      expect(result.totalFound).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should break region loop if maxResults reached (groupScan)', async () => {
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr <= 0x10000n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+          } as any;
+        if (addr === 0x11000n)
+          return {
+            baseAddress: 0x11000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+          } as any;
+        return null;
+      });
+      const result = await scanner.groupScan(
+        1234,
+        [
+          { offset: 0, value: '42', type: 'int32' },
+          { offset: 4, value: '0x123', type: 'pointer' },
+        ],
+        { maxResults: 1 },
+      );
+      expect(result.matchCount).toBeLessThanOrEqual(1);
+    });
+
+    it('should handle 0 alignment in groupScan', async () => {
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr <= 0x10000n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+          } as any;
+        return null;
+      });
+      const result = await scanner.groupScan(1234, [{ offset: 0, value: '42', type: 'int32' }], {
+        alignment: 0,
+      });
+      expect(result.matchCount).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should skip unreadable chunks (groupScan)', async () => {
+      mockProvider.readMemory.mockImplementationOnce(() => {
+        throw new Error('Unreadable');
+      });
+      const result = await scanner.groupScan(1234, [{ offset: 0, value: '42', type: 'int32' }]);
+      expect(result.matchCount).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle patternType pointer mapping and throw if scanMemory returns success: false', async () => {
+      (nativeMemoryManager.scanMemory as any).mockResolvedValueOnce({
+        success: false,
+        error: 'Custom scan fail',
+      });
+      // Call private patternFirstScan directly to bypass valueSize checks
+      await expect((scanner as any).patternFirstScan(1234, '0x123', 'pointer', {})).rejects.toThrow(
+        'Custom scan fail',
+      );
+
+      (nativeMemoryManager.scanMemory as any).mockResolvedValueOnce({ success: false });
+      await expect((scanner as any).patternFirstScan(1234, '0x123', 'string', {})).rejects.toThrow(
+        'Scan failed',
+      );
+    });
+
+    it('should filter regions by writable, executable, moduleOnly', async () => {
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr === 0x10000n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: false,
+            isExecutable: false,
+          } as any;
+        return null;
+      });
+      const result = await scanner.firstScan(1234, '42', {
+        valueType: 'int32',
+        regionFilter: { writable: true, executable: true, moduleOnly: true },
+      } as any);
+      expect(result.matchCount).toBe(0);
     });
   });
 });

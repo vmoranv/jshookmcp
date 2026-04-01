@@ -21,6 +21,7 @@ describe('ExtensionManager.roots', () => {
   it('parses comma separated roots and removes duplicates', () => {
     expect(parseRoots(undefined, ['fallback'])).toEqual(['fallback']);
     expect(parseRoots(' alpha, beta ,alpha,, ', ['fallback'])).toEqual(['alpha', 'beta']);
+    expect(parseRoots(' , ,, ', ['fallback'])).toEqual(['fallback']);
   });
 
   it('resolves relative paths, preserves absolute ones, deduplicates, and sorts', () => {

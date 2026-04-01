@@ -239,6 +239,49 @@ describe('runEnvironmentDoctor', () => {
     );
   });
 
+  it('falls back to cmd /c on win32 when direct execution fails', async () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    let cmdCallCount = 0;
+
+    execFileMock.mockImplementation((cmd: string, _args?: string[]) => {
+      // First attempt fails
+      if (cmd !== 'cmd') return Promise.reject(new Error('ENOENT'));
+      // Second attempt via cmd succeeds
+      cmdCallCount++;
+      return Promise.resolve({ stdout: 'cmd version 1.0', stderr: '' });
+    });
+
+    try {
+      const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+      const git = report.commands.find((c) => c.name === 'git');
+      expect(git!.status).toBe('ok');
+      expect(git!.detail).toContain('cmd version 1.0 (via cmd)');
+      expect(cmdCallCount).toBeGreaterThan(0);
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    }
+  });
+
+  it('recommends using pnpm directly when corepack is missing but pnpm is standalone on Windows', async () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    execFileMock.mockImplementation((cmd: string, args?: string[]) => {
+      const targetCmd = cmd === 'cmd' && args ? args[1] : cmd;
+      if (targetCmd === 'pnpm') return Promise.resolve({ stdout: '10.0.0', stderr: '' });
+      if (targetCmd === 'corepack') return Promise.reject(new Error('ENOENT: corepack not found'));
+      return Promise.resolve({ stdout: 'ok', stderr: '' });
+    });
+
+    try {
+      const report = await runEnvironmentDoctor({ includeBridgeHealth: false });
+      expect(report.recommendations.some((r) => r.includes('`corepack` is optional'))).toBe(true);
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    }
+  });
+
   it('handles non-Error rejection from bridge fetch', async () => {
     mockFetch.mockRejectedValue('network down');
     const report = await runEnvironmentDoctor({ includeBridgeHealth: true });

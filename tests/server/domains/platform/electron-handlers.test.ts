@@ -489,5 +489,115 @@ describe('ElectronHandlers', () => {
       expect(result.success).toBe(true);
       expect(result.dependencies).toEqual(['alpha', 'middle', 'zebra']);
     });
+
+    it('uses fallback asar main script discovery when the direct candidate misses', async () => {
+      const fakeBuffer = Buffer.from('fake asar content');
+      const fakeParsedAsar = makeParsedAsar([
+        { path: 'app/package.json', size: 50, offset: 0 },
+        { path: 'app/scripts/main.js', size: 100, offset: 50 },
+      ]);
+
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readFile.mockResolvedValueOnce(fakeBuffer);
+      mocks.parseAsarBuffer.mockReturnValueOnce(fakeParsedAsar);
+
+      mocks.readAsarEntryText.mockReturnValueOnce(
+        JSON.stringify({
+          name: 'fallback-app',
+          version: '1.0.0',
+          main: 'dist/main.js',
+          dependencies: {},
+        }),
+      );
+      mocks.readAsarEntryText.mockReturnValueOnce(undefined);
+      mocks.readAsarEntryText.mockReturnValueOnce(undefined);
+      mocks.readAsarEntryText.mockReturnValueOnce(undefined);
+      mocks.readAsarEntryText.mockReturnValueOnce('const { BrowserWindow } = require("electron");');
+      mocks.parseBrowserWindowHints.mockReturnValueOnce({
+        preloadScripts: [],
+        devToolsEnabled: null,
+      });
+      mocks.findFilesystemPreloadScripts.mockResolvedValueOnce([]);
+
+      const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));
+
+      expect(result.success).toBe(true);
+      expect(result.mainScriptPath).toBe('app/scripts/main.js');
+      expect(result.browserWindowDetected).toBe(true);
+    });
+
+    it('adds filesystem preload scripts when no hints or asar preload entries are found', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true, isDirectory: false }));
+      mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
+      mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
+      mocks.stat.mockRejectedValueOnce(new Error('ENOENT'));
+
+      mocks.readFile.mockResolvedValueOnce(
+        JSON.stringify({
+          name: 'preload-app',
+          version: '3.0.0',
+          main: 'index.js',
+        }),
+      );
+
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readFile.mockResolvedValueOnce('console.log("hello");');
+      mocks.parseBrowserWindowHints.mockReturnValueOnce({
+        preloadScripts: [],
+        devToolsEnabled: null,
+      });
+      mocks.findFilesystemPreloadScripts.mockResolvedValueOnce([
+        '/app/preload.js',
+        '/app/renderer/preload-helper.js',
+      ]);
+
+      const result = parsePayload(
+        await handlers.handleElectronInspectApp({ appPath: '/app/preload-app.exe' }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.preloadScripts).toEqual(['/app/preload.js', '/app/renderer/preload-helper.js']);
+    });
+
+    it('falls back to filesystem package.json when the asar package.json is invalid', async () => {
+      const fakeBuffer = Buffer.from('fake asar content');
+      const fakeParsedAsar = makeParsedAsar([
+        { path: 'package.json', size: 50, offset: 0 },
+        { path: 'main.js', size: 100, offset: 50 },
+      ]);
+
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readFile.mockResolvedValueOnce(fakeBuffer);
+      mocks.parseAsarBuffer.mockReturnValueOnce(fakeParsedAsar);
+      mocks.readAsarEntryText.mockReturnValueOnce('{not valid json');
+      mocks.readFile.mockResolvedValueOnce(
+        JSON.stringify({
+          name: 'fs-fallback-app',
+          version: '4.2.0',
+          main: 'app/main.js',
+        }),
+      );
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readFile.mockResolvedValueOnce('const { BrowserWindow } = require("electron");');
+      mocks.parseBrowserWindowHints.mockReturnValueOnce({
+        preloadScripts: [],
+        devToolsEnabled: false,
+      });
+      mocks.findFilesystemPreloadScripts.mockResolvedValueOnce([]);
+
+      const result = parsePayload(await handlers.handleElectronInspectApp({ appPath: '/app' }));
+
+      expect(result.success).toBe(true);
+      expect(result.packageSource).toBe('filesystem');
+      expect(result.devToolsEnabled).toBe(false);
+      expect(result.browserWindowDetected).toBe(true);
+      expect(result.mainScriptPath).toContain('app/main.js');
+    });
   });
 });

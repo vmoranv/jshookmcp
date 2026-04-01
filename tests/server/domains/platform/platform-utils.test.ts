@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => {
     readdir: vi.fn<(...args: any[]) => Promise<TestDirent[]>>(async () => []),
     stat: vi.fn<(...args: any[]) => Promise<any>>(),
     mkdir: vi.fn<(...args: any[]) => Promise<void>>(async () => undefined),
+    execFile: vi.fn(),
+    execFileAsync: vi.fn(),
   };
 });
 
@@ -21,6 +23,14 @@ vi.mock('node:fs/promises', () => ({
   readdir: mocks.readdir,
   stat: mocks.stat,
   mkdir: mocks.mkdir,
+}));
+
+vi.mock('node:child_process', () => ({
+  execFile: mocks.execFile,
+}));
+
+vi.mock('node:util', () => ({
+  promisify: vi.fn(() => mocks.execFileAsync),
 }));
 
 vi.mock('@utils/logger', () => ({
@@ -55,6 +65,7 @@ import {
   readJsonFileSafe,
   extractAppIdFromPath,
   walkDirectory,
+  checkExternalCommand,
 } from '@server/domains/platform/handlers/platform-utils';
 
 // ---------------------------------------------------------------------------
@@ -390,6 +401,12 @@ describe('platform-utils', () => {
       expect(result).toContain('a');
       expect(result).toContain('e.txt');
     });
+
+    it('blocks absolute paths that escape the root directory', () => {
+      expect(() =>
+        resolveSafeOutputPath('C:\\output', 'C:\\Windows\\System32\\drivers\\etc\\hosts'),
+      ).toThrow('Path traversal blocked');
+    });
   });
 
   // =========================================================================
@@ -488,6 +505,39 @@ describe('platform-utils', () => {
     it('returns null for very short IDs', () => {
       const result = extractAppIdFromPath('/tmp/xy.pkg');
       expect(result).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // checkExternalCommand
+  // =========================================================================
+  describe('checkExternalCommand', () => {
+    it('reports availability and version when the command succeeds', async () => {
+      mocks.execFileAsync.mockResolvedValueOnce({
+        stdout: '',
+        stderr: 'v1.2.3\n',
+      });
+
+      const result = await checkExternalCommand('tool', ['--version'], 'jadx');
+
+      const payload = JSON.parse(getFirstTextContent(result).text);
+      expect(payload.success).toBe(true);
+      expect(payload.tool).toBe('jadx');
+      expect(payload.available).toBe(true);
+      expect(payload.version).toBe('v1.2.3');
+    });
+
+    it('returns install hints on failure and uses the frida-specific hint', async () => {
+      mocks.execFileAsync.mockRejectedValueOnce(new Error('spawn failed'));
+
+      const result = await checkExternalCommand('tool', ['--version'], 'frida');
+
+      const payload = JSON.parse(getFirstTextContent(result).text);
+      expect(payload.success).toBe(true);
+      expect(payload.tool).toBe('frida');
+      expect(payload.available).toBe(false);
+      expect(payload.reason).toBe('spawn failed');
+      expect(payload.installHint).toBe('pip install frida-tools');
     });
   });
 

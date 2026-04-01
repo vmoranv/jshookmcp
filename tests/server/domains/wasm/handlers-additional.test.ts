@@ -49,6 +49,9 @@ describe('WasmToolHandlers – additional coverage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // page.evaluate.mockImplementation persists across tests even after clearAllMocks —
+    // mockReset restores the factory default (async () => ({})) so each test starts clean
+    page.evaluate.mockReset();
     // @ts-expect-error — auto-suppressed [TS2345]
     handlers = new WasmToolHandlers(collector);
   });
@@ -130,6 +133,21 @@ describe('WasmToolHandlers – additional coverage', () => {
   // ── wasm_disassemble ───────────────────────────────────────
 
   describe('handleWasmDisassemble', () => {
+    it('returns failure when wabt.wasm2wat fails', async () => {
+      runMock.mockResolvedValue({
+        ok: false,
+        stdout: '',
+        stderr: 'wasm2wat error',
+        exitCode: 1,
+        durationMs: 4,
+      });
+
+      const body = parseJson<any>(await handlers.handleWasmDisassemble({ inputPath: 'a.wasm' }));
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('wasm2wat error');
+      expect(body.exitCode).toBe(1);
+    });
+
     it('saves to custom outputPath when specified', async () => {
       const tmpPath = os.tmpdir();
       const outputPath = path.join(tmpPath, 'out.wat');
@@ -993,6 +1011,270 @@ describe('WasmToolHandlers – additional coverage', () => {
       const body = parseJson<any>(await handlers.handleWasmMemoryInspect({ offset: 256 }));
       expect(body.hexDump).toContain('00000100');
     });
+
+    it('returns a catch-all read error when memory access throws', async () => {
+      page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) => {
+        const previousWindow = (globalThis as any).window;
+        (globalThis as any).window = {
+          __wasmInstances: [
+            {
+              exports: {
+                get memory() {
+                  throw new Error('boom');
+                },
+              },
+            },
+          ],
+        };
+
+        try {
+          return await (fn as (options: unknown) => unknown)(opts);
+        } finally {
+          if (previousWindow === undefined) {
+            delete (globalThis as any).window;
+          } else {
+            (globalThis as any).window = previousWindow;
+          }
+        }
+      });
+
+      const body = parseJson<any>(await handlers.handleWasmMemoryInspect({}));
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('Failed to read WASM memory');
+      expect(body.error).toContain('boom');
+    });
+  });
+
+  // ── wasm_memory_inspect — ASCII pattern search (lines 698-716) ──
+
+  describe('handleWasmMemoryInspect — ASCII search branch', () => {
+    it('uses ASCII TextEncoder search for non-hex patterns and finds a match', async () => {
+      // Pattern "ABC" contains uppercase letters beyond hex range (G-Z) → treated as ASCII
+      // Buffer: [0x41='A', 0x42='B', 0x43='C', 0x00, 0x44='D', 0x45='E']
+      // TextEncoder.encode("ABC") = [65, 66, 67] → matches at offset 0 only
+      // Mock page.evaluate to return the pre-computed search result directly
+      page.evaluate.mockResolvedValueOnce({
+        totalMemoryPages: 1,
+        totalMemoryBytes: 6,
+        requestedOffset: 0,
+        requestedLength: 6,
+        data: [0x41, 0x42, 0x43, 0x00, 0x44, 0x45],
+        searchResults: [{ offset: 0 }],
+        memoryInfo: null,
+      });
+
+      const res = await handlers.handleWasmMemoryInspect({
+        offset: 0,
+        length: 6,
+        format: 'ascii',
+        searchPattern: 'ABC',
+      });
+      const body = parseJson<any>(res);
+      expect(body.success).toBe(true);
+      expect(body.searchResults).toEqual([{ offset: 0 }]);
+      expect(body.asciiDump).toBe('ABC.DE');
+    });
+
+    it('ASCII search returns no matches when pattern is not present', async () => {
+      // Pattern "XYZ" (non-hex) not in buffer → no matches
+      const originalWindow = (globalThis as any).window;
+      const fakeBuffer = new Uint8Array([0x41, 0x42, 0x43, 0x00, 0x44, 0x45]).buffer;
+      const fakeWindow = {
+        __aiHooks: {
+          'preset-webassembly-full': [{ type: 'memory_created' }],
+        },
+        __wasmInstances: [
+          {
+            exports: { memory: { buffer: fakeBuffer } },
+          },
+        ],
+      } as any;
+      fakeWindow.window = fakeWindow;
+      (globalThis as any).window = fakeWindow;
+
+      page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
+        // @ts-expect-error — test helper
+        (fn as (opts: unknown) => unknown)(opts),
+      );
+
+      try {
+        const res = await handlers.handleWasmMemoryInspect({
+          offset: 0,
+          length: 6,
+          format: 'both',
+          searchPattern: 'XYZ',
+        });
+        const body = parseJson<any>(res);
+        expect(body.success).toBe(true);
+        expect(body.searchResults).toEqual([]);
+      } finally {
+        page.evaluate.mockReset();
+        (globalThis as any).window = originalWindow;
+      }
+    });
+
+    it('ASCII search with single-character non-hex pattern', async () => {
+      // 'D' (0x44) appears at offset 4 in buffer [0x41, 0x42, 0x43, 0x00, 0x44, 0x45]
+      // Mock page.evaluate to return the pre-computed search result directly
+      page.evaluate.mockResolvedValueOnce({
+        totalMemoryPages: 1,
+        totalMemoryBytes: 6,
+        requestedOffset: 0,
+        requestedLength: 6,
+        data: [0x41, 0x42, 0x43, 0x00, 0x44, 0x45],
+        searchResults: [{ offset: 4 }],
+        memoryInfo: null,
+      });
+
+      const res = await handlers.handleWasmMemoryInspect({
+        offset: 0,
+        length: 6,
+        format: 'both',
+        searchPattern: 'D',
+      });
+      const body = parseJson<any>(res);
+      expect(body.success).toBe(true);
+      // TextEncoder.encode("D") = [68] → buffer[4] = 68 → offset 4
+      expect(body.searchResults).toEqual([{ offset: 4 }]);
+    });
+
+    it('ASCII search with pattern spanning null byte in buffer', async () => {
+      // "C\x00D" encoded = [67, 0, 68] → matches at offset 2 where buffer = [0x43='C', 0x00, 0x44='D']
+      const originalWindow = (globalThis as any).window;
+      const fakeBuffer = new Uint8Array([0x41, 0x42, 0x43, 0x00, 0x44, 0x45]).buffer;
+      const fakeWindow = {
+        __aiHooks: { 'preset-webassembly-full': [] },
+        __wasmInstances: [{ exports: { memory: { buffer: fakeBuffer } } }],
+      } as any;
+      fakeWindow.window = fakeWindow;
+      (globalThis as any).window = fakeWindow;
+
+      page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
+        // @ts-expect-error — test helper
+        (fn as (opts: unknown) => unknown)(opts),
+      );
+
+      try {
+        const res = await handlers.handleWasmMemoryInspect({
+          offset: 0,
+          length: 6,
+          format: 'ascii',
+          // "C\x00D" contains non-hex chars, treated as ASCII
+          searchPattern: 'C\x00D',
+        });
+        const body = parseJson<any>(res);
+        expect(body.success).toBe(true);
+        // "C\x00D" encoded = [67, 0, 68] → matches at offset 2
+        expect(body.searchResults).toEqual([{ offset: 2 }]);
+      } finally {
+        page.evaluate.mockReset();
+        (globalThis as any).window = originalWindow;
+      }
+    });
+
+    it('returns error when __wasmInstances is not an array (line 648)', async () => {
+      const originalWindow = (globalThis as any).window;
+      const fakeWindow = {
+        __aiHooks: { 'preset-webassembly-full': [] },
+        __wasmInstances: null, // not an array → triggers early return at line 648
+      } as any;
+      fakeWindow.window = fakeWindow;
+      (globalThis as any).window = fakeWindow;
+
+      page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
+        // @ts-expect-error — test helper
+        (fn as (opts: unknown) => unknown)(opts),
+      );
+
+      try {
+        const body = parseJson<any>(await handlers.handleWasmMemoryInspect({}));
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('No WASM memory available');
+      } finally {
+        page.evaluate.mockReset();
+        (globalThis as any).window = originalWindow;
+      }
+    });
+
+    it('returns error when __wasmInstances is an empty array', async () => {
+      const originalWindow = (globalThis as any).window;
+      const fakeWindow = {
+        __aiHooks: { 'preset-webassembly-full': [] },
+        __wasmInstances: [], // empty array → triggers early return
+      } as any;
+      fakeWindow.window = fakeWindow;
+      (globalThis as any).window = fakeWindow;
+
+      page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
+        // @ts-expect-error — test helper
+        (fn as (opts: unknown) => unknown)(opts),
+      );
+
+      try {
+        const body = parseJson<any>(await handlers.handleWasmMemoryInspect({}));
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('No WASM memory available');
+      } finally {
+        page.evaluate.mockReset();
+        (globalThis as any).window = originalWindow;
+      }
+    });
+
+    it('returns error when memory buffer getter throws', async () => {
+      page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) => {
+        const prev = (globalThis as any).window;
+        (globalThis as any).window = {
+          __wasmInstances: [
+            {
+              exports: {
+                get memory() {
+                  throw new Error('access denied');
+                },
+              },
+            },
+          ],
+        };
+        try {
+          // @ts-expect-error — test helper
+          return await (fn as (o: unknown) => unknown)(opts);
+        } finally {
+          (globalThis as any).window = prev;
+        }
+      });
+
+      const body = parseJson<any>(await handlers.handleWasmMemoryInspect({}));
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('Failed to read WASM memory');
+      expect(body.error).toContain('access denied');
+    });
+
+    it('returns error when memory buffer is null (no exported memory)', async () => {
+      const originalWindow = (globalThis as any).window;
+      const fakeWindow = {
+        __aiHooks: { 'preset-webassembly-full': [] },
+        __wasmInstances: [
+          {
+            exports: { memory: { buffer: null } },
+          },
+        ],
+      } as any;
+      fakeWindow.window = fakeWindow;
+      (globalThis as any).window = fakeWindow;
+
+      page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
+        // @ts-expect-error — test helper
+        (fn as (opts: unknown) => unknown)(opts),
+      );
+
+      try {
+        const body = parseJson<any>(await handlers.handleWasmMemoryInspect({}));
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('no exported memory');
+      } finally {
+        page.evaluate.mockReset();
+        (globalThis as any).window = originalWindow;
+      }
+    });
   });
 
   // ── path validation ────────────────────────────────────────
@@ -1039,6 +1321,298 @@ describe('WasmToolHandlers – additional coverage', () => {
           outputPath: '/root/.ssh/authorized_keys',
         }),
       ).rejects.toThrow('Path traversal blocked');
+    });
+  });
+
+  // ── wasm_dump: __wasmModuleStorage missing the requested index (line 153) ──
+
+  describe('handleWasmDump — storage index missing', () => {
+    it('returns success with binary-not-available when __wasmModuleStorage[idx] is undefined', async () => {
+      // First evaluate (get module info) succeeds; second evaluate (get bytes) returns null
+      // because __wasmModuleStorage[0] is undefined
+      page.evaluate
+        .mockResolvedValueOnce({
+          exports: ['fn1'],
+          importMods: ['env'],
+          size: 42,
+          moduleCount: 1,
+        })
+        .mockResolvedValueOnce(null);
+
+      const body = parseJson<any>(await handlers.handleWasmDump({ moduleIndex: 0 }));
+      expect(body.success).toBe(true);
+      expect(body.artifactPath).toContain('binary not available');
+      expect(body.totalModules).toBe(1);
+    });
+  });
+
+  // ── wasm_decompile: success and failure ─────────────────────
+
+  describe('handleWasmDecompile', () => {
+    it('returns decompile success with preview and artifact path', async () => {
+      resolveArtifactPathMock.mockResolvedValue({
+        absolutePath: '/tmp/out.dcmp',
+        displayPath: 'artifacts/out.dcmp',
+      });
+      const decompiled =
+        '(func $add (param i32 i32) (result i32)\n  local.get 0\n  local.get 1\n  i32.add)';
+      runMock.mockResolvedValue({
+        ok: true,
+        stdout: decompiled,
+        stderr: '',
+        exitCode: 0,
+        durationMs: 15,
+      });
+
+      const body = parseJson<any>(await handlers.handleWasmDecompile({ inputPath: 'mod.wasm' }));
+      expect(body.success).toBe(true);
+      expect(body.artifactPath).toContain('out.dcmp');
+      expect(body.totalLines).toBe(4);
+      expect(body.preview).toContain('$add');
+    });
+
+    it('returns decompile failure when the external tool fails', async () => {
+      runMock.mockResolvedValue({
+        ok: false,
+        stdout: '',
+        stderr: 'wasm-decompile: error: parse error',
+        exitCode: 1,
+        durationMs: 5,
+      });
+
+      const body = parseJson<any>(await handlers.handleWasmDecompile({ inputPath: 'bad.wasm' }));
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('parse error');
+      expect(body.exitCode).toBe(1);
+    });
+  });
+
+  // ── wasm_inspect_sections: success and failure ────────────────
+
+  describe('handleWasmInspectSections', () => {
+    it('returns section details with header and details flags', async () => {
+      runMock.mockResolvedValue({
+        ok: true,
+        stdout: `test.wasm: file format wasm 0x1\n\nSection Details:\nType[1]\nFunction[1]`,
+        stderr: '',
+        exitCode: 0,
+        durationMs: 12,
+      });
+
+      const body = parseJson<any>(
+        await handlers.handleWasmInspectSections({ inputPath: 'mod.wasm', sections: 'all' }),
+      );
+      expect(body.success).toBe(true);
+      expect(body.totalLines).toBeGreaterThan(0);
+      expect(body.preview).toContain('Section Details');
+    });
+
+    it('uses disassemble flags when sections=disassemble', async () => {
+      runMock.mockResolvedValue({
+        ok: true,
+        stdout: '  i32.const 0\n  end\n',
+        stderr: '',
+        exitCode: 0,
+        durationMs: 10,
+      });
+
+      await handlers.handleWasmInspectSections({
+        inputPath: 'mod.wasm',
+        sections: 'disassemble',
+      });
+      expect(runMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tool: 'wabt.wasm-objdump',
+          args: expect.arrayContaining(['-d', 'mod.wasm']),
+        }),
+      );
+    });
+
+    it('returns failure when wasm-objdump fails', async () => {
+      runMock.mockResolvedValue({
+        ok: false,
+        stdout: '',
+        stderr: 'wasm-objdump: error: failed to open file',
+        exitCode: 1,
+        durationMs: 5,
+      });
+
+      const body = parseJson<any>(
+        await handlers.handleWasmInspectSections({ inputPath: 'missing.wasm' }),
+      );
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('failed to open file');
+    });
+
+    it('uses header-only flags when sections=headers', async () => {
+      runMock.mockResolvedValue({
+        ok: true,
+        stdout: 'mod.wasm: file format wasm 0x1\n\nHeader:\n  magic\n  version',
+        stderr: '',
+        exitCode: 0,
+        durationMs: 8,
+      });
+
+      await handlers.handleWasmInspectSections({
+        inputPath: 'mod.wasm',
+        sections: 'headers',
+      });
+      expect(runMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          args: expect.arrayContaining(['-h', 'mod.wasm']),
+        }),
+      );
+    });
+  });
+
+  // ── wasm_vmp_trace: success, error, and filter ──────────────
+
+  describe('handleWasmVmpTrace', () => {
+    it('returns trace success with top functions and preview', async () => {
+      page.evaluate.mockResolvedValueOnce({
+        totalEvents: 3,
+        capturedEvents: 3,
+        topFunctions: [
+          { name: 'env.process_key', count: 2 },
+          { name: 'env.read_memory', count: 1 },
+        ],
+        trace: [
+          { mod: 'env', fn: 'process_key', args: [1, 2], ts: 100 },
+          { mod: 'env', fn: 'read_memory', args: [0x1000], ts: 101 },
+        ],
+      });
+
+      const body = parseJson<any>(await handlers.handleWasmVmpTrace({ maxEvents: 100 }));
+      expect(body.success).toBe(true);
+      expect(body.totalEvents).toBe(3);
+      expect(body.capturedEvents).toBe(3);
+      expect(body.topFunctions[0].name).toBe('env.process_key');
+      expect(body.hint).toContain('wasm_disassemble');
+    });
+
+    it('returns error when no WASM hook data is present', async () => {
+      page.evaluate.mockResolvedValueOnce({
+        error: 'No WASM hook data. Inject hook_preset("webassembly-full") and reload the page.',
+      });
+
+      const body = parseJson<any>(await handlers.handleWasmVmpTrace({ maxEvents: 5000 }));
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('No WASM hook data');
+    });
+
+    it('filters trace events by filterModule', async () => {
+      page.evaluate.mockResolvedValueOnce({
+        totalEvents: 5,
+        capturedEvents: 2,
+        topFunctions: [{ name: 'env.dispatcher', count: 2 }],
+        trace: [
+          { mod: 'env', fn: 'dispatcher', args: [], ts: 1 },
+          { mod: 'env', fn: 'dispatcher', args: [], ts: 2 },
+        ],
+      });
+
+      const body = parseJson<any>(
+        await handlers.handleWasmVmpTrace({ maxEvents: 5000, filterModule: 'env' }),
+      );
+      expect(body.success).toBe(true);
+      expect(body.capturedEvents).toBe(2);
+    });
+
+    it('handles maxEvents truncation and topFunctions sorting', async () => {
+      // More than 30 unique functions should be truncated to top 30
+      const manyFns = Array.from({ length: 50 }, (_, i) => ({
+        mod: 'env',
+        fn: `fn_${i}`,
+        args: [],
+        ts: i,
+      }));
+      page.evaluate.mockResolvedValueOnce({
+        totalEvents: 50,
+        capturedEvents: 50,
+        topFunctions: manyFns.slice(0, 30).map((e) => ({ name: `${e.mod}.${e.fn}`, count: 1 })),
+        trace: manyFns.map((e) => ({ mod: e.mod, fn: e.fn, args: e.args, ts: e.ts })),
+      });
+
+      const body = parseJson<any>(await handlers.handleWasmVmpTrace({ maxEvents: 50 }));
+      expect(body.success).toBe(true);
+      expect(body.topFunctions.length).toBeLessThanOrEqual(30);
+    });
+  });
+
+  // ── wasm_offline_run: wasmer as auto fallback ────────────────
+
+  describe('handleWasmOfflineRun — auto runtime fallback', () => {
+    it('selects wasmer when wasmtime is unavailable in auto mode', async () => {
+      probeAllMock.mockResolvedValue({
+        'runtime.wasmtime': { available: false },
+        'runtime.wasmer': { available: true },
+      });
+      runMock.mockResolvedValue({
+        ok: true,
+        stdout: 'result\n',
+        stderr: '',
+        exitCode: 0,
+        durationMs: 50,
+      });
+
+      const body = parseJson<any>(
+        await handlers.handleWasmOfflineRun({
+          inputPath: 'mod.wasm',
+          functionName: 'main',
+          runtime: 'auto',
+        }),
+      );
+      expect(body.success).toBe(true);
+      expect(body.runtime).toBe('runtime.wasmer');
+    });
+
+    it('returns failure output when runtime execution fails', async () => {
+      runMock.mockResolvedValue({
+        ok: false,
+        stdout: '',
+        stderr: 'Wasm trap: out of bounds memory access',
+        exitCode: 1,
+        durationMs: 30,
+      });
+
+      const body = parseJson<any>(
+        await handlers.handleWasmOfflineRun({
+          inputPath: 'crash.wasm',
+          functionName: 'main',
+          runtime: 'wasmtime',
+        }),
+      );
+      expect(body.success).toBe(false);
+      expect(body.output).toBe('');
+      expect(body.stderr).toContain('out of bounds');
+      expect(body.exitCode).toBe(1);
+    });
+  });
+
+  // ── wasm_optimize: artifact path under temp (line 87 via constructor path) ─
+
+  describe('handleWasmOptimize — artifact resolution', () => {
+    it('resolves artifact path when no outputPath is provided', async () => {
+      resolveArtifactPathMock.mockResolvedValue({
+        absolutePath: '/tmp/wasm-opt-out.wasm',
+        displayPath: 'artifacts/wasm-opt-out.wasm',
+      });
+      runMock.mockResolvedValue({
+        ok: true,
+        stdout: '',
+        stderr: '',
+        exitCode: 0,
+        durationMs: 20,
+      });
+      statMock.mockResolvedValueOnce({ size: 150 }).mockResolvedValueOnce({ size: 120 });
+
+      const body = parseJson<any>(
+        await handlers.handleWasmOptimize({ inputPath: 'in.wasm', level: 'O3' }),
+      );
+      expect(body.success).toBe(true);
+      expect(body.artifactPath).toContain('wasm-opt-out.wasm');
+      expect(body.reductionPercent).toBe('20.0');
+      expect(body.optimizationLevel).toBe('O3');
     });
   });
 });

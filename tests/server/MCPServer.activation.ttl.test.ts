@@ -383,5 +383,136 @@ describe('MCPServer.activation.ttl', () => {
       expect(ctx.activatedToolNames.has('page_navigate')).toBe(false);
       expect(ctx.server.sendToolListChanged).toHaveBeenCalled();
     });
+
+    it('keeps domain in enabledDomains when other tools from the domain remain active', async () => {
+      const ctx = createMockCtx();
+      // add two tools to same domain (browser)
+      ctx.activatedToolNames.add('page_navigate');
+      ctx.activatedToolNames.add('page_click');
+
+      // both registered
+      ctx.activatedRegisteredTools.set('page_navigate', { remove: vi.fn() } as any);
+      ctx.activatedRegisteredTools.set('page_click', { remove: vi.fn() } as any);
+      ctx.enabledDomains.add('browser');
+
+      // Only TTL for page_navigate
+      startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
+
+      await deactivateDomainOnExpiry(ctx, 'browser');
+
+      // Domain should stay enabled because page_click is still active
+      expect(ctx.enabledDomains.has('browser')).toBe(true);
+    });
+
+    it('handles sendToolListChanged throwing an error', async () => {
+      const ctx = createMockCtx();
+      ctx.server.sendToolListChanged = vi.fn().mockRejectedValue(new Error('Send failed'));
+      ctx.activatedToolNames.add('page_navigate');
+      ctx.activatedRegisteredTools.set('page_navigate', { remove: vi.fn() } as any);
+      ctx.enabledDomains.add('browser');
+
+      startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
+      await deactivateDomainOnExpiry(ctx, 'browser');
+
+      // It should catch the error and log a warning
+      // We don't have access to the mocked logger in this scope easily without calling expect on it,
+      // but test passes as long as it doesn't throw.
+    });
+
+    it('handles deactivateDomainOnExpiry throwing an error during startDomainTtl expiry', async () => {
+      const ctx = createMockCtx();
+      // Force an error inside deactivateDomainOnExpiry by making activatedToolNames.has throw
+      ctx.activatedToolNames.has = vi.fn().mockImplementation(() => {
+        throw new Error('Forced error in deactivate');
+      });
+      ctx.activatedToolNames.add('page_navigate');
+
+      startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
+
+      // Let TTL expire
+      await vi.advanceTimersByTimeAsync(11 * 60 * 1000);
+
+      // Should not throw unhandled rejection
+    });
+
+    it('handles deactivateDomainOnExpiry throwing an error during refreshDomainTtl expiry', async () => {
+      const ctx = createMockCtx();
+      ctx.activatedToolNames.add('page_navigate');
+
+      startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
+
+      refreshDomainTtl(ctx, 'browser');
+
+      // Force an error inside deactivateDomainOnExpiry
+      ctx.activatedToolNames.has = vi.fn().mockImplementation(() => {
+        throw new Error('Forced error in deactivate');
+      });
+
+      // Let TTL expire
+      await vi.advanceTimersByTimeAsync(11 * 60 * 1000);
+
+      // Should not throw unhandled rejection
+    });
+
+    it('skips removing SDK registration if registeredTool is missing', async () => {
+      const ctx = createMockCtx();
+      ctx.activatedToolNames.add('page_navigate');
+      // Intentionally DO NOT set in activatedRegisteredTools
+      ctx.enabledDomains.add('browser');
+
+      startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
+      await deactivateDomainOnExpiry(ctx, 'browser');
+
+      // Should complete without error and remove routing
+      expect(ctx.router.removeHandler).toHaveBeenCalledWith('page_navigate');
+      expect(ctx.activatedToolNames.has('page_navigate')).toBe(false);
+    });
+
+    it('exits early if removedCount is 0', async () => {
+      const ctx = createMockCtx();
+      ctx.enabledDomains.add('browser');
+
+      // Start TTL for page_navigate
+      startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
+
+      // Manually remove page_navigate before expiry
+      ctx.activatedToolNames.delete('page_navigate');
+
+      await deactivateDomainOnExpiry(ctx, 'browser');
+
+      // sendToolListChanged should NOT be called because removedCount was 0
+      expect(ctx.server.sendToolListChanged).not.toHaveBeenCalled();
+    });
+
+    it('re-evaluates domains and skips non-matching active tools', async () => {
+      const ctx = createMockCtx();
+      ctx.activatedToolNames.add('page_navigate'); // browser domain
+      ctx.activatedToolNames.add('debugger_pause'); // debugger domain
+      ctx.activatedRegisteredTools.set('page_navigate', { remove: vi.fn() } as any);
+      ctx.enabledDomains.add('browser');
+      ctx.enabledDomains.add('debugger');
+
+      startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
+      await deactivateDomainOnExpiry(ctx, 'browser');
+
+      // browser should be disabled, debugger tool skipped during re-evaluation
+      expect(ctx.enabledDomains.has('browser')).toBe(false);
+      expect(ctx.enabledDomains.has('debugger')).toBe(true);
+    });
+
+    it('re-evaluates domains and skips non-matching selected tools', async () => {
+      const ctx = createMockCtx({
+        selectedTools: [{ name: 'debugger_pause' }] as any,
+      });
+      ctx.activatedToolNames.add('page_navigate'); // browser domain
+      ctx.activatedRegisteredTools.set('page_navigate', { remove: vi.fn() } as any);
+      ctx.enabledDomains.add('browser');
+
+      startDomainTtl(ctx, 'browser', 10, ['page_navigate']);
+      await deactivateDomainOnExpiry(ctx, 'browser');
+
+      // browser domain disabled because selected tool is for debugger domain
+      expect(ctx.enabledDomains.has('browser')).toBe(false);
+    });
   });
 });

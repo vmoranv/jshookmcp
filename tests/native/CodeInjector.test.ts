@@ -7,6 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CodeInjector } from '@native/CodeInjector';
+import { ReadProcessMemory } from '@native/Win32API';
 
 vi.mock('@native/Win32API', () => ({
   openProcessForMemory: vi.fn(() => 1n),
@@ -125,6 +126,20 @@ describe('CodeInjector', () => {
     it('should respect minSize parameter', async () => {
       const caves = await injector.findCodeCaves(1234, 16);
       expect(Array.isArray(caves)).toBe(true);
+    });
+
+    it('should detect executable caves and sort them by size', async () => {
+      vi.mocked(ReadProcessMemory).mockImplementation((_h: bigint, _a: bigint, size: number) => {
+        const buf = Buffer.alloc(size, 0x90);
+        buf.fill(0x00, 8, 20);
+        buf.fill(0xcc, 40, 60);
+        return buf;
+      });
+
+      const caves = await injector.findCodeCaves(1234, 8);
+
+      expect(caves.length).toBeGreaterThan(0);
+      expect(caves[0]!.size).toBeGreaterThanOrEqual(caves[caves.length - 1]!.size);
     });
   });
 

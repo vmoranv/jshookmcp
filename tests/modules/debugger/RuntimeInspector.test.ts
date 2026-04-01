@@ -111,4 +111,31 @@ describe('RuntimeInspector', () => {
       returnByValue: true,
     });
   });
+
+  it('supports async stack traces after init and validates scope lookup arguments', async () => {
+    await expect(inspector.disable()).resolves.toBeUndefined();
+
+    await inspector.init();
+    await expect(inspector.enableAsyncStackTraces(8)).resolves.toBeUndefined();
+    await expect(inspector.disableAsyncStackTraces()).resolves.toBeUndefined();
+    await expect(inspector.getScopeVariables('')).rejects.toThrow(
+      'callFrameId parameter is required',
+    );
+
+    debuggerManager.getPausedState.mockReturnValue({
+      callFrames: [
+        {
+          callFrameId: 'cf-1',
+          functionName: 'main',
+          location: { scriptId: 's1', lineNumber: 1, columnNumber: 1 },
+          url: 'https://site/app.js',
+          scopeChain: [],
+        },
+      ],
+    });
+
+    await expect(inspector.getScopeVariables('missing')).rejects.toThrow(
+      'Call frame not found: missing. Use getCallStack() to see available frames.',
+    );
+  });
 });

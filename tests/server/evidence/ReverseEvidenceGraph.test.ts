@@ -120,6 +120,16 @@ describe('ReverseEvidenceGraph (EVID-01~03, EVID-05)', () => {
     it('returns empty array for missing node', () => {
       expect(graph.getEvidenceChain('missing')).toEqual([]);
     });
+
+    it('handles cyclic graphs gracefully without infinite loops', () => {
+      const a = graph.addNode('function', 'a', {});
+      const b = graph.addNode('function', 'b', {});
+      graph.addEdge(a.id, b.id, 'triggers');
+      graph.addEdge(b.id, a.id, 'triggers'); // Cycle
+
+      const chain = graph.getEvidenceChain(a.id, 'forward');
+      expect(chain).toHaveLength(2); // Should only visit a and b once
+    });
   });
 
   // ── EVID-02: Query Engine ────────────────────────────
@@ -137,6 +147,16 @@ describe('ReverseEvidenceGraph (EVID-01~03, EVID-05)', () => {
       const ids = result.map((n) => n.id);
       expect(ids).toContain(req.id);
       expect(ids).toContain(stack.id);
+      expect(ids).not.toContain(unrelated.id);
+    });
+
+    it('returns non-request nodes if they contain url metadata', () => {
+      const func = graph.addNode('function', 'someFunc', { url: 'https://example.com/api/test' });
+      const unrelated = graph.addNode('script', 'unrelated', { url: 'https://other.com' });
+
+      const result = graph.queryByUrl('example.com/api/test');
+      const ids = result.map((n) => n.id);
+      expect(ids).toContain(func.id);
       expect(ids).not.toContain(unrelated.id);
     });
   });
@@ -203,6 +223,18 @@ describe('ReverseEvidenceGraph (EVID-01~03, EVID-05)', () => {
       expect(md).toContain('## function (1)');
       expect(md).toContain('GET /api/data');
       expect(md).toContain('processData');
+    });
+
+    it('produces readable report with connected edges and complex metadata', () => {
+      const a = graph.addNode('request', 'GET /api/data', { count: 42, complex: { flag: true } });
+      const b = graph.addNode('function', 'processData', {});
+      graph.addEdge(a.id, b.id, 'initiates');
+
+      const md = graph.exportMarkdown();
+      expect(md).toContain('**→ Out:**');
+      expect(md).toContain('**← In:**');
+      expect(md).toContain('**count:** 42');
+      expect(md).toContain('**complex:** {"flag":true}');
     });
   });
 });

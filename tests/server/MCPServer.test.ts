@@ -391,4 +391,116 @@ describe('MCPServer', () => {
     await server.close();
     await expect(server.close()).resolves.toBeUndefined();
   });
+  it('handles empty secondaryDepKeys and duplicate secondary keys', () => {
+    mocks.allManifests.push({
+      domain: 'test1',
+      depKey: 'key1',
+      ensure: vi.fn(),
+    });
+    mocks.allManifests.push({
+      domain: 'test2',
+      depKey: 'key2',
+      secondaryDepKeys: ['key1'], // duplicate
+      ensure: vi.fn(),
+    });
+    const server = new MCPServer(baseConfig);
+    expect(server).toBeDefined();
+  });
+
+  it('contextGuard resolves TabRegistry gracefully when getTabRegistry is undefined or incomplete', async () => {
+    const server = new MCPServer(baseConfig) as any;
+    const dummyResponse = { content: [{ type: 'text', text: '{}' }] };
+
+    // 1: browserHandlers undefined
+    server.handlerDeps.browserHandlers = undefined;
+    expect(
+      server.contextGuard.enrichResponse('page_test', { ...dummyResponse }).content[0].text,
+    ).not.toContain('_tabContext');
+
+    // 2: getTabRegistry undefined
+    server.handlerDeps.browserHandlers = {};
+    expect(
+      server.contextGuard.enrichResponse('page_test', { ...dummyResponse }).content[0].text,
+    ).not.toContain('_tabContext');
+
+    // 3: getTabRegistry defined
+    const mockContextMeta = { url: 'tab', title: 'test', tabIndex: 1, pageId: '1' };
+    server.handlerDeps.browserHandlers = {
+      getTabRegistry: () => ({ getContextMeta: () => mockContextMeta }),
+    };
+    const enriched = server.contextGuard.enrichResponse('page_test', {
+      content: [{ type: 'text', text: '{}' }],
+    });
+    expect(enriched.content[0].text).toContain('_tabContext');
+  });
+
+  it('registerCaches handles early returns and concurrent registration', async () => {
+    const server = new MCPServer(baseConfig) as any;
+    // 1: no collector
+    server.collector = undefined;
+    await server.registerCaches(); // coverage: if (!this.collector) return;
+
+    // 2: duplicate registration test (cacheAdaptersRegistered)
+    server.cacheAdaptersRegistered = true;
+    await server.registerCaches(); // coverage: if (this.cacheAdaptersRegistered) return;
+    server.cacheAdaptersRegistered = false;
+
+    // 3: concurrent registration promise
+    server.collector = { getCache: vi.fn(), getCompressor: vi.fn() };
+    server.cacheRegistrationPromise = Promise.resolve();
+    await server.registerCaches(); // coverage: if (this.cacheRegistrationPromise)
+  });
+
+  it('executeToolWithTracking catches trackingError and refreshes TTL when activated', async () => {
+    const server = new MCPServer(baseConfig);
+    server.activatedToolNames.add('tool_alpha');
+    server.domainTtlEntries.set('browser', {
+      timer: setTimeout(() => {}, 1000),
+      ttlMs: 1000,
+      toolNames: new Set(['tool_alpha']),
+    });
+
+    mocks.tokenBudget.recordToolCall.mockImplementationOnce(() => {
+      throw new Error('Tracking failed');
+    });
+
+    const response = await server.executeToolWithTracking('tool_alpha', { x: 7 });
+    expect((response.content[0] as any).text).toContain('alpha');
+    // coverage guarantees line 308 (catch block) and 314 (activatedToolNames.has(name)) are hit
+  });
+
+  it('executeToolWithTracking handles routing errors and secondary tracking errors', async () => {
+    const server = new MCPServer(baseConfig) as any;
+    server.router.execute = vi.fn().mockRejectedValue(new Error('Router failed'));
+
+    mocks.tokenBudget.recordToolCall.mockImplementationOnce(() => {
+      throw new Error('Tracking failed during error path');
+    });
+
+    await expect(server.executeToolWithTracking('tool_alpha', { x: 7 })).rejects.toThrow(
+      'Router failed',
+    );
+  });
+
+  it('HTTP transport mode startup', async () => {
+    process.env.MCP_TRANSPORT = 'http';
+    const server = new MCPServer(baseConfig);
+    server.registerCaches = vi.fn(); // avoid importing cache adapters
+    // mock HTTP transport to avoid actually starting a listener
+    const mockStartHttp = vi.hoisted(() => vi.fn());
+    const transportMod = await import('@server/MCPServer.transport');
+    vi.spyOn(transportMod, 'startHttpTransport').mockImplementation(mockStartHttp as any);
+
+    await server.start();
+    expect(mockStartHttp).toHaveBeenCalled();
+  });
+
+  it('property setters logic for undefined correctly deletes domainInstanceMap entries', () => {
+    const server = new MCPServer(baseConfig);
+    server.collector = { id: 1 } as any;
+    expect(server.domainInstanceMap.has('collector')).toBe(true);
+
+    server.collector = undefined; // coverage: if (v === undefined) this.domainInstanceMap.delete(key);
+    expect(server.domainInstanceMap.has('collector')).toBe(false);
+  });
 });

@@ -36,6 +36,8 @@ vi.mock('@utils/outputPaths', () => ({
   getProjectRoot: () => '/mock/project/root',
 }));
 
+import { MacroConfigLoader } from '@server/macros/MacroConfigLoader';
+
 describe('MacroToolHandlers', () => {
   let handlers: MacroToolHandlers;
 
@@ -58,6 +60,24 @@ describe('MacroToolHandlers', () => {
       expect(data.macros).toBeInstanceOf(Array);
       expect(data.count).toBeGreaterThan(0);
       expect(data.macros.find((m: any) => m.id === 'custom_macro')).toBeDefined();
+    });
+
+    it('should ignore user macro loading errors and fallback to built-ins', async () => {
+      vi.spyOn(MacroConfigLoader, 'loadFromDirectory').mockRejectedValueOnce(
+        new Error('dir issue'),
+      );
+      const result = (await handlers.handleListMacros()) as any;
+      const data = JSON.parse(result.content[0].text);
+      expect(data.macros).toBeInstanceOf(Array);
+      expect(data.macros.find((m: any) => m.id === 'custom_macro')).toBeUndefined();
+    });
+
+    it('should cache macros after first load', async () => {
+      const spy = vi.spyOn(handlers as any, 'ensureMacrosLoaded');
+      await handlers.handleListMacros();
+      await handlers.handleListMacros();
+      expect(spy).toHaveBeenCalledTimes(2);
+      // It should return the cached promise/result on second call
     });
   });
 

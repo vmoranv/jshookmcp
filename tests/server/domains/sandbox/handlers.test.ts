@@ -86,5 +86,90 @@ describe('SandboxToolHandlers', () => {
 
       expect(result.content[0].text).toContain('"__scratchpad":{"count":1}');
     });
+
+    it('should pass timeoutMs to options', async () => {
+      // we just simulate passing it, the mock currently executes fast anyway
+      const result = (await handlers.handleExecuteSandboxScript({
+        code: 'return 1;',
+        timeoutMs: 5000,
+      })) as any;
+      expect(result.content[0].text).toContain('✓ Success');
+    });
+
+    it('should report failure and error message', async () => {
+      // Mock execute returning error state
+      vi.spyOn(handlers['scratchpad'] as any, 'getAll').mockReturnValue({}); // avoid unused var warning
+
+      const QuickJSSandbox = await import('@server/sandbox/QuickJSSandbox').then(
+        (m) => m.QuickJSSandbox,
+      );
+      vi.spyOn(QuickJSSandbox.prototype, 'execute').mockResolvedValueOnce({
+        ok: false,
+        durationMs: 10,
+        logs: [],
+        error: 'SyntaxError',
+        output: undefined,
+        timedOut: false,
+      });
+
+      const result = (await handlers.handleExecuteSandboxScript({ code: 'bad;' })) as any;
+      const text = result.content[0].text;
+      expect(text).toContain('✗ Failed');
+      expect(text).toContain('**Error:** SyntaxError');
+    });
+
+    it('should report timed out executions', async () => {
+      const QuickJSSandbox = await import('@server/sandbox/QuickJSSandbox').then(
+        (m) => m.QuickJSSandbox,
+      );
+      vi.spyOn(QuickJSSandbox.prototype, 'execute').mockResolvedValueOnce({
+        ok: false,
+        durationMs: 5000,
+        logs: [],
+        timedOut: true,
+        output: undefined,
+      });
+
+      const result = (await handlers.handleExecuteSandboxScript({ code: 'while(1);' })) as any;
+      expect(result.content[0].text).toContain('**Timed out:** yes');
+    });
+
+    it('should handle non-object results without persisting scratchpad', async () => {
+      const QuickJSSandbox = await import('@server/sandbox/QuickJSSandbox').then(
+        (m) => m.QuickJSSandbox,
+      );
+      vi.spyOn(QuickJSSandbox.prototype, 'execute').mockResolvedValueOnce({
+        ok: true,
+        durationMs: 5,
+        logs: [],
+        timedOut: false,
+        output: 42, // Non-object
+      });
+
+      const result = (await handlers.handleExecuteSandboxScript({
+        code: 'return 42;',
+        sessionId: 'sess-3',
+      })) as any;
+      expect(result.content[0].text).toContain('**Result:** 42');
+    });
+
+    it('should ignore object results without __scratchpad property', async () => {
+      const QuickJSSandbox = await import('@server/sandbox/QuickJSSandbox').then(
+        (m) => m.QuickJSSandbox,
+      );
+      vi.spyOn(QuickJSSandbox.prototype, 'execute').mockResolvedValueOnce({
+        ok: true,
+        durationMs: 5,
+        logs: [],
+        timedOut: false,
+        output: { key: 'value' }, // No __scratchpad
+      });
+
+      const result = (await handlers.handleExecuteSandboxScript({
+        code: 'return {};',
+        sessionId: 'sess-4',
+      })) as any;
+      expect(result.content[0].text).toContain('{"key":"value"}');
+    });
   });
 });

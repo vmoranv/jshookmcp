@@ -244,6 +244,16 @@ describe('TransformToolHandlersOps', () => {
       expect(diff).toContain('+x');
     });
 
+    it('handles remaining old lines', () => {
+      const diff = ops.testBuildDiff('a\nb', 'a');
+      expect(diff).toContain('-b');
+    });
+
+    it('handles remaining new lines', () => {
+      const diff = ops.testBuildDiff('a', 'a\nb');
+      expect(diff).toContain('+b');
+    });
+
     it('uses fallback diff for large inputs', () => {
       const spy = vi.spyOn(ops as any, 'buildFallbackDiff');
 

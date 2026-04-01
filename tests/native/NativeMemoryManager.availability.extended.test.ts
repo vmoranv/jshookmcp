@@ -137,5 +137,17 @@ describe('NativeMemoryManager.availability', () => {
 
       expect(result.available).toBe(true);
     });
+
+    it('returns available when process.getuid is unavailable', async () => {
+      Object.defineProperty(process, 'getuid', {
+        value: undefined,
+        configurable: true,
+      });
+      state.execAsync.mockResolvedValue({ stdout: 'enabled', stderr: '' });
+
+      const result = await checkNativeMemoryAvailability(state.execAsync);
+
+      expect(result.available).toBe(true);
+    });
   });
 });

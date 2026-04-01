@@ -169,6 +169,18 @@ describe('WorkflowHandlersApi', () => {
       expect(body.error).toContain('paths array is required');
     });
 
+    it('returns error when paths JSON is invalid', async () => {
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleApiProbeBatch({
+          baseUrl: 'https://api.example.com',
+          paths: 'not-json',
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('paths array is required');
+    });
+
     it('parses paths from JSON string', async () => {
       vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
         makeTextResult({ probed: 1, results: {} }),
@@ -481,6 +493,23 @@ describe('WorkflowHandlersApi', () => {
       expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
     });
 
+    it('performs wait action', async () => {
+      setupSuccessfulCapture();
+
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleWebApiCaptureSession({
+          url: 'https://example.com',
+          actions: [{ type: 'wait', delayMs: 0 }],
+          exportHar: false,
+          exportReport: false,
+          waitAfterActionsMs: 0,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.steps).toContain('wait(0ms)');
+    });
+
     it('records warnings for failed actions without aborting', async () => {
       setupSuccessfulCapture();
       vi.mocked(deps.browserHandlers.handlePageClick).mockRejectedValue(
@@ -524,6 +553,24 @@ describe('WorkflowHandlersApi', () => {
       expect(deps.browserHandlers.handlePageClick).toHaveBeenCalledOnce();
     });
 
+    it('treats invalid actions JSON as an empty action list', async () => {
+      setupSuccessfulCapture();
+
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleWebApiCaptureSession({
+          url: 'https://example.com',
+          actions: 'not-json',
+          exportHar: false,
+          exportReport: false,
+          waitAfterActionsMs: 0,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(deps.browserHandlers.handlePageClick).not.toHaveBeenCalled();
+      expect(deps.browserHandlers.handlePageType).not.toHaveBeenCalled();
+    });
+
     it('filters out invalid action types', async () => {
       setupSuccessfulCapture();
 
@@ -540,6 +587,22 @@ describe('WorkflowHandlersApi', () => {
       expect(body.success).toBe(true);
       // Invalid action should be filtered out
       expect(deps.browserHandlers.handlePageClick).not.toHaveBeenCalled();
+    });
+
+    it('waits at the end of capture when waitAfterActionsMs is positive', async () => {
+      setupSuccessfulCapture();
+
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleWebApiCaptureSession({
+          url: 'https://example.com',
+          exportHar: false,
+          exportReport: false,
+          waitAfterActionsMs: 1,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.steps).toContain('wait(1ms)');
     });
 
     it('returns error when network_get_stats fails', async () => {
@@ -589,6 +652,24 @@ describe('WorkflowHandlersApi', () => {
       expect(deps.advancedHandlers.handleNetworkExportHar).not.toHaveBeenCalled();
     });
 
+    it('exports HAR when exportHar is enabled', async () => {
+      setupSuccessfulCapture();
+
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleWebApiCaptureSession({
+          url: 'https://example.com',
+          exportHar: true,
+          exportReport: false,
+          waitAfterActionsMs: 0,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.summary.harExported).toBe(true);
+      expect(body.summary.harPath).toContain('artifacts/har');
+      expect(deps.advancedHandlers.handleNetworkExportHar).toHaveBeenCalledOnce();
+    });
+
     it('skips report export when exportReport is false', async () => {
       setupSuccessfulCapture();
 
@@ -624,6 +705,25 @@ describe('WorkflowHandlersApi', () => {
       expect(body.requestStats.hint).toContain('get_detailed_data');
     });
 
+    it('records a warning when report export fails', async () => {
+      setupSuccessfulCapture();
+      vi.spyOn(handlers as any, 'safeWriteFile').mockRejectedValueOnce(new Error('disk full'));
+
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleWebApiCaptureSession({
+          url: 'https://example.com',
+          exportHar: false,
+          exportReport: true,
+          waitAfterActionsMs: 0,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.report?.success).toBe(false);
+      expect(body.report?.error).toContain('disk full');
+      expect(body.warnings?.some((warning) => warning.includes('Report export failed'))).toBe(true);
+    });
+
     it('handles overall workflow error gracefully', async () => {
       vi.mocked(deps.advancedHandlers.handleNetworkEnable).mockRejectedValue(
         new Error('CDP connection lost'),
@@ -639,6 +739,49 @@ describe('WorkflowHandlersApi', () => {
       expect(body.success).toBe(false);
       expect(body.error).toContain('CDP connection lost');
       expect(body.steps).toBeDefined();
+    });
+  });
+
+  describe('additional coverage', () => {
+    it('exports the markdown report when report export is enabled', async () => {
+      vi.mocked(deps.advancedHandlers.handleNetworkEnable).mockResolvedValue(
+        makeTextResult({ success: true }),
+      );
+      vi.mocked(deps.advancedHandlers.handleConsoleInjectFetchInterceptor).mockResolvedValue(
+        makeTextResult({ success: true }),
+      );
+      vi.mocked(deps.advancedHandlers.handleConsoleInjectXhrInterceptor).mockResolvedValue(
+        makeTextResult({ success: true }),
+      );
+      vi.mocked(deps.browserHandlers.handlePageNavigate).mockResolvedValue(
+        makeTextResult({ success: true }),
+      );
+      vi.mocked(deps.advancedHandlers.handleNetworkGetStats).mockResolvedValue(
+        makeTextResult({ stats: { totalRequests: 5 } }),
+      );
+      vi.mocked(deps.advancedHandlers.handleNetworkGetRequests).mockResolvedValue(
+        makeTextResult({ stats: { total: 5 }, detailId: undefined }),
+      );
+      vi.mocked(deps.advancedHandlers.handleNetworkExtractAuth).mockResolvedValue(
+        makeTextResult({ found: 1, findings: [{ type: 'bearer', confidence: 0.9 }] }),
+      );
+      vi.mocked(deps.advancedHandlers.handleNetworkExportHar).mockResolvedValue(
+        makeTextResult({ success: true }),
+      );
+
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleWebApiCaptureSession({
+          url: 'https://example.com',
+          exportHar: false,
+          exportReport: true,
+          waitAfterActionsMs: 0,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.summary.reportExported).toBe(true);
+      expect(body.report?.success).toBe(true);
+      expect(body.report?.outputPath).toContain('artifacts/reports');
     });
   });
 });

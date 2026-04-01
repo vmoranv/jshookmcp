@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -63,5 +63,92 @@ describe('artifactRetention', () => {
     expect(result.removedFiles).toBe(1);
     expect(result.removedBySize).toBeGreaterThan(0);
     expect(result.remainingBytes).toBeLessThanOrEqual(10);
+  });
+
+  it('tolerates filesystem access errors gracefully', async () => {
+    // Attempting to scan non-existent or restricted paths should return gracefully
+    const result = await cleanupArtifacts({
+      directories: [join(root, 'non-existent-dir')],
+    });
+    expect(result.success).toBe(true);
+    expect(result.scannedFiles).toBe(0);
+  });
+
+  it('computes default directories and runs safely in dry_run mode', async () => {
+    const artifacts = await import('@utils/artifacts');
+    const outputPaths = await import('@utils/outputPaths');
+
+    vi.spyOn(outputPaths, 'getProjectRoot').mockReturnValue(root);
+    vi.spyOn(artifacts, 'getArtifactsRoot').mockReturnValue(join(root, 'artifacts'));
+    vi.spyOn(artifacts, 'getArtifactDir').mockImplementation((category) =>
+      join(root, 'artifacts', category),
+    );
+    vi.spyOn(outputPaths, 'resolveOutputDirectory').mockImplementation(
+      (inputDir, fallbackDir) => inputDir ?? join(root, fallbackDir ?? 'screenshots'),
+    );
+
+    const result = await cleanupArtifacts({
+      directories: undefined,
+      dryRun: true,
+    });
+    expect(result.success).toBe(true);
+    expect(result.directories.length).toBeGreaterThan(0);
+    expect(result.directories).toContain(join(root, 'artifacts'));
+    expect(result.directories).toContain(join(root, 'screenshots'));
+  });
+
+  it('keeps pruning cwd debugger sessions when MCP_PROJECT_ROOT is overridden', async () => {
+    const artifacts = await import('@utils/artifacts');
+    const outputPaths = await import('@utils/outputPaths');
+    const originalProjectRoot = process.env.MCP_PROJECT_ROOT;
+    const cwdRoot = join(root, 'runtime-cwd');
+    const projectRoot = join(root, 'project-root');
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(cwdRoot);
+
+    try {
+      process.env.MCP_PROJECT_ROOT = 'custom-root';
+      vi.spyOn(outputPaths, 'getProjectRoot').mockReturnValue(projectRoot);
+      vi.spyOn(artifacts, 'getArtifactsRoot').mockReturnValue(join(projectRoot, 'artifacts'));
+      vi.spyOn(artifacts, 'getArtifactDir').mockImplementation((category) =>
+        join(projectRoot, 'artifacts', category),
+      );
+      vi.spyOn(outputPaths, 'resolveOutputDirectory').mockImplementation(
+        (inputDir, fallbackDir) => inputDir ?? join(projectRoot, fallbackDir ?? 'screenshots'),
+      );
+
+      const result = await cleanupArtifacts({
+        directories: undefined,
+        dryRun: true,
+      });
+
+      expect(result.directories).toContain(join(projectRoot, 'debugger-sessions'));
+      expect(result.directories).toContain(join(cwdRoot, 'debugger-sessions'));
+    } finally {
+      cwdSpy.mockRestore();
+      if (originalProjectRoot === undefined) {
+        delete process.env.MCP_PROJECT_ROOT;
+      } else {
+        process.env.MCP_PROJECT_ROOT = originalProjectRoot;
+      }
+    }
+  });
+});
+
+describe('artifactRetention Scheduler', () => {
+  it('skips scheduling if interval is 0', async () => {
+    const { startArtifactRetentionScheduler } = await import('@utils/artifactRetention');
+    process.env.MCP_ARTIFACT_CLEANUP_INTERVAL_MINUTES = '0';
+    const stopFn = startArtifactRetentionScheduler();
+    expect(stopFn).toBeNull();
+  });
+
+  it('spawns and stops interval scheduling bounds correctly', async () => {
+    const { startArtifactRetentionScheduler } = await import('@utils/artifactRetention');
+    process.env.MCP_ARTIFACT_CLEANUP_INTERVAL_MINUTES = '1';
+    const stopFn = startArtifactRetentionScheduler();
+    expect(stopFn).toBeDefined();
+    if (stopFn) {
+      expect(() => stopFn()).not.toThrow();
+    }
   });
 });

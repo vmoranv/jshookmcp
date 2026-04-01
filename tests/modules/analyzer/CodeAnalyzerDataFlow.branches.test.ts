@@ -305,4 +305,64 @@ describe('CodeAnalyzerDataFlow additional branch coverage', () => {
       expect(r.sinks.length).toBeGreaterThan(0);
     });
   });
+
+  describe('false branch coverage configurations', () => {
+    it('handles fetch without variable declarator', async () => {
+      const r = await analyzeDataFlowWithTaint('api.fetch("/url");');
+      expect(r.sources.some((s) => s.type === 'network')).toBe(true);
+    });
+
+    it('handles assignment to non-innerHTML properties', async () => {
+      const r = await analyzeDataFlowWithTaint(
+        'const el = location.href;\ndocument.body.innerText = el;',
+      );
+      // innerText doesn't trigger the XSS sink path for taint, so xss sink count is 0
+      expect(r.sinks.some((s) => s.type === 'xss')).toBe(false);
+    });
+
+    it('handles sanitizer with non-identifier or non-tainted argument', async () => {
+      sanitizerState.checkSanitizer.mockReturnValue(true);
+      const r = await analyzeDataFlowWithTaint(
+        'const c = sanitize(123); const d = sanitize(untainted);',
+      );
+      expect(r.sources.length).toBe(0);
+    });
+
+    it('handles binary expression with no tainted sides', async () => {
+      const r = await analyzeDataFlowWithTaint('const a = 1; const b = 2; const c = a + b;');
+      expect(r.sources.length).toBe(0);
+    });
+
+    it('handles VariableDeclarator with CallExpression and no taint', async () => {
+      const r = await analyzeDataFlowWithTaint('const c = normalFunc(123);');
+      expect(r.sources.length).toBe(0);
+    });
+
+    it('handles network source with non-identifier variable declarator (ObjectPattern)', async () => {
+      const r = await analyzeDataFlowWithTaint('const { data } = api.fetch("/url");');
+      expect(r.sources.some((s) => s.type === 'network')).toBe(true);
+    });
+
+    it('handles location source without variable declarator', async () => {
+      const r = await analyzeDataFlowWithTaint('console.log(location.href);');
+      expect(r.sources.some((s) => s.type === 'user_input')).toBe(true);
+    });
+
+    it('handles location source with non-identifier variable declarator (ObjectPattern)', async () => {
+      const r = await analyzeDataFlowWithTaint('const { length } = location.href;');
+      expect(r.sources.some((s) => s.type === 'user_input')).toBe(true);
+    });
+
+    it('handles assignment expression without member expression on left side', async () => {
+      const r = await analyzeDataFlowWithTaint('let x = 1; x = location.href;');
+      // xss sinks should be 0 because x is not a member expression (e.g. obj.innerHTML)
+      expect(r.sinks.some((s) => s.type === 'xss')).toBe(false);
+    });
+
+    it('handles location source with StringLiteral property (bracket notation)', async () => {
+      const r = await analyzeDataFlowWithTaint('const x = location["href"];');
+      // sources should be 0 because our static analyzer only looks for Identifier properties
+      expect(r.sources.some((s) => s.type === 'user_input')).toBe(false);
+    });
+  });
 });

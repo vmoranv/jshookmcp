@@ -147,4 +147,15 @@ describe('Deobfuscator', () => {
       'mocked failure',
     );
   });
+
+  it('evicts the oldest cached result when the cache limit is reached', async () => {
+    const deobfuscator = new Deobfuscator();
+    (deobfuscator as any).maxCacheSize = 1;
+
+    await deobfuscator.deobfuscate({ code: 'first()' });
+    await deobfuscator.deobfuscate({ code: 'second()' });
+    await deobfuscator.deobfuscate({ code: 'first()' });
+
+    expect(webcrackState.runWebcrack).toHaveBeenCalledTimes(3);
+  });
 });

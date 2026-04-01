@@ -90,4 +90,60 @@ describe('TokenBudgetManager', () => {
     expect(manager.getStats().toolCallCount).toBe(0);
     expect(manager.getStats().currentUsage).toBe(0);
   });
+
+  it('handles errors gracefully in recordToolCall', () => {
+    const manager = TokenBudgetManager.getInstance();
+    const toxic: Record<string, unknown> = { detailId: 'x' };
+    Object.defineProperty(toxic, 'summary', {
+      get() {
+        throw new Error('toxic');
+      },
+    });
+
+    expect(() => manager.recordToolCall('test', toxic, null)).not.toThrow();
+  });
+
+  it('triggers mcp envelope fallback branches', () => {
+    const manager = TokenBudgetManager.getInstance();
+    manager.recordToolCall('test', null, null);
+    manager.recordToolCall('test', { content: null }, null);
+    manager.recordToolCall('test', { content: [] }, null);
+    manager.recordToolCall('test', { content: ['string'] }, null);
+    manager.recordToolCall('test', { content: [{ type: 'image' }] }, null);
+  });
+
+  it('handles extreme depths and non-records in normalization', () => {
+    const manager = TokenBudgetManager.getInstance();
+    const bigString = 'x'.repeat(2500);
+
+    manager.recordToolCall('test', [[[[[1]]]]], null);
+    manager.recordToolCall('test', { a: { b: { c: { d: { e: 1 } } } } }, null);
+    manager.recordToolCall('test', BigInt(123), Symbol('test'));
+    manager.recordToolCall('test', () => {}, null);
+    manager.recordToolCall('test', new Error('test error'), null);
+    manager.recordToolCall('test', Buffer.from('test'), null);
+    manager.recordToolCall('test', bigString, null);
+
+    // Simulate oversized error stack
+    const hugeError = new Error('huge');
+    hugeError.stack = bigString;
+    manager.recordToolCall('test', hugeError, null);
+
+    // Test Detailed summary with invalid summary type
+    manager.recordToolCall('test', { detailId: 'x', summary: 'invalid' }, null);
+    manager.recordToolCall('test', { detailId: 'x', summary: { size: 'NaN' } }, null);
+
+    // Test undefined serialization (hits !serialized fallback)
+    manager.recordToolCall('test', undefined, undefined);
+  });
+
+  it('hits outer catch block when internal operations throw', () => {
+    const manager = TokenBudgetManager.getInstance();
+    const loggerMock = vi.spyOn(manager as any, 'checkWarnings').mockImplementationOnce(() => {
+      throw new Error('Forced internal error');
+    });
+
+    manager.recordToolCall('test', { valid: true }, null);
+    expect(loggerMock).toHaveBeenCalled();
+  });
 });

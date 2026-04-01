@@ -78,4 +78,59 @@ describe('ObfuscationDetector', () => {
     expect(report).toContain('Detected Types');
     expect(report).toContain('Recommendations');
   });
+
+  it('detects remaining signature families and recommends runtime hooks when needed', () => {
+    const detector = new ObfuscationDetector();
+    const runtimeCode = `
+      eval("a");
+      eval("b");
+      eval("c");
+      const factory = new Function("return 1");
+      const hidden = "zero\u200Bwidth";
+      const encoded = "%41%42%43%44%45%46%47%48%49%4A%4B";
+      const packed = eval(function(p,a,c,k,e,d){return p;});
+      const aa = "゚ω゚";
+      const jj = "$={___:++$";
+    `;
+
+    const result = detector.detect(runtimeCode);
+
+    expect(result.types).toEqual(
+      expect.arrayContaining([
+        'invisible-unicode',
+        'eval-obfuscation',
+        'self-modifying',
+        'packer',
+        'aaencode',
+        'jjencode',
+        'urlencoded',
+      ]),
+    );
+    expect(result.toolRecommendations.some((item) => item.tool === 'manage_hooks')).toBe(true);
+    expect(result.toolRecommendations.some((item) => item.tool === 'advanced_deobfuscate')).toBe(
+      true,
+    );
+  });
+
+  it('accumulates JScrambler heuristics from multiple indicators', () => {
+    const detector = new ObfuscationDetector();
+    const code = `
+      while (!![]) {
+        switch (state) {
+          case 0:
+            debugger;
+            constructor;
+            function demo(x) { return x.charCodeAt(0).fromCharCode(0); }
+            Function.prototype.toString.call(demo);
+            break;
+        }
+      }
+    `;
+
+    const result = detector.detect(code);
+
+    expect(result.types).toContain('jscrambler');
+    expect(result.features).toContain('Control flow flattening + Self-defending');
+    expect(result.recommendations).toContain('Use JScrambler deobfuscator');
+  });
 });

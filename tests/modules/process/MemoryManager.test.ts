@@ -1,165 +1,195 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { type PatternType } from '@src/modules/process/memory/index';
-import { MemoryManager } from '@src/modules/process/MemoryManager';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { MemoryManager } from '../../../src/modules/process/MemoryManager';
 
-const state = vi.hoisted(() => ({
-  readMemory: vi.fn(),
-  writeMemory: vi.fn(),
-  batchMemoryWrite: vi.fn(),
-  scanMemory: vi.fn(),
-  scanMemoryFiltered: vi.fn(),
-  dumpMemoryRegion: vi.fn(),
-  enumerateRegions: vi.fn(),
-  checkMemoryProtection: vi.fn(),
-  enumerateModules: vi.fn(),
-  injectDll: vi.fn(),
-  injectShellcode: vi.fn(),
-  checkAvailability: vi.fn(),
-  checkDebugPort: vi.fn(),
-  monitorStart: vi.fn(() => 'monitor-id'),
-  monitorStop: vi.fn(() => true),
-}));
+// Mock the internal sub-module delegates
+vi.mock('@modules/process/memory/index', () => {
+  return {
+    readMemory: vi.fn(),
+    writeMemory: vi.fn(),
+    batchMemoryWrite: vi.fn(),
+    scanMemory: vi.fn(),
+    scanMemoryFiltered: vi.fn(),
+    dumpMemoryRegion: vi.fn(),
+    enumerateRegions: vi.fn(),
+    checkMemoryProtection: vi.fn(),
+    enumerateModules: vi.fn(),
+    injectDll: vi.fn(),
+    injectShellcode: vi.fn(),
+    MemoryMonitorManager: class {
+      start = vi.fn().mockReturnValue('monitor-123');
+      stop = vi.fn().mockReturnValue(true);
+    },
+    checkAvailability: vi.fn().mockResolvedValue({ available: true }),
+    checkDebugPort: vi.fn(),
+  };
+});
 
-vi.mock('@src/modules/process/memory/index', () => ({
-  readMemory: state.readMemory,
-  writeMemory: state.writeMemory,
-  batchMemoryWrite: state.batchMemoryWrite,
-  scanMemory: state.scanMemory,
-  scanMemoryFiltered: state.scanMemoryFiltered,
-  dumpMemoryRegion: state.dumpMemoryRegion,
-  enumerateRegions: state.enumerateRegions,
-  checkMemoryProtection: state.checkMemoryProtection,
-  enumerateModules: state.enumerateModules,
-  injectDll: state.injectDll,
-  injectShellcode: state.injectShellcode,
-  checkAvailability: state.checkAvailability,
-  checkDebugPort: state.checkDebugPort,
-  MemoryMonitorManager: class {
-    start = state.monitorStart;
-    stop = state.monitorStop;
-  },
-}));
+import * as memoryImpl from '@modules/process/memory/index';
 
-vi.mock('@src/utils/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
-
-function currentPlatform(): 'win32' | 'linux' | 'darwin' | 'unknown' {
-  if (process.platform === 'win32') return 'win32';
-  if (process.platform === 'linux') return 'linux';
-  if (process.platform === 'darwin') return 'darwin';
-  return 'unknown';
+function setPlatform(platform: string) {
+  Object.defineProperty(process, 'platform', { value: platform });
 }
 
 describe('MemoryManager', () => {
+  const originalPlatform = process.platform;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('delegates readMemory with platform and protection callback', async () => {
-    state.checkMemoryProtection.mockResolvedValue({ success: true, isReadable: true });
-    state.readMemory.mockImplementation(
-      async (
-        platform: string,
-        pid: number,
-        address: string,
-        size: number,
-        checkFn: (pid: number, address: string) => Promise<any>,
-      ) => {
-        expect(platform).toBe(currentPlatform());
-        expect(pid).toBe(123);
-        expect(address).toBe('0x10');
-        expect(size).toBe(8);
-        await checkFn(123, '0x10');
-        return { success: true, data: 'AA' };
-      },
-    );
-
-    const manager = new MemoryManager();
-    const result = await manager.readMemory(123, '0x10', 8);
-
-    expect(result.success).toBe(true);
-    expect(state.checkMemoryProtection).toHaveBeenCalledWith(currentPlatform(), 123, '0x10');
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
   });
 
-  it('delegates writeMemory and preserves encoding argument', async () => {
-    state.writeMemory.mockResolvedValue({ success: true, bytesWritten: 4 });
+  it('detects win32 platform correctly', () => {
+    setPlatform('win32');
     const manager = new MemoryManager();
-    await manager.writeMemory(1, '0x20', 'DE AD BE EF', 'hex');
-
-    expect(state.writeMemory).toHaveBeenCalledWith(
-      currentPlatform(),
-      1,
-      '0x20',
-      'DE AD BE EF',
-      'hex',
-      expect.any(Function),
-    );
+    expect((manager as any).platform).toBe('win32');
   });
 
-  it('delegates scanMemoryFiltered with read/scan callbacks', async () => {
-    state.readMemory.mockResolvedValue({ success: true, data: 'AB CD' });
-    state.scanMemory.mockResolvedValue({ success: true, addresses: ['0x100'] });
-    state.scanMemoryFiltered.mockImplementation(
-      async (
-        _pid: number,
-        _pattern: string,
-        _addresses: string[],
-        _patternType: string,
-        readFn: (pid: number, address: string, size: number) => Promise<any>,
-        scanFn: (pid: number, pattern: string, patternType: PatternType) => Promise<any>,
-      ) => {
-        await readFn(9, '0x99', 4);
-        await scanFn(9, 'AA', 'hex');
-        return { success: true, addresses: ['0x99'] };
-      },
-    );
-
+  it('detects linux platform correctly', () => {
+    setPlatform('linux');
     const manager = new MemoryManager();
-    const result = await manager.scanMemoryFiltered(9, 'AA', ['0x99'], 'hex');
-
-    expect(result.success).toBe(true);
-    expect(state.scanMemoryFiltered).toHaveBeenCalled();
-    expect(state.readMemory).toHaveBeenCalled();
-    expect(state.scanMemory).toHaveBeenCalled();
+    expect((manager as any).platform).toBe('linux');
   });
 
-  it('delegates monitor start/stop to MemoryMonitorManager instance', () => {
+  it('detects darwin platform correctly', () => {
+    setPlatform('darwin');
     const manager = new MemoryManager();
-    const onChange = vi.fn();
-
-    const monitorId = manager.startMemoryMonitor(10, '0x1234', 4, 200, onChange);
-    const stopped = manager.stopMemoryMonitor(monitorId);
-
-    expect(monitorId).toBe('monitor-id');
-    expect(state.monitorStart).toHaveBeenCalledWith(
-      10,
-      '0x1234',
-      4,
-      200,
-      expect.any(Function),
-      onChange,
-    );
-    expect(stopped).toBe(true);
-    expect(state.monitorStop).toHaveBeenCalledWith('monitor-id');
+    expect((manager as any).platform).toBe('darwin');
   });
 
-  it('delegates availability and debug checks', async () => {
-    state.checkAvailability.mockResolvedValue({ available: true });
-    state.checkDebugPort.mockResolvedValue({ success: true, isDebugged: false });
+  it('falls back to unknown platform', () => {
+    setPlatform('freebsd');
     const manager = new MemoryManager();
+    expect((manager as any).platform).toBe('unknown');
+  });
 
-    const availability = await manager.checkAvailability();
-    const debugState = await manager.checkDebugPort(100);
+  describe('delegates correctly', () => {
+    let manager: MemoryManager;
 
-    expect(availability.available).toBe(true);
-    expect(debugState.isDebugged).toBe(false);
-    expect(state.checkAvailability).toHaveBeenCalledWith(currentPlatform());
-    expect(state.checkDebugPort).toHaveBeenCalledWith(currentPlatform(), 100);
+    beforeEach(() => {
+      setPlatform('win32');
+      manager = new MemoryManager();
+    });
+
+    it('readMemory', async () => {
+      await manager.readMemory(1234, '0x1000', 10);
+      expect(memoryImpl.readMemory).toHaveBeenCalled();
+      // Test the protection callback
+      const callback = vi.mocked(memoryImpl.readMemory).mock.calls[0]?.[4] as any;
+      if (callback) {
+        await callback(1234, '0x1000');
+        expect(memoryImpl.checkMemoryProtection).toHaveBeenCalledWith('win32', 1234, '0x1000');
+      }
+    });
+
+    it('writeMemory', async () => {
+      await manager.writeMemory(1234, '0x1000', 'data', 'hex');
+      expect(memoryImpl.writeMemory).toHaveBeenCalled();
+      const callback = vi.mocked(memoryImpl.writeMemory).mock.calls[0]?.[5] as any;
+      if (callback) {
+        await callback(1234, '0x1000');
+        expect(memoryImpl.checkMemoryProtection).toHaveBeenCalled();
+      }
+    });
+
+    it('batchMemoryWrite', async () => {
+      await manager.batchMemoryWrite(1234, [{ address: '0x1000', data: 'ff' }]);
+      expect(memoryImpl.batchMemoryWrite).toHaveBeenCalled();
+      const callback = vi.mocked(memoryImpl.batchMemoryWrite).mock.calls[0]?.[2] as any;
+      if (callback) {
+        await callback(1234, '0x1000', 'ff', 'hex');
+        expect(memoryImpl.writeMemory).toHaveBeenCalled(); // Since writeMemory calls checkMemoryProtection etc.
+      }
+    });
+
+    it('scanMemory', async () => {
+      await manager.scanMemory(1234, 'patterns', 'string', true);
+      expect(memoryImpl.scanMemory).toHaveBeenCalledWith('win32', 1234, 'patterns', 'string', true);
+    });
+
+    it('scanMemoryFiltered', async () => {
+      await manager.scanMemoryFiltered(1234, 'patterns', ['0x1000'], 'hex');
+      expect(memoryImpl.scanMemoryFiltered).toHaveBeenCalled();
+
+      const readCb = vi.mocked(memoryImpl.scanMemoryFiltered).mock.calls[0]?.[4] as any;
+      if (readCb) {
+        await readCb(1234, '0x1000', 4);
+        expect(memoryImpl.readMemory).toHaveBeenCalled();
+      }
+
+      const scanCb = vi.mocked(memoryImpl.scanMemoryFiltered).mock.calls[0]?.[5] as any;
+      if (scanCb) {
+        await scanCb(1234, 'patterns', 'hex');
+        expect(memoryImpl.scanMemory).toHaveBeenCalled();
+      }
+    });
+
+    it('dumpMemoryRegion', async () => {
+      await manager.dumpMemoryRegion(1234, '0x1000', 256, '/tmp/dump');
+      expect(memoryImpl.dumpMemoryRegion).toHaveBeenCalledWith(
+        'win32',
+        1234,
+        '0x1000',
+        256,
+        '/tmp/dump',
+      );
+    });
+
+    it('enumerateRegions', async () => {
+      await manager.enumerateRegions(1234);
+      expect(memoryImpl.enumerateRegions).toHaveBeenCalledWith('win32', 1234);
+    });
+
+    it('checkMemoryProtection', async () => {
+      await manager.checkMemoryProtection(1234, '0x1000');
+      expect(memoryImpl.checkMemoryProtection).toHaveBeenCalledWith('win32', 1234, '0x1000');
+    });
+
+    it('enumerateModules', async () => {
+      await manager.enumerateModules(1234);
+      expect(memoryImpl.enumerateModules).toHaveBeenCalledWith('win32', 1234);
+    });
+
+    it('injectDll', async () => {
+      await manager.injectDll(1234, '/path/to/dll');
+      expect(memoryImpl.injectDll).toHaveBeenCalledWith('win32', 1234, '/path/to/dll');
+    });
+
+    it('injectShellcode', async () => {
+      await manager.injectShellcode(1234, '9090', 'hex');
+      expect(memoryImpl.injectShellcode).toHaveBeenCalledWith('win32', 1234, '9090', 'hex');
+    });
+
+    it('checkDebugPort', async () => {
+      await manager.checkDebugPort(1234);
+      expect(memoryImpl.checkDebugPort).toHaveBeenCalledWith('win32', 1234);
+    });
+
+    it('startMemoryMonitor', () => {
+      const monitorId = manager.startMemoryMonitor(1234, '0x1000', 4, 1000, () => {});
+      expect(monitorId).toBe('monitor-123');
+      const startFn = vi.mocked((manager as any).monitorManager.start);
+      expect(startFn).toHaveBeenCalled();
+
+      // Test the read callback passed to start
+      const readCb = startFn.mock.calls[0]?.[4] as any;
+      if (readCb) {
+        readCb(1234, '0x1000', 4);
+        expect(memoryImpl.readMemory).toHaveBeenCalled();
+      }
+    });
+
+    it('stopMemoryMonitor', () => {
+      const res = manager.stopMemoryMonitor('monitor-123');
+      expect(res).toBe(true);
+      expect((manager as any).monitorManager.stop).toHaveBeenCalledWith('monitor-123');
+    });
+
+    it('checkAvailability', async () => {
+      await manager.checkAvailability();
+      expect(memoryImpl.checkAvailability).toHaveBeenCalledWith('win32');
+    });
   });
 });

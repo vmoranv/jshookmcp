@@ -116,6 +116,38 @@ describe('MCPServer.domain', () => {
     expect(factory).toHaveBeenCalledTimes(1);
   });
 
+  it('returns undefined for promise-like probe properties on the top-level proxy', () => {
+    const ctx = { enabledDomains: new Set(['browser']) } as any;
+    const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', () => ({
+      ping: () => 'ok',
+    }));
+
+    expect((proxy as any).then).toBeUndefined();
+    expect((proxy as any).catch).toBeUndefined();
+    expect((proxy as any)[Symbol.toStringTag]).toBeUndefined();
+  });
+
+  it('supports then/catch/finally on async property accessors', async () => {
+    const ctx = { enabledDomains: new Set(['browser']) } as any;
+    const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', async () => ({
+      status: 'ready',
+      fail() {
+        throw new Error('expected failure');
+      },
+    })) as {
+      status: Promise<string>;
+      fail(): Promise<string>;
+    };
+
+    const pendingStatus = proxy.status;
+    const pendingFail = proxy.fail();
+    await expect(pendingStatus.then((value) => `${value}!`)).resolves.toBe('ready!');
+    await expect(pendingStatus.finally(() => undefined)).resolves.toBe('ready');
+    await expect(pendingFail.catch((error: Error) => error.message)).resolves.toBe(
+      'expected failure',
+    );
+  });
+
   it('caches the rejection on factory failure — subsequent access returns the same error', async () => {
     const ctx = { enabledDomains: new Set(['browser']) } as any;
     const factory = vi.fn(async () => {

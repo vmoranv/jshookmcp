@@ -1,5 +1,5 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 
 const webcrackState = vi.hoisted(() => ({
@@ -837,6 +837,128 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
           forceOutput: true,
         }),
       );
+    });
+  });
+  describe('web tools coverage', () => {
+    const page = {
+      evaluate: vi.fn(async (fn: (...args: unknown[]) => unknown, ...args: unknown[]) =>
+        fn(...args),
+      ),
+    };
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      deps.collector.getActivePage.mockResolvedValue(page as any);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('enumerates webpack modules without requiring them when forceRequireAll is false', async () => {
+      vi.stubGlobal('window', {
+        webpackChunkmain: Object.assign([], {
+          m: {
+            '1': () => ({ name: 'alpha' }),
+          },
+        }),
+        __webpack_modules__: {
+          '2': () => ({ name: 'beta' }),
+        },
+      } as unknown as Window & typeof globalThis);
+
+      const body = parseJson<any>(
+        await handlers.handleWebpackEnumerate({ searchKeyword: 'alpha', forceRequireAll: false }),
+      );
+
+      expect(body.total).toBe(2);
+      expect(body.requireFound).toBe(true);
+      expect(body.matches).toEqual([]);
+      expect(body.moduleIds).toEqual(expect.arrayContaining(['1', '2']));
+    });
+
+    it('enumerates and filters webpack modules when forceRequireAll is true', async () => {
+      vi.stubGlobal('window', {
+        webpackChunkmain: Object.assign([], {
+          m: {
+            '1': () => ({ name: 'alpha' }),
+            '2': () => {
+              throw new Error('boom');
+            },
+          },
+        }),
+      } as unknown as Window & typeof globalThis);
+
+      const body = parseJson<any>(
+        await handlers.handleWebpackEnumerate({ searchKeyword: 'alpha', forceRequireAll: true }),
+      );
+
+      expect(body.total).toBe(2);
+      expect(body.requireFound).toBe(true);
+      expect(body.matches).toHaveLength(1);
+      expect(body.matches[0].id).toBe('1');
+      expect(body.matches[0].preview).toContain('alpha');
+    });
+
+    it('extracts sources from an inline source map', async () => {
+      const sourceMap = {
+        sources: ['src/index.ts'],
+        sourcesContent: ['console.log(1);'],
+      };
+      const encoded = Buffer.from(JSON.stringify(sourceMap), 'utf-8').toString('base64');
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        text: async () =>
+          `console.log(1);\n//# sourceMappingURL=data:application/json;base64,${encoded}`,
+        headers: new Map(),
+      }) as unknown as typeof globalThis.fetch;
+      vi.stubGlobal('document', {
+        querySelectorAll: () => [{ src: 'https://cdn.example.com/app.js' }],
+      } as unknown as Document);
+
+      try {
+        const body = parseJson<any>(
+          await handlers.handleSourceMapExtract({ includeContent: true, maxFiles: 10 }),
+        );
+
+        expect(body.total).toBe(1);
+        expect(body.files[0].path).toBe('src/index.ts');
+        expect(body.files[0].content).toBe('console.log(1);');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('extracts an external source map and applies filterPath', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          text: async () => 'console.log(1);\n//# sourceMappingURL=app.js.map',
+          headers: new Map(),
+        })
+        .mockResolvedValueOnce({
+          json: async () => ({
+            sources: ['src/app.ts', 'src/other.ts'],
+            sourcesContent: ['export const app = 1;', 'export const other = 2;'],
+          }),
+          headers: new Map(),
+        }) as unknown as typeof globalThis.fetch;
+      vi.stubGlobal('document', {
+        querySelectorAll: () => [{ src: 'https://cdn.example.com/app.js' }],
+      } as unknown as Document);
+
+      try {
+        const body = parseJson<any>(
+          await handlers.handleSourceMapExtract({ includeContent: true, filterPath: 'app.ts' }),
+        );
+
+        expect(body.total).toBe(1);
+        expect(body.files[0].path).toBe('src/app.ts');
+        expect(body.files[0].content).toBe('export const app = 1;');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
     });
   });
 });

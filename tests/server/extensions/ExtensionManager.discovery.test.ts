@@ -2,10 +2,11 @@ import type { PathLike } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const pluginRoot = resolve('.tmp-tests', 'plugins-root');
-const workflowRoot = resolve('.tmp-tests', 'workflows-root');
-const brokenRoot = resolve('.tmp-tests', 'broken-root');
-const okRoot = resolve('.tmp-tests', 'ok-root');
+const fixtureBase = resolve(__dirname, '../../tmp/fixtures');
+const pluginRoot = resolve(fixtureBase, 'plugins-root');
+const workflowRoot = resolve(fixtureBase, 'workflows-root');
+const brokenRoot = resolve(fixtureBase, 'broken-root');
+const okRoot = resolve(fixtureBase, 'ok-root');
 
 const pluginAlphaMetadata = resolve(pluginRoot, 'alpha', '.jshook-install.json');
 const pluginAlphaManifest = resolve(pluginRoot, 'alpha', 'manifest.ts');
@@ -169,5 +170,96 @@ describe('ExtensionManager.discovery', () => {
     const { discoverPluginFiles } = await import('@server/extensions/ExtensionManager.discovery');
 
     await expect(discoverPluginFiles([brokenRoot, okRoot])).resolves.toEqual([okManifest]);
+  });
+
+  it('ignores metadata files that contain invalid JSON', async () => {
+    state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
+      if (options.cwd === pluginRoot) {
+        return [pluginAlphaMetadata];
+      }
+      return [];
+    });
+    state.readFile.mockResolvedValue('invalid-json');
+    const { discoverPluginFiles } = await import('@server/extensions/ExtensionManager.discovery');
+    await expect(discoverPluginFiles([pluginRoot])).resolves.toEqual([]);
+  });
+
+  it('ignores metadata files where entry string is empty', async () => {
+    state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
+      if (options.cwd === pluginRoot) {
+        return [pluginAlphaMetadata];
+      }
+      return [];
+    });
+    state.readFile.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        kind: 'plugin',
+        slug: 'a',
+        id: 'a',
+        source: { type: 'git', repo: 'a', ref: 'a', commit: 'a', subpath: '.', entry: '  ' },
+      }),
+    );
+    const { discoverPluginFiles } = await import('@server/extensions/ExtensionManager.discovery');
+    await expect(discoverPluginFiles([pluginRoot])).resolves.toEqual([]);
+  });
+
+  it('ignores metadata files where entry file does not exist', async () => {
+    state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
+      if (options.cwd === pluginRoot) {
+        return [pluginAlphaMetadata];
+      }
+      return [];
+    });
+    state.readFile.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        kind: 'plugin',
+        slug: 'a',
+        id: 'a',
+        source: { type: 'git', repo: 'a', ref: 'a', commit: 'a', subpath: '.', entry: 'index.js' },
+      }),
+    );
+    state.existsSync.mockReturnValue(false);
+    const { discoverPluginFiles } = await import('@server/extensions/ExtensionManager.discovery');
+    await expect(discoverPluginFiles([pluginRoot])).resolves.toEqual([]);
+  });
+
+  it('deduplicates correctly when candidate replaces existing file based on priority', async () => {
+    const sameDirMeta = resolve(pluginRoot, 'same', '.jshook-install.json');
+    const sameDirEntry = resolve(pluginRoot, 'same', 'z.js');
+    const sameDirManifest = resolve(pluginRoot, 'same', 'manifest.ts');
+
+    state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
+      if (options.cwd === pluginRoot) {
+        return [sameDirMeta, sameDirManifest, sameDirEntry];
+      }
+      return [];
+    });
+    state.readFile.mockImplementation(async (path: string | PathLike) => {
+      if (normalizePath(path) === normalizePath(sameDirMeta)) {
+        return JSON.stringify({
+          version: 1,
+          kind: 'plugin',
+          slug: 'same',
+          id: 'same',
+          source: { type: 'git', repo: 'a', ref: 'a', commit: 'a', subpath: '.', entry: 'z.js' },
+        });
+      }
+      throw new Error(`Unexpected`);
+    });
+    // Both files exist
+    state.existsSync.mockImplementation(
+      (path: string | PathLike) =>
+        normalizePath(path) === normalizePath(sameDirEntry) ||
+        normalizePath(path) === normalizePath(sameDirManifest),
+    );
+
+    // alphabet order execution: manifest.ts (existing) -> z.js (candidate)
+    // Both map to 'plugins-root::same'
+    // manifest.ts is priority 1, z.js is priority 0.
+    // Candidate priority (0) < Existing priority (1) so it replaces!
+    const { discoverPluginFiles } = await import('@server/extensions/ExtensionManager.discovery');
+    await expect(discoverPluginFiles([pluginRoot])).resolves.toEqual([sameDirEntry]);
   });
 });

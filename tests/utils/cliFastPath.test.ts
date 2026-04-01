@@ -36,4 +36,12 @@ describe('resolveCliFastPath', () => {
     expect(result.exitCode).toBe(0);
     expect(result.output).toBeUndefined();
   });
+
+  it('fallback version if file cannot be read and no env var', () => {
+    const original = process.env.npm_package_version;
+    delete process.env.npm_package_version;
+    const result = resolveCliFastPath(['--version'], 'file:///nonexistent/foo.js');
+    expect(result.output?.trim()).toBe('0.0.0');
+    process.env.npm_package_version = original;
+  });
 });

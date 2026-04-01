@@ -15,6 +15,9 @@ import {
 } from '@extension-sdk/workflow';
 
 const alwaysTruePredicate = () => true;
+const onStartHandler = () => {};
+const onFinishHandler = () => {};
+const onErrorHandler = () => {};
 
 /* ================================================================== */
 /*  Factory functions — return Builder instances                        */
@@ -61,6 +64,42 @@ describe('Workflow node factory functions', () => {
       expect(node.steps).toHaveLength(2);
       expect(node.steps[0]!.kind).toBe('tool');
       expect(node.steps[1]!.kind).toBe('tool');
+    });
+
+    it('builds a SequenceNode and exercises all CompositeNodeBuilder shortcut branches', () => {
+      const b = sequenceNode('seq1');
+      b.step(toolNode('t1', 't1Name'));
+      // branch: config as object with input, timeout, retry
+      b.tool('t2', 't2Name', {
+        input: { b: 2 },
+        timeoutMs: 1000,
+        retry: { maxAttempts: 1, backoffMs: 10 },
+      });
+      // branch: config as object with NO fields (tests false paths of config.input, config.retry, config.timeoutMs)
+      b.tool('t3', 't3Name', {});
+      // branch: config as function
+      b.tool('t4', 't4Name', (tb) => tb.timeout(2000));
+      // branch: nested composite shortcuts with configs
+      b.sequence('seq2', (sb) => sb.tool('t5', 't5Name'));
+      b.parallel('par1', (pb) => pb.tool('t6', 't6Name'));
+      b.branch('br1', 'pred', (bb) => bb.whenTrue(toolNode('t7', 't7Name')));
+      // branch: no config arguments at all
+      b.tool('t8', 't8Name');
+      b.sequence('seq3');
+      b.parallel('par2');
+
+      const node = b.build();
+      expect(node.kind).toBe('sequence');
+      expect(node.id).toBe('seq1');
+      expect(node.steps).toHaveLength(10);
+      expect((node.steps[1] as any).timeoutMs).toBe(1000);
+      expect((node.steps[3] as any).timeoutMs).toBe(2000);
+    });
+
+    it('BranchNodeBuilder shortcut without config throws on build due to missing whenTrue', () => {
+      const b = sequenceNode('seq_branch_err');
+      b.branch('br2', 'pred2'); // no config, so whenTrue is not set
+      expect(() => b.build()).toThrow(/requires a whenTrue step/);
     });
   });
 
@@ -159,6 +198,33 @@ describe('createWorkflow (fluent builder)', () => {
     expect(wf.tags).toEqual(['test', 'demo']);
     expect(wf.timeoutMs).toBe(30_000);
     expect(wf.defaultMaxConcurrency).toBe(4);
+  });
+
+  it('supports route and lifecycle handlers', () => {
+    const onStart = onStartHandler;
+    const onFinish = onFinishHandler;
+    const onError = onErrorHandler;
+
+    const routeMeta = {
+      kind: 'workflow' as const,
+      triggerPatterns: [/test/],
+      steps: [],
+      requiredDomains: ['network'],
+      priority: 1,
+    };
+
+    const wf = createWorkflow('life.wf', 'Life WF')
+      .route(routeMeta)
+      .onStart(onStart)
+      .onFinish(onFinish)
+      .onError(onError)
+      .buildGraph((_ctx) => toolNode('main', 'tool'));
+
+    const contract = wf.build();
+    expect(contract.route).toEqual(routeMeta);
+    expect(contract.onStart).toBe(onStart);
+    expect(contract.onFinish).toBe(onFinish);
+    expect(contract.onError).toBe(onError);
   });
 
   it('build() produces a working build function', () => {

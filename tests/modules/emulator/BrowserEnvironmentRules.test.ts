@@ -59,4 +59,38 @@ describe('BrowserEnvironmentRulesManager', () => {
     expect(restored.getRule('navigator.__restored')?.defaultValue).toBe(true);
     expect(restored.getRule('location.href')).toBeDefined();
   });
+
+  it('evaluates function and generated default values for performance and crypto rules', () => {
+    const manager = new BrowserEnvironmentRulesManager();
+
+    const platformRule = manager.getRule('navigator.platform');
+    const vendorRule = manager.getRule('navigator.vendor');
+    const navStartRule = manager.getRule('performance.timing.navigationStart');
+    const loadEndRule = manager.getRule('performance.timing.loadEventEnd');
+    const randomValuesRule = manager.getRule('crypto.getRandomValues');
+
+    expect(
+      typeof platformRule?.defaultValue === 'function'
+        ? platformRule.defaultValue('chrome' as any, '120.0-test')
+        : undefined,
+    ).toBe('Win32');
+    expect(
+      typeof vendorRule?.defaultValue === 'function'
+        ? vendorRule.defaultValue('chrome' as any, '120.0-test')
+        : undefined,
+    ).toBe('Google Inc.');
+
+    const navStartValue =
+      typeof navStartRule?.defaultValue === 'function'
+        ? navStartRule.defaultValue('chrome' as any, '120.0-test')
+        : undefined;
+    const loadEndValue =
+      typeof loadEndRule?.defaultValue === 'function'
+        ? loadEndRule.defaultValue('chrome' as any, '120.0-test')
+        : undefined;
+
+    expect(typeof navStartValue).toBe('number');
+    expect(typeof loadEndValue).toBe('number');
+    expect(randomValuesRule?.defaultValue?.([1, 2, 3])).toEqual([1, 2, 3]);
+  });
 });

@@ -111,6 +111,57 @@ describe('JSVMPDeobfuscator', () => {
     expect(result.hasSwitch).toBe(true);
   });
 
+  it('detects JSVMP patterns and extracts a mixed instruction set from AST traversal', () => {
+    const deobfuscator = new JSVMPDeobfuscator();
+    const code = `
+      const bytecode = [
+        ${Array.from({ length: 60 }, (_, i) => i).join(', ')}
+      ];
+      let pc = 0;
+      function dispatch(op) {
+        while (true) {
+          switch (op) {
+            case 0: stack.push(bytecode[pc]); break;
+            case 1: vm[pc] = 1; break;
+            case 2: callFn(); break;
+            case 3: if (pc) break; break;
+            case 4: total = total + 1; break;
+            case 5: return value;
+            case 6: helper.apply(null, args); break;
+            case 7: parseInt('' + bytecode[pc], 16); break;
+            case 8: pc++; break;
+            case 9: output = input; break;
+            case 10: continue;
+            default: break;
+          }
+        }
+      }
+    `;
+
+    const features = (deobfuscator as any).detectJSVMP(code);
+    expect(features).not.toBeNull();
+    expect(features.instructionCount).toBe(12);
+    expect(features.hasSwitch).toBe(true);
+    expect(features.hasInstructionArray).toBe(true);
+    expect(features.hasProgramCounter).toBe(true);
+
+    const instructions = (deobfuscator as any).extractInstructions(code, features);
+    expect(instructions).toHaveLength(12);
+    expect(instructions.map((inst: any) => inst.type)).toEqual(
+      expect.arrayContaining(['load', 'store', 'control', 'arithmetic']),
+    );
+  });
+
+  it.each([
+    ['function(_0x1){return _0x1;}', 'obfuscator.io'],
+    ['[][([][[]]+[])][0]', 'jsfuck'],
+    ['$=~[];', 'jjencode'],
+    ['const plain = true;', 'custom'],
+  ])('identifies VM type %s as %s', (code, expected) => {
+    const deobfuscator = new JSVMPDeobfuscator();
+    expect((deobfuscator as any).identifyVMType(code, {})).toBe(expected);
+  });
+
   it('applies basic custom VM restoration cleanup heuristics', () => {
     const deobfuscator = new JSVMPDeobfuscator();
     const warnings: string[] = [];
@@ -136,5 +187,18 @@ describe('JSVMPDeobfuscator', () => {
 
     const type = (deobfuscator as any).inferInstructionType(caseNode);
     expect(type).toBe('arithmetic');
+  });
+
+  it('infers call and unknown opcode types from switch case content', () => {
+    const deobfuscator = new JSVMPDeobfuscator();
+    const callAst = parser.parse('switch(x){case 1: foo();}', { sourceType: 'script' });
+    const unknownAst = parser.parse('switch(x){case 1: value;}', { sourceType: 'script' });
+
+    expect(
+      (deobfuscator as any).inferInstructionType((callAst.program.body[0] as any).cases[0]),
+    ).toBe('call');
+    expect(
+      (deobfuscator as any).inferInstructionType((unknownAst.program.body[0] as any).cases[0]),
+    ).toBe('unknown');
   });
 });

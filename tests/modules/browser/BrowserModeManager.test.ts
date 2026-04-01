@@ -18,6 +18,7 @@ const {
   detectMock,
   assessMock,
   waitForCompletionMock,
+  determineCaptchaResolutionMock,
 } = vi.hoisted(() => ({
   existsSyncMock: vi.fn(),
   findBrowserExecutableMock: vi.fn(),
@@ -25,6 +26,7 @@ const {
   detectMock: vi.fn(),
   assessMock: vi.fn(),
   waitForCompletionMock: vi.fn(),
+  determineCaptchaResolutionMock: vi.fn(),
 }));
 
 vi.mock('fs', () => ({
@@ -50,10 +52,43 @@ vi.mock('@src/modules/captcha/CaptchaDetector', () => ({
   },
 }));
 
+vi.mock('@modules/captcha/CaptchaPolicy', () => ({
+  determineCaptchaResolution: determineCaptchaResolutionMock,
+}));
+
 import { BrowserModeManager } from '@modules/browser/BrowserModeManager';
 
 interface BrowserModeManagerMirror {
   resolveExecutablePath(): string;
+}
+
+async function withPatchedGlobals<T>(
+  context: Record<string, unknown>,
+  callback: () => Promise<T> | T,
+): Promise<T> {
+  const globalObj = globalThis as Record<string, unknown>;
+  const previous = new Map<string, PropertyDescriptor | undefined>();
+
+  for (const [key, value] of Object.entries(context)) {
+    previous.set(key, Object.getOwnPropertyDescriptor(globalObj, key));
+    Object.defineProperty(globalObj, key, {
+      configurable: true,
+      writable: true,
+      value,
+    });
+  }
+
+  try {
+    return await callback();
+  } finally {
+    for (const [key, descriptor] of previous.entries()) {
+      if (descriptor) {
+        Object.defineProperty(globalObj, key, descriptor);
+      } else {
+        delete globalObj[key];
+      }
+    }
+  }
 }
 
 describe('BrowserModeManager', () => {
@@ -68,6 +103,10 @@ describe('BrowserModeManager', () => {
       likelyCaptcha: false,
       recommendedNextStep: 'ignore',
       primaryDetection: { detected: false, type: 'none', confidence: 0 },
+    });
+    determineCaptchaResolutionMock.mockReturnValue({
+      action: 'ignore',
+      reason: 'default ignore',
     });
   });
 
@@ -145,6 +184,10 @@ describe('BrowserModeManager', () => {
       },
     });
     waitForCompletionMock.mockResolvedValue(true);
+    determineCaptchaResolutionMock.mockReturnValue({
+      action: 'manual',
+      reason: 'stay in current mode',
+    });
 
     const manager = new BrowserModeManager({
       autoSwitchHeadless: false,
@@ -266,5 +309,114 @@ describe('BrowserModeManager', () => {
     await vi.waitFor(() => {
       expect(fakeBrowser.close).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('injects anti-detection scripts into a new page and rewrites browser signals', async () => {
+    findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
+
+    const page = {
+      evaluateOnNewDocument: vi.fn(async () => {}),
+      setCookie: vi.fn(async () => {}),
+    };
+    const browser = {
+      newPage: vi.fn(async () => page),
+      close: vi.fn(async () => {}),
+      isConnected: vi.fn(() => true),
+      process: vi.fn().mockReturnValue({ pid: 12345 }),
+    } as unknown as Browser;
+
+    launchMock.mockResolvedValue(browser);
+
+    const manager = new BrowserModeManager({ defaultHeadless: true });
+    await manager.newPage();
+
+    const injected = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
+    expect(injected).toBeTypeOf('function');
+
+    const permissionsQuery = vi.fn(async () => ({ state: 'denied' as const }));
+    const navigator = {
+      permissions: { query: permissionsQuery },
+    } as unknown as Navigator;
+    const window = { navigator } as Record<string, unknown>;
+    await withPatchedGlobals(
+      {
+        window,
+        navigator,
+        Notification: { permission: 'granted' },
+      },
+      () => injected!(),
+    );
+
+    expect((navigator as any).webdriver).toBeUndefined();
+    expect((window as any).chrome).toBeDefined();
+    expect((navigator as any).plugins).toHaveLength(3);
+    expect((navigator as any).languages).toEqual(['en-US', 'en']);
+    await expect(
+      (navigator as any).permissions.query({ name: 'notifications' } as PermissionDescriptor),
+    ).resolves.toEqual({ state: 'granted' });
+  });
+
+  it('switches to headed mode when CAPTCHA policy requests it and restores session data', async () => {
+    findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
+    determineCaptchaResolutionMock.mockReturnValue({
+      action: 'switch_to_headed',
+      reason: 'manual solve required',
+    });
+    waitForCompletionMock.mockResolvedValue(true);
+
+    const firstPage = {
+      url: vi.fn(() => 'https://example.com'),
+      cookies: vi.fn(async () => [{ name: 'sid', value: 'abc' }]),
+      evaluate: vi.fn(async () => ({
+        local: { token: '1' },
+        session: { theme: 'dark' },
+      })),
+    } as unknown as Page;
+
+    const headedPage = {
+      url: vi.fn(() => 'https://example.com'),
+      goto: vi.fn(async () => undefined),
+      reload: vi.fn(async () => undefined),
+      evaluate: vi.fn(async () => undefined),
+      evaluateOnNewDocument: vi.fn(async () => {}),
+      setCookie: vi.fn(async () => {}),
+    } as unknown as Page;
+
+    const browser = {
+      newPage: vi.fn(async () => headedPage),
+      close: vi.fn(async () => undefined),
+      isConnected: vi.fn(() => true),
+      process: vi.fn().mockReturnValue({ pid: 54321 }),
+    } as unknown as Browser;
+    launchMock.mockResolvedValue(browser);
+
+    const manager = new BrowserModeManager({
+      autoDetectCaptcha: true,
+      autoSwitchHeadless: true,
+      defaultHeadless: true,
+      askBeforeSwitchBack: true,
+    });
+
+    Reflect.set(manager as object, 'browser', browser);
+    Reflect.set(manager as object, 'currentPage', firstPage);
+    Reflect.set(manager as object, 'isHeadless', true);
+    Reflect.set(manager as object, 'chromePid', 54321);
+
+    const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    await manager.checkAndHandleCaptcha(firstPage, 'https://example.com');
+
+    expect(browser.close).toHaveBeenCalledTimes(1);
+    expect(headedPage.goto).toHaveBeenCalledWith('https://example.com', {
+      waitUntil: 'networkidle2',
+    });
+    expect(headedPage.evaluate).toHaveBeenCalledWith(expect.any(Function), {
+      local: { token: '1' },
+      session: { theme: 'dark' },
+    });
+    expect(headedPage.reload).toHaveBeenCalledWith({ waitUntil: 'networkidle2' });
+    expect(waitForCompletionMock).toHaveBeenCalledWith(headedPage, 300000);
+    expect(stderrWrite).toHaveBeenCalled();
+    stderrWrite.mockRestore();
   });
 });

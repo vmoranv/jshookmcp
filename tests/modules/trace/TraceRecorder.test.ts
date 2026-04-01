@@ -2,51 +2,34 @@
  * TraceRecorder unit tests — event capture engine lifecycle.
  */
 
-import { existsSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { rm, mkdtemp } from 'node:fs/promises';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EventBus } from '@server/EventBus';
 import type { ServerEventMap } from '@server/EventBus';
+import { TraceDB } from '@modules/trace/TraceDB';
+
+let currentTestDir = '';
 
 // Mock resolveArtifactPath BEFORE importing TraceRecorder
 vi.mock('@utils/artifacts', () => {
   return {
     resolveArtifactPath: async () => {
       const path = join(
-        tmpdir(),
-        `test-trace-recorder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`,
+        currentTestDir || tmpdir(),
+        `trace-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`,
       );
       return { absolutePath: path, displayPath: path };
     },
-    getArtifactDir: () => tmpdir(),
-    getArtifactsRoot: () => tmpdir(),
+    getArtifactDir: () => currentTestDir || tmpdir(),
+    getArtifactsRoot: () => currentTestDir || tmpdir(),
   };
 });
 
 const { TraceRecorder } = await import('@modules/trace/TraceRecorder');
 type TraceRecorderInstance = InstanceType<typeof TraceRecorder>;
 type CDPSessionLike = import('@modules/trace/TraceRecorder').CDPSessionLike;
-
-function cleanupDbArtifacts(path?: string | null): void {
-  if (!path) return;
-
-  try {
-    if (existsSync(path)) unlinkSync(path);
-  } catch {
-    /* cleanup best-effort */
-  }
-  try {
-    if (existsSync(path + '-wal')) unlinkSync(path + '-wal');
-  } catch {
-    /* cleanup best-effort */
-  }
-  try {
-    if (existsSync(path + '-shm')) unlinkSync(path + '-shm');
-  } catch {
-    /* cleanup best-effort */
-  }
-}
 
 function createMockCDPSession(): CDPSessionLike & {
   _listeners: Map<string, Set<(params: any) => void>>;
@@ -68,31 +51,30 @@ function createMockCDPSession(): CDPSessionLike & {
 describe('TraceRecorder', () => {
   let recorder: TraceRecorderInstance;
   let eventBus: EventBus<ServerEventMap>;
-  let cleanupPaths: string[] = [];
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    currentTestDir = await mkdtemp(join(tmpdir(), 'trace-recorder-test-'));
     recorder = new TraceRecorder();
     eventBus = new EventBus<ServerEventMap>();
-    cleanupPaths = [];
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (recorder.getState() === 'recording') {
       try {
-        const session = recorder.stop();
-        cleanupPaths.push(session.dbPath);
+        recorder.stop();
       } catch {
         /* ok */
       }
     }
-    for (const p of cleanupPaths) {
-      cleanupDbArtifacts(p);
-    }
+
+    // Attempt rm after slight delay to ensure DB handles closed
+    await new Promise((r) => setTimeout(r, 10));
+    await rm(currentTestDir, { recursive: true, force: true });
+    currentTestDir = '';
   });
 
   it('starts recording and returns session', async () => {
     const session = await recorder.start(eventBus, null);
-    cleanupPaths.push(session.dbPath);
 
     expect(recorder.getState()).toBe('recording');
     expect(session.sessionId).toBeTruthy();
@@ -101,15 +83,13 @@ describe('TraceRecorder', () => {
   });
 
   it('rejects double start', async () => {
-    const session = await recorder.start(eventBus, null);
-    cleanupPaths.push(session.dbPath);
+    await recorder.start(eventBus, null);
 
     await expect(recorder.start(eventBus, null)).rejects.toThrow(/Recording already in progress/);
   });
 
   it('records EventBus events', async () => {
-    const session = await recorder.start(eventBus, null);
-    cleanupPaths.push(session.dbPath);
+    const _session = await recorder.start(eventBus, null);
 
     // Emit a test event
     eventBus.emit('tool:called', { name: 'test_tool', args: {} } as never);
@@ -125,8 +105,7 @@ describe('TraceRecorder', () => {
   });
 
   it('maps event categories correctly', async () => {
-    const session = await recorder.start(eventBus, null);
-    cleanupPaths.push(session.dbPath);
+    await recorder.start(eventBus, null);
 
     // Emit events with different namespaces
     eventBus.emit('tool:called', { name: 'test', args: {} } as never);
@@ -142,8 +121,7 @@ describe('TraceRecorder', () => {
   });
 
   it('records memory deltas', async () => {
-    const session = await recorder.start(eventBus, null);
-    cleanupPaths.push(session.dbPath);
+    await recorder.start(eventBus, null);
 
     recorder.recordMemoryDelta({
       timestamp: Date.now(),
@@ -176,8 +154,7 @@ describe('TraceRecorder', () => {
   });
 
   it('stop unsubscribes from EventBus', async () => {
-    const session = await recorder.start(eventBus, null);
-    cleanupPaths.push(session.dbPath);
+    await recorder.start(eventBus, null);
 
     recorder.stop();
 
@@ -187,8 +164,7 @@ describe('TraceRecorder', () => {
   });
 
   it('stop returns final session with counts', async () => {
-    const session = await recorder.start(eventBus, null);
-    cleanupPaths.push(session.dbPath);
+    await recorder.start(eventBus, null);
 
     // Record some data
     recorder.recordMemoryDelta({
@@ -211,23 +187,50 @@ describe('TraceRecorder', () => {
 
   it('getState returns correct state transitions', async () => {
     expect(recorder.getState()).toBe('idle');
+    expect(recorder.getSession()).toBeNull();
 
-    const session = await recorder.start(eventBus, null);
-    cleanupPaths.push(session.dbPath);
+    await recorder.start(eventBus, null);
     expect(recorder.getState()).toBe('recording');
+
+    // Check getSession mapping
+    const sessionSnap = recorder.getSession();
+    expect(sessionSnap).not.toBeNull();
+    expect(sessionSnap!.sessionId).toBeDefined();
 
     recorder.stop();
     expect(recorder.getState()).toBe('stopped');
   });
 
-  it('subscribes to CDP events when session provided', async () => {
+  it('subscribes to CDP events and records them when emitted', async () => {
     const mockCdp = createMockCDPSession();
-    const session = await recorder.start(eventBus, mockCdp);
-    cleanupPaths.push(session.dbPath);
+    await recorder.start(eventBus, mockCdp);
 
     // Verify CDP event listeners were registered
     expect(mockCdp._listeners.has('Debugger.paused')).toBe(true);
     expect(mockCdp._listeners.has('Network.requestWillBeSent')).toBe(true);
+
+    // Simulate emitting a network request event
+    const networkHandler = Array.from(mockCdp._listeners.get('Network.requestWillBeSent') || [])[0];
+    if (networkHandler) {
+      networkHandler({ requestId: '12345', timestamp: 1000.5 });
+    }
+
+    // Simulate emitting a Debugger.paused event with script info
+    const pausedHandler = Array.from(mockCdp._listeners.get('Debugger.paused') || [])[0];
+    if (pausedHandler) {
+      pausedHandler({
+        callFrames: [
+          {
+            location: { scriptId: '22', lineNumber: 42 },
+          },
+        ],
+      });
+    }
+
+    // Simulate emitting an event with empty params
+    if (networkHandler) {
+      networkHandler(null);
+    }
 
     recorder.stop();
 
@@ -235,5 +238,171 @@ describe('TraceRecorder', () => {
     for (const [, handlers] of mockCdp._listeners) {
       expect(handlers.size).toBe(0);
     }
+
+    // Reopen DB to check if events were recorded
+    const sessionSnap = recorder.getSession();
+    const db = new TraceDB({ dbPath: sessionSnap!.dbPath });
+
+    try {
+      // 3 events should have been created (network, paused, network with null params)
+      const result = db.query(
+        "SELECT script_id, line_number FROM events WHERE category != 'other'",
+      );
+      expect(result.rowCount).toBe(3);
+
+      // Verify Debugger.paused parsing
+      const pausedRow = result.rows.find((r: unknown[]) => r[0] === '22');
+      expect(pausedRow).toBeDefined();
+      expect(pausedRow![1]).toBe(42);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('captures a heap snapshot via CDP', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    // Provide mocked chunk handling
+    const snapshotContent = JSON.stringify({
+      snapshot: {
+        meta: {
+          node_fields: [
+            'type',
+            'name',
+            'id',
+            'self_size',
+            'edge_count',
+            'trace_node_id',
+            'detachedness',
+          ],
+          node_types: [
+            [
+              'hidden',
+              'array',
+              'string',
+              'object',
+              'code',
+              'closure',
+              'regexp',
+              'number',
+              'native',
+              'synthetic',
+              'concatenated string',
+              'sliced string',
+              'symbol',
+              'bigint',
+            ],
+          ],
+        },
+        node_count: 2,
+      },
+      nodes: [
+        0,
+        0,
+        1,
+        10,
+        0,
+        0,
+        0, // mock node 1
+        1,
+        1,
+        2,
+        20,
+        0,
+        0,
+        0, // mock node 2
+      ],
+      strings: ['testRoot1', 'testArray1'],
+    });
+
+    // Instead of actually emitting during `captureHeapSnapshot`, we can hook
+    // the mocked send to manually trigger the event handler when takeHeapSnapshot is called
+    let chunkHandlerCalled = false;
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        // Emit chunks to simulate CDP
+        const handler = Array.from(
+          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+        )[0];
+        if (handler) {
+          handler({ chunk: snapshotContent.substring(0, 50) });
+          handler({ chunk: snapshotContent.substring(50) });
+          chunkHandlerCalled = true;
+        }
+      }
+      return {};
+    });
+
+    await recorder.captureHeapSnapshot(mockCdp);
+    expect(chunkHandlerCalled).toBe(true);
+
+    const db = recorder.getDB()!;
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toHaveLength(1);
+    const summary = JSON.parse(snapshots[0]!.summary);
+    expect(summary.totalSize).toBe(30); // 10 + 20
+    expect(summary.nodeCount).toBe(2);
+  });
+
+  it('handles captureHeapSnapshot with invalid JSON chunks safely', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        const handler = Array.from(
+          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+        )[0];
+        if (handler) {
+          // Send malformed JSON
+          handler({ chunk: '{ invalid: json' });
+        }
+      }
+      return {};
+    });
+
+    await recorder.captureHeapSnapshot(mockCdp);
+
+    const db = recorder.getDB()!;
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toHaveLength(1);
+    const summary = JSON.parse(snapshots[0]!.summary);
+    expect(summary.totalSize).toBe(0);
+    expect(summary.nodeCount).toBe(0);
+  });
+
+  it('handles captureHeapSnapshot with valid JSON but missing snapshot info', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        const handler = Array.from(
+          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+        )[0];
+        if (handler) {
+          // Send valid JSON missing the 'snapshot' key
+          handler({ chunk: '{"otherData": true}' });
+        }
+      }
+      return {};
+    });
+
+    await recorder.captureHeapSnapshot(mockCdp);
+
+    const db = recorder.getDB()!;
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toHaveLength(1);
+    const summary = JSON.parse(snapshots[0]!.summary);
+    expect(summary.totalSize).toBe(0);
+    expect(summary.nodeCount).toBe(0);
+  });
+
+  it('throws capturing heap snapshot when not recording', async () => {
+    const mockCdp = createMockCDPSession();
+    await expect(recorder.captureHeapSnapshot(mockCdp)).rejects.toThrow(
+      /Cannot capture heap snapshot: not recording/,
+    );
   });
 });

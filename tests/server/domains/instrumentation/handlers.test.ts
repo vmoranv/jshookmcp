@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
 import { InstrumentationType } from '@server/instrumentation/types';
 import { InstrumentationHandlers } from '@server/domains/instrumentation/handlers';
@@ -184,6 +184,93 @@ describe('InstrumentationHandlers', () => {
       const data = parseResponse(result);
       expect(data.success).toBe(true);
       expect((data.artifact as Record<string, unknown>).operationId).toBe(op.id);
+    });
+  });
+
+  describe('handleHookPreset', () => {
+    it('returns error if sessionId is required', async () => {
+      const result = await handlers.handleHookPreset({});
+      const data = parseResponse(result);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('sessionId is required');
+    });
+
+    it('returns error if deps are not available', async () => {
+      const createResult = await handlers.handleSessionCreate({});
+      const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+        .id as string;
+
+      const result = await handlers.handleHookPreset({ sessionId });
+      const data = parseResponse(result);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('hookPresetHandlers is not available');
+    });
+
+    it('delegates to sessionManager when deps are available', async () => {
+      const mockDeps = {
+        hookPresetHandlers: { handleHookPreset: vi.fn() },
+      };
+      const handlersWithDeps = new InstrumentationHandlers(manager, mockDeps);
+      const createResult = await handlersWithDeps.handleSessionCreate({});
+      const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+        .id as string;
+
+      vi.spyOn(manager, 'applyHookPreset').mockResolvedValue({
+        payload: { success: true, result: 'ok' },
+        operation: { status: 'completed' } as any,
+        artifacts: [],
+      });
+
+      const result = await handlersWithDeps.handleHookPreset({ sessionId, extraArg: 123 });
+      const data = parseResponse(result);
+      expect(data.success).toBe(true);
+      expect(manager.applyHookPreset).toHaveBeenCalledWith(sessionId, mockDeps.hookPresetHandlers, {
+        extraArg: 123,
+      });
+    });
+  });
+
+  describe('handleNetworkReplay', () => {
+    it('returns error if sessionId is missing', async () => {
+      const result = await handlers.handleNetworkReplay({});
+      const data = parseResponse(result);
+      expect(data.success).toBe(false);
+    });
+
+    it('returns error if deps are not available', async () => {
+      const createResult = await handlers.handleSessionCreate({});
+      const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+        .id as string;
+
+      const result = await handlers.handleNetworkReplay({ sessionId });
+      const data = parseResponse(result);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('advancedHandlers is not available');
+    });
+
+    it('delegates to sessionManager when deps are available', async () => {
+      const mockDeps = {
+        advancedHandlers: { handleNetworkReplayRequest: vi.fn() },
+      };
+      const handlersWithDeps = new InstrumentationHandlers(manager, mockDeps);
+      const createResult = await handlersWithDeps.handleSessionCreate({});
+      const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+        .id as string;
+
+      vi.spyOn(manager, 'replayNetworkRequest').mockResolvedValue({
+        payload: { success: true },
+        operation: { status: 'completed' } as any,
+        artifacts: [],
+      });
+
+      const result = await handlersWithDeps.handleNetworkReplay({ sessionId, extraArg: 123 });
+      const data = parseResponse(result);
+      expect(data.success).toBe(true);
+      expect(manager.replayNetworkRequest).toHaveBeenCalledWith(
+        sessionId,
+        mockDeps.advancedHandlers,
+        { extraArg: 123 },
+      );
     });
   });
 });

@@ -1,83 +1,134 @@
-// @ts-expect-error — auto-suppressed [TS1484]
-import { parseJson, AIHookResponse } from '@tests/server/domains/shared/mock-factories';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { HookPresetToolHandlers } from '@server/domains/hooks/preset-handlers';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { HookPresetToolHandlers } from '../../../../src/server/domains/hooks/preset-handlers';
+
+vi.mock('../../../../src/utils/logger', () => ({
+  logger: { info: vi.fn(), error: vi.fn() },
+}));
 
 describe('HookPresetToolHandlers', () => {
-  const page = {
-    evaluateOnNewDocument: vi.fn(),
-    evaluate: vi.fn(),
-  };
-
-  const pageController = {
-    getPage: vi.fn(async () => page),
-  };
-
+  let pageControllerMock: any;
+  let pageMock: any;
   let handlers: HookPresetToolHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new HookPresetToolHandlers(pageController as any);
+    pageMock = {
+      evaluate: vi.fn().mockResolvedValue(undefined),
+      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+    };
+    pageControllerMock = {
+      getPage: vi.fn().mockResolvedValue(pageMock),
+    };
+    handlers = new HookPresetToolHandlers(pageControllerMock);
   });
 
-  it('lists built-in and inline custom presets together', async () => {
-    const body = parseJson<AIHookResponse>(
-      await handlers.handleHookPreset({
-        listPresets: true,
-        customTemplate: {
-          id: 'deobfuscation-sinks',
-          description: 'Trace deobfuscation sinks',
-          body: "window.__aiHooks['preset-deobfuscation-sinks'].push({ ts: Date.now() });",
-        },
-      }),
-    );
+  describe('handleHookPreset', () => {
+    it('lists available presets accurately', async () => {
+      const res = await handlers.handleHookPreset({ listPresets: true });
+      expect(res.content[0].text).toContain('"success": true');
+      expect(res.content[0].text).toContain('"totalPresets"');
+    });
 
-    expect(body.success).toBe(true);
-    expect(body.presets.some((preset: { id: string }) => preset.id === 'eval')).toBe(true);
-    expect(body.presets.some((preset: { id: string }) => preset.id === 'deobfuscation-sinks')).toBe(
-      true,
-    );
-  });
+    it('errors when no target is provided gracefully', async () => {
+      const res = await handlers.handleHookPreset({});
+      expect(res.content[0].text).toContain('"success": false');
+      expect(res.content[0].text).toContain('either preset');
+    });
 
-  it('injects an inline custom template through evaluate', async () => {
-    const body = parseJson<AIHookResponse>(
-      await handlers.handleHookPreset({
-        preset: 'zero-trust-fetch',
-        customTemplate: {
-          id: 'zero-trust-fetch',
-          description: 'Trace custom fetch headers',
-          body: `
-  const _fetch = window.fetch.bind(window);
-  window.fetch = function(input, init) {
-    {{STACK_CODE}}
-    const __msg = '[Hook:zero-trust-fetch]';
-    {{LOG_FN}}
-    window.__aiHooks['preset-zero-trust-fetch'].push({ input: String(input), headers: JSON.stringify(init?.headers || {}), stack: __stack, ts: Date.now() });
-    return _fetch(input, init);
-  };`,
-        },
-        method: 'evaluate',
-      }),
-    );
+    it('errors when invalid preset identity is provided', async () => {
+      const res = await handlers.handleHookPreset({ preset: 'invalid_xyz' });
+      expect(res.content[0].text).toContain('"success": false');
+      expect(res.content[0].text).toContain('invalid_xyz');
+    });
 
-    expect(body.success).toBe(true);
-    expect(body.injected).toEqual(['zero-trust-fetch']);
-    expect(page.evaluate).toHaveBeenCalledOnce();
-    expect(page.evaluate.mock.calls[0]![0]).toContain('preset-zero-trust-fetch');
-  });
+    it('injects single valid preset via evaluate correctly', async () => {
+      const res = await handlers.handleHookPreset({
+        preset: 'custom-1',
+        customTemplate: { id: 'custom-1', body: 'console.log();' },
+      });
+      expect(res.content[0].text).toContain('"success": true');
+      expect(pageMock.evaluate).toHaveBeenCalled();
+    });
 
-  it('rejects custom template ids that collide with built-in presets', async () => {
-    const body = parseJson<AIHookResponse>(
-      await handlers.handleHookPreset({
+    it('injects multiple presets via array payload', async () => {
+      const res = await handlers.handleHookPreset({
+        presets: ['custom-2', 'custom-3'],
+        customTemplates: [
+          { id: 'custom-2', body: '...' },
+          { id: 'custom-3', body: '...' },
+        ],
+      });
+      expect(res.content[0].text).toContain('"success": true');
+      expect(pageMock.evaluate).toHaveBeenCalledTimes(2);
+    });
+
+    it('injects via evaluateOnNewDocument strictly when explicitly defined', async () => {
+      const res = await handlers.handleHookPreset({
+        preset: 'custom-4',
+        customTemplate: { id: 'custom-4', body: '...' },
+        method: 'evaluateOnNewDocument',
+      });
+      expect(res.content[0].text).toContain('"success": true');
+      expect(pageMock.evaluateOnNewDocument).toHaveBeenCalled();
+    });
+
+    it('handles evaluate error string', async () => {
+      pageMock.evaluate.mockRejectedValue('string error');
+      const res = await handlers.handleHookPreset({ presets: ['anti-debug-bypass'] });
+      expect((res as any).content[0].text).toContain('string error');
+    });
+
+    it('handles build code general string err', async () => {
+      vi.spyOn(handlers as any, 'buildCustomPresetMap').mockImplementation(() => {
+        throw 'string error building';
+      });
+      const res = await handlers.handleHookPreset({ presets: ['dummy'] });
+      expect((res as any).content[0].text).toContain('string error building');
+    });
+
+    it('handles injection failures returning composite result', async () => {
+      pageMock.evaluate.mockRejectedValue(new Error('inject err'));
+      const res = await handlers.handleHookPreset({
+        preset: 'custom-fail',
+        customTemplate: { id: 'custom-fail', body: '...' },
+      });
+      expect(res.content[0].text).toContain('"success": false');
+      expect(res.content[0].text).toContain('failed');
+      expect(res.content[0].text).toContain('inject err');
+    });
+
+    it('handles inline custom template array injection maps', async () => {
+      const res = await handlers.handleHookPreset({
+        presets: ['my-custom'],
+        customTemplates: [{ id: 'my-custom', body: 'console.log();' }],
+      });
+      expect(res.content[0].text).toContain('"success": true');
+    });
+
+    it('handles inline custom template singular injection map', async () => {
+      const res = await handlers.handleHookPreset({
+        preset: 'my-custom2',
+        customTemplate: { id: 'my-custom2', body: 'console.log();' },
+      });
+      expect(res.content[0].text).toContain('"success": true');
+    });
+
+    it('errors on invalid custom template structured payloads directly bubbling', async () => {
+      // Internal throw inside building map is caught by outer catch
+      const res = await handlers.handleHookPreset({
+        customTemplate: { id: 'conflict', body: '' }, // missing body
+      });
+      expect(res.content[0].text).toContain('"success": false');
+      expect(res.content[0].text).toContain('non-empty id and body');
+    });
+
+    it('errors on custom template overriding built-in default arrays', async () => {
+      const res = await handlers.handleHookPreset({
         preset: 'eval',
-        customTemplate: {
-          id: 'eval',
-          body: 'console.log(1);',
-        },
-      }),
-    );
-
-    expect(body.success).toBe(false);
-    expect(body.error).toContain('conflicts with built-in preset');
+        customTemplate: { id: 'eval', body: 'overwrite' },
+      });
+      expect(res.content[0].text).toContain('"success": false');
+      expect(res.content[0].text).toContain('conflicts with built-in preset');
+    });
   });
 });

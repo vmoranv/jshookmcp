@@ -50,6 +50,28 @@ describe('EventBreakpointManager', () => {
     );
   });
 
+  it('sets keyboard, timer, and WebSocket event breakpoint groups', async () => {
+    const keyboard = await manager.setKeyboardEventBreakpoints();
+    const timer = await manager.setTimerEventBreakpoints();
+    const websocket = await manager.setWebSocketEventBreakpoints();
+
+    expect(keyboard).toHaveLength(EventBreakpointManager.KEYBOARD_EVENTS.length);
+    expect(timer).toHaveLength(EventBreakpointManager.TIMER_EVENTS.length);
+    expect(websocket).toHaveLength(EventBreakpointManager.WEBSOCKET_EVENTS.length);
+    expect(session.send).toHaveBeenCalledWith('DOMDebugger.setEventListenerBreakpoint', {
+      eventName: 'message',
+      targetName: 'WebSocket',
+    });
+  });
+
+  it('removes an existing breakpoint and clears it from the registry', async () => {
+    const id = await manager.setEventListenerBreakpoint('click');
+    expect(manager.getAllEventBreakpoints()[0]?.id).toBe(id);
+
+    await expect(manager.removeEventListenerBreakpoint(id)).resolves.toBe(true);
+    expect(manager.getEventBreakpoint(id)).toBeUndefined();
+  });
+
   it('clears all breakpoints even if one CDP removal fails', async () => {
     await manager.setEventListenerBreakpoint('click');
     await manager.setEventListenerBreakpoint('keydown');

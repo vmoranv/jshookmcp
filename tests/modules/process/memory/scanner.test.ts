@@ -10,7 +10,14 @@ const state = vi.hoisted(() => ({
   }),
   nativeScanMemory: vi.fn(),
   isKoffiAvailable: vi.fn(),
+  findPatternInBuffer: vi.fn(),
   parseProcMaps: vi.fn(),
+  scanMemoryMac: vi.fn(),
+  createPlatformProvider: vi.fn(),
+  taskSuspend: vi.fn(),
+  taskResume: vi.fn(),
+  taskForPid: vi.fn(),
+  machTaskSelf: vi.fn(),
 }));
 
 vi.mock(import('node:fs'), async (importOriginal) => {
@@ -39,10 +46,25 @@ vi.mock('@src/native/NativeMemoryManager', () => ({
 
 vi.mock('@src/native/NativeMemoryManager.utils', () => ({
   isKoffiAvailable: state.isKoffiAvailable,
+  findPatternInBuffer: state.findPatternInBuffer,
 }));
 
 vi.mock('@src/modules/process/memory/linux/mapsParser', () => ({
   parseProcMaps: state.parseProcMaps,
+}));
+
+vi.mock('@native/platform/factory.js', () => ({
+  createPlatformProvider: state.createPlatformProvider,
+}));
+
+vi.mock('@native/platform/darwin/DarwinAPI.js', () => ({
+  taskSuspend: state.taskSuspend,
+  taskResume: state.taskResume,
+  taskForPid: state.taskForPid,
+  machTaskSelf: state.machTaskSelf,
+  KERN: {
+    SUCCESS: 0,
+  },
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -64,6 +86,7 @@ import {
 describe('memory/scanner', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    state.execAsync.mockResolvedValue({ stdout: '', stderr: '' });
   });
 
   it('buildPatternBytesAndMask handles hex wildcard mask', () => {
@@ -139,6 +162,43 @@ describe('memory/scanner', () => {
     expect(result.stats?.resultsFound).toBe(2);
   });
 
+  it('scanMemoryFiltered returns empty success when the full scan fails', async () => {
+    const result = await scanMemoryFiltered(
+      1,
+      'AA',
+      ['0x1000'],
+      'hex',
+      vi.fn(),
+      vi.fn().mockResolvedValue({
+        success: false,
+        addresses: [],
+        error: 'scan failed',
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.addresses).toEqual([]);
+    expect(result.stats?.resultsFound).toBe(0);
+  });
+
+  it('scanMemoryFiltered returns empty success when the full scan yields no addresses', async () => {
+    const result = await scanMemoryFiltered(
+      1,
+      'AA',
+      ['0x1000'],
+      'hex',
+      vi.fn(),
+      vi.fn().mockResolvedValue({
+        success: true,
+        addresses: [],
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.addresses).toEqual([]);
+    expect(result.stats?.resultsFound).toBe(0);
+  });
+
   describe('Windows native fallback to PowerShell', () => {
     it('falls back to PowerShell when native scan fails', async () => {
       state.isKoffiAvailable.mockReturnValue(true);
@@ -199,6 +259,100 @@ describe('memory/scanner', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('not supported');
+    });
+
+    it('suspends and resumes linux process when requested', async () => {
+      const result = await scanMemory('linux', 9, 'AA BB', 'hex', true);
+
+      expect(result.success).toBe(false);
+      expect(state.execAsync).toHaveBeenNthCalledWith(1, 'kill -STOP 9', { timeout: 2000 });
+      expect(state.execAsync).toHaveBeenNthCalledWith(2, 'kill -CONT 9', { timeout: 2000 });
+    });
+  });
+
+  describe('Windows suspend and resume', () => {
+    it('uses PowerShell suspend/resume helpers when requested', async () => {
+      state.executePowerShellScript.mockResolvedValue({
+        stdout: '{"success":true,"addresses":[],"stats":{"patternLength":2,"resultsFound":0}}',
+        stderr: '',
+      });
+
+      const result = await scanMemory('win32', 11, 'AA BB', 'hex', true);
+
+      expect(result.success).toBe(true);
+      expect(state.execAsync).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining('NtSuspendProcess'),
+        { timeout: 5000 },
+      );
+      expect(state.execAsync).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('NtResumeProcess'),
+        { timeout: 5000 },
+      );
+    });
+  });
+
+  describe('macOS scan flow', () => {
+    it('delegates to the native macOS scanner on darwin', async () => {
+      const region = {
+        baseAddress: 0x1000n,
+        size: 3,
+        isReadable: true,
+        isWritable: false,
+        isExecutable: false,
+      };
+      const provider = {
+        checkAvailability: vi.fn().mockResolvedValue({ available: true }),
+        openProcess: vi.fn().mockReturnValue({ pid: 1 }),
+        queryRegion: vi
+          .fn()
+          .mockImplementationOnce(() => region)
+          .mockImplementationOnce(() => null),
+        readMemory: vi.fn().mockReturnValue({ data: Buffer.from([0x00, 0xaa, 0xbb]) }),
+        closeProcess: vi.fn(),
+      };
+      state.createPlatformProvider.mockReturnValue(provider);
+      state.findPatternInBuffer.mockReturnValue([1]);
+
+      const result = await scanMemory('darwin', 9, 'AA BB', 'hex', false);
+
+      expect(result.success).toBe(true);
+      expect(result.addresses).toEqual(['0x1001']);
+      expect(state.createPlatformProvider).toHaveBeenCalled();
+    });
+
+    it('suspends and resumes darwin while scanning', async () => {
+      const region = {
+        baseAddress: 0x1000n,
+        size: 3,
+        isReadable: true,
+        isWritable: false,
+        isExecutable: false,
+      };
+      const provider = {
+        checkAvailability: vi.fn().mockResolvedValue({ available: true }),
+        openProcess: vi.fn().mockReturnValue({ pid: 1 }),
+        queryRegion: vi
+          .fn()
+          .mockImplementationOnce(() => region)
+          .mockImplementationOnce(() => null),
+        readMemory: vi.fn().mockReturnValue({ data: Buffer.from([0x00, 0xaa, 0xbb]) }),
+        closeProcess: vi.fn(),
+      };
+      state.createPlatformProvider.mockReturnValue(provider);
+      state.findPatternInBuffer.mockReturnValue([1]);
+      state.machTaskSelf.mockReturnValue(1);
+      state.taskForPid.mockReturnValue({ kr: 0, task: { pid: 9 } });
+      state.taskSuspend.mockReturnValue(0);
+      state.taskResume.mockReturnValue(0);
+
+      const result = await scanMemory('darwin', 9, 'AA BB', 'hex', true);
+
+      expect(result.success).toBe(true);
+      expect(result.addresses).toEqual(['0x1001']);
+      expect(state.taskSuspend).toHaveBeenCalledWith({ pid: 9 });
+      expect(state.taskResume).toHaveBeenCalledWith({ pid: 9 });
     });
   });
 });

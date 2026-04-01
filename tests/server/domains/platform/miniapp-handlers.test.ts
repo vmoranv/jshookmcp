@@ -459,5 +459,334 @@ describe('MiniappHandlers', () => {
       expect(pages).toContain('sub/pages/sub-page');
       expect(pages).toContain('pages/root-page');
     });
+
+    it('reads appId from app-config.json and records page-frame discovery', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
+      mocks.readdir.mockResolvedValueOnce([
+        { name: 'app-config.json', isDirectory: () => false, isFile: () => true },
+        { name: 'page-frame.html', isDirectory: () => false, isFile: () => true },
+        { name: 'app.js', isDirectory: () => false, isFile: () => true },
+      ]);
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ size: 120 }));
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ size: 48 }));
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ size: 16 }));
+      mocks.readFile.mockResolvedValueOnce(
+        JSON.stringify({
+          pages: ['pages/configured/home'],
+          appId: 'wxconfig123456',
+        }),
+      );
+
+      const result = parsePayload(
+        await handlers.handleMiniappPkgAnalyze({ unpackedDir: '/unpacked' }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.appId).toBe('wxconfig123456');
+      expect(result.pages).toEqual(['pages/configured/home']);
+      expect(result.discovered).toMatchObject({
+        appConfigPath: expect.stringContaining('app-config.json'),
+        pageFramePath: expect.stringContaining('page-frame.html'),
+      });
+    });
+
+    it('reports an out-of-range index section before reading any entries', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readdir.mockResolvedValueOnce([]);
+
+      const buffer = Buffer.alloc(24);
+      buffer.writeUInt8(0xbe, 0);
+      buffer.writeUInt32BE(0, 1);
+      buffer.writeUInt32BE(128, 5);
+      buffer.writeUInt32BE(0, 9);
+      buffer.writeUInt8(0, 13);
+
+      mocks.readFile.mockResolvedValueOnce(buffer);
+
+      const result = parsePayload(
+        await handlers.handleMiniappPkgUnpack({
+          inputPath: '/path/to/broken.pkg',
+          outputDir: '/tmp/output',
+        }),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('index section out of range');
+    });
+
+    it('reports missing offset and size fields in the miniapp index', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readdir.mockResolvedValueOnce([]);
+
+      const name = Buffer.from('main.js', 'utf-8');
+      const indexInfoLength = 4 + 4 + name.length + 4;
+      const buffer = Buffer.alloc(14 + indexInfoLength);
+      buffer.writeUInt8(0xbe, 0);
+      buffer.writeUInt32BE(0, 1);
+      buffer.writeUInt32BE(indexInfoLength, 5);
+      buffer.writeUInt32BE(0, 9);
+      buffer.writeUInt8(0, 13);
+      buffer.writeUInt32BE(1, 14);
+      buffer.writeUInt32BE(name.length, 18);
+      name.copy(buffer, 22);
+
+      mocks.readFile.mockResolvedValueOnce(buffer);
+
+      const result = parsePayload(
+        await handlers.handleMiniappPkgUnpack({
+          inputPath: '/path/to/broken.pkg',
+          outputDir: '/tmp/output',
+        }),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('missing offset/size');
+    });
+  });
+  describe('additional coverage', () => {
+    it('finds valid .pkg files during scan', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
+      mocks.readdir.mockResolvedValueOnce([
+        { name: 'demo.pkg', isDirectory: () => false, isFile: () => true },
+        { name: 'note.txt', isDirectory: () => false, isFile: () => true },
+      ]);
+      mocks.stat
+        .mockResolvedValueOnce(makeFileStats({ isFile: true, size: 64 }))
+        .mockResolvedValueOnce(makeFileStats({ isFile: true, size: 16 }));
+      mocks.open.mockResolvedValueOnce({
+        read: async (buffer: Buffer) => {
+          buffer[0] = 0xbe;
+          return { bytesRead: 1, bytesWritten: 1 };
+        },
+        close: async () => undefined,
+      });
+
+      const result = parsePayload(
+        await handlers.handleMiniappPkgScan({ searchPath: 'C:\\scan-root' }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.count).toBe(1);
+      expect((result.files as Array<{ path: string }>)[0].path).toContain('/demo.pkg');
+    });
+
+    it('falls back to internal unpacking when the external CLI reports success but emits nothing', async () => {
+      const customRunner = makeRunner({
+        probeAll: vi.fn<ExternalToolRunner['probeAll']>(
+          async () =>
+            ({
+              'miniapp.unpacker': { available: true },
+            }) as unknown as ProbeAllResult,
+        ),
+        run: vi.fn<ExternalToolRunner['run']>(
+          async () =>
+            ({
+              ok: true,
+              exitCode: 0,
+              signal: null,
+              stdout: '',
+              stderr: '',
+              truncated: false,
+              durationMs: 500,
+            }) satisfies RunnerResult,
+        ),
+      });
+
+      const customHandlers = new MiniappHandlers(customRunner, collector);
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readdir.mockResolvedValueOnce([]);
+
+      const buffer = Buffer.alloc(64);
+      buffer.writeUInt8(0xbe, 0);
+      buffer.writeUInt32BE(1, 1);
+      const name = Buffer.from('main.js', 'utf-8');
+      const indexInfoLength = 4 + 4 + name.length + 4 + 4;
+      buffer.writeUInt32BE(indexInfoLength, 5);
+      buffer.writeUInt32BE(5, 9);
+      buffer.writeUInt8(0, 13);
+      let cursor = 14;
+      buffer.writeUInt32BE(1, cursor);
+      cursor += 4;
+      buffer.writeUInt32BE(name.length, cursor);
+      cursor += 4;
+      name.copy(buffer, cursor);
+      cursor += name.length;
+      buffer.writeUInt32BE(0, cursor);
+      cursor += 4;
+      buffer.writeUInt32BE(5, cursor);
+      const dataOffset = 14 + indexInfoLength;
+      buffer.write('hello', dataOffset, 'utf-8');
+      mocks.readFile.mockResolvedValueOnce(buffer);
+
+      const result = parsePayload(
+        await customHandlers.handleMiniappPkgUnpack({
+          inputPath: '/path/to/app.pkg',
+          outputDir: '/tmp/output',
+        }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.usedExternalCli).toBe(false);
+      expect(result.extractedFiles).toBe(1);
+      expect(result.totalBytesExtracted).toBe(5);
+    });
+
+    it('skips .pkg files whose magic byte does not match 0xBE', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
+      mocks.readdir.mockResolvedValueOnce([
+        { name: 'bad.pkg', isDirectory: () => false, isFile: () => true },
+        { name: 'keep.txt', isDirectory: () => false, isFile: () => true },
+      ]);
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true, size: 64 }));
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true, size: 16 }));
+      mocks.open.mockResolvedValueOnce({
+        read: async (buffer: Buffer) => {
+          buffer[0] = 0x00;
+          return { bytesRead: 1, bytesWritten: 1 };
+        },
+        close: async () => undefined,
+      });
+
+      const result = parsePayload(await handlers.handleMiniappPkgScan({ searchPath: 'C:\\scan' }));
+
+      expect(result.success).toBe(true);
+      expect(result.count).toBe(0);
+    });
+
+    it('reports a missing file count in the miniapp index', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readdir.mockResolvedValueOnce([]);
+
+      const buffer = Buffer.alloc(24);
+      buffer.writeUInt8(0xbe, 0);
+      buffer.writeUInt32BE(1, 1);
+      buffer.writeUInt32BE(3, 5);
+      buffer.writeUInt32BE(0, 9);
+      buffer.writeUInt8(0, 13);
+
+      mocks.readFile.mockResolvedValueOnce(buffer);
+
+      const result = parsePayload(
+        await handlers.handleMiniappPkgUnpack({
+          inputPath: '/path/to/broken.pkg',
+          outputDir: '/tmp/output',
+        }),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('missing file count');
+    });
+
+    it('reports an invalid name length in the miniapp index', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readdir.mockResolvedValueOnce([]);
+
+      const buffer = Buffer.alloc(40);
+      buffer.writeUInt8(0xbe, 0);
+      buffer.writeUInt32BE(1, 1);
+      buffer.writeUInt32BE(9, 5);
+      buffer.writeUInt32BE(0, 9);
+      buffer.writeUInt8(0, 13);
+      buffer.writeUInt32BE(1, 14);
+      buffer.writeUInt32BE(0, 18);
+
+      mocks.readFile.mockResolvedValueOnce(buffer);
+
+      const result = parsePayload(
+        await handlers.handleMiniappPkgUnpack({
+          inputPath: '/path/to/broken-name.pkg',
+          outputDir: '/tmp/output',
+        }),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('invalid nameLen');
+    });
+
+    it('reports a missing name length in the miniapp index', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readdir.mockResolvedValueOnce([]);
+
+      const buffer = Buffer.alloc(24);
+      buffer.writeUInt8(0xbe, 0);
+      buffer.writeUInt32BE(1, 1);
+      buffer.writeUInt32BE(6, 5);
+      buffer.writeUInt32BE(0, 9);
+      buffer.writeUInt8(0, 13);
+      buffer.writeUInt32BE(1, 14);
+
+      mocks.readFile.mockResolvedValueOnce(buffer);
+
+      const result = parsePayload(
+        await handlers.handleMiniappPkgUnpack({
+          inputPath: '/path/to/missing-nameLen.pkg',
+          outputDir: '/tmp/output',
+        }),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('missing nameLen');
+    });
+
+    it('preserves the last external CLI error when every attempt fails', async () => {
+      const customRunner = makeRunner({
+        probeAll: vi.fn<ExternalToolRunner['probeAll']>(
+          async () =>
+            ({
+              'miniapp.unpacker': { available: true },
+            }) as unknown as ProbeAllResult,
+        ),
+        run: vi.fn<ExternalToolRunner['run']>(
+          async () =>
+            ({
+              ok: false,
+              exitCode: 2,
+              signal: null,
+              stdout: '',
+              stderr: 'unveilr failed',
+              truncated: false,
+              durationMs: 25,
+            }) satisfies RunnerResult,
+        ),
+      });
+
+      const customHandlers = new MiniappHandlers(customRunner, collector);
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true }));
+      mocks.readdir.mockResolvedValueOnce([]);
+      const header = Buffer.alloc(18);
+      header.writeUInt8(0xbe, 0);
+      header.writeUInt32BE(0, 1);
+      header.writeUInt32BE(4, 5);
+      header.writeUInt32BE(0, 9);
+      header.writeUInt8(0, 13);
+      header.writeUInt32BE(0, 14);
+      mocks.readFile.mockResolvedValueOnce(header);
+
+      const result = parsePayload(
+        await customHandlers.handleMiniappPkgUnpack({
+          inputPath: '/path/to/app.pkg',
+          outputDir: '/tmp/output',
+        }),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.cliError).toContain('unveilr failed');
+    });
+
+    it('skips pkg files when opening the magic-byte probe fails', async () => {
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isDirectory: true, isFile: false }));
+      mocks.readdir.mockResolvedValueOnce([
+        { name: 'broken.pkg', isDirectory: () => false, isFile: () => true },
+      ]);
+      mocks.stat.mockResolvedValueOnce(makeFileStats({ isFile: true, size: 64 }));
+      mocks.open.mockRejectedValueOnce(new Error('EACCES'));
+
+      const result = parsePayload(
+        await handlers.handleMiniappPkgScan({ searchPath: 'C:\\scan-root' }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.count).toBe(0);
+    });
   });
 });

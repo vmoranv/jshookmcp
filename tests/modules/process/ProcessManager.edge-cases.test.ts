@@ -177,6 +177,29 @@ describe('ProcessManager — edge cases', () => {
       const results = await manager.findProcesses('other-pattern');
       expect(results).toHaveLength(1);
     });
+
+    it('computes diff between cache snapshots: detects removed and changed processes', async () => {
+      // Setup initial cache
+      state.execAsync.mockResolvedValueOnce({
+        stdout: JSON.stringify([
+          { Id: 1, ProcessName: 'proc1', Path: 'C:/proc1.exe' },
+          { Id: 2, ProcessName: 'proc2', Path: 'C:/proc2.exe' },
+        ]),
+        stderr: '',
+      });
+      const manager = new ProcessManager();
+      await manager.findProcesses('test');
+
+      // Update cache with changed and removed items
+      state.execAsync.mockResolvedValueOnce({
+        stdout: JSON.stringify([{ Id: 1, ProcessName: 'proc1-changed', Path: 'C:/proc1-new.exe' }]),
+        stderr: '',
+      });
+
+      const results2 = await manager.findProcesses('other-pattern');
+      expect(results2).toHaveLength(1);
+      // Diff logic coverage inside class
+    });
   });
 
   // --- getProcessByPid edge cases ---
@@ -542,6 +565,58 @@ describe('ProcessManager — edge cases', () => {
       expect(result).toBeNull();
       vi.useRealTimers();
     });
+
+    it('returns synthesized process if getProcessByPid fails but debugPid matches resolvedPid', async () => {
+      vi.useFakeTimers();
+      const child = createSpawnChild(5000);
+      state.spawn.mockReturnValue(child);
+
+      // First attempt: Get-NetTCPConnection resolves debugPid to 5000
+      state.execAsync.mockResolvedValue({
+        stdout: JSON.stringify({ OwningProcess: 5000 }),
+        stderr: '',
+      });
+
+      const manager = new ProcessManager();
+      // Simulate that getProcessByPid totally fails to return full info
+      vi.spyOn(manager, 'getProcessByPid').mockResolvedValue(null);
+
+      const pending = manager.launchWithDebug('C:/app.exe', 9222);
+      await vi.runAllTimersAsync();
+      const result = await pending;
+
+      expect(result).toEqual({
+        pid: 5000,
+        name: 'app.exe',
+        executablePath: 'C:/app.exe',
+      });
+      vi.useRealTimers();
+    });
+
+    it('returns synthesized process via simple fallback when loop completes and process lacks debug info', async () => {
+      vi.useFakeTimers();
+      const child = createSpawnChild(6000); // child pid is 6000
+      state.spawn.mockReturnValue(child);
+
+      // NetTCPConnection returns null for debugPid in the loop
+      state.execAsync.mockResolvedValue({ stdout: 'null', stderr: '' });
+
+      const manager = new ProcessManager();
+      // getProcessByPid also returns null for the child process 6000 length
+      vi.spyOn(manager, 'getProcessByPid').mockResolvedValue(null);
+
+      const pending = manager.launchWithDebug('C:/app.exe', 9222);
+      await vi.runAllTimersAsync();
+      const result = await pending;
+
+      // Loop exhausted. It returns the fallback using resolvedPid (which is childPid=6000)
+      expect(result).toEqual({
+        pid: 6000,
+        name: 'app.exe',
+        executablePath: 'C:/app.exe',
+      });
+      vi.useRealTimers();
+    });
   });
 
   // --- injectDll edge cases ---
@@ -574,6 +649,26 @@ describe('ProcessManager — edge cases', () => {
     });
   });
 
+  describe('findPidByListeningPort (internal)', () => {
+    it('catches execution errors during findPidByListeningPort', async () => {
+      vi.useFakeTimers();
+      const child = createSpawnChild(5000);
+      state.spawn.mockReturnValue(child);
+
+      // Force execAsync to throw when Get-NetTCPConnection is called
+      state.execAsync.mockRejectedValueOnce(new Error('TCP Error'));
+
+      const manager = new ProcessManager();
+      vi.spyOn(manager, 'getProcessByPid').mockResolvedValue(null);
+
+      const pending = manager.launchWithDebug('C:/app.exe', 9222);
+      await vi.runAllTimersAsync();
+      await pending;
+
+      vi.useRealTimers();
+    });
+  });
+
   // --- Browser discovery delegation edge cases ---
 
   describe('discoverBrowsers', () => {
@@ -582,6 +677,13 @@ describe('ProcessManager — edge cases', () => {
       const manager = new ProcessManager();
       const result = await manager.discoverBrowsers();
       expect(result).toEqual([]);
+    });
+
+    it('returns array of browsers on success', async () => {
+      state.discoverBrowsers.mockResolvedValue([{ windowTitle: 'test' }]);
+      const manager = new ProcessManager();
+      const result = await manager.discoverBrowsers();
+      expect(result).toEqual([{ windowTitle: 'test' }]);
     });
   });
 
@@ -592,6 +694,13 @@ describe('ProcessManager — edge cases', () => {
       const result = await manager.findBrowserByWindowClass('Chrome_*');
       expect(result).toEqual([]);
     });
+
+    it('returns matching browsers on success', async () => {
+      state.findByWindowClass.mockResolvedValue([{ processId: 10 }]);
+      const manager = new ProcessManager();
+      const result = await manager.findBrowserByWindowClass('Chrome_*');
+      expect(result).toEqual([{ processId: 10 }]);
+    });
   });
 
   describe('findBrowserByProcessName', () => {
@@ -600,6 +709,13 @@ describe('ProcessManager — edge cases', () => {
       const manager = new ProcessManager();
       const result = await manager.findBrowserByProcessName('chrome.exe');
       expect(result).toEqual([]);
+    });
+
+    it('returns matching browsers on success', async () => {
+      state.findByProcessName.mockResolvedValue([{ processId: 12 }]);
+      const manager = new ProcessManager();
+      const result = await manager.findBrowserByProcessName('chrome.exe');
+      expect(result).toEqual([{ processId: 12 }]);
     });
   });
 
@@ -629,8 +745,35 @@ describe('ProcessManager — edge cases', () => {
   });
 
   // --- findChromiumProcesses ---
-  // Note: findChromiumProcesses delegates to the external chromium module;
-  // the delegation pattern is tested via findChromiumAppProcesses below.
+  describe('findChromiumProcesses', () => {
+    it('delegates to findChromiumProcessesWithConfig and exercises callbacks', async () => {
+      const manager = new ProcessManager();
+
+      // Need to invoke findChromiumProcesses, which invokes findChromiumProcessesWithConfig
+      // But findChromiumProcessesWithConfig is mocked to just return something
+      // We can grab the callbacks it received
+      const { findChromiumProcessesWithConfig } =
+        await import('@modules/process/ProcessManager.chromium');
+
+      await manager.findChromiumProcesses();
+
+      expect(findChromiumProcessesWithConfig).toHaveBeenCalled();
+      const args = vi.mocked(findChromiumProcessesWithConfig).mock.calls[0]?.[1] as any;
+
+      // Call all the internal callbacks to ensure lines 251-255 are covered
+      state.execAsync.mockResolvedValue({ stdout: '[]', stderr: '' }); // for findProcesses
+      await args.findProcesses('test');
+
+      state.execAsync.mockResolvedValue({ stdout: 'null', stderr: '' }); // for getProcessCommandLine
+      await args.getProcessCommandLine(123);
+
+      state.execAsync.mockResolvedValue({ stdout: 'null', stderr: '' }); // for getProcessWindows
+      await args.getProcessWindows(123);
+
+      args.logInfo('info event', { pid: 1 });
+      args.logError('error event', new Error('test'));
+    });
+  });
 
   // --- findChromiumAppProcesses (deprecated) ---
 

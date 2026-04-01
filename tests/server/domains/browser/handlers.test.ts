@@ -301,12 +301,73 @@ describe('BrowserToolHandlers', () => {
       close: vi.fn(async () => {}),
       getBrowser: vi.fn(() => ({})),
     };
+    consoleMonitor.disable.mockRejectedValueOnce(new Error('reset failed'));
+
     const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserClose({}));
     expect(body.success).toBe(true);
     expect(body.message).toContain('Camoufox browser closed');
     expect(browserControlMocks.handleBrowserClose).toHaveBeenCalledWith({});
     expect(consoleMonitor.disable).toHaveBeenCalledTimes(1);
     expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates browser close when chrome is active', async () => {
+    const result = await handlers.handleBrowserClose({ reason: 'manual' });
+
+    expect(result).toEqual({ from: 'browser-close', args: { reason: 'manual' } });
+    expect(browserControlMocks.handleBrowserClose).toHaveBeenCalledWith({ reason: 'manual' });
+  });
+
+  it('delegates page navigation when chrome is active', async () => {
+    const result = await handlers.handlePageNavigate({
+      url: 'https://example.com',
+      waitUntil: 'domcontentloaded',
+    });
+
+    expect(result).toEqual({
+      from: 'page-nav',
+      args: {
+        url: 'https://example.com',
+        waitUntil: 'domcontentloaded',
+      },
+    });
+    expect(pageNavigationMocks.handlePageNavigate).toHaveBeenCalledWith({
+      url: 'https://example.com',
+      waitUntil: 'domcontentloaded',
+    });
+  });
+
+  it('launches camoufox through the launch flow', async () => {
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleBrowserLaunch({ driver: 'camoufox' }),
+    );
+
+    expect(body.success).toBe(true);
+    expect(body.driver).toBe('camoufox');
+    expect(body.mode).toBe('launch');
+    expect((handlers as any).activeDriver).toBe('camoufox');
+    expect((handlers as any).camoufoxManager).toBeTruthy();
+  });
+
+  it('returns camoufox status when active driver is camoufox', async () => {
+    (handlers as any).activeDriver = 'camoufox';
+    (handlers as any).camoufoxManager = {
+      getBrowser: vi.fn(() => ({})),
+    };
+    (handlers as any).camoufoxPage = { url: vi.fn(() => 'https://example.com') };
+
+    const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
+
+    expect(body.driver).toBe('camoufox');
+    expect(body.running).toBe(true);
+    expect(body.hasActivePage).toBe(true);
+  });
+
+  it('delegates browser status when chrome is active', async () => {
+    const result = await handlers.handleBrowserStatus({ verbose: true });
+
+    expect(result).toEqual({ from: 'browser-status', args: { verbose: true } });
+    expect(browserControlMocks.handleBrowserStatus).toHaveBeenCalledWith({ verbose: true });
   });
 
   it('wraps DOM structure via DetailedDataManager smartHandle', async () => {

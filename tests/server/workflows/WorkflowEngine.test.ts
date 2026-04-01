@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createWorkflow, SequenceNodeBuilder } from '@server/workflows/WorkflowContract';
+import {
+  createWorkflow,
+  SequenceNodeBuilder,
+  ToolNodeBuilder,
+  ParallelNodeBuilder,
+} from '@server/workflows/WorkflowContract';
 
 const state = vi.hoisted(() => ({
   randomUUID: vi.fn(() => 'run-123'),
@@ -146,7 +151,11 @@ describe('workflows/WorkflowEngine', () => {
       })
       .build();
 
-    const result = await executeExtensionWorkflow(ctx as never, workflow);
+    const result = await executeExtensionWorkflow(ctx as never, workflow, {
+      profile: 'custom-profile',
+    });
+
+    expect(result.profile).toBe('custom-profile');
 
     expect(result.stepResults).toHaveProperty('step-2');
     expect(result.stepResults).toHaveProperty('step-5');
@@ -184,5 +193,173 @@ describe('workflows/WorkflowEngine', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('resolves tool inputFrom references from previous step outputs', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const executeToolWithTracking = vi
+      .fn()
+      .mockResolvedValueOnce(successResponse({ result_field: 'hello' }))
+      .mockResolvedValueOnce(successResponse({ ok: true }))
+      .mockResolvedValueOnce(successResponse({ ok: true }));
+
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+    const workflow = createWorkflow('wf', 'wf')
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root')
+          .tool('step-1', 'tool_1')
+          .tool('step-2', 'tool_2', (b) =>
+            b.inputFrom({ injectA: 'step-1.result_field', injectB: 'step-1' }),
+          )
+          .tool('step-3', 'tool_3', (b) => b.inputFrom({ injectC: 'non_existent.field' })),
+      )
+      .build();
+
+    await executeExtensionWorkflow(ctx as never, workflow);
+    expect(executeToolWithTracking).toHaveBeenNthCalledWith(2, 'tool_2', {
+      injectA: 'hello',
+      injectB: successResponse({ result_field: 'hello' }),
+    });
+    expect(executeToolWithTracking).toHaveBeenNthCalledWith(3, 'tool_3', { injectC: undefined });
+  });
+
+  it('collectSuccessStats handles various response formats for predicates', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const executeToolWithTracking = vi
+      .fn()
+      .mockResolvedValueOnce(successResponse({ ok: true }))
+      .mockResolvedValueOnce({
+        content: [{ text: JSON.stringify({ success: false, error: 'boom' }) }],
+      })
+      .mockResolvedValueOnce({ content: [{ text: 'invalid json' }] })
+      .mockResolvedValueOnce({ error: 'hard error' })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce([{ content: [{ text: JSON.stringify({ success: true }) }] }]);
+
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+    const workflow = createWorkflow('wf', 'wf')
+      .buildGraph(() =>
+        new SequenceNodeBuilder('root')
+          .parallel('par', (b) => {
+            b.tool('t1', 't')
+              .tool('t2', 't')
+              .tool('t3', 't')
+              .tool('t4', 't')
+              .tool('t5', 't')
+              .tool('t6', 't');
+          })
+          .branch('br', 'any_step_failed', (b) => b.whenTrue(new ToolNodeBuilder('t7', 't')))
+          .branch('br2', 'success_rate_gte_50', (b) => {
+            b.whenTrue(new ToolNodeBuilder('t9', 't'));
+            b.whenFalse(new ToolNodeBuilder('t8', 't'));
+          }),
+      )
+      .build();
+
+    const result = await executeExtensionWorkflow(ctx as never, workflow);
+    expect(result.stepResults).toHaveProperty('t7');
+    expect(result.stepResults).not.toHaveProperty('t8'); // since success rate < 50%
+  });
+
+  it('exhausts tool node retries and fails the workflow with tool error', async () => {
+    vi.useFakeTimers();
+    try {
+      const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+      const executeToolWithTracking = vi.fn().mockRejectedValue(new Error('retry error'));
+      const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+      const workflow = createWorkflow('w', 'w')
+        .buildGraph(() => new ToolNodeBuilder('t', 't').retry({ maxAttempts: 2, backoffMs: 1 }))
+        .build();
+
+      const p = executeExtensionWorkflow(ctx as never, workflow);
+      const caught = p.catch((e) => e);
+      await vi.advanceTimersByTimeAsync(10);
+      const err = await caught;
+      expect(err).toBeInstanceOf(Error);
+      expect((err as Error).message).toBe('retry error');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('fails immediately when maxAttempts is 0', async () => {
+    vi.useFakeTimers();
+    try {
+      const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+      const executeToolWithTracking = vi.fn().mockRejectedValue(new Error('retry error'));
+      const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+      const workflow = createWorkflow('w', 'w')
+        .buildGraph(() => new ToolNodeBuilder('t', 't').retry({ maxAttempts: 0, backoffMs: 1 }))
+        .build();
+
+      const p = executeExtensionWorkflow(ctx as never, workflow);
+      const caught = p.catch((e) => e);
+      await vi.advanceTimersByTimeAsync(10);
+      const err = await caught;
+      expect(err).toBeInstanceOf(Error);
+      expect((err as Error).message).toBe('Workflow tool node "t" exhausted retries');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('parallel node failFast aborts remaining steps', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const executeToolWithTracking = vi.fn(async (name) => {
+      if (name === 't1') throw new Error('boom');
+      if (name === 't3') throw 'string error';
+      return successResponse({});
+    });
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+    const workflow = createWorkflow('w', 'w')
+      .buildGraph(() =>
+        new ParallelNodeBuilder('p').failFast(false).tool('t1', 't1').tool('t3', 't3'),
+      )
+      .build();
+    const res = await executeExtensionWorkflow(ctx as never, workflow);
+    expect((res.stepResults.p as any)[0].error).toBe('boom');
+    expect((res.stepResults.p as any)[1].error).toBe('string error');
+
+    const wf2 = createWorkflow('w2', 'w2')
+      .buildGraph(() =>
+        new ParallelNodeBuilder('p').failFast(true).tool('t1', 't1').tool('t2', 't2'),
+      )
+      .build();
+    await expect(executeExtensionWorkflow(ctx as never, wf2)).rejects.toThrow('boom');
+  });
+
+  it('throws on unsupported node kind', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking: vi.fn() };
+    const workflow = createWorkflow('w', 'w')
+      .buildGraph(() => ({ build: () => ({ kind: 'unknown', id: 'u' }) }) as any)
+      .build();
+    await expect(executeExtensionWorkflow(ctx as never, workflow)).rejects.toThrow(
+      'Unsupported workflow node kind: unknown',
+    );
+  });
+
+  it('workflow finishes successfully before timeout', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const executeToolWithTracking = vi.fn().mockResolvedValueOnce(successResponse({}));
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+    const w = createWorkflow('w', 'w')
+      .timeoutMs(1000)
+      .buildGraph(() => new ToolNodeBuilder('t', 't'))
+      .build();
+    await expect(executeExtensionWorkflow(ctx as never, w)).resolves.toMatchObject({
+      result: expect.anything(),
+    });
+  });
+
+  it('workflow natively rejects before timeout', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const executeToolWithTracking = vi.fn().mockRejectedValueOnce(new Error('native error'));
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+    const w = createWorkflow('w', 'w')
+      .timeoutMs(1000)
+      .buildGraph(() => new ToolNodeBuilder('t', 't'))
+      .build();
+    await expect(executeExtensionWorkflow(ctx as never, w)).rejects.toThrow('native error');
   });
 });

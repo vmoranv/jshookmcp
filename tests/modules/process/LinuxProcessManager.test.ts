@@ -8,10 +8,14 @@ const state = vi.hoisted(() => {
   return { execAsync, promisify, spawn };
 });
 
-vi.mock('child_process', () => ({
-  exec: vi.fn(),
-  spawn: state.spawn,
-}));
+vi.mock('child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('child_process')>();
+  return {
+    ...actual,
+    exec: vi.fn(),
+    spawn: state.spawn,
+  };
+});
 
 vi.mock('util', () => ({
   promisify: state.promisify,

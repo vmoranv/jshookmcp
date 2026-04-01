@@ -12,11 +12,12 @@ describe('TraceSummarizer', () => {
 
   describe('summarizeEvents', () => {
     it('returns empty summary for empty input', () => {
-      const summary = summarizeEvents([], 'balanced');
-      expect(summary.totalEvents).toBe(0);
-      expect(summary.timeRange.durationMs).toBe(0);
-      expect(summary.categories).toEqual([]);
-      expect(summary.keyMoments).toEqual([]);
+      const summaryBalanced = summarizeEvents([], 'balanced');
+      expect(summaryBalanced.totalEvents).toBe(0);
+      expect(summaryBalanced.keyMoments).toEqual([]);
+
+      const summaryCompact = summarizeEvents([], 'compact');
+      expect(summaryCompact.keyMoments).toBeUndefined();
     });
 
     it('aggregates events by category', () => {
@@ -81,7 +82,7 @@ describe('TraceSummarizer', () => {
   // ── extractKeyMoments ──
 
   describe('extractKeyMoments', () => {
-    it('extracts breakpoint events', () => {
+    it('extracts breakpoint events with optional fields', () => {
       const events: TraceEvent[] = [
         {
           timestamp: 100,
@@ -90,12 +91,31 @@ describe('TraceSummarizer', () => {
           scriptId: 'main.js',
           lineNumber: 10,
         },
+        {
+          timestamp: 200,
+          category: 'debugger',
+          eventType: 'Debugger.paused',
+        },
+        {
+          timestamp: 300,
+          category: 'debugger',
+          eventType: 'Debugger.paused',
+          scriptId: 'no_line.js',
+        },
+        {
+          timestamp: 400,
+          category: 'debugger',
+          eventType: 'Debugger.paused',
+          lineNumber: 42,
+        },
       ];
       const moments = extractKeyMoments(events);
-      expect(moments).toHaveLength(1);
+      expect(moments).toHaveLength(4);
       expect(moments[0]!.type).toBe('breakpoint');
-      expect(moments[0]!.description).toContain('main.js');
-      expect(moments[0]!.description).toContain(':10');
+      expect(moments[0]!.description).toBe('Debugger paused at script main.js:10');
+      expect(moments[1]!.description).toBe('Debugger paused');
+      expect(moments[2]!.description).toBe('Debugger paused at script no_line.js');
+      expect(moments[3]!.description).toBe('Debugger paused:42');
     });
 
     it('extracts network completion events', () => {

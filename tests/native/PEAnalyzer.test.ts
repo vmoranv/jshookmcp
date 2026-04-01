@@ -234,18 +234,18 @@ describe('PEAnalyzer', () => {
     });
 
     it('should parse section name without null terminator', async () => {
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
       originalRPM
-        .mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+        .mockImplementationOnce((_h: bigint, _addr: bigint, _size: number) => {
           return Buffer.alloc(64); // DOS
         })
-        .mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+        .mockImplementationOnce((_h: bigint, _addr: bigint, _size: number) => {
           const buf = Buffer.alloc(264);
           buf.writeUInt16LE(1, 6); // 1 section
           return buf;
         })
-        .mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+        .mockImplementationOnce((_h: bigint, _addr: bigint, _size: number) => {
           const buf = Buffer.alloc(40, 0x41); // Fill with exactly 'A', NO NULL BYTES AT ALL
           buf.write('NONULLNM', 0, 'ascii');
           return buf;
@@ -389,8 +389,8 @@ describe('PEAnalyzer', () => {
 
     it('should fallback to name if GetModuleFileNameEx returns null', async () => {
       const p = analyzer as any;
-      const { GetModuleFileNameEx } = await import('@native/Win32API');
-      (GetModuleFileNameEx as any).mockReturnValueOnce(null);
+      const { GetModuleFileNameEx: GMFNLocal } = await import('@native/Win32API');
+      (GMFNLocal as any).mockReturnValueOnce(null);
       const mods = p._enumerateModulesInternal(1234n);
       expect(mods[0]!.path).toBe('test.exe');
     });
@@ -405,13 +405,13 @@ describe('PEAnalyzer', () => {
 
     it('should handle truncated ntData buffer from short memory read', async () => {
       const p = analyzer as any;
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
       originalRPM
-        .mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+        .mockImplementationOnce((_h: bigint, _addr: bigint, _size: number) => {
           return Buffer.alloc(64); // mock DOS
         })
-        .mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+        .mockImplementationOnce((_h: bigint, addr: bigint, _size: number) => {
           // Return truncated ntData of 140 bytes (not enough to fill directories)
           const buf = Buffer.from(mockPE.subarray(Number(addr), Number(addr) + 140));
           return buf;
@@ -422,12 +422,12 @@ describe('PEAnalyzer', () => {
     });
 
     it('should read 32-bit thunks for PE32 headers', async () => {
-      const p = analyzer as any;
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
+      const _p = analyzer as any;
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
 
       // Override to PE32
-      originalRPM.mockImplementation((h: bigint, addr: bigint, size: number) => {
+      originalRPM.mockImplementation((_h: bigint, addr: bigint, size: number) => {
         const offset = Number(addr);
         if (offset === 0x80) {
           // ntData
@@ -456,7 +456,7 @@ describe('PEAnalyzer', () => {
       const imports = await analyzer.parseImports(1234n, '0x0');
       expect(imports[0]!.functions.length).toBe(2);
 
-      originalRPM.mockImplementation((h: bigint, addr: bigint, size: number) => {
+      originalRPM.mockImplementation((_h: bigint, addr: bigint, size: number) => {
         const offset = Number(addr);
         if (offset >= 0 && offset + size <= mockPE.length) {
           return Buffer.from(mockPE.subarray(offset, offset + size));
@@ -466,10 +466,10 @@ describe('PEAnalyzer', () => {
     });
 
     it('should handle missing null byte in import name', async () => {
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
 
-      originalRPM.mockImplementation((h: bigint, addr: bigint, size: number) => {
+      originalRPM.mockImplementation((_h: bigint, addr: bigint, size: number) => {
         const offset = Number(addr);
         if (offset === 0x3300) {
           const buf = Buffer.alloc(258, 0x41);
@@ -485,7 +485,7 @@ describe('PEAnalyzer', () => {
       const imports = await analyzer.parseImports(1234, '0x0');
       expect(imports[0]!.functions[0]!.name.length).toBe(256);
 
-      originalRPM.mockImplementation((h: bigint, addr: bigint, size: number) => {
+      originalRPM.mockImplementation((_h: bigint, addr: bigint, size: number) => {
         const offset = Number(addr);
         if (offset >= 0 && offset + size <= mockPE.length) {
           return Buffer.from(mockPE.subarray(offset, offset + size));
@@ -521,9 +521,9 @@ describe('PEAnalyzer', () => {
     });
 
     it('should return empty array if export directory is missing', async () => {
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
-      originalRPM.mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
+      originalRPM.mockImplementationOnce((_h: bigint, _addr: bigint, _size: number) => {
         const buf = Buffer.alloc(264);
         buf.writeUInt32LE(0, 132); // NumberOfRvaAndSizes = 0
         return buf;
@@ -533,9 +533,9 @@ describe('PEAnalyzer', () => {
     });
 
     it('should handle forwarded export without null terminator', async () => {
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
-      originalRPM.mockImplementation((h: bigint, addr: bigint, size: number) => {
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
+      originalRPM.mockImplementation((_h: bigint, addr: bigint, size: number) => {
         if (size === 256) {
           return Buffer.alloc(256, 0x41);
         }
@@ -570,9 +570,9 @@ describe('PEAnalyzer', () => {
     });
 
     it('should return empty array if import directory is missing', async () => {
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
-      originalRPM.mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
+      originalRPM.mockImplementationOnce((_h: bigint, _addr: bigint, _size: number) => {
         const buf = Buffer.alloc(264);
         buf.writeUInt32LE(0, 132); // NumberOfRvaAndSizes = 0
         return buf;
@@ -582,9 +582,9 @@ describe('PEAnalyzer', () => {
     });
 
     it('should handle import dll name without null terminator', async () => {
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
-      originalRPM.mockImplementation((h: bigint, addr: bigint, size: number) => {
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
+      originalRPM.mockImplementation((_h: bigint, addr: bigint, size: number) => {
         if (size === 256) return Buffer.alloc(256, 0x42);
         const offset = Number(addr);
         if (offset >= 0 && offset + size <= mockPE.length) {
@@ -598,10 +598,10 @@ describe('PEAnalyzer', () => {
     });
 
     it('should fallback to FirstThunk if OriginalFirstThunk is 0', async () => {
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
 
-      originalRPM.mockImplementation((h: bigint, addr: bigint, size: number) => {
+      originalRPM.mockImplementation((_h: bigint, addr: bigint, size: number) => {
         const offset = Number(addr);
         if (size === 20 && offset === 0x2200) {
           // This is reading the first IMPORT DESCRIPTOR!
@@ -642,9 +642,9 @@ describe('PEAnalyzer', () => {
     });
 
     it('should not detect hooks if memory exactly matches disk', async () => {
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
-      originalRPM.mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
+      originalRPM.mockImplementationOnce((_h: bigint, addr: bigint, size: number) => {
         const offset = Number(addr);
         if (offset >= 0 && offset + size <= mockPE.length) {
           return Buffer.from(mockPE.subarray(offset, offset + size));
@@ -666,13 +666,13 @@ describe('PEAnalyzer', () => {
 
     it('should directly cover true branch of isPE32Plus and Math.min > 16', async () => {
       const p = analyzer as any;
-      const { ReadProcessMemory } = await import('@native/Win32API');
-      const originalRPM = ReadProcessMemory as any;
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
       originalRPM
-        .mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+        .mockImplementationOnce((_h: bigint, _addr: bigint, _size: number) => {
           return Buffer.alloc(64); // DOS
         })
-        .mockImplementationOnce((h: bigint, addr: bigint, size: number) => {
+        .mockImplementationOnce((_h: bigint, _addr: bigint, _size: number) => {
           const buf = Buffer.alloc(264);
           buf.writeUInt16LE(0x20b, 24); // PE32+
           buf.writeUInt32LE(20, 132); // numberOfRvaAndSizes = 20 (>16)
@@ -687,9 +687,10 @@ describe('PEAnalyzer', () => {
     it('should detect differences between disk and memory at export RVAs', async () => {
       // We will override ReadProcessMemory just for the `funcRva` check in detectInlineHooks
       // ExportedFunc1 is at RVA 0x1050.
-      const originalRPM = ReadProcessMemory as any;
+      const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
+      const originalRPM = RPMLocal as any;
 
-      originalRPM.mockImplementation((h: bigint, addr: bigint, size: number) => {
+      originalRPM.mockImplementation((_h: bigint, addr: bigint, size: number) => {
         const offset = Number(addr);
         if (offset === 0x1050 && size === 16) {
           // It's checking memory bytes for the first export. Send a JMP hook!
@@ -717,7 +718,7 @@ describe('PEAnalyzer', () => {
     });
 
     it('should skip detection gracefully if fs.readFile throws', async () => {
-      const fs = await import('node:fs/promises');
+      const _fs = await import('node:fs/promises');
       (GetModuleFileNameEx as any).mockReturnValue('C:\\does_not_exist.dll');
       const detections = await analyzer.detectInlineHooks(1234, 'test.exe');
       expect(detections.length).toBe(0);

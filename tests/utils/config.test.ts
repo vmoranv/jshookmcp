@@ -36,6 +36,40 @@ describe('config utilities', () => {
     process.env = { ...originalEnv };
   });
 
+  it('logs warning when .env loading fails with an error other than ENOENT', async () => {
+    const accessError = Object.assign(new Error('EACCES: permission denied'), {
+      code: 'EACCES',
+    });
+    vi.doMock('dotenv', () => ({
+      config: () => ({ error: accessError }),
+    }));
+
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { getConfig } = await import('@utils/config');
+    getConfig();
+
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('Warning: Failed to load .env'),
+    );
+    consoleError.mockRestore();
+  });
+
+  it('logs info when .env loads successfully in debug mode', async () => {
+    vi.doMock('dotenv', () => ({
+      config: () => ({ parsed: { MOCKED: 'true' } }),
+    }));
+    process.env.DEBUG = 'true';
+
+    const consoleInfo = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { getConfig } = await import('@utils/config');
+    getConfig();
+
+    expect(consoleInfo).toHaveBeenCalledWith(
+      expect.stringContaining('.env file loaded (debug mode)'),
+    );
+    consoleInfo.mockRestore();
+  });
+
   it('returns sane defaults when environment is empty', async () => {
     const { getConfig } = await import('@utils/config');
     const config = getConfig();
@@ -141,6 +175,41 @@ describe('config utilities', () => {
         flags: 'i',
         boosts: [{ tool: 'run_extension_workflow', bonus: 99 }],
       },
+    ]);
+  });
+
+  it('skips invalid structures in search JSON properties', async () => {
+    process.env.SEARCH_QUERY_CATEGORY_PROFILES_JSON = JSON.stringify([
+      null,
+      { pattern: 123 },
+      { pattern: 'test', domainBoosts: 'not-array' },
+      {
+        pattern: 'test',
+        domainBoosts: [null, { domain: 123 }, { domain: 'd', weight: 'not-number' }],
+      },
+    ]);
+    process.env.SEARCH_CJK_QUERY_ALIASES_JSON = JSON.stringify([
+      null,
+      'string',
+      { pattern: 123 }, // not string
+      { pattern: 'test', tokens: 'not-array' },
+    ]);
+    process.env.SEARCH_INTENT_TOOL_BOOST_RULES_JSON = JSON.stringify([
+      null,
+      { pattern: 123 },
+      { pattern: 'test', boosts: 'not-array' },
+      { pattern: 'test', boosts: [null, { tool: 123 }, { tool: 't1', bonus: 'not-number' }] },
+    ]);
+
+    const { getConfig } = await import('@utils/config');
+    const config = getConfig();
+
+    expect(config.search.queryCategoryProfiles).toEqual([
+      { pattern: 'test', flags: undefined, domainBoosts: [] },
+    ]);
+    expect(config.search.cjkQueryAliases).toEqual([]);
+    expect(config.search.intentToolBoostRules).toEqual([
+      { pattern: 'test', flags: undefined, boosts: [] },
     ]);
   });
 });

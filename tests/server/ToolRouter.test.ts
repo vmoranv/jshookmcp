@@ -40,6 +40,7 @@ const mocks = vi.hoisted(() => {
     tool('get_token_budget_stats', 'Inspect token budget state'),
     tool('run_extension_workflow', 'Execute extension workflow'),
     tool('list_extension_workflows', 'List loaded extension workflows'),
+    tool('builtin_newline', '\n'),
   ];
 
   const domainMap = new Map<string, string>([
@@ -100,6 +101,14 @@ vi.mock('@server/extensions/ExtensionManager', () => ({
 }));
 
 import { describeTool, generateExampleArgs, routeToolRequest } from '@server/ToolRouter';
+import {
+  getToolDescription,
+  getToolDomainFromContext,
+  isToolActive,
+  getAvailableToolNames,
+  probeCapturedRequests,
+} from '../../src/server/ToolRouter.probe';
+import { buildWorkflowToolSequence } from '@server/ToolRouter.policy';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
   return {
@@ -756,5 +765,441 @@ describe('ToolRouter', () => {
     expect(navRec!.prerequisites).toBeDefined();
     expect(navRec!.prerequisites!.some((p) => p.fix.includes('browser_launch'))).toBe(true);
     expect(navRec!.prerequisites!.every((p) => p.satisfied === false)).toBe(true);
+  });
+
+  describe('Edge Case Coverage', () => {
+    it('ToolRouter.renderer.ts: handles unknown property types', () => {
+      const example = generateExampleArgs({
+        type: 'object',
+        required: ['unknownProp'],
+        properties: {
+          unknownProp: { type: 'null' },
+        },
+      } as any);
+      // Fall through branches leaves it undefined in example
+      expect(example).toEqual({});
+    });
+
+    it('ToolRouter.intent.ts: skips workflow routes without metadata', async () => {
+      const ctx = createCtx({
+        extensionWorkflowRuntimeById: new Map([
+          [
+            'no-route',
+            {
+              workflow: {
+                id: 'no-route',
+                name: 'Missing Route',
+              },
+              // explicitly no route property
+            },
+          ],
+        ]),
+      });
+      const searchEngine = { search: vi.fn(() => []) } as any;
+      const response = await routeToolRequest({ task: 'foo' }, ctx, searchEngine);
+      // It should effectively ignore 'no-route' and return an empty recommendation
+      expect(response.recommendations).toHaveLength(0);
+    });
+
+    it('ToolRouter.probe.ts: probeNetworkEnabled handles fallback error', async () => {
+      const ctx = createCtx({
+        consoleMonitor: {
+          getNetworkStatus: undefined, // undefined to trigger fallback
+          isNetworkEnabled: vi.fn(() => {
+            throw new Error('fallback fails too');
+          }),
+        },
+      });
+      const searchEngine = { search: vi.fn(() => []) } as any;
+      // Triggers getRoutingState -> probeNetworkEnabled
+      await routeToolRequest({ task: 'foo' }, ctx, searchEngine);
+      expect(ctx.consoleMonitor.isNetworkEnabled).toHaveBeenCalled();
+      // Should handle the error gracefully internally without throwing
+    });
+
+    it('ToolRouter.probe.ts: probeCapturedRequests handles limits fallback', async () => {
+      const ctx = createCtx({
+        consoleMonitor: {
+          getNetworkRequests: vi.fn((opts?: any) => {
+            if (opts && opts.limit) {
+              throw new Error('limit fails');
+            }
+            return [{ id: 'fallback' }];
+          }),
+        },
+      });
+      const searchEngine = { search: vi.fn(() => []) } as any;
+      // Triggers getRoutingState -> probeCapturedRequests
+      await routeToolRequest({ task: 'foo' }, ctx, searchEngine);
+      expect(ctx.consoleMonitor.getNetworkRequests).toHaveBeenCalledTimes(2);
+    });
+
+    it('ToolRouter.probe.ts: probeCapturedRequests handles complete failure', async () => {
+      const ctx = createCtx({
+        consoleMonitor: {
+          getNetworkRequests: vi.fn(() => {
+            throw new Error('total failure');
+          }),
+        },
+      });
+      const searchEngine = { search: vi.fn(() => []) } as any;
+      await routeToolRequest({ task: 'foo' }, ctx, searchEngine);
+      expect(ctx.consoleMonitor.getNetworkRequests).toHaveBeenCalled();
+    });
+
+    it('ToolRouter.policy.ts: buildWorkflowToolSequence handles network domain with inactive network', async () => {
+      const ctx = createCtx({
+        pageController: { getPage: vi.fn(async () => ({})) },
+        consoleMonitor: {
+          getNetworkStatus: vi.fn(() => ({ enabled: false })),
+        },
+      });
+      // The word "intercept" matches the network task pattern -> BROWSER_OR_NETWORK_TASK_PATTERN
+      const searchEngine = {
+        search: vi.fn(() => [
+          {
+            name: 'network_enable',
+            shortDescription: 'Enable network',
+            score: 1,
+            domain: 'network',
+            isActive: false,
+          },
+        ]),
+      } as any;
+      const response = await routeToolRequest({ task: 'intercept network' }, ctx, searchEngine);
+      // Reranker boosts network_enable
+      expect(response.recommendations[0]?.name).toBe('network_enable');
+      expect(response.recommendations[0]?.score).toBeGreaterThan(1);
+    });
+
+    it('ToolRouter.policy.ts: buildPresetToolSequence skips unavailable tools or duplicates', async () => {
+      const ctx = createCtx({
+        extensionWorkflowsById: new Map([['test', { id: 'test' }]]),
+        extensionWorkflowRuntimeById: new Map([
+          [
+            'test',
+            {
+              route: {
+                kind: 'preset',
+                triggerPatterns: [/test missing/i],
+                requiredDomains: [],
+                priority: 100,
+                steps: [
+                  { toolName: 'does_not_exist', description: 'missing tool', prerequisites: [] },
+                  { toolName: 'browser_launch', description: 'launch', prerequisites: [] },
+                  { toolName: 'browser_launch', description: 'dup', prerequisites: [] }, // duplicate
+                ],
+              },
+              workflow: { id: 'test', displayName: 'Test' },
+            },
+          ],
+        ]),
+      });
+      const searchEngine = { search: vi.fn(() => []) } as any;
+      const response = await routeToolRequest({ task: 'test missing' }, ctx, searchEngine);
+      // Should not include does_not_exist, and should only include browser_launch once
+      const presetRecs = response.recommendations.filter((r) => r.domain === 'browser');
+      expect(presetRecs).toHaveLength(1);
+      expect(presetRecs[0]?.name).toBe('browser_launch');
+    });
+
+    it('ToolRouter.ts: deduplicates identical tool elements returned from search', async () => {
+      const ctx = createCtx();
+      const duplicateTool = {
+        name: 'test_duplicate_tool',
+        shortDescription: 'Navigate',
+        score: 10,
+        domain: 'browser',
+        isActive: false,
+      };
+      const searchEngine = {
+        search: vi.fn(() => [duplicateTool, duplicateTool]),
+      } as any;
+
+      const response = await routeToolRequest(
+        { task: 'unknown task triggers nothing' },
+        ctx,
+        searchEngine,
+      );
+      // It should strip the duplicate
+      const duplicateRecs = response.recommendations.filter(
+        (r) => r.name === 'test_duplicate_tool',
+      );
+      expect(duplicateRecs).toHaveLength(1);
+    });
+
+    it('ToolRouter.intent.ts: prioritizes higher priority routes over existing matches', async () => {
+      const ctx = createCtx({
+        extensionWorkflowRuntimeById: new Map([
+          [
+            'low-priority',
+            {
+              route: {
+                kind: 'preset',
+                triggerPatterns: [/overlap/i],
+                requiredDomains: [],
+                priority: 10,
+                steps: [],
+              },
+              workflow: { id: 'low', name: 'Low' },
+            },
+          ],
+          [
+            'high-priority',
+            {
+              route: {
+                kind: 'preset',
+                triggerPatterns: [/overlap/i],
+                requiredDomains: [],
+                priority: 50,
+                steps: [],
+              },
+              workflow: { id: 'high', name: 'High' },
+            },
+          ],
+          [
+            'medium-priority',
+            {
+              route: {
+                kind: 'preset',
+                triggerPatterns: [/overlap/i],
+                requiredDomains: [],
+                priority: 25,
+                steps: [],
+              },
+              workflow: { id: 'medium', name: 'Medium' },
+            },
+          ],
+        ]),
+      });
+      const searchEngine = { search: vi.fn(() => []) } as any;
+      const response = await routeToolRequest(
+        { task: 'trigger overlap pattern' },
+        ctx,
+        searchEngine,
+      );
+      expect(response.routeMatch?.id).toBe('high-priority');
+    });
+
+    it('ToolRouter.probe.ts: retrieves tool schema and description from metaToolsByName', () => {
+      const ctx = createCtx({
+        metaToolsByName: new Map([
+          [
+            'meta_tool',
+            {
+              name: 'meta_tool',
+              description: 'Meta Description',
+              inputSchema: { type: 'object', properties: { meta: { type: 'string' } } },
+            },
+          ],
+        ]),
+      });
+      const desc = describeTool('meta_tool', ctx);
+      expect(desc?.description).toBe('Meta Description');
+      expect(desc?.inputSchema).toEqual({
+        type: 'object',
+        properties: { meta: { type: 'string' } },
+      });
+    });
+
+    it('ToolRouter.probe.ts: getToolDescription returns default if tool has no description', () => {
+      const ctx = createCtx({
+        extensionToolsByName: new Map([
+          ['no_desc', { tool: { inputSchema: { type: 'object' } } } as any],
+        ]),
+      });
+      expect(describeTool('no_desc', ctx)?.description).toBe('No description available');
+    });
+
+    it('ToolRouter.probe.ts: getToolDescription string extraction fallback logic', () => {
+      const ctx = createCtx({
+        extensionToolsByName: new Map([
+          ['ext_empty', { tool: { description: '\n' } } as any],
+          ['ext_no_desc', { tool: {} } as any],
+        ]),
+        metaToolsByName: new Map([
+          ['meta_empty', { description: '\n' } as any],
+          ['meta_no_desc', {} as any],
+        ]),
+      });
+      // builtin missing description logic -> handled implicitly since builtinTools mock has descriptions, but let's test unknown.
+      expect(getToolDescription('unknown', ctx)).toBe('No description available');
+      // Empty string block (split('\n')[0] == '')
+      expect(getToolDescription('builtin_newline', ctx)).toBe('No description available');
+      expect(getToolDescription('ext_empty', ctx)).toBe('No description available');
+      expect(getToolDescription('meta_empty', ctx)).toBe('No description available');
+
+      // missing description
+      expect(getToolDescription('ext_no_desc', ctx)).toBe('No description available');
+      expect(getToolDescription('meta_no_desc', ctx)).toBe('No description available');
+    });
+
+    it('ToolRouter.policy.ts: buildWorkflowToolSequence handles non-network domains', () => {
+      const state = { hasActivePage: true, networkEnabled: true, capturedRequestCount: 0 } as any;
+      const available = new Set(['some_tool']);
+      const wf = { domain: 'browser', tools: ['some_tool'] } as any;
+      const seq = buildWorkflowToolSequence(wf, state, available);
+      expect(seq).toEqual(['some_tool']);
+    });
+
+    it('ToolRouter.probe.ts: getToolDescription handles empty description string on ext/meta tools', () => {
+      const ctx = createCtx({
+        extensionToolsByName: new Map([
+          ['ext_empty', { tool: { description: '', inputSchema: { type: 'object' } } } as any],
+        ]),
+        metaToolsByName: new Map([
+          [
+            'meta_empty',
+            { name: 'meta_empty', description: '', inputSchema: { type: 'object' } } as any,
+          ],
+        ]),
+      });
+      expect(describeTool('ext_empty', ctx)?.description).toBe('No description available');
+      expect(describeTool('meta_empty', ctx)?.description).toBe('No description available');
+    });
+
+    it('ToolRouter.probe.ts: getToolDomainFromContext resolves domains from builtin and extensions', () => {
+      const ctx = createCtx({
+        extensionToolsByName: new Map([
+          ['my_ext', { domain: 'custom' } as any],
+          ['my_ext_no_domain', {} as any],
+        ]),
+      });
+      expect(getToolDomainFromContext('browser_launch', ctx)).toBe('browser'); // builtin
+      expect(getToolDomainFromContext('my_ext', ctx)).toBe('custom'); // extension with domain
+      expect(getToolDomainFromContext('my_ext_no_domain', ctx)).toBeNull(); // extension without domain
+      expect(getToolDomainFromContext('unknown', ctx)).toBeNull(); // not found
+    });
+
+    it('ToolRouter.probe.ts: probeCapturedRequests handles non-array responses', () => {
+      // First try returns non-array
+      const ctx1 = createCtx({
+        consoleMonitor: { getNetworkRequests: vi.fn(() => ({})) } as any,
+      });
+      expect(probeCapturedRequests(ctx1)).toBe(0);
+
+      // Second try: first try throws, second try returns non-array
+      const ctx2 = createCtx({
+        consoleMonitor: {
+          getNetworkRequests: vi
+            .fn()
+            .mockImplementationOnce(() => {
+              throw new Error();
+            })
+            .mockImplementationOnce(() => ({})),
+        } as any,
+      });
+      expect(probeCapturedRequests(ctx2)).toBe(0);
+    });
+
+    it('ToolRouter.probe.ts: isToolActive returns true if tool is selected or activated', () => {
+      const ctx = createCtx({
+        selectedTools: [{ name: 'selected_tool' }] as any,
+        activatedToolNames: new Set(['activated_tool']),
+      });
+      expect(isToolActive('selected_tool', ctx)).toBe(true);
+      expect(isToolActive('activated_tool', ctx)).toBe(true);
+      expect(isToolActive('other', ctx)).toBe(false);
+    });
+
+    it('ToolRouter.probe.ts: getAvailableToolNames combines built-in and extension tools', () => {
+      const ctx = createCtx({
+        extensionToolsByName: new Map([['ext1', {} as any]]),
+      });
+      const available = getAvailableToolNames(ctx);
+      expect(available.has('browser_launch')).toBe(true);
+      expect(available.has('ext1')).toBe(true);
+    });
+
+    it('ToolRouter.ts: returns inactiveTools if nonMaintenanceTools is empty for a network task', async () => {
+      const ctx = createCtx({
+        pageController: { getPage: vi.fn(async () => ({})) },
+        consoleMonitor: {
+          getNetworkStatus: vi.fn(() => ({ enabled: true })),
+          getNetworkRequests: vi.fn(() => []),
+        },
+        activatedToolNames: new Set(['network_enable', 'page_navigate', 'network_get_requests']), // ensure these don't pop up as inactive
+      });
+      const searchEngine = {
+        search: vi.fn(() => [
+          {
+            name: 'get_token_budget_stats',
+            shortDescription: 'Budget',
+            score: 1000,
+            domain: 'maintenance',
+            isActive: false, // inactive but it's a maintenance tool
+          },
+        ]),
+      } as any;
+      // Network task triggers BROWSER_OR_NETWORK_TASK_PATTERN
+      const response = await routeToolRequest(
+        {
+          task: 'capture traffic without tools',
+          context: { autoActivate: true, preferredDomain: 'maintenance' },
+        },
+        ctx,
+        searchEngine,
+      );
+      // It should include the maintenance tool in activation candidate if it's the only one
+      expect(response.nextActions[0]?.command).toContain('get_token_budget_stats');
+    });
+
+    it('ToolRouter.ts: provides empty activation array if all preset tools are active', async () => {
+      const ctx = createCtx({
+        selectedTools: [{ name: 'browser_launch' }],
+        activatedToolNames: new Set(['browser_launch']),
+        extensionWorkflowsById: new Map([['test_preset', { id: 'test_preset' }]]),
+        extensionWorkflowRuntimeById: new Map([
+          [
+            'test_preset',
+            {
+              route: {
+                kind: 'preset',
+                triggerPatterns: [/all active/i],
+                requiredDomains: [],
+                priority: 100,
+                steps: [{ toolName: 'browser_launch', description: 'launch', prerequisites: [] }],
+              },
+              workflow: { id: 'test_preset', displayName: 'Test Preset' },
+            },
+          ],
+        ]),
+      });
+      const searchEngine = { search: vi.fn(() => []) } as any;
+      const response = await routeToolRequest({ task: 'all active preset' }, ctx, searchEngine);
+      // Since browser_launch is active, it shouldn't produce an "activate" step
+      const activateSteps = response.nextActions.filter((a) => a.action === 'activate');
+      expect(activateSteps).toHaveLength(0);
+    });
+
+    it('ToolRouter.ts: maps executable workflow when run_extension_workflow is already active', async () => {
+      const ctx = createCtx({
+        selectedTools: [{ name: 'run_extension_workflow' }],
+        activatedToolNames: new Set(['run_extension_workflow']),
+        extensionWorkflowsById: new Map([['workflow.a', { id: 'workflow.a' }]]),
+        extensionWorkflowRuntimeById: new Map([
+          [
+            'workflow.a',
+            {
+              route: {
+                kind: 'workflow',
+                triggerPatterns: [/active workflow/i],
+                requiredDomains: [],
+                priority: 100,
+                steps: [],
+              },
+              workflow: { id: 'workflow.a', displayName: 'Workflow' },
+            },
+          ],
+        ]),
+      });
+      const searchEngine = { search: vi.fn(() => []) } as any;
+      const response = await routeToolRequest({ task: 'run active workflow' }, ctx, searchEngine);
+
+      const activateSteps = response.nextActions.filter((a) => a.action === 'activate');
+      expect(activateSteps).toHaveLength(0); // skip activation
+      expect(response.nextActions[0]?.command).toBe('run_extension_workflow');
+      expect(response.nextActions[0]?.exampleArgs).toEqual({ workflowId: 'workflow.a' });
+    });
   });
 });

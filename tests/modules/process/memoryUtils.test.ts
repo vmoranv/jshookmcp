@@ -1,120 +1,112 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as memoryUtils from '../../../src/modules/process/memoryUtils';
 
-const mocks = vi.hoisted(() => {
-  const scanMemoryMock = vi.fn();
-  const dumpMemoryRegionMock = vi.fn();
-  const enumerateRegionsMock = vi.fn();
-  const checkMemoryProtectionMock = vi.fn();
-  const scanMemoryFilteredMock = vi.fn();
-  const batchMemoryWriteMock = vi.fn();
-  const startMemoryMonitorMock = vi.fn(() => 'monitor-1');
-  const stopMemoryMonitorMock = vi.fn(() => true);
-  const injectDllMock = vi.fn();
-  const injectShellcodeMock = vi.fn();
-  const checkDebugPortMock = vi.fn();
-  const enumerateModulesMock = vi.fn();
+const mockManagerInstances: any[] = [];
+const noopCb = () => {};
 
-  class MemoryManagerMock {
-    scanMemory = scanMemoryMock;
-    dumpMemoryRegion = dumpMemoryRegionMock;
-    enumerateRegions = enumerateRegionsMock;
-    checkMemoryProtection = checkMemoryProtectionMock;
-    scanMemoryFiltered = scanMemoryFilteredMock;
-    batchMemoryWrite = batchMemoryWriteMock;
-    startMemoryMonitor = startMemoryMonitorMock;
-    stopMemoryMonitor = stopMemoryMonitorMock;
-    injectDll = injectDllMock;
-    injectShellcode = injectShellcodeMock;
-    checkDebugPort = checkDebugPortMock;
-    enumerateModules = enumerateModulesMock;
-  }
-
+vi.mock('@modules/process/MemoryManager', () => {
   return {
-    scanMemoryMock,
-    dumpMemoryRegionMock,
-    enumerateRegionsMock,
-    checkMemoryProtectionMock,
-    scanMemoryFilteredMock,
-    batchMemoryWriteMock,
-    startMemoryMonitorMock,
-    stopMemoryMonitorMock,
-    injectDllMock,
-    injectShellcodeMock,
-    checkDebugPortMock,
-    enumerateModulesMock,
-    MemoryManagerMock,
+    MemoryManager: class {
+      scanMemory = vi.fn();
+      dumpMemoryRegion = vi.fn();
+      enumerateRegions = vi.fn();
+      checkMemoryProtection = vi.fn();
+      scanMemoryFiltered = vi.fn();
+      batchMemoryWrite = vi.fn();
+      startMemoryMonitor = vi.fn();
+      stopMemoryMonitor = vi.fn();
+      injectDll = vi.fn();
+      injectShellcode = vi.fn();
+      checkDebugPort = vi.fn();
+      enumerateModules = vi.fn();
+      constructor() {
+        mockManagerInstances.push(this);
+      }
+    },
   };
 });
 
-vi.mock('@src/modules/process/MemoryManager', () => ({
-  MemoryManager: mocks.MemoryManagerMock,
-}));
-
-import * as memoryUtils from '@modules/process/memoryUtils';
-
-describe('memoryUtils wrappers', () => {
+describe('memoryUtils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockManagerInstances.length = 0;
   });
 
-  it('scanMemory wrapper delegates with default pattern type', async () => {
-    mocks.scanMemoryMock.mockResolvedValue({ success: true, addresses: ['0x1'] });
-    const result = await memoryUtils.scanMemory(1, 'AA BB');
-
-    expect(result.success).toBe(true);
-    expect(mocks.scanMemoryMock).toHaveBeenCalledWith(1, 'AA BB', 'hex');
+  it('scanMemory', async () => {
+    await memoryUtils.scanMemory(1234, 'pattern', 'string');
+    expect(mockManagerInstances[0].scanMemory).toHaveBeenCalledWith(1234, 'pattern', 'string');
   });
 
-  it('dumpMemory/listMemoryRegions/checkProtection wrappers delegate correctly', async () => {
-    mocks.dumpMemoryRegionMock.mockResolvedValue({ success: true });
-    mocks.enumerateRegionsMock.mockResolvedValue({ success: true, regions: [] });
-    mocks.checkMemoryProtectionMock.mockResolvedValue({ success: true, isReadable: true });
-
-    await memoryUtils.dumpMemory(2, '0x1000', 16, '/tmp/a.bin');
-    await memoryUtils.listMemoryRegions(2);
-    await memoryUtils.checkProtection(2, '0x1000');
-
-    expect(mocks.dumpMemoryRegionMock).toHaveBeenCalledWith(2, '0x1000', 16, '/tmp/a.bin');
-    expect(mocks.enumerateRegionsMock).toHaveBeenCalledWith(2);
-    expect(mocks.checkMemoryProtectionMock).toHaveBeenCalledWith(2, '0x1000');
+  it('dumpMemory', async () => {
+    await memoryUtils.dumpMemory(1234, '0x100', 200, '/tmp/a');
+    expect(mockManagerInstances[0].dumpMemoryRegion).toHaveBeenCalledWith(
+      1234,
+      '0x100',
+      200,
+      '/tmp/a',
+    );
   });
 
-  it('scanFiltered and batchWrite wrappers delegate', async () => {
-    mocks.scanMemoryFilteredMock.mockResolvedValue({ success: true, addresses: [] });
-    mocks.batchMemoryWriteMock.mockResolvedValue({ success: true, results: [] });
-
-    await memoryUtils.scanFiltered(3, 'AA', ['0x10'], 'hex');
-    await memoryUtils.batchWrite(3, [{ address: '0x10', data: '90' }]);
-
-    expect(mocks.scanMemoryFilteredMock).toHaveBeenCalledWith(3, 'AA', ['0x10'], 'hex');
-    expect(mocks.batchMemoryWriteMock).toHaveBeenCalledWith(3, [{ address: '0x10', data: '90' }]);
+  it('listMemoryRegions', async () => {
+    await memoryUtils.listMemoryRegions(1234);
+    expect(mockManagerInstances[0].enumerateRegions).toHaveBeenCalledWith(1234);
   });
 
-  it('startMonitor/stopMonitor wrappers delegate and return values', () => {
-    const onChange = vi.fn();
-    const id = memoryUtils.startMonitor(4, '0x20', 8, 500, onChange);
-    const stopped = memoryUtils.stopMonitor(id);
-
-    expect(id).toBe('monitor-1');
-    expect(stopped).toBe(true);
-    expect(mocks.startMemoryMonitorMock).toHaveBeenCalledWith(4, '0x20', 8, 500, onChange);
-    expect(mocks.stopMemoryMonitorMock).toHaveBeenCalledWith('monitor-1');
+  it('checkProtection', async () => {
+    await memoryUtils.checkProtection(1234, '0x100');
+    expect(mockManagerInstances[0].checkMemoryProtection).toHaveBeenCalledWith(1234, '0x100');
   });
 
-  it('injection/debug/module wrappers delegate', async () => {
-    mocks.injectDllMock.mockResolvedValue({ success: true });
-    mocks.injectShellcodeMock.mockResolvedValue({ success: true });
-    mocks.checkDebugPortMock.mockResolvedValue({ success: true, isDebugged: false });
-    mocks.enumerateModulesMock.mockResolvedValue({ success: true, modules: [] });
+  it('scanFiltered', async () => {
+    await memoryUtils.scanFiltered(1234, 'pattern', ['0x100'], 'hex');
+    expect(mockManagerInstances[0].scanMemoryFiltered).toHaveBeenCalledWith(
+      1234,
+      'pattern',
+      ['0x100'],
+      'hex',
+    );
+  });
 
-    await memoryUtils.injectDll(5, 'a.dll');
-    await memoryUtils.injectShellcode(5, '90', 'hex');
-    await memoryUtils.checkDebugPort(5);
-    await memoryUtils.enumerateModules(5);
+  it('batchWrite', async () => {
+    await memoryUtils.batchWrite(1234, [{ address: '0x1', data: 'ff' }]);
+    expect(mockManagerInstances[0].batchMemoryWrite).toHaveBeenCalledWith(1234, [
+      { address: '0x1', data: 'ff' },
+    ]);
+  });
 
-    expect(mocks.injectDllMock).toHaveBeenCalledWith(5, 'a.dll');
-    expect(mocks.injectShellcodeMock).toHaveBeenCalledWith(5, '90', 'hex');
-    expect(mocks.checkDebugPortMock).toHaveBeenCalledWith(5);
-    expect(mocks.enumerateModulesMock).toHaveBeenCalledWith(5);
+  it('startMonitor', () => {
+    memoryUtils.startMonitor(1234, '0x1', 4, 1000, noopCb);
+    expect(mockManagerInstances[0].startMemoryMonitor).toHaveBeenCalledWith(
+      1234,
+      '0x1',
+      4,
+      1000,
+      noopCb,
+    );
+  });
+
+  it('stopMonitor', () => {
+    memoryUtils.stopMonitor('monitor-1');
+    expect(mockManagerInstances[0].stopMemoryMonitor).toHaveBeenCalledWith('monitor-1');
+  });
+
+  it('injectDll', async () => {
+    await memoryUtils.injectDll(1234, '/dll');
+    expect(mockManagerInstances[0].injectDll).toHaveBeenCalledWith(1234, '/dll');
+  });
+
+  it('injectShellcode', async () => {
+    await memoryUtils.injectShellcode(1234, '90', 'hex');
+    expect(mockManagerInstances[0].injectShellcode).toHaveBeenCalledWith(1234, '90', 'hex');
+  });
+
+  it('checkDebugPort', async () => {
+    await memoryUtils.checkDebugPort(1234);
+    expect(mockManagerInstances[0].checkDebugPort).toHaveBeenCalledWith(1234);
+  });
+
+  it('enumerateModules', async () => {
+    await memoryUtils.enumerateModules(1234);
+    expect(mockManagerInstances[0].enumerateModules).toHaveBeenCalledWith(1234);
   });
 });

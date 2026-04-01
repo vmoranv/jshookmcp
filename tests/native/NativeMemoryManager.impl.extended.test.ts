@@ -194,6 +194,21 @@ describe('scanRegionInChunks', () => {
 
     expect(result).toEqual([0x4000n]);
   });
+
+  it('handles single-byte patterns without carry-over', () => {
+    const readChunk = vi.fn().mockReturnValue(Buffer.from([0xaa]));
+
+    const result = scanRegionInChunks(
+      { baseAddress: 0x5000n, regionSize: 3 },
+      [0xaa],
+      [1],
+      readChunk,
+      1,
+    );
+
+    expect(result).toEqual([0x5000n, 0x5001n, 0x5002n]);
+    expect(readChunk).toHaveBeenCalledTimes(3);
+  });
 });
 
 describe('NativeMemoryManager extended', () => {
@@ -396,6 +411,69 @@ describe('NativeMemoryManager extended', () => {
       expect(result.regionSize).toBe(8192);
     });
 
+    it('formats additional protection combinations', async () => {
+      state.mockProvider.openProcess.mockReturnValue({ pid: 42, writeAccess: false });
+      state.mockProvider.queryRegion
+        .mockReturnValueOnce({
+          baseAddress: 0x2000n,
+          size: 4096,
+          protection: 0,
+          state: 'committed',
+          type: 'private',
+          isReadable: false,
+          isWritable: false,
+          isExecutable: false,
+        })
+        .mockReturnValueOnce({
+          baseAddress: 0x3000n,
+          size: 4096,
+          protection: 0x01,
+          state: 'committed',
+          type: 'private',
+          isReadable: true,
+          isWritable: false,
+          isExecutable: false,
+        })
+        .mockReturnValueOnce({
+          baseAddress: 0x4000n,
+          size: 4096,
+          protection: 0x04,
+          state: 'committed',
+          type: 'private',
+          isReadable: false,
+          isWritable: false,
+          isExecutable: true,
+        })
+        .mockReturnValueOnce({
+          baseAddress: 0x5000n,
+          size: 4096,
+          protection: 0x07,
+          state: 'committed',
+          type: 'private',
+          isReadable: true,
+          isWritable: true,
+          isExecutable: true,
+        });
+
+      const manager = new NativeMemoryManager();
+      await expect(manager.checkMemoryProtection(42, '0x2000')).resolves.toMatchObject({
+        success: true,
+        protection: 'NOACCESS',
+      });
+      await expect(manager.checkMemoryProtection(42, '0x3000')).resolves.toMatchObject({
+        success: true,
+        protection: 'R',
+      });
+      await expect(manager.checkMemoryProtection(42, '0x4000')).resolves.toMatchObject({
+        success: true,
+        protection: 'X',
+      });
+      await expect(manager.checkMemoryProtection(42, '0x5000')).resolves.toMatchObject({
+        success: true,
+        protection: 'RWX',
+      });
+    });
+
     it('returns error when the outer openProcess throws', async () => {
       state.mockProvider.openProcess.mockImplementation(() => {
         throw new Error('permission denied');
@@ -406,6 +484,69 @@ describe('NativeMemoryManager extended', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('permission denied');
+    });
+  });
+
+  describe('scanMemory', () => {
+    it('returns invalid pattern when parsing produces no bytes', async () => {
+      const manager = new NativeMemoryManager();
+      const result = await manager.scanMemory(100, 'ZZ', 'hex');
+
+      expect(result).toEqual({
+        success: false,
+        addresses: [],
+        error: 'Invalid pattern',
+      });
+    });
+
+    it('scans readable regions and formats found addresses', async () => {
+      state.mockProvider.openProcess.mockReturnValue({ pid: 100, writeAccess: false });
+      state.mockProvider.queryRegion.mockImplementation((_handle, address) => {
+        if (address === 0n) {
+          return {
+            baseAddress: 0x1000n,
+            size: 4,
+            protection: state.PAGE.READONLY,
+            state: 'committed',
+            type: 'private',
+            isReadable: false,
+            isWritable: false,
+            isExecutable: false,
+          };
+        }
+
+        if (address === 0x1004n) {
+          return {
+            baseAddress: 0x2000n,
+            size: 6,
+            protection: state.PAGE.READWRITE,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+            isExecutable: false,
+          };
+        }
+
+        return null;
+      });
+      state.mockProvider.readMemory.mockReturnValue({
+        data: Buffer.from([0x11, 0xaa, 0xbb, 0x22, 0x33, 0x44]),
+        bytesRead: 6,
+      });
+
+      const manager = new NativeMemoryManager();
+      const result = await manager.scanMemory(100, 'AA BB', 'hex');
+
+      expect(result.success).toBe(true);
+      expect(result.addresses).toEqual(['0x2001']);
+      expect(result.stats).toEqual({
+        patternLength: 2,
+        resultsFound: 1,
+      });
+      expect(state.mockProvider.readMemory).toHaveBeenCalledTimes(1);
+      expect(state.mockProvider.queryRegion).toHaveBeenCalledTimes(3);
+      expect(state.mockProvider.closeProcess).toHaveBeenCalled();
     });
   });
 });

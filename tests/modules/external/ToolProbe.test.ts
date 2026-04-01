@@ -74,6 +74,49 @@ describe('ToolProbe', () => {
     expect(result.reason).toContain('Probe failed: boom');
   });
 
+  it('handles non-object string throwables', async () => {
+    state.execFileAsync.mockRejectedValueOnce('raw string error');
+    const result = await probeCommand('broken');
+    expect(result.available).toBe(false);
+    expect(result.reason).toContain('Probe failed: raw string error');
+  });
+
+  it('handles objects without message property', async () => {
+    state.execFileAsync.mockRejectedValueOnce({ special: 'error' });
+    const result = await probeCommand('broken');
+    expect(result.available).toBe(false);
+    expect(result.reason).toContain('Probe failed: [object Object]');
+  });
+
+  it('handles non-Error objects with message property', async () => {
+    state.execFileAsync.mockRejectedValueOnce({ message: 'custom error message' });
+    const result = await probeCommand('broken');
+    expect(result.available).toBe(false);
+    expect(result.reason).toContain('Probe failed: custom error message');
+  });
+
+  it('handles empty version output', async () => {
+    state.execFileAsync
+      .mockResolvedValueOnce({ stdout: '/usr/bin/tool\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: '\n', stderr: '' });
+    const result = await probeCommand('tool', ['-v'], 1000);
+    expect(result.version).toBeUndefined();
+  });
+
+  it('uses which on non-win32 platforms', async () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    try {
+      state.execFileAsync.mockResolvedValueOnce({ stdout: '/bin/tool\n', stderr: '' });
+      state.execFileAsync.mockRejectedValueOnce(new Error('no version'));
+      const result = await probeCommand('tool');
+      expect(state.execFileAsync).toHaveBeenCalledWith('which', ['tool'], expect.any(Object));
+      expect(result.path).toBe('/bin/tool');
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    }
+  });
+
   it('probes all commands and returns map keyed by command name', async () => {
     const whichCmd = process.platform === 'win32' ? 'where' : 'which';
     state.execFileAsync.mockImplementation(async (cmd: string, args: string[]) => {
@@ -93,5 +136,11 @@ describe('ToolProbe', () => {
     expect(result.get('tool-a')?.version).toBe('a v1');
     expect(result.get('tool-b')?.available).toBe(true);
     expect(result.get('tool-b')?.version).toBeUndefined();
+  });
+
+  it('hits unavailable branch in probeAll', async () => {
+    state.execFileAsync.mockRejectedValue(new Error('not found'));
+    const result = await probeAll([{ command: 'missing-tool' }]);
+    expect(result.get('missing-tool')?.available).toBe(false);
   });
 });

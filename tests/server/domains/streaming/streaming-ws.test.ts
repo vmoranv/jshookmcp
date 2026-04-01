@@ -766,6 +766,31 @@ describe('StreamingToolHandlersWs', () => {
       expect(conn.status).toBe('open');
     });
 
+    it('returns early when connection is not found after set (defensive guard)', () => {
+      // This tests the defensive guard at line 102 in handleWsFrame.
+      // Normally unreachable: after .set() on line 91, line 100 .get() always finds it.
+      // We mock .get() to return undefined on the second call to simulate this edge case.
+      const _originalGet = handler._wsConnections.get.bind(handler._wsConnections);
+      let getCallCount = 0;
+      vi.spyOn(handler._wsConnections, 'get').mockImplementation((_key: string) => {
+        getCallCount++;
+        if (getCallCount === 1) {
+          // First call (line 85): return undefined to trigger the creation path
+          return undefined;
+        }
+        // Second call (line 100): return undefined to hit line 102
+        return undefined;
+      });
+
+      handler.callHandleWsFrame('sent', {
+        requestId: 'ghost-req',
+        response: { opcode: 1, payloadData: 'data' },
+      });
+
+      // Should have returned early without adding any frames
+      expect(handler._wsFramesByRequest.has('ghost-req')).toBe(false);
+    });
+
     it('skips untracked requestId when URL filter is active', async () => {
       await handler.handleWsMonitorEnable({ urlFilter: 'specific-url' });
 
@@ -841,6 +866,54 @@ describe('StreamingToolHandlersWs', () => {
 
       const frames = handler._wsFramesByRequest.get('r1')!;
       expect(frames[0]!.opcode).toBe(-1);
+    });
+
+    it('handles params where response is a non-object value', () => {
+      handler.callHandleWsFrame('sent', {
+        requestId: 'r1',
+        response: 'not-an-object',
+      });
+
+      // Should still create a frame with default values
+      const frames = handler._wsFramesByRequest.get('r1');
+      expect(frames).toBeDefined();
+      expect(frames![0]!.opcode).toBe(-1);
+      expect(frames![0]!.payloadLength).toBe(0);
+    });
+
+    it('handles params where response is null', () => {
+      handler.callHandleWsFrame('sent', {
+        requestId: 'r2',
+        response: null,
+      });
+
+      const frames = handler._wsFramesByRequest.get('r2');
+      expect(frames).toBeDefined();
+      expect(frames![0]!.opcode).toBe(-1);
+    });
+
+    it('handles params where response is entirely missing', () => {
+      handler.callHandleWsFrame('sent', {
+        requestId: 'r3',
+      });
+
+      const frames = handler._wsFramesByRequest.get('r3');
+      expect(frames).toBeDefined();
+      expect(frames![0]!.payloadPreview).toBe('');
+    });
+
+    it('handles params as a primitive value (not an object)', () => {
+      // This tests asRecord returning undefined for non-object params
+      handler.callHandleWsFrame('sent', 'not-an-object' as any);
+
+      // No requestId can be extracted, so nothing should happen
+      expect(handler._wsFramesByRequest.size).toBe(0);
+    });
+
+    it('handles params as null', () => {
+      handler.callHandleWsFrame('sent', null as any);
+
+      expect(handler._wsFramesByRequest.size).toBe(0);
     });
 
     it('defaults payloadData to empty string when missing', () => {

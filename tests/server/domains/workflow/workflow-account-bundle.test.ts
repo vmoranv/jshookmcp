@@ -46,10 +46,11 @@ interface RegisterAccountResponse {
   success: boolean;
   error?: string;
   steps: string[];
-  warnings: string[];
+  warnings?: string[];
   result: {
     registeredEmail?: string;
     verified: boolean;
+    verificationUrl?: string;
     authFindings: Array<{ type: string; confidence: number }>;
   };
 }
@@ -218,7 +219,7 @@ describe('WorkflowHandlersAccountBundle', () => {
 
       expect(body.success).toBe(true);
       expect(body.warnings).toBeDefined();
-      expect(body.warnings.some((w) => w.includes('fill failed'))).toBe(true);
+      expect(body.warnings?.some((w) => w.includes('fill failed'))).toBe(true);
     });
 
     it('handles checkbox selectors', async () => {
@@ -271,7 +272,7 @@ describe('WorkflowHandlersAccountBundle', () => {
       );
 
       expect(body.success).toBe(true);
-      expect(body.warnings.some((w) => w.includes('Checkbox'))).toBe(true);
+      expect(body.warnings?.some((w) => w.includes('Checkbox'))).toBe(true);
     });
 
     it('returns error when overall flow fails', async () => {
@@ -320,6 +321,56 @@ describe('WorkflowHandlersAccountBundle', () => {
       expect(body.success).toBe(true);
       // No evaluate calls for checkboxes
       expect(deps.browserHandlers.handlePageEvaluate).not.toHaveBeenCalled();
+    });
+
+    it('falls back to an empty checkbox list when the JSON string is invalid', async () => {
+      const body = parseJson<RegisterAccountResponse>(
+        await handlers.handleRegisterAccountFlow({
+          registerUrl: 'https://example.com/register',
+          fields: {},
+          checkboxSelectors: 'not-json',
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(deps.browserHandlers.handlePageEvaluate).not.toHaveBeenCalled();
+    });
+
+    it('adds a warning when the verification link is not found before timeout', async () => {
+      const body = parseJson<RegisterAccountResponse>(
+        await handlers.handleRegisterAccountFlow({
+          registerUrl: 'https://example.com/register',
+          fields: { email: 'test@example.com' },
+          emailProviderUrl: 'https://mail.example.com',
+          verificationLinkPattern: '/auth/verify',
+          timeoutMs: 0,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.result.verified).toBe(false);
+      expect(body.warnings?.some((warning) => warning.includes('Verification link'))).toBe(true);
+    });
+
+    it('warns when the email provider tab fails to open', async () => {
+      vi.mocked(deps.browserHandlers.handleTabWorkflow)
+        .mockResolvedValueOnce(makeTextResult({ success: true }))
+        .mockResolvedValueOnce(makeTextResult({ success: false, error: 'mailbox unavailable' }));
+
+      const body = parseJson<RegisterAccountResponse>(
+        await handlers.handleRegisterAccountFlow({
+          registerUrl: 'https://example.com/register',
+          fields: { email: 'test@example.com' },
+          emailProviderUrl: 'https://mail.example.com',
+          timeoutMs: 1,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.result.verified).toBe(false);
+      expect(
+        body.warnings?.some((warning) => warning.includes('Could not open email provider tab')),
+      ).toBe(true);
     });
   });
 
@@ -414,6 +465,67 @@ describe('WorkflowHandlersAccountBundle', () => {
 
         expect(body.success).toBe(false);
         expect(body.error).toContain('Fetch error');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('skips noisy base64 matches when stripNoise is enabled', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => 'data:image/png;base64,abc123',
+        headers: new Map(),
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/bundle.js',
+            patterns: [{ name: 'noise', regex: 'abc123' }],
+            cacheBundle: false,
+            stripNoise: true,
+          }),
+        );
+
+        expect(body.success).toBe(true);
+        expect(body.results.noise).toHaveLength(0);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('returns cached results on a repeated bundle lookup', async () => {
+      const originalFetch = globalThis.fetch;
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => 'cached content var test = 1;',
+        headers: new Map(),
+      });
+      globalThis.fetch = mockFetch as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        await handlers.handleJsBundleSearch({
+          url: 'https://cdn.example.com/cached.js',
+          patterns: [{ name: 'test', regex: 'test' }],
+          cacheBundle: true,
+        });
+
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/cached.js',
+            patterns: [{ name: 'test', regex: 'test' }],
+            cacheBundle: true,
+          }),
+        );
+
+        expect(body.success).toBe(true);
+        expect(body.cached).toBe(true);
+        expect(mockFetch).toHaveBeenCalledTimes(1);
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -592,6 +704,490 @@ describe('WorkflowHandlersAccountBundle', () => {
 
         expect(body.bundleUrl).toBe('https://cdn.example.com/bundle.js');
         expect(body.patternsSearched).toBe(2);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('falls back to empty array if patterns JSON is invalid', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => 'content',
+        headers: new Map(),
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/bundle.js',
+            patterns: '{invalid:json',
+            cacheBundle: false,
+          }),
+        );
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('url and patterns are required');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('blocks non-HTTP/HTTPS protocols', async () => {
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+      const body = parseJson<JsBundleSearchResponse>(
+        await handlers.handleJsBundleSearch({
+          url: 'ftp://example.com/bundle.js',
+          patterns: [{ name: 'test', regex: 'test' }],
+          cacheBundle: false,
+        }),
+      );
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('insecure HTTP is only allowed');
+    });
+
+    it('throws when max redirects exceeded', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        status: 301,
+        headers: new Map([['location', 'https://cdn.example.com/redir']]),
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/bundle.js',
+            patterns: [{ name: 'test', regex: 'test' }],
+            cacheBundle: false,
+          }),
+        );
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('Too many redirects');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('aborts fetch on timeout when cacheBundle is true', async () => {
+      const originalFetch = globalThis.fetch;
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+
+      // Mock fetch that rejects on abort — compatible with fake timers.
+      // AbortController.timeout (WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS) is faked
+      // by vi.useFakeTimers(), so advancing time triggers the abort and this
+      // mock's listener fires in sync with the fake clock.
+      globalThis.fetch = vi.fn().mockImplementation(async (_url: unknown, options: unknown) => {
+        const opts = options as { signal?: AbortSignal } | undefined;
+        if (opts?.signal?.aborted) throw new Error('AbortError');
+        return new Promise((_resolve, reject) => {
+          opts?.signal?.addEventListener('abort', () => reject(new Error('AbortError')), {
+            once: true,
+          });
+        });
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        // Start the handler — it will set WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS
+        // (30 s) as an AbortController timeout which is faked by vitest.
+        const promise = handlers.handleJsBundleSearch({
+          url: 'https://cdn.example.com/bundle.js',
+          patterns: [{ name: 'test', regex: 'test' }],
+          cacheBundle: true,
+        });
+
+        // Advance fake time past the fetch timeout so the abort fires
+        await vi.advanceTimersByTimeAsync(30_000);
+        const body = parseJson<JsBundleSearchResponse>(await promise);
+
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('Fetch error');
+      } finally {
+        vi.useRealTimers();
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('aborts fetch on timeout when cacheBundle is false', async () => {
+      const originalFetch = globalThis.fetch;
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+
+      globalThis.fetch = vi.fn().mockImplementation(async (_url: unknown, options: unknown) => {
+        const opts = options as { signal?: AbortSignal } | undefined;
+        if (opts?.signal?.aborted) throw new Error('AbortError');
+        return new Promise((_resolve, reject) => {
+          opts?.signal?.addEventListener('abort', () => reject(new Error('AbortError')), {
+            once: true,
+          });
+        });
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        const promise = handlers.handleJsBundleSearch({
+          url: 'https://cdn.example.com/bundle.js',
+          patterns: [{ name: 'test', regex: 'test' }],
+          cacheBundle: false,
+        });
+
+        await vi.advanceTimersByTimeAsync(30_000);
+        const body = parseJson<JsBundleSearchResponse>(await promise);
+
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('Fetch error');
+      } finally {
+        vi.useRealTimers();
+        globalThis.fetch = originalFetch;
+      }
+    });
+  });
+  describe('additional coverage', () => {
+    it('follows the email verification flow when a verification link is found', async () => {
+      vi.mocked(deps.browserHandlers.handleTabWorkflow)
+        .mockResolvedValueOnce(makeTextResult({ success: true }))
+        .mockResolvedValueOnce(makeTextResult({ success: true }))
+        .mockResolvedValueOnce(
+          makeTextResult({ success: true, value: 'https://example.com/auth/verify' }),
+        );
+
+      const body = parseJson<RegisterAccountResponse>(
+        await handlers.handleRegisterAccountFlow({
+          registerUrl: 'https://example.com/register',
+          fields: { email: 'test@example.com' },
+          emailProviderUrl: 'https://mail.example.com',
+          verificationLinkPattern: '/auth/verify',
+          timeoutMs: 1,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.result.verified).toBe(true);
+      expect(body.result.verificationUrl).toBe('https://example.com/auth/verify');
+      expect(body.steps).toContain('tab_workflow:alias_open(emailTab, https://mail.example.com)');
+      expect(body.steps).toContain('page_navigate(https://example.com/auth/verify)');
+    });
+
+    it('blocks insecure http bundle URLs on non-loopback hosts', async () => {
+      const body = parseJson<JsBundleSearchResponse>(
+        await handlers.handleJsBundleSearch({
+          url: 'http://example.com/bundle.js',
+          patterns: [{ name: 'test', regex: 'test' }],
+          cacheBundle: false,
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('insecure HTTP is only allowed');
+    });
+
+    it('fails registration when auth extraction result has no text payload', async () => {
+      vi.mocked(deps.advancedHandlers.handleNetworkExtractAuth).mockResolvedValueOnce({
+        content: [{ type: 'text' }],
+      } as ToolHandlerResult);
+
+      const body = parseJson<RegisterAccountResponse>(
+        await handlers.handleRegisterAccountFlow({
+          registerUrl: 'https://example.com/register',
+          fields: { email: 'test@example.com' },
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('Failed to extract auth result text');
+    });
+
+    it('fails registration when email-provider open result has no text payload', async () => {
+      vi.mocked(deps.browserHandlers.handleTabWorkflow)
+        .mockResolvedValueOnce(makeTextResult({ success: true }))
+        .mockResolvedValueOnce({ content: [{ type: 'text' }] } as ToolHandlerResult);
+
+      const body = parseJson<RegisterAccountResponse>(
+        await handlers.handleRegisterAccountFlow({
+          registerUrl: 'https://example.com/register',
+          fields: { email: 'test@example.com' },
+          emailProviderUrl: 'https://mail.example.com',
+          timeoutMs: 1,
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('Failed to extract open tab result text');
+    });
+
+    it('blocks bundles whose DNS resolves to a private IP', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn() as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '10.0.0.8' });
+      mockIsPrivateHost.mockReturnValue(true);
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/private.js',
+            patterns: [{ name: 'test', regex: 'test' }],
+            cacheBundle: false,
+          }),
+        );
+
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('resolved to private IP');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('allows loopback http bundle fetches and rewrites Host header after DNS pinning', async () => {
+      const originalFetch = globalThis.fetch;
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => 'const loopback = true;',
+        headers: new Map(),
+      });
+      globalThis.fetch = mockFetch as unknown as typeof globalThis.fetch;
+      mockIsLoopbackHost.mockReturnValue(true);
+      mockLookup.mockResolvedValue({ address: '127.0.0.1' });
+      mockIsPrivateHost.mockReturnValue(false);
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'http://localhost:8123/bundle.js',
+            patterns: [{ name: 'loopback', regex: 'loopback' }],
+            cacheBundle: false,
+          }),
+        );
+
+        expect(body.success).toBe(true);
+        expect(mockFetch).toHaveBeenCalledWith(
+          'http://127.0.0.1:8123/bundle.js',
+          expect.objectContaining({
+            redirect: 'manual',
+            headers: expect.objectContaining({
+              Host: 'localhost:8123',
+            }),
+          }),
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('fails when a redirect response omits the Location header', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        status: 302,
+        headers: { get: vi.fn(() => null) },
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/redirect.js',
+            patterns: [{ name: 'redirect', regex: 'redirect' }],
+            cacheBundle: false,
+          }),
+        );
+
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('Redirect 302 without Location header');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('fails when a redirect target becomes SSRF-blocked', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        status: 302,
+        headers: { get: vi.fn(() => 'https://internal.example/private.js') },
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+      mockIsSsrfTarget.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/redirect.js',
+            patterns: [{ name: 'redirect', regex: 'redirect' }],
+            cacheBundle: false,
+          }),
+        );
+
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('Redirect blocked');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('fails when the fetched bundle exceeds the size limit', async () => {
+      const originalFetch = globalThis.fetch;
+      const oversizedBundle = 'a'.repeat(21 * 1024 * 1024);
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => oversizedBundle,
+        headers: new Map(),
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/huge.js',
+            patterns: [{ name: 'huge', regex: 'aaa' }],
+            cacheBundle: false,
+          }),
+        );
+
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('Response too large');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('returns fetch failure details on the cached fetch path', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: new Map(),
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/cached-failure.js',
+            patterns: [{ name: 'test', regex: 'test' }],
+            cacheBundle: true,
+          }),
+        );
+
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('503 Service Unavailable');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('rejects oversized bundles on the cached fetch path', async () => {
+      const originalFetch = globalThis.fetch;
+      const oversizedBundle = 'b'.repeat(21 * 1024 * 1024);
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => oversizedBundle,
+        headers: new Map(),
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/cached-huge.js',
+            patterns: [{ name: 'huge', regex: 'bbb' }],
+            cacheBundle: true,
+          }),
+        );
+
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('Response too large');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('filters long base64-like noise blocks when stripNoise is enabled', async () => {
+      const originalFetch = globalThis.fetch;
+      const longBase64 = 'A'.repeat(260);
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => `prefix ${longBase64} suffix`,
+        headers: new Map(),
+      }) as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/noise.js',
+            patterns: [{ name: 'noise', regex: 'AAAAA+' }],
+            cacheBundle: false,
+            stripNoise: true,
+          }),
+        );
+
+        expect(body.success).toBe(true);
+        expect(body.results.noise).toHaveLength(0);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('reports DNS failures when lookup rejects while pinning', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn() as unknown as typeof globalThis.fetch;
+      mockLookup.mockRejectedValueOnce(new Error('lookup failed'));
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/error.js',
+            patterns: [{ name: 'test', regex: 'test' }],
+            cacheBundle: false,
+          }),
+        );
+
+        expect(body.success).toBe(false);
+        expect(body.error).toContain('DNS resolution failed');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('follows redirects while honoring SSRF guards and fetches the final bundle', async () => {
+      const originalFetch = globalThis.fetch;
+      const redirectLocation = 'https://cdn.example.com/final.js';
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce({
+          status: 302,
+          ok: false,
+          headers: { get: () => redirectLocation },
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          text: async () => 'redirected content',
+          headers: new Map(),
+        });
+      globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+      mockLookup
+        .mockResolvedValueOnce({ address: '1.2.3.4' })
+        .mockResolvedValueOnce({ address: '1.2.3.5' });
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://cdn.example.com/original.js',
+            patterns: [{ name: 'redirected', regex: 'redirected' }],
+            cacheBundle: false,
+          }),
+        );
+
+        expect(body.success).toBe(true);
+        expect(body.bundleSize).toBe('redirected content'.length);
+        expect(body.results.redirected).toHaveLength(1);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(body.cached).toBe(false);
       } finally {
         globalThis.fetch = originalFetch;
       }

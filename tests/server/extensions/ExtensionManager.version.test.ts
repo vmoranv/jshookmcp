@@ -24,6 +24,9 @@ describe('ExtensionManager.version', () => {
   it('compares versions correctly', () => {
     expect(compareVersion('1.2.3', '1.2.3')).toBe(0);
     expect(compareVersion('1.3.0', '1.2.9')).toBe(1);
+    expect(compareVersion('1.2.3', '1.3.0')).toBe(-1); // tests aMinor < bMinor
+    expect(compareVersion('2.0.0', '1.9.9')).toBe(1);
+    expect(compareVersion('1.9.9', '2.0.0')).toBe(-1); // tests aMajor < bMajor
     expect(compareVersion('1.2.2', '1.2.3')).toBe(-1);
     expect(compareVersion('bad', '1.2.3')).toBeNull();
   });
@@ -42,5 +45,7 @@ describe('ExtensionManager.version', () => {
     expect(isCompatibleVersion('~1.2.3', '1.2.9')).toBe(true);
     expect(isCompatibleVersion('~1.2.3', '1.3.0')).toBe(false);
     expect(isCompatibleVersion('^bad', '1.2.3')).toBe(false);
+    expect(isCompatibleVersion('~bad', '1.2.3')).toBe(false);
+    expect(isCompatibleVersion('~1.2.3', 'bad')).toBe(false);
   });
 });

@@ -181,4 +181,44 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(true);
   });
+
+  it('runs stale-entry cleanup after the cleanup interval elapses', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-31T00:00:00Z'));
+    process.env.MCP_RATE_LIMIT_MAX = '1';
+    process.env.MCP_RATE_LIMIT_WINDOW_MS = '1000';
+
+    const { checkRateLimit } = await import('@server/http/HttpMiddleware');
+
+    const firstReq = mockReq({ socket: { remoteAddress: '172.16.0.1' } } as any);
+    const firstRes = mockRes();
+    expect(checkRateLimit(firstReq, firstRes)).toBe(true);
+
+    vi.setSystemTime(Date.now() + 6 * 60_000);
+
+    const secondReq = mockReq({ socket: { remoteAddress: '172.16.0.2' } } as any);
+    const secondRes = mockRes();
+    expect(checkRateLimit(secondReq, secondRes)).toBe(true);
+
+    const originalIpReq = mockReq({ socket: { remoteAddress: '172.16.0.1' } } as any);
+    const originalIpRes = mockRes();
+    expect(checkRateLimit(originalIpReq, originalIpRes)).toBe(true);
+
+    vi.useRealTimers();
+  });
+
+  it('evicts old IP entries when the tracking map grows beyond the cap', async () => {
+    process.env.MCP_RATE_LIMIT_MAX = '1';
+    const { checkRateLimit } = await import('@server/http/HttpMiddleware');
+
+    for (let i = 0; i < 10020; i++) {
+      const req = mockReq({ socket: { remoteAddress: `198.51.100.${i}` } } as any);
+      const res = mockRes();
+      expect(checkRateLimit(req, res)).toBe(true);
+    }
+
+    const latestReq = mockReq({ socket: { remoteAddress: '203.0.113.250' } } as any);
+    const latestRes = mockRes();
+    expect(checkRateLimit(latestReq, latestRes)).toBe(true);
+  });
 });

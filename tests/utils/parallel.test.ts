@@ -98,4 +98,32 @@ describe('parallel utilities', () => {
 
     expect(done).toBe(true);
   });
+
+  it('TaskQueue rejects structural non-error objects', async () => {
+    const queue = new TaskQueue<number, number>(async () => {
+      throw 'String error object';
+    });
+    const p = queue.add(1);
+    await expect(p).rejects.toThrow('String error object');
+  });
+
+  it('RateLimiter forces implicit refill when calling getTokens', async () => {
+    const limiter = new RateLimiter(10, 5);
+    expect(limiter.getTokens()).toBe(10);
+  });
+
+  it('batchProcess re-throws errors during batch failure', async () => {
+    const executor = vi.fn().mockRejectedValue(new Error('Batch crash'));
+    await expect(batchProcess([1, 2], executor, 2)).rejects.toThrow('Batch crash');
+  });
+
+  it('TaskQueue returns accurate status metrics', () => {
+    const queue = new TaskQueue<number, number>(async (x) => x, 2);
+    queue.add(1);
+
+    const status = queue.getStatus();
+    expect(status.queueLength).toBeGreaterThanOrEqual(0);
+    expect(status.running).toBeGreaterThanOrEqual(1);
+    expect(status.maxConcurrency).toBe(2);
+  });
 });

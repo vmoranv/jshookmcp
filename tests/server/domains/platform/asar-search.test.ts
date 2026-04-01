@@ -155,6 +155,21 @@ describe('asar_search', () => {
     expect(data.success).toBe(false);
   });
 
+  it('should return success:false for an invalid regex pattern', async () => {
+    const asar = buildMockAsar([{ path: 'src/index.js', content: 'console.log("hello");\n' }]);
+    const asarPath = join(tempDir, 'invalid-regex.asar');
+    await writeFile(asarPath, asar);
+
+    const result = await handler.handleAsarSearch({
+      inputPath: asarPath,
+      pattern: '(',
+    });
+    const data = JSON.parse(result.content[0]!.text!);
+
+    expect(data.success).toBe(false);
+    expect(data.error).toContain('Invalid regex pattern');
+  });
+
   it('should parse Chromium Pickle format ASAR (headerSize=4)', async () => {
     // Build ASAR using Pickle format: field0=4, field1=payloadSize, field2=jsonLen, field3=padding
     const entries = [

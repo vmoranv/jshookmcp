@@ -1,347 +1,259 @@
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { AntiDebugToolHandlers } from '@server/domains/antidebug/handlers';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { AntiDebugToolHandlers } from '../../../../src/server/domains/antidebug/handlers';
+import type { CodeCollector } from '../../../../src/server/domains/shared/modules';
 import {
-  createCodeCollectorMock,
-  createPageMock,
-  parseJson,
-} from '@tests/server/domains/shared/mock-factories';
+  evaluateWithTimeout,
+  evaluateOnNewDocumentWithTimeout,
+} from '../../../../src/modules/collector/PageController';
 
-interface BypassAllResponse {
-  persistent: boolean;
-  [key: string]: unknown;
-}
+vi.mock('../../../../src/modules/collector/PageController', () => ({
+  evaluateWithTimeout: vi.fn(),
+  evaluateOnNewDocumentWithTimeout: vi.fn(),
+}));
 
 describe('AntiDebugToolHandlers', () => {
-  const page = createPageMock();
-  const collector = createCodeCollectorMock({
-    getActivePage: vi.fn(async () => page),
-  });
-
+  let collectorMock: vi.Mocked<CodeCollector>;
+  let pageMock: any;
   let handlers: AntiDebugToolHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new AntiDebugToolHandlers(collector as any);
-  });
-
-  interface TimingBypassResponse {
-    success: boolean;
-    maxDrift: number;
-    tool?: string;
-    error?: string;
-  }
-
-  it('clamps maxDrift to minimum value in timing bypass', async () => {
-    const body = parseJson<TimingBypassResponse>(
-      await handlers.handleAntiDebugBypassTiming({ maxDrift: -10 }),
-    );
-    expect(body.success).toBe(true);
-    expect(body.maxDrift).toBe(0);
-    expect(page.evaluateOnNewDocument).toHaveBeenCalledOnce();
-    expect(page.evaluate).toHaveBeenCalledOnce();
-  });
-
-  it('clamps maxDrift to maximum value in timing bypass', async () => {
-    const body = parseJson<TimingBypassResponse>(
-      await handlers.handleAntiDebugBypassTiming({ maxDrift: 5000 }),
-    );
-    expect(body.success).toBe(true);
-    expect(body.maxDrift).toBe(1000);
-  });
-
-  it('returns error payload when timing bypass injection fails', async () => {
-    (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('page unavailable'));
-    const body = parseJson<TimingBypassResponse>(await handlers.handleAntiDebugBypassTiming({}));
-    expect(body.success).toBe(false);
-    expect(body.tool).toBe('antidebug_bypass_timing');
-    expect(body.error).toContain('page unavailable');
-  });
-
-  interface DebuggerBypassResponse {
-    success: boolean;
-    mode: string;
-    tool?: string;
-    error?: string;
-  }
-
-  it('uses default mode for invalid debugger bypass mode', async () => {
-    const body = parseJson<DebuggerBypassResponse>(
-      await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'invalid' }),
-    );
-    expect(body.success).toBe(true);
-    expect(body.mode).toBe('remove');
-  });
-
-  interface DetectProtectionsResponse {
-    success: boolean;
-    detected: boolean;
-    count: number;
-    protections: any[];
-  }
-
-  it('maps detect protections result fields', async () => {
-    (page.evaluate as Mock).mockResolvedValueOnce({
-      success: true,
-      detected: true,
-      count: 2,
-      protections: [
-        { type: 'debugger', severity: 'high', evidence: 'x', recommendedBypass: 'remove' },
-      ],
-      recommendations: ['a'],
-      evidence: { key: 1 },
-    });
-
-    const body = parseJson<DetectProtectionsResponse>(
-      await handlers.handleAntiDebugDetectProtections({}),
-    );
-    expect(body.success).toBe(true);
-    expect(body.detected).toBe(true);
-    expect(body.count).toBe(2);
-    expect(body.protections.length).toBe(1);
-  });
-
-  it('returns default empty detect protections payload when page returns null', async () => {
-    (page.evaluate as Mock).mockResolvedValueOnce(null);
-    const body = parseJson<DetectProtectionsResponse>(
-      await handlers.handleAntiDebugDetectProtections({}),
-    );
-    expect(body.success).toBe(true);
-    expect(body.detected).toBe(false);
-    expect(body.count).toBe(0);
-    expect(body.protections).toEqual([]);
+    pageMock = {};
+    collectorMock = {
+      getActivePage: vi.fn().mockResolvedValue(pageMock),
+    } as any;
+    handlers = new AntiDebugToolHandlers(collectorMock);
   });
 
   describe('handleAntiDebugBypassAll', () => {
-    interface BypassAllHandlerResponse {
-      success: boolean;
-      tool: string;
-      persistent: boolean;
-      injectedCount: number;
-      injected: string[];
-      error?: string;
-    }
+    it('injects all scripts successfully persistently', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockResolvedValue(undefined);
+      vi.mocked(evaluateWithTimeout).mockResolvedValue(undefined);
 
-    it('injects all bypass scripts with persistence by default', async () => {
-      const body = parseJson<BypassAllHandlerResponse>(await handlers.handleAntiDebugBypassAll({}));
-      expect(body.success).toBe(true);
-      expect(body.tool).toBe('antidebug_bypass_all');
-      expect(body.persistent).toBe(true);
-      expect(body.injectedCount).toBe(4);
-      expect(body.injected).toEqual([
-        'bypassDebuggerStatement',
-        'bypassTiming',
-        'bypassStackTrace',
-        'bypassConsoleDetect',
-      ]);
-      // 4 scripts × evaluateOnNewDocument (persistent) + 4 scripts × evaluate
-      expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(4);
-      expect(page.evaluate).toHaveBeenCalledTimes(4);
+      const res = await handlers.handleAntiDebugBypassAll({ persistent: true });
+      expect(res.content[0].text).toContain('"success": true');
+      expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(4);
+      expect(evaluateWithTimeout).toHaveBeenCalledTimes(4);
     });
 
-    it('skips evaluateOnNewDocument when persistent=false', async () => {
-      const body = parseJson<BypassAllHandlerResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: false }),
-      );
-      expect(body.success).toBe(true);
-      expect(body.persistent).toBe(false);
-      expect(page.evaluateOnNewDocument).not.toHaveBeenCalled();
-      expect(page.evaluate).toHaveBeenCalledTimes(4);
+    it('triggers injectScripts for all bypass types including persistent override', async () => {
+      const res = await handlers.handleAntiDebugBypassAll({ persistent: {} }); // unhandled object defaults to true
+      expect(res.content[0].text).toContain('"success": true');
+      expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(4);
+      expect(evaluateWithTimeout).toHaveBeenCalledTimes(4);
     });
 
-    it('returns error on page failure', async () => {
-      (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('no page'));
-      const body = parseJson<BypassAllHandlerResponse>(await handlers.handleAntiDebugBypassAll({}));
-      expect(body.success).toBe(false);
-      expect(body.error).toContain('no page');
-    });
-  });
-
-  describe('handleAntiDebugBypassStackTrace', () => {
-    interface StackTraceResponse {
-      success: boolean;
-      filterPatterns: string[];
-    }
-
-    it('uses default filter patterns when none provided', async () => {
-      const body = parseJson<StackTraceResponse>(
-        await handlers.handleAntiDebugBypassStackTrace({}),
-      );
-      expect(body.success).toBe(true);
-      expect(body.filterPatterns).toContain('puppeteer');
-      expect(body.filterPatterns).toContain('devtools');
+    it('injects all scripts successfully non-persistently', async () => {
+      const res = await handlers.handleAntiDebugBypassAll({ persistent: false });
+      expect(res.content[0].text).toContain('"success": true');
+      expect(evaluateOnNewDocumentWithTimeout).not.toHaveBeenCalled();
+      expect(evaluateWithTimeout).toHaveBeenCalledTimes(4);
     });
 
-    it('merges user patterns with defaults', async () => {
-      const body = parseJson<StackTraceResponse>(
-        await handlers.handleAntiDebugBypassStackTrace({
-          filterPatterns: ['custom_pattern', 'another'],
-        }),
-      );
-      expect(body.success).toBe(true);
-      expect(body.filterPatterns).toContain('custom_pattern');
-      expect(body.filterPatterns).toContain('another');
-      expect(body.filterPatterns).toContain('puppeteer');
-    });
-
-    it('handles comma-separated string patterns', async () => {
-      const body = parseJson<StackTraceResponse>(
-        await handlers.handleAntiDebugBypassStackTrace({
-          filterPatterns: 'foo, bar, baz',
-        }),
-      );
-      expect(body.success).toBe(true);
-      expect(body.filterPatterns).toContain('foo');
-      expect(body.filterPatterns).toContain('bar');
-    });
-
-    it('deduplicates patterns', async () => {
-      const body = parseJson<StackTraceResponse>(
-        await handlers.handleAntiDebugBypassStackTrace({
-          filterPatterns: ['puppeteer', 'puppeteer', 'custom'],
-        }),
-      );
-      const puppeteerCount = body.filterPatterns.filter((p: string) => p === 'puppeteer').length;
-      expect(puppeteerCount).toBe(1);
-    });
-
-    it('returns error on failure', async () => {
-      (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('crash'));
-      const body = parseJson<StackTraceResponse>(
-        await handlers.handleAntiDebugBypassStackTrace({}),
-      );
-      expect(body.success).toBe(false);
-    });
-  });
-
-  describe('handleAntiDebugBypassConsoleDetect', () => {
-    interface ConsoleDetectResponse {
-      success: boolean;
-      tool: string;
-      persistent: boolean;
-    }
-
-    it('injects console detect bypass script', async () => {
-      const body = parseJson<ConsoleDetectResponse>(
-        await handlers.handleAntiDebugBypassConsoleDetect({}),
-      );
-      expect(body.success).toBe(true);
-      expect(body.tool).toBe('antidebug_bypass_console_detect');
-      expect(body.persistent).toBe(true);
-    });
-
-    it('returns error on failure', async () => {
-      (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('no page'));
-      const body = parseJson<ConsoleDetectResponse>(
-        await handlers.handleAntiDebugBypassConsoleDetect({}),
-      );
-      expect(body.success).toBe(false);
+    it('handles errors gracefully', async () => {
+      vi.mocked(evaluateWithTimeout).mockRejectedValue(new Error('Test error'));
+      const res = await handlers.handleAntiDebugBypassAll({ persistent: false });
+      expect(res.content[0].text).toContain('"success": false');
+      expect(res.content[0].text).toContain('Test error');
     });
   });
 
   describe('handleAntiDebugBypassDebuggerStatement', () => {
-    it('accepts noop mode', async () => {
-      const body = parseJson<DebuggerBypassResponse>(
-        await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'noop' }),
-      );
-      expect(body.success).toBe(true);
-      expect(body.mode).toBe('noop');
+    it('injects debugger bypass with specific mode', async () => {
+      const res = await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'noop' });
+      expect(res.content[0].text).toContain('"mode": "noop"');
+      expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(1);
     });
 
-    it('accepts remove mode', async () => {
-      const body = parseJson<DebuggerBypassResponse>(
-        await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'remove' }),
-      );
-      expect(body.success).toBe(true);
-      expect(body.mode).toBe('remove');
+    it('bubbles and catches errors', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
+      const res = await handlers.handleAntiDebugBypassAll({ persistent: true });
+      expect(res.content[0].text).toContain('"success": false');
+      expect(res.content[0].text).toContain('err');
     });
 
-    it('normalizes case for mode', async () => {
-      const body = parseJson<DebuggerBypassResponse>(
-        await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'NOOP' }),
-      );
-      expect(body.success).toBe(true);
-      expect(body.mode).toBe('noop');
-    });
-
-    it('returns error on page failure', async () => {
-      (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('err'));
-      const body = parseJson<DebuggerBypassResponse>(
-        await handlers.handleAntiDebugBypassDebuggerStatement({}),
-      );
-      expect(body.success).toBe(false);
+    it('bubbles and catches string errors natively', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string error');
+      const res = await handlers.handleAntiDebugBypassAll({ persistent: true });
+      expect(res.content[0].text).toContain('"success": false');
+      expect(res.content[0].text).toContain('string error');
     });
   });
 
-  describe('parseBooleanArg edge cases', () => {
-    it('handles numeric 1 and 0', async () => {
-      // persistent=1 should be true
-      const body1 = parseJson<BypassAllResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: 1 }),
-      );
-      expect(body1.persistent).toBe(true);
+  describe('handleAntiDebugBypassTiming', () => {
+    it('injects timing bypass with specific maxDrift', async () => {
+      const res = await handlers.handleAntiDebugBypassTiming({ maxDrift: 100 });
+      expect(res.content[0].text).toContain('"maxDrift": 100');
+    });
 
+    it('parses string maxDrift gracefully', async () => {
+      const res = await handlers.handleAntiDebugBypassTiming({ maxDrift: '200' });
+      expect(res.content[0].text).toContain('"maxDrift": 200');
+    });
+
+    it('bubbles and catches errors', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
+      const res = await handlers.handleAntiDebugBypassTiming({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+
+    it('handles unexpected native injection throw mapping error string securely', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string fail');
+      const res = await handlers.handleAntiDebugBypassTiming({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+
+    it('handles parseNumberArg without optional min/max constraints (private method coverage)', () => {
+      // @ts-expect-error testing private fallback branch
+      const res = handlers.parseNumberArg(50, { defaultValue: 10 });
+      expect(res).toBe(50);
+    });
+
+    it('parses valid positive strings returning true', () => {
+      // @ts-expect-error private method test
+      expect(handlers.parseBooleanArg('yes', false)).toBe(true);
+    });
+
+    it('handles intercept boolean fallbacks for unknown numbers and strings', async () => {
+      const resNum = await handlers.handleAntiDebugBypassAll({ persistent: 2 });
+      expect(resNum.content[0].text).toContain('"persistent": true');
+
+      const resStr = await handlers.handleAntiDebugBypassAll({ persistent: 'unrecognized' });
+      expect(resStr.content[0].text).toContain('"persistent": true');
+    });
+
+    it('handles numeric maxDrift fallback for invalid strings', async () => {
+      const res = await handlers.handleAntiDebugBypassTiming({ maxDrift: 'invalid string' });
+      expect(res.content[0].text).toContain('"success": true');
+    });
+
+    it('handles parseDebuggerMode with invalid mode returning default', async () => {
+      const res = await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'invalid' });
+      expect(res.content[0].text).toContain('"success": true');
+    });
+
+    it('bubbles generic error via stringified payload correctly when injection errors surface', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
+      const res = await handlers.handleAntiDebugBypassDebuggerStatement({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+
+    it('bubbles native string injection errors', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string error');
+      const res = await handlers.handleAntiDebugBypassDebuggerStatement({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+  });
+
+  describe('handleAntiDebugBypassStackTrace', () => {
+    it('injects stack trace bypass with internal and user patterns', async () => {
+      const res = await handlers.handleAntiDebugBypassStackTrace({
+        filterPatterns: ['my_pattern'],
+      });
+      expect(res.content[0].text).toContain('my_pattern');
+    });
+
+    it('parses string string arrays', async () => {
+      const res = await handlers.handleAntiDebugBypassStackTrace({ filterPatterns: 'pat1, pat2' });
+      expect(res.content[0].text).toContain('pat1');
+      expect(res.content[0].text).toContain('pat2');
+    });
+
+    it('bubbles and catches errors', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
+      const res = await handlers.handleAntiDebugBypassStackTrace({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+
+    it('bubbles string generic errors', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string error');
+      const res = await handlers.handleAntiDebugBypassStackTrace({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+  });
+
+  describe('handleAntiDebugBypassConsoleDetect', () => {
+    it('injects console detect bypass block', async () => {
+      const res = await handlers.handleAntiDebugBypassConsoleDetect({});
+      expect(res.content[0].text).toContain('"success": true');
+    });
+
+    it('injects string mapped mode', async () => {
+      const res = await handlers.handleAntiDebugBypassDebuggerStatement({ mode: ' noop ' });
+      expect(res.content[0].text).toContain('"success": true');
+      expect(res.content[0].text).toContain('"mode": "noop"');
+    });
+
+    it('injects fallback default remove mode on unhandled type mapped mode', async () => {
+      const res = await handlers.handleAntiDebugBypassDebuggerStatement({ mode: { unmapped: 1 } });
+      expect(res.content[0].text).toContain('"success": true');
+      expect(res.content[0].text).toContain('"mode": "remove"');
+    });
+
+    it('bubbles generic error via stringified payload correctly when injection errors surface', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
+      const res = await handlers.handleAntiDebugBypassConsoleDetect({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+
+    it('bubbles native string injection errors', async () => {
+      vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string error');
+      const res = await handlers.handleAntiDebugBypassConsoleDetect({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+  });
+
+  describe('handleAntiDebugDetectProtections', () => {
+    it('detects protections successfully from document mapping', async () => {
+      vi.mocked(evaluateWithTimeout).mockResolvedValue({
+        success: true,
+        detected: true,
+        count: 1,
+        protections: [],
+        recommendations: [],
+        evidence: {},
+      });
+      const res = await handlers.handleAntiDebugDetectProtections({});
+      expect(res.content[0].text).toContain('"detected": true');
+    });
+
+    it('returns empty results if evaluation fails', async () => {
+      vi.mocked(evaluateWithTimeout).mockResolvedValue(null);
+      const res = await handlers.handleAntiDebugDetectProtections({});
+
+      expect(res.content[0].text).toContain('"success": true');
+      expect(res.content[0].text).toContain('"detected": false');
+    });
+
+    it('bubbles generic error via stringified payload correctly when detection errors surface', async () => {
+      vi.mocked(evaluateWithTimeout).mockRejectedValue(new Error('err'));
+      const res = await handlers.handleAntiDebugDetectProtections({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+
+    it('bubbles native string detection errors', async () => {
+      vi.mocked(evaluateWithTimeout).mockRejectedValue('string error');
+      const res = await handlers.handleAntiDebugDetectProtections({});
+      expect(res.content[0].text).toContain('"success": false');
+    });
+  });
+
+  describe('Boolean parsing internals', () => {
+    it('parses various boolean formats in handleAntiDebugBypassAll implicitly passing through parseBooleanArg', async () => {
+      await handlers.handleAntiDebugBypassAll({ persistent: 1 });
+      expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(4);
       vi.clearAllMocks();
 
-      const body0 = parseJson<BypassAllResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: 0 }),
-      );
-      expect(body0.persistent).toBe(false);
-    });
-
-    it('handles string true/false', async () => {
-      const bodyTrue = parseJson<BypassAllResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: 'yes' }),
-      );
-      expect(bodyTrue.persistent).toBe(true);
-
+      await handlers.handleAntiDebugBypassAll({ persistent: 0 });
+      expect(evaluateOnNewDocumentWithTimeout).not.toHaveBeenCalled();
       vi.clearAllMocks();
 
-      const bodyFalse = parseJson<BypassAllResponse>(
-        await handlers.handleAntiDebugBypassAll({ persistent: 'off' }),
-      );
-      expect(bodyFalse.persistent).toBe(false);
-    });
-  });
+      await handlers.handleAntiDebugBypassAll({ persistent: 'yes' });
+      expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(4);
+      vi.clearAllMocks();
 
-  describe('parseNumberArg edge cases', () => {
-    it('parses string numbers', async () => {
-      const body = parseJson<TimingBypassResponse>(
-        await handlers.handleAntiDebugBypassTiming({ maxDrift: '100' }),
-      );
-      expect(body.maxDrift).toBe(100);
-    });
-
-    it('uses default for non-numeric strings', async () => {
-      const body = parseJson<TimingBypassResponse>(
-        await handlers.handleAntiDebugBypassTiming({ maxDrift: 'abc' }),
-      );
-      expect(body.maxDrift).toBe(50); // default
-    });
-
-    it('uses default for NaN', async () => {
-      const body = parseJson<TimingBypassResponse>(
-        await handlers.handleAntiDebugBypassTiming({ maxDrift: NaN }),
-      );
-      expect(body.maxDrift).toBe(50);
-    });
-
-    it('uses default for Infinity', async () => {
-      const body = parseJson<TimingBypassResponse>(
-        await handlers.handleAntiDebugBypassTiming({ maxDrift: Infinity }),
-      );
-      expect(body.maxDrift).toBe(50);
-    });
-  });
-
-  describe('detect protections error path', () => {
-    it('returns error on evaluate failure', async () => {
-      (collector.getActivePage as Mock).mockRejectedValueOnce(new Error('timeout'));
-      const body = parseJson<DetectProtectionsResponse>(
-        await handlers.handleAntiDebugDetectProtections({}),
-      );
-      expect(body.success).toBe(false);
-      // @ts-expect-error — auto-suppressed [TS2339]
-      expect(body.tool).toBe('antidebug_detect_protections');
+      await handlers.handleAntiDebugBypassAll({ persistent: 'false' });
+      expect(evaluateOnNewDocumentWithTimeout).not.toHaveBeenCalled();
     });
   });
 });

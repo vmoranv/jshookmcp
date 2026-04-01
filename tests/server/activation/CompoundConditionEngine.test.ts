@@ -142,4 +142,54 @@ describe('activation/CompoundConditionEngine', () => {
     // Should have default conditions (3)
     expect(engine.conditionCount).toBeGreaterThanOrEqual(3);
   });
+
+  it('tool_called_recently condition checks tool calls in window', () => {
+    const engine = new CompoundConditionEngine([
+      {
+        id: 'recent-tool',
+        name: 'Recent tool',
+        conditions: [{ type: 'tool_called_recently', toolName: 'test_tool', withinMs: 60_000 }],
+        boostDomains: ['debugger'],
+        priority: 5,
+      },
+      {
+        id: 'coverage-fallback',
+        name: 'Unknown type',
+        // @ts-ignore - intentional invalid type to hit default branch
+        conditions: [{ type: 'unknown_type' }],
+        boostDomains: ['none'],
+        priority: 1,
+      },
+    ]);
+
+    const now = Date.now();
+    const matchEvent = {
+      event: 'tool:called',
+      timestamp: now - 30_000,
+      payload: { toolName: 'test_tool' },
+    };
+    const oldEvent = {
+      event: 'tool:called',
+      timestamp: now - 100_000,
+      payload: { toolName: 'test_tool' },
+    };
+    const wrongEvent = { event: 'tool:called', timestamp: now, payload: { toolName: 'other' } };
+    const notToolEvent = {
+      event: 'other:event',
+      timestamp: now,
+      payload: { toolName: 'test_tool' },
+    };
+
+    // Matches
+    expect(engine.evaluate(makeState({ eventHistory: [matchEvent] }))).toContain('debugger');
+    // Too old
+    expect(engine.evaluate(makeState({ eventHistory: [oldEvent] }))).toEqual([]);
+    // Wrong tool
+    expect(engine.evaluate(makeState({ eventHistory: [wrongEvent] }))).toEqual([]);
+    // Wrong event type
+    expect(engine.evaluate(makeState({ eventHistory: [notToolEvent] }))).toEqual([]);
+
+    // Default fallback 'unknown_type' returns false
+    expect(engine.evaluate(makeState())).not.toContain('none');
+  });
 });

@@ -80,6 +80,9 @@ describe('CacheAdapters', () => {
       misses: 2,
       hitRate: 0.8,
     });
+
+    adapter.clear();
+    expect(compressor.clearCache).toHaveBeenCalledOnce();
   });
 
   it('handles zero-entry compressor cache size gracefully', () => {

@@ -24,6 +24,11 @@ describe('Deobfuscator utils', () => {
     expect(detectObfuscationType('const answer = 42;\nconsole.log(answer);')).toEqual(['unknown']);
   });
 
+  it('detects uglify-style one-line bundles', () => {
+    const code = 'var a=1;'.repeat(160);
+    expect(detectObfuscationType(code)).toContain('uglify');
+  });
+
   it('computes higher readability for multiline, descriptive, non-obfuscated code', () => {
     const readable = calculateReadabilityScore(
       'const longVariableName = 1;\nfunction computeValue() {\n  return longVariableName;\n}\n',

@@ -79,4 +79,25 @@ describe('logger', () => {
     expect(output).toContain('[INFO]');
     expect(output).toContain('operation completed');
   });
+
+  it('emits error logs correctly', () => {
+    logger.setLevel('error');
+    logger.error('critical failure', { x: 2 });
+    expect(console.error).toHaveBeenCalledTimes(1);
+    const output = String((console.error as any).mock.calls[0]![0]);
+    expect(output).toContain('[ERROR]');
+    expect(output).toContain('critical failure');
+  });
+
+  it('suppresses warn when level is error', () => {
+    logger.setLevel('error');
+    logger.warn('this should be hidden');
+    expect(console.error).toHaveBeenCalledTimes(0);
+  });
+
+  it('suppresses success logs when level is warn', () => {
+    logger.setLevel('warn');
+    logger.success('this should be hidden');
+    expect(console.error).toHaveBeenCalledTimes(0);
+  });
 });

@@ -1,15 +1,19 @@
+import { EventEmitter } from 'node:events';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockExecFileAsync = vi.hoisted(() => vi.fn());
+const { mockExecFileAsync, mockSpawn } = vi.hoisted(() => ({
+  mockExecFileAsync: vi.fn(),
+  mockSpawn: vi.fn(),
+}));
 
 vi.mock('node:child_process', () => ({
   exec: vi.fn(),
   execFile: vi.fn(),
-  spawn: vi.fn(),
+  spawn: mockSpawn,
 }));
 
 vi.mock('node:util', () => ({
@@ -76,6 +80,20 @@ function makeRunner(overrides: RunnerOverrides = {}): ExternalToolRunner {
     probeAll,
     ...overrides,
   } as unknown as ExternalToolRunner;
+}
+
+function createFridaChild() {
+  const child = new EventEmitter() as EventEmitter & {
+    stdout: EventEmitter;
+    stderr: EventEmitter;
+    stdin: { write: ReturnType<typeof vi.fn> };
+    kill: ReturnType<typeof vi.fn>;
+  };
+  child.stdout = new EventEmitter();
+  child.stderr = new EventEmitter();
+  child.stdin = { write: vi.fn() };
+  child.kill = vi.fn();
+  return child;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,6 +241,101 @@ describe('BridgeHandlers', () => {
 
         expect(result.target).toBe('<process_name>');
         expect(result.functionName).toBe('<target_function>');
+      });
+    });
+
+    describe('action = attach/run_script/detach/list_sessions', () => {
+      it('attaches to a pid, tracks the session, and detaches cleanly', async () => {
+        vi.useFakeTimers();
+        const child = createFridaChild();
+        mockExecFileAsync.mockResolvedValueOnce({ stdout: '16.1.0\n', stderr: '' });
+        mockSpawn.mockReturnValueOnce(child as any);
+
+        try {
+          const attachPromise = handlers.handleFridaBridge({ action: 'attach', pid: 4242 });
+          await Promise.resolve();
+          child.stdout.emit('data', Buffer.from('ready\n'));
+          await vi.advanceTimersByTimeAsync(2000);
+
+          const attachResult = parsePayload(await attachPromise);
+          const sessionId = String(attachResult.sessionId);
+
+          expect(attachResult.success).toBe(true);
+          expect(attachResult.action).toBe('attach');
+          expect(attachResult.pid).toBe(4242);
+          expect(attachResult.initialOutput).toContain('ready');
+          expect(mockSpawn).toHaveBeenCalledWith(
+            'frida',
+            expect.arrayContaining(['-p', '4242', '--no-pause']),
+            expect.objectContaining({ stdio: ['pipe', 'pipe', 'pipe'] }),
+          );
+
+          const sessions = parsePayload(
+            await handlers.handleFridaBridge({ action: 'list_sessions' }),
+          );
+          expect(sessions.count).toBe(1);
+          expect(sessions.sessions[0].sessionId).toBe(sessionId);
+
+          const detachResult = parsePayload(
+            await handlers.handleFridaBridge({ action: 'detach', sessionId }),
+          );
+          expect(detachResult.success).toBe(true);
+          expect(child.stdin.write).toHaveBeenCalledWith('%quit\n');
+          expect(
+            parsePayload(await handlers.handleFridaBridge({ action: 'list_sessions' })).count,
+          ).toBe(0);
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+
+      it('runs a one-shot script when no interactive session exists', async () => {
+        mockExecFileAsync.mockResolvedValueOnce({ stdout: 'hello\n', stderr: 'warn\n' });
+
+        const result = parsePayload(
+          await handlers.handleFridaBridge({
+            action: 'run_script',
+            sessionId: 'missing-session',
+            script: 'console.log(1);',
+            pid: 1337,
+          }),
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.action).toBe('run_script');
+        expect(result.mode).toBe('one-shot');
+        expect(result.stdout).toContain('hello');
+        expect(result.stderr).toContain('warn');
+        expect(mockExecFileAsync).toHaveBeenCalledWith(
+          'frida',
+          expect.arrayContaining(['-p', '1337', '--no-pause', '-e', 'console.log(1);']),
+          expect.objectContaining({ timeout: 30000 }),
+        );
+      });
+
+      it('returns an error when run_script cannot resolve a session or target', async () => {
+        const result = parsePayload(
+          await handlers.handleFridaBridge({
+            action: 'run_script',
+            sessionId: 'missing-session',
+            script: 'console.log(1);',
+          }),
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Provide pid or processName');
+      });
+
+      it('returns an error when detaching a missing session', async () => {
+        const result = parsePayload(
+          await handlers.handleFridaBridge({
+            action: 'detach',
+            sessionId: 'missing-session',
+          }),
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Session not found');
       });
     });
   });

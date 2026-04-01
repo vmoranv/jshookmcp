@@ -15,6 +15,9 @@ vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
+vi.unmock('@modules/captcha/CaptchaDetector');
+vi.unmock('@src/modules/captcha/CaptchaDetector');
+
 class TestCaptchaDetector extends CaptchaDetector {
   public override async checkUrl(page: Page): Promise<CaptchaDetectionResult> {
     return super.checkUrl(page);

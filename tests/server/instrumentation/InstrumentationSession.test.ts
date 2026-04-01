@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
 import { InstrumentationType } from '@server/instrumentation/types';
 import type { ToolResponse } from '@server/types';
@@ -387,6 +387,193 @@ describe('InstrumentationSession', () => {
       expect(snapshot!.operations).toHaveLength(1);
       expect(snapshot!.artifacts).toHaveLength(1);
       expect(manager.listSessionSnapshots()).toHaveLength(1);
+    });
+  });
+
+  describe('edge cases and coverage', () => {
+    it('throws when tool response lacks text payload', async () => {
+      const session = manager.createSession();
+      await expect(
+        manager.applyHookPreset(
+          session.id,
+          { handleHookPreset: async () => ({ content: [] }) },
+          {},
+        ),
+      ).rejects.toThrow('Expected JSON text payload from wrapped tool response');
+    });
+
+    it('throws when tool response is not valid JSON', async () => {
+      const session = manager.createSession();
+      await expect(
+        manager.applyHookPreset(
+          session.id,
+          { handleHookPreset: async () => ({ content: [{ type: 'text', text: 'NOT JSON' }] }) },
+          {},
+        ),
+      ).rejects.toThrow('Wrapped tool returned non-JSON text payload');
+    });
+
+    it('throws when tool response is not a JSON object', async () => {
+      const session = manager.createSession();
+      await expect(
+        manager.applyHookPreset(
+          session.id,
+          { handleHookPreset: async () => ({ content: [{ type: 'text', text: '[]' }] }) },
+          {},
+        ),
+      ).rejects.toThrow('Wrapped tool returned JSON that is not an object');
+    });
+
+    it('sets evidence bridge correctly', () => {
+      manager.setEvidenceBridge({ onOperation: vi.fn(), onArtifact: vi.fn() } as any);
+      expect((manager as any).evidenceBridge).toBeDefined();
+    });
+
+    it('throws when destroying non-existent session', () => {
+      expect(() => manager.destroySession('nope')).toThrow();
+    });
+
+    it('marks active operations as completed when session destroyed', async () => {
+      const s = manager.createSession();
+      manager.registerOperation(s.id, InstrumentationType.RUNTIME_HOOK, 'x', {});
+      const op2 = manager.registerOperation(s.id, InstrumentationType.RUNTIME_HOOK, 'y', {});
+      (manager as any).setOperationStatus(op2.id, 'failed'); // make it non-active
+
+      manager.destroySession(s.id);
+      expect(manager.getSessionOperations(s.id)[0]!.status).toBe('completed');
+      expect(manager.getSessionOperations(s.id)[1]!.status).toBe('failed');
+    });
+
+    it('throws when recording artifact for non-existent operation', () => {
+      expect(() => manager.recordArtifact('nope', {})).toThrow();
+    });
+
+    it('throws when operation metadata missing for operation', () => {
+      const s = manager.createSession();
+      const op = manager.registerOperation(s.id, InstrumentationType.RUNTIME_HOOK, 'x', {});
+      (manager as any).operations.get(s.id)!.pop();
+      expect(() => manager.recordArtifact(op.id, {})).toThrow();
+    });
+
+    it('returns undefined snapshot for non-existent session', () => {
+      expect(manager.getSessionSnapshot('nope')).toBeUndefined();
+    });
+
+    it('handles arrays in applyHookPreset payload failed definitions', async () => {
+      const session = manager.createSession('preset-fail');
+      const result = await manager.applyHookPreset(
+        session.id,
+        {
+          handleHookPreset: async () =>
+            jsonToolResponse({
+              success: true,
+              injected: ['webassembly-full'],
+              failed: [{ preset: 'bad', error: 'boom' }, 'not-an-object'],
+              method: 'runtime',
+            }),
+        },
+        { preset: 'webassembly-full' },
+      );
+      expect(result.artifacts[0]!.data.failedPresets).toHaveLength(1);
+    });
+
+    it('returns zero stats for non-existent session', () => {
+      expect(manager.getSessionStats('nope')).toEqual({ operationCount: 0, artifactCount: 0 });
+    });
+
+    it('setOperationStatus ignores if operation completely orphaned', () => {
+      (manager as any).setOperationStatus('no-op', 'failed');
+    });
+
+    it('marks operation failed when tool invocation throws', async () => {
+      const session = manager.createSession();
+      await expect(
+        manager.applyHookPreset(
+          session.id,
+          {
+            handleHookPreset: () => {
+              throw new Error('boom');
+            },
+          },
+          {},
+        ),
+      ).rejects.toThrow('boom');
+      const ops = manager.getSessionOperations(session.id);
+      expect(ops[0]!.status).toBe('failed');
+    });
+
+    it('falls back to string error message in parseToolPayload', async () => {
+      const session = manager.createSession();
+      await expect(
+        manager.applyHookPreset(
+          session.id,
+          {
+            handleHookPreset: async () => {
+              throw 'string boom';
+            },
+          },
+          {},
+        ),
+      ).rejects.toThrow('string boom');
+    });
+
+    it('handles multiple presets and missing failed array in hook payload', async () => {
+      const session = manager.createSession('preset-multi');
+      const result = await manager.applyHookPreset(
+        session.id,
+        {
+          handleHookPreset: async () =>
+            jsonToolResponse({
+              success: true,
+              injected: ['a', 'b'],
+              failed: 'not-an-array',
+              method: 'other',
+            }),
+        },
+        { presets: ['a', 'b'] },
+      );
+      expect(result.operation.target).toBe('a, b');
+      expect(result.artifacts[0]!.data.failedPresets).toHaveLength(0);
+      expect(result.artifacts[0]!.data.injectionPoint).toBe('runtime');
+    });
+
+    it('handles missing fields in dry-run network replay preview', async () => {
+      const session = manager.createSession('replay-dry-run-miss');
+      const result = await manager.replayNetworkRequest(
+        session.id,
+        {
+          handleNetworkReplayRequest: async () =>
+            jsonToolResponse({
+              success: true,
+              dryRun: true,
+              preview: { body: 'body-only' },
+            }),
+        },
+        {},
+      );
+      expect(result.artifacts[0]!.data.url).toBeUndefined();
+      expect(result.artifacts[0]!.data.method).toBeUndefined();
+      expect(result.artifacts[0]!.data.headers).toBeUndefined();
+      expect(result.artifacts[0]!.data.body).toBe('body-only');
+    });
+
+    it('handles missing fields in live network replay', async () => {
+      const session = manager.createSession('replay-live-miss');
+      const result = await manager.replayNetworkRequest(
+        session.id,
+        {
+          handleNetworkReplayRequest: async () =>
+            jsonToolResponse({
+              success: true,
+              dryRun: false,
+            }),
+        },
+        {},
+      );
+      expect(result.artifacts[0]!.data.requestId).toBe('network_replay');
+      expect(result.artifacts[0]!.data.statusCode).toBeUndefined();
+      expect(result.artifacts[0]!.data.statusText).toBeUndefined();
+      expect(result.artifacts[0]!.data.bodyTruncated).toBeUndefined();
     });
   });
 });

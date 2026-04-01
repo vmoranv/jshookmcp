@@ -6,6 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HardwareBreakpointEngine } from '@native/HardwareBreakpoint';
+import * as Win32Debug from '@native/Win32Debug';
 
 // Mock Win32Debug and Win32API modules
 vi.mock('@native/Win32Debug', () => ({
@@ -139,6 +140,24 @@ describe('HardwareBreakpointEngine', () => {
     });
   });
 
+  describe('detach', () => {
+    it('should remove breakpoints for a pid and tolerate stop failures', async () => {
+      const bp = await engine.setBreakpoint(1234, '0x1000', 'write', 4);
+      const stopSpy = vi.spyOn(Win32Debug, 'DebugActiveProcessStop').mockImplementation(() => {
+        throw new Error('stop failed');
+      });
+
+      try {
+        await expect(engine.detach(1234)).resolves.toBeUndefined();
+        expect(engine.listBreakpoints()).toEqual([]);
+        expect(stopSpy).toHaveBeenCalledWith(1234);
+        expect(bp.id).toBeDefined();
+      } finally {
+        stopSpy.mockRestore();
+      }
+    });
+  });
+
   describe('listBreakpoints', () => {
     it('should return empty array initially', () => {
       expect(engine.listBreakpoints()).toEqual([]);
@@ -151,6 +170,173 @@ describe('HardwareBreakpointEngine', () => {
       expect(list.length).toBe(2);
       expect(list[0]!.hitCount).toBe(0);
       expect(list[1]!.hitCount).toBe(0);
+    });
+  });
+
+  describe('hit processing and wait loop', () => {
+    it('should process a single-step hit and update breakpoint metadata', async () => {
+      const bp = await engine.setBreakpoint(1234, '0x7FFE0000', 'write', 4);
+
+      vi.mocked(Win32Debug.parseContext).mockReturnValue({
+        contextFlags: 0,
+        eflags: 0x202,
+        dr0: 0n,
+        dr1: 0n,
+        dr2: 0n,
+        dr3: 0n,
+        dr6: 1n,
+        dr7: 0n,
+        rax: 1n,
+        rcx: 2n,
+        rdx: 3n,
+        rbx: 4n,
+        rsp: 5n,
+        rbp: 6n,
+        rsi: 7n,
+        rdi: 8n,
+        r8: 9n,
+        r9: 10n,
+        r10: 11n,
+        r11: 12n,
+        r12: 13n,
+        r13: 14n,
+        r14: 15n,
+        r15: 16n,
+        rip: 0x401000n,
+      } as any);
+
+      vi.mocked(Win32Debug.WaitForDebugEvent).mockReturnValueOnce({
+        processId: 1234,
+        threadId: 1001,
+        exceptionCode: Win32Debug.EXCEPTION_CODE.SINGLE_STEP,
+        exceptionAddress: 0x401000n,
+      });
+
+      const hit = await engine.waitForHit(20);
+      expect(hit?.breakpointId).toBe(bp.id);
+      expect(hit?.instructionAddress).toBe('0x401000');
+      expect(engine.listBreakpoints()[0]?.hitCount).toBe(1);
+    });
+
+    it('should continue past non-single-step events before returning a hit', async () => {
+      await engine.attach(1234);
+      const bp = await engine.setBreakpoint(1234, '0x7FFE0000', 'write', 4);
+
+      vi.mocked(Win32Debug.parseContext).mockReturnValue({
+        contextFlags: 0,
+        eflags: 0x202,
+        dr0: 0n,
+        dr1: 0n,
+        dr2: 0n,
+        dr3: 0n,
+        dr6: 1n,
+        dr7: 0n,
+        rax: 1n,
+        rcx: 2n,
+        rdx: 3n,
+        rbx: 4n,
+        rsp: 5n,
+        rbp: 6n,
+        rsi: 7n,
+        rdi: 8n,
+        r8: 9n,
+        r9: 10n,
+        r10: 11n,
+        r11: 12n,
+        r12: 13n,
+        r13: 14n,
+        r14: 15n,
+        r15: 16n,
+        rip: 0x401000n,
+      } as any);
+
+      vi.mocked(Win32Debug.WaitForDebugEvent)
+        .mockReturnValueOnce({
+          processId: 1234,
+          threadId: 1001,
+          exceptionCode: 0xdeadbeef,
+          exceptionAddress: 0x400000n,
+        })
+        .mockReturnValueOnce({
+          processId: 1234,
+          threadId: 1001,
+          exceptionCode: Win32Debug.EXCEPTION_CODE.SINGLE_STEP,
+          exceptionAddress: 0x401000n,
+        });
+
+      const hit = await engine.waitForHit(20);
+
+      expect(hit?.breakpointId).toBe(bp.id);
+      expect(Win32Debug.ContinueDebugEvent).toHaveBeenCalledTimes(2);
+      expect(Win32Debug.ContinueDebugEvent).toHaveBeenNthCalledWith(
+        1,
+        1234,
+        1001,
+        Win32Debug.DBG.CONTINUE,
+      );
+      expect(Win32Debug.ContinueDebugEvent).toHaveBeenNthCalledWith(
+        2,
+        1234,
+        1001,
+        Win32Debug.DBG.CONTINUE,
+      );
+    });
+
+    it('should return null when no debug event arrives before timeout', async () => {
+      expect(await engine.waitForHit(0)).toBeNull();
+    });
+  });
+
+  describe('traceAccess', () => {
+    it('should keep only hits for the traced breakpoint and clean it up', async () => {
+      let tracedId = '';
+      const originalSetBreakpoint = engine.setBreakpoint.bind(engine);
+      const setSpy = vi.spyOn(engine, 'setBreakpoint').mockImplementation(async (...args) => {
+        const bp = await originalSetBreakpoint(...args);
+        tracedId = bp.id;
+        return bp;
+      });
+      const waitSpy = vi
+        .spyOn(engine, 'waitForHit')
+        .mockImplementationOnce(
+          async () =>
+            ({
+              breakpointId: 'other-bp',
+              address: '0x2000',
+              accessAddress: '0x2000',
+              instructionAddress: '0x401000',
+              threadId: 1001,
+              accessType: 'write',
+              timestamp: 1,
+              registers: {} as any,
+            }) as any,
+        )
+        .mockImplementationOnce(
+          async () =>
+            ({
+              breakpointId: tracedId,
+              address: '0x1000',
+              accessAddress: '0x1000',
+              instructionAddress: '0x401100',
+              threadId: 1002,
+              accessType: 'read',
+              timestamp: 2,
+              registers: {} as any,
+            }) as any,
+        );
+
+      try {
+        const result = await engine.traceAccess(1234, '0x1000', 'read', 1, 1000);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]?.breakpointId).toBe(tracedId);
+        expect(setSpy).toHaveBeenCalledWith(1234, '0x1000', 'read');
+        expect(waitSpy).toHaveBeenCalledTimes(2);
+        expect(engine.listBreakpoints()).toEqual([]);
+      } finally {
+        waitSpy.mockRestore();
+        setSpy.mockRestore();
+      }
     });
   });
 });

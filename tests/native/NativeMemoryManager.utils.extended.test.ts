@@ -99,6 +99,37 @@ describe('NativeMemoryManager.utils edge cases', () => {
       expect(result.patternBytes).toEqual([0x41, 0x42]);
       expect(result.mask).toEqual([1, 1]);
     });
+
+    it('parses the remaining scalar encodings', () => {
+      expect(parsePattern('-1', 'int8')).toEqual({
+        patternBytes: [0xff],
+        mask: [1],
+      });
+      expect(parsePattern('-2', 'int16')).toEqual({
+        patternBytes: [0xfe, 0xff],
+        mask: [1, 1],
+      });
+      expect(parsePattern('513', 'uint16')).toEqual({
+        patternBytes: [0x01, 0x02],
+        mask: [1, 1],
+      });
+      expect(parsePattern('16909060', 'uint32')).toEqual({
+        patternBytes: [0x04, 0x03, 0x02, 0x01],
+        mask: [1, 1, 1, 1],
+      });
+      expect(parsePattern('0x0102030405060708', 'uint64')).toEqual({
+        patternBytes: [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
+        mask: [1, 1, 1, 1, 1, 1, 1, 1],
+      });
+      expect(parsePattern('0x0102030405060708', 'pointer')).toEqual({
+        patternBytes: [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
+        mask: [1, 1, 1, 1, 1, 1, 1, 1],
+      });
+      expect(parsePattern('513', 'byte')).toEqual({
+        patternBytes: [0x01],
+        mask: [1],
+      });
+    });
   });
 
   describe('findPatternInBuffer edge cases', () => {
@@ -220,6 +251,20 @@ describe('NativeMemoryManager.utils edge cases', () => {
           RegionSize: 0n,
           State: state.MEM.COMMIT,
           Protect: state.PAGE.WRITECOPY,
+          Type: 0,
+        }),
+      ).toBe(true);
+    });
+
+    it('returns true for READONLY protection', () => {
+      expect(
+        isReadable({
+          BaseAddress: 0n,
+          AllocationBase: 0n,
+          AllocationProtect: 0,
+          RegionSize: 0n,
+          State: state.MEM.COMMIT,
+          Protect: state.PAGE.READONLY,
           Type: 0,
         }),
       ).toBe(true);

@@ -11,8 +11,62 @@ vi.mock('@src/utils/logger', () => ({
   logger: loggerState,
 }));
 
+vi.unmock('@modules/captcha/CaptchaDetector');
+vi.unmock('@src/modules/captcha/CaptchaDetector');
+
 import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
 import { createPageMock } from '../../server/domains/shared/mock-factories';
+
+function runInBrowserContext<T>(
+  source: (...args: any[]) => T,
+  context: Record<string, unknown>,
+  args: any[] = [],
+): T {
+  const runner = new Function(
+    'context',
+    'args',
+    `with (context) {
+      const fn = ${source.toString()};
+      return fn(...args);
+    }`,
+  );
+  return runner(context, args) as T;
+}
+
+async function withBrowserGlobals<T>(
+  context: Record<string, unknown>,
+  callback: () => T | Promise<T>,
+): Promise<T> {
+  const previousDocument = (globalThis as Record<string, unknown>).document;
+  const previousWindow = (globalThis as Record<string, unknown>).window;
+
+  (globalThis as Record<string, unknown>).document = context.document;
+  (globalThis as Record<string, unknown>).window = context.window;
+
+  try {
+    return await callback();
+  } finally {
+    if (previousDocument === undefined) {
+      delete (globalThis as Record<string, unknown>).document;
+    } else {
+      (globalThis as Record<string, unknown>).document = previousDocument;
+    }
+
+    if (previousWindow === undefined) {
+      delete (globalThis as Record<string, unknown>).window;
+    } else {
+      (globalThis as Record<string, unknown>).window = previousWindow;
+    }
+  }
+}
+
+function createDirectEvaluatePage(context: Record<string, unknown>) {
+  return createPageMock({
+    evaluate: vi.fn(async (fn: (...args: any[]) => unknown, ...args: any[]) =>
+      withBrowserGlobals(context, () => fn(...args)),
+    ),
+  });
+}
 
 class TestCaptchaDetector extends CaptchaDetector {
   public override toAssessmentSignal(source: any, result: any) {
@@ -1115,6 +1169,857 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(result.title).toBe('Check');
       expect(result.selector).toBe('#challenge');
       expect(result.details).toEqual({ extra: true });
+    });
+  });
+
+  describe('branch coverage extras', () => {
+    it('maps signals, candidates and rule matches across all source types', async () => {
+      expect(
+        detector.toAssessmentSignal('url', {
+          detected: true,
+          type: 'browser_check',
+          confidence: 91,
+          providerHint: 'edge_service',
+          url: 'https://example.com/captcha',
+          details: { keyword: 'verify' },
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          source: 'url',
+          kind: 'captcha',
+          value: 'https://example.com/captcha',
+        }),
+      );
+
+      expect(
+        detector.toAssessmentSignal('text', {
+          detected: false,
+          type: 'none',
+          confidence: 42,
+          falsePositiveReason: 'Text exclusion: verify',
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          source: 'text',
+          kind: 'exclude',
+          value: 'Text exclusion: verify',
+        }),
+      );
+
+      expect(
+        detector.toAssessmentSignal('vendor', {
+          detected: false,
+          type: 'none',
+          confidence: 0,
+        }),
+      ).toBeNull();
+
+      expect(
+        detector.toAssessmentCandidate('dom', {
+          detected: false,
+          type: 'none',
+          confidence: 0,
+        }),
+      ).toBeNull();
+
+      expect(
+        detector.toAssessmentCandidate('dom', {
+          detected: true,
+          type: 'widget',
+          confidence: 88,
+          selector: '[data-sitekey]',
+          providerHint: 'embedded_widget',
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          source: 'dom',
+          value: '[data-sitekey]',
+          type: 'widget',
+        }),
+      );
+
+      expect(
+        detector.getSignalValue('text', {
+          detected: true,
+          type: 'unknown',
+          confidence: 75,
+          details: { keyword: '安全验证' },
+        }),
+      ).toBe('安全验证');
+      expect(
+        detector.getSignalValue('vendor', {
+          detected: true,
+          type: 'unknown',
+          confidence: 75,
+        }),
+      ).toBe('unknown');
+
+      expect(
+        detector.matchRule('https://example.com/challenge', [
+          { id: 'a', label: 'A', pattern: /challenge/i, confidence: 10 },
+          { id: 'b', label: 'B', pattern: /verify/i, confidence: 20 },
+        ]),
+      ).toEqual(
+        expect.objectContaining({
+          matchText: 'challenge',
+          rule: expect.objectContaining({ id: 'a' }),
+        }),
+      );
+
+      const page = createPageMock();
+      const rule = { requiresDomConfirmation: true };
+      vi.spyOn(detector, 'verifyByDOM').mockResolvedValueOnce(false);
+      await expect(detector.confirmRuleWithDOM(page, rule as any)).resolves.toBe(false);
+    });
+
+    it('evaluates DOM rules and handles verification failures', async () => {
+      const page = createPageMock();
+      page.$.mockResolvedValueOnce(null);
+
+      await expect(
+        detector.evaluateDomRule(page, {
+          id: 'visible-rule',
+          label: 'visible rule',
+          selectors: ['.captcha-slider'],
+          confidence: 80,
+          typeHint: 'slider',
+          requiresVisibility: true,
+        } as any),
+      ).resolves.toBeNull();
+
+      const visible = {
+        isIntersectingViewport: vi.fn(async () => true),
+      };
+      page.$.mockResolvedValueOnce(visible);
+      vi.spyOn(detector, 'verifySliderElement').mockResolvedValueOnce(false);
+      await expect(
+        detector.evaluateDomRule(page, {
+          id: 'slider-rule',
+          label: 'slider rule',
+          selectors: ['.captcha-slider'],
+          confidence: 80,
+          typeHint: 'slider',
+          verifier: 'slider',
+        } as any),
+      ).resolves.toBeNull();
+
+      page.$.mockResolvedValueOnce(visible);
+      vi.spyOn(detector, 'verifySliderElement').mockResolvedValueOnce(true);
+      await expect(
+        detector.evaluateDomRule(page, {
+          id: 'slider-rule',
+          label: 'slider rule',
+          selectors: ['.captcha-slider'],
+          confidence: 80,
+          typeHint: 'slider',
+          verifier: 'slider',
+        } as any),
+      ).resolves.toEqual({
+        selector: '.captcha-slider',
+        rule: expect.objectContaining({ id: 'slider-rule' }),
+      });
+
+      const domPage = createPageMock();
+      domPage.evaluate.mockRejectedValueOnce(new Error('dom failure'));
+      await expect(detector.verifyByDOM(domPage)).resolves.toBe(false);
+    });
+
+    it('covers slider verification rejection, success and catch paths', async () => {
+      const createEvaluatePage = (context: Record<string, unknown>) =>
+        ({
+          evaluate: vi.fn(
+            async (fn: (...args: any[]) => unknown, selector: string, exclude: string[]) =>
+              runInBrowserContext(fn, context, [selector, exclude]),
+          ),
+        }) as any;
+
+      const blockedContext = {
+        document: {
+          querySelector: (selector: string) =>
+            selector === '.captcha-slider'
+              ? {
+                  matches: () => true,
+                  closest: () => null,
+                  getBoundingClientRect: () => ({ width: 120, height: 60 }),
+                  className: 'captcha slider',
+                  id: 'captcha',
+                  hasAttribute: () => true,
+                  parentElement: null,
+                }
+              : null,
+        },
+        window: {
+          getComputedStyle: () => ({ cursor: 'grab' }),
+        },
+        console,
+      };
+      await expect(
+        detector.verifySliderElement(createEvaluatePage(blockedContext), '.captcha-slider'),
+      ).resolves.toBe(false);
+
+      const successContext = {
+        document: {
+          querySelector: (selector: string) => {
+            if (selector !== '.captcha-slider') return null;
+            const parent = {
+              className: 'captcha-shell',
+              id: 'parent',
+              parentElement: null,
+            };
+            return {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 160, height: 40 }),
+              className: 'captcha slider',
+              id: 'solve-me',
+              hasAttribute: (name: string) => name === 'data-captcha',
+              parentElement: parent,
+            };
+          },
+        },
+        window: {
+          getComputedStyle: () => ({ cursor: 'default' }),
+        },
+        console,
+      };
+      await expect(
+        detector.verifySliderElement(createEvaluatePage(successContext), '.captcha-slider'),
+      ).resolves.toBe(true);
+
+      const throwingPage = {
+        evaluate: vi.fn(async () => {
+          throw new Error('boom');
+        }),
+      } as any;
+      await expect(detector.verifySliderElement(throwingPage, '.captcha-slider')).resolves.toBe(
+        false,
+      );
+    });
+
+    it('covers checkUrl, checkTitle and checkPageText fallback branches', async () => {
+      const excludeUrlPage = createPageMock();
+      excludeUrlPage.url.mockReturnValue('https://example.com/verify-email');
+      await expect(detector.checkUrl(excludeUrlPage)).resolves.toMatchObject({
+        detected: false,
+        type: 'none',
+        falsePositiveReason: expect.stringContaining('verify-email'),
+      });
+
+      const confirmUrlPage = createPageMock();
+      confirmUrlPage.url.mockReturnValue('https://example.com/cdn-cgi/challenge-platform');
+      vi.spyOn(detector, 'confirmRuleWithDOM').mockResolvedValueOnce(false);
+      await expect(detector.checkUrl(confirmUrlPage)).resolves.toMatchObject({
+        detected: false,
+        type: 'none',
+        falsePositiveReason: expect.stringContaining('URLDOM exclusion'),
+      });
+
+      const titlePage = createPageMock();
+      titlePage.title.mockResolvedValueOnce('短信验证');
+      await expect(detector.checkTitle(titlePage)).resolves.toMatchObject({
+        detected: false,
+        type: 'none',
+        falsePositiveReason: expect.stringContaining('Title exclusion'),
+      });
+
+      const textPage = createPageMock();
+      textPage.evaluate.mockResolvedValueOnce('请完成安全验证');
+      vi.spyOn(detector, 'confirmRuleWithDOM').mockResolvedValueOnce(false);
+      await expect(detector.checkPageText(textPage)).resolves.toMatchObject({
+        detected: false,
+        type: 'none',
+        falsePositiveReason: expect.stringContaining('TextDOM exclusion'),
+      });
+    });
+  });
+
+  describe('browser-context callback coverage', () => {
+    it('covers verifyByDOM selector branches inside browser callbacks', async () => {
+      const createEvaluatePage = (context: Record<string, unknown>) =>
+        createPageMock({
+          evaluate: vi.fn(async (fn: (...args: any[]) => unknown) =>
+            runInBrowserContext(fn, context),
+          ),
+        });
+
+      await expect(
+        detector.verifyByDOM(
+          createEvaluatePage({
+            document: {
+              querySelector: (selector: string) =>
+                selector === '.captcha-slider' ? { nodeType: 1 } : null,
+            },
+          }),
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifyByDOM(
+          createEvaluatePage({
+            document: {
+              querySelector: (selector: string) =>
+                selector === '[data-sitekey]' ? { nodeType: 1 } : null,
+            },
+          }),
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifyByDOM(
+          createEvaluatePage({
+            document: {
+              querySelector: (selector: string) =>
+                selector === '#challenge-form' ? { nodeType: 1 } : null,
+            },
+          }),
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifyByDOM(
+          createEvaluatePage({
+            document: {
+              querySelector: () => null,
+            },
+          }),
+        ),
+      ).resolves.toBe(false);
+    });
+
+    it('covers verifySliderElement rejection and success branches in browser callbacks', async () => {
+      const createEvaluatePage = (context: Record<string, unknown>) =>
+        createPageMock({
+          evaluate: vi.fn(
+            async (fn: (...args: any[]) => unknown, selector: string, exclude: string[]) =>
+              runInBrowserContext(fn, context, [selector, exclude]),
+          ),
+        });
+
+      const noElementContext = {
+        document: {
+          querySelector: () => null,
+        },
+        window: {
+          getComputedStyle: () => ({ cursor: 'default' }),
+        },
+        console,
+      };
+      await expect(
+        detector.verifySliderElement(createEvaluatePage(noElementContext), '.captcha-slider'),
+      ).resolves.toBe(false);
+
+      const closestContext = {
+        document: {
+          querySelector: (selector: string) =>
+            selector === '.captcha-slider'
+              ? {
+                  matches: () => false,
+                  closest: () => ({}),
+                  getBoundingClientRect: () => ({ width: 120, height: 60 }),
+                  className: 'captcha slider',
+                  id: 'captcha',
+                  hasAttribute: () => true,
+                  parentElement: null,
+                }
+              : null,
+        },
+        window: {
+          getComputedStyle: () => ({ cursor: 'grab' }),
+        },
+        console,
+      };
+      await expect(
+        detector.verifySliderElement(createEvaluatePage(closestContext), '.captcha-slider'),
+      ).resolves.toBe(false);
+
+      const sizeContext = {
+        document: {
+          querySelector: (selector: string) =>
+            selector === '.captcha-slider'
+              ? {
+                  matches: () => false,
+                  closest: () => null,
+                  getBoundingClientRect: () => ({ width: 10, height: 10 }),
+                  className: 'captcha slider',
+                  id: 'captcha',
+                  hasAttribute: () => true,
+                  parentElement: null,
+                }
+              : null,
+        },
+        window: {
+          getComputedStyle: () => ({ cursor: 'grab' }),
+        },
+        console,
+      };
+      await expect(
+        detector.verifySliderElement(createEvaluatePage(sizeContext), '.captcha-slider'),
+      ).resolves.toBe(false);
+
+      const keywordContext = {
+        document: {
+          querySelector: (selector: string) =>
+            selector === '.captcha-slider'
+              ? {
+                  matches: () => false,
+                  closest: () => null,
+                  getBoundingClientRect: () => ({ width: 120, height: 60 }),
+                  className: 'video-player',
+                  id: 'video-player',
+                  hasAttribute: () => true,
+                  parentElement: null,
+                }
+              : null,
+        },
+        window: {
+          getComputedStyle: () => ({ cursor: 'default' }),
+        },
+        console,
+      };
+      await expect(
+        detector.verifySliderElement(createEvaluatePage(keywordContext), '.captcha-slider'),
+      ).resolves.toBe(false);
+
+      const invalidContext = {
+        document: {
+          querySelector: (selector: string) =>
+            selector === '.captcha-slider'
+              ? {
+                  matches: () => false,
+                  closest: () => null,
+                  getBoundingClientRect: () => ({ width: 140, height: 50 }),
+                  className: 'plain slider',
+                  id: 'plain-slider',
+                  hasAttribute: () => false,
+                  parentElement: null,
+                }
+              : null,
+        },
+        window: {
+          getComputedStyle: () => ({ cursor: 'default' }),
+        },
+        console,
+      };
+      await expect(
+        detector.verifySliderElement(createEvaluatePage(invalidContext), '.captcha-slider'),
+      ).resolves.toBe(false);
+
+      const conditionBContext = {
+        document: {
+          querySelector: (selector: string) => {
+            if (selector !== '.captcha-slider') return null;
+
+            const parent = {
+              className: 'captcha-shell',
+              id: 'shell',
+              parentElement: null,
+            };
+
+            return {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 150, height: 50 }),
+              className: 'slide',
+              id: 'solver',
+              hasAttribute: (name: string) => name === 'data-captcha',
+              parentElement: parent,
+            };
+          },
+        },
+        window: {
+          getComputedStyle: () => ({ cursor: 'default' }),
+        },
+        console,
+      };
+      await expect(
+        detector.verifySliderElement(createEvaluatePage(conditionBContext), '.captcha-slider'),
+      ).resolves.toBe(true);
+    });
+
+    it('returns not-detected when a detection check throws during detect', async () => {
+      const page = createPageMock();
+      vi.spyOn(detector, 'checkUrl').mockRejectedValue(new Error('boom'));
+
+      await expect(detector.detect(page)).resolves.toEqual({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+      expect(loggerState.error).toHaveBeenCalledWith(
+        expect.stringContaining('CAPTCHA detection failed'),
+        expect.any(Error),
+      );
+    });
+  });
+
+  describe('direct browser callback coverage', () => {
+    it('covers detect url shortcut return', async () => {
+      const page = createPageMock();
+      vi.spyOn(detector, 'checkUrl').mockResolvedValue({
+        detected: true,
+        type: 'browser_check',
+        confidence: 95,
+        providerHint: 'edge_service',
+        url: 'https://example.com/cdn-cgi/challenge',
+      });
+      const titleSpy = vi.spyOn(detector, 'checkTitle');
+
+      await expect(detector.detect(page as any)).resolves.toMatchObject({
+        detected: true,
+        type: 'browser_check',
+      });
+      expect(titleSpy).not.toHaveBeenCalled();
+    });
+
+    it('covers checkPageText, verifyByDOM and verifySliderElement callback branches', async () => {
+      const textPage = createDirectEvaluatePage({
+        document: {
+          body: {
+            innerText: '请输入验证码后继续',
+          },
+        },
+        window: {},
+      });
+
+      await expect(detector.checkPageText(textPage as any)).resolves.toMatchObject({
+        detected: false,
+        type: 'none',
+        falsePositiveReason: expect.stringContaining('Text exclusion'),
+      });
+
+      vi.spyOn(detector, 'confirmRuleWithDOM').mockResolvedValueOnce(true);
+      const captchaTextPage = createDirectEvaluatePage({
+        document: {
+          body: {
+            innerText: '请完成安全验证以继续',
+          },
+        },
+        window: {},
+      });
+
+      await expect(detector.checkPageText(captchaTextPage as any)).resolves.toMatchObject({
+        detected: true,
+        type: expect.any(String),
+      });
+
+      await expect(detector.checkVendorSpecific(createPageMock() as any)).resolves.toEqual({
+        detected: false,
+        type: 'none',
+        confidence: 0,
+      });
+
+      const sliderElement = {
+        matches: () => false,
+        closest: () => null,
+        getBoundingClientRect: () => ({ width: 120, height: 48 }),
+        className: 'captcha slider',
+        id: 'captcha-slider',
+        hasAttribute: (name: string) => name === 'data-captcha',
+        parentElement: null,
+      };
+
+      await expect(
+        detector.verifyByDOM(
+          createDirectEvaluatePage({
+            document: {
+              querySelector: (selector: string) =>
+                selector === '.captcha-slider' ? sliderElement : null,
+            },
+          }),
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifyByDOM(
+          createDirectEvaluatePage({
+            document: {
+              querySelector: (selector: string) =>
+                selector === '[data-sitekey]' ? { nodeType: 1 } : null,
+            },
+          }),
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifyByDOM(
+          createDirectEvaluatePage({
+            document: {
+              querySelector: (selector: string) =>
+                selector === '#challenge-form' ? { nodeType: 1 } : null,
+            },
+          }),
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifyByDOM(
+          createDirectEvaluatePage({
+            document: {
+              querySelector: () => null,
+            },
+          }),
+        ),
+      ).resolves.toBe(false);
+
+      const createSliderPage = (element: any, cursor = 'default') =>
+        createDirectEvaluatePage({
+          document: {
+            querySelector: (selector: string) => (selector === '.captcha-slider' ? element : null),
+          },
+          window: {
+            getComputedStyle: () => ({ cursor }),
+          },
+          console,
+        });
+
+      await expect(
+        detector.verifySliderElement(createSliderPage(null, 'default'), '.captcha-slider'),
+      ).resolves.toBe(false);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 0, height: 48 }),
+              className: 'captcha slider',
+              id: 'captcha-slider',
+              hasAttribute: () => false,
+              parentElement: null,
+            },
+            'default',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(false);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => true,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'captcha slider',
+              id: 'captcha-slider',
+              hasAttribute: () => false,
+              parentElement: null,
+            },
+            'grab',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(false);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => ({}),
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'captcha slider',
+              id: 'captcha-slider',
+              hasAttribute: () => false,
+              parentElement: null,
+            },
+            'grab',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(false);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'captcha',
+              id: 'captcha',
+              hasAttribute: () => false,
+              parentElement: null,
+            },
+            'grab',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'captcha slider',
+              id: 'captcha-slider',
+              hasAttribute: () => false,
+              parentElement: null,
+            },
+            'default',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'slide',
+              id: 'solver',
+              hasAttribute: () => false,
+              parentElement: {
+                className: 'captcha',
+                id: 'captcha',
+                parentElement: null,
+              },
+            },
+            'default',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(false);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 10, height: 10 }),
+              className: 'captcha slider',
+              id: 'captcha-slider',
+              hasAttribute: () => false,
+              parentElement: null,
+            },
+            'grab',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(false);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'video-player',
+              id: 'video-player',
+              hasAttribute: () => false,
+              parentElement: null,
+            },
+            'default',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(false);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'captcha slider',
+              id: 'captcha-slider',
+              hasAttribute: (name: string) => name === 'data-verify',
+              parentElement: null,
+            },
+            'grab',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'slide',
+              id: 'solver',
+              hasAttribute: (name: string) => name === 'data-verify',
+              parentElement: {
+                className: 'captcha',
+                id: 'captcha',
+                parentElement: null,
+              },
+            },
+            'default',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(true);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'plain box',
+              id: 'plain-box',
+              hasAttribute: () => false,
+              parentElement: null,
+            },
+            'default',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(false);
+
+      await expect(
+        detector.verifySliderElement(
+          createSliderPage(
+            {
+              matches: () => false,
+              closest: () => null,
+              getBoundingClientRect: () => ({ width: 120, height: 48 }),
+              className: 'plain box',
+              id: 'plain-box',
+              hasAttribute: () => false,
+              parentElement: {
+                className: 'layout',
+                id: 'wrapper',
+                parentElement: null,
+              },
+            },
+            'default',
+          ),
+          '.captcha-slider',
+        ),
+      ).resolves.toBe(false);
+    });
+
+    it('covers waitForCompletion timeout path', async () => {
+      vi.useFakeTimers();
+      const timeoutDetector = new TestCaptchaDetector();
+      const page = createPageMock();
+
+      vi.spyOn(timeoutDetector, 'detect').mockResolvedValue({
+        detected: true,
+        type: 'unknown',
+        confidence: 100,
+      });
+
+      const promise = timeoutDetector.waitForCompletion(page as any, 1000);
+      await vi.advanceTimersByTimeAsync(2500);
+
+      await expect(promise).resolves.toBe(false);
     });
   });
 });

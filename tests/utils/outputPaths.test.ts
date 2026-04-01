@@ -7,6 +7,14 @@ import {
   resolveScreenshotOutputPath,
 } from '@utils/outputPaths';
 
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  return {
+    ...actual,
+    mkdir: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 describe('outputPaths', () => {
   const projectRoot = getProjectRoot();
   const testRoot = join(projectRoot, 'screenshots', 'test-vitest');
@@ -17,12 +25,21 @@ describe('outputPaths', () => {
 
   afterEach(async () => {
     delete process.env.MCP_SCREENSHOT_DIR;
+    delete process.env.MCP_PROJECT_ROOT;
     await rm(testRoot, { recursive: true, force: true });
     vi.restoreAllMocks();
   });
 
   it('returns an absolute project root path', () => {
     expect(isAbsolute(projectRoot)).toBe(true);
+  });
+
+  it('honors MCP_PROJECT_ROOT override for project-scoped paths', () => {
+    const customRoot = join(projectRoot, 'screenshots', 'test-root-override');
+    process.env.MCP_PROJECT_ROOT = customRoot;
+
+    expect(getProjectRoot()).toBe(customRoot);
+    expect(resolveOutputDirectory(undefined)).toBe(join(customRoot, 'screenshots'));
   });
 
   it('uses fallback screenshots directory when input dir is empty', () => {
@@ -64,5 +81,23 @@ describe('outputPaths', () => {
 
     expect(out.absolutePath).toContain('test-output.jpeg');
     expect(out.pathRewritten).toBe(false);
+  });
+
+  it('adds default extension when missing', async () => {
+    const out = await resolveScreenshotOutputPath({
+      requestedPath: 'custom_name',
+      type: 'jpeg',
+    });
+    expect(out.absolutePath.endsWith('custom_name.jpg')).toBe(true);
+  });
+
+  it('rewrites traversal attempts outside screenshot root using basename', async () => {
+    const out = await resolveScreenshotOutputPath({
+      requestedPath: '../system_files/hack.png',
+      fallbackDir: 'screenshots/manual',
+    });
+    expect(out.pathRewritten).toBe(true);
+    expect(out.absolutePath.endsWith('hack.png')).toBe(true);
+    expect(out.absolutePath).toContain(join('screenshots', 'test-vitest', 'hack.png'));
   });
 });

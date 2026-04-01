@@ -30,6 +30,8 @@ const mockImports = [
   },
 ];
 
+const originalImports = JSON.parse(JSON.stringify(mockImports));
+
 vi.mock('@native/Win32API', () => ({
   openProcessForMemory: vi.fn(() => 1n),
   CloseHandle: vi.fn(() => true),
@@ -93,6 +95,7 @@ describe('AntiCheatDetector', () => {
 
   beforeEach(() => {
     detector = new AntiCheatDetector();
+    mockImports.splice(0, mockImports.length, ...JSON.parse(JSON.stringify(originalImports)));
   });
 
   describe('detect', () => {
@@ -175,5 +178,28 @@ describe('AntiCheatDetector', () => {
       // May return empty if file can't be read, but should not throw
       expect(Array.isArray(results)).toBe(true);
     });
+  });
+
+  it('returns no detections for benign imports and resolves RVAs to file offsets', async () => {
+    mockImports.splice(0, mockImports.length, {
+      dllName: 'KERNEL32.dll',
+      functions: [{ name: 'ReadFile', ordinal: 0, hint: 0, thunkRva: '0x1000' }],
+    });
+
+    const detections = await detector.detect(1234);
+    expect(detections).toEqual([]);
+
+    const pe = Buffer.alloc(512);
+    pe.writeUInt32LE(128, 60);
+    pe.writeUInt16LE(1, 128 + 6);
+    pe.writeUInt16LE(0xe0, 128 + 20);
+
+    const secStart = 128 + 24 + 0xe0;
+    pe.writeUInt32LE(0x1000, secStart + 12);
+    pe.writeUInt32LE(0x200, secStart + 8);
+    pe.writeUInt32LE(0x400, secStart + 20);
+
+    expect((detector as any)._rvaToFileOffset(pe, 0x1100)).toBe(0x500);
+    expect((detector as any)._rvaToFileOffset(pe, 0x3000)).toBe(-1);
   });
 });

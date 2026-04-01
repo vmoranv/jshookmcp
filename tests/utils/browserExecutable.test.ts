@@ -87,4 +87,15 @@ describe('browserExecutable utils', () => {
     expect(mod.findBrowserExecutable()).toBe('/stale-browser');
     expect(mod.findBrowserExecutable()).toBe('/fresh-browser');
   });
+
+  it('returns cachedBrowserPath via getCachedBrowserPath', async () => {
+    process.env.BROWSER_EXECUTABLE_PATH = '/cached-browser';
+    existsSyncMock.mockImplementation((p: string) => p === '/cached-browser');
+
+    const mod = await loadModule();
+    mod.findBrowserExecutable();
+    expect(mod.getCachedBrowserPath()).toBe('/cached-browser');
+    mod.clearBrowserPathCache();
+    expect(mod.getCachedBrowserPath()).toBeUndefined();
+  });
 });

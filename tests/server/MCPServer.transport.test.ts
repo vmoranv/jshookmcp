@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => {
   const logger = {
     success: vi.fn(),
     warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
   };
 
   function createMockHttpServer(handler: (req: any, res: any) => void) {
@@ -419,5 +421,158 @@ describe('MCPServer.transport', () => {
       expect.any(Error),
     );
     expect(mocks.logger.success).toHaveBeenCalledWith('MCP server closed');
+  });
+
+  it('handles stdio gracefulExit duplicate calls and closeServer failures', async () => {
+    const stdinOnSpy = vi.spyOn(process.stdin, 'on').mockReturnValue(process.stdin);
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const ctx = createCtx();
+    ctx.server.close.mockRejectedValue(new Error('close error'));
+
+    await startStdioTransport(ctx);
+
+    const gracefulExit = stdinOnSpy.mock.calls.find(
+      (c) => c[0] === 'end',
+    )?.[1] as () => Promise<void>;
+
+    await gracefulExit();
+    expect(exitSpy).toHaveBeenCalledWith(0);
+
+    await gracefulExit();
+
+    stdinOnSpy.mockRestore();
+    exitSpy.mockRestore();
+  });
+
+  it('handles stdio stdout error with EPIPE and ERR_STREAM_DESTROYED', async () => {
+    const stdoutOnSpy = vi.spyOn(process.stdout, 'on').mockReturnValue(process.stdout);
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const ctx = createCtx();
+
+    await startStdioTransport(ctx);
+
+    const errorCb = stdoutOnSpy.mock.calls.find((c) => c[0] === 'error')?.[1] as (err: any) => void;
+    errorCb({ code: 'EPIPE' });
+    errorCb({ code: 'ERR_STREAM_DESTROYED' });
+    errorCb({ code: 'OTHER' });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(exitSpy).toHaveBeenCalledTimes(2);
+
+    stdoutOnSpy.mockRestore();
+    exitSpy.mockRestore();
+  });
+
+  it('ignores errors when readBodyWithLimit rejects during POST', async () => {
+    const ctx = createCtx();
+    await startHttpTransport(ctx);
+    const server = mocks.httpServers[0];
+    const transport = mocks.httpTransports[0];
+    const req = { url: '/mcp', method: 'POST' };
+    const res = createRes();
+
+    mocks.readBodyWithLimit.mockRejectedValueOnce(new Error('Body too large'));
+    server.__handler(req, res);
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(transport.handleRequest).not.toHaveBeenCalled();
+  });
+
+  it('throws an error if createServer assigns undefined to ctx.httpServer', async () => {
+    const originalCreateServer = mocks.createServer.getMockImplementation();
+    mocks.createServer.mockImplementationOnce(() => undefined as any);
+    const ctx = createCtx();
+    await expect(startHttpTransport(ctx)).rejects.toThrow('HTTP server initialization failed');
+    if (originalCreateServer) {
+      mocks.createServer.mockImplementation(originalCreateServer);
+    }
+  });
+
+  it('rejects if HTTP server emits error during listen', async () => {
+    const originalCreateServer = mocks.createServer.getMockImplementation();
+    let errCb: any;
+    mocks.createServer.mockImplementationOnce((handler: any) => {
+      return {
+        __handler: handler,
+        __listeners: new Map(),
+        requestTimeout: 0,
+        headersTimeout: 0,
+        keepAliveTimeout: 0,
+        listen: vi.fn(),
+        on: vi.fn((event: string, cb: any) => {
+          if (event === 'error') errCb = cb;
+        }),
+        emit: vi.fn(),
+        close: vi.fn(),
+      } as any;
+    });
+
+    const ctx = createCtx();
+    const p = startHttpTransport(ctx);
+
+    // Wait microtasks so the 'on' handler is registered
+    await new Promise((r) => setTimeout(r, 0));
+    errCb?.(new Error('listen error'));
+
+    await expect(p).rejects.toThrow('listen error');
+
+    if (originalCreateServer) {
+      mocks.createServer.mockImplementation(originalCreateServer);
+    }
+  });
+
+  it('handles activationController dispose via getDomainInstance', async () => {
+    const ctx = createCtx();
+    const disposeMock = vi.fn(() => {
+      throw new Error('dispose failed');
+    });
+    ctx.getDomainInstance = vi.fn().mockReturnValue({ dispose: disposeMock });
+
+    await closeServer(ctx);
+    expect(disposeMock).toHaveBeenCalled();
+  });
+
+  it('handles activationController dispose directly on ctx', async () => {
+    const ctx = createCtx();
+    const disposeMock = vi.fn(() => {
+      throw new Error('dispose failed');
+    });
+    ctx.activationController = { dispose: disposeMock };
+
+    await closeServer(ctx);
+    expect(disposeMock).toHaveBeenCalled();
+  });
+
+  it('forces socket destruction after MCP_HTTP_FORCE_CLOSE_TIMEOUT_MS', async () => {
+    vi.useFakeTimers();
+    const ctx = createCtx();
+    const socket = { destroy: vi.fn() };
+    ctx.httpSockets.add(socket);
+    ctx.httpServer = {
+      close: vi.fn(),
+    };
+
+    const closePromise = closeServer(ctx);
+    vi.advanceTimersByTime(5000); // 5000ms > 4000ms timeout
+
+    expect(socket.destroy).toHaveBeenCalled();
+    ctx.httpServer.close.mock.calls[0][0](); // manually resolve close
+    await closePromise;
+  });
+
+  it('handles collector close rejection gracefully', async () => {
+    const ctx = createCtx();
+    ctx.collector = { close: vi.fn().mockRejectedValue(new Error('failed')) };
+
+    await closeServer(ctx);
+    expect(ctx.collector).toBeUndefined();
+  });
+
+  it('handles server close rejection gracefully', async () => {
+    const ctx = createCtx();
+    ctx.server.close.mockRejectedValue(new Error('failed'));
+
+    await closeServer(ctx);
+    expect(mocks.logger.warn).toHaveBeenCalledWith('MCP server close failed:', expect.any(Error));
   });
 });

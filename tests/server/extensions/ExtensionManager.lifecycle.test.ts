@@ -82,6 +82,16 @@ describe('ExtensionManager.lifecycle', () => {
             state: 'activated',
           },
         ],
+        [
+          'unload-fail-plugin',
+          {
+            get plugin() {
+              throw new Error('unload plugin fetch failed');
+            },
+            lifecycleContext: { pluginId: 'unload-fail-plugin' },
+            state: 'deactivated',
+          } as never,
+        ],
       ]),
       extensionToolsByName: new Map([
         [

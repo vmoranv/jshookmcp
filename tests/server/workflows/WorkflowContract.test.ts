@@ -240,15 +240,59 @@ describe('workflows/WorkflowContract', () => {
     expect(errored).toBe(true);
   });
 
-  it('ToolNodeBuilder builds minimal node without optional fields', () => {
-    const node = new ToolNodeBuilder('t', 'tool_name').build();
-    expect(node).toEqual({
-      kind: 'tool',
-      id: 't',
-      toolName: 'tool_name',
-      input: undefined,
-      retry: undefined,
-      timeoutMs: undefined,
+  it('ToolNodeBuilder supports inputFrom', () => {
+    const node = new ToolNodeBuilder('t', 'tool_name')
+      .inputFrom({ targetField: 'stepId.sourceField' })
+      .build();
+    expect(node).toMatchObject({
+      inputFrom: { targetField: 'stepId.sourceField' },
     });
+  });
+
+  it('ParallelNodeBuilder methods invoke config callback when provided', () => {
+    let toolCalled = false;
+    let branchCalled = false;
+    new ParallelNodeBuilder('p')
+      .tool('t', 'tool', () => {
+        toolCalled = true;
+      })
+      .branch('b', 'pred', (b) => {
+        branchCalled = true;
+        b.whenTrue(new ToolNodeBuilder('wt', 'tool'));
+      });
+    expect(toolCalled).toBe(true);
+    expect(branchCalled).toBe(true);
+  });
+
+  it('WorkflowBuilder supports route', () => {
+    const route: any = {
+      kind: 'preset',
+      triggerPatterns: [],
+      steps: [],
+      requiredDomains: [],
+      priority: 1,
+    };
+    const w = new WorkflowBuilder('w', 'W')
+      .route(route)
+      .buildGraph(() => new ToolNodeBuilder('t', 'tool'))
+      .build();
+    expect(w.route).toBe(route);
+  });
+
+  it('Builders can be instantiated without config callbacks', () => {
+    // testing missing branch lines 218,225,232,265,272,279
+    const s = new SequenceNodeBuilder('s')
+      .tool('t1', 'tn')
+      .sequence('s2')
+      .parallel('p2')
+      .branch('b1', 'pr');
+    expect(() => s.build()).toThrow(); // throws because branch missing whenTrue
+
+    const p = new ParallelNodeBuilder('p')
+      .tool('t2', 'tn')
+      .sequence('s3')
+      .parallel('p3', () => {})
+      .branch('b2', 'pr');
+    expect(() => p.build()).toThrow(); // throws because branch missing whenTrue
   });
 });

@@ -93,4 +93,23 @@ describe('activation/PredictiveBooster', () => {
     expect(booster.historyLength).toBe(0);
     expect(booster.transitionCount).toBe(0);
   });
+
+  it('predictNext returns empty if total transitions is 0', () => {
+    const booster = new PredictiveBooster();
+    booster.recordCall('A');
+    booster.recordCall('B');
+    // Force total to 0 to simulate weird internal state
+    (booster as any).transitions.get('A').set('B', 0);
+    expect(booster.predictNext('A')).toEqual([]);
+  });
+
+  it('predictNextDomains skips mapped tools that return null domains', () => {
+    const booster = new PredictiveBooster(50, 0.3);
+    for (let i = 0; i < 10; i++) {
+      booster.recordCall('page_navigate');
+      booster.recordCall('unknown_tool');
+    }
+    const domains = booster.predictNextDomains('page_navigate', () => null);
+    expect(domains).toEqual([]);
+  });
 });

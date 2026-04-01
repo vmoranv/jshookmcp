@@ -28,6 +28,7 @@ describe('BrowserEnvironmentConfigHelpers', () => {
     expect(getPlatformFromConfig('chrome', configs)).toBe('Win32');
     expect(getVendorFromConfig('chrome', configs)).toBe('Google Inc.');
     expect(generateUserAgentFromConfig('safari' as any, '1.0.0.0', configs)).toBe('');
+    expect(getPlatformFromConfig('safari' as any, configs)).toBe('Win32');
     expect(getVendorFromConfig('safari' as any, configs)).toBe('');
   });
 });

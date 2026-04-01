@@ -109,7 +109,15 @@ describe('ExtensionManager', () => {
     vi.clearAllMocks();
     state.parseDigestAllowlist.mockReturnValue(new Set());
     state.isPluginStrictLoad.mockReturnValue(false);
-    state.clearLoadedExtensionTools.mockResolvedValue(0);
+    state.clearLoadedExtensionTools.mockImplementation(async (ctx: any) => {
+      const removed = ctx.extensionToolsByName.size;
+      ctx.extensionToolsByName.clear();
+      ctx.extensionPluginsById.clear();
+      ctx.extensionPluginRuntimeById.clear();
+      ctx.extensionWorkflowsById.clear();
+      ctx.extensionWorkflowRuntimeById.clear();
+      return removed;
+    });
     state.discoverPluginFiles.mockResolvedValue([]);
     state.discoverWorkflowFiles.mockResolvedValue([]);
     state.buildListResult.mockImplementation(
@@ -228,8 +236,10 @@ describe('ExtensionManager', () => {
     state.isPluginStrictLoad.mockReturnValue(true);
     state.discoverWorkflowFiles.mockResolvedValue(['/workflows/wf-1.ts']);
     const ctx = createCtx();
-    const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
+    const { ensureWorkflowsLoaded, reloadExtensions } =
+      await import('@server/extensions/ExtensionManager');
 
+    await ensureWorkflowsLoaded(ctx);
     const result = await reloadExtensions(ctx);
 
     expect(result.addedTools).toBe(0);
@@ -248,7 +258,8 @@ describe('ExtensionManager', () => {
     const ctx = createCtx();
     const { ensureWorkflowsLoaded } = await import('@server/extensions/ExtensionManager');
 
-    await ensureWorkflowsLoaded(ctx);
+    // Trigger concurrently to hit the inner mutex lock double-check
+    await Promise.all([ensureWorkflowsLoaded(ctx), ensureWorkflowsLoaded(ctx)]);
     await ensureWorkflowsLoaded(ctx);
 
     expect(state.discoverWorkflowFiles).toHaveBeenCalledTimes(1);
@@ -355,6 +366,8 @@ describe('ExtensionManager', () => {
     const result = await reloadExtensions(ctx);
     const lifecycleContext = (globalThis as Record<string, unknown>).__pluginCtx as {
       pluginRoot: string;
+      state: string;
+      hasPermission: (capability: string) => boolean;
       invokeTool: (name: string, args?: Record<string, unknown>) => Promise<any>;
       getConfig: (path: string, fallback?: any) => unknown;
       setRuntimeData: (key: string, value: any) => void;
@@ -392,6 +405,9 @@ describe('ExtensionManager', () => {
     expect(lifecycleContext.getConfig('mcp.version', 'missing')).toBe('1.2.3');
     lifecycleContext.setRuntimeData('flag', 42);
     expect(lifecycleContext.getRuntimeData('flag')).toBe(42);
+    expect(lifecycleContext.state).toBe('activated');
+    expect(lifecycleContext.hasPermission('test')).toBe(true);
+    (lifecycleContext as any).registerMetric('test-metric');
   });
 
   it('registers plugin-contributed workflows and associates them with the plugin record', async () => {
@@ -542,5 +558,273 @@ describe('ExtensionManager', () => {
       addedTools: 0,
       removedTools: 0,
     });
+  });
+
+  it('skips plugin if onValidateHandler returns valid: false', async () => {
+    state.discoverPluginFiles.mockResolvedValue(['/plugins/plugin-invalid.ts']);
+    state.createFreshImportUrl.mockImplementationOnce(() =>
+      makeDataModule(`
+        export default {
+          id: 'plugin-invalid',
+          version: '1.0.0',
+          pluginName: 'Plugin Invalid',
+          compatibleCoreRange: '^1.0.0',
+          allowedTools: ['*'],
+          mergeMetadata() { return this; },
+          tools: [],
+          workflows: [],
+          async onValidateHandler() {
+            return { valid: false, errors: ['missing secret'] };
+          },
+        };
+      `),
+    );
+    const ctx = createCtx();
+    const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
+    const result = await reloadExtensions(ctx);
+    expect(result.warnings).toContain('Plugin plugin-invalid validation failed: missing secret');
+    expect(ctx.extensionPluginsById.size).toBe(0);
+  });
+
+  it('rolls back and deactivates if an error is thrown after activation', async () => {
+    state.discoverPluginFiles.mockResolvedValue(['/plugins/plugin-rollback.ts']);
+    state.createFreshImportUrl.mockImplementationOnce(() =>
+      makeDataModule(`
+        export default {
+          id: 'plugin-rollback',
+          version: '1.0.0',
+          pluginName: 'Plugin Rollback',
+          compatibleCoreRange: '^1.0.0',
+          allowedTools: ['*'],
+          mergeMetadata() { return this; },
+          tools: [],
+          workflows: [],
+          async onActivateHandler() {
+            globalThis.__activated = true;
+          },
+          async onDeactivateHandler() {
+            globalThis.__rolledBack = true;
+          },
+        };
+      `),
+    );
+    const ctx = createCtx();
+    ctx.extensionPluginRuntimeById.set = vi.fn(() => {
+      throw new Error('map set failure');
+    });
+
+    const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
+    await reloadExtensions(ctx);
+
+    expect((globalThis as any).__activated).toBe(true);
+    expect((globalThis as any).__rolledBack).toBe(true);
+  });
+
+  it('tolerates deactivation failure during rollback', async () => {
+    state.discoverPluginFiles.mockResolvedValue(['/plugins/plugin-deactivate-fail.ts']);
+    state.createFreshImportUrl.mockImplementationOnce(() =>
+      makeDataModule(`
+        export default {
+          id: 'plugin-deactivate-fail',
+          version: '1.0.0',
+          pluginName: 'Plugin Deactivate Fail',
+          compatibleCoreRange: '^1.0.0',
+          allowedTools: ['*'],
+          mergeMetadata() { return this; },
+          tools: [],
+          workflows: [],
+          async onActivateHandler() {},
+          async onDeactivateHandler() {
+            throw new Error('deactivate boom');
+          },
+        };
+      `),
+    );
+    const ctx = createCtx();
+    ctx.extensionPluginRuntimeById.set = vi.fn(() => {
+      throw new Error('map set failure');
+    });
+
+    const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
+    await reloadExtensions(ctx);
+
+    expect(state.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Plugin onDeactivate failed during rollback for plugin-deactivate-fail:',
+      ),
+      expect.any(Error),
+    );
+  });
+
+  it('parses meta.yaml successfully and skips invalid lines', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const tmpDir = path.resolve(__dirname, '../../tmp/fixtures', 'ext-mgr-yaml');
+    fs.mkdirSync(tmpDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(tmpDir, 'meta.yaml'),
+      '# comment\nvalid: value\n  invalidline  \n:badkey\n    good : ok\n',
+    );
+
+    state.discoverPluginFiles.mockResolvedValue([path.join(tmpDir, 'plugin-yaml.ts')]);
+    state.createFreshImportUrl.mockImplementationOnce(() =>
+      makeDataModule(`
+        export default {
+          id: 'plugin-yaml',
+          version: '1.0.0',
+          compatibleCoreRange: '^1.0.0',
+          allowedTools: [],
+          tools: [],
+          workflows: [],
+          mergeMetadata(meta) { 
+            globalThis.__parsedMeta = meta; 
+          },
+        };
+      `),
+    );
+    const ctx = createCtx();
+    const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
+    await reloadExtensions(ctx);
+
+    expect((globalThis as any).__parsedMeta).toEqual({
+      valid: 'value',
+      good: 'ok',
+    });
+  });
+
+  it('executes granular edge cases for verification, duplicate tracking, and lazy workflows', async () => {
+    // We cover line 113 by using 'dist' in the path, and line 95 by using .jshook-install.json
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const tmpDir = path.resolve(__dirname, '../../tmp/fixtures', 'ext-mgr-edge');
+    fs.mkdirSync(tmpDir, { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.jshook-install.json'), '{}');
+
+    // Mocks for multiple files
+    state.discoverPluginFiles.mockResolvedValue([
+      path.join(tmpDir, 'dist', 'plugin-a.js'),
+      '/plugins/plugin-fallback/dist/index.js',
+      '/plugins/plugin-duplicate.js',
+      '/plugins/plugin-unverified.js',
+      '/plugins/plugin-throw-verify.js',
+      '/plugins/plugin-bad-workflow.js',
+      '/plugins/plugin-valid-workflow.js',
+      '/plugins/plugin-valid-workflow.js',
+      '/plugins/plugin-invalid-builder.js',
+      '/plugins/plugin-hash-error.js',
+      '/plugins/plugin-not-in-allowlist.js',
+      '/plugins/plugin-bad-import.js',
+    ]);
+    state.discoverWorkflowFiles.mockResolvedValue([
+      '/workflows/wf-bad-import.js',
+      '/workflows/wf-not-contract.js',
+    ]);
+
+    // Pre-populate Duplicate map is removed, because reloadExtensions clears the map anyway.
+    const ctx = createCtx();
+
+    // Server exception for Tool List loop
+    ctx.extensionToolsByName.set('foo', {});
+    ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('network error'));
+
+    // Mock verify fail
+    state.verifyPluginIntegrity.mockImplementation(async (plugin: any) => {
+      if (plugin.id === 'plugin-unverified') {
+        return { ok: false, warnings: [], errors: ['integrity boom'] };
+      }
+      if (plugin.id === 'plugin-throw-verify') {
+        throw new Error('thrown verify boom');
+      }
+      return { ok: true, warnings: [], errors: [] };
+    });
+
+    state.parseDigestAllowlist.mockReturnValue(new Set(['digest-1']));
+    state.sha256Hex.mockImplementation(async (file: string) => {
+      if (file.includes('plugin-hash-error')) throw new Error('hash failure');
+      if (file.includes('plugin-not-in-allowlist')) return 'digest-2';
+      return 'digest-1';
+    });
+
+    state.createFreshImportUrl.mockImplementation(
+      (filePath: string, kind: 'plugin' | 'workflow') => {
+        if (kind === 'workflow') {
+          if (filePath.includes('wf-bad-import')) {
+            return makeDataModule(`throw new Error('bad string module');`);
+          }
+          return makeDataModule(`export default { kind: 'not-a-contract' };`);
+        }
+
+        if (filePath.includes('plugin-bad-import')) {
+          return makeDataModule(`throw new Error('bad plugin module');`);
+        }
+
+        const idStr = path.basename(filePath, path.extname(filePath));
+        if (idStr === 'plugin-a' || idStr === 'index') {
+          return makeDataModule(`
+          export default {
+            id: 'plugin-${idStr}', version: '1.0.0', compatibleCoreRange: '^1.0',
+            allowedTools: ['allowed_tool'], mergeMetadata() { return this; },
+            tools: [], workflows: [], async onLoadHandler(lCtx) {
+              await lCtx.invokeTool('allowed_tool', null);
+              await lCtx.invokeTool('allowed_tool'); 
+            }
+          };
+        `);
+        }
+        if (idStr === 'plugin-valid-workflow') {
+          return makeDataModule(`
+          export default {
+            id: 'plugin-valid-workflow', version: '1.0.0', compatibleCoreRange: '^1.0',
+            allowedTools: [], mergeMetadata() { return this; },
+            tools: [], 
+            workflows: [
+              'this-is-not-an-object',
+              { kind: 'workflow-contract', id: 'wf-duplicate', build() {} },
+              { kind: 'workflow-contract', id: 'wf-duplicate', build() {} }
+            ],
+            async onValidateHandler() {
+              return { valid: true };
+            }
+          };
+        `);
+        }
+
+        return makeDataModule(`
+        export default {
+          id: 'plugin-${idStr.replace('plugin-', '')}', version: '1.0.0', compatibleCoreRange: '^1.0',
+          allowedTools: [], mergeMetadata() { return this; },
+          tools: [], workflows: ['this-is-not-an-object'],
+        };
+      `);
+      },
+    );
+
+    // Create an invalid builder mock for plugin-invalid-builder (omits tools array)
+    state.isExtensionBuilder.mockImplementation((val) => {
+      if (val && val.id === 'plugin-invalid-builder') return false;
+      return true;
+    });
+
+    const { ensureWorkflowsLoaded, reloadExtensions } =
+      await import('@server/extensions/ExtensionManager');
+
+    // First: Lazy Loader
+    await ensureWorkflowsLoaded(ctx);
+
+    // Second: Reload Extensions
+    const result = await reloadExtensions(ctx);
+
+    expect(state.logger.warn).toHaveBeenCalledWith(
+      'sendToolListChanged failed after extension reload:',
+      expect.any(Error),
+    );
+    expect(result.errors).toContain('integrity boom');
+    expect(result.errors).toContain(
+      'Failed to verify plugin plugin-throw-verify: Error: thrown verify boom',
+    );
+    expect(result.warnings).toContain(
+      'Skip plugin "plugin-valid-workflow" from /plugins/plugin-valid-workflow.js: duplicate plugin id',
+    );
   });
 });

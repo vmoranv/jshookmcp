@@ -8,6 +8,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Mock all native dependencies ──
 
+const state = vi.hoisted(() => ({
+  snapshotHandle: 42n,
+  heapListCalled: false,
+  logger: {
+    debug: vi.fn(),
+  },
+}));
+
 const mockBlocks = [
   { address: 0x1000n, size: 64, flags: 0x01, heapId: 0x100n }, // FIXED
   { address: 0x2000n, size: 128, flags: 0x01, heapId: 0x100n },
@@ -30,6 +38,10 @@ vi.mock('@native/Win32API', () => ({
   }),
 }));
 
+vi.mock('@utils/logger', () => ({
+  logger: state.logger,
+}));
+
 vi.mock('@src/constants', () => ({
   HEAP_ENUMERATE_MAX_BLOCKS: 10000,
   HEAP_SPRAY_THRESHOLD: 3, // Lower threshold for testing
@@ -39,18 +51,17 @@ vi.mock('@src/constants', () => ({
 
 // Mock the koffi-based Toolhelp32 APIs used internally by HeapAnalyzer
 vi.mock('koffi', () => {
-  const heapListCalled = { value: false };
   return {
     default: {
       load: vi.fn(() => ({
         func: vi.fn((name: string) => {
           if (name === 'CreateToolhelp32Snapshot') {
-            return vi.fn(() => 42n); // Fake snapshot handle
+            return vi.fn(() => state.snapshotHandle);
           }
           if (name === 'Heap32ListFirst') {
             return vi.fn((_h: bigint, buf: Buffer) => {
-              if (heapListCalled.value) return false;
-              heapListCalled.value = true;
+              if (state.heapListCalled) return false;
+              state.heapListCalled = true;
               buf.writeUInt32LE(1234, 8); // th32ProcessID
               buf.writeBigUInt64LE(0x100n, 12); // th32HeapID
               buf.writeUInt32LE(1, 20); // flags (HF32_DEFAULT)
@@ -102,6 +113,8 @@ describe('HeapAnalyzer', () => {
   beforeEach(() => {
     analyzer = new HeapAnalyzer();
     blockIdx = 0;
+    state.snapshotHandle = 42n;
+    state.heapListCalled = false;
     vi.clearAllMocks();
   });
 
@@ -191,5 +204,83 @@ describe('HeapAnalyzer', () => {
       expect((0x02 & FREE_FLAG) !== 0).toBe(true); // FREE → free
       expect((0x04 & FREE_FLAG) !== 0).toBe(false); // MOVEABLE → not free
     });
+  });
+
+  it('computes stats fallback values when only heap totals are available', () => {
+    const stats = (analyzer as any)._computeStats(
+      [
+        {
+          heapId: '0x100',
+          processId: 1234,
+          flags: 1,
+          isDefault: true,
+          blockCount: 2,
+          totalSize: 128,
+        },
+      ],
+      [],
+    );
+
+    expect(stats.totalSize).toBe(128);
+    expect(stats.totalBlocks).toBe(2);
+    expect(stats.smallestBlock).toBe(0);
+  });
+
+  it('detects heap sprays and suspicious block sizes through private helpers', () => {
+    const anomalies: any[] = [];
+    const blocks = [
+      { address: '0x1', size: 64, flags: 1, heapId: '0x100', isFree: false },
+      { address: '0x2', size: 64, flags: 1, heapId: '0x100', isFree: false },
+      { address: '0x3', size: 64, flags: 1, heapId: '0x100', isFree: false },
+      { address: '0x4', size: 0, flags: 1, heapId: '0x100', isFree: false },
+      { address: '0x5', size: 200 * 1024 * 1024, flags: 1, heapId: '0x100', isFree: false },
+    ];
+
+    (analyzer as any)._detectSpray(blocks, '0x100', anomalies);
+    (analyzer as any)._detectSuspiciousSizes(blocks, '0x100', anomalies);
+
+    expect(anomalies.some((anomaly) => anomaly.type === 'heap_spray_pattern')).toBe(true);
+    expect(anomalies.filter((anomaly) => anomaly.type === 'suspicious_size')).toHaveLength(2);
+  });
+
+  it('enumerates blocks through the public API', async () => {
+    const blocks = await analyzer.enumerateBlocks(1234, '0x100', { maxBlocks: 2 });
+
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]?.heapId).toBe('0x100');
+  });
+
+  it('throws when heap snapshot creation fails', async () => {
+    state.snapshotHandle = -1n;
+
+    await expect(analyzer.enumerateHeaps(1234)).rejects.toThrow(
+      'Failed to create heap snapshot for PID 1234',
+    );
+  });
+
+  it('logs and swallows UAF detection failures', async () => {
+    const analyzerWithFailure = new HeapAnalyzer();
+    const originalOpenProcess = (await import('@native/Win32API')).openProcessForMemory;
+    const originalReadProcessMemory = (await import('@native/Win32API')).ReadProcessMemory;
+
+    vi.mocked(originalOpenProcess).mockImplementation(() => {
+      throw new Error('open failed');
+    });
+    vi.mocked(originalReadProcessMemory).mockImplementation(() => Buffer.alloc(8));
+
+    const anomalies: any[] = [];
+    await expect(
+      (analyzerWithFailure as any)._detectPossibleUAF(
+        1234,
+        [{ address: '0x1000', size: 64, flags: 0x02, heapId: '0x100', isFree: true }],
+        '0x100',
+        anomalies,
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(state.logger.debug).toHaveBeenCalledWith(
+      expect.stringContaining('UAF check failed for PID 1234'),
+    );
+    expect(anomalies).toHaveLength(0);
   });
 });

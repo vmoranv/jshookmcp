@@ -62,6 +62,9 @@ describe('SourcemapToolHandlersMain', () => {
             (c: any) => c[0] === 'Debugger.scriptParsed',
           );
           if (onCall) {
+            onCall[1]({}); // no scriptId (line 25)
+            onCall[1]({ scriptId: 'missing-url' }); // no url (line 55 fallback)
+
             onCall[1]({
               scriptId: '1',
               url: 'http://example.com/a.js',
@@ -73,6 +76,18 @@ describe('SourcemapToolHandlersMain', () => {
               url: 'http://example.com/c.js',
               sourceMapURL: 'data:application/json;base64,123',
             }); // inline
+
+            // For localeCompare coverage (lines 86-88)
+            onCall[1]({
+              scriptId: 'z',
+              url: 'http://example.com/z.js',
+              sourceMapURL: 'http://example.com/z.js.map',
+            });
+            onCall[1]({
+              scriptId: '0',
+              url: 'http://example.com/0.js',
+              sourceMapURL: 'http://example.com/0.js.map',
+            });
           }
         }
         return {};
@@ -84,8 +99,9 @@ describe('SourcemapToolHandlersMain', () => {
 
       const res = await handlers.handleSourcemapDiscover({ includeInline: false });
       const parsed = JSON.parse((res.content[0] as any).text);
-      expect(parsed).toHaveLength(1);
-      expect(parsed[0].scriptId).toBe('1');
+      expect(parsed).toHaveLength(3); // 0, 1, z because inline #3 is excluded
+      expect(parsed[0].scriptId).toBe('0'); // due to localeCompare sorting
+      expect(parsed[1].scriptId).toBe('1');
     });
 
     it('falls back to fetching script source if no map url in event', async () => {
@@ -94,11 +110,21 @@ describe('SourcemapToolHandlersMain', () => {
           const onCall = mockSession.on.mock.calls.find(
             (c: any) => c[0] === 'Debugger.scriptParsed',
           );
-          if (onCall) onCall[1]({ scriptId: '2', url: 'http://example.com/b.js' }); // no map
+          if (onCall) {
+            onCall[1]({ scriptId: '2', url: 'http://example.com/b.js' }); // no map initially
+            onCall[1]({ scriptId: '4', url: 'http://example.com/d.js' }); // no map inside
+            onCall[1]({ scriptId: '5', url: 'http://example.com/e.js' }); // throw error
+            onCall[1]({ scriptId: '6', url: 'http://example.com/f.js' }); // return null source
+          }
           return {};
         }
         if (method === 'Debugger.getScriptSource') {
-          return { scriptSource: 'console.log("foo"); //# sourceMappingURL=b.js.map' };
+          const sid = _params?.scriptId;
+          if (sid === '2')
+            return { scriptSource: 'console.log("foo"); //# sourceMappingURL=b.js.map' };
+          if (sid === '4') return { scriptSource: 'console.log("no map inside");' };
+          if (sid === '5') throw new Error('fail fetch');
+          if (sid === '6') return {}; // missing scriptSource entirely
         }
         return {};
       });
@@ -107,7 +133,12 @@ describe('SourcemapToolHandlersMain', () => {
       vi.spyOn(handlers as any, 'resolveSourceMapUrl').mockReturnValue(
         'http://example.com/b.js.map',
       );
-      vi.spyOn(handlers as any, 'extractSourceMappingUrlFromScript').mockReturnValue('b.js.map');
+      vi.spyOn(handlers as any, 'extractSourceMappingUrlFromScript').mockImplementation(
+        (src: string) => {
+          if (src.includes('b.js.map')) return 'b.js.map';
+          return null;
+        },
+      );
 
       const res = await handlers.handleSourcemapDiscover({ includeInline: true });
       const parsed = JSON.parse((res.content[0] as any).text);
@@ -157,8 +188,8 @@ describe('SourcemapToolHandlersMain', () => {
         resolvedUrl: 'http://example.com/source.map',
         map: {
           sourceRoot: '/test',
-          sources: ['src/a.ts', 'src/b.ts'],
-          sourcesContent: ['console.log("a")', null], // one with content, one without
+          sources: ['src/a.ts', null, 'src/b.ts'], // one null branch coverage
+          sourcesContent: ['console.log("a")', null, null],
         },
       });
       vi.spyOn(handlers as any, 'safeTarget').mockReturnValue('target');
@@ -183,7 +214,7 @@ describe('SourcemapToolHandlersMain', () => {
       expect(parsed.files).toContain('src/a.ts');
       // src/b.ts has no content so it gets written as null comment
       expect(parsed.files).toContain('src/b.ts');
-      expect(fsPromises.writeFile).toHaveBeenCalledTimes(2);
+      expect(fsPromises.writeFile).toHaveBeenCalledTimes(3);
       expect(fsPromises.mkdir).toHaveBeenCalled();
     });
 
@@ -196,6 +227,16 @@ describe('SourcemapToolHandlersMain', () => {
       const parsed = JSON.parse((res.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('no map found');
+    });
+
+    it('handles string based error during reconstruct without throwing', async () => {
+      vi.spyOn(handlers as any, 'parseSourceMap').mockRejectedValue('no map string err');
+      const res = await handlers.handleSourcemapReconstructTree({
+        sourceMapUrl: 'http://foo.com/map',
+      });
+      const parsed = JSON.parse((res.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('no map string err');
     });
   });
 });

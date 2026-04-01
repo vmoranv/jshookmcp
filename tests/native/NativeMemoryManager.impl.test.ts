@@ -293,10 +293,66 @@ describe('NativeMemoryManager.impl', () => {
       isDebugged: true,
     });
 
+    state.NtQueryInformationProcess.mockReturnValueOnce({ status: 0, debugPort: 0 });
+    await expect(manager.checkDebugPort(42)).resolves.toEqual({
+      success: true,
+      isDebugged: false,
+    });
+
     state.NtQueryInformationProcess.mockReturnValueOnce({ status: 5, debugPort: 0 });
     await expect(manager.checkDebugPort(42)).resolves.toEqual({
       success: false,
       error: 'NtQueryInformationProcess failed with status 0x5',
     });
+  });
+
+  it('returns Windows-only errors when the platform is forced to linux', async () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+
+    try {
+      const manager = new NativeMemoryManager();
+
+      await expect(manager.injectDll(17, 'C:\\temp\\demo.dll')).resolves.toEqual({
+        success: false,
+        error: 'DLL injection is only supported on Windows',
+      });
+
+      await expect(manager.injectShellcode(17, 'CC DD')).resolves.toEqual({
+        success: false,
+        error: 'Shellcode injection is only supported on Windows',
+      });
+
+      await expect(manager.checkDebugPort(17)).resolves.toEqual({
+        success: false,
+        error: 'Debug port check is only supported on Windows',
+      });
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    }
+  });
+
+  it('returns a structured error when NtQueryInformationProcess throws', async () => {
+    if (process.platform !== 'win32') {
+      return;
+    }
+
+    state.openProcessForMemory.mockImplementation(() => {
+      throw new Error('ntquery failed');
+    });
+
+    const manager = new NativeMemoryManager();
+    await expect(manager.checkDebugPort(42)).resolves.toEqual({
+      success: false,
+      error: 'ntquery failed',
+    });
+
+    expect(state.logger.error).toHaveBeenCalledWith(
+      'Native debug port check failed',
+      expect.objectContaining({
+        pid: 42,
+        error: 'ntquery failed',
+      }),
+    );
   });
 });

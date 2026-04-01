@@ -3,14 +3,16 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+const loggerState = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  success: vi.fn(),
+}));
+
 vi.mock('@src/utils/logger', () => ({
-  logger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    success: vi.fn(),
-  },
+  logger: loggerState,
 }));
 
 import { DebuggerSessionManager } from '@modules/debugger/DebuggerSessionManager';
@@ -20,6 +22,7 @@ describe('DebuggerSessionManager', () => {
   let cwdSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
+    Object.values(loggerState).forEach((fn) => (fn as any).mockReset?.());
     workDir = await mkdtemp(join(tmpdir(), 'dbg-session-'));
     cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(workDir);
   });
@@ -137,6 +140,38 @@ describe('DebuggerSessionManager', () => {
     const parsed = JSON.parse(content);
     expect(savedPath).toContain('debugger-sessions');
     expect(parsed.metadata).toEqual({ source: 'test' });
+  });
+
+  it('rejects save paths outside the workspace or temp directory', async () => {
+    const managerMock = {
+      getBreakpoints: () => new Map(),
+      getPauseOnExceptionsState: () => 'none',
+    } as any;
+    const sessionManager = new DebuggerSessionManager(managerMock);
+
+    await expect(sessionManager.saveSession('C:\\forbidden\\session.json')).rejects.toThrow(
+      'filePath must be within the current working directory or system temp dir.',
+    );
+  });
+
+  it('warns when importing a session with a version mismatch', async () => {
+    const managerMock = {
+      isEnabled: vi.fn(() => true),
+      clearAllBreakpoints: vi.fn().mockResolvedValue(undefined),
+      setBreakpointByUrl: vi.fn().mockResolvedValue(undefined),
+      setBreakpoint: vi.fn().mockResolvedValue(undefined),
+      setPauseOnExceptions: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    const sessionManager = new DebuggerSessionManager(managerMock);
+    await sessionManager.importSession({
+      version: '2.0',
+      timestamp: Date.now(),
+      breakpoints: [],
+      pauseOnExceptions: 'none',
+    } as any);
+
+    expect(loggerState.warn).toHaveBeenCalledWith('Session version mismatch: 2.0 (expected 1.0)');
   });
 
   it('lists saved sessions sorted by descending timestamp and skips invalid files', async () => {

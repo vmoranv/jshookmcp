@@ -95,4 +95,62 @@ describe('AdaptiveDataSerializer', () => {
     expect(output.detailId).toBe('detail_test_123');
     expect(output.size).toBeGreaterThan(100);
   });
+
+  it('serializes small structures without summarization', () => {
+    expect(serializer.serialize(null)).toBe('null');
+    expect(serializer.serialize([])).toBe('[]');
+    expect(serializer.serialize('function test() {}')).toBe('"function test() {}"');
+
+    const smallNetwork = [{ requestId: '1', url: 'test', method: 'GET' }];
+    expect(serializer.serialize(smallNetwork)).toBe(JSON.stringify(smallNetwork));
+  });
+
+  it('serializes custom AST representations (DOM and Function Trees)', () => {
+    const dom = { tagName: 'DIV', childNodes: [] };
+    expect(serializer.serialize(dom)).toBe(JSON.stringify(dom));
+
+    const tree = {
+      functionName: 'main',
+      dependencies: [
+        { functionName: 'sub', dependencies: [] },
+        null, // triggers !isRecord
+      ],
+    };
+    const treeOut = JSON.parse(serializer.serialize(tree));
+    expect(treeOut.name).toBe('main');
+    expect(treeOut.dependencies[1].name).toBe('[invalid-node]');
+    expect(treeOut.dependencies[1].truncated).toBe(true);
+  });
+
+  describe('Edge cases and boundary constraints', () => {
+    it('should serialize a large array without truncation if maxArrayLength allows it', () => {
+      const localSerializer = new AdaptiveDataSerializer();
+      const arr = Array.from({ length: 150 }).fill('test');
+      const res = localSerializer.serialize(arr, { maxArrayLength: 200 });
+      // It should NOT truncate because 150 <= 200, returning the standard stringified array
+      expect(res.includes('large-array')).toBe(false);
+      expect(res).toBe(JSON.stringify(arr));
+    });
+
+    it('should serialize code strings shorter than 100 lines without truncation', () => {
+      const localSerializer2 = new AdaptiveDataSerializer();
+      // Length > 100 to trigger 'code-string' detection
+      const shortCode = 'const a = 1;' + ' '.repeat(150);
+      const res = localSerializer2.serialize(shortCode);
+      expect(res.includes('preview')).toBe(false);
+      expect(res).toBe(JSON.stringify(shortCode));
+    });
+
+    it('should simplify function trees with invalid dependency nodes cleanly', () => {
+      const localSerializer3 = new AdaptiveDataSerializer();
+      const badTree = {
+        name: 'root',
+        dependencies: [
+          'this-is-not-an-object', // Will trigger simplification invalid-node branch
+        ],
+      };
+      const res = localSerializer3.serialize(badTree, { maxDepth: 5 });
+      expect(res).toContain('invalid-node');
+    });
+  });
 });

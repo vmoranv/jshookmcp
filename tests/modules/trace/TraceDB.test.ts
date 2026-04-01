@@ -3,33 +3,11 @@
  */
 
 import { join } from 'node:path';
-import { existsSync, unlinkSync } from 'node:fs';
+import { rm, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TraceDB } from '@modules/trace/TraceDB';
 import type { TraceEvent, MemoryDelta } from '@modules/trace/TraceDB.types';
-
-function createTmpDbPath(): string {
-  return join(tmpdir(), `test-trace-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`);
-}
-
-function cleanupDbArtifacts(path: string): void {
-  try {
-    if (existsSync(path)) unlinkSync(path);
-  } catch {
-    /* cleanup best-effort */
-  }
-  try {
-    if (existsSync(path + '-wal')) unlinkSync(path + '-wal');
-  } catch {
-    /* cleanup best-effort */
-  }
-  try {
-    if (existsSync(path + '-shm')) unlinkSync(path + '-shm');
-  } catch {
-    /* cleanup best-effort */
-  }
-}
 
 function makeEvent(overrides?: Partial<TraceEvent>): TraceEvent {
   return {
@@ -57,20 +35,22 @@ function makeDelta(overrides?: Partial<MemoryDelta>): MemoryDelta {
 
 describe('TraceDB', () => {
   let dbPath: string;
+  let testDir: string;
   let db: TraceDB;
 
-  beforeEach(() => {
-    dbPath = createTmpDbPath();
+  beforeEach(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'trace-db-test-'));
+    dbPath = join(testDir, 'trace.db');
     db = new TraceDB({ dbPath });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
       db.close();
     } catch {
       /* already closed */
     }
-    cleanupDbArtifacts(dbPath);
+    await rm(testDir, { recursive: true, force: true });
   });
 
   it('creates database with correct schema — 4 tables', () => {
@@ -107,7 +87,8 @@ describe('TraceDB', () => {
   });
 
   it('batch flushes automatically at buffer size', () => {
-    const smallDb = new TraceDB({ dbPath: createTmpDbPath(), batchSize: 3 });
+    const smallDbPath = join(testDir, 'small.db');
+    const smallDb = new TraceDB({ dbPath: smallDbPath, batchSize: 3 });
     try {
       smallDb.insertEvent(makeEvent());
       smallDb.insertEvent(makeEvent());
@@ -151,6 +132,12 @@ describe('TraceDB', () => {
     // Query without flushing — snapshot is immediately inserted
     const result = db.query('SELECT id, timestamp, summary FROM heap_snapshots');
     expect(result.rowCount).toBe(1);
+
+    // Also test getHeapSnapshots() coverage
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0]!.summary).toBe('{"totalSize": 1024, "nodeCount": 10}');
+    expect(snapshots[0]!.snapshotData.toString()).toBe('{"snapshot": "data"}');
   });
 
   it('sets and retrieves metadata', () => {
@@ -186,11 +173,12 @@ describe('TraceDB', () => {
     );
   });
 
-  it('query returns correct column names', () => {
+  it('query returns columns even when no rows match', () => {
     db.insertEvent(makeEvent());
     db.flush();
 
-    const result = db.query('SELECT timestamp, category FROM events');
+    const result = db.query('SELECT timestamp, category FROM events WHERE id = -999');
+    expect(result.rowCount).toBe(0);
     expect(result.columns).toEqual(['timestamp', 'category']);
   });
 
@@ -206,23 +194,39 @@ describe('TraceDB', () => {
   });
 
   it('getMemoryDeltasByAddress filters correctly', () => {
-    db.insertMemoryDelta(makeDelta({ address: '0xAAAA' }));
-    db.insertMemoryDelta(makeDelta({ address: '0xBBBB' }));
-    db.insertMemoryDelta(makeDelta({ address: '0xAAAA' }));
-    db.flush();
+    // Re-initialize with a smaller batch size to test auto-flushing logic
+    const smallBatchDb = new TraceDB({
+      dbPath: join(testDir, 'small_batch.db'),
+      batchSize: 2,
+    });
 
-    const deltas = db.getMemoryDeltasByAddress('0xAAAA');
+    // 3 inserts with batchSize=2 will trigger `this.flush()` internally
+    smallBatchDb.insertMemoryDelta(makeDelta({ address: '0xAAAA' }));
+    smallBatchDb.insertMemoryDelta(makeDelta({ address: '0xBBBB' }));
+    smallBatchDb.insertMemoryDelta(makeDelta({ address: '0xAAAA' }));
+    // We don't call manual flush() to rely on the side-effect flush that covers line 148
+
+    const deltas = smallBatchDb.getMemoryDeltasByAddress('0xAAAA');
     expect(deltas).toHaveLength(2);
     expect(deltas.every((d) => d.address === '0xAAAA')).toBe(true);
+    smallBatchDb.close();
+  });
+
+  it('throws mapped error when db path is invalid', () => {
+    expect(() => {
+      const _db = new TraceDB({ dbPath: '/invalid/path/that/cannot/exist/trace.db' });
+    }).toThrow(/Cannot open database/);
   });
 
   it('close flushes pending buffer', () => {
-    const closePath = createTmpDbPath();
+    const closePath = join(testDir, 'close.db');
     const closeDb = new TraceDB({ dbPath: closePath });
 
     closeDb.insertEvent(makeEvent());
     closeDb.insertEvent(makeEvent());
+    expect(closeDb.isClosed).toBe(false);
     closeDb.close(); // Should flush before closing
+    expect(closeDb.isClosed).toBe(true);
 
     // Reopen and verify data was persisted
     const reopened = new TraceDB({ dbPath: closePath });
@@ -231,16 +235,16 @@ describe('TraceDB', () => {
       expect(result.rows[0]![0]).toBe(2);
     } finally {
       reopened.close();
-      if (existsSync(closePath)) unlinkSync(closePath);
     }
   });
 
-  it('uses WAL journal mode (wal file exists)', () => {
+  it('uses WAL journal mode (wal file exists)', async () => {
     // WAL mode creates a -wal file alongside the DB
     // We can't query PRAGMA via the public query() API since it blocks PRAGMA
     // Instead verify the WAL sidecar file is created
     db.insertEvent(makeEvent());
     db.flush();
+    const { existsSync } = await import('node:fs');
     expect(existsSync(dbPath + '-wal')).toBe(true);
   });
 

@@ -113,11 +113,106 @@ describe('QualityAnalyzer helpers', () => {
     expect(far).toBe(0);
   });
 
+  it('falls back to structural complexity when metrics are omitted', () => {
+    const score = calculateQualityScore(
+      {
+        functions: [{ complexity: 6 }, { complexity: 12 }],
+        classes: [],
+        modules: [],
+        callGraph: { nodes: [], edges: [] },
+      } as any,
+      [{ severity: 'medium' }, { severity: 'low' }] as any,
+      {},
+      undefined,
+      [{ severity: 'medium' }, { severity: 'low' }],
+    );
+
+    expect(score).toBeGreaterThan(0);
+    expect(score).toBeLessThan(100);
+  });
+
+  it('applies the highest complexity penalties when thresholds are exceeded', () => {
+    const score = calculateQualityScore(
+      {
+        functions: [{ complexity: 25 }],
+        classes: [],
+        modules: [],
+        callGraph: { nodes: [], edges: [] },
+      } as any,
+      [{ severity: 'low' }] as any,
+      {},
+      { cyclomaticComplexity: 25, cognitiveComplexity: 20, maintainabilityIndex: 95 },
+      [],
+    );
+
+    expect(score).toBeGreaterThanOrEqual(0);
+    expect(score).toBeLessThan(100);
+  });
+
+  it('detects singleton, deep nesting, and long-function patterns while skipping common numeric cases', () => {
+    const longBody = Array.from({ length: 55 }, () => '    doWork();').join('\n');
+    const code = `
+      const singleton = (function () {
+        return { ready: true };
+      })();
+
+      class Subject {
+        subscribe() {}
+        unsubscribe() {}
+        notify() {}
+      }
+
+      function longFn() {
+${longBody}
+      }
+
+      function nested() {
+        if (a) {
+          for (let i = 0; i < 1; i++) {
+            while (b) {
+              if (c) {
+                if (d) {
+                  if (e) {
+                    obj[42];
+                    return x;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      function defaultParam(x = 42) {
+        return x;
+      }
+
+      const common = 1;
+    `;
+
+    const result = detectCodePatterns(code);
+
+    expect(result.patterns.some((p) => p.name === 'Singleton Pattern')).toBe(true);
+    expect(result.patterns.some((p) => p.name === 'Observer Pattern')).toBe(true);
+    expect(result.antiPatterns.some((p) => p.name === 'Long Function')).toBe(true);
+    expect(result.antiPatterns.some((p) => p.name === 'Deep Nesting')).toBe(true);
+    expect(result.antiPatterns.some((p) => p.name === 'Magic Number')).toBe(false);
+  });
+
   it('returns empty pattern sets for invalid source code', () => {
     const result = detectCodePatterns('function broken( {');
 
     expect(result.patterns).toEqual([]);
     expect(result.antiPatterns).toEqual([]);
+    expect(loggerState.warn).toHaveBeenCalled();
+  });
+
+  it('returns default metrics and logs on parse failure', () => {
+    const metrics = analyzeComplexityMetrics('function broken( {');
+
+    expect(metrics.cyclomaticComplexity).toBe(1);
+    expect(metrics.cognitiveComplexity).toBe(0);
+    expect(metrics.halsteadMetrics.vocabulary).toBe(0);
     expect(loggerState.warn).toHaveBeenCalled();
   });
 });

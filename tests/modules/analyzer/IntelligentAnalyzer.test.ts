@@ -124,6 +124,9 @@ describe('IntelligentAnalyzer', () => {
   });
 
   it('generates readable summary text with key sections', () => {
+    patternState.detectAntiDebugPatterns.mockReturnValue([
+      { type: 'debugger', location: 'source.js', code: 'debugger;' },
+    ]);
     const analyzer = new IntelligentAnalyzer();
     const result = analyzer.analyze(makeData() as any);
     const text = analyzer.generateAIFriendlySummary(result);
@@ -131,6 +134,42 @@ describe('IntelligentAnalyzer', () => {
     expect(text).toContain('Requests: 2');
     expect(text).toContain('api.sign');
     expect(text).toContain('fnA');
+    expect(text).toContain('Anti-Debug Patterns (1):');
+    expect(text).toContain('debugger');
+  });
+
+  it('handles empty arrays and scalar values in generateAIFriendlySummary', () => {
+    const analyzer = new IntelligentAnalyzer();
+    const text = analyzer.generateAIFriendlySummary({
+      summary: {
+        totalRequests: 0,
+        filteredRequests: 0,
+        totalLogs: 0,
+        filteredLogs: 0,
+        suspiciousAPIs: [],
+        keyFunctions: [],
+      },
+      patterns: {
+        encryption: [
+          { type: 'Custom', confidence: 0.9, location: 'test', evidence: 'scalar evidence' as any },
+          { type: 'AES', confidence: 0.5, location: 'test', evidence: undefined as any },
+          { type: 'RSA', confidence: 0.5, location: 'test', evidence: null as any },
+        ],
+        signature: [
+          { type: 'Custom', confidence: 0.8, parameters: 'scalar parameter' as any },
+          { type: 'JWT', confidence: 0.4, parameters: undefined as any },
+          { type: 'HMAC', confidence: 0.4, parameters: null as any },
+        ],
+        antiDebug: [],
+      },
+      exceptions: [],
+      metadata: { analysisTimeMs: 1 },
+    });
+    expect(text).toContain('Statistics:');
+    expect(text).toContain('scalar evidence');
+    expect(text).toContain('scalar parameter');
+    expect(text).not.toContain('Suspicious APIs');
+    expect(text).not.toContain('Key Functions');
   });
 
   it('analyzeWithLLM delegates to rule-based analysis and ignores legacy dependencies', async () => {
