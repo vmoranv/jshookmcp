@@ -33,6 +33,11 @@ async function getFingerprintManager(): Promise<FingerprintManagerLike | null> {
   }
 }
 
+/** @internal Reset the cached FingerprintManager instance. Exported for testing only. */
+export function _resetFingerprintCacheForTesting(): void {
+  fingerprintManagerInstance = null;
+}
+
 export class StealthInjectionHandlers {
   constructor(private deps: StealthInjectionHandlersDeps) {}
 
