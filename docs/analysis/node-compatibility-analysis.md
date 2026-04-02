@@ -202,7 +202,7 @@ jshookmcp
 
 **Compatibility Policy Suggestion**:
 
-- **Runtime engines**: Maintain `>=20` but recommend in docs "Node 20 LTS / Node 22 LTS recommended; Node 24 needs CI verification"
+- **Runtime engines**: If Vite 8 remains in the toolchain, align the root package to `^20.19.0 || >=22.12.0` and document the minimum supported minor versions explicitly
 - **Dev tooling engines**: Align with eslint@10: `^20.19.0 || ^22.13.0 || >=24` (at minimum document minimum minor version)
 
 ---

@@ -15,9 +15,13 @@ This guide covers common issues and their solutions.
 **Solution**:
 
 ```bash
-# Option 1: Use Node 20 (recommended)
-nvm install 20
-nvm use 20
+# Option 1: Use a supported Node.js version
+nvm install 20.19.0
+nvm use 20.19.0
+
+# Or use a supported Node 22 release
+nvm install 22.12.0
+nvm use 22.12.0
 
 # Option 2: Let Node 22/24 compile from source (slow)
 # This may take 10+ minutes on first install

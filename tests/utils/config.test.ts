@@ -2,22 +2,26 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { join } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 
+// Mock dotenv at the top level using vi.mock (hoisted)
+const dotenvMock = {
+  config: vi.fn(() => ({ error: Object.assign(new Error('ENOENT'), { code: 'ENOENT' }) })),
+};
+vi.mock('dotenv', () => dotenvMock);
+
 describe('config utilities', () => {
   const originalEnv = { ...process.env };
 
   const mockMissingEnvFile = () => {
-    const missingEnvError = Object.assign(new Error('ENOENT: no such file or directory'), {
-      code: 'ENOENT',
+    dotenvMock.config.mockReturnValue({
+      error: Object.assign(new Error('ENOENT'), { code: 'ENOENT' }),
     });
-    vi.doMock('dotenv', () => ({
-      config: () => ({ error: missingEnvError }),
-    }));
   };
 
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
     process.env = { ...originalEnv };
+    dotenvMock.config.mockClear();
     delete process.env.MCP_SERVER_NAME;
     delete process.env.MCP_SERVER_VERSION;
     delete process.env.PUPPETEER_HEADLESS;
@@ -40,9 +44,7 @@ describe('config utilities', () => {
     const accessError = Object.assign(new Error('EACCES: permission denied'), {
       code: 'EACCES',
     });
-    vi.doMock('dotenv', () => ({
-      config: () => ({ error: accessError }),
-    }));
+    dotenvMock.config.mockReturnValue({ error: accessError });
 
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { getConfig } = await import('@utils/config');
@@ -55,9 +57,7 @@ describe('config utilities', () => {
   });
 
   it('logs info when .env loads successfully in debug mode', async () => {
-    vi.doMock('dotenv', () => ({
-      config: () => ({ parsed: { MOCKED: 'true' } }),
-    }));
+    dotenvMock.config.mockReturnValue({ parsed: { MOCKED: 'true' } });
     process.env.DEBUG = 'true';
 
     const consoleInfo = vi.spyOn(console, 'info').mockImplementation(() => {});
