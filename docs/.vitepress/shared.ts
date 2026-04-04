@@ -27,7 +27,7 @@ export const shared = defineConfig({
     ],
   ],
   themeConfig: {
-    logo: '/logo.svg',
+    logo: `${base}logo.svg`,
     search: {
       provider: 'local',
     },
