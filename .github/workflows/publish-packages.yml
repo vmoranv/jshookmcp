@@ -26,7 +26,7 @@ jobs:
       - name: Enable Corepack pnpm
         run: |
           corepack enable
-          corepack prepare pnpm@10.28.2 --activate
+          corepack prepare pnpm@10.33.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -73,7 +73,7 @@ jobs:
       - name: Enable Corepack pnpm
         run: |
           corepack enable
-          corepack prepare pnpm@10.28.2 --activate
+          corepack prepare pnpm@10.33.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

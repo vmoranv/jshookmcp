@@ -50,7 +50,7 @@
 下面的内置能力快照由运行时 registry 动态生成，并在 CI 中校验。
 
 <!-- metadata-sync:start -->
-- 包版本：`0.2.5`
+- 包版本：`0.2.6`
 - 内置工具域：`24`
 - 内置工具数：`337`
 - 域列表：`antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `evidence`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `network`, `platform`, `process`, `sandbox`, `shared-state-board`, `sourcemap`, `streaming`, `trace`, `transform`, `wasm`, `workflow`
