@@ -1,6 +1,6 @@
 # Reference Overview
 
-There are **23** built-in domains and **327** domain tools in the current build.
+There are **24** built-in domains and **337** domain tools in the current build.
 
 ## Recommended reading order
 
@@ -29,6 +29,7 @@ There are **23** built-in domains and **327** domain tools in the current build.
 | `platform` | Platform | 15 | full | Platform and package analysis domain covering miniapps, ASAR archives, and Electron apps. |
 | `process` | Process | 26 | full | Process, module, memory diagnostics, and controlled injection domain for host-level inspection, troubleshooting, and Windows process experimentation workflows. |
 | `sandbox` | Sandbox | 1 | full | WASM-isolated QuickJS sandbox domain for secure custom script execution with MCP tool access. |
+| `shared-state-board` | Shared State Board | 10 | workflow, full | Cross-agent state synchronization domain providing a global shared state board for multi-agent collaboration. |
 | `sourcemap` | SourceMap | 5 | workflow, full | Source map discovery, fetching, parsing, and source tree reconstruction. |
 | `streaming` | Streaming | 6 | workflow, full | WebSocket and SSE monitoring domain. |
 | `trace` | Trace | 7 | workflow, full | Time-travel debugging domain that records CDP events into SQLite for SQL-based querying and heap snapshot comparison. |

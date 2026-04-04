@@ -1,6 +1,6 @@
 # Reference Overview
 
-当前内置域共 **23** 个，域工具总数 **327**。
+当前内置域共 **24** 个，域工具总数 **337**。
 
 ## 推荐阅读路径
 
@@ -29,6 +29,7 @@
 | `platform` | Platform | 15 | full | 宿主平台与包格式分析域，覆盖 miniapp、asar、Electron。 |
 | `process` | Process | 26 | full | 进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。 |
 | `sandbox` | Sandbox | 1 | full | 基于 QuickJS WASM 的安全沙箱域，支持执行自定义脚本并调用 MCP 工具。 |
+| `shared-state-board` | Shared State Board | 10 | workflow, full | 跨 Agent 状态同步域，提供全局共享的状态板用于多 Agent 协作。 |
 | `sourcemap` | SourceMap | 5 | workflow, full | SourceMap 发现、抓取、解析与源码树重建。 |
 | `streaming` | Streaming | 6 | workflow, full | WebSocket 与 SSE 监控域。 |
 | `trace` | Trace | 7 | workflow, full | 时间旅行调试域，录制 CDP 事件并写入 SQLite，支持 SQL 查询与堆快照对比。 |
