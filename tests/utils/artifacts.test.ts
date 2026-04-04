@@ -1,7 +1,7 @@
-import { resolve } from 'node:path';
+import { resolve, sep } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const ROOT = resolve('virtual-project-root');
+const ROOT = `${resolve('virtual-project-root')}${sep}`;
 
 vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),

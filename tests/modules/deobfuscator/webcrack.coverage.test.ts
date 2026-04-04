@@ -38,8 +38,23 @@ function normalizeOptions(options: Record<string, unknown>): Record<string, unkn
 }
 
 function isSupportedNodeVersion(): boolean {
-  const major = Number.parseInt(process.versions.node.split('.')[0] ?? '0', 10);
-  return Number.isFinite(major) && major >= 22;
+  const [majorPart = '0', minorPart = '0'] = process.versions.node.split('.');
+  const major = Number.parseInt(majorPart, 10);
+  const minor = Number.parseInt(minorPart, 10);
+
+  if (!Number.isFinite(major) || !Number.isFinite(minor)) {
+    return false;
+  }
+
+  if (major === 20) {
+    return minor >= 19;
+  }
+
+  if (major === 22) {
+    return minor >= 12;
+  }
+
+  return major > 22;
 }
 
 function matchesRule(module: WebcrackModuleLike, rule: DeobfuscateMappingRule): boolean {
@@ -250,8 +265,23 @@ describe('webcrack helpers (coverage)', () => {
   // -------------------------------------------------------------------------
 
   describe('isSupportedNodeVersion', () => {
-    it('returns true for Node 22', () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+    it('returns true for Node 20.19+', () => {
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('20.19.0');
+      expect(isSupportedNodeVersion()).toBe(true);
+    });
+
+    it('returns false for Node 20.18', () => {
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('20.18.0');
+      expect(isSupportedNodeVersion()).toBe(false);
+    });
+
+    it('returns false for Node 22.11', () => {
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.11.0');
+      expect(isSupportedNodeVersion()).toBe(false);
+    });
+
+    it('returns true for Node 22.12+', () => {
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       expect(isSupportedNodeVersion()).toBe(true);
     });
 
@@ -263,16 +293,6 @@ describe('webcrack helpers (coverage)', () => {
     it('returns true for Node 24 (future)', () => {
       vi.spyOn(process.versions, 'node', 'get').mockReturnValue('24.0.0-pre');
       expect(isSupportedNodeVersion()).toBe(true);
-    });
-
-    it('returns false for Node 21', () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('21.0.0');
-      expect(isSupportedNodeVersion()).toBe(false);
-    });
-
-    it('returns false for Node 20', () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('20.18.0');
-      expect(isSupportedNodeVersion()).toBe(false);
     });
 
     it('returns false for non-numeric version string', () => {
@@ -553,11 +573,11 @@ describe('webcrack helpers (coverage)', () => {
 
     // --- unsupported Node version ---
 
-    it('returns applied:false with reason when Node version < 22', async () => {
+    it('returns applied:false with reason when Node version is outside supported ranges', async () => {
       vi.spyOn(process.versions, 'node', 'get').mockReturnValue('20.0.0');
       const result = await runWebcrack('some code', {});
       expect(result.applied).toBe(false);
-      expect(result.reason).toMatch(/Node\.js 22/);
+      expect(result.reason).toMatch(/20\.19\+ or 22\.12\+/);
       expect(result.code).toBe('some code');
     });
 
@@ -570,7 +590,7 @@ describe('webcrack helpers (coverage)', () => {
     // --- isolated-vm unavailable → vm fallback ---
 
     it('falls back to vm.createContext when isolated-vm import fails', async () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       vi.doMock('isolated-vm', () => {
         throw new Error('not available');
       });
@@ -591,7 +611,7 @@ describe('webcrack helpers (coverage)', () => {
     // --- webcrack throws ---
 
     it('returns applied:false with error reason when webcrack throws', async () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       vi.doMock('isolated-vm', () => ({}));
       vi.doMock('webcrack', () => ({
         webcrack: vi.fn(async () => {
@@ -610,7 +630,7 @@ describe('webcrack helpers (coverage)', () => {
     });
 
     it('returns applied:false with string error reason when error is not an Error instance', async () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       vi.doMock('isolated-vm', () => ({}));
       vi.doMock('webcrack', () => ({
         webcrack: vi.fn(async () => {
@@ -626,7 +646,7 @@ describe('webcrack helpers (coverage)', () => {
     // --- no bundle returned ---
 
     it('returns bundle:undefined when webcrack result has no bundle', async () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       vi.doMock('isolated-vm', () => ({}));
       vi.doMock('webcrack', () => ({
         webcrack: vi.fn(async () => ({
@@ -644,7 +664,7 @@ describe('webcrack helpers (coverage)', () => {
     // --- no outputDir → skip saving ---
 
     it('skips saving when outputDir is not set', async () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       vi.doMock('isolated-vm', () => ({}));
       vi.doMock('webcrack', () => ({
         webcrack: vi.fn(async () => ({
@@ -666,7 +686,7 @@ describe('webcrack helpers (coverage)', () => {
     // --- outputDir set, forceOutput: false ---
 
     it('does NOT call rm when outputDir is set but forceOutput is false', async () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       vi.doMock('isolated-vm', () => ({}));
       vi.doMock('webcrack', () => ({
         webcrack: vi.fn(async () => ({
@@ -692,7 +712,7 @@ describe('webcrack helpers (coverage)', () => {
     // --- outputDir set, forceOutput: true ---
 
     it('calls rm with force:true before saving when forceOutput is true', async () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       vi.doMock('isolated-vm', () => ({}));
       vi.doMock('webcrack', () => ({
         webcrack: vi.fn(async () => ({
@@ -716,7 +736,7 @@ describe('webcrack helpers (coverage)', () => {
     // --- empty outputDir string ---
 
     it('skips saving when outputDir is whitespace-only string', async () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       vi.doMock('isolated-vm', () => ({}));
       vi.doMock('webcrack', () => ({
         webcrack: vi.fn(async () => ({
@@ -737,7 +757,7 @@ describe('webcrack helpers (coverage)', () => {
     // --- full happy path with bundle, mappings, saving ---
 
     it('returns full result with bundle, savedArtifacts, and optionsUsed', async () => {
-      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.0.0');
+      vi.spyOn(process.versions, 'node', 'get').mockReturnValue('22.12.0');
       vi.doMock('isolated-vm', () => ({}));
       vi.doMock('webcrack', () => ({
         webcrack: vi.fn(async () => ({

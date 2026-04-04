@@ -4,7 +4,7 @@
  */
 
 import { mkdir } from 'node:fs/promises';
-import { resolve, relative, normalize, sep } from 'node:path';
+import { resolve, relative, normalize, sep, isAbsolute } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 
 export type ArtifactCategory =
@@ -43,7 +43,8 @@ export async function resolveArtifactPath(options: {
   // PathGuard: ensure resolved dir stays under project root
   const normalizedRoot = normalize(root);
   const normalizedDir = normalize(dir);
-  if (normalizedDir !== normalizedRoot && !normalizedDir.startsWith(`${normalizedRoot}${sep}`)) {
+  const relativeDir = relative(normalizedRoot, normalizedDir);
+  if (relativeDir === '..' || relativeDir.startsWith(`..${sep}`) || isAbsolute(relativeDir)) {
     throw new Error(
       `Path traversal blocked: artifact directory "${customDir}" escapes project root`,
     );

@@ -92,8 +92,23 @@ function normalizeOptions(
 }
 
 function isSupportedNodeVersion(): boolean {
-  const major = Number.parseInt(process.versions.node.split('.')[0] ?? '0', 10);
-  return Number.isFinite(major) && major >= 22;
+  const [majorPart = '0', minorPart = '0'] = process.versions.node.split('.');
+  const major = Number.parseInt(majorPart, 10);
+  const minor = Number.parseInt(minorPart, 10);
+
+  if (!Number.isFinite(major) || !Number.isFinite(minor)) {
+    return false;
+  }
+
+  if (major === 20) {
+    return minor >= 19;
+  }
+
+  if (major === 22) {
+    return minor >= 12;
+  }
+
+  return major > 22;
 }
 
 function matchesRule(module: WebcrackModuleLike, rule: DeobfuscateMappingRule): boolean {
@@ -213,7 +228,7 @@ export async function runWebcrack(
   const optionsUsed = normalizeOptions(options);
 
   if (!isSupportedNodeVersion()) {
-    const reason = `webcrack requires Node.js 22+; current runtime is ${process.versions.node}`;
+    const reason = `webcrack requires Node.js 20.19+ or 22.12+; current runtime is ${process.versions.node}`;
     logger.warn(reason);
     return {
       applied: false,

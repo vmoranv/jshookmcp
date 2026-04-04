@@ -222,7 +222,7 @@ describe('CoreAnalysisHandlers', () => {
       applied: false,
       code: 'original-code',
       optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
-      reason: 'webcrack requires Node.js 22+; current runtime is 20.0.0',
+      reason: 'webcrack requires Node.js 20.19+ or 22.12+; current runtime is 20.0.0',
     });
 
     const response = parseJson<BaseResponse>(
@@ -230,7 +230,9 @@ describe('CoreAnalysisHandlers', () => {
     );
 
     expect(response.success).toBe(false);
-    expect(response.error).toBe('webcrack requires Node.js 22+; current runtime is 20.0.0');
+    expect(response.error).toBe(
+      'webcrack requires Node.js 20.19+ or 22.12+; current runtime is 20.0.0',
+    );
     expect(response.optionsUsed).toEqual({
       jsx: true,
       mangle: false,
