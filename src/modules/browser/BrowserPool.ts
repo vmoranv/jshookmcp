@@ -381,7 +381,7 @@ export class BrowserPool {
   private startIdleTimer(entry: PoolEntry): void {
     this.clearIdleTimer(entry);
 
-    const timeout = entry.manager.getIdleTimeout?.() ?? this.defaultIdleTimeout;
+    const timeout = this.defaultIdleTimeout;
 
     entry.idleTimer = setTimeout(() => {
       if (!entry.inUse && !entry.disposed) {
@@ -469,11 +469,11 @@ export class BrowserPool {
     }
   }
 
-  private getMaxTabsForEntry(entry: PoolEntry): number {
-    return entry.manager.getMaxTabs?.() ?? this.defaultMaxTabs;
+  private getMaxTabsForEntry(_entry: PoolEntry): number {
+    return this.defaultMaxTabs;
   }
 
-  private getMaxIdleTimeoutForEntry(entry: PoolEntry): number {
-    return entry.manager.getIdleTimeout?.() ?? this.defaultIdleTimeout;
+  private getMaxIdleTimeoutForEntry(_entry: PoolEntry): number {
+    return this.defaultIdleTimeout;
   }
 }

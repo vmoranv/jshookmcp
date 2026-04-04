@@ -58,9 +58,10 @@ export class SseStream {
     });
 
     // Subscribe to task:update events
-    this.unsubscribe = this.eventBus.on('task:update', (payload) => {
+    this.unsubscribe = this.eventBus.on('task:update', (payload: unknown) => {
       // Filter by sessionId if specified
-      if (this.options.sessionId && payload.sessionId !== this.options.sessionId) {
+      const p = payload as { sessionId?: string };
+      if (this.options.sessionId && p.sessionId !== this.options.sessionId) {
         return;
       }
       this.sendEvent('task:update', payload);

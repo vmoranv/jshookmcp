@@ -13,6 +13,7 @@ import {
   SequenceNodeBuilder,
   ToolNodeBuilder,
   type WorkflowContract,
+  type ToolNodeInput,
 } from '@server/workflows/WorkflowContract';
 import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
 import type { MCPServerContext } from '@server/MCPServer.context';
@@ -37,7 +38,7 @@ export class MacroRunner {
         const seq = new SequenceNodeBuilder(`${def.id}-root`);
         for (const step of def.steps) {
           const toolBuilder = new ToolNodeBuilder(step.id, step.toolName)
-            .input(step.input ?? {})
+            .input((step.input as Record<string, ToolNodeInput>) ?? {})
             .timeout(step.timeoutMs ?? 0);
           if (step.inputFrom) {
             toolBuilder.inputFrom(step.inputFrom);

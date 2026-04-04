@@ -12,7 +12,7 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 
 function ensure(ctx: MCPServerContext): H {
   if (!ctx.sharedStateBoardHandlers) {
-    ctx.sharedStateBoardHandlers = new SharedStateBoardHandlers(ctx);
+    ctx.sharedStateBoardHandlers = new SharedStateBoardHandlers();
   }
   return ctx.sharedStateBoardHandlers;
 }
