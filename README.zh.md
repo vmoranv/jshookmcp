@@ -51,9 +51,9 @@
 
 <!-- metadata-sync:start -->
 - 包版本：`0.2.5`
-- 内置工具域：`23`
-- 内置工具数：`327`
-- 域列表：`antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `evidence`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `network`, `platform`, `process`, `sandbox`, `sourcemap`, `streaming`, `trace`, `transform`, `wasm`, `workflow`
+- 内置工具域：`24`
+- 内置工具数：`337`
+- 域列表：`antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `evidence`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `network`, `platform`, `process`, `sandbox`, `shared-state-board`, `sourcemap`, `streaming`, `trace`, `transform`, `wasm`, `workflow`
 - 说明：以上数据由运行时 registry 动态生成，不要手改计数。
 <!-- metadata-sync:end -->
 

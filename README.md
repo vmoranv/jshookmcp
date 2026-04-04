@@ -51,9 +51,9 @@ The built-in surface below is generated from the runtime registry and checked in
 
 <!-- metadata-sync:start -->
 - Package version: `0.2.5`
-- Built-in domains: `23`
-- Built-in tools: `327`
-- Domains: `antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `evidence`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `network`, `platform`, `process`, `sandbox`, `sourcemap`, `streaming`, `trace`, `transform`, `wasm`, `workflow`
+- Built-in domains: `24`
+- Built-in tools: `337`
+- Domains: `antidebug`, `browser`, `coordination`, `core`, `debugger`, `encoding`, `evidence`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `network`, `platform`, `process`, `sandbox`, `shared-state-board`, `sourcemap`, `streaming`, `trace`, `transform`, `wasm`, `workflow`
 - Note: this snapshot is generated from the runtime registry; do not edit the counts by hand.
 <!-- metadata-sync:end -->
 
