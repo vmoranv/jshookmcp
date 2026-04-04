@@ -14,6 +14,14 @@ describe('ExtensionManager.guards', () => {
         tools: [],
       }),
     ).toBe(true);
+    expect(
+      isExtensionBuilder({
+        id: 'plugin-id',
+        version: '1.0.0',
+        tools: [],
+        workflows: [],
+      }),
+    ).toBe(true);
   });
 
   it('rejects invalid extension builder values', () => {
@@ -30,8 +38,24 @@ describe('ExtensionManager.guards', () => {
       isExtensionBuilder({
         id: 'plugin-id',
         tools: [],
+        workflows: [],
       }),
     ).toBe(false);
+    expect(
+      isExtensionBuilder({
+        id: 'plugin-id',
+        version: '1.0.0',
+        tools: [],
+        workflows: 'not-an-array',
+      }),
+    ).toBe(false);
+    expect(
+      isExtensionBuilder({
+        id: 'plugin-id',
+        version: '1.0.0',
+        tools: [],
+      }),
+    ).toBe(true);
   });
 
   it('recognizes a valid workflow contract shape', () => {

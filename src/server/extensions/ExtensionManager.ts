@@ -322,7 +322,8 @@ async function loadPluginWorkflowContributions(
     }
 
     const loadedWorkflows: string[] = [];
-    for (const candidate of plugin.workflows) {
+    const pluginWorkflows = Array.isArray(plugin.workflows) ? plugin.workflows : [];
+    for (const candidate of pluginWorkflows) {
       if (!isWorkflowContract(candidate)) {
         warnings.push(
           `Skip invalid workflow contribution from plugin "${plugin.id}" in ${pluginFile}`,
@@ -533,7 +534,8 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
 
     const loadedTools = plugin.tools.map((t: ExtensionToolDefinition) => t.name);
     const loadedWorkflows: string[] = [];
-    for (const candidate of plugin.workflows) {
+    const pluginWorkflows = Array.isArray(plugin.workflows) ? plugin.workflows : [];
+    for (const candidate of pluginWorkflows) {
       if (!isWorkflowContract(candidate)) {
         warnings.push(
           `Skip invalid workflow contribution from plugin "${plugin.id}" in ${pluginFile}`,

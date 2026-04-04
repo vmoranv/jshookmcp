@@ -149,7 +149,9 @@ describe('ExtensionManager', () => {
         !!value &&
         typeof value === 'object' &&
         typeof (value as Record<string, unknown>).id === 'string' &&
-        Array.isArray((value as Record<string, unknown>).tools),
+        Array.isArray((value as Record<string, unknown>).tools) &&
+        ((value as Record<string, unknown>).workflows === undefined ||
+          Array.isArray((value as Record<string, unknown>).workflows)),
     );
     state.isWorkflowContract.mockImplementation(
       (value: any) =>
@@ -346,6 +348,49 @@ describe('ExtensionManager', () => {
     expect(state.clearLoadedExtensionTools).not.toHaveBeenCalled();
   });
 
+  it('tolerates plugin-like exports with missing workflows during lazy workflow loading', async () => {
+    state.discoverPluginFiles.mockResolvedValue([
+      '/plugins/plugin-missing-workflows/dist/index.js',
+    ]);
+    state.discoverWorkflowFiles.mockResolvedValue([]);
+    state.createFreshImportUrl.mockImplementation(
+      (modulePath: string, kind: 'plugin' | 'workflow') => {
+        if (kind === 'workflow') {
+          return makeDataModule(`export default { kind: 'not-used' };`);
+        }
+        if (modulePath.includes('plugin-missing-workflows')) {
+          return makeDataModule(`
+            export default {
+              id: 'plugin-missing-workflows',
+              version: '1.0.0',
+              compatibleCoreRange: '^1.0.0',
+              allowedTools: [],
+              mergeMetadata() { return this; },
+              tools: []
+            };
+          `);
+        }
+        return makeDataModule(`
+          export default {
+            id: 'plugin-fallback',
+            version: '1.0.0',
+            compatibleCoreRange: '^1.0.0',
+            allowedTools: [],
+            mergeMetadata() { return this; },
+            tools: [],
+            workflows: []
+          };
+        `);
+      },
+    );
+    const ctx = createCtx();
+    const { ensureWorkflowsLoaded } = await import('@server/extensions/ExtensionManager');
+
+    await expect(ensureWorkflowsLoaded(ctx)).resolves.toBeUndefined();
+    expect(ctx.extensionWorkflowsById.size).toBe(0);
+    expect(ctx.extensionPluginsById.has('plugin-missing-workflows')).toBe(false);
+  });
+
   it('warns when loading without an allowlist in non-strict mode', async () => {
     const ctx = createCtx();
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
@@ -525,6 +570,7 @@ describe('ExtensionManager', () => {
             return this;
           },
           tools: [],
+          workflows: [],
           async onActivateHandler() {
             throw new Error('activate failed');
           },

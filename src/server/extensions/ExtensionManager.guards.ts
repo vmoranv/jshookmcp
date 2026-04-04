@@ -10,7 +10,8 @@ export function isExtensionBuilder(value: unknown): value is ExtensionBuilder {
   return !!(
     typeof candidate.id === 'string' &&
     typeof candidate.version === 'string' &&
-    Array.isArray(candidate.tools)
+    Array.isArray(candidate.tools) &&
+    (candidate.workflows === undefined || Array.isArray(candidate.workflows))
   );
 }
 
