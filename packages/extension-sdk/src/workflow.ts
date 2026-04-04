@@ -4,7 +4,7 @@ export interface RetryPolicy {
   multiplier?: number;
 }
 
-export type WorkflowNodeType = 'tool' | 'sequence' | 'parallel' | 'branch';
+export type WorkflowNodeType = 'tool' | 'sequence' | 'parallel' | 'branch' | 'fallback';
 
 export interface ToolNode {
   readonly kind: 'tool';
@@ -38,7 +38,14 @@ export interface BranchNode {
   readonly whenFalse?: WorkflowNode;
 }
 
-export type WorkflowNode = ToolNode | SequenceNode | ParallelNode | BranchNode;
+export interface FallbackNode {
+  readonly kind: 'fallback';
+  readonly id: string;
+  readonly primary: WorkflowNode;
+  readonly fallback: WorkflowNode;
+}
+
+export type WorkflowNode = ToolNode | SequenceNode | ParallelNode | BranchNode | FallbackNode;
 
 /** Shorthand options for `.tool()` — avoids the callback for simple cases. */
 export interface ToolNodeOptions {
@@ -207,6 +214,13 @@ abstract class CompositeNodeBuilder<T extends WorkflowNode> extends WorkflowNode
     this._steps.push(builder);
     return this;
   }
+
+  fallback(id: string, config?: (b: FallbackNodeBuilder) => void): this {
+    const builder = new FallbackNodeBuilder(id);
+    if (config) config(builder);
+    this._steps.push(builder);
+    return this;
+  }
 }
 
 export class SequenceNodeBuilder extends CompositeNodeBuilder<SequenceNode> {
@@ -281,6 +295,37 @@ export class BranchNodeBuilder extends WorkflowNodeBuilder<BranchNode> {
       predicateFn: this._predicateFn,
       whenTrue: this._whenTrue.build(),
       whenFalse: this._whenFalse ? this._whenFalse.build() : undefined,
+    };
+  }
+}
+
+export class FallbackNodeBuilder extends WorkflowNodeBuilder<FallbackNode> {
+  private _primary?: AnyWorkflowNodeBuilder;
+  private _fallback?: AnyWorkflowNodeBuilder;
+
+  primary(nodeBuilder: AnyWorkflowNodeBuilder): this {
+    this._primary = nodeBuilder;
+    return this;
+  }
+
+  fallback(nodeBuilder: AnyWorkflowNodeBuilder): this {
+    this._fallback = nodeBuilder;
+    return this;
+  }
+
+  build(): FallbackNode {
+    if (!this._primary) {
+      throw new Error(`FallbackNode '${this.id}' requires a primary step`);
+    }
+    if (!this._fallback) {
+      throw new Error(`FallbackNode '${this.id}' requires a fallback step`);
+    }
+
+    return {
+      kind: 'fallback',
+      id: this.id,
+      primary: this._primary.build(),
+      fallback: this._fallback.build(),
     };
   }
 }
@@ -388,4 +433,9 @@ export function parallelNode(id: string): ParallelNodeBuilder {
 /** Create a branch node. */
 export function branchNode(id: string, predicateId: string): BranchNodeBuilder {
   return new BranchNodeBuilder(id, predicateId);
+}
+
+/** Create a fallback node. */
+export function fallbackNode(id: string): FallbackNodeBuilder {
+  return new FallbackNodeBuilder(id);
 }

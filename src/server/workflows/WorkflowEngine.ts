@@ -6,9 +6,11 @@ import { getRoutingState } from '@server/ToolRouter.probe';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import type {
   BranchNode,
+  FallbackNode,
   ParallelNode,
   SequenceNode,
   ToolNode,
+  ToolNodeInput,
   WorkflowContract,
   WorkflowExecutionContext,
   WorkflowNode,
@@ -30,8 +32,78 @@ interface WorkflowSpan {
   at: string;
 }
 
+/**
+ * WorkflowDataBus — cross-node data bus for dynamic parameter passing.
+ *
+ * Supports expression templates like "${get-requests.scriptId}" to reference
+ * outputs from previous steps.
+ */
+class WorkflowDataBus {
+  private store: Map<string, unknown> = new Map();
+
+  set(key: string, value: unknown): void {
+    this.store.set(key, value);
+  }
+
+  get<T>(key: string): T | undefined {
+    return this.store.get(key) as T;
+  }
+
+  /**
+   * Get a value at a specific path within a stored object.
+   * @param key - The key in the store
+   * @param path - Dot-separated path (e.g., "content.0.text")
+   */
+  getValueAtPath(key: string, path: string): unknown {
+    const value = this.store.get(key);
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    // Parse tool response payload first if it's a ToolResponse
+    const payload = parseToolPayload(value as ToolResponse);
+    const obj = payload || (value as Record<string, unknown>);
+
+    return path.split('.').reduce<unknown>((current, segment) => {
+      if (current && typeof current === 'object') {
+        // Handle array index access
+        const arrayMatch = segment.match(/^(\d+)$/);
+        if (arrayMatch && Array.isArray(current)) {
+          return current[Number(arrayMatch[1])];
+        }
+        return (current as Record<string, unknown>)[segment];
+      }
+      return undefined;
+    }, obj);
+  }
+
+  /**
+   * Resolve expression templates like "${stepId.fieldPath}".
+   * If the value is not an expression, returns it as-is.
+   */
+  resolve(template: string): unknown {
+    const match = template.match(/^\$\{(.+)\}$/);
+    if (!match || !match[1]) {
+      return template;
+    }
+
+    const ref = match[1];
+    const dotIndex = ref.indexOf('.');
+    if (dotIndex === -1) {
+      // Simple key reference
+      return this.store.get(ref);
+    }
+
+    // Nested property access: stepId.fieldPath
+    const stepId = ref.slice(0, dotIndex);
+    const fieldPath = ref.slice(dotIndex + 1);
+    return this.getValueAtPath(stepId, fieldPath);
+  }
+}
+
 interface InternalExecutionContext extends WorkflowExecutionContext {
   readonly stepResults: Map<string, unknown>;
+  readonly dataBus: WorkflowDataBus;
 }
 
 export interface ExecuteWorkflowOptions {
@@ -168,22 +240,47 @@ function collectSuccessStats(value: unknown): { success: number; failure: number
 
 function resolveInputFrom(
   mapping: Record<string, string>,
-  stepResults: Map<string, unknown>,
+  dataBus: WorkflowDataBus,
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
   for (const [targetKey, sourceRef] of Object.entries(mapping)) {
-    const dotIndex = sourceRef.indexOf('.');
-    if (dotIndex === -1) {
-      resolved[targetKey] = stepResults.get(sourceRef);
-      continue;
-    }
-    const stepId = sourceRef.slice(0, dotIndex);
-    const fieldPath = sourceRef.slice(dotIndex + 1);
-    const stepResult = stepResults.get(stepId);
-    const payload = parseToolPayload(stepResult) ?? (stepResult as JsonRecord | undefined);
-    resolved[targetKey] = payload?.[fieldPath];
+    resolved[targetKey] = dataBus.resolve(sourceRef);
   }
   return resolved;
+}
+
+/**
+ * Recursively resolve expression templates in input values.
+ * Handles nested objects and arrays.
+ */
+function resolveInputValues(
+  input: Record<string, ToolNodeInput> | undefined,
+  dataBus: WorkflowDataBus,
+): Record<string, unknown> {
+  if (!input) return {};
+
+  const resolved: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(input)) {
+    resolved[key] = resolveValue(value, dataBus);
+  }
+  return resolved;
+}
+
+function resolveValue(value: ToolNodeInput, dataBus: WorkflowDataBus): unknown {
+  if (typeof value === 'string') {
+    return dataBus.resolve(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => resolveValue(item as ToolNodeInput, dataBus));
+  }
+  if (value && typeof value === 'object') {
+    const resolved: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      resolved[k] = resolveValue(v as ToolNodeInput, dataBus);
+    }
+    return resolved;
+  }
+  return value;
 }
 
 async function runToolNode(
@@ -193,10 +290,13 @@ async function runToolNode(
   executionContext: InternalExecutionContext,
 ): Promise<unknown> {
   const fromResolved = node.inputFrom
-    ? resolveInputFrom(node.inputFrom, executionContext.stepResults)
+    ? resolveInputFrom(node.inputFrom, executionContext.dataBus)
+    : {};
+  const fromInputValues = node.input
+    ? resolveInputValues(node.input, executionContext.dataBus)
     : {};
   const mergedInput: ToolArgs = {
-    ...node.input,
+    ...fromInputValues,
     ...fromResolved,
     ...overrides?.[node.id],
   };
@@ -211,6 +311,8 @@ async function runToolNode(
     if (failure) {
       throw new Error(failure);
     }
+    // Store result in dataBus for subsequent nodes to reference
+    executionContext.dataBus.set(node.id, response);
     return response;
   };
 
@@ -279,6 +381,52 @@ async function runParallelNode(
   return results;
 }
 
+/**
+ * Get a variable value from workflow context by key path.
+ * Supports dot notation for nested access within step results.
+ */
+function getWorkflowVariable(stepResults: Map<string, unknown>, keyPath: string): unknown {
+  // First try direct key lookup (stepId)
+  if (stepResults.has(keyPath)) {
+    return stepResults.get(keyPath);
+  }
+
+  // Then try dot-notation path traversal: stepId.field.subfield
+  const segments = keyPath.split('.');
+  const stepId = segments[0];
+  const fieldSegments = segments.slice(1);
+
+  if (!stepId || !stepResults.has(stepId)) {
+    return undefined;
+  }
+
+  let current: unknown = stepResults.get(stepId);
+
+  // Parse tool response payload if needed
+  if (current && typeof current === 'object') {
+    const payload = parseToolPayload(current as ToolResponse);
+    if (payload) {
+      current = payload;
+    }
+  }
+
+  for (const segment of fieldSegments) {
+    if (current && typeof current === 'object') {
+      // Handle array index access
+      const arrayMatch = segment.match(/^(\d+)$/);
+      if (arrayMatch && Array.isArray(current)) {
+        current = current[Number(arrayMatch[1])];
+        continue;
+      }
+      current = (current as Record<string, unknown>)[segment];
+    } else {
+      return undefined;
+    }
+  }
+
+  return current;
+}
+
 async function evaluatePredicate(
   node: BranchNode,
   ctx: InternalExecutionContext,
@@ -310,7 +458,81 @@ async function evaluatePredicate(
     return aggregate.success / total >= threshold / 100;
   }
 
+  // Variable-based predicates: variable_equals_KEY_VALUE, variable_contains_KEY_SUBSTRING, variable_matches_KEY_PATTERN
+  const equalsMatch = node.predicateId.match(/^variable_equals_(.+?)_(.+)$/);
+  if (equalsMatch && equalsMatch[1] && equalsMatch[2]) {
+    const keyPath = equalsMatch[1];
+    const expectedValue = equalsMatch[2];
+    const actualValue = getWorkflowVariable(ctx.stepResults, keyPath);
+    return deepEquals(actualValue, expectedValue);
+  }
+
+  const containsMatch = node.predicateId.match(/^variable_contains_(.+?)_(.+)$/);
+  if (containsMatch && containsMatch[1] && containsMatch[2]) {
+    const keyPath = containsMatch[1];
+    const substring = containsMatch[2];
+    const value = getWorkflowVariable(ctx.stepResults, keyPath);
+    if (typeof value !== 'string' && !Array.isArray(value)) {
+      return false;
+    }
+    return String(value).includes(substring);
+  }
+
+  const matchesMatch = node.predicateId.match(/^variable_matches_(.+?)_(.+)$/);
+  if (matchesMatch && matchesMatch[1] && matchesMatch[2]) {
+    const keyPath = matchesMatch[1];
+    const pattern = matchesMatch[2];
+    const value = getWorkflowVariable(ctx.stepResults, keyPath);
+    if (typeof value !== 'string') {
+      return false;
+    }
+    try {
+      const regex = new RegExp(pattern);
+      return regex.test(value);
+    } catch {
+      return false;
+    }
+  }
+
   throw new Error(`Unknown workflow predicateId "${node.predicateId}"`);
+}
+
+/**
+ * Deep equality check for two values.
+ */
+function deepEquals(a: unknown, b: unknown): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (typeof a !== typeof b) {
+    return false;
+  }
+
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    if (Array.isArray(a) !== Array.isArray(b)) {
+      return false;
+    }
+
+    if (Array.isArray(a)) {
+      const arrA = a as unknown[];
+      const arrB = b as unknown[];
+      return arrA.length === arrB.length && arrA.every((v, i) => deepEquals(v, arrB[i]));
+    }
+
+    const keysA = Object.keys(a as object);
+    const keysB = Object.keys(b as object);
+
+    if (keysA.length !== keysB.length) {
+      return false;
+    }
+
+    return keysA.every((key) =>
+      deepEquals((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
+    );
+  }
+
+  return false;
 }
 
 async function executeNode(
@@ -349,6 +571,21 @@ async function executeNode(
       }
       break;
     }
+    case 'fallback': {
+      const fallbackNode = node as FallbackNode;
+      try {
+        result = await executeNode(ctx, fallbackNode.primary, executionContext, options);
+      } catch (error) {
+        executionContext.emitSpan('workflow.node.fallback', {
+          nodeId: fallbackNode.id,
+          primaryNodeId: fallbackNode.primary.id,
+          fallbackNodeId: fallbackNode.fallback.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        result = await executeNode(ctx, fallbackNode.fallback, executionContext, options);
+      }
+      break;
+    }
     default:
       throw new Error(`Unsupported workflow node kind: ${(node as { kind: string }).kind}`);
   }
@@ -371,6 +608,13 @@ function collectToolNodes(node: WorkflowNode): ToolNode[] {
         ...collectToolNodes(node.whenTrue),
         ...(node.whenFalse ? collectToolNodes(node.whenFalse) : []),
       ];
+    case 'fallback': {
+      const fallbackNode = node as FallbackNode;
+      return [
+        ...collectToolNodes(fallbackNode.primary),
+        ...collectToolNodes(fallbackNode.fallback),
+      ];
+    }
     default:
       return [];
   }
@@ -434,6 +678,7 @@ export async function executeExtensionWorkflow(
   const metrics: WorkflowMetric[] = [];
   const spans: WorkflowSpan[] = [];
   const stepResults = new Map<string, unknown>();
+  const dataBus = new WorkflowDataBus();
   const mergedConfig = options.config
     ? { ...(ctx.config as unknown as JsonRecord), ...options.config }
     : ctx.config;
@@ -442,6 +687,7 @@ export async function executeExtensionWorkflow(
     workflowRunId: runId,
     profile,
     stepResults,
+    dataBus,
     invokeTool(toolName: string, args: Record<string, unknown>) {
       return ctx.executeToolWithTracking(toolName, args);
     },

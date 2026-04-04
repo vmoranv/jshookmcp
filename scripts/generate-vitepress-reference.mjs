@@ -102,6 +102,21 @@ const META = {
     enScenarios: ['MCP Task Handoff', 'Recording deep session insights'],
     enCombos: ['coordination + workflow', 'coordination + browser'],
   },
+  'shared-state-board': {
+    zhTitle: 'Shared State Board',
+    zhSummary: '跨 Agent 状态同步域，提供全局共享的状态板用于多 Agent 协作。',
+    zhScenarios: ['跨 Agent 数据共享', '多 Agent 工作流协调', '实时状态广播'],
+    zhCombos: ['shared-state-board + coordination', 'shared-state-board + workflow'],
+    enTitle: 'Shared State Board',
+    enSummary:
+      'Cross-agent state synchronization domain providing a global shared state board for multi-agent collaboration.',
+    enScenarios: [
+      'Cross-agent data sharing',
+      'Multi-agent workflow coordination',
+      'Real-time state broadcasting',
+    ],
+    enCombos: ['shared-state-board + coordination', 'shared-state-board + workflow'],
+  },
   debugger: {
     zhTitle: 'Debugger',
     zhSummary: '基于 CDP 的断点、单步、调用栈、watch 与调试会话管理域。',

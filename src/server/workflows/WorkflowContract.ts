@@ -1,11 +1,12 @@
 /**
  * Workflow contract for jshookmcp.
  *
- * Workflows are declarative execution graphs built from four node types:
+ * Workflows are declarative execution graphs built from five node types:
  * - ToolNode:     invoke a single MCP tool
  * - SequenceNode: steps run in order
  * - ParallelNode: steps run concurrently (with optional maxConcurrency)
  * - BranchNode:   conditional routing
+ * - FallbackNode: error handling with primary/fallback execution
  *
  * Workflow templates are registered and executed by the WorkflowEngine.
  */
@@ -20,13 +21,30 @@ export interface RetryPolicy {
 
 // ── Node types ──
 
-export type WorkflowNodeType = 'tool' | 'sequence' | 'parallel' | 'branch';
+/**
+ * ToolNodeInput — supports both static values and dynamic expression templates.
+ *
+ * Expression template format: "${stepId.fieldPath}"
+ * - "${get-requests.scriptId}" — reference output from previous step
+ * - "${auth-response.token}" — nested property access
+ * - Plain strings are treated as literal values
+ */
+export type ToolNodeInput =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Record<string, unknown>
+  | unknown[];
+
+export type WorkflowNodeType = 'tool' | 'sequence' | 'parallel' | 'branch' | 'fallback';
 
 export interface ToolNode {
   readonly kind: 'tool';
   readonly id: string;
   readonly toolName: string;
-  readonly input?: Record<string, unknown>;
+  readonly input?: Record<string, ToolNodeInput>;
   /** Map of input keys to `step_id.field` references resolved from stepResults at runtime. */
   readonly inputFrom?: Record<string, string>;
   readonly timeoutMs?: number;
@@ -54,6 +72,19 @@ export interface BranchNode {
    * Predicate identifier — must be a registered predicate name in the
    * workflow engine (NOT an arbitrary JS string to eval).
    *
+   * Built-in predicates:
+   * - `always_true` / `always_false` — constant boolean
+   * - `any_step_failed` — checks if any prior step has failure stats
+   * - `success_rate_gte_NN` — success rate >= NN% (e.g., `success_rate_gte_80`)
+   * - `variable_equals_KEY_VALUE` — workflow variable at keyPath equals value
+   * - `variable_contains_KEY_SUBSTRING` — workflow variable contains substring
+   * - `variable_matches_KEY_PATTERN` — workflow variable matches regex pattern
+   *
+   * For variable predicates, KEY supports dot notation for nested access:
+   * - `stepId` — direct step result
+   * - `stepId.field` — nested property
+   * - `stepId.field.subfield` — deeply nested property
+   *
    * The engine resolves this to a `(ctx: WorkflowExecutionContext) => boolean`
    * from a whitelist registry to prevent code injection.
    */
@@ -67,7 +98,14 @@ export interface BranchNode {
   readonly whenFalse?: WorkflowNode;
 }
 
-export type WorkflowNode = ToolNode | SequenceNode | ParallelNode | BranchNode;
+export interface FallbackNode {
+  readonly kind: 'fallback';
+  readonly id: string;
+  readonly primary: WorkflowNode;
+  readonly fallback: WorkflowNode;
+}
+
+export type WorkflowNode = ToolNode | SequenceNode | ParallelNode | BranchNode | FallbackNode;
 
 // ── Execution context ──
 
@@ -155,7 +193,7 @@ type AnyWorkflowNodeBuilder = WorkflowNodeBuilder<WorkflowNode>;
 
 export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
   private toolName: string;
-  private _input?: Record<string, unknown>;
+  private _input?: Record<string, ToolNodeInput>;
   private _inputFrom?: Record<string, string>;
   private _retry?: RetryPolicy;
   private _timeoutMs?: number;
@@ -165,7 +203,7 @@ export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
     this.toolName = toolName;
   }
 
-  input(input: Record<string, unknown>): this {
+  input(input: Record<string, ToolNodeInput>): this {
     this._input = input;
     return this;
   }
@@ -234,6 +272,13 @@ export class SequenceNodeBuilder extends WorkflowNodeBuilder<SequenceNode> {
     return this;
   }
 
+  fallback(id: string, config?: (b: FallbackNodeBuilder) => void): this {
+    const builder = new FallbackNodeBuilder(id);
+    if (config) config(builder);
+    this._steps.push(builder);
+    return this;
+  }
+
   build(): SequenceNode {
     return {
       kind: 'sequence',
@@ -276,6 +321,13 @@ export class ParallelNodeBuilder extends WorkflowNodeBuilder<ParallelNode> {
 
   branch(id: string, predicateId: string, config?: (b: BranchNodeBuilder) => void): this {
     const builder = new BranchNodeBuilder(id, predicateId);
+    if (config) config(builder);
+    this._steps.push(builder);
+    return this;
+  }
+
+  fallback(id: string, config?: (b: FallbackNodeBuilder) => void): this {
+    const builder = new FallbackNodeBuilder(id);
     if (config) config(builder);
     this._steps.push(builder);
     return this;
@@ -339,6 +391,37 @@ export class BranchNodeBuilder extends WorkflowNodeBuilder<BranchNode> {
       predicateFn: this._predicateFn,
       whenTrue: this._whenTrue.build(),
       whenFalse: this._whenFalse ? this._whenFalse.build() : undefined,
+    };
+  }
+}
+
+export class FallbackNodeBuilder extends WorkflowNodeBuilder<FallbackNode> {
+  private _primary?: AnyWorkflowNodeBuilder;
+  private _fallback?: AnyWorkflowNodeBuilder;
+
+  primary(nodeBuilder: AnyWorkflowNodeBuilder): this {
+    this._primary = nodeBuilder;
+    return this;
+  }
+
+  fallback(nodeBuilder: AnyWorkflowNodeBuilder): this {
+    this._fallback = nodeBuilder;
+    return this;
+  }
+
+  build(): FallbackNode {
+    if (!this._primary) {
+      throw new Error(`FallbackNode '${this.id}' requires a primary step`);
+    }
+    if (!this._fallback) {
+      throw new Error(`FallbackNode '${this.id}' requires a fallback step`);
+    }
+
+    return {
+      kind: 'fallback',
+      id: this.id,
+      primary: this._primary.build(),
+      fallback: this._fallback.build(),
     };
   }
 }

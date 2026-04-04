@@ -362,4 +362,120 @@ describe('workflows/WorkflowEngine', () => {
       .build();
     await expect(executeExtensionWorkflow(ctx as never, w)).rejects.toThrow('native error');
   });
+
+  it('supports variable_equals predicate for branch routing', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const executeToolWithTracking = vi
+      .fn()
+      .mockResolvedValueOnce(successResponse({ status: 'authenticated' }))
+      .mockResolvedValueOnce(successResponse({ route: 'auth' }))
+      .mockResolvedValueOnce(successResponse({ route: 'guest' }));
+
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+    const workflow = createWorkflow('wf-var-equals', 'Variable Equals Test')
+      .buildGraph(() => {
+        const root = new SequenceNodeBuilder('root');
+        root.tool('check-auth', 'check_auth');
+        root.branch('branch-auth', 'variable_equals_check-auth.status_authenticated', (builder) => {
+          builder.whenTrue(new SequenceNodeBuilder('auth-route').tool('auth-action', 'auth_tool'));
+          builder.whenFalse(
+            new SequenceNodeBuilder('guest-route').tool('guest-action', 'guest_tool'),
+          );
+        });
+        return root;
+      })
+      .build();
+
+    const result = await executeExtensionWorkflow(ctx as never, workflow);
+
+    expect(result.stepResults).toHaveProperty('auth-route');
+    expect(result.stepResults).not.toHaveProperty('guest-route');
+  });
+
+  it('supports variable_contains predicate for branch routing', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const executeToolWithTracking = vi
+      .fn()
+      .mockResolvedValueOnce(successResponse({ endpoints: ['/api/users', '/api/data'] }))
+      .mockResolvedValueOnce(successResponse({ found: true }))
+      .mockResolvedValueOnce(successResponse({ found: false }));
+
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+    const workflow = createWorkflow('wf-var-contains', 'Variable Contains Test')
+      .buildGraph(() => {
+        const root = new SequenceNodeBuilder('root');
+        root.tool('scan-endpoints', 'scan');
+        root.branch('branch-api', 'variable_contains_scan-endpoints.endpoints_/api/', (builder) => {
+          builder.whenTrue(new SequenceNodeBuilder('api-found').tool('process-api', 'process'));
+          builder.whenFalse(new SequenceNodeBuilder('no-api').tool('skip', 'skip_tool'));
+        });
+        return root;
+      })
+      .build();
+
+    const result = await executeExtensionWorkflow(ctx as never, workflow);
+
+    expect(result.stepResults).toHaveProperty('api-found');
+    expect(result.stepResults).not.toHaveProperty('no-api');
+  });
+
+  it('supports variable_matches predicate for regex pattern matching', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const executeToolWithTracking = vi
+      .fn()
+      .mockResolvedValueOnce(
+        successResponse({ token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test' }),
+      )
+      .mockResolvedValueOnce(successResponse({ valid: true }))
+      .mockResolvedValueOnce(successResponse({ valid: false }));
+
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+    const workflow = createWorkflow('wf-var-matches', 'Variable Matches Test')
+      .buildGraph(() => {
+        const root = new SequenceNodeBuilder('root');
+        root.tool('get-token', 'get_token');
+        root.branch(
+          'branch-jwt',
+          'variable_matches_get-token.token_^eyJ[A-Za-z0-9]+\\.',
+          (builder) => {
+            builder.whenTrue(new SequenceNodeBuilder('jwt-detected').tool('decode-jwt', 'decode'));
+            builder.whenFalse(new SequenceNodeBuilder('not-jwt').tool('handle-other', 'handle'));
+          },
+        );
+        return root;
+      })
+      .build();
+
+    const result = await executeExtensionWorkflow(ctx as never, workflow);
+
+    expect(result.stepResults).toHaveProperty('jwt-detected');
+    expect(result.stepResults).not.toHaveProperty('not-jwt');
+  });
+
+  it('variable_equals uses deep equality for object comparison', async () => {
+    const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
+    const executeToolWithTracking = vi
+      .fn()
+      .mockResolvedValueOnce(successResponse({ user: { id: 1, name: 'test' } }))
+      .mockResolvedValueOnce(successResponse({ matched: true }));
+
+    const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
+    // Note: This tests that the predicate correctly handles nested access
+    const workflow = createWorkflow('wf-deep', 'Deep Equality Test')
+      .buildGraph(() => {
+        const root = new SequenceNodeBuilder('root');
+        root.tool('get-user', 'get_user');
+        // Access nested property via dot notation
+        root.branch('branch-user', 'variable_equals_get-user.user.name_test', (builder) => {
+          builder.whenTrue(new SequenceNodeBuilder('user-match').tool('verify', 'verify_tool'));
+          builder.whenFalse(new SequenceNodeBuilder('user-no-match').tool('reject', 'reject_tool'));
+        });
+        return root;
+      })
+      .build();
+
+    const result = await executeExtensionWorkflow(ctx as never, workflow);
+
+    expect(result.stepResults).toHaveProperty('user-match');
+  });
 });
