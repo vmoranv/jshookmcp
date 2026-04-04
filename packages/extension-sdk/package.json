@@ -1,13 +1,23 @@
 {
   "name": "@jshookmcp/extension-sdk",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "SDK for developing jshookmcp plugins and workflows",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "license": "AGPL-3.0-only",
+  "author": {
+    "name": "vmoranv",
+    "url": "https://github.com/vmoranv"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vmoranv/jshookmcp.git",
+    "directory": "packages/extension-sdk"
+  },
   "files": [
     "dist"
   ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -26,6 +36,10 @@
       "default": "./dist/bridges/index.js"
     }
   },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "scripts": {
     "clean": "node ../../scripts/clean-dist.mjs",
     "build": "pnpm run clean && tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths",
@@ -41,19 +55,5 @@
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org",
-    "access": "public"
-  },
-  "license": "AGPL-3.0-only",
-  "author": {
-    "name": "vmoranv",
-    "url": "https://github.com/vmoranv"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/vmoranv/jshookmcp.git",
-    "directory": "packages/extension-sdk"
   }
 }
