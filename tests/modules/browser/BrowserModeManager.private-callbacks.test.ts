@@ -206,12 +206,17 @@ describe('BrowserModeManager private callback coverage', () => {
     Reflect.set(manager as object, 'browser', oldBrowser);
     Reflect.set(manager as object, 'chromePid', 1234);
 
-    await expect(
-      (manager as any).switchToHeaded(currentPage, 'https://example.com', {
-        type: 'slider',
-        confidence: 90,
-      }),
-    ).resolves.toBeUndefined();
+    const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      await expect(
+        (manager as any).switchToHeaded(currentPage, 'https://example.com', {
+          type: 'slider',
+          confidence: 90,
+        }),
+      ).resolves.toBeUndefined();
+    } finally {
+      stderrWrite.mockRestore();
+    }
 
     expect(loggerState.warn).toHaveBeenCalledWith(
       'Failed to close old browser during mode switch:',

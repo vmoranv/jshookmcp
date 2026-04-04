@@ -196,7 +196,12 @@ describe('BrowserModeManager', () => {
     });
 
     const page = {} as unknown as Page;
-    await manager.checkAndHandleCaptcha(page, 'https://vmoranv.github.io/jshookmcp');
+    const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      await manager.checkAndHandleCaptcha(page, 'https://vmoranv.github.io/jshookmcp');
+    } finally {
+      stderrWrite.mockRestore();
+    }
     expect(waitForCompletionMock).toHaveBeenCalledOnce();
   });
 

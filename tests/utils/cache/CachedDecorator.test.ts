@@ -5,6 +5,23 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { existsSync, rmSync } from 'fs';
 
+const applyMethodDecorator = (
+  target: object,
+  methodName: string,
+  decorator: (
+    target: object,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor,
+  ) => PropertyDescriptor | void,
+) => {
+  const descriptor = Object.getOwnPropertyDescriptor(target, methodName);
+  if (!descriptor) {
+    throw new Error(`Missing descriptor for ${methodName}`);
+  }
+  const nextDescriptor = decorator(target, methodName, descriptor) ?? descriptor;
+  Object.defineProperty(target, methodName, nextDescriptor);
+};
+
 describe('CachedDecorator', () => {
   let testCounter = 0;
 
@@ -40,12 +57,16 @@ describe('CachedDecorator', () => {
       await sharedCache.init();
 
       class TestService {
-        @cached({ ttlMs: 5000, cache: sharedCache })
         async fetchData(id: number): Promise<{ id: number; data: string }> {
           callCount++;
           return { id, data: `data-${id}` };
         }
       }
+      applyMethodDecorator(
+        TestService.prototype,
+        'fetchData',
+        cached({ ttlMs: 5000, cache: sharedCache }),
+      );
 
       const service = new TestService();
 
@@ -75,12 +96,16 @@ describe('CachedDecorator', () => {
       await sharedCache.init();
 
       class TestService {
-        @cached({ ttlMs: 100, cache: sharedCache })
         async getData(): Promise<string> {
           callCount++;
           return `data-${Date.now()}`;
         }
       }
+      applyMethodDecorator(
+        TestService.prototype,
+        'getData',
+        cached({ ttlMs: 100, cache: sharedCache }),
+      );
 
       const service = new TestService();
 
@@ -110,16 +135,20 @@ describe('CachedDecorator', () => {
       await sharedCache.init();
 
       class TestService {
-        @cached({
-          ttlMs: 5000,
-          cache: sharedCache,
-          keyFn: (userId: number, includeDetails: boolean) => `user:${userId}:${includeDetails}`,
-        })
         async getUser(userId: number, _includeDetails: boolean): Promise<{ id: number }> {
           callCount++;
           return { id: userId };
         }
       }
+      applyMethodDecorator(
+        TestService.prototype,
+        'getUser',
+        cached({
+          ttlMs: 5000,
+          cache: sharedCache,
+          keyFn: (userId: number, includeDetails: boolean) => `user:${userId}:${includeDetails}`,
+        }),
+      );
 
       const service = new TestService();
 
@@ -145,13 +174,17 @@ describe('CachedDecorator', () => {
       await sharedCache.init();
 
       class TestService {
-        @cached({ ttlMs: 5000, cache: sharedCache })
         async slowOperation(delay: number): Promise<number> {
           callCount++;
           await new Promise((resolve) => setTimeout(resolve, delay));
           return Date.now();
         }
       }
+      applyMethodDecorator(
+        TestService.prototype,
+        'slowOperation',
+        cached({ ttlMs: 5000, cache: sharedCache }),
+      );
 
       const service = new TestService();
 

@@ -93,4 +93,5 @@ export interface DeobfuscateResult {
   warnings?: string[];
   engine?: 'legacy' | 'webcrack' | 'hybrid';
   webcrackApplied?: boolean;
+  cached?: boolean;
 }

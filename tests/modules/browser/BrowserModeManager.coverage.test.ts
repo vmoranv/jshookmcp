@@ -702,9 +702,14 @@ describe('BrowserModeManager coverage', () => {
     Reflect.set(manager as object, 'currentPage', currentPage);
     Reflect.set(manager as object, 'isHeadless', true);
 
-    await expect(
-      manager.checkAndHandleCaptcha(currentPage, 'https://example.com/path'),
-    ).rejects.toThrow(/Captcha completion timeout/);
+    const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      await expect(
+        manager.checkAndHandleCaptcha(currentPage, 'https://example.com/path'),
+      ).rejects.toThrow(/Captcha completion timeout/);
+    } finally {
+      stderrWrite.mockRestore();
+    }
     expect(newPage.reload).toHaveBeenCalledWith({ waitUntil: 'networkidle2' });
     expect(waitForCompletionMock).toHaveBeenCalledWith(newPage, 300000);
   });

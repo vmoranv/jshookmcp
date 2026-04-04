@@ -736,7 +736,7 @@ describe('BrowserPool', () => {
       pool = new BrowserPool({ defaultIdleTimeout: 10000 });
       const profile: BrowserProfile = {
         name: 'custom',
-        config: { idleTimeout: 3000 },
+        idleTimeout: 3000,
       };
 
       const manager = await pool.acquire(profile);
@@ -792,7 +792,7 @@ describe('BrowserPool', () => {
       pool = new BrowserPool({ defaultMaxTabs: 10 });
       const profile: BrowserProfile = {
         name: 'limited',
-        config: { maxTabs: 2 },
+        maxTabs: 2,
       };
 
       const manager = await pool.acquire(profile);
@@ -812,8 +812,8 @@ describe('BrowserPool', () => {
     it('allows different tab limits per profile', async () => {
       pool = new BrowserPool({ defaultMaxTabs: 5 });
 
-      const profile1: BrowserProfile = { name: 'user1', config: { maxTabs: 2 } };
-      const profile2: BrowserProfile = { name: 'user2', config: { maxTabs: 3 } };
+      const profile1: BrowserProfile = { name: 'user1', maxTabs: 2 };
+      const profile2: BrowserProfile = { name: 'user2', maxTabs: 3 };
 
       const manager1 = await pool.acquire(profile1);
       const manager2 = await pool.acquire(profile2);

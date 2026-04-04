@@ -487,7 +487,7 @@ describe('MCPServer', () => {
     const server = new MCPServer(baseConfig);
     server.registerCaches = vi.fn(); // avoid importing cache adapters
     // mock HTTP transport to avoid actually starting a listener
-    const mockStartHttp = vi.hoisted(() => vi.fn());
+    const mockStartHttp = vi.fn();
     const transportMod = await import('@server/MCPServer.transport');
     vi.spyOn(transportMod, 'startHttpTransport').mockImplementation(mockStartHttp as any);
 

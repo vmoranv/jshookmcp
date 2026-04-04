@@ -18,15 +18,18 @@ export class Deobfuscator {
 
   private generateCacheKey(options: DeobfuscateOptions): string {
     const key = JSON.stringify({
+      aggressive: options.aggressive,
       code: options.code.substring(0, 2000),
       forceOutput: options.forceOutput,
       includeModuleCode: options.includeModuleCode,
+      inlineFunctions: options.inlineFunctions,
       jsx: options.jsx,
       llm: false /* llm removed */,
       mangle: options.mangle ?? options.renameVariables,
       mappings: options.mappings,
       maxBundleModules: options.maxBundleModules,
       outputDir: options.outputDir,
+      preserveLogic: options.preserveLogic,
       unpack: options.unpack,
       unminify: options.unminify,
     });
@@ -38,6 +41,7 @@ export class Deobfuscator {
     const cached = this.resultCache.get(cacheKey);
     if (cached) {
       logger.debug('Deobfuscation result from cache');
+      cached.cached = true;
       return cached;
     }
 
@@ -134,6 +138,7 @@ export class Deobfuscator {
         this.resultCache.delete(firstKey);
       }
     }
+    result.cached = false;
     this.resultCache.set(cacheKey, result);
 
     return result;

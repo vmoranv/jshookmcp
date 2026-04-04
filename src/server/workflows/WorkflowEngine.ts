@@ -244,7 +244,8 @@ function resolveInputFrom(
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
   for (const [targetKey, sourceRef] of Object.entries(mapping)) {
-    resolved[targetKey] = dataBus.resolve(sourceRef);
+    const template = sourceRef.startsWith('${') ? sourceRef : `\${${sourceRef}}`;
+    resolved[targetKey] = dataBus.resolve(template);
   }
   return resolved;
 }

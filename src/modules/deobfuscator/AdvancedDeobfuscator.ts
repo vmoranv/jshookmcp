@@ -6,6 +6,7 @@ import type {
 } from '@internal-types/deobfuscator';
 import { runWebcrack } from '@modules/deobfuscator/webcrack';
 import { detectObfuscationType as detectObfuscationTypeUtil } from '@modules/deobfuscator/Deobfuscator.utils';
+import crypto from 'crypto';
 
 export interface AdvancedDeobfuscateOptions {
   code: string;
@@ -29,6 +30,7 @@ export interface AdvancedDeobfuscateResult {
   detectedTechniques: string[];
   confidence: number;
   warnings: string[];
+  cached?: boolean;
   astOptimized?: boolean;
   bundle?: DeobfuscateBundleSummary;
   savedTo?: string;
@@ -43,7 +45,37 @@ export interface AdvancedDeobfuscateResult {
 }
 
 export class AdvancedDeobfuscator {
+  private resultCache = new Map<string, AdvancedDeobfuscateResult>();
+  private maxCacheSize = 100;
+
+  private generateCacheKey(options: AdvancedDeobfuscateOptions): string {
+    const key = JSON.stringify({
+      aggressiveVM: options.aggressiveVM,
+      code: options.code.substring(0, 2000),
+      detectOnly: options.detectOnly,
+      forceOutput: options.forceOutput,
+      includeModuleCode: options.includeModuleCode,
+      jsx: options.jsx,
+      mangle: options.mangle,
+      mappings: options.mappings,
+      maxBundleModules: options.maxBundleModules,
+      outputDir: options.outputDir,
+      timeout: options.timeout,
+      unpack: options.unpack,
+      unminify: options.unminify,
+      useASTOptimization: options.useASTOptimization,
+    });
+    return crypto.createHash('md5').update(key).digest('hex');
+  }
+
   async deobfuscate(options: AdvancedDeobfuscateOptions): Promise<AdvancedDeobfuscateResult> {
+    const cacheKey = this.generateCacheKey(options);
+    const cached = this.resultCache.get(cacheKey);
+    if (cached) {
+      logger.debug('Advanced deobfuscation result from cache');
+      return { ...cached, cached: true };
+    }
+
     logger.info('Starting advanced webcrack deobfuscation...');
 
     const detectedTechniques = detectObfuscationTypeUtil(options.code);
@@ -64,7 +96,7 @@ export class AdvancedDeobfuscator {
     }
 
     if (options.detectOnly) {
-      return {
+      const result: AdvancedDeobfuscateResult = {
         code: options.code,
         detectedTechniques,
         confidence: Math.min(0.6 + detectedTechniques.length * 0.05, 0.9),
@@ -76,6 +108,8 @@ export class AdvancedDeobfuscator {
         engine: 'webcrack',
         webcrackApplied: false,
       };
+      this.storeCacheEntry(cacheKey, result);
+      return { ...result, cached: false };
     }
 
     const webcrackResult = await runWebcrack(options.code, {
@@ -110,7 +144,7 @@ export class AdvancedDeobfuscator {
     }
     detectedTechniques.push('webcrack');
 
-    return {
+    const result: AdvancedDeobfuscateResult = {
       code: webcrackResult.code,
       detectedTechniques: Array.from(new Set(detectedTechniques)),
       confidence: this.calculateConfidence(webcrackResult, detectedTechniques),
@@ -122,6 +156,18 @@ export class AdvancedDeobfuscator {
       engine: 'webcrack',
       webcrackApplied: true,
     };
+    this.storeCacheEntry(cacheKey, result);
+    return { ...result, cached: false };
+  }
+
+  private storeCacheEntry(cacheKey: string, result: AdvancedDeobfuscateResult): void {
+    if (this.resultCache.size >= this.maxCacheSize) {
+      const firstKey = this.resultCache.keys().next().value;
+      if (firstKey) {
+        this.resultCache.delete(firstKey);
+      }
+    }
+    this.resultCache.set(cacheKey, result);
   }
 
   private calculateConfidence(

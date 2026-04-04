@@ -55,6 +55,8 @@ interface PoolEntry {
   idleTimer?: NodeJS.Timeout;
   /** Whether the browser is disposed */
   disposed: boolean;
+  /** Original profile configuration used to create this entry */
+  profileConfig: BrowserProfile;
 }
 
 /**
@@ -144,6 +146,11 @@ export class BrowserPool {
       driver: profile.config?.driver ?? 'chrome',
       headless: profile.config?.headless,
       args: profile.config?.args,
+      executablePath: profile.config?.executablePath,
+      debugPort: profile.config?.debugPort,
+      proxy: profile.config?.proxy,
+      os: profile.config?.os,
+      geoip: profile.config?.geoip,
     };
 
     const manager = new UnifiedBrowserManager(config);
@@ -159,6 +166,7 @@ export class BrowserPool {
       lastAccess: Date.now(),
       inUse: true,
       disposed: false,
+      profileConfig: profile,
     };
 
     this.entries.set(profile.name, entry);
@@ -381,7 +389,7 @@ export class BrowserPool {
   private startIdleTimer(entry: PoolEntry): void {
     this.clearIdleTimer(entry);
 
-    const timeout = this.defaultIdleTimeout;
+    const timeout = this.getMaxIdleTimeoutForEntry(entry);
 
     entry.idleTimer = setTimeout(() => {
       if (!entry.inUse && !entry.disposed) {
@@ -469,11 +477,29 @@ export class BrowserPool {
     }
   }
 
-  private getMaxTabsForEntry(_entry: PoolEntry): number {
-    return this.defaultMaxTabs;
+  private getMaxTabsForEntry(entry: PoolEntry): number {
+    const managerWithTabLimit = entry.manager as unknown as {
+      getMaxTabs?: () => unknown;
+    };
+    const managerLimit =
+      typeof managerWithTabLimit.getMaxTabs === 'function'
+        ? managerWithTabLimit.getMaxTabs()
+        : undefined;
+    return typeof managerLimit === 'number'
+      ? managerLimit
+      : (entry.profileConfig.maxTabs ?? this.defaultMaxTabs);
   }
 
-  private getMaxIdleTimeoutForEntry(_entry: PoolEntry): number {
-    return this.defaultIdleTimeout;
+  private getMaxIdleTimeoutForEntry(entry: PoolEntry): number {
+    const managerWithIdleTimeout = entry.manager as unknown as {
+      getIdleTimeout?: () => unknown;
+    };
+    const managerTimeout =
+      typeof managerWithIdleTimeout.getIdleTimeout === 'function'
+        ? managerWithIdleTimeout.getIdleTimeout()
+        : undefined;
+    return typeof managerTimeout === 'number'
+      ? managerTimeout
+      : (entry.profileConfig.idleTimeout ?? this.defaultIdleTimeout);
   }
 }

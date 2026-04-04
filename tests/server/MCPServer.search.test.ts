@@ -165,6 +165,10 @@ vi.mock('@src/constants', async (importOriginal) => ({
   SEARCH_VECTOR_ENABLED: false,
 }));
 
+vi.mock('@server/extensions/ExtensionManager', () => ({
+  ensureWorkflowsLoaded: vi.fn(async () => undefined),
+}));
+
 type RegisterSearchMetaTools = typeof import('@server/MCPServer.search').registerSearchMetaTools;
 let registerSearchMetaTools: RegisterSearchMetaTools;
 
@@ -191,6 +195,8 @@ function createCtx(overrides: DeepPartial<MCPServerContext> = {}): MockContext {
       string,
       { name: string; domain: string; tool: Tool; handler?: Function; registeredTool?: any }
     >(),
+    extensionPluginsById: new Map<string, unknown>(),
+    extensionWorkflowsById: new Map<string, unknown>(),
     extensionWorkflowRuntimeById: new Map<string, unknown>(),
     enabledDomains: new Set<string>(['browser']),
     activatedRegisteredTools: new Map<string, unknown>(),
@@ -260,7 +266,12 @@ interface CommonSuccessResponse {
 
 function parseResponse<T>(response: McpResponse): T {
   // @ts-expect-error — auto-suppressed [TS2532]
-  return JSON.parse(response.content[0].text) as T;
+  const text = response.content[0].text;
+  try {
+    return JSON.parse(text) as T;
+  } catch (error) {
+    throw new Error(`Expected JSON response, got: ${text}`, { cause: error });
+  }
 }
 
 describe('MCPServer.search', () => {
