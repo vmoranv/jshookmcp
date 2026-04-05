@@ -35,35 +35,13 @@ interface BrowserControlHandlersDeps {
 export class BrowserControlHandlers {
   constructor(private deps: BrowserControlHandlersDeps) {}
 
-  private async resetAndEnableMonitoring(context: string): Promise<{
-    networkMonitoringEnabled: boolean;
-    consoleMonitoringEnabled: boolean;
-  }> {
+  private markMonitoringContextChanged(context: string): void {
     try {
-      await this.deps.consoleMonitor.disable();
+      this.deps.consoleMonitor.markContextChanged();
     } catch (error) {
       logger.warn(
-        `[${context}] Failed to reset existing console monitor: ${error instanceof Error ? error.message : String(error)}`,
+        `[${context}] Failed to mark monitoring context as stale: ${error instanceof Error ? error.message : String(error)}`,
       );
-    }
-
-    try {
-      await this.deps.consoleMonitor.enable({
-        enableNetwork: true,
-        enableExceptions: true,
-      });
-      return {
-        networkMonitoringEnabled: true,
-        consoleMonitoringEnabled: true,
-      };
-    } catch (error) {
-      logger.warn(
-        `[${context}] Auto-enable monitoring failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return {
-        networkMonitoringEnabled: false,
-        consoleMonitoringEnabled: false,
-      };
     }
   }
 
@@ -492,9 +470,9 @@ export class BrowserControlHandlers {
         await this.syncTabRegistryWithCollectorPages('browser_select_tab');
         const selected = pages[index];
         const tab = registry.setCurrentByIndex(index);
-        const monitoring = tab?.pageId
-          ? await this.resetAndEnableMonitoring('browser_select_tab')
-          : { networkMonitoringEnabled: false, consoleMonitoringEnabled: false };
+        if (tab?.pageId) {
+          this.markMonitoringContextChanged('browser_select_tab');
+        }
         return {
           content: [
             {
@@ -506,9 +484,10 @@ export class BrowserControlHandlers {
                   selectedPageId: tab?.pageId ?? null,
                   url: selected?.url,
                   title: selected?.title,
-                  activeContextRefreshed: true,
-                  networkMonitoringEnabled: monitoring.networkMonitoringEnabled,
-                  consoleMonitoringEnabled: monitoring.consoleMonitoringEnabled,
+                  contextSwitched: true,
+                  monitoringBindingDeferred: Boolean(tab?.pageId),
+                  networkMonitoringEnabled: false,
+                  consoleMonitoringEnabled: false,
                 },
                 null,
                 2,
@@ -554,9 +533,9 @@ export class BrowserControlHandlers {
       await this.syncTabRegistryWithCollectorPages('browser_select_tab');
       const selected = pages[matchIndex];
       const tab = registry.setCurrentByIndex(matchIndex);
-      const monitoring = tab?.pageId
-        ? await this.resetAndEnableMonitoring('browser_select_tab')
-        : { networkMonitoringEnabled: false, consoleMonitoringEnabled: false };
+      if (tab?.pageId) {
+        this.markMonitoringContextChanged('browser_select_tab');
+      }
       return {
         content: [
           {
@@ -568,9 +547,10 @@ export class BrowserControlHandlers {
                 selectedPageId: tab?.pageId ?? null,
                 url: selected?.url,
                 title: selected?.title,
-                activeContextRefreshed: true,
-                networkMonitoringEnabled: monitoring.networkMonitoringEnabled,
-                consoleMonitoringEnabled: monitoring.consoleMonitoringEnabled,
+                contextSwitched: true,
+                monitoringBindingDeferred: Boolean(tab?.pageId),
+                networkMonitoringEnabled: false,
+                consoleMonitoringEnabled: false,
               },
               null,
               2,
@@ -647,13 +627,12 @@ export class BrowserControlHandlers {
       const registry = this.deps.getTabRegistry();
       await this.syncTabRegistryWithCollectorPages('browser_attach');
       const actualIndex = pages.length > 0 ? Math.min(selectedIndex, pages.length - 1) : 0;
-      const tab = registry.setCurrentByIndex(actualIndex);
+      const tab = pages.length > 0 ? registry.setCurrentByIndex(actualIndex) : null;
       const selected = pages[actualIndex];
       const pageHandleReady = Boolean(tab?.pageId);
-
-      const { networkMonitoringEnabled, consoleMonitoringEnabled } = pageHandleReady
-        ? await this.resetAndEnableMonitoring('browser_attach')
-        : { networkMonitoringEnabled: false, consoleMonitoringEnabled: false };
+      if (pageHandleReady) {
+        this.markMonitoringContextChanged('browser_attach');
+      }
 
       const status = await this.deps.collector.getStatus();
 
@@ -676,11 +655,13 @@ export class BrowserControlHandlers {
                 currentUrl: selected?.url ?? null,
                 currentTitle: selected?.title ?? null,
                 totalPages: pages.length,
-                networkMonitoringEnabled,
-                consoleMonitoringEnabled,
+                contextSwitched: pages.length > 0,
+                monitoringBindingDeferred: pageHandleReady,
+                networkMonitoringEnabled: false,
+                consoleMonitoringEnabled: false,
                 takeoverReady: pageHandleReady,
                 note: pageHandleReady
-                  ? null
+                  ? 'Monitoring will auto-rebind on the next console/network operation for the selected tab.'
                   : 'Connected to existing Chrome, but the selected tab does not currently expose a stable Puppeteer Page handle. Tab discovery still works; try selecting a different tab or navigate the tab and retry.',
                 status,
               },

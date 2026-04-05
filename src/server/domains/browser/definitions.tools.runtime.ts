@@ -114,12 +114,17 @@ Requires binaries: npx camoufox-js fetch`)
 
 Use this when a browser is already running with remote debugging enabled.
 Supports browserURL (http://host:port), WebSocket endpoint (ws://...), and Chrome 144+ autoConnect.
+The selected tab becomes active immediately, while console/network monitoring rebinds lazily on the next console_* or network_* call.
 
 Example:
 - browser_attach(browserURL="http://127.0.0.1:9222")
 - browser_attach(wsEndpoint="ws://127.0.0.1:9222/devtools/browser/xxx")
 - browser_attach(autoConnect=true, channel="stable")
 - browser_attach(browserURL="http://127.0.0.1:9222", pageIndex=0)
+
+Response notes:
+- contextSwitched: whether an active tab context was established during attach
+- monitoringBindingDeferred: whether monitoring will auto-rebind later for the selected tab
 
 After attaching, use page_navigate / page_screenshot / debugger_enable normally.`)
     .string('browserURL', 'HTTP URL of the remote debugging endpoint (e.g., http://127.0.0.1:9222)')

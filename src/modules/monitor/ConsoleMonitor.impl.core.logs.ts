@@ -5,6 +5,7 @@ import type {
 } from '@modules/monitor/ConsoleMonitor.impl.core.class';
 
 interface LogsCoreContext {
+  contextSwitchPending?: boolean;
   messages: ConsoleMessage[];
   exceptions: ExceptionInfo[];
 }
@@ -22,6 +23,9 @@ export function getLogsCore(
   },
 ): ConsoleMessage[] {
   const coreCtx = asLogsCoreContext(ctx);
+  if (coreCtx.contextSwitchPending) {
+    return [];
+  }
   let logs = coreCtx.messages;
 
   if (filter?.type) {
@@ -52,6 +56,12 @@ export function getStatsCore(ctx: unknown): {
   byType: Record<string, number>;
 } {
   const coreCtx = asLogsCoreContext(ctx);
+  if (coreCtx.contextSwitchPending) {
+    return {
+      totalMessages: 0,
+      byType: {},
+    };
+  }
   const byType: Record<string, number> = {};
 
   for (const msg of coreCtx.messages) {
@@ -69,6 +79,9 @@ export function getExceptionsCore(
   filter?: { url?: string; limit?: number; since?: number },
 ): ExceptionInfo[] {
   const coreCtx = asLogsCoreContext(ctx);
+  if (coreCtx.contextSwitchPending) {
+    return [];
+  }
   let exceptions = coreCtx.exceptions;
 
   if (filter?.url) {

@@ -260,6 +260,54 @@ describe('ConsoleMonitor', () => {
     expect(second.send).toHaveBeenCalledWith('Console.enable', {});
   });
 
+  it('marks monitoring stale after a context switch and lazily rebinds on the next enable', async () => {
+    const first = createMockSession();
+    const second = createMockSession();
+    const collector = createCollectorWithSessions(first.session, second.session);
+    const monitor = new ConsoleMonitor(collector as any);
+
+    await monitor.enable({ enableNetwork: true });
+    expect(monitor.isNetworkEnabled()).toBe(true);
+
+    monitor.markContextChanged();
+
+    expect(monitor.isSessionActive()).toBe(false);
+    expect(monitor.isNetworkEnabled()).toBe(false);
+    expect(monitor.getLogs()).toEqual([]);
+    expect(monitor.getNetworkRequests()).toEqual([]);
+
+    await monitor.enable({ enableNetwork: true });
+
+    expect(first.session.detach).toHaveBeenCalledTimes(1);
+    expect(collector.getActivePage).toHaveBeenCalledTimes(2);
+    expect(second.send).toHaveBeenCalledWith('Runtime.enable', {});
+    expect(second.send).toHaveBeenCalledWith('Console.enable', {});
+  });
+
+  it('auto-rebinds on execute after a context switch', async () => {
+    const first = createMockSession();
+    const second = createMockSession();
+    (second.send as ReturnType<typeof vi.fn>).mockImplementation(
+      async (method: string, params?: { expression?: string }) => {
+        if (method === 'Runtime.enable' || method === 'Console.enable') return {};
+        if (method === 'Runtime.evaluate' && params?.expression === 'ok') {
+          return { result: { value: 7 } };
+        }
+        return {};
+      },
+    );
+
+    const collector = createCollectorWithSessions(first.session, second.session);
+    const monitor = new ConsoleMonitor(collector as any);
+
+    await monitor.enable();
+    monitor.markContextChanged();
+
+    await expect(monitor.execute('ok')).resolves.toBe(7);
+    expect(first.session.detach).toHaveBeenCalledTimes(1);
+    expect(collector.getActivePage).toHaveBeenCalledTimes(2);
+  });
+
   it('supports Playwright mode with console/error capture and network delegation', async () => {
     const handlers: Record<string, (payload: any) => void> = {};
     const page = {

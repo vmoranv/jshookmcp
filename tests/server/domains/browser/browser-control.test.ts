@@ -43,6 +43,7 @@ interface CollectorMock {
 interface ConsoleMonitorMock {
   disable: Mock<() => Promise<void>>;
   enable: Mock<() => Promise<void>>;
+  markContextChanged: Mock<() => void>;
 }
 
 interface TabRegistryMock {
@@ -66,6 +67,7 @@ function createMocks() {
   const consoleMonitor: ConsoleMonitorMock = {
     disable: vi.fn(async () => {}),
     enable: vi.fn(async () => {}),
+    markContextChanged: vi.fn(() => {}),
   };
 
   const tabRegistry: TabRegistryMock = {
@@ -452,7 +454,11 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     expect(body.selectedIndex).toBe(1);
     expect(body.url).toBe('https://b.com');
     expect(body.title).toBe('B');
-    expect(body.activeContextRefreshed).toBe(true);
+    expect(body.contextSwitched).toBe(true);
+    expect(body.monitoringBindingDeferred).toBe(true);
+    expect(body.networkMonitoringEnabled).toBe(false);
+    expect(body.consoleMonitoringEnabled).toBe(false);
+    expect(consoleMonitor.markContextChanged).toHaveBeenCalledOnce();
   });
 
   it('selects a tab by index without enabling monitoring when no stable page handle exists', async () => {
@@ -469,6 +475,8 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     expect(body.success).toBe(true);
     expect(body.selectedIndex).toBe(0);
     expect(body.selectedPageId).toBe(null);
+    expect(body.contextSwitched).toBe(true);
+    expect(body.monitoringBindingDeferred).toBe(false);
     expect(body.networkMonitoringEnabled).toBe(false);
     expect(body.consoleMonitoringEnabled).toBe(false);
   });
@@ -486,6 +494,7 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     expect(collector.selectPage).toHaveBeenCalledWith(1);
     expect(body.success).toBe(true);
     expect(body.selectedIndex).toBe(1);
+    expect(body.contextSwitched).toBe(true);
   });
 
   it('selects a tab by titlePattern', async () => {
@@ -500,6 +509,7 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
 
     expect(body.success).toBe(true);
     expect(body.selectedIndex).toBe(1);
+    expect(body.contextSwitched).toBe(true);
   });
 
   it('returns error when no matching tab found', async () => {
@@ -525,21 +535,11 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     expect(body.error).toBe('select failed');
   });
 
-  it('continues with monitoring disabled when consoleMonitor.disable fails', async () => {
+  it('continues when marking the monitoring context stale fails', async () => {
     collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
-    consoleMonitor.disable.mockRejectedValueOnce(new Error('disable fail'));
-
-    const body = parseJson<BrowserSelectTabResponse>(
-      await handlers.handleBrowserSelectTab({ index: 0 }),
-    );
-
-    expect(body.success).toBe(true);
-    expect(consoleMonitor.enable).toHaveBeenCalled();
-  });
-
-  it('reports monitoring disabled when consoleMonitor.enable fails', async () => {
-    collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
-    consoleMonitor.enable.mockRejectedValueOnce(new Error('enable fail'));
+    consoleMonitor.markContextChanged.mockImplementationOnce(() => {
+      throw new Error('mark stale failed');
+    });
 
     const body = parseJson<BrowserSelectTabResponse>(
       await handlers.handleBrowserSelectTab({ index: 0 }),
@@ -556,12 +556,14 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
 describe('BrowserControlHandlers – handleBrowserAttach', () => {
   let handlers: BrowserControlHandlers;
   let collector: CollectorMock;
+  let consoleMonitor: ConsoleMonitorMock;
   let tabRegistry: TabRegistryMock;
 
   beforeEach(() => {
     vi.clearAllMocks();
     const m = createMocks();
     collector = m.collector;
+    consoleMonitor = m.consoleMonitor;
     tabRegistry = m.tabRegistry;
     handlers = new BrowserControlHandlers(m.deps);
   });
@@ -596,6 +598,11 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     expect(body.selectedIndex).toBe(0);
     expect(body.totalPages).toBe(1);
     expect(body.takeoverReady).toBe(true);
+    expect(body.contextSwitched).toBe(true);
+    expect(body.monitoringBindingDeferred).toBe(true);
+    expect(body.networkMonitoringEnabled).toBe(false);
+    expect(body.consoleMonitoringEnabled).toBe(false);
+    expect(consoleMonitor.markContextChanged).toHaveBeenCalledOnce();
   });
 
   it('attaches and selects the requested pageIndex', async () => {
@@ -683,6 +690,8 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     expect(body.selectedIndex).toBe(0);
     expect(body.selectedPageId).toBe(null);
     expect(body.takeoverReady).toBe(false);
+    expect(body.contextSwitched).toBe(true);
+    expect(body.monitoringBindingDeferred).toBe(false);
     expect(body.networkMonitoringEnabled).toBe(false);
     expect(body.consoleMonitoringEnabled).toBe(false);
     expect(body.note).toContain('does not currently expose a stable Puppeteer Page handle');
@@ -701,5 +710,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     expect(body.success).toBe(true);
     expect(body.totalPages).toBe(0);
     expect(body.selectedIndex).toBe(0);
+    expect(body.contextSwitched).toBe(false);
+    expect(body.monitoringBindingDeferred).toBe(false);
   });
 });

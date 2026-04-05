@@ -56,7 +56,8 @@ export interface BrowserSelectTabResponse extends CommonSuccessResponse {
   selectedIndex: number;
   url: string;
   title: string;
-  activeContextRefreshed: boolean;
+  contextSwitched: boolean;
+  monitoringBindingDeferred?: boolean;
   networkMonitoringEnabled?: boolean;
   consoleMonitoringEnabled?: boolean;
   availablePages?: any[];
@@ -67,6 +68,8 @@ export interface BrowserAttachResponse extends CommonSuccessResponse {
   totalPages: number;
   takeoverReady: boolean;
   currentUrl?: string;
+  contextSwitched?: boolean;
+  monitoringBindingDeferred?: boolean;
 }
 
 export interface PageEvaluateResponse extends CommonSuccessResponse {

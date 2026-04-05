@@ -196,6 +196,11 @@ browser_list_tabs(autoConnect=true, channel="stable")`)
 
 After browser_list_tabs, use this to activate a specific tab.
 All subsequent page_* tools will operate on the selected tab.
+Console/network monitoring is rebound lazily on the next console_* or network_* call, so tab switching itself stays side-effect free.
+
+Response notes:
+- contextSwitched: tab context switched successfully
+- monitoringBindingDeferred: monitoring will auto-rebind later if needed
 
 Examples:
 - browser_select_tab(index=0) -> first tab

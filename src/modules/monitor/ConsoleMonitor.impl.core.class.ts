@@ -161,6 +161,7 @@ export class ConsoleMonitor {
   private fetchInterceptor: FetchInterceptor | null = null;
   private playwrightNetworkMonitor: PlaywrightNetworkMonitor | null = null;
   private playwrightPage: unknown = null;
+  private contextSwitchPending = false;
   private playwrightConsoleHandler: ((msg: PlaywrightConsoleMessageLike) => void) | null = null;
   private playwrightErrorHandler: ((error: Error) => void) | null = null;
   private messages: ConsoleMessage[] = [];
@@ -187,12 +188,33 @@ export class ConsoleMonitor {
   }
   clearPlaywrightPage(): void {
     this.playwrightPage = null;
+    this.contextSwitchPending = false;
     this.playwrightConsoleHandler = null;
     this.playwrightErrorHandler = null;
     this.playwrightNetworkMonitor?.setPage(null);
     this.playwrightNetworkMonitor = null;
   }
+  markContextChanged(): void {
+    if (
+      !this.cdpSession &&
+      !this.playwrightPage &&
+      !this.networkMonitor &&
+      !this.playwrightNetworkMonitor &&
+      !this.fetchInterceptor
+    ) {
+      return;
+    }
+    this.contextSwitchPending = true;
+    this.clearLogs();
+    this.clearExceptions();
+    this.clearNetworkRecords();
+    this.clearObjectCache();
+    logger.info('ConsoleMonitor marked stale after active context switch');
+  }
   async enable(options?: { enableNetwork?: boolean; enableExceptions?: boolean }): Promise<void> {
+    if (this.contextSwitchPending) {
+      await this.disable();
+    }
     if (this.initPromise) {
       await this.initPromise;
       await this.applyPostEnableOptions(options);
@@ -444,10 +466,18 @@ export class ConsoleMonitor {
       }
     } finally {
       this.initPromise = undefined;
+      this.contextSwitchPending = false;
       this.objectCache.clear();
     }
   }
   async ensureSession(): Promise<void> {
+    if (this.contextSwitchPending) {
+      logger.info('ConsoleMonitor context switched, rebinding on demand...');
+      const rebindOptions = { ...this.lastEnableOptions };
+      await this.disable();
+      await this.enable(rebindOptions);
+      return;
+    }
     if (!this.cdpSession && !this.playwrightPage) {
       logger.info('ConsoleMonitor CDP session lost, reinitializing...');
       await this.enable(this.lastEnableOptions);
@@ -480,7 +510,7 @@ export class ConsoleMonitor {
     }
   }
   isSessionActive(): boolean {
-    return this.cdpSession !== null || this.playwrightPage !== null;
+    return !this.contextSwitchPending && (this.cdpSession !== null || this.playwrightPage !== null);
   }
   getLogs(filter?: {
     type?: 'log' | 'warn' | 'error' | 'info' | 'debug';
