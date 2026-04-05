@@ -109,10 +109,39 @@ function resolveExtensionEntryFile(projectDir: string, entryPath: string): strin
   return resolvedEntryFile;
 }
 
+function buildRuntimeEntryCandidates(entryPath: string): string[] {
+  const normalizedEntry = normalizeInstallPathSegment(entryPath, 'entry').replace(/\\/g, '/');
+  const candidates = [normalizedEntry];
+
+  if (!normalizedEntry.endsWith('.ts')) {
+    return candidates;
+  }
+
+  const jsEntry = `${normalizedEntry.slice(0, -3)}.js`;
+  candidates.unshift(jsEntry);
+  if (!normalizedEntry.startsWith('dist/')) {
+    candidates.unshift(`dist/${jsEntry}`);
+  }
+
+  return [...new Set(candidates)];
+}
+
+function resolveInstalledRuntimeEntry(projectDir: string, entryPath: string): string {
+  const candidates = buildRuntimeEntryCandidates(entryPath);
+  for (const candidate of candidates) {
+    if (existsSync(resolveExtensionEntryFile(projectDir, candidate))) {
+      return candidate;
+    }
+  }
+
+  return normalizeInstallPathSegment(entryPath, 'entry');
+}
+
 async function writeInstalledExtensionMetadata(
   kind: 'plugin' | 'workflow',
   entry: RegistryEntry,
   projectDir: string,
+  installedEntryPath: string,
 ): Promise<string> {
   const payload: InstalledExtensionMetadata = {
     version: 1,
@@ -125,7 +154,7 @@ async function writeInstalledExtensionMetadata(
       ref: entry.source.ref,
       commit: entry.source.commit,
       subpath: normalizeInstallPathSegment(entry.source.subpath, 'subpath'),
-      entry: normalizeInstallPathSegment(entry.source.entry, 'entry'),
+      entry: normalizeInstallPathSegment(installedEntryPath, 'entry'),
     },
   };
   const metadataPath = resolve(projectDir, INSTALLED_EXTENSION_METADATA_FILENAME);
@@ -596,7 +625,7 @@ export class ExtensionManagementHandlers {
       const defaultRoot = resolveDefaultExtensionRoot(isWorkflow ? 'workflow' : 'plugin');
       const installDir = targetDir ? resolve(targetDir) : resolve(defaultRoot, slug);
       const projectDir = resolveExtensionProjectDir(installDir, entry.source.subpath);
-      const entryFile = resolveExtensionEntryFile(projectDir, entry.source.entry);
+      resolveExtensionEntryFile(projectDir, entry.source.entry);
 
       if (existsSync(installDir)) {
         return asJsonResponse({
@@ -643,14 +672,17 @@ export class ExtensionManagementHandlers {
         });
       }
 
+      const installedEntry = resolveInstalledRuntimeEntry(projectDir, entry.source.entry);
+      const entryFile = resolveExtensionEntryFile(projectDir, installedEntry);
+
       if (!existsSync(entryFile)) {
         return asJsonResponse({
           success: false,
-          error: `Installed extension entry not found: ${entry.source.entry}`,
+          error: `Installed extension entry not found: ${installedEntry}`,
           installDir,
           projectDir,
           expectedEntryFile: entryFile,
-          hint: 'The registry source.entry must exist after clone/build before reloadExtensions can load it.',
+          hint: 'The registry source.entry or its compiled JS output must exist after clone/build before reloadExtensions can load it.',
         });
       }
 
@@ -658,6 +690,7 @@ export class ExtensionManagementHandlers {
         isWorkflow ? 'workflow' : 'plugin',
         entry,
         projectDir,
+        installedEntry,
       );
 
       // Reload extensions to pick up the new plugin
@@ -673,7 +706,7 @@ export class ExtensionManagementHandlers {
           commit: entry.source.commit,
           installDir,
           projectDir,
-          entry: entry.source.entry,
+          entry: installedEntry,
           entryFile,
           metadataPath,
         },
