@@ -26,7 +26,7 @@ pnpm run build
 pnpm run check
 ```
 
-**Engineering Protocol**: The environment is **TS-first** driven. `workflow.ts` functions as the sole authoritative AST entrypoint. The secondary `dist/workflow.js` compilation artifact is localized and structurally preferred by the runtime parser upon resolution collision.
+**Engineering Protocol**: The project remains **TS-first** and keeps `workflow.ts` as the source entrypoint; repositories should not commit `dist/workflow.js`. During installation, however, the local build step is expected to produce `dist/workflow.js`, and the installer should persist that compiled file as the runtime entry to avoid importing TypeScript directly from `node_modules`.
 
 ### 3. Graph Identity Allocation
 

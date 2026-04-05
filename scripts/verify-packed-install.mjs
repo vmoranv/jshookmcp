@@ -100,11 +100,25 @@ function unpackTarball(tarball, outputDir) {
   return unpackedPackageDir;
 }
 
+function resolveWorkflowEntryPath(workflowRoot, workflowName) {
+  const rootEntry = join(workflowRoot, workflowName, 'workflow.js');
+  if (existsSync(rootEntry)) {
+    return rootEntry;
+  }
+
+  const distEntry = join(workflowRoot, workflowName, 'dist', 'workflow.js');
+  if (existsSync(distEntry)) {
+    return distEntry;
+  }
+
+  return null;
+}
+
 function listRepoWorkflowNames(repoWorkflowRoot) {
   return readdirSync(repoWorkflowRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
-    .filter((name) => existsSync(join(repoWorkflowRoot, name, 'workflow.js')))
+    .filter((name) => resolveWorkflowEntryPath(repoWorkflowRoot, name) !== null)
     .toSorted();
 }
 
@@ -266,16 +280,19 @@ try {
     );
   } else {
     const requiredWorkflowPaths = unpackedWorkflowNames.map((name) =>
-      join(unpackedWorkflowRoot, name, 'workflow.js'),
+      resolveWorkflowEntryPath(unpackedWorkflowRoot, name),
     );
     for (const workflowPath of requiredWorkflowPaths) {
-      if (!existsSync(workflowPath)) {
+      if (!workflowPath || !existsSync(workflowPath)) {
         throw new Error(`Packed tarball is missing required workflow asset: ${workflowPath}`);
       }
     }
 
     for (const workflowName of unpackedWorkflowNames) {
-      const workflowPath = join(unpackedWorkflowRoot, workflowName, 'workflow.js');
+      const workflowPath = resolveWorkflowEntryPath(unpackedWorkflowRoot, workflowName);
+      if (!workflowPath) {
+        throw new Error(`Packed workflow entry could not be resolved for ${workflowName}`);
+      }
 
       try {
         const mod = await import(pathToFileURL(workflowPath).href);

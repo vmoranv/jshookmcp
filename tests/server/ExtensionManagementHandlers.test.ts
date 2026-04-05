@@ -102,9 +102,10 @@ describe('ExtensionManagementHandlers', () => {
       })),
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
-    existsSyncMock.mockImplementation((value: string | PathLike) =>
-      normalizePath(value).endsWith('/dist/index.js'),
-    );
+    existsSyncMock.mockImplementation((value: string | PathLike) => {
+      const path = normalizePath(value);
+      return path.endsWith('/package.json') || path.endsWith('/dist/workflow.js');
+    });
 
     global.fetch = vi.fn(async (url: string | URL | Request) => {
       const textUrl = String(url);
@@ -124,7 +125,7 @@ describe('ExtensionManagementHandlers', () => {
                   ref: 'main',
                   commit: 'abc123',
                   subpath: '.',
-                  entry: 'dist/index.js',
+                  entry: 'workflow.ts',
                 },
                 meta: {
                   name: 'Web API Capture Session',
@@ -142,9 +143,14 @@ describe('ExtensionManagementHandlers', () => {
 
     const response = await handlers.handleInstallExtension('web-api-capture-session');
     const content = response.content[0] as { type: string; text: string };
-    const body = JSON.parse(content.text) as { success: boolean };
+    const body = JSON.parse(content.text) as {
+      success: boolean;
+      installed: { entry: string; entryFile: string };
+    };
 
     expect(body.success).toBe(true);
+    expect(body.installed.entry).toBe('dist/workflow.js');
+    expect(normalizePath(body.installed.entryFile)).toContain('/dist/workflow.js');
     expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(global.fetch).toHaveBeenCalledWith(
       'https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry/workflows.index.json',
@@ -166,7 +172,7 @@ describe('ExtensionManagementHandlers', () => {
       '/workflows/web-api-capture-session/.jshook-install.json',
     );
     // @ts-expect-error — auto-suppressed [TS18048, TS2493]
-    expect(metadataCall[1]).toContain('"entry": "dist/index.js"');
+    expect(metadataCall[1]).toContain('"entry": "dist/workflow.js"');
     // @ts-expect-error — auto-suppressed [TS18048, TS2493]
     expect(metadataCall[2]).toBe('utf8');
     expect(execFileMock).toHaveBeenNthCalledWith(
@@ -196,9 +202,10 @@ describe('ExtensionManagementHandlers', () => {
       })),
     } as any;
     const handlers = new ExtensionManagementHandlers(ctx);
-    existsSyncMock.mockImplementation((value: string | PathLike) =>
-      normalizePath(value).endsWith('/dist/index.js'),
-    );
+    existsSyncMock.mockImplementation((value: string | PathLike) => {
+      const path = normalizePath(value);
+      return path.endsWith('/package.json') || path.endsWith('/dist/manifest.js');
+    });
 
     global.fetch = vi.fn(async (url: string | URL | Request) => {
       const textUrl = String(url);
@@ -221,7 +228,7 @@ describe('ExtensionManagementHandlers', () => {
                   ref: 'main',
                   commit: 'def456',
                   subpath: '.',
-                  entry: 'dist/index.js',
+                  entry: 'manifest.ts',
                 },
                 meta: {
                   name: 'IDA Bridge',
@@ -239,9 +246,14 @@ describe('ExtensionManagementHandlers', () => {
 
     const response = await handlers.handleInstallExtension('ida-bridge');
     const content = response.content[0] as { type: string; text: string };
-    const body = JSON.parse(content.text) as { success: boolean };
+    const body = JSON.parse(content.text) as {
+      success: boolean;
+      installed: { entry: string; entryFile: string };
+    };
 
     expect(body.success).toBe(true);
+    expect(body.installed.entry).toBe('dist/manifest.js');
+    expect(normalizePath(body.installed.entryFile)).toContain('/dist/manifest.js');
     expect(global.fetch).toHaveBeenCalledTimes(2);
     const metadataCall = writeFileMock.mock.calls.find((call) =>
       // @ts-expect-error — auto-suppressed [TS2352, TS2493]
@@ -254,6 +266,8 @@ describe('ExtensionManagementHandlers', () => {
     );
     // @ts-expect-error — auto-suppressed [TS18048, TS2493]
     expect(metadataCall[1]).toContain('"kind": "plugin"');
+    // @ts-expect-error — auto-suppressed [TS18048, TS2493]
+    expect(metadataCall[1]).toContain('"entry": "dist/manifest.js"');
     // @ts-expect-error — auto-suppressed [TS18048, TS2493]
     expect(metadataCall[2]).toBe('utf8');
     expect(execFileMock).toHaveBeenNthCalledWith(
