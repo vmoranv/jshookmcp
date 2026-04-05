@@ -34,8 +34,10 @@ describe('MCPServer.schema – buildZodShape', () => {
       required: ['count'],
     });
     expect(shape.count!.safeParse(50).success).toBe(true);
+    expect(shape.count!.safeParse('50').success).toBe(true);
     expect(shape.count!.safeParse(0).success).toBe(false);
     expect(shape.count!.safeParse(101).success).toBe(false);
+    expect(shape.count!.safeParse('not-a-number').success).toBe(false);
   });
 
   it('converts integer type', () => {
@@ -46,7 +48,9 @@ describe('MCPServer.schema – buildZodShape', () => {
       required: ['port'],
     });
     expect(shape.port!.safeParse(8080).success).toBe(true);
+    expect(shape.port!.safeParse('8080').success).toBe(true);
     expect(shape.port!.safeParse(3.14).success).toBe(false);
+    expect(shape.port!.safeParse('3.14').success).toBe(false);
   });
 
   it('converts boolean property', () => {
@@ -56,7 +60,9 @@ describe('MCPServer.schema – buildZodShape', () => {
       },
     });
     expect(shape.enabled!.safeParse(true).success).toBe(true);
-    expect(shape.enabled!.safeParse('yes').success).toBe(false);
+    expect(shape.enabled!.safeParse('true').success).toBe(true);
+    expect(shape.enabled!.safeParse('yes').success).toBe(true);
+    expect(shape.enabled!.safeParse('maybe').success).toBe(false);
   });
 
   it('converts array of strings', () => {
