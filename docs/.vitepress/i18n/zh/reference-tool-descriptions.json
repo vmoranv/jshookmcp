@@ -336,8 +336,8 @@
   "state_board_export": "将全部或过滤后的状态板条目导出为 JSON。",
   "state_board_import": "从 JSON 导入状态板条目，并与现有状态合并。",
   "state_board_clear": "清空全部或过滤后的状态板条目。",
-  "canvas_engine_fingerprint": "待补充中文：Detect Canvas/WebGL game engine instances running in the page (LayaAir, PixiJS, Phaser, Cocos Creator, Unity WebGL, etc.)",
-  "canvas_scene_dump": "待补充中文：Extract the full scene tree / display list from a detected canvas engine",
-  "canvas_pick_object_at_point": "待补充中文：Pick / hit-test the topmost object at a given screen coordinate using the engine's hit-test system",
-  "trace_click_to_handler": "待补充中文：Trace a click event through DOM events, engine dispatch, and JS call stack to identify the final handler"
+  "canvas_engine_fingerprint": "检测页面中运行的 Canvas/WebGL 游戏引擎实例（LayaAir、PixiJS、Phaser、Cocos Creator、Unity WebGL 等）",
+  "canvas_scene_dump": "从检测到的 Canvas 引擎中提取完整的场景树/显示列表",
+  "canvas_pick_object_at_point": "使用引擎的命中测试系统，在给定屏幕坐标处拾取/命中测试最上层的对象",
+  "trace_click_to_handler": "追踪点击事件经过 DOM 事件、引擎分发和 JS 调用栈的过程，定位最终的处理函数"
 }
