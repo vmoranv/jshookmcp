@@ -369,6 +369,37 @@ const META = {
     enScenarios: ['Secure script execution', 'Custom analysis logic', 'Isolated code testing'],
     enCombos: ['sandbox + core + transform'],
   },
+  canvas: {
+    zhTitle: 'Canvas',
+    zhSummary: '游戏引擎 Canvas 逆向分析域，支持 Laya/Pixi/Phaser/Cocos/Unity 等主流游戏引擎的指纹识别、场景树导出和对象拾取。',
+    zhScenarios: ['游戏引擎识别与版本检测', '场景节点树导出', '坐标拾取游戏对象', '点击事件链路追踪'],
+    zhCombos: ['browser + canvas + debugger', 'canvas + evidence + trace'],
+    enTitle: 'Canvas',
+    enSummary:
+      'Canvas game engine reverse analysis domain supporting Laya, Pixi, Phaser, Cocos, and Unity engines for fingerprinting, scene tree dumping, and object picking.',
+    enScenarios: [
+      'Game engine fingerprinting and version detection',
+      'Scene node tree export',
+      'Coordinate-based object picking',
+      'Click event handler tracing',
+    ],
+    enCombos: ['browser + canvas + debugger', 'canvas + evidence + trace'],
+  },
+  'shared-state-board': {
+    zhTitle: 'Shared State Board',
+    zhSummary: '跨域协作状态同步域，提供跨域状态共享、团队协作和事件广播能力。',
+    zhScenarios: ['跨域状态共享', '团队协作协调', '事件广播与订阅'],
+    zhCombos: ['browser + network + coordination', 'shared-state-board + instrumentation'],
+    enTitle: 'Shared State Board',
+    enSummary:
+      'Cross-domain coordination domain providing shared state synchronization, team collaboration, and event broadcasting capabilities.',
+    enScenarios: [
+      'Cross-domain state synchronization',
+      'Team collaboration coordination',
+      'Event broadcasting and subscription',
+    ],
+    enCombos: ['browser + network + coordination', 'shared-state-board + instrumentation'],
+  },
 };
 
 async function main() {
