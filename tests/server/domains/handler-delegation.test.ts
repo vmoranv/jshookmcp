@@ -337,17 +337,36 @@ describe('Domain handler delegation (handlers.ts)', () => {
     { domain: 'workflow', exportName: 'WorkflowHandlers' },
   ] as const;
 
+  // Lazy loader map — avoids Vite dynamic-import-vars warning
+  type PureDomain = (typeof pureReExportDomains)[number]['domain'];
+
+  const pureHandlerModuleLoaders = {
+    analysis: () => import('@server/domains/analysis/handlers'),
+    encoding: () => import('@server/domains/encoding/handlers'),
+    graphql: () => import('@server/domains/graphql/handlers'),
+    network: () => import('@server/domains/network/handlers'),
+    process: () => import('@server/domains/process/handlers'),
+    sourcemap: () => import('@server/domains/sourcemap/handlers'),
+    streaming: () => import('@server/domains/streaming/handlers'),
+    transform: () => import('@server/domains/transform/handlers'),
+    workflow: () => import('@server/domains/workflow/handlers'),
+  } satisfies Record<PureDomain, () => Promise<Record<string, unknown>>>;
+
+  async function loadHandlerModule(domain: PureDomain) {
+    return asExportMap(await pureHandlerModuleLoaders[domain]());
+  }
+
   describe.each(pureReExportDomains)(
     '$domain/handlers.ts re-exports $exportName',
     ({ domain, exportName }) => {
       it(`exports ${exportName} as a constructor function`, async () => {
-        const mod = asExportMap(await import(`@server/domains/${domain}/handlers`));
+        const mod = await loadHandlerModule(domain);
         expect(mod[exportName]).toBeDefined();
         expect(typeof mod[exportName]).toBe('function');
       });
 
       it(`has no unexpected exports besides ${exportName}`, async () => {
-        const mod = await import(`@server/domains/${domain}/handlers`);
+        const mod = await loadHandlerModule(domain);
         const exportedNames = Object.keys(mod).filter((k) => k !== '__esModule');
         expect(exportedNames).toContain(exportName);
       });

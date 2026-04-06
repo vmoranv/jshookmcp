@@ -1,5 +1,10 @@
 import { cpus } from 'node:os';
 import { defineConfig } from 'vitest/config';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Project root (directory containing package.json)
+const root = resolve(dirname(fileURLToPath(import.meta.url)));
 
 // Worker thread count: leave 2 cores for OS + IDE
 const maxWorkers = Math.max(2, cpus().length - 2);
@@ -40,7 +45,29 @@ const coverageExclude = [
 
 export default defineConfig({
   resolve: {
-    tsconfigPaths: true,
+    alias: [
+      // Explicit .ts extensions so require() can find modules without extension auto-append
+      { find: '@server/domains/canvas/adapters/cocos-adapter', replacement: resolve(root, 'src/server/domains/canvas/adapters/cocos-adapter.ts') },
+      { find: '@server/domains/canvas/adapters/pixi-adapter', replacement: resolve(root, 'src/server/domains/canvas/adapters/pixi-adapter.ts') },
+      { find: '@server/domains/canvas/adapters/phaser-adapter', replacement: resolve(root, 'src/server/domains/canvas/adapters/phaser-adapter.ts') },
+      { find: '@server/domains/canvas/adapters', replacement: resolve(root, 'src/server/domains/canvas/adapters') },
+      { find: '@server', replacement: resolve(root, 'src/server') },
+      { find: '@src', replacement: resolve(root, 'src') },
+      { find: '@modules', replacement: resolve(root, 'src/modules') },
+      { find: '@native', replacement: resolve(root, 'src/native') },
+      { find: '@utils', replacement: resolve(root, 'src/utils') },
+      { find: '@services', replacement: resolve(root, 'src/services') },
+      { find: '@errors', replacement: resolve(root, 'src/errors') },
+      { find: '@internal-types', replacement: resolve(root, 'src/types') },
+      { find: '@extension-sdk', replacement: resolve(root, 'packages/extension-sdk/src') },
+      { find: '@jshookmcp/extension-sdk', replacement: resolve(root, 'packages/extension-sdk/src') },
+      { find: '@tests', replacement: resolve(root, 'tests') },
+    ],
+    // Note: tsconfigPaths is intentionally omitted. The explicit resolve.alias
+    // entries above handle all path aliases correctly. tsconfigPaths can mangle
+    // aliases into incorrect relative paths when dynamic require() is used in
+    // tests (e.g. the canvas multi-engine adapter tests), causing ENOENT errors.
+    // Additionally, explicit .ts extensions are needed for require() resolution.
   },
   test: {
     // ── Shared defaults (inherited by projects via extends: true) ──

@@ -189,7 +189,12 @@ export async function main() {
       handleRuntimeFailure('unhandledRejection', reason);
     });
 
-    // Safety net: detect parent disconnect even if transport mode is HTTP (stdin not read)
+    logger.info('Starting MCP server...');
+    await server.start();
+    logger.info('MCP server started successfully');
+
+    // Safety net: detect parent disconnect — cleanup only, exit is handled by
+    // StdioServerTransport's onclose + SIGINT/SIGTERM handlers above.
     process.stdin.resume();
     process.stdin.on('end', async () => {
       logger.info('stdin EOF — parent disconnected, shutting down...');
@@ -207,10 +212,6 @@ export async function main() {
       clearTimeout(forceExitTimer);
       process.exit(0);
     });
-
-    logger.info('Starting MCP server...');
-    await server.start();
-    logger.info('MCP server started successfully');
 
     logger.info('MCP server is running. Press Ctrl+C to stop.');
   } catch (error) {

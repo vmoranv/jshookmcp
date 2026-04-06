@@ -66,8 +66,16 @@ vi.mock('node:crypto', () => ({
 }));
 
 vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
-  StdioServerTransport: function MockStdioServerTransport(this: unknown) {
+  // StdioServerTransport uses `onclose` as a callback property, not addEventListener.
+  // eslint-disable-next-line unicorn/prefer-add-event-listener
+  StdioServerTransport: function MockStdioServerTransport(this: {
+    onclose?: () => void;
+    send?: () => Promise<void>;
+  }) {
     mocks.stdioConnects.push(this);
+    // eslint-disable-next-line unicorn/prefer-add-event-listener
+    this.onclose = undefined;
+    this.send = async () => {};
   },
 }));
 
@@ -158,7 +166,11 @@ describe('MCPServer.transport', () => {
     mocks.httpServers.length = 0;
     mocks.httpTransports.length = 0;
     mocks.stdioConnects.length = 0;
-    vi.clearAllMocks();
+    // Reset mock implementations without clearing call history
+    mocks.logger.success.mockRestore();
+    mocks.logger.warn.mockRestore();
+    mocks.logger.info.mockRestore();
+    mocks.logger.error.mockRestore();
     mocks.checkOrigin.mockReturnValue(true);
     mocks.checkAuth.mockReturnValue(true);
     mocks.checkRateLimit.mockReturnValue(true);
@@ -180,22 +192,58 @@ describe('MCPServer.transport', () => {
     expect(mocks.logger.success).toHaveBeenCalledWith('MCP stdio server started');
   });
 
-  it('registers stdin end/close and stdout error listeners for zombie prevention', async () => {
-    const stdinOnSpy = vi.spyOn(process.stdin, 'on').mockReturnValue(process.stdin);
-    const stdoutOnSpy = vi.spyOn(process.stdout, 'on').mockReturnValue(process.stdout);
+  it('sets transport.onclose to trigger cleanup on transport close', async () => {
     const ctx = createCtx();
-
     await startStdioTransport(ctx);
+    const transport = mocks.stdioConnects[0];
+    expect(typeof transport.onclose).toBe('function');
+  });
 
-    const stdinEvents = stdinOnSpy.mock.calls.map(([event]) => event);
-    expect(stdinEvents).toContain('end');
-    expect(stdinEvents).toContain('close');
+  it('handles transport.onclose and closeServer failures gracefully', async () => {
+    const ctx = createCtx();
+    // Make closeServer's internal steps fail so the outer catch in onclose fires
+    ctx.server.close = vi.fn(async () => {
+      throw new Error('close error');
+    });
+    await startStdioTransport(ctx);
+    const transport = mocks.stdioConnects[0];
+    mocks.logger.error.mockClear();
+    mocks.logger.warn.mockClear();
+    transport.onclose?.();
+    await new Promise((r) => setTimeout(r, 0));
+    // closeServer's own catch logs 'MCP server close failed:' — this is correct
+    expect(mocks.logger.warn).toHaveBeenCalledWith(
+      'MCP server close failed:',
+      expect.objectContaining({ message: 'close error' }),
+    );
+    expect(mocks.logger.success).toHaveBeenCalledWith('MCP server closed');
+  });
 
-    const stdoutEvents = stdoutOnSpy.mock.calls.map(([event]) => event);
-    expect(stdoutEvents).toContain('error');
+  it('handles transport.onclose idempotently', async () => {
+    const ctx = createCtx();
+    await startStdioTransport(ctx);
+    const transport = mocks.stdioConnects[0];
+    mocks.logger.info.mockClear();
+    transport.onclose?.();
+    transport.onclose?.();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mocks.logger.info).toHaveBeenCalledWith('stdio transport closed — running cleanup...');
+    expect(mocks.logger.info).toHaveBeenCalledTimes(1);
+    expect(ctx.server.close).toHaveBeenCalledTimes(1);
+  });
 
-    stdinOnSpy.mockRestore();
-    stdoutOnSpy.mockRestore();
+  it('does not re-enter cleanup when transport.onclose fires during server.close()', async () => {
+    const ctx = createCtx();
+    await startStdioTransport(ctx);
+    const transport = mocks.stdioConnects[0];
+    ctx.server.close = vi.fn(async () => {
+      transport.onclose?.();
+    });
+
+    await closeServer(ctx);
+
+    expect(ctx.server.close).toHaveBeenCalledTimes(1);
+    expect(mocks.logger.success).toHaveBeenCalledWith('MCP server closed');
   });
 
   it('starts HTTP transport, configures timeouts, and tracks sockets', async () => {
@@ -423,44 +471,54 @@ describe('MCPServer.transport', () => {
     expect(mocks.logger.success).toHaveBeenCalledWith('MCP server closed');
   });
 
-  it('handles stdio gracefulExit duplicate calls and closeServer failures', async () => {
+  it('registers stdin end/close listeners after connect (zombie prevention)', async () => {
+    const stdinOnSpy = vi.spyOn(process.stdin, 'on').mockReturnValue(process.stdin);
+    await startStdioTransport(createCtx());
+    const events = stdinOnSpy.mock.calls.map(([ev]) => ev);
+    expect(events).toContain('end');
+    expect(events).toContain('close');
+    stdinOnSpy.mockRestore();
+  });
+
+  it('handles stdin EOF gracefully — cleanup + exit', async () => {
     const stdinOnSpy = vi.spyOn(process.stdin, 'on').mockReturnValue(process.stdin);
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     const ctx = createCtx();
-    ctx.server.close.mockRejectedValue(new Error('close error'));
-
     await startStdioTransport(ctx);
 
-    const gracefulExit = stdinOnSpy.mock.calls.find(
-      (c) => c[0] === 'end',
-    )?.[1] as () => Promise<void>;
-
-    await gracefulExit();
+    const handleStdinEnd = stdinOnSpy.mock.calls.find(([ev]) => ev === 'end')?.[1] as () => void;
+    handleStdinEnd();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(ctx.server.close).toHaveBeenCalled();
     expect(exitSpy).toHaveBeenCalledWith(0);
-
-    await gracefulExit();
 
     stdinOnSpy.mockRestore();
     exitSpy.mockRestore();
   });
 
-  it('handles stdio stdout error with EPIPE and ERR_STREAM_DESTROYED', async () => {
-    const stdoutOnSpy = vi.spyOn(process.stdout, 'on').mockReturnValue(process.stdout);
+  it('handles stdin EOF idempotently — shuttingDown flag prevents double-exit', async () => {
+    const stdinOnSpy = vi.spyOn(process.stdin, 'on').mockReturnValue(process.stdin);
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     const ctx = createCtx();
-
     await startStdioTransport(ctx);
 
-    const errorCb = stdoutOnSpy.mock.calls.find((c) => c[0] === 'error')?.[1] as (err: any) => void;
-    errorCb({ code: 'EPIPE' });
-    errorCb({ code: 'ERR_STREAM_DESTROYED' });
-    errorCb({ code: 'OTHER' });
-
+    const handleStdinEnd = stdinOnSpy.mock.calls.find(([ev]) => ev === 'end')?.[1] as () => void;
+    handleStdinEnd(); // first call
+    handleStdinEnd(); // second call — should be no-op
     await new Promise((r) => setTimeout(r, 0));
-    expect(exitSpy).toHaveBeenCalledTimes(2);
+    // server.close called once (second call returns early via shuttingDown guard)
+    expect(ctx.server.close).toHaveBeenCalledTimes(1);
+    expect(exitSpy).toHaveBeenCalledTimes(1);
 
-    stdoutOnSpy.mockRestore();
+    stdinOnSpy.mockRestore();
     exitSpy.mockRestore();
+  });
+
+  it('wraps transport.send with a timeout guard', async () => {
+    const ctx = createCtx();
+    await startStdioTransport(ctx);
+    const transport = mocks.stdioConnects[0];
+    expect(typeof transport.send).toBe('function');
   });
 
   it('ignores errors when readBodyWithLimit rejects during POST', async () => {

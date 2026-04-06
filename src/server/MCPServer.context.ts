@@ -64,6 +64,8 @@ export interface ActivationState {
 export interface TransportState {
   httpServer?: Server;
   httpSockets: Set<Socket>;
+  shutdownStarted?: boolean;
+  shutdownPromise?: Promise<void>;
 }
 
 /** Runtime-loaded plugins/workflows/tools from external directories. */

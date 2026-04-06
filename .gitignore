@@ -79,10 +79,19 @@ test/
 # Tool-generated spec/change directories
 openspec/
 
+# AI tool local configs — tracked in repo so agents can read, but not generated content
+.context/
+.github/prompts/
+.github/skills/
+
+# AI-generated documentation
+CLAUDE.md
+DESIGN.md
+
 # Other AI/tool local configs
 .augment/
 .claude/
-CLAUDE.md
+.serena/
 AGENTS.md
 
 # VitePress build output
