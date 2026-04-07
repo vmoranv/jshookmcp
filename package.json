@@ -141,6 +141,7 @@
     "vue": "^3.5.30"
   },
   "optionalDependencies": {
+    "@devicefarmer/adbkit": "^3.3.8",
     "better-sqlite3": "12.6.2",
     "camoufox-js": "^0.9.1",
     "playwright-core": "^1.58.2",
