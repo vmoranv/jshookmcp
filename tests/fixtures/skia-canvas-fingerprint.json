@@ -1,0 +1,90 @@
+{
+  "rendererInfo": {
+    "isSkiaBacked": true,
+    "version": "12.0.1",
+    "gpuBackend": "gl",
+    "shaderPipeline": "OpenGL",
+    "rendererStrings": ["ANGLE (NVIDIA, NVIDIA GeForce RTX 3080 Direct3D11 vs_5_0 ps_5_0)"],
+    "features": ["fontBoundingBoxAscent/Descent available", "engine:CocosCreator"],
+    "confidence": 0.9,
+    "evidence": [
+      "WebGL unmasked renderer: ANGLE (NVIDIA, NVIDIA GeForce RTX 3080 Direct3D11 vs_5_0 ps_5_0)",
+      "Canvas 2D text metrics include font bounding boxes",
+      "Engine CocosCreator detected (known Skia user)"
+    ]
+  },
+  "canvasElements": [
+    {
+      "id": "game-canvas",
+      "width": 1920,
+      "height": 1080,
+      "contextType": "webgl"
+    }
+  ],
+  "sceneTree": {
+    "rootLayer": {
+      "id": "layer_root",
+      "name": "root_canvas",
+      "bounds": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+      "transform": [1, 0, 0, 0, 1, 0, 0, 0, 1],
+      "opacity": 1,
+      "visible": true,
+      "children": [
+        {
+          "id": "layer_0",
+          "name": "background",
+          "bounds": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+          "transform": [1, 0, 0, 0, 1, 0, 0, 0, 1],
+          "opacity": 1,
+          "visible": true,
+          "children": [],
+          "customData": { "elementId": null, "cssClass": "", "dataAttributes": {} }
+        }
+      ],
+      "customData": { "elementId": "game-canvas", "pixelWidth": 1920, "pixelHeight": 1080 }
+    },
+    "layers": [
+      {
+        "id": "layer_root",
+        "name": "root_canvas",
+        "bounds": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+        "transform": [1, 0, 0, 0, 1, 0, 0, 0, 1],
+        "opacity": 1,
+        "visible": true,
+        "children": [],
+        "customData": { "elementId": "game-canvas", "pixelWidth": 1920, "pixelHeight": 1080 }
+      },
+      {
+        "id": "layer_0",
+        "name": "background",
+        "bounds": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+        "transform": [1, 0, 0, 0, 1, 0, 0, 0, 1],
+        "opacity": 1,
+        "visible": true,
+        "children": [],
+        "customData": { "elementId": null, "cssClass": "", "dataAttributes": {} }
+      }
+    ],
+    "drawCommands": [
+      {
+        "type": "drawRect",
+        "bounds": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+        "paintInfo": {
+          "fillStyle": "#1a1a2e",
+          "strokeStyle": "transparent",
+          "globalAlpha": 1,
+          "globalCompositeOperation": "source-over"
+        }
+      }
+    ],
+    "totalLayers": 2,
+    "totalDrawCommands": 1,
+    "canvas": {
+      "id": "game-canvas",
+      "width": 1920,
+      "height": 1080,
+      "dpr": 1,
+      "contextType": "webgl"
+    }
+  }
+}
