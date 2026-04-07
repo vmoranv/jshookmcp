@@ -405,4 +405,316 @@ describe('TraceRecorder', () => {
       /Cannot capture heap snapshot: not recording/,
     );
   });
+
+  // ── Error-path coverage ────────────────────────────────────────────────────
+
+  it('EventBus handler swallows errors silently', async () => {
+    await recorder.start(eventBus, null);
+
+    // Patch the DB to throw on insertEvent
+    const db = recorder.getDB()!;
+    const origInsert = db.insertEvent.bind(db);
+    db.insertEvent = () => {
+      throw new Error('simulated insert error');
+    };
+
+    // Should not throw
+    eventBus.emit('tool:called', { name: 'test', args: {} } as never);
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Restore and stop
+    db.insertEvent = origInsert;
+    recorder.stop();
+  });
+
+  it('CDP handler swallows errors silently when emitting', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    // Patch the DB to throw
+    const db = recorder.getDB()!;
+    const origInsert = db.insertEvent.bind(db);
+    db.insertEvent = () => {
+      throw new Error('simulated CDP handler error');
+    };
+
+    const handler = Array.from(mockCdp._listeners.get('Debugger.paused') || [])[0];
+    expect(handler).toBeDefined();
+
+    // Should not throw
+    handler!({
+      callFrames: [{ location: { scriptId: '1', lineNumber: 10 } }],
+    });
+
+    db.insertEvent = origInsert;
+    recorder.stop();
+  });
+
+  it('CDP handler handles null params gracefully', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    const networkHandler = Array.from(mockCdp._listeners.get('Network.requestWillBeSent') || [])[0];
+    expect(networkHandler).toBeDefined();
+
+    // Pass null — CDP handler checks `typeof params === 'object' && params !== null`
+    expect(() => networkHandler!(null)).not.toThrow();
+    recorder.stop();
+  });
+
+  it('CDP handler handles non-object params gracefully', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    const networkHandler = Array.from(mockCdp._listeners.get('Network.requestWillBeSent') || [])[0];
+    expect(() => networkHandler!(42 as any)).not.toThrow();
+    recorder.stop();
+  });
+
+  it('start() skips unknown CDP domains gracefully', async () => {
+    const mockCdp = createMockCDPSession();
+    // Pass a domain that is NOT in CDP_EVENTS_BY_DOMAIN
+    await recorder.start(eventBus, mockCdp, { cdpDomains: ['NonExistentDomain'] });
+
+    // No listeners should be registered for unknown domain
+    expect(recorder.getState()).toBe('recording');
+    recorder.stop();
+  });
+
+  it('CDP handler extracts scriptId and lineNumber from non-Debugger.paused events', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    // Emit Runtime.exceptionThrown with scriptId/lineNumber directly
+    const handler = Array.from(mockCdp._listeners.get('Runtime.exceptionThrown') || [])[0];
+    expect(handler).toBeDefined();
+
+    handler!({
+      scriptId: 'script-99',
+      lineNumber: 123,
+      exceptionDetails: { text: 'oops' },
+    });
+
+    recorder.stop();
+
+    const db = new TraceDB({ dbPath: recorder.getSession()!.dbPath });
+    try {
+      const result = db.query(
+        "SELECT script_id, line_number FROM events WHERE event_type = 'Runtime.exceptionThrown'",
+      );
+      expect(result.rowCount).toBe(1);
+      expect(result.rows[0]![0]).toBe('script-99');
+      expect(result.rows[0]![1]).toBe(123);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('extractHeapSummary handles nodes with missing nameIndex gracefully', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        const handler = Array.from(
+          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+        )[0];
+        if (handler) {
+          // snapshot with node_fields but nameIndex would be -1
+          handler({
+            chunk: JSON.stringify({
+              snapshot: {
+                meta: {
+                  node_fields: ['type', 'id', 'self_size'],
+                  node_types: [['object', 'string', 'number']],
+                },
+                node_count: 1,
+              },
+              nodes: [0, 1, 10], // only 3 fields, no 'name' field
+              strings: [],
+            }),
+          });
+        }
+      }
+      return {};
+    });
+
+    await recorder.captureHeapSnapshot(mockCdp);
+    const db = recorder.getDB()!;
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toHaveLength(1);
+    const summary = JSON.parse(snapshots[0]!.summary);
+    expect(summary.totalSize).toBe(10);
+    expect(summary.nodeCount).toBe(1);
+  });
+
+  it('extractHeapSummary handles empty snapshot string gracefully', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        const handler = Array.from(
+          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+        )[0];
+        if (handler) {
+          handler({ chunk: '' }); // empty string → JSON.parse returns {}
+        }
+      }
+      return {};
+    });
+
+    await recorder.captureHeapSnapshot(mockCdp);
+    const db = recorder.getDB()!;
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toHaveLength(1);
+    const summary = JSON.parse(snapshots[0]!.summary);
+    expect(summary.totalSize).toBe(0);
+    expect(summary.nodeCount).toBe(0);
+    expect(summary.objectCounts).toEqual({});
+  });
+
+  it('extractHeapSummary handles snapshot missing the "snapshot" key', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        const handler = Array.from(
+          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+        )[0];
+        if (handler) {
+          // Valid JSON but missing the 'snapshot' top-level key
+          handler({ chunk: '{"otherData": true, "nodes": [1,2,3]}' });
+        }
+      }
+      return {};
+    });
+
+    await recorder.captureHeapSnapshot(mockCdp);
+    const db = recorder.getDB()!;
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toHaveLength(1);
+    const summary = JSON.parse(snapshots[0]!.summary);
+    expect(summary.totalSize).toBe(0);
+    expect(summary.nodeCount).toBe(0);
+  });
+
+  it('extractHeapSummary handles nodes and strings being undefined', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        const handler = Array.from(
+          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+        )[0];
+        if (handler) {
+          // snapshot info present but nodes/strings absent
+          handler({
+            chunk: JSON.stringify({
+              snapshot: {
+                meta: {
+                  node_fields: ['type', 'name', 'self_size'],
+                  node_types: [['string']],
+                },
+                node_count: 1,
+              },
+              // nodes and strings omitted
+            }),
+          });
+        }
+      }
+      return {};
+    });
+
+    await recorder.captureHeapSnapshot(mockCdp);
+    const db = recorder.getDB()!;
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toHaveLength(1);
+    const summary = JSON.parse(snapshots[0]!.summary);
+    // nodes is undefined → conditional block skipped → totalSize stays 0
+    expect(summary.totalSize).toBe(0);
+    expect(summary.nodeCount).toBe(1);
+  });
+
+  it('extractHeapSummary handles snapshot with meta but no node_count', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        const handler = Array.from(
+          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+        )[0];
+        if (handler) {
+          handler({
+            chunk: JSON.stringify({
+              snapshot: {
+                meta: { node_fields: [], node_types: [] },
+                // node_count omitted → defaults to 0
+              },
+            }),
+          });
+        }
+      }
+      return {};
+    });
+
+    await recorder.captureHeapSnapshot(mockCdp);
+    const db = recorder.getDB()!;
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toHaveLength(1);
+    const summary = JSON.parse(snapshots[0]!.summary);
+    expect(summary.nodeCount).toBe(0);
+    expect(summary.totalSize).toBe(0);
+  });
+
+  it('CDP handler Debugger.paused extracts location from callFrames with missing location', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    const handler = Array.from(mockCdp._listeners.get('Debugger.paused') || [])[0];
+    expect(handler).toBeDefined();
+
+    // callFrames present but location is undefined
+    handler!({ callFrames: [{ location: undefined }] });
+    recorder.stop();
+
+    // Should not throw; event should be recorded with null scriptId/lineNumber
+    const db = new TraceDB({ dbPath: recorder.getSession()!.dbPath });
+    try {
+      const result = db.query(
+        "SELECT script_id, line_number FROM events WHERE event_type = 'Debugger.paused'",
+      );
+      expect(result.rowCount).toBe(1);
+      expect(result.rows[0]![0]).toBeNull();
+      expect(result.rows[0]![1]).toBeNull();
+    } finally {
+      db.close();
+    }
+  });
+
+  it('CDP handler Debugger.paused handles callFrames with empty array', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    const handler = Array.from(mockCdp._listeners.get('Debugger.paused') || [])[0];
+    expect(handler).toBeDefined();
+
+    // Empty callFrames array
+    handler!({ callFrames: [] });
+    recorder.stop();
+
+    const db = new TraceDB({ dbPath: recorder.getSession()!.dbPath });
+    try {
+      const result = db.query(
+        "SELECT script_id, line_number FROM events WHERE event_type = 'Debugger.paused'",
+      );
+      expect(result.rowCount).toBe(1);
+      expect(result.rows[0]![0]).toBeNull();
+    } finally {
+      db.close();
+    }
+  });
 });
