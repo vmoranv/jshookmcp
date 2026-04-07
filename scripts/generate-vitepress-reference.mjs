@@ -371,8 +371,14 @@ const META = {
   },
   canvas: {
     zhTitle: 'Canvas',
-    zhSummary: '游戏引擎 Canvas 逆向分析域，支持 Laya/Pixi/Phaser/Cocos/Unity 等主流游戏引擎的指纹识别、场景树导出和对象拾取。',
-    zhScenarios: ['游戏引擎识别与版本检测', '场景节点树导出', '坐标拾取游戏对象', '点击事件链路追踪'],
+    zhSummary:
+      '游戏引擎 Canvas 逆向分析域，支持 Laya/Pixi/Phaser/Cocos/Unity 等主流游戏引擎的指纹识别、场景树导出和对象拾取。',
+    zhScenarios: [
+      '游戏引擎识别与版本检测',
+      '场景节点树导出',
+      '坐标拾取游戏对象',
+      '点击事件链路追踪',
+    ],
     zhCombos: ['browser + canvas + debugger', 'canvas + evidence + trace'],
     enTitle: 'Canvas',
     enSummary:
@@ -385,20 +391,134 @@ const META = {
     ],
     enCombos: ['browser + canvas + debugger', 'canvas + evidence + trace'],
   },
-  'shared-state-board': {
-    zhTitle: 'Shared State Board',
-    zhSummary: '跨域协作状态同步域，提供跨域状态共享、团队协作和事件广播能力。',
-    zhScenarios: ['跨域状态共享', '团队协作协调', '事件广播与订阅'],
-    zhCombos: ['browser + network + coordination', 'shared-state-board + instrumentation'],
-    enTitle: 'Shared State Board',
-    enSummary:
-      'Cross-domain coordination domain providing shared state synchronization, team collaboration, and event broadcasting capabilities.',
-    enScenarios: [
-      'Cross-domain state synchronization',
-      'Team collaboration coordination',
-      'Event broadcasting and subscription',
+  'protocol-analysis': {
+    zhTitle: 'Protocol Analysis',
+    zhSummary: '自定义协议分析域，支持协议模式定义、自动字段检测、状态机推断和可视化。',
+    zhScenarios: [
+      '自定义协议模式定义',
+      '从十六进制载荷自动检测字段边界',
+      '从捕获消息推断协议状态机',
+      '生成 Mermaid 状态图',
     ],
-    enCombos: ['browser + network + coordination', 'shared-state-board + instrumentation'],
+    zhCombos: ['network + protocol-analysis', 'encoding + protocol-analysis'],
+    enTitle: 'Protocol Analysis',
+    enSummary:
+      'Custom protocol analysis domain supporting protocol pattern definition, automatic field detection from hex payloads, state machine inference from captured messages, and Mermaid diagram visualization.',
+    enScenarios: [
+      'Custom protocol pattern definition',
+      'Automatic field boundary detection from hex payloads',
+      'State machine inference from captured message sequences',
+      'Mermaid state diagram generation',
+    ],
+    enCombos: ['network + protocol-analysis', 'encoding + protocol-analysis'],
+  },
+  'adb-bridge': {
+    zhTitle: 'ADB Bridge',
+    zhSummary: 'Android Debug Bridge 集成域，用于设备管理、应用分析和远程调试。',
+    zhScenarios: ['Android 设备管理', 'APK 分析', '远程调试'],
+    zhCombos: ['adb-bridge + process', 'adb-bridge + network'],
+    enTitle: 'ADB Bridge',
+    enSummary:
+      'Android Debug Bridge integration domain for device management, application analysis, and remote debugging.',
+    enScenarios: ['Android device management', 'APK analysis', 'Remote debugging'],
+    enCombos: ['adb-bridge + process', 'adb-bridge + network'],
+  },
+  'binary-instrument': {
+    zhTitle: 'Binary Instrument',
+    zhSummary: '二进制插桩域，提供二进制分析和运行时插桩能力。',
+    zhScenarios: ['二进制分析', '运行时插桩', '内存模式检测'],
+    zhCombos: ['binary-instrument + memory', 'binary-instrument + process'],
+    enTitle: 'Binary Instrument',
+    enSummary:
+      'Binary instrumentation domain providing binary analysis and runtime instrumentation capabilities.',
+    enScenarios: ['Binary analysis', 'Runtime instrumentation', 'Memory pattern detection'],
+    enCombos: ['binary-instrument + memory', 'binary-instrument + process'],
+  },
+  'boringssl-inspector': {
+    zhTitle: 'BoringSSL Inspector',
+    zhSummary: 'BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。',
+    zhScenarios: ['TLS 流量分析', '证书解析', '密钥日志捕获'],
+    zhCombos: ['boringssl-inspector + network', 'boringssl-inspector + browser'],
+    enTitle: 'BoringSSL Inspector',
+    enSummary:
+      'BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate inspection.',
+    enScenarios: ['TLS traffic analysis', 'Certificate parsing', 'Key log capture'],
+    enCombos: ['boringssl-inspector + network', 'boringssl-inspector + browser'],
+  },
+  'extension-registry': {
+    zhTitle: 'Extension Registry',
+    zhSummary: '扩展注册域，管理和发现社区扩展。',
+    zhScenarios: ['扩展浏览', '扩展安装', '扩展版本管理'],
+    zhCombos: ['extension-registry + workflow', 'extension-registry + maintenance'],
+    enTitle: 'Extension Registry',
+    enSummary: 'Extension registry domain for managing and discovering community extensions.',
+    enScenarios: ['Extension browsing', 'Extension installation', 'Extension version management'],
+    enCombos: ['extension-registry + workflow', 'extension-registry + maintenance'],
+  },
+  'mojo-ipc': {
+    zhTitle: 'Mojo IPC',
+    zhSummary: 'Mojo IPC 监控域，用于 Chromium 内部进程间通信分析。',
+    zhScenarios: ['Mojo 消息监控', 'IPC 模式分析', 'Chromium 内部协议逆向'],
+    zhCombos: ['mojo-ipc + browser', 'mojo-ipc + network'],
+    enTitle: 'Mojo IPC',
+    enSummary: 'Mojo IPC monitoring domain for Chromium inter-process communication analysis.',
+    enScenarios: [
+      'Mojo message monitoring',
+      'IPC pattern analysis',
+      'Chromium internal protocol reversing',
+    ],
+    enCombos: ['mojo-ipc + browser', 'mojo-ipc + network'],
+  },
+  netproto: {
+    zhTitle: 'NetProto',
+    zhSummary: '网络协议分析域，专注于网络层协议逆向和模式识别。',
+    zhScenarios: ['自定义协议分析', '网络模式识别', '协议指纹'],
+    zhCombos: ['netproto + network', 'netproto + protocol-analysis'],
+    enTitle: 'NetProto',
+    enSummary:
+      'Network protocol analysis domain focused on network-layer protocol reversing and pattern recognition.',
+    enScenarios: [
+      'Custom protocol analysis',
+      'Network pattern recognition',
+      'Protocol fingerprinting',
+    ],
+    enCombos: ['netproto + network', 'netproto + protocol-analysis'],
+  },
+  'skia-capture': {
+    zhTitle: 'Skia Capture',
+    zhSummary: 'Skia 渲染引擎捕获域，用于 UI 渲染分析和可视化。',
+    zhScenarios: ['Skia 场景提取', '渲染管道分析', 'UI 组件识别'],
+    zhCombos: ['skia-capture + browser', 'skia-capture + canvas'],
+    enTitle: 'Skia Capture',
+    enSummary: 'Skia rendering engine capture domain for UI rendering analysis and visualization.',
+    enScenarios: [
+      'Skia scene extraction',
+      'Rendering pipeline analysis',
+      'UI component identification',
+    ],
+    enCombos: ['skia-capture + browser', 'skia-capture + canvas'],
+  },
+  'syscall-hook': {
+    zhTitle: 'Syscall Hook',
+    zhSummary: '系统调用挂钩域，提供系统调用监控和映射能力。',
+    zhScenarios: ['系统调用监控', 'API 挂钩', '行为分析'],
+    zhCombos: ['syscall-hook + process', 'syscall-hook + hooks'],
+    enTitle: 'Syscall Hook',
+    enSummary:
+      'System call hooking domain providing system call monitoring and mapping capabilities.',
+    enScenarios: ['System call monitoring', 'API hooking', 'Behavioral analysis'],
+    enCombos: ['syscall-hook + process', 'syscall-hook + hooks'],
+  },
+  'v8-inspector': {
+    zhTitle: 'V8 Inspector',
+    zhSummary: 'V8 检查器域，提供堆快照分析、CPU 分析和内存检查。',
+    zhScenarios: ['堆快照分析', 'CPU 性能分析', '内存泄漏检测'],
+    zhCombos: ['v8-inspector + browser', 'v8-inspector + debugger'],
+    enTitle: 'V8 Inspector',
+    enSummary:
+      'V8 inspector domain providing heap snapshot analysis, CPU profiling, and memory inspection.',
+    enScenarios: ['Heap snapshot analysis', 'CPU profiling', 'Memory leak detection'],
+    enCombos: ['v8-inspector + browser', 'v8-inspector + debugger'],
   },
 };
 
