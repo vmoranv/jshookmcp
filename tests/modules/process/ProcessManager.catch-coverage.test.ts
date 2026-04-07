@@ -83,6 +83,7 @@ import { ProcessManager } from '@modules/process/ProcessManager';
 
 describe('ProcessManager (Windows) - catch-block and EPERM coverage', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
   });
 

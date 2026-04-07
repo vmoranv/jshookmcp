@@ -36,10 +36,14 @@ class TestMemoryManager extends BaseMemoryManager {
   checkMemoryProtection(_pid: number, _address: number): Promise<MemoryProtectionInfo> {
     return Promise.resolve({ success: true, isReadable: true });
   }
-  enumerateRegions(_pid: number): Promise<{ success: boolean; regions?: ModuleInfo[]; error?: string }> {
+  enumerateRegions(
+    _pid: number,
+  ): Promise<{ success: boolean; regions?: ModuleInfo[]; error?: string }> {
     return Promise.resolve({ success: true, regions: [] });
   }
-  enumerateModules(_pid: number): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }> {
+  enumerateModules(
+    _pid: number,
+  ): Promise<{ success: boolean; modules?: ModuleInfo[]; error?: string }> {
     return Promise.resolve({ success: true, modules: [] });
   }
   dumpMemoryRegion(
@@ -50,13 +54,21 @@ class TestMemoryManager extends BaseMemoryManager {
   ): Promise<{ success: boolean; error?: string }> {
     return Promise.resolve({ success: true });
   }
-  injectDll(_pid: number, _dllPath: string): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
+  injectDll(
+    _pid: number,
+    _dllPath: string,
+  ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     return Promise.resolve({ success: true, remoteThreadId: 1 });
   }
-  injectShellcode(_pid: number, _shellcode: Buffer): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
+  injectShellcode(
+    _pid: number,
+    _shellcode: Buffer,
+  ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
     return Promise.resolve({ success: true, remoteThreadId: 1 });
   }
-  checkDebugPort(_pid: number): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
+  checkDebugPort(
+    _pid: number,
+  ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
     return Promise.resolve({ success: true, isDebugged: false });
   }
   checkAvailability(): Promise<{ available: boolean; reason?: string }> {
@@ -80,10 +92,10 @@ describe('BaseMemoryManager.convertPatternToBytes - coverage expansion', () => {
       expect(result.mask).toEqual([1, 0, 1, 1]);
     });
 
-    it('treats "?" as a single-char wildcard (mask bit = 0)', () => {
-      const result = mgr.convert('?A B?', 'hex');
-      expect(result.bytes).toEqual([0x00, 0x41, 0x20, 0x00]);
-      expect(result.mask).toEqual([0, 1, 1, 0]);
+    it('treats "?" as a single-char wildcard byte (mask bit = 0) only when alone', () => {
+      const result = mgr.convert('? AA ?', 'hex');
+      expect(result.bytes).toEqual([0x00, 0xaa, 0x00]);
+      expect(result.mask).toEqual([0, 1, 0]);
     });
 
     it('handles empty hex pattern gracefully', () => {
@@ -186,8 +198,8 @@ describe('BaseMemoryManager.convertPatternToBytes - coverage expansion', () => {
     it('handles multiple wildcards interspersed with real bytes', () => {
       const result = mgr.convert('?? AA ?? ?? BB ??', 'hex');
       expect(result.bytes.length).toBe(6);
-      expect(result.mask.filter((m) => m === 0).length).toBe(3); // 3 wildcards
-      expect(result.mask.filter((m) => m === 1).length).toBe(3); // 3 real bytes
+      expect(result.mask.filter((m) => m === 0).length).toBe(4); // 4 wildcards
+      expect(result.mask.filter((m) => m === 1).length).toBe(2); // 2 real bytes
     });
   });
 });

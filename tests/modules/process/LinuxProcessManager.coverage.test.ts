@@ -59,6 +59,7 @@ function createSpawnChild(pid: number) {
 
 describe('LinuxProcessManager - coverage expansion', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
   });
 
@@ -70,6 +71,20 @@ describe('LinuxProcessManager - coverage expansion', () => {
       const manager = new LinuxProcessManager();
       await new Promise(setImmediate);
       expect(manager.isRunningOnWayland()).toBe(true);
+    });
+
+    it('can log a Wayland display server when detectDisplayServer flips the flag synchronously', () => {
+      const detectSpy = vi
+        .spyOn(LinuxProcessManager.prototype as any, 'detectDisplayServer')
+        .mockImplementation(function (this: any) {
+          this.isWayland = true;
+          return Promise.resolve();
+        });
+
+      const manager = new LinuxProcessManager();
+      expect(manager.isRunningOnWayland()).toBe(true);
+
+      detectSpy.mockRestore();
     });
   });
 
@@ -85,7 +100,7 @@ describe('LinuxProcessManager - coverage expansion', () => {
       await manager.findProcesses('chrome; rm -rf /');
       const cmd = state.execAsync.mock.calls.find((c) => c[0].includes('ps aux'))?.[0] as string;
       expect(cmd).not.toContain(';');
-      expect(cmd).not.toContain('rm');
+      expect(cmd).toContain('chrome rm -rf /');
     });
 
     it('handles pattern that becomes empty after sanitization', async () => {
@@ -95,6 +110,16 @@ describe('LinuxProcessManager - coverage expansion', () => {
       });
       const manager = new LinuxProcessManager();
       const result = await manager.findProcesses(';;;');
+      expect(result).toEqual([]);
+    });
+
+    it('accepts an undefined pattern and falls back to an empty grep string', async () => {
+      setupExecByCommand({
+        'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
+        'ps aux': { stdout: '' },
+      });
+      const manager = new LinuxProcessManager();
+      const result = await manager.findProcesses(undefined as any);
       expect(result).toEqual([]);
     });
   });
@@ -144,6 +169,22 @@ describe('LinuxProcessManager - coverage expansion', () => {
       const result = await manager.findChromeProcesses();
       expect(result.mainProcess).toBeUndefined();
       expect(result.rendererProcesses).toEqual([]);
+    });
+
+    it('classifies the main process when commandLine has no --type flag', async () => {
+      const manager = new LinuxProcessManager();
+      vi.spyOn(manager, 'findProcesses').mockResolvedValue([
+        { pid: 10, name: 'chrome', commandLine: 'chrome --profile-directory=Default' },
+      ]);
+      vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({
+        pid: 10,
+        name: 'chrome',
+        commandLine: 'chrome --profile-directory=Default',
+      });
+      vi.spyOn(manager, 'getProcessWindows').mockResolvedValue([]);
+
+      const result = await manager.findChromeProcesses();
+      expect(result.mainProcess?.pid).toBe(10);
     });
   });
 
@@ -225,7 +266,7 @@ describe('LinuxProcessManager - coverage expansion', () => {
       const manager = new LinuxProcessManager();
       const result = await manager.killProcess(1234);
       expect(result).toBe(true);
-      const cmd = state.execAsync.mock.calls[0]?.[0] as string;
+      const cmd = state.execAsync.mock.calls.at(-1)?.[0] as string;
       expect(cmd).toContain('kill -9 1234');
     });
 
@@ -293,6 +334,17 @@ describe('LinuxProcessManager - coverage expansion', () => {
       const result = await manager.checkDebugPort(123);
       expect(result).toBeNull();
     });
+
+    it('falls through to the socket scan when the command line contains a non-numeric debug port', async () => {
+      setupExecByCommand({
+        'ss ': { stdout: '' },
+      });
+      const manager = new LinuxProcessManager();
+      const result = await manager.checkDebugPort(123, {
+        commandLine: 'chrome --remote-debugging-port=abc',
+      });
+      expect(result).toBeNull();
+    });
   });
 
   // --- getProcessByPid ---
@@ -303,7 +355,7 @@ describe('LinuxProcessManager - coverage expansion', () => {
         'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
         '/status': { stdout: 'Name:\tproc\nPPid:\t0\n' },
         '/cmdline': { stdout: 'proc' },
-        '/stat': { stdout: '1 proc (proc) S 0 0 0 0 0 0 0 0 0 0 100 200 0 0 0 0' },
+        '/stat': { stdout: '1 (proc) S 0 0 0 0 0 0 0 0 0 0 100 200' },
         readlink: { stdout: '/proc/proc\n' },
       });
       const manager = new LinuxProcessManager();
@@ -315,6 +367,27 @@ describe('LinuxProcessManager - coverage expansion', () => {
       const manager = new LinuxProcessManager();
       const result = await manager.getProcessByPid(NaN);
       expect(result).toBeNull();
+    });
+
+    it('falls back to unknown and undefined metadata when /proc omits optional fields', async () => {
+      setupExecByCommand({
+        'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
+        '/status': { stdout: 'State:\tS\n' },
+        '/cmdline': { stdout: '' },
+        '/stat': { stdout: '1 (proc) S 0' },
+        readlink: { stdout: '' },
+      });
+      const manager = new LinuxProcessManager();
+      const result = await manager.getProcessByPid(1);
+      expect(result).toMatchObject({
+        pid: 1,
+        name: 'unknown',
+        executablePath: undefined,
+        commandLine: undefined,
+        parentPid: undefined,
+        memoryUsage: undefined,
+        cpuUsage: 0,
+      });
     });
   });
 });

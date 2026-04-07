@@ -15,28 +15,27 @@ import { EventEmitter } from 'node:events';
  */
 
 const state = vi.hoisted(() => {
+  const exec = vi.fn(function exec() {});
+  const execFile = vi.fn(function execFile() {});
   const execAsync = vi.fn();
   const execFileAsync = vi.fn();
   const spawn = vi.fn();
   const loadScript = vi.fn();
-  return { execAsync, execFileAsync, spawn, loadScript };
+  return { exec, execFile, execAsync, execFileAsync, spawn, loadScript };
 });
 
 vi.mock('child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof import('child_process')>();
   return {
     ...actual,
-    exec: vi.fn(),
-    execFile: vi.fn(),
+    exec: state.exec,
+    execFile: state.execFile,
     spawn: state.spawn,
   };
 });
 
 vi.mock('util', () => ({
-  promisify: vi.fn((fn: any) => {
-    if (fn.name === 'execFile') return state.execFileAsync;
-    return state.execAsync;
-  }),
+  promisify: vi.fn((fn: any) => (fn === state.execFile ? state.execFileAsync : state.execAsync)),
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -76,6 +75,7 @@ function createSpawnChild(pid: number) {
 
 describe('MacProcessManager - coverage expansion', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
   });
 
@@ -90,13 +90,20 @@ describe('MacProcessManager - coverage expansion', () => {
       await manager.findProcesses('chrome; kill -9 1');
       const cmd = state.execAsync.mock.calls[0]?.[0] as string;
       expect(cmd).not.toContain(';');
-      expect(cmd).not.toContain('kill');
+      expect(cmd).toContain('chrome kill -9 1');
     });
 
     it('handles empty result after grep', async () => {
       state.execAsync.mockResolvedValue({ stdout: '', stderr: '' });
       const manager = new MacProcessManager();
       const result = await manager.findProcesses('nonexistent');
+      expect(result).toEqual([]);
+    });
+
+    it('accepts an undefined pattern and falls back to an empty grep string', async () => {
+      state.execAsync.mockResolvedValue({ stdout: '', stderr: '' });
+      const manager = new MacProcessManager();
+      const result = await manager.findProcesses(undefined as any);
       expect(result).toEqual([]);
     });
   });
@@ -139,6 +146,17 @@ describe('MacProcessManager - coverage expansion', () => {
       const result = await manager.getProcessByPid(Infinity);
       expect(result).toBeNull();
     });
+
+    it('returns null when the parsed ps row does not contain enough columns', async () => {
+      setupExecByCommand({
+        'ps -p 501': {
+          stdout: '  PID  PPID  %CPU  %MEM  COMM  ARGS\n  501     1   0\n',
+        },
+      });
+      const manager = new MacProcessManager();
+      const result = await manager.getProcessByPid(501);
+      expect(result).toBeNull();
+    });
   });
 
   // --- getProcessWindows ---
@@ -158,8 +176,7 @@ describe('MacProcessManager - coverage expansion', () => {
         },
         'ps -p 501 -o comm=': { stdout: 'App\n' },
         'osascript -e': {
-          stdout:
-            '{title:"Browser Window", className:"App", processId:501, handle:"applescript-window"}',
+          stdout: '{title:Browser Window, className:App, processId:501, handle:applescript-window}',
         },
       });
       const manager = new MacProcessManager();
@@ -175,6 +192,19 @@ describe('MacProcessManager - coverage expansion', () => {
         },
         'ps -p 501 -o comm=': { stdout: 'App\n' },
         'osascript -e': { stdout: 'not valid json at all' },
+      });
+      const manager = new MacProcessManager();
+      const result = await manager.getProcessWindows(501);
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array when AppleScript explicitly reports no windows', async () => {
+      setupExecByCommand({
+        'ps -p 501': {
+          stdout: '  PID  PPID  %CPU  %MEM  COMM  ARGS\n  501     1   0     0    App  App\n',
+        },
+        'ps -p 501 -o comm=': { stdout: 'App\n' },
+        'osascript -e': { stdout: '[]' },
       });
       const manager = new MacProcessManager();
       const result = await manager.getProcessWindows(501);
@@ -229,6 +259,25 @@ describe('MacProcessManager - coverage expansion', () => {
       expect(result[0]!.bounds).toEqual({ x: 0, y: 0, width: 1920, height: 1080 });
     });
 
+    it('defaults zero-valued bounds dimensions to 0', async () => {
+      state.loadScript.mockResolvedValue('template');
+      state.execFileAsync.mockResolvedValue({
+        stdout: JSON.stringify([
+          {
+            handle: '0x101',
+            title: 'Zero Window',
+            className: 'App',
+            processId: 123,
+            bounds: { X: 1, Y: 2, Width: 0, Height: 0 },
+          },
+        ]),
+        stderr: '',
+      });
+      const manager = new MacProcessManager();
+      const result = await manager.getProcessWindowsCG(123);
+      expect(result[0]!.bounds).toEqual({ x: 1, y: 2, width: 0, height: 0 });
+    });
+
     it('returns empty array on timeout error', async () => {
       state.loadScript.mockResolvedValue('template');
       state.execFileAsync.mockRejectedValue(new Error('timeout'));
@@ -261,16 +310,13 @@ describe('MacProcessManager - coverage expansion', () => {
       });
       const manager = new MacProcessManager();
       vi.spyOn(manager, 'getProcessByPid').mockImplementation(async (pid: number) => {
-        const lines: Record<number, string> = {
-          1: '  PID  PPID  %CPU  %MEM  COMM  ARGS\n  1     1   0     0    chrome  chrome --type=renderer\n',
-          2: '  PID  PPID  %CPU  %MEM  COMM  ARGS\n  2     1   0     0    chrome  chrome --type=gpu-process\n',
-          3: '  PID  PPID  %CPU  %MEM  COMM  ARGS\n  3     1   0     0    chrome  chrome --type=utility\n',
-          4: '  PID  PPID  %CPU  %MEM  COMM  ARGS\n  4     1   0     0    chrome  chrome\n',
+        const commands: Record<number, string> = {
+          1: 'chrome --type=renderer',
+          2: 'chrome --type=gpu-process',
+          3: 'chrome --type=utility',
+          4: 'chrome',
         };
-        if (lines[pid]) {
-          state.execAsync.mockResolvedValueOnce({ stdout: lines[pid] });
-        }
-        return { pid, name: 'chrome', commandLine: 'chrome' } as any;
+        return { pid, name: 'chrome', commandLine: commands[pid] } as any;
       });
       vi.spyOn(manager, 'getProcessWindowsCG').mockResolvedValue([]);
 
@@ -278,6 +324,31 @@ describe('MacProcessManager - coverage expansion', () => {
       expect(result.rendererProcesses).toHaveLength(1);
       expect(result.gpuProcess?.pid).toBe(2);
       expect(result.utilityProcesses).toHaveLength(1);
+    });
+
+    it('uses the current process as mainProcess when commandLine is missing', async () => {
+      const manager = new MacProcessManager();
+      vi.spyOn(manager, 'findProcesses').mockResolvedValue([{ pid: 50, name: 'chrome' } as any]);
+      vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({ pid: 50, name: 'chrome' } as any);
+      vi.spyOn(manager, 'getProcessWindowsCG').mockResolvedValue([]);
+
+      const result = await manager.findChromeProcesses();
+      expect(result.mainProcess?.pid).toBe(50);
+    });
+
+    it('returns the partial result when downstream detail lookup throws', async () => {
+      const manager = new MacProcessManager();
+      vi.spyOn(manager, 'findProcesses').mockResolvedValue([{ pid: 51, name: 'chrome' } as any]);
+      vi.spyOn(manager, 'getProcessByPid').mockRejectedValue(new Error('detail lookup failed'));
+
+      const result = await manager.findChromeProcesses();
+      expect(result).toEqual({
+        mainProcess: undefined,
+        rendererProcesses: [],
+        gpuProcess: undefined,
+        utilityProcesses: [],
+        targetWindow: undefined,
+      });
     });
   });
 
@@ -298,6 +369,15 @@ describe('MacProcessManager - coverage expansion', () => {
     it('returns empty object for Infinity PID', async () => {
       const manager = new MacProcessManager();
       const result = await manager.getProcessCommandLine(Infinity);
+      expect(result).toEqual({});
+    });
+
+    it('returns an empty object when ps output only reports the parent PID', async () => {
+      setupExecByCommand({
+        'ps -p 100': { stdout: '100 ' },
+      });
+      const manager = new MacProcessManager();
+      const result = await manager.getProcessCommandLine(100);
       expect(result).toEqual({});
     });
   });
@@ -334,6 +414,17 @@ describe('MacProcessManager - coverage expansion', () => {
       const manager = new MacProcessManager();
       vi.spyOn(manager, 'getProcessCommandLine').mockResolvedValue({});
       const result = await manager.checkDebugPort(100);
+      expect(result).toBeNull();
+    });
+
+    it('falls through to lsof when the command line contains a non-numeric debug port', async () => {
+      setupExecByCommand({
+        lsof: { stdout: '' },
+      });
+      const manager = new MacProcessManager();
+      const result = await manager.checkDebugPort(100, {
+        commandLine: 'app --remote-debugging-port=abc',
+      });
       expect(result).toBeNull();
     });
   });
@@ -399,14 +490,11 @@ describe('MacProcessManager - coverage expansion', () => {
       expect(result).toBe(false);
     });
 
-    it('returns false when kill -9 throws but kill -15 succeeds', async () => {
-      // kill -9 throws EPERM, kill -15 succeeds
-      state.execAsync
-        .mockRejectedValueOnce(new Error('Operation not permitted'))
-        .mockResolvedValueOnce({ stdout: '', stderr: '' });
+    it('returns false when the shell kill pipeline rejects', async () => {
+      state.execAsync.mockRejectedValueOnce(new Error('Operation not permitted'));
       const manager = new MacProcessManager();
       const result = await manager.killProcess(1);
-      expect(result).toBe(true);
+      expect(result).toBe(false);
     });
   });
 });

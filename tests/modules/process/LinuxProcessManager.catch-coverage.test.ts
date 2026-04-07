@@ -68,6 +68,7 @@ function setupExecByCommand(
 
 describe('LinuxProcessManager - catch-block and EPERM coverage', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
   });
 
@@ -178,18 +179,18 @@ describe('LinuxProcessManager - catch-block and EPERM coverage', () => {
       expect(result.rendererProcesses).toEqual([]);
     });
 
-    it('returns empty result when getProcessWindows throws', async () => {
-      setupExecByCommand({
-        'ps aux': { stdout: 'user 1 0 0 0 0 ? S 0 0 chrome\n' },
-        'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
-      });
-      state.execAsync.mockRejectedValue(new Error('xdotool failed'));
+    it('returns partial result when getProcessWindows throws (mainProcess still set, targetWindow undefined)', async () => {
       const manager = new LinuxProcessManager();
+      // Use spies to avoid dependency on execAsync mock ordering
+      vi.spyOn(manager, 'findProcesses').mockResolvedValue([
+        { pid: 1, name: 'chrome', commandLine: 'chrome' },
+      ]);
       vi.spyOn(manager, 'getProcessByPid').mockResolvedValue({
         pid: 1,
         name: 'chrome',
         commandLine: 'chrome',
       });
+      vi.spyOn(manager, 'getProcessWindows').mockRejectedValue(new Error('xdotool failed'));
       const result = await manager.findChromeProcesses();
       expect(result.mainProcess?.pid).toBe(1);
       expect(result.targetWindow).toBeUndefined();
