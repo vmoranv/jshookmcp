@@ -34,6 +34,7 @@ describe('MemoryManager', () => {
   const originalPlatform = process.platform;
 
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
   });
 

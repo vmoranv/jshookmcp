@@ -23,28 +23,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 
 const state = vi.hoisted(() => {
+  const exec = vi.fn(function exec() {});
+  const execFile = vi.fn(function execFile() {});
   const execAsync = vi.fn();
   const execFileAsync = vi.fn();
   const spawn = vi.fn();
   const loadScript = vi.fn();
-  return { execAsync, execFileAsync, spawn, loadScript };
+  return { exec, execFile, execAsync, execFileAsync, spawn, loadScript };
 });
 
 vi.mock('child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof import('child_process')>();
   return {
     ...actual,
-    exec: vi.fn(),
-    execFile: vi.fn(),
+    exec: state.exec,
+    execFile: state.execFile,
     spawn: state.spawn,
   };
 });
 
 vi.mock('util', () => ({
-  promisify: vi.fn((fn: any) => {
-    if (fn.name === 'execFile') return state.execFileAsync;
-    return state.execAsync;
-  }),
+  promisify: vi.fn((fn: any) => (fn === state.execFile ? state.execFileAsync : state.execAsync)),
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -82,6 +81,7 @@ function setupExecByCommand(
 
 describe('MacProcessManager - catch-block and EPERM coverage', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
   });
 

@@ -89,6 +89,7 @@ function createSpawnChild(pid: number) {
 
 describe('ProcessManager (Windows) - coverage expansion', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
   });
 
@@ -231,6 +232,47 @@ describe('ProcessManager (Windows) - coverage expansion', () => {
       expect(result?.pid).toBe(8000);
       vi.useRealTimers();
     });
+
+    it('accepts a primitive JSON PID payload and falls back to the unknown executable name', async () => {
+      state.execAsync.mockResolvedValue({
+        stdout: '7000',
+        stderr: '',
+      });
+      const manager = new ProcessManager();
+
+      vi.useFakeTimers();
+      const child = createSpawnChild(0);
+      state.spawn.mockReturnValue(child);
+      vi.spyOn(manager, 'getProcessByPid').mockResolvedValue(null);
+
+      const pending = manager.launchWithDebug('', 9222);
+      await vi.runAllTimersAsync();
+      const result = await pending;
+      expect(result).toEqual({
+        pid: 7000,
+        name: 'unknown',
+        executablePath: '',
+      });
+      vi.useRealTimers();
+    });
+
+    it('returns null when the listening-port lookup resolves to pid 0', async () => {
+      state.execAsync.mockResolvedValue({
+        stdout: JSON.stringify({ OwningProcess: 0 }),
+        stderr: '',
+      });
+      const manager = new ProcessManager();
+
+      vi.useFakeTimers();
+      const child = createSpawnChild(0);
+      state.spawn.mockReturnValue(child);
+
+      const pending = manager.launchWithDebug('C:/app.exe', 9222);
+      await vi.runAllTimersAsync();
+      const result = await pending;
+      expect(result).toBeNull();
+      vi.useRealTimers();
+    });
   });
 
   // --- launchWithDebug ---
@@ -349,6 +391,17 @@ describe('ProcessManager (Windows) - coverage expansion', () => {
       const manager = new ProcessManager();
       const result = await manager.checkDebugPort(1);
       expect(result).toBeNull();
+    });
+
+    it('parses a single Get-NetTCPConnection object payload', async () => {
+      state.execAsync.mockResolvedValue({
+        stdout: JSON.stringify({ LocalPort: 9222 }),
+        stderr: '',
+      });
+      const manager = new ProcessManager();
+      vi.spyOn(manager, 'getProcessCommandLine').mockResolvedValue({});
+      const result = await manager.checkDebugPort(1);
+      expect(result).toBe(9222);
     });
   });
 

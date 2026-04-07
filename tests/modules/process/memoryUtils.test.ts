@@ -28,6 +28,7 @@ vi.mock('@modules/process/MemoryManager', () => {
 
 describe('memoryUtils', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
     mockManagerInstances.length = 0;
   });
