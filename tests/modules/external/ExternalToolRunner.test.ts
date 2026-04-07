@@ -523,4 +523,329 @@ describe('ExternalToolRunner', () => {
     // Validate that it didn't kill the child
     expect(child.kill).not.toHaveBeenCalled();
   });
+
+  // ── Remaining branch coverage ─────────────────────────────────────────────
+
+  it('reports ok=false for non-zero exit codes', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    const runPromise = runner.run({ tool: 'tmp', args: [] } as any);
+    child.stdout.emit('data', Buffer.from('some output'));
+    child.stderr.emit('data', Buffer.from('error output'));
+    child.emit('close', 127, null);
+
+    const result = await runPromise;
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(127);
+    expect(result.stdout).toBe('some output');
+    expect(result.stderr).toBe('error output');
+    expect(result.truncated).toBe(false);
+  });
+
+  it('calls onProgress for all phases including timeout', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+    const progressCalls: Array<{ phase: string }> = [];
+
+    const runPromise = runner.run({
+      tool: 'tmp',
+      args: [],
+      timeoutMs: 10,
+      onProgress: (p) => progressCalls.push(p),
+    } as any);
+
+    vi.advanceTimersByTime(5);
+    child.stdout.emit('data', Buffer.from('a'));
+
+    vi.advanceTimersByTime(5);
+    child.stderr.emit('data', Buffer.from('b'));
+
+    vi.advanceTimersByTime(20);
+
+    await runPromise;
+
+    const phases = progressCalls.map((c) => c.phase);
+    expect(phases).toContain('spawn');
+    expect(phases).toContain('stdout');
+    expect(phases).toContain('stderr');
+    expect(phases).toContain('timeout');
+
+    vi.useRealTimers();
+  });
+
+  it('finish() guards against double invocation via close then error', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    const runPromise = runner.run({ tool: 'tmp', args: [] } as any);
+
+    // First close fires finish()
+    child.emit('close', 0, null);
+
+    // Then error fires — should be ignored (settled=true)
+    child.emit('error', new Error('should be ignored'));
+
+    const result = await runPromise;
+    // Result should be from close, not error
+    expect(result.exitCode).toBe(0);
+    expect(result.ok).toBe(true);
+    expect(result.stderr).not.toContain('Spawn error');
+  });
+
+  it('processes multiple stdout chunks without truncation', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    const runPromise = runner.run({ tool: 'tmp', args: [], maxStdoutBytes: 100 } as any);
+    child.stdout.emit('data', Buffer.from('chunk1-'));
+    child.stdout.emit('data', Buffer.from('chunk2-'));
+    child.stdout.emit('data', Buffer.from('chunk3'));
+    child.emit('close', 0, null);
+
+    const result = await runPromise;
+    expect(result.stdout).toBe('chunk1-chunk2-chunk3');
+    expect(result.truncated).toBe(false);
+  });
+
+  it('writes stdin to child stdin when provided', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    const runPromise = runner.run({
+      tool: 'tmp',
+      args: [],
+      stdin: 'hello world',
+    } as any);
+    child.emit('close', 0, null);
+    await runPromise;
+
+    expect(child.stdin.write).toHaveBeenCalledWith('hello world');
+    expect(child.stdin.end).toHaveBeenCalled();
+  });
+
+  it('no stdin.write called when stdin is undefined', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    const runPromise = runner.run({ tool: 'tmp', args: [] } as any);
+    child.emit('close', 0, null);
+    await runPromise;
+
+    // stdin.end() is still called (line 163: child.stdin.end())
+    expect(child.stdin.end).toHaveBeenCalled();
+    // But stdin.write should NOT be called with data
+    expect(child.stdin.write).not.toHaveBeenCalled();
+  });
+
+  it('validateCwd allows temp subdirectory', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    // Override TEMP to control the temp root used in validation
+    const origTemp = process.env.TEMP;
+    process.env.TEMP = '/test-temp';
+
+    try {
+      const runPromise = runner.run({
+        tool: 'tmp',
+        args: [],
+        cwd: '/test-temp/jshook-work',
+      } as any);
+      child.emit('close', 0, null);
+      await runPromise;
+
+      // validateCwd should accept /test-temp/jshook-work because it starts with resolved /test-temp/
+      expect(state.spawn).toHaveBeenCalledWith(
+        'tool-bin',
+        [],
+        expect.objectContaining({
+          cwd: expect.stringContaining('/test-temp/jshook-work'),
+        }),
+      );
+    } finally {
+      process.env.TEMP = origTemp;
+    }
+  });
+
+  it('validateCwd allows exact system temp directory on Unix', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    const origPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    const origTemp = process.env.TEMP;
+    const origTmp = process.env.TMP;
+
+    try {
+      // Clear Windows-style env vars to force Unix temp path matching
+      delete process.env.TEMP;
+      delete process.env.TMP;
+
+      const runPromise = runner.run({ tool: 'tmp', args: [], cwd: '/tmp' } as any);
+      child.emit('close', 0, null);
+      await runPromise;
+
+      expect(state.spawn).toHaveBeenCalledWith(
+        'tool-bin',
+        [],
+        expect.objectContaining({ cwd: '/tmp' }),
+      );
+    } finally {
+      Object.defineProperty(process, 'platform', { value: origPlatform });
+      process.env.TEMP = origTemp;
+      process.env.TMP = origTmp;
+    }
+  });
+
+  it('validateCwd allows /var/tmp directory', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    const origPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    const origTemp = process.env.TEMP;
+    const origTmp = process.env.TMP;
+
+    try {
+      delete process.env.TEMP;
+      delete process.env.TMP;
+
+      const runPromise = runner.run({ tool: 'tmp', args: [], cwd: '/var/tmp' } as any);
+      child.emit('close', 0, null);
+      await runPromise;
+
+      expect(state.spawn).toHaveBeenCalledWith(
+        'tool-bin',
+        [],
+        expect.objectContaining({ cwd: '/var/tmp' }),
+      );
+    } finally {
+      Object.defineProperty(process, 'platform', { value: origPlatform });
+      process.env.TEMP = origTemp;
+      process.env.TMP = origTmp;
+    }
+  });
+
+  it('sets TEMP and TMP env vars on Windows when both are defined', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    const origPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const origEnv = { ...process.env };
+
+    try {
+      process.env.TEMP = 'C:\\Windows\\Temp';
+      process.env.TMP = 'C:\\Windows\\Temp';
+      delete process.env.SYSTEMROOT;
+      delete process.env.SystemRoot;
+      delete process.env.WINDIR;
+      delete process.env.PATH;
+
+      const runPromise = runner.run({ tool: 'tmp', args: [] } as any);
+      child.emit('close', 0, null);
+      await runPromise;
+
+      expect(state.spawn).toHaveBeenCalledWith(
+        'tool-bin',
+        [],
+        expect.objectContaining({
+          env: expect.objectContaining({
+            TEMP: 'C:\\Windows\\Temp',
+            TMP: 'C:\\Windows\\Temp',
+          }),
+        }),
+      );
+    } finally {
+      Object.defineProperty(process, 'platform', { value: origPlatform });
+      process.env = origEnv;
+    }
+  });
+
+  it('handles stdout data arriving after process close gracefully', async () => {
+    const child = createChildProcessMock();
+    state.spawn.mockReturnValue(child);
+    const registry = {
+      probeAll: vi.fn(),
+      getSpec: vi.fn().mockReturnValue({ command: 'tool-bin' }),
+      getCachedProbe: vi.fn().mockReturnValue({ available: true }),
+    } as any;
+    const runner = new ExternalToolRunner(registry);
+
+    const runPromise = runner.run({ tool: 'tmp', args: [] } as any);
+
+    // Emit close first, then emit stdout data (should be ignored since settled=true)
+    child.emit('close', 0, null);
+    child.stdout.emit('data', Buffer.from('should be ignored'));
+    child.stderr.emit('data', Buffer.from('should also be ignored'));
+
+    const result = await runPromise;
+
+    // Result should be from close event, not from late data
+    expect(result.ok).toBe(true);
+    expect(result.exitCode).toBe(0);
+    // Stdout should be empty since the data arrived after close
+    expect(result.stdout).toBe('');
+  });
 });

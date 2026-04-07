@@ -256,4 +256,92 @@ describe('TraceDB', () => {
   it('dbPath returns the correct path', () => {
     expect(db.dbPath).toBe(dbPath);
   });
+
+  // ── Error path coverage ────────────────────────────────────────────────────
+
+  it('flush() returns early when db is closed (no-op)', () => {
+    db.close();
+    // Should not throw — flush() checks `if (closed) return` first
+    expect(() => db.flush()).not.toThrow();
+  });
+
+  it('insertEvent() throws when db is closed', () => {
+    db.close();
+    expect(() => db.insertEvent(makeEvent())).toThrow(/TraceDB is closed/);
+  });
+
+  it('insertMemoryDelta() throws when db is closed', () => {
+    db.close();
+    expect(() => db.insertMemoryDelta(makeDelta())).toThrow(/TraceDB is closed/);
+  });
+
+  it('insertHeapSnapshot() throws when db is closed', () => {
+    db.close();
+    expect(() =>
+      db.insertHeapSnapshot({
+        timestamp: Date.now(),
+        snapshotData: Buffer.alloc(0),
+        summary: '{}',
+      }),
+    ).toThrow(/TraceDB is closed/);
+  });
+
+  it('setMetadata() throws when db is closed', () => {
+    db.close();
+    expect(() => db.setMetadata('k', 'v')).toThrow(/TraceDB is closed/);
+  });
+
+  it('getMetadata() throws when db is closed', () => {
+    db.close();
+    expect(() => db.getMetadata()).toThrow(/TraceDB is closed/);
+  });
+
+  it('getHeapSnapshots() throws when db is closed', () => {
+    db.close();
+    expect(() => db.getHeapSnapshots()).toThrow(/TraceDB is closed/);
+  });
+
+  it('query() throws when db is closed', () => {
+    db.close();
+    expect(() => db.query('SELECT 1')).toThrow(/TraceDB is closed/);
+  });
+
+  it('getEventsByTimeRange() throws when db is closed', () => {
+    db.close();
+    expect(() => db.getEventsByTimeRange(0, 1000)).toThrow(/TraceDB is closed/);
+  });
+
+  it('getMemoryDeltasByAddress() throws when db is closed', () => {
+    db.close();
+    expect(() => db.getMemoryDeltasByAddress('0x1000')).toThrow(/TraceDB is closed/);
+  });
+
+  it('query enforces read-only — rejects DELETE', () => {
+    expect(() => db.query('DELETE FROM events WHERE id = 1')).toThrow(
+      /Write operations are not allowed/,
+    );
+  });
+
+  it('query enforces read-only — rejects REPLACE', () => {
+    expect(() => db.query('REPLACE INTO events VALUES (1, 1, 1, 1, 1, 1, 1)')).toThrow(
+      /Write operations are not allowed/,
+    );
+  });
+
+  it('query returns empty result with columns when events table is empty', () => {
+    const result = db.query('SELECT timestamp, category, event_type FROM events');
+    expect(result.rowCount).toBe(0);
+    expect(result.columns).toEqual(['timestamp', 'category', 'event_type']);
+    expect(result.rows).toEqual([]);
+  });
+
+  it('getMetadata() returns empty object when no metadata exists', () => {
+    const metadata = db.getMetadata();
+    expect(metadata).toEqual({});
+  });
+
+  it('getHeapSnapshots() returns empty array when no snapshots exist', () => {
+    const snapshots = db.getHeapSnapshots();
+    expect(snapshots).toEqual([]);
+  });
 });
