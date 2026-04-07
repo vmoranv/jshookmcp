@@ -108,7 +108,21 @@ import {
   getAvailableToolNames,
   probeCapturedRequests,
 } from '../../src/server/ToolRouter.probe';
-import { buildWorkflowToolSequence } from '@server/ToolRouter.policy';
+import {
+  buildWorkflowToolSequence,
+  buildPresetToolSequence,
+  rerankResultsForContext,
+  getEffectivePrerequisites,
+} from '@server/ToolRouter.policy';
+import {
+  detectWorkflowIntent,
+  matchWorkflowRoute,
+  isBrowserOrNetworkTask,
+  isMaintenanceTask,
+} from '@server/ToolRouter.intent';
+// Import renderer functions directly to avoid circular dependency chain:
+// ToolRouter.ts → ToolRouter.renderer.ts → ToolRouter.probe.ts
+import { buildCallToolCommand } from '../../src/server/ToolRouter.renderer';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
   return {
@@ -1200,6 +1214,504 @@ describe('ToolRouter', () => {
       expect(activateSteps).toHaveLength(0); // skip activation
       expect(response.nextActions[0]?.command).toBe('run_extension_workflow');
       expect(response.nextActions[0]?.exampleArgs).toEqual({ workflowId: 'workflow.a' });
+    });
+
+    it('ToolRouter.renderer.ts: malformed property payloads fall back to current example generation rules', () => {
+      const result = generateExampleArgs({
+        type: 'object',
+        required: ['enumFallback', 'copiedDefault', 'ignoredUnknown'],
+        properties: {
+          enumFallback: { type: 'string', enum: 'fast' as any },
+          copiedDefault: { default: { nested: true } },
+          ignoredUnknown: { type: 'mystery' },
+          optionalPrimitive: 42 as any,
+        },
+      } as any);
+
+      expect(result).toEqual({
+        enumFallback: '<enumFallback>',
+        copiedDefault: { nested: true },
+      });
+    });
+  });
+
+  // ── Additional Coverage Suites ──
+
+  describe('ToolRouter.renderer — generateExampleArgs uncovered branches', () => {
+    it('returns empty object for null-type property', () => {
+      expect(
+        generateExampleArgs({
+          type: 'object',
+          required: ['field'],
+          properties: { field: { type: 'null' } },
+        } as any),
+      ).toEqual({});
+    });
+
+    it('falls through to type branch when enum array is empty', () => {
+      // enum: [] is falsy, so Array.isArray check fails → hits the string type branch
+      expect(
+        generateExampleArgs({
+          type: 'object',
+          required: ['field'],
+          properties: { field: { type: 'string', enum: [] } },
+        } as any),
+      ).toEqual({ field: '<field>' });
+    });
+
+    it('preserves non-string default values before considering enum or primitive type fallbacks', () => {
+      expect(
+        generateExampleArgs({
+          type: 'object',
+          required: ['field'],
+          properties: { field: { type: 'string', default: 42 as any } },
+        } as any),
+      ).toEqual({ field: 42 });
+    });
+  });
+
+  describe('ToolRouter.renderer — buildCallToolCommand', () => {
+    it('generates command with empty args when schema is undefined', () => {
+      const cmd = buildCallToolCommand('some_tool', undefined as any);
+      expect(cmd).toBe('call_tool({ name: "some_tool", args: {} })');
+    });
+  });
+
+  describe('ToolRouter.renderer — malformed payload edge cases', () => {
+    it('skips unsupported required property types that do not map to a placeholder', () => {
+      const result = generateExampleArgs({
+        type: 'object',
+        required: ['field'],
+        properties: { field: { type: null as any, description: 'test' } },
+      } as any);
+      expect(result).toEqual({});
+    });
+
+    it('uses copied defaults even when default is null', () => {
+      const result = generateExampleArgs({
+        type: 'object',
+        required: ['field'],
+        properties: { field: { type: 'string', default: null as any } },
+      } as any);
+      expect(result).toEqual({ field: null });
+    });
+
+    it('falls back to string placeholders when enum payload is malformed', () => {
+      const result = generateExampleArgs({
+        type: 'object',
+        required: ['field'],
+        properties: { field: { type: 'string', enum: 'fast' as any } },
+      } as any);
+      expect(result).toEqual({ field: '<field>' });
+    });
+  });
+
+  describe('ToolRouter.policy — getEffectivePrerequisites', () => {
+    it('returns an object (may be empty when no manifests declare prerequisites)', () => {
+      const result = getEffectivePrerequisites();
+      expect(typeof result).toBe('object');
+    });
+  });
+
+  describe('ToolRouter.policy — buildWorkflowToolSequence edge cases', () => {
+    it('pushes network_enable when page exists but network is disabled', () => {
+      const state = { hasActivePage: true, networkEnabled: false, capturedRequestCount: 0 };
+      const available = new Set([
+        'browser_launch',
+        'browser_attach',
+        'network_enable',
+        'network_get_requests',
+      ]);
+      const wf = { domain: 'network', tools: [] } as any;
+      const seq = buildWorkflowToolSequence(wf, state, available);
+      expect(seq).toContain('network_enable');
+    });
+
+    it('pushes network_get_requests once when page+network+captures (duplicate at end is no-op)', () => {
+      const state = { hasActivePage: true, networkEnabled: true, capturedRequestCount: 5 };
+      const available = new Set(['browser_launch', 'network_get_requests']);
+      const wf = { domain: 'network', tools: [] } as any;
+      const seq = buildWorkflowToolSequence(wf, state, available);
+      // First push: in the domain block (captures > 0). Second push at end: no-op due to includes guard.
+      expect(seq).toContain('network_get_requests');
+      expect(seq.filter((t) => t === 'network_get_requests').length).toBe(1);
+    });
+
+    it('does not push duplicate tools', () => {
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const available = new Set(['browser_launch', 'browser_attach']);
+      const wf = { domain: 'browser', tools: ['browser_launch', 'browser_attach'] } as any;
+      const seq = buildWorkflowToolSequence(wf, state, available);
+      expect(seq.filter((t) => t === 'browser_launch').length).toBe(1);
+    });
+  });
+
+  describe('ToolRouter.policy — buildPresetToolSequence edge cases', () => {
+    it('pushes bootstrap tools when browser session is required but no page', () => {
+      const match = {
+        workflow: {
+          id: 'test',
+          route: {
+            kind: 'preset',
+            requiredDomains: ['browser'],
+            steps: [],
+          },
+        },
+      } as any;
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const available = new Set(['browser_launch', 'browser_attach']);
+      const result = buildPresetToolSequence(match, state, available);
+      expect(result.some((t) => t.name === 'browser_launch')).toBe(true);
+      expect(result.some((t) => t.name === 'browser_attach')).toBe(true);
+    });
+
+    it('skips bootstrap tools when no browser session is required', () => {
+      const match = {
+        workflow: {
+          id: 'test',
+          route: {
+            kind: 'preset',
+            requiredDomains: ['core'],
+            steps: [],
+          },
+        },
+      } as any;
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const available = new Set(['browser_launch', 'browser_attach']);
+      const result = buildPresetToolSequence(match, state, available);
+      expect(result.some((t) => t.name === 'browser_launch')).toBe(false);
+    });
+
+    it('skips steps for unavailable tools', () => {
+      const match = {
+        workflow: {
+          id: 'test',
+          route: {
+            kind: 'preset',
+            requiredDomains: [],
+            steps: [
+              { toolName: 'unavailable_tool', description: 'unavailable', prerequisites: [] },
+            ],
+          },
+        },
+      } as any;
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const available = new Set(['browser_launch']);
+      const result = buildPresetToolSequence(match, state, available);
+      expect(result.some((t) => t.name === 'unavailable_tool')).toBe(false);
+    });
+  });
+
+  describe('ToolRouter.policy — rerankResultsForContext uncovered branches', () => {
+    it('boosts browser_launch 1.4x when page does not exist in browser/network task', () => {
+      const results = [
+        { name: 'browser_launch', domain: 'browser', score: 1.0 },
+        { name: 'other', domain: 'browser', score: 0.9 },
+      ] as any;
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const reranked = rerankResultsForContext(results, 'capture traffic', null, state);
+      const browserLaunch = reranked.find((r) => r.name === 'browser_launch')!;
+      expect(browserLaunch.score).toBeCloseTo(1.4, 2);
+    });
+
+    it('boosts browser_attach 1.2x when page does not exist', () => {
+      const results = [{ name: 'browser_attach', domain: 'browser', score: 1.0 }] as any;
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const reranked = rerankResultsForContext(results, 'open browser', null, state);
+      expect(reranked[0]!.score).toBeCloseTo(1.2, 2);
+    });
+
+    it('boosts network_enable 1.35x when page exists but network disabled', () => {
+      const results = [{ name: 'network_enable', domain: 'network', score: 1.0 }] as any;
+      const state = { hasActivePage: true, networkEnabled: false, capturedRequestCount: 0 };
+      const reranked = rerankResultsForContext(results, 'capture network', null, state);
+      expect(reranked[0]!.score).toBeCloseTo(1.35, 2);
+    });
+
+    it('boosts network_get_requests 1.5x when page+network+captures exist', () => {
+      const results = [{ name: 'network_get_requests', domain: 'network', score: 1.0 }] as any;
+      const state = { hasActivePage: true, networkEnabled: true, capturedRequestCount: 3 };
+      const reranked = rerankResultsForContext(results, 'inspect requests', null, state);
+      expect(reranked[0]!.score).toBeCloseTo(1.5, 2);
+    });
+
+    it('does not apply boosts for non-browser/network tasks', () => {
+      const results = [{ name: 'browser_launch', domain: 'browser', score: 1.0 }] as any;
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const reranked = rerankResultsForContext(results, 'token budget report', null, state);
+      expect(reranked[0]!.score).toBe(1.0);
+    });
+
+    it('suppresses maintenance tools 0.1x for browser/network tasks', () => {
+      const results = [
+        { name: 'get_token_budget_stats', domain: 'maintenance', score: 10 },
+        { name: 'page_navigate', domain: 'browser', score: 1 },
+      ] as any;
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const reranked = rerankResultsForContext(results, 'capture traffic', null, state);
+      const maint = reranked.find((r) => r.name === 'get_token_budget_stats')!;
+      expect(maint.score).toBeCloseTo(1.0, 2);
+    });
+
+    it('does not suppress maintenance tools for maintenance tasks', () => {
+      const results = [{ name: 'get_token_budget_stats', domain: 'maintenance', score: 10 }] as any;
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const reranked = rerankResultsForContext(results, 'check token budget', null, state);
+      expect(reranked[0]!.score).toBe(10);
+    });
+  });
+
+  describe('ToolRouter.intent — detectWorkflowIntent', () => {
+    it('returns null when no workflow rules match the query', () => {
+      const result = detectWorkflowIntent('zzzzzzz this is nonsense query xyz');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('ToolRouter.intent — matchWorkflowRoute edge cases', () => {
+    it('returns null when extensionWorkflowRuntimeById is empty', () => {
+      const ctx = createCtx({ extensionWorkflowRuntimeById: new Map() });
+      expect(matchWorkflowRoute('any query', ctx)).toBeNull();
+    });
+
+    it('skips workflow entries without a route', () => {
+      const ctx = createCtx({
+        extensionWorkflowRuntimeById: new Map([
+          [
+            'no-route',
+            {
+              workflow: { id: 'no-route', displayName: 'No Route Workflow' },
+            },
+          ],
+        ]),
+      });
+      expect(matchWorkflowRoute('any query', ctx)).toBeNull();
+    });
+
+    it('skips patterns that do not match', () => {
+      const ctx = createCtx({
+        extensionWorkflowRuntimeById: new Map([
+          [
+            'test-wf',
+            {
+              route: {
+                kind: 'preset',
+                triggerPatterns: [/^ONLY_MATCHES_EXACT$/],
+                requiredDomains: [],
+                priority: 100,
+                steps: [],
+              },
+              workflow: { id: 'test-wf', displayName: 'Test' },
+            },
+          ],
+        ]),
+      });
+      expect(matchWorkflowRoute('some other text', ctx)).toBeNull();
+    });
+
+    it('selects highest-priority route when multiple patterns match', () => {
+      const ctx = createCtx({
+        extensionWorkflowRuntimeById: new Map([
+          [
+            'lower-priority',
+            {
+              route: {
+                kind: 'preset',
+                triggerPatterns: [/capture/i],
+                requiredDomains: [],
+                priority: 30,
+                steps: [],
+              },
+              workflow: { id: 'lower-priority', displayName: 'Lower' },
+            },
+          ],
+          [
+            'higher-priority',
+            {
+              route: {
+                kind: 'preset',
+                triggerPatterns: [/capture/i],
+                requiredDomains: [],
+                priority: 70,
+                steps: [],
+              },
+              workflow: { id: 'higher-priority', displayName: 'Higher' },
+            },
+          ],
+        ]),
+      });
+      const match = matchWorkflowRoute('capture network', ctx);
+      expect(match!.workflow.id).toBe('higher-priority');
+    });
+  });
+
+  describe('ToolRouter.intent — isBrowserOrNetworkTask edge cases', () => {
+    it('returns false when task is not browser/network and workflow is null', () => {
+      expect(isBrowserOrNetworkTask('token budget check', null)).toBe(false);
+    });
+
+    it('returns true for browser domain workflow regardless of task text', () => {
+      expect(
+        isBrowserOrNetworkTask('zzz', {
+          domain: 'browser',
+          patterns: [],
+          priority: 0,
+          tools: [],
+          hint: '',
+        } as any),
+      ).toBe(true);
+    });
+
+    it('returns true for network domain workflow regardless of task text', () => {
+      expect(
+        isBrowserOrNetworkTask('zzz', {
+          domain: 'network',
+          patterns: [],
+          priority: 0,
+          tools: [],
+          hint: '',
+        } as any),
+      ).toBe(true);
+    });
+  });
+
+  describe('ToolRouter.intent — isMaintenanceTask', () => {
+    it('returns false for non-maintenance query', () => {
+      expect(isMaintenanceTask('capture traffic')).toBe(false);
+    });
+  });
+
+  describe('ToolRouter.ts — routeToolRequest uncovered branches', () => {
+    it('skips activationCandidates when nonMaintenanceTools is empty and uses inactiveTools', async () => {
+      const ctx = createCtx({
+        pageController: { getPage: vi.fn(async () => ({})) },
+        consoleMonitor: {
+          getNetworkStatus: vi.fn(() => ({ enabled: false })),
+          getNetworkRequests: vi.fn(() => []),
+        },
+      });
+      const searchEngine = {
+        search: vi.fn(() => [
+          {
+            name: 'page_navigate',
+            shortDescription: 'Navigate',
+            score: 100,
+            domain: 'browser',
+            isActive: false,
+          },
+        ]),
+      } as any;
+
+      const response = await routeToolRequest(
+        { task: 'navigate to url', context: { autoActivate: false } },
+        ctx,
+        searchEngine,
+      );
+
+      // nonMaintenanceTools is empty (page_navigate is browser domain, not maintenance)
+      // So activationCandidates = inactiveTools = page_navigate
+      expect(response.nextActions[0]!.command).toContain('page_navigate');
+    });
+
+    it('provides empty recommendations when no patterns match and no search results', async () => {
+      const ctx = createCtx();
+      const searchEngine = {
+        search: vi.fn(() => []),
+      } as any;
+
+      const response = await routeToolRequest(
+        { task: 'xyz totally random task qqq', context: {} },
+        ctx,
+        searchEngine,
+      );
+
+      expect(response.recommendations).toHaveLength(0);
+      expect(response.nextActions).toHaveLength(0);
+      expect(response.workflowHint).toBeUndefined();
+    });
+
+    it('applies maxRecommendations cap while preserving preset tools', async () => {
+      const ctx = createCtx({
+        extensionWorkflowsById: new Map([['big_preset', { id: 'big_preset' }]]),
+        extensionWorkflowRuntimeById: new Map([
+          [
+            'big_preset',
+            {
+              route: {
+                kind: 'preset',
+                triggerPatterns: [/big preset/i],
+                requiredDomains: [],
+                priority: 100,
+                steps: [
+                  { toolName: 'browser_launch', description: 'launch', prerequisites: [] },
+                  { toolName: 'browser_attach', description: 'attach', prerequisites: [] },
+                  { toolName: 'page_navigate', description: 'navigate', prerequisites: [] },
+                ],
+              },
+              workflow: { id: 'big_preset', displayName: 'Big Preset' },
+            },
+          ],
+        ]),
+      });
+      const searchEngine = {
+        search: vi.fn(() => [
+          {
+            name: 'network_enable',
+            shortDescription: 'net',
+            score: 10,
+            domain: 'network',
+            isActive: false,
+          },
+          {
+            name: 'page_evaluate',
+            shortDescription: 'eval',
+            score: 9,
+            domain: 'browser',
+            isActive: false,
+          },
+        ]),
+      } as any;
+
+      const response = await routeToolRequest(
+        { task: 'big preset workflow', context: { maxRecommendations: 2 } },
+        ctx,
+        searchEngine,
+      );
+
+      // maxRecommendations is capped at 3 (presetPlannedToolNames.size = 3)
+      expect(response.recommendations.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('applies preferredDomain boost and sorts correctly', async () => {
+      const ctx = createCtx();
+      const searchEngine = {
+        search: vi.fn(() => [
+          {
+            name: 'browser_tool',
+            shortDescription: 'Browser tool',
+            score: 1,
+            domain: 'browser',
+            isActive: false,
+          },
+          {
+            name: 'network_tool',
+            shortDescription: 'Network tool',
+            score: 2,
+            domain: 'network',
+            isActive: false,
+          },
+        ]),
+      } as any;
+
+      const response = await routeToolRequest(
+        { task: 'do something', context: { preferredDomain: 'browser' } },
+        ctx,
+        searchEngine,
+      );
+
+      // browser_tool score becomes 1 * 1.15 = 1.15, network_tool stays 2
+      expect(response.recommendations[0]!.name).toBe('network_tool');
+      expect(response.recommendations[1]!.name).toBe('browser_tool');
     });
   });
 });
