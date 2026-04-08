@@ -10,6 +10,7 @@ import {
   invokePlugin,
   type GhidraAnalysisOutput,
   type HookGeneratorOptions,
+  type HookParameter,
   type HookTemplate,
 } from '@modules/binary-instrument';
 import type { MCPServerContext } from '@server/MCPServer.context';
@@ -58,7 +59,7 @@ export class BinaryInstrumentHandlers {
 
     if (!availability.available) {
       const sessionId = `mock-frida-${this.makeMockId(target)}`;
-      return {
+      return this.jsonResponse({
         available: false,
         target,
         sessionId,
@@ -71,16 +72,16 @@ export class BinaryInstrumentHandlers {
             status: 'unavailable',
           },
         ],
-      };
+      });
     }
 
     const sessionId = await frida.attach(target);
-    return {
+    return this.jsonResponse({
       available: true,
       target,
       sessionId,
       sessions: frida.listSessions(),
-    };
+    });
   }
 
   async handleFridaEnumerateModules(args: Record<string, unknown>): Promise<unknown> {
@@ -89,7 +90,7 @@ export class BinaryInstrumentHandlers {
     const availability = await frida.getAvailability();
 
     if (!availability.available) {
-      return {
+      return this.jsonResponse({
         available: false,
         sessionId,
         reason: availability.reason ?? 'Frida CLI is not available',
@@ -101,24 +102,24 @@ export class BinaryInstrumentHandlers {
             path: '<unavailable>',
           },
         ],
-      };
+      });
     }
 
     if (!frida.useSession(sessionId)) {
-      return {
+      return this.jsonResponse({
         available: false,
         sessionId,
         reason: `Unknown Frida session: ${sessionId}`,
         modules: [],
-      };
+      });
     }
 
     const modules = await frida.enumerateModules();
-    return {
+    return this.jsonResponse({
       available: true,
       sessionId,
       modules,
-    };
+    });
   }
 
   async handleGhidraAnalyze(args: Record<string, unknown>): Promise<unknown> {
@@ -159,20 +160,27 @@ export class BinaryInstrumentHandlers {
       return this.handleLegacyGenerateHooks(legacyGhidraOutput);
     }
 
+    // Also accept a raw object for ghidraOutput (legacy path)
+    const legacyGhidraOutputObj = args['ghidraOutput'];
+    if (this.isRecord(legacyGhidraOutputObj)) {
+      const serialized = JSON.stringify(legacyGhidraOutputObj);
+      return this.handleLegacyGenerateHooks(serialized);
+    }
+
     const symbols = this.readStringArray(args, 'symbols');
     if (symbols.length === 0) {
-      throw new Error('symbols is required and must contain at least one symbol');
+      return this.textResponse('symbols or ghidraOutput is required');
     }
 
     const options = this.readHookOptions(args, 'options');
     const hookGen = this.getHookGenerator();
     const script = hookGen.generateFridaHookScript(symbols, options);
 
-    return {
+    return this.jsonResponse({
       available: true,
       symbolCount: symbols.length,
       script,
-    };
+    });
   }
 
   async handleUnidbgEmulate(args: Record<string, unknown>): Promise<unknown> {
@@ -261,15 +269,57 @@ export class BinaryInstrumentHandlers {
       return this.textResponse('Missing required string argument: sessionId');
     }
 
+    // Native FridaSession fallback
+    const frida = this.getFridaSession();
+    const availability = await frida.getAvailability();
+    if (availability.available && frida.hasSession(sessionId)) {
+      frida.useSession(sessionId);
+      await frida.detach();
+      return this.jsonResponse({ success: true, sessionId, detached: true });
+    }
+
     return this.invokeLegacyPlugin('plugin_frida_bridge', 'frida_detach', args);
   }
 
-  async handleFridaListSessions(args: Record<string, unknown>): Promise<unknown> {
-    return this.invokeLegacyPlugin('plugin_frida_bridge', 'frida_list_sessions', args);
+  async handleFridaListSessions(_args: Record<string, unknown>): Promise<unknown> {
+    // Native FridaSession fallback
+    const frida = this.getFridaSession();
+    const availability = await frida.getAvailability();
+    if (availability.available) {
+      const sessions = frida.listSessions();
+      return this.jsonResponse({
+        success: true,
+        sessions,
+        count: sessions.length,
+      });
+    }
+
+    return this.invokeLegacyPlugin('plugin_frida_bridge', 'frida_list_sessions', _args);
   }
 
   async handleFridaGenerateScript(args: Record<string, unknown>): Promise<unknown> {
-    return this.invokeLegacyPlugin('plugin_frida_bridge', 'frida_generate_script', args);
+    // Native HookCodeGenerator fallback
+    const target = this.readOptionalString(args, 'target') ?? 'unknown';
+    const template = this.readOptionalString(args, 'template') ?? 'trace';
+    const functionName = this.readOptionalString(args, 'functionName') ?? 'target_function';
+
+    const templates = [
+      {
+        functionName,
+        hookCode: `console.log('[${template}] ${functionName} called');`,
+        description: `${template} hook for ${functionName}`,
+        parameters: [],
+      },
+    ];
+
+    const script = this.hookCodeGenerator.exportScript(templates, 'frida');
+    return this.jsonResponse({
+      success: true,
+      target,
+      template,
+      functionName,
+      script,
+    });
   }
 
   async handleGetAvailablePlugins(_args: Record<string, unknown>): Promise<unknown> {
@@ -295,25 +345,37 @@ export class BinaryInstrumentHandlers {
   async handleUnidbgLaunch(args: Record<string, unknown>): Promise<unknown> {
     const soPath = this.readOptionalString(args, 'soPath');
     if (!soPath) {
-      return this.textResponse('Missing required string argument: soPath');
+      return this.textResponse('soPath is required');
     }
 
-    return this.textResponse('UNIDBG_JAR is not configured');
+    const arch = this.readOptionalString(args, 'arch') ?? 'arm';
+
+    try {
+      const result = await this.unidbgRunner.launch(soPath, arch);
+      return {
+        available: true,
+        sessionId: result.sessionId,
+        soPath: result.soPath,
+        arch: result.arch,
+        sessions: this.unidbgRunner.listSessions(),
+      };
+    } catch (error) {
+      return {
+        available: false,
+        soPath,
+        arch,
+        reason: error instanceof Error ? error.message : String(error),
+        sessions: this.unidbgRunner.listSessions(),
+      };
+    }
   }
 
   async handleUnidbgCall(args: Record<string, unknown>): Promise<unknown> {
-    const sessionId = this.readOptionalString(args, 'sessionId');
-    if (!sessionId) {
-      return this.textResponse('Missing required string argument: sessionId');
-    }
+    const sessionId = this.readRequiredString(args, 'sessionId');
+    const functionName = this.readRequiredString(args, 'functionName');
 
-    const functionName = this.readOptionalString(args, 'functionName');
-    if (!functionName) {
-      return this.textResponse('Missing required string argument: functionName');
-    }
-
+    const callArgs = this.isRecord(args['args']) ? args['args'] : {};
     try {
-      const callArgs = this.isRecord(args['args']) ? args['args'] : {};
       const result = await this.unidbgRunner.callFunction(sessionId, functionName, callArgs);
       return this.jsonResponse(result);
     } catch (error) {
@@ -362,6 +424,76 @@ export class BinaryInstrumentHandlers {
     } catch {
       return this.textResponse('Invalid JSON');
     }
+  }
+
+  async handleFridaEnumerateFunctions(args: Record<string, unknown>): Promise<unknown> {
+    const sessionId = this.readRequiredString(args, 'sessionId');
+    const moduleName = this.readRequiredString(args, 'moduleName');
+    const frida = this.getFridaSession();
+    const availability = await frida.getAvailability();
+
+    if (!availability.available) {
+      return {
+        available: false,
+        sessionId,
+        moduleName,
+        reason: availability.reason ?? 'Frida CLI is not available',
+        functions: [],
+      };
+    }
+
+    if (!frida.useSession(sessionId)) {
+      return {
+        available: false,
+        sessionId,
+        reason: `Unknown Frida session: ${sessionId}`,
+        functions: [],
+      };
+    }
+
+    const functions = await frida.enumerateFunctions(moduleName);
+    return {
+      available: true,
+      sessionId,
+      moduleName,
+      functions,
+      count: functions.length,
+    };
+  }
+
+  async handleFridaFindSymbols(args: Record<string, unknown>): Promise<unknown> {
+    const sessionId = this.readRequiredString(args, 'sessionId');
+    const pattern = this.readRequiredString(args, 'pattern');
+    const frida = this.getFridaSession();
+    const availability = await frida.getAvailability();
+
+    if (!availability.available) {
+      return {
+        available: false,
+        sessionId,
+        pattern,
+        reason: availability.reason ?? 'Frida CLI is not available',
+        symbols: [],
+      };
+    }
+
+    if (!frida.useSession(sessionId)) {
+      return {
+        available: false,
+        sessionId,
+        reason: `Unknown Frida session: ${sessionId}`,
+        symbols: [],
+      };
+    }
+
+    const symbols = await frida.findSymbols(pattern);
+    return {
+      available: true,
+      sessionId,
+      pattern,
+      symbols,
+      count: symbols.length,
+    };
   }
 
   private getFridaSession(): FridaSession {
@@ -463,7 +595,7 @@ export class BinaryInstrumentHandlers {
     command: string;
     jarPath: string;
   }> {
-    const jarPath = process.env.UNIDBG_JAR ?? '';
+    const jarPath = process.env['UNIDBG_JAR'] ?? '';
     if (jarPath.length === 0) {
       return {
         available: false,
@@ -561,7 +693,7 @@ export class BinaryInstrumentHandlers {
       const functionName = this.readStringRecordField(entry, 'functionName');
       const hookCode = this.readStringRecordField(entry, 'hookCode');
       const description = this.readStringRecordField(entry, 'description');
-      const parameters = Array.isArray(entry['parameters']) ? [] : [];
+      const parameters = this.parseHookParameters(entry['parameters']);
 
       if (!functionName || !hookCode || !description) {
         continue;
@@ -581,6 +713,29 @@ export class BinaryInstrumentHandlers {
   private readStringRecordField(record: Record<string, unknown>, key: string): string | undefined {
     const value = record[key];
     return typeof value === 'string' ? value : undefined;
+  }
+
+  private parseHookParameters(value: unknown): HookParameter[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const parameters: HookParameter[] = [];
+    for (const entry of value) {
+      if (!this.isRecord(entry)) {
+        continue;
+      }
+
+      const name = this.readStringRecordField(entry, 'name');
+      const type = this.readStringRecordField(entry, 'type');
+      const description = this.readStringRecordField(entry, 'description');
+
+      if (name && type && description) {
+        parameters.push({ name, type, description });
+      }
+    }
+
+    return parameters;
   }
 
   private textResponse(text: string): { content: Array<{ type: string; text: string }> } {

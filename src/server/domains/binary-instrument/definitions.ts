@@ -133,4 +133,22 @@ export const binaryInstrumentTools: Tool[] = [
     .desc('Export generated hook templates as a complete, runnable Frida script.')
     .string('hookTemplates', 'JSON array of hook template objects')
     .build(),
+
+  tool('frida_enumerate_functions')
+    .desc('Enumerate exported functions for a specific module in a Frida session.')
+    .string('sessionId', 'Session id returned by frida_attach')
+    .string('moduleName', 'Module name to enumerate exports from')
+    .required('sessionId', 'moduleName')
+    .readOnly()
+    .idempotent()
+    .build(),
+
+  tool('frida_find_symbols')
+    .desc('Search for symbols matching a pattern in a Frida session using ApiResolver.')
+    .string('sessionId', 'Session id returned by frida_attach')
+    .string('pattern', 'Symbol search pattern (e.g. "exports:*libssl*SSL*")')
+    .required('sessionId', 'pattern')
+    .readOnly()
+    .idempotent()
+    .build(),
 ];

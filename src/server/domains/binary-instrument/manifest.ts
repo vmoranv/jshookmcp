@@ -118,6 +118,16 @@ const manifest = {
       domain: DOMAIN,
       bind: bind((handlers, args) => handlers.handleExportHookScript(args)),
     },
+    {
+      tool: toolByName('frida_enumerate_functions'),
+      domain: DOMAIN,
+      bind: bind((handlers, args) => handlers.handleFridaEnumerateFunctions(args)),
+    },
+    {
+      tool: toolByName('frida_find_symbols'),
+      domain: DOMAIN,
+      bind: bind((handlers, args) => handlers.handleFridaFindSymbols(args)),
+    },
   ],
   toolDependencies: [
     {
