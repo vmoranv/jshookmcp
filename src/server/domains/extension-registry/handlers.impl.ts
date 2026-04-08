@@ -182,10 +182,15 @@ export class ExtensionRegistryHandlers {
         secret: secret ?? undefined,
       });
 
+      // Register external callback URL in WebhookBridge for event forwarding
+      const bridge = this.getWebhookBridge();
+      const baseUrl = `http://localhost:${server.getPort()}${webhookPath}`;
+      bridge.registerExternalCallback(endpointId, baseUrl);
+
       return asJsonResponse({
         success: true,
         endpointId,
-        url: `http://localhost:${server.getPort()}${webhookPath}`,
+        url: baseUrl,
         name,
         events,
       });
@@ -245,10 +250,11 @@ export class ExtensionRegistryHandlers {
 
       // Otherwise, list commands for this endpoint
       const queue = this.getCommandQueue();
-      const filter = status
-        ? { status: status as 'pending' | 'processing' | 'processed' | 'failed' }
-        : undefined;
-      const commands = queue.dequeue(filter ?? { endpointId });
+      const filter: Record<string, unknown> = { endpointId };
+      if (status) {
+        filter.status = status;
+      }
+      const commands = queue.dequeue(filter);
 
       return asJsonResponse({
         success: true,
