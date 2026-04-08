@@ -24,13 +24,13 @@
 
 - `extension_list_installed` — 列出已安装的 Chrome 扩展。
 - `extension_execute_in_context` — 在指定 Chrome 扩展的后台上下文中执行代码。
-- `extension_install` — 待补充中文：Install an extension from a local or remote manifest/module URL
-- `extension_reload` — 待补充中文：Reload an installed extension by unloading and loading it again
-- `extension_uninstall` — 待补充中文：Uninstall an extension from the local extension registry
-- `webhook_create` — 待补充中文：Create a new webhook endpoint for external callbacks
-- `webhook_list` — 待补充中文：List all registered webhook endpoints
-- `webhook_delete` — 待补充中文：Delete a webhook endpoint by ID
-- `webhook_commands` — 待补充中文：Get or set commands queued for a webhook endpoint
+- `extension_install` — 从本地或远程 manifest/模块 URL 安装扩展。
+- `extension_reload` — 重新加载已安装的扩展（先卸载再加载）。
+- `extension_uninstall` — 从本地扩展注册表中卸载扩展。
+- `webhook_create` — 创建新的 Webhook 端点用于外部回调。
+- `webhook_list` — 列出所有已注册的 Webhook 端点。
+- `webhook_delete` — 按 ID 删除 Webhook 端点。
+- `webhook_commands` — 获取或设置 Webhook 端点队列中的命令。
 
 ## 工具清单（9）
 
@@ -38,10 +38,10 @@
 | --- | --- |
 | `extension_list_installed` | 列出已安装的 Chrome 扩展。 |
 | `extension_execute_in_context` | 在指定 Chrome 扩展的后台上下文中执行代码。 |
-| `extension_install` | 待补充中文：Install an extension from a local or remote manifest/module URL |
-| `extension_reload` | 待补充中文：Reload an installed extension by unloading and loading it again |
-| `extension_uninstall` | 待补充中文：Uninstall an extension from the local extension registry |
-| `webhook_create` | 待补充中文：Create a new webhook endpoint for external callbacks |
-| `webhook_list` | 待补充中文：List all registered webhook endpoints |
-| `webhook_delete` | 待补充中文：Delete a webhook endpoint by ID |
-| `webhook_commands` | 待补充中文：Get or set commands queued for a webhook endpoint |
+| `extension_install` | 从本地或远程 manifest/模块 URL 安装扩展。 |
+| `extension_reload` | 重新加载已安装的扩展（先卸载再加载）。 |
+| `extension_uninstall` | 从本地扩展注册表中卸载扩展。 |
+| `webhook_create` | 创建新的 Webhook 端点用于外部回调。 |
+| `webhook_list` | 列出所有已注册的 Webhook 端点。 |
+| `webhook_delete` | 按 ID 删除 Webhook 端点。 |
+| `webhook_commands` | 获取或设置 Webhook 端点队列中的命令。 |

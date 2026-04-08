@@ -23,20 +23,20 @@
 
 ## 代表工具
 
-- `proto_define_pattern` — 待补充中文：Define a protocol pattern with delimiter, byte order, and field layout
-- `proto_auto_detect` — 待补充中文：Auto-detect a protocol pattern from one or more hex payload samples
-- `proto_infer_fields` — 待补充中文：Infer likely protocol fields from repeated hex payload samples
-- `proto_infer_state_machine` — 待补充中文：Infer a protocol state machine from captured message sequences
-- `proto_export_schema` — 待补充中文：Export a protocol pattern to a .proto-like schema definition
-- `proto_visualize_state` — 待补充中文：Generate a Mermaid state diagram from a protocol state machine definition
+- `proto_define_pattern` — 用分隔符、字节序和字段布局定义协议模式。
+- `proto_auto_detect` — 从一个或多个十六进制负载样本自动检测协议模式。
+- `proto_infer_fields` — 从重复的十六进制负载样本推断可能的协议字段。
+- `proto_infer_state_machine` — 从捕获的消息序列推断协议状态机。
+- `proto_export_schema` — 将协议模式导出为类 .proto 的 schema 定义。
+- `proto_visualize_state` — 从协议状态机定义生成 Mermaid 状态图。
 
 ## 工具清单（6）
 
 | 工具 | 说明 |
 | --- | --- |
-| `proto_define_pattern` | 待补充中文：Define a protocol pattern with delimiter, byte order, and field layout |
-| `proto_auto_detect` | 待补充中文：Auto-detect a protocol pattern from one or more hex payload samples |
-| `proto_infer_fields` | 待补充中文：Infer likely protocol fields from repeated hex payload samples |
-| `proto_infer_state_machine` | 待补充中文：Infer a protocol state machine from captured message sequences |
-| `proto_export_schema` | 待补充中文：Export a protocol pattern to a .proto-like schema definition |
-| `proto_visualize_state` | 待补充中文：Generate a Mermaid state diagram from a protocol state machine definition |
+| `proto_define_pattern` | 用分隔符、字节序和字段布局定义协议模式。 |
+| `proto_auto_detect` | 从一个或多个十六进制负载样本自动检测协议模式。 |
+| `proto_infer_fields` | 从重复的十六进制负载样本推断可能的协议字段。 |
+| `proto_infer_state_machine` | 从捕获的消息序列推断协议状态机。 |
+| `proto_export_schema` | 将协议模式导出为类 .proto 的 schema 定义。 |
+| `proto_visualize_state` | 从协议状态机定义生成 Mermaid 状态图。 |
