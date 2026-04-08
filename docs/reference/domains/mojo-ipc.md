@@ -22,18 +22,18 @@ Mojo IPC 监控域，用于 Chromium 内部进程间通信分析。
 
 ## 代表工具
 
-- `mojo_monitor_start` — 待补充中文：Start Mojo IPC monitoring for the active Chromium-based target
-- `mojo_monitor_stop` — 待补充中文：Stop the active Mojo IPC monitoring session
-- `mojo_decode_message` — 待补充中文：Decode a Mojo IPC hex payload into a structured field map
-- `mojo_list_interfaces` — 待补充中文：List discovered Mojo IPC interfaces and their pending message counts
-- `mojo_messages_get` — 待补充中文：Retrieve captured Mojo IPC messages from the active monitoring session
+- `mojo_monitor_start` — 为当前 Chromium 内核目标启动 Mojo IPC 监控。
+- `mojo_monitor_stop` — 停止当前的 Mojo IPC 监控会话。
+- `mojo_decode_message` — 将 Mojo IPC 十六进制负载解码为结构化字段映射。
+- `mojo_list_interfaces` — 列出已发现的 Mojo IPC 接口及其待处理消息计数。
+- `mojo_messages_get` — 从活跃监控会话中获取已捕获的 Mojo IPC 消息。
 
 ## 工具清单（5）
 
 | 工具 | 说明 |
 | --- | --- |
-| `mojo_monitor_start` | 待补充中文：Start Mojo IPC monitoring for the active Chromium-based target |
-| `mojo_monitor_stop` | 待补充中文：Stop the active Mojo IPC monitoring session |
-| `mojo_decode_message` | 待补充中文：Decode a Mojo IPC hex payload into a structured field map |
-| `mojo_list_interfaces` | 待补充中文：List discovered Mojo IPC interfaces and their pending message counts |
-| `mojo_messages_get` | 待补充中文：Retrieve captured Mojo IPC messages from the active monitoring session |
+| `mojo_monitor_start` | 为当前 Chromium 内核目标启动 Mojo IPC 监控。 |
+| `mojo_monitor_stop` | 停止当前的 Mojo IPC 监控会话。 |
+| `mojo_decode_message` | 将 Mojo IPC 十六进制负载解码为结构化字段映射。 |
+| `mojo_list_interfaces` | 列出已发现的 Mojo IPC 接口及其待处理消息计数。 |
+| `mojo_messages_get` | 从活跃监控会话中获取已捕获的 Mojo IPC 消息。 |

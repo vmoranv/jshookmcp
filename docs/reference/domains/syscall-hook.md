@@ -22,20 +22,20 @@
 
 ## 代表工具
 
-- `syscall_start_monitor` — 待补充中文：Start syscall monitoring using ETW, strace, or dtrace.
-- `syscall_stop_monitor` — 待补充中文：Stop syscall monitoring.
-- `syscall_capture_events` — 待补充中文：Capture syscall events from the active or last monitoring session.
-- `syscall_correlate_js` — 待补充中文：Correlate captured syscalls with likely JavaScript functions.
-- `syscall_filter` — 待补充中文：Filter captured syscall events by syscall name.
-- `syscall_get_stats` — 待补充中文：Get syscall monitoring statistics.
+- `syscall_start_monitor` — 使用 ETW、strace 或 dtrace 启动系统调用监控。
+- `syscall_stop_monitor` — 停止系统调用监控。
+- `syscall_capture_events` — 从活跃或上一次监控会话中捕获系统调用事件。
+- `syscall_correlate_js` — 将捕获的系统调用与可能的 JavaScript 函数关联。
+- `syscall_filter` — 按系统调用名称过滤已捕获的系统调用事件。
+- `syscall_get_stats` — 获取系统调用监控统计。
 
 ## 工具清单（6）
 
 | 工具 | 说明 |
 | --- | --- |
-| `syscall_start_monitor` | 待补充中文：Start syscall monitoring using ETW, strace, or dtrace. |
-| `syscall_stop_monitor` | 待补充中文：Stop syscall monitoring. |
-| `syscall_capture_events` | 待补充中文：Capture syscall events from the active or last monitoring session. |
-| `syscall_correlate_js` | 待补充中文：Correlate captured syscalls with likely JavaScript functions. |
-| `syscall_filter` | 待补充中文：Filter captured syscall events by syscall name. |
-| `syscall_get_stats` | 待补充中文：Get syscall monitoring statistics. |
+| `syscall_start_monitor` | 使用 ETW、strace 或 dtrace 启动系统调用监控。 |
+| `syscall_stop_monitor` | 停止系统调用监控。 |
+| `syscall_capture_events` | 从活跃或上一次监控会话中捕获系统调用事件。 |
+| `syscall_correlate_js` | 将捕获的系统调用与可能的 JavaScript 函数关联。 |
+| `syscall_filter` | 按系统调用名称过滤已捕获的系统调用事件。 |
+| `syscall_get_stats` | 获取系统调用监控统计。 |
