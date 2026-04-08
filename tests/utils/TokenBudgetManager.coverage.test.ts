@@ -48,8 +48,7 @@ describe('TokenBudgetManager – v8 ignore branch coverage', () => {
   });
 
   it('normalizeForSizeEstimate handles function type', () => {
-    const fn = function myFunc() {};
-    const result = (manager as any).normalizeForSizeEstimate(fn, 0, new WeakSet());
+    const result = (manager as any).normalizeForSizeEstimate(() => {}, 0, new WeakSet());
     expect(result).toBe('[Function]');
   });
 
@@ -106,15 +105,16 @@ describe('TokenBudgetManager – v8 ignore branch coverage', () => {
 
   it('normalizeForSizeEstimate handles depth limit returning [Object] for objects', () => {
     const deep = { a: { b: { c: { d: { e: 1 } } } } };
+    // At depth=4 (MAX_ESTIMATION_DEPTH), root object is replaced with '[Object]'
     const result = (manager as any).normalizeForSizeEstimate(deep, 4, new WeakSet());
-    // At depth 4, it should return [Object] for the nested object
-    expect(result.a.b.c.d).toBe('[Object]');
+    expect(result).toBe('[Object]');
   });
 
   it('normalizeForSizeEstimate handles depth limit returning [Array:N] for arrays', () => {
     const arr = [[[[[1]]]]];
+    // At depth=4 (MAX_ESTIMATION_DEPTH), root array is replaced with '[Array:1]'
     const result = (manager as any).normalizeForSizeEstimate(arr, 4, new WeakSet());
-    expect(result[0][0][0][0]).toBe('[Array:1]');
+    expect(result).toBe('[Array:1]');
   });
 
   it('normalizeForSizeEstimate handles truncated arrays', () => {
@@ -136,7 +136,8 @@ describe('TokenBudgetManager – v8 ignore branch coverage', () => {
       string,
       unknown
     >;
-    expect(Object.keys(result).length).toBe(50);
+    // 50 keys + 1 __truncatedKeys = 51 total enumerable keys
+    expect(Object.keys(result).length).toBe(51);
     expect(result.__truncatedKeys).toBe(50);
   });
 

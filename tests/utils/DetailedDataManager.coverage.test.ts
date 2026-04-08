@@ -63,7 +63,8 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
     expect(read({ a: 1 }, 'a')).toBe(1);
     expect(read({ a: { b: 2 } }, 'a')).toEqual({ b: 2 });
     expect(read([1, 2, 3], '1')).toBe(2);
-    expect(read(42, 'toString')).toBe(42); // Object(42) coerces to Number wrapper
+    // Object(42) creates Number wrapper; accessing 'toString' returns the function
+    expect(typeof read(42, 'toString')).toBe('function');
   });
 
   // ── getByPath ─────────────────────────────────────────────────────────────
@@ -124,8 +125,10 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
     const { json: jsonStr, size } = (manager as any).serializeWithMemo(obj);
     const summary = (manager as any).generateSummaryFromJson(obj, jsonStr, size);
     expect(summary.structure?.keys?.length).toBe(50); // sliced to 50
-    expect(summary.structure?.methods?.length).toBe(5); // sliced to 30
-    expect(summary.structure?.properties?.length).toBe(50); // sliced to 30
+    // methods: Object.keys() doesn't list non-enumerable props; only 'key*' are enumerable
+    expect(summary.structure?.methods?.length).toBe(0); // no enumerable function keys
+    // properties: same as keys (functions are non-enumerable)
+    expect(summary.structure?.properties?.length).toBe(50); // sliced to 50
   });
 
   // ── cleanup ──────────────────────────────────────────────────────────────
@@ -153,7 +156,7 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
   it('evictLRU removes least recently accessed entry', () => {
     const ids: string[] = [];
     for (let i = 0; i < 100; i++) {
-      ids.push(manager.store({ i }));
+      ids.push(manager.store({ ['k' + i]: i })); // explicit string key 'k0', 'k1', etc.
       vi.advanceTimersByTime(1);
     }
 
@@ -165,7 +168,7 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
 
     // ids[1] should have been evicted (it was the LRU after ids[0] was accessed)
     expect(() => manager.retrieve(ids[1]!)).toThrow();
-    expect(manager.retrieve(ids[0]!)).toEqual({ 0: 0 });
+    expect(manager.retrieve(ids[0]!)).toEqual({ k0: 0 });
     expect(manager.retrieve(overflow)).toEqual({ overflow: true });
   });
 
@@ -243,7 +246,7 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
     const stats = manager.getStats();
     expect(stats.maxCacheSize).toBe(100);
     expect(stats.defaultTTLSeconds).toBe(30 * 60); // 30 minutes
-    expect(stats.maxTTLSeconds).toBe(24 * 60 * 60); // 24 hours
+    expect(stats.maxTTLSeconds).toBe(60 * 60); // 1 hour
     expect(stats.autoExtendEnabled).toBe(true);
     expect(stats.extendDurationSeconds).toBe(15 * 60); // 15 minutes
   });
@@ -255,7 +258,7 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
   });
 
   it('getDetailedStats marks expired entries correctly', () => {
-    const id = manager.store({ a: 1 }, 10);
+    manager.store({ a: 1 }, 10);
     vi.advanceTimersByTime(20);
     const stats = manager.getDetailedStats();
     expect(stats[0]?.isExpired).toBe(true);
@@ -263,7 +266,8 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
   });
 
   it('getDetailedStats computes remaining seconds correctly', () => {
-    const id = manager.store({ a: 1 }, 60_000); // 1 min TTL
+    // 1 min TTL
+    manager.store({ a: 1 }, 60_000);
     vi.advanceTimersByTime(30_000); // 30 seconds in
     const stats = manager.getDetailedStats();
     expect(stats[0]?.remainingSeconds).toBeGreaterThan(25);

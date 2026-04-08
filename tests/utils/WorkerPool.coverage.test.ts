@@ -82,7 +82,7 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
 
   // ── ensureMinWorkers closed guard (v8 ignore next 3) ──────────────────────
 
-  it('ensureMinWorkers returns early when pool is closed (v8 ignore next 3)', () => {
+  it('ensureMinWorkers returns early when pool is closed (v8 ignore next 3)', async () => {
     const pool = new WorkerPool<any, any>({
       workerScript: 'x',
       minWorkers: 0,
@@ -96,7 +96,7 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
 
   // ── pumpQueue closed guard (v8 ignore next 3) ─────────────────────────────
 
-  it('pumpQueue returns early when pool is closed (v8 ignore next 3)', () => {
+  it('pumpQueue returns early when pool is closed (v8 ignore next 3)', async () => {
     const pool = new WorkerPool<any, any>({
       workerScript: 'x',
       minWorkers: 0,
@@ -110,7 +110,7 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
 
   // ── pumpQueue null job guard (v8 ignore next 3) ───────────────────────────
 
-  it('pumpQueue handles null job from shift (v8 ignore next 3)', () => {
+  it('pumpQueue handles null job from shift (v8 ignore next 3)', async () => {
     const pool = new WorkerPool<any, any>({
       workerScript: 'x',
       minWorkers: 0,

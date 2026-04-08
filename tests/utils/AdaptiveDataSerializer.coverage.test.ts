@@ -25,7 +25,7 @@ describe('AdaptiveDataSerializer – v8 ignore branch coverage', () => {
     // Array.isArray() guard in serialize — which happens when detectType() returns
     // 'large-array' for a non-array. Since the TS type system prevents this at
     // compile time, we use any to simulate it.
-    const data = 'not-an-array-but-detected-as-large-array' as unknown;
+    const _unused = 'not-an-array-but-detected-as-large-array' as unknown;
     // Force detectType to return 'large-array' by using an object that has
     // .length > 100. The only way to reach the Array.isArray guard false
     // branch is to call the private method directly, or through type coercion.
@@ -77,13 +77,6 @@ describe('AdaptiveDataSerializer – v8 ignore branch coverage', () => {
   // ── limitDepth / getDepth ──────────────────────────────────────────────────
 
   it('limitDepth returns non-record primitives unchanged', () => {
-    const ctx = {
-      maxDepth: 3,
-      maxArrayLength: 10,
-      maxStringLength: 1000,
-      maxObjectKeys: 20,
-      threshold: 50 * 1024,
-    };
     expect((serializer as any).limitDepth(null, 5, 0)).toBeNull();
     expect((serializer as any).limitDepth(undefined, 5, 0)).toBeUndefined();
     expect((serializer as any).limitDepth(42, 5, 0)).toBe(42);
@@ -92,26 +85,12 @@ describe('AdaptiveDataSerializer – v8 ignore branch coverage', () => {
   });
 
   it('limitDepth truncates at max depth for nested objects', () => {
-    const ctx = {
-      maxDepth: 2,
-      maxArrayLength: 10,
-      maxStringLength: 1000,
-      maxObjectKeys: 20,
-      threshold: 50 * 1024,
-    };
     const deep = { a: { b: { c: 'should-be-truncated' } } };
     const result = (serializer as any).limitDepth(deep, 2, 0);
     expect(result.a.b).toBe('[Max depth reached]');
   });
 
   it('limitDepth truncates at max depth for arrays', () => {
-    const ctx = {
-      maxDepth: 1,
-      maxArrayLength: 10,
-      maxStringLength: 1000,
-      maxObjectKeys: 20,
-      threshold: 50 * 1024,
-    };
     const arr = [[1, 2, 3]];
     const result = (serializer as any).limitDepth(arr, 1, 0);
     expect(result[0]).toBe('[Max depth reached]');
