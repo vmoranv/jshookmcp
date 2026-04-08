@@ -28,6 +28,20 @@ function ensure(ctx: MCPServerContext): H {
   }
 
   const handlers = new BoringsslInspectorHandlers(new TLSKeyLogExtractor());
+
+  // Wire extensionInvoke for automated Frida cert-pinning bypass
+  handlers.setExtensionInvoke(async (args: unknown) => {
+    try {
+      const binaryInstrument = ctx.getDomainInstance<Record<string, unknown>>('binaryInstrumentHandlers');
+      if (binaryInstrument && typeof binaryInstrument.handleFridaRunScript === 'function') {
+        return binaryInstrument.handleFridaRunScript(args);
+      }
+    } catch {
+      // binary-instrument domain not loaded
+    }
+    return null;
+  });
+
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
 }
@@ -48,6 +62,26 @@ const manifest = {
       tool: lookup('tls_keylog_parse'),
       domain: DOMAIN,
       bind: bind((handler, args) => handler.handleTlsKeylogParse(args)),
+    },
+    {
+      tool: lookup('tls_keylog_disable'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTlsKeylogDisable(args)),
+    },
+    {
+      tool: lookup('tls_decrypt_payload'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTlsDecryptPayload(args)),
+    },
+    {
+      tool: lookup('tls_keylog_summarize'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTlsKeylogSummarize(args)),
+    },
+    {
+      tool: lookup('tls_keylog_lookup_secret'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTlsKeylogLookupSecret(args)),
     },
     {
       tool: lookup('tls_cert_pin_bypass'),
@@ -78,6 +112,31 @@ const manifest = {
       tool: lookup('tls_cert_pin_bypass_frida'),
       domain: DOMAIN,
       bind: bind((handler, args) => handler.handleBypassCertPinning(args)),
+    },
+    {
+      tool: lookup('net_raw_tcp_send'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleRawTcpSend(args)),
+    },
+    {
+      tool: lookup('net_raw_tcp_listen'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleRawTcpListen(args)),
+    },
+    {
+      tool: lookup('net_raw_udp_send'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleRawUdpSend(args)),
+    },
+    {
+      tool: lookup('net_raw_udp_listen'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleRawUdpListen(args)),
+    },
+    {
+      tool: lookup('net_raw_tcp_scan'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleRawTcpScan(args)),
     },
   ],
   ensure,
