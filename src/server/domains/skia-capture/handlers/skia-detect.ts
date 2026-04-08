@@ -5,7 +5,7 @@
  * Integrates with v8-inspector domain for SKIA-03 (correlateObjects).
  */
 import { ToolError } from '@errors/ToolError';
-import { argString, argBool } from '@server/domains/shared/parse-args';
+import { argString, argBool, argStringArray } from '@server/domains/shared/parse-args';
 import type { PageController } from '@server/domains/shared/modules';
 import { detectSkiaRenderer, extractSceneTree } from '@modules/skia-capture/SkiaSceneExtractor';
 import { correlateToJS } from '@modules/skia-capture/SkiaObjectCorrelator';
