@@ -401,6 +401,13 @@ describe('MemoryScanner', () => {
       expect(next.scanNumber).toBeGreaterThanOrEqual(2);
     });
 
+    it('parses secondary comparison values for non-pointer next scans', async () => {
+      const first = await scanner.firstScan(1234, '42', { valueType: 'int32' });
+      const next = await scanner.nextScan(first.sessionId, 'between', '10', '50');
+
+      expect(next.matchCount).toBeGreaterThanOrEqual(0);
+    });
+
     it('should skip unreadable previous addresses in nextScan and handle missing prevBuf', async () => {
       const first = await scanner.firstScan(1234, '42', { valueType: 'int32' });
 
@@ -415,6 +422,17 @@ describe('MemoryScanner', () => {
 
       const next = await scanner.nextScan(first.sessionId, 'exact', '42');
       expect(next.scanNumber).toBeGreaterThanOrEqual(2);
+    });
+
+    it('treats missing previous values as null during nextScan comparisons', async () => {
+      const first = await scanner.firstScan(1234, '42', { valueType: 'int32' });
+      const { scanSessionManager } = await import('@native/MemoryScanSession');
+      const session = (scanSessionManager.getSession as ReturnType<typeof vi.fn>)(first.sessionId);
+      session.previousValues = new Map();
+
+      const next = await scanner.nextScan(first.sessionId, 'exact', '42');
+
+      expect(next.matchCount).toBeGreaterThanOrEqual(0);
     });
 
     it('should break region loop if maxAddresses reached (unknownInitialScan)', async () => {
@@ -453,6 +471,11 @@ describe('MemoryScanner', () => {
       });
       const result = await scanner.unknownInitialScan(1234, { valueType: 'int32', alignment: 0 });
       expect(result.scanNumber).toBe(1);
+    });
+
+    it('uses a step of one when unknown initial scans receive non-positive alignment', async () => {
+      const result = await scanner.unknownInitialScan(1234, { valueType: 'int32', alignment: 0 });
+      expect(result.matchCount).toBeGreaterThan(0);
     });
 
     it('should break region loop if maxResults reached (pointerScan)', async () => {
@@ -500,6 +523,19 @@ describe('MemoryScanner', () => {
       expect(result.totalFound).toBeGreaterThanOrEqual(0);
     });
 
+    it('reports negative offsets for pointers below the target address', async () => {
+      const buf = Buffer.alloc(4096);
+      buf.writeBigUInt64LE(0x7ffe0a00n, 0);
+      mockProvider.readMemory.mockImplementation((_h, _a, size) => ({
+        data: buf.subarray(0, size),
+        bytesRead: size,
+      }));
+
+      const result = await scanner.pointerScan(1234, '0x7FFE1000');
+
+      expect(result.pointers[0]?.offsetFromTarget).toBe(-0x600);
+    });
+
     it('should break region loop if maxResults reached (groupScan)', async () => {
       mockProvider.queryRegion.mockImplementation((_h, addr) => {
         if (addr <= 0x10000n)
@@ -533,6 +569,50 @@ describe('MemoryScanner', () => {
         { maxResults: 1 },
       );
       expect(result.matchCount).toBeLessThanOrEqual(1);
+    });
+
+    it('stops scanning later regions once group scan reaches maxResults', async () => {
+      const multiRegionChunk = Buffer.alloc(4096);
+      multiRegionChunk.writeInt32LE(42, 0);
+      multiRegionChunk.writeInt32LE(42, 8);
+
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr === 0n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+            isExecutable: false,
+          } as any;
+        if (addr === 0x11000n)
+          return {
+            baseAddress: 0x11000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+            isExecutable: false,
+          } as any;
+        return null;
+      });
+      mockProvider.readMemory.mockImplementation((_h, _addr, size) => ({
+        data: Buffer.from(multiRegionChunk.subarray(0, size)),
+        bytesRead: size,
+      }));
+
+      const result = await scanner.groupScan(1234, [{ offset: 0, value: '42', type: 'int32' }], {
+        alignment: 4,
+        maxResults: 1,
+      });
+
+      expect(result.matchCount).toBe(1);
+      expect(mockProvider.readMemory).toHaveBeenCalledTimes(1);
     });
 
     it('should handle 0 alignment in groupScan', async () => {
@@ -599,6 +679,100 @@ describe('MemoryScanner', () => {
         regionFilter: { writable: true, executable: true, moduleOnly: true },
       } as any);
       expect(result.matchCount).toBe(0);
+    });
+
+    it('skips unreadable regions and enforces executable-only filters in region selection', () => {
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr === 0n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: false,
+            isWritable: true,
+            isExecutable: false,
+          } as any;
+        if (addr === 0x11000n)
+          return {
+            baseAddress: 0x11000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+            isExecutable: false,
+          } as any;
+        if (addr === 0x12000n)
+          return {
+            baseAddress: 0x12000n,
+            size: 4096,
+            protection: 0x20,
+            state: 'committed',
+            type: 'image',
+            isReadable: true,
+            isWritable: false,
+            isExecutable: true,
+          } as any;
+        return null;
+      });
+
+      const regions = (scanner as any).getFilteredRegions(
+        { pid: 1234, writeAccess: false } satisfies ProcessHandle,
+        { valueType: 'int32', regionFilter: { executable: true } },
+      );
+
+      expect(regions).toEqual([{ baseAddress: 0x12000n, size: 4096 }]);
+    });
+
+    it('keeps writable regions when the writable filter is enabled', () => {
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr === 0n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+            isExecutable: false,
+          } as any;
+        return null;
+      });
+
+      const regions = (scanner as any).getFilteredRegions(
+        { pid: 1234, writeAccess: false } satisfies ProcessHandle,
+        { valueType: 'int32', regionFilter: { writable: true } },
+      );
+
+      expect(regions).toEqual([{ baseAddress: 0x10000n, size: 4096 }]);
+    });
+
+    it('drops non-writable regions when the writable filter is enabled', () => {
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr === 0n)
+          return {
+            baseAddress: 0x10000n,
+            size: 4096,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: false,
+            isExecutable: false,
+          } as any;
+        return null;
+      });
+
+      const regions = (scanner as any).getFilteredRegions(
+        { pid: 1234, writeAccess: false } satisfies ProcessHandle,
+        { valueType: 'int32', regionFilter: { writable: true } },
+      );
+
+      expect(regions).toEqual([]);
     });
   });
 });

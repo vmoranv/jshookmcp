@@ -109,6 +109,13 @@ describe('Win32API', () => {
     expect(CloseHandle(1234n)).toBe(true);
   });
 
+  it('passes inherited handle flag through to OpenProcess', () => {
+    mockFuncs.OpenProcess.mockReturnValue(5678n);
+
+    expect(OpenProcess(1, true, 321)).toBe(5678n);
+    expect(mockFuncs.OpenProcess).toHaveBeenCalledWith(1, 1, 321);
+  });
+
   it('handles ReadProcessMemory success and failure', () => {
     mockFuncs.ReadProcessMemory.mockImplementation((hProcess, lpBase, buf, size, bytesRead) => {
       buf.write('test');
@@ -205,6 +212,19 @@ describe('Win32API', () => {
     expect(res.debugPort).toBe(4294967295); // 0xffffffffn
   });
 
+  it('reuses the cached ntdll binding across successive debug queries', () => {
+    mockFuncs.NtQueryInformationProcess.mockImplementation((h, c, buf, _s, _ret) => {
+      buf.writeBigUInt64LE(0n, 0);
+      return 0;
+    });
+
+    NtQueryInformationProcess(1234n, 7);
+    NtQueryInformationProcess(1234n, 7);
+
+    const ntdllLoads = mockKoffi.load.mock.calls.filter(([name]) => name === 'ntdll.dll');
+    expect(ntdllLoads).toHaveLength(1);
+  });
+
   it('handles EnumProcessModules', () => {
     mockFuncs.EnumProcessModules.mockImplementation((h, buf, s, needed) => {
       buf.writeBigUInt64LE(0x1000n, 0);
@@ -235,6 +255,15 @@ describe('Win32API', () => {
 
     // Test failure
     mockFuncs.GetModuleFileNameExA.mockReturnValue(0);
+    expect(GetModuleFileNameEx(1234n, 0x1000n)).toBe(null);
+  });
+
+  it('returns null when the resolved module path is empty', () => {
+    mockFuncs.GetModuleFileNameExA.mockImplementation((h, m, buf, _size) => {
+      buf.writeUInt8(0, 0);
+      return 1;
+    });
+
     expect(GetModuleFileNameEx(1234n, 0x1000n)).toBe(null);
   });
 
