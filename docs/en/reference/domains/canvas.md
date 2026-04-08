@@ -2,7 +2,7 @@
 
 Domain: `canvas`
 
-Canvas game engine reverse-engineering domain: identifies LayaAir/PixiJS/Phaser/Cocos/Unity WebGL engines, extracts scene trees, picks objects at screen coordinates, and traces click events to JS handlers.
+Canvas game engine reverse analysis domain supporting Laya, Pixi, Phaser, Cocos, and Unity engines for fingerprinting, scene tree dumping, and object picking.
 
 ## Profiles
 
@@ -11,16 +11,15 @@ Canvas game engine reverse-engineering domain: identifies LayaAir/PixiJS/Phaser/
 
 ## Typical scenarios
 
-- Identify game engine (LayaAir / PixiJS / Phaser / Cocos Creator / Unity WebGL)
-- Extract complete scene tree / display list
-- Screen-coordinate picking: given (x, y), find which game object is at that position
-- Click tracing: DOM → engine dispatch → JS call stack → handler
+- Game engine fingerprinting and version detection
+- Scene node tree export
+- Coordinate-based object picking
+- Click event handler tracing
 
 ## Common combinations
 
-- canvas + browser
-- canvas + debugger
-- canvas + evidence
+- browser + canvas + debugger
+- canvas + evidence + trace
 
 ## Representative tools
 
