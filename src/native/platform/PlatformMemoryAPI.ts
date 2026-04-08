@@ -32,7 +32,7 @@ import type {
 
 export interface PlatformMemoryAPI {
   /** Platform identifier */
-  readonly platform: 'win32' | 'darwin';
+  readonly platform: 'win32' | 'darwin' | 'linux';
 
   // ── Lifecycle ──
 

@@ -10,6 +10,16 @@ import type { ToolHandlerDeps } from '@server/registry/contracts';
 import type { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import type { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
+import type { ADBBridgeHandlers } from '@server/domains/adb-bridge/handlers';
+import type { BinaryInstrumentHandlers } from '@server/domains/binary-instrument/handlers';
+import type { BoringsslInspectorHandlers } from '@server/domains/boringssl-inspector/handlers';
+import type { CrossDomainHandlers } from '@server/domains/cross-domain/handlers';
+import type { ExtensionRegistryHandlers } from '@server/domains/extension-registry/handlers';
+import type { MojoIPCHandlers } from '@server/domains/mojo-ipc/handlers';
+import type { ProtocolAnalysisHandlers } from '@server/domains/protocol-analysis/handlers';
+import type { SkiaCaptureHandlers } from '@server/domains/skia-capture/handlers';
+import type { SyscallHookHandlers } from '@server/domains/syscall-hook/handlers';
+import type { V8InspectorHandlers } from '@server/domains/v8-inspector/handlers';
 import type {
   ExtensionListResult,
   ExtensionPluginRecord,
@@ -106,6 +116,16 @@ export interface DomainInstances {
   runtimeInspector?: import('@modules/debugger/RuntimeInspector').RuntimeInspector;
   consoleMonitor?: import('@modules/monitor/ConsoleMonitor').ConsoleMonitor;
   browserHandlers?: import('@server/domains/browser/index').BrowserToolHandlers;
+  v8InspectorHandlers?: V8InspectorHandlers;
+  boringsslInspectorHandlers?: BoringsslInspectorHandlers;
+  skiaCaptureHandlers?: SkiaCaptureHandlers;
+  binaryInstrumentHandlers?: BinaryInstrumentHandlers;
+  adbBridgeHandlers?: ADBBridgeHandlers;
+  mojoIpcHandlers?: MojoIPCHandlers;
+  syscallHookHandlers?: SyscallHookHandlers;
+  protocolAnalysisHandlers?: ProtocolAnalysisHandlers;
+  extensionRegistryHandlers?: ExtensionRegistryHandlers;
+  crossDomainHandlers?: CrossDomainHandlers;
   debuggerHandlers?: import('@server/domains/debugger/index').DebuggerToolHandlers;
   advancedHandlers?: import('@server/domains/network/index').AdvancedToolHandlers;
   aiHookHandlers?: import('@server/domains/hooks/index').AIHookToolHandlers;

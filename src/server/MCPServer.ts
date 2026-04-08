@@ -105,6 +105,34 @@ export class MCPServer implements MCPServerContext {
     | undefined;
   declare consoleMonitor: import('@modules/monitor/ConsoleMonitor').ConsoleMonitor | undefined;
   declare browserHandlers: import('@server/domains/browser/index').BrowserToolHandlers | undefined;
+  declare v8InspectorHandlers:
+    | import('@server/domains/v8-inspector/handlers').V8InspectorHandlers
+    | undefined;
+  declare boringsslInspectorHandlers:
+    | import('@server/domains/boringssl-inspector/handlers').BoringsslInspectorHandlers
+    | undefined;
+  declare skiaCaptureHandlers:
+    | import('@server/domains/skia-capture/handlers').SkiaCaptureHandlers
+    | undefined;
+  declare binaryInstrumentHandlers:
+    | import('@server/domains/binary-instrument/handlers').BinaryInstrumentHandlers
+    | undefined;
+  declare adbBridgeHandlers:
+    | import('@server/domains/adb-bridge/handlers').ADBBridgeHandlers
+    | undefined;
+  declare mojoIpcHandlers: import('@server/domains/mojo-ipc/handlers').MojoIPCHandlers | undefined;
+  declare syscallHookHandlers:
+    | import('@server/domains/syscall-hook/handlers').SyscallHookHandlers
+    | undefined;
+  declare protocolAnalysisHandlers:
+    | import('@server/domains/protocol-analysis/handlers').ProtocolAnalysisHandlers
+    | undefined;
+  declare extensionRegistryHandlers:
+    | import('@server/domains/extension-registry/handlers').ExtensionRegistryHandlers
+    | undefined;
+  declare crossDomainHandlers:
+    | import('@server/domains/cross-domain/handlers').CrossDomainHandlers
+    | undefined;
   declare debuggerHandlers:
     | import('@server/domains/debugger/index').DebuggerToolHandlers
     | undefined;
@@ -379,6 +407,16 @@ const DOMAIN_INSTANCE_KEYS: ReadonlyArray<
   'runtimeInspector',
   'consoleMonitor',
   'browserHandlers',
+  'v8InspectorHandlers',
+  'boringsslInspectorHandlers',
+  'skiaCaptureHandlers',
+  'binaryInstrumentHandlers',
+  'adbBridgeHandlers',
+  'mojoIpcHandlers',
+  'syscallHookHandlers',
+  'protocolAnalysisHandlers',
+  'extensionRegistryHandlers',
+  'crossDomainHandlers',
   'debuggerHandlers',
   'advancedHandlers',
   'aiHookHandlers',

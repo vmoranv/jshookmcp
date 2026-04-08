@@ -106,5 +106,5 @@ export interface AllocationResult {
 export interface PlatformAvailability {
   readonly available: boolean;
   readonly reason?: string;
-  readonly platform: 'win32' | 'darwin';
+  readonly platform: 'win32' | 'darwin' | 'linux';
 }

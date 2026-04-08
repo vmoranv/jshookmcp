@@ -32,28 +32,6 @@ declare module '@modules/boringssl-inspector/TLSKeyLogExtractor' {
   ): string | null;
 }
 
-declare module '@modules/boringssl-inspector/TLSPacketParser' {
-  export function parseHandshake(input: Uint8Array | string): {
-    version?: string;
-    cipherSuite?: string[] | string;
-    sessionResumed?: boolean;
-    keyExchange?: string;
-    extensions: Array<{ type: number; data?: unknown }>;
-  };
-  export function parseCertificate(input: Uint8Array | string): {
-    count: number;
-    fingerprints: Array<{ sha256?: string }>;
-    rawLengths: number[];
-  };
-  export function listCipherSuites(filter?: string): Array<{ id: number; name: string }>;
-  export function lookupCipherSuite(input: string | number): { id: number; name: string } | null;
-  export function parseTLSRecord(input: Uint8Array): {
-    contentType: string;
-    version: string;
-    length: number;
-  } | null;
-}
-
 declare module '@modules/binary-instrument/types' {
   export interface ExtensionBridgeConfig {
     pluginId: string;
@@ -187,7 +165,11 @@ declare module '@server/domains/boringssl-inspector/index' {
     constructor(extractor?: unknown);
     setExtensionInvoke(invoke: (...args: unknown[]) => Promise<unknown>): void;
     handleTlsKeylogEnable(args: Record<string, unknown>): Promise<unknown>;
+    handleTlsKeylogDisable(args: Record<string, unknown>): Promise<unknown>;
     handleTlsKeylogParse(args: Record<string, unknown>): Promise<unknown>;
+    handleTlsDecryptPayload(args: Record<string, unknown>): Promise<unknown>;
+    handleTlsKeylogSummarize(args: Record<string, unknown>): Promise<unknown>;
+    handleTlsKeylogLookupSecret(args: Record<string, unknown>): Promise<unknown>;
     handleTlsCertPinBypass(args: Record<string, unknown>): Promise<unknown>;
     handleTlsHandshakeParse(args: Record<string, unknown>): Promise<unknown>;
     handleKeyLogEnable(args: Record<string, unknown>): Promise<unknown>;
@@ -195,8 +177,10 @@ declare module '@server/domains/boringssl-inspector/index' {
     handleCipherSuites(args: Record<string, unknown>): Promise<unknown>;
     handleParseCertificate(args: Record<string, unknown>): Promise<unknown>;
     handleRawTcpSend(args: Record<string, unknown>): Promise<unknown>;
+    handleRawTcpListen(args: Record<string, unknown>): Promise<unknown>;
     handleRawTcpScan(args: Record<string, unknown>): Promise<unknown>;
     handleRawUdpSend(args: Record<string, unknown>): Promise<unknown>;
+    handleRawUdpListen(args: Record<string, unknown>): Promise<unknown>;
     handleBypassCertPinning(args: Record<string, unknown>): Promise<unknown>;
   }
 
@@ -206,17 +190,23 @@ declare module '@server/domains/boringssl-inspector/index' {
 declare module '@server/domains/boringssl-inspector/handlers' {
   export class BoringSSLInspectorHandlers {
     constructor(extractor?: unknown);
+    setExtensionInvoke(invoke: (...args: unknown[]) => Promise<unknown>): void;
     handleTlsKeylogEnable(args: Record<string, unknown>): Promise<unknown>;
+    handleTlsKeylogDisable(args: Record<string, unknown>): Promise<unknown>;
     handleTlsKeylogParse(args: Record<string, unknown>): Promise<unknown>;
+    handleTlsDecryptPayload(args: Record<string, unknown>): Promise<unknown>;
+    handleTlsKeylogSummarize(args: Record<string, unknown>): Promise<unknown>;
+    handleTlsKeylogLookupSecret(args: Record<string, unknown>): Promise<unknown>;
     handleTlsCertPinBypass(args: Record<string, unknown>): Promise<unknown>;
     handleTlsHandshakeParse(args: Record<string, unknown>): Promise<unknown>;
-    handleKeyLogEnable(args: Record<string, unknown>): Promise<unknown>;
     handleParseHandshake(args: Record<string, unknown>): Promise<unknown>;
     handleCipherSuites(args: Record<string, unknown>): Promise<unknown>;
     handleParseCertificate(args: Record<string, unknown>): Promise<unknown>;
     handleRawTcpSend(args: Record<string, unknown>): Promise<unknown>;
+    handleRawTcpListen(args: Record<string, unknown>): Promise<unknown>;
     handleRawTcpScan(args: Record<string, unknown>): Promise<unknown>;
     handleRawUdpSend(args: Record<string, unknown>): Promise<unknown>;
+    handleRawUdpListen(args: Record<string, unknown>): Promise<unknown>;
     handleBypassCertPinning(args: Record<string, unknown>): Promise<unknown>;
   }
 

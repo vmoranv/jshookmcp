@@ -105,7 +105,7 @@ export interface DomainManifest<
     /** Target tool (may be in another domain). */
     readonly to: string;
     /** Relationship type. */
-    readonly relation: 'requires' | 'precedes' | 'suggests';
+    readonly relation: 'requires' | 'precedes' | 'suggests' | 'uses' | 'extends';
     /** Edge weight for affinity boosting (default 0.3). */
     readonly weight?: number;
   }>;

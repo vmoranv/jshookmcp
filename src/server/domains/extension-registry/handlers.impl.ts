@@ -183,7 +183,7 @@ export class ExtensionRegistryHandlers {
       });
 
       // Register external callback URL in WebhookBridge for event forwarding
-      const bridge = this.getWebhookBridge();
+      const bridge = this.getWebhook();
       const baseUrl = `http://localhost:${server.getPort()}${webhookPath}`;
       bridge.registerExternalCallback(endpointId, baseUrl);
 

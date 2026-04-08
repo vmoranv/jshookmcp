@@ -17,7 +17,7 @@ export interface AffinityEdge {
 export interface ExplicitEdge {
   from: string;
   to: string;
-  relation: 'requires' | 'precedes' | 'suggests';
+  relation: 'requires' | 'precedes' | 'suggests' | 'uses' | 'extends';
   weight: number;
 }
 

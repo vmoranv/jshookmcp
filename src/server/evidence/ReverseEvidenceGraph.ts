@@ -263,6 +263,21 @@ export class ReverseEvidenceGraph {
       'breakpoint-hook',
       'captured-data',
       'replay-artifact',
+      'v8-heap-object',
+      'v8-hidden-class',
+      'network-request',
+      'network-response',
+      'canvas-scene-node',
+      'canvas-render-node',
+      'skia-draw-call',
+      'syscall-event',
+      'mojo-message',
+      'mojo-interface',
+      'binary-symbol',
+      'binary-function',
+      'binary-module',
+      'proto-message',
+      'proto-state',
     ];
 
     for (const type of typeOrder) {

@@ -21,7 +21,8 @@ let cachedProvider: PlatformMemoryAPI | null = null;
 
 /**
  * Create and cache the platform-appropriate memory provider.
- * Returns Win32MemoryProvider on Windows, DarwinMemoryProvider on macOS.
+ * Returns Win32MemoryProvider on Windows, DarwinMemoryProvider on macOS,
+ * and LinuxMemoryProvider on Linux.
  * Throws on unsupported platforms.
  */
 export function createPlatformProvider(): PlatformMemoryAPI {
@@ -40,9 +41,14 @@ export function createPlatformProvider(): PlatformMemoryAPI {
       cachedProvider = new DarwinMemoryProvider();
       break;
     }
+    case 'linux': {
+      const { LinuxMemoryProvider } = esmRequire('./linux/LinuxMemoryProvider.impl.js');
+      cachedProvider = new LinuxMemoryProvider();
+      break;
+    }
     default:
       throw new Error(
-        `Unsupported platform: ${process.platform}. Memory operations require Windows or macOS.`,
+        `Unsupported platform: ${process.platform}. Memory operations require Windows, macOS, or Linux.`,
       );
   }
 
@@ -51,8 +57,9 @@ export function createPlatformProvider(): PlatformMemoryAPI {
 }
 
 /** Get the current platform name */
-export function getCurrentPlatform(): 'win32' | 'darwin' | 'unsupported' {
+export function getCurrentPlatform(): 'win32' | 'darwin' | 'linux' | 'unsupported' {
   if (process.platform === 'win32') return 'win32';
   if (process.platform === 'darwin') return 'darwin';
+  if (process.platform === 'linux') return 'linux';
   return 'unsupported';
 }

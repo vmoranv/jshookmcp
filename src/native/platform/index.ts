@@ -9,6 +9,7 @@
 
 export type { PlatformMemoryAPI } from './PlatformMemoryAPI.js';
 export { createPlatformProvider, getCurrentPlatform } from './factory.js';
+export { LinuxMemoryProvider, LinuxMemoryProviderImpl } from './linux/index.js';
 export {
   MemoryProtection,
   type ProcessHandle,

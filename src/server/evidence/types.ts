@@ -5,7 +5,7 @@
  * request → initiator-stack → script → function → breakpoint-hook → captured-data → replay-artifact
  */
 
-/** The 7 node types in a reverse engineering evidence chain. */
+/** The 7 core + v5.0 node types in a reverse engineering evidence chain. */
 export type EvidenceNodeType =
   | 'request'
   | 'initiator-stack'
@@ -13,7 +13,23 @@ export type EvidenceNodeType =
   | 'function'
   | 'breakpoint-hook'
   | 'captured-data'
-  | 'replay-artifact';
+  | 'replay-artifact'
+  // v5.0 cross-domain node types
+  | 'v8-heap-object'
+  | 'v8-hidden-class'
+  | 'network-request'
+  | 'network-response'
+  | 'canvas-scene-node'
+  | 'canvas-render-node'
+  | 'skia-draw-call'
+  | 'syscall-event'
+  | 'mojo-message'
+  | 'mojo-interface'
+  | 'binary-symbol'
+  | 'binary-function'
+  | 'binary-module'
+  | 'proto-message'
+  | 'proto-state';
 
 /** Edge relationship types between evidence nodes. */
 export type EvidenceEdgeType =
@@ -23,7 +39,17 @@ export type EvidenceEdgeType =
   | 'captures' // breakpoint-hook → captured-data
   | 'replays' // captured-data → replay-artifact
   | 'loads' // initiator-stack → script
-  | 'references'; // generic cross-reference
+  | 'references' // generic cross-reference
+  // v5.0 cross-domain edge types
+  | 'heap-allocates' // script → v8-heap-object
+  | 'heap-references' // v8-heap-object → v8-heap-object
+  | 'network-initiated-by' // v8-heap-object → network-request
+  | 'canvas-rendered-by' // v8-heap-object → canvas-scene-node
+  | 'syscall-emitted-by' // js-function → syscall-event
+  | 'mojo-routed-to' // cdp-event/network → mojo-message
+  | 'binary-exports' // js-function → binary-symbol
+  | 'proto-parses' // proto-message → captured-data
+  | 'correlates'; // generic cross-domain correlation
 
 /** A node in the evidence graph. */
 export interface EvidenceNode {
