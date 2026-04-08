@@ -4,7 +4,7 @@
 #             so you see every issue in one shot instead of one-at-a-time.
 #
 # NOTE: test/coverage moved to pre-push to avoid 4-minute waits per commit.
-# Run `pnpm test` manually before pushing if you want early feedback.
+# Run `corepack pnpm test` manually before pushing if you want early feedback.
 
 pre-commit:
   commands:
@@ -12,7 +12,7 @@ pre-commit:
       glob: ".planning/**"
       run: "echo '❌ .planning/ files must not be committed' && exit 1"
     docs-generate:
-      run: pnpm docs:generate
+      run: corepack pnpm docs:generate
       stage_fixed: true
     oxfmt:
       glob: "*.{ts,tsx,js,mjs,json}"
@@ -25,16 +25,17 @@ pre-commit:
 pre-push:
   commands:
     refresh-git-noise:
-      run: pnpm run git:refresh-noise
+      run: corepack pnpm run git:refresh-noise
     oxlint:
-      run: pnpm run lint
+      run: corepack pnpm run lint
     oxfmt-check:
-      run: pnpm run format:check
+      run: corepack pnpm run format:check
     markdownlint:
-      run: pnpm run lint:md
+      run: corepack pnpm run lint:md
     typecheck:
-      run: pnpm run typecheck
+      run: corepack pnpm run typecheck
     coverage-gate:
-      run: pnpm run test:coverage
+      run: corepack pnpm run test:coverage
     audit-tools:
-      run: pnpm run audit:tools
+      run: corepack pnpm run audit:tools
+

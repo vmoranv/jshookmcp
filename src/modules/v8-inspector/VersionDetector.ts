@@ -23,12 +23,6 @@ export interface V8Version {
   commit: string;
 }
 
-export interface LegacyDetectedV8Version {
-  v8Version: string;
-  featureFlags: Record<string, boolean>;
-  compatibilityNotes: string[];
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -168,96 +162,4 @@ export class VersionDetector {
       return null;
     }
   }
-}
-
-const LEGACY_FEATURE_PROBES: Array<[string, string, string]> = [
-  ['WebAssembly', 'typeof WebAssembly !== "undefined"', 'WebAssembly is unavailable.'],
-  ['BigInt', 'typeof BigInt !== "undefined"', 'BigInt is unavailable.'],
-  ['globalThis', 'typeof globalThis !== "undefined"', 'globalThis is unavailable.'],
-  [
-    'Array.prototype.at',
-    'typeof Array.prototype.at === "function"',
-    'Array.prototype.at is unavailable.',
-  ],
-  [
-    'Array.prototype.toSorted',
-    'typeof Array.prototype.toSorted === "function"',
-    'Array.prototype.toSorted is unavailable.',
-  ],
-  ['Temporal', 'typeof Temporal !== "undefined"', 'Temporal is unavailable.'],
-];
-
-function inferLegacyVersion(featureFlags: Record<string, boolean>): string {
-  if (featureFlags['Array.prototype.toSorted']) {
-    return '11.0';
-  }
-  if (featureFlags['Array.prototype.at']) {
-    return '9.2';
-  }
-  if (featureFlags['globalThis']) {
-    return '7.4';
-  }
-  if (featureFlags['BigInt']) {
-    return '7.0';
-  }
-  if (featureFlags['WebAssembly']) {
-    return '5.8';
-  }
-  return 'unknown';
-}
-
-function extractV8VersionString(versionText: string | undefined): string | undefined {
-  if (!versionText) {
-    return undefined;
-  }
-
-  const match = versionText.match(/V8\/([0-9.]+)/i);
-  if (match?.[1]) {
-    return match[1];
-  }
-
-  const plain = versionText.match(/([0-9]+\.[0-9]+(?:\.[0-9.]+)?)/);
-  return plain?.[1];
-}
-
-export async function detectV8Version(
-  evaluateFn: (expression: string) => Promise<unknown>,
-  getVersionFn?: () => Promise<string>,
-): Promise<LegacyDetectedV8Version> {
-  const featureFlags: Record<string, boolean> = {};
-
-  for (const [feature, expression] of LEGACY_FEATURE_PROBES) {
-    try {
-      featureFlags[feature] = Boolean(await evaluateFn(expression));
-    } catch {
-      featureFlags[feature] = false;
-    }
-  }
-
-  const compatibilityNotes = LEGACY_FEATURE_PROBES.filter(
-    ([feature]) => !featureFlags[feature],
-  ).map(([feature, , note]) => `${feature}: ${note}`);
-
-  if (compatibilityNotes.length === 0) {
-    compatibilityNotes.push('All probed features are available.');
-  }
-
-  let v8Version = 'unknown';
-  if (getVersionFn) {
-    try {
-      v8Version = extractV8VersionString(await getVersionFn()) ?? 'unknown';
-    } catch {
-      v8Version = 'unknown';
-    }
-  }
-
-  if (v8Version === 'unknown') {
-    v8Version = inferLegacyVersion(featureFlags);
-  }
-
-  return {
-    v8Version,
-    featureFlags,
-    compatibilityNotes,
-  };
 }

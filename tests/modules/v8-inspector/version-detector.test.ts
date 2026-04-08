@@ -1,77 +1,59 @@
 /* eslint-disable unicorn/consistent-function-scoping */
-import { describe, it, expect } from 'vitest';
-import { detectV8Version } from '@modules/v8-inspector/V8VersionDetector';
+import { describe, expect, it, vi } from 'vitest';
+import { VersionDetector } from '@modules/v8-inspector/VersionDetector';
 
-describe('V8VersionDetector', () => {
-  describe('detectV8Version', () => {
-    it('should detect feature flags via evaluate', async () => {
-      const evaluateFn = async (expr: string) => {
-        if (expr.includes('WebAssembly')) return true;
-        if (expr.includes('BigInt')) return true;
-        if (expr.includes('globalThis')) return true;
-        if (expr.includes('toSorted')) return false;
-        if (expr.includes('Temporal')) return false;
-        if (expr.includes('Array.prototype.at')) return true;
-        return false;
-      };
+function createDetector(
+  send: (method: string, params?: Record<string, unknown>) => Promise<unknown>,
+) {
+  const session = {
+    send: vi.fn(send),
+    detach: vi.fn().mockResolvedValue(undefined),
+  };
+  const page = {
+    createCDPSession: vi.fn().mockResolvedValue(session),
+  };
+  return { detector: new VersionDetector(() => Promise.resolve(page)), session };
+}
 
-      const result = await detectV8Version(evaluateFn);
-      expect(result.v8Version).toBeDefined();
-      expect(result.featureFlags.WebAssembly).toBe(true);
-      expect(result.featureFlags.BigInt).toBe(true);
-      expect(result.featureFlags['Array.prototype.at']).toBe(true);
-      expect(result.featureFlags['Array.prototype.toSorted']).toBe(false);
-      expect(result.compatibilityNotes.length).toBeGreaterThan(0);
+describe('VersionDetector', () => {
+  it('parses raw V8 version strings', () => {
+    const detector = new VersionDetector();
+    expect(detector.parseV8Version('12.0.226.10')).toMatchObject({
+      major: 12,
+      minor: 0,
+      patch: 226,
+      commit: '10',
     });
+  });
 
-    it('should return unknown version when getVersion is not available', async () => {
-      const evaluateFn = async () => false;
-      const result = await detectV8Version(evaluateFn);
-      expect(result.v8Version).toBe('unknown');
+  it('detects browser version via Browser.getVersion', async () => {
+    const { detector } = createDetector(async (method) => {
+      if (method === 'Browser.getVersion') {
+        return { jsVersion: '12.0.226.10' };
+      }
+      return {};
     });
+    const version = await detector.detectV8Version();
+    expect(version).toMatchObject({ major: 12, minor: 0, patch: 226, commit: '10' });
+  });
 
-    it('should extract V8 version from getVersion string', async () => {
-      const evaluateFn = async () => false;
-      const getVersionFn = async () => 'Chrome/120.0.0.0 V8/12.0.226.10';
-      const result = await detectV8Version(evaluateFn, getVersionFn);
-      expect(result.v8Version).toBe('12.0.226.10');
+  it('returns false when natives syntax is unavailable', async () => {
+    const { detector } = createDetector(async (method) => {
+      if (method === 'Runtime.evaluate') {
+        return { result: { value: false } };
+      }
+      return {};
     });
+    await expect(detector.supportsNativesSyntax()).resolves.toBe(false);
+  });
 
-    it('should handle evaluate failures gracefully', async () => {
-      const evaluateFn = async () => {
-        throw new Error('CDP error');
-      };
-      const result = await detectV8Version(evaluateFn);
-      expect(result.featureFlags.WebAssembly).toBe(false);
-      expect(result.featureFlags.BigInt).toBe(false);
+  it('returns true when Runtime.evaluate reports natives support', async () => {
+    const { detector } = createDetector(async (method) => {
+      if (method === 'Runtime.evaluate') {
+        return { result: { value: true } };
+      }
+      return {};
     });
-
-    it('should note missing features in compatibility notes', async () => {
-      const evaluateFn = async () => false;
-      const result = await detectV8Version(evaluateFn);
-      const notes = result.compatibilityNotes;
-      expect(notes.some((n) => n.includes('WebAssembly'))).toBe(true);
-      expect(notes.some((n) => n.includes('BigInt'))).toBe(true);
-    });
-
-    it('should return positive note when all features available', async () => {
-      const evaluateFn = async () => true;
-      const result = await detectV8Version(evaluateFn);
-      expect(result.compatibilityNotes).toContain('All probed features are available.');
-    });
-
-    it('should estimate version from highest available feature', async () => {
-      const evaluateFn = async (expr: string) => {
-        if (expr.includes('WebAssembly')) return true;
-        if (expr.includes('BigInt')) return true;
-        if (expr.includes('globalThis')) return true;
-        if (expr.includes('toSorted')) return false;
-        if (expr.includes('Temporal')) return false;
-        if (expr.includes('Array.prototype.at')) return true;
-        return false;
-      };
-      const result = await detectV8Version(evaluateFn);
-      expect(result.v8Version).toBe('9.2');
-    });
+    await expect(detector.supportsNativesSyntax()).resolves.toBe(true);
   });
 });

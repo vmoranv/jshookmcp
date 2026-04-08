@@ -1,4 +1,4 @@
-import { spawn as spawnChild, type ChildProcess } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
 
 export type SyscallBackend = 'etw' | 'strace' | 'dtrace';
 
@@ -27,17 +27,6 @@ interface MonitorState {
   pid?: number;
   startedAt: number;
   generatedEvents: number;
-  subprocess?: ChildProcess;
-}
-
-interface LegacySessionState {
-  sessionId: string;
-  pid: number;
-  platform: 'windows' | 'linux' | 'darwin';
-  maxEvents: number;
-  active: boolean;
-  createdAt: number;
-  events: SyscallEvent[];
   subprocess?: ChildProcess;
 }
 
@@ -274,7 +263,6 @@ function parseDTraceLine(line: string, targetPid: number): SyscallEvent | null {
 export class SyscallMonitor {
   private activeState?: MonitorState;
   private readonly capturedEvents: SyscallEvent[] = [];
-  private readonly legacySessions = new Map<string, LegacySessionState>();
   private lastBackend: SyscallBackend = chooseDefaultBackend();
   private subprocessError?: string;
 
@@ -381,84 +369,6 @@ export class SyscallMonitor {
 
   isRunning(): boolean {
     return this.activeState !== undefined;
-  }
-
-  async startMonitor(pid: number, maxEvents = 1000): Promise<string> {
-    const sessionId = `sysmon_${Math.random().toString(16).slice(2, 10)}`;
-    const platform =
-      process.platform === 'win32' ? 'windows' : process.platform === 'linux' ? 'linux' : 'darwin';
-
-    let subprocess: ChildProcess | undefined;
-    let active = true;
-    try {
-      subprocess = this.spawnLegacyMonitor(pid, platform);
-    } catch {
-      active = false;
-    }
-
-    this.legacySessions.set(sessionId, {
-      sessionId,
-      pid,
-      platform,
-      maxEvents,
-      active,
-      createdAt: Date.now(),
-      events: [],
-      subprocess,
-    });
-
-    return sessionId;
-  }
-
-  async getEvents(sessionId: string, filter?: string): Promise<SyscallEvent[]> {
-    const session = this.legacySessions.get(sessionId);
-    if (!session) {
-      throw new Error(`Session "${sessionId}" not found`);
-    }
-
-    if (!filter) {
-      return [...session.events];
-    }
-
-    const normalizedFilter = filter.toLowerCase();
-    return session.events.filter((event) => event.syscall.toLowerCase().includes(normalizedFilter));
-  }
-
-  async stopMonitor(sessionId: string): Promise<number> {
-    const session = this.legacySessions.get(sessionId);
-    if (!session) {
-      throw new Error(`Session "${sessionId}" not found`);
-    }
-
-    session.subprocess?.kill('SIGTERM');
-    this.legacySessions.delete(sessionId);
-    return session.events.length;
-  }
-
-  listSessions(): Array<{
-    sessionId: string;
-    pid: number;
-    platform: 'windows' | 'linux' | 'darwin';
-    active: boolean;
-    createdAt: string;
-  }> {
-    return Array.from(this.legacySessions.values()).map((session) => ({
-      sessionId: session.sessionId,
-      pid: session.pid,
-      platform: session.platform,
-      active: session.active,
-      createdAt: new Date(session.createdAt).toISOString(),
-    }));
-  }
-
-  private spawnLegacyMonitor(pid: number, platform: 'windows' | 'linux' | 'darwin'): ChildProcess {
-    if (platform === 'linux') {
-      return spawnChild('strace', ['-p', String(pid)]);
-    }
-    if (platform === 'darwin') {
-      return spawnChild('dtrace', ['-p', String(pid)]);
-    }
-    return spawnChild('logman', ['query']);
   }
 
   /**

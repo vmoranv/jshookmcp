@@ -106,28 +106,6 @@ function cloneSyscallEvent(event: SyscallEvent): SyscallEvent {
   };
 }
 
-function toLegacySyscallEvent(value: unknown): SyscallEvent | undefined {
-  if (!isRecord(value)) {
-    return undefined;
-  }
-
-  const syscallName = readString(value['syscallName']) ?? readString(value['syscall']);
-  const pid = readNumber(value['pid']);
-  const timestamp = readNumber(value['timestamp']);
-  if (!syscallName || pid === undefined || timestamp === undefined) {
-    return undefined;
-  }
-
-  return {
-    syscall: syscallName,
-    pid,
-    timestamp,
-    args: readStringArray(value['args']) ?? [],
-    returnValue: readNumber(value['returnValue']),
-    duration: readNumber(value['duration']),
-  };
-}
-
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -136,14 +114,6 @@ function toErrorMessage(error: unknown): string {
 }
 
 export class SyscallHookHandlers {
-  private readonly legacyRules: Array<{
-    id: string;
-    name: string;
-    action: 'allow' | 'block' | 'log';
-    matchPattern?: string;
-    replacement?: string;
-  }> = [];
-
   constructor(
     private monitor?: SyscallMonitor,
     private mapper?: SyscallToJSMapper,
@@ -298,152 +268,5 @@ export class SyscallHookHandlers {
       this.mapper = new SyscallToJSMapper();
     }
     return this.mapper;
-  }
-
-  async handleMonitorStart(args: Record<string, unknown>): Promise<unknown> {
-    const pid = readNumber(args['pid']);
-    if (pid === undefined) {
-      throw new Error('pid must be a number');
-    }
-
-    const maxEvents = readNumber(args['maxEvents']) ?? 1000;
-    const sessionId = await this.ensureMonitor().startMonitor(pid, maxEvents);
-    const platform =
-      process.platform === 'win32' ? 'windows' : process.platform === 'linux' ? 'linux' : 'darwin';
-
-    return { sessionId, pid, platform };
-  }
-
-  async handleMonitorStop(args: Record<string, unknown>): Promise<unknown> {
-    const sessionId = readString(args['sessionId']);
-    if (!sessionId) {
-      throw new Error('sessionId must be a non-empty string');
-    }
-
-    const eventCount = await this.ensureMonitor().stopMonitor(sessionId);
-    return { sessionId, eventCount };
-  }
-
-  async handleEventsGet(args: Record<string, unknown>): Promise<unknown> {
-    const sessionId = readString(args['sessionId']);
-    if (!sessionId) {
-      throw new Error('sessionId must be a non-empty string');
-    }
-
-    const filter = readString(args['filter']);
-    const events = await this.ensureMonitor().getEvents(sessionId, filter);
-    return { sessionId, events, eventCount: events.length };
-  }
-
-  async handleMapToJS(args: Record<string, unknown>): Promise<unknown> {
-    const rawSyscallEvent = args['syscallEvent'];
-    const jsStack = readStringArray(args['jsStack']) ?? [];
-
-    let syscallEvent: SyscallEvent | undefined;
-    if (isSyscallEvent(rawSyscallEvent)) {
-      syscallEvent = rawSyscallEvent;
-    } else {
-      const legacySyscallEvent = toLegacySyscallEvent(rawSyscallEvent);
-      if (legacySyscallEvent) {
-        syscallEvent = legacySyscallEvent;
-      } else {
-        const sessionId = readString(args['sessionId']);
-        const eventIndex = readNumber(args['eventIndex']);
-        if (!sessionId || eventIndex === undefined) {
-          throw new Error(
-            'Either syscallEvent (object) or sessionId + eventIndex must be provided',
-          );
-        }
-
-        const events = await this.ensureMonitor().getEvents(sessionId);
-        syscallEvent = events[eventIndex];
-        if (!syscallEvent) {
-          throw new Error(`eventIndex ${eventIndex} out of range`);
-        }
-      }
-    }
-
-    const mapper = this.ensureMapper();
-    const event = syscallEvent as SyscallEvent;
-    const mapped = mapper.map(event);
-    const confidence = mapped?.confidence ?? 0;
-    const confidenceLabel =
-      confidence >= 0.75 ? 'high' : confidence >= 0.5 ? 'medium' : confidence > 0 ? 'low' : 'none';
-
-    return {
-      syscall: event.syscall,
-      jsFunction: mapped?.jsFunction,
-      confidence,
-      confidenceLabel,
-      jsStack,
-      reasoning: mapped?.reasoning ?? 'No correlation rule matched.',
-    };
-  }
-
-  async handleFilterAdd(args: Record<string, unknown>): Promise<unknown> {
-    const name = readString(args['name']);
-    if (!name) {
-      throw new Error('name must be a non-empty string');
-    }
-
-    const action = readString(args['action']);
-    if (action !== 'allow' && action !== 'block' && action !== 'log') {
-      throw new Error('action must be one of: allow, block, log');
-    }
-
-    const ruleId = `rule_${Math.random().toString(16).slice(2, 10)}`;
-    this.legacyRules.push({
-      id: ruleId,
-      name,
-      action,
-      matchPattern: readString(args['matchPattern']),
-      replacement: readString(args['replacement']),
-    });
-
-    return { ruleId };
-  }
-
-  async handleFilterList(): Promise<unknown> {
-    return {
-      ruleCount: this.legacyRules.length,
-      rules: [...this.legacyRules],
-    };
-  }
-
-  async handleFilterApply(args: Record<string, unknown>): Promise<unknown> {
-    const sessionId = readString(args['sessionId']);
-    if (!sessionId) {
-      throw new Error('sessionId must be a non-empty string');
-    }
-
-    const events = await this.ensureMonitor().getEvents(sessionId);
-    let allowedCount = 0;
-    let blockedCount = 0;
-    let loggedCount = 0;
-
-    for (const event of events) {
-      const matchedRule = this.legacyRules.find((rule) =>
-        rule.matchPattern ? event.syscall.includes(rule.matchPattern) : true,
-      );
-
-      if (!matchedRule || matchedRule.action === 'allow') {
-        allowedCount += 1;
-        continue;
-      }
-
-      if (matchedRule.action === 'block') {
-        blockedCount += 1;
-        continue;
-      }
-
-      loggedCount += 1;
-    }
-
-    return {
-      totalEvents: events.length,
-      allowedCount,
-      blockedCount,
-      loggedCount,
-    };
   }
 }

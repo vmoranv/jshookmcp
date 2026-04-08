@@ -1,125 +1,52 @@
 /* eslint-disable unicorn/consistent-function-scoping */
-import { describe, it, expect } from 'vitest';
-import { inspectJitFunction } from '@modules/v8-inspector/JitCodeInspector';
+import { describe, expect, it, vi } from 'vitest';
+import { JITInspector } from '@modules/v8-inspector/JITInspector';
 
-describe('JitCodeInspector', () => {
-  describe('inspectJitFunction', () => {
-    it('should return unavailable when natives syntax is not available', async () => {
-      const evaluateFn = async () => {
-        throw new Error('natives not available');
-      };
-      const result = await inspectJitFunction(evaluateFn, 'myFunc');
-      expect(result).toHaveProperty('available', false);
-      expect(result).toHaveProperty('reason');
-      expect(result).toHaveProperty('action');
-    });
+function createInspector(
+  send: (method: string, params?: Record<string, unknown>) => Promise<unknown>,
+) {
+  const session = {
+    send: vi.fn(send),
+    detach: vi.fn().mockResolvedValue(undefined),
+  };
+  const page = {
+    createCDPSession: vi.fn().mockResolvedValue(session),
+  };
+  return new JITInspector(() => Promise.resolve(page));
+}
 
-    it('should return unavailable when function is undefined', async () => {
-      let callCount = 0;
-      const evaluateFn = async (expr: string) => {
-        callCount++;
-        if (expr === 'typeof %DisassembleFunction') return 'function';
-        return { value: 'undefined' };
-      };
-      const result = await inspectJitFunction(evaluateFn, 'nonexistent');
-      expect(result).toHaveProperty('available', false);
-      expect(callCount).toBeGreaterThan(1);
-    });
-
-    it('should parse assembly output', async () => {
-      const mockAssembly = [
-        '  mov eax, 1',
-        '  call rbx',
-        '  push rbp',
-        '  lea rdi, [rip+0x1234]',
-      ].join('\n');
-
-      const evaluateFn = async (expr: string) => {
-        if (expr === 'typeof %DisassembleFunction') return 'function';
-        return { value: mockAssembly };
-      };
-      const result = await inspectJitFunction(evaluateFn, 'myFunc');
-      if (result.available !== true) {
-        throw new Error('Expected available result');
+describe('JITInspector', () => {
+  it('inspects a script and reports optimized function tiers', async () => {
+    const inspector = createInspector(async (method, params) => {
+      if (method === 'Debugger.getScriptSource')
+        return { scriptSource: 'function myFunc() { return 1; }' };
+      if (method === 'Profiler.takePreciseCoverage') {
+        return {
+          result: [
+            {
+              scriptId: '1',
+              functions: [{ functionName: 'myFunc', ranges: [{ startOffset: 0, endOffset: 30 }] }],
+            },
+          ],
+        };
       }
-      expect(result.functionName).toBe('myFunc');
-      expect(result.assembly).toContain('mov eax');
-      expect(result.machineCodeSize).toBeGreaterThan(0);
-    });
-
-    it('should detect TurboFan optimization', async () => {
-      const mockAssembly = ['  ;; TurboFan optimized code', '  mov eax, 1', '  call rbx'].join(
-        '\n',
-      );
-
-      const evaluateFn = async (expr: string) => {
-        if (expr === 'typeof %DisassembleFunction') return 'function';
-        return { value: mockAssembly };
-      };
-      const result = await inspectJitFunction(evaluateFn, 'optimizedFunc');
-      if (result.available !== true) {
-        throw new Error('Expected available result');
+      if (method === 'Runtime.evaluate' && params?.expression?.includes('%HaveSameMap')) {
+        return { result: { value: true } };
       }
-      expect(result.optimizationLevel).toBe('TurboFan (optimized)');
-    });
-
-    it('should detect interpreted (Ignition) code', async () => {
-      const mockAssembly = ['  ;; Ignition interpreter', '  mov eax, 1'].join('\n');
-
-      const evaluateFn = async (expr: string) => {
-        if (expr === 'typeof %DisassembleFunction') return 'function';
-        return { value: mockAssembly };
-      };
-      const result = await inspectJitFunction(evaluateFn, 'interpretedFunc');
-      if (result.available !== true) {
-        throw new Error('Expected available result');
+      if (method === 'Runtime.evaluate' && params?.expression?.includes('%GetOptimizationStatus')) {
+        return { result: { value: 64 } };
       }
-      expect(result.optimizationLevel).toBe('Ignition (interpreted)');
+      return {};
     });
 
-    it('should extract bailouts from assembly', async () => {
-      const mockAssembly = [
-        '  mov eax, 1',
-        '  ;; deopt at line 42',
-        '  ;; bailout reason: type changed',
-        '  call rbx',
-      ].join('\n');
+    const result = await inspector.inspectJIT('1');
+    expect(result).toHaveLength(1);
+    expect(result[0]?.optimized).toBe(true);
+    expect(result[0]?.tier).toBe('turbofan');
+  });
 
-      const evaluateFn = async (expr: string) => {
-        if (expr === 'typeof %DisassembleFunction') return 'function';
-        return { value: mockAssembly };
-      };
-      const result = await inspectJitFunction(evaluateFn, 'bailoutFunc');
-      if (result.available !== true) {
-        throw new Error('Expected available result');
-      }
-      expect(result.bailouts.length).toBeGreaterThan(0);
-    });
-
-    it('should return large assembly without truncation (truncation done in handler)', async () => {
-      const mockAssembly = '  mov eax, 1\n'.repeat(5000);
-
-      const evaluateFn = async (expr: string) => {
-        if (expr === 'typeof %DisassembleFunction') return 'function';
-        return { value: mockAssembly };
-      };
-      const result = await inspectJitFunction(evaluateFn, 'largeFunc');
-      if (result.available !== true) {
-        throw new Error(`Expected available result, got: ${JSON.stringify(result).slice(0, 200)}`);
-      }
-      // Raw module returns full assembly; handler truncates to 10000
-      expect(result.assembly.length).toBeGreaterThan(10000);
-    });
-
-    it('should return error details when evaluation fails', async () => {
-      const evaluateFn = async (expr: string) => {
-        if (expr === 'typeof %DisassembleFunction') return 'function';
-        throw new Error('CDP connection lost');
-      };
-      const result = await inspectJitFunction(evaluateFn, 'myFunc');
-      expect(result).toHaveProperty('available', false);
-      expect(result).toHaveProperty('reason');
-      expect(result).toHaveProperty('action');
-    });
+  it('returns a cached list of optimized functions', async () => {
+    const inspector = new JITInspector();
+    await expect(inspector.getOptimizedFunctions()).resolves.toEqual([]);
   });
 });

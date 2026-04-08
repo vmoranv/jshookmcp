@@ -35,25 +35,6 @@ export interface HiddenClassInfo {
   transitionMap?: string;
 }
 
-export interface LegacyBytecodePattern {
-  type: 'string-obfuscation' | 'dead-code';
-  description: string;
-}
-
-export type LegacyBytecodeExtractionResult =
-  | {
-      available: true;
-      functionName: string;
-      instructions: DisassembledInstruction[];
-      patterns: LegacyBytecodePattern[];
-      rawOutput: string;
-    }
-  | {
-      available: false;
-      reason: string;
-      action: string;
-    };
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -86,35 +67,23 @@ function splitOperands(raw: string): string[] {
 
 function inferOpcode(line: string): { opcode: string; operands: string[] } {
   const trimmed = line.trim();
-  if (trimmed.startsWith('function ')) {
-    return { opcode: 'FunctionDeclaration', operands: [] };
-  }
-  if (trimmed.startsWith('return ')) {
+  if (trimmed.startsWith('function ')) return { opcode: 'FunctionDeclaration', operands: [] };
+  if (trimmed.startsWith('return '))
     return { opcode: 'Return', operands: [trimmed.slice('return '.length)] };
-  }
-  if (trimmed.includes('=>')) {
-    return { opcode: 'CreateClosure', operands: [] };
-  }
+  if (trimmed.includes('=>')) return { opcode: 'CreateClosure', operands: [] };
   if (trimmed.includes('(') && trimmed.includes(')')) {
     const nameMatch = /^([A-Za-z_$][\w$]*)\(/u.exec(trimmed);
-    if (nameMatch?.[1]) {
-      return { opcode: 'Call', operands: [nameMatch[1]] };
-    }
+    if (nameMatch?.[1]) return { opcode: 'Call', operands: [nameMatch[1]] };
   }
   if (trimmed.includes('=')) {
     const parts = trimmed.split('=', 2);
     const left = parts[0];
     const right = parts[1];
-    if (left && right) {
-      return { opcode: 'Store', operands: [left.trim(), right.trim()] };
-    }
+    if (left && right) return { opcode: 'Store', operands: [left.trim(), right.trim()] };
   }
-  if (trimmed.startsWith('if ')) {
-    return { opcode: 'JumpIfTrue', operands: [trimmed] };
-  }
-  if (trimmed.startsWith('for ') || trimmed.startsWith('while ')) {
+  if (trimmed.startsWith('if ')) return { opcode: 'JumpIfTrue', operands: [trimmed] };
+  if (trimmed.startsWith('for ') || trimmed.startsWith('while '))
     return { opcode: 'Loop', operands: [trimmed] };
-  }
   if (trimmed.startsWith('{') || trimmed.startsWith('const ') || trimmed.startsWith('let ')) {
     return { opcode: 'LoadLiteral', operands: [trimmed] };
   }
@@ -124,19 +93,14 @@ function inferOpcode(line: string): { opcode: string; operands: string[] } {
 function buildPseudoBytecode(source: string): string {
   const instructions: string[] = ['; pseudo-bytecode synthesized from script source'];
   let offset = 0;
-
   for (const line of source.split(/\r?\n/u)) {
     const trimmed = line.trim();
-    if (trimmed.length === 0) {
-      continue;
-    }
-
+    if (trimmed.length === 0) continue;
     const { opcode, operands } = inferOpcode(trimmed);
     const operandText = operands.join(', ');
     instructions.push(`${offset} ${opcode}${operandText.length > 0 ? ` ${operandText}` : ''}`);
     offset += 1;
   }
-
   return instructions.join('\n');
 }
 
@@ -145,18 +109,11 @@ function inferFunctionName(source: string, functionOffset?: number): string {
     const start = Math.max(0, functionOffset - 120);
     const end = Math.min(source.length, functionOffset + 120);
     const nearby = source.slice(start, end);
-
     const namedFunction = /function\s+([A-Za-z_$][\w$]*)/u.exec(nearby);
-    if (namedFunction?.[1]) {
-      return namedFunction[1];
-    }
-
+    if (namedFunction?.[1]) return namedFunction[1];
     const assignedFunction = /([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(/u.exec(nearby);
-    if (assignedFunction?.[1]) {
-      return assignedFunction[1];
-    }
+    if (assignedFunction?.[1]) return assignedFunction[1];
   }
-
   const firstNamedFunction = /function\s+([A-Za-z_$][\w$]*)/u.exec(source);
   return firstNamedFunction?.[1] ?? 'anonymous';
 }
@@ -165,13 +122,9 @@ function findObjectLiteralProperties(source: string): HiddenClassInfo[] {
   const matches = source.matchAll(/\{([^{}]+:[^{}]+)\}/gu);
   const results: HiddenClassInfo[] = [];
   let index = 0;
-
   for (const match of matches) {
     const body = match[1];
-    if (!body) {
-      continue;
-    }
-
+    if (!body) continue;
     const properties = body
       .split(',')
       .map((entry) => entry.trim())
@@ -181,11 +134,7 @@ function findObjectLiteralProperties(source: string): HiddenClassInfo[] {
       })
       .filter((entry) => entry.length > 0)
       .filter((entry, position, list) => list.indexOf(entry) === position);
-
-    if (properties.length === 0) {
-      continue;
-    }
-
+    if (properties.length === 0) continue;
     results.push({
       address: `hidden-class-${index}`,
       properties,
@@ -193,44 +142,7 @@ function findObjectLiteralProperties(source: string): HiddenClassInfo[] {
     });
     index += 1;
   }
-
   return results;
-}
-
-function readEvaluationValue(value: unknown): string | undefined {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (isRecord(value) && typeof value['value'] === 'string') {
-    return value['value'] as string;
-  }
-
-  return undefined;
-}
-
-function detectLegacyPatterns(instructions: DisassembledInstruction[]): LegacyBytecodePattern[] {
-  const patterns: LegacyBytecodePattern[] = [];
-
-  const loadConstantCount = instructions.filter(
-    (instruction) => instruction.opcode === 'LdaConstant',
-  ).length;
-  if (loadConstantCount >= 10) {
-    patterns.push({
-      type: 'string-obfuscation',
-      description: 'Repeated constant loads suggest runtime string assembly.',
-    });
-  }
-
-  const returnIndex = instructions.findIndex((instruction) => instruction.opcode === 'Return');
-  if (returnIndex >= 0 && returnIndex < instructions.length - 1) {
-    patterns.push({
-      type: 'dead-code',
-      description: 'Instructions exist after an unconditional return.',
-    });
-  }
-
-  return patterns;
 }
 
 export class BytecodeExtractor {
@@ -268,10 +180,8 @@ export class BytecodeExtractor {
         ? scriptSource.slice(functionByOffset.startOffset, functionByOffset.endOffset)
         : scriptSource;
 
-    const supportsNativesSyntax = await this.versionDetector.supportsNativesSyntax();
-    const bytecode = supportsNativesSyntax
-      ? buildPseudoBytecode(sourceSlice)
-      : buildPseudoBytecode(sourceSlice);
+    void (await this.versionDetector.supportsNativesSyntax());
+    const bytecode = buildPseudoBytecode(sourceSlice);
 
     return {
       functionName,
@@ -287,43 +197,28 @@ export class BytecodeExtractor {
 
   disassembleBytecode(bytecode: string): DisassembledInstruction[] {
     const instructions: DisassembledInstruction[] = [];
-
     for (const line of bytecode.split(/\r?\n/u)) {
       const trimmed = line.trim();
-      if (trimmed.length === 0 || trimmed.startsWith(';')) {
-        continue;
-      }
-
+      if (trimmed.length === 0 || trimmed.startsWith(';')) continue;
       const match =
         /^(\d+)\s*@\s*([A-Za-z_][\w.]*)\s*(.*)$/u.exec(trimmed) ??
         /^(?:0x[0-9a-fA-F]+\s+@)?\s*(\d+)\s*[: ]\s*([A-Za-z_][\w.]*)\s*(.*)$/u.exec(trimmed) ??
         /^(\d+)\s+([A-Za-z_][\w.]*)\s*(.*)$/u.exec(trimmed);
-
-      if (!match) {
-        continue;
-      }
-
+      if (!match) continue;
       const offset = Number(match[1]);
-      if (!Number.isFinite(offset)) {
-        continue;
-      }
-
+      if (!Number.isFinite(offset)) continue;
       instructions.push({
         offset,
         opcode: match[2] ?? 'Unknown',
         operands: splitOperands(match[3] ?? ''),
       });
     }
-
     return instructions;
   }
 
   async findHiddenClasses(scriptId: string): Promise<HiddenClassInfo[]> {
     const scriptSource = await this.getScriptSource(scriptId);
-    if (!scriptSource) {
-      return [];
-    }
-
+    if (!scriptSource) return [];
     return findObjectLiteralProperties(scriptSource);
   }
 
@@ -331,50 +226,32 @@ export class BytecodeExtractor {
     scriptId: string,
   ): Promise<Array<{ functionName: string; startOffset: number; endOffset: number }>> {
     const session = await this.createSession();
-    if (!session) {
-      return [];
-    }
+    if (!session) return [];
 
     try {
       await session.send('Profiler.enable');
-      await session.send('Profiler.startPreciseCoverage', {
-        callCount: true,
-        detailed: true,
-      });
-
+      await session.send('Profiler.startPreciseCoverage', { callCount: true, detailed: true });
       const response = await session.send<CoverageResponse>('Profiler.takePreciseCoverage');
       const result = isRecord(response) ? toRecordArray(response['result']) : [];
       const targetScript = result.find(
         (entry) => typeof entry['scriptId'] === 'string' && entry['scriptId'] === scriptId,
       );
-
-      if (!targetScript) {
-        return [];
-      }
-
+      if (!targetScript) return [];
       const functions = toRecordArray(targetScript['functions']);
       const extracted: Array<{ functionName: string; startOffset: number; endOffset: number }> = [];
-
       for (const fn of functions) {
         const ranges = toRecordArray(fn['ranges']);
         const primaryRange = ranges[0];
-        if (!primaryRange) {
-          continue;
-        }
-
+        if (!primaryRange) continue;
         const startOffset = toNumber(primaryRange['startOffset']);
         const endOffset = toNumber(primaryRange['endOffset']);
-        if (startOffset === null || endOffset === null) {
-          continue;
-        }
-
+        if (startOffset === null || endOffset === null) continue;
         extracted.push({
           functionName: toStringValue(fn['functionName']) ?? 'anonymous',
           startOffset,
           endOffset,
         });
       }
-
       return extracted;
     } catch {
       return [];
@@ -387,20 +264,14 @@ export class BytecodeExtractor {
 
   private async getScriptSource(scriptId: string): Promise<string | null> {
     const session = await this.createSession();
-    if (!session) {
-      return null;
-    }
+    if (!session) return null;
 
     try {
       await session.send('Debugger.enable');
       const response = await session.send<ScriptSourceResponse>('Debugger.getScriptSource', {
         scriptId,
       });
-
-      if (!isRecord(response)) {
-        return null;
-      }
-
+      if (!isRecord(response)) return null;
       const scriptSource = response['scriptSource'];
       return typeof scriptSource === 'string' ? scriptSource : null;
     } catch {
@@ -412,68 +283,13 @@ export class BytecodeExtractor {
   }
 
   private async createSession(): Promise<CDPSessionLike | null> {
-    if (!this.getPage) {
-      return null;
-    }
-
+    if (!this.getPage) return null;
     try {
       const page = await this.getPage();
-      if (!isCDPPageLike(page)) {
-        return null;
-      }
+      if (!isCDPPageLike(page)) return null;
       return await page.createCDPSession();
     } catch {
       return null;
     }
-  }
-}
-
-export async function extractBytecodeForFunction(
-  evaluateFn: (expression: string) => Promise<unknown>,
-  functionName: string,
-): Promise<LegacyBytecodeExtractionResult> {
-  try {
-    const nativesType = await evaluateFn('typeof %DebugPrint');
-    if (nativesType !== 'function') {
-      return {
-        available: false,
-        reason: 'V8 natives syntax is unavailable in the current target.',
-        action: 'Enable V8 natives syntax or attach to a debuggable target.',
-      };
-    }
-  } catch (error) {
-    return {
-      available: false,
-      reason: error instanceof Error ? error.message : 'Failed to probe V8 natives support.',
-      action: 'Verify the target runtime allows %DebugPrint.',
-    };
-  }
-
-  try {
-    const output = await evaluateFn(`%DebugPrint(${functionName})`);
-    const rawOutput = readEvaluationValue(output);
-    if (!rawOutput || rawOutput === 'undefined') {
-      return {
-        available: false,
-        reason: `Function "${functionName}" was not found.`,
-        action: 'Verify the function name is defined in the target runtime.',
-      };
-    }
-
-    const extractor = new BytecodeExtractor();
-    const instructions = extractor.disassembleBytecode(rawOutput);
-    return {
-      available: true,
-      functionName,
-      instructions,
-      patterns: detectLegacyPatterns(instructions),
-      rawOutput,
-    };
-  } catch (error) {
-    return {
-      available: false,
-      reason: error instanceof Error ? error.message : 'Failed to evaluate bytecode.',
-      action: 'Retry after reconnecting to the target runtime.',
-    };
   }
 }
