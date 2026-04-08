@@ -38,7 +38,7 @@ describe('CrossDomainOrchestrator', () => {
       const ctx = createMockCtx({
         pageController: {},
         workerPool: { submit: vi.fn() },
-        debuggerManager: {},
+        debuggerManager: { isEnabled: () => true },
       });
       const orch = new CrossDomainOrchestrator(ctx);
       const flags = orch.getCapabilityFlags();

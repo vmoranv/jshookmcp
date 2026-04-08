@@ -145,7 +145,7 @@ describe('MCPServer.search.handlers.route', () => {
     expect(state.activateToolNames).not.toHaveBeenCalled();
     expect(state.routeToolRequest).toHaveBeenNthCalledWith(
       2,
-      { task: 'inspect requests', context: { autoActivate: false, detail: 'balanced' } },
+      { task: 'inspect requests', context: { autoActivate: false } },
       ctx,
       { kind: 'engine' },
     );
