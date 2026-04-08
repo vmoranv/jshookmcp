@@ -22,20 +22,20 @@
 
 ## 代表工具
 
-- `cross_domain_capabilities` — 待补充中文：List cross-domain capabilities, supported v5.0 domains, and available mission workflows.
-- `cross_domain_suggest_workflow` — 待补充中文：Suggest the best cross-domain workflow for a reverse-engineering goal.
-- `cross_domain_health` — 待补充中文：Report cross-domain health, enabled v5.0 domains, and evidence-graph availability.
-- `cross_domain_correlate_all` — 待补充中文：Ingest artifacts from V8, network, canvas, syscall, mojo, and binary domains into one shared evidence graph with optional cross-links.
-- `cross_domain_evidence_export` — 待补充中文：Export the shared cross-domain evidence graph as JSON.
-- `cross_domain_evidence_stats` — 待补充中文：Get node and edge statistics for the shared cross-domain evidence graph.
+- `cross_domain_capabilities` — 列出跨域能力、支持的 v5.0 域和可用的任务工作流。
+- `cross_domain_suggest_workflow` — 为逆向工程目标推荐最佳跨域工作流。
+- `cross_domain_health` — 报告跨域健康状态、已启用的 v5.0 域和证据图可用性。
+- `cross_domain_correlate_all` — 将 V8、网络、canvas、syscall、mojo 和二进制域的产物摄入共享证据图并可选地添加交叉链接。
+- `cross_domain_evidence_export` — 将共享跨域证据图导出为 JSON。
+- `cross_domain_evidence_stats` — 获取共享跨域证据图的节点和边统计。
 
 ## 工具清单（6）
 
 | 工具 | 说明 |
 | --- | --- |
-| `cross_domain_capabilities` | 待补充中文：List cross-domain capabilities, supported v5.0 domains, and available mission workflows. |
-| `cross_domain_suggest_workflow` | 待补充中文：Suggest the best cross-domain workflow for a reverse-engineering goal. |
-| `cross_domain_health` | 待补充中文：Report cross-domain health, enabled v5.0 domains, and evidence-graph availability. |
-| `cross_domain_correlate_all` | 待补充中文：Ingest artifacts from V8, network, canvas, syscall, mojo, and binary domains into one shared evidence graph with optional cross-links. |
-| `cross_domain_evidence_export` | 待补充中文：Export the shared cross-domain evidence graph as JSON. |
-| `cross_domain_evidence_stats` | 待补充中文：Get node and edge statistics for the shared cross-domain evidence graph. |
+| `cross_domain_capabilities` | 列出跨域能力、支持的 v5.0 域和可用的任务工作流。 |
+| `cross_domain_suggest_workflow` | 为逆向工程目标推荐最佳跨域工作流。 |
+| `cross_domain_health` | 报告跨域健康状态、已启用的 v5.0 域和证据图可用性。 |
+| `cross_domain_correlate_all` | 将 V8、网络、canvas、syscall、mojo 和二进制域的产物摄入共享证据图并可选地添加交叉链接。 |
+| `cross_domain_evidence_export` | 将共享跨域证据图导出为 JSON。 |
+| `cross_domain_evidence_stats` | 获取共享跨域证据图的节点和边统计。 |

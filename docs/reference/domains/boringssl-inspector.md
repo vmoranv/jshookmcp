@@ -22,35 +22,35 @@ BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。
 
 ## 代表工具
 
-- `tls_keylog_enable` — 待补充中文：Enable SSLKEYLOGFILE output for BoringSSL-compatible clients.
-- `tls_keylog_parse` — 待补充中文：Parse an SSLKEYLOGFILE and summarize available key material.
-- `tls_keylog_disable` — 待补充中文：Disable SSLKEYLOGFILE capture and unset the environment variable.
-- `tls_decrypt_payload` — 待补充中文：Decrypt a TLS payload using a provided key, nonce, and algorithm.
-- `tls_keylog_summarize` — 待补充中文：Summarize the contents of an SSLKEYLOGFILE by label distribution.
-- `tls_keylog_lookup_secret` — 待补充中文：Look up a TLS secret by client random hex from the parsed keylog.
-- `tls_cert_pin_bypass` — 待补充中文：Return a certificate pinning bypass strategy for the selected platform.
-- `tls_handshake_parse` — 待补充中文：Parse a TLS record header and basic handshake metadata from a hex payload.
-- `tls_parse_handshake` — 待补充中文：Parse TLS handshake metadata (version, cipher suites, SNI, extensions) from raw hex.
-- `tls_cipher_suites` — 待补充中文：List IANA TLS cipher suites, optionally filtered by keyword.
+- `tls_keylog_enable` — 启用 BoringSSL 兼容客户端的 SSLKEYLOGFILE 输出。
+- `tls_keylog_parse` — 解析 SSLKEYLOGFILE 并汇总可用的密钥材料。
+- `tls_keylog_disable` — 禁用 SSLKEYLOGFILE 捕获并清除环境变量。
+- `tls_decrypt_payload` — 使用提供的密钥、nonce 和算法解密密文负载。
+- `tls_keylog_summarize` — 按标签分布汇总 SSLKEYLOGFILE 的内容。
+- `tls_keylog_lookup_secret` — 从解析的 keylog 中按 client random hex 查找 TLS 密钥。
+- `tls_cert_pin_bypass` — 返回目标平台的证书校验绕过策略。
+- `tls_handshake_parse` — 从十六进制负载解析 TLS 记录头和基本握手元数据。
+- `tls_parse_handshake` — 从原始十六进制解析 TLS 握手元数据（版本、密码套件、SNI、扩展）。
+- `tls_cipher_suites` — 列出 IANA TLS 密码套件，支持按关键词过滤。
 
 ## 工具清单（17）
 
 | 工具 | 说明 |
 | --- | --- |
-| `tls_keylog_enable` | 待补充中文：Enable SSLKEYLOGFILE output for BoringSSL-compatible clients. |
-| `tls_keylog_parse` | 待补充中文：Parse an SSLKEYLOGFILE and summarize available key material. |
-| `tls_keylog_disable` | 待补充中文：Disable SSLKEYLOGFILE capture and unset the environment variable. |
-| `tls_decrypt_payload` | 待补充中文：Decrypt a TLS payload using a provided key, nonce, and algorithm. |
-| `tls_keylog_summarize` | 待补充中文：Summarize the contents of an SSLKEYLOGFILE by label distribution. |
-| `tls_keylog_lookup_secret` | 待补充中文：Look up a TLS secret by client random hex from the parsed keylog. |
-| `tls_cert_pin_bypass` | 待补充中文：Return a certificate pinning bypass strategy for the selected platform. |
-| `tls_handshake_parse` | 待补充中文：Parse a TLS record header and basic handshake metadata from a hex payload. |
-| `tls_parse_handshake` | 待补充中文：Parse TLS handshake metadata (version, cipher suites, SNI, extensions) from raw hex. |
-| `tls_cipher_suites` | 待补充中文：List IANA TLS cipher suites, optionally filtered by keyword. |
-| `tls_parse_certificate` | 待补充中文：Parse a TLS Certificate message from raw hex and extract fingerprints. |
-| `tls_cert_pin_bypass_frida` | 待补充中文：Bypass certificate pinning via Frida injection (supports BoringSSL, Chrome, OkHttp). |
-| `net_raw_tcp_send` | 待补充中文：Send raw TCP data to a remote host; accepts hex or text input. |
-| `net_raw_tcp_listen` | 待补充中文：Listen on a local TCP port for one incoming connection. |
-| `net_raw_udp_send` | 待补充中文：Send a raw UDP datagram and wait for a response. |
-| `net_raw_udp_listen` | 待补充中文：Listen on a local UDP port for an incoming datagram. |
-| `net_raw_tcp_scan` | 待补充中文：Scan a TCP port range on a host for open ports. |
+| `tls_keylog_enable` | 启用 BoringSSL 兼容客户端的 SSLKEYLOGFILE 输出。 |
+| `tls_keylog_parse` | 解析 SSLKEYLOGFILE 并汇总可用的密钥材料。 |
+| `tls_keylog_disable` | 禁用 SSLKEYLOGFILE 捕获并清除环境变量。 |
+| `tls_decrypt_payload` | 使用提供的密钥、nonce 和算法解密密文负载。 |
+| `tls_keylog_summarize` | 按标签分布汇总 SSLKEYLOGFILE 的内容。 |
+| `tls_keylog_lookup_secret` | 从解析的 keylog 中按 client random hex 查找 TLS 密钥。 |
+| `tls_cert_pin_bypass` | 返回目标平台的证书校验绕过策略。 |
+| `tls_handshake_parse` | 从十六进制负载解析 TLS 记录头和基本握手元数据。 |
+| `tls_parse_handshake` | 从原始十六进制解析 TLS 握手元数据（版本、密码套件、SNI、扩展）。 |
+| `tls_cipher_suites` | 列出 IANA TLS 密码套件，支持按关键词过滤。 |
+| `tls_parse_certificate` | 从原始十六进制解析 TLS Certificate 消息并提取指纹。 |
+| `tls_cert_pin_bypass_frida` | 通过 Frida 注入绕过证书校验（支持 BoringSSL、Chrome、OkHttp）。 |
+| `net_raw_tcp_send` | 向远程主机发送原始 TCP 数据，支持十六进制或文本输入。 |
+| `net_raw_tcp_listen` | 在本地 TCP 端口监听一个传入连接。 |
+| `net_raw_udp_send` | 向本地 UDP 端口发送原始 UDP 数据报并等待响应。 |
+| `net_raw_udp_listen` | 在本地 UDP 端口监听传入的数据报。 |
+| `net_raw_tcp_scan` | 扫描主机 TCP 端口范围内的开放端口。 |

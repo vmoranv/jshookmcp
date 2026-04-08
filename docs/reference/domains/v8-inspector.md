@@ -22,24 +22,24 @@ V8 检查器域，提供堆快照分析、CPU 分析和内存检查。
 
 ## 代表工具
 
-- `v8_heap_snapshot_capture` — 待补充中文：Capture a V8 heap snapshot from the active browser target
-- `v8_heap_snapshot_analyze` — 待补充中文：Analyze a previously captured V8 heap snapshot
-- `v8_heap_diff` — 待补充中文：Diff two captured V8 heap snapshots
-- `v8_object_inspect` — 待补充中文：Inspect a V8 heap object by address
-- `v8_heap_stats` — 待补充中文：Return V8 heap snapshot statistics
-- `v8_bytecode_extract` — 待补充中文：Extract V8 Ignition bytecode for a function
-- `v8_version_detect` — 待补充中文：Detect V8 engine version and feature support
-- `v8_jit_inspect` — 待补充中文：Inspect JIT-compiled code for a function
+- `v8_heap_snapshot_capture` — 从活跃浏览器目标捕获 V8 堆快照。
+- `v8_heap_snapshot_analyze` — 分析先前捕获的 V8 堆快照。
+- `v8_heap_diff` — 对比两个已捕获的 V8 堆快照。
+- `v8_object_inspect` — 按地址检查 V8 堆对象。
+- `v8_heap_stats` — 返回 V8 堆快照统计。
+- `v8_bytecode_extract` — 提取函数的 V8 Ignition 字节码。
+- `v8_version_detect` — 检测 V8 引擎版本和功能支持。
+- `v8_jit_inspect` — 检查函数的 JIT 编译代码。
 
 ## 工具清单（8）
 
 | 工具 | 说明 |
 | --- | --- |
-| `v8_heap_snapshot_capture` | 待补充中文：Capture a V8 heap snapshot from the active browser target |
-| `v8_heap_snapshot_analyze` | 待补充中文：Analyze a previously captured V8 heap snapshot |
-| `v8_heap_diff` | 待补充中文：Diff two captured V8 heap snapshots |
-| `v8_object_inspect` | 待补充中文：Inspect a V8 heap object by address |
-| `v8_heap_stats` | 待补充中文：Return V8 heap snapshot statistics |
-| `v8_bytecode_extract` | 待补充中文：Extract V8 Ignition bytecode for a function |
-| `v8_version_detect` | 待补充中文：Detect V8 engine version and feature support |
-| `v8_jit_inspect` | 待补充中文：Inspect JIT-compiled code for a function |
+| `v8_heap_snapshot_capture` | 从活跃浏览器目标捕获 V8 堆快照。 |
+| `v8_heap_snapshot_analyze` | 分析先前捕获的 V8 堆快照。 |
+| `v8_heap_diff` | 对比两个已捕获的 V8 堆快照。 |
+| `v8_object_inspect` | 按地址检查 V8 堆对象。 |
+| `v8_heap_stats` | 返回 V8 堆快照统计。 |
+| `v8_bytecode_extract` | 提取函数的 V8 Ignition 字节码。 |
+| `v8_version_detect` | 检测 V8 引擎版本和功能支持。 |
+| `v8_jit_inspect` | 检查函数的 JIT 编译代码。 |
