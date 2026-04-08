@@ -20,16 +20,4 @@ export const sourcemapTools: Tool[] = [
     .string('outputDir', '输出目录')
     .required('sourceMapUrl')
     .build(),
-
-  tool('extension_list_installed')
-    .desc('列出已安装的 Chrome 扩展（通过 CDP Target.getTargets 检测）')
-    .build(),
-
-  tool('extension_execute_in_context')
-    .desc('在 Chrome 扩展 background context 中执行代码')
-    .string('extensionId', 'Chrome 扩展 ID')
-    .string('code', 'JavaScript 代码')
-    .boolean('returnByValue', 'Runtime.evaluate 按值返回', { default: true })
-    .required('extensionId', 'code')
-    .build(),
 ];

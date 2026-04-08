@@ -11,6 +11,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { escapeRegexStr } from '@utils/escapeForRegex';
 export * from './definitions';
 
 // ── Types ──
@@ -262,7 +263,7 @@ export class SharedStateBoardHandlers {
     for (const [fullKey, entry] of this.state.entries()) {
       if (fullKey.startsWith(prefix)) {
         if (isPattern) {
-          const regex = new RegExp(`^${prefix}${key.replace(/\*/g, '.*')}$`);
+          const regex = new RegExp(`^${escapeRegexStr(prefix)}${escapeRegexStr(key).replace(/\\\*/g, '.*')}$`);
           if (regex.test(fullKey)) {
             watch.lastVersion[fullKey] = entry.version;
           }
@@ -319,7 +320,7 @@ export class SharedStateBoardHandlers {
     const prefix = `${watch.namespace}:`;
 
     if (watch.pattern) {
-      const regex = new RegExp(`^${prefix}${watch.key.replace(/\*/g, '.*')}$`);
+      const regex = new RegExp(`^${escapeRegexStr(prefix)}${escapeRegexStr(watch.key).replace(/\\\*/g, '.*')}$`);
       for (const [fullKey, entry] of this.state.entries()) {
         if (regex.test(fullKey)) {
           const lastVer = watch.lastVersion[fullKey];
@@ -414,7 +415,7 @@ export class SharedStateBoardHandlers {
 
       // Filter by key pattern
       if (keyPattern) {
-        const regex = new RegExp(`^${keyPattern.replace(/\*/g, '.*')}$`);
+        const regex = new RegExp(`^${escapeRegexStr(keyPattern).replace(/\\\*/g, '.*')}$`);
         if (!regex.test(entry.key)) {
           continue;
         }
@@ -503,7 +504,7 @@ export class SharedStateBoardHandlers {
 
       // Filter by key pattern
       if (keyPattern) {
-        const regex = new RegExp(`^${keyPattern.replace(/\*/g, '.*')}$`);
+        const regex = new RegExp(`^${escapeRegexStr(keyPattern).replace(/\\\*/g, '.*')}$`);
         if (!regex.test(entry.key)) {
           continue;
         }

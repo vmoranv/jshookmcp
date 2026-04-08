@@ -310,15 +310,33 @@ export class CrossDomainWorkflowClassifier {
     }
     if (toolName.startsWith('network_')) return ['network'];
     if (toolName.startsWith('console_')) return ['browser'];
-    if (toolName.startsWith('tls_')) return ['boringssl-inspector'];
+    if (toolName.startsWith('tls_') || toolName.startsWith('net_raw_')) return ['boringssl-inspector'];
     if (toolName.startsWith('canvas_')) return ['canvas'];
     if (toolName.startsWith('skia_')) return ['skia-capture'];
+    if (toolName.startsWith('v8_')) return ['v8-inspector'];
+    if (toolName.startsWith('mojo_')) return ['mojo-ipc'];
+    if (toolName.startsWith('syscall_')) return ['syscall-hook'];
+    if (toolName.startsWith('adb_')) return ['adb-bridge'];
     if (
       toolName.startsWith('ghidra_') ||
       toolName.startsWith('frida_') ||
-      toolName.startsWith('generate_hooks')
+      toolName.startsWith('generate_hooks') ||
+      toolName.startsWith('unidbg_') ||
+      toolName.startsWith('export_hook_script')
     ) {
       return ['binary-instrument'];
+    }
+    if (toolName.startsWith('extension_') || toolName.startsWith('webhook_')) {
+      return ['extension-registry'];
+    }
+    if (toolName.startsWith('cross_domain_')) {
+      return ['cross-domain'];
+    }
+    if (toolName.startsWith('evidence_')) {
+      return ['evidence'];
+    }
+    if (toolName.startsWith('boringssl_')) {
+      return ['boringssl-inspector'];
     }
     return [];
   }

@@ -43,16 +43,6 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleSourcemapReconstructTree(a)),
     },
-    {
-      tool: t('extension_list_installed'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleExtensionListInstalled(a)),
-    },
-    {
-      tool: t('extension_execute_in_context'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleExtensionExecuteInContext(a)),
-    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
