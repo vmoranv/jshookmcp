@@ -37,4 +37,21 @@ describe('cli/doctor', () => {
     expect(stdoutWrite).toHaveBeenCalledWith('formatted report\n');
     expect(exit).toHaveBeenCalledWith(0);
   });
+
+  it('propagates doctor failures without writing output or exiting', async () => {
+    const error = new Error('doctor failed');
+
+    state.runEnvironmentDoctor.mockRejectedValue(error);
+
+    const stdoutWrite = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+    const exit = vi.spyOn(process, 'exit').mockImplementation((() => {
+      return undefined as never;
+    }) as typeof process.exit);
+
+    await expect(import('@src/cli/doctor')).rejects.toThrow(error);
+
+    expect(state.formatEnvironmentDoctorReport).not.toHaveBeenCalled();
+    expect(stdoutWrite).not.toHaveBeenCalled();
+    expect(exit).not.toHaveBeenCalled();
+  });
 });
