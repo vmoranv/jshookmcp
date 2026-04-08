@@ -1,30 +1,69 @@
-import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import type { MCPServerContext } from '@server/MCPServer.context';
+import type { DomainManifest, ToolRegistration } from '@server/registry/contracts';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
-import { adbBridgeTools } from '@server/domains/adb-bridge/definitions';
-import { ADBBridgeHandlers } from '@server/domains/adb-bridge/handlers';
+import { adbBridgeTools } from './definitions';
+import { ADBBridgeHandlers } from './handlers';
 
-const DOMAIN = 'adb-bridge' as const;
-const DEP_KEY = 'adbBridgeHandlers' as const;
-type H = ADBBridgeHandlers;
-const t = toolLookup(adbBridgeTools);
-const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
-  bindByDepKey<H>(DEP_KEY, invoke);
+const DOMAIN = 'adb-bridge';
+const DEP_KEY = 'adbBridgeHandlers';
 
-function ensure(ctx: MCPServerContext): H {
-  if (!(ctx as unknown as Record<string, unknown>)[DEP_KEY]) {
-    (ctx as unknown as Record<string, unknown>)[DEP_KEY] = new ADBBridgeHandlers();
+const toolByName = toolLookup(adbBridgeTools);
+const bind = (
+  invoke: (handlers: ADBBridgeHandlers, args: Record<string, unknown>) => Promise<unknown>,
+) => bindByDepKey<ADBBridgeHandlers>(DEP_KEY, invoke);
+
+const registrations: ToolRegistration[] = [
+  {
+    tool: toolByName('adb_device_list'),
+    domain: DOMAIN,
+    bind: bind((handlers, args) => handlers.handleDeviceList(args)),
+  },
+  {
+    tool: toolByName('adb_shell'),
+    domain: DOMAIN,
+    bind: bind((handlers, args) => handlers.handleShell(args)),
+  },
+  {
+    tool: toolByName('adb_apk_pull'),
+    domain: DOMAIN,
+    bind: bind((handlers, args) => handlers.handlePullApk(args)),
+  },
+  {
+    tool: toolByName('adb_apk_analyze'),
+    domain: DOMAIN,
+    bind: bind((handlers, args) => handlers.handleAnalyzeApk(args)),
+  },
+  {
+    tool: toolByName('adb_webview_list'),
+    domain: DOMAIN,
+    bind: bind((handlers, args) => handlers.handleWebViewList(args)),
+  },
+  {
+    tool: toolByName('adb_webview_attach'),
+    domain: DOMAIN,
+    bind: bind((handlers, args) => handlers.handleWebViewAttach(args)),
+  },
+];
+
+function ensure(ctx: MCPServerContext): ADBBridgeHandlers {
+  const existingHandlers = ctx.getDomainInstance<ADBBridgeHandlers>(DEP_KEY);
+  if (existingHandlers) {
+    return existingHandlers;
   }
-  return (ctx as unknown as Record<string, unknown>)[DEP_KEY] as H;
+
+  const handlers = new ADBBridgeHandlers();
+  ctx.setDomainInstance(DEP_KEY, handlers);
+  return handlers;
 }
 
-const manifest = {
+const manifest: DomainManifest<'adbBridgeHandlers', ADBBridgeHandlers, 'adb-bridge'> = {
   kind: 'domain-manifest',
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
   profiles: ['workflow', 'full'],
+  registrations,
   ensure,
-
   workflowRule: {
     patterns: [
       /(android|adb|mobile|apk|device).*(list|shell|pull|analyze|dump)/i,
@@ -41,27 +80,8 @@ const manifest = {
     ],
     hint: 'Android/ADB: list devices → run shell commands → pull/analyze APK → debug WebViews via CDP',
   },
-
   prerequisites: {
-    adb_device_list: [
-      {
-        condition: 'ADB server binary must be in PATH',
-        fix: 'Install Android Platform Tools: https://developer.android.com/studio/command-line/adb',
-      },
-    ],
-    adb_shell: [
-      {
-        condition: 'ADB server binary must be in PATH',
-        fix: 'Install Android Platform Tools: https://developer.android.com/studio/command-line/adb',
-      },
-    ],
-    adb_apk_pull: [
-      {
-        condition: 'ADB server binary must be in PATH',
-        fix: 'Install Android Platform Tools: https://developer.android.com/studio/command-line/adb',
-      },
-    ],
-    adb_apk_analyze: [
+    '*': [
       {
         condition: 'ADB server binary must be in PATH',
         fix: 'Install Android Platform Tools: https://developer.android.com/studio/command-line/adb',
@@ -69,58 +89,25 @@ const manifest = {
     ],
     adb_webview_list: [
       {
-        condition: 'ADB server binary must be in PATH',
-        fix: 'Install Android Platform Tools: https://developer.android.com/studio/command-line/adb',
-      },
-      {
         condition: 'App must have android:debuggable="true"',
         fix: 'Use a debug build of the Android app',
       },
     ],
     adb_webview_attach: [
       {
-        condition: 'ADB server binary must be in PATH',
-        fix: 'Install Android Platform Tools: https://developer.android.com/studio/command-line/adb',
-      },
-      {
         condition: 'App must have android:debuggable="true"',
         fix: 'Use a debug build of the Android app',
       },
     ],
   },
-
-  registrations: [
+  toolDependencies: [
     {
-      tool: t('adb_device_list'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleDeviceList(a)),
-    },
-    {
-      tool: t('adb_shell'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleShell(a)),
-    },
-    {
-      tool: t('adb_apk_pull'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePullApk(a)),
-    },
-    {
-      tool: t('adb_apk_analyze'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleAnalyzeApk(a)),
-    },
-    {
-      tool: t('adb_webview_list'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleWebViewList(a)),
-    },
-    {
-      tool: t('adb_webview_attach'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleWebViewAttach(a)),
+      from: 'browser',
+      to: 'adb-bridge',
+      relation: 'uses',
+      weight: 0.7,
     },
   ],
-} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
+};
 
 export default manifest;
