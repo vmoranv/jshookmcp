@@ -76,7 +76,7 @@
     "docs:dev": "vitepress dev docs --host 127.0.0.1 --port 5173",
     "docs:build": "corepack pnpm run docs:generate && vitepress build docs",
     "docs:preview": "vitepress preview docs --host 127.0.0.1 --port 4173",
-    "lint:md": "corepack pnpm dlx markdownlint-cli2",
+    "lint:md": "corepack pnpm dlx markdownlint-cli2 README.md README.zh.md CONTRIBUTING.md docs/**/*.md",
     "lint": "oxlint src/ tests/",
     "lint:fix": "oxlint --fix src/ tests/",
     "format": "oxfmt \"src/**\" \"tests/**\" \"!tests/tmp/**\" --write --no-error-on-unmatched-pattern",

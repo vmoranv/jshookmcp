@@ -20,7 +20,6 @@
     "README.md",
     "README.zh.md",
     "CONTRIBUTING.md",
-    "docs/**/*.md",
-    ".github/**/*.md"
+    "docs/**/*.md"
   ]
 }
