@@ -81,7 +81,6 @@ async function execCodexCommand(
   return new Promise((resolve, reject) => {
     const child = spawn('codex', args, {
       stdio: ['pipe', 'pipe', 'pipe'],
-      shell: true,
     });
 
     let stdout = '';

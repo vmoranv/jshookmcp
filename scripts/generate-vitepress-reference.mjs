@@ -520,6 +520,21 @@ const META = {
     enScenarios: ['Heap snapshot analysis', 'CPU profiling', 'Memory leak detection'],
     enCombos: ['v8-inspector + browser', 'v8-inspector + debugger'],
   },
+  'cross-domain': {
+    zhTitle: 'Cross-Domain',
+    zhSummary: '跨域关联域，将多个域的分析结果进行交叉关联，支持自动化工作流编排与证据图桥接。',
+    zhScenarios: ['跨域证据关联', '自动化逆向工作流', '多信号源聚合分析'],
+    zhCombos: ['cross-domain + evidence', 'cross-domain + v8-inspector + skia-capture'],
+    enTitle: 'Cross-Domain',
+    enSummary:
+      'Cross-domain correlation domain that bridges analysis results across multiple domains, supporting workflow orchestration and evidence graph integration.',
+    enScenarios: [
+      'Cross-domain evidence correlation',
+      'Automated reverse engineering workflows',
+      'Multi-signal aggregation analysis',
+    ],
+    enCombos: ['cross-domain + evidence', 'cross-domain + v8-inspector + skia-capture'],
+  },
 };
 
 async function main() {

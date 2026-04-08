@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AntiCheatDetector coverage tests — exercise all uncovered error branches.
  *
@@ -13,15 +14,21 @@
  *  - _rvaToFileOffset: all-bits-set PE headers
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
-// Reuse the same mock data structure as the main test file
-const mockImports = [
-  {
-    dllName: 'KERNEL32.dll',
-    functions: [{ name: 'IsDebuggerPresent', ordinal: 0, hint: 0, thunkRva: '0x1000' }],
+// Hoisted state for PEAnalyzer mock — tests mutate this to change behavior
+// without needing vi.resetModules() + dynamic import() (which causes OOM).
+const peaState = vi.hoisted(() => ({
+  parseImportsThrows: false,
+  listSectionsThrows: false,
+  listSectionsReturnValue: [] as any[],
+}));
+
+vi.mock('node:fs', () => ({
+  promises: {
+    readFile: vi.fn(async () => Buffer.alloc(1024)),
   },
-];
+}));
 
 vi.mock('@native/Win32API', () => ({
   openProcessForMemory: vi.fn(() => 1n),
@@ -61,29 +68,40 @@ vi.mock('@utils/logger', () => ({
   logger: { debug: vi.fn() },
 }));
 
+// PEAnalyzer mock reads from hoisted state — tests toggle behavior by mutating peaState.
+vi.mock('@native/PEAnalyzer', () => ({
+  PEAnalyzer: class {
+    async parseImports() {
+      if (peaState.parseImportsThrows) {
+        throw new Error('access denied');
+      }
+      return [];
+    }
+    async listSections() {
+      if (peaState.listSectionsThrows) {
+        throw new Error('memory access denied');
+      }
+      return peaState.listSectionsReturnValue;
+    }
+  },
+}));
+
 import { AntiCheatDetector } from '@native/AntiCheatDetector';
 
 // ── detect(): parseImports catch block ────────────────────────────────────────
 
 describe('AntiCheatDetector coverage: detect() — parseImports error branch', () => {
+  afterEach(() => {
+    peaState.parseImportsThrows = false;
+    peaState.listSectionsThrows = false;
+    peaState.listSectionsReturnValue = [];
+    vi.restoreAllMocks();
+  });
+
   it('logs and skips module when parseImports throws', async () => {
-    // Override the PEAnalyzer mock to throw
-    vi.mock('@native/PEAnalyzer', () => ({
-      PEAnalyzer: class {
-        async parseImports() {
-          throw new Error('access denied');
-        }
-        async listSections() {
-          return [];
-        }
-      },
-    }));
+    peaState.parseImportsThrows = true;
 
-    // Need to re-import to pick up the new mock
-    vi.resetModules();
-    const { AntiCheatDetector: FreshDetector } = await import('@native/AntiCheatDetector');
-    const detector = new FreshDetector();
-
+    const detector = new AntiCheatDetector();
     const detections = await detector.detect(1234);
 
     // No crash — error is swallowed
@@ -200,107 +218,59 @@ describe('AntiCheatDetector coverage: findGuardPages() — error paths', () => {
 // ── checkIntegrity(): error paths ──────────────────────────────────────────────
 
 describe('AntiCheatDetector coverage: checkIntegrity() — error branches', () => {
-  it('returns empty when fs.readFile throws', async () => {
-    // The existing checkIntegrity test mocks getModuleEntries and then calls
-    // fs.readFile. When the path is invalid, it returns empty.
-    // Here we verify the catch branch is reached by forcing parseImports to throw
-    // so no sections are found, then verify the result is an empty array.
-    vi.mock('@native/PEAnalyzer', () => ({
-      PEAnalyzer: class {
-        async parseImports() {
-          return [];
-        }
-        async listSections(_pid: number, _base: string) {
-          throw new Error('memory access denied');
-        }
-      },
-    }));
+  afterEach(() => {
+    peaState.parseImportsThrows = false;
+    peaState.listSectionsThrows = false;
+    peaState.listSectionsReturnValue = [];
+    vi.restoreAllMocks();
+  });
 
-    vi.resetModules();
-    const { AntiCheatDetector: FreshDetector } = await import('@native/AntiCheatDetector');
-    const detector = new FreshDetector();
+  it('returns empty when listSections throws', async () => {
+    peaState.listSectionsThrows = true;
 
+    const detector = new AntiCheatDetector();
     const results = await detector.checkIntegrity(1234);
     expect(Array.isArray(results)).toBe(true);
   });
 
   it('skips non-executable sections in integrity check', async () => {
-    // When a section is not executable, the loop continues (L254: if (!sec.isExecutable) continue)
-    // We verify this by ensuring no results are generated for read-only sections
-    vi.mock('@native/PEAnalyzer', () => ({
-      PEAnalyzer: class {
-        async parseImports() {
-          return [];
-        }
-        async listSections() {
-          return [
-            {
-              name: '.data',
-              virtualAddress: '0x1000',
-              virtualSize: 256,
-              rawSize: 256,
-              characteristics: 0xc0000040, // MEM_READ | MEM_WRITE — NOT executable
-              isExecutable: false,
-              isWritable: true,
-              isReadable: true,
-            },
-          ];
-        }
+    peaState.listSectionsReturnValue = [
+      {
+        name: '.data',
+        virtualAddress: '0x1000',
+        virtualSize: 256,
+        rawSize: 256,
+        characteristics: 0xc0000040, // MEM_READ | MEM_WRITE — NOT executable
+        isExecutable: false,
+        isWritable: true,
+        isReadable: true,
       },
-    }));
+    ];
 
-    vi.resetModules();
-    const { AntiCheatDetector: FreshDetector } = await import('@native/AntiCheatDetector');
-    const detector = new FreshDetector();
+    const { GetModuleFileNameEx } = await import('@native/Win32API');
+    (GetModuleFileNameEx as ReturnType<typeof vi.fn>).mockReturnValue('/nonexistent/test.exe');
 
-    // Mock getModuleEntries by providing an empty file path
-    vi.mock('@native/Win32API', () => ({
-      openProcessForMemory: vi.fn(() => 1n),
-      CloseHandle: vi.fn(() => true),
-      ReadProcessMemory: vi.fn(() => Buffer.alloc(256)),
-      VirtualQueryEx: vi.fn(() => ({ success: false, info: {} })),
-      PAGE: { GUARD: 0x100 },
-      EnumProcessModules: vi.fn(() => ({ modules: [0n], count: 1 })),
-      GetModuleBaseName: vi.fn(() => 'test.exe'),
-      GetModuleFileNameEx: vi.fn(() => '/nonexistent/test.exe'),
-      GetModuleInformation: vi.fn(() => ({
-        success: true,
-        info: { lpBaseOfDll: 0n, SizeOfImage: 4096, EntryPoint: 0x1000n },
-      })),
-    }));
-
+    const detector = new AntiCheatDetector();
     const results = await detector.checkIntegrity(1234);
     // Non-executable sections are skipped → no results
     expect(results.length).toBe(0);
   });
 
   it('skips section when RVA to file offset is out of bounds', async () => {
-    vi.mock('@native/PEAnalyzer', () => ({
-      PEAnalyzer: class {
-        async parseImports() {
-          return [];
-        }
-        async listSections() {
-          return [
-            {
-              name: '.text',
-              virtualAddress: '0x99999999', // Way beyond PE file size
-              virtualSize: 256,
-              rawSize: 256,
-              characteristics: 0x60000020,
-              isExecutable: true,
-              isWritable: false,
-              isReadable: true,
-            },
-          ];
-        }
+    peaState.listSectionsReturnValue = [
+      {
+        name: '.text',
+        virtualAddress: '0x99999999', // Way beyond PE file size
+        virtualSize: 256,
+        rawSize: 256,
+        characteristics: 0x60000020,
+        isExecutable: true,
+        isWritable: false,
+        isReadable: true,
       },
-    }));
+    ];
 
-    vi.resetModules();
-    const { AntiCheatDetector: FreshDetector } = await import('@native/AntiCheatDetector');
-    const detector = new FreshDetector();
-
+    const detector = new AntiCheatDetector();
     const results = await detector.checkIntegrity(1234);
     // RVA out of bounds → section skipped → no results
     expect(results.length).toBe(0);

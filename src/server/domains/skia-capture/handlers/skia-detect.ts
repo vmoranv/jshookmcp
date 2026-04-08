@@ -62,6 +62,7 @@ export async function correlateObjects(
   getJSObjects?: () => JSObjectInfo[] | Promise<JSObjectInfo[]>,
 ): Promise<unknown> {
   const canvasId = argString(args, 'canvasId');
+  const skiaNodeIds = argStringArray(args, 'skiaNodeIds');
 
   // Extract Skia scene
   const sceneTree = await extractSceneTree(pageController, canvasId || undefined, true);
@@ -76,16 +77,30 @@ export async function correlateObjects(
     try {
       jsObjects = await getJSObjects();
     } catch {
-      // Graceful degradation — no JS objects available
       jsObjects = [];
     }
   }
 
-  const result = correlateToJS(sceneTree, jsObjects);
+  // Filter Skia objects by node IDs if provided
+  let targetSceneTree = sceneTree;
+  if (skiaNodeIds.length > 0) {
+    const idSet = new Set(skiaNodeIds);
+    targetSceneTree = {
+      ...sceneTree,
+      layers: sceneTree.layers.filter((l) => idSet.has(l.id)),
+      drawCommands: sceneTree.drawCommands.filter((cmd) => {
+        const id = (cmd as Record<string, unknown>).nodeId as string | undefined;
+        return id === undefined || idSet.has(id);
+      }),
+    };
+  }
+
+  const result = correlateToJS(targetSceneTree, jsObjects);
 
   return {
     correlations: result,
     canvasId: canvasId || 'auto',
+    skiaNodeIds: skiaNodeIds.length > 0 ? skiaNodeIds : undefined,
     correlationComplete: true,
   };
 }

@@ -448,28 +448,27 @@ export class BrowserPool {
     }
 
     const now = Date.now();
-    const toDispose: string[] = [];
+    // Snapshot entries before any mutation to avoid iterator invalidation
+    const snapshot = Array.from(this.entries.entries());
+    const toDispose: Array<[string, PoolEntry]> = [];
 
-    for (const [profile, entry] of this.entries) {
+    for (const [profile, entry] of snapshot) {
       if (!entry.inUse && !entry.disposed) {
         const timeout = this.getMaxIdleTimeoutForEntry(entry);
         if (now - entry.lastAccess > timeout) {
-          toDispose.push(profile);
+          toDispose.push([profile, entry]);
         }
       }
     }
 
-    for (const profile of toDispose) {
-      const entry = this.entries.get(profile);
-      if (entry) {
-        logger.debug(
-          `[BrowserPool] Cleanup: disposing idle profile "${profile}" (last accessed ${new Date(entry.lastAccess).toISOString()})`,
-        );
-        this.disposeEntry(entry).catch((error) => {
-          logger.error(`[BrowserPool] Cleanup failed for "${profile}": ${String(error)}`);
-        });
-        this.entries.delete(profile);
-      }
+    for (const [profile, entry] of toDispose) {
+      logger.debug(
+        `[BrowserPool] Cleanup: disposing idle profile "${profile}" (last accessed ${new Date(entry.lastAccess).toISOString()})`,
+      );
+      this.disposeEntry(entry).catch((error) => {
+        logger.error(`[BrowserPool] Cleanup failed for "${profile}": ${String(error)}`);
+      });
+      this.entries.delete(profile);
     }
 
     if (toDispose.length > 0) {
