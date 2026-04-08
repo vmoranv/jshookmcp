@@ -224,6 +224,10 @@ export function getKeyLogFilePath(): string | null {
 }
 
 export function parseKeyLog(contentOrPath: string): KeyLogEntry[] {
+  if (contentOrPath.length === 0) {
+    return [];
+  }
+
   const looksLikeInlineContent =
     contentOrPath.includes('\n') ||
     contentOrPath.includes('\r') ||

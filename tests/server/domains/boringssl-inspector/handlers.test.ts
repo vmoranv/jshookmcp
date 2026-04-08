@@ -45,7 +45,7 @@ describe('BoringsslInspectorHandlers', () => {
       const cipherSuites = Buffer.from([0x00, 0x04, 0x13, 0x01, 0x13, 0x02]);
       const compression = Buffer.from([0x01, 0x00]);
       const extensions = Buffer.from([0x00, 0x00]);
-      const body = Buffer.concat([
+      const bodyContent = Buffer.concat([
         version,
         random,
         sessionId,
@@ -54,11 +54,19 @@ describe('BoringsslInspectorHandlers', () => {
         extensions,
       ]);
 
-      const header = Buffer.alloc(4);
-      header[0] = 0;
-      header[1] = (body.length >> 16) & 0xff;
-      header[2] = (body.length >> 8) & 0xff;
-      header[3] = body.length & 0xff;
+      // Handshake header: type (1 = client_hello) + 3-byte length
+      const handshakeHeader = Buffer.alloc(4);
+      handshakeHeader[0] = 1; // client_hello
+      handshakeHeader[1] = (bodyContent.length >> 16) & 0xff;
+      handshakeHeader[2] = (bodyContent.length >> 8) & 0xff;
+      handshakeHeader[3] = bodyContent.length & 0xff;
+      const body = Buffer.concat([handshakeHeader, bodyContent]);
+
+      const header = Buffer.alloc(5);
+      header[0] = 0x16; // TLS handshake content type
+      header[1] = 0x03; // TLS major version
+      header[2] = 0x03; // TLS minor version
+      header.writeUInt16BE(body.length, 3); // 2-byte record length
       const hex = Buffer.concat([header, body]).toString('hex');
 
       const result = await handlers.handleParseHandshake({ rawHex: hex });
@@ -66,7 +74,7 @@ describe('BoringsslInspectorHandlers', () => {
       const parsed = JSON.parse(content);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.handshake.cipherSuite).toContain('TLS_AES_128_GCM_SHA256');
+      expect(parsed.handshake.cipherSuites).toContain('TLS_AES_128_GCM_SHA256');
     });
 
     it('parses a ClientHello with SNI extension', async () => {
@@ -79,11 +87,11 @@ describe('BoringsslInspectorHandlers', () => {
       expect(parsed.sni).toEqual({ serverName: 'example.com' });
     });
 
-    it('returns minimal result for invalid hex input', async () => {
+    it('returns error result for invalid hex input', async () => {
       const result = await handlers.handleParseHandshake({ rawHex: 'zzznotreal' });
       const content = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
       const parsed = JSON.parse(content);
-      expect(parsed.success).toBe(true);
+      expect(parsed.success).toBe(false);
     });
   });
 
@@ -136,7 +144,7 @@ function buildClientHelloWithSNI(sni: string): Buffer {
   const entryLen = 3 + sniBytes.length;
   const listLen = entryLen;
 
-  const sniPayload = Buffer.alloc(2 + 2 + entryLen);
+  const sniPayload = Buffer.alloc(5 + sniBytes.length); // listLen(2) + nameType(1) + nameLen(2) + hostname
   sniPayload.writeUInt16BE(listLen, 0);
   sniPayload[2] = 0;
   sniPayload.writeUInt16BE(sniBytes.length, 3);
@@ -161,13 +169,28 @@ function buildClientHelloWithExtensions(extBuffers: Buffer[]): Buffer {
   const extLenBuf = Buffer.from([(extsLen >> 8) & 0xff, extsLen & 0xff]);
   const extensions = Buffer.concat([extLenBuf, ...extBuffers]);
 
-  const body = Buffer.concat([version, random, sessionId, cipherSuites, compression, extensions]);
+  const bodyContent = Buffer.concat([
+    version,
+    random,
+    sessionId,
+    cipherSuites,
+    compression,
+    extensions,
+  ]);
 
-  const header = Buffer.alloc(4);
-  header[0] = 0;
-  header[1] = (body.length >> 16) & 0xff;
-  header[2] = (body.length >> 8) & 0xff;
-  header[3] = body.length & 0xff;
+  // Handshake header: type (1 = client_hello) + 3-byte length
+  const handshakeHeader = Buffer.alloc(4);
+  handshakeHeader[0] = 1; // client_hello
+  handshakeHeader[1] = (bodyContent.length >> 16) & 0xff;
+  handshakeHeader[2] = (bodyContent.length >> 8) & 0xff;
+  handshakeHeader[3] = bodyContent.length & 0xff;
+  const body = Buffer.concat([handshakeHeader, bodyContent]);
+
+  const header = Buffer.alloc(5);
+  header[0] = 0x16; // TLS handshake content type
+  header[1] = 0x03; // TLS major version
+  header[2] = 0x03; // TLS minor version
+  header.writeUInt16BE(body.length, 3); // 2-byte record length
 
   return Buffer.concat([header, body]);
 }

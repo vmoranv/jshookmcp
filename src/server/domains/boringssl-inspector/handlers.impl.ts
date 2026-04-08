@@ -1,7 +1,16 @@
 import { createServer as createNetServer, Socket as NetSocket } from 'node:net';
 import { createSocket as createUdpSocket } from 'node:dgram';
 import { createHash, X509Certificate } from 'node:crypto';
-import { TLSKeyLogExtractor, enableKeyLog, disableKeyLog, getKeyLogFilePath, parseKeyLog as parseKeyLogEntries, summarizeKeyLog as summarizeKeyLogEntries, lookupSecret as lookupSecretEntry, decryptPayload as decryptPayloadFunc } from '@modules/boringssl-inspector';
+import {
+  TLSKeyLogExtractor,
+  enableKeyLog,
+  disableKeyLog,
+  getKeyLogFilePath,
+  parseKeyLog as parseKeyLogEntries,
+  summarizeKeyLog as summarizeKeyLogEntries,
+  lookupSecret as lookupSecretEntry,
+  decryptPayload as decryptPayloadFunc,
+} from '@modules/boringssl-inspector';
 import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
 import { argString, argNumber } from '@server/domains/shared/parse-args';
@@ -82,6 +91,9 @@ function handshakeTypeName(handshakeType: number): string {
 
 /**
  * Parse TLS ClientHello to extract SNI, cipher suites, and extensions.
+ * Handles two input layouts:
+ * - With handshake header: [type(1) + length(3) + version(2) + random(32) + ...]
+ * - Without handshake header: [version(2) + random(32) + ...]
  */
 function parseClientHello(payload: Buffer): {
   serverName?: string;
@@ -97,18 +109,20 @@ function parseClientHello(payload: Buffer): {
     extensions: [],
   };
 
-  // Skip handshake type (1 byte) + length (3 bytes) + protocol version (2 bytes) + random (32 bytes)
-  const headerOffset = 1 + 3 + 2 + 32;
-  if (payload.length < headerOffset + 2) {
+  // Determine whether payload starts with handshake header or ClientHello body
+  // Handshake header: first byte is handshake type (0..24), next 3 bytes are length
+  // ClientHello body: first 2 bytes are version (0x03xx range)
+  const startsWithHandshakeHeader = payload[0] !== undefined && payload[0]! < 25;
+  const bodyOffset = startsWithHandshakeHeader ? 4 : 0;
+
+  if (payload.length < bodyOffset + 38) {
     return result;
   }
 
-  // Session ID length
-  const sessionIdLength = payload[headerOffset];
-  if (sessionIdLength === undefined) {
-    return result;
-  }
-  let cursor = headerOffset + 1 + sessionIdLength;
+  // Session ID length is 2 bytes after version + 32 bytes of random = offset 34
+  const sessionIdOffset = bodyOffset + 34;
+  const sessionIdLength = payload[sessionIdOffset] ?? 0;
+  let cursor = sessionIdOffset + 1 + sessionIdLength;
 
   // Cipher suites length + suites
   if (cursor + 2 > payload.length) {
@@ -120,7 +134,9 @@ function parseClientHello(payload: Buffer): {
   const cipherSuitesEnd = cursor + cipherSuitesLength;
   while (cursor + 2 <= cipherSuitesEnd) {
     const suiteId = payload.readUInt16BE(cursor);
-    result.cipherSuites.push(CIPHER_SUITES_BY_ID[suiteId] ?? `0x${suiteId.toString(16).padStart(4, '0')}`);
+    result.cipherSuites.push(
+      CIPHER_SUITES_BY_ID[suiteId] ?? `0x${suiteId.toString(16).padStart(4, '0')}`,
+    );
     cursor += 2;
   }
 
@@ -325,7 +341,13 @@ export class BoringsslInspectorHandlers {
       return { ok: false, error: 'encryptedHex, keyHex, and nonceHex are required' };
     }
 
-    const decrypted = decryptPayloadFunc(encryptedHex, keyHex, nonceHex, algorithm, authTagHex ?? undefined);
+    const decrypted = decryptPayloadFunc(
+      encryptedHex,
+      keyHex,
+      nonceHex,
+      algorithm,
+      authTagHex ?? undefined,
+    );
     return {
       ok: true,
       algorithm,
@@ -506,9 +528,10 @@ export class BoringsslInspectorHandlers {
     const versionMinor = record[2] ?? 0;
     const payload = record.subarray(5);
 
-    const clientHello = contentType === 0x16 && payload.length > 0 && payload[0] === 1
-      ? parseClientHello(payload)
-      : undefined;
+    const clientHello =
+      contentType === 0x16 && payload.length > 0 && payload[0] === 1
+        ? parseClientHello(payload)
+        : undefined;
 
     return asJsonResponse({
       success: true,
