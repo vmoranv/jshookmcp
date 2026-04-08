@@ -75,12 +75,20 @@ describe('CommandQueue', () => {
     it('should retry on failure up to maxRetries', async () => {
       const id = await queue.enqueue({ endpointId: 'ep-1', payload: {} });
 
-      await expect(queue.process(id, async () => { throw new Error('fail'); })).rejects.toThrow('fail');
+      await expect(
+        queue.process(id, async () => {
+          throw new Error('fail');
+        }),
+      ).rejects.toThrow('fail');
       const entries1 = await queue.dequeue({ status: 'pending' });
       expect(entries1).toHaveLength(1);
       expect(entries1[0]!.retries).toBe(1);
 
-      await expect(queue.process(id, async () => { throw new Error('fail'); })).rejects.toThrow('fail');
+      await expect(
+        queue.process(id, async () => {
+          throw new Error('fail');
+        }),
+      ).rejects.toThrow('fail');
       const entries2 = await queue.dequeue({ status: 'failed' });
       expect(entries2).toHaveLength(1);
     });
@@ -110,7 +118,11 @@ describe('CommandQueue', () => {
       queue.on('retried', (e) => events.push(e));
 
       const id = await queue.enqueue({ endpointId: 'ep-1', payload: {} });
-      await expect(queue.process(id, async () => { throw new Error('fail'); })).rejects.toThrow();
+      await expect(
+        queue.process(id, async () => {
+          throw new Error('fail');
+        }),
+      ).rejects.toThrow();
       expect(events).toHaveLength(1);
     });
 
@@ -119,8 +131,16 @@ describe('CommandQueue', () => {
       queue.on('failed', (e) => events.push(e));
 
       const id = await queue.enqueue({ endpointId: 'ep-1', payload: {} });
-      await expect(queue.process(id, async () => { throw new Error('fail'); })).rejects.toThrow();
-      await expect(queue.process(id, async () => { throw new Error('fail'); })).rejects.toThrow();
+      await expect(
+        queue.process(id, async () => {
+          throw new Error('fail');
+        }),
+      ).rejects.toThrow();
+      await expect(
+        queue.process(id, async () => {
+          throw new Error('fail');
+        }),
+      ).rejects.toThrow();
       expect(events).toHaveLength(1);
     });
   });
@@ -129,8 +149,16 @@ describe('CommandQueue', () => {
     it('should re-queue failed command', async () => {
       const id = await queue.enqueue({ endpointId: 'ep-1', payload: {} });
 
-      await expect(queue.process(id, async () => { throw new Error('fail'); })).rejects.toThrow();
-      await expect(queue.process(id, async () => { throw new Error('fail'); })).rejects.toThrow();
+      await expect(
+        queue.process(id, async () => {
+          throw new Error('fail');
+        }),
+      ).rejects.toThrow();
+      await expect(
+        queue.process(id, async () => {
+          throw new Error('fail');
+        }),
+      ).rejects.toThrow();
 
       await queue.retry(id);
       const entries = await queue.dequeue({ status: 'pending' });
@@ -158,7 +186,7 @@ describe('CommandQueue', () => {
 
       const queue2 = new CommandQueue();
       queue2.importState(state);
-      const entries = await queue2.dequeue();
+      const entries = await queue2.dequeue({ status: 'pending' });
       expect(entries).toHaveLength(1);
       expect(entries[0]!.payload).toEqual({ key: 'value' });
     });

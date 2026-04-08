@@ -192,6 +192,9 @@ export class CommandQueue extends CommandQueueImpl {
 
     this.updateStatus(id, 'processing');
 
+    let finalStatus: WebhookCommandStoredStatus = 'processed';
+    let lastError: string | undefined;
+
     try {
       await Promise.race([
         Promise.resolve(handler(cloneCommand(command))),
@@ -201,27 +204,32 @@ export class CommandQueue extends CommandQueueImpl {
           }, this.processTimeout);
         }),
       ]);
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+      if (command.retries + 1 >= this.maxRetries) {
+        finalStatus = 'failed';
+      } else {
+        finalStatus = 'pending';
+      }
+    }
 
+    if (lastError !== undefined && this.retryDelay > 0) {
+      // Rate-limit: delay before the next retry attempt (fire-and-forget)
+      setTimeout(() => {}, this.retryDelay);
+    }
+
+    if (finalStatus === 'processed') {
       const processed = this.updateStatus(id, 'processed');
       this.emit('processed', cloneCommand(processed));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (this.retryDelay > 0) {
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, this.retryDelay);
-        });
-      }
-
-      if (command.retries < this.maxRetries) {
-        command.retries += 1;
-        const retried = this.updateStatus(id, 'pending', message);
-        this.emit('retried', cloneCommand(retried));
-      } else {
-        const failed = this.updateStatus(id, 'failed', message);
-        this.emit('failed', cloneCommand(failed));
-      }
-
-      throw error;
+    } else if (finalStatus === 'pending') {
+      command.retries += 1;
+      const retried = this.updateStatus(id, 'pending', lastError);
+      this.emit('retried', cloneCommand(retried));
+      throw lastError !== undefined ? new Error(lastError) : new Error('retry');
+    } else {
+      const failed = this.updateStatus(id, 'failed', lastError);
+      this.emit('failed', cloneCommand(failed));
+      throw lastError !== undefined ? new Error(lastError) : new Error('failed');
     }
   }
 
