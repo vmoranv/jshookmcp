@@ -1,203 +1,264 @@
-import { type ProtocolPattern, type ProtocolField, type EncryptionInfo } from './types';
+import type {
+  EncryptionInfo,
+  FieldSpec,
+  PatternDetectionResult,
+  PatternSpec,
+  ProtocolField,
+  ProtocolPattern,
+} from './types';
 
-/**
- * Protocol pattern engine: manual definition, auto-detect from payloads,
- * and export to .proto-like schema.
- *
- * Pure Node.js — no external dependencies.
- */
+const PRINTABLE_MIN = 0x20;
+const PRINTABLE_MAX = 0x7e;
+const DELIMITER_CANDIDATES = [
+  Buffer.from([0x2c]),
+  Buffer.from([0x7c]),
+  Buffer.from([0x3a]),
+  Buffer.from([0x3b]),
+  Buffer.from([0x09]),
+  Buffer.from([0x00]),
+  Buffer.from([0x0d, 0x0a]),
+];
+
+function normalizeHexPayload(value: string): string {
+  return value.replace(/^0x/i, '').replace(/\s+/g, '').toLowerCase();
+}
+
+function isHexPayload(value: string): boolean {
+  const normalized = normalizeHexPayload(value);
+  if (normalized.length === 0 || normalized.length % 2 !== 0) {
+    return false;
+  }
+
+  return /^[0-9a-f]+$/i.test(normalized);
+}
+
+function parseHexPayload(value: string): Buffer | null {
+  if (!isHexPayload(value)) {
+    return null;
+  }
+
+  return Buffer.from(normalizeHexPayload(value), 'hex');
+}
+
+function isPrintableByte(value: number): boolean {
+  return value >= PRINTABLE_MIN && value <= PRINTABLE_MAX;
+}
+
+function printableRatio(buffer: Buffer): number {
+  if (buffer.length === 0) {
+    return 0;
+  }
+
+  let printableCount = 0;
+  for (const value of buffer.values()) {
+    if (isPrintableByte(value)) {
+      printableCount += 1;
+    }
+  }
+
+  return printableCount / buffer.length;
+}
+
+function averagePrintableRatio(buffers: Buffer[]): number {
+  if (buffers.length === 0) {
+    return 0;
+  }
+
+  const sum = buffers.reduce((accumulator, buffer) => accumulator + printableRatio(buffer), 0);
+  return sum / buffers.length;
+}
+
+function splitBuffer(buffer: Buffer, delimiter: Buffer): Buffer[] {
+  if (delimiter.length === 0) {
+    return [buffer];
+  }
+
+  const parts: Buffer[] = [];
+  let start = 0;
+  let index = buffer.indexOf(delimiter, start);
+
+  while (index >= 0) {
+    parts.push(buffer.subarray(start, index));
+    start = index + delimiter.length;
+    index = buffer.indexOf(delimiter, start);
+  }
+
+  parts.push(buffer.subarray(start));
+  return parts;
+}
+
+function bufferToDelimiterString(buffer: Buffer): string {
+  return printableRatio(buffer) === 1 ? buffer.toString('utf8') : buffer.toString('hex');
+}
+
 export class ProtocolPatternEngine {
-  private patterns: Map<string, ProtocolPattern> = new Map();
+  private readonly patterns = new Map<string, PatternSpec>();
 
-  /**
-   * Manually define a protocol pattern.
-   */
+  private readonly legacyPatterns = new Map<string, ProtocolPattern>();
+
+  definePattern(name: string, spec: PatternSpec): void;
   definePattern(
     name: string,
     fields: ProtocolField[],
     options?: { byteOrder?: 'big' | 'little'; encryption?: EncryptionInfo },
-  ): ProtocolPattern {
-    const pattern: ProtocolPattern = {
-      name,
+  ): ProtocolPattern;
+  definePattern(
+    name: string,
+    specOrFields: PatternSpec | ProtocolField[],
+    options?: { byteOrder?: 'big' | 'little'; encryption?: EncryptionInfo },
+  ): ProtocolPattern | void {
+    const legacyPattern = Array.isArray(specOrFields)
+      ? this.createLegacyPattern(name, specOrFields, options)
+      : this.createLegacyPatternFromSpec(name, specOrFields);
+    const spec = this.createSpecFromLegacyPattern(legacyPattern);
+
+    this.patterns.set(name, spec);
+    this.legacyPatterns.set(name, legacyPattern);
+
+    if (Array.isArray(specOrFields)) {
+      return legacyPattern;
+    }
+  }
+
+  detectPattern(hexPayload: string): PatternDetectionResult | null {
+    const payload = parseHexPayload(hexPayload);
+    if (!payload) {
+      return null;
+    }
+
+    let bestMatch: PatternDetectionResult | null = null;
+
+    for (const pattern of this.patterns.values()) {
+      const totalChecks = pattern.fields.length + (pattern.fieldDelimiter ? 1 : 0);
+      if (totalChecks === 0) {
+        continue;
+      }
+
+      let matches = 0;
+      if (
+        pattern.fieldDelimiter &&
+        this.payloadContainsDelimiter(payload, pattern.fieldDelimiter)
+      ) {
+        matches += 1;
+      }
+
+      for (const field of pattern.fields) {
+        if (this.matchesField(payload, field, pattern.byteOrder ?? 'be')) {
+          matches += 1;
+        }
+      }
+
+      const confidence = Number((matches / totalChecks).toFixed(2));
+      if (confidence <= 0) {
+        continue;
+      }
+
+      const candidate: PatternDetectionResult = {
+        pattern,
+        confidence,
+        matches,
+        total: totalChecks,
+      };
+
+      if (
+        !bestMatch ||
+        candidate.confidence > bestMatch.confidence ||
+        (candidate.confidence === bestMatch.confidence && candidate.matches > bestMatch.matches)
+      ) {
+        bestMatch = candidate;
+      }
+    }
+
+    return bestMatch;
+  }
+
+  autoDetect(hexPayloads: string[]): PatternSpec | null {
+    const buffers = this.parsePayloads(hexPayloads);
+    if (buffers.length === 0) {
+      return null;
+    }
+
+    const delimiter = this.inferDelimiter(buffers);
+    const fields = this.inferFields(hexPayloads);
+
+    return {
+      name: 'auto-detected-pattern',
+      fieldDelimiter: delimiter,
+      byteOrder: this.inferByteOrder(buffers),
       fields,
-      byteOrder: options?.byteOrder ?? 'big',
-      encryption: options?.encryption,
     };
-    this.patterns.set(name, pattern);
-    return pattern;
   }
 
-  /**
-   * Auto-detect protocol pattern from multiple payload samples.
-   *
-   * Algorithm:
-   * 1. Find common prefix/suffix (magic bytes, version, terminator)
-   * 2. Identify fixed-offset fields (constant across samples)
-   * 3. Detect variable-length sections (string/bytes fields)
-   * 4. Find repeating structures (array-like fields)
-   * 5. Entropy analysis for encrypted sections
-   */
+  inferFields(hexPayloads: string[]): FieldSpec[] {
+    const buffers = this.parsePayloads(hexPayloads);
+    if (buffers.length === 0) {
+      return [];
+    }
+
+    const delimiter = this.inferDelimiter(buffers);
+    if (delimiter) {
+      const delimiterBuffer = this.parseDelimiter(delimiter);
+      const fields = this.buildDelimitedFields(buffers, delimiterBuffer);
+      if (fields.length > 0) {
+        return this.labelMagicFields(fields, buffers);
+      }
+    }
+
+    return this.labelMagicFields(this.buildFixedWidthFields(buffers), buffers);
+  }
+
   autoDetectPattern(payloads: Buffer[], options?: { name?: string }): ProtocolPattern {
-    if (payloads.length === 0) {
-      return this.definePattern(options?.name ?? 'auto_detected', []);
+    const hexPayloads = payloads.map((payload) => payload.toString('hex'));
+    const detected = this.autoDetect(hexPayloads);
+    const name = options?.name ?? detected?.name ?? 'auto_detected';
+
+    if (!detected) {
+      const emptyPattern = this.createLegacyPattern(name, []);
+      this.patterns.set(name, this.createSpecFromLegacyPattern(emptyPattern));
+      this.legacyPatterns.set(name, emptyPattern);
+      return emptyPattern;
     }
 
-    const fields: ProtocolField[] = [];
-    const maxLen = Math.max(...payloads.map((p) => p.length));
-
-    // Step 1: Detect common prefix (magic bytes)
-    const prefixLen = this.findCommonPrefixLength(payloads);
-    if (prefixLen > 0) {
-      const sample = payloads[0] as Buffer;
-      const magicBytes = this.extractMagicName(sample.subarray(0, prefixLen));
-      if (prefixLen === 1) {
-        fields.push({ name: magicBytes ?? 'magic', type: 'uint8', offset: 0, length: 1 });
-      } else if (prefixLen === 2) {
-        fields.push({ name: magicBytes ?? 'magic', type: 'uint16', offset: 0, length: 2 });
-      } else if (prefixLen <= 4) {
-        fields.push({ name: magicBytes ?? 'magic', type: 'uint32', offset: 0, length: prefixLen });
-      } else {
-        fields.push({ name: magicBytes ?? 'magic', type: 'bytes', offset: 0, length: prefixLen });
-      }
-    }
-
-    // Step 2: Scan for version field (common 1-byte field after magic)
-    const afterPrefix = prefixLen;
-    if (afterPrefix < maxLen) {
-      const versionBytes = payloads.every((p) => {
-        const b = p[afterPrefix];
-        return b !== undefined && b <= 10;
-      });
-      if (versionBytes) {
-        fields.push({ name: 'version', type: 'uint8', offset: afterPrefix, length: 1 });
-      }
-    }
-
-    // Step 3: Find fixed-offset fields by analyzing byte variance
-    const varianceMap = this.computeByteVariance(payloads, afterPrefix);
-    let currentOffset = afterPrefix;
-    if (fields.length > 0) {
-      currentOffset =
-        (fields[fields.length - 1] as ProtocolField).offset +
-        (fields[fields.length - 1] as ProtocolField).length;
-    }
-
-    for (let offset = currentOffset; offset < maxLen - 1; offset += 1) {
-      const entry = varianceMap[offset];
-      if (!entry) continue;
-
-      if (entry.variance === 0 && entry.present) {
-        // Constant field — likely a flag or constant
-        const sample = payloads[0] as Buffer;
-        const value = sample[offset] as number;
-        const isHighEntropy = this.isLikelyEncryptedByte(value);
-
-        fields.push({
-          name: isHighEntropy
-            ? `constant_0x${value.toString(16).padStart(2, '0')}`
-            : `flags_${offset}`,
-          type: 'uint8',
-          offset,
-          length: 1,
-          description: `Constant value 0x${value.toString(16).padStart(2, '0')}`,
-        });
-      } else if (entry.variance > 0 && entry.variance < 1000 && entry.present) {
-        // Variable but bounded — likely uint16/uint32
-        const minVal = entry.min;
-        const maxVal = entry.max;
-        if (maxVal !== undefined && minVal !== undefined) {
-          if (maxVal <= 0xff) {
-            fields.push({ name: `field_${offset}`, type: 'uint8', offset, length: 1 });
-          } else if (maxVal <= 0xffff) {
-            fields.push({ name: `field_${offset}`, type: 'uint16', offset, length: 2 });
-          } else {
-            fields.push({ name: `field_${offset}`, type: 'uint32', offset, length: 4 });
-          }
-        }
-        break; // Found first variable field, stop to avoid over-segmentation
-      } else {
-        break; // High variance — likely variable-length data starts here
-      }
-    }
-
-    // Step 4: Check for string/variable-length section
-    const stringStart =
-      fields.length > 0
-        ? (fields[fields.length - 1] as ProtocolField).offset +
-          (fields[fields.length - 1] as ProtocolField).length
-        : 0;
-
-    if (stringStart < maxLen) {
-      const hasStringLike = payloads.some((p) => {
-        for (let i = stringStart; i < p.length; i += 1) {
-          const b = p[i] as number;
-          if (b >= 0x20 && b <= 0x7e) return true;
-          if (b === 0x00) return true; // null terminator
-        }
-        return false;
-      });
-
-      if (hasStringLike) {
-        const remainingLen = maxLen - stringStart;
-        fields.push({
-          name: 'data',
-          type: 'string',
-          offset: stringStart,
-          length: remainingLen,
-        });
-      } else {
-        // Check entropy to detect encrypted sections
-        const avgEntropy = this.averageEntropy(payloads, stringStart);
-        const encryptionDetected = avgEntropy > 7.5;
-
-        if (encryptionDetected) {
-          fields.push({
-            name: 'encrypted_data',
-            type: 'bytes',
-            offset: stringStart,
-            length: maxLen - stringStart,
-            description: `High entropy (${avgEntropy.toFixed(2)}) — likely encrypted`,
-          });
-        } else {
-          fields.push({
-            name: 'payload',
-            type: 'bytes',
-            offset: stringStart,
-            length: maxLen - stringStart,
-          });
-        }
-      }
-    }
-
-    const name = options?.name ?? 'auto_detected';
-    return this.definePattern(name, fields);
+    const namedPattern: PatternSpec = { ...detected, name };
+    this.definePattern(name, namedPattern);
+    return this.getPattern(name) ?? this.createLegacyPatternFromSpec(name, namedPattern);
   }
 
-  /**
-   * Export a pattern to .proto-like schema definition.
-   */
-  exportProto(pattern: ProtocolPattern): string {
+  getPattern(name: string): ProtocolPattern | undefined {
+    return this.legacyPatterns.get(name);
+  }
+
+  listPatterns(): string[] {
+    return [...this.patterns.keys()];
+  }
+
+  exportProto(pattern: PatternSpec | ProtocolPattern): string {
+    const legacyPattern = this.isLegacyPattern(pattern)
+      ? pattern
+      : this.createLegacyPatternFromSpec(pattern.name, pattern);
     const lines: string[] = [
-      `// Protocol: ${pattern.name}`,
-      `// Byte order: ${pattern.byteOrder}`,
+      `// Protocol: ${legacyPattern.name}`,
+      `// Byte order: ${legacyPattern.byteOrder}`,
       '',
     ];
 
-    if (pattern.encryption) {
-      lines.push(`// Encryption: ${pattern.encryption.type}`);
-      if (pattern.encryption.notes) {
-        lines.push(`// Notes: ${pattern.encryption.notes}`);
+    if (legacyPattern.encryption) {
+      lines.push(`// Encryption: ${legacyPattern.encryption.type}`);
+      if (legacyPattern.encryption.notes) {
+        lines.push(`// Notes: ${legacyPattern.encryption.notes}`);
       }
       lines.push('');
     }
 
-    lines.push(`message ${this.toPascalCase(pattern.name)} {`);
+    lines.push(`message ${this.toPascalCase(legacyPattern.name)} {`);
+    for (let index = 0; index < legacyPattern.fields.length; index += 1) {
+      const field = legacyPattern.fields[index];
+      if (!field) {
+        continue;
+      }
 
-    for (let i = 0; i < pattern.fields.length; i += 1) {
-      const field = pattern.fields[i] as ProtocolField;
-      const protoType = this.toProtoType(field.type);
       const comment = field.description ? ` // ${field.description}` : '';
-      lines.push(`  ${protoType} ${field.name} = ${i + 1};${comment}`);
+      lines.push(`  ${this.toProtoType(field.type)} ${field.name} = ${index + 1};${comment}`);
     }
 
     lines.push('}');
@@ -205,138 +266,496 @@ export class ProtocolPatternEngine {
     return lines.join('\n');
   }
 
-  /**
-   * Get a registered pattern by name.
-   */
-  getPattern(name: string): ProtocolPattern | undefined {
-    return this.patterns.get(name);
+  private parsePayloads(hexPayloads: string[]): Buffer[] {
+    const buffers: Buffer[] = [];
+    for (const hexPayload of hexPayloads) {
+      const payload = parseHexPayload(hexPayload);
+      if (payload) {
+        buffers.push(payload);
+      }
+    }
+
+    return buffers;
   }
 
-  /**
-   * List all registered pattern names.
-   */
-  listPatterns(): string[] {
-    return Array.from(this.patterns.keys());
-  }
+  private labelMagicFields(fields: FieldSpec[], buffers: Buffer[]): FieldSpec[] {
+    if (fields.length === 0 || buffers.length < 2) {
+      return fields;
+    }
 
-  // --- Private helpers ---
-
-  private findCommonPrefixLength(payloads: Buffer[]): number {
-    if (payloads.length < 2) return 0;
-
-    const first = payloads[0] as Buffer;
-    let len = 0;
-    const maxLen = Math.min(...payloads.map((p) => p.length));
-
-    for (let i = 0; i < maxLen; i += 1) {
-      const byte = first[i] as number;
-      if (payloads.every((p) => (p[i] as number) === byte)) {
-        len += 1;
+    // Find the leading common-byte prefix length across all buffers
+    const minLen = Math.min(...buffers.map((b) => b.length));
+    let commonPrefixLen = 0;
+    for (let offset = 0; offset < minLen; offset += 1) {
+      const byte = buffers[0]![offset];
+      if (buffers.every((b) => b[offset] === byte)) {
+        commonPrefixLen = offset + 1;
       } else {
         break;
       }
     }
-    return len;
+
+    if (commonPrefixLen === 0) {
+      return fields;
+    }
+
+    // Label first field as "magic" when it starts at offset 0 and overlaps the common prefix
+    let magicLabelApplied = false;
+    return fields.map((field) => {
+      if (!magicLabelApplied && field.offset === 0 && commonPrefixLen >= 2) {
+        magicLabelApplied = true;
+        return { ...field, name: 'magic' };
+      }
+
+      // The field right after the common prefix that looks like a version (small int, 1-2 bytes)
+      if (
+        magicLabelApplied &&
+        field.type === 'int' &&
+        field.length <= 2 &&
+        field.offset <= commonPrefixLen
+      ) {
+        return { ...field, name: 'version' };
+      }
+
+      return field;
+    });
   }
 
-  private extractMagicName(bytes: Buffer): string | null {
-    // Check for common magic byte sequences
-    const hex = bytes.toString('hex');
-
-    const knownMagic: Record<string, string> = {
-      '89504e47': 'png_header',
-      '47494638': 'gif_header',
-      ffd8ff: 'jpeg_header',
-      '504b0304': 'zip_header',
-      '25504446': 'pdf_header',
-      '7f454c46': 'elf_header',
-      '4d5a': 'mz_header',
-      'cafe babe': 'java_class',
-      deadbeef: 'deadbeef',
+  private createLegacyPattern(
+    name: string,
+    fields: ProtocolField[],
+    options?: { byteOrder?: 'big' | 'little'; encryption?: EncryptionInfo },
+  ): ProtocolPattern {
+    return {
+      name,
+      fields: fields
+        .map((field) => ({
+          name: field.name,
+          offset: field.offset,
+          length: field.length,
+          type: field.type,
+          ...(field.description ? { description: field.description } : {}),
+        }))
+        .toSorted((left, right) => left.offset - right.offset),
+      byteOrder: options?.byteOrder ?? 'big',
+      ...(options?.encryption ? { encryption: options.encryption } : {}),
     };
+  }
 
-    for (const [magic, name] of Object.entries(knownMagic)) {
-      if (hex.startsWith(magic)) {
-        return name;
+  private createLegacyPatternFromSpec(name: string, spec: PatternSpec): ProtocolPattern {
+    return {
+      name,
+      fieldDelimiter: spec.fieldDelimiter,
+      byteOrder: spec.byteOrder === 'le' ? 'little' : 'big',
+      fields: spec.fields.map((field) => ({
+        name: field.name,
+        offset: field.offset,
+        length: field.length,
+        type: this.toLegacyFieldType(field),
+        ...(field.description ? { description: field.description } : {}),
+      })),
+    };
+  }
+
+  private createSpecFromLegacyPattern(pattern: ProtocolPattern): PatternSpec {
+    return {
+      name: pattern.name,
+      fieldDelimiter: pattern.fieldDelimiter,
+      byteOrder: pattern.byteOrder === 'little' ? 'le' : 'be',
+      fields: pattern.fields.map((field) => ({
+        name: field.name,
+        offset: field.offset,
+        length: field.length,
+        type: this.toSpecFieldType(field.type),
+        ...(field.description ? { description: field.description } : {}),
+      })),
+    };
+  }
+
+  private isLegacyPattern(pattern: PatternSpec | ProtocolPattern): pattern is ProtocolPattern {
+    return pattern.byteOrder === 'big' || pattern.byteOrder === 'little';
+  }
+
+  private toLegacyFieldType(field: FieldSpec): ProtocolField['type'] {
+    if (field.type === 'float') {
+      return 'float';
+    }
+
+    if (field.type === 'string') {
+      return 'string';
+    }
+
+    if (field.type === 'bytes') {
+      return 'bytes';
+    }
+
+    if (field.length === 1) {
+      return 'uint8';
+    }
+
+    if (field.length === 2) {
+      return 'uint16';
+    }
+
+    if (field.length === 4) {
+      return 'uint32';
+    }
+
+    return 'int64';
+  }
+
+  private toSpecFieldType(fieldType: ProtocolField['type']): FieldSpec['type'] {
+    if (fieldType === 'float') {
+      return 'float';
+    }
+
+    if (fieldType === 'string') {
+      return 'string';
+    }
+
+    if (fieldType === 'bytes') {
+      return 'bytes';
+    }
+
+    return 'int';
+  }
+
+  private parseDelimiter(delimiter: string): Buffer {
+    if (isHexPayload(delimiter)) {
+      const parsed = parseHexPayload(delimiter);
+      if (parsed) {
+        return parsed;
       }
+    }
+
+    return Buffer.from(delimiter, 'utf8');
+  }
+
+  private payloadContainsDelimiter(payload: Buffer, delimiter: string): boolean {
+    const delimiterBuffer = this.parseDelimiter(delimiter);
+    if (delimiterBuffer.length === 0) {
+      return false;
+    }
+
+    return payload.includes(delimiterBuffer);
+  }
+
+  private matchesField(payload: Buffer, field: FieldSpec, byteOrder: 'le' | 'be'): boolean {
+    if (field.offset < 0 || field.length <= 0 || payload.length < field.offset + field.length) {
+      return false;
+    }
+
+    const slice = payload.subarray(field.offset, field.offset + field.length);
+    switch (field.type) {
+      case 'bytes':
+        return slice.length === field.length;
+      case 'bool':
+        return slice.length === 1 && (slice[0] === 0 || slice[0] === 1);
+      case 'string':
+        return printableRatio(slice) >= 0.6;
+      case 'int':
+        return this.decodeInteger(slice, byteOrder) !== null;
+      case 'float':
+        return this.decodeFloat(slice, byteOrder) !== null;
+      default:
+        return false;
+    }
+  }
+
+  private decodeInteger(buffer: Buffer, byteOrder: 'le' | 'be'): number | null {
+    if (buffer.length === 0) {
+      return null;
+    }
+
+    if (buffer.length === 1) {
+      return buffer.readUInt8(0);
+    }
+
+    if (buffer.length === 2) {
+      return byteOrder === 'le' ? buffer.readUInt16LE(0) : buffer.readUInt16BE(0);
+    }
+
+    if (buffer.length === 4) {
+      return byteOrder === 'le' ? buffer.readUInt32LE(0) : buffer.readUInt32BE(0);
+    }
+
+    if (buffer.length === 8) {
+      const value =
+        byteOrder === 'le' ? Number(buffer.readBigUInt64LE(0)) : Number(buffer.readBigUInt64BE(0));
+      return Number.isFinite(value) ? value : null;
+    }
+
+    let value = 0;
+    const bytes = byteOrder === 'le' ? [...buffer.values()].toReversed() : [...buffer.values()];
+    for (const byte of bytes) {
+      value = value * 256 + byte;
+    }
+
+    return Number.isFinite(value) ? value : null;
+  }
+
+  private decodeFloat(buffer: Buffer, byteOrder: 'le' | 'be'): number | null {
+    if (buffer.length === 4) {
+      const value = byteOrder === 'le' ? buffer.readFloatLE(0) : buffer.readFloatBE(0);
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (buffer.length === 8) {
+      const value = byteOrder === 'le' ? buffer.readDoubleLE(0) : buffer.readDoubleBE(0);
+      return Number.isFinite(value) ? value : null;
     }
 
     return null;
   }
 
-  private computeByteVariance(
-    payloads: Buffer[],
-    fromOffset: number,
-  ): Record<number, { variance: number; min: number; max: number; present: boolean }> {
-    const result: Record<number, { variance: number; min: number; max: number; present: boolean }> =
-      {};
-
-    const maxLen = Math.min(...payloads.map((p) => p.length));
-    for (let offset = fromOffset; offset < maxLen; offset += 1) {
-      const values: number[] = [];
-      for (const p of payloads) {
-        const b = p[offset];
-        if (b !== undefined) {
-          values.push(b);
-        }
+  private inferDelimiter(buffers: Buffer[]): string | undefined {
+    for (const candidate of DELIMITER_CANDIDATES) {
+      const counts = buffers.map((buffer) => this.countOccurrences(buffer, candidate));
+      const firstCount = counts[0];
+      if (
+        typeof firstCount === 'number' &&
+        firstCount >= 2 &&
+        counts.every((count) => count === firstCount)
+      ) {
+        return bufferToDelimiterString(candidate);
       }
-      if (values.length === 0) {
-        result[offset] = { variance: 0, min: 0, max: 0, present: false };
+    }
+
+    return undefined;
+  }
+
+  private countOccurrences(buffer: Buffer, delimiter: Buffer): number {
+    if (delimiter.length === 0) {
+      return 0;
+    }
+
+    let count = 0;
+    let start = 0;
+    let index = buffer.indexOf(delimiter, start);
+    while (index >= 0) {
+      count += 1;
+      start = index + delimiter.length;
+      index = buffer.indexOf(delimiter, start);
+    }
+
+    return count;
+  }
+
+  private buildDelimitedFields(buffers: Buffer[], delimiter: Buffer): FieldSpec[] {
+    if (delimiter.length === 0) {
+      return [];
+    }
+
+    const tokenized = buffers.map((buffer) => splitBuffer(buffer, delimiter));
+    const firstRow = tokenized[0];
+    if (!firstRow || firstRow.length < 2) {
+      return [];
+    }
+
+    const tokenCount = firstRow.length;
+    if (!tokenized.every((parts) => parts.length === tokenCount)) {
+      return [];
+    }
+
+    const fields: FieldSpec[] = [];
+    let currentOffset = 0;
+    for (let index = 0; index < tokenCount; index += 1) {
+      const template = firstRow[index];
+      if (!template) {
         continue;
       }
 
-      const mean = values.reduce((a, b) => a + b, 0) / values.length;
-      const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      result[offset] = { variance, min, max, present: true };
+      const samples = tokenized
+        .map((parts) => parts[index])
+        .filter((part): part is Buffer => Buffer.isBuffer(part));
+
+      fields.push({
+        name: `field_${index + 1}`,
+        offset: currentOffset,
+        length: template.length,
+        type: this.inferFieldType(samples),
+      });
+      currentOffset += template.length + delimiter.length;
     }
-    return result;
+
+    return fields;
   }
 
-  private isLikelyEncryptedByte(value: number): boolean {
-    // Bytes in high-entropy range that don't look like text or common flags
-    return value > 0x7e || (value < 0x20 && value !== 0x00 && value !== 0x0a && value !== 0x0d);
+  private buildFixedWidthFields(buffers: Buffer[]): FieldSpec[] {
+    const minLength = Math.min(...buffers.map((buffer) => buffer.length));
+    const fields: FieldSpec[] = [];
+    let offset = 0;
+
+    while (offset < minLength && fields.length < 24) {
+      if (this.isPrintableColumn(buffers, offset)) {
+        let end = offset + 1;
+        while (end < minLength && this.isPrintableColumn(buffers, end)) {
+          end += 1;
+        }
+
+        fields.push({
+          name: `field_${fields.length + 1}`,
+          offset,
+          length: end - offset,
+          type: 'string',
+        });
+        offset = end;
+        continue;
+      }
+
+      if (this.isBooleanColumn(buffers, offset)) {
+        fields.push({
+          name: `field_${fields.length + 1}`,
+          offset,
+          length: 1,
+          type: 'bool',
+        });
+        offset += 1;
+        continue;
+      }
+
+      const remaining = minLength - offset;
+      if (remaining >= 4) {
+        const floatSamples = buffers.map((buffer) => buffer.subarray(offset, offset + 4));
+        if (this.looksLikeFloatSamples(floatSamples)) {
+          fields.push({
+            name: `field_${fields.length + 1}`,
+            offset,
+            length: 4,
+            type: 'float',
+          });
+          offset += 4;
+          continue;
+        }
+      }
+
+      const segmentLength = remaining >= 4 ? 4 : Math.min(remaining, 2);
+      const samples = buffers.map((buffer) => buffer.subarray(offset, offset + segmentLength));
+      fields.push({
+        name: `field_${fields.length + 1}`,
+        offset,
+        length: segmentLength,
+        type: this.inferFieldType(samples),
+      });
+      offset += segmentLength;
+    }
+
+    return fields;
   }
 
-  private averageEntropy(payloads: Buffer[], fromOffset: number): number {
-    if (payloads.length === 0) return 0;
-
-    let totalEntropy = 0;
-    let count = 0;
-
-    for (const p of payloads) {
-      if (p.length <= fromOffset) continue;
-      const chunk = p.subarray(fromOffset);
-      const entropy = this.calculateEntropy(chunk);
-      totalEntropy += entropy;
-      count += 1;
+  private inferFieldType(samples: Buffer[]): FieldSpec['type'] {
+    if (samples.length === 0) {
+      return 'bytes';
     }
 
-    return count > 0 ? totalEntropy / count : 0;
+    if (
+      samples.every((sample) => sample.length === 1) &&
+      samples.every((sample) => sample[0] === 0 || sample[0] === 1)
+    ) {
+      return 'bool';
+    }
+
+    if (averagePrintableRatio(samples) >= 0.7) {
+      return 'string';
+    }
+
+    if (samples.every((sample) => sample.length === 4) && this.looksLikeFloatSamples(samples)) {
+      return 'float';
+    }
+
+    if (samples.every((sample) => sample.length <= 4)) {
+      return 'int';
+    }
+
+    return 'bytes';
   }
 
-  private calculateEntropy(buffer: Buffer): number {
-    if (buffer.length === 0) return 0;
+  private isPrintableColumn(buffers: Buffer[], offset: number): boolean {
+    let valueCount = 0;
+    let printableCount = 0;
+    for (const buffer of buffers) {
+      const value = buffer[offset];
+      if (value === undefined) {
+        continue;
+      }
 
-    const freq: number[] = Array.from({ length: 256 }, () => 0);
-    for (const value of buffer.values()) {
-      const idx = value as number;
-      freq[idx] = (freq[idx] ?? 0) + 1;
+      valueCount += 1;
+      if (isPrintableByte(value)) {
+        printableCount += 1;
+      }
     }
 
-    let entropy = 0;
-    for (const count of freq) {
-      if (count === 0) continue;
-      const prob = count / buffer.length;
-      entropy -= prob * Math.log2(prob);
+    return valueCount > 0 && printableCount / valueCount >= 0.8;
+  }
+
+  private isBooleanColumn(buffers: Buffer[], offset: number): boolean {
+    let valueCount = 0;
+    for (const buffer of buffers) {
+      const value = buffer[offset];
+      if (value === undefined) {
+        continue;
+      }
+
+      valueCount += 1;
+      if (value !== 0 && value !== 1) {
+        return false;
+      }
     }
 
-    return entropy;
+    return valueCount > 0;
+  }
+
+  private looksLikeFloatSamples(samples: Buffer[]): boolean {
+    const decoded: number[] = [];
+    for (const sample of samples) {
+      const value = this.decodeFloat(sample, 'be');
+      if (value === null) {
+        return false;
+      }
+
+      decoded.push(value);
+    }
+
+    return decoded.some((value) => Math.abs(value) > 0.001 && Math.abs(value) < 1_000_000);
+  }
+
+  private inferByteOrder(buffers: Buffer[]): 'le' | 'be' {
+    const minLength = Math.min(...buffers.map((buffer) => buffer.length));
+    if (minLength < 2) {
+      return 'be';
+    }
+
+    let leScore = 0;
+    let beScore = 0;
+    const limit = Math.min(minLength - 1, 8);
+
+    for (let offset = 0; offset < limit; offset += 2) {
+      let leSmallValues = 0;
+      let beSmallValues = 0;
+
+      for (const buffer of buffers) {
+        const little = buffer.readUInt16LE(offset);
+        const big = buffer.readUInt16BE(offset);
+        if (little < 4096) {
+          leSmallValues += 1;
+        }
+        if (big < 4096) {
+          beSmallValues += 1;
+        }
+      }
+
+      if (leSmallValues > beSmallValues) {
+        leScore += 1;
+      } else if (beSmallValues > leSmallValues) {
+        beScore += 1;
+      }
+    }
+
+    return leScore > beScore ? 'le' : 'be';
   }
 
   private toProtoType(type: ProtocolField['type']): string {
-    const map: Record<ProtocolField['type'], string> = {
+    const protoTypes: Record<ProtocolField['type'], string> = {
       uint8: 'uint32',
       uint16: 'uint32',
       uint32: 'uint32',
@@ -345,7 +764,8 @@ export class ProtocolPatternEngine {
       string: 'string',
       bytes: 'bytes',
     };
-    return map[type] ?? 'bytes';
+
+    return protoTypes[type];
   }
 
   private toPascalCase(name: string): string {
@@ -354,7 +774,7 @@ export class ProtocolPatternEngine {
         .replace(/[^a-zA-Z0-9_]/g, '_')
         .split('_')
         .filter(Boolean)
-        .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
         .join('') || 'Message'
     );
   }

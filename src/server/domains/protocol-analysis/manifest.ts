@@ -60,6 +60,38 @@ const manifest = {
       bind: b((handlers, args) => handlers.handleVisualizeState(args)),
     },
   ],
+  prerequisites: {
+    proto_auto_detect: [
+      {
+        condition: 'At least one hex payload sample is required',
+        fix: 'Capture traffic using network monitoring tools first',
+      },
+    ],
+    proto_infer_state_machine: [
+      {
+        condition: 'Multiple message samples are required for state machine inference',
+        fix: 'Capture message sequences with mojo-ipc or network tools',
+      },
+    ],
+  },
+  workflowRule: {
+    patterns: [
+      /protocol\s+(reverse|analysis|pattern|state\s*machine|schema)/i,
+      /custom\s+protocol|binary\s+protocol|wire\s+format/i,
+      /infer\s+(protocol|fields|state\s*machine)/i,
+      /proto.*export|proto.*schema|proto.*diagram/i,
+    ],
+    priority: 0.6,
+    tools: [
+      'proto_auto_detect',
+      'proto_infer_fields',
+      'proto_define_pattern',
+      'proto_infer_state_machine',
+      'proto_export_schema',
+      'proto_visualize_state',
+    ],
+    hint: 'Capture hex payloads -> auto-detect pattern -> infer fields/state machine -> export schema',
+  },
   toolDependencies: [
     {
       from: 'network',
