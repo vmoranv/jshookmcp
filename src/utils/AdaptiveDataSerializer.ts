@@ -277,7 +277,9 @@ export class AdaptiveDataSerializer {
 
   private limitDepth(obj: unknown, maxDepth: number, currentDepth = 0): unknown {
     if (currentDepth >= maxDepth) {
-      return '[Max depth reached]';
+      if (!this.isRecord(obj)) return obj;
+      if (Array.isArray(obj)) return ['[Depth limit reached]'];
+      return '[Depth limit reached]';
     }
 
     if (!this.isRecord(obj)) {
