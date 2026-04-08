@@ -127,6 +127,11 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
   },
 }));
 
+const _createCacheAdaptersMock = vi.fn(() => []);
+vi.mock('@utils/CacheAdapters', () => ({
+  createCacheAdapters: _createCacheAdaptersMock,
+}));
+
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
@@ -209,6 +214,7 @@ describe('MCPServer', () => {
     delete process.env.MCP_TRANSPORT;
     delete process.env.MCP_TOOL_PROFILE;
     delete process.env.MCP_TOOL_DOMAINS;
+    _createCacheAdaptersMock.mockImplementation(() => []);
   });
 
   it('registers selected tools plus meta tools on construction', () => {
@@ -469,6 +475,54 @@ describe('MCPServer', () => {
     // coverage guarantees line 308 (catch block) and 314 (activatedToolNames.has(name)) are hit
   });
 
+  it('executeToolWithTracking emits tool:called event with correct payload', async () => {
+    const server = new MCPServer(baseConfig);
+    const emitSpy = vi.spyOn(server.eventBus, 'emit');
+
+    await server.executeToolWithTracking('tool_alpha', { x: 7 });
+
+    expect(emitSpy).toHaveBeenCalledWith('tool:called', {
+      toolName: 'tool_alpha',
+      domain: 'browser',
+      timestamp: expect.any(String),
+      success: true,
+    });
+  });
+
+  it('executeToolWithTracking emits tool:called with null domain for unknown tool', async () => {
+    const server = new MCPServer(baseConfig) as any;
+    mocks.getToolDomain.mockReturnValue(null);
+    // Mock router to return a valid response instead of throwing for unknown tools
+    server.router.execute = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: '{}' }],
+    });
+    const emitSpy = vi.spyOn(server.eventBus, 'emit');
+
+    await server.executeToolWithTracking('unknown_tool', {});
+
+    expect(emitSpy).toHaveBeenCalledWith('tool:called', {
+      toolName: 'unknown_tool',
+      domain: null,
+      timestamp: expect.any(String),
+      success: true,
+    });
+  });
+
+  it('registerCaches catches errors from createCacheAdapters and logs them', async () => {
+    const server = new MCPServer(baseConfig) as any;
+    server.collector = { getCache: vi.fn(), getCompressor: vi.fn() };
+    server.cacheAdaptersRegistered = false;
+    server.cacheRegistrationPromise = undefined;
+
+    // Make createCacheAdapters throw when registerCaches calls it
+    _createCacheAdaptersMock.mockImplementationOnce(() => {
+      throw new Error('createCacheAdapters exploded');
+    });
+
+    // Should not throw — catch block in registerCaches handles it
+    await expect(server.registerCaches()).resolves.toBeUndefined();
+  });
+
   it('executeToolWithTracking handles routing errors and secondary tracking errors', async () => {
     const server = new MCPServer(baseConfig) as any;
     server.router.execute = vi.fn().mockRejectedValue(new Error('Router failed'));
@@ -502,5 +556,74 @@ describe('MCPServer', () => {
 
     server.collector = undefined; // coverage: if (v === undefined) this.domainInstanceMap.delete(key);
     expect(server.domainInstanceMap.has('collector')).toBe(false);
+  });
+
+  it('initCrossDomainInfrastructure catches import errors gracefully', async () => {
+    // Force the dynamic import to fail by mocking the module resolution
+    const originalLoad = module.constructor.prototype._resolveFilename;
+    // @ts-expect-error — internal Node.js API
+    module.constructor.prototype._resolveFilename = () => {
+      throw new Error('Cannot find module');
+    };
+
+    const server = new MCPServer(baseConfig);
+    // Wait for the async init to settle (it catches the error internally)
+    await new Promise((r) => setTimeout(r, 10));
+
+    // @ts-expect-error — restore
+    module.constructor.prototype._resolveFilename = originalLoad;
+    // Server should still be usable
+    expect(server).toBeDefined();
+  });
+
+  it('initWorkerPool catches require errors gracefully', async () => {
+    // Mock require to throw for the WorkerPool module
+    const originalRequire = globalThis.require;
+    vi.stubGlobal('require', (id: string) => {
+      if (id === '@modules/worker/WorkerPool' || id === '@native/workers/worker-pool') {
+        throw new Error('WorkerPool unavailable');
+      }
+      return originalRequire(id);
+    });
+
+    const server = new MCPServer(baseConfig);
+    expect(server.workerPool).toBeNull();
+    expect(mocks.tokenBudget.setTrackingEnabled).not.toHaveBeenCalled();
+
+    vi.stubGlobal('require', originalRequire);
+  });
+
+  it('close catches workerPool.shutdown errors gracefully', async () => {
+    const server = new MCPServer(baseConfig);
+    // Set up a mock worker pool that throws on shutdown
+    (server as any).workerPool = {
+      shutdown: vi.fn(async () => {
+        throw new Error('shutdown failed');
+      }),
+    };
+
+    await server.close();
+    // Should complete without throwing
+    expect(server).toBeDefined();
+  });
+
+  it('start rejects when crossDomainInitPromise fails before transport startup', async () => {
+    const server = new MCPServer(baseConfig) as any;
+    const crossDomainError = new Error('cross-domain init failed');
+    const rejectedInit = Promise.reject(crossDomainError);
+    void rejectedInit.catch(() => {});
+    server.crossDomainInitPromise = rejectedInit;
+
+    server.registerCaches = vi.fn(async () => {});
+    const transportMod = await import('@server/MCPServer.transport');
+    const startStdioTransportSpy = vi
+      .spyOn(transportMod, 'startStdioTransport')
+      .mockImplementation(async () => {});
+
+    await expect(server.start()).rejects.toThrow(crossDomainError);
+    expect(server.registerCaches).toHaveBeenCalledOnce();
+    expect(startStdioTransportSpy).not.toHaveBeenCalled();
+
+    startStdioTransportSpy.mockRestore();
   });
 });

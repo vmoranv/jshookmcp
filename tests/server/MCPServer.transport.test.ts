@@ -39,6 +39,9 @@ const mocks = vi.hoisted(() => {
     return server;
   }
 
+  // Mutable reference so individual tests can replace the send implementation
+  const stdioSendMock = vi.fn(() => Promise.resolve());
+
   return {
     httpServers,
     httpTransports,
@@ -54,6 +57,7 @@ const mocks = vi.hoisted(() => {
     readBodyWithLimit: vi.fn(async () => '{"ok":true}'),
     logger,
     stdioConnects: [] as any[],
+    stdioSendMock,
   };
 });
 
@@ -70,12 +74,12 @@ vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
   // eslint-disable-next-line unicorn/prefer-add-event-listener
   StdioServerTransport: function MockStdioServerTransport(this: {
     onclose?: () => void;
-    send?: () => Promise<void>;
+    send?: (...args: any[]) => any;
   }) {
     mocks.stdioConnects.push(this);
     // eslint-disable-next-line unicorn/prefer-add-event-listener
     this.onclose = undefined;
-    this.send = async () => {};
+    this.send = (...args: any[]) => mocks.stdioSendMock(...args);
   },
 }));
 
@@ -521,6 +525,28 @@ describe('MCPServer.transport', () => {
     expect(typeof transport.send).toBe('function');
   });
 
+  it('transport.send timeout guard resolves early when origSend hangs', async () => {
+    vi.useFakeTimers();
+
+    // Replace send mock with one that hangs indefinitely
+    mocks.stdioSendMock.mockImplementationOnce(
+      () => new Promise<void>(() => {}), // never resolves
+    );
+
+    const ctx = createCtx();
+    await startStdioTransport(ctx);
+    const transport = mocks.stdioConnects[0] as { send?: (...args: any[]) => any };
+
+    // Call the wrapped send — the 500ms timeout should resolve early
+    const sendPromise = transport.send!('test-message');
+    await vi.advanceTimersByTimeAsync(600);
+
+    await expect(sendPromise).resolves.toBeUndefined();
+    // Restore normal behavior for subsequent tests
+    mocks.stdioSendMock.mockResolvedValueOnce(undefined);
+    vi.useRealTimers();
+  });
+
   it('ignores errors when readBodyWithLimit rejects during POST', async () => {
     const ctx = createCtx();
     await startHttpTransport(ctx);
@@ -534,6 +560,24 @@ describe('MCPServer.transport', () => {
 
     await new Promise((r) => setTimeout(r, 0));
     expect(transport.handleRequest).not.toHaveBeenCalled();
+  });
+
+  it('rethrows when server.connect() throws during HTTP transport startup', async () => {
+    const ctx = createCtx();
+    ctx.server.connect = vi.fn(async () => {
+      throw new Error('connect failed');
+    });
+
+    await expect(startHttpTransport(ctx)).rejects.toThrow('connect failed');
+  });
+
+  it('rethrows when server.connect() throws during stdio transport startup', async () => {
+    const ctx = createCtx();
+    ctx.server.connect = vi.fn(async () => {
+      throw new Error('stdio connect failed');
+    });
+
+    await expect(startStdioTransport(ctx)).rejects.toThrow('stdio connect failed');
   });
 
   it('throws an error if createServer assigns undefined to ctx.httpServer', async () => {
@@ -590,6 +634,19 @@ describe('MCPServer.transport', () => {
     expect(disposeMock).toHaveBeenCalled();
   });
 
+  it('returns the existing shutdownPromise when closeServer is re-entered after shutdown starts', async () => {
+    const shutdownPromise = Promise.resolve();
+    const ctx = createCtx({
+      shutdownStarted: true,
+      shutdownPromise,
+    });
+
+    const result = closeServer(ctx);
+
+    await expect(result).resolves.toBeUndefined();
+    expect(ctx.server.close).not.toHaveBeenCalled();
+  });
+
   it('handles activationController dispose directly on ctx', async () => {
     const ctx = createCtx();
     const disposeMock = vi.fn(() => {
@@ -599,6 +656,33 @@ describe('MCPServer.transport', () => {
 
     await closeServer(ctx);
     expect(disposeMock).toHaveBeenCalled();
+  });
+
+  it('closeServer uses ctx.activationController fallback when getDomainInstance is not a function', async () => {
+    const ctx = createCtx();
+    const disposeMock = vi.fn(() => {
+      throw new Error('fallback dispose failed');
+    });
+    // @ts-expect-error — intentionally create an incomplete context without getDomainInstance
+    ctx.activationController = { dispose: disposeMock };
+    // Remove getDomainInstance to trigger the fallback path
+    ctx.getDomainInstance = undefined as any;
+
+    await closeServer(ctx);
+    expect(disposeMock).toHaveBeenCalled();
+  });
+
+  it('closeServer skips activationController cleanup when dispose is not a function', async () => {
+    const ctx = createCtx();
+    // activationController without dispose method
+    ctx.getDomainInstance = vi.fn().mockReturnValue({});
+
+    await closeServer(ctx);
+    // Should complete without throwing
+    expect(mocks.logger.warn).not.toHaveBeenCalledWith(
+      'activationController cleanup failed:',
+      expect.any(Error),
+    );
   });
 
   it('forces socket destruction after MCP_HTTP_FORCE_CLOSE_TIMEOUT_MS', async () => {

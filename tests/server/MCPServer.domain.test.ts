@@ -164,4 +164,18 @@ describe('MCPServer.domain', () => {
     // Factory called exactly once — rejection is cached
     expect(factory).toHaveBeenCalledTimes(1);
   });
+
+  it('sync factory uses cached instance on repeated property access', () => {
+    const ctx = { enabledDomains: new Set(['browser']) } as any;
+    const factory = vi.fn(() => ({ value: 42, getValue() { return this.value; } }));
+    const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', factory);
+
+    // First access triggers factory
+    expect(proxy.value).toBe(42);
+    expect(factory).toHaveBeenCalledTimes(1);
+
+    // Second property access uses cached instance (factoryKind === 'sync' path)
+    expect(proxy.getValue()).toBe(42);
+    expect(factory).toHaveBeenCalledTimes(1); // still 1 — no double init
+  });
 });

@@ -126,6 +126,27 @@ describe('MCPServer.tools', () => {
     expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('extensions_list', {});
   });
 
+  it('registers tools when inputSchema is missing and forwards empty args', async () => {
+    const ctx = createCtx();
+
+    registerSingleTool(
+      ctx,
+      {
+        name: 'extensions_reload',
+      } as any,
+    );
+    const handler = ctx.__registrations[0].handler;
+    await handler({ ignored: true });
+
+    expect(mocks.buildZodShape).not.toHaveBeenCalled();
+    expect(ctx.server.registerTool).toHaveBeenCalledWith(
+      'extensions_reload',
+      { description: 'extensions_reload' },
+      expect.any(Function),
+    );
+    expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('extensions_reload', {});
+  });
+
   it('converts ToolError failures into structured tool responses', async () => {
     mocks.buildZodShape.mockReturnValue({});
     const ctx = createCtx({

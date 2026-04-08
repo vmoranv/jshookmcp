@@ -1071,4 +1071,25 @@ describe('MCPServer.search', () => {
     expect(response.isError).toBe(true);
     expect(response.content[0].text).toBe('Error: domain exploded');
   });
+
+  it('propagates registerTool errors during meta-tool registration before later tools are added', () => {
+    const ctx = createCtx({
+      server: {
+        registerTool: vi.fn(
+          (name: string, options: any, handler: (args: Record<string, unknown>) => Promise<any>) => {
+            if (name === 'search_tools') {
+              throw new Error('schema build failed');
+            }
+            ctx.__registered.set(name, { options, handler });
+          },
+        ),
+        sendToolListChanged: vi.fn(async () => undefined),
+      },
+    });
+
+    expect(() => registerSearchMetaTools(ctx)).toThrow('schema build failed');
+    expect(ctx.server.registerTool).toHaveBeenCalledTimes(1);
+    expect(ctx.__registered.size).toBe(0);
+    expect(ctx.metaToolsByName.size).toBe(0);
+  });
 });
