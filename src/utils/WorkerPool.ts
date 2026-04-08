@@ -329,6 +329,7 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
     if (!worker) return;
     this.workers.delete(workerId);
     if (worker.idleTimer) clearTimeout(worker.idleTimer);
+    worker.idleTimer = null;
     worker.worker.removeAllListeners('message');
     worker.worker.removeAllListeners('error');
     worker.worker.removeAllListeners('exit');

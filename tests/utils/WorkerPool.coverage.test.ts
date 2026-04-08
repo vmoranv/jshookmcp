@@ -56,8 +56,12 @@ vi.mock('node:worker_threads', () => ({
       this.inner = new workerState.WorkerMock(script, options);
       workerState.instances.push(this.inner);
       this.postMessage = this.inner.postMessage;
-      this.terminate = this.inner.terminate;
       this.removeAllListeners = this.inner.removeAllListeners;
+      this.terminate = vi.fn(async () => {
+        const result = await this.inner.terminate();
+        this.inner.emit('exit', result);
+        return result;
+      });
     }
 
     on(event: string, callback: Listener) {
@@ -223,8 +227,8 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       minWorkers: 0,
       maxWorkers: 1,
     });
-    const worker = workerState.instances[0]!;
     const task = pool.submit({ v: 1 });
+    const worker = workerState.instances[0]!;
 
     worker.emit('exit', 0);
 
@@ -239,9 +243,9 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       maxWorkers: 1,
       idleTimeoutMs: 5000,
     });
-    const worker = workerState.instances[0]!;
 
     const task = pool.submit({ v: 1 });
+    const worker = workerState.instances[0]!;
     worker.emit('message', { jobId: 1, ok: true, result: 10 });
     await expect(task).resolves.toBe(10);
 
@@ -286,8 +290,8 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       minWorkers: 0,
       maxWorkers: 1,
     });
-    const worker = workerState.instances[0]!;
     const task = pool.submit({ v: 1 }, 10);
+    const worker = workerState.instances[0]!;
 
     vi.advanceTimersByTime(11);
 
@@ -302,14 +306,15 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
   it('armIdleTimer does nothing when idleTimeoutMs <= 0', async () => {
     const pool = new WorkerPool<any, any>({
       workerScript: 'x',
-      minWorkers: 0,
+      minWorkers: 1,
       maxWorkers: 2,
       idleTimeoutMs: 0,
     });
-    const worker = workerState.instances[0]!;
-    (pool as any).armIdleTimer(worker);
+    // Get the actual PooledWorker from pool's internal map
+    const pooledWorker = (pool as any).workers.values().next().value;
+    (pool as any).armIdleTimer(pooledWorker);
     // No timer should be set
-    expect(worker.idleTimer).toBeNull();
+    expect(pooledWorker.idleTimer).toBeNull();
     await pool.close();
   });
 
@@ -320,10 +325,10 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       maxWorkers: 2,
       idleTimeoutMs: 1000,
     });
-    const worker = workerState.instances[0]!;
-    (pool as any).armIdleTimer(worker);
+    const pooledWorker = (pool as any).workers.values().next().value;
+    (pool as any).armIdleTimer(pooledWorker);
     // Timer should be null since we're at minWorkers
-    expect(worker.idleTimer).toBeNull();
+    expect(pooledWorker.idleTimer).toBeNull();
     await pool.close();
   });
 
@@ -334,9 +339,16 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       maxWorkers: 2,
       idleTimeoutMs: 1000,
     });
+    // Spawn a worker by submitting and completing a job
+    const task = pool.submit({ v: 1 });
     const worker = workerState.instances[0]!;
-    (pool as any).armIdleTimer(worker);
-    expect(worker.idleTimer).not.toBeNull();
+    worker.emit('message', { jobId: 1, ok: true, result: 10 });
+    await expect(task).resolves.toBe(10);
+
+    // Get the actual PooledWorker
+    const pooledWorker = (pool as any).workers.values().next().value;
+    // armIdleTimer was already called when job completed; check it
+    expect(pooledWorker.idleTimer).not.toBeNull();
 
     // Advance past idle timeout — worker should be terminated
     vi.advanceTimersByTime(1001);
@@ -352,21 +364,26 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       maxWorkers: 2,
       idleTimeoutMs: 3000,
     });
+    // Spawn a worker by submitting and completing a job
+    const task = pool.submit({ v: 1 });
     const worker = workerState.instances[0]!;
+    worker.emit('message', { jobId: 1, ok: true, result: 10 });
+    await expect(task).resolves.toBe(10);
 
-    // First arm
-    (pool as any).armIdleTimer(worker);
-    const firstTimer = worker.idleTimer;
+    const pooledWorker = (pool as any).workers.values().next().value;
+
+    // First idle timer should be set already
+    const firstTimer = pooledWorker.idleTimer;
+    expect(firstTimer).not.toBeNull();
 
     // Advance halfway
     vi.advanceTimersByTime(1500);
 
     // Re-arm
-    (pool as any).armIdleTimer(worker);
-    const secondTimer = worker.idleTimer;
+    (pool as any).armIdleTimer(pooledWorker);
+    const secondTimer = pooledWorker.idleTimer;
 
     // Timer should be cleared and reset
-    expect(firstTimer).not.toBeNull();
     expect(secondTimer).not.toBeNull();
 
     await pool.close();
@@ -379,25 +396,15 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       maxWorkers: 2,
       idleTimeoutMs: 1000,
     });
-    const worker = workerState.instances[0]!;
 
     // Complete first job to arm idle timer
     const task1 = pool.submit({ v: 1 });
+    const worker = workerState.instances[0]!;
     worker.emit('message', { jobId: 1, ok: true, result: 10 });
     await expect(task1).resolves.toBe(10);
 
-    // Advance past idle timeout — worker should be terminated
+    // Advance past idle timeout — worker should be terminated since it's idle
     vi.advanceTimersByTime(1001);
-    // At this point the armIdleTimer timer callback checks current.busy
-    // Since worker is idle (not busy), it should terminate.
-    // To test the busy path, we would need to submit a job before the
-    // timer fires and check that the worker is NOT terminated.
-    // Let's submit a second job before advancing past the timeout.
-    vi.advanceTimersByTime(500); // only 500ms in
-
-    // Submit a job — this would set worker.busy = true
-    // But the armIdleTimer callback fires after 1001ms total.
-    // Let's just verify the termination happens as expected.
     expect(worker.terminate).toHaveBeenCalled();
 
     await pool.close();
@@ -424,20 +431,22 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       maxWorkers: 2,
       idleTimeoutMs: 5000,
     });
-    const worker = workerState.instances[0]!;
 
     // Arm the idle timer
     const task = pool.submit({ v: 1 });
+    const worker = workerState.instances[0]!;
     worker.emit('message', { jobId: 1, ok: true, result: 10 });
     await expect(task).resolves.toBe(10);
 
-    // Manually terminate
-    await (pool as any).terminateWorker(worker.id);
+    // Manually terminate — save pooledWorker ref before it gets removed from the map
+    const pooledWorker = (pool as any).workers.get(1);
+    await (pool as any).terminateWorker(1);
 
     expect(worker.removeAllListeners).toHaveBeenCalledWith('message');
     expect(worker.removeAllListeners).toHaveBeenCalledWith('error');
     expect(worker.removeAllListeners).toHaveBeenCalledWith('exit');
-    expect(worker.idleTimer).toBeNull();
+    // idleTimer was set by armIdleTimer and cleared by terminateWorker
+    expect(pooledWorker?.idleTimer).toBeNull();
 
     await pool.close();
   });
@@ -465,12 +474,12 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       minWorkers: 2,
       maxWorkers: 2,
     });
-    // Both workers are busy (spawned by minWorkers but we haven't completed their jobs)
-    // Actually minWorkers workers start idle. Submit jobs to make them busy.
-    pool.submit({ v: 1 });
-    pool.submit({ v: 2 });
-    expect(workerState.instances[0]!.busy).toBe(true);
-    expect(workerState.instances[1]!.busy).toBe(true);
+    // Workers start idle. Submit jobs to make them busy.
+    pool.submit({ v: 1 }).catch(() => {}); // reject expected on close
+    pool.submit({ v: 2 }).catch(() => {}); // reject expected on close
+    // Workers are now busy (jobs dispatched, awaiting worker response)
+    expect((pool as any).workers.get(1)!.busy).toBe(true);
+    expect((pool as any).workers.get(2)!.busy).toBe(true);
     const idle = (pool as any).findIdleWorker();
     expect(idle).toBeUndefined();
     pool.close();
@@ -574,9 +583,9 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       minWorkers: 0,
       maxWorkers: 2,
     });
-    const worker = workerState.instances[0]!;
 
     const task = pool.submit({ v: 99 });
+    const worker = workerState.instances[0]!;
     expect(worker.postMessage).toHaveBeenCalledWith({ jobId: 1, payload: { v: 99 } });
 
     worker.emit('message', { jobId: 1, ok: true, result: 42 });
@@ -605,10 +614,10 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
       minWorkers: 0,
       maxWorkers: 1,
     });
-    const worker = workerState.instances[0]!;
 
     const task1 = pool.submit({ v: 1 });
     const task2 = pool.submit({ v: 2 });
+    const worker = workerState.instances[0]!;
 
     // Only first dispatched
     expect(worker.postMessage).toHaveBeenCalledTimes(1);
@@ -637,12 +646,12 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
     expect(workerState.instances).toHaveLength(1);
 
     // Exhaust both workers
-    pool.submit({ v: 1 });
-    pool.submit({ v: 2 });
+    pool.submit({ v: 1 }).catch(() => {}); // reject expected on close
+    pool.submit({ v: 2 }).catch(() => {}); // reject expected on close
     expect(workerState.instances).toHaveLength(2);
 
     // Queue another — should still be queued
-    pool.submit({ v: 3 });
+    pool.submit({ v: 3 }).catch(() => {}); // reject expected on close
     expect(workerState.instances).toHaveLength(2);
 
     await pool.close();
