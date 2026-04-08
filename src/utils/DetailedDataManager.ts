@@ -237,7 +237,7 @@ export class DetailedDataManager {
         const properties = keys.filter((k) => typeof data[k] !== 'function');
 
         summary.structure.methods = methods.slice(0, 30);
-        summary.structure.properties = properties.slice(0, 30);
+        summary.structure.properties = properties.slice(0, 50);
       } else {
         summary.structure.length = data.length;
       }

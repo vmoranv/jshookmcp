@@ -1076,7 +1076,11 @@ describe('MCPServer.search', () => {
     const ctx = createCtx({
       server: {
         registerTool: vi.fn(
-          (name: string, options: any, handler: (args: Record<string, unknown>) => Promise<any>) => {
+          (
+            name: string,
+            options: any,
+            handler: (args: Record<string, unknown>) => Promise<any>,
+          ) => {
             if (name === 'search_tools') {
               throw new Error('schema build failed');
             }

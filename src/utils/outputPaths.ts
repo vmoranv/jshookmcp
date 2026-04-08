@@ -1,4 +1,5 @@
 import { mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import {
   basename,
   dirname,
@@ -71,6 +72,50 @@ export function resolveOutputDirectory(
   }
   /* v8 ignore next */
   return resolve(projectRoot, fallbackDir);
+}
+
+export function getDebuggerSessionsDir(): string {
+  const configured = process.env.MCP_DEBUGGER_SESSIONS_DIR?.trim();
+  if (configured) {
+    return resolveOutputDirectory(configured, 'debugger-sessions');
+  }
+
+  return resolve(process.cwd(), 'debugger-sessions');
+}
+
+export function getExtensionRegistryDir(): string {
+  return resolveOutputDirectory(
+    process.env.MCP_EXTENSION_REGISTRY_DIR,
+    'artifacts/extension-registry',
+  );
+}
+
+export function getCodeCacheDir(): string {
+  const configured = process.env.MCP_CODE_CACHE_DIR?.trim() || process.env.CACHE_DIR?.trim();
+  if (configured) {
+    return resolveOutputDirectory(configured, '.cache/code');
+  }
+
+  return resolve(getProjectRoot(), '.cache', 'code');
+}
+
+export function getTlsKeyLogDir(): string {
+  return resolveOutputDirectory(process.env.MCP_TLS_KEYLOG_DIR, 'artifacts/tmp');
+}
+
+export function getSystemTempRoots(): string[] {
+  const roots = new Set<string>();
+  const candidates = [process.env.TEMP, process.env.TMP, tmpdir()];
+  for (const candidate of candidates) {
+    const requested = candidate?.trim();
+    if (!requested) {
+      continue;
+    }
+
+    roots.add(normalize(resolve(requested)));
+  }
+
+  return [...roots];
 }
 
 export async function resolveScreenshotOutputPath(options: {

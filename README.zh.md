@@ -51,9 +51,9 @@
 
 <!-- metadata-sync:start -->
 - 包版本：`0.2.6`
-- 内置工具域：`25`
-- 内置工具数：`341`
-- 域列表：`antidebug`, `browser`, `canvas`, `coordination`, `core`, `debugger`, `encoding`, `evidence`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `network`, `platform`, `process`, `sandbox`, `shared-state-board`, `sourcemap`, `streaming`, `trace`, `transform`, `wasm`, `workflow`
+- 内置工具域：`35`
+- 内置工具数：`424`
+- 域列表：`adb-bridge`, `antidebug`, `binary-instrument`, `boringssl-inspector`, `browser`, `canvas`, `coordination`, `core`, `cross-domain`, `debugger`, `encoding`, `evidence`, `extension-registry`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `mojo-ipc`, `network`, `platform`, `process`, `protocol-analysis`, `sandbox`, `shared-state-board`, `skia-capture`, `sourcemap`, `streaming`, `syscall-hook`, `trace`, `transform`, `v8-inspector`, `wasm`, `workflow`
 - 说明：以上数据由运行时 registry 动态生成，不要手改计数。
 <!-- metadata-sync:end -->
 

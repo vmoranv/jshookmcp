@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/consistent-function-scoping */
 import { describe, it, expect } from 'vitest';
 import { detectV8Version } from '@modules/v8-inspector/V8VersionDetector';
 

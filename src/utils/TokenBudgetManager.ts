@@ -191,9 +191,13 @@ export class TokenBudgetManager {
 
     if (valueType === 'string') {
       const stringValue = value as string;
-      return stringValue.length > this.MAX_ESTIMATION_STRING_LENGTH
-        ? `${stringValue.slice(0, this.MAX_ESTIMATION_STRING_LENGTH)}...[truncated:${stringValue.length}]`
-        : stringValue;
+      if (stringValue.length <= this.MAX_ESTIMATION_STRING_LENGTH) {
+        return stringValue;
+      }
+
+      const marker = `...[truncated:${stringValue.length}]`;
+      const maxPrefixLength = Math.max(this.MAX_ESTIMATION_STRING_LENGTH - marker.length, 0);
+      return `${stringValue.slice(0, maxPrefixLength)}${marker}`;
     }
 
     if (valueType === 'bigint') {

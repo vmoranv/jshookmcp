@@ -34,7 +34,9 @@ describe('TokenBudgetManager – v8 ignore branch coverage', () => {
     // impossible in this TypeScript code. We invoke it directly to exercise the branch.
     const result = (manager as any).normalizeForSizeEstimate(
       // Use a Proxy that passes 'typeof === "object"' but 'isRecord' returns false
-      new (class Foo { public bar = 1 })(),
+      new (class Foo {
+        public bar = 1;
+      })(),
       0,
       new WeakSet(),
     );
@@ -416,9 +418,30 @@ describe('TokenBudgetManager – v8 ignore branch coverage', () => {
 
   it('recalculateUsage sums all token estimates', () => {
     (manager as any).toolCallHistory = [
-      { estimatedTokens: 100, timestamp: Date.now(), requestSize: 0, responseSize: 0, toolName: 'a', cumulativeTokens: 100 },
-      { estimatedTokens: 200, timestamp: Date.now(), requestSize: 0, responseSize: 0, toolName: 'b', cumulativeTokens: 300 },
-      { estimatedTokens: 50, timestamp: Date.now(), requestSize: 0, responseSize: 0, toolName: 'c', cumulativeTokens: 350 },
+      {
+        estimatedTokens: 100,
+        timestamp: Date.now(),
+        requestSize: 0,
+        responseSize: 0,
+        toolName: 'a',
+        cumulativeTokens: 100,
+      },
+      {
+        estimatedTokens: 200,
+        timestamp: Date.now(),
+        requestSize: 0,
+        responseSize: 0,
+        toolName: 'b',
+        cumulativeTokens: 300,
+      },
+      {
+        estimatedTokens: 50,
+        timestamp: Date.now(),
+        requestSize: 0,
+        responseSize: 0,
+        toolName: 'c',
+        cumulativeTokens: 350,
+      },
     ];
     (manager as any).currentUsage = 1000;
     (manager as any).recalculateUsage();
@@ -430,7 +453,14 @@ describe('TokenBudgetManager – v8 ignore branch coverage', () => {
   it('getStats returns healthy suggestion when usage is low', () => {
     (manager as any).currentUsage = 1000;
     (manager as any).toolCallHistory = [
-      { estimatedTokens: 1000, timestamp: Date.now(), requestSize: 0, responseSize: 0, toolName: 'tool1', cumulativeTokens: 1000 },
+      {
+        estimatedTokens: 1000,
+        timestamp: Date.now(),
+        requestSize: 0,
+        responseSize: 0,
+        toolName: 'tool1',
+        cumulativeTokens: 1000,
+      },
     ];
     const stats = (manager as any).getStats();
     expect(stats.suggestions.some((s: string) => s.includes('healthy'))).toBe(true);
@@ -439,8 +469,22 @@ describe('TokenBudgetManager – v8 ignore branch coverage', () => {
   it('getStats handles top tools sorted by token usage', () => {
     const now = Date.now();
     (manager as any).toolCallHistory = [
-      { toolName: 'small', estimatedTokens: 100, timestamp: now, requestSize: 0, responseSize: 0, cumulativeTokens: 100 },
-      { toolName: 'big', estimatedTokens: 900, timestamp: now, requestSize: 0, responseSize: 0, cumulativeTokens: 1000 },
+      {
+        toolName: 'small',
+        estimatedTokens: 100,
+        timestamp: now,
+        requestSize: 0,
+        responseSize: 0,
+        cumulativeTokens: 100,
+      },
+      {
+        toolName: 'big',
+        estimatedTokens: 900,
+        timestamp: now,
+        requestSize: 0,
+        responseSize: 0,
+        cumulativeTokens: 1000,
+      },
     ];
     (manager as any).currentUsage = 1000;
     const stats = (manager as any).getStats();

@@ -13,7 +13,7 @@ function makeManifest(
     profiles: ['workflow', 'full'] as const,
     registrations: [] as never[],
     toolDependencies: toolDeps,
-    prerequisites: {} as Record<string, Array<{condition: string; fix: string}>>,
+    prerequisites: {} as Record<string, Array<{ condition: string; fix: string }>>,
     ensure: () => ({}),
     workflowRule: undefined,
   };
@@ -51,9 +51,7 @@ describe('DependencyResolver', () => {
   describe('topologicalSort', () => {
     it('should return valid execution order', () => {
       const manifests = [
-        makeManifest('domainA', [
-          { from: 'toolA', to: 'toolB', relation: 'precedes' },
-        ]),
+        makeManifest('domainA', [{ from: 'toolA', to: 'toolB', relation: 'precedes' }]),
       ];
       resolver.buildFromManifests(manifests);
       const order = resolver.topologicalSort();
@@ -123,11 +121,7 @@ describe('DependencyResolver', () => {
     });
 
     it('should get successors', () => {
-      const manifests = [
-        makeManifest('domain', [
-          { from: 'A', to: 'B', relation: 'precedes' },
-        ]),
-      ];
+      const manifests = [makeManifest('domain', [{ from: 'A', to: 'B', relation: 'precedes' }])];
       resolver.buildFromManifests(manifests);
       const succs = resolver.getSuccessors('A');
       expect(succs).toContain('B');

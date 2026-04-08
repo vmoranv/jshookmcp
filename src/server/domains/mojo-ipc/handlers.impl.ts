@@ -117,10 +117,15 @@ export class MojoIPCHandlers {
     const limit = argNumber(args, 'limit');
     const interfaceName = argString(args, 'interface');
 
-    const result = await monitor.getMessages({
+    const result = (await monitor.getMessages({
       limit: limit !== undefined ? Math.min(limit, 10000) : 100,
       interfaceName,
-    });
+    })) as {
+      messages: unknown[];
+      totalAvailable: number;
+      filtered: boolean;
+      _simulation: boolean;
+    };
 
     const response: Record<string, unknown> = {
       success: true,

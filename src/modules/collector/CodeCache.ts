@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { logger } from '@utils/logger';
+import { getCodeCacheDir } from '@utils/outputPaths';
 import type { CodeFile, CollectCodeResult } from '@internal-types/index';
 
 export interface CacheEntry {
@@ -32,7 +33,7 @@ export class CodeCache {
   private static readonly CLEANUP_INTERVAL = 20;
 
   constructor(options: CacheOptions = {}) {
-    this.cacheDir = options.cacheDir || path.join(process.cwd(), '.cache', 'code');
+    this.cacheDir = options.cacheDir || getCodeCacheDir();
     this.maxAge = options.maxAge || 24 * 60 * 60 * 1000;
     this.maxSize = options.maxSize || 100 * 1024 * 1024;
   }

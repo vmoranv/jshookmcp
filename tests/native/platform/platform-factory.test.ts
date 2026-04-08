@@ -15,6 +15,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 function MockWin32Provider() {}
 function MockDarwinProvider() {}
+function MockLinuxProvider() {}
 
 const state = vi.hoisted(() => {
   const createRequire = vi.fn(() => (specifier: string) => {
@@ -26,10 +27,14 @@ const state = vi.hoisted(() => {
       return { DarwinMemoryProvider: MockDarwinProvider };
     }
 
+    if (specifier === './linux/LinuxMemoryProvider.impl.js') {
+      return { LinuxMemoryProvider: MockLinuxProvider };
+    }
+
     throw new Error(`Unexpected platform provider import: ${specifier}`);
   });
 
-  return { MockWin32Provider, MockDarwinProvider, createRequire };
+  return { MockWin32Provider, MockDarwinProvider, MockLinuxProvider, createRequire };
 });
 
 vi.mock('module', () => ({
@@ -61,10 +66,10 @@ describe('platform/factory', () => {
       expect(getCurrentPlatform()).toBe('darwin');
     });
 
-    it('returns "unsupported" on Linux', async () => {
+    it('returns "linux" on Linux', async () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
       const { getCurrentPlatform } = await import('@src/native/platform/factory.js');
-      expect(getCurrentPlatform()).toBe('unsupported');
+      expect(getCurrentPlatform()).toBe('linux');
     });
   });
 
@@ -93,11 +98,15 @@ describe('platform/factory', () => {
       expect(state.createRequire).toHaveBeenCalled();
     });
 
-    it('throws on unsupported platform', async () => {
+    it('creates and caches the linux provider', async () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
       const { createPlatformProvider } = await import('@src/native/platform/factory.js');
-      expect(() => createPlatformProvider()).toThrow('Unsupported platform');
-      expect(() => createPlatformProvider()).toThrow('linux');
+
+      const first = createPlatformProvider();
+      const second = createPlatformProvider();
+
+      expect(first).toBeInstanceOf(state.MockLinuxProvider);
+      expect(second).toBe(first);
     });
 
     it('throws on freebsd platform', async () => {
@@ -112,10 +121,10 @@ describe('platform/factory', () => {
       expect(() => createPlatformProvider()).toThrow('sunos');
     });
 
-    it('error message mentions Windows and macOS', async () => {
+    it('error message mentions supported platforms', async () => {
       Object.defineProperty(process, 'platform', { value: 'openbsd' });
       const { createPlatformProvider } = await import('@src/native/platform/factory.js');
-      expect(() => createPlatformProvider()).toThrow('Windows or macOS');
+      expect(() => createPlatformProvider()).toThrow('Windows, macOS, or Linux');
     });
   });
 });

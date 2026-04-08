@@ -100,7 +100,10 @@ function parseJsonLine(line: string): unknown {
   }
 }
 
-function flattenLineRecords(value: unknown): number[][] {
+function flattenLineRecords(value: unknown): unknown[][] {
+  if (Array.isArray(value)) {
+    return [value];
+  }
   if (isNumberArray(value)) {
     return [value];
   }
@@ -172,6 +175,13 @@ function parseSnapshotMeta(meta: SnapshotMetaLike): {
 
   const snapshotValue = meta.snapshot;
   if (isRecord(snapshotValue)) {
+    if (nodeTypes.length === 0) {
+      nodeTypes = firstNestedStringArray(snapshotValue['node_types']);
+    }
+    if (edgeTypes.length === 0) {
+      edgeTypes = firstNestedStringArray(snapshotValue['edge_types']);
+    }
+
     const metaValue = snapshotValue['meta'];
     if (isRecord(metaValue)) {
       if (nodeTypes.length === 0) {
@@ -190,8 +200,52 @@ export class HeapSnapshotParser {
   private parsed = false;
   private nodesCache: ParsedNode[] = [];
   private edgesCache: ParsedEdge[] = [];
+  private chunkBuffer: string[] = [];
 
-  constructor(private readonly snapshotData: string) {}
+  constructor(private snapshotData = '') {}
+
+  feedChunk(chunks: string[]): void {
+    if (this.parsed) {
+      throw new Error('Heap snapshot already parsed');
+    }
+
+    for (const chunk of chunks) {
+      if (typeof chunk === 'string' && chunk.length > 0) {
+        this.chunkBuffer.push(chunk);
+      }
+    }
+
+    this.snapshotData = this.chunkBuffer.join('\n');
+    this.ensureParsed();
+  }
+
+  get nodeCount(): number {
+    this.ensureParsed();
+    return this.nodesCache.length;
+  }
+
+  getAllNodes(): ParsedNode[] {
+    return this.parseNodes();
+  }
+
+  getNodesByClassName(className: string): ParsedNode[] {
+    return this.parseNodes().filter((node) => node.name === className);
+  }
+
+  getObjectsByType(type: string): ParsedNode[] {
+    return this.parseNodes().filter((node) => node.type === type);
+  }
+
+  buildDominatorTree(): Map<number, number> {
+    return this.computeRetainedSizes();
+  }
+
+  getAllRetainedSizes(): Array<{ id: number; retainedSize: number }> {
+    return Array.from(this.computeRetainedSizes().entries()).map(([id, retainedSize]) => ({
+      id,
+      retainedSize,
+    }));
+  }
 
   parseNodes(): ParsedNode[] {
     this.ensureParsed();
@@ -349,7 +403,7 @@ export class HeapSnapshotParser {
       return;
     }
 
-    if (trimmed.startsWith('{')) {
+    if (trimmed.startsWith('{') && !trimmed.includes('\n')) {
       this.parseStandardSnapshot(trimmed);
     } else {
       this.parseLineSnapshot(trimmed);
@@ -388,14 +442,22 @@ export class HeapSnapshotParser {
       for (const record of records) {
         const tag = record[0];
         if (tag === 0) {
-          const typeIdx = record[1] ?? 0;
-          const nameIdx = record[2] ?? 0;
-          const id = record[3] ?? nodeIdsByIndex.length;
-          const selfSize = record[4] ?? 0;
+          const compactRecord = typeof record[1] === 'string';
+          const typeIdx = compactRecord ? 0 : typeof record[1] === 'number' ? record[1] : 0;
+          const nameValue = compactRecord ? record[1] : record[2];
+          const idValue = compactRecord ? record[2] : record[3];
+          const selfSizeValue = compactRecord ? record[3] : record[4];
+          const id = typeof idValue === 'number' ? idValue : nodeIdsByIndex.length;
+          const selfSize = typeof selfSizeValue === 'number' ? selfSizeValue : 0;
+
+          const resolvedName =
+            typeof nameValue === 'string'
+              ? nameValue
+              : resolveNodeName(strings, typeof nameValue === 'number' ? nameValue : 0);
 
           const node: ParsedNode = {
             id,
-            name: resolveNodeName(strings, nameIdx),
+            name: resolvedName,
             selfSize,
             type: lookupTypeName(nodeTypes, typeIdx, 'node'),
           };
@@ -407,9 +469,9 @@ export class HeapSnapshotParser {
         }
 
         if (tag === 1 && currentNodeId !== null) {
-          const typeIdx = record[1] ?? 0;
+          const typeIdx = typeof record[1] === 'number' ? record[1] : 0;
           const nameOrIdx = record[2] ?? 0;
-          const toNodeIdx = record[3] ?? 0;
+          const toNodeIdx = typeof record[3] === 'number' ? record[3] : 0;
           const edgeType = lookupTypeName(edgeTypes, typeIdx, 'edge');
 
           pendingEdges.push({

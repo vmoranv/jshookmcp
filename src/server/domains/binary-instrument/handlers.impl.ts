@@ -226,7 +226,10 @@ export class BinaryInstrumentHandlers {
   }
 
   async handleFridaRunScript(args: Record<string, unknown>): Promise<unknown> {
-    const sessionId = this.readRequiredString(args, 'sessionId');
+    const sessionId = this.readOptionalString(args, 'sessionId');
+    if (!sessionId) {
+      return this.textResponse('Missing required string argument: sessionId');
+    }
     const script = this.readRequiredString(args, 'script');
     const frida = this.getFridaSession();
     const availability = await frida.getAvailability();
@@ -282,6 +285,10 @@ export class BinaryInstrumentHandlers {
   }
 
   async handleFridaListSessions(_args: Record<string, unknown>): Promise<unknown> {
+    if (this.hasInstalledLegacyPlugin('plugin_frida_bridge') === false) {
+      return this.textResponse('Plugin plugin-frida-bridge is not installed');
+    }
+
     // Native FridaSession fallback
     const frida = this.getFridaSession();
     const availability = await frida.getAvailability();
@@ -298,6 +305,10 @@ export class BinaryInstrumentHandlers {
   }
 
   async handleFridaGenerateScript(args: Record<string, unknown>): Promise<unknown> {
+    if (this.hasInstalledLegacyPlugin('plugin_frida_bridge') === false) {
+      return this.textResponse('Plugin plugin-frida-bridge is not installed');
+    }
+
     // Native HookCodeGenerator fallback
     const target = this.readOptionalString(args, 'target') ?? 'unknown';
     const template = this.readOptionalString(args, 'template') ?? 'trace';
@@ -345,7 +356,7 @@ export class BinaryInstrumentHandlers {
   async handleUnidbgLaunch(args: Record<string, unknown>): Promise<unknown> {
     const soPath = this.readOptionalString(args, 'soPath');
     if (!soPath) {
-      return this.textResponse('soPath is required');
+      return this.textResponse('Missing required string argument: soPath');
     }
 
     const arch = this.readOptionalString(args, 'arch') ?? 'arm';
@@ -371,15 +382,25 @@ export class BinaryInstrumentHandlers {
   }
 
   async handleUnidbgCall(args: Record<string, unknown>): Promise<unknown> {
-    const sessionId = this.readRequiredString(args, 'sessionId');
-    const functionName = this.readRequiredString(args, 'functionName');
+    const sessionId = this.readOptionalString(args, 'sessionId');
+    if (!sessionId) {
+      return this.textResponse('Missing required string argument: sessionId');
+    }
+
+    const functionName = this.readOptionalString(args, 'functionName');
+    if (!functionName) {
+      return this.textResponse('Missing required string argument: functionName');
+    }
 
     const callArgs = this.isRecord(args['args']) ? args['args'] : {};
     try {
       const result = await this.unidbgRunner.callFunction(sessionId, functionName, callArgs);
       return this.jsonResponse(result);
     } catch (error) {
-      return this.textResponse(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      return this.textResponse(
+        message.startsWith('No unidbg session found') ? `${message} (not found)` : message,
+      );
     }
   }
 
@@ -393,14 +414,20 @@ export class BinaryInstrumentHandlers {
       const result = await this.unidbgRunner.trace(sessionId);
       return this.jsonResponse(result);
     } catch (error) {
-      return this.textResponse(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      return this.textResponse(
+        message.startsWith('No unidbg session found') ? `${message} (not found)` : message,
+      );
     }
   }
 
   async handleExportHookScript(args: Record<string, unknown>): Promise<unknown> {
     const rawTemplates = this.readOptionalString(args, 'hookTemplates');
     if (!rawTemplates) {
-      const script = this.hookCodeGenerator.exportScript([], 'frida');
+      const generated = this.hookCodeGenerator.exportScript([], 'frida');
+      const script = generated.includes('Java.perform')
+        ? generated
+        : `Java.perform(function() {\n${generated}\n});`;
       return this.jsonResponse({
         format: 'frida',
         hookCount: 0,
@@ -636,12 +663,25 @@ export class BinaryInstrumentHandlers {
     );
   }
 
+  private hasInstalledLegacyPlugin(pluginId: string): boolean | undefined {
+    if (!this.context) {
+      return undefined;
+    }
+
+    const installed = this.context.extensionPluginsById;
+    if (!(installed instanceof Map)) {
+      return undefined;
+    }
+
+    return installed.has(pluginId);
+  }
+
   private async invokeLegacyPlugin(
     pluginId: string,
     toolName: string,
     args: Record<string, unknown>,
   ): Promise<unknown> {
-    if (!this.context) {
+    if (!this.context || this.hasInstalledLegacyPlugin(pluginId) === false) {
       return this.textResponse(`Plugin ${pluginId.replaceAll('_', '-')} is not installed`);
     }
 

@@ -32,7 +32,9 @@ function ensure(ctx: MCPServerContext): H {
   // Wire extensionInvoke for automated Frida cert-pinning bypass
   handlers.setExtensionInvoke(async (args: unknown) => {
     try {
-      const binaryInstrument = ctx.getDomainInstance<Record<string, unknown>>('binaryInstrumentHandlers');
+      const binaryInstrument = ctx.getDomainInstance<Record<string, unknown>>(
+        'binaryInstrumentHandlers',
+      );
       if (binaryInstrument && typeof binaryInstrument.handleFridaRunScript === 'function') {
         return binaryInstrument.handleFridaRunScript(args);
       }

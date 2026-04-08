@@ -1,7 +1,7 @@
 import { readdir, rm, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { getArtifactDir, getArtifactsRoot, type ArtifactCategory } from '@utils/artifacts';
-import { getProjectRoot, resolveOutputDirectory } from '@utils/outputPaths';
+import { getDebuggerSessionsDir, getProjectRoot, resolveOutputDirectory } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 
 export interface ArtifactRetentionConfig {
@@ -173,11 +173,14 @@ export function startArtifactRetentionScheduler(): (() => void) | null {
 
 function getManagedArtifactDirectories(): string[] {
   const projectRoot = getProjectRoot();
+  const cwdDebuggerSessionsDir = resolve(process.cwd(), 'debugger-sessions');
+  const projectDebuggerSessionsDir = resolve(projectRoot, 'debugger-sessions');
   const directories = new Set<string>([
     getArtifactsRoot(),
     resolveOutputDirectory(process.env.MCP_SCREENSHOT_DIR, 'screenshots'),
-    resolve(projectRoot, 'debugger-sessions'),
-    resolve(process.cwd(), 'debugger-sessions'),
+    getDebuggerSessionsDir(),
+    cwdDebuggerSessionsDir,
+    projectDebuggerSessionsDir,
   ]);
 
   const categories: ArtifactCategory[] = [

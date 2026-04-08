@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SyscallMonitor } from '@modules/syscall-hook/SyscallMonitor';
-import type { SyscallEvent } from '@modules/syscall-hook/types';
 
 vi.mock('node:child_process', () => ({
   spawn: vi.fn(),

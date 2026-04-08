@@ -48,10 +48,13 @@ export interface SkiaCorrelationResult {
   graphNodeIds: string[];
 }
 
+function normalizeSkiaToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 function computeTokenSimilarity(a: string, b: string): number {
-  const normalize = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const na = normalize(a);
-  const nb = normalize(b);
+  const na = normalizeSkiaToken(a);
+  const nb = normalizeSkiaToken(b);
   if (na === nb && na.length > 0) {
     return 1.0;
   }

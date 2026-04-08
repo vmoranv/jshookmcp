@@ -189,7 +189,11 @@ describe('scanner linux/darwin - coverage expansion', () => {
     it('propagates to outer catch when readSync throws unexpected error', async () => {
       state.readFileSync.mockReturnValue('user 0 0 0 0 0 r-x /mem\n');
       state.parseProcMaps.mockReturnValue([
-        { start: 0x400000n, end: 0x401000n, permissions: { read: true, write: false, execute: true } } as any,
+        {
+          start: 0x400000n,
+          end: 0x401000n,
+          permissions: { read: true, write: false, execute: true },
+        } as any,
       ]);
       state.openSync.mockReturnValue(4);
       // readSync throws error not in EIO/EFAULT/EACCES/EPERM
@@ -213,7 +217,8 @@ describe('scanner linux/darwin - coverage expansion', () => {
       });
       // Fallback lldb returns valid scan result
       state.execAsync.mockResolvedValue({
-        stdout: 'SCAN_RESULT:{"success":true,"addresses":["0x1000"],"stats":{"patternLength":2,"resultsFound":1}}\n',
+        stdout:
+          'SCAN_RESULT:{"success":true,"addresses":["0x1000"],"stats":{"patternLength":2,"resultsFound":1}}\n',
         stderr: '',
       });
       state.writeFile.mockResolvedValue(undefined);
@@ -317,7 +322,8 @@ describe('scanner linux/darwin - coverage expansion', () => {
         closeProcess: vi.fn(),
       });
       state.execAsync.mockResolvedValue({
-        stdout: 'SCAN_RESULT:{"success":true,"addresses":[],"stats":{"patternLength":2,"resultsFound":0}}\n',
+        stdout:
+          'SCAN_RESULT:{"success":true,"addresses":[],"stats":{"patternLength":2,"resultsFound":0}}\n',
         stderr: '',
       });
       state.writeFile.mockResolvedValue(undefined);

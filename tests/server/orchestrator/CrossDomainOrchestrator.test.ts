@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { CrossDomainOrchestrator } from '@server/orchestrator/CrossDomainOrchestrator';
 
-function createMockCtx(overrides?: Record<string, unknown>): import('@server/MCPServer.context').MCPServerContext {
+function createMockCtx(
+  overrides?: Record<string, unknown>,
+): import('@server/MCPServer.context').MCPServerContext {
   return {
     pageController: { evaluate: vi.fn() },
     debuggerManager: { enabled: true },
@@ -67,7 +69,9 @@ describe('CrossDomainOrchestrator', () => {
       const plan = orch.planSequence('v8_heap_snapshot_capture', { forceGC: true });
       expect(plan.sequence.length).toBeGreaterThan(0);
       // Target tool should be in the sequence
-      const targetStep = plan.sequence.find((s: { toolName: string }) => s.toolName === 'v8_heap_snapshot_capture');
+      const targetStep = plan.sequence.find(
+        (s: { toolName: string }) => s.toolName === 'v8_heap_snapshot_capture',
+      );
       expect(targetStep).toBeDefined();
       expect(plan.estimatedDuration).toBeGreaterThan(0);
     });

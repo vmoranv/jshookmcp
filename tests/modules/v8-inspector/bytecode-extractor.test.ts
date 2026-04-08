@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/consistent-function-scoping */
 import { describe, it, expect } from 'vitest';
 import { extractBytecodeForFunction } from '@modules/v8-inspector/BytecodeExtractor';
 

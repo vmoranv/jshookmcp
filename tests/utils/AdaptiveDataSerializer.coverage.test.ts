@@ -60,16 +60,13 @@ describe('AdaptiveDataSerializer – v8 ignore branch coverage', () => {
     // serializeNetworkRequests guards for isNetworkRequestArray(data) — unreachable
     // via public API because detectType only returns 'network-requests' when the
     // array passes isNetworkRequestArray. Invoking the private method directly.
-    const result = (serializer as any).serializeNetworkRequests(
-      { not: 'an array' } as any,
-      {
-        maxDepth: 3,
-        maxArrayLength: 10,
-        maxStringLength: 1000,
-        maxObjectKeys: 20,
-        threshold: 50 * 1024,
-      },
-    );
+    const result = (serializer as any).serializeNetworkRequests({ not: 'an array' } as any, {
+      maxDepth: 3,
+      maxArrayLength: 10,
+      maxStringLength: 1000,
+      maxObjectKeys: 20,
+      threshold: 50 * 1024,
+    });
     // Falls to JSON.stringify of the non-array object
     expect(result).toBe('{"not":"an array"}');
   });
@@ -240,13 +237,15 @@ describe('AdaptiveDataSerializer – v8 ignore branch coverage', () => {
 
   it('serializeDefault stores data when over threshold', () => {
     const largeObj = { text: 'x'.repeat(100_000) };
-    const result = JSON.parse((serializer as any).serializeDefault(largeObj, {
-      maxDepth: 3,
-      maxArrayLength: 10,
-      maxStringLength: 1000,
-      maxObjectKeys: 20,
-      threshold: 100,
-    })) as { type: string; size: number; detailId: string };
+    const result = JSON.parse(
+      (serializer as any).serializeDefault(largeObj, {
+        maxDepth: 3,
+        maxArrayLength: 10,
+        maxStringLength: 1000,
+        maxObjectKeys: 20,
+        threshold: 100,
+      }),
+    ) as { type: string; size: number; detailId: string };
     expect(result.type).toBe('large-data');
     expect(result.detailId).toBe('detail_test_ignore');
     expect(result.size).toBeGreaterThan(100);
@@ -288,9 +287,9 @@ describe('AdaptiveDataSerializer – v8 ignore branch coverage', () => {
   });
 
   it('detectType returns function-tree for function tree objects', () => {
-    expect(
-      (serializer as any).detectType({ functionName: 'foo', dependencies: [] }),
-    ).toBe('function-tree');
+    expect((serializer as any).detectType({ functionName: 'foo', dependencies: [] })).toBe(
+      'function-tree',
+    );
     expect((serializer as any).detectType({ name: 'bar', calls: [] })).toBe('function-tree');
     expect((serializer as any).detectType({ name: 'baz', callGraph: {} })).toBe('function-tree');
   });
@@ -461,9 +460,7 @@ describe('AdaptiveDataSerializer – v8 ignore branch coverage', () => {
       childNodes: [
         {
           tagName: 'SPAN',
-          childNodes: [
-            { tagName: 'B', childNodes: [{ tagName: 'I', childNodes: [] }] },
-          ],
+          childNodes: [{ tagName: 'B', childNodes: [{ tagName: 'I', childNodes: [] }] }],
         },
       ],
     };

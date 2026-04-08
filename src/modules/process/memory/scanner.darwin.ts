@@ -165,7 +165,20 @@ def __lldb_init_module(debugger, internal_dict):
         error: `lldb scan returned no result. ${errLine}`.trim(),
       };
     }
-    return JSON.parse(line.slice('SCAN_RESULT:'.length)) as MemoryScanResult;
+    try {
+      return JSON.parse(line.slice('SCAN_RESULT:'.length)) as MemoryScanResult;
+    } catch {
+      const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? '';
+      if (errLine) {
+        return {
+          success: false,
+          addresses: [],
+          error: errLine.trim(),
+        };
+      }
+
+      throw new Error('Unexpected end of JSON input');
+    }
   } catch (error) {
     return {
       success: false,

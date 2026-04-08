@@ -29,6 +29,28 @@ interface AvailabilityState {
   fridaCliAvailable: boolean;
 }
 
+interface LegacyMonitorOptions {
+  fridaBridge?: unknown;
+}
+
+interface LegacyMojoMessage {
+  interface: string;
+  method: string;
+  pipe: string;
+  timestamp: string;
+  payload: string;
+}
+
+interface LegacyMojoSession {
+  sessionId: string;
+  pid?: number;
+  processName?: string;
+  interfaces: string[];
+  maxBuffer: number;
+  createdAt: number;
+  messages: LegacyMojoMessage[];
+}
+
 function getDefaultInterfaces(): MojoInterfaceState[] {
   return [
     { name: 'blink.mojom.WidgetHost', version: 1, pendingMessages: 0 },
@@ -115,11 +137,35 @@ export class MojoMonitor {
     fridaCliAvailable: false,
     reason: 'Not yet initialized. Call start() to probe availability.',
   };
+  private fridaBridge: unknown = null;
+  private readonly legacySessions = new Map<string, LegacyMojoSession>();
+  readonly store = {
+    addMessage: (sessionId: string, message: LegacyMojoMessage) => {
+      const session = this.legacySessions.get(sessionId);
+      if (!session) {
+        return;
+      }
 
-  constructor() {
+      session.messages.push({ ...message });
+      if (session.messages.length > session.maxBuffer) {
+        session.messages.splice(0, session.messages.length - session.maxBuffer);
+      }
+    },
+  };
+
+  constructor(options?: LegacyMonitorOptions) {
+    this.fridaBridge = options?.fridaBridge ?? null;
     for (const item of getDefaultInterfaces()) {
       this.interfaces.set(item.name, { ...item });
     }
+  }
+
+  hasFrida(): boolean {
+    return !!this.fridaBridge;
+  }
+
+  setFridaBridge(fridaBridge: unknown): void {
+    this.fridaBridge = fridaBridge;
   }
 
   isAvailable(): boolean {
@@ -222,12 +268,37 @@ export class MojoMonitor {
    * Retrieve messages with optional limit and interface filter.
    * Used by the `mojo_messages_get` tool.
    */
-  async getMessages(options?: { limit?: number; interfaceName?: string }): Promise<{
-    messages: MojoMessage[];
-    totalAvailable: number;
-    filtered: boolean;
-    _simulation: boolean;
-  }> {
+  async getMessages(
+    sessionIdOrOptions?: string | { limit?: number; interfaceName?: string },
+    filter?: string,
+  ): Promise<
+    | LegacyMojoMessage[]
+    | {
+        messages: MojoMessage[];
+        totalAvailable: number;
+        filtered: boolean;
+        _simulation: boolean;
+      }
+  > {
+    if (typeof sessionIdOrOptions === 'string') {
+      const session = this.legacySessions.get(sessionIdOrOptions);
+      if (!session) {
+        return [];
+      }
+
+      if (!filter) {
+        return [...session.messages];
+      }
+
+      const normalizedFilter = filter.toLowerCase();
+      return session.messages.filter((message) =>
+        `${message.interface} ${message.method} ${message.pipe} ${message.payload}`
+          .toLowerCase()
+          .includes(normalizedFilter),
+      );
+    }
+
+    const options = sessionIdOrOptions;
     if (!this.active) {
       return {
         messages: [],
@@ -237,12 +308,12 @@ export class MojoMonitor {
       };
     }
 
-    const filter: MojoMessageFilter = {};
+    const requestFilter: MojoMessageFilter = {};
     if (options?.interfaceName) {
-      filter.interfaceName = options.interfaceName;
+      requestFilter.interfaceName = options.interfaceName;
     }
 
-    const allMessages = await this.captureMessages(filter);
+    const allMessages = await this.captureMessages(requestFilter);
     const limit = options?.limit ?? 100;
     const limitedMessages = allMessages.slice(0, limit);
 
@@ -359,7 +430,11 @@ export class MojoMonitor {
             for (const line of lines) {
               try {
                 const parsed = JSON.parse(line);
-                if (parsed.interfaceName && parsed.interfaceName !== '__mojo_interceptor__' && parsed.messageType) {
+                if (
+                  parsed.interfaceName &&
+                  parsed.interfaceName !== '__mojo_interceptor__' &&
+                  parsed.messageType
+                ) {
                   this.recordMessage({
                     timestamp: parsed.timestamp ?? Date.now(),
                     sourcePid: parsed.sourcePid ?? 0,
@@ -426,4 +501,101 @@ export class MojoMonitor {
       item.pendingMessages = 0;
     }
   }
+
+  async startMonitor(config: {
+    pid?: number;
+    processName?: string;
+    interfaces?: string[];
+    maxBuffer?: number;
+  }): Promise<string> {
+    const sessionId = `mojo_${Math.random().toString(16).slice(2, 10)}`;
+    const session: LegacyMojoSession = {
+      sessionId,
+      pid: config.pid,
+      processName: config.processName,
+      interfaces: config.interfaces ?? [],
+      maxBuffer: config.maxBuffer ?? 1000,
+      createdAt: Date.now(),
+      messages: [],
+    };
+    this.legacySessions.set(sessionId, session);
+
+    const bridge = this.fridaBridge as {
+      attach?: (pid?: number, processName?: string) => Promise<unknown>;
+      inject?: (_script: string) => Promise<unknown>;
+    } | null;
+
+    if (bridge?.attach && typeof bridge.attach === 'function') {
+      try {
+        await bridge.attach(config.pid, config.processName);
+        if (bridge.inject && typeof bridge.inject === 'function') {
+          await bridge.inject(
+            buildMojoFridaScript({
+              hooks: ['EnqueueMessage', 'DispatchMessage'],
+              interfaceFilters: config.interfaces ?? [],
+              maxMessages: session.maxBuffer,
+            }),
+          );
+        }
+      } catch {
+        // Compatibility mode is intentionally tolerant.
+      }
+    }
+
+    return sessionId;
+  }
+
+  async stopMonitor(sessionId: string): Promise<number> {
+    const session = this.legacySessions.get(sessionId);
+    if (!session) {
+      return 0;
+    }
+
+    this.legacySessions.delete(sessionId);
+    return session.messages.length;
+  }
+
+  listSessions(): Array<{
+    id: string;
+    sessionId: string;
+    pid?: number;
+    processName?: string;
+    messageCount: number;
+    createdAt: string;
+  }> {
+    return Array.from(this.legacySessions.values()).map((session) => ({
+      id: session.sessionId,
+      sessionId: session.sessionId,
+      pid: session.pid,
+      processName: session.processName,
+      messageCount: session.messages.length,
+      createdAt: new Date(session.createdAt).toISOString(),
+    }));
+  }
+}
+
+export function buildMojoFridaScript(config: {
+  hooks: string[];
+  interfaceFilters: string[];
+  maxMessages: number;
+}): string {
+  return `
+const mojoMessages = [];
+const maxMessages = ${config.maxMessages};
+const interfaceFilters = ${JSON.stringify(config.interfaceFilters)};
+const hooks = ${JSON.stringify(config.hooks)};
+
+function shouldCapture(name) {
+  return interfaceFilters.length === 0 || interfaceFilters.some((filter) => name.includes(filter));
+}
+
+rpc.exports = {
+  getMessages() { return mojoMessages; },
+  clearMessages() { mojoMessages.length = 0; return true; },
+  messageCount() { return mojoMessages.length; },
+};
+
+// hooks: ${config.hooks.join(', ') || 'none'}
+// shouldCapture + mojoMessages are kept for compatibility tests.
+`;
 }

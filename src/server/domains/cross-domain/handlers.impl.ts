@@ -310,7 +310,8 @@ export class CrossDomainWorkflowClassifier {
     }
     if (toolName.startsWith('network_')) return ['network'];
     if (toolName.startsWith('console_')) return ['browser'];
-    if (toolName.startsWith('tls_') || toolName.startsWith('net_raw_')) return ['boringssl-inspector'];
+    if (toolName.startsWith('tls_') || toolName.startsWith('net_raw_'))
+      return ['boringssl-inspector'];
     if (toolName.startsWith('canvas_')) return ['canvas'];
     if (toolName.startsWith('skia_')) return ['skia-capture'];
     if (toolName.startsWith('v8_')) return ['v8-inspector'];

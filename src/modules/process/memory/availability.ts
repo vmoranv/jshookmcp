@@ -205,9 +205,14 @@ try {
       timeout: 10000,
     });
 
-    const _trimmed = stdout.trim();
-    if (!_trimmed) throw new Error('PowerShell returned empty output');
-    return JSON.parse(_trimmed);
+    const trimmed = stdout.trim();
+    if (!trimmed) throw new Error('PowerShell returned empty output');
+
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      throw new Error('PowerShell returned empty output');
+    }
   } catch (error) {
     return {
       success: false,

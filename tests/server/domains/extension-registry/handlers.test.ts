@@ -29,14 +29,12 @@ vi.mock('@server/extensions/PluginRegistry', () => ({
   PluginRegistry: vi.fn().mockImplementation(() => ({
     listPlugins: vi.fn().mockReturnValue([]),
     searchPlugins: vi.fn().mockReturnValue([]),
-    installPlugin: vi
-      .fn()
-      .mockResolvedValue({
-        id: 'plugin-1',
-        name: 'test-plugin',
-        version: '1.0.0',
-        description: '',
-      }),
+    installPlugin: vi.fn().mockResolvedValue({
+      id: 'plugin-1',
+      name: 'test-plugin',
+      version: '1.0.0',
+      description: '',
+    }),
     uninstallPlugin: vi.fn().mockResolvedValue(undefined),
     getPluginInfo: vi
       .fn()

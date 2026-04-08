@@ -201,9 +201,7 @@ export class StateMachineInferrer {
       const prefix = this.getPayloadPrefix(state);
       if (!prefix) continue;
 
-      const existingGroup = [...groupRepresentative.entries()].find(
-        ([key]) => key === prefix,
-      );
+      const existingGroup = [...groupRepresentative.entries()].find(([key]) => key === prefix);
       if (existingGroup) {
         stateToGroup.set(state.id, existingGroup[0]);
       } else {

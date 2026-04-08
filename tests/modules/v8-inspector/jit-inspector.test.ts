@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/consistent-function-scoping */
 import { describe, it, expect } from 'vitest';
 import { inspectJitFunction } from '@modules/v8-inspector/JitCodeInspector';
 

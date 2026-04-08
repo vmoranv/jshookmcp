@@ -35,6 +35,25 @@ export interface HiddenClassInfo {
   transitionMap?: string;
 }
 
+export interface LegacyBytecodePattern {
+  type: 'string-obfuscation' | 'dead-code';
+  description: string;
+}
+
+export type LegacyBytecodeExtractionResult =
+  | {
+      available: true;
+      functionName: string;
+      instructions: DisassembledInstruction[];
+      patterns: LegacyBytecodePattern[];
+      rawOutput: string;
+    }
+  | {
+      available: false;
+      reason: string;
+      action: string;
+    };
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -178,6 +197,42 @@ function findObjectLiteralProperties(source: string): HiddenClassInfo[] {
   return results;
 }
 
+function readEvaluationValue(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (isRecord(value) && typeof value['value'] === 'string') {
+    return value['value'] as string;
+  }
+
+  return undefined;
+}
+
+function detectLegacyPatterns(instructions: DisassembledInstruction[]): LegacyBytecodePattern[] {
+  const patterns: LegacyBytecodePattern[] = [];
+
+  const loadConstantCount = instructions.filter(
+    (instruction) => instruction.opcode === 'LdaConstant',
+  ).length;
+  if (loadConstantCount >= 10) {
+    patterns.push({
+      type: 'string-obfuscation',
+      description: 'Repeated constant loads suggest runtime string assembly.',
+    });
+  }
+
+  const returnIndex = instructions.findIndex((instruction) => instruction.opcode === 'Return');
+  if (returnIndex >= 0 && returnIndex < instructions.length - 1) {
+    patterns.push({
+      type: 'dead-code',
+      description: 'Instructions exist after an unconditional return.',
+    });
+  }
+
+  return patterns;
+}
+
 export class BytecodeExtractor {
   private readonly versionDetector: VersionDetector;
 
@@ -240,6 +295,7 @@ export class BytecodeExtractor {
       }
 
       const match =
+        /^(\d+)\s*@\s*([A-Za-z_][\w.]*)\s*(.*)$/u.exec(trimmed) ??
         /^(?:0x[0-9a-fA-F]+\s+@)?\s*(\d+)\s*[: ]\s*([A-Za-z_][\w.]*)\s*(.*)$/u.exec(trimmed) ??
         /^(\d+)\s+([A-Za-z_][\w.]*)\s*(.*)$/u.exec(trimmed);
 
@@ -369,5 +425,55 @@ export class BytecodeExtractor {
     } catch {
       return null;
     }
+  }
+}
+
+export async function extractBytecodeForFunction(
+  evaluateFn: (expression: string) => Promise<unknown>,
+  functionName: string,
+): Promise<LegacyBytecodeExtractionResult> {
+  try {
+    const nativesType = await evaluateFn('typeof %DebugPrint');
+    if (nativesType !== 'function') {
+      return {
+        available: false,
+        reason: 'V8 natives syntax is unavailable in the current target.',
+        action: 'Enable V8 natives syntax or attach to a debuggable target.',
+      };
+    }
+  } catch (error) {
+    return {
+      available: false,
+      reason: error instanceof Error ? error.message : 'Failed to probe V8 natives support.',
+      action: 'Verify the target runtime allows %DebugPrint.',
+    };
+  }
+
+  try {
+    const output = await evaluateFn(`%DebugPrint(${functionName})`);
+    const rawOutput = readEvaluationValue(output);
+    if (!rawOutput || rawOutput === 'undefined') {
+      return {
+        available: false,
+        reason: `Function "${functionName}" was not found.`,
+        action: 'Verify the function name is defined in the target runtime.',
+      };
+    }
+
+    const extractor = new BytecodeExtractor();
+    const instructions = extractor.disassembleBytecode(rawOutput);
+    return {
+      available: true,
+      functionName,
+      instructions,
+      patterns: detectLegacyPatterns(instructions),
+      rawOutput,
+    };
+  } catch (error) {
+    return {
+      available: false,
+      reason: error instanceof Error ? error.message : 'Failed to evaluate bytecode.',
+      action: 'Retry after reconnecting to the target runtime.',
+    };
   }
 }

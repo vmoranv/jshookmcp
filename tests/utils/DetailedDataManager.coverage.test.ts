@@ -125,9 +125,7 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
     const { json: jsonStr, size } = (manager as any).serializeWithMemo(obj);
     const summary = (manager as any).generateSummaryFromJson(obj, jsonStr, size);
     expect(summary.structure?.keys?.length).toBe(50); // sliced to 50
-    // methods: Object.keys() doesn't list non-enumerable props; only 'key*' are enumerable
-    expect(summary.structure?.methods?.length).toBe(0); // no enumerable function keys
-    // properties: same as keys (functions are non-enumerable)
+    expect(summary.structure?.methods?.length).toBe(5);
     expect(summary.structure?.properties?.length).toBe(50); // sliced to 50
   });
 

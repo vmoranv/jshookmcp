@@ -129,12 +129,9 @@ describe('MCPServer.tools', () => {
   it('registers tools when inputSchema is missing and forwards empty args', async () => {
     const ctx = createCtx();
 
-    registerSingleTool(
-      ctx,
-      {
-        name: 'extensions_reload',
-      } as any,
-    );
+    registerSingleTool(ctx, {
+      name: 'extensions_reload',
+    } as any);
     const handler = ctx.__registrations[0].handler;
     await handler({ ignored: true });
 

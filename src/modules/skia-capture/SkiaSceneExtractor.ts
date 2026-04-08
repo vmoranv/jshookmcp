@@ -468,11 +468,14 @@ function buildLegacyRendererFromProbes(
     confidence += 0.1;
   }
 
+  const gpuBackend = isSkiaBacked ? legacyGpuBackend(rendererStrings) : 'software';
+  const shaderPipeline = isSkiaBacked ? legacyShaderPipeline(rendererStrings) : 'Raster';
+
   return {
     isSkiaBacked,
     version: versionFromStrings(rendererStrings),
-    gpuBackend: legacyGpuBackend(rendererStrings),
-    shaderPipeline: legacyShaderPipeline(rendererStrings),
+    gpuBackend,
+    shaderPipeline,
     rendererStrings,
     features,
     confidence: Math.min(confidence, 1),

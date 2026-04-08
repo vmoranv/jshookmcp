@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
+import { getTlsKeyLogDir } from '@utils/outputPaths';
 
 export interface KeyLogEntry {
   label: string;
@@ -42,6 +43,11 @@ function parseOptionalTimestamp(token: string | undefined): string | undefined {
 }
 
 function defaultKeyLogPath(): string {
+  const configuredDir = process.env.MCP_TLS_KEYLOG_DIR?.trim();
+  if (configuredDir) {
+    return resolve(getTlsKeyLogDir(), `${DEFAULT_KEYLOG_PREFIX}-${randomUUID()}.log`);
+  }
+
   return resolve(tmpdir(), `${DEFAULT_KEYLOG_PREFIX}-${randomUUID()}.log`);
 }
 

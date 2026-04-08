@@ -167,7 +167,12 @@ describe('MCPServer.domain', () => {
 
   it('sync factory uses cached instance on repeated property access', () => {
     const ctx = { enabledDomains: new Set(['browser']) } as any;
-    const factory = vi.fn(() => ({ value: 42, getValue() { return this.value; } }));
+    const factory = vi.fn(() => ({
+      value: 42,
+      getValue() {
+        return this.value;
+      },
+    }));
     const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', factory);
 
     // First access triggers factory

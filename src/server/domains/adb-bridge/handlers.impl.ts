@@ -1,10 +1,6 @@
 import { ToolError } from '@errors/ToolError';
 import { ADBClient, WebViewDebugger } from '@modules/adb';
-import {
-  argNumber,
-  argString,
-  argStringRequired,
-} from '@server/domains/shared/parse-args';
+import { argNumber, argString, argStringRequired } from '@server/domains/shared/parse-args';
 import { asJsonResponse, toolErrorToResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
 
@@ -60,10 +56,7 @@ export class ADBBridgeHandlers {
     return this.webviewDbg;
   }
 
-  private async run(
-    _toolName: string,
-    action: () => Promise<unknown>,
-  ): Promise<ToolResponse> {
+  private async run(_toolName: string, action: () => Promise<unknown>): Promise<ToolResponse> {
     try {
       return asJsonResponse(await action());
     } catch (error) {

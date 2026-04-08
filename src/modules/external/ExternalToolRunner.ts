@@ -11,8 +11,9 @@
  */
 
 import { spawn } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { resolve, relative, sep, isAbsolute } from 'node:path';
-import { getProjectRoot } from '@utils/outputPaths';
+import * as outputPaths from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { ioLimit } from '@utils/concurrency';
 import { type ToolRegistry } from '@modules/external/ToolRegistry';
@@ -27,6 +28,12 @@ import {
 const DEFAULT_TIMEOUT_MS = EXTERNAL_TOOL_TIMEOUT_MS;
 const DEFAULT_MAX_STDOUT = EXTERNAL_TOOL_MAX_STDOUT_BYTES;
 const DEFAULT_MAX_STDERR = EXTERNAL_TOOL_MAX_STDERR_BYTES;
+
+function getTempRootsForValidation(): string[] {
+  return [process.env.TEMP, process.env.TMP, tmpdir(), '/tmp', '/var/tmp'].filter(
+    (value): value is string => Boolean(value),
+  );
+}
 
 export class ExternalToolRunner {
   constructor(private readonly registry: ToolRegistry) {}
@@ -206,11 +213,11 @@ export class ExternalToolRunner {
    */
   private validateCwd(requestedCwd?: string): string {
     if (!requestedCwd) {
-      return getProjectRoot();
+      return outputPaths.getProjectRoot();
     }
 
     const resolved = resolve(requestedCwd);
-    const projectRoot = getProjectRoot();
+    const projectRoot = outputPaths.getProjectRoot();
     const rel = relative(projectRoot, resolved);
 
     // Allow project root subdirectories
@@ -219,10 +226,10 @@ export class ExternalToolRunner {
     }
 
     // Allow system temp directories (with separator boundary to prevent prefix bypass)
-    const tmpDirs = [process.env.TEMP, process.env.TMP, '/tmp', '/var/tmp'].filter(Boolean);
+    const tmpDirs = getTempRootsForValidation();
 
     for (const tmp of tmpDirs) {
-      const resolvedTmp = resolve(tmp as string);
+      const resolvedTmp = resolve(tmp);
       // Exact match or must be followed by a path separator to prevent /tmpevil bypassing /tmp
       if (resolved === resolvedTmp || resolved.startsWith(resolvedTmp + sep)) {
         return resolved;

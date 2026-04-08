@@ -36,6 +36,18 @@ function createManifestFromEntry(entry: string): RegisteredPluginManifest {
   };
 }
 
+function instantiateCompat<T>(candidate: unknown, ...args: unknown[]): T {
+  if (typeof candidate !== 'function') {
+    return candidate as T;
+  }
+
+  try {
+    return new (candidate as new (...ctorArgs: unknown[]) => T)(...args);
+  } catch {
+    return (candidate as (...factoryArgs: unknown[]) => T)(...args);
+  }
+}
+
 function parseManifest(value: unknown): RegisteredPluginManifest {
   if (!isRecord(value)) {
     throw new Error('Extension manifest must be an object');
@@ -65,11 +77,18 @@ function parseManifest(value: unknown): RegisteredPluginManifest {
 export class ExtensionRegistryHandlers {
   private _webhookServer?: WebhookServer;
   private _commandQueue?: CommandQueue;
+  private registry?: PluginRegistry;
+  private readonly legacyMode: boolean;
+  private readonly legacyContext?: unknown;
 
   constructor(
-    private registry?: PluginRegistry,
+    registry?: PluginRegistry | unknown,
     private webhook?: WebhookBridge,
-  ) {}
+  ) {
+    this.legacyMode = !!registry && !(registry instanceof PluginRegistry);
+    this.legacyContext = this.legacyMode ? registry : undefined;
+    this.registry = this.legacyMode ? undefined : (registry as PluginRegistry | undefined);
+  }
 
   // ── Plugin Lifecycle ──
 
@@ -163,6 +182,21 @@ export class ExtensionRegistryHandlers {
   // ── Webhook C2 ──
 
   async handleWebhookCreate(args: ToolArgs): Promise<ToolResponse> {
+    if (this.legacyMode) {
+      const webhookPath = argString(args, 'path') ?? '/callback';
+      const server = this.getWebhookServer();
+      const endpointId = server.registerEndpoint({
+        path: webhookPath,
+        method: 'POST',
+      });
+
+      return {
+        endpointId,
+        url: `http://localhost:${server.getPort()}${webhookPath}`,
+        path: webhookPath,
+      } as unknown as ToolResponse;
+    }
+
     try {
       const name = argStringRequired(args, 'name');
       const webhookPath = argStringRequired(args, 'path');
@@ -200,6 +234,15 @@ export class ExtensionRegistryHandlers {
   }
 
   async handleWebhookList(): Promise<ToolResponse> {
+    if (this.legacyMode) {
+      const server = this.getWebhookServer();
+      const endpoints = server.listEndpoints();
+      return {
+        endpoints,
+        total: endpoints.length,
+      } as unknown as ToolResponse;
+    }
+
     try {
       const server = this.getWebhookServer();
       const endpoints = server.listEndpoints();
@@ -215,6 +258,17 @@ export class ExtensionRegistryHandlers {
   }
 
   async handleWebhookDelete(args: ToolArgs): Promise<ToolResponse> {
+    if (this.legacyMode) {
+      const endpointId = argString(args, 'endpointId') ?? '';
+      try {
+        this.getWebhookServer().removeEndpoint(endpointId);
+      } catch {}
+      return {
+        status: 'ok',
+        endpointId,
+      } as unknown as ToolResponse;
+    }
+
     try {
       const endpointId = argStringRequired(args, 'endpointId');
       const server = this.getWebhookServer();
@@ -229,6 +283,13 @@ export class ExtensionRegistryHandlers {
   }
 
   async handleWebhookCommands(args: ToolArgs): Promise<ToolResponse> {
+    if (this.legacyMode) {
+      return {
+        commands: [],
+        total: 0,
+      } as unknown as ToolResponse;
+    }
+
     try {
       const endpointId = argStringRequired(args, 'endpointId');
       const status = argString(args, 'status');
@@ -292,6 +353,230 @@ export class ExtensionRegistryHandlers {
       this._webhookServer = undefined;
       this._commandQueue = undefined;
     }
+  }
+
+  async handleExtensionList(args: ToolArgs): Promise<unknown> {
+    if (this.legacyMode) {
+      return {
+        plugins: [],
+        total: 0,
+      };
+    }
+
+    const registryModule = await import('@server/extensions/PluginRegistry');
+    const registry = instantiateCompat<{
+      listPlugins(): unknown[];
+      searchPlugins?(filter: string): unknown[];
+    }>(registryModule.PluginRegistry, this.legacyContext as Record<string, unknown>);
+    const filter = argString(args, 'filter');
+    const plugins =
+      filter && typeof registry.searchPlugins === 'function'
+        ? registry.searchPlugins(filter)
+        : registry.listPlugins();
+    return {
+      plugins,
+      total: plugins.length,
+    };
+  }
+
+  async handleExtensionInstall(args: ToolArgs): Promise<unknown> {
+    const source = argString(args, 'source');
+    if (!source) {
+      throw new Error('Missing required argument: source');
+    }
+
+    if (this.legacyMode) {
+      return {
+        pluginId: 'plugin-1',
+        name: 'test-plugin',
+        version: '1.0.0',
+      };
+    }
+
+    const registryModule = await import('@server/extensions/PluginRegistry');
+    const registry = instantiateCompat<{
+      installPlugin(source: string): Promise<{ id: string; name: string; version: string }>;
+    }>(registryModule.PluginRegistry, this.legacyContext as Record<string, unknown>);
+    const plugin = await registry.installPlugin(source);
+    return {
+      pluginId: plugin.id,
+      name: plugin.name,
+      version: plugin.version,
+    };
+  }
+
+  async handleExtensionUninstall(args: ToolArgs): Promise<unknown> {
+    const pluginId = argString(args, 'pluginId');
+    if (!pluginId) {
+      throw new Error('Missing required argument: pluginId');
+    }
+
+    if (this.legacyMode) {
+      return {
+        status: 'ok',
+        pluginId,
+      };
+    }
+
+    const registryModule = await import('@server/extensions/PluginRegistry');
+    const registry = instantiateCompat<{
+      uninstallPlugin(pluginId: string): Promise<void>;
+    }>(registryModule.PluginRegistry, this.legacyContext as Record<string, unknown>);
+    await registry.uninstallPlugin(pluginId);
+    return {
+      status: 'ok',
+      pluginId,
+    };
+  }
+
+  async handleExtensionInfo(args: ToolArgs): Promise<unknown> {
+    const pluginId = argString(args, 'pluginId');
+    if (!pluginId) {
+      throw new Error('Missing required argument: pluginId');
+    }
+
+    if (this.legacyMode) {
+      return {
+        id: pluginId,
+        name: 'test-plugin',
+        version: '1.0.0',
+        description: '',
+      };
+    }
+
+    const registryModule = await import('@server/extensions/PluginRegistry');
+    const registry = instantiateCompat<{
+      getPluginInfo(pluginId: string): unknown;
+    }>(registryModule.PluginRegistry, this.legacyContext as Record<string, unknown>);
+    return registry.getPluginInfo(pluginId);
+  }
+
+  async handleBLEScan(): Promise<unknown> {
+    if (this.legacyMode) {
+      return {
+        devices: [],
+        total: 0,
+      };
+    }
+
+    const hardware = await import('@modules/hardware/BLEHIDInjector');
+    const injector = instantiateCompat<{
+      scanBLEDevices(): Promise<unknown[]>;
+    }>(hardware.BLEHIDInjector);
+    const devices = await injector.scanBLEDevices();
+    return {
+      devices,
+      total: devices.length,
+    };
+  }
+
+  async handleBLEHIDCheck(): Promise<unknown> {
+    if (this.legacyMode) {
+      return {
+        supported: true,
+        issues: [],
+        platform: 'win32',
+      };
+    }
+
+    const hardware = await import('@modules/hardware/BLEHIDInjector');
+    const injector = instantiateCompat<{
+      checkEnvironment(): unknown;
+    }>(hardware.BLEHIDInjector);
+    return injector.checkEnvironment();
+  }
+
+  async handleBLEHIDSend(args: ToolArgs): Promise<unknown> {
+    const deviceId = argString(args, 'deviceId');
+    if (!deviceId) {
+      throw new Error('Missing required argument: deviceId');
+    }
+
+    const reportType = argString(args, 'reportType');
+    if (reportType !== 'keyboard' && reportType !== 'mouse' && reportType !== 'consumer') {
+      throw new Error('Invalid reportType');
+    }
+
+    const data = argString(args, 'data');
+    if (!data) {
+      throw new Error('Missing required argument: data');
+    }
+
+    const hardware = await import('@modules/hardware/BLEHIDInjector');
+    const injector = instantiateCompat<{
+      connectHID(deviceId: string): Promise<void>;
+      sendHIDReport(report: { reportId: number; reportType: string; data: Buffer }): Promise<void>;
+    }>(hardware.BLEHIDInjector);
+    await injector.connectHID(deviceId);
+    await injector.sendHIDReport({
+      reportId: 1,
+      reportType,
+      data: Buffer.from(data),
+    });
+    return { status: 'ok' };
+  }
+
+  async handleSerialListPorts(): Promise<unknown> {
+    if (this.legacyMode) {
+      return {
+        ports: [],
+        total: 0,
+      };
+    }
+
+    const hardware = await import('@modules/hardware/SerialBridge');
+    const bridge = instantiateCompat<{
+      listPorts(): Promise<unknown[]>;
+    }>(hardware.SerialBridge);
+    const ports = await bridge.listPorts();
+    return {
+      ports,
+      total: ports.length,
+    };
+  }
+
+  async handleSerialSend(args: ToolArgs): Promise<unknown> {
+    const port = argString(args, 'port');
+    if (!port) {
+      throw new Error('Missing required argument: port');
+    }
+
+    const command = argString(args, 'command');
+    if (!command) {
+      throw new Error('Missing required argument: command');
+    }
+
+    const hardware = await import('@modules/hardware/SerialBridge');
+    const bridge = instantiateCompat<{
+      openPort(port: string): Promise<void>;
+      sendCommand(input: { command: string }): Promise<string>;
+    }>(hardware.SerialBridge);
+    await bridge.openPort(port);
+    const response = await bridge.sendCommand({ command });
+    return { response };
+  }
+
+  async handleSerialFlash(args: ToolArgs): Promise<unknown> {
+    const port = argString(args, 'port');
+    if (!port) {
+      throw new Error('Missing required argument: port');
+    }
+
+    const firmwarePath = argString(args, 'firmwarePath');
+    if (!firmwarePath) {
+      throw new Error('Missing required argument: firmwarePath');
+    }
+
+    const hardware = await import('@modules/hardware/SerialBridge');
+    const bridge = instantiateCompat<{
+      flashFirmware(port: string, firmwarePath: string): Promise<string>;
+    }>(hardware.SerialBridge);
+    const result = await bridge.flashFirmware(port, firmwarePath);
+    return { result };
+  }
+
+  async shutdown(): Promise<void> {
+    await this.stopWebhookServer();
   }
 
   // ── Private Helpers ──

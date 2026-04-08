@@ -14,6 +14,20 @@ import { randomUUID } from 'node:crypto';
 import { escapeRegexStr } from '@utils/escapeForRegex';
 export * from './definitions';
 
+function matchesKeyPattern(key: string, keyPattern?: string): boolean {
+  if (!keyPattern) {
+    return true;
+  }
+
+  const regex = new RegExp(
+    `^${keyPattern
+      .split('*')
+      .map((segment) => escapeRegexStr(segment))
+      .join('.*')}$`,
+  );
+  return regex.test(key);
+}
+
 // ── Types ──
 
 export interface StateEntry {
@@ -263,12 +277,11 @@ export class SharedStateBoardHandlers {
     for (const [fullKey, entry] of this.state.entries()) {
       if (fullKey.startsWith(prefix)) {
         if (isPattern) {
-          const regex = new RegExp(`^${escapeRegexStr(prefix)}${escapeRegexStr(key).replace(/\\\*/g, '.*')}$`);
-          if (regex.test(fullKey)) {
-            watch.lastVersion[fullKey] = entry.version;
+          if (matchesKeyPattern(entry.key, key)) {
+            watch.lastVersion[entry.key] = entry.version;
           }
-        } else {
-          watch.lastVersion[fullKey] = entry.version;
+        } else if (entry.key === key) {
+          watch.lastVersion[entry.key] = entry.version;
         }
       }
     }
@@ -320,25 +333,25 @@ export class SharedStateBoardHandlers {
     const prefix = `${watch.namespace}:`;
 
     if (watch.pattern) {
-      const regex = new RegExp(`^${escapeRegexStr(prefix)}${escapeRegexStr(watch.key).replace(/\\\*/g, '.*')}$`);
       for (const [fullKey, entry] of this.state.entries()) {
-        if (regex.test(fullKey)) {
-          const lastVer = watch.lastVersion[fullKey];
+        if (fullKey.startsWith(prefix) && matchesKeyPattern(entry.key, watch.key)) {
+          const lastVer = watch.lastVersion[entry.key];
           if (lastVer === undefined) {
             changes.push({ key: entry.key, namespace: entry.namespace, action: 'created' });
           } else if (entry.version > lastVer) {
             changes.push({ key: entry.key, namespace: entry.namespace, action: 'changed' });
           }
-          watch.lastVersion[fullKey] = entry.version;
+          watch.lastVersion[entry.key] = entry.version;
         }
       }
       // Check for deletions
       for (const watchedKey of Object.keys(watch.lastVersion)) {
-        if (!this.state.has(watchedKey) && regex.test(watchedKey)) {
-          const idx = watchedKey.indexOf(':');
-          const key = idx >= 0 ? watchedKey.substring(idx + 1) : watchedKey;
+        if (
+          !this.state.has(`${watch.namespace}:${watchedKey}`) &&
+          matchesKeyPattern(watchedKey, watch.key)
+        ) {
           changes.push({
-            key,
+            key: watchedKey,
             namespace: watch.namespace,
             action: 'deleted',
           });
@@ -348,18 +361,18 @@ export class SharedStateBoardHandlers {
     } else {
       const fullKey = `${watch.namespace}:${watch.key}`;
       const entry = this.state.get(fullKey);
-      const lastVer = watch.lastVersion[fullKey];
+      const lastVer = watch.lastVersion[watch.key];
 
       if (!entry && lastVer !== undefined) {
         changes.push({ key: watch.key, namespace: watch.namespace, action: 'deleted' });
-        delete watch.lastVersion[fullKey];
+        delete watch.lastVersion[watch.key];
       } else if (entry) {
         if (lastVer === undefined) {
           changes.push({ key: entry.key, namespace: entry.namespace, action: 'created' });
         } else if (entry.version > lastVer) {
           changes.push({ key: entry.key, namespace: entry.namespace, action: 'changed' });
         }
-        watch.lastVersion[fullKey] = entry.version;
+        watch.lastVersion[watch.key] = entry.version;
       }
     }
 
@@ -414,11 +427,8 @@ export class SharedStateBoardHandlers {
       }
 
       // Filter by key pattern
-      if (keyPattern) {
-        const regex = new RegExp(`^${escapeRegexStr(keyPattern).replace(/\\\*/g, '.*')}$`);
-        if (!regex.test(entry.key)) {
-          continue;
-        }
+      if (!matchesKeyPattern(entry.key, keyPattern)) {
+        continue;
       }
 
       // Skip expired entries
@@ -503,11 +513,8 @@ export class SharedStateBoardHandlers {
       }
 
       // Filter by key pattern
-      if (keyPattern) {
-        const regex = new RegExp(`^${escapeRegexStr(keyPattern).replace(/\\\*/g, '.*')}$`);
-        if (!regex.test(entry.key)) {
-          continue;
-        }
+      if (!matchesKeyPattern(entry.key, keyPattern)) {
+        continue;
       }
 
       toDelete.push(fullKey);

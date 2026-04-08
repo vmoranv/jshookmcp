@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
+import { resolve as resolvePath } from 'node:path';
 
 const state = vi.hoisted(() => {
   const spawn = vi.fn();
@@ -242,7 +243,7 @@ describe('ExternalToolRunner', () => {
     } as any);
 
     // Wait for the timeout SIGTERM and then SIGKILL to fire
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    await new Promise((done) => setTimeout(done, 30));
 
     const result = await pending;
 
@@ -515,7 +516,7 @@ describe('ExternalToolRunner', () => {
     await runPromise;
 
     // Wait for the timeout to fire and evaluate `if (!settled)` safely avoiding execution
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await new Promise((done) => setTimeout(done, 20));
 
     // Restore clearTimeout
     global.clearTimeout = originalClearTimeout;
@@ -550,6 +551,7 @@ describe('ExternalToolRunner', () => {
   });
 
   it('calls onProgress for all phases including timeout', async () => {
+    vi.useFakeTimers();
     const child = createChildProcessMock();
     state.spawn.mockReturnValue(child);
     const registry = {
@@ -574,6 +576,7 @@ describe('ExternalToolRunner', () => {
     child.stderr.emit('data', Buffer.from('b'));
 
     vi.advanceTimersByTime(20);
+    vi.advanceTimersByTime(2500);
 
     await runPromise;
 
@@ -702,7 +705,7 @@ describe('ExternalToolRunner', () => {
         'tool-bin',
         [],
         expect.objectContaining({
-          cwd: expect.stringContaining('/test-temp/jshook-work'),
+          cwd: resolvePath('/test-temp/jshook-work'),
         }),
       );
     } finally {
@@ -737,7 +740,7 @@ describe('ExternalToolRunner', () => {
       expect(state.spawn).toHaveBeenCalledWith(
         'tool-bin',
         [],
-        expect.objectContaining({ cwd: '/tmp' }),
+        expect.objectContaining({ cwd: resolvePath('/tmp') }),
       );
     } finally {
       Object.defineProperty(process, 'platform', { value: origPlatform });
@@ -772,7 +775,7 @@ describe('ExternalToolRunner', () => {
       expect(state.spawn).toHaveBeenCalledWith(
         'tool-bin',
         [],
-        expect.objectContaining({ cwd: '/var/tmp' }),
+        expect.objectContaining({ cwd: resolvePath('/var/tmp') }),
       );
     } finally {
       Object.defineProperty(process, 'platform', { value: origPlatform });

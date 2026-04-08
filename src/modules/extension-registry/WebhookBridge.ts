@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getExtensionRegistryDir } from '@utils/outputPaths';
 
 interface WebhookRecord {
   id: string;
@@ -43,7 +44,7 @@ export class WebhookBridge {
 
   private readonly webhooks = new Map<string, WebhookRecord>();
 
-  constructor(rootDir = path.resolve(process.cwd(), 'artifacts', 'extension-registry')) {
+  constructor(rootDir = getExtensionRegistryDir()) {
     this.rootDir = rootDir;
     this.storageFile = path.join(rootDir, 'webhooks.json');
     this.initializeFromDisk();
