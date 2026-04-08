@@ -47,7 +47,7 @@ export class CommandQueueImpl extends EventEmitter {
   protected readonly retryDelay: number;
   protected readonly processTimeout: number;
 
-  private nextId = 1;
+  protected nextId = 1;
 
   constructor(options: CommandQueueOptions = {}) {
     super();
@@ -252,7 +252,7 @@ export class CommandQueue extends CommandQueueImpl {
 
       // Extract numeric portion from command ID (e.g. "cmd-42" → 42)
       const match = /^cmd-(\d+)$/.exec(entry.id);
-      if (match) {
+      if (match && match[1]) {
         const num = parseInt(match[1], 10);
         if (num > maxId) {
           maxId = num;
