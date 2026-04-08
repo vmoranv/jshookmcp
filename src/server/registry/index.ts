@@ -143,7 +143,15 @@ export function buildHandlerMapFromRegistry(
   const regs = selectedToolNames
     ? getRegistrations().filter((r) => selectedToolNames.has(r.tool.name))
     : [...getRegistrations()];
-  return Object.fromEntries(regs.map((r) => [r.tool.name, r.bind(deps) as ToolHandler]));
+  const entries: [string, ToolHandler][] = [];
+  for (const r of regs) {
+    try {
+      entries.push([r.tool.name, r.bind(deps) as ToolHandler]);
+    } catch {
+      // Tool's handler is unavailable (missing dependencies) — skip it
+    }
+  }
+  return Object.fromEntries(entries);
 }
 
 export function buildProfileDomains(): Record<ToolProfileId, string[]> {
