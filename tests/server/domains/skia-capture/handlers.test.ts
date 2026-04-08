@@ -59,40 +59,42 @@ function makeMockPC(): PageController {
 }
 
 describe('SkiaCaptureHandlers', () => {
-  describe('handleDetectRenderer', () => {
+  describe('handleSkiaDetectRenderer', () => {
     it('should throw when pageController is missing', async () => {
       const handlers = new SkiaCaptureHandlers({ pageController: null });
-      await expect(handlers.handleDetectRenderer({})).rejects.toThrow(
+      await expect(handlers.handleSkiaDetectRenderer({})).rejects.toThrow(
         'PageController not available',
       );
     });
 
     it('should call detectRenderer successfully', async () => {
       const handlers = new SkiaCaptureHandlers({ pageController: makeMockPC() });
-      const result = await handlers.handleDetectRenderer({});
+      const result = await handlers.handleSkiaDetectRenderer({});
       expect(result).toHaveProperty('rendererInfo');
       expect(result).toHaveProperty('detectionComplete', true);
     });
   });
 
-  describe('handleDumpScene', () => {
+  describe('handleSkiaExtractScene', () => {
     it('should throw when pageController is missing', async () => {
       const handlers = new SkiaCaptureHandlers({ pageController: null });
-      await expect(handlers.handleDumpScene({})).rejects.toThrow('PageController not available');
+      await expect(handlers.handleSkiaExtractScene({})).rejects.toThrow(
+        'PageController not available',
+      );
     });
 
     it('should call dumpScene successfully', async () => {
       const handlers = new SkiaCaptureHandlers({ pageController: makeMockPC() });
-      const result = await handlers.handleDumpScene({});
+      const result = await handlers.handleSkiaExtractScene({});
       expect(result).toHaveProperty('sceneTree');
       expect(result).toHaveProperty('extractionComplete', true);
     });
   });
 
-  describe('handleCorrelateObjects', () => {
+  describe('handleSkiaCorrelateObjects', () => {
     it('should throw when pageController is missing', async () => {
       const handlers = new SkiaCaptureHandlers({ pageController: null });
-      await expect(handlers.handleCorrelateObjects({})).rejects.toThrow(
+      await expect(handlers.handleSkiaCorrelateObjects({})).rejects.toThrow(
         'PageController not available',
       );
     });

@@ -1,5 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { MCPServerContext } from '@server/MCPServer.context';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { CrossDomainHandlers } from '@server/domains/cross-domain/handlers';
 import {
   CrossDomainEvidenceBridge,
@@ -9,19 +8,15 @@ import {
 describe('CrossDomainHandlers', () => {
   let bridge: CrossDomainEvidenceBridge;
   let handlers: CrossDomainHandlers;
-  let mockCtx: MCPServerContext & { domainInstanceMap: Map<string, unknown> };
 
   beforeEach(() => {
     _resetIdCounter();
     bridge = new CrossDomainEvidenceBridge();
-    mockCtx = {
-      domainInstanceMap: new Map(),
-    } as unknown as MCPServerContext & { domainInstanceMap: Map<string, unknown> };
-    handlers = new CrossDomainHandlers(mockCtx, bridge);
+    handlers = new CrossDomainHandlers(bridge);
   });
 
   describe('handleCapabilities', () => {
-    it('should return capability flags with orchestrator unavailable', async () => {
+    it('should return capability flags with workflow classifier unavailable', async () => {
       const result = (await handlers.handleCapabilities({})) as {
         content: Array<{ text: string }>;
       };
@@ -32,13 +27,13 @@ describe('CrossDomainHandlers', () => {
   });
 
   describe('handleSuggestWorkflow', () => {
-    it('should return text response when orchestrator is unavailable', async () => {
+    it('should return message when workflow classifier is unavailable', async () => {
       const result = (await handlers.handleSuggestWorkflow({
         query: 'completely unrelated xyz123',
       })) as {
         content: Array<{ text: string }>;
       };
-      // Returns text when orchestrator not in context
+      // Returns message when classifier not provided
       expect(result.content[0].text).toContain('Cross-domain');
     });
   });

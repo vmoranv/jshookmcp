@@ -47,10 +47,22 @@ export default defineConfig({
   resolve: {
     alias: [
       // Explicit .ts extensions so require() can find modules without extension auto-append
-      { find: '@server/domains/canvas/adapters/cocos-adapter', replacement: resolve(root, 'src/server/domains/canvas/adapters/cocos-adapter.ts') },
-      { find: '@server/domains/canvas/adapters/pixi-adapter', replacement: resolve(root, 'src/server/domains/canvas/adapters/pixi-adapter.ts') },
-      { find: '@server/domains/canvas/adapters/phaser-adapter', replacement: resolve(root, 'src/server/domains/canvas/adapters/phaser-adapter.ts') },
-      { find: '@server/domains/canvas/adapters', replacement: resolve(root, 'src/server/domains/canvas/adapters') },
+      {
+        find: '@server/domains/canvas/adapters/cocos-adapter',
+        replacement: resolve(root, 'src/server/domains/canvas/adapters/cocos-adapter.ts'),
+      },
+      {
+        find: '@server/domains/canvas/adapters/pixi-adapter',
+        replacement: resolve(root, 'src/server/domains/canvas/adapters/pixi-adapter.ts'),
+      },
+      {
+        find: '@server/domains/canvas/adapters/phaser-adapter',
+        replacement: resolve(root, 'src/server/domains/canvas/adapters/phaser-adapter.ts'),
+      },
+      {
+        find: '@server/domains/canvas/adapters',
+        replacement: resolve(root, 'src/server/domains/canvas/adapters'),
+      },
       { find: '@server', replacement: resolve(root, 'src/server') },
       { find: '@src', replacement: resolve(root, 'src') },
       { find: '@modules', replacement: resolve(root, 'src/modules') },
@@ -60,7 +72,10 @@ export default defineConfig({
       { find: '@errors', replacement: resolve(root, 'src/errors') },
       { find: '@internal-types', replacement: resolve(root, 'src/types') },
       { find: '@extension-sdk', replacement: resolve(root, 'packages/extension-sdk/src') },
-      { find: '@jshookmcp/extension-sdk', replacement: resolve(root, 'packages/extension-sdk/src') },
+      {
+        find: '@jshookmcp/extension-sdk',
+        replacement: resolve(root, 'packages/extension-sdk/src'),
+      },
       { find: '@tests', replacement: resolve(root, 'tests') },
     ],
     // Note: tsconfigPaths is intentionally omitted. The explicit resolve.alias
@@ -86,10 +101,11 @@ export default defineConfig({
       exclude: coverageExclude,
       reporter: coverageReporter,
       thresholds: {
-        lines: 95,
-        functions: 95,
-        branches: 85,
-        statements: 95,
+        // Phase 24 Plan 03: raised from 95/95/85/95 to 100% for strict enforcement
+        lines: 100,
+        functions: 100,
+        branches: 100,
+        statements: 100,
       },
     },
 

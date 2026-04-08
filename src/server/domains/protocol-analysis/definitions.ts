@@ -2,108 +2,74 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const protocolAnalysisTools: Tool[] = [
-  // PROTO-01: Manual protocol pattern definition
-  tool('protocol_define_pattern')
-    .desc(
-      'Define a custom protocol pattern with field types, byte order, and optional encryption scheme',
-    )
-    .string('name', 'Protocol pattern name')
-    .array(
-      'fields',
-      {
-        type: 'object',
-        properties: {
-          name: { type: 'string', description: 'Field name' },
-          type: {
-            type: 'string',
-            enum: ['uint8', 'uint16', 'uint32', 'int64', 'float', 'string', 'bytes'],
-          },
-          offset: { type: 'number', description: 'Byte offset from start' },
-          length: { type: 'number', description: 'Field length in bytes' },
-          description: { type: 'string', description: 'Optional field description' },
-        },
-        required: ['name', 'type', 'offset', 'length'],
-      },
-      'Array of protocol fields',
-    )
-    .enum('byteOrder', ['big', 'little'], 'Byte order', { default: 'big' })
-    .object(
-      'encryption',
-      {
-        type: {
-          type: 'string',
-          enum: ['aes', 'xor', 'rc4', 'custom'],
-          description: 'Encryption type',
-        },
-        key: { type: 'string', description: 'Encryption key (hex)' },
-        iv: { type: 'string', description: 'Initialization vector (hex)' },
-        notes: { type: 'string', description: 'Additional notes' },
-      },
-      'Optional encryption info',
-      { required: ['type'] },
-    )
-    .required('name', 'fields')
+  tool('proto_define_pattern')
+    .desc('Define a protocol pattern with delimiter, byte order, and field layout')
+    .string('name', 'Pattern name')
+    .prop('spec', {
+      type: 'object',
+      description: 'Pattern specification object',
+      additionalProperties: true,
+    })
+    .required('name', 'spec')
+    .idempotent()
+    .build(),
+
+  tool('proto_auto_detect')
+    .desc('Auto-detect a protocol pattern from one or more hex payload samples')
+    .array('hexPayloads', { type: 'string' }, 'Hex payload samples')
+    .required('hexPayloads')
     .readOnly()
     .idempotent()
     .build(),
 
-  // PROTO-01: Auto-detect protocol pattern
-  tool('protocol_auto_detect')
-    .desc('Auto-detect protocol pattern from hex payload samples using field boundary analysis')
-    .array('payloads', { type: 'string' }, 'Array of hex-encoded payload samples')
-    .string('name', 'Optional name for the detected pattern')
-    .required('payloads')
-    .readOnly()
-    .idempotent()
-    .build(),
-
-  // PROTO-01: Export schema
-  tool('protocol_export_schema')
-    .desc('Export a protocol pattern to .proto-like schema definition')
-    .string('patternId', 'Name of the registered protocol pattern to export')
+  tool('proto_export_schema')
+    .desc('Export a protocol pattern to a .proto-like schema definition')
+    .string('patternId', 'Pattern ID to export')
     .required('patternId')
     .readOnly()
     .idempotent()
     .build(),
 
-  // PROTO-02: Infer state machine
-  tool('protocol_infer_state_machine')
+  tool('proto_infer_fields')
+    .desc('Infer likely protocol fields from repeated hex payload samples')
+    .array('hexPayloads', { type: 'string' }, 'Hex payload samples')
+    .required('hexPayloads')
+    .readOnly()
+    .idempotent()
+    .build(),
+
+  tool('proto_infer_state_machine')
     .desc('Infer a protocol state machine from captured message sequences')
     .array(
       'messages',
       {
         type: 'object',
         properties: {
-          direction: { type: 'string', enum: ['in', 'out'], description: 'Message direction' },
-          payloadHex: { type: 'string', description: 'Hex-encoded payload' },
-          timestamp: { type: 'number', description: 'Optional timestamp (ms)' },
+          direction: { type: 'string', enum: ['req', 'res'], description: 'Message direction' },
+          timestamp: { type: 'number', description: 'Message timestamp' },
+          fields: {
+            type: 'object',
+            description: 'Decoded message fields',
+            additionalProperties: true,
+          },
+          raw: { type: 'string', description: 'Raw message or payload summary' },
         },
-        required: ['direction', 'payloadHex'],
+        required: ['direction', 'timestamp', 'fields', 'raw'],
       },
-      'Array of captured messages',
+      'Captured protocol messages',
     )
-    .boolean('simplify', 'Simplify the resulting state machine by merging similar states', {
-      default: false,
-    })
     .required('messages')
     .readOnly()
     .idempotent()
     .build(),
 
-  // PROTO-02: Visualize state machine
-  tool('protocol_visualize_state')
-    .desc('Generate a Mermaid state diagram from a state machine definition')
-    .object(
-      'stateMachine',
-      {
-        states: { type: 'array', description: 'Array of states' },
-        transitions: { type: 'array', description: 'Array of transitions' },
-        initialState: { type: 'string', description: 'Initial state ID' },
-        finalStates: { type: 'array', description: 'Array of final state IDs' },
-      },
-      'State machine object (output from protocol_infer_state_machine)',
-    )
-    .required('stateMachine')
+  tool('proto_visualize_state')
+    .desc('Generate a Mermaid state diagram from a protocol state machine definition')
+    .prop('stateMachine', {
+      type: 'object',
+      description: 'State machine definition with states and transitions',
+      additionalProperties: true,
+    })
     .readOnly()
     .idempotent()
     .build(),

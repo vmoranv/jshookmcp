@@ -1,1 +1,2 @@
-export { ProtocolAnalysisHandlers } from './handlers/impl';
+export { protocolAnalysisTools } from './definitions';
+export { ProtocolAnalysisHandlers } from './handlers';

@@ -1,20 +1,24 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
-import { protocolAnalysisTools } from '@server/domains/protocol-analysis/definitions';
-import { ProtocolAnalysisHandlers } from '@server/domains/protocol-analysis/index';
+import { protocolAnalysisTools } from './definitions';
+import { ProtocolAnalysisHandlers } from './handlers';
 
-const DOMAIN = 'protocol-analysis' as const;
-const DEP_KEY = 'protocolAnalysisHandlers' as const;
+const DOMAIN = 'protocol-analysis';
+const DEP_KEY = 'protocolAnalysisHandlers';
 type H = ProtocolAnalysisHandlers;
 const t = toolLookup(protocolAnalysisTools);
-const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
+const b = (invoke: (handlers: H, args: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 function ensure(ctx: MCPServerContext): H {
-  if (!(ctx as unknown as Record<string, unknown>)[DEP_KEY]) {
-    (ctx as unknown as Record<string, unknown>)[DEP_KEY] = new ProtocolAnalysisHandlers();
+  const existing = ctx.getDomainInstance<H>(DEP_KEY);
+  if (existing) {
+    return existing;
   }
-  return (ctx as unknown as Record<string, unknown>)[DEP_KEY] as H;
+
+  const handlers = new ProtocolAnalysisHandlers();
+  ctx.setDomainInstance(DEP_KEY, handlers);
+  return handlers;
 }
 
 const manifest = {
@@ -26,29 +30,42 @@ const manifest = {
   ensure,
   registrations: [
     {
-      tool: t('protocol_define_pattern'),
+      tool: t('proto_define_pattern'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleDefinePattern(a)),
+      bind: b((handlers, args) => handlers.handleDefinePattern(args)),
     },
     {
-      tool: t('protocol_auto_detect'),
+      tool: t('proto_auto_detect'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleAutoDetect(a)),
+      bind: b((handlers, args) => handlers.handleAutoDetect(args)),
     },
     {
-      tool: t('protocol_export_schema'),
+      tool: t('proto_infer_fields'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleExportSchema(a)),
+      bind: b((handlers, args) => handlers.handleInferFields(args)),
     },
     {
-      tool: t('protocol_infer_state_machine'),
+      tool: t('proto_infer_state_machine'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleInferStateMachine(a)),
+      bind: b((handlers, args) => handlers.handleInferStateMachine(args)),
     },
     {
-      tool: t('protocol_visualize_state'),
+      tool: t('proto_export_schema'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleVisualizeState(a)),
+      bind: b((handlers, args) => handlers.handleExportSchema(args)),
+    },
+    {
+      tool: t('proto_visualize_state'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handleVisualizeState(args)),
+    },
+  ],
+  toolDependencies: [
+    {
+      from: 'network',
+      to: 'protocol-analysis',
+      relation: 'uses',
+      weight: 0.7,
     },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;

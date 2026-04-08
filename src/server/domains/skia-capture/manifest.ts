@@ -1,125 +1,70 @@
-/**
- * Domain manifest for skia-capture.
- *
- * Provides Skia rendering pipeline analysis tools:
- * - SKIA-01: skia_detect_renderer — fingerprint Skia renderer
- * - SKIA-02: skia_dump_scene — extract scene tree
- * - SKIA-03: skia_correlate_objects — correlate Skia to JS objects
- */
-import type { MCPServerContext } from '@server/MCPServer.context';
-import type { DomainManifest, ToolRegistration } from '@server/registry/contracts';
-import { skiaCaptureTools } from './definitions';
-import { SkiaCaptureHandlers } from './handlers';
+import { skiaTools } from '@server/domains/skia-capture/definitions';
+import { SkiaCaptureHandlers } from '@server/domains/skia-capture/handlers';
+import { asJsonResponse, toolErrorToResponse } from '@server/domains/shared/response';
+import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
+import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 
-const registrations: ToolRegistration[] = skiaCaptureTools.map((t) => ({
-  tool: t,
-  bind: (deps) => {
-    const handlers = deps.skiaCaptureHandlers as SkiaCaptureHandlers;
-    const method = t.name as keyof SkiaCaptureHandlers;
-    return async (args: Record<string, unknown>) => {
-      const handler = handlers[method];
-      if (typeof handler !== 'function') {
-        throw new Error(`Unknown skia-capture tool: ${t.name}`);
-      }
-      return (handler as (args: Record<string, unknown>) => Promise<unknown>)(args);
-    };
-  },
-}));
+const DOMAIN = 'skia-capture' as const;
+const DEP_KEY = 'skiaCaptureHandlers' as const;
+const PROFILES: Array<'workflow' | 'full'> = ['workflow', 'full'];
 
-async function ensure(ctx: MCPServerContext): Promise<SkiaCaptureHandlers> {
-  const pageController = ctx.pageController;
-  if (!pageController) {
-    throw new Error(
-      'skia-capture: PageController not available. Ensure the browser domain is connected.',
-    );
-  }
+type H = SkiaCaptureHandlers;
 
-  // Try to get JS objects from v8-inspector domain (graceful degradation)
-  const getJSObjects = async () => {
-    const v8Domain = ctx.v8InspectorHandlers as
-      | { getHeapSnapshot?: (args: Record<string, unknown>) => Promise<unknown> }
-      | undefined;
-    if (!v8Domain?.getHeapSnapshot) {
-      throw new Error('v8-inspector not available');
+const lookup = toolLookup(skiaTools);
+const bind = (invoke: (handler: H, args: Record<string, unknown>) => Promise<unknown>) =>
+  bindByDepKey<H>(DEP_KEY, async (handler, args) => {
+    try {
+      return asJsonResponse(await invoke(handler, args));
+    } catch (error) {
+      return toolErrorToResponse(error);
     }
-    // Parse heap snapshot and return JS objects — delegated to correlator
-    return [];
-  };
-
-  const handlers = new SkiaCaptureHandlers({
-    pageController,
-    getJSObjects,
   });
 
-  (ctx as unknown as Record<string, unknown>).skiaCaptureHandlers = handlers;
+function ensure(ctx: MCPServerContext): H {
+  const existing = ctx.getDomainInstance<SkiaCaptureHandlers>(DEP_KEY);
+  if (existing) {
+    return existing;
+  }
+
+  const handlers = new SkiaCaptureHandlers({
+    pageController: ctx.pageController ?? null,
+  });
+  ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
 }
 
-const manifest: DomainManifest<'skiaCaptureHandlers', SkiaCaptureHandlers, 'skia-capture'> = {
+const manifest = {
   kind: 'domain-manifest',
   version: 1,
-  domain: 'skia-capture',
-  depKey: 'skiaCaptureHandlers',
-  profiles: ['workflow', 'full'],
-  registrations,
+  domain: DOMAIN,
+  depKey: DEP_KEY,
+  profiles: PROFILES,
+  registrations: [
+    {
+      tool: lookup('skia_detect_renderer'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleSkiaDetectRenderer(args)),
+    },
+    {
+      tool: lookup('skia_extract_scene'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleSkiaExtractScene(args)),
+    },
+    {
+      tool: lookup('skia_correlate_objects'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleSkiaCorrelateObjects(args)),
+    },
+  ],
   ensure,
   toolDependencies: [
     {
-      from: 'skia_detect_renderer',
-      to: 'browser_attach',
-      relation: 'requires',
-      weight: 0.8,
-    },
-    {
-      from: 'skia_dump_scene',
-      to: 'browser_attach',
-      relation: 'requires',
-      weight: 0.8,
-    },
-    {
-      from: 'skia_correlate_objects',
-      to: 'v8_heap_snapshot_capture',
-      relation: 'precedes',
-      weight: 0.6,
+      from: 'canvas',
+      to: 'skia-capture',
+      relation: 'uses',
+      weight: 0.9,
     },
   ],
-  prerequisites: {
-    skia_detect_renderer: [
-      {
-        condition: 'Browser must be running',
-        fix: 'Call browser_launch or browser_attach first',
-      },
-    ],
-    skia_dump_scene: [
-      {
-        condition: 'Browser must be running',
-        fix: 'Call browser_launch or browser_attach first',
-      },
-    ],
-    skia_correlate_objects: [
-      {
-        condition: 'Browser must be running',
-        fix: 'Call browser_launch or browser_attach first',
-      },
-      {
-        condition: 'V8 heap snapshot should be captured for correlation',
-        fix: 'Call v8_heap_snapshot_capture before skia_correlate_objects',
-      },
-    ],
-  },
-  workflowRule: {
-    patterns: [
-      /skia.*render/i,
-      /skia.*detect/i,
-      /skia.*scene/i,
-      /canvas.*skia/i,
-      /render.*pipeline/i,
-      /gpu.*backend/i,
-    ],
-    priority: 70,
-    tools: ['skia_detect_renderer', 'skia_dump_scene', 'skia_correlate_objects'],
-    hint: 'Skia rendering analysis: detect renderer → dump scene tree → correlate with JS objects',
-  },
-};
+} satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

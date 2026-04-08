@@ -1,39 +1,48 @@
-/**
- * Tool definitions for skia-capture domain.
- */
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { tool } from '@server/registry/tool-builder';
 
-export const skiaCaptureTools: Tool[] = [
-  // SKIA-01: Renderer fingerprinting
-  tool('skia_detect_renderer')
-    .desc(
-      'Detect Skia rendering pipeline — version, GPU backend (GL/Vulkan/Metal/software), shader pipeline, and renderer signatures',
-    )
-    .string('canvasId', 'Canvas element ID or index to target')
-    .readOnly()
-    .idempotent()
-    .build(),
+const emptyProperties: Record<string, object> = {};
+const extractSceneProperties: Record<string, object> = {
+  canvasId: {
+    type: 'string',
+  },
+};
+const correlateProperties: Record<string, object> = {
+  skiaNodeIds: {
+    type: 'array',
+    items: {
+      type: 'string',
+    },
+  },
+};
 
-  // SKIA-02: Scene tree extraction
-  tool('skia_dump_scene')
-    .desc(
-      'Extract Skia scene tree — layers, draw commands (drawRect/drawText/drawImage/drawPath), and rendering state',
-    )
-    .string('canvasId', 'Canvas element ID or index to target')
-    .boolean('includeDrawCommands', 'Include draw commands in output', { default: true })
-    .readOnly()
-    .idempotent()
-    .build(),
-
-  // SKIA-03: Cross-domain correlation
-  tool('skia_correlate_objects')
-    .desc(
-      'Correlate Skia rendering objects back to JS scene graph objects using text, dimension, color, and geometry matching',
-    )
-    .string('canvasId', 'Canvas element ID or index to target')
-    .string('snapshotId', 'V8 heap snapshot ID to correlate against')
-    .readOnly()
-    .idempotent()
-    .build(),
+export const skiaTools: Tool[] = [
+  {
+    name: 'skia_detect_renderer',
+    description: 'Detect the active Skia renderer backend from the current page context.',
+    inputSchema: {
+      type: 'object',
+      properties: emptyProperties,
+      required: [],
+    },
+  },
+  {
+    name: 'skia_extract_scene',
+    description: 'Extract a lightweight Skia scene tree from the selected canvas.',
+    inputSchema: {
+      type: 'object',
+      properties: extractSceneProperties,
+      required: [],
+    },
+  },
+  {
+    name: 'skia_correlate_objects',
+    description: 'Correlate requested Skia node identifiers with the extracted scene tree.',
+    inputSchema: {
+      type: 'object',
+      properties: correlateProperties,
+      required: ['skiaNodeIds'],
+    },
+  },
 ];
+
+export const skiaCaptureTools = skiaTools;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PluginRegistry } from '@src/server/extensions/PluginRegistry';
+import { PluginRegistry } from '@modules/extension-registry/PluginRegistry';
 
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(),
@@ -57,9 +57,7 @@ describe('PluginRegistry', () => {
     it('should skip directories without package.json', () => {
       mockExistsSync.mockReturnValueOnce(true);
       mockExistsSync.mockReturnValueOnce(false);
-      mockReaddirSync.mockReturnValue([
-        { name: 'plugin-no-pkg', isDirectory: () => true },
-      ] as any);
+      mockReaddirSync.mockReturnValue([{ name: 'plugin-no-pkg', isDirectory: () => true }] as any);
 
       const registry = new PluginRegistry(mockCtx as any, ['/plugins']);
       const plugins = registry.listPlugins();
@@ -68,9 +66,7 @@ describe('PluginRegistry', () => {
 
     it('should handle malformed package.json', () => {
       mockExistsSync.mockReturnValue(true);
-      mockReaddirSync.mockReturnValue([
-        { name: 'bad-plugin', isDirectory: () => true },
-      ] as any);
+      mockReaddirSync.mockReturnValue([{ name: 'bad-plugin', isDirectory: () => true }] as any);
       mockReadFileSync.mockReturnValue('not valid json');
 
       const registry = new PluginRegistry(mockCtx as any, ['/plugins']);
@@ -99,9 +95,7 @@ describe('PluginRegistry', () => {
 
     it('should filter plugins by capability', () => {
       mockExistsSync.mockReturnValue(true);
-      mockReaddirSync.mockReturnValue([
-        { name: 'cap-plugin', isDirectory: () => true },
-      ] as any);
+      mockReaddirSync.mockReturnValue([{ name: 'cap-plugin', isDirectory: () => true }] as any);
       mockReadFileSync.mockReturnValue(
         JSON.stringify({ name: 'cap-plugin', capabilities: ['memory', 'debug'] }),
       );
@@ -128,9 +122,7 @@ describe('PluginRegistry', () => {
 
     it('should install from file path', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({ name: 'local-plugin', version: '2.0.0' }),
-      );
+      mockReadFileSync.mockReturnValue(JSON.stringify({ name: 'local-plugin', version: '2.0.0' }));
 
       const registry = new PluginRegistry(mockCtx as any, []);
       const result = await registry.installPlugin('/path/to/plugin');
@@ -139,9 +131,7 @@ describe('PluginRegistry', () => {
 
     it('should resolve plugin name against roots', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({ name: 'named-plugin', version: '1.0.0' }),
-      );
+      mockReadFileSync.mockReturnValue(JSON.stringify({ name: 'named-plugin', version: '1.0.0' }));
 
       const registry = new PluginRegistry(mockCtx as any, ['/plugins']);
       const result = await registry.installPlugin('my-plugin');
@@ -169,12 +159,8 @@ describe('PluginRegistry', () => {
   describe('getPluginInfo', () => {
     it('should return plugin info by ID', () => {
       mockExistsSync.mockReturnValue(true);
-      mockReaddirSync.mockReturnValue([
-        { name: 'info-plugin', isDirectory: () => true },
-      ] as any);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({ name: 'info-plugin', version: '3.0.0' }),
-      );
+      mockReaddirSync.mockReturnValue([{ name: 'info-plugin', isDirectory: () => true }] as any);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ name: 'info-plugin', version: '3.0.0' }));
 
       const registry = new PluginRegistry(mockCtx as any, ['/plugins']);
       const info = registry.getPluginInfo('info-plugin');
@@ -193,9 +179,7 @@ describe('PluginRegistry', () => {
   describe('getPluginDependencies', () => {
     it('should return dependencies', () => {
       mockExistsSync.mockReturnValue(true);
-      mockReaddirSync.mockReturnValue([
-        { name: 'dep-plugin', isDirectory: () => true },
-      ] as any);
+      mockReaddirSync.mockReturnValue([{ name: 'dep-plugin', isDirectory: () => true }] as any);
       mockReadFileSync.mockReturnValue(
         JSON.stringify({
           name: 'dep-plugin',
@@ -239,12 +223,8 @@ describe('PluginRegistry', () => {
   describe('derivePluginId', () => {
     it('should handle scoped package names', () => {
       mockExistsSync.mockReturnValue(true);
-      mockReaddirSync.mockReturnValue([
-        { name: 'scoped', isDirectory: () => true },
-      ] as any);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({ name: '@scope/plugin' }),
-      );
+      mockReaddirSync.mockReturnValue([{ name: 'scoped', isDirectory: () => true }] as any);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ name: '@scope/plugin' }));
 
       const registry = new PluginRegistry(mockCtx as any, ['/plugins']);
       const plugins = registry.listPlugins();

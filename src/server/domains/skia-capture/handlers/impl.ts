@@ -1,5 +1,7 @@
 /**
  * SkiaCaptureHandlers — facade for skia-capture domain tool handlers.
+ *
+ * Delegates to handlers/skia-detect.ts for actual implementation.
  */
 import { ToolError } from '@errors/ToolError';
 import type { PageController } from '@server/domains/shared/modules';
@@ -19,7 +21,7 @@ export class SkiaCaptureHandlers {
     this.deps = deps;
   }
 
-  async handleDetectRenderer(args: Record<string, unknown>): Promise<unknown> {
+  async handleSkiaDetectRenderer(args: Record<string, unknown>): Promise<unknown> {
     if (!this.deps.pageController) {
       throw new ToolError(
         'PREREQUISITE',
@@ -29,7 +31,7 @@ export class SkiaCaptureHandlers {
     return detectRenderer(this.deps.pageController, args);
   }
 
-  async handleDumpScene(args: Record<string, unknown>): Promise<unknown> {
+  async handleSkiaExtractScene(args: Record<string, unknown>): Promise<unknown> {
     if (!this.deps.pageController) {
       throw new ToolError(
         'PREREQUISITE',
@@ -39,7 +41,7 @@ export class SkiaCaptureHandlers {
     return dumpScene(this.deps.pageController, args);
   }
 
-  async handleCorrelateObjects(args: Record<string, unknown>): Promise<unknown> {
+  async handleSkiaCorrelateObjects(args: Record<string, unknown>): Promise<unknown> {
     if (!this.deps.pageController) {
       throw new ToolError(
         'PREREQUISITE',
