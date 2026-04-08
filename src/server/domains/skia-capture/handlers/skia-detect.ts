@@ -89,7 +89,7 @@ export async function correlateObjects(
       ...sceneTree,
       layers: sceneTree.layers.filter((l) => idSet.has(l.id)),
       drawCommands: sceneTree.drawCommands.filter((cmd) => {
-        const id = (cmd as Record<string, unknown>).nodeId as string | undefined;
+        const id = cmd.layerId;
         return id === undefined || idSet.has(id);
       }),
     };
