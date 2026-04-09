@@ -1,76 +1,78 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createWorkflow,
-  ToolNodeBuilder,
-  SequenceNodeBuilder,
-  ParallelNodeBuilder,
-  BranchNodeBuilder,
+  defineWorkflow,
+  toolStep,
+  sequenceStep,
+  parallelStep,
+  branchStep,
   type ToolNode,
   type SequenceNode,
   type ParallelNode,
   type BranchNode,
 } from '@server/workflows/WorkflowContract';
-
-const alwaysTruePredicate = () => true;
 import {
   NoopInstrumentation,
   SpanNames,
   MetricNames,
 } from '@server/observability/InstrumentationContract';
 
-/* ================================================================== */
-/*  WorkflowContract Builder                                           */
-/* ================================================================== */
+const alwaysTruePredicate = () => true;
 
-describe('WorkflowContract - builder helpers', () => {
-  it('ToolNodeBuilder creates a ToolNode with kind=tool', () => {
-    const node: ToolNode = new ToolNodeBuilder('step1', 'my_tool').build();
+describe('WorkflowContract step helpers', () => {
+  it('toolStep creates a ToolNode with kind=tool', () => {
+    const node: ToolNode = toolStep('step1', 'my_tool');
     expect(node.kind).toBe('tool');
     expect(node.id).toBe('step1');
     expect(node.toolName).toBe('my_tool');
     expect(node.input).toBeUndefined();
   });
 
-  it('ToolNodeBuilder accepts options', () => {
-    const node = new ToolNodeBuilder('step2', 'tool2')
-      .input({ key: 'value' })
-      .retry({ maxAttempts: 3, backoffMs: 1000, multiplier: 2 })
-      .timeout(5000)
-      .build();
+  it('toolStep accepts input, retry, timeout, and inputFrom', () => {
+    const node = toolStep('step2', 'tool2', {
+      input: { key: 'value' },
+      inputFrom: { copied: 'step1.result' },
+      retry: { maxAttempts: 3, backoffMs: 1000, multiplier: 2 },
+      timeoutMs: 5000,
+    });
     expect(node.input).toEqual({ key: 'value' });
+    expect(node.inputFrom).toEqual({ copied: 'step1.result' });
     expect(node.retry?.maxAttempts).toBe(3);
     expect(node.timeoutMs).toBe(5000);
   });
 
-  it('SequenceNodeBuilder creates a SequenceNode', () => {
-    const node: SequenceNode = new SequenceNodeBuilder('seq1').tool('a', 'tool_a').build();
+  it('sequenceStep creates a SequenceNode', () => {
+    const node: SequenceNode = sequenceStep('seq1', (s) => {
+      s.step(toolStep('a', 'tool_a'));
+    });
     expect(node.kind).toBe('sequence');
     expect(node.steps).toHaveLength(1);
     expect(node.steps[0]!.id).toBe('a');
     expect((node.steps[0] as ToolNode).toolName).toBe('tool_a');
   });
 
-  it('ParallelNodeBuilder creates a ParallelNode with defaults', () => {
-    const node: ParallelNode = new ParallelNodeBuilder('par1')
-      .tool('a', 'tool_a')
-      .tool('b', 'tool_b')
-      .build();
+  it('parallelStep creates a ParallelNode with defaults', () => {
+    const node: ParallelNode = parallelStep('par1', (p) => {
+      p.step(toolStep('a', 'tool_a'));
+      p.step(toolStep('b', 'tool_b'));
+    });
     expect(node.kind).toBe('parallel');
-    expect(node.maxConcurrency).toBe(4); // default
-    expect(node.failFast).toBe(false); // default
+    expect(node.maxConcurrency).toBe(4);
+    expect(node.failFast).toBe(false);
   });
 
-  it('ParallelNodeBuilder accepts custom concurrency and failFast', () => {
-    const node = new ParallelNodeBuilder('par2').maxConcurrency(2).failFast(true).build();
+  it('parallelStep accepts custom concurrency and failFast', () => {
+    const node = parallelStep('par2', (p) => {
+      p.maxConcurrency(2).failFast(true);
+    });
     expect(node.maxConcurrency).toBe(2);
     expect(node.failFast).toBe(true);
   });
 
-  it('BranchNodeBuilder creates a BranchNode with predicateId', () => {
-    const node: BranchNode = new BranchNodeBuilder('br1', 'my_predicate')
-      .whenTrue(new ToolNodeBuilder('t', 'tool_t'))
-      .whenFalse(new ToolNodeBuilder('f', 'tool_f'))
-      .build();
+  it('branchStep creates a BranchNode with predicateId', () => {
+    const node: BranchNode = branchStep('br1', 'my_predicate', (b) => {
+      b.whenTrue(toolStep('t', 'tool_t'));
+      b.whenFalse(toolStep('f', 'tool_f'));
+    });
     expect(node.kind).toBe('branch');
     expect(node.predicateId).toBe('my_predicate');
     expect(node.whenTrue.id).toBe('t');
@@ -78,52 +80,47 @@ describe('WorkflowContract - builder helpers', () => {
     expect(node.predicateFn).toBeUndefined();
   });
 
-  it('BranchNodeBuilder accepts optional predicateFn', () => {
-    const node = new BranchNodeBuilder('br2', 'pred')
-      .whenTrue(new ToolNodeBuilder('t', 'tool_t'))
-      .predicateFn(alwaysTruePredicate)
-      .build();
+  it('branchStep accepts optional predicateFn', () => {
+    const node = branchStep('br2', 'pred', (b) => {
+      b.predicateFn(alwaysTruePredicate).whenTrue(toolStep('t', 'tool_t'));
+    });
     expect(node.predicateFn).toBe(alwaysTruePredicate);
     expect(node.whenFalse).toBeUndefined();
   });
-});
 
-describe('WorkflowContract - node composition', () => {
   it('nodes can be nested arbitrarily', () => {
-    const root = new SequenceNodeBuilder('root')
-      .parallel('par', (b: ParallelNodeBuilder) =>
-        b
-          .tool('leaf1', 'tool_leaf')
-          .branch('br', 'check', (inner: BranchNodeBuilder) =>
-            inner.whenTrue(new ToolNodeBuilder('leaf2', 'tool_leaf')),
-          ),
-      )
-      .tool('leaf3', 'tool_leaf')
-      .build();
+    const root = sequenceStep('root', (s) => {
+      s.parallel('par', (p) => {
+        p.step(toolStep('leaf1', 'tool_leaf'));
+        p.step(
+          branchStep('br', 'check', (b) => {
+            b.whenTrue(toolStep('leaf2', 'tool_leaf'));
+          }),
+        );
+      });
+      s.step(toolStep('leaf3', 'tool_leaf'));
+    });
 
     expect(root.kind).toBe('sequence');
     expect(root.steps[0]!.kind).toBe('parallel');
     expect((root.steps[0] as ParallelNode).steps[1]!.kind).toBe('branch');
   });
 
-  it('createWorkflow builds a valid contract', () => {
-    const contract = createWorkflow('wf1', 'Test Workflow')
-      .description('A test')
-      .timeoutMs(10000)
-      .buildGraph(() => new ToolNodeBuilder('root', 'my_tool'))
-      .build();
+  it('defineWorkflow builds a valid contract', () => {
+    const contract = defineWorkflow('wf1', 'Test Workflow', (w) =>
+      w
+        .description('A test')
+        .timeoutMs(10000)
+        .buildGraph(() => toolStep('root', 'my_tool')),
+    );
 
     expect(contract.kind).toBe('workflow-contract');
     expect(contract.id).toBe('wf1');
     expect(contract.displayName).toBe('Test Workflow');
     expect(contract.timeoutMs).toBe(10000);
-    expect(contract.build({} as any).kind).toBe('tool');
+    expect(contract.build({} as never).kind).toBe('tool');
   });
 });
-
-/* ================================================================== */
-/*  InstrumentationContract                                            */
-/* ================================================================== */
 
 describe('InstrumentationContract - NoopInstrumentation', () => {
   it('startSpan returns a SpanLike that does not throw', () => {

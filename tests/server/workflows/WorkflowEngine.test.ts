@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createWorkflow,
-  SequenceNodeBuilder,
-  ToolNodeBuilder,
-  ParallelNodeBuilder,
+  branchStep,
+  defineWorkflow,
+  parallelStep,
+  sequenceStep,
+  toolStep,
 } from '@server/workflows/WorkflowContract';
 
 const state = vi.hoisted(() => ({
@@ -36,17 +37,18 @@ describe('workflows/WorkflowEngine', () => {
         successResponse({ name, args }),
       ),
     };
-    const workflow = createWorkflow('wf-seq', 'Sequence Workflow')
-      .buildGraph((executionContext) => {
+    const workflow = defineWorkflow('wf-seq', 'Sequence Workflow', (w) =>
+      w.buildGraph((executionContext) => {
         expect(executionContext.getConfig('feature.enabled', false)).toBe(true);
         expect(executionContext.getConfig('override.flag', false)).toBe(true);
-        return new SequenceNodeBuilder('root')
-          .tool('step-1', 'page_navigate', (builder) =>
-            builder.input({ url: 'https://example.com' }),
-          )
-          .tool('step-2', 'page_click');
-      })
-      .build();
+        return sequenceStep('root', (s) => {
+          s.tool('step-1', 'page_navigate', {
+            input: { url: 'https://example.com' },
+          });
+          s.tool('step-2', 'page_click');
+        });
+      }),
+    );
 
     const result = await executeExtensionWorkflow(ctx as never, workflow, {
       config: { override: { flag: true } },
@@ -80,13 +82,15 @@ describe('workflows/WorkflowEngine', () => {
       config: {},
       executeToolWithTracking,
     };
-    const workflow = createWorkflow('wf-retry', 'Retry Workflow')
-      .buildGraph(() =>
-        new SequenceNodeBuilder('root').tool('retry-step', 'page_click', (builder) =>
-          builder.retry({ maxAttempts: 2, backoffMs: 50, multiplier: 1 }),
-        ),
-      )
-      .build();
+    const workflow = defineWorkflow('wf-retry', 'Retry Workflow', (w) =>
+      w.buildGraph(() =>
+        sequenceStep('root', (s) => {
+          s.tool('retry-step', 'page_click', {
+            retry: { maxAttempts: 2, backoffMs: 50, multiplier: 1 },
+          });
+        }),
+      ),
+    );
 
     const promise = executeExtensionWorkflow(ctx as never, workflow);
     await vi.advanceTimersByTimeAsync(60);
@@ -110,15 +114,17 @@ describe('workflows/WorkflowEngine', () => {
         return successResponse({ ok: true });
       }),
     };
-    const workflow = createWorkflow('wf-parallel', 'Parallel Workflow')
-      .buildGraph(() =>
-        new SequenceNodeBuilder('root').parallel('parallel', (builder) => {
-          builder.failFast(false);
-          builder.tool('good-step', 'good_tool');
-          builder.tool('bad-step', 'bad_tool');
+    const workflow = defineWorkflow('wf-parallel', 'Parallel Workflow', (w) =>
+      w.buildGraph(() =>
+        sequenceStep('root', (s) => {
+          s.parallel('parallel', (p) => {
+            p.failFast(false);
+            p.tool('good-step', 'good_tool');
+            p.tool('bad-step', 'bad_tool');
+          });
         }),
-      )
-      .build();
+      ),
+    );
 
     const result = await executeExtensionWorkflow(ctx as never, workflow);
     const parallelResult = result.stepResults.parallel as Array<Record<string, unknown>>;
@@ -134,29 +140,32 @@ describe('workflows/WorkflowEngine', () => {
       config: {},
       executeToolWithTracking: vi.fn(async (name: string) => successResponse({ name })),
     };
-    const workflow = createWorkflow('wf-branch', 'Branch Workflow')
-      .buildGraph(() => {
-        const root = new SequenceNodeBuilder('root');
-        root.tool('step-1', 'page_navigate');
-        root.branch('branch-fn', 'always_false', (builder) => {
-          builder.predicateFn(() => true);
-          builder.whenTrue(new SequenceNodeBuilder('true-branch').tool('step-2', 'page_click'));
-          builder.whenFalse(new SequenceNodeBuilder('false-branch').tool('step-3', 'debug_pause'));
-        });
-        root.branch('branch-built-in', 'always_false', (builder) => {
-          builder.whenTrue(new SequenceNodeBuilder('unused').tool('step-4', 'page_type'));
-          builder.whenFalse(new SequenceNodeBuilder('used').tool('step-5', 'debug_pause'));
-        });
-        return root;
-      })
-      .build();
+    const workflow = defineWorkflow('wf-branch', 'Branch Workflow', (w) =>
+      w.buildGraph(() =>
+        sequenceStep('root', (s) => {
+          s.tool('step-1', 'page_navigate');
+          s.step(
+            branchStep('branch-fn', 'always_false', (b) => {
+              b.predicateFn(() => true);
+              b.whenTrue(sequenceStep('true-branch', (seq) => seq.tool('step-2', 'page_click')));
+              b.whenFalse(sequenceStep('false-branch', (seq) => seq.tool('step-3', 'debug_pause')));
+            }),
+          );
+          s.step(
+            branchStep('branch-built-in', 'always_false', (b) => {
+              b.whenTrue(sequenceStep('unused', (seq) => seq.tool('step-4', 'page_type')));
+              b.whenFalse(sequenceStep('used', (seq) => seq.tool('step-5', 'debug_pause')));
+            }),
+          );
+        }),
+      ),
+    );
 
     const result = await executeExtensionWorkflow(ctx as never, workflow, {
       profile: 'custom-profile',
     });
 
     expect(result.profile).toBe('custom-profile');
-
     expect(result.stepResults).toHaveProperty('step-2');
     expect(result.stepResults).toHaveProperty('step-5');
     expect(result.stepResults).not.toHaveProperty('step-3');
@@ -172,14 +181,18 @@ describe('workflows/WorkflowEngine', () => {
         config: {},
         executeToolWithTracking: vi.fn(() => new Promise(() => undefined)),
       };
-      const workflow = createWorkflow('wf-timeout', 'Timeout Workflow')
-        .timeoutMs(25)
-        .buildGraph(() => new SequenceNodeBuilder('root').tool('slow-step', 'slow_tool'))
-        .onError(onError)
-        .build();
+      const workflow = defineWorkflow('wf-timeout', 'Timeout Workflow', (w) =>
+        w
+          .timeoutMs(25)
+          .buildGraph(() =>
+            sequenceStep('root', (s) => {
+              s.tool('slow-step', 'slow_tool');
+            }),
+          )
+          .onError(onError),
+      );
 
       const promise = executeExtensionWorkflow(ctx as never, workflow);
-      // Catch early to prevent unhandled rejection
       const caught = promise.catch((e: any) => e);
       await vi.advanceTimersByTimeAsync(30);
 
@@ -204,16 +217,19 @@ describe('workflows/WorkflowEngine', () => {
       .mockResolvedValueOnce(successResponse({ ok: true }));
 
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-    const workflow = createWorkflow('wf', 'wf')
-      .buildGraph(() =>
-        new SequenceNodeBuilder('root')
-          .tool('step-1', 'tool_1')
-          .tool('step-2', 'tool_2', (b) =>
-            b.inputFrom({ injectA: 'step-1.result_field', injectB: 'step-1' }),
-          )
-          .tool('step-3', 'tool_3', (b) => b.inputFrom({ injectC: 'non_existent.field' })),
-      )
-      .build();
+    const workflow = defineWorkflow('wf', 'wf', (w) =>
+      w.buildGraph(() =>
+        sequenceStep('root', (s) => {
+          s.tool('step-1', 'tool_1');
+          s.tool('step-2', 'tool_2', {
+            inputFrom: { injectA: 'step-1.result_field', injectB: 'step-1' },
+          });
+          s.tool('step-3', 'tool_3', {
+            inputFrom: { injectC: 'non_existent.field' },
+          });
+        }),
+      ),
+    );
 
     await executeExtensionWorkflow(ctx as never, workflow);
     expect(executeToolWithTracking).toHaveBeenNthCalledWith(2, 'tool_2', {
@@ -237,28 +253,31 @@ describe('workflows/WorkflowEngine', () => {
       .mockResolvedValueOnce([{ content: [{ text: JSON.stringify({ success: true }) }] }]);
 
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-    const workflow = createWorkflow('wf', 'wf')
-      .buildGraph(() =>
-        new SequenceNodeBuilder('root')
-          .parallel('par', (b) => {
-            b.tool('t1', 't')
-              .tool('t2', 't')
-              .tool('t3', 't')
-              .tool('t4', 't')
-              .tool('t5', 't')
-              .tool('t6', 't');
-          })
-          .branch('br', 'any_step_failed', (b) => b.whenTrue(new ToolNodeBuilder('t7', 't')))
-          .branch('br2', 'success_rate_gte_50', (b) => {
-            b.whenTrue(new ToolNodeBuilder('t9', 't'));
-            b.whenFalse(new ToolNodeBuilder('t8', 't'));
-          }),
-      )
-      .build();
+    const workflow = defineWorkflow('wf', 'wf', (w) =>
+      w.buildGraph(() =>
+        sequenceStep('root', (s) => {
+          s.parallel('par', (p) => {
+            p.tool('t1', 't');
+            p.tool('t2', 't');
+            p.tool('t3', 't');
+            p.tool('t4', 't');
+            p.tool('t5', 't');
+            p.tool('t6', 't');
+          });
+          s.step(branchStep('br', 'any_step_failed', (b) => b.whenTrue(toolStep('t7', 't'))));
+          s.step(
+            branchStep('br2', 'success_rate_gte_50', (b) => {
+              b.whenTrue(toolStep('t9', 't'));
+              b.whenFalse(toolStep('t8', 't'));
+            }),
+          );
+        }),
+      ),
+    );
 
     const result = await executeExtensionWorkflow(ctx as never, workflow);
     expect(result.stepResults).toHaveProperty('t7');
-    expect(result.stepResults).not.toHaveProperty('t8'); // since success rate < 50%
+    expect(result.stepResults).not.toHaveProperty('t8');
   });
 
   it('exhausts tool node retries and fails the workflow with tool error', async () => {
@@ -267,9 +286,9 @@ describe('workflows/WorkflowEngine', () => {
       const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
       const executeToolWithTracking = vi.fn().mockRejectedValue(new Error('retry error'));
       const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-      const workflow = createWorkflow('w', 'w')
-        .buildGraph(() => new ToolNodeBuilder('t', 't').retry({ maxAttempts: 2, backoffMs: 1 }))
-        .build();
+      const workflow = defineWorkflow('w', 'w', (w) =>
+        w.buildGraph(() => toolStep('t', 't', { retry: { maxAttempts: 2, backoffMs: 1 } })),
+      );
 
       const p = executeExtensionWorkflow(ctx as never, workflow);
       const caught = p.catch((e) => e);
@@ -288,9 +307,9 @@ describe('workflows/WorkflowEngine', () => {
       const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
       const executeToolWithTracking = vi.fn().mockRejectedValue(new Error('retry error'));
       const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-      const workflow = createWorkflow('w', 'w')
-        .buildGraph(() => new ToolNodeBuilder('t', 't').retry({ maxAttempts: 0, backoffMs: 1 }))
-        .build();
+      const workflow = defineWorkflow('w', 'w', (w) =>
+        w.buildGraph(() => toolStep('t', 't', { retry: { maxAttempts: 0, backoffMs: 1 } })),
+      );
 
       const p = executeExtensionWorkflow(ctx as never, workflow);
       const caught = p.catch((e) => e);
@@ -311,29 +330,37 @@ describe('workflows/WorkflowEngine', () => {
       return successResponse({});
     });
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-    const workflow = createWorkflow('w', 'w')
-      .buildGraph(() =>
-        new ParallelNodeBuilder('p').failFast(false).tool('t1', 't1').tool('t3', 't3'),
-      )
-      .build();
+    const workflow = defineWorkflow('w', 'w', (w) =>
+      w.buildGraph(() =>
+        parallelStep('p', (p) => {
+          p.failFast(false);
+          p.tool('t1', 't1');
+          p.tool('t3', 't3');
+        }),
+      ),
+    );
     const res = await executeExtensionWorkflow(ctx as never, workflow);
     expect((res.stepResults.p as any)[0].error).toBe('boom');
     expect((res.stepResults.p as any)[1].error).toBe('string error');
 
-    const wf2 = createWorkflow('w2', 'w2')
-      .buildGraph(() =>
-        new ParallelNodeBuilder('p').failFast(true).tool('t1', 't1').tool('t2', 't2'),
-      )
-      .build();
+    const wf2 = defineWorkflow('w2', 'w2', (w) =>
+      w.buildGraph(() =>
+        parallelStep('p', (p) => {
+          p.failFast(true);
+          p.tool('t1', 't1');
+          p.tool('t2', 't2');
+        }),
+      ),
+    );
     await expect(executeExtensionWorkflow(ctx as never, wf2)).rejects.toThrow('boom');
   });
 
   it('throws on unsupported node kind', async () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking: vi.fn() };
-    const workflow = createWorkflow('w', 'w')
-      .buildGraph(() => ({ build: () => ({ kind: 'unknown', id: 'u' }) }) as any)
-      .build();
+    const workflow = defineWorkflow('w', 'w', (w) =>
+      w.buildGraph(() => ({ kind: 'unknown', id: 'u' }) as any),
+    );
     await expect(executeExtensionWorkflow(ctx as never, workflow)).rejects.toThrow(
       'Unsupported workflow node kind: unknown',
     );
@@ -343,10 +370,9 @@ describe('workflows/WorkflowEngine', () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const executeToolWithTracking = vi.fn().mockResolvedValueOnce(successResponse({}));
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-    const w = createWorkflow('w', 'w')
-      .timeoutMs(1000)
-      .buildGraph(() => new ToolNodeBuilder('t', 't'))
-      .build();
+    const w = defineWorkflow('w', 'w', (wf) =>
+      wf.timeoutMs(1000).buildGraph(() => toolStep('t', 't')),
+    );
     await expect(executeExtensionWorkflow(ctx as never, w)).resolves.toMatchObject({
       result: expect.anything(),
     });
@@ -356,10 +382,9 @@ describe('workflows/WorkflowEngine', () => {
     const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
     const executeToolWithTracking = vi.fn().mockRejectedValueOnce(new Error('native error'));
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-    const w = createWorkflow('w', 'w')
-      .timeoutMs(1000)
-      .buildGraph(() => new ToolNodeBuilder('t', 't'))
-      .build();
+    const w = defineWorkflow('w', 'w', (wf) =>
+      wf.timeoutMs(1000).buildGraph(() => toolStep('t', 't')),
+    );
     await expect(executeExtensionWorkflow(ctx as never, w)).rejects.toThrow('native error');
   });
 
@@ -372,22 +397,23 @@ describe('workflows/WorkflowEngine', () => {
       .mockResolvedValueOnce(successResponse({ route: 'guest' }));
 
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-    const workflow = createWorkflow('wf-var-equals', 'Variable Equals Test')
-      .buildGraph(() => {
-        const root = new SequenceNodeBuilder('root');
-        root.tool('check-auth', 'check_auth');
-        root.branch('branch-auth', 'variable_equals_check-auth.status_authenticated', (builder) => {
-          builder.whenTrue(new SequenceNodeBuilder('auth-route').tool('auth-action', 'auth_tool'));
-          builder.whenFalse(
-            new SequenceNodeBuilder('guest-route').tool('guest-action', 'guest_tool'),
+    const workflow = defineWorkflow('wf-var-equals', 'Variable Equals Test', (w) =>
+      w.buildGraph(() =>
+        sequenceStep('root', (s) => {
+          s.tool('check-auth', 'check_auth');
+          s.step(
+            branchStep('branch-auth', 'variable_equals_check-auth.status_authenticated', (b) => {
+              b.whenTrue(sequenceStep('auth-route', (seq) => seq.tool('auth-action', 'auth_tool')));
+              b.whenFalse(
+                sequenceStep('guest-route', (seq) => seq.tool('guest-action', 'guest_tool')),
+              );
+            }),
           );
-        });
-        return root;
-      })
-      .build();
+        }),
+      ),
+    );
 
     const result = await executeExtensionWorkflow(ctx as never, workflow);
-
     expect(result.stepResults).toHaveProperty('auth-route');
     expect(result.stepResults).not.toHaveProperty('guest-route');
   });
@@ -401,20 +427,21 @@ describe('workflows/WorkflowEngine', () => {
       .mockResolvedValueOnce(successResponse({ found: false }));
 
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-    const workflow = createWorkflow('wf-var-contains', 'Variable Contains Test')
-      .buildGraph(() => {
-        const root = new SequenceNodeBuilder('root');
-        root.tool('scan-endpoints', 'scan');
-        root.branch('branch-api', 'variable_contains_scan-endpoints.endpoints_/api/', (builder) => {
-          builder.whenTrue(new SequenceNodeBuilder('api-found').tool('process-api', 'process'));
-          builder.whenFalse(new SequenceNodeBuilder('no-api').tool('skip', 'skip_tool'));
-        });
-        return root;
-      })
-      .build();
+    const workflow = defineWorkflow('wf-var-contains', 'Variable Contains Test', (w) =>
+      w.buildGraph(() =>
+        sequenceStep('root', (s) => {
+          s.tool('scan-endpoints', 'scan');
+          s.step(
+            branchStep('branch-api', 'variable_contains_scan-endpoints.endpoints_/api/', (b) => {
+              b.whenTrue(sequenceStep('api-found', (seq) => seq.tool('process-api', 'process')));
+              b.whenFalse(sequenceStep('no-api', (seq) => seq.tool('skip', 'skip_tool')));
+            }),
+          );
+        }),
+      ),
+    );
 
     const result = await executeExtensionWorkflow(ctx as never, workflow);
-
     expect(result.stepResults).toHaveProperty('api-found');
     expect(result.stepResults).not.toHaveProperty('no-api');
   });
@@ -430,24 +457,25 @@ describe('workflows/WorkflowEngine', () => {
       .mockResolvedValueOnce(successResponse({ valid: false }));
 
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-    const workflow = createWorkflow('wf-var-matches', 'Variable Matches Test')
-      .buildGraph(() => {
-        const root = new SequenceNodeBuilder('root');
-        root.tool('get-token', 'get_token');
-        root.branch(
-          'branch-jwt',
-          'variable_matches_get-token.token_^eyJ[A-Za-z0-9]+\\.',
-          (builder) => {
-            builder.whenTrue(new SequenceNodeBuilder('jwt-detected').tool('decode-jwt', 'decode'));
-            builder.whenFalse(new SequenceNodeBuilder('not-jwt').tool('handle-other', 'handle'));
-          },
-        );
-        return root;
-      })
-      .build();
+    const workflow = defineWorkflow('wf-var-matches', 'Variable Matches Test', (w) =>
+      w.buildGraph(() =>
+        sequenceStep('root', (s) => {
+          s.tool('get-token', 'get_token');
+          s.step(
+            branchStep(
+              'branch-jwt',
+              'variable_matches_get-token.token_^eyJ[A-Za-z0-9]+\\.',
+              (b) => {
+                b.whenTrue(sequenceStep('jwt-detected', (seq) => seq.tool('decode-jwt', 'decode')));
+                b.whenFalse(sequenceStep('not-jwt', (seq) => seq.tool('handle-other', 'handle')));
+              },
+            ),
+          );
+        }),
+      ),
+    );
 
     const result = await executeExtensionWorkflow(ctx as never, workflow);
-
     expect(result.stepResults).toHaveProperty('jwt-detected');
     expect(result.stepResults).not.toHaveProperty('not-jwt');
   });
@@ -460,22 +488,23 @@ describe('workflows/WorkflowEngine', () => {
       .mockResolvedValueOnce(successResponse({ matched: true }));
 
     const ctx = { baseTier: 'workflow', config: {}, executeToolWithTracking };
-    // Note: This tests that the predicate correctly handles nested access
-    const workflow = createWorkflow('wf-deep', 'Deep Equality Test')
-      .buildGraph(() => {
-        const root = new SequenceNodeBuilder('root');
-        root.tool('get-user', 'get_user');
-        // Access nested property via dot notation
-        root.branch('branch-user', 'variable_equals_get-user.user.name_test', (builder) => {
-          builder.whenTrue(new SequenceNodeBuilder('user-match').tool('verify', 'verify_tool'));
-          builder.whenFalse(new SequenceNodeBuilder('user-no-match').tool('reject', 'reject_tool'));
-        });
-        return root;
-      })
-      .build();
+    const workflow = defineWorkflow('wf-deep', 'Deep Equality Test', (w) =>
+      w.buildGraph(() =>
+        sequenceStep('root', (s) => {
+          s.tool('get-user', 'get_user');
+          s.step(
+            branchStep('branch-user', 'variable_equals_get-user.user.name_test', (b) => {
+              b.whenTrue(sequenceStep('user-match', (seq) => seq.tool('verify', 'verify_tool')));
+              b.whenFalse(
+                sequenceStep('user-no-match', (seq) => seq.tool('reject', 'reject_tool')),
+              );
+            }),
+          );
+        }),
+      ),
+    );
 
     const result = await executeExtensionWorkflow(ctx as never, workflow);
-
     expect(result.stepResults).toHaveProperty('user-match');
   });
 });

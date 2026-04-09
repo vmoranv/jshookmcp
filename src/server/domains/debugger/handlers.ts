@@ -1,5 +1,5 @@
 /**
- * Debugger Tool Handlers - Facade Module
+ * Debugger tool handlers.
  *
  * This file serves as the main entry point for debugger tool handlers.
  * Handlers are organized into atomic modules by functional domain:

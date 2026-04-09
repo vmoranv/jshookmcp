@@ -24,8 +24,8 @@ vi.mock('@src/server/extensions/ExtensionManager', () => ({
 
 import { WorkflowHandlers } from '@server/domains/workflow/handlers';
 import {
-  createWorkflow,
-  ToolNodeBuilder,
+  defineWorkflow,
+  toolStep,
   type WorkflowContract,
 } from '@server/workflows/WorkflowContract';
 
@@ -310,9 +310,9 @@ describe('WorkflowHandlers', () => {
   });
 
   it('executes a loaded extension workflow with node input overrides', async () => {
-    const workflow: WorkflowContract = createWorkflow('workflow.demo.v1', 'Demo Workflow')
-      .buildGraph(() => new ToolNodeBuilder('demo-node', 'demo_tool').input({ value: 'base' }))
-      .build();
+    const workflow: WorkflowContract = defineWorkflow('workflow.demo.v1', 'Demo Workflow', (w) =>
+      w.buildGraph(() => toolStep('demo-node', 'demo_tool', { input: { value: 'base' } })),
+    );
 
     deps.serverContext.extensionWorkflowsById.set('workflow.demo.v1', {
       id: 'workflow.demo.v1',

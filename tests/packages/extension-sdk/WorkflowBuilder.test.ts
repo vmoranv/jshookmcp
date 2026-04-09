@@ -1,18 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  toolNode,
-  sequenceNode,
-  parallelNode,
-  branchNode,
-  createWorkflow,
   defineWorkflow,
   toolStep,
   sequenceStep,
-  ToolNodeBuilder,
-  SequenceNodeBuilder,
-  ParallelNodeBuilder,
-  BranchNodeBuilder,
-  WorkflowBuilder,
+  parallelStep,
+  branchStep,
+  fallbackStep,
   type WorkflowExecutionContext,
   type ToolNodeOptions,
 } from '@extension-sdk/workflow';
@@ -22,46 +15,40 @@ const onStartHandler = () => {};
 const onFinishHandler = () => {};
 const onErrorHandler = () => {};
 
-/* ================================================================== */
-/*  Factory functions — return Builder instances                        */
-/* ================================================================== */
-
-describe('Workflow node factory functions', () => {
-  describe('toolNode', () => {
-    it('returns a ToolNodeBuilder', () => {
-      const builder = toolNode('nav', 'page_navigate');
-      expect(builder).toBeInstanceOf(ToolNodeBuilder);
-    });
-
+describe('extension-sdk workflow steps', () => {
+  describe('toolStep', () => {
     it('builds a ToolNode with kind = tool', () => {
-      const node = toolNode('nav', 'page_navigate').build();
+      const node = toolStep('nav', 'page_navigate');
       expect(node.kind).toBe('tool');
       expect(node.id).toBe('nav');
       expect(node.toolName).toBe('page_navigate');
     });
 
-    it('builds a ToolNode with input via fluent API', () => {
-      const node = toolNode('nav', 'page_navigate').input({ url: 'https://example.com' }).build();
+    it('builds a ToolNode with input via shorthand options', () => {
+      const node = toolStep('nav', 'page_navigate', {
+        input: { url: 'https://example.com' },
+        inputFrom: { copied: 'prev.result' },
+      });
       expect(node.input).toEqual({ url: 'https://example.com' });
+      expect(node.inputFrom).toEqual({ copied: 'prev.result' });
     });
 
     it('builds a ToolNode with retry and timeout', () => {
-      const node = toolNode('fetch', 'network_get_requests')
-        .retry({ maxAttempts: 3, backoffMs: 1000 })
-        .timeout(5000)
-        .build();
+      const node = toolStep('fetch', 'network_get_requests', {
+        retry: { maxAttempts: 3, backoffMs: 1000 },
+        timeoutMs: 5000,
+      });
       expect(node.retry).toEqual({ maxAttempts: 3, backoffMs: 1000 });
       expect(node.timeoutMs).toBe(5000);
     });
   });
 
-  describe('sequenceNode', () => {
-    it('returns a SequenceNodeBuilder', () => {
-      expect(sequenceNode('main')).toBeInstanceOf(SequenceNodeBuilder);
-    });
-
+  describe('sequenceStep', () => {
     it('builds a SequenceNode with child tool steps', () => {
-      const node = sequenceNode('main').tool('a', 'tool_a').tool('b', 'tool_b').build();
+      const node = sequenceStep('main', (s) => {
+        s.step(toolStep('a', 'tool_a'));
+        s.step(toolStep('b', 'tool_b'));
+      });
       expect(node.kind).toBe('sequence');
       expect(node.id).toBe('main');
       expect(node.steps).toHaveLength(2);
@@ -69,75 +56,59 @@ describe('Workflow node factory functions', () => {
       expect(node.steps[1]!.kind).toBe('tool');
     });
 
-    it('builds a SequenceNode and exercises all CompositeNodeBuilder shortcut branches', () => {
-      const b = sequenceNode('seq1');
-      b.step(toolNode('t1', 't1Name'));
-      // branch: config as object with input, timeout, retry
-      b.tool('t2', 't2Name', {
+    it('supports tool shorthand with options and nested nodes', () => {
+      const options: ToolNodeOptions = {
         input: { b: 2 },
         timeoutMs: 1000,
         retry: { maxAttempts: 1, backoffMs: 10 },
-      });
-      // branch: config as object with NO fields (tests false paths of config.input, config.retry, config.timeoutMs)
-      b.tool('t3', 't3Name', {});
-      // branch: config as function
-      b.tool('t4', 't4Name', (tb) => tb.timeout(2000));
-      // branch: nested composite shortcuts with configs
-      b.sequence('seq2', (sb) => sb.tool('t5', 't5Name'));
-      b.parallel('par1', (pb) => pb.tool('t6', 't6Name'));
-      b.branch('br1', 'pred', (bb) => bb.whenTrue(toolNode('t7', 't7Name')));
-      // branch: no config arguments at all
-      b.tool('t8', 't8Name');
-      b.sequence('seq3');
-      b.parallel('par2');
+      };
 
-      const node = b.build();
+      const node = sequenceStep('seq1', (s) => {
+        s.step(toolStep('t1', 't1Name'));
+        s.tool('t2', 't2Name', options);
+        s.tool('t3', 't3Name', {});
+        s.tool('t4', 't4Name', (t) => t.timeout(2000));
+        s.sequence('seq2', (inner) => inner.tool('t5', 't5Name'));
+        s.parallel('par1', (p) => p.tool('t6', 't6Name'));
+        s.branch('br1', 'pred', (b) => b.whenTrue(toolStep('t7', 't7Name')));
+        s.tool('t8', 't8Name');
+        s.sequence('seq3');
+        s.parallel('par2');
+      });
+
       expect(node.kind).toBe('sequence');
       expect(node.id).toBe('seq1');
       expect(node.steps).toHaveLength(10);
       expect((node.steps[1] as any).timeoutMs).toBe(1000);
       expect((node.steps[3] as any).timeoutMs).toBe(2000);
     });
-
-    it('BranchNodeBuilder shortcut without config throws on build due to missing whenTrue', () => {
-      const b = sequenceNode('seq_branch_err');
-      b.branch('br2', 'pred2'); // no config, so whenTrue is not set
-      expect(() => b.build()).toThrow(/requires a whenTrue step/);
-    });
   });
 
-  describe('parallelNode', () => {
-    it('returns a ParallelNodeBuilder', () => {
-      expect(parallelNode('par')).toBeInstanceOf(ParallelNodeBuilder);
-    });
-
+  describe('parallelStep', () => {
     it('builds a ParallelNode with defaults', () => {
-      const node = parallelNode('par').tool('a', 'tool_a').build();
+      const node = parallelStep('par', (p) => p.tool('a', 'tool_a'));
       expect(node.kind).toBe('parallel');
       expect(node.id).toBe('par');
       expect(node.steps).toHaveLength(1);
+      expect(node.maxConcurrency).toBe(4);
+      expect(node.failFast).toBe(false);
     });
 
-    it('accepts maxConcurrency and failFast via fluent API', () => {
-      const node = parallelNode('par')
-        .maxConcurrency(2)
-        .failFast(true)
-        .tool('a', 'tool_a')
-        .tool('b', 'tool_b')
-        .build();
+    it('accepts maxConcurrency and failFast', () => {
+      const node = parallelStep('par', (p) => {
+        p.maxConcurrency(2).failFast(true);
+        p.tool('a', 'tool_a');
+        p.tool('b', 'tool_b');
+      });
       expect(node.maxConcurrency).toBe(2);
       expect(node.failFast).toBe(true);
       expect(node.steps).toHaveLength(2);
     });
   });
 
-  describe('branchNode', () => {
-    it('returns a BranchNodeBuilder', () => {
-      expect(branchNode('gate', 'hasAuth')).toBeInstanceOf(BranchNodeBuilder);
-    });
-
+  describe('branchStep', () => {
     it('builds with whenTrue only', () => {
-      const node = branchNode('gate', 'hasAuth').whenTrue(toolNode('y', 'tool_y')).build();
+      const node = branchStep('gate', 'hasAuth', (b) => b.whenTrue(toolStep('y', 'tool_y')));
       expect(node.kind).toBe('branch');
       expect(node.predicateId).toBe('hasAuth');
       expect(node.whenTrue.kind).toBe('tool');
@@ -145,42 +116,45 @@ describe('Workflow node factory functions', () => {
     });
 
     it('builds with both whenTrue and whenFalse', () => {
-      const node = branchNode('gate', 'hasAuth')
-        .whenTrue(toolNode('y', 'tool_y'))
-        .whenFalse(toolNode('n', 'tool_n'))
-        .build();
+      const node = branchStep('gate', 'hasAuth', (b) => {
+        b.whenTrue(toolStep('y', 'tool_y'));
+        b.whenFalse(toolStep('n', 'tool_n'));
+      });
       expect(node.whenTrue.kind).toBe('tool');
       expect(node.whenFalse?.kind).toBe('tool');
     });
 
     it('accepts predicateFn', () => {
-      const node = branchNode('gate', 'hasAuth')
-        .predicateFn(alwaysTruePredicate)
-        .whenTrue(toolNode('y', 'tool_y'))
-        .build();
+      const node = branchStep('gate', 'hasAuth', (b) => {
+        b.predicateFn(alwaysTruePredicate).whenTrue(toolStep('y', 'tool_y'));
+      });
       expect(node.predicateFn).toBe(alwaysTruePredicate);
     });
 
     it('throws if whenTrue is not set', () => {
-      expect(() => branchNode('gate', 'hasAuth').build()).toThrow(/requires a whenTrue step/);
+      expect(() => branchStep('gate', 'hasAuth')).toThrow(/requires a whenTrue step/);
+    });
+  });
+
+  describe('fallbackStep', () => {
+    it('builds primary and fallback branches', () => {
+      const node = fallbackStep('fb', (f) => {
+        f.primary(toolStep('primary', 'tool_a'));
+        f.fallback(toolStep('fallback', 'tool_b'));
+      });
+
+      expect(node.kind).toBe('fallback');
+      expect(node.primary.id).toBe('primary');
+      expect(node.fallback.id).toBe('fallback');
     });
   });
 });
 
-/* ================================================================== */
-/*  createWorkflow + WorkflowBuilder                                   */
-/* ================================================================== */
-
-describe('createWorkflow (fluent builder)', () => {
-  it('returns a WorkflowBuilder', () => {
-    const wb = createWorkflow('test.wf', 'Test WF');
-    expect(wb).toBeInstanceOf(WorkflowBuilder);
-  });
-
+describe('defineWorkflow', () => {
   it('builds a minimal workflow contract', () => {
-    const wf = createWorkflow('test.wf', 'Test WF')
-      .buildGraph((_ctx) => sequenceNode('main').tool('nav', 'page_navigate'))
-      .build();
+    const wf = defineWorkflow('test.wf', 'Test WF', (w) =>
+      w.buildGraph((_ctx) => sequenceStep('main', (s) => s.tool('nav', 'page_navigate'))),
+    );
 
     expect(wf.kind).toBe('workflow-contract');
     expect(wf.version).toBe(1);
@@ -189,13 +163,14 @@ describe('createWorkflow (fluent builder)', () => {
   });
 
   it('supports full metadata chain', () => {
-    const wf = createWorkflow('full.wf', 'Full WF')
-      .description('A full workflow')
-      .tags(['test', 'demo'])
-      .timeoutMs(30_000)
-      .defaultMaxConcurrency(4)
-      .buildGraph((_ctx) => sequenceNode('main').tool('a', 'tool_a'))
-      .build();
+    const wf = defineWorkflow('full.wf', 'Full WF', (w) =>
+      w
+        .description('A full workflow')
+        .tags(['test', 'demo'])
+        .timeoutMs(30_000)
+        .defaultMaxConcurrency(4)
+        .buildGraph((_ctx) => sequenceStep('main', (s) => s.tool('a', 'tool_a'))),
+    );
 
     expect(wf.description).toBe('A full workflow');
     expect(wf.tags).toEqual(['test', 'demo']);
@@ -204,10 +179,6 @@ describe('createWorkflow (fluent builder)', () => {
   });
 
   it('supports route and lifecycle handlers', () => {
-    const onStart = onStartHandler;
-    const onFinish = onFinishHandler;
-    const onError = onErrorHandler;
-
     const routeMeta = {
       kind: 'workflow' as const,
       triggerPatterns: [/test/],
@@ -216,28 +187,30 @@ describe('createWorkflow (fluent builder)', () => {
       priority: 1,
     };
 
-    const wf = createWorkflow('life.wf', 'Life WF')
-      .route(routeMeta)
-      .onStart(onStart)
-      .onFinish(onFinish)
-      .onError(onError)
-      .buildGraph((_ctx) => toolNode('main', 'tool'));
+    const wf = defineWorkflow('life.wf', 'Life WF', (w) =>
+      w
+        .route(routeMeta)
+        .onStart(onStartHandler)
+        .onFinish(onFinishHandler)
+        .onError(onErrorHandler)
+        .buildGraph((_ctx) => toolStep('main', 'tool')),
+    );
 
-    const contract = wf.build();
-    expect(contract.route).toEqual(routeMeta);
-    expect(contract.onStart).toBe(onStart);
-    expect(contract.onFinish).toBe(onFinish);
-    expect(contract.onError).toBe(onError);
+    expect(wf.route).toEqual(routeMeta);
+    expect(wf.onStart).toBe(onStartHandler);
+    expect(wf.onFinish).toBe(onFinishHandler);
+    expect(wf.onError).toBe(onErrorHandler);
   });
 
-  it('build() produces a working build function', () => {
-    const wf = createWorkflow('seq.wf', 'Seq WF')
-      .buildGraph((_ctx) =>
-        sequenceNode('main')
-          .tool('nav', 'page_navigate', (b) => b.input({ url: 'https://example.com' }))
-          .tool('links', 'page_get_all_links'),
-      )
-      .build();
+  it('produces a working build function', () => {
+    const wf = defineWorkflow('seq.wf', 'Seq WF', (w) =>
+      w.buildGraph((_ctx) =>
+        sequenceStep('main', (s) => {
+          s.tool('nav', 'page_navigate', { input: { url: 'https://example.com' } });
+          s.tool('links', 'page_get_all_links');
+        }),
+      ),
+    );
 
     const root = wf.build({} as WorkflowExecutionContext);
     expect(root.kind).toBe('sequence');
@@ -247,68 +220,9 @@ describe('createWorkflow (fluent builder)', () => {
     }
   });
 
-  it('tool() in sequence supports ToolNodeOptions shorthand (P7)', () => {
-    const options: ToolNodeOptions = {
-      input: { url: 'https://example.com' },
-      timeoutMs: 5000,
-    };
-    const wf = createWorkflow('opts.wf', 'Options WF')
-      .buildGraph((_ctx) => sequenceNode('main').tool('nav', 'page_navigate', options))
-      .build();
-
-    const root = wf.build({} as WorkflowExecutionContext);
-    if (root.kind === 'sequence') {
-      const firstStep = root.steps[0]!;
-      expect(firstStep.kind).toBe('tool');
-      if (firstStep.kind === 'tool') {
-        expect(firstStep.input).toEqual({ url: 'https://example.com' });
-        expect(firstStep.timeoutMs).toBe(5000);
-      }
-    }
-  });
-
   it('throws if buildGraph is not set', () => {
-    expect(() => createWorkflow('no-graph.wf', 'No Graph WF').build()).toThrow(
+    expect(() => defineWorkflow('no-graph.wf', 'No Graph WF', (w) => w)).toThrow(
       /needs a buildGraph/,
     );
-  });
-
-  it('defineWorkflow builds a contract without a trailing build call', () => {
-    const wf = defineWorkflow('inline.wf', 'Inline WF', (w) =>
-      w.description('inline').buildGraph((_ctx) => toolStep('t', 'page_navigate')),
-    );
-
-    expect(wf).toMatchObject({
-      kind: 'workflow-contract',
-      id: 'inline.wf',
-      displayName: 'Inline WF',
-      description: 'inline',
-    });
-    expect(wf.build({} as WorkflowExecutionContext)).toMatchObject({
-      kind: 'tool',
-      id: 't',
-      toolName: 'page_navigate',
-    });
-  });
-
-  it('sequenceStep materializes a built sequence node directly', () => {
-    const node = sequenceStep('inline-seq', (b) => {
-      b.step(toolStep('child', 'page_click'));
-    });
-
-    expect(node).toEqual({
-      kind: 'sequence',
-      id: 'inline-seq',
-      steps: [
-        {
-          kind: 'tool',
-          id: 'child',
-          toolName: 'page_click',
-          input: undefined,
-          retry: undefined,
-          timeoutMs: undefined,
-        },
-      ],
-    });
   });
 });
