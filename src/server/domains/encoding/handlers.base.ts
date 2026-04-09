@@ -246,8 +246,15 @@ export class EncodingHandlersBase {
 
       const resolved = resolve(filePath);
       const real = await realpath(resolved);
-      const allowedRoots = [tmpdir(), homedir(), process.cwd()].map((p) =>
-        isAbsolute(p) ? p : resolve(p),
+      const allowedRoots = await Promise.all(
+        [tmpdir(), homedir(), process.cwd()].map(async (p) => {
+          const absolute = isAbsolute(p) ? p : resolve(p);
+          try {
+            return await realpath(absolute);
+          } catch {
+            return absolute;
+          }
+        }),
       );
       const isAllowed = allowedRoots.some((root) => real.startsWith(root));
       if (!isAllowed) {
