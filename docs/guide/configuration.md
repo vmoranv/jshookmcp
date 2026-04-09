@@ -6,19 +6,9 @@
 
 ## 配置项总表
 
-### 1. LLM 与模型提供方
+当前运行时配置以 `src/utils/config.ts` 为准。仓库当前不读取 `DEFAULT_LLM_PROVIDER`、`OPENAI_*`、`ANTHROPIC_*` 这些历史文档里出现过的变量。
 
-| 变量                   | 作用                                                                 | 默认值 / 典型值              |
-| ---------------------- | -------------------------------------------------------------------- | ---------------------------- |
-| `DEFAULT_LLM_PROVIDER` | 指定默认 LLM 提供方，决定主流程优先使用 OpenAI 还是 Anthropic 配置。 | `openai`                     |
-| `OPENAI_API_KEY`       | OpenAI 兼容接口的 API Key。                                          | 无默认值                     |
-| `OPENAI_MODEL`         | OpenAI 兼容模型名。                                                  | `gpt-4-turbo-preview`        |
-| `OPENAI_BASE_URL`      | OpenAI 兼容接口 Base URL，适合自建网关或兼容服务。                   | `https://api.openai.com/v1`  |
-| `ANTHROPIC_API_KEY`    | Anthropic API Key。                                                  | 无默认值                     |
-| `ANTHROPIC_MODEL`      | Anthropic 模型名。                                                   | `claude-3-5-sonnet-20241022` |
-| `ANTHROPIC_BASE_URL`   | Anthropic 兼容接口 Base URL。                                        | 无默认值                     |
-
-### 2. 浏览器与 Puppeteer
+### 1. 浏览器与 Puppeteer
 
 | 变量                         | 作用                                       | 默认值 / 典型值                                |
 | ---------------------------- | ------------------------------------------ | ---------------------------------------------- |
@@ -38,7 +28,7 @@
 | `CAPTCHA_SOLVER_BASE_URL`    | 外部验证码求解服务基址。                   | 无默认值                                       |
 | `CAPTCHA_DEFAULT_TIMEOUT_MS` | CAPTCHA 默认等待超时。                     | `180000`                                       |
 
-### 3. 主程序身份与日志
+### 2. 主程序身份与日志
 
 | 变量                      | 作用                             | 默认值 / 典型值   |
 | ------------------------- | -------------------------------- | ----------------- |
@@ -48,19 +38,16 @@
 | `RUNTIME_ERROR_WINDOW_MS` | 运行时错误恢复窗口长度（毫秒）。 | `60000`           |
 | `RUNTIME_ERROR_THRESHOLD` | 恢复窗口内允许的可恢复错误阈值。 | `5`               |
 
-### 4. 档位、搜索与工具选择
+### 3. 档位、搜索与工具选择
 
 | 变量                                      | 作用                                                  | 默认值 / 典型值           |
 | ----------------------------------------- | ----------------------------------------------------- | ------------------------- |
 | `MCP_TOOL_PROFILE`                        | 选择工具档位：`search` / `workflow` / `full`。        | 默认：`search`            |
 | `MCP_TOOL_DOMAINS`                        | 手动指定启用域；设置后优先级高于 `MCP_TOOL_PROFILE`。 | 无默认值                  |
-| `SEARCH_WORKFLOW_BOOST_TIERS`             | 哪些档位启用 workflow 结果加权。                      | 常见示例：`workflow,full` |
-| `SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER` | `search_tools` 中 workflow 域结果的排序倍率。         | 常见示例：`1.5`           |
 | `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | 用 JSON 自定义”意图 -> 工具”加权规则。                | 无默认值                  |
-| `DYNAMIC_BOOST_ENABLED`                   | 启用无感自动升级：搜索时自动 boost 到最小满足层级。   | 默认：`true`              |
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | plugin 在 boost 时自动注册的默认档位。                | `full`                    |
 
-### 5. 传输、HTTP 与安全
+### 4. 传输、HTTP 与安全
 
 | 变量                              | 作用                                                   | 默认值 / 典型值    |
 | --------------------------------- | ------------------------------------------------------ | ------------------ |
@@ -77,7 +64,7 @@
 | `MCP_HTTP_KEEPALIVE_TIMEOUT_MS`   | HTTP keep-alive 超时。                                 | `60000`            |
 | `MCP_HTTP_FORCE_CLOSE_TIMEOUT_MS` | 连接强制关闭前的等待时间。                             | `5000`             |
 
-### 6. 扩展目录、签名与 registry
+### 5. 扩展目录、签名与 registry
 
 | 变量                            | 作用                                                                       | 默认值 / 典型值                                                                |
 | ------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -89,33 +76,14 @@
 | `MCP_PLUGIN_STRICT_LOAD`        | 是否启用严格扩展加载策略。                                                 | 生产环境默认趋严                                                               |
 | `EXTENSION_REGISTRY_BASE_URL`   | `browse_extension_registry` / `install_extension` 用的扩展 registry 基址。 | `https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry` |
 
-### 7. 插件专用开关与 boost 档位
-
-| 变量                                        | 作用                                   | 默认值 / 典型值    |
-| ------------------------------------------- | -------------------------------------- | ------------------ |
-| `PLUGIN_BURP_OFFICIAL_MCP_SSE_ENABLED`      | 打开 / 关闭 Burp 官方 MCP SSE 插件。   | 无默认值           |
-| `PLUGIN_ZAP_REST_BRIDGE_ENABLED`            | 打开 / 关闭 ZAP REST bridge 插件。     | 无默认值           |
-| `PLUGIN_PLATFORM_BRIDGE_ENABLED`            | 打开 / 关闭平台 bridge 插件。          | 无默认值           |
-| `PLUGIN_NATIVE_BRIDGE_ENABLED`              | 打开 / 关闭 Native bridge 插件。       | 无默认值           |
-| `PLUGIN_BURP_OFFICIAL_MCP_SSE_BOOST_DOMAIN` | 为 Burp 插件单独指定 boost 档位。      | 典型值：`workflow` |
-| `PLUGIN_ZAP_REST_BRIDGE_BOOST_DOMAIN`       | 为 ZAP 插件单独指定 boost 档位。       | 典型值：`workflow` |
-| `PLUGIN_PLATFORM_BRIDGE_BOOST_DOMAIN`       | 为平台 bridge 单独指定 boost 档位。    | 典型值：`full`     |
-| `PLUGIN_NATIVE_BRIDGE_BOOST_DOMAIN`         | 为 Native bridge 单独指定 boost 档位。 | 典型值：`full`     |
-
-### 8. 外部桥接与平台端点
+### 6. 外部桥接与平台端点
 
 | 变量                    | 作用                                   | 默认值 / 典型值                     |
 | ----------------------- | -------------------------------------- | ----------------------------------- |
 | `BURP_MCP_SSE_URL`      | Burp 官方 MCP SSE bridge 地址。        | 典型值：`http://127.0.0.1:9876/sse` |
-| `BURP_MCP_AUTH_TOKEN`   | Burp bridge 可选认证令牌。             | 无默认值                            |
-| `ZAP_API_URL`           | ZAP REST API 地址。                    | 典型值：`http://127.0.0.1:8080`     |
-| `ZAP_API_KEY`           | ZAP API Key。                          | 无默认值                            |
-| `GHIDRA_BRIDGE_URL`     | Ghidra bridge 地址。                   | `http://127.0.0.1:18080`            |
-| `IDA_BRIDGE_URL`        | IDA bridge 地址。                      | `http://127.0.0.1:18081`            |
-| `DEBUG_PORT_CANDIDATES` | 扫描 CDP / Node 调试端口时的候选列表。 | `9222,9229,9333,2039`               |
 | `DEFAULT_DEBUG_PORT`    | 默认调试端口。                         | `9222`                              |
 
-### 9. 缓存、Token 预算与性能
+### 7. 缓存、Token 预算与性能
 
 | 变量                                  | 作用                         | 默认值 / 典型值                   |
 | ------------------------------------- | ---------------------------- | --------------------------------- |
@@ -123,7 +91,6 @@
 | `CACHE_DIR`                           | 缓存目录。                   | `.cache`                          |
 | `CACHE_TTL`                           | 缓存 TTL（秒）。             | `3600`                            |
 | `CACHE_GLOBAL_MAX_SIZE_BYTES`         | 全局缓存大小上限。           | `524288000`                       |
-| `CACHE_LOW_HIT_RATE_THRESHOLD`        | 低命中率阈值。               | `0.3`                             |
 | `TOKEN_BUDGET_MAX_TOKENS`             | Token 预算总上限。           | `200000`                          |
 | `DETAILED_DATA_DEFAULT_TTL_MS`        | 详细数据默认 TTL。           | `1800000`                         |
 | `DETAILED_DATA_MAX_TTL_MS`            | 详细数据最大 TTL。           | `3600000`                         |
@@ -134,7 +101,7 @@
 | `jshook_CPU_CONCURRENCY`              | CPU 并发上限。               | `2`                               |
 | `jshook_CDP_CONCURRENCY`              | CDP 并发上限。               | `2`                               |
 
-### 10. Worker 池与并发调度
+### 8. Worker 池与并发调度
 
 | 变量                             | 作用                      | 默认值 / 典型值 |
 | -------------------------------- | ------------------------- | --------------- |
@@ -147,7 +114,7 @@
 | `PARALLEL_DEFAULT_MAX_RETRIES`   | 默认并发重试次数。        | `2`             |
 | `PARALLEL_RETRY_BACKOFF_BASE_MS` | 默认并发重试退避基数。    | `1000`          |
 
-### 11. 外部工具 / 沙箱 / 符号执行
+### 9. 外部工具 / 沙箱 / 符号执行
 
 | 变量                                | 作用                          | 默认值 / 典型值 |
 | ----------------------------------- | ----------------------------- | --------------- |
@@ -166,7 +133,7 @@
 | `SYMBOLIC_EXEC_TIMEOUT_MS`          | 符号执行超时。                | `30000`         |
 | `PACKER_SANDBOX_TIMEOUT_MS`         | Packer 沙箱超时。             | `3000`          |
 
-### 12. LLM token 与反混淆调优
+### 10. LLM token 与反混淆调优
 
 | 变量                           | 作用                        | 默认值 / 典型值 |
 | ------------------------------ | --------------------------- | --------------- |
@@ -175,7 +142,7 @@
 | `DEOBF_LLM_MAX_TOKENS`         | 通用反混淆 LLM token 上限。 | `2000`          |
 | `CRYPTO_DETECT_LLM_MAX_TOKENS` | 加密检测 LLM token 上限。   | `2000`          |
 
-### 13. Workflow 批处理与 bundle 缓存
+### 11. Workflow 批处理与 bundle 缓存
 
 | 变量                              | 作用                              | 默认值 / 典型值 |
 | --------------------------------- | --------------------------------- | --------------- |
@@ -184,7 +151,7 @@
 | `WORKFLOW_BUNDLE_CACHE_TTL_MS`    | workflow bundle 缓存 TTL。        | `300000`        |
 | `WORKFLOW_BUNDLE_CACHE_MAX_BYTES` | workflow bundle 缓存大小上限。    | `104857600`     |
 
-### 14. 内存操作
+### 12. 内存操作
 
 | 变量                                 | 作用                          | 默认值 / 典型值 |
 | ------------------------------------ | ----------------------------- | --------------- |
