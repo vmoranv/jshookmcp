@@ -6,6 +6,9 @@ import {
   ToolNodeBuilder,
   WorkflowBuilder,
   createWorkflow,
+  defineWorkflow,
+  sequenceStep,
+  toolStep,
 } from '@server/workflows/WorkflowContract';
 
 const alwaysTruePredicate = () => true;
@@ -119,6 +122,24 @@ describe('workflows/WorkflowContract', () => {
     });
   });
 
+  it('defineWorkflow builds a contract without a trailing build call', () => {
+    const workflow = defineWorkflow('wf-2', 'Workflow Two', (w) =>
+      w.description('inline definition').buildGraph(() => toolStep('root', 'page_navigate')),
+    );
+
+    expect(workflow).toMatchObject({
+      kind: 'workflow-contract',
+      id: 'wf-2',
+      displayName: 'Workflow Two',
+      description: 'inline definition',
+    });
+    expect(workflow.build({} as never)).toMatchObject({
+      kind: 'tool',
+      id: 'root',
+      toolName: 'page_navigate',
+    });
+  });
+
   // --- Additional coverage for node builders ---
 
   it('SequenceNodeBuilder supports nested sequence via step()', () => {
@@ -173,6 +194,28 @@ describe('workflows/WorkflowContract', () => {
     expect(node.steps[0]).toMatchObject({ kind: 'sequence' });
     expect(node.steps[1]).toMatchObject({ kind: 'parallel' });
     expect(node.steps[2]).toMatchObject({ kind: 'tool' });
+  });
+
+  it('sequenceStep materializes a built sequence node directly', () => {
+    const node = sequenceStep('outer', (b) => {
+      b.step(toolStep('inner-tool', 'tool_x'));
+    });
+
+    expect(node).toEqual({
+      kind: 'sequence',
+      id: 'outer',
+      steps: [
+        {
+          kind: 'tool',
+          id: 'inner-tool',
+          toolName: 'tool_x',
+          input: undefined,
+          inputFrom: undefined,
+          retry: undefined,
+          timeoutMs: undefined,
+        },
+      ],
+    });
   });
 
   it('ParallelNodeBuilder supports branch()', () => {
@@ -246,6 +289,24 @@ describe('workflows/WorkflowContract', () => {
       .build();
     expect(node).toMatchObject({
       inputFrom: { targetField: 'stepId.sourceField' },
+    });
+  });
+
+  it('toolStep supports ToolNodeOptions including inputFrom', () => {
+    const node = toolStep('child', 'tool_name', {
+      input: { value: 1 },
+      inputFrom: { copied: 'source.result' },
+      timeoutMs: 50,
+    });
+
+    expect(node).toEqual({
+      kind: 'tool',
+      id: 'child',
+      toolName: 'tool_name',
+      input: { value: 1 },
+      inputFrom: { copied: 'source.result' },
+      retry: undefined,
+      timeoutMs: 50,
     });
   });
 

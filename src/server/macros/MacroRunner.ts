@@ -9,9 +9,9 @@
  */
 
 import {
-  createWorkflow,
-  SequenceNodeBuilder,
-  ToolNodeBuilder,
+  defineWorkflow,
+  sequenceStep,
+  toolStep,
   type WorkflowContract,
   type ToolNodeInput,
 } from '@server/workflows/WorkflowContract';
@@ -30,36 +30,40 @@ export class MacroRunner {
    * Build a WorkflowContract from a MacroDefinition.
    */
   buildWorkflowFromDefinition(def: MacroDefinition): WorkflowContract {
-    return createWorkflow(def.id, def.displayName)
-      .description(def.description)
-      .tags(def.tags)
-      .timeoutMs(def.timeoutMs ?? 120_000)
-      .buildGraph(() => {
-        const seq = new SequenceNodeBuilder(`${def.id}-root`);
-        for (const step of def.steps) {
-          const toolBuilder = new ToolNodeBuilder(step.id, step.toolName)
-            .input((step.input as Record<string, ToolNodeInput>) ?? {})
-            .timeout(step.timeoutMs ?? 0);
-          if (step.inputFrom) {
-            toolBuilder.inputFrom(step.inputFrom);
-          }
-          seq.step(toolBuilder);
-        }
-        return seq;
-      })
-      .onStart((ctx) => {
-        ctx.emitSpan('macro.start', {
-          macroId: def.id,
-          totalSteps: def.steps.length,
-        });
-      })
-      .onError((_ctx, err) => {
-        _ctx.emitSpan('macro.error', {
-          macroId: def.id,
-          error: err.message,
-        });
-      })
-      .build();
+    return defineWorkflow(def.id, def.displayName, (w) =>
+      w
+        .description(def.description)
+        .tags(def.tags)
+        .timeoutMs(def.timeoutMs ?? 120_000)
+        .buildGraph(() =>
+          sequenceStep(`${def.id}-root`, (seq) => {
+            for (const step of def.steps) {
+              seq.step(
+                toolStep(step.id, step.toolName, (toolBuilder) => {
+                  toolBuilder
+                    .input((step.input as Record<string, ToolNodeInput>) ?? {})
+                    .timeout(step.timeoutMs ?? 0);
+                  if (step.inputFrom) {
+                    toolBuilder.inputFrom(step.inputFrom);
+                  }
+                }),
+              );
+            }
+          }),
+        )
+        .onStart((ctx) => {
+          ctx.emitSpan('macro.start', {
+            macroId: def.id,
+            totalSteps: def.steps.length,
+          });
+        })
+        .onError((_ctx, err) => {
+          _ctx.emitSpan('macro.error', {
+            macroId: def.id,
+            error: err.message,
+          });
+        }),
+    );
   }
 
   /**

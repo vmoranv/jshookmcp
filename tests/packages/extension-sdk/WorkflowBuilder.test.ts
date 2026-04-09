@@ -5,6 +5,9 @@ import {
   parallelNode,
   branchNode,
   createWorkflow,
+  defineWorkflow,
+  toolStep,
+  sequenceStep,
   ToolNodeBuilder,
   SequenceNodeBuilder,
   ParallelNodeBuilder,
@@ -255,11 +258,11 @@ describe('createWorkflow (fluent builder)', () => {
 
     const root = wf.build({} as WorkflowExecutionContext);
     if (root.kind === 'sequence') {
-      const toolStep = root.steps[0]!;
-      expect(toolStep.kind).toBe('tool');
-      if (toolStep.kind === 'tool') {
-        expect(toolStep.input).toEqual({ url: 'https://example.com' });
-        expect(toolStep.timeoutMs).toBe(5000);
+      const firstStep = root.steps[0]!;
+      expect(firstStep.kind).toBe('tool');
+      if (firstStep.kind === 'tool') {
+        expect(firstStep.input).toEqual({ url: 'https://example.com' });
+        expect(firstStep.timeoutMs).toBe(5000);
       }
     }
   });
@@ -268,5 +271,44 @@ describe('createWorkflow (fluent builder)', () => {
     expect(() => createWorkflow('no-graph.wf', 'No Graph WF').build()).toThrow(
       /needs a buildGraph/,
     );
+  });
+
+  it('defineWorkflow builds a contract without a trailing build call', () => {
+    const wf = defineWorkflow('inline.wf', 'Inline WF', (w) =>
+      w.description('inline').buildGraph((_ctx) => toolStep('t', 'page_navigate')),
+    );
+
+    expect(wf).toMatchObject({
+      kind: 'workflow-contract',
+      id: 'inline.wf',
+      displayName: 'Inline WF',
+      description: 'inline',
+    });
+    expect(wf.build({} as WorkflowExecutionContext)).toMatchObject({
+      kind: 'tool',
+      id: 't',
+      toolName: 'page_navigate',
+    });
+  });
+
+  it('sequenceStep materializes a built sequence node directly', () => {
+    const node = sequenceStep('inline-seq', (b) => {
+      b.step(toolStep('child', 'page_click'));
+    });
+
+    expect(node).toEqual({
+      kind: 'sequence',
+      id: 'inline-seq',
+      steps: [
+        {
+          kind: 'tool',
+          id: 'child',
+          toolName: 'page_click',
+          input: undefined,
+          retry: undefined,
+          timeoutMs: undefined,
+        },
+      ],
+    });
   });
 });
