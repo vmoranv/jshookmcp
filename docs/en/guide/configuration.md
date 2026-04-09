@@ -6,19 +6,9 @@
 
 ## Full configuration reference
 
-### 1. LLM and provider selection
+Runtime configuration is defined by `src/utils/config.ts`. The current runtime does not read `DEFAULT_LLM_PROVIDER`, `OPENAI_*`, or `ANTHROPIC_*` variables that appeared in older documentation.
 
-| Variable               | Purpose                                                    | Default / Typical value      |
-| ---------------------- | ---------------------------------------------------------- | ---------------------------- |
-| `DEFAULT_LLM_PROVIDER` | Selects the default LLM provider used by the main runtime. | `openai`                     |
-| `OPENAI_API_KEY`       | API key for OpenAI-compatible endpoints.                   | no default                   |
-| `OPENAI_MODEL`         | Default OpenAI-compatible model name.                      | `gpt-4-turbo-preview`        |
-| `OPENAI_BASE_URL`      | Base URL for OpenAI-compatible APIs or gateways.           | `https://api.openai.com/v1`  |
-| `ANTHROPIC_API_KEY`    | Anthropic API key.                                         | no default                   |
-| `ANTHROPIC_MODEL`      | Default Anthropic model name.                              | `claude-3-5-sonnet-20241022` |
-| `ANTHROPIC_BASE_URL`   | Base URL for Anthropic-compatible APIs.                    | no default                   |
-
-### 2. Browser and Puppeteer
+### 1. Browser and Puppeteer
 
 | Variable                     | Purpose                                             | Default / Typical value                           |
 | ---------------------------- | --------------------------------------------------- | ------------------------------------------------- |
@@ -38,7 +28,7 @@
 | `CAPTCHA_SOLVER_BASE_URL`    | Base URL for the external CAPTCHA solver service.   | no default                                        |
 | `CAPTCHA_DEFAULT_TIMEOUT_MS` | Default CAPTCHA wait timeout.                       | `180000`                                          |
 
-### 3. Server identity and logging
+### 2. Server identity and logging
 
 | Variable                  | Purpose                                                      | Default / Typical value |
 | ------------------------- | ------------------------------------------------------------ | ----------------------- |
@@ -48,19 +38,16 @@
 | `RUNTIME_ERROR_WINDOW_MS` | Recovery window length for runtime error counting.           | `60000`                 |
 | `RUNTIME_ERROR_THRESHOLD` | Recoverable error threshold inside the runtime error window. | `5`                     |
 
-### 4. Profiles, search, and tool selection
+### 3. Profiles, search, and tool selection
 
 | Variable                                  | Purpose                                                           | Default / Typical value          |
 | ----------------------------------------- | ----------------------------------------------------------------- | -------------------------------- |
 | `MCP_TOOL_PROFILE`                        | Selects the tool profile: `search`, `workflow`, or `full`.        | default: `search`                |
 | `MCP_TOOL_DOMAINS`                        | Explicit domain allowlist; overrides `MCP_TOOL_PROFILE` when set. | no default                       |
-| `SEARCH_WORKFLOW_BOOST_TIERS`             | Tiers that receive workflow-domain ranking boosts.                | typical example: `workflow,full` |
-| `SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER` | Ranking multiplier for workflow-domain results in `search_tools`. | typical example: `1.5`           |
 | `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | JSON override for explicit intent-to-tool ranking boosts.         | no default                       |
-| `DYNAMIC_BOOST_ENABLED`                   | Enable seamless auto-boost during search_tools.                   | default: `true`                  |
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | Default tier for plugin auto-registration during boost.           | `full`                           |
 
-### 5. Transport, HTTP, and security
+### 4. Transport, HTTP, and security
 
 | Variable                          | Purpose                                                 | Default / Typical value |
 | --------------------------------- | ------------------------------------------------------- | ----------------------- |
@@ -77,7 +64,7 @@
 | `MCP_HTTP_KEEPALIVE_TIMEOUT_MS`   | HTTP keep-alive timeout.                                | `60000`                 |
 | `MCP_HTTP_FORCE_CLOSE_TIMEOUT_MS` | Force-close grace timeout.                              | `5000`                  |
 
-### 6. Extension roots, signatures, and registry
+### 5. Extension roots, signatures, and registry
 
 | Variable                        | Purpose                                                           | Default / Typical value                                                        |
 | ------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -89,33 +76,14 @@
 | `MCP_PLUGIN_STRICT_LOAD`        | Enables strict extension loading behavior.                        | stricter by default in production                                              |
 | `EXTENSION_REGISTRY_BASE_URL`   | Base URL for `browse_extension_registry` and `install_extension`. | `https://raw.githubusercontent.com/vmoranv/jshookmcpextension/master/registry` |
 
-### 7. Plugin-specific toggles and boost tiers
-
-| Variable                                    | Purpose                                               | Default / Typical value   |
-| ------------------------------------------- | ----------------------------------------------------- | ------------------------- |
-| `PLUGIN_BURP_OFFICIAL_MCP_SSE_ENABLED`      | Enables or disables the Burp official MCP SSE plugin. | no default                |
-| `PLUGIN_ZAP_REST_BRIDGE_ENABLED`            | Enables or disables the ZAP REST bridge plugin.       | no default                |
-| `PLUGIN_PLATFORM_BRIDGE_ENABLED`            | Enables or disables the platform bridge plugin.       | no default                |
-| `PLUGIN_NATIVE_BRIDGE_ENABLED`              | Enables or disables the native bridge plugin.         | no default                |
-| `PLUGIN_BURP_OFFICIAL_MCP_SSE_BOOST_DOMAIN` | Override boost tier for the Burp plugin.              | typical value: `workflow` |
-| `PLUGIN_ZAP_REST_BRIDGE_BOOST_DOMAIN`       | Override boost tier for the ZAP plugin.               | typical value: `workflow` |
-| `PLUGIN_PLATFORM_BRIDGE_BOOST_DOMAIN`       | Override boost tier for the platform bridge plugin.   | typical value: `full`     |
-| `PLUGIN_NATIVE_BRIDGE_BOOST_DOMAIN`         | Override boost tier for the native bridge plugin.     | typical value: `full`     |
-
-### 8. Bridges and platform endpoints
+### 6. Bridges and platform endpoints
 
 | Variable                | Purpose                                                               | Default / Typical value                    |
 | ----------------------- | --------------------------------------------------------------------- | ------------------------------------------ |
 | `BURP_MCP_SSE_URL`      | Burp official MCP SSE bridge URL.                                     | typical value: `http://127.0.0.1:9876/sse` |
-| `BURP_MCP_AUTH_TOKEN`   | Optional auth token for the Burp bridge.                              | no default                                 |
-| `ZAP_API_URL`           | ZAP REST API URL.                                                     | typical value: `http://127.0.0.1:8080`     |
-| `ZAP_API_KEY`           | ZAP API key.                                                          | no default                                 |
-| `GHIDRA_BRIDGE_URL`     | Ghidra bridge URL.                                                    | `http://127.0.0.1:18080`                   |
-| `IDA_BRIDGE_URL`        | IDA bridge URL.                                                       | `http://127.0.0.1:18081`                   |
-| `DEBUG_PORT_CANDIDATES` | Candidate ports scanned when looking for CDP or Node debug listeners. | `9222,9229,9333,2039`                      |
 | `DEFAULT_DEBUG_PORT`    | Default debug port used for remote-debugging launches.                | `9222`                                     |
 
-### 9. Cache, token budget, and performance
+### 7. Cache, token budget, and performance
 
 | Variable                              | Purpose                                       | Default / Typical value                              |
 | ------------------------------------- | --------------------------------------------- | ---------------------------------------------------- |
@@ -123,7 +91,6 @@
 | `CACHE_DIR`                           | Cache directory.                              | `.cache`                                             |
 | `CACHE_TTL`                           | Cache TTL in seconds.                         | `3600`                                               |
 | `CACHE_GLOBAL_MAX_SIZE_BYTES`         | Maximum total cache size.                     | `524288000`                                          |
-| `CACHE_LOW_HIT_RATE_THRESHOLD`        | Low-hit-rate threshold for cache heuristics.  | `0.3`                                                |
 | `TOKEN_BUDGET_MAX_TOKENS`             | Maximum token budget.                         | `200000`                                             |
 | `DETAILED_DATA_DEFAULT_TTL_MS`        | Default TTL for detailed data entries.        | `1800000`                                            |
 | `DETAILED_DATA_MAX_TTL_MS`            | Maximum TTL for detailed data entries.        | `3600000`                                            |
@@ -134,7 +101,7 @@
 | `jshook_CPU_CONCURRENCY`              | CPU concurrency limit.                        | `2`                                                  |
 | `jshook_CDP_CONCURRENCY`              | CDP concurrency limit.                        | `2`                                                  |
 
-### 10. Worker pool and parallel scheduling
+### 8. Worker pool and parallel scheduling
 
 | Variable                         | Purpose                               | Default / Typical value |
 | -------------------------------- | ------------------------------------- | ----------------------- |
@@ -147,7 +114,7 @@
 | `PARALLEL_DEFAULT_MAX_RETRIES`   | Default parallel retry count.         | `2`                     |
 | `PARALLEL_RETRY_BACKOFF_BASE_MS` | Base retry backoff for parallel jobs. | `1000`                  |
 
-### 11. External tools, sandboxing, and symbolic execution
+### 9. External tools, sandboxing, and symbolic execution
 
 | Variable                            | Purpose                                             | Default / Typical value |
 | ----------------------------------- | --------------------------------------------------- | ----------------------- |
@@ -166,7 +133,7 @@
 | `SYMBOLIC_EXEC_TIMEOUT_MS`          | Symbolic execution timeout.                         | `30000`                 |
 | `PACKER_SANDBOX_TIMEOUT_MS`         | Packer sandbox timeout.                             | `3000`                  |
 
-### 12. LLM token budgets for analysis routines
+### 10. LLM token budgets for analysis routines
 
 | Variable                       | Purpose                                        | Default / Typical value |
 | ------------------------------ | ---------------------------------------------- | ----------------------- |
@@ -175,7 +142,7 @@
 | `DEOBF_LLM_MAX_TOKENS`         | Max tokens for general deobfuscation prompts.  | `2000`                  |
 | `CRYPTO_DETECT_LLM_MAX_TOKENS` | Max tokens for crypto detection prompts.       | `2000`                  |
 
-### 13. Workflow batch and bundle cache tuning
+### 11. Workflow batch and bundle cache tuning
 
 | Variable                          | Purpose                                            | Default / Typical value |
 | --------------------------------- | -------------------------------------------------- | ----------------------- |
@@ -184,7 +151,7 @@
 | `WORKFLOW_BUNDLE_CACHE_TTL_MS`    | Workflow bundle cache TTL.                         | `300000`                |
 | `WORKFLOW_BUNDLE_CACHE_MAX_BYTES` | Workflow bundle cache size cap.                    | `104857600`             |
 
-### 14. Memory operations
+### 12. Memory operations
 
 | Variable                             | Purpose                                     | Default / Typical value |
 | ------------------------------------ | ------------------------------------------- | ----------------------- |

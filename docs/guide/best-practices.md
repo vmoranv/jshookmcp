@@ -10,17 +10,6 @@
 # .env — 最小启动配置
 PUPPETEER_HEADLESS=true
 MCP_TOOL_PROFILE=workflow        # 推荐默认档位，覆盖 90% 逆向场景
-DYNAMIC_BOOST_ENABLED=true       # 按需自动升级缺失域
-```
-
-### 需要 AI 辅助分析时
-
-```bash
-# LLM 配置（反混淆、智能 Hook 生成等功能需要）
-DEFAULT_LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-xxx
-OPENAI_MODEL=gpt-4-turbo-preview
-OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
 ### 需要扩展生态时
@@ -44,8 +33,6 @@ EXTENSION_REGISTRY_BASE_URL=https://raw.githubusercontent.com/vmoranv/jshookmcpe
 # 切换方式
 MCP_TOOL_PROFILE=workflow   # 在 .env 中设置
 ```
-
-开启 `DYNAMIC_BOOST_ENABLED=true` 后，即使用 `search` 档也能自动按需升级到所需域，无需手动切到 `full`。
 
 ---
 
@@ -85,8 +72,6 @@ PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
 # 或
 CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
 
-# 调试端口（连接已运行的浏览器）
-DEFAULT_DEBUG_PORT=9222
 ```
 
 ### 性能调优
@@ -128,9 +113,8 @@ WORKFLOW_BATCH_MAX_TIMEOUT_MS=300000
 
 **解决**：
 
-1. 开启自动升级：`DYNAMIC_BOOST_ENABLED=true`
-2. 或切到更高档位：`MCP_TOOL_PROFILE=workflow`
-3. 或运行时调用 `activate_tools(["debugger", "hooks"])`
+1. 切到更高档位：`MCP_TOOL_PROFILE=workflow`
+2. 或运行时调用 `activate_tools(["debugger", "hooks"])`
 
 ### Extension 安装失败
 
@@ -156,7 +140,7 @@ WORKFLOW_BATCH_MAX_TIMEOUT_MS=300000
 
 1. 运行 `doctor_environment()` 检查依赖
 2. 显式指定浏览器路径：`PUPPETEER_EXECUTABLE_PATH=...`
-3. 检查端口是否被占用：`DEFAULT_DEBUG_PORT=9222`
+3. 检查浏览器远程调试端口是否被占用
 
 ---
 

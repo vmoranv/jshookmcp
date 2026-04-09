@@ -10,17 +10,6 @@ A hands-on guide for first-time jshookmcp users — get running quickly and avoi
 # .env — minimal working config
 PUPPETEER_HEADLESS=true
 MCP_TOOL_PROFILE=workflow        # recommended default, covers 90% of RE tasks
-DYNAMIC_BOOST_ENABLED=true       # auto-upgrade missing domains on demand
-```
-
-### When You Need AI-Assisted Analysis
-
-```bash
-# LLM config (required for deobfuscation, smart hook generation, etc.)
-DEFAULT_LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-xxx
-OPENAI_MODEL=gpt-4-turbo-preview
-OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
 ### When You Need the Extension Ecosystem
@@ -44,8 +33,6 @@ EXTENSION_REGISTRY_BASE_URL=https://raw.githubusercontent.com/vmoranv/jshookmcpe
 # Set in .env
 MCP_TOOL_PROFILE=workflow
 ```
-
-With `DYNAMIC_BOOST_ENABLED=true`, even the `search` profile will auto-upgrade to needed domains on demand — no need to manually switch to `full`.
 
 ---
 
@@ -85,8 +72,6 @@ PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
 # or on Windows
 CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
 
-# Debug port (connect to an already-running browser)
-DEFAULT_DEBUG_PORT=9222
 ```
 
 ### Performance Tuning
@@ -128,9 +113,8 @@ WORKFLOW_BATCH_MAX_TIMEOUT_MS=300000
 
 **Fix**:
 
-1. Enable auto-upgrade: `DYNAMIC_BOOST_ENABLED=true`
-2. Or switch to a higher profile: `MCP_TOOL_PROFILE=workflow`
-3. Or activate at runtime: `activate_tools(["debugger", "hooks"])`
+1. Switch to a higher profile: `MCP_TOOL_PROFILE=workflow`
+2. Or activate at runtime: `activate_tools(["debugger", "hooks"])`
 
 ### Extension Installation Fails
 
@@ -156,7 +140,7 @@ WORKFLOW_BATCH_MAX_TIMEOUT_MS=300000
 
 1. Run `doctor_environment()` to check dependencies
 2. Explicitly set browser path: `PUPPETEER_EXECUTABLE_PATH=...`
-3. Check if port is in use: `DEFAULT_DEBUG_PORT=9222`
+3. Check whether the browser remote-debugging port is already in use
 
 ---
 

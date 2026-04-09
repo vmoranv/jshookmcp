@@ -6,7 +6,6 @@ describe('config validation – extended checks', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    delete process.env.DEFAULT_LLM_PROVIDER;
     delete process.env.PUPPETEER_TIMEOUT;
     delete process.env.CACHE_TTL;
     delete process.env.MAX_CONCURRENT_ANALYSIS;
