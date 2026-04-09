@@ -1,11 +1,11 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
+import { getConfig } from '@utils/config';
 import { EXTENSION_GIT_CLONE_TIMEOUT_MS, EXTENSION_GIT_CHECKOUT_TIMEOUT_MS } from '@src/constants';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import {
@@ -172,7 +172,9 @@ const enum RegistryLimit {
   FETCH_TIMEOUT_MS = 10_000,
 }
 
-const REGISTRY_CACHE_DIR = resolve(homedir(), '.jshookmcp', 'cache');
+function getRegistryCacheDir(): string {
+  return getConfig().paths.registryCacheDir;
+}
 
 type RegistryFetchCode =
   | 'timeout'
@@ -256,7 +258,7 @@ async function resolvePackageManager(installDir: string): Promise<PackageManager
 }
 
 function getRegistryCachePath(kind: RegistryIndexKind): string {
-  return resolve(REGISTRY_CACHE_DIR, `registry-${kind}.json`);
+  return resolve(getRegistryCacheDir(), `registry-${kind}.json`);
 }
 
 async function readRegistryCache<T>(kind: RegistryIndexKind): Promise<T | null> {

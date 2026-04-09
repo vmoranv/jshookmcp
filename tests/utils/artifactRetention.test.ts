@@ -77,43 +77,58 @@ describe('artifactRetention', () => {
   it('computes default directories and runs safely in dry_run mode', async () => {
     const artifacts = await import('@utils/artifacts');
     const outputPaths = await import('@utils/outputPaths');
+    const originalScreenshotDir = process.env.MCP_SCREENSHOT_DIR;
+    const originalDebuggerDir = process.env.MCP_DEBUGGER_SESSIONS_DIR;
 
-    vi.spyOn(outputPaths, 'getProjectRoot').mockReturnValue(root);
-    vi.spyOn(artifacts, 'getArtifactsRoot').mockReturnValue(join(root, 'artifacts'));
-    vi.spyOn(artifacts, 'getArtifactDir').mockImplementation((category) =>
-      join(root, 'artifacts', category),
-    );
-    vi.spyOn(outputPaths, 'resolveOutputDirectory').mockImplementation(
-      (inputDir, fallbackDir) => inputDir ?? join(root, fallbackDir ?? 'screenshots'),
-    );
+    try {
+      process.env.MCP_SCREENSHOT_DIR = join(root, 'screenshots');
+      process.env.MCP_DEBUGGER_SESSIONS_DIR = join(root, 'debugger-sessions');
+      vi.spyOn(outputPaths, 'getProjectRoot').mockReturnValue(root);
+      vi.spyOn(artifacts, 'getArtifactsRoot').mockReturnValue(join(root, 'artifacts'));
+      vi.spyOn(artifacts, 'getArtifactDir').mockImplementation((category) =>
+        join(root, 'artifacts', category),
+      );
 
-    const result = await cleanupArtifacts({
-      directories: undefined,
-      dryRun: true,
-    });
-    expect(result.success).toBe(true);
-    expect(result.directories.length).toBeGreaterThan(0);
-    expect(result.directories).toContain(join(root, 'artifacts'));
-    expect(result.directories).toContain(join(root, 'screenshots'));
+      const result = await cleanupArtifacts({
+        directories: undefined,
+        dryRun: true,
+      });
+      expect(result.success).toBe(true);
+      expect(result.directories.length).toBeGreaterThan(0);
+      expect(result.directories).toContain(join(root, 'artifacts'));
+      expect(result.directories).toContain(join(root, 'screenshots'));
+    } finally {
+      if (originalScreenshotDir === undefined) {
+        delete process.env.MCP_SCREENSHOT_DIR;
+      } else {
+        process.env.MCP_SCREENSHOT_DIR = originalScreenshotDir;
+      }
+      if (originalDebuggerDir === undefined) {
+        delete process.env.MCP_DEBUGGER_SESSIONS_DIR;
+      } else {
+        process.env.MCP_DEBUGGER_SESSIONS_DIR = originalDebuggerDir;
+      }
+    }
   });
 
   it('keeps pruning cwd debugger sessions when MCP_PROJECT_ROOT is overridden', async () => {
     const artifacts = await import('@utils/artifacts');
     const outputPaths = await import('@utils/outputPaths');
     const originalProjectRoot = process.env.MCP_PROJECT_ROOT;
+    const originalScreenshotDir = process.env.MCP_SCREENSHOT_DIR;
+    const originalDebuggerDir = process.env.MCP_DEBUGGER_SESSIONS_DIR;
     const cwdRoot = join(root, 'runtime-cwd');
     const projectRoot = join(root, 'project-root');
     const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(cwdRoot);
 
     try {
       process.env.MCP_PROJECT_ROOT = 'custom-root';
+      process.env.MCP_SCREENSHOT_DIR = join(projectRoot, 'screenshots');
+      process.env.MCP_DEBUGGER_SESSIONS_DIR = join(projectRoot, 'debugger-sessions');
       vi.spyOn(outputPaths, 'getProjectRoot').mockReturnValue(projectRoot);
       vi.spyOn(artifacts, 'getArtifactsRoot').mockReturnValue(join(projectRoot, 'artifacts'));
       vi.spyOn(artifacts, 'getArtifactDir').mockImplementation((category) =>
         join(projectRoot, 'artifacts', category),
-      );
-      vi.spyOn(outputPaths, 'resolveOutputDirectory').mockImplementation(
-        (inputDir, fallbackDir) => inputDir ?? join(projectRoot, fallbackDir ?? 'screenshots'),
       );
 
       const result = await cleanupArtifacts({
@@ -129,6 +144,16 @@ describe('artifactRetention', () => {
         delete process.env.MCP_PROJECT_ROOT;
       } else {
         process.env.MCP_PROJECT_ROOT = originalProjectRoot;
+      }
+      if (originalScreenshotDir === undefined) {
+        delete process.env.MCP_SCREENSHOT_DIR;
+      } else {
+        process.env.MCP_SCREENSHOT_DIR = originalScreenshotDir;
+      }
+      if (originalDebuggerDir === undefined) {
+        delete process.env.MCP_DEBUGGER_SESSIONS_DIR;
+      } else {
+        process.env.MCP_DEBUGGER_SESSIONS_DIR = originalDebuggerDir;
       }
     }
   });

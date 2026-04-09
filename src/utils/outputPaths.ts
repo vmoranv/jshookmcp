@@ -11,6 +11,7 @@ import {
   sep,
 } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getConfig } from '@utils/config';
 
 const defaultProjectRoot = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -75,32 +76,19 @@ export function resolveOutputDirectory(
 }
 
 export function getDebuggerSessionsDir(): string {
-  const configured = process.env.MCP_DEBUGGER_SESSIONS_DIR?.trim();
-  if (configured) {
-    return resolveOutputDirectory(configured, 'debugger-sessions');
-  }
-
-  return resolve(process.cwd(), 'debugger-sessions');
+  return getConfig().paths.debuggerSessionsDir;
 }
 
 export function getExtensionRegistryDir(): string {
-  return resolveOutputDirectory(
-    process.env.MCP_EXTENSION_REGISTRY_DIR,
-    'artifacts/extension-registry',
-  );
+  return getConfig().paths.extensionRegistryDir;
 }
 
 export function getCodeCacheDir(): string {
-  const configured = process.env.MCP_CODE_CACHE_DIR?.trim() || process.env.CACHE_DIR?.trim();
-  if (configured) {
-    return resolveOutputDirectory(configured, '.cache/code');
-  }
-
-  return resolve(getProjectRoot(), '.cache', 'code');
+  return resolve(getConfig().cache.dir, 'code');
 }
 
 export function getTlsKeyLogDir(): string {
-  return resolveOutputDirectory(process.env.MCP_TLS_KEYLOG_DIR, 'artifacts/tmp');
+  return getConfig().paths.tlsKeyLogDir;
 }
 
 export function getSystemTempRoots(): string[] {
@@ -128,7 +116,7 @@ export async function resolveScreenshotOutputPath(options: {
   const extension = options.type === 'jpeg' ? 'jpg' : 'png';
   const fallbackDir = options.fallbackDir || 'screenshots/manual';
   const fallbackName = options.fallbackName || 'page';
-  const screenshotRoot = resolveOutputDirectory(process.env.MCP_SCREENSHOT_DIR, fallbackDir);
+  const screenshotRoot = resolveOutputDirectory(getConfig().paths.screenshotDir, fallbackDir);
   const requested = options.requestedPath?.trim();
 
   let absolutePath: string;

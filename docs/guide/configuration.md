@@ -1,5 +1,9 @@
 # `.env` 与配置
 
+`.env.example` 只是模板，不会被运行时自动加载。实际读取的是仓库根目录下的 `.env`。
+
+`.env.example` 现在只保留常见覆盖项，不再把“代码里已经有默认值”的变量全量重复展开。未写入 `.env` 的配置项会直接回退到 `src/utils/config.ts` 中的内建默认值。
+
 ## 配置项总表
 
 ### 1. LLM 与模型提供方
@@ -18,13 +22,17 @@
 
 | 变量                         | 作用                                       | 默认值 / 典型值                                |
 | ---------------------------- | ------------------------------------------ | ---------------------------------------------- |
-| `PUPPETEER_HEADLESS`         | 是否以无头模式启动浏览器。                 | 代码默认 `false`；`.env.example` 示例为 `true` |
+| `PUPPETEER_HEADLESS`         | 是否以无头模式启动浏览器。                 | 代码默认 `false` |
 | `PUPPETEER_TIMEOUT`          | Puppeteer 默认超时（毫秒）。               | `30000`                                        |
 | `PUPPETEER_EXECUTABLE_PATH`  | 显式指定浏览器可执行文件路径。             | 无默认值                                       |
 | `CHROME_PATH`                | 作为浏览器路径的备用变量。                 | 无默认值                                       |
 | `BROWSER_EXECUTABLE_PATH`    | 再一个浏览器路径备用变量。                 | 无默认值                                       |
-| `CAPTCHA_SCREENSHOT_DIR`     | CAPTCHA 识别失败时的截图落盘目录。         | `./screenshots`                                |
-| `MCP_SCREENSHOT_DIR`         | 常规截图输出根目录（仍受项目根路径约束）。 | 常见示例：`./screenshots/manual`               |
+| `CAPTCHA_SCREENSHOT_DIR`     | CAPTCHA 识别失败时的截图落盘目录。         | `./screenshots/captcha`                        |
+| `MCP_SCREENSHOT_DIR`         | 常规截图输出根目录（仍受项目根路径约束）。 | `./screenshots`                                |
+| `MCP_DEBUGGER_SESSIONS_DIR`  | debugger session 存储目录。                | `./debugger-sessions`                          |
+| `MCP_EXTENSION_REGISTRY_DIR` | extension registry 持久化目录。            | `./artifacts/extension-registry`               |
+| `MCP_TLS_KEYLOG_DIR`         | TLS key log 文件目录。                     | `./artifacts/tmp`                              |
+| `MCP_REGISTRY_CACHE_DIR`     | 远端扩展 registry 的本地缓存目录。         | `~/.jshookmcp/cache`                           |
 | `CAPTCHA_PROVIDER`           | 自动验证码求解的默认 provider。            | `manual`                                       |
 | `CAPTCHA_API_KEY`            | 自动验证码求解 provider 的 API Key。       | 无默认值                                       |
 | `CAPTCHA_SOLVER_BASE_URL`    | 外部验证码求解服务基址。                   | 无默认值                                       |
@@ -111,7 +119,7 @@
 
 | 变量                                  | 作用                         | 默认值 / 典型值                   |
 | ------------------------------------- | ---------------------------- | --------------------------------- |
-| `ENABLE_CACHE`                        | 是否启用磁盘缓存。           | `true`（示例） / 代码默认 `false` |
+| `ENABLE_CACHE`                        | 是否启用磁盘缓存。           | 代码默认 `false` |
 | `CACHE_DIR`                           | 缓存目录。                   | `.cache`                          |
 | `CACHE_TTL`                           | 缓存 TTL（秒）。             | `3600`                            |
 | `CACHE_GLOBAL_MAX_SIZE_BYTES`         | 全局缓存大小上限。           | `524288000`                       |
