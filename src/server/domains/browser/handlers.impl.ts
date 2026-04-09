@@ -8,6 +8,7 @@ import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import { AICaptchaDetector } from '@server/domains/shared/modules';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
+import { getConfig } from '@utils/config';
 import { resolveOutputDirectory } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { type CamoufoxBrowserManager } from '@server/domains/shared/modules';
@@ -97,7 +98,7 @@ export class BrowserToolHandlers {
     this.consoleMonitor = consoleMonitor;
 
     const screenshotDir = resolveOutputDirectory(
-      process.env.CAPTCHA_SCREENSHOT_DIR,
+      getConfig().paths.captchaScreenshotDir,
       'screenshots/captcha',
     );
     this.captchaDetector = new AICaptchaDetector(screenshotDir);

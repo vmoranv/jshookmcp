@@ -1,5 +1,9 @@
 # `.env` and Configuration
 
+`.env.example` is only a template and is not auto-loaded at runtime. The process reads the repository-root `.env` file.
+
+`.env.example` is intentionally sparse now: it only keeps common overrides instead of repeating every variable that already has a built-in default. Any key omitted from `.env` falls back to the defaults in `src/utils/config.ts`.
+
 ## Full configuration reference
 
 ### 1. LLM and provider selection
@@ -18,13 +22,17 @@
 
 | Variable                     | Purpose                                             | Default / Typical value                           |
 | ---------------------------- | --------------------------------------------------- | ------------------------------------------------- |
-| `PUPPETEER_HEADLESS`         | Controls whether browsers launch in headless mode.  | code default `false`; `.env.example` shows `true` |
+| `PUPPETEER_HEADLESS`         | Controls whether browsers launch in headless mode.  | code default `false` |
 | `PUPPETEER_TIMEOUT`          | Default Puppeteer timeout in milliseconds.          | `30000`                                           |
 | `PUPPETEER_EXECUTABLE_PATH`  | Explicit browser executable path.                   | no default                                        |
 | `CHROME_PATH`                | Alternate browser executable path variable.         | no default                                        |
 | `BROWSER_EXECUTABLE_PATH`    | Another alternate browser executable path variable. | no default                                        |
-| `CAPTCHA_SCREENSHOT_DIR`     | Fallback directory for CAPTCHA screenshots.         | `./screenshots`                                   |
-| `MCP_SCREENSHOT_DIR`         | Root directory for regular screenshots.             | typical example: `./screenshots/manual`           |
+| `CAPTCHA_SCREENSHOT_DIR`     | Fallback directory for CAPTCHA screenshots.         | `./screenshots/captcha`                           |
+| `MCP_SCREENSHOT_DIR`         | Root directory for regular screenshots.             | `./screenshots`                                   |
+| `MCP_DEBUGGER_SESSIONS_DIR`  | Directory used for persisted debugger sessions.     | `./debugger-sessions`                             |
+| `MCP_EXTENSION_REGISTRY_DIR` | Persistent directory for extension registry state.  | `./artifacts/extension-registry`                  |
+| `MCP_TLS_KEYLOG_DIR`         | Directory used for generated TLS key log files.     | `./artifacts/tmp`                                 |
+| `MCP_REGISTRY_CACHE_DIR`     | Local cache directory for remote extension indexes. | `~/.jshookmcp/cache`                              |
 | `CAPTCHA_PROVIDER`           | Default CAPTCHA solving provider.                   | `manual`                                          |
 | `CAPTCHA_API_KEY`            | API key for automatic CAPTCHA solving providers.    | no default                                        |
 | `CAPTCHA_SOLVER_BASE_URL`    | Base URL for the external CAPTCHA solver service.   | no default                                        |
@@ -111,7 +119,7 @@
 
 | Variable                              | Purpose                                       | Default / Typical value                              |
 | ------------------------------------- | --------------------------------------------- | ---------------------------------------------------- |
-| `ENABLE_CACHE`                        | Enables disk-backed caching.                  | `.env.example` shows `true`; code default is `false` |
+| `ENABLE_CACHE`                        | Enables disk-backed caching.                  | code default `false` |
 | `CACHE_DIR`                           | Cache directory.                              | `.cache`                                             |
 | `CACHE_TTL`                           | Cache TTL in seconds.                         | `3600`                                               |
 | `CACHE_GLOBAL_MAX_SIZE_BYTES`         | Maximum total cache size.                     | `524288000`                                          |

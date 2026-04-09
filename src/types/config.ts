@@ -2,6 +2,7 @@ export interface Config {
   puppeteer: PuppeteerConfig;
   mcp: MCPConfig;
   cache: CacheConfig;
+  paths: PathsConfig;
   performance: PerformanceConfig;
   search: SearchConfig;
 }
@@ -28,6 +29,15 @@ export interface CacheConfig {
   enabled: boolean;
   dir: string;
   ttl: number;
+}
+
+export interface PathsConfig {
+  screenshotDir: string;
+  captchaScreenshotDir: string;
+  debuggerSessionsDir: string;
+  extensionRegistryDir: string;
+  tlsKeyLogDir: string;
+  registryCacheDir: string;
 }
 
 export interface PerformanceConfig {

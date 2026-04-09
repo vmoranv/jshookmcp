@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { join } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 
-// Mock dotenv at the top level using vi.mock (hoisted)
-const dotenvMock = {
-  config: vi.fn(() => ({ error: Object.assign(new Error('ENOENT'), { code: 'ENOENT' }) })),
-};
+const { dotenvMock } = vi.hoisted(() => ({
+  dotenvMock: {
+    config: vi.fn(() => ({ error: Object.assign(new Error('ENOENT'), { code: 'ENOENT' }) })),
+  },
+}));
+
 vi.mock('dotenv', () => dotenvMock);
 
 describe('config utilities', () => {

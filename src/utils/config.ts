@@ -1,5 +1,6 @@
+import { homedir } from 'node:os';
+import { isAbsolute, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
 import { config as dotenvConfig } from 'dotenv';
 import { z } from 'zod';
 import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
@@ -15,6 +16,34 @@ export const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
 
 const envPath = fileURLToPath(new URL('../../.env', import.meta.url));
 let envLoaded = false;
+
+const CONFIG_DEFAULTS = {
+  puppeteer: {
+    headless: false,
+    timeout: 30000,
+  },
+  mcp: {
+    name: 'jshookmcp',
+    version: '0.1.8',
+  },
+  cache: {
+    enabled: false,
+    dir: '.cache',
+    ttl: 3600,
+  },
+  paths: {
+    screenshotDir: 'screenshots',
+    captchaScreenshotDir: 'screenshots/captcha',
+    debuggerSessionsDir: 'debugger-sessions',
+    extensionRegistryDir: 'artifacts/extension-registry',
+    tlsKeyLogDir: 'artifacts/tmp',
+    registryCacheDir: '.jshookmcp/cache',
+  },
+  performance: {
+    maxConcurrentAnalysis: 3,
+    maxCodeSizeMB: 10,
+  },
+} as const;
 
 function loadEnvIfNeeded(): void {
   if (envLoaded) {
@@ -49,26 +78,50 @@ const envBool = (fallback: boolean) =>
     .optional()
     .transform((v) => (v === undefined ? fallback : v === 'true'));
 
+function resolveConfigPath(inputPath: string, baseDir: string): string {
+  return normalize(isAbsolute(inputPath) ? inputPath : resolve(baseDir, inputPath));
+}
+
 const ConfigSchema = z.object({
   // Puppeteer
-  PUPPETEER_HEADLESS: envBool(false),
-  PUPPETEER_TIMEOUT: envInt(30000).pipe(z.number().min(1000).max(300000)),
+  PUPPETEER_HEADLESS: envBool(CONFIG_DEFAULTS.puppeteer.headless),
+  PUPPETEER_TIMEOUT: envInt(CONFIG_DEFAULTS.puppeteer.timeout).pipe(
+    z.number().min(1000).max(300000),
+  ),
   PUPPETEER_EXECUTABLE_PATH: z.string().optional(),
   CHROME_PATH: z.string().optional(),
   BROWSER_EXECUTABLE_PATH: z.string().optional(),
 
   // MCP
-  MCP_SERVER_NAME: z.string().optional().default('jshookmcp'),
-  MCP_SERVER_VERSION: z.string().optional().default('0.1.8'),
+  MCP_SERVER_NAME: z.string().optional().default(CONFIG_DEFAULTS.mcp.name),
+  MCP_SERVER_VERSION: z.string().optional().default(CONFIG_DEFAULTS.mcp.version),
 
   // Cache
-  ENABLE_CACHE: envBool(false),
-  CACHE_DIR: z.string().optional().default('.cache'),
-  CACHE_TTL: envInt(3600).pipe(z.number().min(0)),
+  ENABLE_CACHE: envBool(CONFIG_DEFAULTS.cache.enabled),
+  CACHE_DIR: z.string().optional().default(CONFIG_DEFAULTS.cache.dir),
+  CACHE_TTL: envInt(CONFIG_DEFAULTS.cache.ttl).pipe(z.number().min(0)),
+
+  // Paths
+  MCP_SCREENSHOT_DIR: z.string().optional().default(CONFIG_DEFAULTS.paths.screenshotDir),
+  CAPTCHA_SCREENSHOT_DIR: z.string().optional().default(CONFIG_DEFAULTS.paths.captchaScreenshotDir),
+  MCP_DEBUGGER_SESSIONS_DIR: z
+    .string()
+    .optional()
+    .default(CONFIG_DEFAULTS.paths.debuggerSessionsDir),
+  MCP_EXTENSION_REGISTRY_DIR: z
+    .string()
+    .optional()
+    .default(CONFIG_DEFAULTS.paths.extensionRegistryDir),
+  MCP_TLS_KEYLOG_DIR: z.string().optional().default(CONFIG_DEFAULTS.paths.tlsKeyLogDir),
+  MCP_REGISTRY_CACHE_DIR: z.string().optional().default(CONFIG_DEFAULTS.paths.registryCacheDir),
 
   // Performance
-  MAX_CONCURRENT_ANALYSIS: envInt(3).pipe(z.number().min(1).max(32)),
-  MAX_CODE_SIZE_MB: envInt(10).pipe(z.number().min(1).max(500)),
+  MAX_CONCURRENT_ANALYSIS: envInt(CONFIG_DEFAULTS.performance.maxConcurrentAnalysis).pipe(
+    z.number().min(1).max(32),
+  ),
+  MAX_CODE_SIZE_MB: envInt(CONFIG_DEFAULTS.performance.maxCodeSizeMB).pipe(
+    z.number().min(1).max(500),
+  ),
 });
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -211,6 +264,29 @@ function buildSearchConfig(): SearchConfig {
   };
 }
 
+function coerceBooleanEnv(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return value === 'true';
+  }
+  return fallback;
+}
+
+function coerceIntegerEnv(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return fallback;
+}
+
 export function getConfig(): Config {
   loadEnvIfNeeded();
 
@@ -225,7 +301,7 @@ export function getConfig(): Config {
   // Use parsed data if valid, otherwise fall back to process.env with defaults
   const env = parsed.success ? parsed.data : process.env;
 
-  const cacheDir = (env.CACHE_DIR as string) || '.cache';
+  const cacheDir = (env.CACHE_DIR as string) || CONFIG_DEFAULTS.cache.dir;
   const configuredExecutablePath =
     (env.PUPPETEER_EXECUTABLE_PATH as string) ||
     (env.CHROME_PATH as string) ||
@@ -235,37 +311,58 @@ export function getConfig(): Config {
       ? cacheDir
       : join(projectRoot, cacheDir);
   const search = buildSearchConfig();
+  const paths = {
+    screenshotDir: resolveConfigPath(
+      (env.MCP_SCREENSHOT_DIR as string) || CONFIG_DEFAULTS.paths.screenshotDir,
+      projectRoot,
+    ),
+    captchaScreenshotDir: resolveConfigPath(
+      (env.CAPTCHA_SCREENSHOT_DIR as string) || CONFIG_DEFAULTS.paths.captchaScreenshotDir,
+      projectRoot,
+    ),
+    debuggerSessionsDir: resolveConfigPath(
+      (env.MCP_DEBUGGER_SESSIONS_DIR as string) || CONFIG_DEFAULTS.paths.debuggerSessionsDir,
+      process.cwd(),
+    ),
+    extensionRegistryDir: resolveConfigPath(
+      (env.MCP_EXTENSION_REGISTRY_DIR as string) || CONFIG_DEFAULTS.paths.extensionRegistryDir,
+      projectRoot,
+    ),
+    tlsKeyLogDir: resolveConfigPath(
+      (env.MCP_TLS_KEYLOG_DIR as string) || CONFIG_DEFAULTS.paths.tlsKeyLogDir,
+      projectRoot,
+    ),
+    registryCacheDir: resolveConfigPath(
+      (env.MCP_REGISTRY_CACHE_DIR as string) || CONFIG_DEFAULTS.paths.registryCacheDir,
+      homedir(),
+    ),
+  };
 
   return {
     puppeteer: {
-      headless: parsed.success
-        ? (env.PUPPETEER_HEADLESS as unknown as boolean)
-        : process.env.PUPPETEER_HEADLESS === 'true',
-      timeout: parsed.success
-        ? (env.PUPPETEER_TIMEOUT as unknown as number)
-        : parseInt(process.env.PUPPETEER_TIMEOUT || '30000', 10),
+      headless: coerceBooleanEnv(env.PUPPETEER_HEADLESS, CONFIG_DEFAULTS.puppeteer.headless),
+      timeout: coerceIntegerEnv(env.PUPPETEER_TIMEOUT, CONFIG_DEFAULTS.puppeteer.timeout),
       executablePath: configuredExecutablePath?.trim() || undefined,
     },
     mcp: {
-      name: (env.MCP_SERVER_NAME as string) || 'jshookmcp',
-      version: (env.MCP_SERVER_VERSION as string) || '0.1.8',
+      name: (env.MCP_SERVER_NAME as string) || CONFIG_DEFAULTS.mcp.name,
+      version: (env.MCP_SERVER_VERSION as string) || CONFIG_DEFAULTS.mcp.version,
     },
     cache: {
-      enabled: parsed.success
-        ? (env.ENABLE_CACHE as unknown as boolean)
-        : process.env.ENABLE_CACHE === 'true',
+      enabled: coerceBooleanEnv(env.ENABLE_CACHE, CONFIG_DEFAULTS.cache.enabled),
       dir: absoluteCacheDir,
-      ttl: parsed.success
-        ? (env.CACHE_TTL as unknown as number)
-        : parseInt(process.env.CACHE_TTL || '3600', 10),
+      ttl: coerceIntegerEnv(env.CACHE_TTL, CONFIG_DEFAULTS.cache.ttl),
     },
+    paths,
     performance: {
-      maxConcurrentAnalysis: parsed.success
-        ? (env.MAX_CONCURRENT_ANALYSIS as unknown as number)
-        : parseInt(process.env.MAX_CONCURRENT_ANALYSIS || '3', 10),
-      maxCodeSizeMB: parsed.success
-        ? (env.MAX_CODE_SIZE_MB as unknown as number)
-        : parseInt(process.env.MAX_CODE_SIZE_MB || '10', 10),
+      maxConcurrentAnalysis: coerceIntegerEnv(
+        env.MAX_CONCURRENT_ANALYSIS,
+        CONFIG_DEFAULTS.performance.maxConcurrentAnalysis,
+      ),
+      maxCodeSizeMB: coerceIntegerEnv(
+        env.MAX_CODE_SIZE_MB,
+        CONFIG_DEFAULTS.performance.maxCodeSizeMB,
+      ),
     },
     search,
   };
