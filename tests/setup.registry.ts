@@ -1,8 +1,6 @@
 // Full per-worker setup: initializes registry + PageController mock.
 // Used by "server" and "native" projects that depend on registry or page evaluate wrappers.
-import { beforeAll, afterEach, vi } from 'vitest';
-import { initRegistry } from '@server/registry/index';
-
+import { afterEach, vi } from 'vitest';
 process.env.ENABLE_INJECTION_TOOLS = 'true';
 process.env.NODE_ENV = 'test';
 
@@ -41,10 +39,6 @@ vi.mock('@modules/collector/PageController', async (importOriginal) => {
       return page.evaluateOnNewDocument(pageFunction, ...args);
     },
   };
-});
-
-beforeAll(async () => {
-  await initRegistry();
 });
 
 afterEach(async () => {

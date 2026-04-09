@@ -11,6 +11,9 @@ import {
   getToolMinimalTier,
   getMinSatisfyingTier,
 } from '@server/ToolCatalog';
+import { initRegistry } from '@server/registry/index';
+
+await initRegistry();
 
 describe('ToolCatalog', () => {
   it('parseToolDomains returns null for empty input', () => {

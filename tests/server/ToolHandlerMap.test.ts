@@ -4,6 +4,9 @@ import {
   createToolHandlerMap,
   type ToolHandlerMapDependencies,
 } from '@server/ToolHandlerMap';
+import { initRegistry } from '@server/registry/index';
+
+await initRegistry();
 
 function createDeps(): {
   deps: ToolHandlerMapDependencies;

@@ -6,8 +6,12 @@ import { fileURLToPath } from 'node:url';
 // Project root (directory containing package.json)
 const root = resolve(dirname(fileURLToPath(import.meta.url)));
 
-// Worker thread count: leave 2 cores for OS + IDE
-const maxWorkers = Math.max(2, cpus().length - 2);
+const detectedCpuCount = Math.max(1, cpus().length);
+const requestedMaxWorkers = Number.parseInt(process.env.VITEST_MAX_WORKERS ?? '', 10);
+const configuredMaxWorkers =
+  Number.isFinite(requestedMaxWorkers) && requestedMaxWorkers > 0
+    ? Math.min(requestedMaxWorkers, detectedCpuCount)
+    : undefined;
 
 // Coverage reporter configuration based on environment
 const coverageReporter =
@@ -93,7 +97,7 @@ export default defineConfig({
     testTimeout: 30000,
     hookTimeout: 30000,
     pool: 'threads',
-    maxWorkers,
+    ...(configuredMaxWorkers ? { maxWorkers: configuredMaxWorkers } : {}),
     coverage: {
       provider: 'v8',
       reportsDirectory: './coverage',

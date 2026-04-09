@@ -8,6 +8,9 @@ import {
   getToolDomain,
   getProfileDomains,
 } from '@server/ToolCatalog';
+import { initRegistry } from '@server/registry/index';
+
+await initRegistry();
 
 describe('ToolCatalog – tier system', () => {
   it('TIER_ORDER has correct ascending order', () => {

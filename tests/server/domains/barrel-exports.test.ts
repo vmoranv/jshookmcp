@@ -151,10 +151,14 @@ vi.mock('@utils/artifacts', () => ({
     .fn()
     .mockResolvedValue({ absolutePath: '/tmp/test', displayPath: 'test' }),
 }));
-vi.mock('@src/constants', () => ({
-  EXTENSION_GIT_CLONE_TIMEOUT_MS: 30000,
-  EXTENSION_GIT_CHECKOUT_TIMEOUT_MS: 10000,
-}));
+vi.mock(import('@src/constants'), async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    EXTENSION_GIT_CLONE_TIMEOUT_MS: 30000,
+    EXTENSION_GIT_CHECKOUT_TIMEOUT_MS: 10000,
+  };
+});
 
 // Analysis web-tools
 vi.mock('@server/domains/analysis/handlers.web-tools', () => ({

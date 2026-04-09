@@ -50,14 +50,7 @@ jobs:
           corepack prepare pnpm@10.33.0 --activate
 
       - name: Markdown lint
-        run: |
-          pnpm dlx markdownlint-cli2 \
-            --config .markdownlint-cli2.jsonc \
-            README.md \
-            README.zh.md \
-            CONTRIBUTING.md \
-            "docs/**/*.md" \
-            ".github/**/*.md"
+        run: pnpm run lint:md
 
   actionlint:
     runs-on: ubuntu-latest

@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { initRegistry } from '@server/registry/index';
+
+await initRegistry();
 
 function tool(
   name: string,

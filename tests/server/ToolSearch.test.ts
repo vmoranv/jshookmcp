@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { ToolSearchEngine } from '@server/ToolSearch';
+import { initRegistry } from '@server/registry/index';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+
+await initRegistry();
 
 /* ---------- helper ---------- */
 
