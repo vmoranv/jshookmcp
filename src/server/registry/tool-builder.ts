@@ -2,13 +2,12 @@
  * Fluent tool definition builder — replaces raw JSON nesting with chainable API.
  *
  * Usage:
- *   tool('memory_first_scan')
- *     .desc('Start a new memory scan session')
- *     .number('pid', 'Target process ID')
- *     .string('value', 'Search value')
- *     .required('pid', 'value')
- *     .openWorld()
- *     .build()
+ *   tool('memory_scan_list', (t) =>
+ *     t
+ *       .desc('List memory scan sessions')
+ *       .readOnly()
+ *       .idempotent(),
+ *   )
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -30,7 +29,32 @@ interface ParamOpts {
   default?: unknown;
 }
 
-class ToolBuilder {
+export interface ToolBuilder {
+  desc(description: string): this;
+  string(name: string, description: string, opts?: ParamOpts): this;
+  number(name: string, description: string, opts?: ParamOpts): this;
+  integer(name: string, description: string, opts?: ParamOpts): this;
+  boolean(name: string, description: string, opts?: ParamOpts): this;
+  enum(name: string, values: readonly string[], description: string, opts?: ParamOpts): this;
+  array(name: string, items: PropertySchema | Record<string, unknown>, description: string): this;
+  object(
+    name: string,
+    props: Record<string, PropertySchema>,
+    description: string,
+    opts?: { required?: string[] },
+  ): this;
+  prop(name: string, schema: PropertySchema): this;
+  required(...names: string[]): this;
+  requiredOpenWorld(...names: string[]): this;
+  readOnly(): this;
+  destructive(): this;
+  idempotent(): this;
+  openWorld(): this;
+  query(): this;
+  resettable(): this;
+}
+
+class InternalToolBuilder implements ToolBuilder {
   private readonly _name: string;
   private _description = '';
   private readonly _properties: Record<string, PropertySchema> = {};
@@ -114,6 +138,10 @@ class ToolBuilder {
     return this;
   }
 
+  requiredOpenWorld(...names: string[]): this {
+    return this.required(...names).openWorld();
+  }
+
   // ── Annotation shortcuts (default = false) ──
 
   readOnly(): this {
@@ -134,6 +162,14 @@ class ToolBuilder {
   openWorld(): this {
     this._openWorldHint = true;
     return this;
+  }
+
+  query(): this {
+    return this.readOnly().idempotent();
+  }
+
+  resettable(): this {
+    return this.destructive().idempotent();
   }
 
   // ── Build ──
@@ -165,7 +201,11 @@ class ToolBuilder {
   }
 }
 
+type ToolBuilderConfigurator = (builder: ToolBuilder) => ToolBuilder | void;
+
 /** Create a new tool definition with fluent builder API. */
-export function tool(name: string): ToolBuilder {
-  return new ToolBuilder(name);
+export function tool(name: string, configure: ToolBuilderConfigurator): Tool {
+  const builder = new InternalToolBuilder(name);
+  const configured = configure(builder);
+  return ((configured ?? builder) as InternalToolBuilder).build();
 }

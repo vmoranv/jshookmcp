@@ -2,8 +2,9 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const DEBUGGER_ADVANCED_TOOLS: Tool[] = [
-  tool('watch_add')
-    .desc(` Add a watch expression to monitor variable values
+  tool('watch_add', (t) =>
+    t
+      .desc(` Add a watch expression to monitor variable values
 
 Usage:
 - Monitor key variables during debugging
@@ -12,22 +13,21 @@ Usage:
 
 Example:
 watch_add(expression="window.byted_acrawler", name="acrawler")`)
-    .string('expression', 'JavaScript expression to watch (e.g., "window.obj", "arguments[0]")')
-    .string('name', 'Optional friendly name for the watch expression')
-    .required('expression')
-    .build(),
-
-  tool('watch_remove')
-    .desc('Remove a watch expression by ID')
-    .string('watchId', 'Watch expression ID (from watch_add or watch_list)')
-    .required('watchId')
-    .idempotent()
-    .build(),
-
-  tool('watch_list').desc('List all watch expressions').readOnly().idempotent().build(),
-
-  tool('watch_evaluate_all')
-    .desc(`Evaluate all enabled watch expressions
+      .string('expression', 'JavaScript expression to watch (e.g., "window.obj", "arguments[0]")')
+      .string('name', 'Optional friendly name for the watch expression')
+      .required('expression'),
+  ),
+  tool('watch_remove', (t) =>
+    t
+      .desc('Remove a watch expression by ID')
+      .string('watchId', 'Watch expression ID (from watch_add or watch_list)')
+      .required('watchId')
+      .idempotent(),
+  ),
+  tool('watch_list', (t) => t.desc('List all watch expressions').query()),
+  tool('watch_evaluate_all', (t) =>
+    t
+      .desc(`Evaluate all enabled watch expressions
 
 Returns:
 - Current values of all watch expressions
@@ -35,15 +35,13 @@ Returns:
 - Error information if evaluation fails
 
 Best used when paused at a breakpoint.`)
-    .string('callFrameId', 'Optional call frame ID (from get_call_stack)')
-    .readOnly()
-    .idempotent()
-    .build(),
-
-  tool('watch_clear_all').desc('Clear all watch expressions').destructive().build(),
-
-  tool('xhr_breakpoint_set')
-    .desc(` Set XHR/Fetch breakpoint (pause before network requests)
+      .string('callFrameId', 'Optional call frame ID (from get_call_stack)')
+      .query(),
+  ),
+  tool('watch_clear_all', (t) => t.desc('Clear all watch expressions').destructive()),
+  tool('xhr_breakpoint_set', (t) =>
+    t
+      .desc(` Set XHR/Fetch breakpoint (pause before network requests)
 
 Usage:
 - Intercept API calls
@@ -57,22 +55,21 @@ Supports wildcard patterns:
 
 Example:
 xhr_breakpoint_set(urlPattern="*aweme/v1/*")`)
-    .string('urlPattern', 'URL pattern (supports wildcards *)')
-    .required('urlPattern')
-    .idempotent()
-    .build(),
-
-  tool('xhr_breakpoint_remove')
-    .desc('Remove XHR breakpoint by ID')
-    .string('breakpointId', 'XHR breakpoint ID')
-    .required('breakpointId')
-    .idempotent()
-    .build(),
-
-  tool('xhr_breakpoint_list').desc('List all XHR breakpoints').readOnly().idempotent().build(),
-
-  tool('event_breakpoint_set')
-    .desc(` Set event listener breakpoint (pause on event)
+      .string('urlPattern', 'URL pattern (supports wildcards *)')
+      .required('urlPattern')
+      .idempotent(),
+  ),
+  tool('xhr_breakpoint_remove', (t) =>
+    t
+      .desc('Remove XHR breakpoint by ID')
+      .string('breakpointId', 'XHR breakpoint ID')
+      .required('breakpointId')
+      .idempotent(),
+  ),
+  tool('xhr_breakpoint_list', (t) => t.desc('List all XHR breakpoints').query()),
+  tool('event_breakpoint_set', (t) =>
+    t
+      .desc(` Set event listener breakpoint (pause on event)
 
 Common event names:
 - Mouse: click, dblclick, mousedown, mouseup, mousemove
@@ -83,14 +80,14 @@ Common event names:
 Example:
 event_breakpoint_set(eventName="click")
 event_breakpoint_set(eventName="setTimeout")`)
-    .string('eventName', 'Event name (e.g., "click", "setTimeout")')
-    .string('targetName', 'Optional target name (e.g., "WebSocket")')
-    .required('eventName')
-    .idempotent()
-    .build(),
-
-  tool('event_breakpoint_set_category')
-    .desc(`Set breakpoints for entire event category
+      .string('eventName', 'Event name (e.g., "click", "setTimeout")')
+      .string('targetName', 'Optional target name (e.g., "WebSocket")')
+      .required('eventName')
+      .idempotent(),
+  ),
+  tool('event_breakpoint_set_category', (t) =>
+    t
+      .desc(`Set breakpoints for entire event category
 
 Categories:
 - mouse: All mouse events (click, mousedown, etc.)
@@ -100,22 +97,21 @@ Categories:
 
 Example:
 event_breakpoint_set_category(category="mouse")`)
-    .enum('category', ['mouse', 'keyboard', 'timer', 'websocket'], 'Event category')
-    .required('category')
-    .idempotent()
-    .build(),
-
-  tool('event_breakpoint_remove')
-    .desc('Remove event breakpoint by ID')
-    .string('breakpointId', 'Event breakpoint ID')
-    .required('breakpointId')
-    .idempotent()
-    .build(),
-
-  tool('event_breakpoint_list').desc('List all event breakpoints').readOnly().idempotent().build(),
-
-  tool('blackbox_add')
-    .desc(` Blackbox scripts (skip during debugging)
+      .enum('category', ['mouse', 'keyboard', 'timer', 'websocket'], 'Event category')
+      .required('category')
+      .idempotent(),
+  ),
+  tool('event_breakpoint_remove', (t) =>
+    t
+      .desc('Remove event breakpoint by ID')
+      .string('breakpointId', 'Event breakpoint ID')
+      .required('breakpointId')
+      .idempotent(),
+  ),
+  tool('event_breakpoint_list', (t) => t.desc('List all event breakpoints').query()),
+  tool('blackbox_add', (t) =>
+    t
+      .desc(` Blackbox scripts (skip during debugging)
 
 Usage:
 - Skip third-party library code
@@ -130,13 +126,13 @@ Common patterns:
 
 Example:
 blackbox_add(urlPattern="*node_modules/*")`)
-    .string('urlPattern', 'URL pattern to blackbox (supports wildcards *)')
-    .required('urlPattern')
-    .idempotent()
-    .build(),
-
-  tool('blackbox_add_common')
-    .desc(`Blackbox all common libraries (one-click)
+      .string('urlPattern', 'URL pattern to blackbox (supports wildcards *)')
+      .required('urlPattern')
+      .idempotent(),
+  ),
+  tool('blackbox_add_common', (t) =>
+    t
+      .desc(`Blackbox all common libraries (one-click)
 
 Includes:
 - jquery, react, vue, angular
@@ -145,8 +141,7 @@ Includes:
 
 Example:
 blackbox_add_common()`)
-    .idempotent()
-    .build(),
-
-  tool('blackbox_list').desc('List all blackboxed patterns').readOnly().idempotent().build(),
+      .idempotent(),
+  ),
+  tool('blackbox_list', (t) => t.desc('List all blackboxed patterns').query()),
 ];

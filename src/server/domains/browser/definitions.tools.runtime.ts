@@ -2,8 +2,9 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const browserRuntimeTools: Tool[] = [
-  tool('get_detailed_data')
-    .desc(` Retrieve detailed data using detailId token.
+  tool('get_detailed_data', (t) =>
+    t
+      .desc(` Retrieve detailed data using detailId token.
 
 When tools return large data, they provide a detailId instead of full data to prevent context overflow.
 Use this tool to retrieve the full data or specific parts.
@@ -12,15 +13,14 @@ Examples:
 - get_detailed_data("detail_abc123") -> Get full data
 - get_detailed_data("detail_abc123", path="frontierSign") -> Get specific property
 - get_detailed_data("detail_abc123", path="methods.0") -> Get first method`)
-    .string('detailId', 'Detail ID token from previous tool response')
-    .string('path', 'Optional: Path to specific data (e.g., "frontierSign" or "methods.0")')
-    .required('detailId')
-    .readOnly()
-    .idempotent()
-    .build(),
-
-  tool('browser_launch')
-    .desc(`Launch browser instance.
+      .string('detailId', 'Detail ID token from previous tool response')
+      .string('path', 'Optional: Path to specific data (e.g., "frontierSign" or "methods.0")')
+      .required('detailId')
+      .query(),
+  ),
+  tool('browser_launch', (t) =>
+    t
+      .desc(`Launch browser instance.
 
 Drivers:
 - chrome (default): rebrowser-puppeteer-core, Chromium-based, full CDP support (debugger, network, stealth scripts, etc.)
@@ -33,54 +33,54 @@ Modes:
 - connect: reuse an existing browser instance
   - chrome: connect via browserURL (http://host:port), wsEndpoint, or Chrome 144+ autoConnect
   - camoufox: connect via wsEndpoint from camoufox_server_launch`)
-    .enum(
-      'driver',
-      ['chrome', 'camoufox'],
-      'Browser driver. chrome = rebrowser-puppeteer-core (full CDP support). camoufox = Firefox anti-detect (requires: npx camoufox-js fetch).',
-      { default: 'chrome' },
-    )
-    .boolean(
-      'headless',
-      'Run headless (default follows PUPPETEER_HEADLESS env; set false to show browser window for manual login)',
-      { default: false },
-    )
-    .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint to spoof (camoufox only)', {
-      default: 'windows',
-    })
-    .enum(
-      'mode',
-      ['launch', 'connect'],
-      'Launch mode. launch = start local browser. connect = reuse existing browser (chrome: browserURL/wsEndpoint/autoConnect, camoufox: wsEndpoint).',
-      { default: 'launch' },
-    )
-    .string(
-      'browserURL',
-      'HTTP URL of existing browser debug endpoint (chrome connect mode). Example: http://127.0.0.1:9222',
-    )
-    .string(
-      'wsEndpoint',
-      'WebSocket endpoint to connect to (chrome or camoufox connect mode). For camoufox, get this from camoufox_server_launch.',
-    )
-    .boolean(
-      'autoConnect',
-      'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.',
-      { default: false },
-    )
-    .enum(
-      'channel',
-      ['stable', 'beta', 'dev', 'canary'],
-      'Chrome channel used for autoConnect when userDataDir is not provided.',
-      { default: 'stable' },
-    )
-    .string(
-      'userDataDir',
-      'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
-    )
-    .openWorld()
-    .build(),
-
-  tool('camoufox_server_launch')
-    .desc(`Launch a Camoufox WebSocket server for multi-process / remote connections.
+      .enum(
+        'driver',
+        ['chrome', 'camoufox'],
+        'Browser driver. chrome = rebrowser-puppeteer-core (full CDP support). camoufox = Firefox anti-detect (requires: npx camoufox-js fetch).',
+        { default: 'chrome' },
+      )
+      .boolean(
+        'headless',
+        'Run headless (default follows PUPPETEER_HEADLESS env; set false to show browser window for manual login)',
+        { default: false },
+      )
+      .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint to spoof (camoufox only)', {
+        default: 'windows',
+      })
+      .enum(
+        'mode',
+        ['launch', 'connect'],
+        'Launch mode. launch = start local browser. connect = reuse existing browser (chrome: browserURL/wsEndpoint/autoConnect, camoufox: wsEndpoint).',
+        { default: 'launch' },
+      )
+      .string(
+        'browserURL',
+        'HTTP URL of existing browser debug endpoint (chrome connect mode). Example: http://127.0.0.1:9222',
+      )
+      .string(
+        'wsEndpoint',
+        'WebSocket endpoint to connect to (chrome or camoufox connect mode). For camoufox, get this from camoufox_server_launch.',
+      )
+      .boolean(
+        'autoConnect',
+        'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.',
+        { default: false },
+      )
+      .enum(
+        'channel',
+        ['stable', 'beta', 'dev', 'canary'],
+        'Chrome channel used for autoConnect when userDataDir is not provided.',
+        { default: 'stable' },
+      )
+      .string(
+        'userDataDir',
+        'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
+      )
+      .openWorld(),
+  ),
+  tool('camoufox_server_launch', (t) =>
+    t
+      .desc(`Launch a Camoufox WebSocket server for multi-process / remote connections.
 
 Use this when you need concurrent browser instances or want to manage the browser lifecycle separately from the automation client.
 
@@ -91,26 +91,25 @@ Steps:
 4. Call camoufox_server_close when done
 
 Requires binaries: npx camoufox-js fetch`)
-    .number('port', 'Port to listen on (default: auto-assigned)')
-    .string('ws_path', 'WebSocket path (default: auto-generated)')
-    .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint to spoof', { default: 'windows' })
-    .boolean('headless', 'Run headless (default: true)', { default: true })
-    .openWorld()
-    .build(),
-
-  tool('camoufox_server_close')
-    .desc('Close the Camoufox WebSocket server. Connected clients are disconnected.')
-    .destructive()
-    .build(),
-
-  tool('camoufox_server_status')
-    .desc('Get the current status of the Camoufox WebSocket server (running, wsEndpoint).')
-    .readOnly()
-    .idempotent()
-    .build(),
-
-  tool('browser_attach')
-    .desc(`Attach to an existing browser instance via Chrome DevTools Protocol (CDP).
+      .number('port', 'Port to listen on (default: auto-assigned)')
+      .string('ws_path', 'WebSocket path (default: auto-generated)')
+      .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint to spoof', { default: 'windows' })
+      .boolean('headless', 'Run headless (default: true)', { default: true })
+      .openWorld(),
+  ),
+  tool('camoufox_server_close', (t) =>
+    t
+      .desc('Close the Camoufox WebSocket server. Connected clients are disconnected.')
+      .destructive(),
+  ),
+  tool('camoufox_server_status', (t) =>
+    t
+      .desc('Get the current status of the Camoufox WebSocket server (running, wsEndpoint).')
+      .query(),
+  ),
+  tool('browser_attach', (t) =>
+    t
+      .desc(`Attach to an existing browser instance via Chrome DevTools Protocol (CDP).
 
 Use this when a browser is already running with remote debugging enabled.
 Supports browserURL (http://host:port), WebSocket endpoint (ws://...), and Chrome 144+ autoConnect.
@@ -127,35 +126,34 @@ Response notes:
 - monitoringBindingDeferred: whether monitoring will auto-rebind later for the selected tab
 
 After attaching, use page_navigate / page_screenshot / debugger_enable normally.`)
-    .string('browserURL', 'HTTP URL of the remote debugging endpoint (e.g., http://127.0.0.1:9222)')
-    .string(
-      'wsEndpoint',
-      'WebSocket URL from /json/version (e.g., ws://127.0.0.1:9222/devtools/browser/xxx)',
-    )
-    .boolean(
-      'autoConnect',
-      'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.',
-      { default: false },
-    )
-    .enum(
-      'channel',
-      ['stable', 'beta', 'dev', 'canary'],
-      'Chrome channel used for autoConnect when userDataDir is not provided.',
-      { default: 'stable' },
-    )
-    .string(
-      'userDataDir',
-      'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
-    )
-    .number('pageIndex', 'Index of the page/tab to activate (default: 0)', { default: 0 })
-    .openWorld()
-    .build(),
-
-  tool('browser_close').desc('Close browser instance').destructive().build(),
-
-  tool('browser_status')
-    .desc('Get browser status (running, pages count, version)')
-    .readOnly()
-    .idempotent()
-    .build(),
+      .string(
+        'browserURL',
+        'HTTP URL of the remote debugging endpoint (e.g., http://127.0.0.1:9222)',
+      )
+      .string(
+        'wsEndpoint',
+        'WebSocket URL from /json/version (e.g., ws://127.0.0.1:9222/devtools/browser/xxx)',
+      )
+      .boolean(
+        'autoConnect',
+        'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.',
+        { default: false },
+      )
+      .enum(
+        'channel',
+        ['stable', 'beta', 'dev', 'canary'],
+        'Chrome channel used for autoConnect when userDataDir is not provided.',
+        { default: 'stable' },
+      )
+      .string(
+        'userDataDir',
+        'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
+      )
+      .number('pageIndex', 'Index of the page/tab to activate (default: 0)', { default: 0 })
+      .openWorld(),
+  ),
+  tool('browser_close', (t) => t.desc('Close browser instance').destructive()),
+  tool('browser_status', (t) =>
+    t.desc('Get browser status (running, pages count, version)').query(),
+  ),
 ];

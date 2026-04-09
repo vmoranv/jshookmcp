@@ -21,54 +21,46 @@ const SYSCALL_EVENT_SCHEMA = {
 };
 
 export const syscallHookToolDefinitions: Tool[] = [
-  tool('syscall_start_monitor')
-    .desc('Start syscall monitoring using ETW, strace, or dtrace.')
-    .enum('backend', BACKEND_OPTIONS, 'Syscall capture backend')
-    .number('pid', 'Optional PID to scope monitoring to a single process')
-    .required('backend')
-    .build(),
-
-  tool('syscall_stop_monitor').desc('Stop syscall monitoring.').idempotent().build(),
-
-  tool('syscall_capture_events')
-    .desc('Capture syscall events from the active or last monitoring session.')
-    .prop('filter', {
-      type: 'object',
-      description: 'Optional event filter',
-      properties: {
-        name: {
-          type: 'array',
-          description: 'Restrict events to specific syscall names',
-          items: { type: 'string' },
+  tool('syscall_start_monitor', (t) =>
+    t
+      .desc('Start syscall monitoring using ETW, strace, or dtrace.')
+      .enum('backend', BACKEND_OPTIONS, 'Syscall capture backend')
+      .number('pid', 'Optional PID to scope monitoring to a single process')
+      .required('backend'),
+  ),
+  tool('syscall_stop_monitor', (t) => t.desc('Stop syscall monitoring.').idempotent()),
+  tool('syscall_capture_events', (t) =>
+    t
+      .desc('Capture syscall events from the active or last monitoring session.')
+      .prop('filter', {
+        type: 'object',
+        description: 'Optional event filter',
+        properties: {
+          name: {
+            type: 'array',
+            description: 'Restrict events to specific syscall names',
+            items: { type: 'string' },
+          },
+          pid: {
+            type: 'number',
+            description: 'Restrict events to a specific process ID',
+          },
         },
-        pid: {
-          type: 'number',
-          description: 'Restrict events to a specific process ID',
-        },
-      },
-    })
-    .readOnly()
-    .idempotent()
-    .build(),
-
-  tool('syscall_correlate_js')
-    .desc('Correlate captured syscalls with likely JavaScript functions.')
-    .array('syscallEvents', SYSCALL_EVENT_SCHEMA, 'Syscall events to correlate')
-    .required('syscallEvents')
-    .readOnly()
-    .idempotent()
-    .build(),
-
-  tool('syscall_filter')
-    .desc('Filter captured syscall events by syscall name.')
-    .array('names', { type: 'string' }, 'Syscall names to keep')
-    .readOnly()
-    .idempotent()
-    .build(),
-
-  tool('syscall_get_stats')
-    .desc('Get syscall monitoring statistics.')
-    .readOnly()
-    .idempotent()
-    .build(),
+      })
+      .query(),
+  ),
+  tool('syscall_correlate_js', (t) =>
+    t
+      .desc('Correlate captured syscalls with likely JavaScript functions.')
+      .array('syscallEvents', SYSCALL_EVENT_SCHEMA, 'Syscall events to correlate')
+      .required('syscallEvents')
+      .query(),
+  ),
+  tool('syscall_filter', (t) =>
+    t
+      .desc('Filter captured syscall events by syscall name.')
+      .array('names', { type: 'string' }, 'Syscall names to keep')
+      .query(),
+  ),
+  tool('syscall_get_stats', (t) => t.desc('Get syscall monitoring statistics.').query()),
 ];
