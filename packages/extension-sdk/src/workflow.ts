@@ -113,6 +113,34 @@ export abstract class WorkflowNodeBuilder<T extends WorkflowNode> {
 }
 
 type AnyWorkflowNodeBuilder = WorkflowNodeBuilder<WorkflowNode>;
+type WorkflowNodeLike = AnyWorkflowNodeBuilder | WorkflowNode;
+
+function isWorkflowNode(node: WorkflowNodeLike): node is WorkflowNode {
+  return typeof node === 'object' && node !== null && 'kind' in node;
+}
+
+function materializeNode(node: WorkflowNodeLike): WorkflowNode {
+  return isWorkflowNode(node) ? node : node.build();
+}
+
+function applyToolNodeConfig(
+  builder: ToolNodeBuilder,
+  config?: ToolNodeOptions | ((b: ToolNodeBuilder) => void),
+): ToolNodeBuilder {
+  if (!config) {
+    return builder;
+  }
+
+  if (typeof config === 'function') {
+    config(builder);
+    return builder;
+  }
+
+  if (config.input) builder.input(config.input);
+  if (config.retry) builder.retry(config.retry);
+  if (config.timeoutMs !== undefined) builder.timeout(config.timeoutMs);
+  return builder;
+}
 
 export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
   private toolName: string;
@@ -157,9 +185,9 @@ export class ToolNodeBuilder extends WorkflowNodeBuilder<ToolNode> {
  * Eliminates duplicated `step()` / `tool()` / `sequence()` / `parallel()` / `branch()` methods.
  */
 abstract class CompositeNodeBuilder<T extends WorkflowNode> extends WorkflowNodeBuilder<T> {
-  protected _steps: AnyWorkflowNodeBuilder[] = [];
+  protected _steps: WorkflowNodeLike[] = [];
 
-  step(nodeBuilder: AnyWorkflowNodeBuilder): this {
+  step(nodeBuilder: WorkflowNodeLike): this {
     this._steps.push(nodeBuilder);
     return this;
   }
@@ -180,17 +208,7 @@ abstract class CompositeNodeBuilder<T extends WorkflowNode> extends WorkflowNode
     toolName: string,
     config?: ToolNodeOptions | ((b: ToolNodeBuilder) => void),
   ): this {
-    const builder = new ToolNodeBuilder(id, toolName);
-    if (config) {
-      if (typeof config === 'function') {
-        config(builder);
-      } else {
-        if (config.input) builder.input(config.input);
-        if (config.retry) builder.retry(config.retry);
-        if (config.timeoutMs !== undefined) builder.timeout(config.timeoutMs);
-      }
-    }
-    this._steps.push(builder);
+    this._steps.push(applyToolNodeConfig(new ToolNodeBuilder(id, toolName), config));
     return this;
   }
 
@@ -228,7 +246,7 @@ export class SequenceNodeBuilder extends CompositeNodeBuilder<SequenceNode> {
     return {
       kind: 'sequence',
       id: this.id,
-      steps: this._steps.map((b) => b.build()),
+      steps: this._steps.map(materializeNode),
     };
   }
 }
@@ -251,7 +269,7 @@ export class ParallelNodeBuilder extends CompositeNodeBuilder<ParallelNode> {
     return {
       kind: 'parallel',
       id: this.id,
-      steps: this._steps.map((b) => b.build()),
+      steps: this._steps.map(materializeNode),
       maxConcurrency: this._maxConcurrency,
       failFast: this._failFast,
     };
@@ -261,8 +279,8 @@ export class ParallelNodeBuilder extends CompositeNodeBuilder<ParallelNode> {
 export class BranchNodeBuilder extends WorkflowNodeBuilder<BranchNode> {
   private predicateId: string;
   private _predicateFn?: (ctx: WorkflowExecutionContext) => boolean | Promise<boolean>;
-  private _whenTrue?: AnyWorkflowNodeBuilder;
-  private _whenFalse?: AnyWorkflowNodeBuilder;
+  private _whenTrue?: WorkflowNodeLike;
+  private _whenFalse?: WorkflowNodeLike;
 
   constructor(id: string, predicateId: string) {
     super(id);
@@ -274,12 +292,12 @@ export class BranchNodeBuilder extends WorkflowNodeBuilder<BranchNode> {
     return this;
   }
 
-  whenTrue(nodeBuilder: AnyWorkflowNodeBuilder): this {
+  whenTrue(nodeBuilder: WorkflowNodeLike): this {
     this._whenTrue = nodeBuilder;
     return this;
   }
 
-  whenFalse(nodeBuilder: AnyWorkflowNodeBuilder): this {
+  whenFalse(nodeBuilder: WorkflowNodeLike): this {
     this._whenFalse = nodeBuilder;
     return this;
   }
@@ -293,22 +311,22 @@ export class BranchNodeBuilder extends WorkflowNodeBuilder<BranchNode> {
       id: this.id,
       predicateId: this.predicateId,
       predicateFn: this._predicateFn,
-      whenTrue: this._whenTrue.build(),
-      whenFalse: this._whenFalse ? this._whenFalse.build() : undefined,
+      whenTrue: materializeNode(this._whenTrue),
+      whenFalse: this._whenFalse ? materializeNode(this._whenFalse) : undefined,
     };
   }
 }
 
 export class FallbackNodeBuilder extends WorkflowNodeBuilder<FallbackNode> {
-  private _primary?: AnyWorkflowNodeBuilder;
-  private _fallback?: AnyWorkflowNodeBuilder;
+  private _primary?: WorkflowNodeLike;
+  private _fallback?: WorkflowNodeLike;
 
-  primary(nodeBuilder: AnyWorkflowNodeBuilder): this {
+  primary(nodeBuilder: WorkflowNodeLike): this {
     this._primary = nodeBuilder;
     return this;
   }
 
-  fallback(nodeBuilder: AnyWorkflowNodeBuilder): this {
+  fallback(nodeBuilder: WorkflowNodeLike): this {
     this._fallback = nodeBuilder;
     return this;
   }
@@ -324,8 +342,8 @@ export class FallbackNodeBuilder extends WorkflowNodeBuilder<FallbackNode> {
     return {
       kind: 'fallback',
       id: this.id,
-      primary: this._primary.build(),
-      fallback: this._fallback.build(),
+      primary: materializeNode(this._primary),
+      fallback: materializeNode(this._fallback),
     };
   }
 }
@@ -369,8 +387,8 @@ export class WorkflowBuilder {
     return this;
   }
 
-  buildGraph(fn: (ctx: WorkflowExecutionContext) => AnyWorkflowNodeBuilder): this {
-    this._buildFn = (ctx) => fn(ctx).build();
+  buildGraph(fn: (ctx: WorkflowExecutionContext) => WorkflowNodeLike): this {
+    this._buildFn = (ctx) => materializeNode(fn(ctx));
     return this;
   }
 
@@ -411,6 +429,60 @@ export class WorkflowBuilder {
 
 export function createWorkflow(id: string, displayName: string): WorkflowBuilder {
   return new WorkflowBuilder(id, displayName);
+}
+
+type WorkflowConfigurator = (builder: WorkflowBuilder) => WorkflowBuilder | void;
+
+/** Define and build a workflow contract in one expression. */
+export function defineWorkflow(
+  id: string,
+  displayName: string,
+  configure: WorkflowConfigurator,
+): WorkflowContract {
+  const builder = new WorkflowBuilder(id, displayName);
+  const configured = configure(builder);
+  return (configured ?? builder).build();
+}
+
+/** Create a built tool node directly. */
+export function toolStep(
+  id: string,
+  toolName: string,
+  config?: ToolNodeOptions | ((b: ToolNodeBuilder) => void),
+): ToolNode {
+  return applyToolNodeConfig(new ToolNodeBuilder(id, toolName), config).build();
+}
+
+/** Create a built sequence node directly. */
+export function sequenceStep(id: string, config?: (b: SequenceNodeBuilder) => void): SequenceNode {
+  const builder = new SequenceNodeBuilder(id);
+  if (config) config(builder);
+  return builder.build();
+}
+
+/** Create a built parallel node directly. */
+export function parallelStep(id: string, config?: (b: ParallelNodeBuilder) => void): ParallelNode {
+  const builder = new ParallelNodeBuilder(id);
+  if (config) config(builder);
+  return builder.build();
+}
+
+/** Create a built branch node directly. */
+export function branchStep(
+  id: string,
+  predicateId: string,
+  config?: (b: BranchNodeBuilder) => void,
+): BranchNode {
+  const builder = new BranchNodeBuilder(id, predicateId);
+  if (config) config(builder);
+  return builder.build();
+}
+
+/** Create a built fallback node directly. */
+export function fallbackStep(id: string, config?: (b: FallbackNodeBuilder) => void): FallbackNode {
+  const builder = new FallbackNodeBuilder(id);
+  if (config) config(builder);
+  return builder.build();
 }
 
 // ── Convenience factory functions ──
