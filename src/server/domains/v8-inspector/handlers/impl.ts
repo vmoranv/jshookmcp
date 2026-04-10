@@ -1,8 +1,9 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { MCPServerContext } from '@server/MCPServer.context';
-import type { DomainManifest, ToolHandlerDeps, ToolRegistration } from '@server/registry/contracts';
+import type { DomainManifest, ToolRegistration } from '@server/registry/contracts';
 import type { ToolArgs } from '@server/types';
 import { V8InspectorClient } from '@modules/v8-inspector/V8InspectorClient';
+import { bindByDepKey } from '@server/registry/bind-helpers';
 import { v8InspectorTools } from '../definitions';
 import { getSnapshotCache, handleHeapSnapshotCapture } from './heap-snapshot';
 import { handleBytecodeExtract } from './bytecode-extract';
@@ -12,10 +13,6 @@ import { getSnapshot } from './heap-snapshot';
 export interface V8InspectorDomainDependencies {
   ctx: MCPServerContext;
   client: V8InspectorClient;
-}
-
-function isV8InspectorHandlers(value: unknown): value is V8InspectorHandlers {
-  return typeof value === 'object' && value !== null && 'handle' in value;
 }
 
 function requireStringArg(args: ToolArgs, key: string): string {
@@ -204,13 +201,9 @@ export class V8InspectorHandlers {
 const registrations: ToolRegistration[] = v8InspectorTools.map((toolDef: Tool) => ({
   tool: toolDef,
   domain: 'v8-inspector',
-  bind: (deps: ToolHandlerDeps) => {
-    const handlers = deps.v8InspectorHandlers;
-    if (!isV8InspectorHandlers(handlers)) {
-      throw new Error('v8-inspector handlers unavailable');
-    }
-    return (args: ToolArgs) => handlers.handle(toolDef.name, args);
-  },
+  bind: bindByDepKey<V8InspectorHandlers>('v8InspectorHandlers', (handlers, args) =>
+    handlers.handle(toolDef.name, args),
+  ),
 }));
 
 async function ensure(ctx: MCPServerContext): Promise<V8InspectorHandlers> {

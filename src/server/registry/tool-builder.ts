@@ -1,13 +1,9 @@
 /**
  * Fluent tool definition builder — replaces raw JSON nesting with chainable API.
  *
- * Usage:
- *   tool('memory_scan_list', (t) =>
- *     t
- *       .desc('List memory scan sessions')
- *       .readOnly()
- *       .idempotent(),
- *   )
+ * The public API stays fluent, but the implementation is immutable:
+ * every builder method returns a new builder snapshot instead of mutating
+ * instance fields in place.
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -33,6 +29,24 @@ interface PropertySchema {
 interface ParamOpts {
   default?: unknown;
 }
+
+type AnnotationState = Readonly<{
+  readOnlyHint: boolean;
+  destructiveHint: boolean;
+  idempotentHint: boolean;
+  openWorldHint: boolean;
+}>;
+
+type BuilderState = Readonly<{
+  name: string;
+  description: string;
+  properties: Readonly<Record<string, PropertySchema>>;
+  required: readonly string[];
+  annotations: AnnotationState;
+  asyncTask: boolean;
+  autocompleteHandlers: Readonly<Record<string, (value: string) => string[] | Promise<string[]>>>;
+  outputSchema?: Record<string, unknown>;
+}>;
 
 export interface ToolBuilder {
   desc(description: string): this;
@@ -62,184 +76,227 @@ export interface ToolBuilder {
   outputSchema(schema: Record<string, unknown>): this;
 }
 
-class InternalToolBuilder implements ToolBuilder {
-  private readonly _name: string;
-  private _description = '';
-  private readonly _properties: Record<string, PropertySchema> = {};
-  private readonly _required: string[] = [];
-  private _readOnlyHint = false;
-  private _destructiveHint = false;
-  private _idempotentHint = false;
-  private _openWorldHint = false;
-  private _asyncTask = false;
-  private readonly _autocompleteHandlers: Record<
-    string,
-    (value: string) => string[] | Promise<string[]>
-  > = {};
-  private _outputSchema?: Record<string, unknown>;
+type InternalToolBuilder = ToolBuilder & {
+  build(): BuiltTool;
+};
+type BuilderTracker = { latest?: InternalToolBuilder };
 
-  constructor(name: string) {
-    this._name = name;
-  }
+function createInitialState(name: string): BuilderState {
+  return {
+    name,
+    description: '',
+    properties: {},
+    required: [],
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    asyncTask: false,
+    autocompleteHandlers: {},
+    outputSchema: undefined,
+  };
+}
 
-  desc(description: string): this {
-    this._description = description;
-    return this;
-  }
+function defaults(opts?: ParamOpts): Record<string, unknown> {
+  if (opts?.default === undefined) return {};
+  return { default: opts.default };
+}
 
-  // ── Typed param shortcuts ──
+function withState(state: BuilderState, patch: Partial<BuilderState>): BuilderState {
+  return {
+    ...state,
+    ...patch,
+  };
+}
 
-  string(name: string, description: string, opts?: ParamOpts): this {
-    this._properties[name] = { type: 'string', description, ...this.defaults(opts) };
-    return this;
-  }
+function withProperty(state: BuilderState, name: string, schema: PropertySchema): BuilderState {
+  return withState(state, {
+    properties: {
+      ...state.properties,
+      [name]: schema,
+    },
+  });
+}
 
-  number(name: string, description: string, opts?: ParamOpts): this {
-    this._properties[name] = { type: 'number', description, ...this.defaults(opts) };
-    return this;
-  }
+function withRequiredNames(state: BuilderState, names: string[]): BuilderState {
+  return withState(state, {
+    required: [...state.required, ...names],
+  });
+}
 
-  integer(name: string, description: string, opts?: ParamOpts): this {
-    this._properties[name] = { type: 'integer', description, ...this.defaults(opts) };
-    return this;
-  }
+function withAnnotations(state: BuilderState, patch: Partial<AnnotationState>): BuilderState {
+  return withState(state, {
+    annotations: {
+      ...state.annotations,
+      ...patch,
+    },
+  });
+}
 
-  boolean(name: string, description: string, opts?: ParamOpts): this {
-    this._properties[name] = { type: 'boolean', description, ...this.defaults(opts) };
-    return this;
-  }
+function buildTool(state: BuilderState): BuiltTool {
+  return {
+    name: state.name,
+    description: state.description,
+    inputSchema: {
+      type: 'object' as const,
+      properties: state.properties as unknown as Record<string, object>,
+      ...(state.required.length > 0 ? { required: [...state.required] } : {}),
+    },
+    annotations: {
+      readOnlyHint: state.annotations.readOnlyHint,
+      destructiveHint: state.annotations.destructiveHint,
+      idempotentHint: state.annotations.idempotentHint,
+      openWorldHint: state.annotations.openWorldHint,
+    },
+    ...(state.asyncTask ? { execution: { taskSupport: 'optional' as const } } : {}),
+    ...(Object.keys(state.autocompleteHandlers).length > 0
+      ? { __autocomplete: state.autocompleteHandlers }
+      : {}),
+    ...(state.outputSchema ? { outputSchema: state.outputSchema as any } : {}),
+  };
+}
 
-  enum(name: string, values: readonly string[], description: string, opts?: ParamOpts): this {
-    this._properties[name] = {
-      type: 'string',
-      enum: values,
-      description,
-      ...this.defaults(opts),
-    };
-    return this;
-  }
+function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalToolBuilder {
+  const next = (updated: BuilderState): InternalToolBuilder => {
+    const nextBuilder = createBuilder(updated, tracker);
+    if (tracker) tracker.latest = nextBuilder;
+    return nextBuilder;
+  };
 
-  array(name: string, items: PropertySchema | Record<string, unknown>, description: string): this {
-    this._properties[name] = { type: 'array', items, description };
-    return this;
-  }
+  const builder: InternalToolBuilder = {
+    desc(description: string) {
+      return next(withState(state, { description })) as InternalToolBuilder;
+    },
+    string(name: string, description: string, opts?: ParamOpts) {
+      return next(
+        withProperty(state, name, {
+          type: 'string',
+          description,
+          ...defaults(opts),
+        }),
+      ) as InternalToolBuilder;
+    },
+    number(name: string, description: string, opts?: ParamOpts) {
+      return next(
+        withProperty(state, name, {
+          type: 'number',
+          description,
+          ...defaults(opts),
+        }),
+      ) as InternalToolBuilder;
+    },
+    integer(name: string, description: string, opts?: ParamOpts) {
+      return next(
+        withProperty(state, name, {
+          type: 'integer',
+          description,
+          ...defaults(opts),
+        }),
+      ) as InternalToolBuilder;
+    },
+    boolean(name: string, description: string, opts?: ParamOpts) {
+      return next(
+        withProperty(state, name, {
+          type: 'boolean',
+          description,
+          ...defaults(opts),
+        }),
+      ) as InternalToolBuilder;
+    },
+    enum(name: string, values: readonly string[], description: string, opts?: ParamOpts) {
+      return next(
+        withProperty(state, name, {
+          type: 'string',
+          enum: values,
+          description,
+          ...defaults(opts),
+        }),
+      ) as InternalToolBuilder;
+    },
+    array(name: string, items: PropertySchema | Record<string, unknown>, description: string) {
+      return next(
+        withProperty(state, name, {
+          type: 'array',
+          items,
+          description,
+        }),
+      ) as InternalToolBuilder;
+    },
+    object(
+      name: string,
+      props: Record<string, PropertySchema>,
+      description: string,
+      opts?: { required?: string[] },
+    ) {
+      return next(
+        withProperty(state, name, {
+          type: 'object',
+          properties: props,
+          description,
+          ...(opts?.required ? { required: opts.required } : {}),
+        }),
+      ) as InternalToolBuilder;
+    },
+    prop(name: string, schema: PropertySchema) {
+      return next(withProperty(state, name, schema)) as InternalToolBuilder;
+    },
+    required(...names: string[]) {
+      return next(withRequiredNames(state, names)) as InternalToolBuilder;
+    },
+    requiredOpenWorld(...names: string[]) {
+      return this.required(...names).openWorld();
+    },
+    readOnly() {
+      return next(withAnnotations(state, { readOnlyHint: true })) as InternalToolBuilder;
+    },
+    destructive() {
+      return next(withAnnotations(state, { destructiveHint: true })) as InternalToolBuilder;
+    },
+    idempotent() {
+      return next(withAnnotations(state, { idempotentHint: true })) as InternalToolBuilder;
+    },
+    openWorld() {
+      return next(withAnnotations(state, { openWorldHint: true })) as InternalToolBuilder;
+    },
+    query() {
+      return this.readOnly().idempotent();
+    },
+    resettable() {
+      return this.destructive().idempotent();
+    },
+    asyncTask() {
+      return next(withState(state, { asyncTask: true })) as InternalToolBuilder;
+    },
+    autocomplete(argName: string, handler: (value: string) => string[] | Promise<string[]>) {
+      return next(
+        withState(state, {
+          autocompleteHandlers: {
+            ...state.autocompleteHandlers,
+            [argName]: handler,
+          },
+        }),
+      ) as InternalToolBuilder;
+    },
+    outputSchema(schema: Record<string, unknown>) {
+      return next(withState(state, { outputSchema: schema })) as InternalToolBuilder;
+    },
+    build() {
+      return buildTool(state);
+    },
+  };
 
-  object(
-    name: string,
-    props: Record<string, PropertySchema>,
-    description: string,
-    opts?: { required?: string[] },
-  ): this {
-    this._properties[name] = {
-      type: 'object',
-      properties: props,
-      description,
-      ...(opts?.required ? { required: opts.required } : {}),
-    };
-    return this;
-  }
-
-  /** Add a raw JSON schema property (escape hatch for complex schemas). */
-  prop(name: string, schema: PropertySchema): this {
-    this._properties[name] = schema;
-    return this;
-  }
-
-  // ── Constraints ──
-
-  required(...names: string[]): this {
-    this._required.push(...names);
-    return this;
-  }
-
-  requiredOpenWorld(...names: string[]): this {
-    return this.required(...names).openWorld();
-  }
-
-  // ── Annotation shortcuts (default = false) ──
-
-  readOnly(): this {
-    this._readOnlyHint = true;
-    return this;
-  }
-
-  destructive(): this {
-    this._destructiveHint = true;
-    return this;
-  }
-
-  idempotent(): this {
-    this._idempotentHint = true;
-    return this;
-  }
-
-  openWorld(): this {
-    this._openWorldHint = true;
-    return this;
-  }
-
-  query(): this {
-    return this.readOnly().idempotent();
-  }
-
-  resettable(): this {
-    return this.destructive().idempotent();
-  }
-
-  asyncTask(): this {
-    this._asyncTask = true;
-    return this;
-  }
-
-  autocomplete(argName: string, handler: (value: string) => string[] | Promise<string[]>): this {
-    this._autocompleteHandlers[argName] = handler;
-    return this;
-  }
-
-  outputSchema(schema: Record<string, unknown>): this {
-    this._outputSchema = schema;
-    return this;
-  }
-
-  // ── Build ──
-
-  build(): BuiltTool {
-    const result: BuiltTool = {
-      name: this._name,
-      description: this._description,
-      inputSchema: {
-        type: 'object' as const,
-        properties: this._properties as unknown as Record<string, object>,
-        ...(this._required.length > 0 ? { required: this._required } : {}),
-      },
-      annotations: {
-        readOnlyHint: this._readOnlyHint,
-        destructiveHint: this._destructiveHint,
-        idempotentHint: this._idempotentHint,
-        openWorldHint: this._openWorldHint,
-      },
-      ...(this._asyncTask ? { execution: { taskSupport: 'optional' } } : {}),
-      ...(Object.keys(this._autocompleteHandlers).length > 0
-        ? { __autocomplete: this._autocompleteHandlers }
-        : {}),
-      ...(this._outputSchema ? { outputSchema: this._outputSchema as any } : {}),
-    };
-    return result;
-  }
-
-  // ── Internal ──
-
-  private defaults(opts?: ParamOpts): Record<string, unknown> {
-    if (opts?.default === undefined) return {};
-    return { default: opts.default };
-  }
+  if (tracker && !tracker.latest) tracker.latest = builder;
+  return builder;
 }
 
 type ToolBuilderConfigurator = (builder: ToolBuilder) => ToolBuilder | void;
 
 /** Create a new tool definition with fluent builder API. */
 export function tool(name: string, configure: ToolBuilderConfigurator): BuiltTool {
-  const builder = new InternalToolBuilder(name);
+  const tracker: BuilderTracker = {};
+  const builder = createBuilder(createInitialState(name), tracker);
   const configured = configure(builder);
-  return ((configured ?? builder) as InternalToolBuilder).build();
+  return ((configured as InternalToolBuilder | undefined) ?? tracker.latest ?? builder).build();
 }
