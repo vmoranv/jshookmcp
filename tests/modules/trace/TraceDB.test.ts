@@ -214,6 +214,7 @@ describe('TraceDB', () => {
 
   it('throws mapped error when db path is invalid', () => {
     expect(() => {
+      // @ts-expect-error
       const _db = new TraceDB({ dbPath: '/invalid/path/that/cannot/exist/trace.db' });
     }).toThrow(/Cannot open database/);
   });

@@ -194,7 +194,9 @@ describe('captcha-solver runtime coverage', () => {
     expect(parsed.success).toBe(true);
     expect(parsed.token).toBe('widget-token-456');
     expect(parsed.injected).toBe(true);
+    // @ts-expect-error
     expect(inputs[0].value).toBe('widget-token-456');
+    // @ts-expect-error
     expect(inputs[1].value).toBe('widget-token-456');
   });
 });

@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => {
       pipe: vi.fn(),
     })),
     forward: vi.fn(async () => {}),
-    listForwards: vi.fn(async () => []),
+    listForwards: vi.fn(async (): Promise<any[]> => []),
     getProperties: vi.fn(async () => ({})),
   };
 

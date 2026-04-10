@@ -369,6 +369,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
         name: 'demoFn',
       });
       expect(result.manifest['custom.arrValue']).toHaveLength(21);
+      // @ts-expect-error
       expect(result.manifest['custom.arrValue'][20]).toContain('more items');
       expect(result.manifest['custom.circularValue']).toMatchObject({
         stringValue: 'hello',
@@ -377,9 +378,11 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       expect(result.manifest['custom.bigValue']).toBe('[Circular Reference]');
       expect(result.manifest['custom.getterValue']).toMatch(/getter blew up/);
       expect(result.manifest['custom.missingValue']).toBeUndefined();
+      // @ts-expect-error
       await expect(context.navigator.permissions.query({ name: 'notifications' })).resolves.toEqual(
         { state: 'granted' },
       );
+      // @ts-expect-error
       expect(context.window.navigator.webdriver).toBeUndefined();
     });
   });
@@ -566,9 +569,11 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       expect(window._sdkGlueVersionMap).toEqual({});
       expect((window as Record<string, any>).setTimeout).toHaveBeenCalled();
       expect((window as Record<string, any>).clearTimeout).toHaveBeenCalledWith(1);
+      // @ts-expect-error
       await expect(navigator.permissions.query({ name: 'notifications' })).resolves.toEqual({
         state: 'granted',
       });
+      // @ts-expect-error
       await expect(navigator.permissions.query({ name: 'geolocation' })).resolves.toEqual({
         state: 'denied',
       });
@@ -649,6 +654,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       expect(window.requestAnimationFrame).toBe(existingRaf);
       expect(window.cancelAnimationFrame).toBe(existingCaf);
       expect(window._sdkGlueVersionMap).toEqual({ preset: true });
+      // @ts-expect-error
       await expect(navigator.permissions.query({ name: 'geolocation' })).resolves.toEqual({
         state: 'denied',
       });

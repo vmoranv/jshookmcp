@@ -71,8 +71,11 @@ describe('ScriptManagementHandlers — comprehensive coverage', () => {
     });
 
     it('respects custom maxScripts value', async () => {
+      // @ts-expect-error
       const scripts = [];
+      // @ts-expect-error
       scriptManager.getAllScripts.mockResolvedValue(scripts);
+      // @ts-expect-error
       detailedDataManager.smartHandle.mockReturnValue({ count: 0, scripts });
 
       await handlers.handleGetAllScripts({ maxScripts: 50 });
@@ -81,8 +84,11 @@ describe('ScriptManagementHandlers — comprehensive coverage', () => {
     });
 
     it('caps maxScripts at SCRIPTS_MAX_CAP', async () => {
+      // @ts-expect-error
       const scripts = [];
+      // @ts-expect-error
       scriptManager.getAllScripts.mockResolvedValue(scripts);
+      // @ts-expect-error
       detailedDataManager.smartHandle.mockReturnValue({ count: 0, scripts });
 
       await handlers.handleGetAllScripts({ maxScripts: 10000 });

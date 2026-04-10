@@ -139,6 +139,7 @@ describe('scanner linux/darwin - coverage expansion', () => {
     it('returns error when openSync throws ENOENT', async () => {
       state.readFileSync.mockReturnValue('user 0 0 0 0 0 r-x /mem\n');
       state.openSync.mockImplementation(() => {
+        // @ts-expect-error
         const err = new Error('ENOENT: No such file') as NodeJS.ErrnOException;
         err.code = 'ENOENT';
         throw err;

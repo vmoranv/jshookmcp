@@ -296,7 +296,7 @@ async function main() {
   const client = new Client({ name: 'e2e-timing', version: '1.0.0' }, { capabilities: {} });
   const transport = new StdioClientTransport({
     command: 'node',
-    args: ['dist/src/index.js'],
+    args: ['dist/index.mjs'],
     cwd: process.cwd(),
     env,
     stderr: 'pipe',

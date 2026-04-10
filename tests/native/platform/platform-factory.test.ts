@@ -3,42 +3,34 @@
  *
  * Tests createPlatformProvider() and getCurrentPlatform()
  * with mocked process.platform values.
- *
- * NOTE: createPlatformProvider() uses createRequire/esmRequire which does not
- * work in Vitest's module resolution. Tests that call createPlatformProvider()
- * directly are skipped — the provider itself is tested in the dedicated
- * Win32MemoryProvider.test.ts and DarwinMemoryProvider.test.ts.
- * The factory caching and dispatch logic is tested via mocked providers.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-function MockWin32Provider() {}
-function MockDarwinProvider() {}
-function MockLinuxProvider() {}
-
-const state = vi.hoisted(() => {
-  const createRequire = vi.fn(() => (specifier: string) => {
-    if (specifier === './win32/Win32MemoryProvider.js') {
-      return { Win32MemoryProvider: MockWin32Provider };
-    }
-
-    if (specifier === './darwin/DarwinMemoryProvider.js') {
-      return { DarwinMemoryProvider: MockDarwinProvider };
-    }
-
-    if (specifier === './linux/LinuxMemoryProvider.impl.js') {
-      return { LinuxMemoryProvider: MockLinuxProvider };
-    }
-
-    throw new Error(`Unexpected platform provider import: ${specifier}`);
-  });
-
-  return { MockWin32Provider, MockDarwinProvider, MockLinuxProvider, createRequire };
+const { MockWin32Provider, MockDarwinProvider, MockLinuxProvider } = vi.hoisted(() => {
+  return {
+    MockWin32Provider: class {
+      mock = true;
+    },
+    MockDarwinProvider: class {
+      mock = true;
+    },
+    MockLinuxProvider: class {
+      mock = true;
+    },
+  };
 });
 
-vi.mock('module', () => ({
-  createRequire: state.createRequire,
+vi.mock('@src/native/platform/win32/Win32MemoryProvider.js', () => ({
+  Win32MemoryProvider: MockWin32Provider,
+}));
+
+vi.mock('@src/native/platform/darwin/DarwinMemoryProvider.js', () => ({
+  DarwinMemoryProvider: MockDarwinProvider,
+}));
+
+vi.mock('@src/native/platform/linux/LinuxMemoryProvider.impl.js', () => ({
+  LinuxMemoryProvider: MockLinuxProvider,
 }));
 
 describe('platform/factory', () => {
@@ -81,9 +73,8 @@ describe('platform/factory', () => {
       const first = createPlatformProvider();
       const second = createPlatformProvider();
 
-      expect(first).toBeInstanceOf(state.MockWin32Provider);
+      expect(first).toBeInstanceOf(MockWin32Provider);
       expect(second).toBe(first);
-      expect(state.createRequire).toHaveBeenCalled();
     });
 
     it('creates and caches the darwin provider', async () => {
@@ -93,9 +84,8 @@ describe('platform/factory', () => {
       const first = createPlatformProvider();
       const second = createPlatformProvider();
 
-      expect(first).toBeInstanceOf(state.MockDarwinProvider);
+      expect(first).toBeInstanceOf(MockDarwinProvider);
       expect(second).toBe(first);
-      expect(state.createRequire).toHaveBeenCalled();
     });
 
     it('creates and caches the linux provider', async () => {
@@ -105,7 +95,7 @@ describe('platform/factory', () => {
       const first = createPlatformProvider();
       const second = createPlatformProvider();
 
-      expect(first).toBeInstanceOf(state.MockLinuxProvider);
+      expect(first).toBeInstanceOf(MockLinuxProvider);
       expect(second).toBe(first);
     });
 

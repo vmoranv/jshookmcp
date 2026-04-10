@@ -427,6 +427,7 @@ describe('MemoryScanner', () => {
     it('treats missing previous values as null during nextScan comparisons', async () => {
       const first = await scanner.firstScan(1234, '42', { valueType: 'int32' });
       const { scanSessionManager } = await import('@native/MemoryScanSession');
+      // @ts-expect-error
       const session = (scanSessionManager.getSession as ReturnType<typeof vi.fn>)(first.sessionId);
       session.previousValues = new Map();
 

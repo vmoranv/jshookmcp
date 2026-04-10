@@ -134,6 +134,7 @@ describe('MacProcessManager - catch-block and EPERM coverage', () => {
           stdout: '  PID  PPID  %CPU  %MEM  COMM  ARGS\n  501     1   0     0    App  App\n',
         },
         'ps -p 501 -o comm=': { stdout: 'App\n' },
+        // @ts-expect-error
         'osascript -e': { error: new Error('osascript failed') },
       });
       const manager = new MacProcessManager();
@@ -147,6 +148,7 @@ describe('MacProcessManager - catch-block and EPERM coverage', () => {
           stdout: '  PID  PPID  %CPU  %MEM  COMM  ARGS\n  501     1   0     0    App  App\n',
         },
         'ps -p 501 -o comm=': { stdout: 'App\n' },
+        // @ts-expect-error
         'osascript -e': { error: new Error('Automation untrusted') },
       });
       const manager = new MacProcessManager();

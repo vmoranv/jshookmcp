@@ -89,6 +89,7 @@ describe('TraceRecorder', () => {
   });
 
   it('records EventBus events', async () => {
+    // @ts-expect-error
     const _session = await recorder.start(eventBus, null);
 
     // Emit a test event

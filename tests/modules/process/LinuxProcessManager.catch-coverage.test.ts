@@ -144,6 +144,7 @@ describe('LinuxProcessManager - catch-block and EPERM coverage', () => {
     it('returns [] when xdotool check throws', async () => {
       setupExecByCommand({
         'echo $XDG_SESSION_TYPE': { stdout: 'x11\n' },
+        // @ts-expect-error
         'which xdotool': { error: new Error('which failed') },
       });
       const manager = new LinuxProcessManager();

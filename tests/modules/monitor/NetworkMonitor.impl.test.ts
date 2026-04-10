@@ -120,6 +120,7 @@ describe('NetworkMonitor impl', () => {
     expect(monitor.isEnabled()).toBe(true);
 
     // Trigger the disconnected handler
+    // @ts-expect-error
     const disconnectedHandler = session.on.mock.calls.find(([evt]) => evt === 'disconnected')?.[1];
     expect(disconnectedHandler).toBeDefined();
     disconnectedHandler!();
@@ -243,6 +244,7 @@ describe('NetworkMonitor impl', () => {
       timestamp: 1,
     });
 
+    // @ts-expect-error
     expect(monitor.getResponses()[0].fromCache).toBe(true);
   });
 
@@ -266,6 +268,7 @@ describe('NetworkMonitor impl', () => {
       timestamp: 1,
     });
 
+    // @ts-expect-error
     expect(monitor.getResponses()[0].fromCache).toBe(true);
   });
 
@@ -746,6 +749,7 @@ describe('NetworkMonitor impl', () => {
 
     const result = await monitor.getAllJavaScriptResponses();
     expect(result).toHaveLength(1);
+    // @ts-expect-error
     expect(result[0].content).toBe('console.log("hello");');
   });
 
@@ -886,6 +890,7 @@ describe('NetworkMonitor impl', () => {
     });
 
     const result = await monitor.getAllJavaScriptResponses();
+    // @ts-expect-error
     expect(result[0].content).toBe(original);
   });
 
@@ -911,6 +916,7 @@ describe('NetworkMonitor impl', () => {
 
     const filtered = monitor.getRequests({ url: 'api.example' });
     expect(filtered).toHaveLength(1);
+    // @ts-expect-error
     expect(filtered[0].requestId).toBe('req-a');
   });
 
@@ -932,6 +938,7 @@ describe('NetworkMonitor impl', () => {
 
     const filtered = monitor.getRequests({ method: 'POST' });
     expect(filtered).toHaveLength(1);
+    // @ts-expect-error
     expect(filtered[0].requestId).toBe('req-post');
   });
 
@@ -950,7 +957,9 @@ describe('NetworkMonitor impl', () => {
 
     const limited = monitor.getRequests({ limit: 2 });
     expect(limited).toHaveLength(2);
+    // @ts-expect-error
     expect(limited[0].requestId).toBe('req-3');
+    // @ts-expect-error
     expect(limited[1].requestId).toBe('req-4');
   });
 
@@ -980,6 +989,7 @@ describe('NetworkMonitor impl', () => {
 
     const filtered = monitor.getResponses({ url: 'api.example' });
     expect(filtered).toHaveLength(1);
+    // @ts-expect-error
     expect(filtered[0].requestId).toBe('res-1');
   });
 
@@ -1009,6 +1019,7 @@ describe('NetworkMonitor impl', () => {
 
     const filtered = monitor.getResponses({ status: 404 });
     expect(filtered).toHaveLength(1);
+    // @ts-expect-error
     expect(filtered[0].requestId).toBe('res-404');
   });
 
@@ -1036,7 +1047,9 @@ describe('NetworkMonitor impl', () => {
 
     const limited = monitor.getResponses({ limit: 2 });
     expect(limited).toHaveLength(2);
+    // @ts-expect-error
     expect(limited[0].requestId).toBe('res-3');
+    // @ts-expect-error
     expect(limited[1].requestId).toBe('res-4');
   });
 
@@ -1549,6 +1562,7 @@ describe('NetworkMonitor impl', () => {
 
     const requests = monitor.getRequests();
     expect(requests).toHaveLength(1);
+    // @ts-expect-error
     expect(requests[0].postData).toBe('{"key":"value"}');
   });
 
@@ -1565,7 +1579,9 @@ describe('NetworkMonitor impl', () => {
 
     const requests = monitor.getRequests();
     expect(requests).toHaveLength(1);
+    // @ts-expect-error
     expect(requests[0].type).toBeUndefined();
+    // @ts-expect-error
     expect(requests[0].initiator).toBeUndefined();
   });
 

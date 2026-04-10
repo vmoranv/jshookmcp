@@ -55,6 +55,7 @@ vi.mock('@modules/collector/PageScriptCollectors', () => ({
 
 import { CodeCollector } from '@modules/collector/CodeCollector';
 
+// @ts-expect-error
 class _TestCodeCollector extends CodeCollector {
   public getProtectedCollectedUrls() {
     return this.collectedUrls;
@@ -81,6 +82,7 @@ function createBrowserMock(overrides: Record<string, any> = {}) {
   } as any;
 }
 
+// @ts-expect-error
 function _createTargetMock(url = 'https://example.com', type = 'page', page?: any) {
   return {
     type: vi.fn().mockReturnValue(type),

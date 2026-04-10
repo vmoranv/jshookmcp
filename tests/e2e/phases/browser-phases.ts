@@ -4,12 +4,20 @@ export const browserPhases: Phase[] = [
   {
     name: 'Browser Launch & Navigation',
     setup: ['browser_launch', 'page_navigate'],
-    tools: ['browser_status', 'browser_list_tabs', 'browser_select_tab', 'page_get_performance'],
+    tools: [
+      'browser_status',
+      'browser_list_tabs',
+      'browser_select_tab',
+      'page_get_performance',
+      'browser_attach',
+    ],
   },
   {
     name: 'DOM & Page Interaction',
     setup: [],
     tools: [
+      'trace_click_to_handler',
+      'restore_page_snapshot',
       'dom_query_selector',
       'dom_query_all',
       'dom_get_structure',

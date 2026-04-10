@@ -117,6 +117,7 @@ describe('Win32API', () => {
   });
 
   it('handles ReadProcessMemory success and failure', () => {
+    // @ts-expect-error
     mockFuncs.ReadProcessMemory.mockImplementation((hProcess, lpBase, buf, size, bytesRead) => {
       buf.write('test');
       bytesRead.writeBigUInt64LE(4n);
@@ -132,6 +133,7 @@ describe('Win32API', () => {
   });
 
   it('handles WriteProcessMemory success and failure', () => {
+    // @ts-expect-error
     mockFuncs.WriteProcessMemory.mockImplementation((hProcess, lpBase, buf, size, bytesWritten) => {
       bytesWritten.writeBigUInt64LE(4n);
       return 1;
@@ -146,6 +148,7 @@ describe('Win32API', () => {
   });
 
   it('handles VirtualQueryEx', () => {
+    // @ts-expect-error
     mockFuncs.VirtualQueryEx.mockImplementation((hProcess, lpAddress, buf, _size) => {
       buf.writeBigUInt64LE(0x1000n, 0); // BaseAddress
       buf.writeBigUInt64LE(0x1000n, 8); // AllocationBase
@@ -168,6 +171,7 @@ describe('Win32API', () => {
   });
 
   it('handles VirtualProtectEx', () => {
+    // @ts-expect-error
     mockFuncs.VirtualProtectEx.mockImplementation((h, a, s, n, oldP) => {
       oldP.writeUInt32LE(0x02, 0);
       return 1;
@@ -186,6 +190,7 @@ describe('Win32API', () => {
   });
 
   it('handles CreateRemoteThread', () => {
+    // @ts-expect-error
     mockFuncs.CreateRemoteThread.mockImplementation((h, s, sz, start, p, c, tidBuf) => {
       tidBuf.writeUInt32LE(9999, 0);
       return 0x9000n;
@@ -203,6 +208,7 @@ describe('Win32API', () => {
   });
 
   it('handles NtQueryInformationProcess', () => {
+    // @ts-expect-error
     mockFuncs.NtQueryInformationProcess.mockImplementation((h, c, buf, _s, _ret) => {
       buf.writeBigUInt64LE(0xffffffffn, 0);
       return 0; // STATUS_SUCCESS
@@ -213,6 +219,7 @@ describe('Win32API', () => {
   });
 
   it('reuses the cached ntdll binding across successive debug queries', () => {
+    // @ts-expect-error
     mockFuncs.NtQueryInformationProcess.mockImplementation((h, c, buf, _s, _ret) => {
       buf.writeBigUInt64LE(0n, 0);
       return 0;
@@ -226,6 +233,7 @@ describe('Win32API', () => {
   });
 
   it('handles EnumProcessModules', () => {
+    // @ts-expect-error
     mockFuncs.EnumProcessModules.mockImplementation((h, buf, s, needed) => {
       buf.writeBigUInt64LE(0x1000n, 0);
       buf.writeBigUInt64LE(0x2000n, 8);
@@ -239,6 +247,7 @@ describe('Win32API', () => {
   });
 
   it('handles GetModuleBaseName', () => {
+    // @ts-expect-error
     mockFuncs.GetModuleBaseNameA.mockImplementation((h, m, buf, _size) => {
       buf.write('test.exe\0');
       return 8;
@@ -247,6 +256,7 @@ describe('Win32API', () => {
   });
 
   it('handles GetModuleFileNameEx', () => {
+    // @ts-expect-error
     mockFuncs.GetModuleFileNameExA.mockImplementation((h, m, buf, _size) => {
       buf.write('C:\\test.exe\0');
       return 11;
@@ -259,6 +269,7 @@ describe('Win32API', () => {
   });
 
   it('returns null when the resolved module path is empty', () => {
+    // @ts-expect-error
     mockFuncs.GetModuleFileNameExA.mockImplementation((h, m, buf, _size) => {
       buf.writeUInt8(0, 0);
       return 1;
@@ -268,6 +279,7 @@ describe('Win32API', () => {
   });
 
   it('handles GetModuleInformation', () => {
+    // @ts-expect-error
     mockFuncs.GetModuleInformation.mockImplementation((h, m, buf, _size) => {
       buf.writeBigUInt64LE(0x1000n, 0); // lpBaseOfDll
       buf.writeUInt32LE(4096, 8); // SizeOfImage

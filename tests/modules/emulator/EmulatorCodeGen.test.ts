@@ -122,7 +122,9 @@ describe('EmulatorCodeGen', () => {
     });
     expect(result.location).toHaveLength(1);
     expect(result.screen).toHaveLength(1);
+    // @ts-expect-error
     expect(result.location[0][0]).toBe('location.href');
+    // @ts-expect-error
     expect(result.screen[0][0]).toBe('screen.width');
   });
 

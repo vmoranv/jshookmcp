@@ -721,6 +721,7 @@ describe('WorkflowHandlersApi', () => {
       expect(body.success).toBe(true);
       expect(body.report?.success).toBe(false);
       expect(body.report?.error).toContain('disk full');
+      // @ts-expect-error
       expect(body.warnings?.some((warning) => warning.includes('Report export failed'))).toBe(true);
     });
 

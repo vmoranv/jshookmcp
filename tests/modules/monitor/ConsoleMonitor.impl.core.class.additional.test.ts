@@ -695,6 +695,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       (monitor as any).playwrightPage = null;
 
       // Use real timers; mock send to resolve just past the 3000ms health-check timeout
+      // @ts-expect-error
       const sendMock = zombieSession.send as ReturnType<typeof vi.fn>;
       sendMock.mockImplementationOnce(
         () => new Promise((resolve) => setTimeout(() => resolve({ result: { value: 1 } }), 3100)),

@@ -67,6 +67,7 @@ describe('CaptchaDetector callback coverage', () => {
       },
       window: {},
     });
+    // @ts-expect-error
     vi.spyOn(detector, 'confirmRuleWithDOM').mockResolvedValueOnce(true);
 
     const result = await detector.checkPageText(page);

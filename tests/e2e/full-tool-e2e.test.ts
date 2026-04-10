@@ -10,6 +10,7 @@ import {
 import { buildArgs } from '@tests/e2e/helpers/schema-builder';
 import { ALL_PHASES } from '@tests/e2e/phases/index';
 import { applyContextCapture } from '@tests/e2e/context-capture';
+import { analyzeCoverage, formatCoverageReport } from '@tests/e2e/helpers/coverage-analyzer';
 import type { E2EConfig, E2EContext, ToolResult, ToolStatus } from '@tests/e2e/helpers/types';
 
 function flag(name: string, fallback: string): string {
@@ -499,9 +500,47 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 300_000, sequential: tr
         return { ...result, status, ok: result.ok ?? status === 'PASS' };
       }),
     };
+
+    // Add per-domain coverage analysis
+    const coverageReport = analyzeCoverage(toolMap);
+    const fullReport = {
+      ...report,
+      coverage: {
+        totalRegisteredTools: coverageReport.totalTools,
+        exercised: coverageReport.exercised,
+        skipped: coverageReport.skipped,
+        untested: coverageReport.untested,
+        overallCoveragePercent: coverageReport.overallCoveragePercent,
+        domains: coverageReport.domains.map((d) => ({
+          domain: d.domain,
+          total: d.total,
+          exercised: d.exercised,
+          skipped: d.skipped,
+          untested: d.untested,
+          coveragePercent: d.coveragePercent,
+        })),
+        untestedTools: coverageReport.untestedTools,
+      },
+    };
+
     const reportPath = join(ARTIFACT_DIR, 'e2e-full-report.json');
     try {
-      await writeFile(reportPath, JSON.stringify(report, null, 2));
+      await writeFile(reportPath, JSON.stringify(fullReport, null, 2));
+    } catch {
+      /* ignore */
+    }
+
+    // Write separate coverage report
+    try {
+      await writeFile(
+        join(ARTIFACT_DIR, 'e2e-coverage-report.json'),
+        JSON.stringify(coverageReport, null, 2),
+      );
+      // Write human-readable summary
+      await writeFile(
+        join(ARTIFACT_DIR, 'e2e-coverage-summary.txt'),
+        formatCoverageReport(coverageReport),
+      );
     } catch {
       /* ignore */
     }

@@ -96,6 +96,7 @@ describe('StealthVerifier', () => {
 
   it('should test the actual evaluate function logic (partial)', async () => {
     // This test actually calls the function passed to evaluate to cover the code inside it
+    // @ts-expect-error
     const _evaluateFn = mockPage.evaluate.mockImplementation(async (fn: any) => {
       // Create a mock browser environment
       const mockNavigator = {

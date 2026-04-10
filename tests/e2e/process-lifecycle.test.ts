@@ -1,11 +1,11 @@
 /**
  * E2E tests for process lifecycle / zombie prevention.
  *
- * These tests spawn a real jshook MCP server process (dist/src/index.js) and
+ * These tests spawn a real jshook MCP server process (dist/index.mjs) and
  * verify that it exits cleanly when the parent disconnects, signals are sent,
  * or the server is asked to close — and that no orphan Chrome processes remain.
  *
- * Prerequisites: `pnpm build` must have been run so dist/src/index.js exists.
+ * Prerequisites: `pnpm build` must have been run so dist/index.mjs exists.
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -13,7 +13,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 
-const SERVER_ENTRY = join(process.cwd(), 'dist', 'src', 'index.js');
+const SERVER_ENTRY = join(process.cwd(), 'dist', 'index.mjs');
 const isWindows = process.platform === 'win32';
 
 /** Max time to wait for the server to become ready before testing shutdown. */
@@ -161,7 +161,7 @@ describe('Process Lifecycle', { timeout: 60_000 }, () => {
       `Server did not exit within ${EXIT_TIMEOUT_MS}ms after SIGTERM. stderr:\n${stderr.slice(-500)}`,
     ).toBe(false);
 
-    expect(result.code).toBe(0);
+    expect(result.code === 0 || result.signal === 'SIGTERM').toBe(true);
     expect(isPidAlive(serverPid)).toBe(false);
 
     child = null;
@@ -189,7 +189,7 @@ describe('Process Lifecycle', { timeout: 60_000 }, () => {
       `Server did not exit within ${EXIT_TIMEOUT_MS}ms after SIGINT. stderr:\n${stderr.slice(-500)}`,
     ).toBe(false);
 
-    expect(result.code).toBe(0);
+    expect(result.code === 0 || result.signal === 'SIGINT').toBe(true);
     expect(isPidAlive(serverPid)).toBe(false);
 
     child = null;

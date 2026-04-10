@@ -205,6 +205,7 @@ describe('HardwareBreakpointEngine', () => {
         rip: 0x401000n,
       } as any);
 
+      // @ts-expect-error
       vi.mocked(Win32Debug.WaitForDebugEvent).mockReturnValueOnce({
         processId: 1234,
         threadId: 1001,
@@ -251,12 +252,14 @@ describe('HardwareBreakpointEngine', () => {
       } as any);
 
       vi.mocked(Win32Debug.WaitForDebugEvent)
+        // @ts-expect-error
         .mockReturnValueOnce({
           processId: 1234,
           threadId: 1001,
           exceptionCode: 0xdeadbeef,
           exceptionAddress: 0x400000n,
         })
+        // @ts-expect-error
         .mockReturnValueOnce({
           processId: 1234,
           threadId: 1001,

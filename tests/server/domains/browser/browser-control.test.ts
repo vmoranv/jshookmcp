@@ -176,8 +176,11 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
     expect(body.success).toBe(true);
     expect(body.mode).toBe('connect');
     expect(body.endpoint).toBe('autoConnect:beta');
+    // @ts-expect-error
     expect(body.autoConnect).toBe(true);
+    // @ts-expect-error
     expect(body.manualApprovalMayBeRequired).toBe(true);
+    // @ts-expect-error
     expect(body.approvalHint).toContain('Chrome 144+');
   });
 
@@ -312,7 +315,9 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
         'utf-8',
       );
       expect(body.success).toBe(true);
+      // @ts-expect-error
       expect(body.fallback?.applied).toBe(true);
+      // @ts-expect-error
       expect(body.fallback?.newEnv).toBe('PUPPETEER_HEADLESS=true');
     } finally {
       if (prevFallback === undefined) {
@@ -474,6 +479,7 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
 
     expect(body.success).toBe(true);
     expect(body.selectedIndex).toBe(0);
+    // @ts-expect-error
     expect(body.selectedPageId).toBe(null);
     expect(body.contextSwitched).toBe(true);
     expect(body.monitoringBindingDeferred).toBe(false);
@@ -600,7 +606,9 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     expect(body.takeoverReady).toBe(true);
     expect(body.contextSwitched).toBe(true);
     expect(body.monitoringBindingDeferred).toBe(true);
+    // @ts-expect-error
     expect(body.networkMonitoringEnabled).toBe(false);
+    // @ts-expect-error
     expect(body.consoleMonitoringEnabled).toBe(false);
     expect(consoleMonitor.markContextChanged).toHaveBeenCalledOnce();
   });
@@ -688,12 +696,16 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
 
     expect(body.success).toBe(true);
     expect(body.selectedIndex).toBe(0);
+    // @ts-expect-error
     expect(body.selectedPageId).toBe(null);
     expect(body.takeoverReady).toBe(false);
     expect(body.contextSwitched).toBe(true);
     expect(body.monitoringBindingDeferred).toBe(false);
+    // @ts-expect-error
     expect(body.networkMonitoringEnabled).toBe(false);
+    // @ts-expect-error
     expect(body.consoleMonitoringEnabled).toBe(false);
+    // @ts-expect-error
     expect(body.note).toContain('does not currently expose a stable Puppeteer Page handle');
   });
 

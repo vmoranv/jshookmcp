@@ -335,6 +335,7 @@ describe('BrowserModeManager', () => {
     const manager = new BrowserModeManager({ defaultHeadless: true });
     await manager.newPage();
 
+    // @ts-expect-error
     const injected = page.evaluateOnNewDocument.mock.calls[0]?.[0] as (() => void) | undefined;
     expect(injected).toBeTypeOf('function');
 

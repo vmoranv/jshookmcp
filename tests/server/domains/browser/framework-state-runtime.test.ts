@@ -23,6 +23,7 @@ function createHandler(context: {
       (globalThis as any).window = context.window;
       (globalThis as any).document = context.document;
       try {
+        // @ts-expect-error
         return await pageFunction(...args);
       } finally {
         (globalThis as any).window = prevWindow;

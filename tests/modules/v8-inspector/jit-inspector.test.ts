@@ -30,9 +30,11 @@ describe('JITInspector', () => {
           ],
         };
       }
+      // @ts-expect-error
       if (method === 'Runtime.evaluate' && params?.expression?.includes('%HaveSameMap')) {
         return { result: { value: true } };
       }
+      // @ts-expect-error
       if (method === 'Runtime.evaluate' && params?.expression?.includes('%GetOptimizationStatus')) {
         return { result: { value: 64 } };
       }

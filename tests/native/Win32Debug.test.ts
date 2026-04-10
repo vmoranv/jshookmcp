@@ -257,6 +257,7 @@ describe('Win32Debug', () => {
     });
 
     it('should handle GetThreadContext success and failure', () => {
+      // @ts-expect-error
       mockFunc.mockImplementationOnce((hThread, buf) => {
         expect(buf.readUInt32LE(0x30)).toBe(CONTEXT_FLAGS.ALL);
         return 1;
@@ -317,6 +318,7 @@ describe('Win32Debug', () => {
       // Mock CreateToolhelp32Snapshot loop
       mockSnapshot.mockReturnValueOnce(100n);
 
+      // @ts-expect-error
       mockFirst.mockImplementationOnce((snap: any, entry: Buffer) => {
         // Thread32First
         entry.writeUInt32LE(999, 0x0c); // owner pid -> mismatch
@@ -324,6 +326,7 @@ describe('Win32Debug', () => {
       });
 
       mockNext
+        // @ts-expect-error
         .mockImplementationOnce((snap: any, entry: Buffer) => {
           // Thread32Next
           entry.writeUInt32LE(1234, 0x0c); // owner pid -> match

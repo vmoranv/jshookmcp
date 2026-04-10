@@ -60,6 +60,7 @@ export const debuggerPhases: Phase[] = [
       await call('debugger_wait_for_paused', { timeout: 5000 });
     },
     tools: [
+      'debugger_pause',
       'debugger_wait_for_paused',
       'debugger_get_paused_state',
       'get_call_stack',

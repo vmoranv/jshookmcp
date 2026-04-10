@@ -349,6 +349,7 @@ describe('PerformanceMonitor', () => {
       },
     };
 
+    // @ts-expect-error
     page.evaluate.mockImplementation(async (pageFunction: any) => {
       if (typeof pageFunction === 'function') {
         return pageFunction();

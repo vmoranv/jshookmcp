@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const state = vi.hoisted(() => {
   const libSystem = {
     unload: vi.fn(),
-    func: vi.fn(() => vi.fn(() => 123)),
+    func: vi.fn<any>(() => vi.fn(() => 123)),
   };
 
   const load = vi.fn(() => libSystem);
@@ -87,9 +87,9 @@ describe('DarwinAPI', () => {
   });
 
   it('exposes the low-level Mach and dyld wrappers', async () => {
-    state.libSystem.func.mockImplementation((signature: string) => {
+    (state.libSystem.func as any).mockImplementation((signature: string) => {
       switch (signature) {
-        case 'uint32 mach_task_self_()':
+        case 'uint32 mach_task_self()':
           return vi.fn(() => 42);
         case 'int32 task_for_pid(uint32, int32, _Out_ uint32 *)':
           return vi.fn((_self: number, _pid: number, taskBuf: Buffer) => {
@@ -98,7 +98,7 @@ describe('DarwinAPI', () => {
           });
         case 'int32 mach_port_deallocate(uint32, uint32)':
           return vi.fn(() => 0);
-        case 'int32 mach_vm_read_overwrite(uint32, uint64, uint64, _Out_ uint8_t[len], uint64 len, _Out_ uint64 *)':
+        case 'int32 mach_vm_read_overwrite(uint32, uint64, uint64, _Out_ uint8_t *, uint64, _Out_ uint64 *)':
           return vi.fn(
             (
               _task: number,
@@ -115,7 +115,7 @@ describe('DarwinAPI', () => {
           );
         case 'int32 mach_vm_write(uint32, uint64, uint8_t *, uint32)':
           return vi.fn(() => 0);
-        case 'int32 mach_vm_region(uint32, _Inout_ uint64 *, _Out_ uint64 *, int32, _Out_ uint8_t[36], _Inout_ uint32 *, _Out_ uint32 *)':
+        case 'int32 mach_vm_region(uint32, _Inout_ uint64 *, _Out_ uint64 *, int32, _Out_ uint8_t *, _Inout_ uint32 *, _Out_ uint32 *)':
           return vi.fn((...args: unknown[]) => {
             const addressBuf = args[1] as Buffer;
             const sizeBuf = args[2] as Buffer;

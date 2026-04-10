@@ -21,6 +21,7 @@ vi.mock('@modules/browser/UnifiedBrowserManager', () => {
   class UnifiedBrowserManager {
     __config: any;
     private browser = { isConnected: vi.fn(() => true) };
+    // @ts-expect-error
     private pages: any[] = [];
     launch = vi.fn(async () => {
       if (unifiedBrowserManagerState.launchImpl) {
@@ -323,6 +324,7 @@ describe('BrowserPool', () => {
 
       // Simulate page close
       if (closeCallback) {
+        // @ts-expect-error
         closeCallback();
       }
 
@@ -360,6 +362,7 @@ describe('BrowserPool', () => {
       mockBrowser.newPage = vi.fn().mockResolvedValue(mockPage);
 
       await pool.createTab(manager);
+      // @ts-expect-error
       await pool.closeTab(manager, mockPage);
 
       expect(mockPage.close).toHaveBeenCalledTimes(1);
@@ -370,6 +373,7 @@ describe('BrowserPool', () => {
       const fakeManager = new UnifiedBrowserManager({});
       const mockPage = { id: 'page-1' };
 
+      // @ts-expect-error
       await expect(pool.closeTab(fakeManager, mockPage)).rejects.toThrow(
         'Browser instance not found in pool',
       );
@@ -384,6 +388,7 @@ describe('BrowserPool', () => {
       entry.browser = null;
       const mockPage = { id: 'page-1' };
 
+      // @ts-expect-error
       await expect(pool.closeTab(manager, mockPage)).rejects.toThrow('has no browser instance');
     });
 
@@ -394,6 +399,7 @@ describe('BrowserPool', () => {
       const manager = await pool.acquire(profile);
       const otherPage = { id: 'page-2' };
 
+      // @ts-expect-error
       await expect(pool.closeTab(manager, otherPage)).rejects.toThrow(
         'Page not found in this browser instance',
       );
@@ -417,7 +423,9 @@ describe('BrowserPool', () => {
 
       const tabs = pool.getTabs(manager);
       expect(tabs).toHaveLength(2);
+      // @ts-expect-error
       expect(tabs[0]?.id).toBe('page-1');
+      // @ts-expect-error
       expect(tabs[1]?.id).toBe('page-2');
     });
 
@@ -466,6 +474,7 @@ describe('BrowserPool', () => {
       await pool.createTab(manager);
 
       const tab = pool.switchTab(manager, 1);
+      // @ts-expect-error
       expect(tab.id).toBe('page-2');
     });
 

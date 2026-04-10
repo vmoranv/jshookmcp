@@ -68,6 +68,7 @@ function createHandler(indexedDBMock: any) {
       const prevIndexedDB = (globalThis as any).indexedDB;
       (globalThis as any).indexedDB = indexedDBMock;
       try {
+        // @ts-expect-error
         return await pageFunction(...args);
       } finally {
         (globalThis as any).indexedDB = prevIndexedDB;

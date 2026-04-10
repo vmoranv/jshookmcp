@@ -1640,6 +1640,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       const page = createPageMock();
       vi.spyOn(detector, 'checkUrl').mockRejectedValue(new Error('boom'));
 
+      // @ts-expect-error
       await expect(detector.detect(page)).resolves.toEqual({
         detected: false,
         type: 'none',

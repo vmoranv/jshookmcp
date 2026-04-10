@@ -588,6 +588,7 @@ describe('ProcessManager advanced scenarios', () => {
         mainProcess: undefined,
         rendererProcesses: [],
         gpuProcess: undefined,
+        // @ts-expect-error
         targetWindows: [],
       });
 

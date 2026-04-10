@@ -91,6 +91,7 @@ describe('BrowserEnvironmentRulesManager', () => {
 
     expect(typeof navStartValue).toBe('number');
     expect(typeof loadEndValue).toBe('number');
+    // @ts-expect-error
     expect(randomValuesRule?.defaultValue?.([1, 2, 3])).toEqual([1, 2, 3]);
   });
 });

@@ -158,7 +158,7 @@ export class MCPTestClient {
 
     const transport = new StdioClientTransport({
       command: 'node',
-      args: ['dist/src/index.js'],
+      args: ['dist/index.mjs'],
       cwd: process.cwd(),
       env,
       stderr: 'pipe',
@@ -216,7 +216,11 @@ export class MCPTestClient {
     }
     try {
       const proc = this.transport as unknown as { _process?: { pid?: number } } | null;
-      if (proc?._process?.pid) process.kill(proc._process.pid, 'SIGKILL');
+      if (proc?._process?.pid) {
+        process.kill(proc._process.pid, 'SIGTERM');
+        // Give the server time to gracefully shut down (triggering Puppeteer browser.close)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
     } catch {
       /* best-effort teardown */
     }

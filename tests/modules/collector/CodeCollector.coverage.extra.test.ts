@@ -108,6 +108,7 @@ function seedFiles() {
   return new Map<string, CodeFile>([
     [
       'https://example.com/a.js',
+      // @ts-expect-error
       {
         url: 'https://example.com/a.js',
         size: 12,
@@ -117,6 +118,7 @@ function seedFiles() {
     ],
     [
       'https://example.com/b.css',
+      // @ts-expect-error
       {
         url: 'https://example.com/b.css',
         size: 8,
@@ -125,6 +127,7 @@ function seedFiles() {
     ],
     [
       'https://example.com/c.json',
+      // @ts-expect-error
       {
         url: 'https://example.com/c.json',
         size: 20,
@@ -163,6 +166,7 @@ describe('CodeCollector extra coverage', () => {
     const collector = new TestCodeCollector({
       ...defaultConfig,
       maxCollectedUrls: 4,
+      // @ts-expect-error
       maxResponseSize: 15,
     });
 

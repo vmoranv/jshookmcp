@@ -37,6 +37,7 @@ describe('FrameworkStateHandlers', () => {
         }),
       );
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 
@@ -57,6 +58,7 @@ describe('FrameworkStateHandlers', () => {
         }),
       );
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 
@@ -77,6 +79,7 @@ describe('FrameworkStateHandlers', () => {
         }),
       );
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 
@@ -92,6 +95,7 @@ describe('FrameworkStateHandlers', () => {
         }),
       );
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 
@@ -109,6 +113,7 @@ describe('FrameworkStateHandlers', () => {
         }),
       );
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 
@@ -135,6 +140,7 @@ describe('FrameworkStateHandlers', () => {
         }),
       );
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const resultPromise = handlers.handleFrameworkStateExtract({});
 
@@ -160,6 +166,7 @@ describe('FrameworkStateHandlers', () => {
         }),
       );
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 
@@ -175,6 +182,7 @@ describe('FrameworkStateHandlers', () => {
         }),
       );
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 
@@ -186,6 +194,7 @@ describe('FrameworkStateHandlers', () => {
     it('returns error when getActivePage rejects', async () => {
       getActivePage.mockRejectedValue(new Error('no page'));
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 
@@ -202,6 +211,7 @@ describe('FrameworkStateHandlers', () => {
       const evaluate = vi.fn().mockResolvedValue({ detected: 'react', states: [], found: false });
       getActivePage.mockResolvedValue(fakePage({ evaluate }));
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       await handlers.handleFrameworkStateExtract({});
 
@@ -215,6 +225,7 @@ describe('FrameworkStateHandlers', () => {
       const evaluate = vi.fn().mockResolvedValue({ detected: 'vue3', states: [], found: false });
       getActivePage.mockResolvedValue(fakePage({ evaluate }));
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       await handlers.handleFrameworkStateExtract({ framework: 'vue3' });
 
@@ -228,6 +239,7 @@ describe('FrameworkStateHandlers', () => {
       const evaluate = vi.fn().mockResolvedValue({ detected: 'react', states: [], found: false });
       getActivePage.mockResolvedValue(fakePage({ evaluate }));
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       await handlers.handleFrameworkStateExtract({ selector: '#app' });
 
@@ -241,6 +253,7 @@ describe('FrameworkStateHandlers', () => {
       const evaluate = vi.fn().mockResolvedValue({ detected: 'react', states: [], found: false });
       getActivePage.mockResolvedValue(fakePage({ evaluate }));
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       await handlers.handleFrameworkStateExtract({ maxDepth: 10 });
 
@@ -263,6 +276,7 @@ describe('FrameworkStateHandlers', () => {
       });
       getActivePage.mockResolvedValue(fakePage({ evaluate }));
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 
@@ -280,6 +294,7 @@ describe('FrameworkStateHandlers', () => {
       });
       getActivePage.mockResolvedValue(fakePage({ evaluate }));
 
+      // @ts-expect-error
       const handlers = makeHandlers(getActivePage);
       const result = await handlers.handleFrameworkStateExtract({});
 

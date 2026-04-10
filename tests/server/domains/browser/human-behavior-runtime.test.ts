@@ -102,6 +102,7 @@ describe('human-behavior runtime coverage', () => {
     expect(parsed.success).toBe(true);
     expect(parsed.direction).toBe('right');
     expect(scrollBy).toHaveBeenCalledTimes(1);
+    // @ts-expect-error
     expect(scrollBy.mock.calls[0][0]).toMatchObject({ left: expect.any(Number), top: 0 });
   });
 

@@ -156,15 +156,20 @@ describe('IntelligentAnalyzer', () => {
           { type: 'RSA', confidence: 0.5, location: 'test', evidence: null as any },
         ],
         signature: [
-          { type: 'Custom', confidence: 0.8, parameters: 'scalar parameter' as any },
-          { type: 'JWT', confidence: 0.4, parameters: undefined as any },
-          { type: 'HMAC', confidence: 0.4, parameters: null as any },
+          {
+            type: 'Custom',
+            confidence: 0.8,
+            parameters: 'scalar parameter' as any,
+            location: 'test',
+          },
+          { type: 'JWT', confidence: 0.4, parameters: undefined as any, location: 'test' },
+          { type: 'HMAC', confidence: 0.4, parameters: null as any, location: 'test' },
         ],
         antiDebug: [],
       },
       exceptions: [],
       metadata: { analysisTimeMs: 1 },
-    });
+    } as any);
     expect(text).toContain('Statistics:');
     expect(text).toContain('scalar evidence');
     expect(text).toContain('scalar parameter');

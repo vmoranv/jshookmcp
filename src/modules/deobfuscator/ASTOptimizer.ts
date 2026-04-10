@@ -6,24 +6,45 @@ import * as t from '@babel/types';
 import { logger } from '@utils/logger';
 
 export class ASTOptimizer {
-  optimize(code: string): string {
+  optimize(
+    code: string,
+    options?: { onProgress?: (progress: number, total?: number) => void },
+  ): string {
     try {
       const ast = parser.parse(code, {
         sourceType: 'module',
         plugins: ['jsx', 'typescript'],
       });
 
+      const totalSteps = 3 * 8; // 3 passes * 8 traversals
+      let currentStep = 0;
+
       for (let i = 0; i < 3; i++) {
         logger.debug(`AST optimization pass ${i + 1}`);
 
         this.constantFolding(ast);
+        options?.onProgress?.(++currentStep, totalSteps);
+
         this.constantPropagation(ast);
+        options?.onProgress?.(++currentStep, totalSteps);
+
         this.deadCodeElimination(ast);
+        options?.onProgress?.(++currentStep, totalSteps);
+
         this.expressionSimplification(ast);
+        options?.onProgress?.(++currentStep, totalSteps);
+
         this.variableInlining(ast);
+        options?.onProgress?.(++currentStep, totalSteps);
+
         this.objectPropertyUnfolding(ast);
+        options?.onProgress?.(++currentStep, totalSteps);
+
         this.computedPropertyResolution(ast);
+        options?.onProgress?.(++currentStep, totalSteps);
+
         this.sequenceExpressionExpansion(ast);
+        options?.onProgress?.(++currentStep, totalSteps);
       }
 
       const output = generate(ast, {

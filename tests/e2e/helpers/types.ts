@@ -68,3 +68,36 @@ export interface E2EConfig {
   perToolTimeout: number;
   artifactDir: string;
 }
+
+/** Status of a tool in the coverage analysis */
+export type ToolCoverageStatus = 'exercised' | 'skipped' | 'untested';
+
+/** Per-tool coverage entry */
+export interface ToolCoverageEntry {
+  name: string;
+  domain: string;
+  status: ToolCoverageStatus;
+}
+
+/** Per-domain coverage summary */
+export interface DomainCoverage {
+  domain: string;
+  total: number;
+  exercised: number;
+  skipped: number;
+  untested: number;
+  coveragePercent: number;
+  tools: ToolCoverageEntry[];
+}
+
+/** Full coverage report */
+export interface CoverageReport {
+  timestamp: string;
+  totalTools: number;
+  exercised: number;
+  skipped: number;
+  untested: number;
+  overallCoveragePercent: number;
+  domains: DomainCoverage[];
+  untestedTools: string[];
+}

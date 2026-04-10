@@ -422,6 +422,7 @@ describe('PEAnalyzer', () => {
     });
 
     it('should read 32-bit thunks for PE32 headers', async () => {
+      // @ts-expect-error
       const _p = analyzer as any;
       const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
       const originalRPM = RPMLocal as any;
@@ -453,6 +454,7 @@ describe('PEAnalyzer', () => {
         return Buffer.alloc(size);
       });
 
+      // @ts-expect-error
       const imports = await analyzer.parseImports(1234n, '0x0');
       expect(imports[0]!.functions.length).toBe(2);
 
@@ -718,6 +720,7 @@ describe('PEAnalyzer', () => {
     });
 
     it('should skip detection gracefully if fs.readFile throws', async () => {
+      // @ts-expect-error
       const _fs = await import('node:fs/promises');
       (GetModuleFileNameEx as any).mockReturnValue('C:\\does_not_exist.dll');
       const detections = await analyzer.detectInlineHooks(1234, 'test.exe');

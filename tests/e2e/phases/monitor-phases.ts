@@ -37,6 +37,12 @@ export const monitorPhases: Phase[] = [
       await new Promise((r) => setTimeout(r, 2000));
     },
     tools: [
+      'network_enable',
+      'console_inject_fetch_interceptor',
+      'console_inject_xhr_interceptor',
+      'network_intercept_response',
+      'network_intercept_list',
+      'network_intercept_disable',
       'network_get_status',
       'network_get_requests',
       'network_get_stats',
@@ -74,7 +80,7 @@ export const monitorPhases: Phase[] = [
       await call('profiler_cpu_start', {});
       await new Promise((r) => setTimeout(r, 300));
     },
-    tools: ['profiler_cpu_stop'],
+    tools: ['profiler_cpu_start', 'profiler_cpu_stop'],
   },
   {
     name: 'Heap Profiler Stop',
@@ -83,7 +89,11 @@ export const monitorPhases: Phase[] = [
       await call('profiler_heap_sampling_start', {}, 5000);
       await new Promise((r) => setTimeout(r, 500));
     },
-    tools: ['profiler_heap_sampling_stop', 'performance_trace_stop'],
+    tools: [
+      'profiler_heap_sampling_start',
+      'profiler_heap_sampling_stop',
+      'performance_trace_stop',
+    ],
   },
   { name: 'Network Teardown', setup: [], tools: ['network_export_har', 'network_disable'] },
   { name: 'Debugger Teardown', setup: [], tools: ['debugger_disable'] },

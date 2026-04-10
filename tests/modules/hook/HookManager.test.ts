@@ -254,6 +254,7 @@ describe('HookManager', () => {
 
   it('handles recordHookCall with non-existent hook', () => {
     const manager = new HookManager();
+    // @ts-expect-error
     manager.recordHookCall('ghost', { hookId: 'ghost', timestamp: 1, context: {} });
     expect(manager.getHookRecords('ghost')).toHaveLength(1);
     // no metadata was created (no createHook), so stats return null
@@ -299,7 +300,9 @@ describe('HookManager', () => {
   it('returns correct avgExecutionTime in getHookStats', async () => {
     const manager = new HookManager();
     const { hookId } = await manager.createHook({ target: 'x', type: 'function' } as any);
+    // @ts-expect-error
     manager.recordHookCall(hookId, { hookId, timestamp: 1, context: {} });
+    // @ts-expect-error
     manager.recordHookCall(hookId, { hookId, timestamp: 2, context: {} });
 
     const stats = manager.getHookStats(hookId);

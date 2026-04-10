@@ -154,6 +154,7 @@ describe('StealthScripts — coverage for injected script bodies', () => {
         fn();
 
         // Without offset
+        // @ts-expect-error
         const _t1 = performance.now();
 
         // With offset (set on window, which the patch reads)
@@ -430,6 +431,7 @@ describe('StealthScripts — coverage for injected script bodies', () => {
           }),
         };
 
+        // @ts-expect-error
         const _result = patchedToDataURL.call(fakeCanvas, 'image/png');
 
         // getContext should have been called

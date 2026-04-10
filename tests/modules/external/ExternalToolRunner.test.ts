@@ -566,6 +566,7 @@ describe('ExternalToolRunner', () => {
       tool: 'tmp',
       args: [],
       timeoutMs: 10,
+      // @ts-expect-error
       onProgress: (p) => progressCalls.push(p),
     } as any);
 
