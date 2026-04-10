@@ -146,6 +146,61 @@ export function applyContextCapture(
     }
   }
 
+  // ── Page snapshots → snapshotId ──
+  if (toolName === 'save_page_snapshot' && isRecord(parsed)) {
+    const snapshotId = parsed.snapshotId ?? parsed.id;
+    if (typeof snapshotId === 'string' && snapshotId.length > 0) {
+      ctx.snapshotId = snapshotId;
+      overrides.restore_page_snapshot = { snapshotId: ctx.snapshotId };
+    }
+  }
+
+  // ── V8 snapshots → snapshotId / diff inputs ──
+  if (toolName === 'v8_heap_snapshot_capture' && isRecord(parsed)) {
+    const snapshotId = parsed.snapshotId ?? parsed.id;
+    if (typeof snapshotId === 'string' && snapshotId.length > 0) {
+      if (ctx.v8SnapshotId && ctx.v8SnapshotId !== snapshotId && !ctx.v8ComparisonSnapshotId) {
+        ctx.v8ComparisonSnapshotId = snapshotId;
+      } else if (!ctx.v8SnapshotId) {
+        ctx.v8SnapshotId = snapshotId;
+      } else {
+        ctx.v8SnapshotId = snapshotId;
+      }
+
+      overrides.v8_heap_snapshot_analyze = { snapshotId: ctx.v8SnapshotId };
+
+      if (ctx.v8SnapshotId && ctx.v8ComparisonSnapshotId) {
+        overrides.v8_heap_diff = {
+          snapshotId1: ctx.v8SnapshotId,
+          snapshotId2: ctx.v8ComparisonSnapshotId,
+        };
+      } else if (ctx.v8SnapshotId) {
+        overrides.v8_heap_diff = {
+          snapshotId1: ctx.v8SnapshotId,
+          snapshotId2: ctx.v8SnapshotId,
+        };
+      }
+    }
+  }
+
+  // ── Extensions → pluginId ──
+  if (toolName === 'list_extensions' && isRecord(parsed) && Array.isArray(parsed.plugins)) {
+    const plugin = parsed.plugins.find(
+      (value): value is Record<string, unknown> =>
+        isRecord(value) && typeof value.id === 'string' && value.id.length > 0,
+    );
+    if (plugin) {
+      ctx.pluginId = plugin.id as string;
+      overrides.extension_reload = { pluginId: ctx.pluginId };
+      overrides.extension_uninstall = { pluginId: ctx.pluginId };
+      overrides.extension_execute_in_context = {
+        pluginId: ctx.pluginId,
+        contextName: 'default',
+        args: {},
+      };
+    }
+  }
+
   // ── Watch: capture ID for watch_remove ──
   if (toolName === 'watch_add' && isRecord(parsed)) {
     const watchId = parsed.id ?? parsed.watchId;
