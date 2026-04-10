@@ -1,6 +1,6 @@
 # Reference Overview
 
-当前内置域共 **35** 个，域工具总数 **424**。
+当前内置域共 **35** 个，域工具总数 **425**。
 
 ## 推荐阅读路径
 
@@ -19,7 +19,7 @@
 | `browser` | Browser | 63 | workflow, full | 浏览器控制与 DOM 交互主域，也是大多数工作流的入口。 |
 | `canvas` | Canvas | 4 | workflow, full | 游戏引擎 Canvas 逆向分析域，支持 Laya/Pixi/Phaser/Cocos/Unity 等主流游戏引擎的指纹识别、场景树导出和对象拾取。 |
 | `coordination` | Coordination | 7 | workflow, full | 用于会话洞察记录与 MCP Task Handoff 的协调域，衔接大语言模型的规划与执行。 |
-| `core` | Core | 14 | workflow, full | 核心静态/半静态分析域，覆盖脚本采集、反混淆、语义理解、webpack/source map 与加密识别。 |
+| `core` | Core | 15 | workflow, full | 核心静态/半静态分析域，覆盖脚本采集、反混淆、语义理解、webpack/source map 与加密识别。 |
 | `cross-domain` | Cross-Domain | 6 | workflow, full | 跨域关联域，将多个域的分析结果进行交叉关联，支持自动化工作流编排与证据图桥接。 |
 | `debugger` | Debugger | 37 | workflow, full | 基于 CDP 的断点、单步、调用栈、watch 与调试会话管理域。 |
 | `encoding` | Encoding | 5 | workflow, full | 二进制格式检测、编码转换、熵分析与 protobuf 原始解码。 |

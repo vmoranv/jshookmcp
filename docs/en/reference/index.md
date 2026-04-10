@@ -1,6 +1,6 @@
 # Reference Overview
 
-There are **35** built-in domains and **424** domain tools in the current build.
+There are **35** built-in domains and **425** domain tools in the current build.
 
 ## Recommended reading order
 
@@ -19,7 +19,7 @@ There are **35** built-in domains and **424** domain tools in the current build.
 | `browser` | Browser | 63 | workflow, full | Primary browser control and DOM interaction domain; the usual entry point for most workflows. |
 | `canvas` | Canvas | 4 | workflow, full | Canvas game engine reverse analysis domain supporting Laya, Pixi, Phaser, Cocos, and Unity engines for fingerprinting, scene tree dumping, and object picking. |
 | `coordination` | Coordination | 7 | workflow, full | Coordination domain for session insights and MCP Task Handoff, bridging the planning and execution boundaries of LLMs. |
-| `core` | Core | 14 | workflow, full | Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection. |
+| `core` | Core | 15 | workflow, full | Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection. |
 | `cross-domain` | Cross-Domain | 6 | workflow, full | Cross-domain correlation domain that bridges analysis results across multiple domains, supporting workflow orchestration and evidence graph integration. |
 | `debugger` | Debugger | 37 | workflow, full | CDP-based debugging domain covering breakpoints, stepping, call stacks, watches, and debugger sessions. |
 | `encoding` | Encoding | 5 | workflow, full | Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding. |

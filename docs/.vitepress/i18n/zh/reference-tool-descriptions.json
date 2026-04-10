@@ -422,5 +422,6 @@
   "v8_heap_stats": "返回 V8 堆快照统计。",
   "v8_bytecode_extract": "提取函数的 V8 Ignition 字节码。",
   "v8_version_detect": "检测 V8 引擎版本和功能支持。",
-  "v8_jit_inspect": "检查函数的 JIT 编译代码。"
+  "v8_jit_inspect": "检查函数的 JIT 编译代码。",
+  "llm_suggest_names": "待补充中文：Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated identifiers. Requires the connected client to support sampling/createMessage. Returns null suggestions gracefully if sampling is unavailable."
 }

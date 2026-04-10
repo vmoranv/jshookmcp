@@ -33,7 +33,7 @@ Core static and semi-static analysis domain for script collection, deobfuscation
 - `advanced_deobfuscate` — Advanced deobfuscation with webcrack backend
 - `webcrack_unpack` — Run webcrack bundle unpacking and return extracted module graph
 
-## Full tool list (14)
+## Full tool list (15)
 
 | Tool | Description |
 | --- | --- |
@@ -51,3 +51,4 @@ Core static and semi-static analysis domain for script collection, deobfuscation
 | `get_collection_stats` | Get collection, cache, and compression statistics |
 | `webpack_enumerate` | Enumerate webpack modules in current page and search for keywords |
 | `source_map_extract` | Find and parse JavaScript source maps to recover original source code |
+| `llm_suggest_names` | Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated identifiers. Requires the connected client to support sampling/createMessage. Returns null suggestions gracefully if sampling is unavailable. |

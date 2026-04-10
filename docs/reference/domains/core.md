@@ -33,7 +33,7 @@
 - `advanced_deobfuscate` — 高级反混淆（webcrack 后端，已废弃的旧标志忽略）。
 - `webcrack_unpack` — 直接调用 webcrack 解包，返回模块图详情。
 
-## 工具清单（14）
+## 工具清单（15）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -51,3 +51,4 @@
 | `get_collection_stats` | 获取采集、缓存和压缩相关统计信息。 |
 | `webpack_enumerate` | 枚举当前页面中的全部 Webpack 模块，并可按关键词搜索。 |
 | `source_map_extract` | 查找并解析 JavaScript Source Map，以恢复原始源码。 |
+| `llm_suggest_names` | 待补充中文：Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated identifiers. Requires the connected client to support sampling/createMessage. Returns null suggestions gracefully if sampling is unavailable. |
