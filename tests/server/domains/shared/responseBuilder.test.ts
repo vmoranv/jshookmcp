@@ -57,6 +57,31 @@ describe('ResponseBuilder', () => {
       expect((res.content[0] as { text: string }).text).toBe('hello');
       expect(res.isError).toBe(true);
     });
+
+    it('should support .structured() for native payload schemas', () => {
+      const builder = new ResponseBuilder();
+      const res = builder.set('foo', 'bar').structured().json();
+      expect((res as any).structuredContent).toEqual({ foo: 'bar' });
+      expect(res.content.length).toBe(1); // Still has fallback text content
+    });
+
+    it('should support .image() content blocks', () => {
+      const res = new ResponseBuilder().image('base64...', 'image/png').json();
+      expect(res.content).toHaveLength(2);
+      expect(res.content[1]).toEqual({
+        type: 'image',
+        data: 'base64...',
+        mimeType: 'image/png',
+      });
+    });
+
+    it('should support .embeddedResource() content blocks', () => {
+      const res = new ResponseBuilder().embeddedResource('jshook://test', 'test content').json();
+      expect(res.content).toHaveLength(2);
+      expect((res.content[1] as any).resource.uri).toBe('jshook://test');
+      expect((res.content[1] as any).resource.text).toBe('test content');
+      expect((res.content[1] as any).resource.mimeType).toBe('text/plain');
+    });
   });
 
   describe('R shorthand', () => {

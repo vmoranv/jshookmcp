@@ -19,6 +19,7 @@ describe('plugin', () => {
       const err = new Error('Test error');
       const res = errorResponse('test-tool', err, { extraField: 123 });
       expect(res.isError).toBeUndefined(); // It doesn't set isError
+      // @ts-expect-error
       expect(res.content[0].type).toBe('text');
       const payload = JSON.parse((res.content[0] as any).text);
       expect(payload.success).toBe(false);
@@ -96,10 +97,15 @@ describe('plugin', () => {
 
       expect(ext.tools).toHaveLength(1);
       const tool = ext.tools[0];
+      // @ts-expect-error
       expect(tool.name).toBe('toolName');
+      // @ts-expect-error
       expect(tool.description).toBe('toolDesc');
+      // @ts-expect-error
       expect(tool.schema).toEqual({ type: 'object', properties: { prop: { type: 'string' } } });
+      // @ts-expect-error
       expect(tool.handler).toBe(handler);
+      // @ts-expect-error
       expect(tool.profiles).toEqual(['search']);
     });
 

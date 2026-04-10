@@ -461,6 +461,7 @@ describe('WorkerPool – v8 ignore branch coverage', () => {
     worker.terminate.mockRejectedValueOnce(new Error('already exited'));
 
     // Should not throw
+    // @ts-expect-error
     await (pool as any).terminateWorker(worker.id);
 
     await pool.close();

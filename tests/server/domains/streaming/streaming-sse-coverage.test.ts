@@ -88,6 +88,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
         // Find the 'message' listener added during construction to the ORIGINAL ES
         const messageCall = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'message');
         expect(messageCall).toBeDefined();
+        // @ts-expect-error
         const messageHandler = messageCall[1];
 
         // Trigger message
@@ -161,17 +162,20 @@ describe('StreamingToolHandlersSse Coverage', () => {
         expect(mockWindow.__jshookSSEMonitor.events.length).toBe(10);
 
         // Test open event
+        // @ts-expect-error
         const openHandler = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'open')[1];
         openHandler();
         expect(state.sources['http://test.com'].status).toBe('open');
 
         // Test error event
+        // @ts-expect-error
         const errorHandler = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'error')[1];
         errorHandler();
         expect(state.sources['http://test.com'].status).toBe('error');
 
         // 3. Test urlFilter
         mockWindow.__jshookSSEMonitor.urlFilterRaw = 'match';
+        // @ts-expect-error
         const _esInstance2 = new WrappedES('http://nomatch.com');
         // Clear calls to find the next one
         mockAddEventListener.mockClear();
@@ -181,6 +185,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
         // Trigger message on esInstance2's listeners
         // We need to get the listeners for this specific instance if possible,
         // but since we cleared mockAddEventListener, we can just look at new calls.
+        // @ts-expect-error
         const _messageCall2 = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'message');
         // Actually esInstance2 construction already called mockAddEventListener
         // Let's just use the logic that pushEvent is called.
@@ -193,6 +198,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
         const wrappedCustomCall = mockAddEventListener.mock.calls.find(
           (c: any) => c[0] === 'custom',
         );
+        // @ts-expect-error
         const wrappedCustomHandler = wrappedCustomCall[1];
 
         wrappedCustomHandler({ data: 'custom-data', type: 'custom' });
@@ -207,6 +213,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
           (c: any) => c[0] === 'custom-obj',
         );
         expect(wrappedObjCall).toBeDefined();
+        // @ts-expect-error
         const wrappedObjHandler = wrappedObjCall[1];
 
         wrappedObjHandler({ data: 'obj-data', type: 'custom-obj', lastEventId: '' });
@@ -222,6 +229,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
         const standardCall = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'message');
         expect(standardCall).toBeDefined();
         // The listener should be the original standardListener, not a wrapper
+        // @ts-expect-error
         expect(standardCall[1]).toBe(standardListener);
 
         // Also test 'open' and 'error' standard event pass-through
@@ -230,6 +238,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
         esInstance.addEventListener('open', openListener);
         const openCall = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'open');
         expect(openCall).toBeDefined();
+        // @ts-expect-error
         expect(openCall[1]).toBe(openListener);
 
         mockAddEventListener.mockClear();
@@ -237,6 +246,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
         esInstance.addEventListener('error', errorListener);
         const errorCall = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'error');
         expect(errorCall).toBeDefined();
+        // @ts-expect-error
         expect(errorCall[1]).toBe(errorListener);
 
         // 7. Test addEventListener with null listener (line 225 - falls through)
@@ -245,6 +255,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
         const nullCall = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'custom-null');
         expect(nullCall).toBeDefined();
         // null listener goes through the standard path (not wrapped)
+        // @ts-expect-error
         expect(nullCall[1]).toBeNull();
 
         // 8. Test custom event with lastEventId non-empty
@@ -254,6 +265,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
         const customWithIdCall = mockAddEventListener.mock.calls.find(
           (c: any) => c[0] === 'custom-with-id',
         );
+        // @ts-expect-error
         const customWithIdHandler = customWithIdCall[1];
 
         customWithIdHandler({ data: 'data', type: 'custom-with-id', lastEventId: 'evt-99' });
@@ -285,6 +297,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
         delete state.sources['http://new-source.com'];
         // Trigger via open event on a new ES for a new URL
         mockAddEventListener.mockClear();
+        // @ts-expect-error
         const _esInstance3 = new WrappedES('http://new-source.com');
         const openHandler3 = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'open');
         if (openHandler3) {

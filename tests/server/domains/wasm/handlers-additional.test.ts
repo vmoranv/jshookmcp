@@ -1093,7 +1093,6 @@ describe('WasmToolHandlers – additional coverage', () => {
       (globalThis as any).window = fakeWindow;
 
       page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
-        // @ts-expect-error — test helper
         (fn as (opts: unknown) => unknown)(opts),
       );
 
@@ -1150,7 +1149,6 @@ describe('WasmToolHandlers – additional coverage', () => {
       (globalThis as any).window = fakeWindow;
 
       page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
-        // @ts-expect-error — test helper
         (fn as (opts: unknown) => unknown)(opts),
       );
 
@@ -1182,7 +1180,6 @@ describe('WasmToolHandlers – additional coverage', () => {
       (globalThis as any).window = fakeWindow;
 
       page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
-        // @ts-expect-error — test helper
         (fn as (opts: unknown) => unknown)(opts),
       );
 
@@ -1206,7 +1203,6 @@ describe('WasmToolHandlers – additional coverage', () => {
       (globalThis as any).window = fakeWindow;
 
       page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
-        // @ts-expect-error — test helper
         (fn as (opts: unknown) => unknown)(opts),
       );
 
@@ -1235,7 +1231,6 @@ describe('WasmToolHandlers – additional coverage', () => {
           ],
         };
         try {
-          // @ts-expect-error — test helper
           return await (fn as (o: unknown) => unknown)(opts);
         } finally {
           (globalThis as any).window = prev;
@@ -1262,7 +1257,6 @@ describe('WasmToolHandlers – additional coverage', () => {
       (globalThis as any).window = fakeWindow;
 
       page.evaluate.mockImplementation(async (fn: unknown, opts: unknown) =>
-        // @ts-expect-error — test helper
         (fn as (opts: unknown) => unknown)(opts),
       );
 

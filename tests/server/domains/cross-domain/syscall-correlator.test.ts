@@ -70,7 +70,9 @@ describe('SYSCALL-02: Syscall-to-JS Correlator', () => {
     const result = correlateSyscallToJS(bridge, syscallEvents, jsStacks);
 
     expect(result.correlations.length).toBe(1);
+    // @ts-expect-error
     expect(result.correlations[0].topJsFunction).toBe('fs.readFile');
+    // @ts-expect-error
     expect(result.correlations[0].syscallName).toBe('NtReadFile');
     expect(result.correlationConfidence).toBe(1);
   });

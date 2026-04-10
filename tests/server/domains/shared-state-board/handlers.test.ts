@@ -60,10 +60,9 @@ describe('SharedStateBoardHandlers', () => {
     });
 
     it('rejects a non-string key', async () => {
-      await expect(
-        // @ts-expect-error — intentionally passing invalid type to test runtime validation
-        handler.handleSet({ key: 123, value: 'val' }),
-      ).rejects.toThrow('key must be a non-empty string');
+      await expect(handler.handleSet({ key: 123, value: 'val' })).rejects.toThrow(
+        'key must be a non-empty string',
+      );
     });
   });
 
@@ -163,7 +162,7 @@ describe('SharedStateBoardHandlers', () => {
       const result = (await handler.handleList({ namespace: 'ns1' })) as Record<string, unknown>;
       expect(result.total).toBe(1);
       const entries = result.entries as Array<Record<string, unknown>>;
-      expect(entries[0].key).toBe('x');
+      expect(entries[0]!.key).toBe('x');
     });
 
     it('does not include values by default', async () => {

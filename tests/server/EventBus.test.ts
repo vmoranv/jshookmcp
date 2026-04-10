@@ -119,3 +119,34 @@ describe('EventBus', () => {
     expect(bus).toBeInstanceOf(EventBus);
   });
 });
+
+import { createProgressDebouncer } from '@server/EventBus';
+
+describe('createProgressDebouncer', () => {
+  it('throttles progress emits according to debounceMs', () => {
+    const bus = createServerEventBus();
+    const emitSpy = vi.spyOn(bus, 'emit').mockImplementation(() => Promise.resolve());
+    vi.useFakeTimers();
+
+    const onProgress = createProgressDebouncer(bus, 'test-token', 500);
+
+    onProgress(10, 100);
+    expect(emitSpy).toHaveBeenCalledTimes(1);
+
+    // Within 500ms -> should not emit
+    vi.advanceTimersByTime(200);
+    onProgress(20, 100);
+    expect(emitSpy).toHaveBeenCalledTimes(1);
+
+    // After 500ms -> should emit
+    vi.advanceTimersByTime(300);
+    onProgress(30, 100);
+    expect(emitSpy).toHaveBeenCalledTimes(2);
+
+    // End condition (progress === total) -> should emit regardless of throttle
+    onProgress(100, 100);
+    expect(emitSpy).toHaveBeenCalledTimes(3);
+
+    vi.useRealTimers();
+  });
+});

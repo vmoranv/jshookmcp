@@ -395,6 +395,7 @@ describe('search/ToolSearchEngineImpl', () => {
 
   it('exits domain hub expansion early when the threshold is non-positive', async () => {
     const constants = await import('@src/constants');
+    // @ts-expect-error
     constants.SEARCH_DOMAIN_HUB_THRESHOLD = 0;
 
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');

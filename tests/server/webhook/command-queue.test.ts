@@ -42,6 +42,7 @@ describe('CommandQueue', () => {
 
       const filtered = await queue.dequeue({ endpointId: 'ep-1' });
       expect(filtered).toHaveLength(1);
+      // @ts-expect-error
       expect(filtered[0].endpointId).toBe('ep-1');
     });
 

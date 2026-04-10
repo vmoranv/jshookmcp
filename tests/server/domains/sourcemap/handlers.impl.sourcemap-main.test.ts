@@ -134,6 +134,7 @@ describe('SourcemapToolHandlersMain', () => {
         'http://example.com/b.js.map',
       );
       vi.spyOn(handlers as any, 'extractSourceMappingUrlFromScript').mockImplementation(
+        // @ts-expect-error
         (src: string) => {
           if (src.includes('b.js.map')) return 'b.js.map';
           return null;

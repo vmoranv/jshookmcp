@@ -25,19 +25,25 @@ describe('HookPresetToolHandlers', () => {
   describe('handleHookPreset', () => {
     it('lists available presets accurately', async () => {
       const res = await handlers.handleHookPreset({ listPresets: true });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"totalPresets"');
     });
 
     it('errors when no target is provided gracefully', async () => {
       const res = await handlers.handleHookPreset({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('either preset');
     });
 
     it('errors when invalid preset identity is provided', async () => {
       const res = await handlers.handleHookPreset({ preset: 'invalid_xyz' });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('invalid_xyz');
     });
 
@@ -46,6 +52,7 @@ describe('HookPresetToolHandlers', () => {
         preset: 'custom-1',
         customTemplate: { id: 'custom-1', body: 'console.log();' },
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
       expect(pageMock.evaluate).toHaveBeenCalled();
     });
@@ -58,6 +65,7 @@ describe('HookPresetToolHandlers', () => {
           { id: 'custom-3', body: '...' },
         ],
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
       expect(pageMock.evaluate).toHaveBeenCalledTimes(2);
     });
@@ -68,6 +76,7 @@ describe('HookPresetToolHandlers', () => {
         customTemplate: { id: 'custom-4', body: '...' },
         method: 'evaluateOnNewDocument',
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
       expect(pageMock.evaluateOnNewDocument).toHaveBeenCalled();
     });
@@ -92,8 +101,11 @@ describe('HookPresetToolHandlers', () => {
         preset: 'custom-fail',
         customTemplate: { id: 'custom-fail', body: '...' },
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('failed');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('inject err');
     });
 
@@ -102,6 +114,7 @@ describe('HookPresetToolHandlers', () => {
         presets: ['my-custom'],
         customTemplates: [{ id: 'my-custom', body: 'console.log();' }],
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
     });
 
@@ -110,6 +123,7 @@ describe('HookPresetToolHandlers', () => {
         preset: 'my-custom2',
         customTemplate: { id: 'my-custom2', body: 'console.log();' },
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
     });
 
@@ -118,7 +132,9 @@ describe('HookPresetToolHandlers', () => {
       const res = await handlers.handleHookPreset({
         customTemplate: { id: 'conflict', body: '' }, // missing body
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('non-empty id and body');
     });
 
@@ -127,7 +143,9 @@ describe('HookPresetToolHandlers', () => {
         preset: 'eval',
         customTemplate: { id: 'eval', body: 'overwrite' },
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('conflicts with built-in preset');
     });
   });

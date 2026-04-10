@@ -105,6 +105,7 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
       const response = await handleCallTool(ctx, { name: 'test_tool' });
 
       // null parses as object but fails !parsed check — should be left unchanged
+      // @ts-expect-error
       expect(response.content[0].text).toBe('null');
     });
 
@@ -117,6 +118,7 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
 
       const response = await handleCallTool(ctx, { name: 'test_tool' });
       // number is not an object — should be left unchanged
+      // @ts-expect-error
       expect(response.content[0].text).toBe('42');
     });
 
@@ -129,6 +131,7 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
 
       const response = await handleCallTool(ctx, { name: 'test_tool' });
       // Non-string text property — item should be returned unchanged
+      // @ts-expect-error
       expect(response.content[0].text).toBe(123);
     });
 
@@ -163,6 +166,7 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
       });
 
       const response = await handleCallTool(ctx, { name: 'test_tool' });
+      // @ts-expect-error
       const parsed = JSON.parse(response.content[0].text);
       expect(parsed.foo).toBe('bar');
       expect(parsed.wasAutoActivated).toBe(false);
@@ -178,6 +182,7 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
       });
 
       const response = await handleCallTool(ctx, { name: 'test_tool' });
+      // @ts-expect-error
       const parsed = JSON.parse(response.content[0].text);
       expect(parsed.status).toBe('done');
       expect(parsed.wasAutoActivated).toBe(true);

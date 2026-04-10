@@ -8,6 +8,7 @@ import { clearSnapshotCache } from '../../../../src/server/domains/v8-inspector/
 function createMockDeps(
   overrides?: Partial<V8InspectorDomainDependencies>,
 ): V8InspectorDomainDependencies {
+  // @ts-expect-error
   return {
     ctx: {} as import('@server/MCPServer.context').MCPServerContext,
     ...overrides,

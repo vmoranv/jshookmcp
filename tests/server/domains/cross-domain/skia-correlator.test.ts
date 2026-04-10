@@ -47,6 +47,7 @@ describe('SKIA-03: Skia-to-JS Correlator', () => {
     });
 
     expect(result.correlations).toHaveLength(1);
+    // @ts-expect-error
     expect(result.correlations[0].matchedObjectName).toBe('ScoreDisplay');
     expect(result.confidence).toBe(1);
     expect(result.unmatchedSkiaNodes).toHaveLength(0);

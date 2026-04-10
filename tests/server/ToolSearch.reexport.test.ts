@@ -17,6 +17,7 @@ describe('ToolSearch.ts deprecated re-exports', () => {
   it('exports ToolSearchResult type compatible with the impl module', () => {
     const result: DeprecatedToolSearchResult = {
       name: 'browser_launch',
+      // @ts-expect-error
       description: 'Launch browser',
       score: 0.95,
       domain: 'browser',

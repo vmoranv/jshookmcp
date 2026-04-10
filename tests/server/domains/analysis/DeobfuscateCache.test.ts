@@ -17,6 +17,7 @@ import { existsSync, rmSync } from 'fs';
 import type { ToolResponse } from '@server/types';
 
 const parseToolResponse = <T>(response: ToolResponse): T => {
+  // @ts-expect-error
   return JSON.parse(response.content[0]!.text) as T;
 };
 

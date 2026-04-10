@@ -302,7 +302,6 @@ describe('ExtensionManagementHandlers', () => {
       return path.endsWith('/package.json') || path.endsWith('/workflow.ts');
     });
 
-    // @ts-expect-error — auto-suppressed [TS2352]
     global.fetch = vi.fn(async () => ({
       ok: true,
       status: 200,
@@ -437,7 +436,7 @@ describe('ExtensionManagementHandlers', () => {
           },
         ],
       }),
-    })) as typeof fetch;
+    })) as unknown as typeof fetch;
 
     const response = await handlers.handleInstallExtension('nested-flow');
     const content = response.content[0] as { type: string; text: string };
@@ -517,7 +516,7 @@ describe('ExtensionManagementHandlers', () => {
           },
         ],
       }),
-    })) as typeof fetch;
+    })) as unknown as typeof fetch;
 
     const response = await handlers.handleInstallExtension('broken-flow');
     const content = response.content[0] as { type: string; text: string };

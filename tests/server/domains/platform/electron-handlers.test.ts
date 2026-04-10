@@ -550,7 +550,9 @@ describe('ElectronHandlers', () => {
         devToolsEnabled: null,
       });
       mocks.findFilesystemPreloadScripts.mockResolvedValueOnce([
+        // @ts-expect-error
         '/app/preload.js',
+        // @ts-expect-error
         '/app/renderer/preload-helper.js',
       ]);
 

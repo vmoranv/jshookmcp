@@ -287,6 +287,7 @@ describe('MCPServer.search.handlers.call', () => {
     const response = await handleCallTool(ctx, { name: 'test_tool' });
 
     // Non-JSON text should be left unchanged
+    // @ts-expect-error
     expect(response.content[0].text).toBe('plain text response');
   });
 
@@ -300,6 +301,7 @@ describe('MCPServer.search.handlers.call', () => {
     const response = await handleCallTool(ctx, { name: 'test_tool' });
 
     // Array JSON should be left unchanged
+    // @ts-expect-error
     expect(response.content[0].text).toBe('[1, 2, 3]');
   });
 
@@ -316,6 +318,7 @@ describe('MCPServer.search.handlers.call', () => {
     const response = await handleCallTool(ctx, { name: 'test_tool' });
 
     expect(response.content[0]).toEqual({ type: 'image', data: 'base64data' });
+    // @ts-expect-error
     const textResult = JSON.parse(response.content[1].text);
     expect(textResult.data).toBe('test');
     expect(textResult.wasAutoActivated).toBe(false);

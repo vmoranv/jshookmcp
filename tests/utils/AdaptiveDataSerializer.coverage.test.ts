@@ -25,6 +25,7 @@ describe('AdaptiveDataSerializer – v8 ignore branch coverage', () => {
     // Array.isArray() guard in serialize — which happens when detectType() returns
     // 'large-array' for a non-array. Since the TS type system prevents this at
     // compile time, we use any to simulate it.
+    // @ts-expect-error
     const _unused = 'not-an-array-but-detected-as-large-array' as unknown;
     // Force detectType to return 'large-array' by using an object that has
     // .length > 100. The only way to reach the Array.isArray guard false

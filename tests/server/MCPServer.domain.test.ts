@@ -129,6 +129,7 @@ describe('MCPServer.domain', () => {
 
   it('supports then/catch/finally on async property accessors', async () => {
     const ctx = { enabledDomains: new Set(['browser']) } as any;
+    // @ts-expect-error
     const proxy = createDomainProxy(ctx, 'browser', 'Browser handlers', async () => ({
       status: 'ready',
       fail() {

@@ -146,6 +146,7 @@ describe('CachedDecorator', () => {
         cached({
           ttlMs: 5000,
           cache: sharedCache,
+          // @ts-expect-error
           keyFn: (userId: number, includeDetails: boolean) => `user:${userId}:${includeDetails}`,
         }),
       );
@@ -212,6 +213,7 @@ describe('CachedDecorator', () => {
       await cache.init();
 
       const compute = withCache(
+        // @ts-expect-error
         async (n: number): Promise<number> => {
           callCount++;
           return n * 2;
@@ -243,6 +245,7 @@ describe('CachedDecorator', () => {
       await cache.init();
 
       const fetch = withCache(
+        // @ts-expect-error
         async (url: string, _headers: Record<string, string>): Promise<string> => {
           callCount++;
           return `response-from-${url}`;
@@ -277,6 +280,7 @@ describe('CachedDecorator', () => {
       await cache.init();
 
       const process = withCache(
+        // @ts-expect-error
         async (obj: { id: number; name: string }): Promise<string> => {
           callCount++;
           return `${obj.name}-${obj.id}`;
@@ -309,6 +313,7 @@ describe('CachedDecorator', () => {
       const noop = (): void => {};
 
       const fn = withCache(
+        // @ts-expect-error
         async (fnArg: Function): Promise<string> => {
           callCount++;
           return fnArg.toString();
@@ -335,6 +340,7 @@ describe('CachedDecorator', () => {
       await cache.init();
 
       const maybeReturn = withCache(
+        // @ts-expect-error
         async (returnNull: boolean): Promise<null | undefined> => {
           callCount++;
           return returnNull ? null : undefined;

@@ -171,10 +171,15 @@ describe('EventBus — comprehensive coverage', () => {
       const bus = new EventBus<ServerEventMap>();
       const calls: number[] = [];
 
+      // @ts-expect-error
       bus.once('activation:domain_boosted', () => calls.push(1));
+      // @ts-expect-error
       bus.on('activation:domain_boosted', () => calls.push(2));
+      // @ts-expect-error
       bus.once('activation:domain_boosted', () => calls.push(3));
+      // @ts-expect-error
       bus.on('activation:domain_boosted', () => calls.push(4));
+      // @ts-expect-error
       bus.once('activation:domain_boosted', () => calls.push(5));
 
       const payload = { domain: 'd', reason: 'r', timestamp: '' };

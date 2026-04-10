@@ -248,6 +248,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   describe('runCryptoHarness — edge cases', () => {
     it('returns allPassed=true when all results have no errors', async () => {
       const pool = base.getPool();
+      // @ts-expect-error
       pool.submit.mockResolvedValueOnce({
         ok: true,
         results: [
@@ -263,6 +264,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
 
     it('returns allPassed=false when some results have errors', async () => {
       const pool = base.getPool();
+      // @ts-expect-error
       pool.submit.mockResolvedValueOnce({
         ok: true,
         results: [
@@ -277,15 +279,18 @@ describe('TransformToolHandlersBase — additional coverage', () => {
 
     it('handles non-Error exception from pool.submit', async () => {
       const pool = base.getPool();
+      // @ts-expect-error
       pool.submit.mockRejectedValueOnce('string error');
 
       const result = await base.testRunCryptoHarness('fn', 'fn', ['x']);
       expect(result.allPassed).toBe(false);
+      // @ts-expect-error
       expect(result.results[0].error).toBe('string error');
     });
 
     it('handles worker returning undefined results', async () => {
       const pool = base.getPool();
+      // @ts-expect-error
       pool.submit.mockResolvedValueOnce({
         ok: true,
         // results is undefined
@@ -303,7 +308,9 @@ describe('TransformToolHandlersBase — additional coverage', () => {
     it('wraps payload in MCP text content format', () => {
       const response = base.testToTextResponse({ key: 'value' });
       expect(response.content).toHaveLength(1);
+      // @ts-expect-error
       expect(response.content[0].type).toBe('text');
+      // @ts-expect-error
       expect(JSON.parse(response.content[0].text)).toEqual({ key: 'value' });
     });
   });
@@ -311,6 +318,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   describe('fail', () => {
     it('formats Error instance message', () => {
       const response = base.testFail('test_tool', new Error('Something broke'));
+      // @ts-expect-error
       const body = JSON.parse(response.content[0].text);
       expect(body.tool).toBe('test_tool');
       expect(body.error).toBe('Something broke');
@@ -318,12 +326,14 @@ describe('TransformToolHandlersBase — additional coverage', () => {
 
     it('formats non-Error value as string', () => {
       const response = base.testFail('test_tool', 42);
+      // @ts-expect-error
       const body = JSON.parse(response.content[0].text);
       expect(body.error).toBe('42');
     });
 
     it('formats object as string', () => {
       const response = base.testFail('test_tool', { custom: 'error' });
+      // @ts-expect-error
       const body = JSON.parse(response.content[0].text);
       expect(body.error).toBe('[object Object]');
     });
@@ -394,6 +404,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   describe('runCryptoHarness — worker status failures', () => {
     it('returns input rows when the worker reports ok=false', async () => {
       const pool = base.getPool();
+      // @ts-expect-error
       pool.submit.mockResolvedValueOnce({
         ok: false,
         error: 'worker rejected payload',

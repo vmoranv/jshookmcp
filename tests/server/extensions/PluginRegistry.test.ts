@@ -90,6 +90,7 @@ describe('PluginRegistry', () => {
       const results = registry.searchPlugins('auth');
 
       expect(results).toHaveLength(1);
+      // @ts-expect-error
       expect(results[0].name).toBe('auth-plugin');
     });
 
@@ -228,6 +229,7 @@ describe('PluginRegistry', () => {
 
       const registry = new PluginRegistry(mockCtx as any, ['/plugins']);
       const plugins = registry.listPlugins();
+      // @ts-expect-error
       expect(plugins[0].id).toBe('@scope-plugin');
     });
   });

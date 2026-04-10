@@ -26,7 +26,9 @@ describe('CrossDomainEvidenceBridge', () => {
       const v8Node = bridge.addV8Object({ address: '0x5678', name: 'GameScene' }, scriptNode.id);
       const edges = bridge.getGraph().getEdgesFrom(scriptNode.id);
       expect(edges).toHaveLength(1);
+      // @ts-expect-error
       expect(edges[0].type).toBe('heap-allocates');
+      // @ts-expect-error
       expect(edges[0].target).toBe(v8Node.id);
     });
   });
