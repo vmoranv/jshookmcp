@@ -21,7 +21,7 @@ export interface Phase {
    * Different groups can run concurrently with each other.
    * Default: 'browser' (sequential with all other browser-dependent phases).
    */
-  group?: 'browser' | 'compute' | 'cleanup';
+  group?: 'browser' | 'compute-core' | 'compute-system' | 'compute-browser' | 'cleanup';
 }
 
 /** Runtime context that accumulates dynamic IDs across phases */
@@ -33,6 +33,10 @@ export interface E2EContext {
   hookId: string | null;
   objectId: string | null;
   workflowId: string | null;
+  snapshotId: string | null;
+  pluginId: string | null;
+  v8SnapshotId: string | null;
+  v8ComparisonSnapshotId: string | null;
   browserPid: number | null;
   sessionPath: string | null;
   dllPath: string | null;
