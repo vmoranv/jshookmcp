@@ -14,7 +14,6 @@ import type { ToolResponse } from '@server/types';
 import { normalizeToolName } from '@server/MCPServer.search.validation';
 import { getSearchEngine } from '@server/MCPServer.search.helpers';
 
-
 interface CallToolMetadata {
   wasAutoActivated?: boolean;
   activatedTools?: string[];
@@ -85,7 +84,7 @@ export async function handleCallTool(
       ? (args.args as Record<string, unknown>)
       : {};
 
-  let callMetadata = defaultMetadata;
+  const callMetadata = defaultMetadata;
 
   // SECURITY: Do NOT auto-activate tools. Require explicit activation first.
   // Auto-activation bypassed schema validation and the tool registration safety gate.

@@ -32,7 +32,7 @@ function isPrivateAddress(host: string): boolean {
     /^fd/i,
     /^fe80:/i,
     /^0\./,
-    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,  // CGN
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, // CGN
   ];
   return PRIVATE_PATTERNS.some((p) => p.test(host));
 }

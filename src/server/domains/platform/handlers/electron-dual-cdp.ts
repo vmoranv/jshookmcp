@@ -100,12 +100,7 @@ export async function handleElectronLaunchDebug(
     // SECURITY: Validate that exePath looks like an Electron binary.
     // Reject arbitrary executables (python, bash, node, etc.)
     const exeBaseName = exePath.split(/[\\/]/).pop()?.toLowerCase() ?? '';
-    const ELECTRON_EXE_PATTERNS = [
-      /^electron/i,
-      /\.app$/i,
-      /chrome/i,
-      /chromium/i,
-    ];
+    const ELECTRON_EXE_PATTERNS = [/^electron/i, /\.app$/i, /chrome/i, /chromium/i];
     const isElectronBinary = ELECTRON_EXE_PATTERNS.some((p) => p.test(exeBaseName));
     if (!isElectronBinary) {
       return toTextResponse({

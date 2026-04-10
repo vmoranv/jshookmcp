@@ -237,7 +237,7 @@ export async function runWebcrack(
     };
   }
 
-  let sandboxOption: unknown;
+  const sandboxOption: unknown = undefined;
   try {
     // @ts-expect-error -- optional dependency that may fail to compile on Node 24+
     await import('isolated-vm');

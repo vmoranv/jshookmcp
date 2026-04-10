@@ -19,7 +19,7 @@ export async function handleSearchTools(
 
   const engine = getSearchEngine(ctx);
   const activeNames = getActiveToolNames(ctx);
-  let results = await engine.search(query, topK, activeNames);
+  const results = await engine.search(query, topK, activeNames);
 
   // SECURITY: Domain auto-activation is disabled for safety.
   // Auto-activation bypassed tier guardrails and could escalate privileges.
