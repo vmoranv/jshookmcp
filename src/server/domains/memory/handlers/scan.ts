@@ -32,6 +32,7 @@ export class ScanHandlers {
         alignment: args.alignment as number | undefined,
         maxResults: args.maxResults as number | undefined,
         regionFilter: args.regionFilter as ScanOptions['regionFilter'],
+        onProgress: args.onProgress as ((p: number, t?: number) => void) | undefined,
       };
       const result = await this.scanner.firstScan(
         args.pid as number,
@@ -79,6 +80,7 @@ export class ScanHandlers {
         alignment: args.alignment as number | undefined,
         maxResults: args.maxResults as number | undefined,
         regionFilter: args.regionFilter as ScanOptions['regionFilter'],
+        onProgress: args.onProgress as ((p: number, t?: number) => void) | undefined,
       };
       const result = await this.scanner.unknownInitialScan(args.pid as number, options);
       return toTextResponse({

@@ -175,4 +175,16 @@ export const coreTools: Tool[] = [
       .number('maxFiles', 'Maximum source files', { default: 50 })
       .query(),
   ),
+  tool('llm_suggest_names', (t) =>
+    t
+      .desc(
+        'Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated identifiers. ' +
+        'Requires the connected client to support sampling/createMessage. ' +
+        'Returns null suggestions gracefully if sampling is unavailable.',
+      )
+      .string('code', 'JavaScript code snippet containing the identifiers')
+      .array('identifiers', { type: 'string' }, 'Array of obfuscated identifier names to rename')
+      .required('code', 'identifiers')
+      .readOnly(),
+  ),
 ];

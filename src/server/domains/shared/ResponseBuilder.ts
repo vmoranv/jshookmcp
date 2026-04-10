@@ -1,4 +1,5 @@
 import type { ToolResponse } from '@server/types';
+import type { ImageContent, EmbeddedResource, TextContent } from '@modelcontextprotocol/sdk/types.js';
 
 /**
  * Fluent builder for MCP tool responses.
@@ -16,6 +17,8 @@ import type { ToolResponse } from '@server/types';
 export class ResponseBuilder {
   private payload: Record<string, unknown> = {};
   private _isError = false;
+  private _additionalContent: (ImageContent | EmbeddedResource)[] = [];
+  private _useStructured = false;
 
   /** Mark as success (sets `success: true`). */
   ok(): this {
@@ -48,12 +51,45 @@ export class ResponseBuilder {
     return this;
   }
 
-  /** Build the ToolResponse — JSON-stringified payload as text content. */
+  /** Push an image block to the final response. */
+  image(base64: string, mimeType: string): this {
+    this._additionalContent.push({
+      type: 'image',
+      data: base64,
+      mimeType,
+    });
+    return this;
+  }
+
+  /** Push an embedded resource block to the final response. */
+  embeddedResource(uri: string, text: string, mimeType = 'text/plain'): this {
+    this._additionalContent.push({
+      type: 'resource',
+      resource: {
+        uri,
+        text,
+        mimeType,
+      },
+    });
+    return this;
+  }
+
+  /** Send output payload natively as `structuredContent` in the MCP envelope instead of stringifying inside text block. */
+  structured(): this {
+    this._useStructured = true;
+    return this;
+  }
+
+  /** Build the ToolResponse. Handles text vs structured plus extra blocks. */
   json(): ToolResponse {
+    const textContent: TextContent = { type: 'text', text: JSON.stringify(this.payload, null, 2) };
+    const content = [textContent, ...this._additionalContent];
+
     return {
-      content: [{ type: 'text', text: JSON.stringify(this.payload, null, 2) }],
+      content,
       ...(this._isError ? { isError: true } : {}),
-    };
+      ...(this._useStructured ? { structuredContent: this.payload } : {}),
+    } as ToolResponse;
   }
 
   /** Build a ToolResponse from an arbitrary value (no success/error wrapper). */
@@ -63,7 +99,11 @@ export class ResponseBuilder {
     };
   }
 
-  /** Build a ToolResponse from a plain text string. */
+  /**
+   * Build a ToolResponse from a plain text string.
+   * Setting `isError = true` returns a soft error for macro compatibility
+   * without triggering a JSON-RPC ErrorCode.
+   */
   static text(text: string, isError = false): ToolResponse {
     return {
       content: [{ type: 'text', text }],

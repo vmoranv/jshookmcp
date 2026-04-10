@@ -12,10 +12,10 @@
  * @module platform/factory
  */
 
-import { createRequire } from 'module';
+import { Win32MemoryProvider } from './win32/Win32MemoryProvider.js';
+import { DarwinMemoryProvider } from './darwin/DarwinMemoryProvider.js';
+import { LinuxMemoryProvider } from './linux/LinuxMemoryProvider.impl.js';
 import type { PlatformMemoryAPI } from './PlatformMemoryAPI.js';
-
-const esmRequire = createRequire(import.meta.url);
 
 let cachedProvider: PlatformMemoryAPI | null = null;
 
@@ -30,19 +30,14 @@ export function createPlatformProvider(): PlatformMemoryAPI {
 
   switch (process.platform) {
     case 'win32': {
-      // Lazy import to avoid loading Win32 DLLs on macOS
-      const { Win32MemoryProvider } = esmRequire('./win32/Win32MemoryProvider.js');
       cachedProvider = new Win32MemoryProvider();
       break;
     }
     case 'darwin': {
-      // Lazy import to avoid loading macOS libraries on Windows
-      const { DarwinMemoryProvider } = esmRequire('./darwin/DarwinMemoryProvider.js');
       cachedProvider = new DarwinMemoryProvider();
       break;
     }
     case 'linux': {
-      const { LinuxMemoryProvider } = esmRequire('./linux/LinuxMemoryProvider.impl.js');
       cachedProvider = new LinuxMemoryProvider();
       break;
     }

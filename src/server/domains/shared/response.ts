@@ -1,5 +1,4 @@
 import type { ToolResponse } from '@server/types';
-import { ToolError, USER_CORRECTABLE_CODES } from '@errors/ToolError';
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -31,29 +30,3 @@ export function serializeError(error: unknown): { success: false; error: string 
   };
 }
 
-/**
- * Unified error→response adapter.
- *
- * For classified ToolErrors: produces a structured JSON response with
- * error code, message, and optional details. User-correctable errors
- * (PREREQUISITE, VALIDATION, NOT_FOUND) return without `isError: true`
- * so the LLM can self-correct.
- *
- * For unclassified errors: falls back to `asErrorResponse`.
- */
-export function toolErrorToResponse(error: unknown): ToolResponse {
-  if (error instanceof ToolError) {
-    const isUserCorrectable = USER_CORRECTABLE_CODES.has(error.code);
-    const payload: Record<string, unknown> = {
-      success: false,
-      code: error.code,
-      message: error.message,
-    };
-    if (error.toolName) payload.tool = error.toolName;
-    if (error.details) payload.details = error.details;
-
-    return asTextResponse(JSON.stringify(payload, null, 2), !isUserCorrectable);
-  }
-
-  return asErrorResponse(error);
-}

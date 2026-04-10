@@ -1,6 +1,6 @@
 import { promises as fs, existsSync } from 'fs';
-import { join, resolve } from 'path';
-import { platform } from 'os';
+import { join } from 'node:path';
+import { platform } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 // Lazy-initialize base directory to avoid direct import.meta parsing pitfalls.
@@ -29,14 +29,7 @@ function getScriptsBaseDir(): string {
   }
 
   // Fallback for test/CLI contexts where import.meta is unavailable.
-  const distNativeDir = resolve(process.cwd(), 'dist', 'native');
-  const srcNativeDir = resolve(process.cwd(), 'src', 'native');
-  _scriptsBaseDir = existsSync(join(distNativeDir, 'scripts'))
-    ? distNativeDir
-    : existsSync(join(srcNativeDir, 'scripts'))
-      ? srcNativeDir
-      : distNativeDir;
-  return _scriptsBaseDir;
+  return process.cwd();
 }
 
 export class ScriptLoader {
@@ -44,7 +37,18 @@ export class ScriptLoader {
   private scriptsDir: string;
 
   constructor() {
-    this.scriptsDir = join(getScriptsBaseDir(), 'scripts');
+    const esmDir = getScriptsBaseDir();
+    // In tsdown flat mode, esmDir is 'dist' so we check native/scripts.
+    // In src or test mode, it's deep inside src/native, where scripts are alongside it.
+    if (existsSync(join(esmDir, 'native', 'scripts'))) {
+      this.scriptsDir = join(esmDir, 'native', 'scripts');
+    } else if (existsSync(join(esmDir, 'scripts'))) {
+      this.scriptsDir = join(esmDir, 'scripts');
+    } else if (existsSync(join(process.cwd(), 'dist', 'native', 'scripts'))) {
+      this.scriptsDir = join(process.cwd(), 'dist', 'native', 'scripts');
+    } else {
+      this.scriptsDir = join(process.cwd(), 'src', 'native', 'scripts');
+    }
   }
 
   async loadScript(name: string): Promise<string> {

@@ -1,5 +1,5 @@
 import type { MCPServerContext } from '@server/domains/shared/registry';
-import { asJsonResponse, toolErrorToResponse } from '@server/domains/shared/response';
+import { asJsonResponse } from '@server/domains/shared/response';
 import { argBool, argString } from '@server/domains/shared/parse-args';
 import type { ToolResponse } from '@server/types';
 import type { CrossDomainEvidenceBridge } from './handlers/evidence-graph-bridge';
@@ -397,7 +397,7 @@ export class CrossDomainHandlers {
       }
       return asJsonResponse({ capabilities });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -412,7 +412,7 @@ export class CrossDomainHandlers {
         message: 'Cross-domain workflow suggestion requires a classifier and query.',
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -429,7 +429,7 @@ export class CrossDomainHandlers {
         evidenceGraph: stats,
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -488,7 +488,7 @@ export class CrossDomainHandlers {
         evidenceGraph: snapshot,
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -496,7 +496,7 @@ export class CrossDomainHandlers {
     try {
       return asJsonResponse(this.evidenceBridge.exportGraph());
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -504,7 +504,7 @@ export class CrossDomainHandlers {
     try {
       return asJsonResponse(this.evidenceBridge.getStats());
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 }

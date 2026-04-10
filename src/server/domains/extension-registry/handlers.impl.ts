@@ -5,7 +5,7 @@ import type { RegisteredPluginManifest } from '@modules/extension-registry';
 import { PluginRegistry, WebhookBridge } from '@modules/extension-registry';
 import { WebhookServer, CommandQueue } from '@server/webhook';
 import { argObject, argString, argStringRequired } from '@server/domains/shared/parse-args';
-import { asJsonResponse, toolErrorToResponse } from '@server/domains/shared/response';
+import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolArgs, ToolResponse } from '@server/types';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -78,7 +78,7 @@ export class ExtensionRegistryHandlers {
         plugins: this.getRegistry().listInstalled(),
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -104,7 +104,7 @@ export class ExtensionRegistryHandlers {
         result,
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -121,7 +121,7 @@ export class ExtensionRegistryHandlers {
         manifest,
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -139,7 +139,7 @@ export class ExtensionRegistryHandlers {
         exportedKeys: Object.keys(loaded.exports).toSorted(),
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -154,7 +154,7 @@ export class ExtensionRegistryHandlers {
         pluginId,
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -190,7 +190,7 @@ export class ExtensionRegistryHandlers {
         events,
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -205,7 +205,7 @@ export class ExtensionRegistryHandlers {
         running: server.isRunning(),
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -213,13 +213,19 @@ export class ExtensionRegistryHandlers {
     try {
       const endpointId = argStringRequired(args, 'endpointId');
       const server = this.getWebhookServer();
-      server.removeEndpoint(endpointId);
+      try {
+        server.removeEndpoint(endpointId);
+      } catch (err) {
+        throw new Error(`GRACEFUL: ${err instanceof Error ? err.message : String(err)}`, {
+          cause: err,
+        });
+      }
       return asJsonResponse({
         success: true,
         endpointId,
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 
@@ -256,7 +262,7 @@ export class ExtensionRegistryHandlers {
         count: Array.isArray(commands) ? commands.length : commands ? 1 : 0,
       });
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   }
 

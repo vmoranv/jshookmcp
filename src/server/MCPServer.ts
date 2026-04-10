@@ -1,7 +1,7 @@
 import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Server } from 'node:http';
 import type { Socket } from 'node:net';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { CompleteRequestSchema, type Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Config } from '@internal-types/index';
 import { logger } from '@utils/logger';
 import { CacheManager } from '@utils/cache';
@@ -9,6 +9,8 @@ import { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { asErrorResponse } from '@server/domains/shared/response';
+import { LLMSamplingBridge } from '@server/LLMSamplingBridge';
+import { ElicitationBridge } from '@server/ElicitationBridge';
 import type { ToolProfile } from '@server/ToolCatalog';
 import { getToolDomain } from '@server/ToolCatalog';
 import { ToolExecutionRouter } from '@server/ToolExecutionRouter';
@@ -24,6 +26,7 @@ import { ActivationController } from '@server/activation/ActivationController';
 import { registerSingleTool as registerSingleToolImpl } from '@server/MCPServer.tools';
 import { registerSearchMetaTools } from '@server/MCPServer.search';
 import { registerServerResources } from '@server/MCPServer.resources';
+import { registerServerPrompts } from '@server/MCPServer.prompts';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { createServerEventBus, type EventBus, type ServerEventMap } from '@server/EventBus';
 import { getAllManifests } from '@server/registry/index';
@@ -50,11 +53,17 @@ export class MCPServer implements MCPServerContext {
   public readonly unifiedCache: UnifiedCacheManager;
   public readonly detailedData: DetailedDataManager;
   public readonly eventBus: EventBus<ServerEventMap>;
+  public readonly samplingBridge: LLMSamplingBridge;
+  public readonly elicitationBridge: ElicitationBridge;
   public readonly selectedTools: Tool[];
   public enabledDomains: Set<string>;
   public readonly router: ToolExecutionRouter;
   public readonly contextGuard: ToolCallContextGuard;
   public readonly handlerDeps: ToolHandlerDeps;
+  public readonly toolAutocompleteHandlers = new Map<
+    string,
+    Record<string, (value: string) => string[] | Promise<string[]>>
+  >();
   private degradedMode = false;
   private cacheAdaptersRegistered = false;
   private cacheRegistrationPromise?: Promise<void>;
@@ -262,9 +271,95 @@ export class MCPServer implements MCPServerContext {
     });
     this.server = new McpServer(
       { name: config.mcp.name, version: config.mcp.version },
-      { capabilities: { tools: { listChanged: true }, logging: {} } },
+      {
+        capabilities: {
+          tools: { listChanged: true },
+          logging: {},
+          completions: {},
+          prompts: { listChanged: true },
+        },
+      },
     );
+
+    // Forward structured logs to the MCP client
+    logger.onLog((level, message, args) => {
+      try {
+        const mcpLevel =
+          level === 'warn'
+            ? 'Warning'
+            : level === 'error'
+              ? 'Error'
+              : level === 'debug'
+                ? 'Debug'
+                : 'Info';
+
+        const data = args.length > 0 ? ' ' + JSON.stringify(args) : '';
+        // Fire-and-forget: if transport is not up or client doesn't support logging, this catches cleanly
+        void this.server.server
+          .sendLoggingMessage({
+            level: mcpLevel as never,
+            data: `${message}${data}`,
+            logger: 'jshookmcp',
+          })
+          .catch(() => undefined);
+      } catch {
+        // Safe swallow
+      }
+    });
+    this.samplingBridge = new LLMSamplingBridge(this.server);
+    this.elicitationBridge = new ElicitationBridge(this.server);
     this.setDomainInstance('activationController', new ActivationController(this.eventBus, this));
+
+    this.eventBus.on('tool:progress', async (payload) => {
+      try {
+        await this.server.server.notification({
+          method: 'notifications/progress',
+          params: {
+            progressToken: payload.progressToken,
+            progress: payload.progress,
+            total: payload.total,
+          },
+        });
+      } catch {
+        // Swallow progress notification errors (e.g. broken transports)
+      }
+    });
+
+    this.eventBus.on('evidence:updated', () => {
+      try {
+        void this.server.server.sendResourceUpdated({ uri: 'jshook://evidence/graph' });
+      } catch {
+        // Swallow resource updated notification errors
+      }
+    });
+
+    this.server.server.setRequestHandler(CompleteRequestSchema, async (request) => {
+      try {
+        const refName = (request.params.ref as { name?: string }).name;
+        if (!refName) {
+          return { completion: { values: [], total: 0, hasMore: false } };
+        }
+        const argName = request.params.argument.name;
+        const argValue = request.params.argument.value;
+        const toolHandlers = this.toolAutocompleteHandlers.get(refName);
+        if (!toolHandlers) return { completion: { values: [], total: 0, hasMore: false } };
+        const handler = toolHandlers[argName];
+        if (!handler) return { completion: { values: [], total: 0, hasMore: false } };
+
+        const results = await handler(argValue);
+        const MAX_SUGGESTIONS = 100;
+        return {
+          completion: {
+            values: results.slice(0, MAX_SUGGESTIONS),
+            total: results.length,
+            hasMore: results.length > MAX_SUGGESTIONS,
+          },
+        };
+      } catch (err) {
+        logger.error('Autocomplete failed:', err);
+        return { completion: { values: [], total: 0, hasMore: false } };
+      }
+    });
 
     this.registerTools();
   }
@@ -321,8 +416,27 @@ export class MCPServer implements MCPServerContext {
   }
 
   public async executeToolWithTracking(name: string, args: ToolArgs) {
+    let timeoutTimer: NodeJS.Timeout | undefined;
     try {
-      const response = await this.router.execute(name, args);
+      timeoutTimer = setTimeout(() => {
+        try {
+          const safeArgs = JSON.stringify(args).slice(0, 500);
+          logger.warn(
+            `Telemetry Alert [ERR-03]: Tool execution hung (>30s) for '${name}'. Args preview: ${safeArgs}...`,
+          );
+        } catch {
+          logger.warn(`Telemetry Alert [ERR-03]: Tool execution hung (>30s) for '${name}'.`);
+        }
+      }, 30000);
+      timeoutTimer.unref();
+
+      let response;
+      try {
+        response = await this.router.execute(name, args);
+      } finally {
+        if (timeoutTimer) clearTimeout(timeoutTimer);
+      }
+
       // Track consecutive tool calls for repeat loop detection
       this.contextGuard.recordCall(name);
       // Enrich context-sensitive tool responses with current tab metadata
@@ -343,6 +457,10 @@ export class MCPServer implements MCPServerContext {
         timestamp: new Date().toISOString(),
         success: true,
       });
+      // Commit pending resource updates to prevent stream flooding
+      this.getDomainInstance<import('@server/evidence/ReverseEvidenceGraph').ReverseEvidenceGraph>(
+        'evidenceGraph',
+      )?.commit();
       return enriched;
     } catch (error) {
       const errorResponse = asErrorResponse(error);
@@ -351,6 +469,9 @@ export class MCPServer implements MCPServerContext {
       } catch (trackingError) {
         logger.warn('Token tracking failed on error path:', trackingError);
       }
+      this.getDomainInstance<import('@server/evidence/ReverseEvidenceGraph').ReverseEvidenceGraph>(
+        'evidenceGraph',
+      )?.commit();
       throw error;
     }
   }
@@ -388,6 +509,7 @@ export class MCPServer implements MCPServerContext {
     }
     registerSearchMetaTools(this);
     registerServerResources(this);
+    registerServerPrompts(this);
     logger.info(`Registered ${this.selectedTools.length} tools + meta tools with McpServer`);
   }
 }

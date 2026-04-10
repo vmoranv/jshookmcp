@@ -1,6 +1,6 @@
 import { skiaTools } from '@server/domains/skia-capture/definitions';
 import { SkiaCaptureHandlers } from '@server/domains/skia-capture/handlers';
-import { asJsonResponse, toolErrorToResponse } from '@server/domains/shared/response';
+import { asJsonResponse } from '@server/domains/shared/response';
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 
@@ -16,7 +16,7 @@ const bind = (invoke: (handler: H, args: Record<string, unknown>) => Promise<unk
     try {
       return asJsonResponse(await invoke(handler, args));
     } catch (error) {
-      return toolErrorToResponse(error);
+      throw error;
     }
   });
 

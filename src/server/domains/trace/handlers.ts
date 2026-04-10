@@ -105,7 +105,7 @@ export class TraceToolHandlers {
         const activeDb = this.recorder.getDB();
         if (!activeDb) {
           throw new Error(
-            'No active recording and no dbPath specified. Start a recording or provide a dbPath.',
+            'GRACEFUL: No active recording and no dbPath specified. Start a recording or provide a dbPath.',
           );
         }
         // Flush pending events before querying
@@ -389,7 +389,7 @@ export class TraceToolHandlers {
     const activeDb = this.recorder.getDB();
     if (!activeDb) {
       throw new Error(
-        'No active recording and no dbPath specified. Start a recording or provide a dbPath.',
+        'GRACEFUL: No active recording and no dbPath specified. Start a recording or provide a dbPath.',
       );
     }
     activeDb.flush();
@@ -435,7 +435,7 @@ export class TraceToolHandlers {
       if (!activeDb) throw new Error('Active recording has no database');
       db = activeDb;
     } else {
-      throw new Error('No trace database specified and no active recording');
+      throw new Error('GRACEFUL: No trace database specified and no active recording');
     }
 
     try {

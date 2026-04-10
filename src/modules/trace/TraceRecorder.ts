@@ -240,7 +240,7 @@ export class TraceRecorder {
    */
   stop(): RecordingSession {
     if (this.state !== 'recording') {
-      throw new Error('Cannot stop: not currently recording');
+      throw new Error('GRACEFUL: Cannot stop: not currently recording');
     }
 
     // Unsubscribe from EventBus

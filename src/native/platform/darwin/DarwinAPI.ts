@@ -194,7 +194,7 @@ function getLibSystem(): koffi.IKoffiLib {
  * For koffi, we call mach_task_self_ which is the actual symbol.
  */
 export function machTaskSelf(): number {
-  const fn = getLibSystem().func('uint32 mach_task_self_()');
+  const fn = getLibSystem().func('uint32 mach_task_self()');
   return fn();
 }
 
@@ -249,7 +249,7 @@ export function machVmReadOverwrite(
   size: number,
 ): { kr: number; data: Buffer; outsize: bigint } {
   const fn = getLibSystem().func(
-    'int32 mach_vm_read_overwrite(uint32, uint64, uint64, _Out_ uint8_t[len], uint64 len, _Out_ uint64 *)',
+    'int32 mach_vm_read_overwrite(uint32, uint64, uint64, _Out_ uint8_t *, uint64, _Out_ uint64 *)',
   );
 
   const data = Buffer.alloc(size);
@@ -296,7 +296,7 @@ export function machVmRegion(
   // mach_vm_region(task, &address, &size, flavor, info, &infoCnt, &objectName)
   // address and size are in/out uint64 pointers
   const fn = getLibSystem().func(
-    'int32 mach_vm_region(uint32, _Inout_ uint64 *, _Out_ uint64 *, int32, _Out_ uint8_t[36], _Inout_ uint32 *, _Out_ uint32 *)',
+    'int32 mach_vm_region(uint32, _Inout_ uint64 *, _Out_ uint64 *, int32, _Out_ uint8_t *, _Inout_ uint32 *, _Out_ uint32 *)',
   );
 
   const addressBuf = Buffer.alloc(8);

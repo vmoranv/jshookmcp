@@ -24,9 +24,27 @@ export function _resetIdCounter(): void {
   nextId = 1;
 }
 
+import type { EventBus, ServerEventMap } from '@server/EventBus';
+
 export class ReverseEvidenceGraph {
   private readonly nodes = new Map<string, EvidenceNode>();
   private readonly edges = new Map<string, EvidenceEdge>();
+  private eventBus?: EventBus<ServerEventMap>;
+  private isDirty = false;
+
+  setEventBus(eventBus: EventBus<ServerEventMap>): void {
+    this.eventBus = eventBus;
+  }
+
+  commit(): void {
+    if (this.isDirty && this.eventBus) {
+      this.isDirty = false;
+      void this.eventBus.emit('evidence:updated', {
+        timestamp: new Date().toISOString(),
+        reason: 'Tool execution committed changes',
+      });
+    }
+  }
 
   // ── CRUD ──────────────────────────────────────────────
 
@@ -44,6 +62,7 @@ export class ReverseEvidenceGraph {
       createdAt: Date.now(),
     };
     this.nodes.set(node.id, node);
+    this.isDirty = true;
     return node;
   }
 
@@ -65,6 +84,7 @@ export class ReverseEvidenceGraph {
       metadata,
     };
     this.edges.set(edge.id, edge);
+    this.isDirty = true;
     return edge;
   }
 
@@ -83,6 +103,7 @@ export class ReverseEvidenceGraph {
         this.edges.delete(edgeId);
       }
     }
+    this.isDirty = true;
     return true;
   }
 

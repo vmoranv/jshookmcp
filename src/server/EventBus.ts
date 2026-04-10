@@ -24,6 +24,13 @@ export interface ServerEventMap {
   'memory:scan_completed': { scanType: string; resultCount: number; timestamp: string };
   'activation:domain_boosted': { domain: string; reason: string; timestamp: string };
   'activation:domain_pruned': { domain: string; reason: string; timestamp: string };
+  'tool:progress': {
+    progressToken: string | number;
+    progress: number;
+    total?: number;
+    timestamp: string;
+  };
+  'evidence:updated': { timestamp: string; reason: string };
 }
 
 interface Subscription {
@@ -148,4 +155,30 @@ export class EventBus<TMap extends Record<string, unknown> = ServerEventMap> {
  */
 export function createServerEventBus(): EventBus<ServerEventMap> {
   return new EventBus<ServerEventMap>();
+}
+
+/**
+ * Creates a debounced progress emitter for tool handlers.
+ * @param eventBus The server event bus
+ * @param progressToken The progress token from args._meta.progressToken
+ * @param debounceMs Minimum time between emissions (defaults to 500ms)
+ */
+export function createProgressDebouncer(
+  eventBus: EventBus<ServerEventMap>,
+  progressToken: string | number,
+  debounceMs = 500,
+): (progress: number, total?: number) => void {
+  let lastEmit = 0;
+  return (progress: number, total?: number) => {
+    const now = Date.now();
+    if (now - lastEmit >= debounceMs || progress === total) {
+      lastEmit = now;
+      void eventBus.emit('tool:progress', {
+        progressToken,
+        progress,
+        total,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
 }

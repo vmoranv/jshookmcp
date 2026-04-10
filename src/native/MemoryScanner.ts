@@ -85,8 +85,12 @@ export class MemoryScanner {
     const handle = this.provider.openProcess(pid, false);
     try {
       const regions = this.getFilteredRegions(handle, options);
+      const totalRegions = regions.length;
+      let regionsProcessed = 0;
 
       for (const region of regions) {
+        if (options.onProgress) options.onProgress(regionsProcessed, totalRegions);
+        regionsProcessed++;
         if (addresses.length >= maxResults) break;
 
         const regionBase = region.baseAddress;
@@ -237,8 +241,12 @@ export class MemoryScanner {
     const handle = this.provider.openProcess(pid, false);
     try {
       const regions = this.getFilteredRegions(handle, options);
+      const totalRegions = regions.length;
+      let regionsProcessed = 0;
 
       for (const region of regions) {
+        if (options.onProgress) options.onProgress(regionsProcessed, totalRegions);
+        regionsProcessed++;
         if (addresses.length >= maxAddresses) break;
 
         const regionBase = region.baseAddress;
@@ -323,6 +331,9 @@ export class MemoryScanner {
       const regions = this.getFilteredRegions(handle, scanOptions);
 
       for (const region of regions) {
+        if (options.moduleOnly /* unused cast */) {}
+        // Use scanOptions for onProgress if we added it, but wait, pointerScan doesn't accept onProgress yet in its options!
+        // We'll update pointerScan options separately if needed. For now just loop:
         if (pointers.length >= maxResults) break;
 
         const regionBase = region.baseAddress;
@@ -431,6 +442,8 @@ export class MemoryScanner {
       const regions = this.getFilteredRegions(handle, scanOptions);
 
       for (const region of regions) {
+        // we'd emit here if we exposed onProgress
+
         if (addresses.length >= maxResults) break;
 
         const regionBase = region.baseAddress;

@@ -17,6 +17,7 @@ function ensure(ctx: MCPServerContext): H {
   let graph = ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');
   if (!graph) {
     graph = new ReverseEvidenceGraph();
+    graph.setEventBus(ctx.eventBus);
     ctx.setDomainInstance('evidenceGraph', graph);
   }
 

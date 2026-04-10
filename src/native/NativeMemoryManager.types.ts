@@ -93,6 +93,7 @@ export interface ScanOptions {
     executable?: boolean;
     moduleOnly?: boolean;
   };
+  onProgress?: (progress: number, total?: number) => void;
 }
 
 /** Internal state for a live scan session. */

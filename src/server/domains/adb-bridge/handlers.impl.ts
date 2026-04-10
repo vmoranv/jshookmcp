@@ -1,7 +1,7 @@
 import { ToolError } from '@errors/ToolError';
 import { ADBClient, WebViewDebugger } from '@modules/adb';
 import { argNumber, argString, argStringRequired } from '@server/domains/shared/parse-args';
-import { asJsonResponse, toolErrorToResponse } from '@server/domains/shared/response';
+import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
 
 function getErrorMessage(error: unknown): string {
@@ -61,14 +61,12 @@ export class ADBBridgeHandlers {
       return asJsonResponse(await action());
     } catch (error) {
       if (error instanceof ToolError) {
-        return toolErrorToResponse(error);
+        throw error;
       }
 
-      return toolErrorToResponse(
-        new ToolError('RUNTIME', getErrorMessage(error), {
-          toolName: _toolName,
-        }),
-      );
+      throw new ToolError('RUNTIME', getErrorMessage(error), {
+        toolName: _toolName,
+      });
     }
   }
 

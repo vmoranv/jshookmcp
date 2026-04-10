@@ -21,7 +21,10 @@ const EFFECTIVE_PLATFORM =
 const IS_WIN32 = EFFECTIVE_PLATFORM === 'win32';
 type H = MemoryScanHandlers;
 
+let globalContext: MCPServerContext | null = null;
+
 async function ensure(ctx: MCPServerContext): Promise<H> {
+  globalContext = ctx;
   const ctxAny = ctx as unknown as Record<string, unknown>;
   if (ctxAny[DEP_KEY]) return ctxAny[DEP_KEY] as H;
 
@@ -86,10 +89,20 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   return ctxAny[DEP_KEY] as H;
 }
 
+import { createProgressDebouncer } from '@server/EventBus';
+
 function bindByKey(invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) {
   return (deps: Record<string, unknown>) => {
     const handler = deps[DEP_KEY] as H;
-    return (args: Record<string, unknown>) => invoke(handler, args);
+    return (args: Record<string, unknown>) => {
+      const _meta = args._meta as { progressToken?: string | number } | undefined;
+      let onProgress: ((progress: number, total?: number) => void) | undefined;
+
+      if (_meta?.progressToken !== undefined && globalContext) {
+        onProgress = createProgressDebouncer(globalContext.eventBus, _meta.progressToken);
+      }
+      return invoke(handler, { ...args, onProgress });
+    };
   };
 }
 

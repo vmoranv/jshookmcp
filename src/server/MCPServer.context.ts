@@ -40,6 +40,10 @@ export interface ServerCore {
   unifiedCache: UnifiedCacheManager;
   detailedData: DetailedDataManager;
   eventBus: import('@server/EventBus').EventBus<import('@server/EventBus').ServerEventMap>;
+  /** Sampling delegation bridge — allows tools to request LLM inference from the client */
+  samplingBridge: import('@server/LLMSamplingBridge').LLMSamplingBridge;
+  /** Elicitation bridge — allows tools to request interactive user input from the client */
+  elicitationBridge: import('@server/ElicitationBridge').ElicitationBridge;
 }
 
 /** Tool selection and routing state. */
@@ -48,6 +52,7 @@ export interface ToolRegistryState {
   enabledDomains: Set<string>;
   router: ToolExecutionRouter;
   handlerDeps: ToolHandlerDeps;
+  toolAutocompleteHandlers: Map<string, Record<string, (value: string) => string[] | Promise<string[]>>>;
 }
 
 /** Minimal info stored for meta-tools so describe_tool can look them up. */

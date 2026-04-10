@@ -5,7 +5,7 @@
  */
 import type { ToolResponse } from '@server/types';
 import { argNumber } from '@server/domains/shared/parse-args';
-import { asJsonResponse, toolErrorToResponse } from '@server/domains/shared/response';
+import { asJsonResponse } from '@server/domains/shared/response';
 import type { CanvasDomainDependencies } from '@server/domains/canvas/dependencies';
 import { handleFingerprint } from './handlers/fingerprint';
 import { handleSceneDump } from './handlers/scene-dump';
@@ -28,7 +28,7 @@ export class CanvasToolHandlers {
       const result = await handleFingerprint(this.pageController, args);
       return asJsonResponse(result);
     } catch (err) {
-      return toolErrorToResponse(err);
+      throw err;
     }
   }
 
@@ -37,7 +37,7 @@ export class CanvasToolHandlers {
       const result = await handleSceneDump(this.pageController, args);
       return asJsonResponse(result);
     } catch (err) {
-      return toolErrorToResponse(err);
+      throw err;
     }
   }
 
@@ -48,7 +48,7 @@ export class CanvasToolHandlers {
       const result = await handlePick(this.pageController, { ...args, x, y });
       return asJsonResponse(result);
     } catch (err) {
-      return toolErrorToResponse(err);
+      throw err;
     }
   }
 
@@ -62,7 +62,7 @@ export class CanvasToolHandlers {
       );
       return asJsonResponse(result);
     } catch (err) {
-      return toolErrorToResponse(err);
+      throw err;
     }
   }
 }
