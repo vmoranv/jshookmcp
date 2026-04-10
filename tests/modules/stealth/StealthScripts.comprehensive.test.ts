@@ -338,9 +338,9 @@ describe('StealthScripts – comprehensive coverage', () => {
       }
     });
 
-    it('has exactly 28 entries with no duplicates', () => {
+    it('has exactly 27 entries with no duplicates', () => {
       const args = StealthScripts.getRecommendedLaunchArgs();
-      expect(args.length).toBe(28);
+      expect(args.length).toBe(27);
       expect(new Set(args).size).toBe(args.length);
     });
 

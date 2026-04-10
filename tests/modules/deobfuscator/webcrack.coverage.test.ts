@@ -656,7 +656,7 @@ describe('webcrack helpers (coverage)', () => {
         })),
       }));
 
-      const result = await runWebcrack('code', { outputDir: '/tmp/out' });
+      const result = await runWebcrack('code', { outputDir: './tests/tmp/webcrack-out' });
       expect(result.applied).toBe(true);
       expect(result.bundle).toBeUndefined();
     });
@@ -792,7 +792,7 @@ describe('webcrack helpers (coverage)', () => {
       }));
 
       const result = await runWebcrack('obfuscated', {
-        outputDir: '/tmp/webcrack-out',
+        outputDir: './tests/tmp/webcrack-out',
         forceOutput: true,
         includeModuleCode: false,
         maxBundleModules: 10,

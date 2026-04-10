@@ -101,94 +101,44 @@ describe('MCPServer.search.handlers.route', () => {
     expect(state.activateToolNames).not.toHaveBeenCalled();
   });
 
-  it('auto-activates inactive recommendation domains and reroutes with autoActivate disabled', async () => {
+  it('does not auto-activate when autoActivate is not explicitly true', async () => {
     const ctx = createCtx();
-    state.routeToolRequest
-      .mockResolvedValueOnce({
-        recommendations: [
-          { name: 'page_navigate', domain: 'browser', isActive: false },
-          { name: 'network_get_requests', domain: 'network', isActive: false },
-        ],
-        nextActions: [],
-      })
-      .mockResolvedValueOnce({
-        recommendations: [
-          { name: 'page_navigate', domain: 'browser', isActive: true },
-          { name: 'network_get_requests', domain: 'network', isActive: true },
-        ],
-        nextActions: [
-          { step: 1, action: 'call', command: 'page_navigate', description: 'Call it' },
-        ],
-      });
-    state.handleActivateDomain.mockImplementation(async (innerCtx: any, args: any) => {
-      if (args.domain === 'browser') {
-        innerCtx.enabledDomains.add('browser');
-        innerCtx.activatedToolNames.add('page_navigate');
-      }
-      if (args.domain === 'network') {
-        innerCtx.enabledDomains.add('network');
-        innerCtx.activatedToolNames.add('network_get_requests');
-      }
-      return { content: [{ type: 'text', text: '{"success":true}' }] };
+    state.routeToolRequest.mockResolvedValueOnce({
+      recommendations: [
+        { name: 'page_navigate', domain: 'browser', isActive: false },
+        { name: 'network_get_requests', domain: 'network', isActive: false },
+      ],
+      nextActions: [],
     });
 
     const response = parseResponse(await handleRouteTool(ctx, { task: 'inspect requests' }));
 
-    expect(state.handleActivateDomain).toHaveBeenNthCalledWith(1, ctx, {
-      domain: 'browser',
-      ttlMinutes: 30,
-    });
-    expect(state.handleActivateDomain).toHaveBeenNthCalledWith(2, ctx, {
-      domain: 'network',
-      ttlMinutes: 30,
-    });
+    // autoActivate defaults to false — no domain/tool activation should occur
+    expect(state.handleActivateDomain).not.toHaveBeenCalled();
     expect(state.activateToolNames).not.toHaveBeenCalled();
-    expect(state.routeToolRequest).toHaveBeenNthCalledWith(
-      2,
-      { task: 'inspect requests', context: { autoActivate: false } },
-      ctx,
-      { kind: 'engine' },
-    );
-    expect(response.autoActivated).toBe(true);
-    expect(response.activatedNames).toEqual(['page_navigate', 'network_get_requests']);
+    expect(state.routeToolRequest).toHaveBeenCalledOnce();
+    expect(response.autoActivated).toBeUndefined();
   });
 
-  it('activates tools individually for recommendations without a domain or already-enabled domains', async () => {
+  it('does not auto-activate tools when autoActivate is not explicit', async () => {
     const ctx = createCtx({
       enabledDomains: new Set(['browser']),
     });
-    state.routeToolRequest
-      .mockResolvedValueOnce({
-        recommendations: [
-          { name: 'page_navigate', domain: 'browser', isActive: false },
-          { name: 'page_navigate', domain: 'browser', isActive: false },
-          { name: 'custom_tool', domain: null, isActive: false },
-        ],
-        nextActions: [],
-      })
-      .mockResolvedValueOnce({
-        recommendations: [
-          { name: 'page_navigate', domain: 'browser', isActive: true },
-          { name: 'custom_tool', domain: null, isActive: true },
-        ],
-        nextActions: [{ step: 1, action: 'call', command: 'custom_tool', description: 'Call it' }],
-      });
-    state.activateToolNames.mockImplementation(async (innerCtx: any, names: string[]) => {
-      for (const name of names) innerCtx.activatedToolNames.add(name);
-      return {
-        activated: names,
-        alreadyActive: [],
-        notFound: [],
-        totalActive: innerCtx.activatedToolNames.size,
-      };
+    state.routeToolRequest.mockResolvedValueOnce({
+      recommendations: [
+        { name: 'page_navigate', domain: 'browser', isActive: false },
+        { name: 'custom_tool', domain: null, isActive: false },
+      ],
+      nextActions: [],
     });
 
     const response = parseResponse(await handleRouteTool(ctx, { task: 'use custom helper' }));
 
+    // autoActivate defaults to false — no activation should occur
     expect(state.handleActivateDomain).not.toHaveBeenCalled();
-    expect(state.activateToolNames).toHaveBeenCalledWith(ctx, ['page_navigate', 'custom_tool']);
-    expect(response.autoActivated).toBe(true);
-    expect(response.activatedNames).toEqual(['page_navigate', 'page_navigate', 'custom_tool']);
+    expect(state.activateToolNames).not.toHaveBeenCalled();
+    expect(state.routeToolRequest).toHaveBeenCalledOnce();
+    expect(response.autoActivated).toBeUndefined();
   });
 
   it('returns the original route response when activation fails and nothing becomes active', async () => {

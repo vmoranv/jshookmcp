@@ -155,44 +155,45 @@ describe('MCPServer.search.handlers.call', () => {
     expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
   });
 
-  it('auto-activates tool when not in router', async () => {
+  it('returns error when tool is not in router (auto-activation disabled)', async () => {
     const ctx = createCtx({
       router: { has: vi.fn(() => false) },
-      executeToolWithTracking: vi.fn(async () => ({
-        content: [{ type: 'text', text: JSON.stringify({ executed: true }) }],
-      })),
     });
 
     const response = await handleCallTool(ctx, { name: 'test_tool' });
     const result = parseResponse(response);
 
-    expect(state.activateToolNames).toHaveBeenCalledWith(ctx, ['test_tool']);
-    expect(result.executed).toBe(true);
-    expect(result.wasAutoActivated).toBe(true);
-    expect(result.activatedTools).toEqual(['test_tool']);
+    // Auto-activation is disabled for security. Tools must be explicitly activated.
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('not currently active');
+    expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
   });
 
-  it('returns error when tool not found in catalogue', async () => {
-    state.getToolByName.mockReturnValue(new Map());
+  it('returns error with tool name in message when not active', async () => {
     const ctx = createCtx({
       router: { has: vi.fn(() => false) },
     });
 
-    const response = await handleCallTool(ctx, { name: 'unknown_tool' });
+    const response = await handleCallTool(ctx, { name: 'some_fancy_tool' });
     const result = parseResponse(response);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('not found in the catalogue');
-    expect(result.error).toContain('unknown_tool');
+    expect(result.error).toContain('some_fancy_tool');
   });
 
-  it('returns error when activation fails (nothing activated)', async () => {
-    state.activateToolNames.mockResolvedValue({
-      activated: [],
-      alreadyActive: [],
-      notFound: ['test_tool'],
-      totalActive: 0,
+  it('suggests activate_tools or activate_domain when tool is not active', async () => {
+    const ctx = createCtx({
+      router: { has: vi.fn(() => false) },
     });
+
+    const response = await handleCallTool(ctx, { name: 'test_tool' });
+    const result = parseResponse(response);
+
+    expect(result.error).toContain('activate_tools');
+  });
+
+  it('returns error for inactive tool even if activation is configured', async () => {
+    // Even with activate success configured, the handler should not call it
     const ctx = createCtx({
       router: { has: vi.fn(() => false) },
     });
@@ -201,27 +202,7 @@ describe('MCPServer.search.handlers.call', () => {
     const result = parseResponse(response);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('could not be activated');
-  });
-
-  it('proceeds when tool is alreadyActive (not newly activated)', async () => {
-    state.activateToolNames.mockResolvedValue({
-      activated: [],
-      alreadyActive: ['test_tool'],
-      notFound: [],
-      totalActive: 1,
-    });
-    const ctx = createCtx({
-      router: { has: vi.fn(() => false) },
-      executeToolWithTracking: vi.fn(async () => ({
-        content: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
-      })),
-    });
-
-    const response = await handleCallTool(ctx, { name: 'test_tool' });
-    const result = parseResponse(response);
-
-    expect(result.ok).toBe(true);
+    expect(state.activateToolNames).not.toHaveBeenCalled();
   });
 
   it('records search engine feedback after successful execution', async () => {
