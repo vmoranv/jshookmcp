@@ -29,4 +29,3 @@ export function serializeError(error: unknown): { success: false; error: string 
     error: toErrorMessage(error),
   };
 }
-

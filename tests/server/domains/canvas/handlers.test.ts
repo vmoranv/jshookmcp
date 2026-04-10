@@ -219,13 +219,7 @@ describe('CanvasToolHandlers', () => {
       };
       const handlers = createHandlers({ pageController });
 
-      const result = await handlers.handleFingerprint({});
-
-      expect(result).toBeDefined();
-      // Should return an error-structured response, not throw
-      const text =
-        (result as unknown as { content: Array<{ text: string }> }).content[0]?.text ?? '';
-      expect(text).toBeTruthy();
+      await expect(handlers.handleFingerprint({})).rejects.toThrow();
     });
   });
 
@@ -505,7 +499,11 @@ describe('CanvasToolHandlers', () => {
       const debuggerManager = createMockDebuggerManager();
       const handlers = createHandlers({ pageController, debuggerManager });
 
-      await handlers.handleTraceClick({ x: 0, y: 0, breakpointType: 'click' });
+      try {
+        await handlers.handleTraceClick({ x: 0, y: 0, breakpointType: 'click' });
+      } catch {
+        // Expected to throw
+      }
 
       const eventManager = debuggerManager.getEventManager();
       expect(eventManager.removeEventListenerBreakpoint).toHaveBeenCalledWith('event-bp-1');

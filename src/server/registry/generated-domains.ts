@@ -72,6 +72,5 @@ export const generatedManifests = [
   manifest_31,
   manifest_32,
   manifest_33,
-  manifest_34
+  manifest_34,
 ];
-

@@ -50,6 +50,8 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   class BaseMockMcpServer {
     public tools: Array<{ name: string; handler: (...args: any[]) => Promise<any> }> = [];
     public resources: any[] = [];
+    public server = { setRequestHandler: vi.fn() };
+    public prompt = vi.fn();
     public connect = vi.fn(async () => undefined);
     public close = vi.fn(async () => undefined);
     public sendToolListChanged = vi.fn(async () => undefined);
@@ -75,6 +77,7 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   return {
     McpServer: class extends BaseMockMcpServer {
       constructor(...args: any[]) {
+        // @ts-expect-error
         super(...(args as any));
         mocks.mcpInstances.push(this);
       }
@@ -124,6 +127,7 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
 vi.mock('@src/utils/logger', () => ({
   logger: {
     info: vi.fn(),
+    onLog: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     success: vi.fn(),
@@ -238,6 +242,7 @@ describe('MCPServer — additional coverage', () => {
         inputSchema: { type: 'object', properties: {} },
       };
 
+      // @ts-expect-error
       const registered = server.registerSingleTool(tool);
       expect(registered).toBeDefined();
       expect(typeof registered.remove).toBe('function');

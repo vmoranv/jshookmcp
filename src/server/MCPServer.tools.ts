@@ -47,10 +47,7 @@ function handleToolError(toolName: string, error: unknown): never {
   if (error instanceof ToolError) {
     logger.error(`Tool execution failed [${error.code}]: ${toolName} - ${error.message}`);
     const details = error.details ? `\nDetails: ${JSON.stringify(error.details)}` : '';
-    throw new McpError(
-      mapErrorCode(error.code),
-      `[${error.code}] ${error.message}${details}`,
-    );
+    throw new McpError(mapErrorCode(error.code), `[${error.code}] ${error.message}${details}`);
   }
 
   logger.error(`Tool execution failed: ${toolName}`, error);
@@ -101,15 +98,19 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
     return registeredTool;
   }
 
-  const registeredTool = ctx.server.registerTool(toolDef.name, { description }, async (_args: any, extra?: any) => {
-    try {
-      const augmentedArgs: ToolArgs = {};
-      if (extra?._meta) augmentedArgs._meta = extra._meta;
-      return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
-    } catch (error) {
-      return handleToolError(toolDef.name, error);
-    }
-  });
+  const registeredTool = ctx.server.registerTool(
+    toolDef.name,
+    { description },
+    async (_args: any, extra?: any) => {
+      try {
+        const augmentedArgs: ToolArgs = {};
+        if (extra?._meta) augmentedArgs._meta = extra._meta;
+        return await ctx.executeToolWithTracking(toolDef.name, augmentedArgs);
+      } catch (error) {
+        return handleToolError(toolDef.name, error);
+      }
+    },
+  );
 
   if (builtTool.execution) {
     const sdkInternalMap = (ctx.server as any)._registeredTools;

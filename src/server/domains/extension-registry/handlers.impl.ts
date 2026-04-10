@@ -72,198 +72,162 @@ export class ExtensionRegistryHandlers {
   ) {}
 
   async handleListInstalled(): Promise<ToolResponse> {
-    try {
-      return asJsonResponse({
-        success: true,
-        plugins: this.getRegistry().listInstalled(),
-      });
-    } catch (error) {
-      throw error;
-    }
+    return asJsonResponse({
+      success: true,
+      plugins: this.getRegistry().listInstalled(),
+    });
   }
 
   async handleExecuteInContext(args: ToolArgs): Promise<ToolResponse> {
-    try {
-      const pluginId = argStringRequired(args, 'pluginId');
-      const contextName = argStringRequired(args, 'contextName');
-      const contextArgs = argObject(args, 'args') ?? {};
-      const { manifest, exports } = await this.getRegistry().loadPlugin(pluginId);
+    const pluginId = argStringRequired(args, 'pluginId');
+    const contextName = argStringRequired(args, 'contextName');
+    const contextArgs = argObject(args, 'args') ?? {};
+    const { manifest, exports } = await this.getRegistry().loadPlugin(pluginId);
 
-      const context = this.resolveContext(exports, contextName);
-      if (!context) {
-        throw new Error(`Context "${contextName}" was not found in plugin "${pluginId}"`);
-      }
-
-      const result = await Promise.resolve(context(contextArgs));
-      this.emitEvent('extension.executed', { pluginId, contextName });
-
-      return asJsonResponse({
-        success: true,
-        manifest,
-        contextName,
-        result,
-      });
-    } catch (error) {
-      throw error;
+    const context = this.resolveContext(exports, contextName);
+    if (!context) {
+      throw new Error(`Context "${contextName}" was not found in plugin "${pluginId}"`);
     }
+
+    const result = await Promise.resolve(context(contextArgs));
+    this.emitEvent('extension.executed', { pluginId, contextName });
+
+    return asJsonResponse({
+      success: true,
+      manifest,
+      contextName,
+      result,
+    });
   }
 
   async handleInstall(args: ToolArgs): Promise<ToolResponse> {
-    try {
-      const url = argStringRequired(args, 'url');
-      const manifest = await this.loadManifestFromUrl(url);
-      const pluginId = await this.getRegistry().register(manifest);
-      this.emitEvent('extension.installed', { pluginId, url });
+    const url = argStringRequired(args, 'url');
+    const manifest = await this.loadManifestFromUrl(url);
+    const pluginId = await this.getRegistry().register(manifest);
+    this.emitEvent('extension.installed', { pluginId, url });
 
-      return asJsonResponse({
-        success: true,
-        pluginId,
-        manifest,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return asJsonResponse({
+      success: true,
+      pluginId,
+      manifest,
+    });
   }
 
   async handleReload(args: ToolArgs): Promise<ToolResponse> {
-    try {
-      const pluginId = argStringRequired(args, 'pluginId');
-      await this.getRegistry().unloadPlugin(pluginId);
-      const loaded = await this.getRegistry().loadPlugin(pluginId);
-      this.emitEvent('extension.reloaded', { pluginId });
+    const pluginId = argStringRequired(args, 'pluginId');
+    await this.getRegistry().unloadPlugin(pluginId);
+    const loaded = await this.getRegistry().loadPlugin(pluginId);
+    this.emitEvent('extension.reloaded', { pluginId });
 
-      return asJsonResponse({
-        success: true,
-        pluginId,
-        manifest: loaded.manifest,
-        exportedKeys: Object.keys(loaded.exports).toSorted(),
-      });
-    } catch (error) {
-      throw error;
-    }
+    return asJsonResponse({
+      success: true,
+      pluginId,
+      manifest: loaded.manifest,
+      exportedKeys: Object.keys(loaded.exports).toSorted(),
+    });
   }
 
   async handleUninstall(args: ToolArgs): Promise<ToolResponse> {
-    try {
-      const pluginId = argStringRequired(args, 'pluginId');
-      await this.getRegistry().unregister(pluginId);
-      this.emitEvent('extension.uninstalled', { pluginId });
+    const pluginId = argStringRequired(args, 'pluginId');
+    await this.getRegistry().unregister(pluginId);
+    this.emitEvent('extension.uninstalled', { pluginId });
 
-      return asJsonResponse({
-        success: true,
-        pluginId,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return asJsonResponse({
+      success: true,
+      pluginId,
+    });
   }
 
   async handleWebhookCreate(args: ToolArgs): Promise<ToolResponse> {
-    try {
-      const name = argStringRequired(args, 'name');
-      const webhookPath = argStringRequired(args, 'path');
-      const secret = argString(args, 'secret');
-      const events = Array.isArray(args.events)
-        ? (args.events as string[]).filter((e): e is string => typeof e === 'string')
-        : [];
+    const name = argStringRequired(args, 'name');
+    const webhookPath = argStringRequired(args, 'path');
+    const secret = argString(args, 'secret');
+    const events = Array.isArray(args.events)
+      ? (args.events as string[]).filter((e): e is string => typeof e === 'string')
+      : [];
 
-      const server = this.getWebhookServer();
-      if (!server.isRunning()) {
-        server.start();
-      }
-
-      const endpointId = server.registerEndpoint({
-        path: webhookPath,
-        method: 'POST',
-        secret: secret ?? undefined,
-      });
-
-      const bridge = this.getWebhook();
-      const baseUrl = `http://localhost:${server.getPort()}${webhookPath}`;
-      bridge.registerExternalCallback(endpointId, baseUrl);
-
-      return asJsonResponse({
-        success: true,
-        endpointId,
-        url: baseUrl,
-        name,
-        events,
-      });
-    } catch (error) {
-      throw error;
+    const server = this.getWebhookServer();
+    if (!server.isRunning()) {
+      server.start();
     }
+
+    const endpointId = server.registerEndpoint({
+      path: webhookPath,
+      method: 'POST',
+      secret: secret ?? undefined,
+    });
+
+    const bridge = this.getWebhook();
+    const baseUrl = `http://localhost:${server.getPort()}${webhookPath}`;
+    bridge.registerExternalCallback(endpointId, baseUrl);
+
+    return asJsonResponse({
+      success: true,
+      endpointId,
+      url: baseUrl,
+      name,
+      events,
+    });
   }
 
   async handleWebhookList(): Promise<ToolResponse> {
-    try {
-      const server = this.getWebhookServer();
-      const endpoints = server.listEndpoints();
-      return asJsonResponse({
-        success: true,
-        endpoints,
-        port: server.getPort(),
-        running: server.isRunning(),
-      });
-    } catch (error) {
-      throw error;
-    }
+    const server = this.getWebhookServer();
+    const endpoints = server.listEndpoints();
+    return asJsonResponse({
+      success: true,
+      endpoints,
+      port: server.getPort(),
+      running: server.isRunning(),
+    });
   }
 
   async handleWebhookDelete(args: ToolArgs): Promise<ToolResponse> {
+    const endpointId = argStringRequired(args, 'endpointId');
+    const server = this.getWebhookServer();
     try {
-      const endpointId = argStringRequired(args, 'endpointId');
-      const server = this.getWebhookServer();
-      try {
-        server.removeEndpoint(endpointId);
-      } catch (err) {
-        throw new Error(`GRACEFUL: ${err instanceof Error ? err.message : String(err)}`, {
-          cause: err,
-        });
-      }
-      return asJsonResponse({
-        success: true,
-        endpointId,
+      server.removeEndpoint(endpointId);
+    } catch (err) {
+      throw new Error(`GRACEFUL: ${err instanceof Error ? err.message : String(err)}`, {
+        cause: err,
       });
-    } catch (error) {
-      throw error;
     }
+    return asJsonResponse({
+      success: true,
+      endpointId,
+    });
   }
 
   async handleWebhookCommands(args: ToolArgs): Promise<ToolResponse> {
-    try {
-      const endpointId = argStringRequired(args, 'endpointId');
-      const status = argString(args, 'status');
-      const command = argObject(args, 'command');
+    const endpointId = argStringRequired(args, 'endpointId');
+    const status = argString(args, 'status');
+    const command = argObject(args, 'command');
 
-      if (command) {
-        const queue = this.getCommandQueue();
-        const cmdId = queue.enqueue({
-          endpointId,
-          payload: command,
-        });
-        return asJsonResponse({
-          success: true,
-          commandId: cmdId,
-          status: 'pending',
-        });
-      }
-
+    if (command) {
       const queue = this.getCommandQueue();
-      const filter: Record<string, unknown> = { endpointId };
-      if (status) {
-        filter.status = status;
-      }
-      const commands = queue.dequeue(filter);
-
+      const cmdId = queue.enqueue({
+        endpointId,
+        payload: command,
+      });
       return asJsonResponse({
         success: true,
-        endpointId,
-        commands,
-        count: Array.isArray(commands) ? commands.length : commands ? 1 : 0,
+        commandId: cmdId,
+        status: 'pending',
       });
-    } catch (error) {
-      throw error;
     }
+
+    const queue = this.getCommandQueue();
+    const filter: Record<string, unknown> = { endpointId };
+    if (status) {
+      filter.status = status;
+    }
+    const commands = queue.dequeue(filter);
+
+    return asJsonResponse({
+      success: true,
+      endpointId,
+      commands,
+      count: Array.isArray(commands) ? commands.length : commands ? 1 : 0,
+    });
   }
 
   getWebhookServer(): WebhookServer {

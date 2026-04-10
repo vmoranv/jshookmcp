@@ -13,11 +13,7 @@ type H = SkiaCaptureHandlers;
 const lookup = toolLookup(skiaTools);
 const bind = (invoke: (handler: H, args: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, async (handler, args) => {
-    try {
-      return asJsonResponse(await invoke(handler, args));
-    } catch (error) {
-      throw error;
-    }
+    return asJsonResponse(await invoke(handler, args));
   });
 
 function ensure(ctx: MCPServerContext): H {

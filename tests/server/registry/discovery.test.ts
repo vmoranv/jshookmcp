@@ -1,10 +1,7 @@
-import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
-  readdir: vi.fn(),
-  stat: vi.fn(),
-  fileURLToPath: vi.fn(),
+  mockManifests: [] as unknown[],
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -12,78 +9,77 @@ const state = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('node:fs/promises', () => ({
-  readdir: state.readdir,
-  stat: state.stat,
-}));
-
-vi.mock('node:url', () => ({
-  fileURLToPath: state.fileURLToPath,
+vi.mock('@server/registry/generated-domains.js', () => ({
+  get generatedManifests() {
+    return state.mockManifests;
+  },
 }));
 
 vi.mock('@utils/logger', () => ({
   logger: state.logger,
 }));
 
-const fixtureRoot = join(process.cwd(), 'tests', 'server', 'registry', 'fixtures');
-const registryFile = join(process.cwd(), 'src', 'server', 'registry', 'discovery.ts');
-
-function makeDir(name: string) {
-  return {
-    name,
-    isDirectory: () => true,
-  };
-}
-
 describe('registry/discovery', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
     delete process.env.DISCOVERY_STRICT;
-    state.fileURLToPath.mockImplementation((value: URL | string) => {
-      const href = typeof value === 'string' ? value : value.href;
-      if (href.includes('/domains/')) {
-        return fixtureRoot;
-      }
-      return registryFile;
-    });
+    state.mockManifests = [];
   });
 
-  it('returns an empty list when the domains directory cannot be read', async () => {
-    state.readdir.mockRejectedValue(new Error('cannot read'));
+  it('handles empty generated manifests', async () => {
     const { discoverDomainManifests } = await import('@server/registry/discovery');
-
     await expect(discoverDomainManifests()).resolves.toEqual([]);
-    expect(state.logger.error).toHaveBeenCalled();
+    expect(state.logger.info).toHaveBeenCalledWith(
+      '[discovery] Discovered 0 domains, 0 tools total',
+    );
   });
 
   it('loads valid manifests, skips invalid ones, and warns on duplicate domain or depKey', async () => {
-    state.readdir.mockResolvedValue([
-      makeDir('valid-default'),
-      makeDir('valid-named'),
-      makeDir('valid-alt'),
-      makeDir('invalid'),
-      makeDir('duplicate-domain'),
-      makeDir('duplicate-dep'),
-    ]);
-    state.stat.mockImplementation(async (filePath: string) => {
-      if (
-        filePath === join(fixtureRoot, 'valid-default', 'manifest.ts') ||
-        filePath === join(fixtureRoot, 'valid-named', 'manifest.ts') ||
-        filePath === join(fixtureRoot, 'valid-alt', 'manifest.ts') ||
-        filePath === join(fixtureRoot, 'invalid', 'manifest.ts') ||
-        filePath === join(fixtureRoot, 'duplicate-domain', 'manifest.ts') ||
-        filePath === join(fixtureRoot, 'duplicate-dep', 'manifest.ts')
-      ) {
-        return { isFile: () => true };
-      }
-      throw new Error('missing');
-    });
-    const { discoverDomainManifests } = await import('@server/registry/discovery');
+    const valid1 = {
+      kind: 'domain-manifest',
+      version: 1,
+      domain: 'alpha',
+      depKey: 'alphaDep',
+      profiles: [],
+      registrations: [{}],
+      ensure: () => {},
+    };
+    const valid2 = {
+      kind: 'domain-manifest',
+      version: 1,
+      domain: 'beta',
+      depKey: 'betaDep',
+      profiles: [],
+      registrations: [{}, {}],
+      ensure: () => {},
+    };
+    const invalid = { kind: 'invalid' };
+    const duplicateDomain = {
+      kind: 'domain-manifest',
+      version: 1,
+      domain: 'alpha',
+      depKey: 'differentDep',
+      profiles: [],
+      registrations: [],
+      ensure: () => {},
+    };
+    const duplicateDep = {
+      kind: 'domain-manifest',
+      version: 1,
+      domain: 'gamma',
+      depKey: 'betaDep',
+      profiles: [],
+      registrations: [],
+      ensure: () => {},
+    };
 
+    state.mockManifests = [valid1, valid2, invalid, duplicateDomain, duplicateDep];
+
+    const { discoverDomainManifests } = await import('@server/registry/discovery');
     const manifests = await discoverDomainManifests();
 
-    expect(manifests.map((item) => item.domain)).toEqual(['alpha', 'beta', 'gamma']);
+    expect(manifests.map((item) => item.domain)).toEqual(['alpha', 'beta']);
     expect(state.logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('no valid DomainManifest export'),
     );
@@ -91,24 +87,22 @@ describe('registry/discovery', () => {
       expect.stringContaining('Duplicate domain "alpha"'),
     );
     expect(state.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Duplicate depKey "alphaDep"'),
+      expect.stringContaining('Duplicate depKey "betaDep"'),
     );
     expect(state.logger.info).toHaveBeenCalledWith(
-      '[discovery] Discovered 3 domains, 3 tools total',
+      '[discovery] Discovered 2 domains, 3 tools total',
     );
   });
 
-  it('prefers manifest.js before manifest.ts and rethrows import errors in strict mode', async () => {
-    state.readdir.mockResolvedValue([makeDir('js-first'), makeDir('throw-on-import')]);
-    state.stat.mockImplementation(async (filePath: string) => {
-      if (
-        filePath === join(fixtureRoot, 'js-first', 'manifest.js') ||
-        filePath === join(fixtureRoot, 'throw-on-import', 'manifest.ts')
-      ) {
-        return { isFile: () => true };
-      }
-      throw new Error('missing');
-    });
+  it('rethrows errors in strict mode when processing a manifest throws', async () => {
+    // We can simulate an error by making a getter throw
+    const throwingManifest = {
+      get kind() {
+        throw new Error('fixture import failed');
+      },
+    };
+    state.mockManifests = [throwingManifest];
+
     process.env.DISCOVERY_STRICT = 'true';
     const { discoverDomainManifests } = await import('@server/registry/discovery');
 

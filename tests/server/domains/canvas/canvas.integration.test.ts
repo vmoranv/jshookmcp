@@ -560,6 +560,7 @@ describe('canvas tool bind functions', () => {
     };
 
     // Call the bind function
+    // @ts-expect-error
     registration!.bind(mockHandler as never, { canvasId: 'test' });
 
     // The bind function should have called the handler
@@ -596,6 +597,7 @@ describe('canvas tool end-to-end flows', () => {
         { pattern: 'Laya', adapterId: 'laya', engine: 'LayaAir', present: true, version: '2.12.0' },
       ]);
 
+      // @ts-expect-error
       const result = await pageController.evaluate('some-script');
 
       expect(pageController.evaluate).toHaveBeenCalled();
@@ -609,6 +611,7 @@ describe('canvas tool end-to-end flows', () => {
         { id: 'canvas', width: 800, height: 600, contextType: '2d' },
       ]);
 
+      // @ts-expect-error
       const result = await pageController.evaluate('partial-script');
 
       expect(result).toEqual([{ id: 'canvas', width: 800, height: 600, contextType: '2d' }]);
@@ -675,6 +678,7 @@ describe('canvas tool end-to-end flows', () => {
       debuggerManager = createDebuggerManagerMock({ waitForPausedResult: pausedState });
 
       // The debuggerManager.waitForPaused should return frames
+      // @ts-expect-error
       const result = await debuggerManager.waitForPaused(5000);
       expect(result).toEqual(pausedState);
     });

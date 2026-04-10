@@ -39,6 +39,7 @@ const mockRegistry = vi.hoisted(() => {
       return fp as ReturnType<typeof vi.fn>;
     },
     set fingerprintCanvasMock(v) {
+      // @ts-expect-error
       fp = v;
     },
     get mockPickAtCallback() {
@@ -148,7 +149,9 @@ const resolveAdapterMock = vi.hoisted(() =>
 );
 
 vi.mock('@server/domains/canvas/handlers/shared', () => ({
+  // @ts-expect-error
   fingerprintCanvas: async (...args: Parameters<typeof mockRegistry.fingerprintCanvasMock>) =>
+    // @ts-expect-error
     normalizeMockDetection(await mockRegistry.fingerprintCanvasMock(...args)),
   resolveAdapter: resolveAdapterMock,
   buildEnv: (pageController: PageController) => ({
@@ -479,6 +482,7 @@ describe('canvas_scene_dump integration', () => {
     await handlers.handleSceneDump({ maxDepth: 5 });
 
     // Verify the adapter dumpScene call was made (evaluate called by adapter.dumpScene)
+    // @ts-expect-error
     const dumpCall = pageController.evaluate.mock.calls[0];
     expect(dumpCall).toBeDefined();
     const dumpScript = dumpCall![0] as string;

@@ -179,8 +179,8 @@ export const coreTools: Tool[] = [
     t
       .desc(
         'Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated identifiers. ' +
-        'Requires the connected client to support sampling/createMessage. ' +
-        'Returns null suggestions gracefully if sampling is unavailable.',
+          'Requires the connected client to support sampling/createMessage. ' +
+          'Returns null suggestions gracefully if sampling is unavailable.',
       )
       .string('code', 'JavaScript code snippet containing the identifiers')
       .array('identifiers', { type: 'string' }, 'Array of obfuscated identifier names to rename')

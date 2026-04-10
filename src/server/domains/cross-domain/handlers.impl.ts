@@ -384,127 +384,103 @@ export class CrossDomainHandlers {
   ) {}
 
   async handleCapabilities(_args: Record<string, unknown>): Promise<ToolResponse> {
-    try {
-      const capabilities = {
-        evidenceGraphAvailable: true,
-        workflowClassifierAvailable: this.workflowClassifier !== undefined,
-      };
-      if (this.workflowClassifier) {
-        return asJsonResponse({
-          capabilities,
-          ...this.workflowClassifier.getCapabilities(),
-        });
-      }
-      return asJsonResponse({ capabilities });
-    } catch (error) {
-      throw error;
+    const capabilities = {
+      evidenceGraphAvailable: true,
+      workflowClassifierAvailable: this.workflowClassifier !== undefined,
+    };
+    if (this.workflowClassifier) {
+      return asJsonResponse({
+        capabilities,
+        ...this.workflowClassifier.getCapabilities(),
+      });
     }
+    return asJsonResponse({ capabilities });
   }
 
   async handleSuggestWorkflow(args: Record<string, unknown>): Promise<ToolResponse> {
-    try {
-      const query = argString(args, 'query', '') || argString(args, 'goal', '');
-      const preferAvailableOnly = argBool(args, 'preferAvailableOnly', true);
-      if (this.workflowClassifier && query) {
-        return asJsonResponse(this.workflowClassifier.suggestWorkflow(query, preferAvailableOnly));
-      }
-      return asJsonResponse({
-        message: 'Cross-domain workflow suggestion requires a classifier and query.',
-      });
-    } catch (error) {
-      throw error;
+    const query = argString(args, 'query', '') || argString(args, 'goal', '');
+    const preferAvailableOnly = argBool(args, 'preferAvailableOnly', true);
+    if (this.workflowClassifier && query) {
+      return asJsonResponse(this.workflowClassifier.suggestWorkflow(query, preferAvailableOnly));
     }
+    return asJsonResponse({
+      message: 'Cross-domain workflow suggestion requires a classifier and query.',
+    });
   }
 
   async handleHealth(): Promise<ToolResponse> {
-    try {
-      const stats = this.evidenceBridge.getStats();
-      if (this.workflowClassifier) {
-        const health = this.workflowClassifier.getHealth();
-        return asJsonResponse({ ...health, evidenceGraph: stats });
-      }
-      return asJsonResponse({
-        evidenceBridgeReady: true,
-        orchestratorReady: false,
-        evidenceGraph: stats,
-      });
-    } catch (error) {
-      throw error;
+    const stats = this.evidenceBridge.getStats();
+    if (this.workflowClassifier) {
+      const health = this.workflowClassifier.getHealth();
+      return asJsonResponse({ ...health, evidenceGraph: stats });
     }
+    return asJsonResponse({
+      evidenceBridgeReady: true,
+      orchestratorReady: false,
+      evidenceGraph: stats,
+    });
   }
 
   async handleCorrelateAll(args: Record<string, unknown>): Promise<ToolResponse> {
+    const errors: string[] = [];
+    const results: Record<string, unknown> = {};
+
+    // SKIA-03
     try {
-      const errors: string[] = [];
-      const results: Record<string, unknown> = {};
-
-      // SKIA-03
-      try {
-        const sceneTree = extractSkiaSceneTree(args['sceneTree']);
-        const jsObjects = extractJSObjectArray(args['jsObjects']);
-        results['skia'] = correlateSkiaToJS(this.evidenceBridge, { sceneTree, jsObjects });
-      } catch (e) {
-        errors.push(`SKIA-03: ${e instanceof Error ? e.message : String(e)}`);
-      }
-
-      // MOJO-03
-      try {
-        const mojoMessages = extractMojoMessages(args['mojoMessages']);
-        const cdpEvents = extractCDPEvents(args['cdpEvents']);
-        const networkRequests = extractNetworkRequests(args['networkRequests']);
-        results['mojo'] = correlateMojoToCDP(
-          this.evidenceBridge,
-          mojoMessages,
-          cdpEvents,
-          networkRequests,
-        );
-      } catch (e) {
-        errors.push(`MOJO-03: ${e instanceof Error ? e.message : String(e)}`);
-      }
-
-      // SYSCALL-02
-      try {
-        const syscallEvents = extractSyscallEvents(args['syscallEvents']);
-        const jsStacks = extractJSStacks(args['jsStacks']);
-        results['syscall'] = correlateSyscallToJS(this.evidenceBridge, syscallEvents, jsStacks);
-      } catch (e) {
-        errors.push(`SYSCALL-02: ${e instanceof Error ? e.message : String(e)}`);
-      }
-
-      // BIN-04
-      try {
-        const ghidraOutput = extractGhidraOutput(args['ghidraOutput']);
-        if (ghidraOutput) {
-          results['binary'] = buildBinaryToJSPipeline(this.evidenceBridge, ghidraOutput);
-        }
-      } catch (e) {
-        errors.push(`BIN-04: ${e instanceof Error ? e.message : String(e)}`);
-      }
-
-      const snapshot = this.evidenceBridge.exportGraph();
-
-      return asJsonResponse({
-        correlationResults: { ...results, errors },
-        evidenceGraph: snapshot,
-      });
-    } catch (error) {
-      throw error;
+      const sceneTree = extractSkiaSceneTree(args['sceneTree']);
+      const jsObjects = extractJSObjectArray(args['jsObjects']);
+      results['skia'] = correlateSkiaToJS(this.evidenceBridge, { sceneTree, jsObjects });
+    } catch (e) {
+      errors.push(`SKIA-03: ${e instanceof Error ? e.message : String(e)}`);
     }
+
+    // MOJO-03
+    try {
+      const mojoMessages = extractMojoMessages(args['mojoMessages']);
+      const cdpEvents = extractCDPEvents(args['cdpEvents']);
+      const networkRequests = extractNetworkRequests(args['networkRequests']);
+      results['mojo'] = correlateMojoToCDP(
+        this.evidenceBridge,
+        mojoMessages,
+        cdpEvents,
+        networkRequests,
+      );
+    } catch (e) {
+      errors.push(`MOJO-03: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    // SYSCALL-02
+    try {
+      const syscallEvents = extractSyscallEvents(args['syscallEvents']);
+      const jsStacks = extractJSStacks(args['jsStacks']);
+      results['syscall'] = correlateSyscallToJS(this.evidenceBridge, syscallEvents, jsStacks);
+    } catch (e) {
+      errors.push(`SYSCALL-02: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    // BIN-04
+    try {
+      const ghidraOutput = extractGhidraOutput(args['ghidraOutput']);
+      if (ghidraOutput) {
+        results['binary'] = buildBinaryToJSPipeline(this.evidenceBridge, ghidraOutput);
+      }
+    } catch (e) {
+      errors.push(`BIN-04: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    const snapshot = this.evidenceBridge.exportGraph();
+
+    return asJsonResponse({
+      correlationResults: { ...results, errors },
+      evidenceGraph: snapshot,
+    });
   }
 
   async handleEvidenceExport(): Promise<ToolResponse> {
-    try {
-      return asJsonResponse(this.evidenceBridge.exportGraph());
-    } catch (error) {
-      throw error;
-    }
+    return asJsonResponse(this.evidenceBridge.exportGraph());
   }
 
   async handleEvidenceStats(): Promise<ToolResponse> {
-    try {
-      return asJsonResponse(this.evidenceBridge.getStats());
-    } catch (error) {
-      throw error;
-    }
+    return asJsonResponse(this.evidenceBridge.getStats());
   }
 }
