@@ -52,7 +52,10 @@ export interface ToolRegistryState {
   enabledDomains: Set<string>;
   router: ToolExecutionRouter;
   handlerDeps: ToolHandlerDeps;
-  toolAutocompleteHandlers: Map<string, Record<string, (value: string) => string[] | Promise<string[]>>>;
+  toolAutocompleteHandlers: Map<
+    string,
+    Record<string, (value: string) => string[] | Promise<string[]>>
+  >;
 }
 
 /** Minimal info stored for meta-tools so describe_tool can look them up. */

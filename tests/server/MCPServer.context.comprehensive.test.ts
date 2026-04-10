@@ -65,6 +65,11 @@ describe('MCPServer.context types and composition', () => {
       unifiedCache: {} as unknown as UnifiedCacheManager,
       detailedData: {} as unknown as DetailedDataManager,
       eventBus: {} as unknown as EventBus<ServerEventMap>,
+      samplingBridge: { isSamplingSupported: () => false, sampleText: async () => null } as any,
+      elicitationBridge: {
+        isElicitationSupported: () => false,
+        requestFormInput: async () => null,
+      } as any,
     };
   }
 
@@ -74,6 +79,7 @@ describe('MCPServer.context types and composition', () => {
       enabledDomains: new Set<string>(),
       router: { has: vi.fn(() => false) } as unknown as ToolExecutionRouter,
       handlerDeps: {} as unknown as ToolHandlerDeps,
+      toolAutocompleteHandlers: new Map(),
     };
   }
 
@@ -146,6 +152,7 @@ describe('MCPServer.context types and composition', () => {
   });
 
   it('ActivationState supports different tool profiles', () => {
+    // @ts-expect-error
     const profiles: ToolProfile[] = ['search', 'full', 'minimal'];
     for (const profile of profiles) {
       const activation = buildActivationState(profile);
@@ -303,7 +310,10 @@ describe('MCPServer.context types and composition', () => {
       enabledDomains: new Set(['browser', 'network']),
       baseTier: 'full',
       clientSupportsListChanged: false,
-    } as Partial<MCPServerContext>);
+      skiaCaptureHandlers: undefined,
+      activatedRegisteredTools: new Map(),
+      toolAutocompleteHandlers: new Map(),
+    } as unknown as MCPServerContext);
 
     expect(ctx.enabledDomains.has('browser')).toBe(true);
     expect(ctx.enabledDomains.has('network')).toBe(true);
