@@ -12,8 +12,8 @@ describe('StealthScripts', () => {
     expect(args).toContain('--disable-blink-features=AutomationControlled');
     expect(args).toContain('--no-sandbox');
     expect(args).toContain('--disable-infobars');
-    // Patchright args should be included
-    expect(args).toContain('--remote-allow-origins=*');
+    // Patchright args should be included (--remote-allow-origins=* removed for security)
+    expect(args).not.toContain('--remote-allow-origins=*');
     expect(args).toContain('--disable-component-update');
     expect(args).toContain('--disable-hang-monitor');
   });
@@ -26,7 +26,8 @@ describe('StealthScripts', () => {
   it('getPatchrightLaunchArgs returns Patchright-specific subset', () => {
     const args = StealthScripts.getPatchrightLaunchArgs();
 
-    expect(args).toContain('--remote-allow-origins=*');
+    // --remote-allow-origins=* was removed for security (disables CDP origin checks)
+    expect(args).not.toContain('--remote-allow-origins=*');
     expect(args).toContain('--disable-component-update');
     expect(args).toContain('--disable-popup-blocking');
     expect(args.length).toBeGreaterThanOrEqual(5);

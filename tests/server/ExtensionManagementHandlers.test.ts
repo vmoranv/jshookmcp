@@ -344,7 +344,7 @@ describe('ExtensionManagementHandlers', () => {
           '-NoProfile',
           '-NonInteractive',
           '-Command',
-          'pnpm --ignore-workspace install --no-frozen-lockfile',
+          'pnpm --ignore-workspace install --no-frozen-lockfile --ignore-scripts',
         ],
         expect.objectContaining({
           cwd: expect.stringContaining('workflows'),
@@ -369,7 +369,7 @@ describe('ExtensionManagementHandlers', () => {
     } else {
       expect(thirdCall).toEqual([
         'pnpm',
-        ['--ignore-workspace', 'install', '--no-frozen-lockfile'],
+        ['--ignore-workspace', 'install', '--no-frozen-lockfile', '--ignore-scripts'],
         expect.objectContaining({
           cwd: expect.stringContaining('workflows'),
           env: expect.objectContaining({ CI: 'true' }),

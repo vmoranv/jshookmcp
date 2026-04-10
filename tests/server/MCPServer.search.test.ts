@@ -395,7 +395,7 @@ describe('MCPServer.search', () => {
     ]);
   });
 
-  it('auto-activates domains when search finds inactive tools in non-enabled domains', async () => {
+  it('does not auto-activate domains when search finds inactive tools (auto-activation disabled)', async () => {
     const ctx = createCtx({ enabledDomains: new Set<string>() });
     registerSearchMetaTools(ctx);
     const searchHandler = ctx.__registered.get('search_tools')!.handler;
@@ -416,8 +416,8 @@ describe('MCPServer.search', () => {
       await searchHandler({ query: 'page', top_k: 5 }),
     );
 
-    // Should auto-activate the browser domain
-    expect(response.autoActivatedDomains).toBeDefined();
+    // Auto-activation is now disabled — no domains should be auto-activated
+    expect(response.autoActivatedDomains).toBeUndefined();
   });
 
   it('does not auto-activate when all search results are already active', async () => {
@@ -573,7 +573,7 @@ describe('MCPServer.search', () => {
     });
   });
 
-  it('auto-activates route_tool recommendations and returns canonical activated names', async () => {
+  it('route_tool does not auto-activate by default (autoActivate defaults to false)', async () => {
     const ctx = createCtx({
       selectedTools: [],
       registerSingleTool: vi.fn(() => ({ remove: vi.fn() })),
@@ -596,25 +596,8 @@ describe('MCPServer.search', () => {
       await routeHandler({ task: 'inspect page state' }),
     );
 
-    expect(response.autoActivated).toBe(true);
-    expect(response.activatedNames).toEqual(['browser_launch', 'page_navigate']);
-    expect(response.recommendations[0]).toMatchObject({
-      name: 'browser_launch',
-      isActive: true,
-    });
-    expect(response.recommendations[1]).toMatchObject({
-      name: 'page_navigate',
-      isActive: true,
-    });
-    expect(response.nextActions[0]).toEqual({
-      step: 1,
-      action: 'call',
-      toolName: 'browser_launch',
-      command: 'browser_launch',
-      exampleArgs: {},
-      description:
-        'Call browser_launch. Use describe_tool("browser_launch") only if you need the full schema.',
-    });
+    // autoActivate defaults to false — no auto-activation should occur
+    expect(response.autoActivated).toBeFalsy();
   });
 
   it('route_tool prioritizes browser bootstrap and downranks maintenance noise when no active page exists', async () => {

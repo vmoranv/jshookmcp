@@ -782,10 +782,11 @@ describe('StealthScripts — coverage for injected script bodies', () => {
   // ─── getPatchrightLaunchArgs ────────────────────────────────────────────
 
   describe('getPatchrightLaunchArgs', () => {
-    it('returns all 7 Patchright-specific flags', () => {
+    it('returns all 6 Patchright-specific flags', () => {
       const args = StealthScripts.getPatchrightLaunchArgs();
-      expect(args).toHaveLength(7);
-      expect(args).toContain('--remote-allow-origins=*');
+      expect(args).toHaveLength(6);
+      // --remote-allow-origins=* removed for security (disables CDP origin checks)
+      expect(args).not.toContain('--remote-allow-origins=*');
       expect(args).toContain('--disable-component-update');
       expect(args).toContain('--disable-hang-monitor');
       expect(args).toContain('--disable-domain-reliability');

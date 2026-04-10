@@ -173,7 +173,7 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
       expect(parsed.activatedTools).toEqual([]);
     });
 
-    it('preserves metadata from auto-activated tool', async () => {
+    it('returns error when tool is not active (no auto-activation)', async () => {
       const ctx = createCtx({
         router: { has: vi.fn(() => false) },
         executeToolWithTracking: vi.fn(async () => ({
@@ -184,9 +184,9 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
       const response = await handleCallTool(ctx, { name: 'test_tool' });
       // @ts-expect-error
       const parsed = JSON.parse(response.content[0].text);
-      expect(parsed.status).toBe('done');
-      expect(parsed.wasAutoActivated).toBe(true);
-      expect(parsed.activatedTools).toEqual(['test_tool']);
+      // SECURITY: Auto-activation was removed. Inactive tools should return an error.
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('not currently active');
     });
   });
 
