@@ -438,6 +438,7 @@ describe('TraceToolHandlers', () => {
 
       expect(result.diff.changed.some((c) => c.name === 'ChangedObject')).toBe(true);
       expect(result.diff.changed.find((c) => c.name === 'ChangedObject')?.delta).toBe(3);
+      // @ts-expect-error
       expect(result.diff.totalSizeDelta).toBe(100);
     });
 

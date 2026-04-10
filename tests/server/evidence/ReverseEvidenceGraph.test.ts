@@ -63,6 +63,40 @@ describe('ReverseEvidenceGraph (EVID-01~03, EVID-05)', () => {
     });
   });
 
+  describe('EventBus Commit Transactions', () => {
+    it('does not emit updates until commit is called', () => {
+      let fired = false;
+      const fakeBus = {
+        emit: () => {
+          fired = true;
+          return Promise.resolve();
+        },
+      } as any;
+      graph.setEventBus(fakeBus);
+
+      graph.addNode('script', 'test.js', {});
+      expect(fired).toBe(false);
+
+      graph.commit();
+      expect(fired).toBe(true);
+    });
+
+    it('does not emit on commit if isDirty is false', () => {
+      let fired = false;
+      const fakeBus = {
+        emit: () => {
+          fired = true;
+          return Promise.resolve();
+        },
+      } as any;
+      graph.setEventBus(fakeBus);
+
+      // Clean graph
+      graph.commit();
+      expect(fired).toBe(false);
+    });
+  });
+
   // ── EVID-01: 7 Node Types ────────────────────────────
 
   it('supports all 7 node types', () => {

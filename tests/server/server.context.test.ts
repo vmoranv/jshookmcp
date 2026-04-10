@@ -32,11 +32,17 @@ describe('MCPServer.context — interface coverage', () => {
       unifiedCache: {} as any,
       detailedData: {} as any,
       eventBus: {} as any,
+      samplingBridge: { isSamplingSupported: () => false, sampleText: async () => null } as any,
+      elicitationBridge: {
+        isElicitationSupported: () => false,
+        requestFormInput: async () => null,
+      } as any,
       // ToolRegistryState
       selectedTools: [],
       enabledDomains: new Set(),
       router: { has: vi.fn() } as any,
       handlerDeps: {} as any,
+      toolAutocompleteHandlers: new Map(),
       // ActivationState
       baseTier: 'search',
       activatedToolNames: new Set(),
@@ -82,9 +88,11 @@ describe('MCPServer.context — interface coverage', () => {
       unifiedCache: ctx.unifiedCache,
       detailedData: ctx.detailedData,
       eventBus: ctx.eventBus,
+      samplingBridge: ctx.samplingBridge,
+      elicitationBridge: ctx.elicitationBridge,
     };
     expect(core).toBeDefined();
-    expect(Object.keys(core)).toHaveLength(6);
+    expect(Object.keys(core)).toHaveLength(8);
   });
 
   it('ToolRegistryState holds tools and routing', () => {
@@ -94,6 +102,7 @@ describe('MCPServer.context — interface coverage', () => {
       enabledDomains: ctx.enabledDomains,
       router: ctx.router,
       handlerDeps: ctx.handlerDeps,
+      toolAutocompleteHandlers: ctx.toolAutocompleteHandlers,
     };
     expect(registryState.selectedTools).toEqual([]);
     expect(registryState.enabledDomains).toBeInstanceOf(Set);

@@ -100,6 +100,7 @@ describe('WasmToolHandlers — remaining coverage', () => {
       fakeWindow.window = fakeWindow;
       (globalThis as any).window = fakeWindow;
 
+      // @ts-expect-error
       page.evaluate.mockImplementation(async (fn: (...args: any[]) => any, ...args: any[]) =>
         fn(...args),
       );
@@ -141,6 +142,7 @@ describe('WasmToolHandlers — remaining coverage', () => {
       fakeWindow.window = fakeWindow;
       (globalThis as any).window = fakeWindow;
 
+      // @ts-expect-error
       page.evaluate.mockImplementation(async (fn: (...args: any[]) => any, ...args: any[]) =>
         fn(...args),
       );
@@ -166,6 +168,7 @@ describe('WasmToolHandlers — remaining coverage', () => {
       fakeWindow.window = fakeWindow;
       (globalThis as any).window = fakeWindow;
 
+      // @ts-expect-error
       page.evaluate.mockImplementation(async (fn: (...args: any[]) => any, ...args: any[]) =>
         fn(...args),
       );
@@ -277,6 +280,7 @@ describe('WasmToolHandlers — remaining coverage', () => {
       fakeWindow.window = fakeWindow;
       (globalThis as any).window = fakeWindow;
 
+      // @ts-expect-error
       page.evaluate.mockImplementation(async (fn: (...args: any[]) => any, ...args: any[]) =>
         fn(...args),
       );
@@ -313,6 +317,7 @@ describe('WasmToolHandlers — remaining coverage', () => {
       fakeWindow.window = fakeWindow;
       (globalThis as any).window = fakeWindow;
 
+      // @ts-expect-error
       page.evaluate.mockImplementation(async (fn: (...args: any[]) => any, ...args: any[]) =>
         fn(...args),
       );

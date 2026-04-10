@@ -47,8 +47,7 @@ describe('ADBBridgeHandlers', () => {
 
   it('returns tool error response when device listing fails', async () => {
     adbClient.listDevices.mockRejectedValueOnce(new ToolError('RUNTIME', 'ADB not available'));
-    const result = await handlers.handleDeviceList({});
-    expect(result.isError).toBe(true);
+    await expect(handlers.handleDeviceList({})).rejects.toThrow();
   });
 
   it('runs shell commands through the injected ADB client', async () => {

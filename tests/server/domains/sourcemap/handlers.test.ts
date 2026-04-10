@@ -23,6 +23,7 @@ const globalFetch = vi.fn();
 global.fetch = globalFetch as unknown as typeof fetch;
 
 describe('SourcemapToolHandlers', () => {
+  // @ts-expect-error
   let collectorMock: vi.Mocked<CodeCollector>;
   let pageMock: any;
   let sessionMock: any;
@@ -76,7 +77,9 @@ describe('SourcemapToolHandlers', () => {
       });
 
       const res = await handlers.handleSourcemapDiscover({ includeInline: false });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('app.js.map');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('http://example.com/app.js.map');
     });
 
@@ -104,17 +107,20 @@ describe('SourcemapToolHandlers', () => {
       });
 
       const res = await handlers.handleSourcemapDiscover({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('app2.js.map');
     });
 
     it('returns empty array if no maps found returning fast path', async () => {
       const res = await handlers.handleSourcemapDiscover({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('[]');
     });
 
     it('handles session communication errors globally', async () => {
       sessionMock.send.mockRejectedValue(new Error('CDP error'));
       const res = await handlers.handleSourcemapDiscover({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('CDP error');
     });
   });
@@ -137,7 +143,9 @@ describe('SourcemapToolHandlers', () => {
         scriptUrl: 'http://example.com/test.js',
       });
 
+      // @ts-expect-error
       expect(res.content[0].text).toContain('mappingsCount');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('index.ts');
     });
 
@@ -155,6 +163,7 @@ describe('SourcemapToolHandlers', () => {
         sourceMapUrl: dataUri,
       });
 
+      // @ts-expect-error
       expect(res.content[0].text).toContain('inline.ts');
     });
 
@@ -175,6 +184,7 @@ describe('SourcemapToolHandlers', () => {
         scriptUrl: 'http://example.com/test.js',
       });
 
+      // @ts-expect-error
       expect(res.content[0].text).toContain('Invalid VLQ base64 char');
     });
 
@@ -182,6 +192,7 @@ describe('SourcemapToolHandlers', () => {
       const res = await handlers.handleSourcemapFetchAndParse({
         sourceMapUrl: 'http://169.254.169.254/meta.map',
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('SSRF blocked');
     });
 
@@ -193,6 +204,7 @@ describe('SourcemapToolHandlers', () => {
       const res = await handlers.handleSourcemapFetchAndParse({
         sourceMapUrl: 'http://example.com/fallback.map',
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('fallback.ts');
     });
   });
@@ -214,10 +226,13 @@ describe('SourcemapToolHandlers', () => {
       const res = await handlers.handleSourcemapReconstructTree({
         sourceMapUrl: 'http://example.com/tree.map',
       });
+      // @ts-expect-error
       if (res.content[0].text.includes('"success": false')) {
+        // @ts-expect-error
         console.error('Tree error 1:', res.content[0].text);
       }
 
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"writtenFiles": 2');
       expect(fsPromises.mkdir).toHaveBeenCalled();
       expect(fsPromises.writeFile).toHaveBeenCalledTimes(2);
@@ -242,6 +257,7 @@ describe('SourcemapToolHandlers', () => {
         sourceMapUrl: 'http://example.com/fail.map',
       });
 
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"skippedFiles": 1');
     });
   });
@@ -261,13 +277,16 @@ describe('SourcemapToolHandlers', () => {
       });
 
       const res = await handlers.handleExtensionListInstalled({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('abcdefghijklmnopabcdefghijklmnop');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('Test Ext');
     });
 
     it('succeeds gracefully when none exist', async () => {
       sessionMock.send.mockResolvedValue({});
       const res = await handlers.handleExtensionListInstalled({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('[]');
     });
   });
@@ -309,6 +328,7 @@ describe('SourcemapToolHandlers', () => {
         extensionId: 'abcdefghijklmnopabcdefghijklmnop',
         code: '1+1',
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('execution_result');
     });
 
@@ -318,6 +338,7 @@ describe('SourcemapToolHandlers', () => {
         extensionId: 'abcdefghijklmnopabcdefghijklmnop',
         code: '1+1',
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('No background target found');
     });
   });

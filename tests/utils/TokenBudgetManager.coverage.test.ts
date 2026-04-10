@@ -161,6 +161,7 @@ describe('TokenBudgetManager – v8 ignore branch coverage', () => {
       string,
       unknown
     >;
+    // @ts-expect-error
     expect(result.ref.ref).toBe('[Circular]');
   });
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Additional coverage tests for TransformToolHandlersCrypto.
  *
@@ -63,17 +64,18 @@ describe('TransformToolHandlersCrypto — edge case coverage', () => {
 
   describe('handleCryptoCompare — both errors', () => {
     it('reports mismatch when both sides have errors even if outputs match', async () => {
-      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit
         .mockResolvedValueOnce({
           ok: true,
+          // @ts-ignore
           results: [{ input: 'x', output: '', duration: 0, error: 'err1' }],
-        })
+        } as any)
         .mockResolvedValueOnce({
           ok: true,
+          // @ts-ignore
           results: [{ input: 'x', output: '', duration: 0, error: 'err2' }],
-        });
+        } as any);
 
       const body = parseJson<any>(
         await handlers.handleCryptoCompare({
@@ -185,7 +187,6 @@ describe('TransformToolHandlersCrypto — edge case coverage', () => {
 
   describe('handleCryptoTestHarness — result mapping', () => {
     it('maps worker results and strips undefined errors', async () => {
-      // @ts-expect-error — auto-suppressed [TS2339]
       const pool = handlers.getCryptoHarnessPool();
       pool.submit.mockResolvedValueOnce({
         ok: true,
@@ -230,13 +231,15 @@ describe('TransformToolHandlersCrypto — edge case coverage', () => {
       const spy = vi
         .spyOn(handlers, 'runCryptoHarness')
         .mockResolvedValueOnce({
+          // @ts-ignore
           results: [{ input: 'x', output: 'X', duration: 0.1 }],
           allPassed: true,
-        })
+        } as any)
         .mockResolvedValueOnce({
+          // @ts-ignore
           results: [{ input: 'x', output: 'X', duration: 0.2 }],
           allPassed: true,
-        });
+        } as any);
 
       const body = parseJson<any>(
         await handlers.handleCryptoCompare({

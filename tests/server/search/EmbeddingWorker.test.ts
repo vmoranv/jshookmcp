@@ -122,6 +122,7 @@ describe('EmbeddingWorker', () => {
         embedding: expect.any(Array),
       });
 
+      // @ts-expect-error
       const resultArg = mockParentPort.postMessage.mock.calls[0][0];
       expect(resultArg.embedding).toHaveLength(3);
     });
@@ -179,6 +180,7 @@ describe('EmbeddingWorker', () => {
       await loadWorker();
       await messageHandler!({ type: 'embed', id: 7, text: 'test' });
 
+      // @ts-expect-error
       const resultArg = mockParentPort.postMessage.mock.calls[0][0];
       const embedding = resultArg.embedding as Float32Array;
 
@@ -198,6 +200,7 @@ describe('EmbeddingWorker', () => {
       await loadWorker();
       await messageHandler!({ type: 'embed', id: 8, text: 'zero' });
 
+      // @ts-expect-error
       const resultArg = mockParentPort.postMessage.mock.calls[0][0];
       const embedding = resultArg.embedding as Float32Array;
 

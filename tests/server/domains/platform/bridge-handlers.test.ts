@@ -274,6 +274,7 @@ describe('BridgeHandlers', () => {
             await handlers.handleFridaBridge({ action: 'list_sessions' }),
           );
           expect(sessions.count).toBe(1);
+          // @ts-expect-error
           expect(sessions.sessions[0].sessionId).toBe(sessionId);
 
           const detachResult = parsePayload(

@@ -53,7 +53,7 @@ class Logger {
     for (const listener of this.listeners) {
       try {
         listener(level, message, args);
-      } catch (err) {
+      } catch {
         // Suppress listener errors to prevent crashing the main log flow
       }
     }

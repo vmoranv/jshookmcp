@@ -50,6 +50,8 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
     public connect = vi.fn(async () => undefined);
     public close = vi.fn(async () => undefined);
     public sendToolListChanged = vi.fn(async () => undefined);
+    public server = { setRequestHandler: vi.fn(), onclose: null };
+    public prompt = vi.fn();
 
     tool(...args: any[]) {
       const name = args[0];
@@ -139,6 +141,7 @@ vi.mock('@src/utils/logger', () => ({
     error: vi.fn(),
     success: vi.fn(),
     setLevel: vi.fn(),
+    onLog: vi.fn(),
   },
 }));
 
@@ -457,6 +460,30 @@ describe('MCPServer', () => {
     await server.registerCaches(); // coverage: if (this.cacheRegistrationPromise)
   });
 
+  it('executeToolWithTracking emits ERR-03 warning if tool execution takes more than 30s and cleans up timer', async () => {
+    const server = new MCPServer(baseConfig) as any;
+    vi.useFakeTimers();
+
+    const { logger } = await import('@src/utils/logger');
+    const warnSpy = vi.spyOn(logger, 'warn');
+
+    server.router.execute = vi.fn().mockImplementation(async () => {
+      // Simulate hung tool execution
+      vi.advanceTimersByTime(31000); // Trigger the setTimeout synchronously here
+      return { content: [] };
+    });
+
+    await server.executeToolWithTracking('slow_tool', { hugeData: 'x'.repeat(1000) });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Telemetry Alert [ERR-03]: Tool execution hung (>30s) for 'slow_tool'",
+      ),
+    );
+
+    vi.useRealTimers();
+    warnSpy.mockRestore();
+  });
   it('executeToolWithTracking catches trackingError and refreshes TTL when activated', async () => {
     const server = new MCPServer(baseConfig);
     server.activatedToolNames.add('tool_alpha');
@@ -561,7 +588,6 @@ describe('MCPServer', () => {
   it('initCrossDomainInfrastructure catches import errors gracefully', async () => {
     // Force the dynamic import to fail by mocking the module resolution
     const originalLoad = module.constructor.prototype._resolveFilename;
-    // @ts-expect-error — internal Node.js API
     module.constructor.prototype._resolveFilename = () => {
       throw new Error('Cannot find module');
     };
@@ -570,7 +596,6 @@ describe('MCPServer', () => {
     // Wait for the async init to settle (it catches the error internally)
     await new Promise((r) => setTimeout(r, 10));
 
-    // @ts-expect-error — restore
     module.constructor.prototype._resolveFilename = originalLoad;
     // Server should still be usable
     expect(server).toBeDefined();

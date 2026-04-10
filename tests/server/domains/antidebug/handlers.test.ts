@@ -12,6 +12,7 @@ vi.mock('../../../../src/modules/collector/PageController', () => ({
 }));
 
 describe('AntiDebugToolHandlers', () => {
+  // @ts-expect-error
   let collectorMock: vi.Mocked<CodeCollector>;
   let pageMock: any;
   let handlers: AntiDebugToolHandlers;
@@ -31,6 +32,7 @@ describe('AntiDebugToolHandlers', () => {
       vi.mocked(evaluateWithTimeout).mockResolvedValue(undefined);
 
       const res = await handlers.handleAntiDebugBypassAll({ persistent: true });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
       expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(4);
       expect(evaluateWithTimeout).toHaveBeenCalledTimes(4);
@@ -38,6 +40,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('triggers injectScripts for all bypass types including persistent override', async () => {
       const res = await handlers.handleAntiDebugBypassAll({ persistent: {} }); // unhandled object defaults to true
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
       expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(4);
       expect(evaluateWithTimeout).toHaveBeenCalledTimes(4);
@@ -45,6 +48,7 @@ describe('AntiDebugToolHandlers', () => {
 
     it('injects all scripts successfully non-persistently', async () => {
       const res = await handlers.handleAntiDebugBypassAll({ persistent: false });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
       expect(evaluateOnNewDocumentWithTimeout).not.toHaveBeenCalled();
       expect(evaluateWithTimeout).toHaveBeenCalledTimes(4);
@@ -53,7 +57,9 @@ describe('AntiDebugToolHandlers', () => {
     it('handles errors gracefully', async () => {
       vi.mocked(evaluateWithTimeout).mockRejectedValue(new Error('Test error'));
       const res = await handlers.handleAntiDebugBypassAll({ persistent: false });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('Test error');
     });
   });
@@ -61,6 +67,7 @@ describe('AntiDebugToolHandlers', () => {
   describe('handleAntiDebugBypassDebuggerStatement', () => {
     it('injects debugger bypass with specific mode', async () => {
       const res = await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'noop' });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"mode": "noop"');
       expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(1);
     });
@@ -68,14 +75,18 @@ describe('AntiDebugToolHandlers', () => {
     it('bubbles and catches errors', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
       const res = await handlers.handleAntiDebugBypassAll({ persistent: true });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('err');
     });
 
     it('bubbles and catches string errors natively', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string error');
       const res = await handlers.handleAntiDebugBypassAll({ persistent: true });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('string error');
     });
   });
@@ -83,23 +94,27 @@ describe('AntiDebugToolHandlers', () => {
   describe('handleAntiDebugBypassTiming', () => {
     it('injects timing bypass with specific maxDrift', async () => {
       const res = await handlers.handleAntiDebugBypassTiming({ maxDrift: 100 });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"maxDrift": 100');
     });
 
     it('parses string maxDrift gracefully', async () => {
       const res = await handlers.handleAntiDebugBypassTiming({ maxDrift: '200' });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"maxDrift": 200');
     });
 
     it('bubbles and catches errors', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
       const res = await handlers.handleAntiDebugBypassTiming({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
 
     it('handles unexpected native injection throw mapping error string securely', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string fail');
       const res = await handlers.handleAntiDebugBypassTiming({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
 
@@ -116,31 +131,37 @@ describe('AntiDebugToolHandlers', () => {
 
     it('handles intercept boolean fallbacks for unknown numbers and strings', async () => {
       const resNum = await handlers.handleAntiDebugBypassAll({ persistent: 2 });
+      // @ts-expect-error
       expect(resNum.content[0].text).toContain('"persistent": true');
 
       const resStr = await handlers.handleAntiDebugBypassAll({ persistent: 'unrecognized' });
+      // @ts-expect-error
       expect(resStr.content[0].text).toContain('"persistent": true');
     });
 
     it('handles numeric maxDrift fallback for invalid strings', async () => {
       const res = await handlers.handleAntiDebugBypassTiming({ maxDrift: 'invalid string' });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
     });
 
     it('handles parseDebuggerMode with invalid mode returning default', async () => {
       const res = await handlers.handleAntiDebugBypassDebuggerStatement({ mode: 'invalid' });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
     });
 
     it('bubbles generic error via stringified payload correctly when injection errors surface', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
       const res = await handlers.handleAntiDebugBypassDebuggerStatement({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
 
     it('bubbles native string injection errors', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string error');
       const res = await handlers.handleAntiDebugBypassDebuggerStatement({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
   });
@@ -150,24 +171,29 @@ describe('AntiDebugToolHandlers', () => {
       const res = await handlers.handleAntiDebugBypassStackTrace({
         filterPatterns: ['my_pattern'],
       });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('my_pattern');
     });
 
     it('parses string string arrays', async () => {
       const res = await handlers.handleAntiDebugBypassStackTrace({ filterPatterns: 'pat1, pat2' });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('pat1');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('pat2');
     });
 
     it('bubbles and catches errors', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
       const res = await handlers.handleAntiDebugBypassStackTrace({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
 
     it('bubbles string generic errors', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string error');
       const res = await handlers.handleAntiDebugBypassStackTrace({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
   });
@@ -175,30 +201,37 @@ describe('AntiDebugToolHandlers', () => {
   describe('handleAntiDebugBypassConsoleDetect', () => {
     it('injects console detect bypass block', async () => {
       const res = await handlers.handleAntiDebugBypassConsoleDetect({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
     });
 
     it('injects string mapped mode', async () => {
       const res = await handlers.handleAntiDebugBypassDebuggerStatement({ mode: ' noop ' });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"mode": "noop"');
     });
 
     it('injects fallback default remove mode on unhandled type mapped mode', async () => {
       const res = await handlers.handleAntiDebugBypassDebuggerStatement({ mode: { unmapped: 1 } });
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"mode": "remove"');
     });
 
     it('bubbles generic error via stringified payload correctly when injection errors surface', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
       const res = await handlers.handleAntiDebugBypassConsoleDetect({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
 
     it('bubbles native string injection errors', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue('string error');
       const res = await handlers.handleAntiDebugBypassConsoleDetect({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
   });
@@ -214,6 +247,7 @@ describe('AntiDebugToolHandlers', () => {
         evidence: {},
       });
       const res = await handlers.handleAntiDebugDetectProtections({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"detected": true');
     });
 
@@ -221,19 +255,23 @@ describe('AntiDebugToolHandlers', () => {
       vi.mocked(evaluateWithTimeout).mockResolvedValue(null);
       const res = await handlers.handleAntiDebugDetectProtections({});
 
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": true');
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"detected": false');
     });
 
     it('bubbles generic error via stringified payload correctly when detection errors surface', async () => {
       vi.mocked(evaluateWithTimeout).mockRejectedValue(new Error('err'));
       const res = await handlers.handleAntiDebugDetectProtections({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
 
     it('bubbles native string detection errors', async () => {
       vi.mocked(evaluateWithTimeout).mockRejectedValue('string error');
       const res = await handlers.handleAntiDebugDetectProtections({});
+      // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
     });
   });

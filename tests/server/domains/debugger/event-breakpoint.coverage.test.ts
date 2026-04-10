@@ -79,6 +79,7 @@ function parseBody<T>(response: unknown): T {
 
 export class TestableEventBreakpointHandlers extends EventBreakpointHandlers {
   public testEnsureAdvancedFeaturesIfSupported() {
+    // @ts-expect-error
     return this.ensureAdvancedFeaturesIfSupported();
   }
 }

@@ -16,6 +16,7 @@ import {
 
 // Mock child_process and fetch
 vi.mock('node:child_process', () => ({
+  // @ts-expect-error
   execFile: vi.fn((cmd, args, opts, cb) => {
     // NodeJS promisify uses the callback
     if (cmd === 'node' && args[0] === '-v') {
@@ -185,6 +186,7 @@ describe('bridges/shared', () => {
   describe('checkExternalCommand', () => {
     it('returns success if available (stdout)', async () => {
       const res = await checkExternalCommand('node', ['-v'], 'Node');
+      // @ts-expect-error
       expect(JSON.parse(res.content[0].text)).toEqual({
         success: true,
         tool: 'Node',
@@ -195,6 +197,7 @@ describe('bridges/shared', () => {
 
     it('returns success if available (stderr)', async () => {
       const res = await checkExternalCommand('node-stderr', ['-v'], 'NodeStderr');
+      // @ts-expect-error
       expect(JSON.parse(res.content[0].text)).toEqual({
         success: true,
         tool: 'NodeStderr',
@@ -205,6 +208,7 @@ describe('bridges/shared', () => {
 
     it('returns success with empty version', async () => {
       const res = await checkExternalCommand('node-empty', ['-v'], 'NodeEmpty');
+      // @ts-expect-error
       expect(JSON.parse(res.content[0].text)).toEqual({
         success: true,
         tool: 'NodeEmpty',
@@ -215,6 +219,7 @@ describe('bridges/shared', () => {
 
     it('returns error if unavailable with exception', async () => {
       const res = await checkExternalCommand('missing', ['-v'], 'Missing', 'Install it');
+      // @ts-expect-error
       expect(JSON.parse(res.content[0].text)).toEqual({
         success: true,
         tool: 'Missing',
@@ -226,6 +231,7 @@ describe('bridges/shared', () => {
 
     it('returns error if unavailable with string error', async () => {
       const res = await checkExternalCommand('string-error', ['-v'], 'StringMissing');
+      // @ts-expect-error
       expect(JSON.parse(res.content[0].text)).toEqual({
         success: true,
         tool: 'StringMissing',

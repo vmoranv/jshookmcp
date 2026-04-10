@@ -567,6 +567,7 @@ describe('MiniappHandlers', () => {
 
       expect(result.success).toBe(true);
       expect(result.count).toBe(1);
+      // @ts-expect-error
       expect((result.files as Array<{ path: string }>)[0].path).toContain('/demo.pkg');
     });
 

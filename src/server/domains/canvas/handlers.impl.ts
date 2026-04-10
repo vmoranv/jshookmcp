@@ -24,45 +24,29 @@ export class CanvasToolHandlers {
   }
 
   async handleFingerprint(args: Record<string, unknown>): Promise<ToolResponse> {
-    try {
-      const result = await handleFingerprint(this.pageController, args);
-      return asJsonResponse(result);
-    } catch (err) {
-      throw err;
-    }
+    const result = await handleFingerprint(this.pageController, args);
+    return asJsonResponse(result);
   }
 
   async handleSceneDump(args: Record<string, unknown>): Promise<ToolResponse> {
-    try {
-      const result = await handleSceneDump(this.pageController, args);
-      return asJsonResponse(result);
-    } catch (err) {
-      throw err;
-    }
+    const result = await handleSceneDump(this.pageController, args);
+    return asJsonResponse(result);
   }
 
   async handlePick(args: Record<string, unknown>): Promise<ToolResponse> {
-    try {
-      const x = argNumber(args, 'x', 0);
-      const y = argNumber(args, 'y', 0);
-      const result = await handlePick(this.pageController, { ...args, x, y });
-      return asJsonResponse(result);
-    } catch (err) {
-      throw err;
-    }
+    const x = argNumber(args, 'x', 0);
+    const y = argNumber(args, 'y', 0);
+    const result = await handlePick(this.pageController, { ...args, x, y });
+    return asJsonResponse(result);
   }
 
   async handleTraceClick(args: Record<string, unknown>): Promise<ToolResponse> {
-    try {
-      const result = await handleTraceClick(
-        this.pageController,
-        this.debuggerManager,
-        this.evidenceStore,
-        args,
-      );
-      return asJsonResponse(result);
-    } catch (err) {
-      throw err;
-    }
+    const result = await handleTraceClick(
+      this.pageController,
+      this.debuggerManager,
+      this.evidenceStore,
+      args,
+    );
+    return asJsonResponse(result);
   }
 }

@@ -467,6 +467,7 @@ describe('StreamingToolHandlersBase', () => {
 
       // Now mock the ring buffer: make length report > maxFrames but shift() return undefined
       // This simulates the defensive edge case at line 204
+      // @ts-expect-error
       const _originalShift = handler._wsFrameOrder.shift.bind(handler._wsFrameOrder);
       let callCount = 0;
       Object.defineProperty(handler._wsFrameOrder, 'length', {

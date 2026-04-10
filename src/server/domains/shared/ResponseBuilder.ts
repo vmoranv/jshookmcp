@@ -1,5 +1,9 @@
 import type { ToolResponse } from '@server/types';
-import type { ImageContent, EmbeddedResource, TextContent } from '@modelcontextprotocol/sdk/types.js';
+import type {
+  ImageContent,
+  EmbeddedResource,
+  TextContent,
+} from '@modelcontextprotocol/sdk/types.js';
 
 /**
  * Fluent builder for MCP tool responses.

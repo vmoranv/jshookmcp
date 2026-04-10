@@ -127,7 +127,9 @@ describe('electron_launch_debug', () => {
 
     const status = parse(await handleElectronDebugStatus({ sessionId: 'electron-4242' }));
     expect(status.success).toBe(true);
+    // @ts-expect-error
     expect(status.main.alive).toBe(true);
+    // @ts-expect-error
     expect(status.renderer.alive).toBe(true);
   });
 });

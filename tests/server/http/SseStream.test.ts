@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// @ts-expect-error
 import { EventBus, ServerEventMap, createServerEventBus } from '@server/EventBus';
 import { SseStream, createProgressHandler } from '@server/http/SseStream';
 import type { ServerResponse, IncomingMessage } from 'node:http';

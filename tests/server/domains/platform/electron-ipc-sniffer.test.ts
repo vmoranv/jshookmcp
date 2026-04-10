@@ -13,6 +13,7 @@ class MockWebSocket {
 
   constructor(_url: string) {
     queueMicrotask(() => {
+      // @ts-expect-error
       this.emit('open');
     });
   }

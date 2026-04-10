@@ -1,3 +1,4 @@
+import { WorkflowHandlers as _WorkflowHandlers } from '@server/domains/workflow/handlers.impl.core';
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

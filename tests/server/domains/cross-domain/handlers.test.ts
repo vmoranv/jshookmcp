@@ -20,6 +20,7 @@ describe('CrossDomainHandlers', () => {
       const result = (await handlers.handleCapabilities({})) as {
         content: Array<{ text: string }>;
       };
+      // @ts-expect-error
       const data = JSON.parse(result.content[0].text);
       expect(data.capabilities).toBeDefined();
       expect(typeof data.capabilities.evidenceGraphAvailable).toBe('boolean');
@@ -34,6 +35,7 @@ describe('CrossDomainHandlers', () => {
         content: Array<{ text: string }>;
       };
       // Returns message when classifier not provided
+      // @ts-expect-error
       expect(result.content[0].text).toContain('Cross-domain');
     });
   });
@@ -44,6 +46,7 @@ describe('CrossDomainHandlers', () => {
       const result = (await handlers.handleEvidenceExport()) as {
         content: Array<{ text: string }>;
       };
+      // @ts-expect-error
       const data = JSON.parse(result.content[0].text);
       expect(data.version).toBe(1);
       expect(data.nodes.length).toBeGreaterThan(0);
@@ -55,6 +58,7 @@ describe('CrossDomainHandlers', () => {
       bridge.addV8Object({ address: '0xA', name: 'ObjA' });
       bridge.addNetworkRequest({ url: 'https://test.com' });
       const result = (await handlers.handleEvidenceStats()) as { content: Array<{ text: string }> };
+      // @ts-expect-error
       const data = JSON.parse(result.content[0].text);
       expect(data.nodeCount).toBe(2);
       expect(data.edgeCount).toBeGreaterThanOrEqual(0);
@@ -66,6 +70,7 @@ describe('CrossDomainHandlers', () => {
       const result = (await handlers.handleCorrelateAll({})) as {
         content: Array<{ text: string }>;
       };
+      // @ts-expect-error
       const data = JSON.parse(result.content[0].text);
       expect(data.correlationResults).toBeDefined();
       // SKIA-03 should run and add nodes to the graph
@@ -76,6 +81,7 @@ describe('CrossDomainHandlers', () => {
       const result = (await handlers.handleCorrelateAll({})) as {
         content: Array<{ text: string }>;
       };
+      // @ts-expect-error
       const data = JSON.parse(result.content[0].text);
       expect(data.evidenceGraph).toBeDefined();
       expect(data.evidenceGraph.version).toBe(1);

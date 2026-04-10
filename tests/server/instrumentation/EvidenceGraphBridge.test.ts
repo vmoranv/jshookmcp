@@ -26,6 +26,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op1',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'runtime-hook',
         target: 'signFunction',
         config: {},
@@ -46,6 +47,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op2',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'runtime-hook',
         target: 'encryptData',
         config: { scriptId: 'script-42' },
@@ -62,6 +64,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op3',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'runtime-hook',
         target: 'noScript',
         config: {},
@@ -82,6 +85,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op4',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'network-intercept',
         target: 'https://api.example.com/login',
         config: { initiator: 'fetchWrapper' },
@@ -98,6 +102,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op5',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'network-intercept',
         target: 'https://api.example.com/data',
         config: { initiator: { stack: 'at fetchWrapper (app.js:42)' } },
@@ -114,6 +119,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op6',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'network-intercept',
         target: 'https://api.example.com/sign',
         config: { initiator: 'fetchCall', initiatorScriptId: 'script-99' },
@@ -130,6 +136,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op7',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'network-intercept',
         target: 'https://cdn.example.com/lib.js',
         config: {},
@@ -150,6 +157,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op8',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'function-trace',
         target: 'calculateHMAC',
         config: { scriptId: 'script-7' },
@@ -171,6 +179,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op9',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'before-load-inject',
         target: 'hookXHR.js',
         config: {},
@@ -192,6 +201,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op10',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'runtime-hook',
         target: 'signRequest',
         config: {},
@@ -203,6 +213,7 @@ describe('EvidenceGraphBridge', () => {
       const artifact: InstrumentationArtifact = {
         sessionId: 'sess1',
         operationId: 'op10',
+        // @ts-expect-error
         type: 'captured-args',
         data: { args: ['param1', 'param2'] },
         capturedAt: new Date().toISOString(),
@@ -219,6 +230,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op11',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'network-intercept',
         target: 'https://api.example.com/data',
         config: {},
@@ -230,6 +242,7 @@ describe('EvidenceGraphBridge', () => {
       const artifact: InstrumentationArtifact = {
         sessionId: 'sess1',
         operationId: 'op11',
+        // @ts-expect-error
         type: 'response-capture',
         data: {
           replayMode: 'live',
@@ -254,6 +267,7 @@ describe('EvidenceGraphBridge', () => {
       const op: InstrumentationOperation = {
         id: 'op12',
         sessionId: 'sess1',
+        // @ts-expect-error
         type: 'runtime-hook',
         target: 'decrypt',
         config: {},
@@ -265,6 +279,7 @@ describe('EvidenceGraphBridge', () => {
       const artifact: InstrumentationArtifact = {
         sessionId: 'sess1',
         operationId: 'op12',
+        // @ts-expect-error
         type: 'captured-return',
         data: { returnValue: 'decrypted' },
         capturedAt: new Date().toISOString(),
@@ -281,7 +296,9 @@ describe('EvidenceGraphBridge', () => {
       const artifact: InstrumentationArtifact = {
         sessionId: 'sess1',
         operationId: 'unknown-op',
+        // @ts-expect-error
         type: 'captured-data',
+        // @ts-expect-error
         data: { value: 'test' },
         capturedAt: new Date().toISOString(),
       };
@@ -323,6 +340,7 @@ describe('EvidenceGraphBridge', () => {
       bridge.onOperation({
         id: 'chain-net',
         sessionId: 'sess-chain',
+        // @ts-expect-error
         type: 'network-intercept',
         target: 'https://api.example.com/sign',
         config: { initiator: 'signModule', initiatorScriptId: 'script-main' },
@@ -333,6 +351,7 @@ describe('EvidenceGraphBridge', () => {
       bridge.onOperation({
         id: 'chain-hook',
         sessionId: 'sess-chain',
+        // @ts-expect-error
         type: 'runtime-hook',
         target: 'generateSignature',
         config: { scriptId: 'script-main' },
@@ -343,6 +362,7 @@ describe('EvidenceGraphBridge', () => {
       bridge.onArtifact({
         sessionId: 'sess-chain',
         operationId: 'chain-hook',
+        // @ts-expect-error
         type: 'captured-args',
         data: { args: ['timestamp', 'nonce'] },
         capturedAt: new Date().toISOString(),
@@ -352,6 +372,7 @@ describe('EvidenceGraphBridge', () => {
       bridge.onArtifact({
         sessionId: 'sess-chain',
         operationId: 'chain-net',
+        // @ts-expect-error
         type: 'response-replay',
         data: {
           replayMode: 'live',

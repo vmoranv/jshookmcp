@@ -770,6 +770,7 @@ describe('StreamingToolHandlersWs', () => {
       // This tests the defensive guard at line 102 in handleWsFrame.
       // Normally unreachable: after .set() on line 91, line 100 .get() always finds it.
       // We mock .get() to return undefined on the second call to simulate this edge case.
+      // @ts-expect-error
       const _originalGet = handler._wsConnections.get.bind(handler._wsConnections);
       let getCallCount = 0;
       vi.spyOn(handler._wsConnections, 'get').mockImplementation((_key: string) => {

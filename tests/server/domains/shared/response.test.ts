@@ -4,9 +4,7 @@ import {
   asJsonResponse,
   asTextResponse,
   serializeError,
-  toolErrorToResponse,
 } from '@server/domains/shared/response';
-import { ToolError } from '@errors/ToolError';
 
 describe('shared response helpers', () => {
   it('asTextResponse returns MCP text payload', () => {
@@ -46,76 +44,6 @@ describe('shared response helpers', () => {
     expect(serializeError(404)).toEqual({
       success: false,
       error: '404',
-    });
-  });
-
-  describe('toolErrorToResponse', () => {
-    it('formats user-correctable ToolError (VALIDATION) without isError', () => {
-      const err = new ToolError('VALIDATION', 'bad input', { toolName: 'test_tool' });
-      const res = toolErrorToResponse(err);
-      const body = JSON.parse((res.content[0] as any).text);
-      expect(body.success).toBe(false);
-      expect(body.code).toBe('VALIDATION');
-      expect(body.message).toBe('bad input');
-      expect(body.tool).toBe('test_tool');
-      expect(res).not.toHaveProperty('isError');
-    });
-
-    it('formats PREREQUISITE as user-correctable', () => {
-      const err = new ToolError('PREREQUISITE', 'not ready');
-      const res = toolErrorToResponse(err);
-      expect(res).not.toHaveProperty('isError');
-    });
-
-    it('formats NOT_FOUND as user-correctable', () => {
-      const err = new ToolError('NOT_FOUND', 'missing');
-      const res = toolErrorToResponse(err);
-      expect(res).not.toHaveProperty('isError');
-    });
-
-    it('formats RUNTIME error with isError=true', () => {
-      const err = new ToolError('RUNTIME', 'crash', {
-        details: { stack: 'trace' },
-      });
-      const res = toolErrorToResponse(err);
-      const body = JSON.parse((res.content[0] as any).text);
-      expect(body.code).toBe('RUNTIME');
-      expect(body.details).toEqual({ stack: 'trace' });
-      expect((res as any).isError).toBe(true);
-    });
-
-    it('formats TIMEOUT error with isError=true', () => {
-      const res = toolErrorToResponse(new ToolError('TIMEOUT', 'slow'));
-      expect((res as any).isError).toBe(true);
-    });
-
-    it('formats CONNECTION error with isError=true', () => {
-      const res = toolErrorToResponse(new ToolError('CONNECTION', 'lost'));
-      expect((res as any).isError).toBe(true);
-    });
-
-    it('formats PERMISSION error with isError=true', () => {
-      const res = toolErrorToResponse(new ToolError('PERMISSION', 'denied'));
-      expect((res as any).isError).toBe(true);
-    });
-
-    it('falls back to asErrorResponse for non-ToolError', () => {
-      const res = toolErrorToResponse(new Error('generic'));
-      expect((res.content[0] as any).text).toBe('Error: generic');
-      expect((res as any).isError).toBe(true);
-    });
-
-    it('falls back for string errors', () => {
-      const res = toolErrorToResponse('plain');
-      expect((res.content[0] as any).text).toBe('Error: plain');
-    });
-
-    it('omits tool and details when not provided', () => {
-      const err = new ToolError('RUNTIME', 'err');
-      const res = toolErrorToResponse(err);
-      const body = JSON.parse((res.content[0] as any).text);
-      expect(body).not.toHaveProperty('tool');
-      expect(body).not.toHaveProperty('details');
     });
   });
 });

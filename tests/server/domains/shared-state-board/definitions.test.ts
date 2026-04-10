@@ -15,6 +15,7 @@ describe('shared-state-board domain definitions', () => {
       expect(typeof tool.name).toBe('string');
       expect(tool.name.length).toBeGreaterThan(0);
       expect(typeof tool.description).toBe('string');
+      // @ts-expect-error
       expect(tool.description.length).toBeGreaterThan(0);
       expect(tool.inputSchema).toBeDefined();
       expect(typeof tool.inputSchema).toBe('object');

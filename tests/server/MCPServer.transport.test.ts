@@ -79,7 +79,7 @@ vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
     mocks.stdioConnects.push(this);
     // eslint-disable-next-line unicorn/prefer-add-event-listener
     this.onclose = undefined;
-    this.send = (...args: any[]) => mocks.stdioSendMock(...args);
+    this.send = (...args: any[]) => (mocks.stdioSendMock as any)(...args);
   },
 }));
 
@@ -663,7 +663,6 @@ describe('MCPServer.transport', () => {
     const disposeMock = vi.fn(() => {
       throw new Error('fallback dispose failed');
     });
-    // @ts-expect-error — intentionally create an incomplete context without getDomainInstance
     ctx.activationController = { dispose: disposeMock };
     // Remove getDomainInstance to trigger the fallback path
     ctx.getDomainInstance = undefined as any;

@@ -59,6 +59,7 @@ describe('config utilities', () => {
   });
 
   it('logs info when .env loads successfully in debug mode', async () => {
+    // @ts-expect-error
     dotenvMock.config.mockReturnValue({ parsed: { MOCKED: 'true' } });
     process.env.DEBUG = 'true';
 

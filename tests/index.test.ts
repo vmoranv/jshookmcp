@@ -44,7 +44,6 @@ async function loadIndex() {
 }
 
 describe('src/index.ts entrypoint', () => {
-  let _mockProcessExit: any;
   let mockProcessStdoutWrite: any;
   let processEvents: Map<string, Function>;
   let stdinEvents: Map<string, Function>;
@@ -86,7 +85,7 @@ describe('src/index.ts entrypoint', () => {
       resolveExit = resolve;
     });
 
-    _mockProcessExit = vi.spyOn(process, 'exit').mockImplementation((code) => {
+    vi.spyOn(process, 'exit').mockImplementation((code) => {
       resolveExit(code as number);
       // return a promise that never resolves so execution halts like a real exit
       return new Promise(() => {}) as never;
@@ -203,7 +202,8 @@ describe('src/index.ts entrypoint', () => {
     uncaught!(new Error('Second err'));
 
     const { MCPServer: _MCPServerLocal } = await import('@server/MCPServer');
-    const instance = vi.mocked(MCPServer).mock.results[0].value;
+    // @ts-expect-error
+    const instance = vi.mocked(MCPServer).mock.results[0].value!;
     expect(instance.enterDegradedMode).toHaveBeenCalled();
   });
 
@@ -214,7 +214,8 @@ describe('src/index.ts entrypoint', () => {
 
     unhandled!(new Error('Promise rejection err'));
     const { MCPServer: _MCPServerLocal } = await import('@server/MCPServer');
-    const instance = vi.mocked(MCPServer).mock.results[0].value;
+    // @ts-expect-error
+    const instance = vi.mocked(MCPServer).mock.results[0].value!;
     expect(instance.enterDegradedMode).not.toHaveBeenCalled(); // 1 error doesn't trigger degraded mode
   });
 
@@ -348,7 +349,8 @@ describe('src/index.ts entrypoint', () => {
     const sigint = processEvents.get('SIGINT');
 
     const { MCPServer: _MCPServerLocal } = await import('@server/MCPServer');
-    const instance = vi.mocked(MCPServer).mock.results[0].value;
+    // @ts-expect-error
+    const instance = vi.mocked(MCPServer).mock.results[0].value!;
     instance.close.mockImplementation(() => new Promise(() => {}));
 
     vi.useFakeTimers();
@@ -368,13 +370,15 @@ describe('src/index.ts entrypoint', () => {
     const sigint = processEvents.get('SIGINT');
 
     const { MCPServer: _MCPServerLocal } = await import('@server/MCPServer');
-    const instance = vi.mocked(MCPServer).mock.results[0].value;
+    // @ts-expect-error
+    const instance = vi.mocked(MCPServer).mock.results[0].value!;
     instance.close.mockRejectedValue(new Error('SIGINT Close exploded'));
 
     vi.useFakeTimers();
     sigint!(0);
     vi.advanceTimersByTime(5000);
 
+    // @ts-expect-error
     let _code: number | undefined;
     exitPromise.then((c) => (_code = c));
     await Promise.resolve();
@@ -387,7 +391,8 @@ describe('src/index.ts entrypoint', () => {
     const sigterm = processEvents.get('SIGTERM');
 
     const { MCPServer: _MCPServerLocal } = await import('@server/MCPServer');
-    const instance = vi.mocked(MCPServer).mock.results[0].value;
+    // @ts-expect-error
+    const instance = vi.mocked(MCPServer).mock.results[0].value!;
     instance.close.mockImplementation(() => new Promise(() => {}));
 
     vi.useFakeTimers();
@@ -407,13 +412,15 @@ describe('src/index.ts entrypoint', () => {
     const sigterm = processEvents.get('SIGTERM');
 
     const { MCPServer: _MCPServerLocal } = await import('@server/MCPServer');
-    const instance = vi.mocked(MCPServer).mock.results[0].value;
+    // @ts-expect-error
+    const instance = vi.mocked(MCPServer).mock.results[0].value!;
     instance.close.mockRejectedValue(new Error('SIGTERM Close exploded'));
 
     vi.useFakeTimers();
     sigterm!(0);
     vi.advanceTimersByTime(5000);
 
+    // @ts-expect-error
     let _code: number | undefined;
     exitPromise.then((c) => (_code = c));
     await Promise.resolve();
@@ -426,7 +433,8 @@ describe('src/index.ts entrypoint', () => {
     const stdinEnd = stdinEvents.get('end');
 
     const { MCPServer: _MCPServerLocal } = await import('@server/MCPServer');
-    const instance = vi.mocked(MCPServer).mock.results[0].value;
+    // @ts-expect-error
+    const instance = vi.mocked(MCPServer).mock.results[0].value!;
     // Make close throw an error to test the catch block
     instance.close.mockRejectedValue(new Error('Close exploded'));
 
