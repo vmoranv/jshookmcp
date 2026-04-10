@@ -68,14 +68,14 @@ export function formatBetterSqlite3Error(error: unknown): string {
   const message = extractErrorMessage(error);
 
   if (issue === 'missing') {
-    return `better-sqlite3 is not installed. Install the optional trace backend with \`${INSTALL_HINT}\`.`;
+    return `GRACEFUL: better-sqlite3 is not installed. Install the optional trace backend with \`${INSTALL_HINT}\`.`;
   }
 
   if (issue === 'abi-mismatch') {
-    return `better-sqlite3 is installed but its native binary is incompatible with the current Node.js runtime (${process.version}, ABI ${process.versions.modules}). Rebuild it with \`${REBUILD_HINT}\` or reinstall dependencies under the active Node version. Original error: ${message}`;
+    return `GRACEFUL: better-sqlite3 is installed but its native binary is incompatible with the current Node.js runtime (${process.version}, ABI ${process.versions.modules}). Rebuild it with \`${REBUILD_HINT}\` or reinstall dependencies under the active Node version. Original error: ${message}`;
   }
 
-  return `better-sqlite3 failed to initialize. Try \`${REBUILD_HINT}\` or reinstall dependencies under the active Node version. Original error: ${message}`;
+  return `GRACEFUL: better-sqlite3 failed to initialize. Try \`${REBUILD_HINT}\` or reinstall dependencies under the active Node version. Original error: ${message}`;
 }
 
 function readBetterSqlite3Version(): string | null {
@@ -96,7 +96,7 @@ export function probeBetterSqlite3(): BetterSqlite3ProbeResult {
   if (!version) {
     return {
       status: 'missing',
-      detail: `Optional SQLite backend for trace tools is not installed. Install it with: ${INSTALL_HINT}`,
+      detail: `GRACEFUL: Optional SQLite backend for trace tools is not installed. Install it with: ${INSTALL_HINT}`,
       version: null,
       issue: 'missing',
     };
@@ -122,7 +122,7 @@ export function probeBetterSqlite3(): BetterSqlite3ProbeResult {
     if (issue === 'missing') {
       return {
         status: 'missing',
-        detail: `Optional SQLite backend for trace tools is not installed. Install it with: ${INSTALL_HINT}`,
+        detail: `GRACEFUL: Optional SQLite backend for trace tools is not installed. Install it with: ${INSTALL_HINT}`,
         version,
         issue,
       };

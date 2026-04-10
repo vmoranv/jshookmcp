@@ -20,9 +20,11 @@ function sensitiveReplacer(key: string, value: unknown): unknown {
 }
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogListener = (level: LogLevel, message: string, args: unknown[]) => void;
 
 class Logger {
   private level: LogLevel;
+  private listeners: LogListener[] = [];
 
   constructor(level: LogLevel = 'info') {
     this.level = level;
@@ -47,35 +49,56 @@ class Logger {
     return `${prefix} ${message}${formattedArgs}`;
   }
 
+  private emit(level: LogLevel, message: string, args: unknown[]): void {
+    for (const listener of this.listeners) {
+      try {
+        listener(level, message, args);
+      } catch (err) {
+        // Suppress listener errors to prevent crashing the main log flow
+      }
+    }
+  }
+
+  onLog(listener: LogListener): () => void {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
+    };
+  }
+
   debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog('debug')) {
-      // stderr only \u2014 stdout reserved for MCP frames
       console.error(chalk.gray(this.formatMessage('debug', message, ...args)));
+      this.emit('debug', message, args);
     }
   }
 
   info(message: string, ...args: unknown[]): void {
     if (this.shouldLog('info')) {
       console.error(chalk.blue(this.formatMessage('info', message, ...args)));
+      this.emit('info', message, args);
     }
   }
 
   warn(message: string, ...args: unknown[]): void {
     if (this.shouldLog('warn')) {
       console.error(chalk.yellow(this.formatMessage('warn', message, ...args)));
+      this.emit('warn', message, args);
     }
   }
 
   error(message: string, ...args: unknown[]): void {
-    /* v8 ignore next 3 */
+    /* v8 ignore next 4 */
     if (this.shouldLog('error')) {
       console.error(chalk.red(this.formatMessage('error', message, ...args)));
+      this.emit('error', message, args);
     }
   }
 
   success(message: string, ...args: unknown[]): void {
     if (this.shouldLog('info')) {
       console.error(chalk.green(this.formatMessage('info', message, ...args)));
+      this.emit('info', message, args); // success maps to info for MCP
     }
   }
 

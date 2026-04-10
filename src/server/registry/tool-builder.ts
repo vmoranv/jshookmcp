@@ -12,6 +12,11 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
+export type BuiltTool = Tool & {
+  __autocomplete?: Record<string, (value: string) => string[] | Promise<string[]>>;
+  outputSchema?: Record<string, unknown>;
+};
+
 type JsonSchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
 
 interface PropertySchema {
@@ -52,6 +57,9 @@ export interface ToolBuilder {
   openWorld(): this;
   query(): this;
   resettable(): this;
+  asyncTask(): this;
+  autocomplete(argName: string, handler: (value: string) => string[] | Promise<string[]>): this;
+  outputSchema(schema: Record<string, unknown>): this;
 }
 
 class InternalToolBuilder implements ToolBuilder {
@@ -63,6 +71,12 @@ class InternalToolBuilder implements ToolBuilder {
   private _destructiveHint = false;
   private _idempotentHint = false;
   private _openWorldHint = false;
+  private _asyncTask = false;
+  private readonly _autocompleteHandlers: Record<
+    string,
+    (value: string) => string[] | Promise<string[]>
+  > = {};
+  private _outputSchema?: Record<string, unknown>;
 
   constructor(name: string) {
     this._name = name;
@@ -172,10 +186,25 @@ class InternalToolBuilder implements ToolBuilder {
     return this.destructive().idempotent();
   }
 
+  asyncTask(): this {
+    this._asyncTask = true;
+    return this;
+  }
+
+  autocomplete(argName: string, handler: (value: string) => string[] | Promise<string[]>): this {
+    this._autocompleteHandlers[argName] = handler;
+    return this;
+  }
+
+  outputSchema(schema: Record<string, unknown>): this {
+    this._outputSchema = schema;
+    return this;
+  }
+
   // ── Build ──
 
-  build(): Tool {
-    const result: Tool = {
+  build(): BuiltTool {
+    const result: BuiltTool = {
       name: this._name,
       description: this._description,
       inputSchema: {
@@ -189,6 +218,11 @@ class InternalToolBuilder implements ToolBuilder {
         idempotentHint: this._idempotentHint,
         openWorldHint: this._openWorldHint,
       },
+      ...(this._asyncTask ? { execution: { taskSupport: 'optional' } } : {}),
+      ...(Object.keys(this._autocompleteHandlers).length > 0
+        ? { __autocomplete: this._autocompleteHandlers }
+        : {}),
+      ...(this._outputSchema ? { outputSchema: this._outputSchema as any } : {}),
     };
     return result;
   }
@@ -204,7 +238,7 @@ class InternalToolBuilder implements ToolBuilder {
 type ToolBuilderConfigurator = (builder: ToolBuilder) => ToolBuilder | void;
 
 /** Create a new tool definition with fluent builder API. */
-export function tool(name: string, configure: ToolBuilderConfigurator): Tool {
+export function tool(name: string, configure: ToolBuilderConfigurator): BuiltTool {
   const builder = new InternalToolBuilder(name);
   const configured = configure(builder);
   return ((configured ?? builder) as InternalToolBuilder).build();

@@ -13,7 +13,14 @@ import {
 import { fileURLToPath } from 'node:url';
 import { getConfig } from '@utils/config';
 
-const defaultProjectRoot = fileURLToPath(new URL('../..', import.meta.url));
+// In a flattened tsdown bundle, import.meta.url points to dist/index.mjs.
+// Therefore, the project root is just one directory up.
+// When running in Vitest, this file stays deeply nested in src/utils/outputPaths.ts.
+const currentFileUrl = fileURLToPath(import.meta.url);
+const defaultProjectRoot =
+  currentFileUrl.includes('/src/utils/') || currentFileUrl.includes('\\src\\utils\\')
+    ? fileURLToPath(new URL('../..', import.meta.url))
+    : fileURLToPath(new URL('..', import.meta.url));
 
 function resolveProjectRoot(env: NodeJS.ProcessEnv = process.env): string {
   const requestedRoot = env.MCP_PROJECT_ROOT?.trim();

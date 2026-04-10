@@ -1,13 +1,7 @@
-// Runtime domain discovery - scans domains/STAR/manifest.js and loads them
-// via dynamic ESM import. Replaces the static 16-import array.
-import { readdir, stat } from 'node:fs/promises';
-import { join, relative, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+// Runtime domain discovery via static generated index
 import { logger } from '@utils/logger';
 import type { DomainManifest } from '@server/registry/contracts';
-
-const registryDirUrl = new URL('.', import.meta.url);
-const registryDir = fileURLToPath(registryDirUrl);
+import { generatedManifests } from './generated-domains.js';
 
 // ── validation ──
 
@@ -35,78 +29,36 @@ function extractManifest(mod: unknown): DomainManifest | null {
   return null;
 }
 
-// ── path discovery ──
-
-async function discoverManifestPaths(): Promise<string[]> {
-  const domainsDir = fileURLToPath(new URL('../domains/', registryDirUrl));
-  let entries: import('node:fs').Dirent[];
-  try {
-    entries = await readdir(domainsDir, { withFileTypes: true });
-  } catch (err) {
-    logger.error('[discovery] Cannot read domains directory:', err);
-    return [];
-  }
-
-  const directories = entries.filter((e) => e.isDirectory());
-
-  // Probe all domain directories concurrently — each checks .js then .ts
-  const resolved = await Promise.all(
-    directories.map(async (entry) => {
-      for (const ext of ['manifest.js', 'manifest.ts']) {
-        const manifestPath = join(domainsDir, entry.name, ext);
-        try {
-          const s = await stat(manifestPath);
-          if (s.isFile()) return manifestPath;
-        } catch {
-          // Not found with this extension — try next
-        }
-      }
-      return null;
-    }),
-  );
-
-  return resolved.filter((value): value is string => value !== null);
-}
-
-function toImportSpecifier(absPath: string): string {
-  const relPath = relative(registryDir, absPath).split(sep).join('/');
-  if (relPath.startsWith('.')) {
-    return relPath;
-  }
-  return `./${relPath}`;
-}
-
 // ── public API ──
 
-// Scan all domain subdirectories for manifest.js, dynamically import each,
-// validate the exported DomainManifest contract, and return all valid manifests.
-// A failing manifest is logged and skipped - it does NOT crash the server.
+// Iterates across the pre-generated static list of manifests imported from the
+// build-time generated file (generated-domains.js) to avoid node fs operations.
 export async function discoverDomainManifests(): Promise<DomainManifest[]> {
-  const files = await discoverManifestPaths();
   const manifests: DomainManifest[] = [];
   const seenDomains = new Set<string>();
   const seenDepKeys = new Set<string>();
 
-  for (const absPath of files) {
+  for (const mod of generatedManifests) {
     try {
-      // Use a relative module specifier so Vitest/Vite can transform TS manifests
-      // while production builds still resolve the emitted JS files correctly.
-      const mod: unknown = await import(toImportSpecifier(absPath));
-      const manifest = extractManifest(mod);
+      const manifest = extractManifest({ default: mod });
       if (!manifest) {
-        logger.warn('[discovery] Skipping ' + absPath + ': no valid DomainManifest export');
+        logger.warn('[discovery] Skipping a generated manifest: no valid DomainManifest export');
         continue;
       }
 
       if (seenDomains.has(manifest.domain)) {
         logger.warn(
-          '[discovery] Duplicate domain "' + manifest.domain + '" in ' + absPath + ' - skipping',
+          '[discovery] Duplicate domain "' +
+            manifest.domain +
+            '" in generated manifests - skipping',
         );
         continue;
       }
       if (seenDepKeys.has(manifest.depKey)) {
         logger.warn(
-          '[discovery] Duplicate depKey "' + manifest.depKey + '" in ' + absPath + ' - skipping',
+          '[discovery] Duplicate depKey "' +
+            manifest.depKey +
+            '" in generated manifests - skipping',
         );
         continue;
       }
@@ -122,7 +74,7 @@ export async function discoverDomainManifests(): Promise<DomainManifest[]> {
           ' tools)',
       );
     } catch (err) {
-      logger.error('[discovery] Failed to load manifest: ' + absPath, err);
+      logger.error('[discovery] Failed to load a generated manifest', err);
       if (process.env.DISCOVERY_STRICT === 'true') {
         throw err;
       }
