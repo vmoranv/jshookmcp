@@ -11,8 +11,6 @@ import { mkdir, writeFile, realpath } from 'node:fs/promises';
 import { dirname, basename, resolve, relative, isAbsolute, posix as pathPosix } from 'node:path';
 import { getProjectRoot } from '@utils/outputPaths';
 import type { MCPServerContext } from '@server/MCPServer.context';
-import { ensureWorkflowsLoaded } from '@server/extensions/ExtensionManager';
-import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
 import { argNumber, argObject } from '@server/domains/shared/parse-args';
 
 export interface ToolContentItem {
@@ -465,6 +463,7 @@ export class WorkflowHandlersBase {
       });
     }
 
+    const { ensureWorkflowsLoaded } = await import('@server/extensions/ExtensionManager');
     await ensureWorkflowsLoaded(ctx);
     const workflows = [...ctx.extensionWorkflowsById.values()].filter(
       (record) => record.route?.kind !== 'preset',
@@ -513,6 +512,7 @@ export class WorkflowHandlersBase {
       });
     }
 
+    const { ensureWorkflowsLoaded } = await import('@server/extensions/ExtensionManager');
     await ensureWorkflowsLoaded(ctx);
     const runtimeRecord = ctx.extensionWorkflowRuntimeById.get(workflowId);
     if (!runtimeRecord) {
@@ -545,6 +545,7 @@ export class WorkflowHandlersBase {
     const timeoutMs = argNumber(args, 'timeoutMs');
 
     try {
+      const { executeExtensionWorkflow } = await import('@server/workflows/WorkflowEngine');
       const result = await executeExtensionWorkflow(ctx, runtimeRecord.workflow, {
         profile,
         config,

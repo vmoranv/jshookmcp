@@ -1,3 +1,4 @@
+import { WorkflowHandlers as _WorkflowHandlers } from '@server/domains/workflow/handlers.impl.core';
 // @ts-expect-error — auto-suppressed [TS2724]
 import type { WorkflowRunResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

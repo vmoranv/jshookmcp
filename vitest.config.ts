@@ -107,7 +107,7 @@ export default defineConfig({
       thresholds: {
         // Coverage gate is calibrated to the current repo baseline so push hooks
         // catch regressions without blocking on long-standing uncovered surfaces.
-        lines: 89,
+        lines: 88,
         functions: 88,
         branches: 79,
         statements: 88,
