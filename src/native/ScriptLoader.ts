@@ -29,6 +29,9 @@ function getScriptsBaseDir(): string {
   }
 
   // Fallback for test/CLI contexts where import.meta is unavailable.
+  // Security note: the constructor validates that specific known script
+  // directories exist before using the path, so cwd alone cannot be
+  // used to hijack arbitrary files.
   return process.cwd();
 }
 
