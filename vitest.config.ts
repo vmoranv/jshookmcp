@@ -96,7 +96,7 @@ export default defineConfig({
     mockReset: true,
     testTimeout: 30000,
     hookTimeout: 30000,
-    pool: 'threads',
+    pool: 'forks',
     ...(configuredMaxWorkers ? { maxWorkers: configuredMaxWorkers } : {}),
     coverage: {
       provider: 'v8',
@@ -122,7 +122,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'pure',
-          pool: 'threads', // No native deps — safe for Worker Threads
+          pool: 'forks', // Use forks because pure tests might load better-sqlite3 via cache utils
           include: [
             'tests/utils/**/*.test.ts',
             'tests/errors/**/*.test.ts',
@@ -139,7 +139,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'server',
-          pool: 'threads', // Registry-dependent but no native FFI — threads OK
+          pool: 'forks', // Use forks for better-sqlite3 compatibility
           include: [
             'tests/server/**/*.test.ts',
             'tests/modules/**/*.test.ts',

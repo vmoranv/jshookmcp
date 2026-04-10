@@ -40,8 +40,8 @@
     "url": "https://github.com/vmoranv/jshookmcp.git"
   },
   "bin": {
-    "jshook": "dist/src/index.js",
-    "jshookmcp": "dist/src/index.js"
+    "jshook": "dist/index.mjs",
+    "jshookmcp": "dist/index.mjs"
   },
   "files": [
     "dist",
@@ -50,16 +50,16 @@
     "scripts/postinstall.cjs"
   ],
   "type": "module",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
   "exports": {
     ".": {
-      "import": "./dist/src/index.js",
-      "types": "./dist/src/index.d.ts"
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.mts"
     },
     "./plugin-api": {
-      "import": "./dist/src/server/plugin-api.js",
-      "types": "./dist/src/server/plugin-api.d.ts"
+      "import": "./dist/server/plugin-api.mjs",
+      "types": "./dist/server/plugin-api.d.mts"
     }
   },
   "publishConfig": {
@@ -67,11 +67,11 @@
     "registry": "https://registry.npmjs.org"
   },
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths && corepack pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs && node scripts/generate-entry-reexport.mjs && node scripts/fix-bin-permissions.mjs",
-    "typecheck": "tsc --noEmit -p tsconfig.build.json && corepack pnpm -C packages/extension-sdk typecheck",
+    "build": "node scripts/clean-dist.mjs && node scripts/generate-domains-index.mjs && tsdown && corepack pnpm -C packages/extension-sdk build",
+    "typecheck": "tsc --noEmit -p tsconfig.json && corepack pnpm -C packages/extension-sdk typecheck",
     "deps:update": "corepack pnpm update -r",
     "dev": "tsx --conditions=development watch src/index.ts",
-    "start": "node dist/src/index.js",
+    "start": "node dist/index.mjs",
     "doctor": "tsx src/cli/doctor.ts",
     "docs:generate": "node scripts/generate-vitepress-reference.mjs",
     "docs:dev": "vitepress dev docs --host 127.0.0.1 --port 5173",
@@ -132,7 +132,9 @@
     "medium-zoom": "^1.1.0",
     "oxfmt": "^0.44.0",
     "oxlint": "^1.59.0",
+    "rolldown": "1.0.0-rc.15",
     "tsc-alias": "^1.8.16",
+    "tsdown": "^0.21.7",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.8",
