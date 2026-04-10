@@ -219,7 +219,7 @@ export class MCPTestClient {
       if (proc?._process?.pid) {
         process.kill(proc._process.pid, 'SIGTERM');
         // Give the server time to gracefully shut down (triggering Puppeteer browser.close)
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
     } catch {
       /* best-effort teardown */
