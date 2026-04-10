@@ -43,7 +43,14 @@ export class SandboxToolHandlers {
 
     // Build sandbox options
     const options: SandboxOptions = {};
-    if (timeoutMs !== undefined) options.timeoutMs = timeoutMs;
+    if (timeoutMs !== undefined) {
+      // SECURITY: Cap timeout to prevent DoS via infinite values
+      const MAX_TIMEOUT = 30_000; // hard ceiling
+      options.timeoutMs = Math.min(
+        Math.max(1, Number.isFinite(timeoutMs) ? timeoutMs : 0),
+        MAX_TIMEOUT,
+      );
+    }
     if (sessionId) {
       options.sessionId = sessionId;
       // Inject scratchpad state as globals

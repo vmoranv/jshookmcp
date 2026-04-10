@@ -125,15 +125,22 @@ const __bootstrap = async () => {
     const { jobId, payload } = msg;
     try {
       const { code, functionName, testInputs } = payload;
-      const sandbox = {
-        console: { log() {}, warn() {}, error() {} },
-        Buffer,
-        TextEncoder,
-        TextDecoder,
-        atob: (v) => Buffer.from(String(v), 'base64').toString('binary'),
-        btoa: (v) => Buffer.from(String(v), 'binary').toString('base64'),
+      const sandbox = Object.create(null);
+      // SECURITY: Only expose safe, frozen copies. Do NOT expose host constructors
+      // that allow prototype chain escapes (e.g. this.constructor.constructor('return process')()).
+      sandbox.console = Object.freeze({ log() {}, warn() {}, error() {} });
+      sandbox.Buffer = {
+        from: (...args) => Buffer.from(...args),
+        alloc: (size) => Buffer.alloc(Math.min(size, 1048576)),
+        concat: (...args) => Buffer.concat(...args),
       };
+      Object.freeze(sandbox.Buffer);
+      sandbox.TextEncoder = TextEncoder;
+      sandbox.TextDecoder = TextDecoder;
+      sandbox.atob = (v) => Buffer.from(String(v), 'base64').toString('binary');
+      sandbox.btoa = (v) => Buffer.from(String(v), 'binary').toString('base64');
       sandbox.globalThis = sandbox;
+      Object.freeze(sandbox);
       const context = vm.createContext(sandbox);
 
       const isValidIdentifier = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(functionName);

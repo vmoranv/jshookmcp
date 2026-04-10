@@ -12,8 +12,8 @@ import { asTextResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
 import { normalizeToolName } from '@server/MCPServer.search.validation';
-import { getToolByName, getSearchEngine } from '@server/MCPServer.search.helpers';
-import { activateToolNames } from '@server/MCPServer.search.handlers.activate';
+import { getSearchEngine } from '@server/MCPServer.search.helpers';
+
 
 interface CallToolMetadata {
   wasAutoActivated?: boolean;
@@ -87,32 +87,16 @@ export async function handleCallTool(
 
   let callMetadata = defaultMetadata;
 
-  // If the tool is not yet in the router, try to auto-activate it
+  // SECURITY: Do NOT auto-activate tools. Require explicit activation first.
+  // Auto-activation bypassed schema validation and the tool registration safety gate.
   if (!ctx.router.has(name)) {
-    const toolDef = getToolByName(ctx).get(name);
-    if (!toolDef) {
-      return asTextResponse(
-        JSON.stringify({
-          success: false,
-          error: `Tool "${name}" not found in the catalogue. Use search_tools to discover available tools.`,
-          ...callMetadata,
-        }),
-      );
-    }
-
-    logger.info(`call_tool: auto-activating "${name}" (not in router)`);
-    const activation = await activateToolNames(ctx, [name]);
-    callMetadata = buildCallToolMetadata(true, activation.activated);
-
-    if (activation.activated.length === 0 && activation.alreadyActive.length === 0) {
-      return asTextResponse(
-        JSON.stringify({
-          success: false,
-          error: `Tool "${name}" exists but could not be activated.`,
-          ...callMetadata,
-        }),
-      );
-    }
+    return asTextResponse(
+      JSON.stringify({
+        success: false,
+        error: `Tool "${name}" is not currently active. Use activate_tools or activate_domain first, then call it directly.`,
+        ...callMetadata,
+      }),
+    );
   }
 
   // Dispatch to the actual tool handler via executeToolWithTracking

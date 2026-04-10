@@ -134,8 +134,10 @@ export async function resolveScreenshotOutputPath(options: {
   } else {
     const requestedWithExt = withDefaultExtension(requested, extension);
     if (isAbsolute(requestedWithExt)) {
-      // Honor user-provided absolute paths directly
-      absolutePath = normalize(requestedWithExt);
+      // SECURITY: Do NOT honor user-provided absolute paths — rewrite to safe dir.
+      // This prevents arbitrary file overwrite via the screenshot tool.
+      absolutePath = resolve(screenshotRoot, basename(requestedWithExt));
+      pathRewritten = true;
     } else {
       absolutePath = resolve(screenshotRoot, requestedWithExt);
       if (!isInside(screenshotRoot, absolutePath)) {

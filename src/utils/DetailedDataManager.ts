@@ -107,8 +107,14 @@ export class DetailedDataManager {
     data: T,
     threshold = DETAILED_DATA_SMART_THRESHOLD_BYTES,
   ): T | DetailedDataResponse {
-    // Fast path: primitives are always under threshold — skip serialization
-    if (data === null || data === undefined || typeof data !== 'object') return data;
+    // SECURITY: Check strings against threshold — they can be arbitrarily large.
+    // Only skip serialization for true primitives (number, boolean, null, undefined).
+    if (data === null || data === undefined) return data;
+    if (typeof data !== 'object' && typeof data !== 'string') return data;
+    if (typeof data === 'string') {
+      if (data.length <= threshold) return data;
+      // Large string — fall through to store/summarize
+    }
 
     const { json: jsonStr, size } = this.serializeWithMemo(data);
 

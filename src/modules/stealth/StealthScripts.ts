@@ -516,7 +516,8 @@ export class StealthScripts {
    */
   static getPatchrightLaunchArgs(): string[] {
     return [
-      '--remote-allow-origins=*',
+      // NOTE: --remote-allow-origins=* was intentionally REMOVED for security.
+      // It disables CDP origin checks, allowing any web page to issue CDP commands.
       '--disable-component-update',
       '--disable-features=OptimizationGuideModelDownloading,OptimizationHintsFetching,OptimizationHints',
       '--disable-hang-monitor',

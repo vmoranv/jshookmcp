@@ -45,7 +45,9 @@ export async function handleRouteTool(
   }
 
   const engine = getSearchEngine(ctx);
-  const autoActivate = context?.autoActivate !== false;
+  // SECURITY: Default autoActivate to false to prevent privilege escalation.
+  // Previously defaulted to true, allowing prompt injection to activate powerful tools.
+  const autoActivate = context?.autoActivate === true;
   let response = populateCallCommands(await routeToolRequest({ task, context }, ctx, engine));
 
   if (autoActivate) {

@@ -7,6 +7,13 @@ import type {
   ScanOptions,
   ScanValueType,
 } from '@native/NativeMemoryManager.types';
+import { MEMORY_SCAN_MAX_RESULTS } from '@src/constants';
+
+/** SECURITY: Cap user-supplied maxResults to prevent OOM */
+function capMaxResults(value: number | undefined): number {
+  if (value === undefined || !Number.isFinite(value) || value <= 0) return MEMORY_SCAN_MAX_RESULTS;
+  return Math.min(value, MEMORY_SCAN_MAX_RESULTS);
+}
 
 function toTextResponse(payload: Record<string, unknown>) {
   return {
@@ -30,7 +37,7 @@ export class ScanHandlers {
       const options: ScanOptions = {
         valueType: args.valueType as ScanValueType,
         alignment: args.alignment as number | undefined,
-        maxResults: args.maxResults as number | undefined,
+        maxResults: capMaxResults(args.maxResults as number | undefined),
         regionFilter: args.regionFilter as ScanOptions['regionFilter'],
         onProgress: args.onProgress as ((p: number, t?: number) => void) | undefined,
       };
@@ -78,7 +85,7 @@ export class ScanHandlers {
       const options: ScanOptions = {
         valueType: args.valueType as ScanValueType,
         alignment: args.alignment as number | undefined,
-        maxResults: args.maxResults as number | undefined,
+        maxResults: capMaxResults(args.maxResults as number | undefined),
         regionFilter: args.regionFilter as ScanOptions['regionFilter'],
         onProgress: args.onProgress as ((p: number, t?: number) => void) | undefined,
       };
@@ -99,7 +106,7 @@ export class ScanHandlers {
         args.pid as number,
         args.targetAddress as string,
         {
-          maxResults: args.maxResults as number | undefined,
+          maxResults: capMaxResults(args.maxResults as number | undefined),
           moduleOnly: args.moduleOnly as boolean | undefined,
         },
       );
@@ -116,7 +123,7 @@ export class ScanHandlers {
         args.pattern as Array<{ offset: number; value: string; type: ScanValueType }>,
         {
           alignment: args.alignment as number | undefined,
-          maxResults: args.maxResults as number | undefined,
+          maxResults: capMaxResults(args.maxResults as number | undefined),
         },
       );
       return toTextResponse({ success: true, ...result });

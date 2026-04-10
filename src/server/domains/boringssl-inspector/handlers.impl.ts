@@ -15,6 +15,38 @@ import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
 import { argString, argNumber } from '@server/domains/shared/parse-args';
 
+/**
+ * SECURITY: Validate that a target host is not a private/loopback address.
+ * Prevents SSRF attacks against internal services.
+ */
+function isPrivateAddress(host: string): boolean {
+  // Loopback
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return false; // loopback is OK for this tool
+  // Block RFC 1918, link-local, and other private ranges
+  const PRIVATE_PATTERNS = [
+    /^10\./,
+    /^172\.(1[6-9]|2\d|3[01])\./,
+    /^192\.168\./,
+    /^169\.254\./,
+    /^fc00:/i,
+    /^fd/i,
+    /^fe80:/i,
+    /^0\./,
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,  // CGN
+  ];
+  return PRIVATE_PATTERNS.some((p) => p.test(host));
+}
+
+function validateNetworkTarget(host: string): { ok: false; error: string } | null {
+  if (isPrivateAddress(host)) {
+    return {
+      ok: false,
+      error: `Blocked: target host "${host}" resolves to a private/internal address. SSRF protection applies.`,
+    };
+  }
+  return null;
+}
+
 function normalizeHex(value: string): string {
   return value.replace(/\s+/g, '').toUpperCase();
 }
@@ -644,6 +676,10 @@ export class BoringsslInspectorHandlers {
       return { ok: false, error: 'port must be a number between 1 and 65535' };
     }
 
+    // SECURITY: SSRF protection
+    const ssrfCheck = validateNetworkTarget(host);
+    if (ssrfCheck) return ssrfCheck;
+
     const dataHex = argString(args, 'dataHex');
     const dataText = argString(args, 'dataText');
     if (!dataHex && !dataText) {
@@ -747,6 +783,10 @@ export class BoringsslInspectorHandlers {
     if (port === undefined || port < 1 || port > 65535) {
       return { ok: false, error: 'port must be a number between 1 and 65535' };
     }
+
+    // SECURITY: SSRF protection
+    const ssrfCheck = validateNetworkTarget(host);
+    if (ssrfCheck) return ssrfCheck;
 
     const dataHex = argString(args, 'dataHex');
     const dataText = argString(args, 'dataText');

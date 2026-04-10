@@ -336,8 +336,8 @@ function serializeRegistryFetchError(error: RegistryFetchError): Record<string, 
     error: error.code,
     message: error.message,
     url: error.url,
+    // SECURITY: Do NOT include cachePath in error response — it leaks filesystem layout.
     ...(typeof error.status === 'number' ? { status: error.status } : {}),
-    ...(error.cachePath ? { cachePath: error.cachePath } : {}),
   };
 }
 
@@ -655,8 +655,8 @@ export class ExtensionManagementHandlers {
         const packageManager = await resolvePackageManager(projectDir);
         const installArgs =
           packageManager === 'pnpm'
-            ? ['--ignore-workspace', 'install', '--no-frozen-lockfile']
-            : ['install'];
+            ? ['--ignore-workspace', 'install', '--no-frozen-lockfile', '--ignore-scripts']
+            : ['install', '--ignore-scripts'];
 
         await execPackageManager(packageManager, installArgs, {
           cwd: projectDir,

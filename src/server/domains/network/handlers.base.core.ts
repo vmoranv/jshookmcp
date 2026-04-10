@@ -421,6 +421,30 @@ export class NetworkHandlersCore {
       }
       try {
         const re = new RegExp(urlRegex, 'i');
+        // SECURITY: Guard against ReDoS by testing with a time limit.
+        // If the first URL takes >100ms, the pattern is catastrophically backtracking.
+        if (requests.length > 0) {
+          const start = performance.now();
+          re.test(requests[0]!.url);
+          const elapsed = performance.now() - start;
+          if (elapsed > 100) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(
+                    {
+                      success: false,
+                      error: `urlRegex pattern is too expensive (${elapsed.toFixed(0)}ms on first URL). Use a simpler pattern.`,
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
+        }
         requests = requests.filter((req) => re.test(req.url));
       } catch {
         return {

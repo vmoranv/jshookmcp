@@ -8,7 +8,7 @@
  * all methods return actionable errors.
  */
 
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import type { Duplex, Readable } from 'node:stream';
 import type { ADBDevice, ADBForwardEntry, APKInfo, ADBShellResult, CDPTarget } from './types.js';
@@ -192,9 +192,14 @@ export class ADBConnector {
   async removeForward(serial: string, localPort: number): Promise<void> {
     if (!checkADBBinary()) adbUnavailableError();
 
-    // Use adb shell command to remove the forward
+    // Validate serial to prevent command injection
+    if (!/^[a-zA-Z0-9._:@-]+$/.test(serial)) {
+      throw new Error(`Invalid device serial format: ${serial}`);
+    }
+
+    // Use execFileSync with argument array to prevent shell injection
     try {
-      execSync(`adb -s ${serial} forward --remove tcp:${localPort}`, {
+      execFileSync('adb', ['-s', serial, 'forward', '--remove', `tcp:${localPort}`], {
         stdio: 'pipe',
         timeout: 5000,
       });

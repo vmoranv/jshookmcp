@@ -1,6 +1,5 @@
 import { readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
-import vm from 'node:vm';
 import type {
   DeobfuscateBundleModuleSummary,
   DeobfuscateBundleSummary,
@@ -243,13 +242,13 @@ export async function runWebcrack(
     // @ts-expect-error -- optional dependency that may fail to compile on Node 24+
     await import('isolated-vm');
   } catch {
+    // SECURITY: Do NOT fall back to node:vm — it is not a security boundary.
+    // Without isolated-vm, webcrack runs without a custom sandbox.
+    // Deobfuscation of untrusted code is not recommended in this mode.
     logger.warn(
-      'isolated-vm is unavailable (likely Node 24 incompatibility). Falling back to native node:vm for deobfuscation sandbox.',
+      'isolated-vm is unavailable (likely Node 24 incompatibility). ' +
+        'Deobfuscation sandbox is disabled — do not process untrusted code.',
     );
-    sandboxOption = async (evalCode: string) => {
-      const context = vm.createContext(Object.create(null));
-      return vm.runInContext(evalCode, context, { timeout: 8000 });
-    };
   }
 
   try {
@@ -271,6 +270,22 @@ export async function runWebcrack(
     let savedArtifacts: DeobfuscateSavedArtifact[] | undefined;
     if (typeof options.outputDir === 'string' && options.outputDir.trim().length > 0) {
       savedTo = path.resolve(options.outputDir);
+
+      // SECURITY: Ensure outputDir stays within cwd or a safe parent.
+      // Reject absolute paths outside the project and any path traversal.
+      const cwd = process.cwd();
+      const relFromCwd = path.relative(cwd, savedTo);
+      if (
+        path.isAbsolute(relFromCwd) ||
+        relFromCwd.startsWith('..') ||
+        savedTo === '/' ||
+        savedTo === path.parse(savedTo).root
+      ) {
+        throw new Error(
+          `outputDir must resolve to a path within the project root. Got: ${savedTo}`,
+        );
+      }
+
       if (options.forceOutput) {
         await rm(savedTo, { recursive: true, force: true });
       }

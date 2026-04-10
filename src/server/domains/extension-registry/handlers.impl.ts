@@ -317,6 +317,14 @@ export class ExtensionRegistryHandlers {
   }
 
   private async loadManifestFromRemoteUrl(url: string): Promise<RegisteredPluginManifest> {
+    // SECURITY: Validate remote URL before fetching
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') {
+      throw new Error(
+        `Extension URLs must use HTTPS. Got: ${parsed.protocol}`,
+      );
+    }
+
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(

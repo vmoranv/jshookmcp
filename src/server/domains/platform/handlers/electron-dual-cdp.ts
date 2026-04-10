@@ -97,9 +97,32 @@ export async function handleElectronLaunchDebug(
       });
     }
 
+    // SECURITY: Validate that exePath looks like an Electron binary.
+    // Reject arbitrary executables (python, bash, node, etc.)
+    const exeBaseName = exePath.split(/[\\/]/).pop()?.toLowerCase() ?? '';
+    const ELECTRON_EXE_PATTERNS = [
+      /^electron/i,
+      /\.app$/i,
+      /chrome/i,
+      /chromium/i,
+    ];
+    const isElectronBinary = ELECTRON_EXE_PATTERNS.some((p) => p.test(exeBaseName));
+    if (!isElectronBinary) {
+      return toTextResponse({
+        success: false,
+        tool: 'electron_launch_debug',
+        error: `exePath does not appear to be an Electron binary: ${exeBaseName}. Only Electron/Chromium executables are allowed.`,
+      });
+    }
+
     const mainPort = (args.mainPort as number | undefined) ?? 9229;
     const rendererPort = (args.rendererPort as number | undefined) ?? 9222;
-    const extraArgs = (args.args as string[] | undefined) ?? [];
+    const rawExtraArgs = (args.args as string[] | undefined) ?? [];
+    // SECURITY: Filter out dangerous flags that could enable arbitrary code execution
+    const BLOCKED_FLAGS = ['--require', '--loader', '--import', '-e', '--eval', '-p', '--print'];
+    const extraArgs = rawExtraArgs.filter(
+      (arg) => !BLOCKED_FLAGS.some((flag) => arg === flag || arg.startsWith(`${flag}=`)),
+    );
     const skipFuseCheck = (args.skipFuseCheck as boolean | undefined) === true;
     const waitMs = (args.waitMs as number | undefined) ?? 8000;
 

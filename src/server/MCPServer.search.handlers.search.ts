@@ -4,12 +4,9 @@
  * Includes BM25 search, domain auto-activation with TTL,
  * and nextActions guidance.
  */
-import { logger } from '@utils/logger';
 import { asTextResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
-import { SEARCH_AUTO_ACTIVATE_DOMAINS, ACTIVATION_TTL_MINUTES } from '@src/constants';
-import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';
 import { getSearchEngine, getActiveToolNames } from '@server/MCPServer.search.helpers';
 import { describeTool, generateExampleArgs } from '@server/ToolRouter';
 
@@ -24,50 +21,9 @@ export async function handleSearchTools(
   const activeNames = getActiveToolNames(ctx);
   let results = await engine.search(query, topK, activeNames);
 
-  // Domain auto-activation: activate domains of top inactive results
-  let autoActivatedDomains: string[] | null = null;
-
-  if (SEARCH_AUTO_ACTIVATE_DOMAINS && results.length > 0) {
-    // Collect domains of inactive results
-    const inactiveDomains = new Set<string>();
-    for (const result of results) {
-      if (!activeNames.has(result.name) && result.domain) {
-        inactiveDomains.add(result.domain);
-      }
-    }
-
-    // Filter out already-enabled domains
-    const domainsToActivate: string[] = [];
-    for (const domain of inactiveDomains) {
-      if (!ctx.enabledDomains.has(domain)) {
-        domainsToActivate.push(domain);
-      }
-    }
-
-    if (domainsToActivate.length > 0) {
-      autoActivatedDomains = [];
-      for (const domain of domainsToActivate) {
-        try {
-          await handleActivateDomain(ctx, {
-            domain,
-            ttlMinutes: ACTIVATION_TTL_MINUTES,
-          });
-          autoActivatedDomains.push(domain);
-          logger.info(
-            `[search-auto-activate] Activated domain "${domain}" with TTL=${ACTIVATION_TTL_MINUTES}min`,
-          );
-        } catch (error) {
-          logger.warn(`[search-auto-activate] Failed to activate domain "${domain}":`, error);
-        }
-      }
-
-      if (autoActivatedDomains.length > 0) {
-        // Re-search with updated active tools
-        const newActiveNames = getActiveToolNames(ctx);
-        results = await engine.search(query, topK, newActiveNames);
-      }
-    }
-  }
+  // SECURITY: Domain auto-activation is disabled for safety.
+  // Auto-activation bypassed tier guardrails and could escalate privileges.
+  // Users must explicitly activate domains via activate_domain.
 
   // Build nextActions for top result(s)
   const topResult = results[0];
@@ -121,13 +77,7 @@ export async function handleSearchTools(
       'Use activate_tools to enable specific tools, activate_domain for entire domains.',
   };
 
-  // Include auto-activation metadata
-  if (autoActivatedDomains && autoActivatedDomains.length > 0) {
-    response.autoActivatedDomains = autoActivatedDomains;
-    response.callToolHint =
-      'Tools were auto-activated but may not appear in your tool list. ' +
-      'Use call_tool({ name: "<tool_name>", args: {...} }) to invoke them directly.';
-  }
+  // Auto-activation metadata removed — feature disabled for security.
 
   return asTextResponse(JSON.stringify(response, null, 2));
 }
