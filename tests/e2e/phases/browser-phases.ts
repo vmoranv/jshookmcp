@@ -1,5 +1,8 @@
 import type { Phase } from '@tests/e2e/helpers/types';
 
+const DOM_FIXTURE_URL =
+  'data:text/html,<html><body><button id="e2e_click_target">E2E Click</button><input id="e2e_text_input" type="text" /><div id="e2e_hover_target" style="width:120px;height:32px">E2E Hover</div></body></html>';
+
 export const browserPhases: Phase[] = [
   {
     name: 'Browser Launch & Navigation',
@@ -14,10 +17,44 @@ export const browserPhases: Phase[] = [
   },
   {
     name: 'DOM & Page Interaction',
-    setup: [],
+    setup: async (call) => {
+      await call('page_navigate', {
+        url: DOM_FIXTURE_URL,
+        waitUntil: 'load',
+        timeout: 15000,
+      });
+      await call('page_evaluate', {
+        code: `
+        (() => {
+          if (!document.querySelector('#e2e_click_target')) {
+            const button = document.createElement('button');
+            button.id = 'e2e_click_target';
+            button.textContent = 'E2E Click';
+            document.body.appendChild(button);
+          }
+          if (!document.querySelector('#e2e_text_input')) {
+            const input = document.createElement('input');
+            input.id = 'e2e_text_input';
+            input.type = 'text';
+            input.value = '';
+            document.body.appendChild(input);
+          }
+          if (!document.querySelector('#e2e_hover_target')) {
+            const target = document.createElement('div');
+            target.id = 'e2e_hover_target';
+            target.textContent = 'E2E Hover';
+            target.style.width = '120px';
+            target.style.height = '32px';
+            document.body.appendChild(target);
+          }
+          return 'ok';
+        })()
+        `,
+      });
+      await call('save_page_snapshot', { label: 'e2e-dom-phase' });
+    },
     tools: [
       'trace_click_to_handler',
-      'restore_page_snapshot',
       'dom_query_selector',
       'dom_query_all',
       'dom_get_structure',
@@ -30,9 +67,9 @@ export const browserPhases: Phase[] = [
       'page_type',
       'page_hover',
       'page_scroll',
+      'page_reload',
       'page_back',
       'page_forward',
-      'page_reload',
       'page_press_key',
       'page_wait_for_selector',
       'page_evaluate',
@@ -45,7 +82,7 @@ export const browserPhases: Phase[] = [
   },
   {
     name: 'Cookies & Storage',
-    setup: [],
+    setup: ['page_navigate'],
     tools: [
       'page_get_cookies',
       'page_set_cookies',
@@ -58,15 +95,22 @@ export const browserPhases: Phase[] = [
   {
     name: 'Page Select (needs injected element)',
     setup: async (call) => {
+      await call('page_navigate', {
+        url: 'data:text/html,<html><body><select id="test_select_e2e"><option value="a">A</option><option value="b">B</option></select></body></html>',
+        waitUntil: 'load',
+        timeout: 15000,
+      });
       await call('page_evaluate', {
         code: `
-        if (!document.querySelector('#test_select_e2e')) {
-          const s = document.createElement('select');
-          s.id = 'test_select_e2e';
-          s.innerHTML = '<option value="a">A</option><option value="b">B</option>';
-          document.body.appendChild(s);
-        }
-        'ok'
+        (() => {
+          if (!document.querySelector('#test_select_e2e')) {
+            const s = document.createElement('select');
+            s.id = 'test_select_e2e';
+            s.innerHTML = '<option value="a">A</option><option value="b">B</option>';
+            document.body.appendChild(s);
+          }
+          return 'ok';
+        })()
       `,
       });
     },
@@ -91,9 +135,22 @@ export const browserPhases: Phase[] = [
   {
     name: 'Human Behavior Simulation',
     setup: async (call) => {
+      await call('page_navigate', {
+        url: DOM_FIXTURE_URL,
+        waitUntil: 'load',
+        timeout: 15000,
+      });
       // Inject an <input> element so human_typing has a real target
       await call('page_evaluate', {
         code: `
+        if (!document.querySelector('#e2e_hover_target')) {
+          const target = document.createElement('div');
+          target.id = 'e2e_hover_target';
+          target.textContent = 'E2E Hover';
+          target.style.width = '120px';
+          target.style.height = '32px';
+          document.body.appendChild(target);
+        }
         if (!document.querySelector('#e2e_human_input')) {
           const inp = document.createElement('input');
           inp.id = 'e2e_human_input';

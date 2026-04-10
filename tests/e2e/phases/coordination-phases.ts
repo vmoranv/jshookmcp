@@ -3,7 +3,7 @@ import type { Phase } from '@tests/e2e/helpers/types';
 export const coordinationPhases: Phase[] = [
   {
     name: 'Coordination Tasks',
-    group: 'compute',
+    group: 'compute-browser',
     setup: async () => {},
     tools: [
       'create_task_handoff',
@@ -12,6 +12,7 @@ export const coordinationPhases: Phase[] = [
       'complete_task_handoff',
       'save_page_snapshot',
       'list_page_snapshots',
+      'restore_page_snapshot',
     ],
   },
 ];

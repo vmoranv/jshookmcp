@@ -43,11 +43,11 @@ export const systemPhases: Phase[] = [
   },
   {
     name: 'Process',
-    group: 'compute',
+    group: 'compute-system',
     setup: async (call) => {
       // Find chrome/browser processes to get a real PID for process/memory tools
       await call('process_find', { pattern: 'chrome' });
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 50));
     },
     tools: [
       'process_list',
@@ -61,14 +61,15 @@ export const systemPhases: Phase[] = [
   },
   {
     name: 'Module Enumeration',
-    group: 'compute',
+    concurrent: true,
+    group: 'compute-system',
     setup: [],
     tools: ['check_debug_port', 'module_list', 'enumerate_modules'],
   },
   {
     name: 'Memory (read-only)',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-system',
     setup: [],
     tools: [
       'memory_list_regions',
@@ -83,14 +84,14 @@ export const systemPhases: Phase[] = [
   {
     name: 'Memory (write)',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-system',
     setup: [],
     tools: ['memory_write', 'memory_batch_write', 'memory_protect'],
   },
   {
     name: 'WASM',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: async (call) => {
       // Use local WASM fixture for deterministic testing
       await call(
@@ -113,7 +114,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Platform',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: [
       'asar_extract',
@@ -131,27 +132,27 @@ export const systemPhases: Phase[] = [
   {
     name: 'Miniapp',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: ['miniapp_pkg_scan', 'miniapp_pkg_unpack', 'miniapp_pkg_analyze'],
   },
   {
     name: 'Injection',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-system',
     setup: [],
     tools: ['inject_dll', 'module_inject_dll', 'inject_shellcode', 'module_inject_shellcode'],
   },
   {
     name: 'External Bridges',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: ['frida_bridge', 'jadx_bridge'],
   },
   {
     name: 'Trace & Time-Travel',
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: [
       'start_trace_recording',
@@ -165,35 +166,27 @@ export const systemPhases: Phase[] = [
   },
   {
     name: 'Sandbox Execution',
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: ['execute_sandbox_script'],
   },
   {
     name: 'Macro Orchestration',
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: ['run_macro', 'list_macros'],
   },
   {
     name: 'Search & Routing',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
-    tools: [
-      'search_tools',
-      'route_tool',
-      'describe_tool',
-      'activate_tools',
-      'deactivate_tools',
-      'activate_domain',
-      'call_tool',
-    ],
+    tools: ['search_tools', 'route_tool', 'describe_tool'],
   },
   {
     name: 'Cross-Domain Analysis',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-browser',
     setup: [],
     tools: [
       'cross_domain_capabilities',
@@ -207,7 +200,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Evidence',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-browser',
     setup: [],
     tools: [
       'evidence_query_url',
@@ -220,7 +213,7 @@ export const systemPhases: Phase[] = [
   },
   {
     name: 'State Board',
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: [
       'state_board_set',
@@ -238,7 +231,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'TLS & Crypto',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: [
       'tls_keylog_enable',
@@ -258,7 +251,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Network Raw',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: [
       'net_raw_tcp_send',
@@ -270,7 +263,7 @@ export const systemPhases: Phase[] = [
   },
   {
     name: 'Instrumentation Sessions',
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: [
       'instrumentation_session_create',
@@ -288,7 +281,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Memory Scanning (cheat-engine style)',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-system',
     setup: [],
     tools: [
       'memory_first_scan',
@@ -304,7 +297,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Memory Pointer Chains',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-system',
     setup: [],
     tools: [
       'memory_pointer_chain_scan',
@@ -316,7 +309,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Memory Structure Analysis',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-system',
     setup: [],
     tools: [
       'memory_structure_analyze',
@@ -328,7 +321,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Memory Patching',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-system',
     setup: [],
     tools: [
       'memory_patch_bytes',
@@ -346,7 +339,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Protocol Inference',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: [
       'proto_define_pattern',
@@ -360,7 +353,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Mojo IPC',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-browser',
     setup: [],
     tools: [
       'mojo_monitor_start',
@@ -373,8 +366,31 @@ export const systemPhases: Phase[] = [
   {
     name: 'V8 Inspector',
     concurrent: true,
-    group: 'compute',
-    setup: [],
+    group: 'compute-browser',
+    setup: async (call) => {
+      await call('page_navigate', {
+        url: 'data:text/html,<html><body><h1>jshook e2e</h1><script>window.__e2e=true;</script></body></html>',
+        waitUntil: 'load',
+        timeout: 15000,
+      });
+      await call(
+        'page_evaluate',
+        {
+          code: `(() => {
+            globalThis.__jshookV8E2E = {
+              tag: 'v8-e2e-node',
+              createdAt: Date.now(),
+              nested: { score: 42, active: true },
+            };
+            return true;
+          })()`,
+        },
+        15000,
+      );
+      await call('v8_heap_snapshot_capture', {}, 60000);
+      await new Promise((r) => setTimeout(r, 100));
+      await call('v8_heap_snapshot_capture', {}, 60000);
+    },
     tools: [
       'v8_heap_snapshot_capture',
       'v8_heap_snapshot_analyze',
@@ -390,7 +406,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Skia Canvas',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-browser',
     setup: [],
     tools: [
       'skia_detect_renderer',
@@ -404,7 +420,7 @@ export const systemPhases: Phase[] = [
   {
     name: 'Syscall Monitor',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-browser',
     setup: [],
     tools: [
       'syscall_start_monitor',
@@ -418,21 +434,21 @@ export const systemPhases: Phase[] = [
   {
     name: 'Webhook',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: ['webhook_create', 'webhook_list', 'webhook_delete', 'webhook_commands'],
   },
   {
     name: 'Stealth Advanced',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-browser',
     setup: [],
     tools: ['stealth_configure_jitter', 'stealth_generate_fingerprint', 'stealth_verify'],
   },
   {
     name: 'Extension Workflows',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-browser',
     setup: ['reload_extensions', 'list_extension_workflows'],
     tools: [
       'install_extension',

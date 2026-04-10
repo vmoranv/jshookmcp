@@ -16,6 +16,8 @@ export const monitorPhases: Phase[] = [
   },
   {
     name: 'Framework & Extension',
+    concurrent: true,
+    group: 'compute-browser',
     setup: [],
     tools: ['framework_state_extract', 'extension_list_installed'],
   },
@@ -24,17 +26,17 @@ export const monitorPhases: Phase[] = [
     setup: async (call) => {
       // Enable network monitoring first, then navigate so requests are actually captured
       await call('network_enable', {});
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 50));
       await call('console_inject_fetch_interceptor', { persistent: true });
       await call('console_inject_xhr_interceptor', { persistent: true });
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 50));
       // Navigate to capture real HTTP requests
       await call('page_navigate', {
         url: 'https://vmoranv.github.io/jshookmcp/',
         waitUntil: 'load',
         timeout: 15000,
       });
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 750));
     },
     tools: [
       'network_enable',
@@ -78,17 +80,13 @@ export const monitorPhases: Phase[] = [
     name: 'CPU Profiler (after coverage)',
     setup: async (call) => {
       await call('profiler_cpu_start', {});
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 100));
     },
     tools: ['profiler_cpu_start', 'profiler_cpu_stop'],
   },
   {
     name: 'Heap Profiler Stop',
-    setup: async (call) => {
-      // Start and stop in same phase to guarantee pairing — avoids double-start or never-started issues
-      await call('profiler_heap_sampling_start', {}, 5000);
-      await new Promise((r) => setTimeout(r, 500));
-    },
+    setup: [],
     tools: [
       'profiler_heap_sampling_start',
       'profiler_heap_sampling_stop',

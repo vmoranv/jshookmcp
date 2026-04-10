@@ -4,7 +4,7 @@ export const maintenancePhases: Phase[] = [
   {
     name: 'Maintenance & Cache',
     concurrent: true,
-    group: 'compute',
+    group: 'compute-core',
     setup: [],
     tools: [
       'get_token_budget_stats',
@@ -14,8 +14,6 @@ export const maintenancePhases: Phase[] = [
       'smart_cache_cleanup',
       'cleanup_artifacts',
       'doctor_environment',
-      'boost_profile',
-      'unboost_profile',
       'list_extensions',
       'reload_extensions',
       'browse_extension_registry',
