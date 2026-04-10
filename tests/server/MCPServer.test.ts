@@ -311,10 +311,12 @@ describe('MCPServer', () => {
 
     const template = sessionSnapshot.target as {
       listCallback?: () => Promise<{ resources: Array<{ uri: string }> }>;
-      completeCallbacks?: Record<string, () => Promise<string[]>>;
+      completeCallbacks?: {
+        sessionId?: (value: string) => Promise<string[]> | string[];
+      };
     };
     const listed = await template.listCallback?.();
-    const completed = await template.completeCallbacks?.sessionId?.();
+    const completed = await template.completeCallbacks?.sessionId?.('sess');
 
     expect(listed?.resources).toEqual([
       expect.objectContaining({ uri: 'jshook://instrumentation/session/sess-1' }),
