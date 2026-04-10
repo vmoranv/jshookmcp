@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { MCPTestClient } from '@tests/e2e/helpers/mcp-client';
 
 const TARGET_URL = process.env.E2E_TARGET_URL;
+const FIXTURE_URL =
+  'data:text/html,<html><body><h1>jshook e2e</h1><script>window.__e2e=true;</script></body></html>';
 
 describe.skipIf(!TARGET_URL)(
   'Cross-Domain Workflows E2E',
@@ -43,8 +45,8 @@ describe.skipIf(!TARGET_URL)(
       const navigate = await client.call(
         'page_navigate',
         {
-          url: process.env.E2E_TARGET_URL ?? '',
-          waitUntil: 'networkidle',
+          url: FIXTURE_URL,
+          waitUntil: 'load',
           enableNetworkMonitoring: true,
         },
         60_000,

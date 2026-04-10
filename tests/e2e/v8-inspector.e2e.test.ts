@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { MCPTestClient } from '@tests/e2e/helpers/mcp-client';
 
 const TARGET_URL = process.env.E2E_TARGET_URL;
+const FIXTURE_URL =
+  'data:text/html,<html><body><h1>jshook e2e</h1><script>window.__e2e=true;</script></body></html>';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -72,12 +74,9 @@ describe.skipIf(!TARGET_URL)('V8 Inspector E2E', { timeout: 180_000, sequential:
     const launch = await client.call('browser_launch', { headless: true }, 60_000);
     expect(launch.result.status).not.toBe('FAIL');
 
-    const targetUrl = process.env.E2E_TARGET_URL ?? '';
-    expect(targetUrl.length).toBeGreaterThan(0);
-
     const navigate = await client.call(
       'page_navigate',
-      { url: targetUrl, waitUntil: 'networkidle' },
+      { url: FIXTURE_URL, waitUntil: 'load' },
       60_000,
     );
     expect(navigate.result.status).not.toBe('FAIL');

@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { MCPTestClient } from '@tests/e2e/helpers/mcp-client';
 
 const TARGET_URL = process.env.E2E_TARGET_URL;
+const FIXTURE_URL =
+  'data:text/html,<html><body><h1>jshook e2e</h1><script>window.__e2e=true;</script></body></html>';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -42,7 +44,7 @@ describe.skipIf(!TARGET_URL)('Mojo IPC E2E', { timeout: 180_000, sequential: tru
 
     const navigate = await client.call(
       'page_navigate',
-      { url: process.env.E2E_TARGET_URL ?? '', waitUntil: 'networkidle' },
+      { url: FIXTURE_URL, waitUntil: 'load' },
       60_000,
     );
     expect(navigate.result.status).not.toBe('FAIL');
