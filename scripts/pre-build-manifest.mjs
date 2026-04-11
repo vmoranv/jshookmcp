@@ -138,8 +138,8 @@ function buildSummary(domains, packageVersion) {
   };
 }
 
-function buildDescription(summary) {
-  return `MCP server with ${summary.totalTools} built-in tools across ${summary.domainCount} domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration`;
+function buildDescription() {
+  return `MCP server with built-in tools across multiple domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration`;
 }
 
 function buildReadmeMetadataBlock(summary) {
@@ -147,8 +147,6 @@ function buildReadmeMetadataBlock(summary) {
   return [
     README_SYNC_START,
     `- Package version: \`${summary.packageVersion}\``,
-    `- Built-in domains: \`${summary.domainCount}\``,
-    `- Built-in tools: \`${summary.totalTools}\``,
     `- Domains: ${domainList}`,
     '- Note: counts are generated from domain manifests on the current build platform; platform-filtered tools can change the total.',
     README_SYNC_END,
@@ -181,11 +179,11 @@ async function syncProjectMetadata(summary) {
   const readmePath = join(projectRoot, 'README.md');
 
   const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'));
-  packageJson.description = buildDescription(summary);
+  packageJson.description = buildDescription();
   await writeJson(packageJsonPath, packageJson);
 
   const serverJson = JSON.parse(await readFile(serverJsonPath, 'utf-8'));
-  serverJson.description = buildDescription(summary);
+  serverJson.description = buildDescription();
   serverJson.version = summary.packageVersion;
   serverJson.packages = Array.isArray(serverJson.packages) ? serverJson.packages : [];
 
