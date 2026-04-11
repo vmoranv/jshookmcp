@@ -99,6 +99,7 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
 
 const LEGACY_EXPECTED_LIMITATION_PATTERNS = [
   'GRACEFUL:',
+  '[PREREQUISITE]',
   'timed out',
   'Timeout',
   'Protocol error',
