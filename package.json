@@ -155,10 +155,10 @@
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "overrides": {
-      "hono": "4.12.7",
-      "@hono/node-server": "1.19.11",
+      "hono": "4.12.12",
+      "@hono/node-server": "1.19.13",
       "express-rate-limit": "8.3.0",
-      "basic-ftp": "5.2.1",
+      "basic-ftp": "5.2.2",
       "brace-expansion": "5.0.5",
       "minimatch": "10.2.4",
       "esbuild": "0.27.3",
@@ -166,7 +166,8 @@
       "flatted": ">=3.4.2",
       "path-to-regexp": "8.4.0",
       "picomatch@^2.0.0": "2.3.2",
-      "picomatch@^4.0.0": "4.0.4"
+      "picomatch@^4.0.0": "4.0.4",
+      "vitepress>vite": "$vite"
     },
     "onlyBuiltDependencies": [
       "better-sqlite3",
