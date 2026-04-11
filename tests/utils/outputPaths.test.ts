@@ -5,6 +5,11 @@ import {
   getProjectRoot,
   resolveOutputDirectory,
   resolveScreenshotOutputPath,
+  getSystemTempRoots,
+  getDebuggerSessionsDir,
+  getExtensionRegistryDir,
+  getCodeCacheDir,
+  getTlsKeyLogDir,
 } from '@utils/outputPaths';
 
 vi.mock('node:fs/promises', async (importOriginal) => {
@@ -99,5 +104,18 @@ describe('outputPaths', () => {
     expect(out.pathRewritten).toBe(true);
     expect(out.absolutePath.endsWith('hack.png')).toBe(true);
     expect(out.absolutePath).toContain(join('screenshots', 'test-vitest', 'hack.png'));
+  });
+
+  it('gets temp roots', () => {
+    const roots = getSystemTempRoots();
+    expect(Array.isArray(roots)).toBe(true);
+    expect(roots.length).toBeGreaterThan(0);
+  });
+
+  it('gets config dirs', () => {
+    expect(typeof getDebuggerSessionsDir()).toBe('string');
+    expect(typeof getExtensionRegistryDir()).toBe('string');
+    expect(typeof getCodeCacheDir()).toBe('string');
+    expect(typeof getTlsKeyLogDir()).toBe('string');
   });
 });
