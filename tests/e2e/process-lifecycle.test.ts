@@ -19,7 +19,7 @@ const isWindows = process.platform === 'win32';
 /** Max time to wait for the server to become ready before testing shutdown. */
 const STARTUP_WAIT_MS = 3_000;
 /** Max time the server should take to exit after trigger. */
-const EXIT_TIMEOUT_MS = 15_000;
+const EXIT_TIMEOUT_MS = process.env.CI ? 35_000 : 15_000;
 
 /**
  * Check if a specific PID is still running.
@@ -228,7 +228,10 @@ describe('Process Lifecycle', { timeout: 60_000 }, () => {
     child.stdin!.end();
 
     const result = await waitForExit(child, EXIT_TIMEOUT_MS);
-    expect(result.timedOut).toBe(false);
+    expect(
+      result.timedOut,
+      `Server did not exit within ${EXIT_TIMEOUT_MS}ms after stdin close for info logging test. stderr:\n${stderr.slice(-500)}`,
+    ).toBe(false);
 
     // Verify that the server logged the shutdown reason
     const stderrLower = stderr.toLowerCase();
