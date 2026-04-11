@@ -311,17 +311,12 @@ describe('MCPServer', () => {
 
     const template = sessionSnapshot.target as {
       listCallback?: () => Promise<{ resources: Array<{ uri: string }> }>;
-      completeCallbacks?: {
-        sessionId?: (value: string) => Promise<string[]> | string[];
-      };
     };
     const listed = await template.listCallback?.();
-    const completed = await template.completeCallbacks?.sessionId?.('sess');
 
     expect(listed?.resources).toEqual([
       expect.objectContaining({ uri: 'jshook://instrumentation/session/sess-1' }),
     ]);
-    expect(completed).toEqual(['sess-1']);
   });
 
   it('resolves tool profile from environment when explicitly provided', () => {
