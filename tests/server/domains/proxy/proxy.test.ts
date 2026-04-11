@@ -66,4 +66,18 @@ describe('ProxyHandlers (Integration)', () => {
     const logsRes: any = await handlers.handleProxyGetRequests({});
     expect(Array.isArray(parseResponse(logsRes).logs)).toBe(true);
   });
+
+  it('should clear cached request logs', async () => {
+    const res = await handlers.handleProxyClearLogs({});
+    expect(parseResponse(res).success).toBe(true);
+  });
+
+  it('should outline adb device configuration commands', async () => {
+    // Requires a mocked or offline fallback, but we are just executing the function and expecting string generation
+    const res = await handlers.handleProxySetupAdbDevice({ deviceId: 'test-device' });
+    const data = parseResponse(res);
+    expect(data.success).toBe(true);
+    expect(typeof data.instructions).toBe('string');
+    expect(data.instructions).toContain('adb reverse');
+  });
 });
