@@ -77,7 +77,7 @@ describe('outputPaths', () => {
     expect(out.pathRewritten).toBe(true);
   });
 
-  it('honors absolute requested path directly without rewriting', async () => {
+  it('rewrites absolute requested paths to safe directory for security', async () => {
     const out = await resolveScreenshotOutputPath({
       requestedPath: 'C:/tmp/screenshots/test-output.jpeg',
       type: 'jpeg',
@@ -85,7 +85,7 @@ describe('outputPaths', () => {
     });
 
     expect(out.absolutePath).toContain('test-output.jpeg');
-    expect(out.pathRewritten).toBe(false);
+    expect(out.pathRewritten).toBe(true);
   });
 
   it('adds default extension when missing', async () => {
