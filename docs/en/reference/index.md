@@ -36,6 +36,7 @@ The following tool domains are available:
 | `platform` | Platform | full | Platform and package analysis domain covering miniapps, ASAR archives, and Electron apps. |
 | `process` | Process | full | Process, module, memory diagnostics, and controlled injection domain for host-level inspection, troubleshooting, and Windows process experimentation workflows. |
 | `protocol-analysis` | Protocol Analysis | workflow, full | Custom protocol analysis domain supporting protocol pattern definition, automatic field detection from hex payloads, state machine inference from captured messages, and Mermaid diagram visualization. |
+| `proxy` | Proxy | workflow, full | Full-stack HTTP/HTTPS MITM proxy domain for system-level traffic interception, modification, and application configuration. |
 | `sandbox` | Sandbox | full | WASM-isolated QuickJS sandbox domain for secure custom script execution with MCP tool access. |
 | `shared-state-board` | Shared State Board | workflow, full | Cross-agent state synchronization domain providing a global shared state board for multi-agent collaboration. |
 | `skia-capture` | Skia Capture | workflow, full | Skia rendering engine capture domain for UI rendering analysis and visualization. |

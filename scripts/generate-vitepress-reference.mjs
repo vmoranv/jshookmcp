@@ -535,6 +535,21 @@ const META = {
     ],
     enCombos: ['cross-domain + evidence', 'cross-domain + v8-inspector + skia-capture'],
   },
+  proxy: {
+    zhTitle: 'Proxy',
+    zhSummary: '全栈 HTTP/HTTPS 中间人代理域，提供系统级的流量拦截、篡改与应用级挂载配置。',
+    zhScenarios: ['全局 HTTP/HTTPS 抓包', '接口 Mock 与转发', 'Android 辅助挂载'],
+    zhCombos: ['proxy + network', 'proxy + adb-bridge'],
+    enTitle: 'Proxy',
+    enSummary:
+      'Full-stack HTTP/HTTPS MITM proxy domain for system-level traffic interception, modification, and application configuration.',
+    enScenarios: [
+      'Global HTTP/HTTPS capture',
+      'API Mocking and forwarding',
+      'Android assisted mounting',
+    ],
+    enCombos: ['proxy + network', 'proxy + adb-bridge'],
+  },
 };
 
 async function main() {

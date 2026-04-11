@@ -36,6 +36,7 @@
 | `platform` | Platform | full | 宿主平台与包格式分析域，覆盖 miniapp、asar、Electron。 |
 | `process` | Process | full | 进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。 |
 | `protocol-analysis` | Protocol Analysis | workflow, full | 自定义协议分析域，支持协议模式定义、自动字段检测、状态机推断和可视化。 |
+| `proxy` | Proxy | workflow, full | 全栈 HTTP/HTTPS 中间人代理域，提供系统级的流量拦截、篡改与应用级挂载配置。 |
 | `sandbox` | Sandbox | full | 基于 QuickJS WASM 的安全沙箱域，支持执行自定义脚本并调用 MCP 工具。 |
 | `shared-state-board` | Shared State Board | workflow, full | 跨 Agent 状态同步域，提供全局共享的状态板用于多 Agent 协作。 |
 | `skia-capture` | Skia Capture | workflow, full | Skia 渲染引擎捕获域，用于 UI 渲染分析和可视化。 |
