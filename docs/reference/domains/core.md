@@ -51,4 +51,4 @@
 | `get_collection_stats` | 获取采集、缓存和压缩相关统计信息。 |
 | `webpack_enumerate` | 枚举当前页面中的全部 Webpack 模块，并可按关键词搜索。 |
 | `source_map_extract` | 查找并解析 JavaScript Source Map，以恢复原始源码。 |
-| `llm_suggest_names` | 待补充中文：Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated identifiers. Requires the connected client to support sampling/createMessage. Returns null suggestions gracefully if sampling is unavailable. |
+| `llm_suggest_names` | 使用客户端 LLM（通过 MCP 采样机制）为混淆的标识符建议有意义的名称。需要连接的客户端支持 sampling/createMessage 能力。如果客户端不支持采样能力，将优雅地返回无效的建议。 |

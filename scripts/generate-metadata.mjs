@@ -93,8 +93,8 @@ export async function loadRegistrySummary() {
   };
 }
 
-export function buildDescription(summary) {
-  return `MCP server with ${summary.toolCount} built-in tools across ${summary.domainCount} domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration`;
+export function buildDescription() {
+  return `MCP server with built-in tools across multiple domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration`;
 }
 
 function buildMetadataBlock(summary, language) {
@@ -102,8 +102,6 @@ function buildMetadataBlock(summary, language) {
     return [
       README_SYNC_START,
       `- 包版本：\`${summary.packageVersion}\``,
-      `- 内置工具域：\`${summary.domainCount}\``,
-      `- 内置工具数：\`${summary.toolCount}\``,
       `- 域列表：${summary.domains.map((domain) => `\`${domain}\``).join(', ')}`,
       '- 说明：以上数据由运行时 registry 动态生成，不要手改计数。',
       README_SYNC_END,
@@ -113,8 +111,6 @@ function buildMetadataBlock(summary, language) {
   return [
     README_SYNC_START,
     `- Package version: \`${summary.packageVersion}\``,
-    `- Built-in domains: \`${summary.domainCount}\``,
-    `- Built-in tools: \`${summary.toolCount}\``,
     `- Domains: ${summary.domains.map((domain) => `\`${domain}\``).join(', ')}`,
     '- Note: this snapshot is generated from the runtime registry; do not edit the counts by hand.',
     README_SYNC_END,
@@ -186,10 +182,10 @@ function updateChineseReadme(readme, summary) {
   return `${next.trimEnd()}\n`;
 }
 
-function updatePackageJson(packageJson, summary) {
+function updatePackageJson(packageJson) {
   const next = {
     ...packageJson,
-    description: buildDescription(summary),
+    description: buildDescription(),
     scripts: {
       ...packageJson.scripts,
     },
@@ -204,7 +200,7 @@ function updatePackageJson(packageJson, summary) {
   return next;
 }
 
-function updateServerJson(serverJson, packageJson, summary) {
+function updateServerJson(serverJson, packageJson) {
   const packages = Array.isArray(serverJson.packages)
     ? serverJson.packages.map((entry) => ({ ...entry }))
     : [];
@@ -223,7 +219,7 @@ function updateServerJson(serverJson, packageJson, summary) {
   return {
     ...serverJson,
     name: packageJson.mcpName ?? serverJson.name,
-    description: buildDescription(summary),
+    description: buildDescription(),
     version: packageJson.version,
     packages,
   };
@@ -236,8 +232,8 @@ export async function computeMetadataState() {
   const readme = await readText(readmePath);
   const readmeZh = await readText(readmeZhPath);
 
-  const expectedPackageJson = updatePackageJson(packageJson, summary);
-  const expectedServerJson = updateServerJson(serverJson, expectedPackageJson, summary);
+  const expectedPackageJson = updatePackageJson(packageJson);
+  const expectedServerJson = updateServerJson(serverJson, expectedPackageJson);
   const expectedReadme = updateEnglishReadme(readme, summary);
   const expectedReadmeZh = updateChineseReadme(readmeZh, summary);
 

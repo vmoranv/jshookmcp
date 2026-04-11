@@ -907,15 +907,13 @@ function assertZhCoverage(manifests, zhToolDescriptions) {
     );
   }
 }
-
 function renderOverview(manifests, locale, workflowPresets) {
-  const totalTools = manifests.reduce((sum, manifest) => sum + manifest.tools.length, 0);
   const rows = manifests
     .map((manifest) => {
       const meta = getDomainMeta(manifest.domain);
       const title = locale === 'zh' ? meta.zhTitle : meta.enTitle;
       const summary = locale === 'zh' ? meta.zhSummary : meta.enSummary;
-      return `| \`${manifest.domain}\` | ${title} | ${manifest.tools.length} | ${manifest.profiles.join(', ')} | ${summary} |`;
+      return `| \`${manifest.domain}\` | ${title} | ${manifest.profiles.join(', ')} | ${summary} |`;
     })
     .join('\n');
   const externalPresetIds = workflowPresets
@@ -944,7 +942,7 @@ The repository-level \`workflows/*/workflow.js\` tree contributes **${workflowPr
   if (locale === 'zh') {
     return `# Reference Overview
 
-当前内置域共 **${manifests.length}** 个，域工具总数 **${totalTools}**。
+当前包含以下工具域：
 
 ## 推荐阅读路径
 
@@ -954,8 +952,8 @@ The repository-level \`workflows/*/workflow.js\` tree contributes **${workflowPr
 
 ## 域矩阵
 
-| 域 | 标题 | 工具数 | 适用 profile | 典型场景 |
-| --- | --- | ---: | --- | --- |
+| 域 | 标题 | 适用 profile | 典型场景 |
+| --- | --- | --- | --- |
 ${rows}
 
 ## 重点高层入口
@@ -971,7 +969,7 @@ ${externalPresetSection}`;
 
   return `# Reference Overview
 
-There are **${manifests.length}** built-in domains and **${totalTools}** domain tools in the current build.
+The following tool domains are available:
 
 ## Recommended reading order
 
@@ -981,8 +979,8 @@ There are **${manifests.length}** built-in domains and **${totalTools}** domain 
 
 ## Domain matrix
 
-| Domain | Title | Tool count | Profiles | Typical use |
-| --- | --- | ---: | --- | --- |
+| Domain | Title | Profiles | Typical use |
+| --- | --- | --- | --- |
 ${rows}
 
 ## Key high-level entry points
