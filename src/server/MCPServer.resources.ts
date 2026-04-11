@@ -101,14 +101,6 @@ export function registerServerResources(ctx: MCPServerContext): void {
         })),
       };
     },
-    complete: {
-      sessionId: async (value: string) => {
-        const manager = getSessionManager(ctx);
-        return (manager?.listSessions() ?? [])
-          .map((session) => session.id)
-          .filter((sessionId) => sessionId.startsWith(value));
-      },
-    },
   });
 
   ctx.server.registerResource(
