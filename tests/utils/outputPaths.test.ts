@@ -78,13 +78,14 @@ describe('outputPaths', () => {
   });
 
   it('rewrites absolute requested paths to safe directory for security', async () => {
+    const maliciousAbsolutePath = join(projectRoot, '../../system_files/external-test-output.jpeg');
     const out = await resolveScreenshotOutputPath({
-      requestedPath: 'C:/tmp/screenshots/test-output.jpeg',
+      requestedPath: maliciousAbsolutePath,
       type: 'jpeg',
       fallbackDir: 'screenshots/test-vitest',
     });
 
-    expect(out.absolutePath).toContain('test-output.jpeg');
+    expect(out.absolutePath).toContain('external-test-output.jpeg');
     expect(out.pathRewritten).toBe(true);
   });
 
