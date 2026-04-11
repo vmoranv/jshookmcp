@@ -166,6 +166,7 @@ export interface DomainInstances {
     | import('@server/domains/instrumentation/index').InstrumentationHandlers
     | undefined;
   sharedStateBoardHandlers?: import('@server/domains/shared-state-board/index').SharedStateBoardHandlers;
+  proxyHandlers?: import('@server/domains/proxy/index').ProxyHandlers;
 }
 
 /** Methods exposed by the server context for cross-module use. */

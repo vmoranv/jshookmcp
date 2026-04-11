@@ -25,17 +25,18 @@ import manifest_20 from '../domains/network/manifest.js';
 import manifest_21 from '../domains/platform/manifest.js';
 import manifest_22 from '../domains/process/manifest.js';
 import manifest_23 from '../domains/protocol-analysis/manifest.js';
-import manifest_24 from '../domains/sandbox/manifest.js';
-import manifest_25 from '../domains/shared-state-board/manifest.js';
-import manifest_26 from '../domains/skia-capture/manifest.js';
-import manifest_27 from '../domains/sourcemap/manifest.js';
-import manifest_28 from '../domains/streaming/manifest.js';
-import manifest_29 from '../domains/syscall-hook/manifest.js';
-import manifest_30 from '../domains/trace/manifest.js';
-import manifest_31 from '../domains/transform/manifest.js';
-import manifest_32 from '../domains/v8-inspector/manifest.js';
-import manifest_33 from '../domains/wasm/manifest.js';
-import manifest_34 from '../domains/workflow/manifest.js';
+import manifest_24 from '../domains/proxy/manifest.js';
+import manifest_25 from '../domains/sandbox/manifest.js';
+import manifest_26 from '../domains/shared-state-board/manifest.js';
+import manifest_27 from '../domains/skia-capture/manifest.js';
+import manifest_28 from '../domains/sourcemap/manifest.js';
+import manifest_29 from '../domains/streaming/manifest.js';
+import manifest_30 from '../domains/syscall-hook/manifest.js';
+import manifest_31 from '../domains/trace/manifest.js';
+import manifest_32 from '../domains/transform/manifest.js';
+import manifest_33 from '../domains/v8-inspector/manifest.js';
+import manifest_34 from '../domains/wasm/manifest.js';
+import manifest_35 from '../domains/workflow/manifest.js';
 
 export const generatedManifests = [
   manifest_0,
@@ -73,4 +74,5 @@ export const generatedManifests = [
   manifest_32,
   manifest_33,
   manifest_34,
+  manifest_35,
 ];
