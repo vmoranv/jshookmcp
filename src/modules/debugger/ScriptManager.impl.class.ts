@@ -326,7 +326,18 @@ export class ScriptManager {
           const startLine = Math.max(0, i - contextLines);
           const endLine = Math.min(lines.length - 1, i + contextLines);
           const contextArray = lines.slice(startLine, endLine + 1);
-          const context = contextArray.join('\n');
+          let context = contextArray.join('\n');
+
+          if (context.length > 2000) {
+            const matchIndex = match.index || 0;
+            // On a huge single-line bundle, extract a safe window around the match
+            const snippetStart = Math.max(0, matchIndex - 100);
+            const snippetEnd = Math.min(line.length, matchIndex + 100);
+            context =
+              (snippetStart > 0 ? '...' : '') +
+              line.substring(snippetStart, snippetEnd) +
+              (snippetEnd < line.length ? '...' : '');
+          }
 
           matches.push({
             scriptId: script.scriptId,
@@ -430,7 +441,17 @@ export class ScriptManager {
 
         const startLine = Math.max(0, i - 3);
         const endLine = Math.min(lines.length - 1, i + 3);
-        const context = lines.slice(startLine, endLine + 1).join('\n');
+        let context = lines.slice(startLine, endLine + 1).join('\n');
+
+        if (context.length > 1000) {
+          const matchIndex = match.index || 0;
+          const snippetStart = Math.max(0, matchIndex - 50);
+          const snippetEnd = Math.min(line.length, matchIndex + 50);
+          context =
+            (snippetStart > 0 ? '...' : '') +
+            line.substring(snippetStart, snippetEnd) +
+            (snippetEnd < line.length ? '...' : '');
+        }
 
         const entry: KeywordIndexEntry = {
           scriptId,
