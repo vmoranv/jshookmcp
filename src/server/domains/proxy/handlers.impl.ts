@@ -183,21 +183,49 @@ export class ProxyHandlers {
     return ResponseBuilder.success({ message: 'Captured proxy logs cleared.' });
   }
 
-  async handleProxySetupAdbDevice(_args: Record<string, unknown>) {
-    const port = this.currentPort || 8080;
+  async handleProxySetupAdbDevice(args: Record<string, unknown>) {
+    const port = this.currentPort;
+    if (!port) {
+      return ResponseBuilder.error(
+        'Proxy must be running locally to setup ADB device reverse tethering.',
+      );
+    }
     const certPath = path.join(this.caPathDir, 'ca.pem');
+    if (!fs.existsSync(certPath)) {
+      return ResponseBuilder.error(
+        'CA certificate not found. Start the proxy with HTTPS enabled first.',
+      );
+    }
 
-    const instructions = [
-      `To configure ADB manually for this proxy, run the following:`,
-      `1. Push CA cert: adb push "${certPath}" /data/local/tmp/ca.pem`,
-      `2. (Optional) Install CA as system cert (requires root).`,
-      `3. Reverse tether port: adb reverse tcp:${port} tcp:${port}`,
-      `4. Set global proxy: adb shell settings put global http_proxy 127.0.0.1:${port}`,
-    ].join('\n');
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
 
-    return ResponseBuilder.success({
-      message: 'ADB setup instructions generated',
-      instructions,
-    });
+    const deviceSerial = argString(args, 'deviceSerial');
+    const deviceFlag = deviceSerial ? `-s ${deviceSerial}` : '';
+
+    try {
+      // 1. Verify adb is available
+      await execAsync(`adb ${deviceFlag} get-state`);
+
+      // 2. Push CA Certificate
+      await execAsync(`adb ${deviceFlag} push "${certPath}" /data/local/tmp/ca.pem`);
+
+      // 3. Reverse tether port so device can reach localhost proxy
+      await execAsync(`adb ${deviceFlag} reverse tcp:${port} tcp:${port}`);
+
+      // 4. Set global HTTP proxy on the device
+      await execAsync(`adb ${deviceFlag} shell settings put global http_proxy 127.0.0.1:${port}`);
+
+      const instructions = `ADB Configuration Applied Automatically:\n- Verified device connection.\n- Pushed CA to /data/local/tmp/ca.pem\n- Reversed forwarded tcp:${port} -> tcp:${port}\n- Set global http_proxy to 127.0.0.1:${port}\n\nNote: For HTTPS decryption, you still need to manually install the CA cert from /data/local/tmp/ca.pem in Android Settings (due to security restrictions) unless device is rooted.`;
+
+      return ResponseBuilder.success({
+        message: 'ADB device successfully configured.',
+        deviceId: deviceSerial || 'default',
+        instructions,
+      });
+    } catch (e: any) {
+      return ResponseBuilder.error(`Failed to configure ADB device: ${e.message}`);
+    }
   }
 }
