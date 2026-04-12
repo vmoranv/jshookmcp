@@ -1,5 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as child_process from 'child_process';
 import { ProxyHandlers } from '@server/domains/proxy/index';
+
+vi.mock('child_process', () => {
+  return {
+    exec: vi.fn((_cmd: any, cb: any) => {
+      // simulate success
+      cb(null, { stdout: 'success', stderr: '' });
+    }),
+  };
+});
 
 function parseResponse(res: any) {
   if (res.isError) throw new Error('Response is an error: ' + JSON.stringify(res, null, 2));
@@ -12,6 +22,7 @@ describe('ProxyHandlers (Integration)', () => {
 
   beforeEach(() => {
     handlers = new ProxyHandlers();
+    vi.clearAllMocks();
   });
 
   afterEach(async () => {
@@ -48,9 +59,20 @@ describe('ProxyHandlers (Integration)', () => {
     expect(parseResponse(exportRes).content).toContain('BEGIN CERTIFICATE');
   });
 
+  it('should generate an error if exporting CA without HTTPS enabled', async () => {
+    // Fresh proxy handler without HTTPS
+    const tempHandler = new ProxyHandlers();
+    await tempHandler.handleProxyStart({ port: testPort + 5, useHttps: false });
+    const exportRes: any = await tempHandler.handleProxyExportCa({});
+    expect(exportRes.isError).toBe(true);
+    expect(exportRes.content[0].text).toContain('CA certificate not found');
+    await tempHandler.handleProxyStop({});
+  });
+
   it('should buffer requests properly', async () => {
     await handlers.handleProxyStart({ port: testPort + 2, useHttps: false });
 
+    // Test trying to add rule without server (will fail in unit test if handlers not started, but here it is started)
     const ruleRes: any = await handlers.handleProxyAddRule({
       action: 'mock_response',
       method: 'GET',
@@ -72,12 +94,38 @@ describe('ProxyHandlers (Integration)', () => {
     expect(parseResponse(res).success).toBe(true);
   });
 
-  it('should outline adb device configuration commands', async () => {
-    // Requires a mocked or offline fallback, but we are just executing the function and expecting string generation
-    const res = await handlers.handleProxySetupAdbDevice({ deviceId: 'test-device' });
-    const data = parseResponse(res);
-    expect(data.success).toBe(true);
-    expect(typeof data.instructions).toBe('string');
-    expect(data.instructions).toContain('adb reverse');
+  it('should successfully fully execute adb device configuration with mocked execution', async () => {
+    // Start proxy first so port is assigned and useHttps to generate cert
+    await handlers.handleProxyStart({ port: testPort + 3, useHttps: true });
+
+    const res = await handlers.handleProxySetupAdbDevice({ deviceSerial: 'test-device' });
+
+    expect(res.isError).toBeFalsy();
+    if (!res.isError) {
+      const data = parseResponse(res);
+      expect(data.success).toBe(true);
+      expect(data.instructions).toContain('Reversed forwarded tcp:');
+      expect(data.deviceId).toBe('test-device');
+    }
+
+    // Stop proxy to prevent conflict
+    await handlers.handleProxyStop({});
+  });
+
+  it('should correctly handle adb device configuration failures', async () => {
+    vi.mocked(child_process.exec as any).mockImplementationOnce((_cmd: any, cb: any) => {
+      if (typeof cb === 'function') {
+        cb(new Error('adb command failed'), { stdout: '', stderr: 'error' });
+      }
+      return {} as any;
+    });
+
+    await handlers.handleProxyStart({ port: testPort + 4, useHttps: true });
+
+    const res: any = await handlers.handleProxySetupAdbDevice({ deviceSerial: 'test-device' });
+    expect(res.isError).toBe(true);
+    expect(res.content[0].text).toContain('Failed to configure ADB device:');
+
+    await handlers.handleProxyStop({});
   });
 });
