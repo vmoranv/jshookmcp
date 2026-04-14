@@ -431,5 +431,9 @@
   "proxy_add_rule": "向代理中添加一个新的拦截、转发或 Mock 规则。",
   "proxy_get_requests": "检索代理缓冲池中已捕获的 HTTP/HTTPS 请求。支持按照 URL 过滤。",
   "proxy_clear_logs": "清空已捕获的 HTTP/HTTPS 请求缓冲池。",
-  "proxy_setup_adb_device": "通过 ADB 配置 Android 设备流量路由并辅助注入 CA 证书。"
+  "proxy_setup_adb_device": "通过 ADB 配置 Android 设备流量路由并辅助注入 CA 证书。",
+  "browser_list_cdp_targets": "待补充中文：List all CDP targets visible from the connected browser target.",
+  "browser_attach_cdp_target": "待补充中文：Attach to a specific CDP target by targetId.",
+  "browser_detach_cdp_target": "待补充中文：Detach the currently attached low-level CDP target session and return network/hooks to normal page-based binding.",
+  "browser_evaluate_cdp_target": "待补充中文：Evaluate JavaScript inside the currently attached CDP target session."
 }

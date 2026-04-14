@@ -26,22 +26,26 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 - `get_detailed_data` —  Retrieve detailed data using detailId token.
 - `browser_attach` — Attach to an existing browser instance via Chrome DevTools Protocol (CDP).
 - `browser_list_tabs` — List all open tabs/pages in the connected browser.
+- `browser_list_cdp_targets` — List all CDP targets visible from the connected browser target.
 - `browser_select_tab` — Switch the active tab/page by index or URL/title pattern.
+- `browser_attach_cdp_target` — Attach to a specific CDP target by targetId.
+- `browser_detach_cdp_target` — Detach the currently attached low-level CDP target session and return network/hooks to normal page-based binding.
+- `browser_evaluate_cdp_target` — Evaluate JavaScript inside the currently attached CDP target session.
 - `browser_launch` — Launch browser instance.
 - `browser_close` — Close browser instance
-- `browser_status` — Get browser status (running, pages count, version)
-- `page_navigate` — Navigate to a URL
-- `page_reload` — Reload current page
-- `page_back` — Navigate back in history
 
-## Full tool list (63)
+## Full tool list (67)
 
 | Tool | Description |
 | --- | --- |
 | `get_detailed_data` |  Retrieve detailed data using detailId token. |
 | `browser_attach` | Attach to an existing browser instance via Chrome DevTools Protocol (CDP). |
 | `browser_list_tabs` | List all open tabs/pages in the connected browser. |
+| `browser_list_cdp_targets` | List all CDP targets visible from the connected browser target. |
 | `browser_select_tab` | Switch the active tab/page by index or URL/title pattern. |
+| `browser_attach_cdp_target` | Attach to a specific CDP target by targetId. |
+| `browser_detach_cdp_target` | Detach the currently attached low-level CDP target session and return network/hooks to normal page-based binding. |
+| `browser_evaluate_cdp_target` | Evaluate JavaScript inside the currently attached CDP target session. |
 | `browser_launch` | Launch browser instance. |
 | `browser_close` | Close browser instance |
 | `browser_status` | Get browser status (running, pages count, version) |
