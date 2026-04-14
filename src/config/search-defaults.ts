@@ -133,7 +133,8 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       '(?:端到端闭环|全链路闭环|一键闭环|api(?:[_\\s-]*)capture(?:[_\\s-]*)session|web_api_capture_session|抓取接口|抓包流程)',
     flags: 'i',
     boosts: [
-      { tool: 'web_api_capture_session', bonus: 26 },
+      { tool: 'run_extension_workflow', bonus: 40 },
+      { tool: 'list_extension_workflows', bonus: 24 },
       { tool: 'api_probe_batch', bonus: 18 },
       { tool: 'network_extract_auth', bonus: 10 },
       { tool: 'network_export_har', bonus: 8 },
@@ -175,7 +176,6 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
     boosts: [
       { tool: 'run_extension_workflow', bonus: 26 },
       { tool: 'list_extension_workflows', bonus: 16 },
-      { tool: 'web_api_capture_session', bonus: 8 },
     ],
   },
   {
@@ -183,7 +183,8 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       '(?=.*(?:抓包|抓取|捕获|capture|sniff|collect))(?=.*(?:鉴权|认证|令牌|凭证|jwt|token|auth|credential))',
     flags: 'i',
     boosts: [
-      { tool: 'web_api_capture_session', bonus: 20 },
+      { tool: 'run_extension_workflow', bonus: 28 },
+      { tool: 'list_extension_workflows', bonus: 16 },
       { tool: 'network_extract_auth', bonus: 18 },
     ],
   },

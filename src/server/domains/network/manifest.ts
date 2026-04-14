@@ -36,8 +36,14 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       /(抓包|拦截|监控|hook).*(网络|请求|响应|api|流量)/i,
     ],
     priority: 100,
-    tools: ['web_api_capture_session', 'network_enable', 'page_navigate', 'network_get_requests'],
-    hint: 'Network capture workflow: bootstrap browser/page state -> enable capture -> navigate or act -> inspect captured requests',
+    tools: [
+      'run_extension_workflow',
+      'list_extension_workflows',
+      'network_enable',
+      'page_navigate',
+      'network_get_requests',
+    ],
+    hint: 'Network capture workflow: prefer extension workflows first; otherwise bootstrap browser/page state -> enable capture -> navigate or act -> inspect captured requests',
   },
 
   prerequisites: {

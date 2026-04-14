@@ -2,52 +2,6 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const workflowToolDefinitions: Tool[] = [
-  tool('web_api_capture_session', (t) =>
-    t
-      .desc(
-        'Full-chain web API capture workflow: navigate → inject interceptors → perform actions → collect requests → extract auth → optionally export HAR + Markdown report.\n\nThis is a composite tool that replaces the following manual sequence:\n1. network_enable\n2. console_inject_fetch_interceptor + console_inject_xhr_interceptor\n3. page_navigate\n4. (perform actions)\n5. network_get_requests\n6. network_extract_auth\n7. network_export_har (optional)\n\n**Captured fetch requests are auto-persisted to localStorage.__capturedAPIs** — survives context compression.\n**Set exportHar/exportReport: true to persist artifacts to disk** before context is compressed.\n\nUSE THIS when you need to capture the complete API surface of a page in one step.',
-      )
-      .string('url', 'URL to navigate to')
-      .enum(
-        'waitUntil',
-        ['load', 'domcontentloaded', 'networkidle', 'networkidle2'],
-        'Navigation wait condition',
-        { default: 'domcontentloaded' },
-      )
-      .array(
-        'actions',
-        {
-          type: 'object',
-          properties: {
-            type: { type: 'string', enum: ['click', 'type', 'wait', 'evaluate'] },
-            selector: { type: 'string' },
-            text: { type: 'string' },
-            expression: { type: 'string' },
-            delayMs: { type: 'number' },
-          },
-          required: ['type'],
-        },
-        'Optional sequence of actions to perform after navigation (click, type, wait)',
-      )
-      .boolean(
-        'exportHar',
-        'Export captured traffic as HAR after collection (always persists to disk to survive context compression)',
-        { default: true },
-      )
-      .string(
-        'harOutputPath',
-        'File path for HAR export (default: auto-generated timestamped random path)',
-      )
-      .boolean('exportReport', 'Export workflow summary as Markdown report', { default: true })
-      .string(
-        'reportOutputPath',
-        'File path for Markdown report export (default: auto-generated timestamped random path)',
-      )
-      .number('waitAfterActionsMs', 'Milliseconds to wait after all actions before collecting', {
-        default: 1500,
-      })
-      .requiredOpenWorld('url'),
-  ),
   tool('js_bundle_search', (t) =>
     t
       .desc(

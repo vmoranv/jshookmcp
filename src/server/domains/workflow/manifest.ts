@@ -44,11 +44,6 @@ const manifest = {
 
   registrations: [
     {
-      tool: t('web_api_capture_session'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleWebApiCaptureSession(a)),
-    },
-    {
       tool: t('register_account_flow'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleRegisterAccountFlow(a)),
