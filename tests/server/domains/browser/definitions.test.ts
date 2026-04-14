@@ -267,6 +267,13 @@ describe('browser tool definitions', () => {
       expect(getInputSchema(tool).required).toContain('code');
     });
 
+    it('browser_evaluate_cdp_target requires code and keeps target evaluation explicit', () => {
+      const tool = getToolByName(browserRuntimeTools, 'browser_evaluate_cdp_target');
+      const schema = getInputSchema(tool);
+      expect(schema.required).toContain('code');
+      expect(schema.properties).not.toHaveProperty('targetId');
+    });
+
     it('page_wait_for_selector requires selector', () => {
       const tool = getToolByName(browserPageCoreTools, 'page_wait_for_selector');
       expect(getInputSchema(tool).required).toContain('selector');

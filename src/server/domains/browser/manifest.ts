@@ -89,9 +89,29 @@ const manifest = {
     { tool: t('browser_attach'), domain: DOMAIN, bind: b((h, a) => h.handleBrowserAttach(a)) },
     { tool: t('browser_list_tabs'), domain: DOMAIN, bind: b((h, a) => h.handleBrowserListTabs(a)) },
     {
+      tool: t('browser_list_cdp_targets'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleBrowserListCdpTargets(a)),
+    },
+    {
       tool: t('browser_select_tab'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleBrowserSelectTab(a)),
+    },
+    {
+      tool: t('browser_attach_cdp_target'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleBrowserAttachCdpTarget(a)),
+    },
+    {
+      tool: t('browser_detach_cdp_target'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleBrowserDetachCdpTarget(a)),
+    },
+    {
+      tool: t('browser_evaluate_cdp_target'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleBrowserEvaluateCdpTarget(a)),
     },
     { tool: t('browser_launch'), domain: DOMAIN, bind: b((h, a) => h.handleBrowserLaunch(a)) },
     { tool: t('browser_close'), domain: DOMAIN, bind: b((h, a) => h.handleBrowserClose(a)) },

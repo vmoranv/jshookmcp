@@ -35,6 +35,7 @@ class TestCodeCollector extends CodeCollector {
 const mocks = vi.hoisted(() => ({
   launch: vi.fn(),
   connect: vi.fn(),
+  connectPlaywrightCdpFallback: vi.fn(),
   findBrowserExecutable: vi.fn(),
   collectInnerImpl: vi.fn(),
   shouldCollectUrlImpl: vi.fn(),
@@ -55,6 +56,10 @@ vi.mock('rebrowser-puppeteer-core', () => ({
 
 vi.mock('@utils/browserExecutable', () => ({
   findBrowserExecutable: mocks.findBrowserExecutable,
+}));
+
+vi.mock('@modules/collector/playwright-cdp-fallback', () => ({
+  connectPlaywrightCdpFallback: mocks.connectPlaywrightCdpFallback,
 }));
 
 vi.mock('@utils/logger', () => ({
@@ -118,6 +123,7 @@ describe('CodeCollector – additional coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findBrowserExecutable.mockReturnValue(undefined);
+    mocks.connectPlaywrightCdpFallback.mockRejectedValue(new Error('fallback unavailable'));
   });
 
   // ── constructor defaults ───────────────────────────────────────────
@@ -462,6 +468,48 @@ describe('CodeCollector – additional coverage', () => {
       await expect(connectPromise).rejects.toThrow(
         /Timed out after 10ms while connecting to existing browser/,
       );
+    });
+
+    it('honors the configured timeout for local debug endpoints', async () => {
+      vi.useFakeTimers();
+      mocks.connect.mockImplementation(() => new Promise(() => {}));
+
+      try {
+        const collector = new TestCodeCollector({
+          headless: true,
+          timeout: 1000,
+        } as PuppeteerConfig);
+        (collector as any).CONNECT_TIMEOUT_MS = 6001;
+
+        let settled = false;
+        const connectPromise = collector.connect({
+          wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/test',
+          autoConnect: true,
+          channel: 'stable',
+        });
+        void connectPromise.then(
+          () => {
+            settled = true;
+          },
+          () => {
+            settled = true;
+          },
+        );
+        const rejection = expect(connectPromise).rejects.toThrow(
+          /Timed out after 6001ms while connecting to existing browser/,
+        );
+
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(settled).toBe(false);
+
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(settled).toBe(false);
+
+        await vi.advanceTimersByTimeAsync(1);
+        await rejection;
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('disconnects stale browser if connect resolves after timeout', async () => {

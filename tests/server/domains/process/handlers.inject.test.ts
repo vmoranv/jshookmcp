@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   enumerateModules: vi.fn(),
   recordMemoryAudit: vi.fn(),
   connect: vi.fn(),
+  connectPlaywrightCdpFallback: vi.fn(),
   browserPages: vi.fn(),
   browserDisconnect: vi.fn(),
   pageEvaluate: vi.fn(),
@@ -68,6 +69,10 @@ vi.mock('rebrowser-puppeteer-core', () => ({
   connect: (...args: any[]) => state.connect(...args),
 }));
 
+vi.mock('@modules/collector/playwright-cdp-fallback', () => ({
+  connectPlaywrightCdpFallback: (...args: any[]) => state.connectPlaywrightCdpFallback(...args),
+}));
+
 // Mock constants module with configurable ENABLE_INJECTION_TOOLS
 const mockEnableInjectionTools = { value: false };
 vi.mock(import('@src/constants'), async (importOriginal) => {
@@ -112,6 +117,10 @@ describe('handlers.impl.core.runtime.inject', () => {
     mockEnableInjectionTools.value = false;
     global.fetch = vi.fn() as typeof fetch;
     state.connect.mockResolvedValue({
+      pages: state.browserPages,
+      disconnect: state.browserDisconnect,
+    });
+    state.connectPlaywrightCdpFallback.mockResolvedValue({
       pages: state.browserPages,
       disconnect: state.browserDisconnect,
     });
@@ -558,6 +567,7 @@ describe('handlers.impl.core.runtime.inject', () => {
         ]),
       ) as typeof fetch;
       state.connect.mockRejectedValue({ code: 'E_BROKEN' });
+      state.connectPlaywrightCdpFallback.mockRejectedValue({ code: 'E_FALLBACK' });
 
       const result = await handler.handleElectronAttach({
         port: 9229,
@@ -568,6 +578,46 @@ describe('handlers.impl.core.runtime.inject', () => {
 
       expect(response.success).toBe(false);
       expect(response.error).toContain('"code": "E_BROKEN"');
+      expect(response.error).toContain('"code": "E_FALLBACK"');
+    });
+
+    it('falls back to Playwright compatibility mode when rebrowser connect fails during evaluate', async () => {
+      const fetchMock = vi.fn();
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse([
+          {
+            id: 'page-1',
+            title: 'Main Window',
+            url: 'https://app.local/dashboard',
+            type: 'page',
+            webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
+          },
+        ]),
+      );
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({
+          webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/browser/browser-id',
+        }),
+      );
+      global.fetch = fetchMock as typeof fetch;
+      state.connect.mockRejectedValue(new Error('Target closed during CDP handshake'));
+      state.browserPages.mockResolvedValue([createBrowserPage('https://app.local/dashboard')]);
+      state.pageEvaluate.mockResolvedValue({ ok: true, result: { fallback: true } });
+
+      const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });
+      const response = JSON.parse(result.content[0]!.text);
+
+      expect(state.connectPlaywrightCdpFallback).toHaveBeenCalledWith(
+        'ws://127.0.0.1:9229/devtools/browser/browser-id',
+        expect.any(Number),
+      );
+      expect(state.browserDisconnect).toHaveBeenCalledTimes(1);
+      expect(response).toEqual(
+        expect.objectContaining({
+          success: true,
+          result: { fallback: true },
+        }),
+      );
     });
   });
 });

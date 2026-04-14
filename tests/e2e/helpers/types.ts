@@ -66,6 +66,9 @@ export interface E2EConfig {
   targetUrl: string;
   targetDomain: string;
   electronPath: string;
+  electronEnabled: boolean;
+  electronCdpPort: number | null;
+  electronUserdataDir: string;
   miniappPath: string;
   asarPath: string;
   browserPath: string;

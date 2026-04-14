@@ -1,4 +1,4 @@
-import type { CDPSession } from 'rebrowser-puppeteer-core';
+import type { CDPSessionLike } from '@modules/browser/CDPSessionLike';
 import { logger } from '@utils/logger';
 import { randomUUID } from 'node:crypto';
 
@@ -55,7 +55,7 @@ export class FetchInterceptor {
   private eventHandler: ((params: FetchRequestPausedEvent) => void) | null = null;
   private compiledPatterns: Map<string, RegExp> = new Map();
 
-  constructor(private cdpSession: CDPSession) {}
+  constructor(private cdpSession: CDPSessionLike) {}
 
   /**
    * Enable Fetch domain interception with the given rules.

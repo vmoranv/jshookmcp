@@ -1,5 +1,5 @@
-import type { CDPSession } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '@modules/collector/CodeCollector';
+import type { CDPSessionLike } from '@modules/browser/CDPSessionLike';
 import { logger } from '@utils/logger';
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor';
 import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMonitor';
@@ -156,11 +156,12 @@ export interface ExceptionInfo {
   scriptId?: string;
 }
 export class ConsoleMonitor {
-  private cdpSession: CDPSession | null = null;
+  private cdpSession: CDPSessionLike | null = null;
   private networkMonitor: NetworkMonitor | null = null;
   private fetchInterceptor: FetchInterceptor | null = null;
   private playwrightNetworkMonitor: PlaywrightNetworkMonitor | null = null;
   private playwrightPage: unknown = null;
+  private usingManagedTargetSession = false;
   private contextSwitchPending = false;
   private playwrightConsoleHandler: ((msg: PlaywrightConsoleMessageLike) => void) | null = null;
   private playwrightErrorHandler: ((error: Error) => void) | null = null;
@@ -193,6 +194,32 @@ export class ConsoleMonitor {
     this.playwrightErrorHandler = null;
     this.playwrightNetworkMonitor?.setPage(null);
     this.playwrightNetworkMonitor = null;
+  }
+  private getManagedTargetSession(): CDPSessionLike | null {
+    const collectorWithTargets = this.collector as CodeCollector & {
+      getAttachedTargetSession?: () => CDPSessionLike | null;
+    };
+    return collectorWithTargets.getAttachedTargetSession?.() ?? null;
+  }
+  private async createCdpSession(): Promise<{ session: CDPSessionLike; managed: boolean }> {
+    const managedSession = this.getManagedTargetSession();
+    if (managedSession) {
+      return {
+        session: managedSession,
+        managed: true,
+      };
+    }
+    const page = await this.collector.getActivePage();
+    const session = await Promise.race([
+      page.createCDPSession() as Promise<CDPSessionLike>,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('cdp_session_timeout')), 500),
+      ),
+    ]);
+    return {
+      session,
+      managed: false,
+    };
   }
   markContextChanged(): void {
     if (
@@ -243,20 +270,16 @@ export class ConsoleMonitor {
       }
       return;
     }
-    const page = await this.collector.getActivePage();
-    // Wrap session creation so a hanging createCDPSession() cannot block.
-    this.cdpSession = await Promise.race([
-      page.createCDPSession() as unknown as Promise<CDPSession>,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('cdp_session_timeout')), 500),
-      ),
-    ] as Promise<CDPSession>[]);
+    const { session, managed } = await this.createCdpSession();
+    this.cdpSession = session;
+    this.usingManagedTargetSession = managed;
     this.lastEnableOptions = { ...options };
     this.cdpSession.on('disconnected', () => {
       logger.warn('ConsoleMonitor CDP session disconnected');
       this.cdpSession = null;
       this.networkMonitor = null;
       this.fetchInterceptor = null;
+      this.usingManagedTargetSession = false;
     });
     // Wrap enable calls so they cannot hang if the session is immediately zombie.
     await cdpSendWithTimeout(this.cdpSession, 'Runtime.enable', {}, 5000);
@@ -456,12 +479,17 @@ export class ConsoleMonitor {
         } catch (error) {
           logger.warn('Failed to disable Runtime domain:', error);
         }
-        try {
-          await this.cdpSession.detach();
-        } catch (error) {
-          logger.warn('Failed to detach ConsoleMonitor CDP session:', error);
+        if (!this.usingManagedTargetSession) {
+          try {
+            await this.cdpSession.detach();
+          } catch (error) {
+            logger.warn('Failed to detach ConsoleMonitor CDP session:', error);
+          }
+        } else {
+          logger.debug('ConsoleMonitor released managed target session without detaching target');
         }
         this.cdpSession = null;
+        this.usingManagedTargetSession = false;
         logger.info('ConsoleMonitor disabled');
       }
     } finally {
@@ -505,6 +533,7 @@ export class ConsoleMonitor {
         this.cdpSession = null;
         this.networkMonitor = null;
         this.fetchInterceptor = null;
+        this.usingManagedTargetSession = false;
         await this.enable(this.lastEnableOptions);
       }
     }

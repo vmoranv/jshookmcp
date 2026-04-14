@@ -29,6 +29,8 @@ import { StealthInjectionHandlers } from '@server/domains/browser/handlers/steal
 import { FrameworkStateHandlers } from '@server/domains/browser/handlers/framework-state';
 import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexeddb-dump';
 import { DetailedDataHandlers } from '@server/domains/browser/handlers/detailed-data';
+import { TargetEvaluationHandlers } from '@server/domains/browser/handlers/target-evaluation';
+import { TargetControlHandlers } from '@server/domains/browser/handlers/target-control';
 import { type JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
 import { type TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
 import { initializeBrowserHandlerModules } from '@server/domains/browser/handlers/facade-initializer';
@@ -65,10 +67,12 @@ export class BrowserToolHandlers {
   private captchaTimeout: number = 300000;
 
   private browserControl: BrowserControlHandlers;
+  private targetControl: TargetControlHandlers;
   private camoufoxBrowser: CamoufoxBrowserHandlers;
   private pageNavigation: PageNavigationHandlers;
   private pageInteraction: PageInteractionHandlers;
   private pageEvaluation: PageEvaluationHandlers;
+  private targetEvaluation: TargetEvaluationHandlers;
   private pageData: PageDataHandlers;
   private domQuery: DOMQueryHandlers;
   private domStyle: DOMStyleHandlers;
@@ -134,10 +138,12 @@ export class BrowserToolHandlers {
     });
 
     this.browserControl = modules.browserControl;
+    this.targetControl = modules.targetControl;
     this.camoufoxBrowser = modules.camoufoxBrowser;
     this.pageNavigation = modules.pageNavigation;
     this.pageInteraction = modules.pageInteraction;
     this.pageEvaluation = modules.pageEvaluation;
+    this.targetEvaluation = modules.targetEvaluation;
     this.pageData = modules.pageData;
     this.domQuery = modules.domQuery;
     this.domStyle = modules.domStyle;
@@ -247,8 +253,24 @@ export class BrowserToolHandlers {
     return this.browserControl.handleBrowserListTabs(args);
   }
 
+  async handleBrowserListCdpTargets(args: Record<string, unknown>) {
+    return this.targetControl.handleBrowserListCdpTargets(args);
+  }
+
   async handleBrowserSelectTab(args: Record<string, unknown>) {
     return this.browserControl.handleBrowserSelectTab(args);
+  }
+
+  async handleBrowserAttachCdpTarget(args: Record<string, unknown>) {
+    return this.targetControl.handleBrowserAttachCdpTarget(args);
+  }
+
+  async handleBrowserDetachCdpTarget(args: Record<string, unknown>) {
+    return this.targetControl.handleBrowserDetachCdpTarget(args);
+  }
+
+  async handleBrowserEvaluateCdpTarget(args: Record<string, unknown>) {
+    return this.targetEvaluation.handleBrowserEvaluateCdpTarget(args);
   }
 
   async handleBrowserAttach(args: Record<string, unknown>) {

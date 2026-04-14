@@ -59,6 +59,10 @@ describe('server/domains/browser/manifest', () => {
     expect(toolNames).toContain('browser_status');
     expect(toolNames).toContain('browser_list_tabs');
     expect(toolNames).toContain('browser_select_tab');
+    expect(toolNames).toContain('browser_list_cdp_targets');
+    expect(toolNames).toContain('browser_attach_cdp_target');
+    expect(toolNames).toContain('browser_detach_cdp_target');
+    expect(toolNames).toContain('browser_evaluate_cdp_target');
   });
 
   it('includes page interaction tools in registrations', async () => {

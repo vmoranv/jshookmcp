@@ -4,6 +4,7 @@ import type { PuppeteerConfig, CodeFile } from '@internal-types/index';
 
 const launchMock = vi.hoisted(() => vi.fn());
 const connectMock = vi.hoisted(() => vi.fn());
+const connectPlaywrightCdpFallbackMock = vi.hoisted(() => vi.fn());
 const findBrowserExecutableMock = vi.hoisted(() => vi.fn());
 
 vi.mock('rebrowser-puppeteer-core', () => ({
@@ -17,6 +18,10 @@ vi.mock('rebrowser-puppeteer-core', () => ({
 
 vi.mock('@src/utils/browserExecutable', () => ({
   findBrowserExecutable: findBrowserExecutableMock,
+}));
+
+vi.mock('@modules/collector/playwright-cdp-fallback', () => ({
+  connectPlaywrightCdpFallback: connectPlaywrightCdpFallbackMock,
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -110,6 +115,25 @@ describe('CodeCollector', () => {
 
     await collector.init();
     expect(launchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to Playwright CDP compatibility mode when rebrowser attach fails', async () => {
+    const fallbackBrowser = createBrowserMock();
+    connectMock.mockRejectedValue(new Error('Target closed during CDP handshake'));
+    connectPlaywrightCdpFallbackMock.mockResolvedValue(fallbackBrowser);
+
+    const collector = new CodeCollector(defaultConfig);
+    await collector.connect('http://127.0.0.1:9222');
+
+    expect(connectMock).toHaveBeenCalledTimes(1);
+    expect(connectPlaywrightCdpFallbackMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:9222',
+      expect.any(Number),
+    );
+    await expect(collector.getStatus()).resolves.toMatchObject({
+      running: true,
+      pagesCount: 0,
+    });
   });
 
   it('filters URLs against wildcard rules', () => {

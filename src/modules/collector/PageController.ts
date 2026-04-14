@@ -2,6 +2,7 @@ import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { logger } from '@utils/logger';
 import { setTimeout as asyncSetTimeout } from 'node:timers/promises';
 import type { Page } from 'rebrowser-puppeteer-core';
+import type { BrowserTargetInfo } from '@modules/browser/BrowserTargetSessionManager';
 
 export interface NavigationOptions {
   waitUntil?: 'load' | 'domcontentloaded' | 'networkidle0' | 'networkidle2';
@@ -52,6 +53,27 @@ interface UploadableElementHandle {
 
 export class PageController {
   constructor(private collector: CodeCollector) {}
+
+  hasAttachedTargetSession(): boolean {
+    return this.collector.getAttachedTargetSession() !== null;
+  }
+
+  getAttachedTargetInfo(): BrowserTargetInfo | null {
+    return this.collector.getAttachedTargetInfo();
+  }
+
+  async evaluateAttachedTarget<T = unknown>(
+    code: string,
+    options?: { returnByValue?: boolean; awaitPromise?: boolean },
+  ): Promise<T> {
+    return (await this.collector.getBrowserTargetSessionManager().evaluate(code, options)) as T;
+  }
+
+  async addScriptToAttachedTarget(source: string): Promise<unknown> {
+    return await this.collector
+      .getBrowserTargetSessionManager()
+      .addScriptToEvaluateOnNewDocument(source);
+  }
 
   async navigate(
     url: string,

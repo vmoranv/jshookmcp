@@ -16,8 +16,12 @@ vi.mock('../../../../src/utils/logger', () => ({
 }));
 
 describe('AIHookToolHandlers', () => {
-  // @ts-expect-error
-  let pageControllerMock: vi.Mocked<PageController>;
+  let pageControllerMock: PageController & {
+    getPage: ReturnType<typeof vi.fn>;
+    hasAttachedTargetSession: ReturnType<typeof vi.fn>;
+    evaluateAttachedTarget: ReturnType<typeof vi.fn>;
+    addScriptToAttachedTarget: ReturnType<typeof vi.fn>;
+  };
   let pageMock: any;
   let handlers: AIHookToolHandlers;
 
@@ -26,6 +30,9 @@ describe('AIHookToolHandlers', () => {
     pageMock = {};
     pageControllerMock = {
       getPage: vi.fn().mockResolvedValue(pageMock),
+      hasAttachedTargetSession: vi.fn().mockReturnValue(false),
+      evaluateAttachedTarget: vi.fn(),
+      addScriptToAttachedTarget: vi.fn(),
     } as any;
     handlers = new AIHookToolHandlers(pageControllerMock);
   });
@@ -74,6 +81,21 @@ describe('AIHookToolHandlers', () => {
       // @ts-expect-error
       expect(res.content[0].text).toContain('inject string fail');
     });
+
+    it('injects into attached CDP target when an active target session exists', async () => {
+      pageControllerMock.hasAttachedTargetSession.mockReturnValue(true);
+      pageControllerMock.evaluateAttachedTarget.mockResolvedValue(undefined);
+
+      const res = await handlers.handleAIHookInject({ hookId: 'target1', code: 'globalThis.a=1' });
+
+      // @ts-expect-error
+      expect(res.content[0].text).toContain('"success": true');
+      expect(pageControllerMock.evaluateAttachedTarget).toHaveBeenCalledWith('globalThis.a=1', {
+        returnByValue: true,
+        awaitPromise: true,
+      });
+      expect(pageControllerMock.getPage).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleAIHookGetData', () => {
@@ -117,6 +139,23 @@ describe('AIHookToolHandlers', () => {
       const res = await handlers.handleAIHookGetData({ hookId: 'test1' });
       // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
+    });
+
+    it('reads hook data from attached CDP target', async () => {
+      pageControllerMock.hasAttachedTargetSession.mockReturnValue(true);
+      pageControllerMock.evaluateAttachedTarget.mockResolvedValue({
+        hookId: 'target1',
+        totalRecords: 2,
+      });
+
+      const res = await handlers.handleAIHookGetData({ hookId: 'target1' });
+
+      // @ts-expect-error
+      expect(res.content[0].text).toContain('"success": true');
+      // @ts-expect-error
+      expect(res.content[0].text).toContain('"totalRecords": 2');
+      expect(pageControllerMock.evaluateAttachedTarget).toHaveBeenCalledOnce();
+      expect(pageControllerMock.getPage).not.toHaveBeenCalled();
     });
   });
 

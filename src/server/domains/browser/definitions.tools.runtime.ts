@@ -152,6 +152,92 @@ After attaching, use page_navigate / page_screenshot / debugger_enable normally.
       .number('pageIndex', 'Index of the page/tab to activate (default: 0)', { default: 0 })
       .openWorld(),
   ),
+  tool('browser_list_cdp_targets', (t) =>
+    t
+      .desc(`List all CDP targets visible from the connected browser target.
+
+This is lower-level than browser_list_tabs and includes non-page targets such as iframe, service_worker, shared_worker, and browser targets when the browser exposes them.
+
+Optional connect parameters behave like browser_attach when provided.`)
+      .string('browserURL', 'Optional: connect to this browser URL before listing targets.')
+      .string(
+        'wsEndpoint',
+        'Optional: connect to this browser WebSocket endpoint before listing targets.',
+      )
+      .boolean(
+        'autoConnect',
+        'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort.',
+        { default: false },
+      )
+      .enum(
+        'channel',
+        ['stable', 'beta', 'dev', 'canary'],
+        'Chrome channel used for autoConnect when userDataDir is not provided.',
+        { default: 'stable' },
+      )
+      .string(
+        'userDataDir',
+        'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
+      )
+      .string(
+        'type',
+        'Optional single target type filter, for example iframe, page, service_worker.',
+      )
+      .array('types', { type: 'string' }, 'Optional list of target types to include.')
+      .string('targetId', 'Optional exact targetId filter.')
+      .string('urlPattern', 'Optional substring filter for target URL.')
+      .string('titlePattern', 'Optional substring filter for target title.')
+      .boolean('attachedOnly', 'Only include targets already marked attached by CDP.', {
+        default: false,
+      })
+      .query()
+      .openWorld(),
+  ),
+  tool('browser_attach_cdp_target', (t) =>
+    t
+      .desc(`Attach to a specific CDP target by targetId.
+
+This creates an active target session distinct from the selected page/tab.
+After attachment, network_* and ai_hook_* bind to this target session until browser_detach_cdp_target() is called or the page context is switched.`)
+      .string('targetId', 'Target ID returned by browser_list_cdp_targets.')
+      .required('targetId'),
+  ),
+  tool('browser_detach_cdp_target', (t) =>
+    t
+      .desc(
+        'Detach the currently attached low-level CDP target session and return network/hooks to normal page-based binding.',
+      )
+      .destructive(),
+  ),
+  tool('browser_evaluate_cdp_target', (t) =>
+    t
+      .desc(`Evaluate JavaScript inside the currently attached CDP target session.
+
+This is explicit target-context evaluation. It does not reuse page_evaluate because page_* tools are reserved for the active Puppeteer Page context.
+
+Use this for OOPIF/iframe/service_worker/page targets that need direct target-session execution.`)
+      .string('code', 'JavaScript expression or IIFE string to evaluate in the attached target.')
+      .string('script', 'Alias of code.')
+      .boolean('returnByValue', 'Return primitive/JSON-serializable result by value.', {
+        default: true,
+      })
+      .boolean('awaitPromise', 'Await promise results before returning.', {
+        default: true,
+      })
+      .boolean('autoSummarize', 'Summarize oversized results using detailed data manager.', {
+        default: true,
+      })
+      .number('maxSize', 'Approximate max JSON payload before summarization.', { default: 51200 })
+      .array(
+        'fieldFilter',
+        { type: 'string' },
+        'Remove these field names recursively from the result.',
+      )
+      .boolean('stripBase64', 'Replace base64-like payloads with short placeholders.', {
+        default: false,
+      })
+      .required('code'),
+  ),
   tool('browser_close', (t) => t.desc('Close browser instance').destructive()),
   tool('browser_status', (t) =>
     t.desc('Get browser status (running, pages count, version)').query(),

@@ -16,6 +16,10 @@ import { CodeCache } from '@modules/collector/CodeCache';
 import { SmartCodeCollector } from '@modules/collector/SmartCodeCollector';
 import { CodeCompressor } from '@modules/collector/CodeCompressor';
 import { calculatePriorityScore } from '@modules/collector/PageScriptCollectors';
+import { BrowserTargetSessionManager } from '@modules/browser/BrowserTargetSessionManager';
+import type { BrowserTargetInfo } from '@modules/browser/BrowserTargetSessionManager';
+import type { CDPSessionLike } from '@modules/browser/CDPSessionLike';
+import { connectPlaywrightCdpFallback } from '@modules/collector/playwright-cdp-fallback';
 import { findBrowserExecutable } from '@utils/browserExecutable';
 import { collectInnerImpl } from '@modules/collector/CodeCollectorCollectInternal';
 import {
@@ -73,6 +77,7 @@ export class CodeCollector {
   public smartCollector: SmartCodeCollector;
   private compressor: CodeCompressor;
   private cdpSession: CDPSession | null = null;
+  private browserTargetSessionManager: BrowserTargetSessionManager | null = null;
   public cdpListeners: {
     responseReceived?: (params: unknown) => void;
   } = {};
@@ -208,6 +213,8 @@ export class CodeCollector {
       this.currentHeadless = null;
       this.connectedToExistingBrowser = false;
       this.chromePid = null;
+      void this.browserTargetSessionManager?.dispose();
+      this.browserTargetSessionManager = null;
       if (this.cdpSession) {
         this.cdpSession = null;
         this.cdpListeners = {};
@@ -247,6 +254,8 @@ export class CodeCollector {
     this.currentHeadless = null;
     this.connectedToExistingBrowser = false;
     this.chromePid = null;
+    await this.browserTargetSessionManager?.dispose();
+    this.browserTargetSessionManager = null;
     if (this.cdpSession) {
       this.cdpSession = null;
       this.cdpListeners = {};
@@ -723,9 +732,10 @@ export class CodeCollector {
   private buildConnectTimeoutError(
     target: string,
     endpointOrOptions: string | ChromeConnectOptions,
+    timeoutMs: number,
   ): Error {
     const baseMessage =
-      `Timed out after ${this.CONNECT_TIMEOUT_MS}ms while connecting to existing browser: ${target}. ` +
+      `Timed out after ${timeoutMs}ms while connecting to existing browser: ${target}. ` +
       'The CDP handshake did not complete in time.';
 
     if (this.isAutoConnectRequest(endpointOrOptions)) {
@@ -739,52 +749,100 @@ export class CodeCollector {
     );
   }
 
+  private shouldAttemptPlaywrightFallback(error: unknown): boolean {
+    const message = this.getUnknownErrorMessage(error);
+
+    if (/ECONNREFUSED|ENOTFOUND|404|stale/i.test(message)) {
+      return false;
+    }
+
+    return /timed out|handshake|Protocol error|Target closed|ECONNRESET|socket hang up|WebSocket/i.test(
+      message,
+    );
+  }
+
+  private async connectWithPlaywrightFallback(
+    connectOptions: { browserWSEndpoint?: string; browserURL?: string },
+    primaryError: unknown,
+  ): Promise<Browser> {
+    const endpoint = connectOptions.browserWSEndpoint ?? connectOptions.browserURL;
+    if (!endpoint) {
+      throw primaryError instanceof Error ? primaryError : new Error(String(primaryError));
+    }
+
+    logger.warn(
+      `[connect-fallback] Rebrowser connect failed. Falling back to Playwright CDP compatibility mode for ${endpoint}.`,
+    );
+
+    try {
+      return await connectPlaywrightCdpFallback(endpoint, this.CONNECT_TIMEOUT_MS);
+    } catch (fallbackError) {
+      const primaryMessage = this.getUnknownErrorMessage(primaryError);
+      const fallbackMessage = this.getUnknownErrorMessage(fallbackError);
+      throw new Error(
+        `Failed to connect to existing browser via both rebrowser-puppeteer and Playwright CDP compatibility fallback. ` +
+          `Primary error: ${primaryMessage}. Fallback error: ${fallbackMessage}.`,
+        { cause: fallbackError },
+      );
+    }
+  }
+
   private async connectWithTimeout(
     connectOptions: { browserWSEndpoint?: string; browserURL?: string },
     target: string,
     endpointOrOptions: string | ChromeConnectOptions,
   ): Promise<Browser> {
     const attemptId = ++this.connectAttemptId;
+    const primaryTimeoutMs = this.CONNECT_TIMEOUT_MS;
+    try {
+      return await new Promise<Browser>((resolve, reject) => {
+        let settled = false;
+        const timer = setTimeout(() => {
+          settled = true;
+          if (this.connectAttemptId === attemptId) {
+            this.connectAttemptId += 1;
+          }
+          reject(this.buildConnectTimeoutError(target, endpointOrOptions, primaryTimeoutMs));
+        }, primaryTimeoutMs);
 
-    return await new Promise<Browser>((resolve, reject) => {
-      let settled = false;
-      const timer = setTimeout(() => {
-        settled = true;
-        if (this.connectAttemptId === attemptId) {
-          this.connectAttemptId += 1;
-        }
-        reject(this.buildConnectTimeoutError(target, endpointOrOptions));
-      }, this.CONNECT_TIMEOUT_MS);
-
-      void connect({ ...connectOptions, defaultViewport: null })
-        .then(async (browser) => {
-          if (settled || this.connectAttemptId !== attemptId) {
-            try {
-              await browser.disconnect();
-            } catch {
-              /* best-effort cleanup for stale connection results */
+        void connect({ ...connectOptions, defaultViewport: null })
+          .then(async (browser) => {
+            if (settled || this.connectAttemptId !== attemptId) {
+              try {
+                await browser.disconnect();
+              } catch {
+                /* best-effort cleanup for stale connection results */
+              }
+              return;
             }
-            return;
-          }
 
-          settled = true;
-          clearTimeout(timer);
-          resolve(browser);
-        })
-        .catch((error) => {
-          if (settled || this.connectAttemptId !== attemptId) {
-            return;
-          }
+            settled = true;
+            clearTimeout(timer);
+            resolve(browser);
+          })
+          .catch((error) => {
+            if (settled || this.connectAttemptId !== attemptId) {
+              return;
+            }
 
-          settled = true;
-          clearTimeout(timer);
-          reject(this.normalizeConnectError(error, target, endpointOrOptions));
-        });
-    });
+            settled = true;
+            clearTimeout(timer);
+            reject(this.normalizeConnectError(error, target, endpointOrOptions));
+          });
+      });
+    } catch (error) {
+      if (!this.shouldAttemptPlaywrightFallback(error)) {
+        throw error;
+      }
+
+      return await this.connectWithPlaywrightFallback(connectOptions, error);
+    }
   }
 
   async connect(endpointOrOptions: string | ChromeConnectOptions): Promise<void> {
     this.explicitlyClosed = false;
+    await this.browserTargetSessionManager?.dispose();
+    this.browserTargetSessionManager = null;
     if (this.browser) {
       try {
         await this.browser.disconnect();
@@ -808,6 +866,8 @@ export class CodeCollector {
       this.browser = null;
       this.currentHeadless = null;
       this.connectedToExistingBrowser = false;
+      void this.browserTargetSessionManager?.dispose();
+      this.browserTargetSessionManager = null;
       if (this.cdpSession) {
         this.cdpSession = null;
         this.cdpListeners = {};
@@ -817,6 +877,40 @@ export class CodeCollector {
   }
   getBrowser(): Browser | null {
     return this.browser;
+  }
+
+  getBrowserTargetSessionManager(): BrowserTargetSessionManager {
+    if (!this.browserTargetSessionManager) {
+      this.browserTargetSessionManager = new BrowserTargetSessionManager(() => this.browser);
+    }
+    return this.browserTargetSessionManager;
+  }
+
+  async listCdpTargets(filters?: {
+    type?: string;
+    types?: string[];
+    targetId?: string;
+    urlPattern?: string;
+    titlePattern?: string;
+    attachedOnly?: boolean;
+  }): Promise<BrowserTargetInfo[]> {
+    return await this.getBrowserTargetSessionManager().listTargets(filters);
+  }
+
+  async attachCdpTarget(targetId: string): Promise<BrowserTargetInfo> {
+    return await this.getBrowserTargetSessionManager().attach(targetId);
+  }
+
+  async detachCdpTarget(): Promise<boolean> {
+    return await this.getBrowserTargetSessionManager().detach();
+  }
+
+  getAttachedTargetSession(): CDPSessionLike | null {
+    return this.browserTargetSessionManager?.getAttachedTargetSession() ?? null;
+  }
+
+  getAttachedTargetInfo(): BrowserTargetInfo | null {
+    return this.browserTargetSessionManager?.getAttachedTargetInfo() ?? null;
   }
   getCollectionStats(): {
     totalCollected: number;

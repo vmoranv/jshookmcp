@@ -21,6 +21,17 @@ function flag(name: string, fallback: string): string {
   return i === -1 ? fallback : (argv[i + 1] ?? fallback);
 }
 
+function parseBooleanFlag(value: string | undefined): boolean {
+  if (!value) return false;
+  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+}
+
+function parseOptionalPort(value: string | undefined): number | null {
+  if (!value) return null;
+  const port = Number.parseInt(value, 10);
+  return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null;
+}
+
 function extractDomain(url: string): string {
   try {
     return '.' + new URL(url).hostname.replace(/^www\./, '');
@@ -31,6 +42,14 @@ function extractDomain(url: string): string {
 
 const DEFAULT_TARGET_URL = 'https://vmoranv.github.io/jshookmcp/';
 const TARGET_URL = process.env.E2E_TARGET_URL || flag('--target-url', DEFAULT_TARGET_URL);
+const ELECTRON_E2E_ENABLED = parseBooleanFlag(
+  process.env.E2E_ENABLE_ELECTRON || flag('--enable-electron', 'false'),
+);
+const ELECTRON_CDP_PORT = parseOptionalPort(
+  process.env.E2E_ELECTRON_CDP_PORT || flag('--electron-cdp-port', ''),
+);
+const ELECTRON_USERDATA_DIR =
+  process.env.E2E_ELECTRON_USERDATA_DIR || flag('--electron-userdata-dir', '');
 const ARTIFACT_DIR = join(process.cwd(), '.tmp_mcp_artifacts');
 const WASM_FIXTURE_PATH = join(process.cwd(), 'tests', 'e2e', 'fixtures', 'wasm', 'sample.wasm');
 const FIXTURE_URL =
@@ -40,6 +59,9 @@ const config: E2EConfig = {
   targetUrl: TARGET_URL,
   targetDomain: extractDomain(TARGET_URL),
   electronPath: flag('--electron-path', ''),
+  electronEnabled: ELECTRON_E2E_ENABLED,
+  electronCdpPort: ELECTRON_CDP_PORT,
+  electronUserdataDir: ELECTRON_USERDATA_DIR,
   miniappPath: flag('--miniapp-path', ''),
   asarPath: flag('--asar-path', ''),
   browserPath: flag('--browser-path', 'C:/Program Files/Browser/Application/browser.exe'),
@@ -56,7 +78,14 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'breakpoint_remove',
   'check_debug_port',
   'debugger_load_session',
+  'electron_attach',
+  'electron_check_fuses',
+  'electron_debug_status',
   'electron_inspect_app',
+  'electron_ipc_sniff',
+  'electron_launch_debug',
+  'electron_patch_fuses',
+  'electron_scan_userdata',
   'event_breakpoint_remove',
   'extension_execute_in_context',
   'extension_reload',
@@ -182,8 +211,18 @@ function isPassingResult(result: ToolResult): boolean {
  */
 function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<string, unknown>> {
   const wasmInputPath = WASM_FIXTURE_PATH;
-  const { targetUrl, targetDomain, artifactDir, browserPath, asarPath, electronPath, miniappPath } =
-    cfg;
+  const {
+    targetUrl,
+    targetDomain,
+    artifactDir,
+    browserPath,
+    asarPath,
+    electronPath,
+    electronEnabled,
+    electronCdpPort,
+    electronUserdataDir,
+    miniappPath,
+  } = cfg;
   const browserPid =
     typeof ctx.browserPid === 'number' && ctx.browserPid > 0 ? ctx.browserPid : null;
 
@@ -381,6 +420,23 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     unboost_profile: {},
     ...(asarPath ? { asar_extract: { inputPath: asarPath } } : {}),
     ...(electronPath ? { electron_inspect_app: { appPath: electronPath } } : {}),
+    ...(electronPath ? { electron_check_fuses: { exePath: electronPath } } : {}),
+    ...(electronEnabled && electronPath
+      ? {
+          electron_launch_debug: {
+            exePath: electronPath,
+            rendererPort: electronCdpPort ?? 9222,
+          },
+          electron_debug_status: {},
+        }
+      : {}),
+    ...(electronEnabled && electronCdpPort
+      ? {
+          electron_attach: { port: electronCdpPort },
+          electron_ipc_sniff: { action: 'list', port: electronCdpPort },
+        }
+      : {}),
+    ...(electronUserdataDir ? { electron_scan_userdata: { dirPath: electronUserdataDir } } : {}),
     ...(miniappPath
       ? {
           miniapp_pkg_scan: { searchPath: miniappPath },
@@ -466,7 +522,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
       accounts: [{ fields: { email: 'e2e@test.local', password: 'Test123!' } }],
     },
     list_extension_workflows: {},
-    electron_attach: { endpoint: 'http://localhost:9229' },
     create_task_handoff: { description: 'E2E test handoff', constraints: ['testing'] },
     ...(ctx.taskId
       ? {

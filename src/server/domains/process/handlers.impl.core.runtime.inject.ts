@@ -1,5 +1,6 @@
 import { logger } from '@utils/logger';
 import { ENABLE_INJECTION_TOOLS } from '@src/constants';
+import { connectPlaywrightCdpFallback } from '@modules/collector/playwright-cdp-fallback';
 import {
   ProcessHandlersBase,
   requireString,
@@ -54,6 +55,69 @@ function getShellcodeSize(shellcode: string, encoding: 'hex' | 'base64'): number
   }
 
   return Buffer.from(shellcode, 'base64').length;
+}
+
+const ELECTRON_ATTACH_CONNECT_TIMEOUT_MS =
+  Number(process.env.JSHOOK_ELECTRON_ATTACH_CONNECT_TIMEOUT_MS) || 5000;
+
+async function connectElectronBrowserCompatible(browserWSEndpoint: string) {
+  const { default: puppeteer } = await import('rebrowser-puppeteer-core');
+
+  try {
+    return await new Promise<Awaited<ReturnType<typeof puppeteer.connect>>>((resolve, reject) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        settled = true;
+        reject(
+          new Error(
+            `Timed out after ${ELECTRON_ATTACH_CONNECT_TIMEOUT_MS}ms while connecting to Electron browser endpoint ${browserWSEndpoint}.`,
+          ),
+        );
+      }, ELECTRON_ATTACH_CONNECT_TIMEOUT_MS);
+
+      void puppeteer
+        .connect({
+          browserWSEndpoint,
+          defaultViewport: null,
+        })
+        .then(async (browser) => {
+          if (settled) {
+            try {
+              await browser.disconnect();
+            } catch {
+              // Best-effort cleanup for stale browser connections
+            }
+            return;
+          }
+
+          settled = true;
+          clearTimeout(timer);
+          resolve(browser);
+        })
+        .catch((error) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          clearTimeout(timer);
+          reject(error);
+        });
+    });
+  } catch (primaryError) {
+    try {
+      return await connectPlaywrightCdpFallback(
+        browserWSEndpoint,
+        ELECTRON_ATTACH_CONNECT_TIMEOUT_MS,
+      );
+    } catch (fallbackError) {
+      throw new Error(
+        `Failed to connect to Electron browser endpoint ${browserWSEndpoint} via both rebrowser-puppeteer and Playwright compatibility fallback. ` +
+          `Primary error: ${formatUnknownError(primaryError)}. Fallback error: ${formatUnknownError(fallbackError)}.`,
+        { cause: fallbackError },
+      );
+    }
+  }
 }
 
 export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
@@ -369,7 +433,6 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
         };
       }
 
-      const { default: puppeteer } = await import('rebrowser-puppeteer-core');
       let browserWsEndpoint = wsEndpointArg;
 
       if (!browserWsEndpoint) {
@@ -395,10 +458,7 @@ export class ProcessToolHandlersRuntime extends ProcessHandlersBase {
       if (!browserWsEndpoint) {
         throw new Error('Could not determine browser WebSocket endpoint');
       }
-      const browser = await puppeteer.connect({
-        browserWSEndpoint: browserWsEndpoint,
-        defaultViewport: null,
-      });
+      const browser = await connectElectronBrowserCompatible(browserWsEndpoint);
 
       let evalResult: unknown;
       let evalError: string | undefined;

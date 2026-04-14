@@ -91,6 +91,13 @@ function createMocks() {
     getCamoufoxManager: () => null,
     getCamoufoxPage: async () => null,
     getTabRegistry: () => tabRegistry as any,
+    clearAttachedTargetContext: vi.fn(
+      async (): Promise<{ detached: boolean; targetId: string | null; type: string | null }> => ({
+        detached: false,
+        targetId: null,
+        type: null,
+      }),
+    ),
   };
 
   return { collector, consoleMonitor, tabRegistry, deps };
@@ -724,5 +731,38 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     expect(body.selectedIndex).toBe(0);
     expect(body.contextSwitched).toBe(false);
     expect(body.monitoringBindingDeferred).toBe(false);
+  });
+});
+
+describe('BrowserControlHandlers – target context clearing', () => {
+  let handlers: BrowserControlHandlers;
+  let deps: ReturnType<typeof createMocks>['deps'];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const m = createMocks();
+    deps = m.deps;
+    handlers = new BrowserControlHandlers(deps);
+  });
+
+  it('detaches active CDP target before selecting a tab', async () => {
+    deps.clearAttachedTargetContext = vi.fn(async () => ({
+      detached: true,
+      targetId: 'frame-1',
+      type: 'iframe',
+    }));
+    const collector = deps.collector as unknown as CollectorMock;
+    collector.listPages.mockResolvedValueOnce([
+      { index: 0, url: 'https://example.com', title: 'Example' },
+    ]);
+
+    const body = parseJson<
+      BrowserSelectTabResponse & { detachedCdpTarget: boolean; detachedCdpTargetId: string }
+    >(await handlers.handleBrowserSelectTab({ index: 0 }));
+
+    expect(deps.clearAttachedTargetContext).toHaveBeenCalledOnce();
+    expect(body.success).toBe(true);
+    expect(body.detachedCdpTarget).toBe(true);
+    expect(body.detachedCdpTargetId).toBe('frame-1');
   });
 });

@@ -24,6 +24,8 @@ import { IndexedDBDumpHandlers } from '@server/domains/browser/handlers/indexedd
 import { JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
 import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
 import { DetailedDataHandlers } from '@server/domains/browser/handlers/detailed-data';
+import { TargetEvaluationHandlers } from '@server/domains/browser/handlers/target-evaluation';
+import { TargetControlHandlers } from '@server/domains/browser/handlers/target-control';
 import { TabRegistry } from '@modules/browser/TabRegistry';
 
 export interface BrowserHandlerModuleInitDeps {
@@ -50,10 +52,12 @@ export interface BrowserHandlerModuleInitDeps {
 export interface BrowserHandlerModules {
   tabRegistry: TabRegistry;
   browserControl: BrowserControlHandlers;
+  targetControl: TargetControlHandlers;
   camoufoxBrowser: CamoufoxBrowserHandlers;
   pageNavigation: PageNavigationHandlers;
   pageInteraction: PageInteractionHandlers;
   pageEvaluation: PageEvaluationHandlers;
+  targetEvaluation: TargetEvaluationHandlers;
   pageData: PageDataHandlers;
   domQuery: DOMQueryHandlers;
   domStyle: DOMStyleHandlers;
@@ -78,9 +82,15 @@ export function initializeBrowserHandlerModules(
   };
 
   const tabRegistry = new TabRegistry();
+  const targetControl = new TargetControlHandlers({
+    collector: deps.collector,
+    consoleMonitor: deps.consoleMonitor,
+    getTabRegistry: () => tabRegistry,
+  });
 
   return {
     tabRegistry,
+    targetControl,
 
     browserControl: new BrowserControlHandlers({
       collector: deps.collector,
@@ -90,6 +100,7 @@ export function initializeBrowserHandlerModules(
       getCamoufoxManager: deps.getCamoufoxManager,
       getCamoufoxPage: deps.getCamoufoxPage,
       getTabRegistry: () => tabRegistry,
+      clearAttachedTargetContext: (context) => targetControl.clearAttachedTargetContext(context),
     }),
 
     camoufoxBrowser: new CamoufoxBrowserHandlers({
@@ -113,6 +124,11 @@ export function initializeBrowserHandlerModules(
       pageController: deps.pageController,
       detailedDataManager: deps.detailedDataManager,
       ...commonDeps,
+    }),
+
+    targetEvaluation: new TargetEvaluationHandlers({
+      pageController: deps.pageController,
+      detailedDataManager: deps.detailedDataManager,
     }),
 
     pageData: new PageDataHandlers({

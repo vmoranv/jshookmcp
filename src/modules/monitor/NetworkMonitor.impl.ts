@@ -1,4 +1,4 @@
-import type { CDPSession } from 'rebrowser-puppeteer-core';
+import type { CDPSessionLike } from '@modules/browser/CDPSessionLike';
 import { logger } from '@utils/logger';
 import type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor.types';
 import {
@@ -132,7 +132,7 @@ export class NetworkMonitor {
     loadingFinished?: (params: unknown) => void;
   } = {};
 
-  constructor(private cdpSession: CDPSession) {
+  constructor(private cdpSession: CDPSessionLike) {
     // Mark as disabled on session drop — ConsoleMonitor will recreate us on reconnect
     this.cdpSession.on('disconnected', () => {
       logger.warn('NetworkMonitor: CDP session disconnected');

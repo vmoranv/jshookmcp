@@ -30,6 +30,11 @@ interface BrowserControlHandlersDeps {
   getCamoufoxManager: () => CamoufoxBrowserManager | null;
   getCamoufoxPage: () => Promise<unknown>;
   getTabRegistry: () => TabRegistry;
+  clearAttachedTargetContext: (context: string) => Promise<{
+    detached: boolean;
+    targetId: string | null;
+    type: string | null;
+  }>;
 }
 
 export class BrowserControlHandlers {
@@ -465,12 +470,13 @@ export class BrowserControlHandlers {
       const registry = this.deps.getTabRegistry();
 
       if (index !== undefined) {
+        const clearedTarget = await this.deps.clearAttachedTargetContext('browser_select_tab');
         await this.deps.collector.selectPage(index);
         const pages = await this.deps.collector.listPages();
         await this.syncTabRegistryWithCollectorPages('browser_select_tab');
         const selected = pages[index];
         const tab = registry.setCurrentByIndex(index);
-        if (tab?.pageId) {
+        if (tab?.pageId || clearedTarget.detached) {
           this.markMonitoringContextChanged('browser_select_tab');
         }
         return {
@@ -485,6 +491,8 @@ export class BrowserControlHandlers {
                   url: selected?.url,
                   title: selected?.title,
                   contextSwitched: true,
+                  detachedCdpTarget: clearedTarget.detached,
+                  detachedCdpTargetId: clearedTarget.targetId,
                   monitoringBindingDeferred: Boolean(tab?.pageId),
                   networkMonitoringEnabled: false,
                   consoleMonitoringEnabled: false,
@@ -529,11 +537,12 @@ export class BrowserControlHandlers {
         };
       }
 
+      const clearedTarget = await this.deps.clearAttachedTargetContext('browser_select_tab');
       await this.deps.collector.selectPage(matchIndex);
       await this.syncTabRegistryWithCollectorPages('browser_select_tab');
       const selected = pages[matchIndex];
       const tab = registry.setCurrentByIndex(matchIndex);
-      if (tab?.pageId) {
+      if (tab?.pageId || clearedTarget.detached) {
         this.markMonitoringContextChanged('browser_select_tab');
       }
       return {
@@ -548,6 +557,8 @@ export class BrowserControlHandlers {
                 url: selected?.url,
                 title: selected?.title,
                 contextSwitched: true,
+                detachedCdpTarget: clearedTarget.detached,
+                detachedCdpTargetId: clearedTarget.targetId,
                 monitoringBindingDeferred: Boolean(tab?.pageId),
                 networkMonitoringEnabled: false,
                 consoleMonitoringEnabled: false,
@@ -601,6 +612,7 @@ export class BrowserControlHandlers {
         };
       }
 
+      const clearedTarget = await this.deps.clearAttachedTargetContext('browser_attach');
       await this.deps.collector.connect(connectRequest);
 
       // Select the requested page (default to first page) - handles both number and string inputs
@@ -656,6 +668,8 @@ export class BrowserControlHandlers {
                 currentTitle: selected?.title ?? null,
                 totalPages: pages.length,
                 contextSwitched: pages.length > 0,
+                detachedCdpTarget: clearedTarget.detached,
+                detachedCdpTargetId: clearedTarget.targetId,
                 monitoringBindingDeferred: pageHandleReady,
                 networkMonitoringEnabled: false,
                 consoleMonitoringEnabled: false,
