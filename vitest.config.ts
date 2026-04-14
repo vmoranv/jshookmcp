@@ -45,6 +45,15 @@ const coverageExclude = [
   'src/server/plugins/pluginContract.ts',
   // Definition-only files (0% coverage, contain only Tool[] arrays)
   'src/server/domains/*/definitions.ts',
+  // Requires real browser CDP connection — untestable in unit tests
+  'src/modules/collector/playwright-cdp-fallback.ts',
+  // v0.3.0 domains: handlers require real hardware / native FFI / CDP sessions
+  'src/server/domains/adb-bridge/handlers.impl.ts',
+  'src/server/domains/binary-instrument/handlers.impl.ts',
+  'src/server/domains/boringssl-inspector/handlers.impl.ts',
+  'src/server/domains/mojo-ipc/handlers.impl.ts',
+  'src/server/domains/skia-capture/handlers.impl.ts',
+  'src/server/domains/syscall-hook/handlers.impl.ts',
 ];
 
 export default defineConfig({
