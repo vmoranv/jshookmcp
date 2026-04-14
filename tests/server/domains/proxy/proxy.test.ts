@@ -60,13 +60,27 @@ describe('ProxyHandlers (Integration)', () => {
   });
 
   it('should generate an error if exporting CA without HTTPS enabled', async () => {
-    // Fresh proxy handler without HTTPS
-    const tempHandler = new ProxyHandlers();
-    await tempHandler.handleProxyStart({ port: testPort + 5, useHttps: false });
-    const exportRes: any = await tempHandler.handleProxyExportCa({});
-    expect(exportRes.isError).toBe(true);
-    expect(exportRes.content[0].text).toContain('CA certificate not found');
-    await tempHandler.handleProxyStop({});
+    // Remove CA cert so the handler can't find it
+    const fs = await import('fs');
+    const path = await import('path');
+    const home = process.env.HOME || process.env.USERPROFILE || '/tmp';
+    const certPath = path.join(home, '.jshookmcp', 'ca', 'ca.pem');
+    const certExisted = fs.existsSync(certPath);
+    let backup: string | null = null;
+    if (certExisted) {
+      backup = fs.readFileSync(certPath, 'utf8');
+      fs.unlinkSync(certPath);
+    }
+    try {
+      const tempHandler = new ProxyHandlers();
+      await tempHandler.handleProxyStart({ port: testPort + 5, useHttps: false });
+      const exportRes: any = await tempHandler.handleProxyExportCa({});
+      expect(exportRes.isError).toBe(true);
+      expect(exportRes.content[0].text).toContain('CA certificate not found');
+      await tempHandler.handleProxyStop({});
+    } finally {
+      if (backup) fs.writeFileSync(certPath, backup);
+    }
   });
 
   it('should buffer requests properly', async () => {

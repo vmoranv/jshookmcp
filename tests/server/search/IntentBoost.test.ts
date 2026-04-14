@@ -6,7 +6,7 @@ describe('search/IntentBoost', () => {
     const boost = new IntentBoostImpl();
 
     expect(boost.resolveIntentToolBonuses('账号注册验证码').get('run_extension_workflow')).toBe(40);
-    expect(boost.resolveIntentToolBonuses('抓取接口').get('web_api_capture_session')).toBe(26);
+    expect(boost.resolveIntentToolBonuses('抓取接口').get('run_extension_workflow')).toBe(40);
   });
 
   it('compiles only valid custom rules', () => {

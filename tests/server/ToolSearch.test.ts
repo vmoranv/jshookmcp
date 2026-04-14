@@ -178,12 +178,12 @@ describe('ToolSearchEngine', () => {
 
   it('applies explicit intent-to-tool boosts for zero-overlap intent phrases', async () => {
     const rankedTools: Tool[] = [
-      makeTool('web_api_capture_session', 'Composite flow helper without API keywords'),
+      makeTool('run_extension_workflow', 'Composite flow helper without API keywords'),
       makeTool('api_probe_batch', 'Composite flow helper without probe keywords'),
       makeTool('page_navigate', 'Navigate to a URL in the browser tab'),
     ];
     const domainOverrides = new Map<string, string>([
-      ['web_api_capture_session', 'workflow'],
+      ['run_extension_workflow', 'workflow'],
       ['api_probe_batch', 'workflow'],
       ['page_navigate', 'browser'],
     ]);
@@ -192,7 +192,7 @@ describe('ToolSearchEngine', () => {
     const results = await engine.search('端到端闭环');
 
     expect(results.length).toBeGreaterThan(0);
-    expect(results[0]!.name).toBe('web_api_capture_session');
+    expect(results[0]!.name).toBe('run_extension_workflow');
     expect(results.some((r) => r.name === 'api_probe_batch')).toBe(true);
   });
 

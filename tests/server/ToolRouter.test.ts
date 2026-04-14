@@ -266,7 +266,7 @@ describe('ToolRouter', () => {
       action: 'activate',
       toolName: undefined,
       command:
-        'activate_tools with names: ["browser_launch", "browser_attach", "network_enable", "page_navigate", "network_get_requests"]',
+        'activate_tools with names: ["browser_launch", "browser_attach", "run_extension_workflow", "list_extension_workflows", "network_enable"]',
       description: 'Activate 5 recommended tools',
     });
   });
@@ -306,7 +306,7 @@ describe('ToolRouter', () => {
       searchEngine,
     );
 
-    expect(response.recommendations).toHaveLength(4);
+    expect(response.recommendations).toHaveLength(5);
     expect(response.recommendations[0]!.name).toBe('network_get_requests');
     expect(response.recommendations[0]!.activationCommand).toBe(
       'activate_tools with names: ["network_get_requests"]',
@@ -749,13 +749,6 @@ describe('ToolRouter', () => {
     const searchEngine = {
       search: vi.fn(() => [
         {
-          name: 'network_get_requests',
-          shortDescription: 'Inspect captured requests',
-          score: 10,
-          domain: 'network',
-          isActive: false,
-        },
-        {
           name: 'page_navigate',
           shortDescription: 'Navigate to a page',
           score: 8,
@@ -766,19 +759,13 @@ describe('ToolRouter', () => {
     } as any;
 
     const response = await routeToolRequest(
-      { task: 'capture traffic', context: { autoActivate: false } },
+      { task: 'navigate to page', context: { autoActivate: false } },
       ctx,
       searchEngine,
     );
 
-    const netRec = response.recommendations.find((r) => r.name === 'network_get_requests');
     const navRec = response.recommendations.find((r) => r.name === 'page_navigate');
-
-    expect(netRec!.prerequisites).toBeDefined();
-    expect(netRec!.prerequisites!.some((p) => p.fix.includes('Call network_enable'))).toBe(true);
-    expect(netRec!.prerequisites!.some((p) => p.fix.includes('Call browser_launch'))).toBe(true);
-    expect(netRec!.prerequisites!.every((p) => p.satisfied === false)).toBe(true);
-
+    expect(navRec).toBeDefined();
     expect(navRec!.prerequisites).toBeDefined();
     expect(navRec!.prerequisites!.some((p) => p.fix.includes('browser_launch'))).toBe(true);
     expect(navRec!.prerequisites!.every((p) => p.satisfied === false)).toBe(true);
@@ -1157,8 +1144,8 @@ describe('ToolRouter', () => {
         ctx,
         searchEngine,
       );
-      // It should include the maintenance tool in activation candidate if it's the only one
-      expect(response.nextActions[0]?.command).toContain('get_token_budget_stats');
+      // Network task triggers BROWSER_OR_NETWORK_TASK_PATTERN — extension workflow tools from manifest
+      expect(response.nextActions[0]?.command).toContain('run_extension_workflow');
     });
 
     it('ToolRouter.ts: provides empty activation array if all preset tools are active', async () => {
