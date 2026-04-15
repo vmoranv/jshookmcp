@@ -104,8 +104,14 @@ describe('WorkflowHandlersAccountBundle', () => {
   let handlers: WorkflowHandlersAccountBundle;
 
   beforeEach(() => {
+    // Guard against fake timers or sticky hoisted mock implementations leaking from
+    // prior tests and making timeout-sensitive workflow assertions flaky.
+    vi.useRealTimers();
     vi.clearAllMocks();
     mockIsSsrfTarget.mockResolvedValue(false);
+    mockIsPrivateHost.mockReturnValue(false);
+    mockIsLoopbackHost.mockReturnValue(false);
+    mockLookup.mockReset();
     deps = createDeps();
     handlers = new WorkflowHandlersAccountBundle(
       deps as unknown as ConstructorParameters<typeof WorkflowHandlersAccountBundle>[0],
