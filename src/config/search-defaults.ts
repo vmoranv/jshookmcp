@@ -147,8 +147,6 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
     boosts: [
       { tool: 'run_extension_workflow', bonus: 40 },
       { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'register_account_flow', bonus: 20 },
-      { tool: 'batch_register', bonus: 18 },
       { tool: 'tab_workflow', bonus: 8 },
     ],
   },

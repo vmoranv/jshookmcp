@@ -44,11 +44,6 @@ const manifest = {
 
   registrations: [
     {
-      tool: t('register_account_flow'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleRegisterAccountFlow(a)),
-    },
-    {
       tool: t('page_script_register'),
       domain: DOMAIN,
       bind: b((h, a) => h.handlePageScriptRegister(a)),
@@ -56,7 +51,6 @@ const manifest = {
     { tool: t('page_script_run'), domain: DOMAIN, bind: b((h, a) => h.handlePageScriptRun(a)) },
     { tool: t('api_probe_batch'), domain: DOMAIN, bind: b((h, a) => h.handleApiProbeBatch(a)) },
     { tool: t('js_bundle_search'), domain: DOMAIN, bind: b((h, a) => h.handleJsBundleSearch(a)) },
-    { tool: t('batch_register'), domain: DOMAIN, bind: b((h, a) => h.handleBatchRegister(a)) },
     {
       tool: t('list_extension_workflows'),
       domain: DOMAIN,
