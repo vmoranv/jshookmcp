@@ -26,11 +26,11 @@
 - `get_detailed_data` — 根据 detailId 获取完整详细数据。
 - `browser_attach` — 通过 Chrome DevTools Protocol（CDP）附加到现有浏览器实例。
 - `browser_list_tabs` — 列出当前已连接浏览器中的所有标签页或页面。
-- `browser_list_cdp_targets` — 待补充中文：List all CDP targets visible from the connected browser target.
+- `browser_list_cdp_targets` — 列出当前已连接浏览器目标可见的所有 CDP 目标。
 - `browser_select_tab` — 按索引或 URL/标题模式切换当前活动标签页。
-- `browser_attach_cdp_target` — 待补充中文：Attach to a specific CDP target by targetId.
-- `browser_detach_cdp_target` — 待补充中文：Detach the currently attached low-level CDP target session and return network/hooks to normal page-based binding.
-- `browser_evaluate_cdp_target` — 待补充中文：Evaluate JavaScript inside the currently attached CDP target session.
+- `browser_attach_cdp_target` — 根据 targetId 附加到指定的 CDP 目标。
+- `browser_detach_cdp_target` — 断开当前已附加的底层 CDP 目标会话，并将 network/hooks 恢复为常规页面绑定。
+- `browser_evaluate_cdp_target` — 在当前已附加的 CDP 目标会话中执行 JavaScript。
 - `browser_launch` — 启动浏览器实例。
 - `browser_close` — 关闭当前浏览器实例。
 
@@ -41,11 +41,11 @@
 | `get_detailed_data` | 根据 detailId 获取完整详细数据。 |
 | `browser_attach` | 通过 Chrome DevTools Protocol（CDP）附加到现有浏览器实例。 |
 | `browser_list_tabs` | 列出当前已连接浏览器中的所有标签页或页面。 |
-| `browser_list_cdp_targets` | 待补充中文：List all CDP targets visible from the connected browser target. |
+| `browser_list_cdp_targets` | 列出当前已连接浏览器目标可见的所有 CDP 目标。 |
 | `browser_select_tab` | 按索引或 URL/标题模式切换当前活动标签页。 |
-| `browser_attach_cdp_target` | 待补充中文：Attach to a specific CDP target by targetId. |
-| `browser_detach_cdp_target` | 待补充中文：Detach the currently attached low-level CDP target session and return network/hooks to normal page-based binding. |
-| `browser_evaluate_cdp_target` | 待补充中文：Evaluate JavaScript inside the currently attached CDP target session. |
+| `browser_attach_cdp_target` | 根据 targetId 附加到指定的 CDP 目标。 |
+| `browser_detach_cdp_target` | 断开当前已附加的底层 CDP 目标会话，并将 network/hooks 恢复为常规页面绑定。 |
+| `browser_evaluate_cdp_target` | 在当前已附加的 CDP 目标会话中执行 JavaScript。 |
 | `browser_launch` | 启动浏览器实例。 |
 | `browser_close` | 关闭当前浏览器实例。 |
 | `browser_status` | 获取浏览器当前状态，包括运行情况、页面数量与版本信息。 |
