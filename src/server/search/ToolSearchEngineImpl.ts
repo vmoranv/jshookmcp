@@ -29,14 +29,29 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
 import type { SearchConfig } from '@internal-types/config';
 import {
-  SEARCH_TFIDF_COSINE_WEIGHT,
+  SEARCH_AFFINITY_BASE_WEIGHT,
   SEARCH_AFFINITY_BOOST_FACTOR,
   SEARCH_AFFINITY_TOP_N,
+  SEARCH_BM25_B,
+  SEARCH_BM25_K1,
+  SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE,
+  SEARCH_COVERAGE_PRECISION_FACTOR,
+  SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER,
   SEARCH_DOMAIN_HUB_THRESHOLD,
-  SEARCH_QUERY_CACHE_CAPACITY,
-  SEARCH_TRIGRAM_WEIGHT,
-  SEARCH_RRF_K,
+  SEARCH_EXACT_NAME_MATCH_MULTIPLIER,
   SEARCH_PARAM_TOKEN_WEIGHT,
+  SEARCH_PREFIX_MATCH_MULTIPLIER,
+  SEARCH_QUERY_CACHE_CAPACITY,
+  SEARCH_RECENCY_MAX_BOOST,
+  SEARCH_RECENCY_TRACKER_MAX,
+  SEARCH_RECENCY_WINDOW_MS,
+  SEARCH_RRF_BM25_BLEND,
+  SEARCH_RRF_K,
+  SEARCH_RRF_RESCALE_FACTOR,
+  SEARCH_TFIDF_COSINE_WEIGHT,
+  SEARCH_TIER_PENALTY,
+  SEARCH_TRIGRAM_THRESHOLD,
+  SEARCH_TRIGRAM_WEIGHT,
   SEARCH_VECTOR_ENABLED,
 } from '@src/constants';
 import { BM25ScorerImpl } from './BM25Scorer';
@@ -80,6 +95,27 @@ interface ToolDocument {
 interface AffinityEdge {
   docIndex: number;
   weight: number;
+}
+
+/**
+ * Cached search result with provenance: the vector weight at cache time and
+ * a timestamp used to decide whether to apply recency boost on top.
+ */
+interface CachedSearchEntry {
+  results: ToolSearchResult[];
+  vectorWeightAtCache: number;
+  cachedAtMs: number;
+}
+
+function buildSearchCacheKey(
+  query: string,
+  topK: number,
+  visibleDomains?: ReadonlySet<string>,
+): string {
+  if (!visibleDomains || visibleDomains.size === 0) {
+    return `${query}\0${topK}`;
+  }
+  return `${query}\0${topK}\0${[...visibleDomains].toSorted().join('|')}`;
 }
 
 // ── LRU Cache ──
@@ -139,8 +175,13 @@ export class ToolSearchEngine {
   private readonly docNameIndex = new Map<string, number>();
   /** Prefix-group affinity graph: docIndex → neighbor edges. */
   private readonly affinityGraph: ReadonlyMap<number, ReadonlyArray<AffinityEdge>>;
-  /** Query result LRU cache (§4.3 CSAPC). Stores scored candidates without isActive. */
-  private readonly queryCache: LRUCache<string, ToolSearchResult[]>;
+  /**
+   * Query result LRU cache (§4.3 CSAPC). Entries are versioned by the live
+   * vector weight; stale entries are dropped only when the weight drifted
+   * beyond SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE, avoiding the full-flush
+   * behavior of the previous epoch-bump approach.
+   */
+  private readonly queryCache: LRUCache<string, CachedSearchEntry>;
   /** Trigram fuzzy matching index over tool names. */
   private readonly trigramIndex: TrigramIndex;
 
@@ -149,8 +190,8 @@ export class ToolSearchEngine {
   private toolEmbeddings: Float32Array[] | null = null;
   /** Feedback tracking for adaptive vector weight adjustment. */
   private readonly feedbackTracker: FeedbackTracker;
-  /** Monotonic epoch counter — incremented on feedback events to lazily invalidate cache. */
-  private feedbackEpoch = 0;
+  /** Per-tool recency tracker for frequency / recency boosts. */
+  private readonly recencyTracker = new Map<string, number>();
 
   // Extracted modules
   private readonly bm25Scorer: BM25ScorerImpl;
@@ -284,13 +325,14 @@ export class ToolSearchEngine {
     this.trigramIndex = new TrigramIndex(this.docs.map((d) => d.name));
 
     // ── Query result cache (§4.3 CSAPC) ──
-    this.queryCache = new LRUCache<string, ToolSearchResult[]>(SEARCH_QUERY_CACHE_CAPACITY);
+    this.queryCache = new LRUCache<string, CachedSearchEntry>(SEARCH_QUERY_CACHE_CAPACITY);
   }
 
   async search(
     query: string,
     topK = 10,
     activeToolNames?: ReadonlySet<string>,
+    visibleDomains?: ReadonlySet<string>,
   ): Promise<ToolSearchResult[]> {
     // Synonym expansion enabled at query time
     const queryTokens = this.bm25Scorer.tokenise(query, { expandSynonyms: true });
@@ -335,13 +377,15 @@ export class ToolSearchEngine {
       return bestTool;
     })();
 
-    // ── Cache check (§4.3 CSAPC) — include feedbackEpoch for lazy invalidation ──
-    const cacheKey = `${query}\0${topK}\0${this.feedbackEpoch}`;
+    // ── Cache check (§4.3 CSAPC) — value-versioned invalidation ──
+    // A cached entry stays valid while the live vector weight drifts within
+    // SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE of the weight recorded at insert
+    // time. Avoids the full flush that the previous epoch counter caused.
+    const cacheKey = buildSearchCacheKey(query, topK, visibleDomains);
     const cached = this.queryCache.get(cacheKey);
-    if (cached) {
-      // Update isActive flags from current context
+    if (cached && this.isCachedEntryFresh(cached)) {
       const active = activeToolNames ?? new Set<string>();
-      return cached.map((r) => ({ ...r, isActive: active.has(r.name) }));
+      return cached.results.map((r) => ({ ...r, isActive: active.has(r.name) }));
     }
 
     const intentToolBonuses = this.intentBoost.resolveIntentToolBonuses(query);
@@ -357,7 +401,7 @@ export class ToolSearchEngine {
           if (indexToken !== qToken) {
             const postings = this.invertedIndex.get(indexToken);
             if (postings) {
-              this.scorePostings(postings, this.docCount, scores, 0.5);
+              this.scorePostings(postings, this.docCount, scores, SEARCH_PREFIX_MATCH_MULTIPLIER);
             }
           }
         }
@@ -380,7 +424,7 @@ export class ToolSearchEngine {
       if (scores[i]! <= 0 && intentBonus <= 0) continue;
 
       if (doc.name === queryNormalised) {
-        scores[i]! *= 2.5;
+        scores[i]! *= SEARCH_EXACT_NAME_MATCH_MULTIPLIER;
         continue;
       }
 
@@ -393,7 +437,7 @@ export class ToolSearchEngine {
       if (matchedCount > 0 && doc.nameTokenCount > 0 && queryTokenSet.size > 0) {
         const coverage = matchedCount / doc.nameTokenCount;
         const precision = matchedCount / queryTokenSet.size;
-        scores[i]! *= 1 + 0.5 * coverage * precision;
+        scores[i]! *= 1 + SEARCH_COVERAGE_PRECISION_FACTOR * coverage * precision;
       }
 
       // External domain multipliers (e.g. workflow boost from MCPServer.search)
@@ -424,6 +468,16 @@ export class ToolSearchEngine {
 
     // ── Curated intent-routing bonuses ──
     this.applyIntentBonusBand(scores, intentToolBonuses);
+
+    // ── Recency / frequency boost ──
+    this.applyRecencyBoost(scores);
+
+    // ── Profile tier penalty ──
+    // Downweight (do NOT filter) tools whose domain is not in the caller's
+    // active tier. Keeping them visible lets the LLM discover higher-tier
+    // capabilities when lexical evidence is strong, but prevents them from
+    // crowding the top of workflow/search tier results.
+    this.applyTierPenalty(scores, visibleDomains);
 
     // ── Explicit tool mention promotion (Scheme 1) ──
     if (explicitToolMention) {
@@ -461,10 +515,76 @@ export class ToolSearchEngine {
     candidates.sort((a, b) => b.score - a.score);
     const results = candidates.slice(0, topK);
 
-    // ── Cache store ──
-    this.queryCache.set(cacheKey, results);
+    // ── Cache store (value-versioned) ──
+    this.queryCache.set(cacheKey, {
+      results,
+      vectorWeightAtCache: this.feedbackTracker.getVectorWeight(),
+      cachedAtMs: Date.now(),
+    });
 
     return results;
+  }
+
+  /**
+   * Decide whether a cached entry is still usable. Entries drift out of date
+   * primarily because the adaptive vector weight moved; we tolerate a small
+   * delta to avoid flushing on every feedback event.
+   */
+  private isCachedEntryFresh(entry: CachedSearchEntry): boolean {
+    const currentWeight = this.feedbackTracker.getVectorWeight();
+    return (
+      Math.abs(currentWeight - entry.vectorWeightAtCache) <= SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE
+    );
+  }
+
+  /**
+   * Apply recency / frequency boost: tools invoked within the configured
+   * window receive a log-scaled bonus proportional to how recent the hit
+   * was. Helps surface user-preferred tools for repeat queries without
+   * overwhelming the lexical signals.
+   */
+  private applyRecencyBoost(scores: Float64Array): void {
+    if (SEARCH_RECENCY_MAX_BOOST <= 0 || this.recencyTracker.size === 0) {
+      return;
+    }
+    const windowMs = SEARCH_RECENCY_WINDOW_MS;
+    if (windowMs <= 0) return;
+    const now = Date.now();
+    const base = SEARCH_RECENCY_MAX_BOOST;
+
+    for (const [name, lastUsedMs] of this.recencyTracker) {
+      const age = now - lastUsedMs;
+      if (age < 0 || age > windowMs) continue;
+      const docIdx = this.docNameIndex.get(name);
+      if (docIdx === undefined) continue;
+      if (scores[docIdx]! <= 0) continue;
+      const freshness = 1 - age / windowMs; // 1 = just used, 0 = at window edge
+      const multiplier = 1 + base * freshness;
+      scores[docIdx]! *= multiplier;
+    }
+  }
+
+  /**
+   * Downweight tools whose domain is not visible under the caller's profile
+   * tier. The penalty is a soft multiplier in [0, 1]; 1 disables the feature.
+   * Tools without a resolved domain are left untouched.
+   */
+  private applyTierPenalty(
+    scores: Float64Array,
+    visibleDomains: ReadonlySet<string> | undefined,
+  ): void {
+    if (!visibleDomains || visibleDomains.size === 0) return;
+    const penalty = SEARCH_TIER_PENALTY;
+    if (penalty >= 1 || penalty <= 0) return;
+
+    for (let i = 0; i < this.docCount; i++) {
+      if (scores[i]! <= 0) continue;
+      const domain = this.docs[i]!.domain;
+      if (!domain) continue;
+      if (!visibleDomains.has(domain)) {
+        scores[i]! *= penalty;
+      }
+    }
   }
 
   getDomainSummary(): Array<{ domain: string | null; count: number; tools: string[] }> {
@@ -514,11 +634,13 @@ export class ToolSearchEngine {
   ): void {
     const df = postings.length;
     const idf = Math.log((this.docCount - df + 0.5) / (df + 0.5) + 1);
+    const b = SEARCH_BM25_B;
+    const k1 = SEARCH_BM25_K1;
 
     for (const { docIndex, tf, weight } of postings) {
       const doc = this.docs[docIndex]!;
-      const norm = 1 - 0.3 + 0.3 * (doc.length / this.avgDocLength);
-      const tfNorm = (tf * (1.5 + 1)) / (tf + 1.5 * norm);
+      const norm = 1 - b + b * (doc.length / this.avgDocLength);
+      const tfNorm = (tf * (k1 + 1)) / (tf + k1 * norm);
       scores[docIndex]! += idf * tfNorm * weight * multiplier;
     }
   }
@@ -554,7 +676,7 @@ export class ToolSearchEngine {
     const cosineRanked = this.rankByMap(cosineScores);
 
     // ── Signal 3: Trigram fuzzy matching ──
-    const trigramScores = this.trigramIndex.search(query, 0.2);
+    const trigramScores = this.trigramIndex.search(query, SEARCH_TRIGRAM_THRESHOLD);
     const trigramRanked = this.rankByMap(trigramScores);
 
     // ── Signal 4: Dense vector cosine similarity ──
@@ -596,15 +718,13 @@ export class ToolSearchEngine {
       }
 
       // Scale RRF score up to be comparable with original BM25 magnitude
-      // Preserve original BM25 scores for docs in the BM25 ranking to
-      // maintain downstream boost compatibility (affinity, domain hub, etc.)
+      // while preserving original BM25 so downstream boosts (affinity, domain
+      // hub, intent bonus) keep their absolute ordering meaning.
       if (rrfScore > 0) {
         const bm25Original = scores[i]!;
-        // Use RRF as a re-ranking signal: blend BM25 and RRF
-        // This way pure BM25 matches keep their absolute score for downstream
-        // boosting, while RRF can rescue BM25-missed docs.
-        const rrfRescaled = rrfScore * 1000; // Scale to BM25-comparable range
-        scores[i] = Math.max(bm25Original, rrfRescaled * 0.5) + rrfRescaled * 0.5;
+        const rrfRescaled = rrfScore * SEARCH_RRF_RESCALE_FACTOR;
+        const blend = SEARCH_RRF_BM25_BLEND;
+        scores[i] = Math.max(bm25Original, rrfRescaled * blend) + rrfRescaled * blend;
       }
     }
   }
@@ -734,17 +854,26 @@ export class ToolSearchEngine {
   }
 
   /**
-   * Record feedback from a tool call to adjust the vector weight.
-   * Delegates to FeedbackTracker and increments the epoch to lazily invalidate cache.
+   * Record feedback from a tool call.
+   *
+   * - Updates the adaptive vector weight via FeedbackTracker.
+   * - Records the invocation timestamp for the recency / frequency boost.
+   *
+   * Cached entries are not forcibly invalidated; they self-expire through
+   * the vector-weight tolerance check (see `isCachedEntryFresh`).
    *
    * @param toolName The tool that was invoked
    * @param _lastQuery The search query that led to this tool call (reserved for future use)
    */
   recordToolCallFeedback(toolName: string, _lastQuery: string): void {
-    const adjusted = this.feedbackTracker.recordToolCallFeedback(toolName, !!this.embeddingEngine);
-    if (adjusted) {
-      // Increment epoch to lazily invalidate cached search results
-      this.feedbackEpoch += 1;
+    this.feedbackTracker.recordToolCallFeedback(toolName, !!this.embeddingEngine);
+    // Move-to-end ensures LRU ordering via Map insertion-order semantics.
+    this.recencyTracker.delete(toolName);
+    this.recencyTracker.set(toolName, Date.now());
+    while (this.recencyTracker.size > SEARCH_RECENCY_TRACKER_MAX) {
+      const oldest = this.recencyTracker.keys().next().value;
+      if (oldest === undefined) break;
+      this.recencyTracker.delete(oldest);
     }
   }
 
@@ -823,7 +952,7 @@ export class ToolSearchEngine {
     for (const [, members] of prefixGroups) {
       // Skip trivial groups (single member) or overly large ones
       if (members.length < 2 || members.length > 15) continue;
-      const affinityWeight = 0.3 / Math.sqrt(members.length); // Decay for larger groups
+      const affinityWeight = SEARCH_AFFINITY_BASE_WEIGHT / Math.sqrt(members.length); // Decay for larger groups
       for (const src of members) {
         const edges: AffinityEdge[] = graph.get(src) ?? [];
         for (const dst of members) {
@@ -907,7 +1036,7 @@ export class ToolSearchEngine {
         // Apply a small coherence boost to other tools in this domain
         for (let i = 0; i < this.docCount; i++) {
           if (scores[i]! > 0 && this.docs[i]!.domain === domain) {
-            scores[i]! *= 1.08;
+            scores[i]! *= SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER;
           }
         }
       }

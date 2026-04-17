@@ -4,7 +4,7 @@
  * Provides tool name resolution, search engine construction with caching,
  * and domain description generation.
  */
-import { allTools } from '@server/ToolCatalog';
+import { allTools, getProfileDomains, getToolDomain } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { ToolSearchEngine } from '@server/ToolSearch';
 import { getAllRegistrations } from '@server/registry/index';
@@ -16,6 +16,32 @@ export function getActiveToolNames(ctx: MCPServerContext): Set<string> {
   const names = new Set(ctx.selectedTools.map((t) => t.name));
   for (const name of ctx.activatedToolNames) names.add(name);
   return names;
+}
+
+/**
+ * Resolve the set of domains visible to the caller under their current profile
+ * tier (`baseTier`), unioned with any domains already activated via TTL-backed
+ * activation. Drives the tier-aware ranking penalty inside `ToolSearchEngine`.
+ *
+ * Returns an empty set only when both the base profile and activation state
+ * are empty, which disables the penalty (search behaves tier-agnostic).
+ */
+export function getVisibleDomainsForTier(ctx: MCPServerContext): ReadonlySet<string> {
+  const visible = new Set<string>(getProfileDomains(ctx.baseTier));
+  for (const domain of ctx.enabledDomains) visible.add(domain);
+  for (const record of ctx.extensionToolsByName.values()) {
+    visible.add(record.domain);
+  }
+  for (const toolName of getActiveToolNames(ctx)) {
+    const extensionDomain = ctx.extensionToolsByName.get(toolName)?.domain;
+    if (extensionDomain) {
+      visible.add(extensionDomain);
+      continue;
+    }
+    const toolDomain = getToolDomain(toolName);
+    if (toolDomain) visible.add(toolDomain);
+  }
+  return visible;
 }
 
 export function getExtensionDomainMap(ctx: MCPServerContext): Map<string, string> {

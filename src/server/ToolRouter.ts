@@ -14,7 +14,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '@utils/logger';
 import { type ToolSearchEngine, type ToolSearchResult } from '@server/ToolSearch';
 import { ensureWorkflowsLoaded } from '@server/extensions/ExtensionManager';
-import { getActiveToolNames } from '@server/MCPServer.search.helpers';
+import { getActiveToolNames, getVisibleDomainsForTier } from '@server/MCPServer.search.helpers';
 
 // ── Types (re-exported from sub-modules for backward compatibility) ──
 
@@ -145,12 +145,18 @@ export async function routeToolRequest(
   await ensureWorkflowsLoaded(ctx);
   const workflow = detectWorkflowIntent(task);
   const activeNames = getActiveToolNames(ctx);
+  const visibleDomains = getVisibleDomainsForTier(ctx);
   const routingState = await getRoutingState(ctx);
   const availableToolNames = getAvailableToolNames(ctx);
   const routeMatch = matchWorkflowRoute(task, ctx);
   let presetPlannedToolNames: Set<string> | null = null;
 
-  const searchResults = await searchEngine.search(task, maxRecommendations * 2, activeNames);
+  const searchResults = await searchEngine.search(
+    task,
+    maxRecommendations * 2,
+    activeNames,
+    visibleDomains,
+  );
 
   let finalResults: ToolSearchResult[] = [];
   if (routeMatch?.workflow.route.kind === 'preset') {

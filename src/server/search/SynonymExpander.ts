@@ -102,6 +102,33 @@ const SYNONYM_GROUPS: ReadonlyArray<ReadonlyArray<string>> = [
   ['sse', 'eventsource', 'stream', 'streaming'],
   // GraphQL
   ['graphql', 'gql', 'introspect', 'mutation', 'subscription'],
+  // V8 / JS runtime internals
+  ['v8', 'heap', 'snapshot', 'bytecode', 'jit', 'turbofan', 'ignition', 'hiddenclass'],
+  // TLS / BoringSSL
+  ['tls', 'ssl', 'boringssl', 'cert', 'certificate', 'pinning', 'handshake', 'keylog'],
+  // Skia / GPU rendering
+  ['skia', 'gpu', 'render', 'scenegraph', 'scene', 'draw', 'paint', 'raster', 'layer'],
+  // Binary instrumentation toolchain
+  ['frida', 'ghidra', 'ida', 'unidbg', 'jadx', 'binary', 'disassemble', 'decompile', 'instrument'],
+  // Mojo / IPC (Chromium)
+  ['mojo', 'ipc', 'chromium', 'interface', 'broker', 'message'],
+  // Syscall tracing
+  ['syscall', 'etw', 'strace', 'dtrace', 'kernel', 'systemcall', 'tracefs'],
+  // Android bridge
+  ['adb', 'android', 'webview', 'apk', 'dalvik', 'art', 'emulator'],
+  // Extension / plugin runtime
+  [
+    'extension',
+    'plugin',
+    'addon',
+    'webhook',
+    'c2',
+    'bluetooth',
+    'ble',
+    'hid',
+    'serial',
+    'registry',
+  ],
 ];
 
 // ── SynonymExpander class ──

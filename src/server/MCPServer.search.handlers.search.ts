@@ -7,7 +7,11 @@
 import { asTextResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
-import { getSearchEngine, getActiveToolNames } from '@server/MCPServer.search.helpers';
+import {
+  getActiveToolNames,
+  getSearchEngine,
+  getVisibleDomainsForTier,
+} from '@server/MCPServer.search.helpers';
 import { describeTool, generateExampleArgs } from '@server/ToolRouter';
 
 export async function handleSearchTools(
@@ -19,7 +23,8 @@ export async function handleSearchTools(
 
   const engine = getSearchEngine(ctx);
   const activeNames = getActiveToolNames(ctx);
-  const results = await engine.search(query, topK, activeNames);
+  const visibleDomains = getVisibleDomainsForTier(ctx);
+  const results = await engine.search(query, topK, activeNames, visibleDomains);
 
   // SECURITY: Domain auto-activation is disabled for safety.
   // Auto-activation bypassed tier guardrails and could escalate privileges.
