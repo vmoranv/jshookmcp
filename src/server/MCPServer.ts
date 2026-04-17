@@ -65,6 +65,7 @@ export class MCPServer implements MCPServerContext {
     Record<string, (value: string) => string[] | Promise<string[]>>
   >();
   private degradedMode = false;
+  private clientInitialized = false;
   private cacheAdaptersRegistered = false;
   private cacheRegistrationPromise?: Promise<void>;
   public readonly baseTier: ToolProfile;
@@ -281,8 +282,12 @@ export class MCPServer implements MCPServerContext {
       },
     );
 
-    // Forward structured logs to the MCP client
+    // Forward structured logs to the MCP client (only after initialize handshake)
+    this.server.server.oninitialized = () => {
+      this.clientInitialized = true;
+    };
     logger.onLog((level, message, args) => {
+      if (!this.clientInitialized) return;
       try {
         const mcpLevel =
           level === 'warn'
@@ -294,7 +299,6 @@ export class MCPServer implements MCPServerContext {
                 : 'Info';
 
         const data = args.length > 0 ? ' ' + JSON.stringify(args) : '';
-        // Fire-and-forget: if transport is not up or client doesn't support logging, this catches cleanly
         void this.server.server
           .sendLoggingMessage({
             level: mcpLevel as never,
