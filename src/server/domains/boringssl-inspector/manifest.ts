@@ -25,7 +25,7 @@ function ensure(ctx: MCPServerContext): H {
 
   const handlers = new BoringsslInspectorHandlers(new TLSKeyLogExtractor());
 
-  // Wire extensionInvoke for automated Frida cert-pinning bypass
+  // Wire extension invoke for automated Frida cert-pinning bypass
   handlers.setExtensionInvoke(async (args: unknown) => {
     try {
       const binaryInstrument = ctx.getDomainInstance<Record<string, unknown>>(
@@ -39,6 +39,9 @@ function ensure(ctx: MCPServerContext): H {
     }
     return null;
   });
+
+  // Wire event bus for boost rule activation
+  handlers.setEventBus(ctx.eventBus);
 
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
@@ -138,6 +141,35 @@ const manifest = {
     },
   ],
   ensure,
+  workflowRule: {
+    patterns: [
+      /\b(tls|ssl|boringssl|cert(ificate)?|pinning|handshake|keylog)\b/i,
+      /(tls|ssl|cert|pinning).*(hook|bypass|intercept|dump|log)/i,
+    ],
+    priority: 80,
+    tools: ['tls_keylog_enable', 'tls_keylog_parse', 'tls_decrypt_payload', 'tls_cert_pin_bypass'],
+    hint: 'TLS traffic analysis: enable keylog → capture handshake → decrypt payloads or bypass pinning.',
+  },
+  prerequisites: {
+    tls_keylog_enable: [
+      {
+        condition: 'Target process must allow SSLKEYLOGFILE or be attachable by Frida',
+        fix: 'Launch the target with SSLKEYLOGFILE env set, or enable Frida-based hooking',
+      },
+    ],
+    tls_decrypt_payload: [
+      {
+        condition: 'A keylog session must be active with captured secrets',
+        fix: 'Run tls_keylog_enable and reproduce TLS traffic before decrypting',
+      },
+    ],
+    tls_cert_pin_bypass_frida: [
+      {
+        condition: 'Frida must be available on PATH and attached to the target',
+        fix: 'Install Frida and attach via binary-instrument:frida_attach before running the bypass',
+      },
+    ],
+  },
   toolDependencies: [
     {
       from: 'network',

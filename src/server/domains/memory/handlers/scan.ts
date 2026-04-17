@@ -7,6 +7,7 @@ import type {
   ScanOptions,
   ScanValueType,
 } from '@native/NativeMemoryManager.types';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { MEMORY_SCAN_MAX_RESULTS } from '@src/constants';
 
 /** SECURITY: Cap user-supplied maxResults to prevent OOM */
@@ -30,7 +31,10 @@ function toErrorResponse(tool: string, error: unknown) {
 }
 
 export class ScanHandlers {
-  constructor(private readonly scanner: MemoryScanner) {}
+  constructor(
+    private readonly scanner: MemoryScanner,
+    private readonly eventBus?: EventBus<ServerEventMap>,
+  ) {}
 
   async handleFirstScan(args: Record<string, unknown>) {
     try {
@@ -46,6 +50,11 @@ export class ScanHandlers {
         args.value as string,
         options,
       );
+      void this.eventBus?.emit('memory:scan_completed', {
+        scanType: 'first',
+        resultCount: result.totalMatches ?? 0,
+        timestamp: new Date().toISOString(),
+      });
       return toTextResponse({
         success: true,
         ...result,

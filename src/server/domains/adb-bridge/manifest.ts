@@ -52,6 +52,7 @@ function ensure(ctx: MCPServerContext): ADBBridgeHandlers {
   }
 
   const handlers = new ADBBridgeHandlers();
+  handlers.setEventBus(ctx.eventBus);
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
 }

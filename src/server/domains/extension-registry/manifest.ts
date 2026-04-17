@@ -79,6 +79,39 @@ const manifest = {
       bind: b((handlers, args) => handlers.handleWebhookCommands(args)),
     },
   ],
+  workflowRule: {
+    patterns: [
+      /\b(extension|plugin|addon|webhook|c2|bluetooth|ble|hid|serial|esp32|registry)\b/i,
+      /(install|uninstall|reload).*(extension|plugin)/i,
+    ],
+    priority: 70,
+    tools: ['extension_install', 'extension_list_installed', 'webhook_create', 'webhook_commands'],
+    hint: 'Plugin + webhook C2 + BLE HID + serial flashing pipeline.',
+  },
+  prerequisites: {
+    extension_install: [
+      {
+        condition: 'EXTENSION_REGISTRY_BASE_URL must be configured for registry installs',
+        fix: 'Set EXTENSION_REGISTRY_BASE_URL env or pass a direct git URL / file path',
+      },
+    ],
+    webhook_create: [
+      {
+        condition: 'Webhook listen port must be free',
+        fix: 'Pick an unused port via the `port` argument or stop the conflicting service',
+      },
+    ],
+  },
+  toolDependencies: [
+    {
+      from: 'extension_install',
+      to: 'extension_list_installed',
+      relation: 'suggests',
+      weight: 0.5,
+    },
+    { from: 'webhook_create', to: 'webhook_list', relation: 'suggests', weight: 0.5 },
+    { from: 'webhook_commands', to: 'webhook_list', relation: 'precedes', weight: 0.3 },
+  ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

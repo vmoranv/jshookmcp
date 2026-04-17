@@ -17,7 +17,7 @@ function ensure(ctx: MCPServerContext): MojoIPCHandlers {
     return existingHandlers;
   }
 
-  const handlers = new MojoIPCHandlers();
+  const handlers = new MojoIPCHandlers(undefined, undefined, ctx.eventBus);
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
 }
@@ -56,6 +56,29 @@ const manifest: DomainManifest<typeof DEP_KEY, MojoIPCHandlers, typeof DOMAIN> =
     },
   ],
   ensure,
+  workflowRule: {
+    patterns: [
+      /\b(mojo|ipc|chromium\s?(ipc|message)|interface\s?(broker|registry))\b/i,
+      /(mojo|ipc|chromium).*(monitor|capture|hook|trace)/i,
+    ],
+    priority: 75,
+    tools: ['mojo_monitor_start', 'mojo_decode_message', 'mojo_list_interfaces'],
+    hint: 'Mojo IPC: start monitor → capture messages → decode payloads → correlate with CDP',
+  },
+  prerequisites: {
+    mojo_monitor_start: [
+      {
+        condition: 'Frida must be available for real process attachment',
+        fix: 'Install Frida and ensure the Chromium target process is launched first',
+      },
+    ],
+    mojo_decode_message: [
+      {
+        condition: 'Captured message payload hex is required',
+        fix: 'Start a monitoring session via mojo_monitor_start and capture traffic first',
+      },
+    ],
+  },
   toolDependencies: [
     {
       from: 'browser',

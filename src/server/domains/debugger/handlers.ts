@@ -19,6 +19,7 @@
 
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import type { RuntimeInspector } from '@server/domains/shared/modules';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 
 import { DebuggerControlHandlers } from '@server/domains/debugger/handlers/debugger-control';
 import { DebuggerSteppingHandlers } from '@server/domains/debugger/handlers/debugger-stepping';
@@ -50,7 +51,11 @@ export class DebuggerToolHandlers {
   private scopeInspection: ScopeInspectionHandlers;
   private blackbox: BlackboxHandlers;
 
-  constructor(debuggerManager: DebuggerManager, runtimeInspector: RuntimeInspector) {
+  constructor(
+    debuggerManager: DebuggerManager,
+    runtimeInspector: RuntimeInspector,
+    eventBus?: EventBus<ServerEventMap>,
+  ) {
     this.debuggerManager = debuggerManager;
     this.runtimeInspector = runtimeInspector;
 
@@ -72,6 +77,7 @@ export class DebuggerToolHandlers {
     });
     this.breakpointBasic = new BreakpointBasicHandlers({
       debuggerManager: this.debuggerManager,
+      eventBus,
     });
     this.breakpointException = new BreakpointExceptionHandlers({
       debuggerManager: this.debuggerManager,

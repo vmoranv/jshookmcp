@@ -23,6 +23,7 @@ import type { Speedhack } from '@native/Speedhack';
 import type { HeapAnalyzer } from '@native/HeapAnalyzer';
 import type { PEAnalyzer } from '@native/PEAnalyzer';
 import type { AntiCheatDetector } from '@native/AntiCheatDetector';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 
 import { SessionHandlers } from './handlers/session';
 import { ScanHandlers } from './handlers/scan';
@@ -53,9 +54,10 @@ export class MemoryScanHandlers {
     heapAnalyzer: HeapAnalyzer | null,
     peAnalyzer: PEAnalyzer | null,
     antiCheatDetector: AntiCheatDetector | null,
+    eventBus?: EventBus<ServerEventMap>,
   ) {
     this.sessions = new SessionHandlers(sessionManager);
-    this.scans = new ScanHandlers(scanner);
+    this.scans = new ScanHandlers(scanner, eventBus);
     this.ptrChains = new PointerChainHandlers(ptrEngine);
     this.structures = new StructureHandlers(structAnalyzer);
     this.hooks = new HookHandlers(bpEngine, injector);

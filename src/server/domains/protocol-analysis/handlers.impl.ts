@@ -10,6 +10,7 @@ import type {
 import { ProtocolPatternEngine, StateMachineInferrer } from '@modules/protocol-analysis';
 import { argObject, argStringArray, argStringRequired } from '@server/domains/shared/parse-args';
 import type { ToolArgs } from '@server/types';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -170,6 +171,7 @@ export class ProtocolAnalysisHandlers {
   constructor(
     private engine?: ProtocolPatternEngine,
     private inferrer?: StateMachineInferrer,
+    private eventBus?: EventBus<ServerEventMap>,
   ) {}
 
   async handleDefinePattern(args: ToolArgs): Promise<{
@@ -254,14 +256,18 @@ export class ProtocolAnalysisHandlers {
         name: patternName ?? detected.name,
       };
       this.getEngine().definePattern(namedPattern.name, namedPattern);
+      const result = this.getEngine().getPattern(namedPattern.name) ?? {
+        name: namedPattern.name,
+        fields: [],
+        byteOrder: 'big',
+      };
+      void this.eventBus?.emit('protocol:pattern_detected', {
+        patternName: namedPattern.name,
+        confidence: 0,
+        timestamp: new Date().toISOString(),
+      });
       return {
-        patterns: [
-          this.getEngine().getPattern(namedPattern.name) ?? {
-            name: namedPattern.name,
-            fields: [],
-            byteOrder: 'big',
-          },
-        ],
+        patterns: [result],
         success: true,
       };
     } catch (error) {

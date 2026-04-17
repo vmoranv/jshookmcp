@@ -12,6 +12,7 @@ import { getConfig } from '@utils/config';
 import { resolveOutputDirectory } from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { type CamoufoxBrowserManager } from '@server/domains/shared/modules';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 
 import { BrowserControlHandlers } from '@server/domains/browser/handlers/browser-control';
 import { CamoufoxBrowserHandlers } from '@server/domains/browser/handlers/camoufox-browser';
@@ -94,6 +95,7 @@ export class BrowserToolHandlers {
     domInspector: DOMInspector,
     scriptManager: ScriptManager,
     consoleMonitor: ConsoleMonitor,
+    eventBus?: EventBus<ServerEventMap>,
   ) {
     this.collector = collector;
     this.pageController = pageController;
@@ -114,6 +116,7 @@ export class BrowserToolHandlers {
       domInspector: this.domInspector,
       scriptManager: this.scriptManager,
       consoleMonitor: this.consoleMonitor,
+      eventBus,
       captchaDetector: this.captchaDetector,
       detailedDataManager: this.detailedDataManager,
       getActiveDriver: () => this.activeDriver,

@@ -19,7 +19,7 @@ function ensure(ctx: MCPServerContext): SyscallHookHandlers {
     return existing;
   }
 
-  const handlers = new SyscallHookHandlers();
+  const handlers = new SyscallHookHandlers(undefined, undefined, ctx.eventBus);
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
 }
@@ -63,6 +63,30 @@ const manifest = {
       bind: bindTool((handlers) => handlers.handleSyscallGetStats()),
     },
   ],
+  workflowRule: {
+    patterns: [
+      /\b(syscall|etw|strace|dtrace|kernel|system\s?call)\b/i,
+      /(syscall|kernel).*(trace|monitor|capture|filter)/i,
+    ],
+    priority: 78,
+    tools: ['syscall_start_monitor', 'syscall_capture_events', 'syscall_correlate_js'],
+    hint: 'Syscall tracing: start monitor (ETW/strace/dtrace) → capture events → correlate with JS stacks.',
+  },
+  prerequisites: {
+    syscall_start_monitor: [
+      {
+        condition:
+          'Administrator/root privileges required for ETW and dtrace; Linux strace needs ptrace_scope=0',
+        fix: 'Run the MCP server with elevated privileges, or relax kernel restrictions on Linux',
+      },
+    ],
+    syscall_correlate_js: [
+      {
+        condition: 'A debugger or v8-inspector session must expose JS stacks',
+        fix: 'Attach the debugger or v8-inspector domain before correlating',
+      },
+    ],
+  },
   toolDependencies: [
     {
       from: 'memory',

@@ -14,7 +14,11 @@ function ensure(ctx: MCPServerContext): H {
   ensureBrowserCore(ctx);
 
   if (!ctx.advancedHandlers) {
-    ctx.advancedHandlers = new AdvancedToolHandlers(ctx.collector!, ctx.consoleMonitor!);
+    ctx.advancedHandlers = new AdvancedToolHandlers(
+      ctx.collector!,
+      ctx.consoleMonitor!,
+      ctx.eventBus,
+    );
   }
 
   return ctx.advancedHandlers;

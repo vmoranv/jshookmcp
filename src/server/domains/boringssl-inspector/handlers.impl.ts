@@ -14,6 +14,7 @@ import {
 import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
 import { argString, argNumber } from '@server/domains/shared/parse-args';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 
 /**
  * SECURITY: Validate that a target host is not a private/loopback address.
@@ -321,11 +322,16 @@ function parseCertificateChain(hexPayload: string): Array<{
 
 export class BoringsslInspectorHandlers {
   private extensionInvoke?: (...args: unknown[]) => Promise<unknown>;
+  private eventBus?: EventBus<ServerEventMap>;
 
   constructor(private keyLogExtractor: TLSKeyLogExtractor = new TLSKeyLogExtractor()) {}
 
   setExtensionInvoke(invoke: (...args: unknown[]) => Promise<unknown>): void {
     this.extensionInvoke = invoke;
+  }
+
+  setEventBus(eventBus: EventBus<ServerEventMap>): void {
+    this.eventBus = eventBus;
   }
 
   async handleTlsKeylogEnable(_args: Record<string, unknown>): Promise<unknown> {
@@ -523,6 +529,10 @@ export class BoringsslInspectorHandlers {
   async handleKeyLogEnable(args: Record<string, unknown>): Promise<ToolResponse> {
     const filePath = argString(args, 'filePath') ?? '/tmp/sslkeylog.log';
     enableKeyLog(filePath);
+    void this.eventBus?.emit('tls:keylog_started', {
+      filePath,
+      timestamp: new Date().toISOString(),
+    });
     return asJsonResponse({
       success: true,
       filePath,

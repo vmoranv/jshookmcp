@@ -3,6 +3,7 @@ import { ADBClient, WebViewDebugger } from '@modules/adb';
 import { argNumber, argString, argStringRequired } from '@server/domains/shared/parse-args';
 import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -35,10 +36,18 @@ function readPackagePath(output: string): string | null {
 }
 
 export class ADBBridgeHandlers {
-  constructor(
-    private adbClient?: ADBClient,
-    private webviewDbg?: WebViewDebugger,
-  ) {}
+  private adbClient?: ADBClient;
+  private webviewDbg?: WebViewDebugger;
+  private eventBus?: EventBus<ServerEventMap>;
+
+  constructor(adbClient?: ADBClient, webviewDbg?: WebViewDebugger) {
+    this.adbClient = adbClient;
+    this.webviewDbg = webviewDbg;
+  }
+
+  setEventBus(eventBus: EventBus<ServerEventMap>): void {
+    this.eventBus = eventBus;
+  }
 
   private getADBClient(): ADBClient {
     if (!this.adbClient) {
@@ -71,9 +80,19 @@ export class ADBBridgeHandlers {
   }
 
   async handleDeviceList(_args: Record<string, unknown>): Promise<ToolResponse> {
+    const devices = await this.getADBClient().listDevices();
+    for (const device of devices) {
+      if (device.type === 'device') {
+        void this.eventBus?.emit('adb:device_connected', {
+          serial: device.id,
+          model: device.model ?? device.id,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
     return this.run('adb_device_list', async () => ({
       success: true,
-      devices: await this.getADBClient().listDevices(),
+      devices,
     }));
   }
 

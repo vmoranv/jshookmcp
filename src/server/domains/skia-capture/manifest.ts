@@ -24,6 +24,7 @@ function ensure(ctx: MCPServerContext): H {
 
   const handlers = new SkiaCaptureHandlers({
     pageController: ctx.pageController ?? null,
+    eventBus: ctx.eventBus,
   });
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
@@ -53,12 +54,49 @@ const manifest = {
     },
   ],
   ensure,
+  workflowRule: {
+    patterns: [
+      /\b(skia|gpu|render(er)?|scene\s?(tree|graph)|draw\s?call|raster|paint|layer)\b/i,
+      /skia.*(render|detect|scene)/i,
+      /canvas.*skia/i,
+      /gpu.*backend/i,
+    ],
+    priority: 78,
+    tools: ['skia_detect_renderer', 'skia_extract_scene', 'skia_correlate_objects'],
+    hint: 'Skia pipeline analysis: detect GPU backend → dump scene tree → correlate with JS objects.',
+  },
+  prerequisites: {
+    skia_detect_renderer: [
+      {
+        condition: 'Browser must be running with CDP attached',
+        fix: 'Call browser_launch or browser_attach first',
+      },
+    ],
+    skia_extract_scene: [
+      {
+        condition: 'Browser must be running with CDP attached',
+        fix: 'Call browser_launch or browser_attach first',
+      },
+    ],
+    skia_correlate_objects: [
+      {
+        condition: 'V8 heap snapshot should be available for robust matching',
+        fix: 'Run v8_heap_snapshot_capture before correlation',
+      },
+    ],
+  },
   toolDependencies: [
     {
       from: 'canvas',
       to: 'skia-capture',
       relation: 'uses',
       weight: 0.9,
+    },
+    {
+      from: 'skia_correlate_objects',
+      to: 'v8_heap_snapshot_capture',
+      relation: 'precedes',
+      weight: 0.6,
     },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;

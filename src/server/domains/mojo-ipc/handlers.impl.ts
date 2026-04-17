@@ -1,5 +1,6 @@
 import { MojoDecoder, MojoMonitor } from '@modules/mojo-ipc';
 import { argNumber, argString } from '@server/domains/shared/parse-args';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 
 function unavailablePayload(
   reason: string,
@@ -22,6 +23,7 @@ export class MojoIPCHandlers {
   constructor(
     private monitor?: MojoMonitor,
     private decoder?: MojoDecoder,
+    private eventBus?: EventBus<ServerEventMap>,
   ) {}
 
   async handleMojoMonitorStart(args: Record<string, unknown>): Promise<unknown> {
@@ -136,6 +138,13 @@ export class MojoIPCHandlers {
       filtered: result.filtered,
       _simulation: result._simulation,
     };
+
+    if (result.messages && Array.isArray(result.messages) && result.messages.length > 0) {
+      void this.eventBus?.emit('mojo:message_captured', {
+        messageCount: result.messages.length,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     if (monitor.isSimulationMode()) {
       response._warning =

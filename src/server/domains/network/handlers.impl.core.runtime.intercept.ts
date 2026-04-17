@@ -98,6 +98,10 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
 
       const createdRules = await this.consoleMonitor.enableFetchIntercept(rules);
       const status = this.consoleMonitor.getFetchInterceptStatus();
+      void this.emit('network:intercept_started', {
+        interceptType: 'fetch',
+        timestamp: new Date().toISOString(),
+      });
 
       return {
         content: [

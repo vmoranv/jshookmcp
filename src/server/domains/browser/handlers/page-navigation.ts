@@ -1,5 +1,6 @@
 import type { PageController } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 
 type ChromeNavigationWaitUntil = NonNullable<
@@ -20,6 +21,7 @@ interface PageNavigationHandlersDeps {
   consoleMonitor: ConsoleMonitor;
   getActiveDriver: () => 'chrome' | 'camoufox';
   getCamoufoxPage: () => Promise<unknown>;
+  eventBus?: EventBus<ServerEventMap>;
 }
 
 export class PageNavigationHandlers {
@@ -43,6 +45,12 @@ export class PageNavigationHandlers {
         await this.deps.consoleMonitor.enable({ enableNetwork: true, enableExceptions: true });
       }
 
+      const navigatedUrl = page.url();
+      void this.deps.eventBus?.emit('browser:navigated', {
+        url: navigatedUrl,
+        timestamp: new Date().toISOString(),
+      });
+
       return {
         content: [
           {
@@ -51,7 +59,7 @@ export class PageNavigationHandlers {
               {
                 success: true,
                 driver: 'camoufox',
-                url: page.url(),
+                url: navigatedUrl,
                 title: await page.title(),
                 network_monitoring: {
                   enabled: this.deps.consoleMonitor.isNetworkEnabled(),
@@ -80,6 +88,10 @@ export class PageNavigationHandlers {
 
     const currentUrl = await this.deps.pageController.getURL();
     const title = await this.deps.pageController.getTitle();
+    void this.deps.eventBus?.emit('browser:navigated', {
+      url: currentUrl,
+      timestamp: new Date().toISOString(),
+    });
 
     return {
       content: [

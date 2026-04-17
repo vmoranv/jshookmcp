@@ -18,7 +18,11 @@ function ensure(ctx: MCPServerContext): H {
   if (!ctx.runtimeInspector)
     ctx.runtimeInspector = new RuntimeInspector(ctx.collector!, ctx.debuggerManager);
   if (!ctx.debuggerHandlers) {
-    ctx.debuggerHandlers = new DebuggerToolHandlers(ctx.debuggerManager, ctx.runtimeInspector);
+    ctx.debuggerHandlers = new DebuggerToolHandlers(
+      ctx.debuggerManager,
+      ctx.runtimeInspector,
+      ctx.eventBus,
+    );
   }
   return ctx.debuggerHandlers;
 }

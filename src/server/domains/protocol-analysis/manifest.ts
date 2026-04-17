@@ -16,7 +16,7 @@ function ensure(ctx: MCPServerContext): H {
     return existing;
   }
 
-  const handlers = new ProtocolAnalysisHandlers();
+  const handlers = new ProtocolAnalysisHandlers(undefined, undefined, ctx.eventBus);
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
 }

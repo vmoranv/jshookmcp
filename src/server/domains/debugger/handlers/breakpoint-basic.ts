@@ -1,8 +1,10 @@
 import type { DebuggerManager } from '@server/domains/shared/modules';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { argString, argNumber } from '@server/domains/shared/parse-args';
 
 interface BreakpointBasicHandlersDeps {
   debuggerManager: DebuggerManager;
+  eventBus?: EventBus<ServerEventMap>;
 }
 
 export class BreakpointBasicHandlers {
@@ -34,6 +36,12 @@ export class BreakpointBasicHandlers {
     } else {
       throw new Error('Either url or scriptId must be provided');
     }
+
+    void this.deps.eventBus?.emit('debugger:breakpoint_hit', {
+      scriptId: breakpoint.location?.scriptId ?? scriptId ?? '',
+      lineNumber: breakpoint.location?.lineNumber ?? lineNumber,
+      timestamp: new Date().toISOString(),
+    });
 
     return {
       content: [

@@ -3,6 +3,7 @@ import type { PageController } from '@server/domains/shared/modules';
 import type { DOMInspector } from '@server/domains/shared/modules';
 import type { ScriptManager } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { type AICaptchaDetector } from '@server/domains/shared/modules';
 import { type DetailedDataManager } from '@utils/DetailedDataManager';
 import { type CamoufoxBrowserManager } from '@server/domains/shared/modules';
@@ -47,6 +48,7 @@ export interface BrowserHandlerModuleInitDeps {
   setAutoDetectCaptcha: (value: boolean) => void;
   setAutoSwitchHeadless: (value: boolean) => void;
   setCaptchaTimeout: (value: number) => void;
+  eventBus?: EventBus<ServerEventMap>;
 }
 
 export interface BrowserHandlerModules {
@@ -112,6 +114,7 @@ export function initializeBrowserHandlerModules(
     pageNavigation: new PageNavigationHandlers({
       pageController: deps.pageController,
       consoleMonitor: deps.consoleMonitor,
+      eventBus: deps.eventBus,
       ...commonDeps,
     }),
 

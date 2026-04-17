@@ -9,6 +9,7 @@ import { logger } from '@utils/logger';
 import type { CodeCollector } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import { PerformanceMonitor } from '@server/domains/shared/modules';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 import {
   EXCLUDED_RESOURCE_TYPES,
   TYPE_SORT_PRIORITY,
@@ -28,7 +29,12 @@ export class NetworkHandlersCore {
   constructor(
     protected collector: CodeCollector,
     protected consoleMonitor: ConsoleMonitor,
+    protected eventBus?: EventBus<ServerEventMap>,
   ) {}
+
+  protected emit(event: keyof ServerEventMap, payload: ServerEventMap[keyof ServerEventMap]): void {
+    void this.eventBus?.emit(event as never, payload);
+  }
 
   protected getPerformanceMonitor(): PerformanceMonitor {
     if (!this.performanceMonitor) {

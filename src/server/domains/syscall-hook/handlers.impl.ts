@@ -5,6 +5,7 @@ import {
   type SyscallBackend,
   type SyscallEvent,
 } from '@modules/syscall-hook';
+import type { EventBus, ServerEventMap } from '@server/EventBus';
 
 interface EventFilter {
   name?: string[];
@@ -117,6 +118,7 @@ export class SyscallHookHandlers {
   constructor(
     private monitor?: SyscallMonitor,
     private mapper?: SyscallToJSMapper,
+    private eventBus?: EventBus<ServerEventMap>,
   ) {}
 
   async handleSyscallStartMonitor(args: Record<string, unknown>): Promise<unknown> {
@@ -141,6 +143,11 @@ export class SyscallHookHandlers {
       await monitor.start({
         backend,
         pid,
+      });
+      void this.eventBus?.emit('syscall:trace_started', {
+        backend,
+        pid,
+        timestamp: new Date().toISOString(),
       });
       return {
         ok: true,

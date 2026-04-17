@@ -68,7 +68,7 @@ export class V8InspectorHandlers {
     requirePageController(this.deps.ctx);
     const pageController = this.deps.ctx.pageController!;
 
-    return handleHeapSnapshotCapture(args, {
+    const result = await handleHeapSnapshotCapture(args, {
       getPage: () => Promise.resolve(pageController),
       getSnapshot: () => this.currentSnapshotId,
       setSnapshot: (id: string | null) => {
@@ -76,6 +76,16 @@ export class V8InspectorHandlers {
       },
       client: this.deps.client,
     });
+
+    if (result.success && result.snapshotId) {
+      void this.deps.ctx.eventBus.emit('v8:heap_captured', {
+        snapshotId: result.snapshotId,
+        sizeBytes: result.sizeBytes,
+        timestamp: result.capturedAt,
+      });
+    }
+
+    return result;
   }
 
   async v8_heap_snapshot_analyze(args: ToolArgs): Promise<{

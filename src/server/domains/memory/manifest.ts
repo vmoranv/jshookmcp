@@ -69,6 +69,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
       heapAnalyzer.heapAnalyzer,
       peAnalyzer.peAnalyzer,
       antiCheatDetector.antiCheatDetector,
+      ctx.eventBus,
     );
   } else {
     // macOS/Linux: Win32-only engines not available — pass null
@@ -84,6 +85,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
       null, // heapAnalyzer
       null, // peAnalyzer
       null, // antiCheatDetector
+      ctx.eventBus,
     );
   }
   return ctxAny[DEP_KEY] as H;

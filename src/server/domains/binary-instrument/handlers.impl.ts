@@ -14,8 +14,8 @@ import {
   type HookTemplate,
 } from '@modules/binary-instrument';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { UNIDBG_TIMEOUT_MS } from '@src/constants';
 
-const UNIDBG_TIMEOUT_MS = 30_000;
 const UNIDBG_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
 
 interface CommandResult {
@@ -76,6 +76,11 @@ export class BinaryInstrumentHandlers {
     }
 
     const sessionId = await frida.attach(target);
+    void this.context?.eventBus.emit('frida:attached', {
+      target,
+      sessionId,
+      timestamp: new Date().toISOString(),
+    });
     return this.jsonResponse({
       available: true,
       target,
