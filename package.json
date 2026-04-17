@@ -156,16 +156,17 @@
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "overrides": {
-      "hono": "4.12.12",
+      "hono": ">=4.12.14",
       "@hono/node-server": "1.19.13",
       "express-rate-limit": "8.3.0",
-      "basic-ftp": "5.2.2",
+      "basic-ftp": ">=5.3.0",
       "brace-expansion": "5.0.5",
       "minimatch": "10.2.4",
       "esbuild": "0.27.3",
       "isolated-vm": "6.1.2",
       "flatted": ">=3.4.2",
       "path-to-regexp": "8.4.0",
+      "protobufjs": ">=7.5.5",
       "picomatch@^2.0.0": "2.3.2",
       "picomatch@^4.0.0": "4.0.4",
       "vitepress>vite": "$vite"
