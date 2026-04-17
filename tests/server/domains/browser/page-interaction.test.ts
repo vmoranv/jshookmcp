@@ -35,12 +35,15 @@ function createCamoufoxPage(): CamoufoxPageMock {
 }
 
 interface PageControllerMock {
-  click: Mock<(selector: string, options: any) => Promise<void>>;
-  type: Mock<(selector: string, text: string, options: any) => Promise<void>>;
-  select: Mock<(selector: string, ...values: string[]) => Promise<void>>;
-  hover: Mock<(selector: string) => Promise<void>>;
+  click: Mock<(selector: string, options: any, frameOptions?: unknown) => Promise<void>>;
+  type: Mock<
+    (selector: string, text: string, options: any, frameOptions?: unknown) => Promise<void>
+  >;
+  select: Mock<(selector: string, values: string[], frameOptions?: unknown) => Promise<void>>;
+  hover: Mock<(selector: string, frameOptions?: unknown) => Promise<void>>;
   scroll: Mock<(options: { x: number; y: number }) => Promise<void>>;
   pressKey: Mock<(key: string) => Promise<void>>;
+  resolveFrame: Mock<(page: unknown, options?: unknown) => Promise<unknown>>;
 }
 
 function createPageController(overrides: Partial<PageControllerMock> = {}): PageControllerMock {
@@ -51,7 +54,17 @@ function createPageController(overrides: Partial<PageControllerMock> = {}): Page
     hover: vi.fn(async () => {}),
     scroll: vi.fn(async () => {}),
     pressKey: vi.fn(async () => {}),
+    resolveFrame: vi.fn(async (page: unknown) => page),
     ...overrides,
+  };
+}
+
+function createCamoufoxInteractionContext() {
+  return {
+    click: vi.fn(async () => {}),
+    fill: vi.fn(async () => {}),
+    hover: vi.fn(async () => {}),
+    selectOption: vi.fn(async () => ['primary']),
   };
 }
 
@@ -185,6 +198,32 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     expect(body.driver).toBe('camoufox');
   });
 
+  it('clicks inside a resolved camoufox frame when frameSelector is provided', async () => {
+    const camoPage = createCamoufoxPage();
+    const camoFrame = createCamoufoxInteractionContext();
+    pageController.resolveFrame.mockResolvedValueOnce(camoFrame);
+    handlers = new PageInteractionHandlers({
+      pageController: pageController as any,
+      getActiveDriver: () => 'camoufox',
+      getCamoufoxPage: async () => camoPage as any,
+    });
+
+    const body = parseJson<any>(
+      await handlers.handlePageClick({ selector: '#btn', frameSelector: 'iframe#game' }),
+    );
+    expect(pageController.resolveFrame).toHaveBeenCalledWith(camoPage, {
+      frameUrl: undefined,
+      frameSelector: 'iframe#game',
+    });
+    expect(camoFrame.click).toHaveBeenCalledWith('#btn', {
+      button: 'left',
+      clickCount: 1,
+      delay: undefined,
+    });
+    expect(camoPage.click).not.toHaveBeenCalled();
+    expect(body.frame).toEqual({ frameSelector: 'iframe#game' });
+  });
+
   it('parses button value case-insensitively', async () => {
     await handlers.handlePageClick({ selector: '#x', button: 'RIGHT' });
     expect(pageController.click).toHaveBeenCalledWith('#x', {
@@ -301,6 +340,32 @@ describe('PageInteractionHandlers – handlePageType', () => {
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
   });
+
+  it('types inside a resolved camoufox frame when frameSelector is provided', async () => {
+    const camoPage = createCamoufoxPage();
+    const camoFrame = createCamoufoxInteractionContext();
+    pageController.resolveFrame.mockResolvedValueOnce(camoFrame);
+    handlers = new PageInteractionHandlers({
+      pageController: pageController as any,
+      getActiveDriver: () => 'camoufox',
+      getCamoufoxPage: async () => camoPage as any,
+    });
+
+    const body = parseJson<any>(
+      await handlers.handlePageType({
+        selector: '#email',
+        text: 'test@a.com',
+        frameSelector: 'iframe#game',
+      }),
+    );
+    expect(pageController.resolveFrame).toHaveBeenCalledWith(camoPage, {
+      frameUrl: undefined,
+      frameSelector: 'iframe#game',
+    });
+    expect(camoFrame.fill).toHaveBeenCalledWith('#email', 'test@a.com');
+    expect(camoPage.fill).not.toHaveBeenCalled();
+    expect(body.frame).toEqual({ frameSelector: 'iframe#game' });
+  });
 });
 
 // ─── handlePageSelect ───
@@ -326,7 +391,7 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
         values: ['opt1', 'opt2'],
       }),
     );
-    expect(pageController.select).toHaveBeenCalledWith('#dropdown', 'opt1', 'opt2');
+    expect(pageController.select).toHaveBeenCalledWith('#dropdown', ['opt1', 'opt2']);
     expect(body.success).toBe(true);
     expect(body.message).toContain('#dropdown');
     expect(body.message).toContain('opt1');
@@ -349,6 +414,32 @@ describe('PageInteractionHandlers – handlePageSelect', () => {
     expect(camoPage.selectOption).toHaveBeenCalledWith('#plan', ['premium']);
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
+  });
+
+  it('selects inside a resolved camoufox frame when frameSelector is provided', async () => {
+    const camoPage = createCamoufoxPage();
+    const camoFrame = createCamoufoxInteractionContext();
+    pageController.resolveFrame.mockResolvedValueOnce(camoFrame);
+    handlers = new PageInteractionHandlers({
+      pageController: pageController as any,
+      getActiveDriver: () => 'camoufox',
+      getCamoufoxPage: async () => camoPage as any,
+    });
+
+    const body = parseJson<any>(
+      await handlers.handlePageSelect({
+        selector: '#plan',
+        values: ['premium'],
+        frameSelector: 'iframe#game',
+      }),
+    );
+    expect(pageController.resolveFrame).toHaveBeenCalledWith(camoPage, {
+      frameUrl: undefined,
+      frameSelector: 'iframe#game',
+    });
+    expect(camoFrame.selectOption).toHaveBeenCalledWith('#plan', ['premium']);
+    expect(camoPage.selectOption).not.toHaveBeenCalled();
+    expect(body.frame).toEqual({ frameSelector: 'iframe#game' });
   });
 });
 
@@ -391,6 +482,28 @@ describe('PageInteractionHandlers – handlePageHover', () => {
     expect(camoPage.hover).toHaveBeenCalledWith('.tooltip');
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
+  });
+
+  it('hovers inside a resolved camoufox frame when frameSelector is provided', async () => {
+    const camoPage = createCamoufoxPage();
+    const camoFrame = createCamoufoxInteractionContext();
+    pageController.resolveFrame.mockResolvedValueOnce(camoFrame);
+    handlers = new PageInteractionHandlers({
+      pageController: pageController as any,
+      getActiveDriver: () => 'camoufox',
+      getCamoufoxPage: async () => camoPage as any,
+    });
+
+    const body = parseJson<any>(
+      await handlers.handlePageHover({ selector: '.tooltip', frameSelector: 'iframe#game' }),
+    );
+    expect(pageController.resolveFrame).toHaveBeenCalledWith(camoPage, {
+      frameUrl: undefined,
+      frameSelector: 'iframe#game',
+    });
+    expect(camoFrame.hover).toHaveBeenCalledWith('.tooltip');
+    expect(camoPage.hover).not.toHaveBeenCalled();
+    expect(body.frame).toEqual({ frameSelector: 'iframe#game' });
   });
 });
 

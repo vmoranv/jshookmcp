@@ -1,4 +1,5 @@
 import type { PageController } from '@server/domains/shared/modules';
+import type { FrameResolveOptions } from '@modules/collector/PageController';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
 import { resolveScreenshotOutputPath } from '@utils/outputPaths';
 import {
@@ -14,12 +15,19 @@ interface CamoufoxElementLike {
   screenshot(options: { path?: string; type?: 'png' | 'jpeg'; quality?: number }): Promise<Buffer>;
 }
 
-interface CamoufoxPageLike {
+interface CamoufoxEvaluateContextLike {
   evaluate<Result>(pageFunction: () => Result | Promise<Result>): Promise<Result>;
   evaluate<Arg, Result>(
     pageFunction: (arg: Arg) => Result | Promise<Result>,
     arg: Arg,
   ): Promise<Result>;
+}
+
+interface CamoufoxFrameLike extends CamoufoxEvaluateContextLike {
+  url(): string;
+}
+
+interface CamoufoxPageLike extends CamoufoxEvaluateContextLike {
   $(selector: string): Promise<CamoufoxElementLike | null>;
   screenshot(options: {
     path?: string;
@@ -28,6 +36,8 @@ interface CamoufoxPageLike {
     fullPage?: boolean;
   }): Promise<Buffer>;
   waitForSelector(selector: string, options?: { timeout?: number }): Promise<unknown>;
+  frames(): CamoufoxFrameLike[];
+  mainFrame(): CamoufoxFrameLike;
 }
 
 interface PageEvaluationHandlersDeps {
@@ -40,17 +50,37 @@ interface PageEvaluationHandlersDeps {
 export class PageEvaluationHandlers {
   constructor(private deps: PageEvaluationHandlersDeps) {}
 
+  private async getCamoufoxEvaluationContext(
+    frameOptions?: FrameResolveOptions,
+  ): Promise<CamoufoxEvaluateContextLike> {
+    const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+    if (!frameOptions?.frameUrl && !frameOptions?.frameSelector) {
+      return page;
+    }
+    return (await this.deps.pageController.resolveFrame(
+      page as any,
+      frameOptions,
+    )) as unknown as CamoufoxEvaluateContextLike;
+  }
+
   async handlePageEvaluate(args: Record<string, unknown>) {
     const code = argString(args, 'script', '') || argString(args, 'code', '');
     const autoSummarize = argBool(args, 'autoSummarize', true);
     const maxSize = argNumber(args, 'maxSize', 51200);
     const fieldFilterArg = argStringArray(args, 'fieldFilter');
     const doStripBase64 = argBool(args, 'stripBase64', false);
+    const frameUrl = argString(args, 'frameUrl');
+    const frameSelector = argString(args, 'frameSelector');
+
+    const frameOptions: FrameResolveOptions | undefined =
+      frameUrl || frameSelector
+        ? { frameUrl: frameUrl || undefined, frameSelector: frameSelector || undefined }
+        : undefined;
 
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+      const context = await this.getCamoufoxEvaluationContext(frameOptions);
       const evaluateExpression = new Function(`return (${code})`) as () => unknown;
-      const result = await page.evaluate(evaluateExpression);
+      const result = await context.evaluate(evaluateExpression);
       const processedResult = applyEvaluationPostFilters(result, this.deps.detailedDataManager, {
         autoSummarize,
         maxSize,
@@ -62,7 +92,12 @@ export class PageEvaluationHandlers {
           {
             type: 'text',
             text: JSON.stringify(
-              { success: true, driver: 'camoufox', result: processedResult },
+              {
+                success: true,
+                driver: 'camoufox',
+                ...(frameOptions ? { frame: frameOptions } : {}),
+                result: processedResult,
+              },
               null,
               2,
             ),
@@ -71,7 +106,9 @@ export class PageEvaluationHandlers {
       };
     }
 
-    const result = await this.deps.pageController.evaluate(code);
+    const result = frameOptions
+      ? await this.deps.pageController.evaluate(code, frameOptions)
+      : await this.deps.pageController.evaluate(code);
 
     const processedResult = applyEvaluationPostFilters(result, this.deps.detailedDataManager, {
       autoSummarize,
@@ -87,6 +124,7 @@ export class PageEvaluationHandlers {
           text: JSON.stringify(
             {
               success: true,
+              ...(frameOptions ? { frame: frameOptions } : {}),
               result: processedResult,
             },
             null,

@@ -18,11 +18,12 @@ vi.mock('@utils/outputPaths', () => ({
 import { PageEvaluationHandlers } from '@server/domains/browser/handlers/page-evaluation';
 
 interface PageControllerMock {
-  evaluate: Mock<(code: string) => Promise<any>>;
+  evaluate: Mock<(code: string, frameOptions?: unknown) => Promise<any>>;
   screenshot: Mock<(options?: any) => Promise<Buffer>>;
   getPage: Mock<() => Promise<any>>;
   injectScript: Mock<(script: string) => Promise<void>>;
   waitForSelector: Mock<(selector: string, timeout?: number) => Promise<any>>;
+  resolveFrame: Mock<(page: unknown, options?: unknown) => Promise<unknown>>;
 }
 
 interface DetailedDataManagerMock {
@@ -50,6 +51,7 @@ function createChromeDeps(
       success: true,
       message: 'found',
     })),
+    resolveFrame: vi.fn(async (page: unknown) => page),
     ...overrides.pageController,
   };
 
@@ -201,6 +203,41 @@ describe('PageEvaluationHandlers – handlePageEvaluate', () => {
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
     expect(body.result).toBe('camoufox-result');
+  });
+
+  it('evaluates inside a resolved camoufox frame when frameSelector is provided', async () => {
+    const camoPage = {
+      evaluate: vi.fn(async () => 'page-result'),
+    };
+    const camoFrame = {
+      evaluate: vi.fn(async () => 'frame-result'),
+    };
+    deps = createChromeDeps({
+      pageController: {
+        resolveFrame: vi.fn(async () => camoFrame),
+      },
+      getActiveDriver: () => 'camoufox',
+      getCamoufoxPage: async () => camoPage,
+    });
+    pageController = deps.pageController as any;
+    handlers = new PageEvaluationHandlers(deps);
+
+    const body = parseJson<any>(
+      await handlers.handlePageEvaluate({
+        code: 'document.title',
+        frameSelector: 'iframe#game',
+        autoSummarize: false,
+      }),
+    );
+    expect(pageController.resolveFrame).toHaveBeenCalledWith(camoPage, {
+      frameUrl: undefined,
+      frameSelector: 'iframe#game',
+    });
+    expect(camoFrame.evaluate).toHaveBeenCalled();
+    expect(camoPage.evaluate).not.toHaveBeenCalled();
+    expect(body.driver).toBe('camoufox');
+    expect(body.frame).toEqual({ frameSelector: 'iframe#game' });
+    expect(body.result).toBe('frame-result');
   });
 });
 

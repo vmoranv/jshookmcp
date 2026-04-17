@@ -1,11 +1,12 @@
 import type { PageController } from '@server/domains/shared/modules';
+import type { FrameResolveOptions } from '@modules/collector/PageController';
 import { argString, argNumber, argStringArray } from '@server/domains/shared/parse-args';
 
 interface CamoufoxKeyboardLike {
   press(key: string): Promise<void>;
 }
 
-interface CamoufoxPageLike {
+interface CamoufoxInteractionContextLike {
   click(
     selector: string,
     options?: { button?: 'left' | 'right' | 'middle'; clickCount?: number; delay?: number },
@@ -13,10 +14,25 @@ interface CamoufoxPageLike {
   fill(selector: string, value: string): Promise<void>;
   hover(selector: string): Promise<void>;
   selectOption(selector: string, values: string | string[]): Promise<unknown>;
+}
+
+interface CamoufoxFrameElementLike {
+  contentFrame(): Promise<CamoufoxInteractionContextLike | null>;
+}
+
+interface CamoufoxFrameLike extends CamoufoxInteractionContextLike {
+  url(): string;
+}
+
+interface CamoufoxPageLike extends CamoufoxInteractionContextLike {
   evaluate<Arg, Result>(
     pageFunction: (arg: Arg) => Result | Promise<Result>,
     arg: Arg,
   ): Promise<Result>;
+  $(selector: string): Promise<CamoufoxFrameElementLike | null>;
+  waitForSelector(selector: string, options?: { timeout?: number }): Promise<unknown>;
+  frames(): CamoufoxFrameLike[];
+  mainFrame(): CamoufoxFrameLike;
   keyboard: CamoufoxKeyboardLike;
 }
 
@@ -83,6 +99,19 @@ export class PageInteractionHandlers {
     return 'left';
   }
 
+  private async getCamoufoxInteractionContext(
+    frameOptions?: FrameResolveOptions,
+  ): Promise<CamoufoxInteractionContextLike> {
+    const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
+    if (!frameOptions?.frameUrl && !frameOptions?.frameSelector) {
+      return page;
+    }
+    return (await this.deps.pageController.resolveFrame(
+      page as any,
+      frameOptions,
+    )) as unknown as CamoufoxInteractionContextLike;
+  }
+
   async handlePageClick(args: Record<string, unknown>) {
     const selector = argString(args, 'selector', '');
     const button = this.parseMouseButton(args.button);
@@ -97,6 +126,12 @@ export class PageInteractionHandlers {
       max: 60000,
       integer: true,
     });
+    const frameUrl = argString(args, 'frameUrl');
+    const frameSelector = argString(args, 'frameSelector');
+    const frameOptions: FrameResolveOptions | undefined =
+      frameUrl || frameSelector
+        ? { frameUrl: frameUrl || undefined, frameSelector: frameSelector || undefined }
+        : undefined;
 
     if (!selector || typeof selector !== 'string' || selector.trim().length === 0) {
       return {
@@ -117,14 +152,19 @@ export class PageInteractionHandlers {
     }
 
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
-      await page.click(selector, { button, clickCount, delay });
+      const context = await this.getCamoufoxInteractionContext(frameOptions);
+      await context.click(selector, { button, clickCount, delay });
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
-              { success: true, driver: 'camoufox', message: `Clicked: ${selector}` },
+              {
+                success: true,
+                driver: 'camoufox',
+                message: `Clicked: ${selector}`,
+                ...(frameOptions ? { frame: frameOptions } : {}),
+              },
               null,
               2,
             ),
@@ -134,7 +174,11 @@ export class PageInteractionHandlers {
     }
 
     try {
-      await this.deps.pageController.click(selector, { button, clickCount, delay });
+      if (frameOptions) {
+        await this.deps.pageController.click(selector, { button, clickCount, delay }, frameOptions);
+      } else {
+        await this.deps.pageController.click(selector, { button, clickCount, delay });
+      }
     } catch (error: unknown) {
       const msg = this.toErrorMessage(error);
       if (
@@ -153,6 +197,7 @@ export class PageInteractionHandlers {
                   success: true,
                   message: `Clicked ${selector} - navigation triggered`,
                   navigated: true,
+                  ...(frameOptions ? { frame: frameOptions } : {}),
                 },
                 null,
                 2,
@@ -172,6 +217,7 @@ export class PageInteractionHandlers {
             {
               success: true,
               message: `Clicked: ${selector}`,
+              ...(frameOptions ? { frame: frameOptions } : {}),
             },
             null,
             2,
@@ -185,16 +231,27 @@ export class PageInteractionHandlers {
     const selector = argString(args, 'selector', '');
     const text = argString(args, 'text', '');
     const delay = argNumber(args, 'delay');
+    const frameUrl = argString(args, 'frameUrl');
+    const frameSelector = argString(args, 'frameSelector');
+    const frameOptions: FrameResolveOptions | undefined =
+      frameUrl || frameSelector
+        ? { frameUrl: frameUrl || undefined, frameSelector: frameSelector || undefined }
+        : undefined;
 
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
-      await page.fill(selector, text);
+      const context = await this.getCamoufoxInteractionContext(frameOptions);
+      await context.fill(selector, text);
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
-              { success: true, driver: 'camoufox', message: `Typed into ${selector}` },
+              {
+                success: true,
+                driver: 'camoufox',
+                message: `Typed into ${selector}`,
+                ...(frameOptions ? { frame: frameOptions } : {}),
+              },
               null,
               2,
             ),
@@ -203,7 +260,11 @@ export class PageInteractionHandlers {
       };
     }
 
-    await this.deps.pageController.type(selector, text, { delay });
+    if (frameOptions) {
+      await this.deps.pageController.type(selector, text, { delay }, frameOptions);
+    } else {
+      await this.deps.pageController.type(selector, text, { delay });
+    }
 
     return {
       content: [
@@ -213,6 +274,7 @@ export class PageInteractionHandlers {
             {
               success: true,
               message: `Typed into ${selector}`,
+              ...(frameOptions ? { frame: frameOptions } : {}),
             },
             null,
             2,
@@ -225,10 +287,16 @@ export class PageInteractionHandlers {
   async handlePageSelect(args: Record<string, unknown>) {
     const selector = argString(args, 'selector', '');
     const values = argStringArray(args, 'values');
+    const frameUrl = argString(args, 'frameUrl');
+    const frameSelector = argString(args, 'frameSelector');
+    const frameOptions: FrameResolveOptions | undefined =
+      frameUrl || frameSelector
+        ? { frameUrl: frameUrl || undefined, frameSelector: frameSelector || undefined }
+        : undefined;
 
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
-      await page.selectOption(selector, values);
+      const context = await this.getCamoufoxInteractionContext(frameOptions);
+      await context.selectOption(selector, values);
       return {
         content: [
           {
@@ -238,6 +306,7 @@ export class PageInteractionHandlers {
                 success: true,
                 driver: 'camoufox',
                 message: `Selected in ${selector}: ${values.join(', ')}`,
+                ...(frameOptions ? { frame: frameOptions } : {}),
               },
               null,
               2,
@@ -247,7 +316,11 @@ export class PageInteractionHandlers {
       };
     }
 
-    await this.deps.pageController.select(selector, ...values);
+    if (frameOptions) {
+      await this.deps.pageController.select(selector, values, frameOptions);
+    } else {
+      await this.deps.pageController.select(selector, values);
+    }
 
     return {
       content: [
@@ -257,6 +330,7 @@ export class PageInteractionHandlers {
             {
               success: true,
               message: `Selected in ${selector}: ${values.join(', ')}`,
+              ...(frameOptions ? { frame: frameOptions } : {}),
             },
             null,
             2,
@@ -268,10 +342,16 @@ export class PageInteractionHandlers {
 
   async handlePageHover(args: Record<string, unknown>) {
     const selector = argString(args, 'selector', '');
+    const frameUrl = argString(args, 'frameUrl');
+    const frameSelector = argString(args, 'frameSelector');
+    const frameOptions: FrameResolveOptions | undefined =
+      frameUrl || frameSelector
+        ? { frameUrl: frameUrl || undefined, frameSelector: frameSelector || undefined }
+        : undefined;
 
     if (this.deps.getActiveDriver() === 'camoufox') {
-      const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
-      await page.hover(selector);
+      const context = await this.getCamoufoxInteractionContext(frameOptions);
+      await context.hover(selector);
       return {
         content: [
           {
@@ -281,6 +361,7 @@ export class PageInteractionHandlers {
                 success: true,
                 driver: 'camoufox',
                 message: `Hovered: ${selector}`,
+                ...(frameOptions ? { frame: frameOptions } : {}),
               },
               null,
               2,
@@ -290,7 +371,11 @@ export class PageInteractionHandlers {
       };
     }
 
-    await this.deps.pageController.hover(selector);
+    if (frameOptions) {
+      await this.deps.pageController.hover(selector, frameOptions);
+    } else {
+      await this.deps.pageController.hover(selector);
+    }
 
     return {
       content: [
@@ -300,6 +385,7 @@ export class PageInteractionHandlers {
             {
               success: true,
               message: `Hovered: ${selector}`,
+              ...(frameOptions ? { frame: frameOptions } : {}),
             },
             null,
             2,

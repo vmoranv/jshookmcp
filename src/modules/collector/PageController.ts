@@ -1,8 +1,15 @@
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { logger } from '@utils/logger';
 import { setTimeout as asyncSetTimeout } from 'node:timers/promises';
-import type { Page } from 'rebrowser-puppeteer-core';
+import type { Page, Frame } from 'rebrowser-puppeteer-core';
 import type { BrowserTargetInfo } from '@modules/browser/BrowserTargetSessionManager';
+
+export interface FrameResolveOptions {
+  /** URL substring to match against frame URLs */
+  frameUrl?: string;
+  /** CSS selector of the iframe element whose content frame to use */
+  frameSelector?: string;
+}
 
 export interface NavigationOptions {
   waitUntil?: 'load' | 'domcontentloaded' | 'networkidle0' | 'networkidle2';
@@ -125,33 +132,52 @@ export class PageController {
     logger.info('Navigated forward');
   }
 
-  async click(selector: string, options?: ClickOptions): Promise<void> {
+  async click(
+    selector: string,
+    options?: ClickOptions,
+    frameOptions?: FrameResolveOptions,
+  ): Promise<void> {
     const page = await this.collector.getActivePage();
-    await page.click(selector, {
+    const context = await this.resolveFrame(page, frameOptions);
+    await context.click(selector, {
       button: options?.button || 'left',
       clickCount: options?.clickCount || 1,
       delay: options?.delay,
     });
-    logger.info(`Clicked: ${selector}`);
+    logger.info(
+      `Clicked: ${selector}${frameOptions?.frameUrl || frameOptions?.frameSelector ? ' (in frame)' : ''}`,
+    );
   }
 
-  async type(selector: string, text: string, options?: TypeOptions): Promise<void> {
+  async type(
+    selector: string,
+    text: string,
+    options?: TypeOptions,
+    frameOptions?: FrameResolveOptions,
+  ): Promise<void> {
     const page = await this.collector.getActivePage();
-    await page.type(selector, text, {
+    const context = await this.resolveFrame(page, frameOptions);
+    await context.type(selector, text, {
       delay: options?.delay,
     });
     logger.info(`Typed into ${selector}: ${text.substring(0, 20)}...`);
   }
 
-  async select(selector: string, ...values: string[]): Promise<void> {
+  async select(
+    selector: string,
+    values: string[],
+    frameOptions?: FrameResolveOptions,
+  ): Promise<void> {
     const page = await this.collector.getActivePage();
-    await page.select(selector, ...values);
+    const context = await this.resolveFrame(page, frameOptions);
+    await context.select(selector, ...values);
     logger.info(`Selected in ${selector}: ${values.join(', ')}`);
   }
 
-  async hover(selector: string): Promise<void> {
+  async hover(selector: string, frameOptions?: FrameResolveOptions): Promise<void> {
     const page = await this.collector.getActivePage();
-    await page.hover(selector);
+    const context = await this.resolveFrame(page, frameOptions);
+    await context.hover(selector);
     logger.info(`Hovered: ${selector}`);
   }
 
@@ -222,11 +248,68 @@ export class PageController {
     logger.info('Navigation completed');
   }
 
-  async evaluate<T>(code: string): Promise<T> {
+  async evaluate<T>(code: string, frameOptions?: FrameResolveOptions): Promise<T> {
     const page = await this.collector.getActivePage();
+    if (frameOptions?.frameUrl || frameOptions?.frameSelector) {
+      const frame = await this.resolveFrame(page, frameOptions);
+      const result = await evaluateOnContextWithTimeout(page, frame, code);
+      logger.info('JavaScript executed (in frame)');
+      return result as T;
+    }
     const result = await evaluateWithTimeout(page, code);
     logger.info('JavaScript executed');
     return result as T;
+  }
+
+  /**
+   * Resolve a child frame from the active page.
+   * When no options are provided (or both fields are undefined), returns page.mainFrame().
+   */
+  async resolveFrame(page: Page, options?: FrameResolveOptions): Promise<Frame> {
+    if (!options) return page.mainFrame();
+
+    if (options.frameUrl) {
+      const frames = page.frames();
+      const frame = frames.find((f) => f.url().includes(options.frameUrl!));
+      if (!frame) {
+        const available = frames.map((f) => f.url()).filter((u) => u && u !== 'about:blank');
+        throw new Error(
+          `No frame matching URL substring "${options.frameUrl}". Available frames: ${available.join(', ') || '(none)'}`,
+        );
+      }
+      return frame;
+    }
+
+    if (options.frameSelector) {
+      await page.waitForSelector(options.frameSelector, { timeout: 10000 }).catch(() => null);
+      const handle = await page.$(options.frameSelector);
+      if (!handle) {
+        throw new Error(`No element found for iframe selector: ${options.frameSelector}`);
+      }
+      const frame = await handle.contentFrame();
+      if (!frame) {
+        throw new Error(
+          `Element "${options.frameSelector}" exists but has no content frame (not an iframe or not yet loaded).`,
+        );
+      }
+      return frame;
+    }
+
+    return page.mainFrame();
+  }
+
+  /** List all frames in the active page with URL and name info. */
+  async listFrames(): Promise<
+    Array<{ url: string; name: string; id: string; isMainFrame: boolean }>
+  > {
+    const page = await this.collector.getActivePage();
+    const mainFrame = page.mainFrame();
+    return page.frames().map((frame) => ({
+      url: frame.url(),
+      name: frame.name() || '',
+      id: (frame as unknown as { _id?: string })._id || '',
+      isMainFrame: frame === mainFrame,
+    }));
   }
 
   async getURL(): Promise<string> {
@@ -510,6 +593,18 @@ async function checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<void> {
   }
 }
 
+interface EvaluateContextLike {
+  evaluate<Result>(pageFunction: () => Result | Promise<Result>): Promise<Result>;
+  evaluate<Arg, Result>(
+    pageFunction: (arg: Arg) => Result | Promise<Result>,
+    arg: Arg,
+  ): Promise<Result>;
+  evaluate<Args extends readonly unknown[], Result>(
+    pageFunction: string | ((...args: Args) => Result | Promise<Result>),
+    ...args: Args
+  ): Promise<Result>;
+}
+
 /**
  * Wrap a page.evaluate() call with:
  * 1. A CDP pre-flight health check (fails fast at ~3 s instead of 30 s)
@@ -517,6 +612,43 @@ async function checkPageCDPHealth(page: Page, timeoutMs = 500): Promise<void> {
  *
  * Supports both string expressions and function callbacks.
  */
+export async function evaluateOnContextWithTimeout<Args extends readonly unknown[], Result>(
+  page: Page,
+  context: EvaluateContextLike,
+  pageFunction: (...args: Args) => Result,
+  ...args: Args
+): Promise<Awaited<Result>>;
+export async function evaluateOnContextWithTimeout(
+  page: Page,
+  context: EvaluateContextLike,
+  pageFunction: string,
+  ...args: readonly unknown[]
+): Promise<unknown>;
+export async function evaluateOnContextWithTimeout<Args extends readonly unknown[], Result>(
+  page: Page,
+  context: EvaluateContextLike,
+  pageFunction: string | ((...args: never[]) => Result),
+  ...args: Args
+): Promise<Awaited<Result> | unknown> {
+  const timeoutMs = 30000;
+
+  // Fail fast: detect zombie CDP sessions before they block evaluate().
+  await checkPageCDPHealth(page);
+
+  return Promise.race([
+    context.evaluate(
+      pageFunction as string | ((...args: never[]) => Result),
+      ...([...args] as never[]),
+    ),
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`page.evaluate timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      ),
+    ),
+  ]);
+}
+
 export async function evaluateWithTimeout<Args extends readonly unknown[], Result>(
   page: Page,
   pageFunction: (...args: Args) => Result,
@@ -532,23 +664,12 @@ export async function evaluateWithTimeout<Args extends readonly unknown[], Resul
   pageFunction: string | ((...args: never[]) => Result),
   ...args: Args
 ): Promise<Awaited<Result> | unknown> {
-  const timeoutMs = 30000;
-
-  // Fail fast: detect zombie CDP sessions before they block page.evaluate().
-  await checkPageCDPHealth(page);
-
-  return Promise.race([
-    page.evaluate(
-      pageFunction as string | ((...args: never[]) => Result),
-      ...([...args] as never[]),
-    ),
-    new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`page.evaluate timed out after ${timeoutMs}ms`)),
-        timeoutMs,
-      ),
-    ),
-  ]);
+  return evaluateOnContextWithTimeout(
+    page,
+    page,
+    pageFunction as any,
+    ...(args as unknown as never[]),
+  );
 }
 
 /**

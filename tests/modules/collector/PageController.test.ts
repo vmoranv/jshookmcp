@@ -80,7 +80,9 @@ describe('PageController', () => {
       keyboard: {
         press: vi.fn().mockResolvedValue(undefined),
       },
-      $: vi.fn(),
+      $: vi.fn().mockResolvedValue(null),
+      frames: vi.fn().mockReturnValue([]),
+      mainFrame: vi.fn().mockImplementation(() => page),
     };
     collector = { getActivePage: vi.fn().mockResolvedValue(page) };
     controller = new PageController(collector);
@@ -139,6 +141,64 @@ describe('PageController', () => {
     expect(page.setUserAgent).toHaveBeenCalled();
   });
 
+  describe('resolveFrame', () => {
+    it('returns the main page if no frame options are provided', async () => {
+      // We expose resolveFrame via a cast to any to test the private implementation
+      const resolved = await (controller as any).resolveFrame(page);
+      expect(resolved).toBe(page);
+    });
+
+    it('returns the main page if options are empty', async () => {
+      const resolved = await (controller as any).resolveFrame(page, {});
+      expect(resolved).toBe(page);
+    });
+
+    it('resolves frame by frameUrl', async () => {
+      const mockFrame1 = { url: () => 'https://example.com/ad' };
+      const mockFrame2 = { url: () => 'https://sandbox.local/game' };
+      page.frames.mockReturnValue([mockFrame1, mockFrame2]);
+
+      const resolved = await (controller as any).resolveFrame(page, { frameUrl: 'sandbox.local' });
+      expect(resolved).toBe(mockFrame2);
+    });
+
+    it('throws error if frameUrl not found', async () => {
+      page.frames.mockReturnValue([{ url: () => 'https://example.com/ad' }]);
+
+      await expect((controller as any).resolveFrame(page, { frameUrl: 'missing' })).rejects.toThrow(
+        'No frame matching URL substring "missing"',
+      );
+    });
+
+    it('resolves frame by frameSelector', async () => {
+      const mockFrame = { url: () => 'https://sandbox.local/iframe' };
+      const mockElementHandle = {
+        contentFrame: vi.fn().mockResolvedValue(mockFrame),
+      };
+      page.$.mockResolvedValue(mockElementHandle);
+
+      const resolved = await (controller as any).resolveFrame(page, {
+        frameSelector: 'iframe#game',
+      });
+      expect(page.$).toHaveBeenCalledWith('iframe#game');
+      expect(resolved).toBe(mockFrame);
+    });
+
+    it('throws error if frameSelector element not found', async () => {
+      page.$.mockResolvedValue(null);
+      await expect(
+        (controller as any).resolveFrame(page, { frameSelector: 'iframe#missing' }),
+      ).rejects.toThrow('No element found for iframe selector:');
+    });
+
+    it('throws error if element found by frameSelector has no contentFrame', async () => {
+      page.$.mockResolvedValue({ contentFrame: vi.fn().mockResolvedValue(null) });
+      await expect(
+        (controller as any).resolveFrame(page, { frameSelector: 'div#not-an-iframe' }),
+      ).rejects.toThrow('exists but has no content frame');
+    });
+  });
+
   it('emulateDevice rejects unsupported device names', async () => {
     await expect(controller.emulateDevice('BlackBerry Classic')).rejects.toThrow(
       'Unsupported device',
@@ -160,7 +220,7 @@ describe('PageController', () => {
     await controller.goBack();
     await controller.goForward();
     await controller.type('#name', 'Alice', { delay: 5 });
-    await controller.select('#role', 'admin', 'beta');
+    await controller.select('#role', ['admin', 'beta']);
     await controller.hover('#help');
     await controller.scroll({ x: 10, y: 20 });
     await controller.waitForNavigation(1000);
@@ -237,6 +297,48 @@ describe('PageController', () => {
   it('returns the active cookies list and active page handle', async () => {
     expect(await controller.getCookies()).toEqual([{ name: 'sid', value: '1' }]);
     expect(await controller.getPage()).toBe(page);
+  });
+
+  it('evaluates inside a resolved frame with the same CDP health check as top-level evaluate', async () => {
+    const frame = {
+      evaluate: vi.fn().mockResolvedValue('frame-title'),
+      url: vi.fn().mockReturnValue('https://sandbox.local/frame'),
+    };
+    page.frames.mockReturnValue([frame]);
+    page.createCDPSession = vi.fn().mockResolvedValue({
+      send: vi.fn().mockResolvedValue({}),
+      detach: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await controller.evaluate<string>('document.title', {
+      frameUrl: 'sandbox.local',
+    });
+
+    expect(result).toBe('frame-title');
+    expect(frame.evaluate).toHaveBeenCalledWith('document.title');
+    expect(page.createCDPSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('times out frame evaluation after 30000ms', async () => {
+    vi.useFakeTimers();
+    try {
+      const frame = {
+        evaluate: vi.fn(() => new Promise(() => {})),
+        url: vi.fn().mockReturnValue('https://sandbox.local/frame'),
+      };
+      page.frames.mockReturnValue([frame]);
+      page.createCDPSession = vi.fn().mockResolvedValue({
+        send: vi.fn().mockResolvedValue({}),
+        detach: vi.fn().mockResolvedValue(undefined),
+      });
+
+      const evaluation = controller.evaluate('document.title', { frameUrl: 'sandbox.local' });
+      const rejection = expect(evaluation).rejects.toThrow('page.evaluate timed out after 30000ms');
+      await vi.advanceTimersByTimeAsync(30_000);
+      await rejection;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('executes browser-side callbacks for selector, metrics, storage, links, script injection, and evaluate helpers', async () => {
