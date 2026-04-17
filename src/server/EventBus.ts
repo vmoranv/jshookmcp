@@ -31,6 +31,15 @@ export interface ServerEventMap {
     timestamp: string;
   };
   'evidence:updated': { timestamp: string; reason: string };
+  'network:intercept_started': { interceptType: string; timestamp: string };
+  'v8:heap_captured': { snapshotId: string; sizeBytes: number; timestamp: string };
+  'tls:keylog_started': { filePath: string; timestamp: string };
+  'skia:scene_captured': { canvasId: string; nodeCount: number; timestamp: string };
+  'frida:attached': { target: string; sessionId: string; timestamp: string };
+  'adb:device_connected': { serial: string; model: string; timestamp: string };
+  'mojo:message_captured': { messageCount: number; timestamp: string };
+  'syscall:trace_started': { backend: string; pid?: number; timestamp: string };
+  'protocol:pattern_detected': { patternName: string; confidence: number; timestamp: string };
 }
 
 interface Subscription {
