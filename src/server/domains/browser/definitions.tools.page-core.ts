@@ -91,7 +91,9 @@ dom_get_structure(maxDepth=2, includeText=false)
   ),
   tool('page_click', (t) =>
     t
-      .desc('Click an element. Use dom_query_selector FIRST to verify element exists.')
+      .desc(
+        'Click an element. Use dom_query_selector FIRST to verify element exists. Supports clicking inside iframes via frameUrl/frameSelector.',
+      )
       .string('selector', 'CSS selector of element to click')
       .enum('button', ['left', 'right', 'middle'], 'Mouse button to click', { default: 'left' })
       .number('clickCount', 'Number of clicks (numeric string is accepted and auto-normalized)', {
@@ -101,29 +103,42 @@ dom_get_structure(maxDepth=2, includeText=false)
         'delay',
         'Delay between mousedown and mouseup in milliseconds (numeric string is accepted)',
       )
+      .string('frameUrl', 'Target iframe by URL substring match (e.g. "payment.example.com")')
+      .string(
+        'frameSelector',
+        'Target iframe by CSS selector of the iframe element (e.g. "#payment-frame")',
+      )
       .requiredOpenWorld('selector'),
   ),
   tool('page_type', (t) =>
     t
-      .desc('Type text into an input element')
+      .desc(
+        'Type text into an input element. Supports typing inside iframes via frameUrl/frameSelector.',
+      )
       .string('selector', 'CSS selector of input element')
       .string('text', 'Text to type')
       .number('delay', 'Delay between key presses in milliseconds')
+      .string('frameUrl', 'Target iframe by URL substring match')
+      .string('frameSelector', 'Target iframe by CSS selector of the iframe element')
       .requiredOpenWorld('selector', 'text'),
   ),
   tool('page_select', (t) =>
     t
-      .desc('Select option(s) in a <select> element')
+      .desc('Select option(s) in a <select> element. Supports iframes via frameUrl/frameSelector.')
       .string('selector', 'CSS selector of select element')
       .array('values', { type: 'string' }, 'Values to select')
+      .string('frameUrl', 'Target iframe by URL substring match')
+      .string('frameSelector', 'Target iframe by CSS selector of the iframe element')
       .required('selector', 'values')
       .idempotent()
       .openWorld(),
   ),
   tool('page_hover', (t) =>
     t
-      .desc('Hover over an element')
+      .desc('Hover over an element. Supports iframes via frameUrl/frameSelector.')
       .string('selector', 'CSS selector of element to hover')
+      .string('frameUrl', 'Target iframe by URL substring match')
+      .string('frameSelector', 'Target iframe by CSS selector of the iframe element')
       .required('selector')
       .idempotent()
       .openWorld(),
@@ -173,6 +188,14 @@ page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.
         'stripBase64',
         'Strip data URI and bare base64 strings from the result, replacing them with a size placeholder. Prevents context overflow from embedded images/fonts (default: false).',
         { default: false },
+      )
+      .string(
+        'frameUrl',
+        'Execute in a child iframe matching this URL substring (e.g. "payment.example.com")',
+      )
+      .string(
+        'frameSelector',
+        'Execute in a child iframe identified by this CSS selector (e.g. "#payment-frame")',
       )
       .requiredOpenWorld('code'),
   ),

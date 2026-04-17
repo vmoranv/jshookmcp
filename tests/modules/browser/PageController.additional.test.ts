@@ -27,7 +27,12 @@ type UploadableHandle = {
 };
 
 function createMockPage(overrides: Record<string, any> = {}) {
-  return {
+  const page: Record<string, any> = {
+    mainFrame: vi.fn(() => page),
+    frames: vi.fn(() => []),
+  };
+
+  Object.assign(page, {
     goto: vi.fn(async () => {}),
     reload: vi.fn(async () => {}),
     goBack: vi.fn(async () => {}),
@@ -58,9 +63,13 @@ function createMockPage(overrides: Record<string, any> = {}) {
       move: vi.fn(async () => {}),
       click: vi.fn(async () => {}),
     },
-    createCDPSession: vi.fn(async () => ({ send: vi.fn(async () => ({ result: { value: 1 } })) })),
+    createCDPSession: vi.fn(async () => ({
+      send: vi.fn(async () => ({ result: { value: 1 } })),
+    })),
     ...overrides,
-  };
+  });
+
+  return page;
 }
 
 function createMockCollector(page: any) {
@@ -174,7 +183,7 @@ describe('PageController', () => {
 
   describe('select', () => {
     it('selects values in a select element', async () => {
-      await controller.select('#dropdown', 'opt1', 'opt2');
+      await controller.select('#dropdown', ['opt1', 'opt2']);
       expect(page.select).toHaveBeenCalledWith('#dropdown', 'opt1', 'opt2');
     });
   });

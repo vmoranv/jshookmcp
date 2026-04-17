@@ -93,6 +93,32 @@ describe('BrowserTargetSessionManager', () => {
         type: 'iframe',
       }),
     ]);
+    expect(parentSession.send).toHaveBeenCalledWith('Target.setAutoAttach', {
+      autoAttach: true,
+      waitForDebuggerOnStart: false,
+      flatten: true,
+    });
+    expect(parentSession.send).toHaveBeenCalledWith('Target.setDiscoverTargets', {
+      discover: true,
+    });
+  });
+
+  it('can skip OOPIF auto-discovery when explicitly disabled', async () => {
+    const parentSession = new FakeParentSession();
+    const browser = {
+      target: () => ({
+        createCDPSession: vi.fn(async () => parentSession),
+      }),
+    };
+    const manager = new BrowserTargetSessionManager(() => browser as never);
+
+    await manager.listTargets({ discoverOOPIF: false });
+
+    expect(parentSession.send).not.toHaveBeenCalledWith('Target.setAutoAttach', expect.anything());
+    expect(parentSession.send).not.toHaveBeenCalledWith(
+      'Target.setDiscoverTargets',
+      expect.anything(),
+    );
   });
 
   it('attaches to a target and evaluates through the flattened session', async () => {

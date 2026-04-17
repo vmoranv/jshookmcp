@@ -57,10 +57,10 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `dom_query_all` | Query all matching elements (like document.querySelectorAll) |
 | `dom_get_structure` | Get page DOM structure (for AI to understand page layout). |
 | `dom_find_clickable` | Find all clickable elements (buttons, links). Use this to discover what can be clicked. |
-| `page_click` | Click an element. Use dom_query_selector FIRST to verify element exists. |
-| `page_type` | Type text into an input element |
-| `page_select` | Select option(s) in a &lt;select&gt; element |
-| `page_hover` | Hover over an element |
+| `page_click` | Click an element. Use dom_query_selector FIRST to verify element exists. Supports clicking inside iframes via frameUrl/frameSelector. |
+| `page_type` | Type text into an input element. Supports typing inside iframes via frameUrl/frameSelector. |
+| `page_select` | Select option(s) in a &lt;select&gt; element. Supports iframes via frameUrl/frameSelector. |
+| `page_hover` | Hover over an element. Supports iframes via frameUrl/frameSelector. |
 | `page_scroll` | Scroll the page |
 | `page_wait_for_selector` | Wait for an element to appear |
 | `page_evaluate` | Execute JavaScript code in page context and get result. |

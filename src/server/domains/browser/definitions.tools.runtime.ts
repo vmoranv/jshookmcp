@@ -190,6 +190,11 @@ Optional connect parameters behave like browser_attach when provided.`)
       .boolean('attachedOnly', 'Only include targets already marked attached by CDP.', {
         default: false,
       })
+      .boolean(
+        'discoverOOPIF',
+        'Enable auto-discovery of cross-origin iframes (OOPIFs) via Target.setAutoAttach. When true (default), OOPIFs will appear in results.',
+        { default: true },
+      )
       .query()
       .openWorld(),
   ),

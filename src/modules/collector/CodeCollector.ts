@@ -893,6 +893,7 @@ export class CodeCollector {
     urlPattern?: string;
     titlePattern?: string;
     attachedOnly?: boolean;
+    discoverOOPIF?: boolean;
   }): Promise<BrowserTargetInfo[]> {
     return await this.getBrowserTargetSessionManager().listTargets(filters);
   }

@@ -12,6 +12,7 @@ interface CollectorMock {
       urlPattern?: string;
       titlePattern?: string;
       attachedOnly?: boolean;
+      discoverOOPIF?: boolean;
     }) => Promise<Array<Record<string, unknown>>>
   >;
   attachCdpTarget: Mock<(targetId: string) => Promise<Record<string, unknown>>>;
@@ -108,6 +109,7 @@ describe('TargetControlHandlers', () => {
       urlPattern: undefined,
       titlePattern: undefined,
       attachedOnly: true,
+      discoverOOPIF: true,
     });
   });
 
