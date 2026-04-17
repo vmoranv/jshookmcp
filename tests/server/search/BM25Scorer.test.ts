@@ -44,7 +44,7 @@ describe('search/BM25Scorer', () => {
 
   it('returns the BM25 tuning constants', () => {
     expect(scorer.getK1()).toBe(1.5);
-    expect(scorer.getB()).toBe(0.3);
+    expect(scorer.getB()).toBe(0.75);
   });
 
   it('compiles and applies custom search config rules', () => {

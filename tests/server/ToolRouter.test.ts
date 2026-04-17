@@ -97,6 +97,7 @@ vi.mock('@server/MCPServer.search.helpers', () => ({
       ...ctx.selectedTools.map((candidate: { name: string }) => candidate.name),
       ...ctx.activatedToolNames,
     ]),
+  getVisibleDomainsForTier: () => new Set<string>(),
 }));
 
 vi.mock('@server/extensions/ExtensionManager', () => ({
@@ -250,6 +251,7 @@ describe('ToolRouter', () => {
     expect(searchEngine.search).toHaveBeenCalledWith(
       'capture network traffic for this page',
       10,
+      new Set<string>(),
       new Set<string>(),
     );
     expect(response.workflowHint).toContain('Network capture workflow');

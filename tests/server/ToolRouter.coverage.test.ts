@@ -57,6 +57,7 @@ vi.mock('@server/MCPServer.search.helpers', () => ({
       ...ctx.selectedTools.map((tool: { name: string }) => tool.name),
       ...ctx.activatedToolNames,
     ]),
+  getVisibleDomainsForTier: () => new Set<string>(),
 }));
 vi.mock('@server/extensions/ExtensionManager', () => ({
   ensureWorkflowsLoaded: mocks.ensureWorkflowsLoaded,

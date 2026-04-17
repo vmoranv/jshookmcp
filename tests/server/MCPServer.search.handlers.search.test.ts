@@ -27,6 +27,7 @@ vi.mock('@server/domains/shared/response', () => ({
 vi.mock('@server/MCPServer.search.helpers', () => ({
   getSearchEngine: state.getSearchEngine,
   getActiveToolNames: state.getActiveToolNames,
+  getVisibleDomainsForTier: () => new Set<string>(),
 }));
 
 vi.mock('@server/MCPServer.search.handlers.domain', () => ({
@@ -95,7 +96,12 @@ describe('MCPServer.search.handlers.search', () => {
 
     const response = parseResponse(await handleSearchTools(ctx, { query: 'navigate' }));
 
-    expect(state.engine.search).toHaveBeenCalledWith('navigate', 10, new Set(['page_navigate']));
+    expect(state.engine.search).toHaveBeenCalledWith(
+      'navigate',
+      10,
+      new Set(['page_navigate']),
+      new Set(),
+    );
     expect(response.nextActions).toEqual([
       {
         step: 1,

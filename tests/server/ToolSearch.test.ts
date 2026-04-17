@@ -101,7 +101,8 @@ describe('ToolSearchEngine', () => {
   it('searches against real allTools catalog', async () => {
     // Use the default constructor which loads allTools
     const engine = new ToolSearchEngine();
-    const results = await engine.search('breakpoint');
+    // Expand topK because the catalog now ships >10 breakpoint-related tools.
+    const results = await engine.search('breakpoint', 20);
     expect(results.length).toBeGreaterThan(0);
     // Should find tools like breakpoint_set, breakpoint_remove, breakpoint_list
     const names = results.map((r) => r.name);

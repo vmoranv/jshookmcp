@@ -15,7 +15,11 @@ describe('activation/PredictiveBooster', () => {
   });
 
   it('predicts next tools above confidence threshold', () => {
-    const booster = new PredictiveBooster(50, 0.3);
+    const booster = new PredictiveBooster({
+      maxHistory: 50,
+      confidenceThreshold: 0.3,
+      decayFactor: 1,
+    });
 
     // Build a strong pattern: navigate → click (100% transition)
     for (let i = 0; i < 10; i++) {
@@ -28,7 +32,11 @@ describe('activation/PredictiveBooster', () => {
   });
 
   it('does not predict below confidence threshold', () => {
-    const booster = new PredictiveBooster(50, 0.5);
+    const booster = new PredictiveBooster({
+      maxHistory: 50,
+      confidenceThreshold: 0.5,
+      decayFactor: 1,
+    });
 
     // Build a mixed pattern
     booster.recordCall('page_navigate');
@@ -46,7 +54,7 @@ describe('activation/PredictiveBooster', () => {
   });
 
   it('sliding window capped at maxHistory', () => {
-    const booster = new PredictiveBooster(5);
+    const booster = new PredictiveBooster({ maxHistory: 5 });
 
     for (let i = 0; i < 10; i++) {
       booster.recordCall(`tool_${i}`);
@@ -66,7 +74,11 @@ describe('activation/PredictiveBooster', () => {
   });
 
   it('predictNextDomains returns domains from predicted tools', () => {
-    const booster = new PredictiveBooster(50, 0.3);
+    const booster = new PredictiveBooster({
+      maxHistory: 50,
+      confidenceThreshold: 0.3,
+      decayFactor: 1,
+    });
 
     for (let i = 0; i < 10; i++) {
       booster.recordCall('page_navigate');
@@ -104,7 +116,11 @@ describe('activation/PredictiveBooster', () => {
   });
 
   it('predictNextDomains skips mapped tools that return null domains', () => {
-    const booster = new PredictiveBooster(50, 0.3);
+    const booster = new PredictiveBooster({
+      maxHistory: 50,
+      confidenceThreshold: 0.3,
+      decayFactor: 1,
+    });
     for (let i = 0; i < 10; i++) {
       booster.recordCall('page_navigate');
       booster.recordCall('unknown_tool');

@@ -57,13 +57,31 @@ vi.mock('@src/constants', () => ({
   SEARCH_DOMAIN_HUB_THRESHOLD: 2,
   SEARCH_QUERY_CACHE_CAPACITY: 8,
   SEARCH_TRIGRAM_WEIGHT: 0.15,
+  SEARCH_TRIGRAM_THRESHOLD: 0.35,
   SEARCH_RRF_K: 60,
+  SEARCH_RRF_RESCALE_FACTOR: 1000,
+  SEARCH_RRF_BM25_BLEND: 0.5,
   SEARCH_SYNONYM_EXPANSION_LIMIT: 3,
   SEARCH_PARAM_TOKEN_WEIGHT: 1.5,
-  SEARCH_VECTOR_ENABLED: false, // Disable vector in existing tests for determinism
+  SEARCH_BM25_K1: 1.5,
+  SEARCH_BM25_B: 0.75,
+  SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE: 0.05,
+  SEARCH_TIER_PENALTY: 1,
+  SEARCH_RECENCY_WINDOW_MS: 0,
+  SEARCH_RECENCY_MAX_BOOST: 0,
+  SEARCH_EXACT_NAME_MATCH_MULTIPLIER: 2.5,
+  SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER: 1.08,
+  SEARCH_AFFINITY_BASE_WEIGHT: 0.3,
+  SEARCH_COVERAGE_PRECISION_FACTOR: 0.5,
+  SEARCH_PREFIX_MATCH_MULTIPLIER: 0.5,
+  SEARCH_VECTOR_ENABLED: false,
   SEARCH_VECTOR_MODEL_ID: 'Xenova/bge-micro-v2',
   SEARCH_VECTOR_COSINE_WEIGHT: 0.4,
   SEARCH_VECTOR_DYNAMIC_WEIGHT: false,
+  SEARCH_VECTOR_LEARN_UP: 0.05,
+  SEARCH_VECTOR_LEARN_DOWN: 0.03,
+  SEARCH_VECTOR_LEARN_TOP_N: 5,
+  SEARCH_RECENCY_TRACKER_MAX: 200,
 }));
 
 function vectorFor(text: string): Float32Array {
@@ -165,6 +183,40 @@ describe('search/ToolSearchEngineImpl', () => {
     expect(first.map((item) => item.score)).toEqual(second.map((item) => item.score));
     expect(first.find((item) => item.name === 'page_navigate')?.isActive).toBe(false);
     expect(second.find((item) => item.name === 'page_navigate')?.isActive).toBe(true);
+  });
+
+  it('recomputes rankings when visible domains change between identical queries', async () => {
+    const constants = await import('@src/constants');
+    const previousPenalty = constants.SEARCH_TIER_PENALTY;
+    // @ts-expect-error test mutates mocked constant
+    constants.SEARCH_TIER_PENALTY = 0.1;
+
+    try {
+      const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+      const engine = new ToolSearchEngine([
+        makeTool('page_navigate', 'Shared action for rank testing'),
+        makeTool('debug_pause', 'Shared action for rank testing'),
+      ]);
+
+      const browserVisible = await engine.search(
+        'shared action',
+        5,
+        undefined,
+        new Set(['browser']),
+      );
+      const debuggerVisible = await engine.search(
+        'shared action',
+        5,
+        undefined,
+        new Set(['debugger']),
+      );
+
+      expect(browserVisible[0]?.name).toBe('page_navigate');
+      expect(debuggerVisible[0]?.name).toBe('debug_pause');
+    } finally {
+      // @ts-expect-error test mutates mocked constant
+      constants.SEARCH_TIER_PENALTY = previousPenalty;
+    }
   });
 
   it('applies domain and tool score multipliers', async () => {
@@ -305,7 +357,9 @@ describe('search/ToolSearchEngineImpl', () => {
     expect(first[0]?.name).toBe('page_navigate');
     expect(second[0]?.name).toBe('page_navigate');
     expect(vectorState.embedBatchCalls).toBe(1);
-    expect(vectorState.embedCalls).toBe(2);
+    // Cache is value-versioned: feedback within tolerance preserves the cached
+    // result, so the second query reuses the previously embedded vector.
+    expect(vectorState.embedCalls).toBe(1);
     expect(vectorState.embedBatchInputs[0]?.[0]).toContain('page navigate');
   });
 
@@ -423,7 +477,7 @@ describe('search/ToolSearchEngineImpl', () => {
     const engine = new ToolSearchEngine([makeTool('page_navigate', 'Navigate a page')]);
 
     await engine.search('navigate', 5);
-    const cacheKey = `navigate\0${5}\0${0}`;
+    const cacheKey = `navigate\0${5}`;
 
     expect((engine as any).queryCache.get(cacheKey)).toBeDefined();
     (engine as any).queryCache.clear();

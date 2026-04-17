@@ -4,6 +4,8 @@ vi.mock('@src/constants', () => ({
   SEARCH_AFFINITY_BOOST_FACTOR: 0.5,
   SEARCH_AFFINITY_TOP_N: 2,
   SEARCH_DOMAIN_HUB_THRESHOLD: 2,
+  SEARCH_AFFINITY_BASE_WEIGHT: 0.3,
+  SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER: 1.08,
 }));
 
 import { AffinityGraphImpl } from '@server/search/AffinityGraph';

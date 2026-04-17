@@ -251,7 +251,6 @@ describe('BrowserToolHandlers', () => {
       domInspector,
       scriptManager,
       consoleMonitor,
-      // @ts-expect-error — auto-suppressed [TS2554]
       llmService,
     );
   });

@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
     tool('browser_launch', 'Launch browser'),
     tool('page_navigate', 'Navigate page'),
     tool('network_get_requests', 'Inspect requests'),
+    tool('hooks_probe', 'Probe hook state'),
   ],
   registrations: [
     { domain: 'browser', tool: tool('browser_launch') },
@@ -26,6 +27,13 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@server/ToolCatalog', () => ({
   allTools: mocks.allTools,
+  getProfileDomains: vi.fn((tier: string) => (tier === 'search' ? ['browser'] : [])),
+  getToolDomain: vi.fn((name: string) => {
+    if (name.startsWith('browser_') || name.startsWith('page_')) return 'browser';
+    if (name.startsWith('network_')) return 'network';
+    if (name.startsWith('hooks_')) return 'hooks';
+    return null;
+  }),
 }));
 
 vi.mock('@server/registry/index', () => ({
@@ -57,6 +65,7 @@ import {
   getExtensionDomainMap,
   getSearchEngine,
   getToolByName,
+  getVisibleDomainsForTier,
 } from '@server/MCPServer.search.helpers';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
@@ -65,6 +74,8 @@ function createCtx(overrides: Record<string, unknown> = {}) {
     activatedToolNames: new Set<string>(['network_get_requests']),
     extensionToolsByName: new Map(),
     extensionWorkflowRuntimeById: new Map(),
+    enabledDomains: new Set<string>(),
+    baseTier: 'search',
     config: { search: structuredClone(DEFAULT_SEARCH_CONFIG) },
     ...overrides,
   } as any;
@@ -82,6 +93,27 @@ describe('MCPServer.search.helpers', () => {
     });
 
     expect(getActiveToolNames(ctx)).toEqual(new Set(['browser_launch', 'network_get_requests']));
+  });
+
+  it('treats enabled, activated, and extension tool domains as visible', () => {
+    const ctx = createCtx({
+      enabledDomains: new Set(['network']),
+      activatedToolNames: new Set(['hooks_probe']),
+      extensionToolsByName: new Map([
+        [
+          'run_extension_workflow',
+          {
+            name: 'run_extension_workflow',
+            domain: 'workflow',
+            tool: tool('run_extension_workflow', 'Run extension workflow'),
+          },
+        ],
+      ]),
+    });
+
+    expect(getVisibleDomainsForTier(ctx)).toEqual(
+      new Set(['browser', 'network', 'hooks', 'workflow']),
+    );
   });
 
   it('builds extension-domain and tool-name lookup maps', () => {

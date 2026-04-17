@@ -117,6 +117,28 @@ describe('activation/ActivationController – event-driven boost (ACTV-01~04)', 
     controller.dispose();
   });
 
+  it('network:intercept_started triggers network and hooks domain boosts', async () => {
+    const { ActivationController } = await import('@server/activation/ActivationController');
+    const controller = new ActivationController(eventBus, mockCtx as never);
+
+    await eventBus.emit('network:intercept_started', {
+      interceptType: 'fetch',
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(state.handleActivateDomain).toHaveBeenCalledWith(mockCtx, {
+      domain: 'network',
+      ttlMinutes: 30,
+    });
+    expect(state.handleActivateDomain).toHaveBeenCalledWith(mockCtx, {
+      domain: 'hooks',
+      ttlMinutes: 30,
+    });
+    expect(mockCtx.enabledDomains.has('network')).toBe(true);
+    expect(mockCtx.enabledDomains.has('hooks')).toBe(true);
+    controller.dispose();
+  });
+
   it('TTL cleanup clears internal state on dispose (ACTV-04)', async () => {
     const { ActivationController } = await import('@server/activation/ActivationController');
     const controller = new ActivationController(eventBus, mockCtx as never);

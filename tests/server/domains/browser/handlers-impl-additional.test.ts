@@ -313,7 +313,6 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
       domInspector as any,
       scriptManager as any,
       consoleMonitor as any,
-      // @ts-expect-error — auto-suppressed [TS2554]
       llmService as any,
     );
   });

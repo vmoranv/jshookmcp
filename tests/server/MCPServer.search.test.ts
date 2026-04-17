@@ -59,6 +59,7 @@ vi.mock('@server/ToolCatalog', () => {
       if (tier === 'full') return 2;
       return -1;
     },
+    getProfileDomains: (_tier: string) => [],
     TIER_ORDER: ['search', 'workflow', 'full'],
   };
 });

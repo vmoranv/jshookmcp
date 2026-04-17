@@ -8,15 +8,22 @@
  * - recordVectorRanking() stores ranking
  * - recordToolCallFeedback() adjusts weight based on ranking
  * - Weight bounds (min 0.1, max 0.8)
+ *
+ * Learning rates come from env defaults in src/constants.ts:
+ *   SEARCH_VECTOR_LEARN_UP   = 0.05   (rank < LEARN_TOP_N)
+ *   SEARCH_VECTOR_LEARN_DOWN = 0.03   (rank ≥ 2 × LEARN_TOP_N or unseen)
+ *   SEARCH_VECTOR_LEARN_TOP_N = 5
+ *   Between [N, 2N) the up step is scaled by 0.3.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FeedbackTracker } from '@server/search/FeedbackTracker';
+
+const EPS = 1e-9;
 
 describe('FeedbackTracker', () => {
   describe('initialization', () => {
     it('uses default vector weight from constants when no config provided', () => {
       const tracker = new FeedbackTracker();
-      // Default is SEARCH_VECTOR_COSINE_WEIGHT = 0.4
       expect(tracker.getVectorWeight()).toBe(0.4);
     });
 
@@ -41,8 +48,6 @@ describe('FeedbackTracker', () => {
       ]);
 
       tracker.recordVectorRanking(ranking);
-
-      // Recording alone doesn't change weight
       expect(tracker.getVectorWeight()).toBe(0.4);
     });
   });
@@ -67,36 +72,45 @@ describe('FeedbackTracker', () => {
       expect(tracker.getVectorWeight()).toBe(0.4);
     });
 
-    it('increases weight when tool was in vector top-5 (rank 0)', () => {
+    it('increases weight when tool was in vector top-N (rank 0)', () => {
       tracker.recordVectorRanking(new Map([['tool_a', 0]]));
       const result = tracker.recordToolCallFeedback('tool_a', true);
 
       expect(result).toBe(true);
-      expect(tracker.getVectorWeight()).toBeCloseTo(0.42, 10); // 0.4 + 0.02
+      expect(tracker.getVectorWeight()).toBeCloseTo(0.45, 10); // 0.4 + 0.05
     });
 
-    it('increases weight when tool was in vector top-5 (rank 4)', () => {
+    it('increases weight when tool was in vector top-N (rank N-1 = 4)', () => {
       tracker.recordVectorRanking(new Map([['tool_d', 4]]));
       const result = tracker.recordToolCallFeedback('tool_d', true);
 
       expect(result).toBe(true);
-      expect(tracker.getVectorWeight()).toBeCloseTo(0.42, 10);
+      expect(tracker.getVectorWeight()).toBeCloseTo(0.45, 10);
     });
 
-    it('decreases weight when tool was NOT in vector top-5 (rank 5)', () => {
-      tracker.recordVectorRanking(new Map([['tool_e', 5]]));
-      const result = tracker.recordToolCallFeedback('tool_e', true);
+    it('applies reduced up-step for intermediate rank zone [N, 2N)', () => {
+      tracker.recordVectorRanking(new Map([['tool_mid', 7]]));
+      const result = tracker.recordToolCallFeedback('tool_mid', true);
 
       expect(result).toBe(true);
-      expect(tracker.getVectorWeight()).toBeCloseTo(0.39, 10); // 0.4 - 0.01
+      // 0.4 + 0.05 * 0.3 = 0.415
+      expect(tracker.getVectorWeight()).toBeCloseTo(0.415, 10);
     });
 
-    it('decreases weight when tool was NOT in vector top-5 (rank 100)', () => {
+    it('decreases weight when tool was outside 2N window (rank 10)', () => {
+      tracker.recordVectorRanking(new Map([['tool_far', 10]]));
+      const result = tracker.recordToolCallFeedback('tool_far', true);
+
+      expect(result).toBe(true);
+      expect(tracker.getVectorWeight()).toBeCloseTo(0.37, 10); // 0.4 - 0.03
+    });
+
+    it('decreases weight when tool was outside 2N window (rank 100)', () => {
       tracker.recordVectorRanking(new Map([['tool_x', 100]]));
       const result = tracker.recordToolCallFeedback('tool_x', true);
 
       expect(result).toBe(true);
-      expect(tracker.getVectorWeight()).toBeCloseTo(0.39, 10);
+      expect(tracker.getVectorWeight()).toBeCloseTo(0.37, 10);
     });
 
     it('decreases weight when tool was not in ranking at all', () => {
@@ -104,45 +118,44 @@ describe('FeedbackTracker', () => {
       const result = tracker.recordToolCallFeedback('unlisted_tool', true);
 
       expect(result).toBe(true);
-      expect(tracker.getVectorWeight()).toBeCloseTo(0.39, 10);
+      expect(tracker.getVectorWeight()).toBeCloseTo(0.37, 10);
     });
 
     it('respects upper bound of 0.8', () => {
-      const highTracker = new FeedbackTracker({ vectorCosineWeight: 0.79 } as any);
+      const highTracker = new FeedbackTracker({ vectorCosineWeight: 0.77 } as any);
       highTracker.recordVectorRanking(new Map([['tool', 0]]));
 
-      highTracker.recordToolCallFeedback('tool', true); // +0.02 → clamped to 0.8
+      highTracker.recordToolCallFeedback('tool', true); // 0.77 + 0.05 = 0.82 → clamp 0.8
       expect(highTracker.getVectorWeight()).toBe(0.8);
 
       highTracker.recordVectorRanking(new Map([['tool', 0]]));
-      highTracker.recordToolCallFeedback('tool', true); // Already at max
+      highTracker.recordToolCallFeedback('tool', true); // already at max
       expect(highTracker.getVectorWeight()).toBe(0.8);
     });
 
     it('respects lower bound of 0.1', () => {
-      const lowTracker = new FeedbackTracker({ vectorCosineWeight: 0.11 } as any);
-      lowTracker.recordVectorRanking(new Map([['tool', 10]]));
+      const lowTracker = new FeedbackTracker({ vectorCosineWeight: 0.12 } as any);
+      lowTracker.recordVectorRanking(new Map([['tool', 100]]));
 
-      lowTracker.recordToolCallFeedback('tool', true); // -0.01 → clamped to 0.1
+      lowTracker.recordToolCallFeedback('tool', true); // 0.12 - 0.03 = 0.09 → clamp 0.1
       expect(lowTracker.getVectorWeight()).toBe(0.1);
 
-      lowTracker.recordVectorRanking(new Map([['tool', 10]]));
-      lowTracker.recordToolCallFeedback('tool', true); // Already at min
+      lowTracker.recordVectorRanking(new Map([['tool', 100]]));
+      lowTracker.recordToolCallFeedback('tool', true); // already at min
       expect(lowTracker.getVectorWeight()).toBe(0.1);
     });
 
     it('accumulates weight changes over multiple feedback calls', () => {
-      // Start at 0.4
       tracker.recordVectorRanking(new Map([['good', 0]]));
-      tracker.recordToolCallFeedback('good', true); // → 0.42
+      tracker.recordToolCallFeedback('good', true); // 0.4 → 0.45
 
       tracker.recordVectorRanking(new Map([['good', 1]]));
-      tracker.recordToolCallFeedback('good', true); // → 0.44
+      tracker.recordToolCallFeedback('good', true); // 0.45 → 0.5
 
-      tracker.recordVectorRanking(new Map([['bad', 10]]));
-      tracker.recordToolCallFeedback('bad', true); // → 0.43
+      tracker.recordVectorRanking(new Map([['bad', 20]]));
+      tracker.recordToolCallFeedback('bad', true); // 0.5 → 0.47
 
-      expect(tracker.getVectorWeight()).toBeCloseTo(0.43, 2);
+      expect(tracker.getVectorWeight()).toBeCloseTo(0.47, 2);
     });
   });
 
@@ -151,30 +164,28 @@ describe('FeedbackTracker', () => {
       const tracker = new FeedbackTracker();
       tracker.recordVectorRanking(new Map());
 
-      // Tool not found in empty map → decrease weight
       const result = tracker.recordToolCallFeedback('any_tool', true);
       expect(result).toBe(true);
-      expect(tracker.getVectorWeight()).toBeCloseTo(0.39, 10);
+      expect(tracker.getVectorWeight()).toBeCloseTo(0.37, 10);
     });
 
-    it('handles ranking with negative rank (edge case)', () => {
+    it('handles ranking with negative rank (counts as top hit)', () => {
       const tracker = new FeedbackTracker();
-      // Negative rank is < 5, so should increase weight
       tracker.recordVectorRanking(new Map([['tool', -1]]));
       const result = tracker.recordToolCallFeedback('tool', true);
 
       expect(result).toBe(true);
-      expect(tracker.getVectorWeight()).toBeCloseTo(0.42, 10);
+      expect(tracker.getVectorWeight()).toBeCloseTo(0.45, 10);
     });
 
-    it('handles boundary rank of 5 (first non-top-5)', () => {
+    it('handles boundary rank of 5 (first outside top-N)', () => {
       const tracker = new FeedbackTracker();
       tracker.recordVectorRanking(new Map([['tool', 5]]));
       const result = tracker.recordToolCallFeedback('tool', true);
 
       expect(result).toBe(true);
-      // Rank 5 is NOT < 5, so weight decreases
-      expect(tracker.getVectorWeight()).toBeCloseTo(0.39, 10);
+      // Rank 5 is in the [N, 2N) zone → small positive step
+      expect(Math.abs(tracker.getVectorWeight() - 0.415)).toBeLessThan(EPS);
     });
   });
 });

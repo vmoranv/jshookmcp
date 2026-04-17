@@ -50,6 +50,15 @@ describe('activation/ActivationController', () => {
     expect(eventBus.listenerCount('debugger:breakpoint_hit')).toBe(1);
     expect(eventBus.listenerCount('browser:navigated')).toBe(1);
     expect(eventBus.listenerCount('memory:scan_completed')).toBe(1);
+    expect(eventBus.listenerCount('network:intercept_started')).toBe(1);
+    expect(eventBus.listenerCount('v8:heap_captured')).toBe(1);
+    expect(eventBus.listenerCount('tls:keylog_started')).toBe(1);
+    expect(eventBus.listenerCount('skia:scene_captured')).toBe(1);
+    expect(eventBus.listenerCount('frida:attached')).toBe(1);
+    expect(eventBus.listenerCount('adb:device_connected')).toBe(1);
+    expect(eventBus.listenerCount('mojo:message_captured')).toBe(1);
+    expect(eventBus.listenerCount('syscall:trace_started')).toBe(1);
+    expect(eventBus.listenerCount('protocol:pattern_detected')).toBe(1);
 
     controller.dispose();
   });
