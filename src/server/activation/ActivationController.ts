@@ -19,28 +19,104 @@ import { PredictiveBooster } from './PredictiveBooster';
 import { AutoPruner } from './AutoPruner';
 import { getToolDomain, getProfileDomains } from '@server/ToolCatalog';
 import { logger } from '@utils/logger';
+import {
+  ACTIVATION_BOOST_WINDOW_MS,
+  ACTIVATION_COMPOUND_EVAL_EVERY,
+  ACTIVATION_COOLDOWN_MS,
+  ACTIVATION_EVENT_HISTORY_MAX,
+  ACTIVATION_TTL_MINUTES,
+} from '@src/constants';
 
-/** Default boost rules mapping events to domain activations. */
+/**
+ * Default boost rules mapping events to domain activations.
+ *
+ * Each rule fires when its event pattern is detected on the EventBus and the
+ * threshold is met within the sliding window.  The handler-level emit sites
+ * are listed in the corresponding domain handlers.
+ */
 const DEFAULT_BOOST_RULES: BoostRule[] = [
   {
     eventPattern: 'debugger:breakpoint_hit',
     targetDomains: ['debugger'],
     threshold: 1,
-    windowMs: 60_000,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
     priority: 10,
   },
   {
     eventPattern: 'browser:navigated',
     targetDomains: ['browser'],
     threshold: 1,
-    windowMs: 60_000,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
     priority: 10,
   },
   {
     eventPattern: 'memory:scan_completed',
     targetDomains: ['memory'],
     threshold: 1,
-    windowMs: 60_000,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
+    priority: 10,
+  },
+  {
+    eventPattern: 'network:intercept_started',
+    targetDomains: ['network', 'hooks'],
+    threshold: 1,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
+    priority: 9,
+  },
+  {
+    eventPattern: 'v8:heap_captured',
+    targetDomains: ['v8-inspector'],
+    threshold: 1,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
+    priority: 10,
+  },
+  {
+    eventPattern: 'tls:keylog_started',
+    targetDomains: ['boringssl-inspector'],
+    threshold: 1,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
+    priority: 10,
+  },
+  {
+    eventPattern: 'skia:scene_captured',
+    targetDomains: ['skia-capture'],
+    threshold: 1,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
+    priority: 10,
+  },
+  {
+    eventPattern: 'frida:attached',
+    targetDomains: ['binary-instrument'],
+    threshold: 1,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
+    priority: 10,
+  },
+  {
+    eventPattern: 'adb:device_connected',
+    targetDomains: ['adb-bridge'],
+    threshold: 1,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
+    priority: 10,
+  },
+  {
+    eventPattern: 'mojo:message_captured',
+    targetDomains: ['mojo-ipc'],
+    threshold: 1,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
+    priority: 10,
+  },
+  {
+    eventPattern: 'syscall:trace_started',
+    targetDomains: ['syscall-hook'],
+    threshold: 1,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
+    priority: 10,
+  },
+  {
+    eventPattern: 'protocol:pattern_detected',
+    targetDomains: ['protocol-analysis'],
+    threshold: 1,
+    windowMs: ACTIVATION_BOOST_WINDOW_MS,
     priority: 10,
   },
 ];
@@ -92,10 +168,13 @@ export class ActivationController {
   private readonly eventHistory: EventRecord[] = [];
 
   /** Max events to keep in sliding window. */
-  private readonly maxEventHistory = 200;
+  private readonly maxEventHistory: number;
 
   /** Tool call counter for periodic compound evaluation. */
   private toolCallCount = 0;
+
+  /** How often (in tool calls) compound conditions are evaluated. */
+  private readonly compoundEvalEvery: number;
 
   /** Wave 2 sub-components. */
   private readonly compoundEngine: CompoundConditionEngine;
@@ -111,7 +190,9 @@ export class ActivationController {
   ) {
     this.eventBus = eventBus;
     this.ctx = ctx;
-    this.cooldownMs = options.cooldownMs ?? 30_000;
+    this.cooldownMs = options.cooldownMs ?? ACTIVATION_COOLDOWN_MS;
+    this.maxEventHistory = ACTIVATION_EVENT_HISTORY_MAX;
+    this.compoundEvalEvery = Math.max(1, ACTIVATION_COMPOUND_EVAL_EVERY);
 
     // Merge default + custom boost rules, sort by priority descending
     const customRules = options.boostRules ?? [];
@@ -158,37 +239,30 @@ export class ActivationController {
           void this.attemptBoost(domain, `predictive: ${payload.toolName} → ${domain}`);
         }
 
-        // Evaluate compound conditions every 5 tool calls
+        // Evaluate compound conditions every N tool calls (env-tunable)
         this.toolCallCount++;
-        if (this.toolCallCount % 5 === 0) {
+        if (this.toolCallCount % this.compoundEvalEvery === 0) {
           this.evaluateCompoundConditions();
         }
       }),
     );
 
-    // debugger:breakpoint_hit → boost debugger domain
-    this.unsubscribers.push(
-      this.eventBus.on('debugger:breakpoint_hit', (payload) => {
-        this.recordEvent('debugger:breakpoint_hit', payload);
-        return this.evaluateBoostRules('debugger:breakpoint_hit');
-      }),
-    );
-
-    // browser:navigated → boost browser domain
-    this.unsubscribers.push(
-      this.eventBus.on('browser:navigated', (payload) => {
-        this.recordEvent('browser:navigated', payload);
-        return this.evaluateBoostRules('browser:navigated');
-      }),
-    );
-
-    // memory:scan_completed → boost memory domain
-    this.unsubscribers.push(
-      this.eventBus.on('memory:scan_completed', (payload) => {
-        this.recordEvent('memory:scan_completed', payload);
-        return this.evaluateBoostRules('memory:scan_completed');
-      }),
-    );
+    // Subscribe every distinct boost-rule event so newly added auto-boost paths
+    // cannot go stale when domain handlers start emitting more signals.
+    const subscribedEvents = new Set<string>();
+    for (const rule of this.boostRules) {
+      if (!rule.eventPattern || subscribedEvents.has(rule.eventPattern)) {
+        continue;
+      }
+      subscribedEvents.add(rule.eventPattern);
+      const eventName = rule.eventPattern as keyof ServerEventMap;
+      this.unsubscribers.push(
+        this.eventBus.on(eventName, (payload) => {
+          this.recordEvent(rule.eventPattern, payload);
+          return this.evaluateBoostRules(rule.eventPattern);
+        }),
+      );
+    }
   }
 
   /** Record an event in the sliding window. */
@@ -249,7 +323,7 @@ export class ActivationController {
 
     await handleActivateDomain(this.ctx, {
       domain,
-      ttlMinutes: 30,
+      ttlMinutes: ACTIVATION_TTL_MINUTES,
     });
 
     await this.eventBus.emit('activation:domain_boosted', {

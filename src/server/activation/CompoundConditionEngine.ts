@@ -8,6 +8,7 @@
  * Requirement addressed: BOOST-05
  */
 import type { EventRecord } from './types';
+import { COMPOUND_EVENT_WINDOW_MS, COMPOUND_LONG_WINDOW_MS } from '@src/constants';
 
 export type ConditionPredicate =
   | { type: 'platform'; value: NodeJS.Platform }
@@ -44,7 +45,12 @@ const DEFAULT_COMPOUND_CONDITIONS: CompoundCondition[] = [
     conditions: [
       { type: 'platform', value: 'darwin' },
       { type: 'domain_active', domain: 'browser' },
-      { type: 'event_count', event: 'tool:called', minCount: 2, windowMs: 120_000 },
+      {
+        type: 'event_count',
+        event: 'tool:called',
+        minCount: 2,
+        windowMs: COMPOUND_EVENT_WINDOW_MS,
+      },
     ],
     boostDomains: ['wasm', 'transform'],
     priority: 20,
@@ -54,7 +60,12 @@ const DEFAULT_COMPOUND_CONDITIONS: CompoundCondition[] = [
     name: 'Debug + Memory inspection',
     conditions: [
       { type: 'domain_active', domain: 'debugger' },
-      { type: 'event_count', event: 'debugger:breakpoint_hit', minCount: 1, windowMs: 120_000 },
+      {
+        type: 'event_count',
+        event: 'debugger:breakpoint_hit',
+        minCount: 1,
+        windowMs: COMPOUND_EVENT_WINDOW_MS,
+      },
     ],
     boostDomains: ['memory'],
     priority: 15,
@@ -68,6 +79,57 @@ const DEFAULT_COMPOUND_CONDITIONS: CompoundCondition[] = [
     ],
     boostDomains: ['hooks'],
     priority: 10,
+  },
+  {
+    id: 'skia-to-v8-correlation',
+    name: 'Skia scene + V8 heap correlation',
+    conditions: [
+      { type: 'domain_active', domain: 'skia-capture' },
+      {
+        type: 'event_count',
+        event: 'v8:heap_captured',
+        minCount: 1,
+        windowMs: COMPOUND_LONG_WINDOW_MS,
+      },
+    ],
+    boostDomains: ['cross-domain', 'v8-inspector'],
+    priority: 22,
+  },
+  {
+    id: 'mojo-browser-network',
+    name: 'Mojo IPC inside Chromium with active browser',
+    conditions: [
+      { type: 'domain_active', domain: 'mojo-ipc' },
+      { type: 'domain_active', domain: 'browser' },
+    ],
+    boostDomains: ['network', 'cross-domain'],
+    priority: 18,
+  },
+  {
+    id: 'frida-binary-trace',
+    name: 'Frida attached → trace + cross-domain',
+    conditions: [
+      { type: 'tool_called_recently', toolName: 'frida_attach', withinMs: COMPOUND_LONG_WINDOW_MS },
+    ],
+    boostDomains: ['binary-instrument', 'trace', 'cross-domain'],
+    priority: 16,
+  },
+  {
+    id: 'tls-capture-to-network',
+    name: 'TLS keylog captured → network replay prep',
+    conditions: [{ type: 'domain_active', domain: 'boringssl-inspector' }],
+    boostDomains: ['network'],
+    priority: 12,
+  },
+  {
+    id: 'syscall-js-correlation',
+    name: 'Syscall trace live → JS correlation',
+    conditions: [
+      { type: 'domain_active', domain: 'syscall-hook' },
+      { type: 'event_count', event: 'tool:called', minCount: 1, windowMs: COMPOUND_LONG_WINDOW_MS },
+    ],
+    boostDomains: ['cross-domain'],
+    priority: 14,
   },
 ];
 
