@@ -65,6 +65,7 @@ export class TargetControlHandlers {
       const urlPattern = argString(args, 'urlPattern');
       const titlePattern = argString(args, 'titlePattern');
       const attachedOnly = argBool(args, 'attachedOnly', false);
+      const discoverOOPIF = argBool(args, 'discoverOOPIF', true);
 
       const targets = await this.deps.collector.listCdpTargets({
         type: type ?? undefined,
@@ -73,6 +74,7 @@ export class TargetControlHandlers {
         urlPattern: urlPattern ?? undefined,
         titlePattern: titlePattern ?? undefined,
         attachedOnly,
+        discoverOOPIF,
       });
       const activeTarget = this.deps.collector.getAttachedTargetInfo();
       const contextMeta = this.deps.getTabRegistry().getContextMeta();

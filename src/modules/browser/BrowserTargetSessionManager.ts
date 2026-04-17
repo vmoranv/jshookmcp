@@ -22,17 +22,39 @@ interface TargetFilters {
   urlPattern?: string;
   titlePattern?: string;
   attachedOnly?: boolean;
+  /** Enable OOPIF (cross-origin iframe) auto-discovery. Default: true. */
+  discoverOOPIF?: boolean;
 }
 
 export class BrowserTargetSessionManager {
   private browserSession: CDPSession | null = null;
   private attachedTargetSession: AttachedTargetSession | null = null;
   private attachedTargetInfo: BrowserTargetInfo | null = null;
+  private autoAttachEnabled = false;
 
   constructor(private readonly getBrowser: () => Browser | null) {}
 
   async listTargets(filters: TargetFilters = {}): Promise<BrowserTargetInfo[]> {
     const session = await this.ensureBrowserSession();
+
+    // Enable OOPIF auto-discovery when requested (default: true)
+    const discoverOOPIF = filters.discoverOOPIF !== false;
+    if (discoverOOPIF && !this.autoAttachEnabled) {
+      try {
+        await session.send('Target.setAutoAttach', {
+          autoAttach: true,
+          waitForDebuggerOnStart: false,
+          flatten: true,
+        });
+        await session.send('Target.setDiscoverTargets', {
+          discover: true,
+        });
+        this.autoAttachEnabled = true;
+      } catch {
+        // Older Chrome versions may not support these params; continue with basic listing
+      }
+    }
+
     const response = (await session.send('Target.getTargets')) as unknown as {
       targetInfos?: Array<Record<string, unknown>>;
     };
@@ -134,6 +156,7 @@ export class BrowserTargetSessionManager {
 
   async dispose(): Promise<void> {
     await this.detach();
+    this.autoAttachEnabled = false;
     if (this.browserSession) {
       try {
         await this.browserSession.detach();
