@@ -6,6 +6,8 @@
  * hard-coding magic numbers.
  */
 
+import { cpus } from 'node:os';
+
 // ── helpers ──
 
 const int = (key: string, fallback: number): number => {
@@ -49,18 +51,39 @@ const csv = (key: string, fallback: string[]): string[] => {
   return parsed.length > 0 ? parsed : fallback;
 };
 
+/**
+ * Auto-sized int: accepts "auto" (case-insensitive) to derive the value from
+ * a supplier, otherwise behaves like `int(key, fallback)`.
+ */
+const autoInt = (key: string, fallback: number, autoSupplier: () => number): number => {
+  const v = process.env[key];
+  if (v !== undefined && v.trim().toLowerCase() === 'auto') {
+    const derived = autoSupplier();
+    return Number.isFinite(derived) && derived > 0 ? Math.floor(derived) : fallback;
+  }
+  return int(key, fallback);
+};
+
+const cpuCount = (): number => {
+  try {
+    return cpus().length;
+  } catch {
+    return 4;
+  }
+};
+
 /* ================================================================== */
 /*  HIGH — server lifecycle                                            */
 /* ================================================================== */
 
 /** Maximum time allowed for graceful shutdown before force-exiting. */
-export const SHUTDOWN_TIMEOUT_MS = int('SHUTDOWN_TIMEOUT_MS', 10_000);
+export const SHUTDOWN_TIMEOUT_MS = int('SHUTDOWN_TIMEOUT_MS', 20_000);
 
 /** Sliding window (ms) for counting runtime errors before entering degraded mode. */
 export const RUNTIME_ERROR_WINDOW_MS = int('RUNTIME_ERROR_WINDOW_MS', 60_000);
 
 /** Max recoverable errors within the window before enabling degraded mode. */
-export const RUNTIME_ERROR_THRESHOLD = int('RUNTIME_ERROR_THRESHOLD', 5);
+export const RUNTIME_ERROR_THRESHOLD = int('RUNTIME_ERROR_THRESHOLD', 8);
 
 /* ================================================================== */
 /*  HIGH — debug ports & endpoints                                     */
@@ -158,7 +181,7 @@ export const CAPTCHA_DEFAULT_RETRIES = int('CAPTCHA_DEFAULT_RETRIES', 2);
 export const NETWORK_REPLAY_TIMEOUT_MS = int('NETWORK_REPLAY_TIMEOUT_MS', 30_000);
 export const NETWORK_REPLAY_MAX_BODY_BYTES = int('NETWORK_REPLAY_MAX_BODY_BYTES', 512_000);
 export const NETWORK_REPLAY_MAX_REDIRECTS = int('NETWORK_REPLAY_MAX_REDIRECTS', 5);
-export const NETWORK_HAR_BODY_CONCURRENCY = int('NETWORK_HAR_BODY_CONCURRENCY', 8);
+export const NETWORK_HAR_BODY_CONCURRENCY = int('NETWORK_HAR_BODY_CONCURRENCY', 4);
 
 // ── CDP Protocol ──
 export const CDP_JSON_LIST_PATH = '/json/list';
@@ -230,6 +253,57 @@ export const ACTIVATION_TTL_MINUTES = int('ACTIVATION_TTL_MINUTES', 30);
 export const SEARCH_AUTO_ACTIVATE_DOMAINS = bool('SEARCH_AUTO_ACTIVATE_DOMAINS', true);
 
 /**
+ * AutoPruner inactivity thresholds. Previously hardcoded as 5 / 15 / 60s which
+ * conflicted with ACTIVATION_TTL_MINUTES (30 min) — auto-activated domains
+ * were being pruned long before their declared TTL. Defaults now align with
+ * the TTL semantics:
+ *   - AUTO_INACTIVITY_MS   = 15 min (auto-activated, soft-evict before TTL cap)
+ *   - MANUAL_INACTIVITY_MS = 30 min (manual activations live for the full TTL)
+ *   - CHECK_INTERVAL_MS    = 60 s   (frequency of the prune sweep)
+ */
+export const AUTOPRUNE_AUTO_INACTIVITY_MS = int('AUTOPRUNE_AUTO_INACTIVITY_MS', 15 * 60_000);
+export const AUTOPRUNE_MANUAL_INACTIVITY_MS = int('AUTOPRUNE_MANUAL_INACTIVITY_MS', 30 * 60_000);
+export const AUTOPRUNE_CHECK_INTERVAL_MS = int('AUTOPRUNE_CHECK_INTERVAL_MS', 60_000);
+
+/**
+ * PredictiveBooster parameters.
+ *   - PREDICTIVE_MAX_HISTORY: sliding-window size for recorded tool calls.
+ *     Raised from 50 to match the median length of a multi-domain session.
+ *   - PREDICTIVE_CONFIDENCE_THRESHOLD: minimum transition probability to
+ *     emit a prediction. Slightly lowered to surface emerging patterns
+ *     sooner, while higher-order weighting filters noise.
+ *   - PREDICTIVE_DECAY_FACTOR: exponential decay applied to stored
+ *     transition weights on each record; makes recent usage dominate.
+ */
+export const PREDICTIVE_MAX_HISTORY = int('PREDICTIVE_MAX_HISTORY', 100);
+export const PREDICTIVE_CONFIDENCE_THRESHOLD = float('PREDICTIVE_CONFIDENCE_THRESHOLD', 0.25);
+export const PREDICTIVE_DECAY_FACTOR = float('PREDICTIVE_DECAY_FACTOR', 0.95);
+
+/**
+ * ActivationController tuning.
+ *   - ACTIVATION_COOLDOWN_MS: minimum interval between two boost attempts for
+ *     the same domain; prevents feedback loops when several events match in a
+ *     short window.
+ *   - ACTIVATION_COMPOUND_EVAL_EVERY: number of tool calls between compound
+ *     condition evaluations (was hardcoded to 5).
+ *   - ACTIVATION_EVENT_HISTORY_MAX: sliding-window size for event pattern
+ *     matching.
+ */
+export const ACTIVATION_COOLDOWN_MS = int('ACTIVATION_COOLDOWN_MS', 30_000);
+export const ACTIVATION_COMPOUND_EVAL_EVERY = int('ACTIVATION_COMPOUND_EVAL_EVERY', 5);
+export const ACTIVATION_EVENT_HISTORY_MAX = int('ACTIVATION_EVENT_HISTORY_MAX', 200);
+
+/**
+ * Sliding-window durations used when evaluating boost rules and compound
+ * conditions. Previously hardcoded at 60_000 / 120_000 / 300_000 across
+ * ActivationController / CompoundConditionEngine; centralised here so
+ * deployments can widen the windows for long-running debug sessions.
+ */
+export const ACTIVATION_BOOST_WINDOW_MS = int('ACTIVATION_BOOST_WINDOW_MS', 60_000);
+export const COMPOUND_EVENT_WINDOW_MS = int('COMPOUND_EVENT_WINDOW_MS', 120_000);
+export const COMPOUND_LONG_WINDOW_MS = int('COMPOUND_LONG_WINDOW_MS', 300_000);
+
+/**
  * GraphBoost-inspired search enhancements (see GraphBoost paper §4).
  *
  * SEARCH_TFIDF_COSINE_WEIGHT: weight of TF-IDF cosine similarity in hybrid
@@ -244,26 +318,57 @@ export const SEARCH_AUTO_ACTIVATE_DOMAINS = bool('SEARCH_AUTO_ACTIVATE_DOMAINS',
  * other tools in that domain receive a coherence boost.
  *
  * SEARCH_QUERY_CACHE_CAPACITY: LRU cache size for search results.
- * Mirrors §4.3 CSAPC cross-session caching.
+ * Mirrors §4.3 CSAPC cross-session caching. Raised to 500 to match the
+ * 431+ tool catalog size and reduce warm-cache miss rate.
  */
 export const SEARCH_TFIDF_COSINE_WEIGHT = float('SEARCH_TFIDF_COSINE_WEIGHT', 0.3);
 export const SEARCH_AFFINITY_BOOST_FACTOR = float('SEARCH_AFFINITY_BOOST_FACTOR', 0.15);
 export const SEARCH_AFFINITY_TOP_N = int('SEARCH_AFFINITY_TOP_N', 5);
 export const SEARCH_DOMAIN_HUB_THRESHOLD = int('SEARCH_DOMAIN_HUB_THRESHOLD', 3);
-export const SEARCH_QUERY_CACHE_CAPACITY = int('SEARCH_QUERY_CACHE_CAPACITY', 100);
+export const SEARCH_QUERY_CACHE_CAPACITY = int('SEARCH_QUERY_CACHE_CAPACITY', 500);
+
+/**
+ * Cache invalidation tolerance: cached entries are reusable while the
+ * live vector weight stays within this delta of the weight recorded
+ * when the entry was stored. Avoids flushing the full cache on every
+ * feedback tick (the previous epoch bump behavior).
+ */
+export const SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE = float(
+  'SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE',
+  0.05,
+);
 
 /**
  * Semantic search enhancements (synonym expansion, trigram fuzzy, RRF fusion).
  *
  * SEARCH_TRIGRAM_WEIGHT: weight of trigram Jaccard similarity as an RRF signal.
+ * SEARCH_TRIGRAM_THRESHOLD: minimum Jaccard score to enter the trigram ranking.
  * SEARCH_RRF_K: smoothing constant for Reciprocal Rank Fusion (standard: 60).
+ * SEARCH_RRF_RESCALE_FACTOR: multiplier that maps RRF scores into the BM25
+ *   magnitude range so downstream boosts (affinity, domain hub) stay comparable.
+ * SEARCH_RRF_BM25_BLEND: blend weight between the preserved BM25 score and
+ *   the rescaled RRF score when they coexist for the same doc.
  * SEARCH_SYNONYM_EXPANSION_LIMIT: max synonym tokens added per original query term.
  * SEARCH_PARAM_TOKEN_WEIGHT: weight for tool parameter name tokens in the index.
  */
-export const SEARCH_TRIGRAM_WEIGHT = float('SEARCH_TRIGRAM_WEIGHT', 0.15);
+export const SEARCH_TRIGRAM_WEIGHT = float('SEARCH_TRIGRAM_WEIGHT', 0.12);
+export const SEARCH_TRIGRAM_THRESHOLD = float('SEARCH_TRIGRAM_THRESHOLD', 0.35);
 export const SEARCH_RRF_K = int('SEARCH_RRF_K', 60);
+export const SEARCH_RRF_RESCALE_FACTOR = float('SEARCH_RRF_RESCALE_FACTOR', 1000);
+export const SEARCH_RRF_BM25_BLEND = float('SEARCH_RRF_BM25_BLEND', 0.5);
 export const SEARCH_SYNONYM_EXPANSION_LIMIT = int('SEARCH_SYNONYM_EXPANSION_LIMIT', 3);
 export const SEARCH_PARAM_TOKEN_WEIGHT = float('SEARCH_PARAM_TOKEN_WEIGHT', 1.5);
+
+/**
+ * BM25 scoring parameters.
+ *
+ * SEARCH_BM25_K1: term frequency saturation (1.2-2.0 typical; higher = more tf weight).
+ * SEARCH_BM25_B: length normalization factor (0..1; 0.75 is the textbook default).
+ *   The previous hardcoded value of 0.3 under-penalized long descriptions,
+ *   allowing verbose tools to crowd the top results.
+ */
+export const SEARCH_BM25_K1 = float('SEARCH_BM25_K1', 1.5);
+export const SEARCH_BM25_B = float('SEARCH_BM25_B', 0.75);
 
 /**
  * Dense vector search (Phase 8 — Hybrid Semantic Routing).
@@ -272,11 +377,63 @@ export const SEARCH_PARAM_TOKEN_WEIGHT = float('SEARCH_PARAM_TOKEN_WEIGHT', 1.5)
  * SEARCH_VECTOR_MODEL_ID: HuggingFace model used for embedding inference.
  * SEARCH_VECTOR_COSINE_WEIGHT: initial weight of the vector cosine signal in RRF fusion.
  * SEARCH_VECTOR_DYNAMIC_WEIGHT: when true, vector weight self-tunes based on tool-call feedback.
+ * SEARCH_VECTOR_LEARN_UP / DOWN: step sizes applied when the selected tool was
+ *   inside / outside the vector top-N. The defaults trade convergence speed
+ *   for stability.
+ * SEARCH_VECTOR_LEARN_TOP_N: rank threshold that separates "hit" from "miss".
  */
 export const SEARCH_VECTOR_ENABLED = bool('SEARCH_VECTOR_ENABLED', true);
 export const SEARCH_VECTOR_MODEL_ID = str('SEARCH_VECTOR_MODEL_ID', 'Xenova/bge-micro-v2');
 export const SEARCH_VECTOR_COSINE_WEIGHT = float('SEARCH_VECTOR_COSINE_WEIGHT', 0.4);
 export const SEARCH_VECTOR_DYNAMIC_WEIGHT = bool('SEARCH_VECTOR_DYNAMIC_WEIGHT', true);
+export const SEARCH_VECTOR_LEARN_UP = float('SEARCH_VECTOR_LEARN_UP', 0.05);
+export const SEARCH_VECTOR_LEARN_DOWN = float('SEARCH_VECTOR_LEARN_DOWN', 0.03);
+export const SEARCH_VECTOR_LEARN_TOP_N = int('SEARCH_VECTOR_LEARN_TOP_N', 5);
+
+/**
+ * Profile tier-aware ranking: tools whose domain is not visible under the
+ * caller's active tier (search ⊂ workflow ⊂ full) are not filtered out but
+ * downweighted by this multiplier (0..1). Setting to 1 disables the penalty.
+ */
+export const SEARCH_TIER_PENALTY = float('SEARCH_TIER_PENALTY', 0.7);
+
+/**
+ * Recency / frequency boost: tools invoked within SEARCH_RECENCY_WINDOW_MS
+ * receive a log-scaled boost up to SEARCH_RECENCY_MAX_BOOST. Helps user-
+ * preferred tools naturally surface.
+ *
+ * SEARCH_RECENCY_TRACKER_MAX caps the tracker map size to bound memory in
+ * long sessions; evicted entries are the oldest insertions (LRU).
+ */
+export const SEARCH_RECENCY_WINDOW_MS = int('SEARCH_RECENCY_WINDOW_MS', 30 * 60_000);
+export const SEARCH_RECENCY_MAX_BOOST = float('SEARCH_RECENCY_MAX_BOOST', 0.4);
+export const SEARCH_RECENCY_TRACKER_MAX = int('SEARCH_RECENCY_TRACKER_MAX', 200);
+
+/**
+ * Additional fine-grained scoring knobs. These used to be hardcoded; moving
+ * them to env lets downstream deployments tune ranking behaviour without
+ * rebuilding.
+ *
+ *   SEARCH_EXACT_NAME_MATCH_MULTIPLIER — score multiplier when the query
+ *       normalises to an exact tool name.
+ *   SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER — score multiplier applied to tools
+ *       whose domain shows up ≥ SEARCH_DOMAIN_HUB_THRESHOLD times in the
+ *       top-10.
+ *   SEARCH_AFFINITY_BASE_WEIGHT — baseline edge weight used when building
+ *       the prefix-group affinity graph (decayed by √|group|).
+ *   SEARCH_COVERAGE_PRECISION_FACTOR — amplitude of the coverage × precision
+ *       bonus applied when query tokens overlap a tool's name tokens.
+ *   SEARCH_PREFIX_MATCH_MULTIPLIER — multiplier applied to BM25 postings
+ *       reached via prefix expansion (non-exact tokens).
+ *   PREDICTIVE_MAX_SECOND_ORDER_KEYS — upper bound on the second-order
+ *       Markov table to keep memory usage predictable.
+ */
+export const SEARCH_EXACT_NAME_MATCH_MULTIPLIER = float('SEARCH_EXACT_NAME_MATCH_MULTIPLIER', 2.5);
+export const SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER = float('SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER', 1.08);
+export const SEARCH_AFFINITY_BASE_WEIGHT = float('SEARCH_AFFINITY_BASE_WEIGHT', 0.3);
+export const SEARCH_COVERAGE_PRECISION_FACTOR = float('SEARCH_COVERAGE_PRECISION_FACTOR', 0.5);
+export const SEARCH_PREFIX_MATCH_MULTIPLIER = float('SEARCH_PREFIX_MATCH_MULTIPLIER', 0.5);
+export const PREDICTIVE_MAX_SECOND_ORDER_KEYS = int('PREDICTIVE_MAX_SECOND_ORDER_KEYS', 1000);
 
 export const EXTENSION_GIT_CLONE_TIMEOUT_MS = int('EXTENSION_GIT_CLONE_TIMEOUT_MS', 60_000);
 export const EXTENSION_GIT_CHECKOUT_TIMEOUT_MS = int('EXTENSION_GIT_CHECKOUT_TIMEOUT_MS', 30_000);
@@ -318,7 +475,16 @@ export const SCRIPTS_MAX_CAP = int('SCRIPTS_MAX_CAP', 500);
 // ── MEDIUM — concurrency & resource limits ──
 
 export const WORKER_POOL_MIN_WORKERS = int('WORKER_POOL_MIN_WORKERS', 2);
-export const WORKER_POOL_MAX_WORKERS = int('WORKER_POOL_MAX_WORKERS', 4);
+/**
+ * Worker pool ceiling. Accepts "auto" (case-insensitive) to derive a
+ * machine-tuned value: half of the available logical CPUs, bounded by
+ * [WORKER_POOL_MIN_WORKERS, 8]. Defaults to 4 when auto derivation fails.
+ */
+export const WORKER_POOL_MAX_WORKERS = autoInt('WORKER_POOL_MAX_WORKERS', 4, () => {
+  const halved = Math.floor(cpuCount() / 2);
+  const minimum = int('WORKER_POOL_MIN_WORKERS', 2);
+  return Math.max(minimum, Math.min(8, halved));
+});
 export const WORKER_POOL_IDLE_TIMEOUT_MS = int('WORKER_POOL_IDLE_TIMEOUT_MS', 30_000);
 export const WORKER_POOL_JOB_TIMEOUT_MS = int('WORKER_POOL_JOB_TIMEOUT_MS', 15_000);
 
@@ -438,3 +604,95 @@ export const STRUCT_VTABLE_MAX_FUNCTIONS = int('STRUCT_VTABLE_MAX_FUNCTIONS', 64
 export const STRUCT_RTTI_MAX_STRING_LEN = int('STRUCT_RTTI_MAX_STRING_LEN', 256);
 /** Max C-string length to read from process memory. */
 export const STRUCT_CSTRING_MAX_LEN = int('STRUCT_CSTRING_MAX_LEN', 256);
+
+/* ================================================================== */
+/*  Binary instrumentation timeouts                                    */
+/* ================================================================== */
+
+/** Timeout for a single Frida CLI invocation (spawn/attach/detach helpers). */
+export const FRIDA_TIMEOUT_MS = int('FRIDA_TIMEOUT_MS', 15_000);
+
+/** Timeout for a Ghidra headless analyzer run (analyzeHeadless subprocess). */
+export const GHIDRA_TIMEOUT_MS = int('GHIDRA_TIMEOUT_MS', 120_000);
+
+/**
+ * Timeout for a Unidbg subprocess invocation (spawn / call / trace).
+ * The handler layer used to duplicate this with a tighter 30s ceiling which
+ * caused premature failure when a module worked 31-59s. Unified here.
+ */
+export const UNIDBG_TIMEOUT_MS = int('UNIDBG_TIMEOUT_MS', 60_000);
+
+/* ================================================================== */
+/*  ADB bridge timeouts                                                */
+/* ================================================================== */
+
+/** Default timeout for a generic `adb` CLI call. */
+export const ADB_DEFAULT_TIMEOUT_MS = int('ADB_DEFAULT_TIMEOUT_MS', 30_000);
+
+/** Timeout for `adb shell` commands (may run longer than generic adb calls). */
+export const ADB_SHELL_TIMEOUT_MS = int('ADB_SHELL_TIMEOUT_MS', 60_000);
+
+/** Timeout for an HTTP GET against an on-device WebView debugger endpoint. */
+export const ADB_WEBVIEW_HTTP_TIMEOUT_MS = int('ADB_WEBVIEW_HTTP_TIMEOUT_MS', 5_000);
+
+/** Timeout for establishing a WebSocket to an on-device WebView. */
+export const ADB_WEBVIEW_WS_TIMEOUT_MS = int('ADB_WEBVIEW_WS_TIMEOUT_MS', 10_000);
+
+/* ================================================================== */
+/*  Mojo IPC                                                           */
+/* ================================================================== */
+
+/** Timeout for a Mojo-monitor helper subprocess. */
+export const MOJO_MONITOR_TIMEOUT_MS = int('MOJO_MONITOR_TIMEOUT_MS', 10_000);
+
+/* ================================================================== */
+/*  Process memory availability probe                                  */
+/* ================================================================== */
+
+/** TTL of the "native memory scan available" cache (platform probe). */
+export const MEMORY_AVAILABILITY_CACHE_TTL_MS = int('MEMORY_AVAILABILITY_CACHE_TTL_MS', 45_000);
+
+/* ================================================================== */
+/*  HTTP transport                                                     */
+/* ================================================================== */
+
+/** Upper bound on the per-IP rate-limit map before GC kicks in. */
+export const HTTP_RATE_LIMIT_MAX_IPS = int('HTTP_RATE_LIMIT_MAX_IPS', 10_000);
+
+/** Frequency of the HTTP transport's rate-limit + session cleanup sweep. */
+export const HTTP_CLEANUP_INTERVAL_MS = int('HTTP_CLEANUP_INTERVAL_MS', 5 * 60_000);
+
+/** Default SSE heartbeat interval (comment frames to keep the stream open). */
+export const SSE_HEARTBEAT_MS = int('SSE_HEARTBEAT_MS', 30_000);
+
+/* ================================================================== */
+/*  Sandbox / native bridge / sourcemap / v8                           */
+/* ================================================================== */
+
+/** Hard ceiling applied to user-supplied sandbox exec timeouts. */
+export const SANDBOX_MAX_TIMEOUT_MS = int('SANDBOX_MAX_TIMEOUT_MS', 30_000);
+
+/** Timeout for REST calls to the native bridge (IDA/Ghidra). */
+export const NATIVE_BRIDGE_TIMEOUT_MS = int('NATIVE_BRIDGE_TIMEOUT_MS', 15_000);
+
+/** Timeout for the sourcemap-extension fetch helper. */
+export const SOURCEMAP_EXT_TIMEOUT_MS = int('SOURCEMAP_EXT_TIMEOUT_MS', 15_000);
+
+/** Timeout for the V8 bytecode extraction subprocess helper. */
+export const V8_BYTECODE_SUBPROC_TIMEOUT_MS = int('V8_BYTECODE_SUBPROC_TIMEOUT_MS', 60_000);
+
+/* ================================================================== */
+/*  Webhook / cross-domain orchestrator / macros                       */
+/* ================================================================== */
+
+/** Default per-command processing timeout inside the webhook command queue. */
+export const WEBHOOK_PROCESS_TIMEOUT_MS = int('WEBHOOK_PROCESS_TIMEOUT_MS', 10_000);
+
+/** Default per-step timeout for the cross-domain orchestrator. */
+export const ORCHESTRATOR_STEP_TIMEOUT_MS = int('ORCHESTRATOR_STEP_TIMEOUT_MS', 10_000);
+
+/** Default overall macro timeout (MacroRunner). */
+export const MACRO_DEFAULT_TIMEOUT_MS = int('MACRO_DEFAULT_TIMEOUT_MS', 120_000);
+
+/** Default per-invocation timeout for built-in macro definitions. */
+export const MACRO_BUILTIN_TIMEOUT_MS = int('MACRO_BUILTIN_TIMEOUT_MS', 60_000);

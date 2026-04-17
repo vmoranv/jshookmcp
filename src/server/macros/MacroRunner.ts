@@ -18,6 +18,7 @@ import {
 import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { MacroDefinition, MacroResult, MacroStepProgress } from '@server/macros/types';
+import { MACRO_DEFAULT_TIMEOUT_MS } from '@src/constants';
 
 export class MacroRunner {
   private readonly ctx: MCPServerContext;
@@ -34,7 +35,7 @@ export class MacroRunner {
       w
         .description(def.description)
         .tags(def.tags)
-        .timeoutMs(def.timeoutMs ?? 120_000)
+        .timeoutMs(def.timeoutMs ?? MACRO_DEFAULT_TIMEOUT_MS)
         .buildGraph(() =>
           sequenceStep(`${def.id}-root`, (seq) => {
             for (const step of def.steps) {

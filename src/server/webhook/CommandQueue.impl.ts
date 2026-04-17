@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import { WEBHOOK_PROCESS_TIMEOUT_MS } from '@src/constants';
 
 export type WebhookCommandStoredStatus = 'pending' | 'processing' | 'processed' | 'failed';
 export type WebhookCommandStatus = 'pending' | 'processing' | 'completed' | 'failed';
@@ -55,7 +56,9 @@ export class CommandQueueImpl extends EventEmitter {
     this.maxRetries = typeof options.maxRetries === 'number' ? options.maxRetries : 3;
     this.retryDelay = typeof options.retryDelay === 'number' ? options.retryDelay : 0;
     this.processTimeout =
-      typeof options.processTimeout === 'number' ? options.processTimeout : 10_000;
+      typeof options.processTimeout === 'number'
+        ? options.processTimeout
+        : WEBHOOK_PROCESS_TIMEOUT_MS;
   }
 
   enqueue(command: WebhookCommandInput): string {

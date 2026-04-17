@@ -9,6 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { timingSafeEqual as cryptoTimingSafeEqual } from 'node:crypto';
+import { HTTP_CLEANUP_INTERVAL_MS, HTTP_RATE_LIMIT_MAX_IPS } from '@src/constants';
 
 // ── Allowed origins for localhost CSRF protection ──
 const LOCALHOST_ORIGINS = new Set(['http://127.0.0.1', 'http://localhost', 'http://[::1]']);
@@ -169,10 +170,10 @@ interface RateLimitEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 /** Maximum number of tracked IPs to prevent unbounded memory growth under DDoS. */
-const RATE_LIMIT_MAX_IPS = 10_000;
+const RATE_LIMIT_MAX_IPS = HTTP_RATE_LIMIT_MAX_IPS;
 
-/** Periodic cleanup of stale entries (every 5 minutes). */
-const CLEANUP_INTERVAL_MS = 5 * 60_000;
+/** Periodic cleanup of stale entries. */
+const CLEANUP_INTERVAL_MS = HTTP_CLEANUP_INTERVAL_MS;
 let lastCleanup = Date.now();
 
 function rateLimitCleanup(now: number): void {

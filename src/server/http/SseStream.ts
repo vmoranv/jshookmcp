@@ -7,6 +7,7 @@
 import type { ServerResponse, IncomingMessage } from 'node:http';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { logger } from '@utils/logger';
+import { SSE_HEARTBEAT_MS } from '@src/constants';
 
 export interface SseStreamOptions {
   /** Session ID to filter events (optional - if not set, streams all events) */
@@ -26,7 +27,7 @@ export class SseStream {
   constructor(eventBus: EventBus<ServerEventMap>, options: SseStreamOptions = {}) {
     this.eventBus = eventBus;
     this.options = {
-      heartbeatMs: options.heartbeatMs ?? 30_000,
+      heartbeatMs: options.heartbeatMs ?? SSE_HEARTBEAT_MS,
       sessionId: options.sessionId,
     };
   }

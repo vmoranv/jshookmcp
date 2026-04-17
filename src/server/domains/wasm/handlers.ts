@@ -19,6 +19,7 @@ import {
   argBool,
   argStringArray,
 } from '@server/domains/shared/parse-args';
+import { WASM_OPTIMIZE_TIMEOUT_MS, WASM_TOOL_TIMEOUT_MS } from '@src/constants';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -219,7 +220,7 @@ export class WasmToolHandlers {
     const result = await this.runner.run({
       tool: 'wabt.wasm2wat',
       args: toolArgs,
-      timeoutMs: 60_000,
+      timeoutMs: WASM_TOOL_TIMEOUT_MS,
     });
 
     if (!result.ok) {
@@ -287,7 +288,7 @@ export class WasmToolHandlers {
     const result = await this.runner.run({
       tool: 'wabt.wasm-decompile',
       args: [inputPath, '-o', '/dev/stdout'],
-      timeoutMs: 60_000,
+      timeoutMs: WASM_TOOL_TIMEOUT_MS,
     });
 
     if (!result.ok) {
@@ -360,7 +361,7 @@ export class WasmToolHandlers {
     const result = await this.runner.run({
       tool: 'wabt.wasm-objdump',
       args: [...flags, inputPath],
-      timeoutMs: 60_000,
+      timeoutMs: WASM_TOOL_TIMEOUT_MS,
     });
 
     if (!result.ok) {
@@ -491,7 +492,7 @@ export class WasmToolHandlers {
     const result = await this.runner.run({
       tool: 'binaryen.wasm-opt',
       args: [`-${level}`, inputPath, '-o', destPath],
-      timeoutMs: 120_000,
+      timeoutMs: WASM_OPTIMIZE_TIMEOUT_MS,
     });
 
     if (!result.ok) {

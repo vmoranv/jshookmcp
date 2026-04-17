@@ -9,14 +9,19 @@
  */
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { logger } from '@utils/logger';
+import {
+  AUTOPRUNE_AUTO_INACTIVITY_MS,
+  AUTOPRUNE_CHECK_INTERVAL_MS,
+  AUTOPRUNE_MANUAL_INACTIVITY_MS,
+} from '@src/constants';
 
 /** Configuration for auto-prune behavior. */
 export interface AutoPruneConfig {
-  /** Inactivity threshold for auto-activated domains (ms, default 5 min). */
+  /** Inactivity threshold for auto-activated domains (ms). */
   autoActivatedInactivityMs?: number;
-  /** Inactivity threshold for manually activated domains (ms, default 15 min). */
+  /** Inactivity threshold for manually activated domains (ms). */
   manualActivatedInactivityMs?: number;
-  /** How often to run the prune check (ms, default 60s). */
+  /** How often to run the prune check (ms). */
   checkIntervalMs?: number;
 }
 
@@ -48,9 +53,9 @@ export class AutoPruner {
     this.eventBus = eventBus;
     this.baseDomains = baseDomains;
     this.onPrune = onPrune;
-    this.autoInactivityMs = config.autoActivatedInactivityMs ?? 5 * 60_000; // 5 min
-    this.manualInactivityMs = config.manualActivatedInactivityMs ?? 15 * 60_000; // 15 min
-    this.checkIntervalMs = config.checkIntervalMs ?? 60_000; // 60s
+    this.autoInactivityMs = config.autoActivatedInactivityMs ?? AUTOPRUNE_AUTO_INACTIVITY_MS;
+    this.manualInactivityMs = config.manualActivatedInactivityMs ?? AUTOPRUNE_MANUAL_INACTIVITY_MS;
+    this.checkIntervalMs = config.checkIntervalMs ?? AUTOPRUNE_CHECK_INTERVAL_MS;
 
     this.startCheckTimer();
   }

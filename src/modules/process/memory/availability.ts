@@ -5,8 +5,9 @@
  */
 
 import { executePowerShellScript, execAsync, type Platform } from '@modules/process/memory/types';
+import { MEMORY_AVAILABILITY_CACHE_TTL_MS } from '@src/constants';
 
-const WINDOWS_CACHE_TTL_MS = 45_000;
+const WINDOWS_CACHE_TTL_MS = MEMORY_AVAILABILITY_CACHE_TTL_MS;
 
 let windowsAvailabilityCache: {
   expiresAt: number;

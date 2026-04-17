@@ -5,6 +5,7 @@ import type {
   TextToolResponse,
 } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
 import { SourcemapToolHandlersCommon } from '@server/domains/sourcemap/handlers.impl.sourcemap-common';
+import { SOURCEMAP_EXT_TIMEOUT_MS } from '@src/constants';
 
 export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon {
   async handleExtensionListInstalled(_args: Record<string, unknown>): Promise<TextToolResponse> {
@@ -171,7 +172,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
       const timeout = setTimeout(() => {
         cleanup();
         rejectPromise(new Error('Runtime.evaluate timed out'));
-      }, 15_000);
+      }, SOURCEMAP_EXT_TIMEOUT_MS);
 
       const onMessage = (payload: unknown): void => {
         const record = this.asRecord(payload);

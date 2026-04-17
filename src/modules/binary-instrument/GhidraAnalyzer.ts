@@ -4,8 +4,8 @@ import { basename, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { probeCommand, type ProbeResult } from '@modules/external/ToolProbe';
 import { logger } from '@utils/logger';
+import { GHIDRA_TIMEOUT_MS } from '@src/constants';
 
-const GHIDRA_TIMEOUT_MS = 120_000;
 const GHIDRA_MAX_BUFFER_BYTES = 16 * 1024 * 1024;
 
 export interface DecompiledFunction {

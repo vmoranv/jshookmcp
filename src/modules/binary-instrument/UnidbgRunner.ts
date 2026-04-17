@@ -2,8 +2,8 @@ import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { access } from 'node:fs/promises';
 import { logger } from '@utils/logger';
+import { UNIDBG_TIMEOUT_MS } from '@src/constants';
 
-const UNIDBG_TIMEOUT_MS = 60_000;
 const UNIDBG_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
 
 interface UnidbgSession {

@@ -1,6 +1,7 @@
 import { createServer } from 'node:net';
 import { ToolError } from '@errors/ToolError';
 import { ADBClient } from './ADBClient';
+import { ADB_WEBVIEW_HTTP_TIMEOUT_MS, ADB_WEBVIEW_WS_TIMEOUT_MS } from '@src/constants';
 
 interface DevToolsTargetInfo {
   id: string;
@@ -122,7 +123,7 @@ export class WebViewDebugger {
 
   private async fetchTargets(port: number): Promise<DevToolsTargetInfo[]> {
     const response = await fetch(`http://127.0.0.1:${port}/json/list`, {
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(ADB_WEBVIEW_HTTP_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -223,7 +224,7 @@ export class WebViewDebugger {
             },
           ),
         );
-      }, 10_000);
+      }, ADB_WEBVIEW_WS_TIMEOUT_MS);
 
       const finish = (callback: () => void) => {
         clearTimeout(timeout);

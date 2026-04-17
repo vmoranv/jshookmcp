@@ -5,7 +5,7 @@
  * instrument ipcRenderer.invoke / send / sendSync, capturing channel
  * names and arguments. Messages are buffered and can be dumped on demand.
  *
- * EADV-03: IPC 嗅探探针
+ * EADV-03: IPC sniffing probe.
  */
 
 import {

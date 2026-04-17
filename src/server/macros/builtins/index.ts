@@ -1,4 +1,5 @@
 import type { MacroDefinition } from '../types';
+import { MACRO_BUILTIN_TIMEOUT_MS } from '@src/constants';
 
 /**
  * Default built-in macros shipped with jshookmcp.
@@ -16,7 +17,7 @@ export const deobfuscateAstFlow: MacroDefinition = {
   displayName: 'Deobfuscate AST Flow',
   description: 'Chain: deobfuscate → advanced deobfuscation → extract function tree',
   tags: ['analysis', 'deobfuscation', 'ast'],
-  timeoutMs: 60_000,
+  timeoutMs: MACRO_BUILTIN_TIMEOUT_MS,
   steps: [
     {
       id: 'deobfuscate',

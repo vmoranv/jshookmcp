@@ -8,6 +8,7 @@ import { SessionScratchpad } from '@server/sandbox/SessionScratchpad';
 import { executeWithRetry } from '@server/sandbox/AutoCorrectionLoop';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { SandboxOptions, SandboxResult } from '@server/sandbox/types';
+import { SANDBOX_MAX_TIMEOUT_MS } from '@src/constants';
 
 export class SandboxToolHandlers {
   private readonly ctx: MCPServerContext;
@@ -45,7 +46,7 @@ export class SandboxToolHandlers {
     const options: SandboxOptions = {};
     if (timeoutMs !== undefined) {
       // SECURITY: Cap timeout to prevent DoS via infinite values
-      const MAX_TIMEOUT = 30_000; // hard ceiling
+      const MAX_TIMEOUT = SANDBOX_MAX_TIMEOUT_MS; // hard ceiling
       options.timeoutMs = Math.min(
         Math.max(1, Number.isFinite(timeoutMs) ? timeoutMs : 0),
         MAX_TIMEOUT,

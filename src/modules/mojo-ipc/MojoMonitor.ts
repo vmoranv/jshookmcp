@@ -1,4 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
+import { MOJO_MONITOR_TIMEOUT_MS } from '@src/constants';
 
 export interface MojoMessage {
   timestamp: number;
@@ -291,7 +292,7 @@ export class MojoMonitor {
       execFile(
         'frida',
         ['-q', '-n', targetProcess, '-l', '-', '--runtime=v8'],
-        { timeout: 10_000, windowsHide: true },
+        { timeout: MOJO_MONITOR_TIMEOUT_MS, windowsHide: true },
         (error) => {
           if (error) {
             this.simulationMode = true;

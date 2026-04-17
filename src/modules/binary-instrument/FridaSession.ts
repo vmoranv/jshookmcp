@@ -2,8 +2,8 @@ import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { probeCommand, type ProbeResult } from '@modules/external/ToolProbe';
 import { logger } from '@utils/logger';
+import { FRIDA_TIMEOUT_MS } from '@src/constants';
 
-const FRIDA_TIMEOUT_MS = 15_000;
 const FRIDA_MAX_BUFFER_BYTES = 5 * 1024 * 1024;
 
 export interface FridaScriptResult {

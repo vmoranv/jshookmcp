@@ -1,4 +1,5 @@
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { ORCHESTRATOR_STEP_TIMEOUT_MS } from '@src/constants';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object';
@@ -105,7 +106,10 @@ export class CrossDomainOrchestratorImpl {
     config: CrossDomainOrchestratorConfig = {},
   ) {
     this.config = {
-      timeoutPerStep: typeof config.timeoutPerStep === 'number' ? config.timeoutPerStep : 10_000,
+      timeoutPerStep:
+        typeof config.timeoutPerStep === 'number'
+          ? config.timeoutPerStep
+          : ORCHESTRATOR_STEP_TIMEOUT_MS,
       maxRetries: typeof config.maxRetries === 'number' ? config.maxRetries : 1,
     };
     this.registerDefaultDefinitions();

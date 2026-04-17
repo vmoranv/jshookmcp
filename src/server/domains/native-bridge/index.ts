@@ -1,6 +1,10 @@
 // ── Types ──
 
-import { GHIDRA_BRIDGE_ENDPOINT, IDA_BRIDGE_ENDPOINT } from '@src/constants';
+import {
+  GHIDRA_BRIDGE_ENDPOINT,
+  IDA_BRIDGE_ENDPOINT,
+  NATIVE_BRIDGE_TIMEOUT_MS,
+} from '@src/constants';
 export * from './definitions';
 
 interface BridgeResponse {
@@ -36,7 +40,7 @@ async function bridgeFetch(
     method,
     headers: { 'Content-Type': 'application/json' },
     ...(body === undefined ? {} : { body }),
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(NATIVE_BRIDGE_TIMEOUT_MS),
   });
   const data = await res.json().catch(() => ({}));
   return { status: res.status, data };

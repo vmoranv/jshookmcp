@@ -14,6 +14,7 @@ import {
   parseStringArg,
   pathExists,
 } from '@server/domains/platform/handlers/platform-utils';
+import { V8_BYTECODE_SUBPROC_TIMEOUT_MS } from '@src/constants';
 
 const execFileAsync = promisify(execFile);
 
@@ -85,7 +86,7 @@ async function tryView8(
   try {
     // Try python -m view8
     const { stdout, stderr } = await execFileAsync('python', ['-m', 'view8', filePath], {
-      timeout: 60_000,
+      timeout: V8_BYTECODE_SUBPROC_TIMEOUT_MS,
       maxBuffer: 10 * 1024 * 1024, // 10MB
     });
     if (stdout && stdout.trim().length > 0) {
@@ -96,7 +97,7 @@ async function tryView8(
     try {
       // Fallback: try python3
       const { stdout } = await execFileAsync('python3', ['-m', 'view8', filePath], {
-        timeout: 60_000,
+        timeout: V8_BYTECODE_SUBPROC_TIMEOUT_MS,
         maxBuffer: 10 * 1024 * 1024,
       });
       if (stdout && stdout.trim().length > 0) {

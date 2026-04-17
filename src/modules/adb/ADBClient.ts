@@ -3,10 +3,11 @@ import type { ExecFileOptionsWithStringEncoding } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { ToolError } from '@errors/ToolError';
+import { ADB_DEFAULT_TIMEOUT_MS, ADB_SHELL_TIMEOUT_MS } from '@src/constants';
 
 const execFileAsync = promisify(execFile);
 
-const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_TIMEOUT_MS = ADB_DEFAULT_TIMEOUT_MS;
 const DEFAULT_NETWORK_PORT = 5555;
 
 const EXEC_OPTIONS: ExecFileOptionsWithStringEncoding = {
@@ -246,7 +247,7 @@ export class ADBClient {
   }
 
   async shell(deviceId: string, command: string): Promise<string> {
-    const output = await this.runAdb(['-s', deviceId, 'shell', command], 60_000);
+    const output = await this.runAdb(['-s', deviceId, 'shell', command], ADB_SHELL_TIMEOUT_MS);
     return output.replace(/\r?\n$/, '');
   }
 
