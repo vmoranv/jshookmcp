@@ -3,8 +3,10 @@
  * Handles prefix-group expansion and domain hub boosting.
  */
 import {
+  SEARCH_AFFINITY_BASE_WEIGHT,
   SEARCH_AFFINITY_BOOST_FACTOR,
   SEARCH_AFFINITY_TOP_N,
+  SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER,
   SEARCH_DOMAIN_HUB_THRESHOLD,
 } from '@src/constants';
 
@@ -67,7 +69,7 @@ export class AffinityGraphImpl {
     for (const [, members] of prefixGroups) {
       // Skip trivial groups (single member) or overly large ones
       if (members.length < 2 || members.length > 15) continue;
-      const affinityWeight = 0.3 / Math.sqrt(members.length); // Decay for larger groups
+      const affinityWeight = SEARCH_AFFINITY_BASE_WEIGHT / Math.sqrt(members.length); // Decay for larger groups
       for (const src of members) {
         const edges: AffinityEdge[] = graph.get(src) ?? [];
         for (const dst of members) {
@@ -180,7 +182,7 @@ export class AffinityGraphImpl {
         // Apply a small coherence boost to other tools in this domain
         for (let i = 0; i < docCount; i++) {
           if (scores[i]! > 0 && getDomain(i) === domain) {
-            scores[i]! *= 1.08;
+            scores[i]! *= SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER;
           }
         }
       }
