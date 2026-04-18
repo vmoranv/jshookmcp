@@ -123,11 +123,11 @@ export class CamoufoxBrowserManager {
       block_webrtc: this.config.blockWebrtc,
     })) as CamoufoxBrowserLike;
 
-    const getProcess = (this.browser as any).process;
-    if (typeof getProcess === 'function') {
-      const childProc = getProcess.call(this.browser);
-      if (childProc && typeof childProc.unref === 'function') {
-        ProcessRegistry.register(childProc);
+    const browserAny = this.browser as unknown as Record<string, unknown>;
+    if (typeof browserAny.process === 'function') {
+      const childProc = (browserAny.process as () => unknown).call(this.browser);
+      if (childProc && typeof (childProc as Record<string, unknown>).unref === 'function') {
+        ProcessRegistry.register(childProc as import('node:child_process').ChildProcess);
       }
     }
 
@@ -245,11 +245,11 @@ export class CamoufoxBrowserManager {
     const server = await launchServer(serverOptions);
     this.browserServer = server;
 
-    const getProcess = (this.browserServer as any).process;
-    if (typeof getProcess === 'function') {
-      const childProc = getProcess.call(this.browserServer);
-      if (childProc && typeof childProc.unref === 'function') {
-        ProcessRegistry.register(childProc);
+    const serverAny = this.browserServer as unknown as Record<string, unknown>;
+    if (typeof serverAny.process === 'function') {
+      const childProc = (serverAny.process as () => unknown).call(this.browserServer);
+      if (childProc && typeof (childProc as Record<string, unknown>).unref === 'function') {
+        ProcessRegistry.register(childProc as import('node:child_process').ChildProcess);
       }
     }
 
