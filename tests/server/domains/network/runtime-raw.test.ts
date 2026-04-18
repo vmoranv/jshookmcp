@@ -264,4 +264,60 @@ describe('AdvancedToolHandlers raw DNS/HTTP handlers', () => {
     expect(body.response.statusCode).toBe(200);
     expect(body.response.bodyText).toBe('ok');
   });
+
+  it('http2_frame_build delegates to buildHttp2Frame and returns result', async () => {
+    const body = parseJson<any>(
+      await handler.handleHttp2FrameBuild({
+        frameType: 'PING',
+        ack: true,
+        pingOpaqueDataHex: '0102030405060708',
+      }),
+    );
+    expect(body.frameType).toBe('PING');
+    expect(body.typeCode).toBe(0x6);
+    expect(body.flags).toBe(1);
+    expect(body.payloadBytes).toBe(8);
+  });
+
+  it('http2_frame_build throws when frameType is missing', async () => {
+    await expect(handler.handleHttp2FrameBuild({})).rejects.toThrow('frameType is required');
+  });
+
+  it('http2_frame_build throws for invalid frameType', async () => {
+    await expect(handler.handleHttp2FrameBuild({ frameType: 'INVALID' })).rejects.toThrow(
+      'frameType must be one of',
+    );
+  });
+
+  it('http2_frame_build builds a SETTINGS frame with entries', async () => {
+    const body = parseJson<any>(
+      await handler.handleHttp2FrameBuild({
+        frameType: 'SETTINGS',
+        settings: [{ id: 1, value: 4096 }],
+      }),
+    );
+    expect(body.frameType).toBe('SETTINGS');
+    expect(body.payloadBytes).toBe(6);
+  });
+
+  it('http2_frame_build throws when settings is not an array', async () => {
+    await expect(
+      handler.handleHttp2FrameBuild({ frameType: 'SETTINGS', settings: 'bad' }),
+    ).rejects.toThrow('settings must be an array');
+  });
+
+  it('http2_frame_build throws when settings entry has non-number id', async () => {
+    await expect(
+      handler.handleHttp2FrameBuild({ frameType: 'SETTINGS', settings: [{ id: 'bad', value: 1 }] }),
+    ).rejects.toThrow('settings[0].id must be a number');
+  });
+
+  it('dns_resolve with family filter', async () => {
+    mockState.lookupMock.mockResolvedValue({ address: '93.184.216.34', family: 4 });
+    const body = parseJson<any>(
+      await handler.handleDnsResolve({ hostname: 'example.com', family: 'ipv4', all: false }),
+    );
+    expect(body.success).toBe(true);
+    expect(body.count).toBe(1);
+  });
 });
