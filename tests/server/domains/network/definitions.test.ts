@@ -65,6 +65,14 @@ describe('network tool definitions', () => {
     expect(names.has('network_get_stats')).toBe(true);
   });
 
+  it('contains expected raw DNS and HTTP tools', () => {
+    const names = new Set(advancedTools.map((t) => t.name));
+    expect(names.has('dns_resolve')).toBe(true);
+    expect(names.has('dns_reverse')).toBe(true);
+    expect(names.has('http_request_build')).toBe(true);
+    expect(names.has('http_plain_request')).toBe(true);
+  });
+
   it('contains expected performance tools', () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('performance_get_metrics')).toBe(true);
@@ -97,6 +105,10 @@ describe('network tool definitions', () => {
   it('contains expected analysis tools', () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('network_extract_auth')).toBe(true);
+    expect(names.has('dns_resolve')).toBe(true);
+    expect(names.has('dns_reverse')).toBe(true);
+    expect(names.has('http_request_build')).toBe(true);
+    expect(names.has('http_plain_request')).toBe(true);
     expect(names.has('network_export_har')).toBe(true);
     expect(names.has('network_replay_request')).toBe(true);
   });
@@ -111,6 +123,48 @@ describe('network tool definitions', () => {
   it('network_replay_request requires requestId', () => {
     const tool = findTool('network_replay_request');
     expect(tool.inputSchema.required).toContain('requestId');
+  });
+
+  it('dns_resolve requires hostname', () => {
+    const tool = findTool('dns_resolve');
+    expect(tool.inputSchema.required).toContain('hostname');
+  });
+
+  it('dns_reverse requires address', () => {
+    const tool = findTool('dns_reverse');
+    expect(tool.inputSchema.required).toContain('address');
+  });
+
+  it('http_request_build requires method and target', () => {
+    const tool = findTool('http_request_build');
+    expect(tool.inputSchema.required).toContain('method');
+    expect(tool.inputSchema.required).toContain('target');
+  });
+
+  it('http_plain_request requires host and requestText', () => {
+    const tool = findTool('http_plain_request');
+    expect(tool.inputSchema.required).toContain('host');
+    expect(tool.inputSchema.required).toContain('requestText');
+  });
+
+  it('network_replay_request exposes request-level authorization inputs', () => {
+    const tool = findTool('network_replay_request');
+    const props = getProperties(tool);
+
+    expect(props.authorization).toBeDefined();
+    expect(props.authorization?.type).toBe('object');
+    expect(props.authorizationCapability).toBeDefined();
+    expect(props.authorizationCapability?.type).toBe('string');
+  });
+
+  it('http_plain_request exposes request-level authorization inputs', () => {
+    const tool = findTool('http_plain_request');
+    const props = getProperties(tool);
+
+    expect(props.authorization).toBeDefined();
+    expect(props.authorization?.type).toBe('object');
+    expect(props.timeoutMs).toBeDefined();
+    expect(props.maxResponseBytes).toBeDefined();
   });
 
   it('console_inject_function_tracer requires functionName', () => {
@@ -149,6 +203,18 @@ describe('network tool definitions', () => {
     const props = getProperties(tool);
     expect(props.samplingInterval).toBeDefined();
     expect(props.samplingInterval?.type).toBe('number');
+  });
+
+  it('http_request_build exposes expected builder properties', () => {
+    const tool = findTool('http_request_build');
+    const props = getProperties(tool);
+    expect(props.host).toBeDefined();
+    expect(props.headers).toBeDefined();
+    expect(props.body).toBeDefined();
+    expect(props.httpVersion).toBeDefined();
+    expect(props.addHostHeader).toBeDefined();
+    expect(props.addContentLength).toBeDefined();
+    expect(props.addConnectionClose).toBeDefined();
   });
 
   it('all inputSchema.properties entries have a type field', () => {

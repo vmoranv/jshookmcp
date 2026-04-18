@@ -1,4 +1,4 @@
-import { AdvancedToolHandlersRuntime as AdvancedToolHandlersReplay } from '@server/domains/network/handlers.impl.core.runtime.replay';
+import { AdvancedToolHandlersRaw as AdvancedToolHandlersReplay } from '@server/domains/network/handlers.impl.core.runtime.raw';
 
 interface InterceptRuleInput {
   urlPattern: string;
