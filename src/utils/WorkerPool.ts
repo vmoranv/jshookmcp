@@ -174,7 +174,9 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
       eval: true,
       resourceLimits: this.resourceLimits,
     });
-    worker.unref();
+    if (typeof worker.unref === 'function') {
+      worker.unref();
+    }
     ProcessRegistry.register(worker);
 
     const pooled: PooledWorker = {
