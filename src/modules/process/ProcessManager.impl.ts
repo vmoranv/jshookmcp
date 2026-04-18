@@ -16,15 +16,15 @@ import { findChromiumProcessesWithConfig } from '@modules/process/ProcessManager
 import {
   DEFAULT_CHROMIUM_CONFIG,
   type ChromiumProcess,
-  type ProcessInfo,
   type TargetAppConfig,
   type WindowInfo,
 } from '@modules/process/ProcessManager.types';
+import { ProcessRegistry } from '@utils/ProcessRegistry';
 
 export {
   DEFAULT_CHROMIUM_CONFIG,
   type ChromiumProcess,
-  type ProcessInfo,
+  type any,
   type TargetAppConfig,
   type WindowInfo,
 } from '@modules/process/ProcessManager.types';
@@ -34,12 +34,12 @@ const PROCESS_SNAPSHOT_CACHE_TTL_MS = 3000;
 
 interface ProcessSnapshotEntry {
   expiresAt: number;
-  snapshot: ProcessInfo[];
-  byPid: Map<number, ProcessInfo>;
+  snapshot: any[];
+  byPid: Map<number, any>;
   lastDelta: {
-    added: ProcessInfo[];
-    removed: ProcessInfo[];
-    changed: Array<{ before: ProcessInfo; after: ProcessInfo }>;
+    added: any[];
+    removed: any[];
+    changed: Array<{ before: any; after: any }>;
   };
 }
 
@@ -71,7 +71,7 @@ export class ProcessManager {
   /**
    * Enumerate all processes matching a pattern
    */
-  async findProcesses(pattern: string): Promise<ProcessInfo[]> {
+  async findProcesses(pattern: string): Promise<any[]> {
     try {
       const normalizedPattern = sanitizePsPattern(String(pattern || '').trim());
       const cacheKey = normalizedPattern.toLowerCase() || '*';
@@ -95,7 +95,7 @@ export class ProcessManager {
       );
 
       const lines = stdout.trim();
-      const processes: ProcessInfo[] = [];
+      const processes: any[] = [];
 
       if (lines && lines !== 'null') {
         const data = JSON.parse(lines);
@@ -110,13 +110,13 @@ export class ProcessManager {
         }
       }
 
-      const byPid = new Map<number, ProcessInfo>();
+      const byPid = new Map<number, any>();
       for (const process of processes) {
         byPid.set(process.pid, process);
       }
 
       const lastDelta = this.computeProcessDiff(
-        cachedEntry?.byPid ?? new Map<number, ProcessInfo>(),
+        cachedEntry?.byPid ?? new Map<number, any>(),
         byPid,
       );
       this.processCache.set(cacheKey, {
@@ -136,12 +136,12 @@ export class ProcessManager {
   }
 
   private computeProcessDiff(
-    previousByPid: Map<number, ProcessInfo>,
-    nextByPid: Map<number, ProcessInfo>,
+    previousByPid: Map<number, any>,
+    nextByPid: Map<number, any>,
   ): ProcessSnapshotEntry['lastDelta'] {
-    const added: ProcessInfo[] = [];
-    const removed: ProcessInfo[] = [];
-    const changed: Array<{ before: ProcessInfo; after: ProcessInfo }> = [];
+    const added: any[] = [];
+    const removed: any[] = [];
+    const changed: Array<{ before: any; after: any }> = [];
 
     for (const [pid, nextProcess] of nextByPid) {
       const previousProcess = previousByPid.get(pid);
@@ -171,7 +171,7 @@ export class ProcessManager {
   /**
    * Get process info by PID
    */
-  async getProcessByPid(pid: number): Promise<ProcessInfo | null> {
+  async getProcessByPid(pid: number): Promise<any | null> {
     try {
       pid = safePid(pid);
       const psCommand = `Get-Process -Id ${pid} -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64, StartTime | ConvertTo-Json -Compress`;
@@ -366,7 +366,7 @@ export class ProcessManager {
     executablePath: string,
     debugPort: number = DEFAULT_DEBUG_PORT,
     args: string[] = [],
-  ): Promise<ProcessInfo | null> {
+  ): Promise<any | null> {
     try {
       const debugArgs = [`--remote-debugging-port=${debugPort}`, ...args];
 
@@ -376,6 +376,7 @@ export class ProcessManager {
       });
 
       child.unref();
+      ProcessRegistry.register(child);
       const childPid = child.pid || 0;
       const executableName = executablePath.split(/[\\/]/).pop() || 'unknown';
 

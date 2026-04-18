@@ -35,10 +35,9 @@ describe('ToolCatalog', () => {
     expect(names.length).toBeGreaterThan(0);
   });
 
-  it('getToolsForProfile(search) returns a non-empty subset of all tools', () => {
+  it('getToolsForProfile(search) returns zero domain tools', () => {
     const search = getToolsForProfile('search');
-    expect(search.length).toBeGreaterThan(0);
-    expect(search.length).toBeLessThanOrEqual(allTools.length);
+    expect(search.length).toBe(0);
   });
 
   it('getToolDomain resolves known tools and returns null for unknown names', () => {
@@ -142,19 +141,19 @@ describe('Three-Tier Boost Hierarchy', () => {
     const workflowTools = getToolsForProfile('workflow');
     const fullTools = getToolsForProfile('full');
 
-    expect(searchTools.length).toBeGreaterThan(0);
-    expect(workflowTools.length).toBeGreaterThan(searchTools.length);
+    expect(searchTools.length).toBe(0);
+    expect(workflowTools.length).toBeGreaterThan(0);
     expect(fullTools.length).toBeGreaterThan(workflowTools.length);
   });
 
-  it('search tier only has the maintenance domain', () => {
+  it('search tier has zero domains', () => {
     const searchDomains = getProfileDomains('search');
-    expect(searchDomains).toEqual(['maintenance']);
+    expect(searchDomains).toEqual([]);
   });
 
   it('getToolMinimalTier returns correct tier for known tools', () => {
     // maintenance domain is in search tier
-    expect(getToolMinimalTier('get_token_budget_stats')).toBe('search');
+    expect(getToolMinimalTier('get_token_budget_stats')).toBe('workflow');
 
     // browser domain is in workflow tier
     expect(getToolMinimalTier('page_navigate')).toBe('workflow');
@@ -173,7 +172,7 @@ describe('Three-Tier Boost Hierarchy', () => {
 
   it('getMinSatisfyingTier returns minimal tier covering all tools', () => {
     // All search-tier tools -> search
-    expect(getMinSatisfyingTier(['get_token_budget_stats'])).toBe('search');
+    expect(getMinSatisfyingTier(['get_token_budget_stats'])).toBe('workflow');
 
     // Mix of search and workflow -> workflow
     expect(getMinSatisfyingTier(['get_token_budget_stats', 'page_navigate'])).toBe('workflow');
@@ -185,7 +184,7 @@ describe('Three-Tier Boost Hierarchy', () => {
   });
 
   it('getMinSatisfyingTier ignores unknown tools', () => {
-    expect(getMinSatisfyingTier(['get_token_budget_stats', 'unknown_tool'])).toBe('search');
+    expect(getMinSatisfyingTier(['get_token_budget_stats', 'unknown_tool'])).toBe('workflow');
     expect(getMinSatisfyingTier(['unknown_tool', 'another_unknown'])).toBeNull();
   });
 

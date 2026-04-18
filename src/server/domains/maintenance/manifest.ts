@@ -41,7 +41,7 @@ const manifest = {
   domain: DOMAIN,
   depKey: DEP_KEY,
   secondaryDepKeys: ['extensionManagementHandlers'],
-  profiles: ['search', 'workflow', 'full'],
+  profiles: ['workflow', 'full'],
   ensure,
   registrations: [
     {

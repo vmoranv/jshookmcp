@@ -57,6 +57,11 @@ describe('Profile Restructuring (PROF-01~04)', () => {
       }
       expect(fullToolNames.size).toBeGreaterThanOrEqual(workflowToolNames.length);
     });
+
+    it('search profile returns zero domain tools', () => {
+      const tools = getToolsForProfile('search');
+      expect(tools).toHaveLength(0);
+    });
   });
 
   describe('hooks domain visibility (PROF-02)', () => {
