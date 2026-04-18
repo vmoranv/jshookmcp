@@ -34,7 +34,7 @@
 - `performance_stop_coverage` — 停止覆盖率记录并返回报告。
 - `performance_take_heap_snapshot` — 生成 V8 堆内存快照。
 
-## 工具清单（29）
+## 工具清单（35）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -61,6 +61,12 @@
 | `console_clear_injected_buffers` | 清空已注入监控器的缓冲区，但保留拦截器本身。 |
 | `console_reset_injected_interceptors` | 重置已注入的拦截器与监视器，以恢复干净状态。 |
 | `console_inject_function_tracer` | 注入基于 Proxy 的函数调用跟踪器。 |
+| `dns_resolve` | 待补充中文：Resolve a hostname to IPv4/IPv6 addresses using deterministic server-side DNS lookup. Accepts hostnames or IP literals. Results are sorted by family and address. |
+| `dns_reverse` | 待补充中文：Perform a reverse DNS lookup (PTR) for an IPv4 or IPv6 literal using deterministic server-side DNS logic. |
+| `http_request_build` | 待补充中文：Build a raw HTTP/1.x request payload with CRLF line endings. Useful for preparing deterministic request text for http_plain_request or other raw socket tools. |
+| `http_plain_request` | 待补充中文：Send a raw HTTP request over plain TCP using deterministic server-side logic with DNS pinning, response parsing, and bounded capture. Non-loopback HTTP targets require explicit request-scoped authorization. |
+| `http2_probe` | 待补充中文：Probe an HTTP/2 endpoint using Node http2 with deterministic DNS pinning and bounded response capture. Reports the negotiated protocol, ALPN result, response headers, status, and a response body snippet. Non-loopback plaintext h2c targets require explicit request-scoped authorization. |
+| `http2_frame_build` | 待补充中文：Build a raw HTTP/2 binary frame of any supported type (DATA, SETTINGS, PING, WINDOW_UPDATE, RST_STREAM, GOAWAY, or RAW). Returns the 9-byte frame header and full frame as hex strings, ready to send over a tcp_write or tls_write channel for protocol-level fuzzing and injection. |
 | `network_extract_auth` | 扫描已捕获请求并提取认证凭据，如 Token、Cookie、API Key 与签名。 |
 | `network_export_har` | 将捕获到的网络流量导出为标准 HAR 1.2 文件。 |
 | `network_replay_request` | 重放已捕获的网络请求，并支持按需修改请求内容。 |

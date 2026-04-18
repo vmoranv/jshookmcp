@@ -34,7 +34,7 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 - `performance_stop_coverage` — Stop coverage recording and return coverage report
 - `performance_take_heap_snapshot` — Take a V8 heap memory snapshot
 
-## Full tool list (29)
+## Full tool list (35)
 
 | Tool | Description |
 | --- | --- |
@@ -61,6 +61,12 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 | `console_clear_injected_buffers` | Clear injected in-page monitoring buffers (XHR/Fetch queues and dynamic script records) without removing interceptors |
 | `console_reset_injected_interceptors` | Reset injected interceptors/monitors to recover from stale hook state and allow clean reinjection |
 | `console_inject_function_tracer` | Inject a Proxy-based function tracer to log all calls to a named function. Use persistent: true to survive page navigations. |
+| `dns_resolve` | Resolve a hostname to IPv4/IPv6 addresses using deterministic server-side DNS lookup. Accepts hostnames or IP literals. Results are sorted by family and address. |
+| `dns_reverse` | Perform a reverse DNS lookup (PTR) for an IPv4 or IPv6 literal using deterministic server-side DNS logic. |
+| `http_request_build` | Build a raw HTTP/1.x request payload with CRLF line endings. Useful for preparing deterministic request text for http_plain_request or other raw socket tools. |
+| `http_plain_request` | Send a raw HTTP request over plain TCP using deterministic server-side logic with DNS pinning, response parsing, and bounded capture. Non-loopback HTTP targets require explicit request-scoped authorization. |
+| `http2_probe` | Probe an HTTP/2 endpoint using Node http2 with deterministic DNS pinning and bounded response capture. Reports the negotiated protocol, ALPN result, response headers, status, and a response body snippet. Non-loopback plaintext h2c targets require explicit request-scoped authorization. |
+| `http2_frame_build` | Build a raw HTTP/2 binary frame of any supported type (DATA, SETTINGS, PING, WINDOW_UPDATE, RST_STREAM, GOAWAY, or RAW). Returns the 9-byte frame header and full frame as hex strings, ready to send over a tcp_write or tls_write channel for protocol-level fuzzing and injection. |
 | `network_extract_auth` | Scan all captured network requests and extract authentication credentials (tokens, cookies, API keys, signatures). |
 | `network_export_har` | Export all captured network traffic as a standard HAR 1.2 file. |
 | `network_replay_request` | Replay a previously captured network request with optional modifications. |

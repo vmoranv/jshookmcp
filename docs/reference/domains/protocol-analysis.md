@@ -29,8 +29,12 @@
 - `proto_infer_state_machine` — 从捕获的消息序列推断协议状态机。
 - `proto_export_schema` — 将协议模式导出为类 .proto 的 schema 定义。
 - `proto_visualize_state` — 从协议状态机定义生成 Mermaid 状态图。
+- `payload_template_build` — 待补充中文：Build a binary payload from declarative field definitions. Supports primitive numeric fields, raw bytes, and UTF-8 strings.
+- `payload_mutate` — 待补充中文：Apply deterministic byte-level mutations to a hex payload. Useful for protocol probing, boundary testing, and replay preparation.
+- `ethernet_frame_build` — 待补充中文：Build a deterministic Ethernet II frame from source/destination MAC addresses, EtherType, and payload bytes.
+- `arp_build` — 待补充中文：Build a deterministic ARP payload for Ethernet/IPv4 style address resolution packets.
 
-## 工具清单（6）
+## 工具清单（15）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -40,3 +44,12 @@
 | `proto_infer_state_machine` | 从捕获的消息序列推断协议状态机。 |
 | `proto_export_schema` | 将协议模式导出为类 .proto 的 schema 定义。 |
 | `proto_visualize_state` | 从协议状态机定义生成 Mermaid 状态图。 |
+| `payload_template_build` | 待补充中文：Build a binary payload from declarative field definitions. Supports primitive numeric fields, raw bytes, and UTF-8 strings. |
+| `payload_mutate` | 待补充中文：Apply deterministic byte-level mutations to a hex payload. Useful for protocol probing, boundary testing, and replay preparation. |
+| `ethernet_frame_build` | 待补充中文：Build a deterministic Ethernet II frame from source/destination MAC addresses, EtherType, and payload bytes. |
+| `arp_build` | 待补充中文：Build a deterministic ARP payload for Ethernet/IPv4 style address resolution packets. |
+| `raw_ip_packet_build` | 待补充中文：Build a deterministic raw IPv4 or IPv6 packet header around an existing payload. IPv4 header checksum is computed automatically. |
+| `icmp_echo_build` | 待补充中文：Build a deterministic ICMPv4 echo request or reply payload with an automatically computed checksum. |
+| `checksum_apply` | 待补充中文：Apply a deterministic 16-bit Internet checksum across a payload slice, optionally zeroing and writing the checksum field back into the packet. |
+| `pcap_write` | 待补充中文：Write a compact classic PCAP file from deterministic packet byte records. |
+| `pcap_read` | 待补充中文：Read a classic PCAP file and return compact deterministic packet summaries. PCAPNG is intentionally not supported. |
