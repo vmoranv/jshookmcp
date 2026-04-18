@@ -12,6 +12,7 @@
  */
 
 import { Worker } from 'node:worker_threads';
+import { ProcessRegistry } from '@utils/ProcessRegistry';
 import { logger } from '@utils/logger';
 import { cpuLimit } from '@utils/concurrency';
 import {
@@ -133,6 +134,8 @@ export class ExecutionSandbox {
       workerOptions.type = 'module';
 
       const worker = new Worker(WORKER_SCRIPT, workerOptions);
+      worker.unref();
+      ProcessRegistry.register(worker);
 
       const finish = (result: Omit<SandboxExecuteResult, 'durationMs'>) => {
         if (settled) return;

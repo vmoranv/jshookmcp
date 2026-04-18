@@ -15,6 +15,7 @@ import {
   PROCESS_LAUNCH_WAIT_MS,
 } from '@src/constants';
 import { ScriptLoader } from '@native/ScriptLoader';
+import { ProcessRegistry } from '@utils/ProcessRegistry';
 import type { ProcessInfo, WindowInfo } from '@modules/process/ProcessManager';
 
 const execAsync = promisify(exec);
@@ -417,6 +418,7 @@ export class MacProcessManager {
       });
 
       child.unref();
+      ProcessRegistry.register(child);
 
       await new Promise((resolve) => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 

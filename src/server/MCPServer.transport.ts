@@ -16,6 +16,7 @@ import {
   readBodyWithLimit,
 } from '@server/http/HttpMiddleware';
 import { logger } from '@utils/logger';
+import { ProcessRegistry } from '@utils/ProcessRegistry';
 import type { MCPServerContext } from '@server/MCPServer.context';
 
 export async function startStdioTransport(ctx: MCPServerContext): Promise<void> {
@@ -266,6 +267,13 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
     } catch (error) {
       logger.warn('MCP server close failed:', error);
     }
+
+    try {
+      await ProcessRegistry.terminateAll();
+    } catch (error) {
+      logger.warn('ProcessRegistry cleanup failed:', error);
+    }
+
     logger.success('MCP server closed');
   })();
 

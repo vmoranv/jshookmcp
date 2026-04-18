@@ -13,6 +13,7 @@
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { resolve, relative, sep, isAbsolute } from 'node:path';
+import { ProcessRegistry } from '@utils/ProcessRegistry';
 import * as outputPaths from '@utils/outputPaths';
 import { logger } from '@utils/logger';
 import { ioLimit } from '@utils/concurrency';
@@ -113,6 +114,7 @@ export class ExternalToolRunner {
         windowsHide: true,
         stdio: ['pipe', 'pipe', 'pipe'],
       });
+      ProcessRegistry.register(child);
 
       let stdout = '';
       let stderr = '';

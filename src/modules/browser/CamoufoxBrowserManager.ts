@@ -1,5 +1,6 @@
 import { logger } from '@utils/logger';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
+import { ProcessRegistry } from '@utils/ProcessRegistry';
 
 export interface CamoufoxPageLike {
   goto(url: string, options?: Record<string, unknown>): Promise<unknown>;
@@ -122,6 +123,14 @@ export class CamoufoxBrowserManager {
       block_webrtc: this.config.blockWebrtc,
     })) as CamoufoxBrowserLike;
 
+    const getProcess = (this.browser as any).process;
+    if (typeof getProcess === 'function') {
+      const childProc = getProcess.call(this.browser);
+      if (childProc && typeof childProc.unref === 'function') {
+        ProcessRegistry.register(childProc);
+      }
+    }
+
     if (this.isClosing) {
       await this.browser.close().catch((error) => {
         logger.warn('Failed to close Camoufox browser launched during shutdown:', error);
@@ -235,6 +244,14 @@ export class CamoufoxBrowserManager {
 
     const server = await launchServer(serverOptions);
     this.browserServer = server;
+
+    const getProcess = (this.browserServer as any).process;
+    if (typeof getProcess === 'function') {
+      const childProc = getProcess.call(this.browserServer);
+      if (childProc && typeof childProc.unref === 'function') {
+        ProcessRegistry.register(childProc);
+      }
+    }
 
     const endpoint = server.wsEndpoint();
     logger.info(`Camoufox server listening on: ${endpoint}`);
