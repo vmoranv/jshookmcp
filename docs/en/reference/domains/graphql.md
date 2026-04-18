@@ -6,6 +6,7 @@ GraphQL discovery, extraction, replay, and introspection tooling.
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios

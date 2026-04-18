@@ -6,6 +6,7 @@ V8 inspector domain providing heap snapshot analysis, CPU profiling, and memory 
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios

@@ -6,6 +6,7 @@ CDP-based debugging domain covering breakpoints, stepping, call stacks, watches,
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios

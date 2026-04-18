@@ -22,7 +22,7 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 ## Representative tools
 
 - `electron_attach` — Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect/execute JS. Useful for debugging Electron applications or extracting extension data.
-- `process_find` — Find processes by name pattern. Returns process IDs, names, paths, and window handles.
+- `process_find` — Find processes by name pattern. Returns process IDs, names, paths, and window handles. Use with an empty pattern to list all processes.
 - `process_get` — Get detailed information about a specific process by PID.
 - `process_windows` — Get all window handles for a process.
 - `process_find_chromium` — Disabled by design: does not scan user-installed browser processes. Use managed browser sessions (browser_launch/browser_attach with explicit endpoint) instead.
@@ -37,7 +37,7 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 | Tool | Description |
 | --- | --- |
 | `electron_attach` | Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect/execute JS. Useful for debugging Electron applications or extracting extension data. |
-| `process_find` | Find processes by name pattern. Returns process IDs, names, paths, and window handles. |
+| `process_find` | Find processes by name pattern. Returns process IDs, names, paths, and window handles. Use with an empty pattern to list all processes. |
 | `process_get` | Get detailed information about a specific process by PID. |
 | `process_windows` | Get all window handles for a process. |
 | `process_find_chromium` | Disabled by design: does not scan user-installed browser processes. Use managed browser sessions (browser_launch/browser_attach with explicit endpoint) instead. |

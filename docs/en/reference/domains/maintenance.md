@@ -6,6 +6,8 @@ Operations and maintenance domain covering cache hygiene, token budget, environm
 
 ## Profiles
 
+- search
+- workflow
 - full
 
 ## Typical scenarios

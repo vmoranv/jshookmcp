@@ -6,6 +6,7 @@ Binary format detection, encoding conversion, entropy analysis, and raw protobuf
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios
