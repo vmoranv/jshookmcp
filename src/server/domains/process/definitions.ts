@@ -184,7 +184,7 @@ export const processToolDefinitions: Tool[] = [
   tool('inject_dll', (t) =>
     t
       .desc(
-        'Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA. Enabled by default on Windows; set ENABLE_INJECTION_TOOLS=false to disable. Requires administrator privileges.',
+        'Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA (Windows) or gdb/lldb (Linux/macOS). Enabled by default; set ENABLE_INJECTION_TOOLS=false to disable. Requires administrator privileges.',
       )
       .number('pid', 'Target process ID')
       .string('dllPath', 'Full path to the DLL file to inject')
@@ -192,9 +192,7 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('module_inject_dll', (t) =>
     t
-      .desc(
-        'Alias of inject_dll. Enabled by default on Windows; set ENABLE_INJECTION_TOOLS=false to disable.',
-      )
+      .desc('Alias of inject_dll. Enabled by default; set ENABLE_INJECTION_TOOLS=false to disable.')
       .number('pid', 'Target process ID')
       .string('dllPath', 'Full path to the DLL file to inject')
       .required('pid', 'dllPath'),
@@ -202,7 +200,7 @@ export const processToolDefinitions: Tool[] = [
   tool('inject_shellcode', (t) =>
     t
       .desc(
-        'Inject and execute shellcode in a target process. Accepts hex or base64. Enabled by default on Windows; set ENABLE_INJECTION_TOOLS=false to disable.',
+        'Inject and execute shellcode in a target process. Accepts hex or base64. Enabled by default; set ENABLE_INJECTION_TOOLS=false to disable.',
       )
       .number('pid', 'Target process ID')
       .string('shellcode', 'Shellcode bytes (hex string or base64)')
@@ -212,7 +210,7 @@ export const processToolDefinitions: Tool[] = [
   tool('module_inject_shellcode', (t) =>
     t
       .desc(
-        'Alias of inject_shellcode. Enabled by default on Windows; set ENABLE_INJECTION_TOOLS=false to disable.',
+        'Alias of inject_shellcode. Enabled by default; set ENABLE_INJECTION_TOOLS=false to disable.',
       )
       .number('pid', 'Target process ID')
       .string('shellcode', 'Shellcode bytes (hex string or base64)')
