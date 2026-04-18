@@ -29,10 +29,10 @@
 - `proto_infer_state_machine` — 从捕获的消息序列推断协议状态机。
 - `proto_export_schema` — 将协议模式导出为类 .proto 的 schema 定义。
 - `proto_visualize_state` — 从协议状态机定义生成 Mermaid 状态图。
-- `payload_template_build` — 待补充中文：Build a binary payload from declarative field definitions. Supports primitive numeric fields, raw bytes, and UTF-8 strings.
-- `payload_mutate` — 待补充中文：Apply deterministic byte-level mutations to a hex payload. Useful for protocol probing, boundary testing, and replay preparation.
-- `ethernet_frame_build` — 待补充中文：Build a deterministic Ethernet II frame from source/destination MAC addresses, EtherType, and payload bytes.
-- `arp_build` — 待补充中文：Build a deterministic ARP payload for Ethernet/IPv4 style address resolution packets.
+- `payload_template_build` — 从声明式字段定义构建二进制载荷。支持原始数值字段、原始字节和 UTF-8 字符串。
+- `payload_mutate` — 对十六进制载荷应用确定性字节级变异。用于协议探测、边界测试和重放准备。
+- `ethernet_frame_build` — 从源/目标 MAC 地址、EtherType 和载荷字节构建确定性 Ethernet II 帧。
+- `arp_build` — 构建用于 Ethernet/IPv4 地址解析的确定性 ARP 载荷。
 
 ## 工具清单（15）
 
@@ -44,12 +44,12 @@
 | `proto_infer_state_machine` | 从捕获的消息序列推断协议状态机。 |
 | `proto_export_schema` | 将协议模式导出为类 .proto 的 schema 定义。 |
 | `proto_visualize_state` | 从协议状态机定义生成 Mermaid 状态图。 |
-| `payload_template_build` | 待补充中文：Build a binary payload from declarative field definitions. Supports primitive numeric fields, raw bytes, and UTF-8 strings. |
-| `payload_mutate` | 待补充中文：Apply deterministic byte-level mutations to a hex payload. Useful for protocol probing, boundary testing, and replay preparation. |
-| `ethernet_frame_build` | 待补充中文：Build a deterministic Ethernet II frame from source/destination MAC addresses, EtherType, and payload bytes. |
-| `arp_build` | 待补充中文：Build a deterministic ARP payload for Ethernet/IPv4 style address resolution packets. |
-| `raw_ip_packet_build` | 待补充中文：Build a deterministic raw IPv4 or IPv6 packet header around an existing payload. IPv4 header checksum is computed automatically. |
-| `icmp_echo_build` | 待补充中文：Build a deterministic ICMPv4 echo request or reply payload with an automatically computed checksum. |
-| `checksum_apply` | 待补充中文：Apply a deterministic 16-bit Internet checksum across a payload slice, optionally zeroing and writing the checksum field back into the packet. |
-| `pcap_write` | 待补充中文：Write a compact classic PCAP file from deterministic packet byte records. |
-| `pcap_read` | 待补充中文：Read a classic PCAP file and return compact deterministic packet summaries. PCAPNG is intentionally not supported. |
+| `payload_template_build` | 从声明式字段定义构建二进制载荷。支持原始数值字段、原始字节和 UTF-8 字符串。 |
+| `payload_mutate` | 对十六进制载荷应用确定性字节级变异。用于协议探测、边界测试和重放准备。 |
+| `ethernet_frame_build` | 从源/目标 MAC 地址、EtherType 和载荷字节构建确定性 Ethernet II 帧。 |
+| `arp_build` | 构建用于 Ethernet/IPv4 地址解析的确定性 ARP 载荷。 |
+| `raw_ip_packet_build` | 在现有载荷外构建确定性原始 IPv4 或 IPv6 包头。IPv4 头部校验和自动计算。 |
+| `icmp_echo_build` | 构建确定性 ICMPv4 回显请求或应答载荷，校验和自动计算。 |
+| `checksum_apply` | 对载荷切片应用确定性 16 位互联网校验和，可选清零并将校验和字段写回数据包。 |
+| `pcap_write` | 从确定性数据包字节记录写入紧凑的经典 PCAP 文件。 |
+| `pcap_read` | 读取经典 PCAP 文件并返回紧凑的确定性数据包摘要。不支持 PCAPNG 格式。 |

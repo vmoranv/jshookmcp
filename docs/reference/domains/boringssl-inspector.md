@@ -48,19 +48,19 @@ BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。
 | `tls_parse_handshake` | 从原始十六进制解析 TLS 握手元数据（版本、密码套件、SNI、扩展）。 |
 | `tls_cipher_suites` | 列出 IANA TLS 密码套件，支持按关键词过滤。 |
 | `tls_parse_certificate` | 从原始十六进制解析 TLS Certificate 消息并提取指纹。 |
-| `tls_probe_endpoint` | 待补充中文：Connect to a TLS endpoint and report certificate chain basics, trust result, ALPN, protocol, cipher, and SNI/hostname validation details for authorized target testing. |
-| `tcp_open` | 待补充中文：Open a stateful TCP session and return a sessionId for follow-up read/write calls. |
-| `tcp_write` | 待补充中文：Write raw bytes to an open TCP session; accepts hex or UTF-8 text input. |
-| `tcp_read_until` | 待补充中文：Read from an open TCP session until a delimiter is observed or a byte limit is reached. |
-| `tcp_close` | 待补充中文：Close an open TCP session and release its buffered state. |
-| `tls_open` | 待补充中文：Open a stateful TLS session with explicit trust and hostname policy controls, then return a sessionId. |
-| `tls_write` | 待补充中文：Write raw bytes to an open TLS session; accepts hex or UTF-8 text input. |
-| `tls_read_until` | 待补充中文：Read from an open TLS session until a delimiter is observed or a byte limit is reached. |
-| `tls_close` | 待补充中文：Close an open TLS session and release its buffered state. |
-| `websocket_open` | 待补充中文：Open a stateful WebSocket session over ws or wss, perform the client handshake, and return a sessionId. |
-| `websocket_send_frame` | 待补充中文：Send a single WebSocket frame on an open session using a minimal opcode set (text, binary, ping, pong, close). |
-| `websocket_read_frame` | 待补充中文：Read the next queued WebSocket frame from an open session. |
-| `websocket_close` | 待补充中文：Close an open WebSocket session and release its queued frame state. |
+| `tls_probe_endpoint` | 连接 TLS 端点并报告证书链基本信息、信任验证结果、ALPN 协商、协议版本、密码套件及 SNI/主机名校验详情，用于授权目标测试。 |
+| `tcp_open` | 打开有状态 TCP 会话并返回 sessionId，供后续读写调用使用。 |
+| `tcp_write` | 向已打开的 TCP 会话写入原始字节，支持十六进制或 UTF-8 文本输入。 |
+| `tcp_read_until` | 从已打开的 TCP 会话读取数据，直到遇到分隔符或达到字节上限。 |
+| `tcp_close` | 关闭已打开的 TCP 会话并释放其缓冲状态。 |
+| `tls_open` | 打开有状态 TLS 会话，支持显式信任策略与主机名控制，返回 sessionId。 |
+| `tls_write` | 向已打开的 TLS 会话写入原始字节，支持十六进制或 UTF-8 文本输入。 |
+| `tls_read_until` | 从已打开的 TLS 会话读取数据，直到遇到分隔符或达到字节上限。 |
+| `tls_close` | 关闭已打开的 TLS 会话并释放其缓冲状态。 |
+| `websocket_open` | 通过 ws 或 wss 打开有状态 WebSocket 会话，完成客户端握手并返回 sessionId。 |
+| `websocket_send_frame` | 在已打开的 WebSocket 会话上发送单帧数据，支持 text、binary、ping、pong、close 操作码。 |
+| `websocket_read_frame` | 从已打开的 WebSocket 会话中读取下一个排队的帧。 |
+| `websocket_close` | 关闭已打开的 WebSocket 会话并释放其排队帧状态。 |
 | `tls_cert_pin_bypass_frida` | 通过 Frida 注入绕过证书校验（支持 BoringSSL、Chrome、OkHttp）。 |
 | `net_raw_tcp_send` | 向远程主机发送原始 TCP 数据，支持十六进制或文本输入。 |
 | `net_raw_tcp_listen` | 在本地 TCP 端口监听一个传入连接。 |

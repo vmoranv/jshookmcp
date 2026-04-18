@@ -61,12 +61,12 @@
 | `console_clear_injected_buffers` | 清空已注入监控器的缓冲区，但保留拦截器本身。 |
 | `console_reset_injected_interceptors` | 重置已注入的拦截器与监视器，以恢复干净状态。 |
 | `console_inject_function_tracer` | 注入基于 Proxy 的函数调用跟踪器。 |
-| `dns_resolve` | 待补充中文：Resolve a hostname to IPv4/IPv6 addresses using deterministic server-side DNS lookup. Accepts hostnames or IP literals. Results are sorted by family and address. |
-| `dns_reverse` | 待补充中文：Perform a reverse DNS lookup (PTR) for an IPv4 or IPv6 literal using deterministic server-side DNS logic. |
-| `http_request_build` | 待补充中文：Build a raw HTTP/1.x request payload with CRLF line endings. Useful for preparing deterministic request text for http_plain_request or other raw socket tools. |
-| `http_plain_request` | 待补充中文：Send a raw HTTP request over plain TCP using deterministic server-side logic with DNS pinning, response parsing, and bounded capture. Non-loopback HTTP targets require explicit request-scoped authorization. |
-| `http2_probe` | 待补充中文：Probe an HTTP/2 endpoint using Node http2 with deterministic DNS pinning and bounded response capture. Reports the negotiated protocol, ALPN result, response headers, status, and a response body snippet. Non-loopback plaintext h2c targets require explicit request-scoped authorization. |
-| `http2_frame_build` | 待补充中文：Build a raw HTTP/2 binary frame of any supported type (DATA, SETTINGS, PING, WINDOW_UPDATE, RST_STREAM, GOAWAY, or RAW). Returns the 9-byte frame header and full frame as hex strings, ready to send over a tcp_write or tls_write channel for protocol-level fuzzing and injection. |
+| `dns_resolve` | 使用服务端确定性 DNS 查询将主机名解析为 IPv4/IPv6 地址。接受主机名或 IP 字面量，结果按地址族和地址排序。 |
+| `dns_reverse` | 对 IPv4 或 IPv6 字面量执行反向 DNS 查询（PTR 记录），使用服务端确定性逻辑。 |
+| `http_request_build` | 构建原始 HTTP/1.x 请求载荷（CRLF 行尾）。用于为 http_plain_request 或其他原始套接字工具准备确定性请求文本。 |
+| `http_plain_request` | 通过原始 TCP 发送 HTTP 请求，使用确定性服务端逻辑，包含 DNS 固定、响应解析和有界捕获。非回环 HTTP 目标需要显式请求级授权。 |
+| `http2_probe` | 使用 Node http2 探测 HTTP/2 端点，带确定性 DNS 固定和有界响应捕获。报告协商协议、ALPN 结果、响应头、状态码和响应体片段。非回环明文 h2c 目标需要显式请求级授权。 |
+| `http2_frame_build` | 构建任意支持类型（DATA、SETTINGS、PING、WINDOW_UPDATE、RST_STREAM、GOAWAY、RAW）的原始 HTTP/2 二进制帧。返回 9 字节帧头和完整帧的十六进制字符串，可通过 tcp_write 或 tls_write 发送，用于协议级模糊测试与注入。 |
 | `network_extract_auth` | 扫描已捕获请求并提取认证凭据，如 Token、Cookie、API Key 与签名。 |
 | `network_export_har` | 将捕获到的网络流量导出为标准 HAR 1.2 文件。 |
 | `network_replay_request` | 重放已捕获的网络请求，并支持按需修改请求内容。 |
