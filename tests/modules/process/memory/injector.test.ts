@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
   executePowerShellScript: vi.fn(),
+  execAsync: vi.fn(),
 }));
 
 vi.mock('@src/modules/process/memory/types', () => ({
   executePowerShellScript: state.executePowerShellScript,
+  execAsync: state.execAsync,
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -24,10 +26,30 @@ describe('memory/injector', () => {
     vi.clearAllMocks();
   });
 
-  it('injectDll rejects non-windows platform', async () => {
-    const result = await injectDll('linux', 1, 'a.dll');
+  it('injectDll rejects unknown platform', async () => {
+    const result = await injectDll('unknown' as any, 1, 'a.dll');
     expect(result.success).toBe(false);
-    expect(result.error).toContain('only implemented for Windows');
+    expect(result.error).toContain('not supported on this platform');
+  });
+
+  it('injectDll handles linux gdb execution', async () => {
+    state.execAsync.mockResolvedValue({ stdout: 'Done', stderr: '' });
+    const result = await injectDll('linux', 1, 'a.so');
+    expect(result.success).toBe(true);
+    expect(state.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining('gdb -p 1 -batch'),
+      expect.any(Object),
+    );
+  });
+
+  it('injectDll handles darwin lldb execution', async () => {
+    state.execAsync.mockResolvedValue({ stdout: 'Done', stderr: '' });
+    const result = await injectDll('darwin', 1, 'a.dylib');
+    expect(result.success).toBe(true);
+    expect(state.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining('lldb --batch -p 1'),
+      expect.any(Object),
+    );
   });
 
   it('injectDll parses successful PowerShell response', async () => {
@@ -48,10 +70,30 @@ describe('memory/injector', () => {
     expect(result.error).toContain('PowerShell returned empty output');
   });
 
-  it('injectShellcode rejects non-windows platform', async () => {
-    const result = await injectShellcode('darwin', 1, '90', 'hex');
+  it('injectShellcode rejects unknown platform', async () => {
+    const result = await injectShellcode('unknown' as any, 1, '90', 'hex');
     expect(result.success).toBe(false);
-    expect(result.error).toContain('only implemented for Windows');
+    expect(result.error).toContain('not supported on this platform');
+  });
+
+  it('injectShellcode handles linux gdb execution', async () => {
+    state.execAsync.mockResolvedValue({ stdout: 'SUCCESS_INJECT: 1', stderr: '' });
+    const result = await injectShellcode('linux', 1, '90', 'hex');
+    expect(result.success).toBe(true);
+    expect(state.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining('gdb -p 1 -batch'),
+      expect.any(Object),
+    );
+  });
+
+  it('injectShellcode handles darwin lldb execution', async () => {
+    state.execAsync.mockResolvedValue({ stdout: 'SUCCESS_INJECT', stderr: '' });
+    const result = await injectShellcode('darwin', 1, '90', 'hex');
+    expect(result.success).toBe(true);
+    expect(state.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining('lldb --batch -p 1'),
+      expect.any(Object),
+    );
   });
 
   it('injectShellcode supports base64 input and parses success result', async () => {

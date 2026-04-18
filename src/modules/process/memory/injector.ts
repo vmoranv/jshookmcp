@@ -2,8 +2,9 @@
  * Memory Injector - DLL injection and shellcode injection (Windows only)
  */
 
+import { promises as fs } from 'node:fs';
 import { logger } from '@utils/logger';
-import { executePowerShellScript, type Platform } from '@modules/process/memory/types';
+import { executePowerShellScript, execAsync, type Platform } from '@modules/process/memory/types';
 
 // ── DLL Injection ──
 
@@ -114,8 +115,36 @@ export async function injectDll(
   pid: number,
   dllPath: string,
 ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
-  if (platform !== 'win32') {
-    return { success: false, error: 'DLL injection currently only implemented for Windows' };
+  if (platform === 'linux') {
+    try {
+      const { stderr } = await execAsync(
+        `gdb -p ${pid} -batch -ex "call (void*)dlopen(\\"${dllPath}\\", 1)" -ex "quit"`,
+        { timeout: 30000 },
+      );
+      if (stderr.includes('Operation not permitted') || stderr.includes('ptrace:')) {
+        throw new Error(`GDB injection failed (ptrace blocked): ${stderr}`);
+      }
+      return { success: true };
+    } catch (error) {
+      logger.error('Linux DLL injection failed:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  } else if (platform === 'darwin') {
+    try {
+      const { stdout, stderr } = await execAsync(
+        `lldb --batch -p ${pid} -o "expr (void*)dlopen(\\"${dllPath}\\", 1)"`,
+        { timeout: 30000 },
+      );
+      if (stderr.includes('error:') || stdout.includes('error:')) {
+        throw new Error(`LLDB injection failed: ${stderr || stdout}`);
+      }
+      return { success: true };
+    } catch (error) {
+      logger.error('macOS DLL injection failed:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  } else if (platform !== 'win32') {
+    return { success: false, error: 'DLL injection not supported on this platform' };
   }
 
   try {
@@ -242,17 +271,117 @@ export async function injectShellcode(
   shellcode: string,
   encoding: 'hex' | 'base64' = 'hex',
 ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
-  if (platform !== 'win32') {
-    return { success: false, error: 'Shellcode injection currently only implemented for Windows' };
-  }
-
   try {
     let shellcodeBytes: Buffer;
     if (encoding === 'base64') {
       shellcodeBytes = Buffer.from(shellcode, 'base64');
     } else {
-      const cleanHex = shellcode.replace(/\s/g, '');
+      const cleanHex = shellcode.replace(/\\s/g, '');
       shellcodeBytes = Buffer.from(cleanHex, 'hex');
+    }
+
+    if (platform === 'linux') {
+      const byteList = Array.from(shellcodeBytes)
+        .map((b) => `\\x${b.toString(16).padStart(2, '0')}`)
+        .join('');
+      const pyScript = `
+import gdb
+import sys
+
+def inject():
+    try:
+        # mmap: PROT_READ|PROT_WRITE|PROT_EXEC (7), MAP_PRIVATE|MAP_ANONYMOUS (34)
+        mmap_res = gdb.parse_and_eval("(void*)mmap(0, ${shellcodeBytes.length}, 7, 34, -1, 0)")
+        addr = int(mmap_res)
+        if addr == -1 or addr == 0:
+            print("ERROR_INJECT: mmap failed")
+            return
+            
+        inf = gdb.selected_inferior()
+        inf.write_memory(addr, b"${byteList}")
+        
+        # Call it directly (creates a crash potentially) or via pthread_create
+        # Let's use pthread_create
+        thread_t = gdb.parse_and_eval("(void*)malloc(8)")
+        res = gdb.parse_and_eval(f"(int)pthread_create({int(thread_t)}, 0, {addr}, 0)")
+        
+        print(f"SUCCESS_INJECT: {int(res)}")
+    except Exception as e:
+        print(f"ERROR_INJECT: {str(e)}")
+
+inject()
+`;
+      const scriptPath = `/tmp/gdb_inject_${pid}_${Date.now()}.py`;
+      await fs.writeFile(scriptPath, pyScript, 'utf8');
+      try {
+        const { stdout, stderr } = await execAsync(`gdb -p ${pid} -batch -x ${scriptPath}`, {
+          timeout: 30000,
+        });
+        if (stdout.includes('ERROR_INJECT:') || stderr.includes('ERROR_INJECT:')) {
+          throw new Error(`GDB injection failed: ${stdout || stderr}`);
+        }
+        return { success: true };
+      } finally {
+        await fs.unlink(scriptPath).catch(() => {});
+      }
+    } else if (platform === 'darwin') {
+      const byteList = Array.from(shellcodeBytes)
+        .map((b) => b.toString())
+        .join(',');
+      const pyScript = `
+import lldb
+import sys
+
+def __lldb_init_module(debugger, internal_dict):
+    try:
+        target = debugger.GetSelectedTarget()
+        process = target.GetProcess()
+        
+        # mmap: PROT_READ|PROT_WRITE|PROT_EXEC (7), MAP_PRIVATE|MAP_ANON (4098 on macOS)
+        res = lldb.SBCommandReturnObject()
+        debugger.GetCommandInterpreter().HandleCommand("expr (void*)mmap(0, ${shellcodeBytes.length}, 7, 4098, -1, 0)", res)
+        
+        if not res.Succeeded():
+            print("ERROR_INJECT: " + res.GetError())
+            return
+            
+        addr_str = res.GetOutput().split()[-1]
+        addr = int(addr_str, 16)
+        
+        err = lldb.SBError()
+        bytes_data = bytes([${byteList}])
+        process.WriteMemory(addr, bytes_data, err)
+        
+        if not err.Success():
+            print("ERROR_INJECT: write failed")
+            return
+            
+        # create thread
+        res2 = lldb.SBCommandReturnObject()
+        debugger.GetCommandInterpreter().HandleCommand(f"expr (int)pthread_create((void*)malloc(8), 0, (void*){addr}, 0)", res2)
+        
+        print("SUCCESS_INJECT")
+    except Exception as e:
+        print("ERROR_INJECT: " + str(e))
+`;
+      const pyFile = `/tmp/lldb_inject_${pid}_${Date.now()}.py`;
+      const cmdFile = `/tmp/lldb_inject_cmd_${pid}_${Date.now()}.txt`;
+      await fs.writeFile(pyFile, pyScript, 'utf8');
+      await fs.writeFile(cmdFile, `command script import ${pyFile}\\nprocess detach\\n`, 'utf8');
+      try {
+        const { stdout } = await execAsync(`lldb --batch -p ${pid} --source ${cmdFile}`, {
+          timeout: 30000,
+        });
+        if (stdout.includes('ERROR_INJECT:')) {
+          throw new Error(`LLDB injection failed: ${stdout}`);
+        }
+        return { success: true };
+      } finally {
+        await fs.unlink(pyFile).catch(() => {});
+        await fs.unlink(cmdFile).catch(() => {});
+      }
+    } else if (platform !== 'win32') {
+      return { success: false, error: 'Shellcode injection not supported on this platform' };
     }
 
     const psScript = buildShellcodeInjectionScript(pid, shellcodeBytes);
@@ -274,7 +403,7 @@ export async function injectShellcode(
     logger.error('Shellcode injection failed:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'PowerShell execution failed',
+      error: error instanceof Error ? error.message : 'Execution failed',
     };
   }
 }
