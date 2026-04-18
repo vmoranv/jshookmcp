@@ -6,6 +6,7 @@ Core static and semi-static analysis domain for script collection, deobfuscation
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios

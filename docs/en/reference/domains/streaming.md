@@ -6,6 +6,7 @@ WebSocket and SSE monitoring domain.
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios

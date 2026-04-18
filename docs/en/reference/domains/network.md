@@ -6,6 +6,7 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios
