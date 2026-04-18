@@ -202,16 +202,19 @@ export class LinuxProcessManager {
           // Ignore hyprctl failures
         }
 
-        // 2. Try GNOME (gdbus Eval - usually restricted but worth a shot)
+        // 2. GNOME Wayland: org.gnome.Shell.Eval is disabled by default since GNOME 42.
+        // Keeping as best-effort; no window data is parsed from this path.
         try {
           const { stdout: gnomeOut } = await execAsync(
             `gdbus call --session --dest org.gnome.Shell --object-path /org/gnome/Shell --method org.gnome.Shell.Eval "global.get_window_actors().filter(w => w.meta_window.get_pid() === ${pid}).map(w => w.meta_window.get_title() + '|' + w.meta_window.get_wm_class())" 2>/dev/null`,
           );
           if (gnomeOut.includes(String(pid)) || gnomeOut.includes(',')) {
-            logger.debug('GNOME Wayland window query partially succeeded, but parsing is limited');
+            logger.debug(
+              'GNOME Wayland window query returned data, but reliable parsing is not yet implemented',
+            );
           }
         } catch {
-          // Ignore GNOME gdbus failures
+          // Expected: gdbus Eval is restricted on most GNOME ≥42 installs
         }
       }
 
