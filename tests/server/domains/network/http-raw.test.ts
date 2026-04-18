@@ -159,6 +159,39 @@ describe('network http-raw buildHttpRequest', () => {
     expect(built.bodyBytes).toBe(Buffer.byteLength(body, 'utf8'));
     expect(built.requestBytes).toBe(Buffer.byteLength(built.requestText, 'utf8'));
   });
+
+  it('skips Content-Length when addContentLength is false', () => {
+    const built = buildHttpRequest({
+      method: 'POST',
+      target: '/',
+      body: 'data',
+      addContentLength: false,
+      addHostHeader: false,
+    });
+    expect(built.headers['Content-Length']).toBeUndefined();
+  });
+
+  it('skips Connection when already present in headers', () => {
+    const built = buildHttpRequest({
+      method: 'GET',
+      target: '/',
+      headers: { Connection: 'keep-alive' },
+      addHostHeader: false,
+    });
+    expect(built.headers.Connection).toBe('keep-alive');
+  });
+
+  it('skips Content-Length for non-string header value', () => {
+    expect(() =>
+      buildHttpRequest({
+        method: 'GET',
+        target: '/',
+        headers: { 'X-Num': 42 as unknown as string },
+        addHostHeader: false,
+        addConnectionClose: false,
+      }),
+    ).toThrow('must be a string');
+  });
 });
 
 describe('network http-raw analyzeHttpResponse', () => {
