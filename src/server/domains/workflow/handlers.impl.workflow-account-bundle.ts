@@ -4,9 +4,6 @@ import {
   WORKFLOW_JS_BUNDLE_MAX_REDIRECTS,
   WORKFLOW_JS_BUNDLE_FETCH_TIMEOUT_MS,
 } from '@src/constants';
-import { isSsrfTarget, isPrivateHost, isLoopbackHost } from '@server/domains/network/replay';
-import { lookup } from 'node:dns/promises';
-import { isIP } from 'node:net';
 import { WorkflowHandlersBase } from '@server/domains/workflow/handlers.impl.workflow-base';
 import { WorkflowHandlersApi } from '@server/domains/workflow/handlers.impl.workflow-api';
 import {
@@ -16,8 +13,6 @@ import {
   argNumber,
   argObject,
 } from '@server/domains/shared/parse-args';
-
-const LOOPBACK_HTTP_URL_RE = /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(\/|$)/i;
 
 export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
   async handleRegisterAccountFlow(args: Record<string, unknown>) {
@@ -245,6 +240,7 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
     const cacheBundle = argBool(args, 'cacheBundle', true);
     const stripNoise = argBool(args, 'stripNoise', true);
     const maxMatches = argNumber(args, 'maxMatches', 10);
+    const policyResult = this.parseWorkflowNetworkPolicy(args);
 
     if (!url || !patterns || patterns.length === 0) {
       return {
@@ -256,84 +252,46 @@ export class WorkflowHandlersAccountBundle extends WorkflowHandlersApi {
         ],
       };
     }
-
-    // SSRF guard: reject private/link-local destinations
-    if (await isSsrfTarget(url)) {
+    if (!policyResult.policy) {
       return {
         content: [
           {
             type: 'text' as const,
             text: JSON.stringify({
               success: false,
-              error: `Blocked: target URL "${url}" resolves to a private/reserved address`,
+              error: policyResult.error,
             }),
           },
         ],
       };
     }
+    const networkPolicy = policyResult.policy;
 
     const MAX_BUNDLE_SIZE = WORKFLOW_JS_BUNDLE_MAX_SIZE_BYTES;
     const MAX_REDIRECTS = WORKFLOW_JS_BUNDLE_MAX_REDIRECTS;
 
     /**
      * Safe fetch with SSRF-aware redirect following and DNS pinning.
-     * Uses `redirect: 'manual'` so each hop is validated against the SSRF denylist.
-     * Pins DNS per hop to prevent rebinding between check and fetch.
+     * Uses `redirect: 'manual'` so each hop is validated against request-level policy.
+     * Pins HTTP requests to the resolved IP while preserving the Host header.
      */
     const safeFetch = async (targetUrl: string, signal: AbortSignal): Promise<Response> => {
       let currentUrl = targetUrl;
       for (let hops = 0; hops < MAX_REDIRECTS; hops++) {
-        // Per-hop DNS pinning: resolve, validate, and replace hostname with IP
-        const parsed = new URL(currentUrl);
-        const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
-        let fetchUrl = currentUrl;
-        const headers: Record<string, string> = {};
-        const isIpLiteral = isIP(hostname) !== 0;
-
-        if (parsed.protocol === 'http:' && !isLoopbackHost(hostname)) {
-          throw new Error(
-            `Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`,
-          );
-        }
-
-        // Only resolve/pin non-IP hostnames.
-        // Keep HTTPS requests on the original hostname so TLS SNI/certificate
-        // validation still works for CDN-backed bundle URLs.
-        if (!isIpLiteral) {
-          try {
-            const { address: resolvedIp } = await lookup(hostname);
-            if (isPrivateHost(resolvedIp)) {
-              throw new Error(`Blocked: "${currentUrl}" resolved to private IP ${resolvedIp}`);
-            }
-
-            if (parsed.protocol === 'http:') {
-              const originalHost = parsed.host;
-              parsed.hostname = resolvedIp.includes(':') ? `[${resolvedIp}]` : resolvedIp;
-              fetchUrl = parsed.toString();
-              headers['Host'] = originalHost;
-            }
-          } catch (e) {
-            if (e instanceof Error && e.message.startsWith('Blocked:')) throw e;
-            throw new Error(`DNS resolution failed for "${currentUrl}"`, { cause: e });
-          }
-        }
-
-        if (!fetchUrl.startsWith('https://') && !LOOPBACK_HTTP_URL_RE.test(fetchUrl)) {
-          throw new Error(
-            `Blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`,
-          );
-        }
-
-        const resp = await fetch(fetchUrl, { signal, redirect: 'manual', headers });
+        const authorization = await this.authorizeWorkflowUrl(currentUrl, networkPolicy, {
+          label: hops === 0 ? 'bundle URL' : 'redirect target',
+          allowRedirectHosts: hops > 0,
+          rewriteHttpHostToResolvedIp: true,
+        });
+        const resp = await fetch(authorization.fetchUrl, {
+          signal,
+          redirect: 'manual',
+          headers: authorization.headers,
+        });
         if (resp.status >= 300 && resp.status < 400) {
           const location = resp.headers.get('location');
           if (!location) throw new Error(`Redirect ${resp.status} without Location header`);
           currentUrl = new URL(location, currentUrl).toString();
-          if (await isSsrfTarget(currentUrl)) {
-            throw new Error(
-              `Redirect blocked: "${currentUrl}" resolves to a private/reserved address`,
-            );
-          }
           continue;
         }
         return resp;

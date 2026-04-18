@@ -3,18 +3,32 @@ import { WorkflowHandlers as _WorkflowHandlers } from '@server/domains/workflow/
 import type { WorkflowRunResponse } from '@tests/server/domains/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockIsSsrfTarget } = vi.hoisted(() => ({
+const {
+  mockIsSsrfTarget,
+  mockIsPrivateHost,
+  mockIsLoopbackHost,
+  mockIsLoopbackHttpUrl,
+  mockIsLocalSsrfBypassEnabled,
+  mockLookup,
+} = vi.hoisted(() => ({
   mockIsSsrfTarget: vi.fn(async () => false),
+  mockIsPrivateHost: vi.fn(() => false),
+  mockIsLoopbackHost: vi.fn(() => false),
+  mockIsLoopbackHttpUrl: vi.fn(() => false),
+  mockIsLocalSsrfBypassEnabled: vi.fn(() => false),
+  mockLookup: vi.fn(),
 }));
 
-vi.mock('@src/server/domains/network/replay', () => ({
+vi.mock('@src/server/domains/network/ssrf-policy', () => ({
   isSsrfTarget: mockIsSsrfTarget,
-  isPrivateHost: vi.fn(() => false),
-  isLoopbackHost: vi.fn(() => false),
+  isPrivateHost: mockIsPrivateHost,
+  isLoopbackHost: mockIsLoopbackHost,
+  isLoopbackHttpUrl: mockIsLoopbackHttpUrl,
+  isLocalSsrfBypassEnabled: mockIsLocalSsrfBypassEnabled,
 }));
 
 vi.mock('node:dns/promises', () => ({
-  lookup: vi.fn(),
+  lookup: mockLookup,
 }));
 
 vi.mock('node:fs/promises', () => ({
@@ -81,6 +95,11 @@ describe('WorkflowHandlersApi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsSsrfTarget.mockResolvedValue(false);
+    mockIsPrivateHost.mockReturnValue(false);
+    mockIsLoopbackHost.mockReturnValue(false);
+    mockIsLoopbackHttpUrl.mockReturnValue(false);
+    mockIsLocalSsrfBypassEnabled.mockReturnValue(false);
+    mockLookup.mockResolvedValue({ address: '93.184.216.34', family: 4 });
     deps = createDeps();
     handlers = new WorkflowHandlersApi(deps);
   });
@@ -136,7 +155,9 @@ describe('WorkflowHandlersApi', () => {
     });
 
     it('blocks SSRF targets', async () => {
-      mockIsSsrfTarget.mockResolvedValue(true);
+      mockIsPrivateHost.mockImplementation(
+        ((...args: unknown[]) => args[0] === '169.254.169.254') as (...args: never[]) => boolean,
+      );
 
       const body = parseJson<WorkflowRunResponse>(
         await handlers.handleApiProbeBatch({
@@ -147,6 +168,91 @@ describe('WorkflowHandlersApi', () => {
       expect(body.success).toBe(false);
       expect(body.error).toContain('Blocked');
       expect(body.error).toContain('private/reserved');
+    });
+
+    it('returns error when networkPolicy is invalid JSON', async () => {
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleApiProbeBatch({
+          baseUrl: 'https://api.example.com',
+          paths: ['/test'],
+          networkPolicy: '{bad json',
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('networkPolicy');
+    });
+
+    it('blocks private targets when allowPrivateNetwork lacks an explicit allow rule', async () => {
+      mockLookup.mockResolvedValue({ address: '10.0.0.8', family: 4 });
+      mockIsPrivateHost.mockImplementation(
+        ((...args: unknown[]) => args[0] === '10.0.0.8') as (...args: never[]) => boolean,
+      );
+
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleApiProbeBatch({
+          baseUrl: 'https://internal.example',
+          paths: ['/health'],
+          networkPolicy: { allowPrivateNetwork: true },
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('explicit networkPolicy host or CIDR allow rule');
+    });
+
+    it('allows private targets when networkPolicy authorizes the host', async () => {
+      mockLookup.mockResolvedValue({ address: '10.0.0.8', family: 4 });
+      mockIsPrivateHost.mockImplementation(
+        ((...args: unknown[]) => args[0] === '10.0.0.8') as (...args: never[]) => boolean,
+      );
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
+        makeTextResult({ probed: 1, results: {} }),
+      );
+
+      const result = await handlers.handleApiProbeBatch({
+        baseUrl: 'https://internal.example',
+        paths: ['/health'],
+        networkPolicy: {
+          allowPrivateNetwork: true,
+          allowedHosts: ['internal.example'],
+        },
+      });
+
+      expect(parseJson<Record<string, unknown>>(result).probed).toBe(1);
+      expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
+    });
+
+    it('blocks public HTTPS targets outside the networkPolicy allowlist', async () => {
+      const body = parseJson<WorkflowRunResponse>(
+        await handlers.handleApiProbeBatch({
+          baseUrl: 'https://api.example.com',
+          paths: ['/test'],
+          networkPolicy: {
+            allowedHosts: ['other.example.com'],
+          },
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('not authorized by networkPolicy');
+    });
+
+    it('allows public HTTP targets when networkPolicy authorizes them', async () => {
+      vi.mocked(deps.browserHandlers.handlePageEvaluate).mockResolvedValue(
+        makeTextResult({ probed: 1, results: {} }),
+      );
+
+      await handlers.handleApiProbeBatch({
+        baseUrl: 'http://labs.example.com:8080',
+        paths: ['/test'],
+        networkPolicy: {
+          allowInsecureHttp: true,
+          allowedHosts: ['labs.example.com:8080'],
+        },
+      });
+
+      expect(deps.browserHandlers.handlePageEvaluate).toHaveBeenCalledOnce();
     });
 
     it('returns error when paths array is empty', async () => {
@@ -212,6 +318,7 @@ describe('WorkflowHandlersApi', () => {
       expect(call.code).toContain('api.example.com');
       expect(call.code).toContain('users');
       expect(call.code).toContain('products');
+      expect(call.code).toContain("redirect: 'error'");
     });
 
     it('normalizes trailing slash on baseUrl', async () => {
