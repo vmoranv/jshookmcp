@@ -1,4 +1,5 @@
 import { Worker, type ResourceLimits } from 'node:worker_threads';
+import { ProcessRegistry } from '@utils/ProcessRegistry';
 import {
   WORKER_POOL_MIN_WORKERS,
   WORKER_POOL_MAX_WORKERS,
@@ -173,6 +174,8 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
       eval: true,
       resourceLimits: this.resourceLimits,
     });
+    worker.unref();
+    ProcessRegistry.register(worker);
 
     const pooled: PooledWorker = {
       id,

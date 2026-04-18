@@ -10,6 +10,7 @@
  *   await engine.terminate();
  */
 import { Worker } from 'worker_threads';
+import { ProcessRegistry } from '@utils/ProcessRegistry';
 
 // ── Types ──
 
@@ -90,6 +91,8 @@ export class EmbeddingEngine {
 
     const workerPath = new URL('./EmbeddingWorker.js', import.meta.url);
     this.worker = new Worker(workerPath);
+    this.worker.unref();
+    ProcessRegistry.register(this.worker);
 
     this.worker.on(
       'message',
