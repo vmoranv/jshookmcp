@@ -7,7 +7,7 @@ import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 
 const DOMAIN = 'boringssl-inspector' as const;
 const DEP_KEY = 'boringsslInspectorHandlers' as const;
-const PROFILES: Array<'full'> = ['full'];
+const PROFILES: Array<'workflow' | 'full'> = ['workflow', 'full'];
 
 type H = BoringsslInspectorHandlers;
 

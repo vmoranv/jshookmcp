@@ -29,7 +29,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['full'],
+  profiles: ['workflow', 'full'],
   ensure,
 
   // ── Routing metadata (consumed by ToolRouter) ──
