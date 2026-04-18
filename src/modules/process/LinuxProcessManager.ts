@@ -14,6 +14,7 @@ import {
   PROCESS_LIST_MAX_BUFFER_BYTES,
   PROCESS_LAUNCH_WAIT_MS,
 } from '@src/constants';
+import { ProcessRegistry } from '@utils/ProcessRegistry';
 import type { ProcessInfo, WindowInfo } from '@modules/process/ProcessManager';
 
 const execAsync = promisify(exec);
@@ -171,24 +172,65 @@ export class LinuxProcessManager {
    * Get all windows for a process (X11 only)
    */
   async getProcessWindows(pid: number): Promise<WindowInfo[]> {
-    if (this.isWayland) {
-      logger.warn('Window enumeration on Wayland is limited. Consider using X11 or xdotool.');
-      return [];
-    }
+    const windows: WindowInfo[] = [];
 
     try {
       pid = safePid(pid);
+
+      if (this.isWayland) {
+        logger.debug('Attempting Wayland window enumeration via compositor-specific APIs');
+
+        // 1. Try Hyprland
+        try {
+          const { stdout: hyprctlOut } = await execAsync('hyprctl clients -j 2>/dev/null');
+          if (hyprctlOut.trim()) {
+            const clients = JSON.parse(hyprctlOut);
+            for (const client of clients) {
+              if (client.pid === pid) {
+                windows.push({
+                  handle: client.address || client.window || '0',
+                  title: client.title || '',
+                  className: client.class || '',
+                  processId: pid,
+                  threadId: 0,
+                });
+              }
+            }
+            if (windows.length > 0) return windows;
+          }
+        } catch {
+          // Ignore hyprctl failures
+        }
+
+        // 2. Try GNOME (gdbus Eval - usually restricted but worth a shot)
+        try {
+          const { stdout: gnomeOut } = await execAsync(
+            `gdbus call --session --dest org.gnome.Shell --object-path /org/gnome/Shell --method org.gnome.Shell.Eval "global.get_window_actors().filter(w => w.meta_window.get_pid() === ${pid}).map(w => w.meta_window.get_title() + '|' + w.meta_window.get_wm_class())" 2>/dev/null`,
+          );
+          if (gnomeOut.includes(String(pid)) || gnomeOut.includes(',')) {
+            logger.debug('GNOME Wayland window query partially succeeded, but parsing is limited');
+          }
+        } catch {
+          // Ignore GNOME gdbus failures
+        }
+      }
+
+      // Fallback to X11 / XWayland
       const { stdout: xdotoolCheck } = await execAsync('which xdotool 2>/dev/null || echo ""');
       if (!xdotoolCheck.trim()) {
-        logger.warn(
-          'xdotool not found. Install it for window management: sudo apt-get install xdotool',
-        );
-        return [];
+        if (this.isWayland && windows.length === 0) {
+          logger.warn(
+            'Wayland native enumeration failed and xdotool is missing. Install xdotool for XWayland fallback.',
+          );
+        } else if (!this.isWayland) {
+          logger.warn(
+            'xdotool not found. Install it for window management: sudo apt-get install xdotool',
+          );
+        }
+        return windows;
       }
 
       const { stdout } = await execAsync(`xdotool search --all --pid ${pid} 2>/dev/null || true`);
-
-      const windows: WindowInfo[] = [];
       const windowIds = stdout
         .trim()
         .split('\n')
@@ -218,7 +260,7 @@ export class LinuxProcessManager {
       return windows;
     } catch (error) {
       logger.error(`Failed to get windows for PID ${pid}:`, error);
-      return [];
+      return windows;
     }
   }
 
@@ -374,6 +416,7 @@ export class LinuxProcessManager {
       });
 
       child.unref();
+      ProcessRegistry.register(child);
 
       await new Promise((resolve) => setTimeout(resolve, PROCESS_LAUNCH_WAIT_MS));
 
