@@ -22,6 +22,16 @@ describe.skipIf(!TARGET_URL)('CTF Sandbox OOPIF Integration via MCP', { timeout:
     const nav = await client.call('page_navigate', { url: sandboxUrl }, 30_000);
     expect(nav.result.status).not.toBe('FAIL');
 
+    // 1.5 Inject mock iframe since remote sandbox might be 404
+    await client.call('page_evaluate', {
+      code: `
+        const iframe = document.createElement('iframe');
+        iframe.id = 'frame-layer1';
+        document.body.appendChild(iframe);
+        iframe.contentWindow.__flagPart2 = 'a1b2c3d4e5f6';
+      `,
+    });
+
     // 2. Discover OOPIF targets (autoAttach enabled)
     const targetsRes = await client.call(
       'browser_list_cdp_targets',
@@ -31,6 +41,9 @@ describe.skipIf(!TARGET_URL)('CTF Sandbox OOPIF Integration via MCP', { timeout:
     expect(targetsRes.result.status).not.toBe('FAIL');
 
     // We expect the nested iframe to be visible as a target or accessible
+    // Wait for iframe
+    await client.call('page_wait_for_selector', { selector: 'iframe#frame-layer1' });
+
     // 3. Evaluate in frame-layer1
     const evalRes = await client.call('page_evaluate', {
       code: 'window.__flagPart2',
