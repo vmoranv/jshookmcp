@@ -41,7 +41,7 @@ const manifest = {
   domain: DOMAIN,
   depKey: DEP_KEY,
   secondaryDepKeys: ['extensionManagementHandlers'],
-  profiles: ['workflow', 'full'],
+  profiles: ['full'],
   ensure,
   registrations: [
     {
@@ -58,7 +58,7 @@ const manifest = {
       tool: t('reset_token_budget'),
       domain: DOMAIN,
       bind: b((h) => h.handleResetTokenBudget()),
-      profiles: ['workflow', 'full'],
+      profiles: ['full'],
     },
     { tool: t('get_cache_stats'), domain: DOMAIN, bind: b((h) => h.handleGetCacheStats()) },
     {
@@ -70,7 +70,7 @@ const manifest = {
       tool: t('clear_all_caches'),
       domain: DOMAIN,
       bind: b((h) => h.handleClearAllCaches()),
-      profiles: ['workflow', 'full'],
+      profiles: ['full'],
     },
     {
       tool: t('cleanup_artifacts'),
@@ -82,7 +82,7 @@ const manifest = {
           dryRun: a.dryRun as boolean | undefined,
         }),
       ),
-      profiles: ['workflow', 'full'],
+      profiles: ['full'],
     },
     {
       tool: t('doctor_environment'),
@@ -92,7 +92,7 @@ const manifest = {
           includeBridgeHealth: a.includeBridgeHealth as boolean | undefined,
         }),
       ),
-      profiles: ['workflow', 'full'],
+      profiles: ['full'],
     },
     { tool: t('list_extensions'), domain: DOMAIN, bind: be((h) => h.handleListExtensions()) },
     { tool: t('reload_extensions'), domain: DOMAIN, bind: be((h) => h.handleReloadExtensions()) },
@@ -100,7 +100,7 @@ const manifest = {
       tool: t('browse_extension_registry'),
       domain: DOMAIN,
       bind: be((h, a) => h.handleBrowseExtensionRegistry((a.kind as string) ?? 'all')),
-      profiles: ['workflow', 'full'],
+      profiles: ['full'],
     },
     {
       tool: t('install_extension'),
@@ -108,7 +108,7 @@ const manifest = {
       bind: be((h, a) =>
         h.handleInstallExtension(a.slug as string, a.targetDir as string | undefined),
       ),
-      profiles: ['workflow', 'full'],
+      profiles: ['full'],
     },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;

@@ -27,7 +27,7 @@ const manifest: DomainManifest<typeof DEP_KEY, MojoIPCHandlers, typeof DOMAIN> =
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['workflow', 'full'],
+  profiles: ['full'],
   registrations: [
     {
       tool: toolByName('mojo_monitor_start'),

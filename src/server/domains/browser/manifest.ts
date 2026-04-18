@@ -31,7 +31,7 @@ const manifest = {
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['workflow', 'full'],
+  profiles: ['full'],
   ensure,
 
   // ── Routing metadata (consumed by ToolRouter) ──

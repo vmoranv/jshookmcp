@@ -55,7 +55,7 @@ describe('ToolCatalog', () => {
   });
 
   it('getProfileDomains returns expected domain sets', () => {
-    expect(getProfileDomains('workflow')).toContain('workflow');
+    expect(getProfileDomains('workflow')).toEqual([]);
     expect(getProfileDomains('full')).toContain('transform');
   });
 
@@ -127,7 +127,7 @@ describe('Three-Tier Boost Hierarchy', () => {
     for (const domain of searchDomains) {
       expect(workflowDomains.has(domain)).toBe(true);
     }
-    expect(workflowDomains.size).toBeGreaterThan(searchDomains.size);
+    expect(workflowDomains.size).toBe(searchDomains.size);
 
     // workflow ⊂ full
     for (const domain of workflowDomains) {
@@ -142,7 +142,7 @@ describe('Three-Tier Boost Hierarchy', () => {
     const fullTools = getToolsForProfile('full');
 
     expect(searchTools.length).toBe(0);
-    expect(workflowTools.length).toBeGreaterThan(0);
+    expect(workflowTools.length).toBe(0);
     expect(fullTools.length).toBeGreaterThan(workflowTools.length);
   });
 
@@ -152,11 +152,11 @@ describe('Three-Tier Boost Hierarchy', () => {
   });
 
   it('getToolMinimalTier returns correct tier for known tools', () => {
-    // maintenance domain is in search tier
-    expect(getToolMinimalTier('get_token_budget_stats')).toBe('workflow');
+    // maintenance domain is in full tier
+    expect(getToolMinimalTier('get_token_budget_stats')).toBe('full');
 
-    // browser domain is in workflow tier
-    expect(getToolMinimalTier('page_navigate')).toBe('workflow');
+    // browser domain is in full tier
+    expect(getToolMinimalTier('page_navigate')).toBe('full');
 
     // process domain is in full tier
     expect(getToolMinimalTier('electron_attach')).toBe('full');
@@ -172,10 +172,10 @@ describe('Three-Tier Boost Hierarchy', () => {
 
   it('getMinSatisfyingTier returns minimal tier covering all tools', () => {
     // All search-tier tools -> search
-    expect(getMinSatisfyingTier(['get_token_budget_stats'])).toBe('workflow');
+    expect(getMinSatisfyingTier(['get_token_budget_stats'])).toBe('full');
 
     // Mix of search and workflow -> workflow
-    expect(getMinSatisfyingTier(['get_token_budget_stats', 'page_navigate'])).toBe('workflow');
+    expect(getMinSatisfyingTier(['get_token_budget_stats', 'page_navigate'])).toBe('full');
 
     // Mix of search, workflow, and full -> full
     expect(
@@ -184,23 +184,13 @@ describe('Three-Tier Boost Hierarchy', () => {
   });
 
   it('getMinSatisfyingTier ignores unknown tools', () => {
-    expect(getMinSatisfyingTier(['get_token_budget_stats', 'unknown_tool'])).toBe('workflow');
+    expect(getMinSatisfyingTier(['get_token_budget_stats', 'unknown_tool'])).toBe('full');
     expect(getMinSatisfyingTier(['unknown_tool', 'another_unknown'])).toBeNull();
   });
 
-  it('workflow tier adds core, debugger, network, streaming, encoding, graphql, workflow', () => {
-    const workflowDomains = new Set(getProfileDomains('workflow'));
-    for (const domain of [
-      'core',
-      'debugger',
-      'network',
-      'streaming',
-      'encoding',
-      'graphql',
-      'workflow',
-    ]) {
-      expect(workflowDomains.has(domain as any)).toBe(true);
-    }
+  it('workflow tier has zero domains', () => {
+    const workflowDomains = getProfileDomains('workflow');
+    expect(workflowDomains).toEqual([]);
   });
 
   it('full tier adds hooks, process, wasm, antidebug, platform, sourcemap, transform', () => {

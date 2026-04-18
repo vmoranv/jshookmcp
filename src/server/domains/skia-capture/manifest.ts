@@ -6,7 +6,7 @@ import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 
 const DOMAIN = 'skia-capture' as const;
 const DEP_KEY = 'skiaCaptureHandlers' as const;
-const PROFILES: Array<'workflow' | 'full'> = ['workflow', 'full'];
+const PROFILES: Array<'full'> = ['full'];
 
 type H = SkiaCaptureHandlers;
 

@@ -48,7 +48,7 @@ const manifest = {
   domain: DOMAIN,
   depKey: DEP_KEY,
   secondaryDepKeys: ['hookPresetHandlers'],
-  profiles: ['workflow', 'full'],
+  profiles: ['full'],
   ensure,
   registrations: [
     { tool: t('ai_hook_inject'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookInject(a)) },

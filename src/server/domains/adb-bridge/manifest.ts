@@ -62,7 +62,7 @@ const manifest: DomainManifest<'adbBridgeHandlers', ADBBridgeHandlers, 'adb-brid
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['workflow', 'full'],
+  profiles: ['full'],
   registrations,
   ensure,
   workflowRule: {

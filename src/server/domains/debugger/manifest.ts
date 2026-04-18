@@ -32,7 +32,7 @@ const manifest = {
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['workflow', 'full'],
+  profiles: ['full'],
   ensure,
 
   prerequisites: {

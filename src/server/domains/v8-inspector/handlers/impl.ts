@@ -232,7 +232,7 @@ const manifest: DomainManifest<'v8InspectorHandlers', V8InspectorHandlers, 'v8-i
   version: 1,
   domain: 'v8-inspector',
   depKey: 'v8InspectorHandlers',
-  profiles: ['workflow', 'full'],
+  profiles: ['full'],
   registrations,
   ensure,
   prerequisites: {
