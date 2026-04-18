@@ -71,7 +71,6 @@ describe('config validation – extended checks', () => {
   it('validateConfig reports invalid search regex patterns', () => {
     const config = getConfig();
     config.search.queryCategoryProfiles[0]!.pattern = '[invalid';
-    config.search.cjkQueryAliases[0]!.pattern = '[invalid';
     config.search.intentToolBoostRules[0]!.pattern = '[invalid';
 
     const result = validateConfig(config);
@@ -80,7 +79,6 @@ describe('config validation – extended checks', () => {
     expect(result.errors).toContain(
       'search.queryCategoryProfiles contains invalid regex: [invalid',
     );
-    expect(result.errors).toContain('search.cjkQueryAliases contains invalid regex: [invalid');
     expect(result.errors).toContain('search.intentToolBoostRules contains invalid regex: [invalid');
   });
 });

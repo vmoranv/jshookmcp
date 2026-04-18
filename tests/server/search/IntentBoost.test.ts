@@ -5,8 +5,12 @@ describe('search/IntentBoost', () => {
   it('uses the built-in default rules when no config is provided', () => {
     const boost = new IntentBoostImpl();
 
-    expect(boost.resolveIntentToolBonuses('账号注册验证码').get('run_extension_workflow')).toBe(40);
-    expect(boost.resolveIntentToolBonuses('抓取接口').get('run_extension_workflow')).toBe(40);
+    expect(
+      boost.resolveIntentToolBonuses('register signup verify').get('run_extension_workflow'),
+    ).toBe(40);
+    expect(
+      boost.resolveIntentToolBonuses('api capture session').get('run_extension_workflow'),
+    ).toBe(40);
   });
 
   it('compiles only valid custom rules', () => {

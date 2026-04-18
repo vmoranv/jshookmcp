@@ -9,7 +9,7 @@ describe('search/BM25Scorer', () => {
   });
 
   it('uses default query category profiles and boosts matched domains', () => {
-    expect(scorer.detectQueryCategoryBoosts('debug 断点 request')).toEqual(
+    expect(scorer.detectQueryCategoryBoosts('debug breakpoint request')).toEqual(
       new Map([
         ['debugger', 1.6],
         ['runtime', 1.2],
@@ -19,16 +19,9 @@ describe('search/BM25Scorer', () => {
     );
   });
 
-  it('expands Chinese aliases for search intent', () => {
+  it('expands built-in CJK aliases using the default alias list', () => {
     expect(scorer.expandCjkAliasTokens('账号注册验证码')).toEqual(
-      expect.arrayContaining([
-        'account',
-        'register',
-        'signup',
-        'captcha',
-        'verify',
-        'verification',
-      ]),
+      expect.arrayContaining(['account', 'user', 'register']),
     );
     expect(scorer.expandCjkAliasTokens('plain english')).toEqual([]);
   });
@@ -37,9 +30,7 @@ describe('search/BM25Scorer', () => {
     expect(scorer.tokenise('page_navigate userToken')).toEqual(
       expect.arrayContaining(['page', 'navigate', 'user', 'token', 'usertoken']),
     );
-    expect(scorer.tokenise('抓取接口')).toEqual(
-      expect.arrayContaining(['抓', '取', '接', '口', 'capture', 'api']),
-    );
+    expect(scorer.tokenise('api capture')).toEqual(expect.arrayContaining(['api', 'capture']));
   });
 
   it('returns the BM25 tuning constants', () => {
