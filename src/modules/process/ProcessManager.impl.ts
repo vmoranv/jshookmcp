@@ -72,7 +72,7 @@ export class ProcessManager {
   /**
    * Enumerate all processes matching a pattern
    */
-  async findProcesses(pattern: string): Promise<any[]> {
+  async findProcesses(pattern: string): Promise<ProcessInfo[]> {
     try {
       const normalizedPattern = sanitizePsPattern(String(pattern || '').trim());
       const cacheKey = normalizedPattern.toLowerCase() || '*';
@@ -96,7 +96,7 @@ export class ProcessManager {
       );
 
       const lines = stdout.trim();
-      const processes: any[] = [];
+      const processes: ProcessInfo[] = [];
 
       if (lines && lines !== 'null') {
         const data = JSON.parse(lines);
@@ -111,13 +111,13 @@ export class ProcessManager {
         }
       }
 
-      const byPid = new Map<number, any>();
+      const byPid = new Map<number, ProcessInfo>();
       for (const process of processes) {
         byPid.set(process.pid, process);
       }
 
       const lastDelta = this.computeProcessDiff(
-        cachedEntry?.byPid ?? new Map<number, any>(),
+        cachedEntry?.byPid ?? new Map<number, ProcessInfo>(),
         byPid,
       );
       this.processCache.set(cacheKey, {
@@ -137,12 +137,12 @@ export class ProcessManager {
   }
 
   private computeProcessDiff(
-    previousByPid: Map<number, any>,
-    nextByPid: Map<number, any>,
+    previousByPid: Map<number, ProcessInfo>,
+    nextByPid: Map<number, ProcessInfo>,
   ): ProcessSnapshotEntry['lastDelta'] {
-    const added: any[] = [];
-    const removed: any[] = [];
-    const changed: Array<{ before: any; after: any }> = [];
+    const added: ProcessInfo[] = [];
+    const removed: ProcessInfo[] = [];
+    const changed: Array<{ before: ProcessInfo; after: ProcessInfo }> = [];
 
     for (const [pid, nextProcess] of nextByPid) {
       const previousProcess = previousByPid.get(pid);
@@ -172,7 +172,7 @@ export class ProcessManager {
   /**
    * Get process info by PID
    */
-  async getProcessByPid(pid: number): Promise<any | null> {
+  async getProcessByPid(pid: number): Promise<ProcessInfo | null> {
     try {
       pid = safePid(pid);
       const psCommand = `Get-Process -Id ${pid} -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path, MainWindowTitle, MainWindowHandle, CPU, WorkingSet64, StartTime | ConvertTo-Json -Compress`;
@@ -367,7 +367,7 @@ export class ProcessManager {
     executablePath: string,
     debugPort: number = DEFAULT_DEBUG_PORT,
     args: string[] = [],
-  ): Promise<any | null> {
+  ): Promise<ProcessInfo | null> {
     try {
       const debugArgs = [`--remote-debugging-port=${debugPort}`, ...args];
 
