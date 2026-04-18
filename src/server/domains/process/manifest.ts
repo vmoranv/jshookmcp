@@ -24,13 +24,7 @@ function ensure(ctx: MCPServerContext): H {
 const IS_WIN32 = EFFECTIVE_PLATFORM === 'win32';
 
 // Win32-only tool names — use CreateRemoteThread / NtQueryInformationProcess
-const WIN32_ONLY_TOOLS = new Set([
-  'inject_dll',
-  'module_inject_dll',
-  'inject_shellcode',
-  'module_inject_shellcode',
-  'check_debug_port',
-]);
+const WIN32_ONLY_TOOLS = new Set(['check_debug_port']);
 
 const allRegistrations = [
   { tool: t('electron_attach'), domain: DOMAIN, bind: b((h, a) => h.handleElectronAttach(a)) },
@@ -98,13 +92,7 @@ const allRegistrations = [
   },
   // ── Win32-only: injection / debug ──
   { tool: t('inject_dll'), domain: DOMAIN, bind: b((h, a) => h.handleInjectDll(a)) },
-  { tool: t('module_inject_dll'), domain: DOMAIN, bind: b((h, a) => h.handleInjectDll(a)) },
   { tool: t('inject_shellcode'), domain: DOMAIN, bind: b((h, a) => h.handleInjectShellcode(a)) },
-  {
-    tool: t('module_inject_shellcode'),
-    domain: DOMAIN,
-    bind: b((h, a) => h.handleInjectShellcode(a)),
-  },
   { tool: t('check_debug_port'), domain: DOMAIN, bind: b((h, a) => h.handleCheckDebugPort(a)) },
   {
     tool: t('enumerate_modules'),

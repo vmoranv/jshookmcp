@@ -190,27 +190,10 @@ export const processToolDefinitions: Tool[] = [
       .string('dllPath', 'Full path to the DLL file to inject')
       .required('pid', 'dllPath'),
   ),
-  tool('module_inject_dll', (t) =>
-    t
-      .desc('Alias of inject_dll. Enabled by default; set ENABLE_INJECTION_TOOLS=false to disable.')
-      .number('pid', 'Target process ID')
-      .string('dllPath', 'Full path to the DLL file to inject')
-      .required('pid', 'dllPath'),
-  ),
   tool('inject_shellcode', (t) =>
     t
       .desc(
         'Inject and execute shellcode in a target process. Accepts hex or base64. Enabled by default; set ENABLE_INJECTION_TOOLS=false to disable.',
-      )
-      .number('pid', 'Target process ID')
-      .string('shellcode', 'Shellcode bytes (hex string or base64)')
-      .enum('encoding', ['hex', 'base64'], 'Encoding of shellcode', { default: 'hex' })
-      .required('pid', 'shellcode'),
-  ),
-  tool('module_inject_shellcode', (t) =>
-    t
-      .desc(
-        'Alias of inject_shellcode. Enabled by default; set ENABLE_INJECTION_TOOLS=false to disable.',
       )
       .number('pid', 'Target process ID')
       .string('shellcode', 'Shellcode bytes (hex string or base64)')
