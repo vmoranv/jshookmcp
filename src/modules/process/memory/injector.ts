@@ -1,10 +1,19 @@
 /**
- * Memory Injector - DLL injection and shellcode injection (Windows only)
+ * Memory Injector - DLL injection and shellcode injection (Windows, Linux, macOS)
  */
 
 import { promises as fs } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { logger } from '@utils/logger';
 import { executePowerShellScript, execAsync, type Platform } from '@modules/process/memory/types';
+
+// Reject paths containing shell metacharacters to prevent command injection.
+function validatePath(p: string): void {
+  if (/[`$"';|<>&()\\\n\r]/.test(p)) {
+    throw new Error(`Path contains unsafe characters: ${p}`);
+  }
+}
 
 // ── DLL Injection ──
 
@@ -117,6 +126,7 @@ export async function injectDll(
 ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
   if (platform === 'linux') {
     try {
+      validatePath(dllPath);
       const { stderr } = await execAsync(
         `gdb -p ${pid} -batch -ex "call (void*)dlopen(\\"${dllPath}\\", 1)" -ex "quit"`,
         { timeout: 30000 },
@@ -131,6 +141,7 @@ export async function injectDll(
     }
   } else if (platform === 'darwin') {
     try {
+      validatePath(dllPath);
       const { stdout, stderr } = await execAsync(
         `lldb --batch -p ${pid} -o "expr (void*)dlopen(\\"${dllPath}\\", 1)"`,
         { timeout: 30000 },
@@ -276,7 +287,7 @@ export async function injectShellcode(
     if (encoding === 'base64') {
       shellcodeBytes = Buffer.from(shellcode, 'base64');
     } else {
-      const cleanHex = shellcode.replace(/\\s/g, '');
+      const cleanHex = shellcode.replace(/\s/g, '');
       shellcodeBytes = Buffer.from(cleanHex, 'hex');
     }
 
@@ -311,7 +322,7 @@ def inject():
 
 inject()
 `;
-      const scriptPath = `/tmp/gdb_inject_${pid}_${Date.now()}.py`;
+      const scriptPath = join(tmpdir(), `gdb_inject_${pid}_${Date.now()}.py`);
       await fs.writeFile(scriptPath, pyScript, 'utf8');
       try {
         const { stdout, stderr } = await execAsync(`gdb -p ${pid} -batch -x ${scriptPath}`, {
@@ -364,8 +375,8 @@ def __lldb_init_module(debugger, internal_dict):
     except Exception as e:
         print("ERROR_INJECT: " + str(e))
 `;
-      const pyFile = `/tmp/lldb_inject_${pid}_${Date.now()}.py`;
-      const cmdFile = `/tmp/lldb_inject_cmd_${pid}_${Date.now()}.txt`;
+      const pyFile = join(tmpdir(), `lldb_inject_${pid}_${Date.now()}.py`);
+      const cmdFile = join(tmpdir(), `lldb_inject_cmd_${pid}_${Date.now()}.txt`);
       await fs.writeFile(pyFile, pyScript, 'utf8');
       await fs.writeFile(cmdFile, `command script import ${pyFile}\\nprocess detach\\n`, 'utf8');
       try {
