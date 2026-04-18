@@ -99,7 +99,6 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'memory_batch_write',
   'memory_check_protection',
   'memory_dump_region',
-  'memory_protect',
   'memory_read',
   'memory_scan',
   'memory_scan_filtered',
@@ -107,9 +106,6 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'miniapp_pkg_analyze',
   'miniapp_pkg_scan',
   'miniapp_pkg_unpack',
-  'module_inject_dll',
-  'module_inject_shellcode',
-  'module_list',
   'network_get_response_body',
   'network_replay_request',
   'process_check_debug_port',
@@ -163,12 +159,10 @@ function getToolTimeoutOverride(toolName: string): number | null {
     toolName === 'process_launch_debug' ||
     toolName === 'process_find' ||
     toolName === 'process_find_chromium' ||
-    toolName === 'process_list' ||
     toolName === 'process_get' ||
     toolName === 'process_windows' ||
     toolName === 'process_check_debug_port' ||
     toolName === 'check_debug_port' ||
-    toolName === 'module_list' ||
     toolName === 'enumerate_modules' ||
     toolName === 'debugger_evaluate_global'
   ) {
@@ -367,7 +361,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
       testInputs: ['test'],
     },
     blackbox_add: { urlPattern: '/node_modules/' },
-    process_list: { pattern: 'chrome' },
     process_find: { pattern: 'chrome' },
     process_find_chromium: {},
     process_launch_debug: { executablePath: browserPath, debugPort: 19222, args: ['--headless'] },
@@ -472,16 +465,13 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     ...(browserPid && ctx.dllPath
       ? {
           inject_dll: { pid: browserPid, dllPath: ctx.dllPath },
-          module_inject_dll: { pid: browserPid, dllPath: ctx.dllPath },
         }
       : {}),
     ...(browserPid
       ? {
           inject_shellcode: { pid: browserPid, shellcode: 'cc' },
-          module_inject_shellcode: { pid: browserPid, shellcode: 'cc' },
           memory_write: { pid: browserPid, address: '0x10000', data: '00' },
           memory_batch_write: { pid: browserPid, patches: [{ address: '0x10000', data: '00' }] },
-          memory_protect: { pid: browserPid, address: '0x10000' },
           process_kill: { pid: browserPid },
         }
       : {}),
@@ -489,9 +479,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     jadx_bridge: { action: 'status' },
     camoufox_server_launch: {},
     camoufox_server_close: {},
-    ...(browserPid
-      ? { module_list: { pid: browserPid }, check_debug_port: { pid: browserPid } }
-      : {}),
+    ...(browserPid ? { check_debug_port: { pid: browserPid } } : {}),
     ...(ctx.sessionPath ? { debugger_load_session: { filePath: ctx.sessionPath } } : {}),
     ...(ctx.workflowId ? { run_extension_workflow: { workflowId: ctx.workflowId } } : {}),
     ...(ctx.v8SnapshotId ? { v8_heap_snapshot_analyze: { snapshotId: ctx.v8SnapshotId } } : {}),

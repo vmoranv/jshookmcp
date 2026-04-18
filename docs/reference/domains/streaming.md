@@ -6,7 +6,6 @@ WebSocket 与 SSE 监控域。
 
 ## Profile
 
-- workflow
 - full
 
 ## 典型场景

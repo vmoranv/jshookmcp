@@ -6,7 +6,6 @@ SourceMap 发现、抓取、解析与源码树重建。
 
 ## Profile
 
-- workflow
 - full
 
 ## 典型场景

@@ -6,7 +6,6 @@ Canvas game engine reverse analysis domain supporting Laya, Pixi, Phaser, Cocos,
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

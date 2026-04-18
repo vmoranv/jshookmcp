@@ -6,7 +6,6 @@ Evidence-graph domain that models provenance between URLs, scripts, functions, h
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

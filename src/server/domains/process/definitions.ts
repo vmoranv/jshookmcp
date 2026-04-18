@@ -15,9 +15,6 @@ export const processToolDefinitions: Tool[] = [
       .string('pattern', 'Process name pattern to search for (e.g., "chrome", "msedge")')
       .required('pattern'),
   ),
-  tool('process_list', (t) =>
-    t.desc('List all running processes. Alias of process_find with empty pattern.'),
-  ),
   tool('process_get', (t) =>
     t
       .desc('Get detailed information about a specific process by PID.')
@@ -104,15 +101,6 @@ export const processToolDefinitions: Tool[] = [
     t
       .desc(
         'Check memory protection flags at a specific address. Detects if memory is writable/readable/executable.',
-      )
-      .number('pid', 'Target process ID')
-      .string('address', 'Memory address to check (hex string like "0x12345678")')
-      .required('pid', 'address'),
-  ),
-  tool('memory_protect', (t) =>
-    t
-      .desc(
-        'Alias of memory_check_protection. Check memory protection flags at a specific address.',
       )
       .number('pid', 'Target process ID')
       .string('address', 'Memory address to check (hex string like "0x12345678")')
@@ -213,12 +201,6 @@ export const processToolDefinitions: Tool[] = [
   tool('enumerate_modules', (t) =>
     t
       .desc('List all loaded modules (DLLs) in a process with their base addresses.')
-      .number('pid', 'Target process ID')
-      .required('pid'),
-  ),
-  tool('module_list', (t) =>
-    t
-      .desc('Alias of enumerate_modules. List loaded modules (DLLs) in a process.')
       .number('pid', 'Target process ID')
       .required('pid'),
   ),

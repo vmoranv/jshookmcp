@@ -6,7 +6,6 @@
 
 ## Profile
 
-- workflow
 - full
 
 ## 典型场景

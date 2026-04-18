@@ -6,8 +6,6 @@
 
 ## Profile
 
-- search
-- workflow
 - full
 
 ## 典型场景

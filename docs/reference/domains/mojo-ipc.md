@@ -6,7 +6,6 @@ Mojo IPC 监控域，用于 Chromium 内部进程间通信分析。
 
 ## Profile
 
-- workflow
 - full
 
 ## 典型场景

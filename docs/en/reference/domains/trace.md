@@ -6,7 +6,6 @@ Time-travel debugging domain that records CDP events into SQLite for SQL-based q
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

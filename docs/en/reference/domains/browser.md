@@ -6,7 +6,6 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

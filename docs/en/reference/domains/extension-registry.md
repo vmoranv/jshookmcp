@@ -6,7 +6,6 @@ Extension registry domain for managing and discovering community extensions.
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

@@ -6,7 +6,6 @@ Custom protocol analysis domain supporting protocol pattern definition, automati
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

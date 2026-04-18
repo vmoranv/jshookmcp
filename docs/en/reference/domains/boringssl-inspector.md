@@ -6,7 +6,6 @@ BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate 
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

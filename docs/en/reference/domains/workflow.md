@@ -6,7 +6,6 @@ Composite workflow and script-library domain; the main built-in orchestration la
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

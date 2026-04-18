@@ -64,7 +64,7 @@ export const systemPhases: Phase[] = [
     concurrent: true,
     group: 'compute-system',
     setup: [],
-    tools: ['check_debug_port', 'module_list', 'enumerate_modules'],
+    tools: ['check_debug_port', 'enumerate_modules'],
   },
   {
     name: 'Memory (read-only)',
@@ -86,7 +86,7 @@ export const systemPhases: Phase[] = [
     concurrent: true,
     group: 'compute-system',
     setup: [],
-    tools: ['memory_write', 'memory_batch_write', 'memory_protect'],
+    tools: ['memory_write', 'memory_batch_write'],
   },
   {
     name: 'WASM',
@@ -141,7 +141,7 @@ export const systemPhases: Phase[] = [
     concurrent: true,
     group: 'compute-system',
     setup: [],
-    tools: ['inject_dll', 'module_inject_dll', 'inject_shellcode', 'module_inject_shellcode'],
+    tools: ['inject_dll', 'inject_shellcode'],
   },
   {
     name: 'External Bridges',

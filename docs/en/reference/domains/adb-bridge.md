@@ -6,7 +6,6 @@ Android Debug Bridge integration domain for device management, application analy
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

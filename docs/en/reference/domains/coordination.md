@@ -6,7 +6,6 @@ Coordination domain for session insights and MCP Task Handoff, bridging the plan
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

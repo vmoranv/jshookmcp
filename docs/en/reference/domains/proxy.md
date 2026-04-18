@@ -6,7 +6,6 @@ Full-stack HTTP/HTTPS MITM proxy domain for system-level traffic interception, m
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

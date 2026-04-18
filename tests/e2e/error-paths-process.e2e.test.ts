@@ -76,13 +76,13 @@ describe('Error Paths & Process/Memory E2E', { timeout: 120_000, sequential: tru
 
   // --- Process/Memory Tests ---
 
-  test('PROC-01: process_list returns process data', async () => {
-    if (!client.getToolMap().has('process_list')) {
+  test('PROC-01: process_find returns process data', async () => {
+    if (!client.getToolMap().has('process_find')) {
       client.recordSynthetic('process-list', 'SKIP', 'Tool not registered');
       return;
     }
 
-    const result = await client.call('process_list', { pattern: 'node' }, 15_000);
+    const result = await client.call('process_find', { pattern: 'node' }, 15_000);
     expect(result.result.status).not.toBe('FAIL');
   });
 

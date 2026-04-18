@@ -203,7 +203,6 @@ const TOOLS = [
   ['tab_workflow', { action: 'list' }],
   ['script_replace_persist', { url: '__never_match_e2e__', replacement: '// replaced' }],
   // Process & System phase (181-210)
-  ['process_list', { pattern: 'test' }],
   ['process_get', { pid: 0 }],
   ['process_windows', { pid: 0 }],
   ['process_find', { pattern: 'browser' }],

@@ -6,7 +6,6 @@ GraphQL 发现、提取、重放与 introspection 能力。
 
 ## Profile
 
-- workflow
 - full
 
 ## 典型场景

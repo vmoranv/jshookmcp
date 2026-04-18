@@ -6,7 +6,6 @@ Memory analysis domain for native scans, pointer-chain discovery, structure infe
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

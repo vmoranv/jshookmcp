@@ -6,7 +6,6 @@ Skia rendering engine capture domain for UI rendering analysis and visualization
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

@@ -6,7 +6,6 @@ Skia 渲染引擎捕获域，用于 UI 渲染分析和可视化。
 
 ## Profile
 
-- workflow
 - full
 
 ## 典型场景

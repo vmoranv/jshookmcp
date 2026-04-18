@@ -238,11 +238,8 @@ export function applyContextCapture(
     overrides.blackbox_add = { pattern: parsed.added[0] as string };
   }
 
-  // ── Browser PID from process_list / process_find / process_find_chromium ──
   if (
-    (toolName === 'process_list' ||
-      toolName === 'process_find' ||
-      toolName === 'process_find_chromium') &&
+    (toolName === 'process_find' || toolName === 'process_find_chromium') &&
     isRecord(parsed) &&
     Array.isArray(parsed.processes) &&
     parsed.processes.length > 0
@@ -277,13 +274,7 @@ export function applyContextCapture(
     }
   }
 
-  // ── DLL path from enumerate_modules / module_list ──
-  if (
-    (toolName === 'enumerate_modules' || toolName === 'module_list') &&
-    isRecord(parsed) &&
-    Array.isArray(parsed.modules) &&
-    parsed.modules.length > 0
-  ) {
+  if (isRecord(parsed) && Array.isArray(parsed.modules) && parsed.modules.length > 0) {
     // Pick a small, safe DLL (prefer ntdll or kernel32 or any real path)
     const mod =
       (parsed.modules as Record<string, unknown>[]).find((m) => {
@@ -295,7 +286,6 @@ export function applyContextCapture(
       ctx.dllPath = dllPath;
       if (typeof ctx.browserPid === 'number' && ctx.browserPid > 0) {
         overrides.inject_dll = { pid: ctx.browserPid, dllPath: ctx.dllPath };
-        overrides.module_inject_dll = { pid: ctx.browserPid, dllPath: ctx.dllPath };
       }
     }
   }

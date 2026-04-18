@@ -6,7 +6,6 @@ System call hooking domain providing system call monitoring and mapping capabili
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

@@ -6,7 +6,6 @@ Cross-domain correlation domain that bridges analysis results across multiple do
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

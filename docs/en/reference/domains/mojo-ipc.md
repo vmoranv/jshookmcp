@@ -6,7 +6,6 @@ Mojo IPC monitoring domain for Chromium inter-process communication analysis.
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

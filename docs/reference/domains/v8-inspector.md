@@ -6,7 +6,6 @@ V8 检查器域，提供堆快照分析、CPU 分析和内存检查。
 
 ## Profile
 
-- workflow
 - full
 
 ## 典型场景

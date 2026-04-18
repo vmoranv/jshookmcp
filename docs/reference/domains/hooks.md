@@ -6,7 +6,6 @@ AI Hook 生成、注入、数据导出，以及内置/自定义 preset 管理。
 
 ## Profile
 
-- workflow
 - full
 
 ## 典型场景

@@ -6,7 +6,6 @@ Binary instrumentation domain providing binary analysis and runtime instrumentat
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

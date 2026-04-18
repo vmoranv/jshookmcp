@@ -6,7 +6,6 @@ AI hook generation, injection, export, and built-in/custom preset management.
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

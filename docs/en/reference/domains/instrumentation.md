@@ -6,7 +6,6 @@ Unified instrumentation-session domain that groups hooks, intercepts, traces, an
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios

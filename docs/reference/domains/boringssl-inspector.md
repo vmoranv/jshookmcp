@@ -6,7 +6,6 @@ BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。
 
 ## Profile
 
-- workflow
 - full
 
 ## 典型场景

@@ -4,18 +4,11 @@ vi.mock('@server/domains/process/index', () => ({
   ProcessToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'ProcessToolHandlers' })),
 }));
 
-const WIN32_ONLY_TOOLS = new Set([
-  'inject_dll',
-  'module_inject_dll',
-  'inject_shellcode',
-  'module_inject_shellcode',
-  'check_debug_port',
-]);
+const WIN32_ONLY_TOOLS = new Set(['inject_dll', 'inject_shellcode', 'check_debug_port']);
 
 const CROSS_PLATFORM_TOOLS = [
   'electron_attach',
   'process_find',
-  'process_list',
   'process_get',
   'process_windows',
   'process_find_chromium',
@@ -26,14 +19,12 @@ const CROSS_PLATFORM_TOOLS = [
   'memory_write',
   'memory_scan',
   'memory_check_protection',
-  'memory_protect',
   'memory_scan_filtered',
   'memory_batch_write',
   'memory_dump_region',
   'memory_list_regions',
   'memory_audit_export',
   'enumerate_modules',
-  'module_list',
 ];
 
 async function loadManifestWithPlatform(platform?: 'win32' | 'linux' | 'darwin') {

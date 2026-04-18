@@ -6,7 +6,6 @@ Cross-agent state synchronization domain providing a global shared state board f
 
 ## Profiles
 
-- workflow
 - full
 
 ## Typical scenarios
