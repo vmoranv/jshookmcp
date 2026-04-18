@@ -21,8 +21,7 @@ class ProcessRegistrySingleton {
 
     // Auto-deregister on completion to prevent memory leaks
     if ('kill' in proc) {
-      // It's a ChildProcess
-      proc.once('exit', () => this.unregister(proc));
+      // ChildProcess — listen on 'close' (fires after stdio streams close, more reliable than 'exit')
       proc.once('close', () => this.unregister(proc));
     } else if ('terminate' in proc) {
       // It's a Worker
