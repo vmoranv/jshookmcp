@@ -1084,12 +1084,17 @@ describe('MCPServer.search', () => {
   it('registerSearchMetaTools registers all 7 meta-tools regardless of profile', () => {
     const ctx = createCtx();
     registerSearchMetaTools(ctx);
-    
+
     const expectedMetaTools = [
-      'search_tools', 'route_tool', 'describe_tool',
-      'activate_tools', 'deactivate_tools', 'activate_domain', 'call_tool',
+      'search_tools',
+      'route_tool',
+      'describe_tool',
+      'activate_tools',
+      'deactivate_tools',
+      'activate_domain',
+      'call_tool',
     ];
-    
+
     for (const name of expectedMetaTools) {
       expect(ctx.__registered.has(name)).toBe(true);
       expect(ctx.metaToolsByName.has(name)).toBe(true);
