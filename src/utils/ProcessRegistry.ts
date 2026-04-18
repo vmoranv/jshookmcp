@@ -25,7 +25,11 @@ class ProcessRegistrySingleton {
       proc.once('close', () => this.unregister(proc));
     } else if ('terminate' in proc) {
       // It's a Worker
-      proc.once('exit', () => this.unregister(proc));
+      if (typeof proc.once === 'function') {
+        proc.once('exit', () => this.unregister(proc));
+      } else if (typeof proc.on === 'function') {
+        proc.on('exit', () => this.unregister(proc));
+      }
     }
   }
 
