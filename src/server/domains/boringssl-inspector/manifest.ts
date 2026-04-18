@@ -110,6 +110,71 @@ const manifest = {
       bind: bind((handler, args) => handler.handleParseCertificate(args)),
     },
     {
+      tool: lookup('tls_probe_endpoint'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTlsProbeEndpoint(args)),
+    },
+    {
+      tool: lookup('tcp_open'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTcpOpen(args)),
+    },
+    {
+      tool: lookup('tcp_write'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTcpWrite(args)),
+    },
+    {
+      tool: lookup('tcp_read_until'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTcpReadUntil(args)),
+    },
+    {
+      tool: lookup('tcp_close'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTcpClose(args)),
+    },
+    {
+      tool: lookup('tls_open'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTlsOpen(args)),
+    },
+    {
+      tool: lookup('tls_write'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTlsWrite(args)),
+    },
+    {
+      tool: lookup('tls_read_until'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTlsReadUntil(args)),
+    },
+    {
+      tool: lookup('tls_close'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleTlsClose(args)),
+    },
+    {
+      tool: lookup('websocket_open'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleWebSocketOpen(args)),
+    },
+    {
+      tool: lookup('websocket_send_frame'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleWebSocketSendFrame(args)),
+    },
+    {
+      tool: lookup('websocket_read_frame'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleWebSocketReadFrame(args)),
+    },
+    {
+      tool: lookup('websocket_close'),
+      domain: DOMAIN,
+      bind: bind((handler, args) => handler.handleWebSocketClose(args)),
+    },
+    {
       tool: lookup('tls_cert_pin_bypass_frida'),
       domain: DOMAIN,
       bind: bind((handler, args) => handler.handleBypassCertPinning(args)),
@@ -143,14 +208,29 @@ const manifest = {
   ensure,
   workflowRule: {
     patterns: [
-      /\b(tls|ssl|boringssl|cert(ificate)?|pinning|handshake|keylog)\b/i,
-      /(tls|ssl|cert|pinning).*(hook|bypass|intercept|dump|log)/i,
+      /\b(tls|ssl|boringssl|cert(ificate)?|pinning|handshake|keylog|websocket)\b/i,
+      /(tls|ssl|cert|pinning|websocket).*(hook|bypass|intercept|dump|log|frame|session)/i,
     ],
     priority: 80,
-    tools: ['tls_keylog_enable', 'tls_keylog_parse', 'tls_decrypt_payload', 'tls_cert_pin_bypass'],
-    hint: 'TLS traffic analysis: enable keylog → capture handshake → decrypt payloads or bypass pinning.',
+    tools: [
+      'tls_probe_endpoint',
+      'websocket_open',
+      'websocket_send_frame',
+      'websocket_read_frame',
+      'tls_keylog_enable',
+      'tls_keylog_parse',
+      'tls_decrypt_payload',
+      'tls_cert_pin_bypass',
+    ],
+    hint: 'TLS/WebSocket analysis: probe endpoint → open ws/wss session → exchange frames → inspect trust/cipher/ALPN → enable keylog or bypass pinning when needed.',
   },
   prerequisites: {
+    tls_probe_endpoint: [
+      {
+        condition: 'Target scope must be explicitly authorized and routable from the MCP host',
+        fix: 'Verify target authorization, port reachability, and provide servername/custom CA options when needed',
+      },
+    ],
     tls_keylog_enable: [
       {
         condition: 'Target process must allow SSLKEYLOGFILE or be attachable by Frida',
