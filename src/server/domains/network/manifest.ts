@@ -164,6 +164,24 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleConsoleInjectFunctionTracer(a)),
     },
+    { tool: t('dns_resolve'), domain: DOMAIN, bind: b((h, a) => h.handleDnsResolve(a)) },
+    { tool: t('dns_reverse'), domain: DOMAIN, bind: b((h, a) => h.handleDnsReverse(a)) },
+    {
+      tool: t('http_request_build'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleHttpRequestBuild(a)),
+    },
+    {
+      tool: t('http_plain_request'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleHttpPlainRequest(a)),
+    },
+    { tool: t('http2_probe'), domain: DOMAIN, bind: b((h, a) => h.handleHttp2Probe(a)) },
+    {
+      tool: t('http2_frame_build'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleHttp2FrameBuild(a)),
+    },
     {
       tool: t('network_extract_auth'),
       domain: DOMAIN,

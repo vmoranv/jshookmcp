@@ -3,6 +3,7 @@ import { extractAuthFromRequests } from '@server/domains/network/auth-extractor'
 import { buildHar } from '@server/domains/network/har';
 import type { BuildHarParams } from '@server/domains/network/har';
 import { replayRequest } from '@server/domains/network/replay';
+import type { NetworkAuthorizationInput } from '@server/domains/network/ssrf-policy';
 import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
 
 interface ReplayableRequest {
@@ -11,6 +12,11 @@ interface ReplayableRequest {
   method: string;
   headers?: Record<string, string>;
   postData?: string;
+}
+
+interface ReplayAuthorizationCapabilityPayload extends NetworkAuthorizationInput {
+  version?: number;
+  requestId: string;
 }
 
 const isReplayableRequest = (value: unknown): value is ReplayableRequest => {
@@ -24,6 +30,128 @@ const isReplayableRequest = (value: unknown): value is ReplayableRequest => {
     typeof record.url === 'string' &&
     typeof record.method === 'string'
   );
+};
+
+const parseStringArray = (value: unknown, field: string): string[] => {
+  if (value === undefined) {
+    return [];
+  }
+
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
+    throw new Error(`${field} must be an array of strings`);
+  }
+
+  return value.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+};
+
+const parseOptionalString = (value: unknown, field: string): string | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw new Error(`${field} must be a string`);
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const parseOptionalBoolean = (value: unknown, field: string): boolean | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'boolean') {
+    throw new Error(`${field} must be a boolean`);
+  }
+
+  return value;
+};
+
+const decodeAuthorizationCapability = (
+  capability: unknown,
+  requestId: string,
+): ReplayAuthorizationCapabilityPayload => {
+  if (typeof capability !== 'string' || capability.trim().length === 0) {
+    throw new Error('authorizationCapability must be a non-empty base64url string');
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.from(capability, 'base64url').toString('utf8'));
+  } catch {
+    throw new Error('authorizationCapability must be valid base64url-encoded JSON');
+  }
+
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('authorizationCapability payload must be an object');
+  }
+
+  const payload = parsed as ReplayAuthorizationCapabilityPayload;
+  if (payload.version !== undefined && payload.version !== 1) {
+    throw new Error(`authorizationCapability version ${String(payload.version)} is not supported`);
+  }
+
+  if (payload.requestId !== requestId) {
+    throw new Error('authorizationCapability requestId does not match the replay requestId');
+  }
+
+  return payload;
+};
+
+const parseReplayAuthorization = (
+  args: Record<string, unknown>,
+  requestId: string,
+): NetworkAuthorizationInput | undefined => {
+  const authorizationArg = args.authorization;
+  const capabilityArg = args.authorizationCapability;
+
+  if (authorizationArg !== undefined && capabilityArg !== undefined) {
+    throw new Error('Provide either authorization or authorizationCapability, not both');
+  }
+
+  let source: Record<string, unknown> | undefined;
+  if (authorizationArg !== undefined) {
+    if (
+      typeof authorizationArg !== 'object' ||
+      authorizationArg === null ||
+      Array.isArray(authorizationArg)
+    ) {
+      throw new Error('authorization must be an object');
+    }
+    source = authorizationArg as Record<string, unknown>;
+  } else if (capabilityArg !== undefined) {
+    source = decodeAuthorizationCapability(capabilityArg, requestId) as unknown as Record<
+      string,
+      unknown
+    >;
+  } else {
+    return undefined;
+  }
+
+  const allowedHosts = parseStringArray(source.allowedHosts, 'authorization.allowedHosts');
+  const allowedCidrs = parseStringArray(source.allowedCidrs, 'authorization.allowedCidrs');
+  const allowPrivateNetwork = parseOptionalBoolean(
+    source.allowPrivateNetwork,
+    'authorization.allowPrivateNetwork',
+  );
+  const allowInsecureHttp = parseOptionalBoolean(
+    source.allowInsecureHttp,
+    'authorization.allowInsecureHttp',
+  );
+  const expiresAt = parseOptionalString(source.expiresAt, 'authorization.expiresAt');
+  const reason = parseOptionalString(source.reason, 'authorization.reason');
+
+  const authorization: NetworkAuthorizationInput = {};
+  if (allowedHosts.length > 0) authorization.allowedHosts = allowedHosts;
+  if (allowedCidrs.length > 0) authorization.allowedCidrs = allowedCidrs;
+  if (allowPrivateNetwork !== undefined) authorization.allowPrivateNetwork = allowPrivateNetwork;
+  if (allowInsecureHttp !== undefined) authorization.allowInsecureHttp = allowInsecureHttp;
+  if (expiresAt !== undefined) authorization.expiresAt = expiresAt;
+  if (reason !== undefined) authorization.reason = reason;
+
+  return authorization;
 };
 
 export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
@@ -272,6 +400,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
     }
 
     try {
+      const authorization = parseReplayAuthorization(args, requestId);
       const result = await replayRequest(base, {
         requestId,
         headerPatch: args.headerPatch as Record<string, string> | undefined,
@@ -280,6 +409,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
         urlOverride: args.urlOverride as string | undefined,
         timeoutMs: args.timeoutMs as number | undefined,
         dryRun: args.dryRun !== false,
+        authorization,
       });
 
       return {
