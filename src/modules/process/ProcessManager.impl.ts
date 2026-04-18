@@ -18,28 +18,29 @@ import {
   type ChromiumProcess,
   type TargetAppConfig,
   type WindowInfo,
+  type ProcessInfo,
 } from '@modules/process/ProcessManager.types';
 import { ProcessRegistry } from '@utils/ProcessRegistry';
 
 export {
   DEFAULT_CHROMIUM_CONFIG,
   type ChromiumProcess,
-  type any,
+  type ProcessInfo,
   type TargetAppConfig,
   type WindowInfo,
-} from '@modules/process/ProcessManager.types';
+};
 
 const execAsync = promisify(exec);
 const PROCESS_SNAPSHOT_CACHE_TTL_MS = 3000;
 
 interface ProcessSnapshotEntry {
   expiresAt: number;
-  snapshot: any[];
-  byPid: Map<number, any>;
+  snapshot: ProcessInfo[];
+  byPid: Map<number, ProcessInfo>;
   lastDelta: {
-    added: any[];
-    removed: any[];
-    changed: Array<{ before: any; after: any }>;
+    added: ProcessInfo[];
+    removed: ProcessInfo[];
+    changed: Array<{ before: ProcessInfo; after: ProcessInfo }>;
   };
 }
 
