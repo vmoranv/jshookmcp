@@ -10,7 +10,7 @@ export const processToolDefinitions: Tool[] = [
   tool('process_find', (t) =>
     t
       .desc(
-        'Find processes by name pattern. Returns process IDs, names, paths, and window handles.',
+        'Find processes by name pattern. Returns process IDs, names, paths, and window handles. Use with an empty pattern to list all processes.',
       )
       .string('pattern', 'Process name pattern to search for (e.g., "chrome", "msedge")')
       .required('pattern'),
