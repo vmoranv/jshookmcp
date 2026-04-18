@@ -134,7 +134,7 @@ export class ExecutionSandbox {
       workerOptions.type = 'module';
 
       const worker = new Worker(WORKER_SCRIPT, workerOptions);
-      worker.unref();
+      if (typeof worker.unref === 'function') worker.unref();
       ProcessRegistry.register(worker);
 
       const finish = (result: Omit<SandboxExecuteResult, 'durationMs'>) => {

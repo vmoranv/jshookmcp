@@ -11,9 +11,9 @@ describe('instrumentation manifest', () => {
     expect(manifest.domain).toBe('instrumentation');
   });
 
-  it('profiles include "workflow" and "full" (NOT full-only)', () => {
-    expect(manifest.profiles).toContain('workflow');
+  it('profiles include only "full"', () => {
     expect(manifest.profiles).toContain('full');
+    expect(manifest.profiles).not.toContain('workflow');
     expect(manifest.profiles).not.toContain('search');
   });
 

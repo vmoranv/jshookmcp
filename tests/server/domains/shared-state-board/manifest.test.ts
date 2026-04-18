@@ -9,9 +9,9 @@ describe('shared-state-board manifest', () => {
     expect(manifest.kind).toBe('domain-manifest');
   });
 
-  it('should have workflow and full profiles', () => {
-    expect(manifest.profiles).toContain('workflow');
+  it('should have only full profile', () => {
     expect(manifest.profiles).toContain('full');
+    expect(manifest.profiles).not.toContain('workflow');
   });
 
   it('should have all tool registrations', () => {

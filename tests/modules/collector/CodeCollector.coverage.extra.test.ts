@@ -316,99 +316,105 @@ describe('CodeCollector extra coverage', () => {
   });
 
   it('resolves browser user data dirs, connect options, and error normalization branches', async () => {
-    const collector = new CodeCollector(defaultConfig);
-    const anyCollector = collector as any;
+    const {
+      resolveDefaultChromeUserDataDir,
+      resolveAutoConnectWsEndpointImpl,
+      resolveConnectOptionsImpl,
+      getUnknownErrorMessage,
+      normalizeConnectError,
+      buildConnectTimeoutError,
+    } = await import('@modules/collector/CodeCollectorConnectionInternal');
 
     setPlatform('win32');
     process.env.LOCALAPPDATA = 'C:\\Users\\tester\\AppData\\Local';
-    expect(anyCollector.resolveDefaultChromeUserDataDir('stable')).toBe(
+    expect(resolveDefaultChromeUserDataDir('stable')).toBe(
       join('C:\\Users\\tester\\AppData\\Local', 'Google', 'Chrome', 'User Data'),
     );
-    expect(anyCollector.resolveDefaultChromeUserDataDir('beta')).toBe(
+    expect(resolveDefaultChromeUserDataDir('beta')).toBe(
       join('C:\\Users\\tester\\AppData\\Local', 'Google', 'Chrome Beta', 'User Data'),
     );
-    expect(anyCollector.resolveDefaultChromeUserDataDir('dev')).toBe(
+    expect(resolveDefaultChromeUserDataDir('dev')).toBe(
       join('C:\\Users\\tester\\AppData\\Local', 'Google', 'Chrome Dev', 'User Data'),
     );
-    expect(anyCollector.resolveDefaultChromeUserDataDir('canary')).toBe(
+    expect(resolveDefaultChromeUserDataDir('canary')).toBe(
       join('C:\\Users\\tester\\AppData\\Local', 'Google', 'Chrome SxS', 'User Data'),
     );
 
     setPlatform('darwin');
-    expect(anyCollector.resolveDefaultChromeUserDataDir('stable')).toBe(
+    expect(resolveDefaultChromeUserDataDir('stable')).toBe(
       join('C:\\Users\\tester', 'Library', 'Application Support', 'Google', 'Chrome'),
     );
-    expect(anyCollector.resolveDefaultChromeUserDataDir('beta')).toBe(
+    expect(resolveDefaultChromeUserDataDir('beta')).toBe(
       join('C:\\Users\\tester', 'Library', 'Application Support', 'Google', 'Chrome Beta'),
     );
-    expect(anyCollector.resolveDefaultChromeUserDataDir('dev')).toBe(
+    expect(resolveDefaultChromeUserDataDir('dev')).toBe(
       join('C:\\Users\\tester', 'Library', 'Application Support', 'Google', 'Chrome Dev'),
     );
-    expect(anyCollector.resolveDefaultChromeUserDataDir('canary')).toBe(
+    expect(resolveDefaultChromeUserDataDir('canary')).toBe(
       join('C:\\Users\\tester', 'Library', 'Application Support', 'Google', 'Chrome Canary'),
     );
 
     setPlatform('linux');
     process.env.XDG_CONFIG_HOME = 'C:\\Users\\tester\\.config';
-    expect(anyCollector.resolveDefaultChromeUserDataDir('stable')).toBe(
+    expect(resolveDefaultChromeUserDataDir('stable')).toBe(
       join('C:\\Users\\tester\\.config', 'google-chrome'),
     );
-    expect(anyCollector.resolveDefaultChromeUserDataDir('beta')).toBe(
+    expect(resolveDefaultChromeUserDataDir('beta')).toBe(
       join('C:\\Users\\tester\\.config', 'google-chrome-beta'),
     );
-    expect(anyCollector.resolveDefaultChromeUserDataDir('dev')).toBe(
+    expect(resolveDefaultChromeUserDataDir('dev')).toBe(
       join('C:\\Users\\tester\\.config', 'google-chrome-unstable'),
     );
-    expect(anyCollector.resolveDefaultChromeUserDataDir('canary')).toBe(
+    expect(resolveDefaultChromeUserDataDir('canary')).toBe(
       join('C:\\Users\\tester\\.config', 'google-chrome-canary'),
     );
 
     mocks.readFile.mockResolvedValueOnce('9222\n/devtools/browser/abc\n');
     await expect(
-      anyCollector.resolveAutoConnectWsEndpoint({ userDataDir: 'C:\\profiles\\chrome' }),
+      resolveAutoConnectWsEndpointImpl({ userDataDir: 'C:\\profiles\\chrome' }),
     ).resolves.toBe('ws://127.0.0.1:9222/devtools/browser/abc');
 
     mocks.readFile.mockResolvedValueOnce('9222\n');
     await expect(
-      anyCollector.resolveAutoConnectWsEndpoint({ userDataDir: 'C:\\profiles\\chrome' }),
+      resolveAutoConnectWsEndpointImpl({ userDataDir: 'C:\\profiles\\chrome' }),
     ).rejects.toThrow('Invalid DevToolsActivePort contents');
 
     mocks.readFile.mockResolvedValueOnce('70000\n/devtools/browser/abc\n');
     await expect(
-      anyCollector.resolveAutoConnectWsEndpoint({ userDataDir: 'C:\\profiles\\chrome' }),
+      resolveAutoConnectWsEndpointImpl({ userDataDir: 'C:\\profiles\\chrome' }),
     ).rejects.toThrow('Invalid remote debugging port');
 
     mocks.readFile.mockRejectedValueOnce(new Error('ENOENT'));
     await expect(
-      anyCollector.resolveAutoConnectWsEndpoint({ userDataDir: 'C:\\profiles\\chrome' }),
+      resolveAutoConnectWsEndpointImpl({ userDataDir: 'C:\\profiles\\chrome' }),
     ).rejects.toThrow('Could not read DevToolsActivePort');
 
     mocks.readFile.mockResolvedValueOnce('9222\n/devtools/browser/abc\n');
     await expect(
-      anyCollector.resolveConnectOptions('ws://127.0.0.1:9222/devtools/browser/abc'),
+      resolveConnectOptionsImpl('ws://127.0.0.1:9222/devtools/browser/abc'),
     ).resolves.toEqual({
       browserWSEndpoint: 'ws://127.0.0.1:9222/devtools/browser/abc',
     });
-    await expect(anyCollector.resolveConnectOptions('http://127.0.0.1:9222')).resolves.toEqual({
+    await expect(resolveConnectOptionsImpl('http://127.0.0.1:9222')).resolves.toEqual({
       browserURL: 'http://127.0.0.1:9222',
     });
     await expect(
-      anyCollector.resolveConnectOptions({ browserURL: 'http://127.0.0.1:9222' }),
+      resolveConnectOptionsImpl({ browserURL: 'http://127.0.0.1:9222' }),
     ).resolves.toEqual({
       browserURL: 'http://127.0.0.1:9222',
     });
     await expect(
-      anyCollector.resolveConnectOptions({
+      resolveConnectOptionsImpl({
         wsEndpoint: 'ws://127.0.0.1:9222/devtools/browser/abc',
       }),
     ).resolves.toEqual({
       browserWSEndpoint: 'ws://127.0.0.1:9222/devtools/browser/abc',
     });
-    await expect(anyCollector.resolveConnectOptions('   ')).rejects.toThrow(
+    await expect(resolveConnectOptionsImpl('   ')).rejects.toThrow(
       'Connection endpoint cannot be empty.',
     );
     await expect(
-      anyCollector.resolveConnectOptions({
+      resolveConnectOptionsImpl({
         autoConnect: true,
         userDataDir: 'C:\\profiles\\chrome',
       }),
@@ -417,37 +423,38 @@ describe('CodeCollector extra coverage', () => {
     });
     mocks.readFile.mockResolvedValueOnce('9222\n/devtools/browser/abc\n');
     await expect(
-      anyCollector.resolveConnectOptions({ channel: 'beta', userDataDir: 'C:\\profiles\\chrome' }),
+      resolveConnectOptionsImpl({ channel: 'beta', userDataDir: 'C:\\profiles\\chrome' }),
     ).resolves.toEqual({
       browserWSEndpoint: 'ws://127.0.0.1:9222/devtools/browser/abc',
     });
 
-    expect(anyCollector.getUnknownErrorMessage({ message: '  trimmed  ' })).toBe('trimmed');
-    expect(anyCollector.getUnknownErrorMessage({ error: new Error('nested error') })).toBe(
-      'nested error',
-    );
-    expect(anyCollector.getUnknownErrorMessage({ error: { message: ' nested message ' } })).toBe(
+    expect(getUnknownErrorMessage({ message: '  trimmed  ' })).toBe('trimmed');
+    expect(getUnknownErrorMessage({ error: new Error('nested error') })).toBe('nested error');
+    expect(getUnknownErrorMessage({ error: { message: ' nested message ' } })).toBe(
       'nested message',
     );
-    expect(anyCollector.getUnknownErrorMessage({ data: 'value' })).toContain('"data":"value"');
-    expect(anyCollector.getUnknownErrorMessage(null)).toBe('null');
+    expect(getUnknownErrorMessage({ data: 'value' })).toContain('"data":"value"');
+    expect(getUnknownErrorMessage(null)).toBe('null');
 
-    const friendly = anyCollector.normalizeConnectError(
+    const friendly = normalizeConnectError(
       { message: 'connect ECONNREFUSED' },
       'auto-detected Chrome debugging endpoint',
       { userDataDir: 'C:\\profiles\\chrome' },
     );
     expect(friendly.message).toContain('Chrome is not currently listening');
 
-    const timeoutAuto = anyCollector.buildConnectTimeoutError(
+    const timeoutAuto = buildConnectTimeoutError(
       'auto-detected Chrome debugging endpoint',
       { autoConnect: true },
+      1000,
     );
     expect(timeoutAuto.message).toContain('click Allow');
 
-    const timeoutManual = anyCollector.buildConnectTimeoutError('ws://127.0.0.1:9222', {
-      wsEndpoint: 'ws://127.0.0.1:9222',
-    });
+    const timeoutManual = buildConnectTimeoutError(
+      'ws://127.0.0.1:9222',
+      { wsEndpoint: 'ws://127.0.0.1:9222' },
+      1000,
+    );
     expect(timeoutManual.message).toContain(
       'Verify that the browser debugging endpoint is reachable',
     );

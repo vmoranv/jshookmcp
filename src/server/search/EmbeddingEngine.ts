@@ -91,7 +91,7 @@ export class EmbeddingEngine {
 
     const workerPath = new URL('./EmbeddingWorker.js', import.meta.url);
     this.worker = new Worker(workerPath);
-    this.worker.unref();
+    if (typeof this.worker.unref === 'function') this.worker.unref();
     ProcessRegistry.register(this.worker);
 
     this.worker.on(

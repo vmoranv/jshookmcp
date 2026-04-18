@@ -223,10 +223,10 @@ describe('canvas domain manifest', () => {
       expect(manifest.depKey).toBe('canvasHandlers');
     });
 
-    it('profiles include "workflow" and "full"', () => {
-      expect(manifest.profiles).toContain('workflow');
+    it('profiles include only "full"', () => {
       expect(manifest.profiles).toContain('full');
-      expect(manifest.profiles).toHaveLength(2);
+      expect(manifest.profiles).not.toContain('workflow');
+      expect(manifest.profiles).toHaveLength(1);
     });
 
     it('ensure is a function', () => {
