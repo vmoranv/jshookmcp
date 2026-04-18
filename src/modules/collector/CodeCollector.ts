@@ -1,8 +1,5 @@
 import { existsSync } from 'fs';
-import { readFile } from 'fs/promises';
-import { homedir } from 'os';
-import { join } from 'path';
-import { connect, launch } from 'rebrowser-puppeteer-core';
+import { launch } from 'rebrowser-puppeteer-core';
 import type { Browser, Page, CDPSession, Target } from 'rebrowser-puppeteer-core';
 import type {
   CollectCodeOptions,
@@ -15,11 +12,9 @@ import { PrerequisiteError } from '@errors/PrerequisiteError';
 import { CodeCache } from '@modules/collector/CodeCache';
 import { SmartCodeCollector } from '@modules/collector/SmartCodeCollector';
 import { CodeCompressor } from '@modules/collector/CodeCompressor';
-import { calculatePriorityScore } from '@modules/collector/PageScriptCollectors';
 import { BrowserTargetSessionManager } from '@modules/browser/BrowserTargetSessionManager';
 import type { BrowserTargetInfo } from '@modules/browser/BrowserTargetSessionManager';
 import type { CDPSessionLike } from '@modules/browser/CDPSessionLike';
-import { connectPlaywrightCdpFallback } from '@modules/collector/playwright-cdp-fallback';
 import { findBrowserExecutable } from '@utils/browserExecutable';
 import { collectInnerImpl } from '@modules/collector/CodeCollectorCollectInternal';
 import {
@@ -28,6 +23,16 @@ import {
   getPerformanceMetricsImpl,
   collectPageMetadataImpl,
 } from '@modules/collector/CodeCollectorUtilsInternal';
+import {
+  resolveConnectOptionsImpl,
+  connectWithTimeoutImpl,
+} from '@modules/collector/CodeCollectorConnectionInternal';
+import {
+  getCollectedFilesSummaryImpl,
+  getFileByUrlImpl,
+  getFilesByPatternImpl,
+  getTopPriorityFilesImpl,
+} from '@modules/collector/CodeCollectorFileQueryInternal';
 
 interface ChromeLike {
   runtime: Record<string, unknown>;
@@ -40,13 +45,11 @@ interface WindowWithChrome extends Window {
   chrome?: ChromeLike;
 }
 
-type ChromeReleaseChannel = 'stable' | 'beta' | 'dev' | 'canary';
-
 export interface ChromeConnectOptions {
   browserURL?: string;
   wsEndpoint?: string;
   autoConnect?: boolean;
-  channel?: ChromeReleaseChannel;
+  channel?: 'stable' | 'beta' | 'dev' | 'canary';
   userDataDir?: string;
 }
 
@@ -63,7 +66,7 @@ export class CodeCollector {
   protected collectedUrls: Set<string> = new Set();
   private initPromise: Promise<void> | null = null;
   private collectLock: Promise<CollectCodeResult> | null = null;
-  private connectAttemptId = 0;
+  private connectAttemptRef = { current: 0 };
   protected readonly MAX_COLLECTED_URLS: number;
   protected readonly MAX_FILES_PER_COLLECT: number;
   protected readonly MAX_RESPONSE_SIZE: number;
@@ -548,243 +551,10 @@ export class CodeCollector {
   async collectPageMetadata(page: Page): Promise<Record<string, unknown>> {
     return collectPageMetadataImpl(page);
   }
-  private resolveDefaultChromeUserDataDir(channel: ChromeReleaseChannel = 'stable'): string {
-    const home = homedir();
-
-    if (process.platform === 'win32') {
-      const localAppData = process.env.LOCALAPPDATA ?? join(home, 'AppData', 'Local');
-      switch (channel) {
-        case 'beta':
-          return join(localAppData, 'Google', 'Chrome Beta', 'User Data');
-        case 'dev':
-          return join(localAppData, 'Google', 'Chrome Dev', 'User Data');
-        case 'canary':
-          return join(localAppData, 'Google', 'Chrome SxS', 'User Data');
-        case 'stable':
-        default:
-          return join(localAppData, 'Google', 'Chrome', 'User Data');
-      }
-    }
-
-    if (process.platform === 'darwin') {
-      const appSupport = join(home, 'Library', 'Application Support');
-      switch (channel) {
-        case 'beta':
-          return join(appSupport, 'Google', 'Chrome Beta');
-        case 'dev':
-          return join(appSupport, 'Google', 'Chrome Dev');
-        case 'canary':
-          return join(appSupport, 'Google', 'Chrome Canary');
-        case 'stable':
-        default:
-          return join(appSupport, 'Google', 'Chrome');
-      }
-    }
-
-    const configHome = process.env.XDG_CONFIG_HOME ?? join(home, '.config');
-    switch (channel) {
-      case 'beta':
-        return join(configHome, 'google-chrome-beta');
-      case 'dev':
-        return join(configHome, 'google-chrome-unstable');
-      case 'canary':
-        return join(configHome, 'google-chrome-canary');
-      case 'stable':
-      default:
-        return join(configHome, 'google-chrome');
-    }
-  }
-
-  private async resolveAutoConnectWsEndpoint(options: ChromeConnectOptions): Promise<string> {
-    const channel = options.channel ?? 'stable';
-    const userDataDir = options.userDataDir ?? this.resolveDefaultChromeUserDataDir(channel);
-    const devToolsActivePortPath = join(userDataDir, 'DevToolsActivePort');
-
-    let fileContent: string;
-    try {
-      fileContent = await readFile(devToolsActivePortPath, 'utf8');
-    } catch (error) {
-      throw new Error(
-        `Could not read DevToolsActivePort from "${devToolsActivePortPath}". Check if Chrome is running from this profile and remote debugging is enabled at chrome://inspect/#remote-debugging.`,
-        { cause: error },
-      );
-    }
-
-    const [rawPort, rawPath] = fileContent
-      .split(/\r?\n/u)
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (!rawPort || !rawPath) {
-      throw new Error(`Invalid DevToolsActivePort contents found in "${devToolsActivePortPath}".`);
-    }
-
-    const port = Number.parseInt(rawPort, 10);
-    if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-      throw new Error(`Invalid remote debugging port "${rawPort}" in "${devToolsActivePortPath}".`);
-    }
-
-    return `ws://127.0.0.1:${port}${rawPath}`;
-  }
-
   private async resolveConnectOptions(
     endpointOrOptions: string | ChromeConnectOptions,
   ): Promise<{ browserWSEndpoint?: string; browserURL?: string }> {
-    if (typeof endpointOrOptions === 'string') {
-      const endpoint = endpointOrOptions.trim();
-      if (!endpoint) {
-        throw new Error('Connection endpoint cannot be empty.');
-      }
-      return endpoint.startsWith('ws://') || endpoint.startsWith('wss://')
-        ? { browserWSEndpoint: endpoint }
-        : { browserURL: endpoint };
-    }
-
-    if (endpointOrOptions.wsEndpoint) {
-      return { browserWSEndpoint: endpointOrOptions.wsEndpoint };
-    }
-
-    if (endpointOrOptions.browserURL) {
-      return { browserURL: endpointOrOptions.browserURL };
-    }
-
-    if (
-      endpointOrOptions.autoConnect ||
-      endpointOrOptions.userDataDir ||
-      endpointOrOptions.channel
-    ) {
-      return {
-        browserWSEndpoint: await this.resolveAutoConnectWsEndpoint(endpointOrOptions),
-      };
-    }
-
-    throw new Error(
-      'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required to connect to an existing browser.',
-    );
-  }
-
-  private isAutoConnectRequest(endpointOrOptions: string | ChromeConnectOptions): boolean {
-    return (
-      typeof endpointOrOptions !== 'string' &&
-      Boolean(
-        endpointOrOptions.autoConnect || endpointOrOptions.userDataDir || endpointOrOptions.channel,
-      )
-    );
-  }
-
-  private getUnknownErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-
-    if (typeof error === 'object' && error !== null) {
-      const directMessage =
-        'message' in error && typeof error.message === 'string' ? error.message.trim() : '';
-      if (directMessage) {
-        return directMessage;
-      }
-
-      const nestedError = 'error' in error ? error.error : undefined;
-      if (nestedError instanceof Error && nestedError.message) {
-        return nestedError.message;
-      }
-
-      if (typeof nestedError === 'object' && nestedError !== null) {
-        const nestedMessage =
-          'message' in nestedError && typeof nestedError.message === 'string'
-            ? nestedError.message.trim()
-            : '';
-        if (nestedMessage) {
-          return nestedMessage;
-        }
-      }
-
-      const serialized = JSON.stringify(error);
-      if (serialized && serialized !== '{}') {
-        return serialized;
-      }
-    }
-
-    return String(error);
-  }
-
-  private normalizeConnectError(
-    error: unknown,
-    target: string,
-    endpointOrOptions: string | ChromeConnectOptions,
-  ): Error {
-    const message = this.getUnknownErrorMessage(error);
-
-    if (this.isAutoConnectRequest(endpointOrOptions) && /ECONNREFUSED/i.test(message)) {
-      return new Error(
-        `Failed to connect to existing browser: ${message}. ` +
-          `Chrome is not currently listening at ${target}. ` +
-          'DevToolsActivePort may be stale after a browser restart. ' +
-          'Re-open Chrome, confirm remote debugging is enabled at chrome://inspect/#remote-debugging, click Allow if prompted, and retry.',
-      );
-    }
-
-    return error instanceof Error
-      ? error
-      : new Error(`Failed to connect to existing browser: ${message}`);
-  }
-
-  private buildConnectTimeoutError(
-    target: string,
-    endpointOrOptions: string | ChromeConnectOptions,
-    timeoutMs: number,
-  ): Error {
-    const baseMessage =
-      `Timed out after ${timeoutMs}ms while connecting to existing browser: ${target}. ` +
-      'The CDP handshake did not complete in time.';
-
-    if (this.isAutoConnectRequest(endpointOrOptions)) {
-      return new Error(
-        `${baseMessage} If Chrome prompted for remote debugging approval, click Allow in Chrome and then retry the tool call.`,
-      );
-    }
-
-    return new Error(
-      `${baseMessage} Verify that the browser debugging endpoint is reachable and retry.`,
-    );
-  }
-
-  private shouldAttemptPlaywrightFallback(error: unknown): boolean {
-    const message = this.getUnknownErrorMessage(error);
-
-    if (/ECONNREFUSED|ENOTFOUND|404|stale/i.test(message)) {
-      return false;
-    }
-
-    return /timed out|handshake|Protocol error|Target closed|ECONNRESET|socket hang up|WebSocket/i.test(
-      message,
-    );
-  }
-
-  private async connectWithPlaywrightFallback(
-    connectOptions: { browserWSEndpoint?: string; browserURL?: string },
-    primaryError: unknown,
-  ): Promise<Browser> {
-    const endpoint = connectOptions.browserWSEndpoint ?? connectOptions.browserURL;
-    if (!endpoint) {
-      throw primaryError instanceof Error ? primaryError : new Error(String(primaryError));
-    }
-
-    logger.warn(
-      `[connect-fallback] Rebrowser connect failed. Falling back to Playwright CDP compatibility mode for ${endpoint}.`,
-    );
-
-    try {
-      return await connectPlaywrightCdpFallback(endpoint, this.CONNECT_TIMEOUT_MS);
-    } catch (fallbackError) {
-      const primaryMessage = this.getUnknownErrorMessage(primaryError);
-      const fallbackMessage = this.getUnknownErrorMessage(fallbackError);
-      throw new Error(
-        `Failed to connect to existing browser via both rebrowser-puppeteer and Playwright CDP compatibility fallback. ` +
-          `Primary error: ${primaryMessage}. Fallback error: ${fallbackMessage}.`,
-        { cause: fallbackError },
-      );
-    }
+    return resolveConnectOptionsImpl(endpointOrOptions);
   }
 
   private async connectWithTimeout(
@@ -792,51 +562,13 @@ export class CodeCollector {
     target: string,
     endpointOrOptions: string | ChromeConnectOptions,
   ): Promise<Browser> {
-    const attemptId = ++this.connectAttemptId;
-    const primaryTimeoutMs = this.CONNECT_TIMEOUT_MS;
-    try {
-      return await new Promise<Browser>((resolve, reject) => {
-        let settled = false;
-        const timer = setTimeout(() => {
-          settled = true;
-          if (this.connectAttemptId === attemptId) {
-            this.connectAttemptId += 1;
-          }
-          reject(this.buildConnectTimeoutError(target, endpointOrOptions, primaryTimeoutMs));
-        }, primaryTimeoutMs);
-
-        void connect({ ...connectOptions, defaultViewport: null })
-          .then(async (browser) => {
-            if (settled || this.connectAttemptId !== attemptId) {
-              try {
-                await browser.disconnect();
-              } catch {
-                /* best-effort cleanup for stale connection results */
-              }
-              return;
-            }
-
-            settled = true;
-            clearTimeout(timer);
-            resolve(browser);
-          })
-          .catch((error) => {
-            if (settled || this.connectAttemptId !== attemptId) {
-              return;
-            }
-
-            settled = true;
-            clearTimeout(timer);
-            reject(this.normalizeConnectError(error, target, endpointOrOptions));
-          });
-      });
-    } catch (error) {
-      if (!this.shouldAttemptPlaywrightFallback(error)) {
-        throw error;
-      }
-
-      return await this.connectWithPlaywrightFallback(connectOptions, error);
-    }
+    return connectWithTimeoutImpl(
+      connectOptions,
+      target,
+      endpointOrOptions,
+      this.CONNECT_TIMEOUT_MS,
+      this.connectAttemptRef,
+    );
   }
 
   async connect(endpointOrOptions: string | ChromeConnectOptions): Promise<void> {
@@ -933,26 +665,10 @@ export class CodeCollector {
     truncated?: boolean;
     originalSize?: number;
   }> {
-    const summaries = Array.from(this.collectedFilesCache.values()).map((file) => ({
-      url: file.url,
-      size: file.size,
-      type: file.type,
-      truncated:
-        typeof file.metadata?.truncated === 'boolean' ? file.metadata.truncated : undefined,
-      originalSize:
-        typeof file.metadata?.originalSize === 'number' ? file.metadata.originalSize : undefined,
-    }));
-    logger.info(`Returning summary of ${summaries.length} collected files`);
-    return summaries;
+    return getCollectedFilesSummaryImpl(this.collectedFilesCache);
   }
   getFileByUrl(url: string): CodeFile | null {
-    const file = this.collectedFilesCache.get(url);
-    if (file) {
-      logger.info(`Returning file: ${url} (${(file.size / 1024).toFixed(2)} KB)`);
-      return file;
-    }
-    logger.warn(`File not found: ${url}`);
-    return null;
+    return getFileByUrlImpl(this.collectedFilesCache, url);
   }
   getFilesByPattern(
     pattern: string,
@@ -965,41 +681,7 @@ export class CodeCollector {
     returned: number;
     truncated: boolean;
   } {
-    const regex = new RegExp(pattern);
-    const matched: CodeFile[] = [];
-    for (const file of this.collectedFilesCache.values()) {
-      if (regex.test(file.url)) {
-        matched.push(file);
-      }
-    }
-    const returned: CodeFile[] = [];
-    let totalSize = 0;
-    let truncated = false;
-    for (let i = 0; i < matched.length && i < limit; i++) {
-      const file = matched[i];
-      if (file && totalSize + file.size <= maxTotalSize) {
-        returned.push(file);
-        totalSize += file.size;
-      } else {
-        truncated = true;
-        break;
-      }
-    }
-    if (truncated || matched.length > limit) {
-      logger.warn(
-        `Pattern "${pattern}" matched ${matched.length} files, returning ${returned.length} (limited by size/count)`,
-      );
-    }
-    logger.info(
-      ` Pattern "${pattern}": matched ${matched.length}, returning ${returned.length} files (${(totalSize / 1024).toFixed(2)} KB)`,
-    );
-    return {
-      files: returned,
-      totalSize,
-      matched: matched.length,
-      returned: returned.length,
-      truncated,
-    };
+    return getFilesByPatternImpl(this.collectedFilesCache, pattern, limit, maxTotalSize);
   }
   getTopPriorityFiles(
     topN: number = 10,
@@ -1009,31 +691,7 @@ export class CodeCollector {
     totalSize: number;
     totalFiles: number;
   } {
-    const allFiles = Array.from(this.collectedFilesCache.values());
-    const scoredFiles = allFiles.map((file) => ({
-      file,
-      score: calculatePriorityScore(file),
-    }));
-    scoredFiles.sort((a, b) => b.score - a.score);
-    const selected: CodeFile[] = [];
-    let totalSize = 0;
-    for (let i = 0; i < Math.min(topN, scoredFiles.length); i++) {
-      const item = scoredFiles[i];
-      if (item?.file && totalSize + item.file.size <= maxTotalSize) {
-        selected.push(item.file);
-        totalSize += item.file.size;
-      } else {
-        break;
-      }
-    }
-    logger.info(
-      `Returning top ${selected.length}/${allFiles.length} priority files (${(totalSize / 1024).toFixed(2)} KB)`,
-    );
-    return {
-      files: selected,
-      totalSize,
-      totalFiles: allFiles.length,
-    };
+    return getTopPriorityFilesImpl(this.collectedFilesCache, topN, maxTotalSize);
   }
   clearCollectedFilesCache(): void {
     const count = this.collectedFilesCache.size;
