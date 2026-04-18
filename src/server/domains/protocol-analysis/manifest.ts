@@ -59,6 +59,51 @@ const manifest = {
       domain: DOMAIN,
       bind: b((handlers, args) => handlers.handleVisualizeState(args)),
     },
+    {
+      tool: t('payload_template_build'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handlePayloadTemplateBuild(args)),
+    },
+    {
+      tool: t('payload_mutate'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handlePayloadMutate(args)),
+    },
+    {
+      tool: t('ethernet_frame_build'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handleEthernetFrameBuild(args)),
+    },
+    {
+      tool: t('arp_build'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handleArpBuild(args)),
+    },
+    {
+      tool: t('raw_ip_packet_build'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handleRawIpPacketBuild(args)),
+    },
+    {
+      tool: t('icmp_echo_build'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handleIcmpEchoBuild(args)),
+    },
+    {
+      tool: t('checksum_apply'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handleChecksumApply(args)),
+    },
+    {
+      tool: t('pcap_write'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handlePcapWrite(args)),
+    },
+    {
+      tool: t('pcap_read'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handlePcapRead(args)),
+    },
   ],
   prerequisites: {
     proto_auto_detect: [
@@ -80,6 +125,8 @@ const manifest = {
       /custom\s+protocol|binary\s+protocol|wire\s+format/i,
       /infer\s+(protocol|fields|state\s*machine)/i,
       /proto.*export|proto.*schema|proto.*diagram/i,
+      /payload\s+(template|build|mutate)|packet\s+(template|mutate)/i,
+      /ethernet|arp|ipv4|ipv6|pcap|internet\s+checksum|raw\s+packet/i,
     ],
     priority: 0.6,
     tools: [
@@ -89,8 +136,17 @@ const manifest = {
       'proto_infer_state_machine',
       'proto_export_schema',
       'proto_visualize_state',
+      'payload_template_build',
+      'payload_mutate',
+      'ethernet_frame_build',
+      'arp_build',
+      'raw_ip_packet_build',
+      'icmp_echo_build',
+      'checksum_apply',
+      'pcap_write',
+      'pcap_read',
     ],
-    hint: 'Capture hex payloads -> auto-detect pattern -> infer fields/state machine -> export schema',
+    hint: 'Capture or craft packet bytes -> build Ethernet/ARP/IP/ICMP headers -> apply deterministic checksums and payload mutations -> read/write compact PCAP files -> infer fields or state machines from resulting payloads',
   },
   toolDependencies: [
     {
