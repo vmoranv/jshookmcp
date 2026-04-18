@@ -32,14 +32,117 @@ export interface ServerEventMap {
   };
   'evidence:updated': { timestamp: string; reason: string };
   'network:intercept_started': { interceptType: string; timestamp: string };
+  'network:dns_resolved': { hostname: string; count: number; timestamp: string };
+  'network:dns_reversed': { address: string; count: number; timestamp: string };
+  'network:http_request_built': {
+    method: string;
+    target: string;
+    byteLength: number;
+    timestamp: string;
+  };
+  'network:http_plain_request_completed': {
+    host: string;
+    port: number;
+    statusCode: number | null;
+    byteLength: number;
+    timestamp: string;
+  };
+  'network:http2_probe_completed': {
+    url: string;
+    statusCode: number | null;
+    alpnProtocol: string | null;
+    success: boolean;
+    timestamp: string;
+  };
   'v8:heap_captured': { snapshotId: string; sizeBytes: number; timestamp: string };
   'tls:keylog_started': { filePath: string; timestamp: string };
+  'tls:probe_completed': { host: string; port: number; success: boolean; timestamp: string };
+  'tls:session_opened': { sessionId: string; host: string; port: number; timestamp: string };
+  'tls:session_closed': { sessionId: string; reason: string | null; timestamp: string };
+  'tls:session_written': { sessionId: string; byteLength: number; timestamp: string };
+  'tls:session_read': {
+    sessionId: string;
+    byteLength: number;
+    matched: boolean;
+    timestamp: string;
+  };
+  'websocket:session_opened': {
+    sessionId: string;
+    scheme: 'ws' | 'wss';
+    host: string;
+    port: number;
+    path: string;
+    timestamp: string;
+  };
+  'websocket:session_written': {
+    sessionId: string;
+    frameType: 'text' | 'binary' | 'close' | 'ping' | 'pong';
+    byteLength: number;
+    automatic: boolean;
+    timestamp: string;
+  };
+  'websocket:frame_read': {
+    sessionId: string;
+    frameType: 'text' | 'binary' | 'close' | 'ping' | 'pong';
+    byteLength: number;
+    timestamp: string;
+  };
+  'websocket:session_closed': {
+    sessionId: string;
+    reason: string | null;
+    timestamp: string;
+  };
+  'tcp:session_opened': { sessionId: string; host: string; port: number; timestamp: string };
+  'tcp:session_closed': { sessionId: string; reason: string | null; timestamp: string };
+  'tcp:session_written': { sessionId: string; byteLength: number; timestamp: string };
+  'tcp:session_read': {
+    sessionId: string;
+    byteLength: number;
+    matched: boolean;
+    timestamp: string;
+  };
   'skia:scene_captured': { canvasId: string; nodeCount: number; timestamp: string };
   'frida:attached': { target: string; sessionId: string; timestamp: string };
   'adb:device_connected': { serial: string; model: string; timestamp: string };
   'mojo:message_captured': { messageCount: number; timestamp: string };
   'syscall:trace_started': { backend: string; pid?: number; timestamp: string };
   'protocol:pattern_detected': { patternName: string; confidence: number; timestamp: string };
+  'protocol:payload_built': { byteLength: number; fieldCount: number; timestamp: string };
+  'protocol:payload_mutated': { byteLength: number; mutationCount: number; timestamp: string };
+  'protocol:ethernet_frame_built': {
+    byteLength: number;
+    etherType: string;
+    timestamp: string;
+  };
+  'protocol:arp_built': {
+    operation: 'request' | 'reply';
+    byteLength: number;
+    timestamp: string;
+  };
+  'protocol:ip_packet_built': {
+    version: 'ipv4' | 'ipv6';
+    protocol: number;
+    byteLength: number;
+    timestamp: string;
+  };
+  'protocol:icmp_echo_built': {
+    operation: 'request' | 'reply';
+    byteLength: number;
+    checksumHex: string;
+    timestamp: string;
+  };
+  'protocol:checksum_applied': {
+    checksumHex: string;
+    byteLength: number;
+    timestamp: string;
+  };
+  'protocol:pcap_written': {
+    path: string;
+    packetCount: number;
+    byteLength: number;
+    timestamp: string;
+  };
+  'protocol:pcap_read': { path: string; packetCount: number; timestamp: string };
 }
 
 interface Subscription {
