@@ -45,116 +45,28 @@ import {
   injectPropertyWatcherCore,
   resetDynamicScriptMonitoringCore,
 } from '@modules/monitor/ConsoleMonitor.impl.core.dynamic';
+import type {
+  CdpRemoteObject,
+  ConsoleMessage,
+  ExceptionInfo,
+  PlaywrightConsoleMessageLike,
+  RuntimeEvaluateResult,
+} from './ConsoleMonitor.types';
+import {
+  cdpSendWithTimeout,
+  disableCore,
+  doEnableCdpCore,
+  enablePlaywrightCore,
+} from './ConsoleMonitor.impl.core.session';
 export type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor';
 export type {
   FetchInterceptRule,
   FetchInterceptRuleInput,
 } from '@modules/monitor/FetchInterceptor';
-
-type ConsoleMessageType = 'log' | 'warn' | 'error' | 'info' | 'debug' | 'trace' | 'dir' | 'table';
-
-interface CdpRemoteObject {
-  type: string;
-  subtype?: string;
-  value?: unknown;
-  description?: string;
-  objectId?: string;
-}
-
-interface CdpCallFrame {
-  functionName?: string;
-  url: string;
-  lineNumber: number;
-  columnNumber: number;
-}
-
-interface CdpStackTrace {
-  callFrames?: CdpCallFrame[];
-}
-
-interface RuntimeConsoleApiCalledEvent {
-  type: string;
-  args: CdpRemoteObject[];
-  timestamp: number;
-  stackTrace?: CdpStackTrace;
-}
-
-interface ConsoleMessageAddedEvent {
-  message: {
-    level?: string;
-    text: string;
-    url?: string;
-    line?: number;
-    column?: number;
-  };
-}
-
-interface RuntimeExceptionDetails {
-  text: string;
-  exceptionId: number;
-  stackTrace?: CdpStackTrace;
-  url?: string;
-  lineNumber?: number;
-  columnNumber?: number;
-  scriptId?: string;
-  exception?: {
-    description?: string;
-  };
-}
-
-interface RuntimeExceptionThrownEvent {
-  exceptionDetails: RuntimeExceptionDetails;
-}
-
-interface RuntimeEvaluateResult {
-  result: {
-    value?: unknown;
-  };
-  exceptionDetails?: {
-    text: string;
-  };
-}
-
-interface PlaywrightConsoleMessageLike {
-  type(): string;
-  text(): string;
-}
-
-interface PlaywrightConsolePageLike {
-  on(event: 'console', handler: (msg: PlaywrightConsoleMessageLike) => void): void;
-  on(event: 'pageerror', handler: (error: Error) => void): void;
-  off(event: 'console', handler: (msg: PlaywrightConsoleMessageLike) => void): void;
-  off(event: 'pageerror', handler: (error: Error) => void): void;
-}
+export type { ConsoleMessage, StackFrame, ExceptionInfo } from './ConsoleMonitor.types';
 
 type PlaywrightNetworkMonitorPage = ConstructorParameters<typeof PlaywrightNetworkMonitor>[0];
 
-export interface ConsoleMessage {
-  type: ConsoleMessageType | string;
-  text: string;
-  args?: unknown[];
-  timestamp: number;
-  stackTrace?: StackFrame[];
-  url?: string;
-  lineNumber?: number;
-  columnNumber?: number;
-}
-export interface StackFrame {
-  functionName: string;
-  url: string;
-  lineNumber: number;
-  columnNumber: number;
-}
-export interface ExceptionInfo {
-  text: string;
-  exceptionId: number;
-  timestamp: number;
-  stackTrace?: StackFrame[];
-  url?: string;
-  lineNumber?: number;
-  columnNumber?: number;
-  scriptId?: string;
-}
 export class ConsoleMonitor {
   private cdpSession: CDPSessionLike | null = null;
   private networkMonitor: NetworkMonitor | null = null;
@@ -182,6 +94,14 @@ export class ConsoleMonitor {
     void this.MAX_OBJECT_CACHE_SIZE;
     void this.clearDynamicScriptBuffer;
     void this.resetDynamicScriptMonitoring;
+    void this.usingManagedTargetSession;
+    void this.playwrightErrorHandler;
+    void this.messages;
+    void this.MAX_MESSAGES;
+    void this.exceptions;
+    void this.MAX_EXCEPTIONS;
+    void this.formatRemoteObject;
+    void this.extractValue;
   }
   setPlaywrightPage(page: unknown): void {
     this.playwrightPage = page;
@@ -260,7 +180,7 @@ export class ConsoleMonitor {
   }): Promise<void> {
     if (this.playwrightPage) {
       this.lastEnableOptions = { ...options };
-      return this.enablePlaywright(options);
+      return enablePlaywrightCore(this, options);
     }
     if (this.cdpSession) {
       if (options?.enableNetwork && !this.networkMonitor) {
@@ -271,96 +191,7 @@ export class ConsoleMonitor {
       return;
     }
     const { session, managed } = await this.createCdpSession();
-    this.cdpSession = session;
-    this.usingManagedTargetSession = managed;
-    this.lastEnableOptions = { ...options };
-    this.cdpSession.on('disconnected', () => {
-      logger.warn('ConsoleMonitor CDP session disconnected');
-      this.cdpSession = null;
-      this.networkMonitor = null;
-      this.fetchInterceptor = null;
-      this.usingManagedTargetSession = false;
-    });
-    // Wrap enable calls so they cannot hang if the session is immediately zombie.
-    await cdpSendWithTimeout(this.cdpSession, 'Runtime.enable', {}, 5000);
-    await cdpSendWithTimeout(this.cdpSession, 'Console.enable', {}, 5000);
-    this.cdpSession.on('Runtime.consoleAPICalled', (params: RuntimeConsoleApiCalledEvent) => {
-      const stackTrace: StackFrame[] =
-        params.stackTrace?.callFrames?.map((frame) => ({
-          functionName: frame.functionName || '(anonymous)',
-          url: frame.url,
-          lineNumber: frame.lineNumber,
-          columnNumber: frame.columnNumber,
-        })) || [];
-      const message: ConsoleMessage = {
-        type: params.type,
-        text: params.args.map((arg) => this.formatRemoteObject(arg)).join(' '),
-        args: params.args.map((arg) => this.extractValue(arg)),
-        timestamp: params.timestamp,
-        stackTrace,
-        url: stackTrace[0]?.url,
-        lineNumber: stackTrace[0]?.lineNumber,
-        columnNumber: stackTrace[0]?.columnNumber,
-      };
-      this.messages.push(message);
-      if (this.messages.length > this.MAX_MESSAGES) {
-        this.messages = this.messages.slice(-Math.floor(this.MAX_MESSAGES / 2));
-      }
-      logger.debug(`Console ${params.type}: ${message.text}`);
-    });
-    this.cdpSession.on('Console.messageAdded', (params: ConsoleMessageAddedEvent) => {
-      const msg = params.message;
-      const message: ConsoleMessage = {
-        type: msg.level || 'log',
-        text: msg.text,
-        timestamp: Date.now(),
-        url: msg.url,
-        lineNumber: msg.line,
-        columnNumber: msg.column,
-      };
-      this.messages.push(message);
-      if (this.messages.length > this.MAX_MESSAGES) {
-        this.messages = this.messages.slice(-Math.floor(this.MAX_MESSAGES / 2));
-      }
-    });
-    if (options?.enableExceptions !== false) {
-      this.cdpSession.on('Runtime.exceptionThrown', (params: RuntimeExceptionThrownEvent) => {
-        const exception = params.exceptionDetails;
-        const stackTrace: StackFrame[] =
-          exception.stackTrace?.callFrames?.map((frame) => ({
-            functionName: frame.functionName || '(anonymous)',
-            url: frame.url,
-            lineNumber: frame.lineNumber,
-            columnNumber: frame.columnNumber,
-          })) || [];
-        const exceptionInfo: ExceptionInfo = {
-          text: exception.exception?.description || exception.text,
-          exceptionId: exception.exceptionId,
-          timestamp: Date.now(),
-          stackTrace,
-          url: exception.url,
-          lineNumber: exception.lineNumber,
-          columnNumber: exception.columnNumber,
-          scriptId: exception.scriptId,
-        };
-        this.exceptions.push(exceptionInfo);
-        if (this.exceptions.length > this.MAX_EXCEPTIONS) {
-          this.exceptions = this.exceptions.slice(-Math.floor(this.MAX_EXCEPTIONS / 2));
-        }
-        logger.error(`Exception thrown: ${exceptionInfo.text}`, {
-          url: exceptionInfo.url,
-          line: exceptionInfo.lineNumber,
-        });
-      });
-    }
-    if (options?.enableNetwork) {
-      this.networkMonitor = new NetworkMonitor(this.cdpSession);
-      await this.networkMonitor.enable();
-    }
-    logger.info('ConsoleMonitor enabled', {
-      network: options?.enableNetwork || false,
-      exceptions: options?.enableExceptions !== false,
-    });
+    await doEnableCdpCore(this, session, managed, options);
   }
   private async applyPostEnableOptions(options?: {
     enableNetwork?: boolean;
@@ -371,11 +202,7 @@ export class ConsoleMonitor {
     }
     this.lastEnableOptions = { ...this.lastEnableOptions, ...options };
     if (this.playwrightPage && this.playwrightConsoleHandler && !this.playwrightNetworkMonitor) {
-      this.playwrightNetworkMonitor = new PlaywrightNetworkMonitor(
-        this.playwrightPage as PlaywrightNetworkMonitorPage,
-      );
-      await this.playwrightNetworkMonitor.enable();
-      logger.info('Network monitoring added to existing ConsoleMonitor Playwright session');
+      await enablePlaywrightCore(this, options);
       return;
     }
     if (this.cdpSession && !this.networkMonitor) {
@@ -384,115 +211,15 @@ export class ConsoleMonitor {
       logger.info('Network monitoring added to existing ConsoleMonitor session');
     }
   }
-  private async enablePlaywright(options?: {
-    enableNetwork?: boolean;
-    enableExceptions?: boolean;
-  }): Promise<void> {
-    if (this.playwrightConsoleHandler) {
-      if (options?.enableNetwork && !this.playwrightNetworkMonitor) {
-        this.playwrightNetworkMonitor = new PlaywrightNetworkMonitor(
-          this.playwrightPage as PlaywrightNetworkMonitorPage,
-        );
-        await this.playwrightNetworkMonitor.enable();
-        logger.info('Network monitoring added to existing ConsoleMonitor Playwright session');
-      }
-      return;
-    }
-    const page = this.playwrightPage as PlaywrightConsolePageLike;
-    this.playwrightConsoleHandler = (msg: PlaywrightConsoleMessageLike) => {
-      const message: ConsoleMessage = {
-        type: msg.type() || 'log',
-        text: msg.text(),
-        timestamp: Date.now(),
-      };
-      this.messages.push(message);
-      if (this.messages.length > this.MAX_MESSAGES) {
-        this.messages = this.messages.slice(-Math.floor(this.MAX_MESSAGES / 2));
-      }
-    };
-    page.on('console', this.playwrightConsoleHandler);
-    if (options?.enableExceptions !== false) {
-      this.playwrightErrorHandler = (error: Error) => {
-        const exceptionInfo: ExceptionInfo = {
-          text: error.message,
-          exceptionId: Date.now(),
-          timestamp: Date.now(),
-        };
-        this.exceptions.push(exceptionInfo);
-        if (this.exceptions.length > this.MAX_EXCEPTIONS) {
-          this.exceptions = this.exceptions.slice(-Math.floor(this.MAX_EXCEPTIONS / 2));
-        }
-      };
-      page.on('pageerror', this.playwrightErrorHandler);
-    }
-    if (options?.enableNetwork) {
-      this.playwrightNetworkMonitor = new PlaywrightNetworkMonitor(
-        this.playwrightPage as PlaywrightNetworkMonitorPage,
-      );
-      await this.playwrightNetworkMonitor.enable();
-    }
-    logger.info('ConsoleMonitor enabled (Playwright/camoufox mode)', {
-      network: options?.enableNetwork || false,
-    });
-  }
   async disable(): Promise<void> {
     try {
-      if (this.playwrightPage) {
-        const page = this.playwrightPage as PlaywrightConsolePageLike;
-        if (this.playwrightConsoleHandler) {
-          try {
-            page.off('console', this.playwrightConsoleHandler);
-          } catch {
-            /* best-effort detach during shutdown */
-          }
-          this.playwrightConsoleHandler = null;
-        }
-        if (this.playwrightErrorHandler) {
-          try {
-            page.off('pageerror', this.playwrightErrorHandler);
-          } catch {
-            /* best-effort detach during shutdown */
-          }
-          this.playwrightErrorHandler = null;
-        }
+      if (this.cdpSession && this.fetchInterceptor) {
+        await this.fetchInterceptor.disable();
+        this.fetchInterceptor = null;
       }
-      if (this.playwrightNetworkMonitor) {
-        await this.playwrightNetworkMonitor.disable();
-        this.playwrightNetworkMonitor = null;
-      }
-      if (this.cdpSession) {
-        if (this.fetchInterceptor) {
-          await this.fetchInterceptor.disable();
-          this.fetchInterceptor = null;
-        }
-        if (this.networkMonitor) {
-          await this.networkMonitor.disable();
-          this.networkMonitor = null;
-        }
-        try {
-          await this.cdpSession.send('Console.disable');
-        } catch (error) {
-          logger.warn('Failed to disable Console domain:', error);
-        }
-        try {
-          await this.cdpSession.send('Runtime.disable');
-        } catch (error) {
-          logger.warn('Failed to disable Runtime domain:', error);
-        }
-        if (!this.usingManagedTargetSession) {
-          try {
-            await this.cdpSession.detach();
-          } catch (error) {
-            logger.warn('Failed to detach ConsoleMonitor CDP session:', error);
-          }
-        } else {
-          logger.debug('ConsoleMonitor released managed target session without detaching target');
-        }
-        this.cdpSession = null;
-        this.usingManagedTargetSession = false;
-        logger.info('ConsoleMonitor disabled');
-      }
+      await disableCore(this);
     } finally {
+      this.fetchInterceptor = null;
       this.initPromise = undefined;
       this.contextSwitchPending = false;
       this.objectCache.clear();
@@ -761,22 +488,4 @@ export class ConsoleMonitor {
     }
     return obj.description || `[${obj.type}]`;
   }
-}
-
-/** Wrap a CDP session.send() call with a timeout to avoid indefinite hangs on stale sessions. */
-async function cdpSendWithTimeout<T>(
-  session: { send(method: string, params?: Record<string, unknown>): Promise<T> },
-  method: string,
-  params: Record<string, unknown>,
-  timeoutMs = 30000,
-): Promise<T> {
-  return Promise.race([
-    session.send(method, params),
-    new Promise<T>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`CDP ${method} timed out after ${timeoutMs}ms`)),
-        timeoutMs,
-      ),
-    ),
-  ]);
 }
