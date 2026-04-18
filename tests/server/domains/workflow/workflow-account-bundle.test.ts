@@ -2,26 +2,41 @@ import { WorkflowHandlers as _WorkflowHandlers } from '@server/domains/workflow/
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = vi.hoisted(() => ({
+const {
+  mockIsSsrfTarget,
+  mockIsPrivateHost,
+  mockIsLoopbackHost,
+  mockIsLoopbackHttpUrl,
+  mockIsLocalSsrfBypassEnabled,
+  mockLookup,
+} = vi.hoisted(() => ({
   mockIsSsrfTarget: vi.fn(async () => false),
   mockIsPrivateHost: vi.fn(() => false),
   mockIsLoopbackHost: vi.fn(() => false),
+  mockIsLoopbackHttpUrl: vi.fn(() => false),
+  mockIsLocalSsrfBypassEnabled: vi.fn(() => false),
   mockLookup: vi.fn(),
 }));
 
-vi.mock('@src/server/domains/network/replay', () => ({
+vi.mock('@src/server/domains/network/ssrf-policy', () => ({
   isSsrfTarget: mockIsSsrfTarget,
   isPrivateHost: mockIsPrivateHost,
   isLoopbackHost: mockIsLoopbackHost,
+  isLoopbackHttpUrl: mockIsLoopbackHttpUrl,
+  isLocalSsrfBypassEnabled: mockIsLocalSsrfBypassEnabled,
 }));
 
 vi.mock('node:dns/promises', () => ({
   lookup: mockLookup,
 }));
 
-vi.mock('node:net', () => ({
-  isIP: vi.fn((v: string) => (/^\d+\.\d+\.\d+\.\d+$/.test(v) ? 4 : 0)),
-}));
+vi.mock('node:net', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:net')>();
+  return {
+    ...actual,
+    isIP: vi.fn((v: string) => (/^\d+\.\d+\.\d+\.\d+$/.test(v) ? 4 : 0)),
+  };
+});
 
 vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),
@@ -111,7 +126,10 @@ describe('WorkflowHandlersAccountBundle', () => {
     mockIsSsrfTarget.mockResolvedValue(false);
     mockIsPrivateHost.mockReturnValue(false);
     mockIsLoopbackHost.mockReturnValue(false);
+    mockIsLoopbackHttpUrl.mockReturnValue(false);
+    mockIsLocalSsrfBypassEnabled.mockReturnValue(false);
     mockLookup.mockReset();
+    mockLookup.mockResolvedValue({ address: '93.184.216.34', family: 4 });
     deps = createDeps();
     handlers = new WorkflowHandlersAccountBundle(
       deps as unknown as ConstructorParameters<typeof WorkflowHandlersAccountBundle>[0],
@@ -412,7 +430,9 @@ describe('WorkflowHandlersAccountBundle', () => {
     });
 
     it('blocks SSRF targets', async () => {
-      mockIsSsrfTarget.mockResolvedValue(true);
+      mockIsPrivateHost.mockImplementation(
+        ((...args: unknown[]) => args[0] === '169.254.169.254') as (...args: never[]) => boolean,
+      );
 
       const body = parseJson<JsBundleSearchResponse>(
         await handlers.handleJsBundleSearch({
@@ -751,7 +771,7 @@ describe('WorkflowHandlersAccountBundle', () => {
         }),
       );
       expect(body.success).toBe(false);
-      expect(body.error).toContain('insecure HTTP is only allowed');
+      expect(body.error).toContain('Unsupported protocol');
     });
 
     it('throws when max redirects exceeded', async () => {
@@ -886,7 +906,7 @@ describe('WorkflowHandlersAccountBundle', () => {
       );
 
       expect(body.success).toBe(false);
-      expect(body.error).toContain('insecure HTTP is only allowed');
+      expect(body.error).toContain('networkPolicy.allowInsecureHttp');
     });
 
     it('fails registration when auth extraction result has no text payload', async () => {
@@ -926,8 +946,10 @@ describe('WorkflowHandlersAccountBundle', () => {
     it('blocks bundles whose DNS resolves to a private IP', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn() as unknown as typeof globalThis.fetch;
-      mockLookup.mockResolvedValue({ address: '10.0.0.8' });
-      mockIsPrivateHost.mockReturnValue(true);
+      mockLookup.mockResolvedValue({ address: '10.0.0.8', family: 4 });
+      mockIsPrivateHost.mockImplementation(
+        ((...args: unknown[]) => args[0] === '10.0.0.8') as (...args: never[]) => boolean,
+      );
 
       try {
         const body = parseJson<JsBundleSearchResponse>(
@@ -939,7 +961,41 @@ describe('WorkflowHandlersAccountBundle', () => {
         );
 
         expect(body.success).toBe(false);
-        expect(body.error).toContain('resolved to private IP');
+        expect(body.error).toContain('private/reserved');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('allows private bundle targets when networkPolicy authorizes the host', async () => {
+      const originalFetch = globalThis.fetch;
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => 'const internalBundle = true;',
+        headers: new Map(),
+      });
+      globalThis.fetch = mockFetch as unknown as typeof globalThis.fetch;
+      mockLookup.mockResolvedValue({ address: '10.0.0.8', family: 4 });
+      mockIsPrivateHost.mockImplementation(
+        ((...args: unknown[]) => args[0] === '10.0.0.8') as (...args: never[]) => boolean,
+      );
+
+      try {
+        const body = parseJson<JsBundleSearchResponse>(
+          await handlers.handleJsBundleSearch({
+            url: 'https://internal.example/private.js',
+            patterns: [{ name: 'internal', regex: 'internalBundle' }],
+            cacheBundle: false,
+            networkPolicy: {
+              allowPrivateNetwork: true,
+              allowedHosts: ['internal.example'],
+            },
+          }),
+        );
+
+        expect(body.success).toBe(true);
+        expect(body.results.internal).toHaveLength(1);
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -954,9 +1010,17 @@ describe('WorkflowHandlersAccountBundle', () => {
         headers: new Map(),
       });
       globalThis.fetch = mockFetch as unknown as typeof globalThis.fetch;
-      mockIsLoopbackHost.mockReturnValue(true);
-      mockLookup.mockResolvedValue({ address: '127.0.0.1' });
-      mockIsPrivateHost.mockReturnValue(false);
+      mockIsLoopbackHost.mockImplementation(
+        ((...args: unknown[]) => args[0] === 'localhost' || args[0] === '127.0.0.1') as (
+          ...args: never[]
+        ) => boolean,
+      );
+      mockLookup.mockResolvedValue({ address: '127.0.0.1', family: 4 });
+      mockIsPrivateHost.mockImplementation(
+        ((...args: unknown[]) => args[0] === 'localhost' || args[0] === '127.0.0.1') as (
+          ...args: never[]
+        ) => boolean,
+      );
 
       try {
         const body = parseJson<JsBundleSearchResponse>(
@@ -964,6 +1028,11 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'http://localhost:8123/bundle.js',
             patterns: [{ name: 'loopback', regex: 'loopback' }],
             cacheBundle: false,
+            networkPolicy: {
+              allowPrivateNetwork: true,
+              allowInsecureHttp: true,
+              allowedHosts: ['localhost:8123'],
+            },
           }),
         );
 
@@ -1006,14 +1075,15 @@ describe('WorkflowHandlersAccountBundle', () => {
       }
     });
 
-    it('fails when a redirect target becomes SSRF-blocked', async () => {
+    it('fails when a redirect target is outside allowedRedirectHosts', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockResolvedValue({
         status: 302,
-        headers: { get: vi.fn(() => 'https://internal.example/private.js') },
+        headers: { get: vi.fn(() => 'https://redirect.example/private.js') },
       }) as unknown as typeof globalThis.fetch;
-      mockLookup.mockResolvedValue({ address: '1.2.3.4' });
-      mockIsSsrfTarget.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      mockLookup
+        .mockResolvedValueOnce({ address: '1.2.3.4', family: 4 })
+        .mockResolvedValueOnce({ address: '1.2.3.5', family: 4 });
 
       try {
         const body = parseJson<JsBundleSearchResponse>(
@@ -1021,11 +1091,15 @@ describe('WorkflowHandlersAccountBundle', () => {
             url: 'https://cdn.example.com/redirect.js',
             patterns: [{ name: 'redirect', regex: 'redirect' }],
             cacheBundle: false,
+            networkPolicy: {
+              allowedHosts: ['cdn.example.com'],
+              allowedRedirectHosts: ['safe.example.com'],
+            },
           }),
         );
 
         expect(body.success).toBe(false);
-        expect(body.error).toContain('Redirect blocked');
+        expect(body.error).toContain('not authorized by networkPolicy');
       } finally {
         globalThis.fetch = originalFetch;
       }

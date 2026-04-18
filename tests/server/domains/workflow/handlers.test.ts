@@ -1,17 +1,28 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockIsSsrfTarget, mockIsPrivateHost, mockIsLoopbackHost, mockLookup } = vi.hoisted(() => ({
+const {
+  mockIsSsrfTarget,
+  mockIsPrivateHost,
+  mockIsLoopbackHost,
+  mockIsLoopbackHttpUrl,
+  mockIsLocalSsrfBypassEnabled,
+  mockLookup,
+} = vi.hoisted(() => ({
   mockIsSsrfTarget: vi.fn(async () => false),
   mockIsPrivateHost: vi.fn(() => false),
   mockIsLoopbackHost: vi.fn(() => false),
+  mockIsLoopbackHttpUrl: vi.fn(() => false),
+  mockIsLocalSsrfBypassEnabled: vi.fn(() => false),
   mockLookup: vi.fn(),
 }));
 
-vi.mock('@src/server/domains/network/replay', () => ({
+vi.mock('@src/server/domains/network/ssrf-policy', () => ({
   isSsrfTarget: mockIsSsrfTarget,
   isPrivateHost: mockIsPrivateHost,
   isLoopbackHost: mockIsLoopbackHost,
+  isLoopbackHttpUrl: mockIsLoopbackHttpUrl,
+  isLocalSsrfBypassEnabled: mockIsLocalSsrfBypassEnabled,
 }));
 
 vi.mock('node:dns/promises', () => ({
@@ -120,6 +131,10 @@ describe('WorkflowHandlers', () => {
     vi.stubGlobal('fetch', fetchMock);
     mockIsSsrfTarget.mockResolvedValue(false);
     mockIsPrivateHost.mockReturnValue(false);
+    mockIsLoopbackHost.mockReturnValue(false);
+    mockIsLoopbackHttpUrl.mockReturnValue(false);
+    mockIsLocalSsrfBypassEnabled.mockReturnValue(false);
+    mockLookup.mockResolvedValue({ address: buildReservedDocIpv4(), family: 4 });
     (deps.advancedHandlers.handleNetworkGetStats as any).mockResolvedValue({
       content: [
         { type: 'text', text: JSON.stringify({ success: true, stats: { totalRequests: 3 } }) },
@@ -373,8 +388,6 @@ describe('WorkflowHandlers', () => {
   });
 
   it('blocks remote http bundle fetches unless they are loopback', async () => {
-    const resolvedAddress = buildReservedDocIpv4();
-    mockLookup.mockResolvedValue({ address: resolvedAddress, family: 4 });
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
@@ -391,7 +404,7 @@ describe('WorkflowHandlers', () => {
     );
 
     expect(body.success).toBe(false);
-    expect(body.error).toContain('insecure HTTP is only allowed for loopback targets');
+    expect(body.error).toContain('networkPolicy.allowInsecureHttp');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

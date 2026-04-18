@@ -1,6 +1,43 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
+const workflowNetworkPolicySchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    allowPrivateNetwork: {
+      type: 'boolean',
+      description:
+        'Allow access to private/reserved targets only when the request also matches allowedHosts or allowedCidrs.',
+    },
+    allowInsecureHttp: {
+      type: 'boolean',
+      description:
+        'Allow non-loopback HTTP targets only when the request also matches allowedHosts or allowedCidrs.',
+    },
+    allowedHosts: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'Exact hostname or host:port allowlist for the primary target (for example ["labs.example.com", "localhost:8080"]).',
+    },
+    allowedCidrs: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'CIDR allowlist applied after DNS resolution (for example ["10.10.0.0/16", "192.168.1.10/32"]).',
+    },
+    allowedRedirectHosts: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'Optional hostname or host:port allowlist for redirect hops. When omitted, redirects inherit allowedHosts/allowedCidrs.',
+    },
+  },
+  description:
+    'Request-level network authorization policy. Use this instead of process-wide bypasses when you need to reach a real lab target, private address, or plain HTTP service.',
+} as const;
+
 export const workflowToolDefinitions: Tool[] = [
   tool('js_bundle_search', (t) =>
     t
@@ -33,6 +70,7 @@ export const workflowToolDefinitions: Tool[] = [
       })
       .boolean('stripNoise', 'Skip matches inside SVG path data or base64 blobs', { default: true })
       .number('maxMatches', 'Maximum matches to return per pattern', { default: 10 })
+      .prop('networkPolicy', workflowNetworkPolicySchema)
       .requiredOpenWorld('url', 'patterns'),
   ),
   tool('page_script_register', (t) =>
@@ -98,6 +136,7 @@ export const workflowToolDefinitions: Tool[] = [
         'Auto-inject Bearer token from localStorage (token / active_token / access_token).',
         { default: true },
       )
+      .prop('networkPolicy', workflowNetworkPolicySchema)
       .requiredOpenWorld('baseUrl', 'paths'),
   ),
   tool('list_extension_workflows', (t) =>
