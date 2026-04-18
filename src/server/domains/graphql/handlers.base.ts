@@ -1,6 +1,6 @@
 import type { Page } from 'rebrowser-puppeteer-core';
 import type { CodeCollector } from '@server/domains/shared/modules';
-import { isSsrfTarget } from '@server/domains/network/replay';
+import { isSsrfTarget } from '@server/domains/network/ssrf-policy';
 import type {
   InterceptRequest,
   PreviewPayload,

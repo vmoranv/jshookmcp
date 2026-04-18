@@ -7,9 +7,20 @@
  * SSRF guard resolves DNS before checking to defeat rebinding attacks.
  */
 
-import { lookup } from 'node:dns/promises';
-import { isIP } from 'node:net';
 import { NETWORK_REPLAY_MAX_REDIRECTS } from '@src/constants';
+import {
+  createNetworkAuthorizationPolicy,
+  hasAuthorizedTargets,
+  isAuthorizedNetworkTarget,
+  isLocalSsrfBypassEnabled,
+  isLoopbackHost,
+  isNetworkAuthorizationExpired,
+  isPrivateHost,
+  isSsrfTarget,
+  resolveNetworkTarget,
+  type NetworkAuthorizationInput,
+  type ResolvedNetworkTarget,
+} from '@server/domains/network/ssrf-policy';
 
 const STRIPPED_HEADERS = new Set([
   'host',
@@ -24,69 +35,7 @@ const STRIPPED_HEADERS = new Set([
   'upgrade',
 ]);
 
-// Private/link-local ranges that should not be reachable via replay
-const SSRF_DENYLIST = [
-  /^127\./,
-  /^10\./,
-  /^172\.(1[6-9]|2[0-9]|3[01])\./,
-  /^192\.168\./,
-  /^169\.254\./, // link-local / cloud metadata
-  /^0\./, // 0.0.0.0/8
-  /^::1$/, // IPv6 loopback
-  /^::$/, // unspecified
-  /^::ffff:/i, // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
-  /^::ffff:0:/i, // IPv4-translated
-  /^64:ff9b::/i, // NAT64 well-known prefix
-  /^fc00:/i, // IPv6 unique-local
-  /^fd/i, // IPv6 unique-local
-  /^fe80:/i, // IPv6 link-local
-  /^100::/i, // discard prefix
-  /^localhost$/i,
-];
-
-const LOOPBACK_HTTP_URL_RE = /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(\/|$)/i;
-
-/** Check whether a single hostname or IP matches the SSRF deny list. */
-export function isPrivateHost(host: string): boolean {
-  // IPv6 literals are wrapped in brackets: [::1] → strip them
-  if (host.startsWith('[') && host.endsWith(']')) {
-    host = host.slice(1, -1);
-  }
-  return SSRF_DENYLIST.some((re) => re.test(host));
-}
-
-export function isLoopbackHost(host: string): boolean {
-  const normalized = host.replace(/^\[|\]$/g, '').toLowerCase();
-  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
-}
-
-/**
- * Resolve the URL's hostname via DNS and verify the *resolved IP* is not
- * private/reserved.  This defeats DNS-rebinding and split-horizon attacks
- * where a public hostname resolves to an internal address.
- */
-export async function isSsrfTarget(url: string): Promise<boolean> {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
-
-    // Reject obviously private hostnames (localhost, 127.x, etc.)
-    if (isPrivateHost(hostname)) return true;
-
-    // Resolve DNS and check the actual IP
-    try {
-      const { address } = await lookup(hostname);
-      if (isPrivateHost(address)) return true;
-    } catch {
-      // DNS resolution failed → deny (could be a non-routable name)
-      return true;
-    }
-
-    return false;
-  } catch {
-    return true; // invalid URL → deny
-  }
-}
+export { isLoopbackHost, isPrivateHost, isSsrfTarget } from '@server/domains/network/ssrf-policy';
 
 export interface ReplayArgs {
   requestId: string;
@@ -96,6 +45,7 @@ export interface ReplayArgs {
   urlOverride?: string;
   timeoutMs?: number;
   dryRun?: boolean;
+  authorization?: NetworkAuthorizationInput;
 }
 
 export interface ReplayDryRunResult {
@@ -148,60 +98,113 @@ export async function replayRequest(
   const method = (args.methodOverride ?? base.method).toUpperCase();
   const mergedHeaders = sanitizeHeaders({ ...base.headers, ...args.headerPatch });
   const body = args.bodyPatch !== undefined ? args.bodyPatch : base.postData;
+  const authorizationPolicy = createNetworkAuthorizationPolicy(args.authorization);
+  const allowLegacyLocalSsrf = !authorizationPolicy && isLocalSsrfBypassEnabled();
+
+  if (
+    authorizationPolicy &&
+    (authorizationPolicy.allowPrivateNetwork || authorizationPolicy.allowInsecureHttp) &&
+    !hasAuthorizedTargets(authorizationPolicy)
+  ) {
+    throw new Error(
+      'Replay authorization must include at least one allowed host or CIDR when enabling private network or insecure HTTP access.',
+    );
+  }
+
+  if (isNetworkAuthorizationExpired(authorizationPolicy)) {
+    throw new Error('Replay authorization expired before the request was executed.');
+  }
+
+  const isPrivateTargetAllowed = (target: ResolvedNetworkTarget): boolean => {
+    if (allowLegacyLocalSsrf) {
+      return true;
+    }
+
+    return (
+      authorizationPolicy?.allowPrivateNetwork === true &&
+      isAuthorizedNetworkTarget(authorizationPolicy, target)
+    );
+  };
+
+  const isInsecureHttpAllowed = (target: ResolvedNetworkTarget): boolean => {
+    if (target.parsedUrl.protocol !== 'http:') {
+      return true;
+    }
+
+    if (allowLegacyLocalSsrf) {
+      return true;
+    }
+
+    if (isLoopbackHost(target.hostname)) {
+      return true;
+    }
+
+    return (
+      authorizationPolicy?.allowInsecureHttp === true &&
+      isAuthorizedNetworkTarget(authorizationPolicy, target)
+    );
+  };
 
   // SSRF guard + DNS pinning combined: resolve once, check, and pin the IP.
   // Returns the pinned URL and original host header value.
   const resolvePinned = async (
     targetUrl: string,
-  ): Promise<{ pinnedUrl: string; originalHost: string }> => {
-    const parsed = new URL(targetUrl);
-    const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+  ): Promise<{ pinnedUrl: string; originalHost: string; target: ResolvedNetworkTarget }> => {
+    let target: ResolvedNetworkTarget;
+    try {
+      target = await resolveNetworkTarget(targetUrl);
+    } catch {
+      throw new Error(`Replay blocked: DNS resolution failed for "${targetUrl}"`);
+    }
 
-    if (parsed.protocol === 'http:' && !isLoopbackHost(hostname)) {
+    if (!isInsecureHttpAllowed(target)) {
       throw new Error(
-        `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${targetUrl}"`,
+        `Replay blocked: insecure HTTP is only allowed for loopback or explicitly authorized targets, got "${targetUrl}"`,
       );
     }
 
-    if (isPrivateHost(hostname)) {
+    const hostnameIsPrivate = isPrivateHost(target.hostname);
+    const resolvedAddressIsPrivate = isPrivateHost(target.resolvedAddress ?? '');
+
+    if ((hostnameIsPrivate || resolvedAddressIsPrivate) && !isPrivateTargetAllowed(target)) {
+      if (!hostnameIsPrivate && resolvedAddressIsPrivate && target.resolvedAddress) {
+        throw new Error(
+          `Replay blocked: "${targetUrl}" resolved to private IP ${target.resolvedAddress}`,
+        );
+      }
+
       throw new Error(
         `Replay blocked: target URL "${targetUrl}" resolves to a private/reserved address.`,
       );
     }
 
-    const isIpLiteral = isIP(hostname) !== 0;
-    if (isIpLiteral) {
-      return { pinnedUrl: targetUrl, originalHost: parsed.host };
+    if (target.parsedUrl.protocol === 'https:' || target.isIpLiteral) {
+      return { pinnedUrl: targetUrl, originalHost: target.parsedUrl.host, target };
     }
 
-    let resolvedIp: string;
-    try {
-      const result = await lookup(hostname);
-      resolvedIp = result.address;
-    } catch {
-      throw new Error(`Replay blocked: DNS resolution failed for "${targetUrl}"`);
-    }
-
-    if (isPrivateHost(resolvedIp)) {
-      throw new Error(`Replay blocked: "${targetUrl}" resolved to private IP ${resolvedIp}`);
-    }
-
-    if (parsed.protocol === 'https:') {
-      return { pinnedUrl: targetUrl, originalHost: parsed.host };
-    }
-
-    const originalHost = parsed.host;
-    parsed.hostname = resolvedIp.includes(':') ? `[${resolvedIp}]` : resolvedIp;
-    return { pinnedUrl: parsed.toString(), originalHost };
+    const originalHost = target.parsedUrl.host;
+    target.parsedUrl.hostname =
+      target.resolvedAddress && target.resolvedAddress.includes(':')
+        ? `[${target.resolvedAddress}]`
+        : (target.resolvedAddress ?? target.hostname);
+    return { pinnedUrl: target.parsedUrl.toString(), originalHost, target };
   };
 
   if (args.dryRun !== false) {
     // Still validate the URL even for dry runs
-    if (await isSsrfTarget(url)) {
+    if (await isSsrfTarget(url, args.authorization)) {
       throw new Error(
         `Replay blocked: target URL "${url}" resolves to a private/reserved address.`,
       );
     }
+
+    const dryRunTarget = await resolveNetworkTarget(url).catch(() => null);
+    if (dryRunTarget && !isInsecureHttpAllowed(dryRunTarget)) {
+      throw new Error(
+        `Replay blocked: insecure HTTP is only allowed for loopback or explicitly authorized targets, got "${url}"`,
+      );
+    }
+
     return {
       dryRun: true,
       preview: { url, method, headers: mergedHeaders, body },
@@ -219,15 +222,11 @@ export async function replayRequest(
     let resp!: Response;
 
     for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
-      const { pinnedUrl } = await resolvePinned(currentUrl);
-
-      if (!pinnedUrl.startsWith('https://') && !LOOPBACK_HTTP_URL_RE.test(pinnedUrl)) {
-        throw new Error(
-          `Replay blocked: insecure HTTP is only allowed for loopback targets, got "${currentUrl}"`,
-        );
-      }
-
+      const { pinnedUrl, originalHost, target } = await resolvePinned(currentUrl);
       const hopHeaders = { ...mergedHeaders };
+      if (target.parsedUrl.protocol === 'http:' && target.resolvedAddress && !target.isIpLiteral) {
+        hopHeaders.Host = originalHost;
+      }
 
       resp = await fetch(pinnedUrl, {
         method: currentMethod,

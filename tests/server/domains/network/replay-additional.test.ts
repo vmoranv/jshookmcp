@@ -59,6 +59,11 @@ describe('replay — additional coverage', () => {
       expect(isPrivateHost('169.254.169.254')).toBe(true);
     });
 
+    it('blocks 100.64.x.x (shared address space)', () => {
+      expect(isPrivateHost('100.64.0.1')).toBe(true);
+      expect(isPrivateHost('100.127.255.255')).toBe(true);
+    });
+
     it('blocks 0.x.x.x', () => {
       expect(isPrivateHost('0.0.0.0')).toBe(true);
     });
@@ -177,6 +182,24 @@ describe('replay — additional coverage', () => {
 
     it('denies invalid URLs', async () => {
       expect(await isSsrfTarget('not-a-url')).toBe(true);
+    });
+
+    it('allows private targets only when ALLOW_LOCAL_SSRF=true', async () => {
+      const previousAllowLocalSsrf = process.env.ALLOW_LOCAL_SSRF;
+      process.env.ALLOW_LOCAL_SSRF = 'true';
+
+      try {
+        expect(await isSsrfTarget('https://localhost/api')).toBe(false);
+        expect(await isSsrfTarget('https://evil.example.com/')).toBe(false);
+        expect(await isSsrfTarget('not-a-url')).toBe(true);
+        expect(lookupMock).not.toHaveBeenCalled();
+      } finally {
+        if (previousAllowLocalSsrf === undefined) {
+          delete process.env.ALLOW_LOCAL_SSRF;
+        } else {
+          process.env.ALLOW_LOCAL_SSRF = previousAllowLocalSsrf;
+        }
+      }
     });
   });
 
@@ -417,7 +440,43 @@ describe('replay — additional coverage', () => {
           },
           { requestId: 'r1', dryRun: false },
         ),
-      ).rejects.toThrow('insecure HTTP is only allowed for loopback');
+      ).rejects.toThrow(
+        'insecure HTTP is only allowed for loopback or explicitly authorized targets',
+      );
+    });
+
+    it('allows non-loopback HTTP targets when ALLOW_LOCAL_SSRF=true', async () => {
+      const previousAllowLocalSsrf = process.env.ALLOW_LOCAL_SSRF;
+      process.env.ALLOW_LOCAL_SSRF = 'true';
+      fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
+
+      try {
+        const result = await replayRequest(
+          {
+            url: 'http://10.0.0.1/api',
+            method: 'GET',
+            headers: {},
+          },
+          { requestId: 'r-http-allow', dryRun: false },
+        );
+
+        expect(result.dryRun).toBe(false);
+        expect(fetchMock).toHaveBeenCalledWith(
+          'http://10.0.0.1/api',
+          expect.objectContaining({
+            method: 'GET',
+            redirect: 'manual',
+            headers: {},
+          }),
+        );
+        expect(lookupMock).not.toHaveBeenCalled();
+      } finally {
+        if (previousAllowLocalSsrf === undefined) {
+          delete process.env.ALLOW_LOCAL_SSRF;
+        } else {
+          process.env.ALLOW_LOCAL_SSRF = previousAllowLocalSsrf;
+        }
+      }
     });
 
     it('blocks HTTP for loopback targets due to SSRF guard', async () => {

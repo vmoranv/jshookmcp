@@ -68,7 +68,105 @@ describe('replayRequest', () => {
           dryRun: false,
         },
       ),
-    ).rejects.toThrow('insecure HTTP is only allowed for loopback targets');
+    ).rejects.toThrow(
+      'insecure HTTP is only allowed for loopback or explicitly authorized targets',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('allows authorized non-loopback HTTP requests for exact hosts', async () => {
+    const resolvedAddress = buildReservedDocIpv4();
+    lookupMock.mockResolvedValue({ address: resolvedAddress, family: 4 });
+    fetchMock.mockResolvedValue(
+      new Response('ok', {
+        status: 200,
+        headers: { 'content-type': 'text/plain' },
+      }),
+    );
+
+    const result = await replayRequest(
+      {
+        url: 'http://lab.example.com/assets/main.js',
+        method: 'GET',
+        headers: {},
+      },
+      {
+        requestId: 'req-http-authorized',
+        dryRun: false,
+        authorization: {
+          allowedHosts: ['lab.example.com'],
+          allowInsecureHttp: true,
+        },
+      },
+    );
+
+    expect(result.dryRun).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://203.0.113.10/assets/main.js',
+      expect.objectContaining({
+        method: 'GET',
+        redirect: 'manual',
+        headers: expect.objectContaining({
+          Host: 'lab.example.com',
+        }),
+      }),
+    );
+  });
+
+  it('allows authorized private CIDR targets over HTTPS', async () => {
+    fetchMock.mockResolvedValue(
+      new Response('ok', {
+        status: 200,
+        headers: { 'content-type': 'text/plain' },
+      }),
+    );
+
+    const result = await replayRequest(
+      {
+        url: 'https://10.0.0.8/assets/main.js',
+        method: 'GET',
+        headers: {},
+      },
+      {
+        requestId: 'req-private-authorized',
+        dryRun: false,
+        authorization: {
+          allowedCidrs: ['10.0.0.0/24'],
+          allowPrivateNetwork: true,
+        },
+      },
+    );
+
+    expect(result.dryRun).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://10.0.0.8/assets/main.js',
+      expect.objectContaining({
+        method: 'GET',
+        redirect: 'manual',
+      }),
+    );
+  });
+
+  it('rejects expired replay authorization before sending the request', async () => {
+    await expect(
+      replayRequest(
+        {
+          url: 'https://10.0.0.8/assets/main.js',
+          method: 'GET',
+          headers: {},
+        },
+        {
+          requestId: 'req-expired',
+          dryRun: false,
+          authorization: {
+            allowedCidrs: ['10.0.0.0/24'],
+            allowPrivateNetwork: true,
+            expiresAt: '2000-01-01T00:00:00.000Z',
+          },
+        },
+      ),
+    ).rejects.toThrow('authorization expired');
+
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
