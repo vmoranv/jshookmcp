@@ -37,6 +37,7 @@ describe('IndexedDBDumpHandlers', () => {
       maxRecords: 100,
     });
     expect(body).toEqual({
+      success: true,
       appDb: {
         users: [{ id: 1, name: 'alice' }],
       },

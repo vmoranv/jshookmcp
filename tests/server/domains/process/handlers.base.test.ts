@@ -238,16 +238,6 @@ describe('ProcessToolHandlersBase', () => {
     });
   });
 
-  describe('handleProcessFindChromium', () => {
-    it('returns disabled response', async () => {
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFindChromium({}));
-      expect(body.success).toBe(false);
-      expect(body.disabled).toBe(true);
-      expect(body.guidance).toBeDefined();
-      expect(body.platform).toBe('win32');
-    });
-  });
-
   describe('handleProcessCheckDebugPort', () => {
     it('returns canAttach with valid debug port', async () => {
       pm.checkDebugPort.mockResolvedValue(9229);

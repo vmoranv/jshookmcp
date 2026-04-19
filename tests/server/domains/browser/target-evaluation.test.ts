@@ -91,13 +91,15 @@ describe('TargetEvaluationHandlers', () => {
     expect(detailedDataManager.smartHandle).toHaveBeenCalledWith('x'.repeat(10), 1024);
   });
 
-  it('throws when no target is attached', async () => {
+  it('returns failure when no target is attached', async () => {
     pageController.getAttachedTargetInfo.mockReturnValueOnce(null);
 
-    await expect(
-      handlers.handleBrowserEvaluateCdpTarget({
+    const body = parseJson<any>(
+      await handlers.handleBrowserEvaluateCdpTarget({
         code: '1+1',
       }),
-    ).rejects.toThrow('No CDP target is currently attached');
+    );
+    expect(body.success).toBe(false);
+    expect(body.error).toMatch(/No CDP target is currently attached/);
   });
 });

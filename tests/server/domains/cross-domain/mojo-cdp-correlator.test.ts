@@ -4,13 +4,18 @@ import {
   CrossDomainEvidenceBridge,
   _resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
+import {
+  ReverseEvidenceGraph,
+  _resetIdCounter as _resetGraphIdCounter,
+} from '@server/evidence/ReverseEvidenceGraph';
 
 describe('MOJO-03: Mojo-to-CDP Correlator', () => {
   let bridge: CrossDomainEvidenceBridge;
 
   beforeEach(() => {
     _resetIdCounter();
-    bridge = new CrossDomainEvidenceBridge();
+    _resetGraphIdCounter();
+    bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });
 
   it('should add mojo message nodes to the graph', () => {

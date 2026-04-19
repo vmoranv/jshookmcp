@@ -21,7 +21,6 @@ export const analysisPhases: Phase[] = [
     setup: [],
     tools: [
       'deobfuscate',
-      'advanced_deobfuscate',
       'webcrack_unpack',
       'understand_code',
       'detect_obfuscation',
@@ -32,16 +31,7 @@ export const analysisPhases: Phase[] = [
     name: 'Hooks',
     group: 'compute-browser',
     setup: [],
-    tools: [
-      'manage_hooks',
-      'ai_hook_inject',
-      'ai_hook_toggle',
-      'ai_hook_get_data',
-      'ai_hook_list',
-      'ai_hook_export',
-      'ai_hook_clear',
-      'hook_preset',
-    ],
+    tools: ['manage_hooks', 'ai_hook', 'hook_preset'],
   },
   {
     name: 'GraphQL',

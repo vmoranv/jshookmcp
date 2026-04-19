@@ -184,7 +184,7 @@ describe('AdvancedToolHandlersIntercept', () => {
 
       const body = parseJson<any>(await handler.handleNetworkInterceptList({}));
       expect(body.success).toBe(true);
-      expect(body.hint).toContain('Use network_intercept_response');
+      expect(body.hint).toContain('network_intercept(action: "add")');
     });
   });
 

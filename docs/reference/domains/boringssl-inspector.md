@@ -29,11 +29,11 @@ BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。
 - `tls_keylog_summarize` — 按标签分布汇总 SSLKEYLOGFILE 的内容。
 - `tls_keylog_lookup_secret` — 从解析的 keylog 中按 client random hex 查找 TLS 密钥。
 - `tls_cert_pin_bypass` — 返回目标平台的证书校验绕过策略。
-- `tls_handshake_parse` — 从十六进制负载解析 TLS 记录头和基本握手元数据。
-- `tls_parse_handshake` — 从原始十六进制解析 TLS 握手元数据（版本、密码套件、SNI、扩展）。
+- `tls_parse_handshake` — 从原始十六进制解析 TLS 记录头和握手元数据（版本、密码套件、SNI、扩展）。可选 decrypt 参数使用已加载的 keylog 解密载荷预览。
 - `tls_cipher_suites` — 列出 IANA TLS 密码套件，支持按关键词过滤。
+- `tls_parse_certificate` — 从原始十六进制解析 TLS Certificate 消息并提取指纹。
 
-## 工具清单（30）
+## 工具清单（29）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -44,8 +44,7 @@ BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。
 | `tls_keylog_summarize` | 按标签分布汇总 SSLKEYLOGFILE 的内容。 |
 | `tls_keylog_lookup_secret` | 从解析的 keylog 中按 client random hex 查找 TLS 密钥。 |
 | `tls_cert_pin_bypass` | 返回目标平台的证书校验绕过策略。 |
-| `tls_handshake_parse` | 从十六进制负载解析 TLS 记录头和基本握手元数据。 |
-| `tls_parse_handshake` | 从原始十六进制解析 TLS 握手元数据（版本、密码套件、SNI、扩展）。 |
+| `tls_parse_handshake` | 从原始十六进制解析 TLS 记录头和握手元数据（版本、密码套件、SNI、扩展）。可选 decrypt 参数使用已加载的 keylog 解密载荷预览。 |
 | `tls_cipher_suites` | 列出 IANA TLS 密码套件，支持按关键词过滤。 |
 | `tls_parse_certificate` | 从原始十六进制解析 TLS Certificate 消息并提取指纹。 |
 | `tls_probe_endpoint` | 连接 TLS 端点并报告证书链基本信息、信任验证结果、ALPN 协商、协议版本、密码套件及 SNI/主机名校验详情，用于授权目标测试。 |

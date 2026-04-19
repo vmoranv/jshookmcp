@@ -2,12 +2,13 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const mojoIpcTools: Tool[] = [
-  tool('mojo_monitor_start', (t) =>
+  tool('mojo_monitor', (t) =>
     t
-      .desc('Start Mojo IPC monitoring for the active Chromium-based target')
-      .string('deviceId', 'Optional device or transport identifier'),
+      .desc('Start or stop Mojo IPC monitoring for the active Chromium-based target.')
+      .enum('action', ['start', 'stop'], 'Monitor action')
+      .string('deviceId', 'Optional device or transport identifier (action=start)')
+      .required('action'),
   ),
-  tool('mojo_monitor_stop', (t) => t.desc('Stop the active Mojo IPC monitoring session')),
   tool('mojo_decode_message', (t) =>
     t
       .desc('Decode a Mojo IPC hex payload into a structured field map')

@@ -173,11 +173,12 @@ describe('PageInteractionHandlers – handlePageClick', () => {
     expect(body.navigated).toBe(true);
   });
 
-  it('re-throws non-navigation errors', async () => {
+  it('returns failure response for non-navigation errors', async () => {
     pageController.click.mockRejectedValueOnce(new Error('Element not visible'));
-    await expect(handlers.handlePageClick({ selector: '#hidden' })).rejects.toThrow(
-      'Element not visible',
-    );
+    const response = await handlers.handlePageClick({ selector: '#hidden' });
+    const body = parseJson<PageClickResponse>(response);
+    expect(body.success).toBe(false);
+    expect(body.message).toContain('Element not visible');
   });
 
   it('clicks on camoufox driver', async () => {

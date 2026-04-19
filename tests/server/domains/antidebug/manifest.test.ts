@@ -49,11 +49,7 @@ describe('Antidebug Manifest', () => {
   describe('registrations', () => {
     it('binds correctly to handler methods', async () => {
       const mockHandler = {
-        handleAntiDebugBypassAll: vi.fn(),
-        handleAntiDebugBypassDebuggerStatement: vi.fn(),
-        handleAntiDebugBypassTiming: vi.fn(),
-        handleAntiDebugBypassStackTrace: vi.fn(),
-        handleAntiDebugBypassConsoleDetect: vi.fn(),
+        handleAntidebugBypass: vi.fn(),
         handleAntiDebugDetectProtections: vi.fn(),
       } as unknown as AntiDebugToolHandlers;
 
@@ -66,11 +62,7 @@ describe('Antidebug Manifest', () => {
         await fn(mockHandler, args);
       }
 
-      expect(mockHandler.handleAntiDebugBypassAll).toHaveBeenCalledWith(args);
-      expect(mockHandler.handleAntiDebugBypassDebuggerStatement).toHaveBeenCalledWith(args);
-      expect(mockHandler.handleAntiDebugBypassTiming).toHaveBeenCalledWith(args);
-      expect(mockHandler.handleAntiDebugBypassStackTrace).toHaveBeenCalledWith(args);
-      expect(mockHandler.handleAntiDebugBypassConsoleDetect).toHaveBeenCalledWith(args);
+      expect(mockHandler.handleAntidebugBypass).toHaveBeenCalledWith(args);
       expect(mockHandler.handleAntiDebugDetectProtections).toHaveBeenCalledWith(args);
     });
   });

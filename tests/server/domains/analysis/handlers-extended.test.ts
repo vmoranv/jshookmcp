@@ -712,66 +712,6 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     });
   });
 
-  // ─── handleAdvancedDeobfuscate — additional edge cases ────────────
-
-  describe('handleAdvancedDeobfuscate edge cases', () => {
-    it('returns error when code is empty whitespace', async () => {
-      const body = parseJson<BaseResponse>(
-        await handlers.handleAdvancedDeobfuscate({ code: '   ' }),
-      );
-      expect(body.success).toBe(false);
-      expect(body.error).toContain('code is required');
-    });
-
-    it('passes detectOnly option when specified', async () => {
-      deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({
-        success: true,
-        detected: ['string-array'],
-      });
-
-      await handlers.handleAdvancedDeobfuscate({
-        code: 'obf()',
-        detectOnly: true,
-      });
-
-      expect(deps.advancedDeobfuscator.deobfuscate).toHaveBeenCalledWith(
-        expect.objectContaining({ detectOnly: true }),
-      );
-    });
-
-    it('passes webcrack args to advancedDeobfuscator', async () => {
-      deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({
-        success: true,
-        code: 'clean',
-      });
-
-      await handlers.handleAdvancedDeobfuscate({
-        code: 'obf()',
-        unpack: true,
-        unminify: false,
-        jsx: false,
-        mangle: true,
-        outputDir: 'out',
-        forceOutput: true,
-        includeModuleCode: true,
-        maxBundleModules: 50,
-      });
-
-      expect(deps.advancedDeobfuscator.deobfuscate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          unpack: true,
-          unminify: false,
-          jsx: false,
-          mangle: true,
-          outputDir: 'out',
-          forceOutput: true,
-          includeModuleCode: true,
-          maxBundleModules: 50,
-        }),
-      );
-    });
-  });
-
   // ─── handleWebcrackUnpack — additional cases ──────────────────────
 
   describe('handleWebcrackUnpack additional cases', () => {
@@ -898,67 +838,6 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.matches).toHaveLength(1);
       expect(body.matches[0].id).toBe('1');
       expect(body.matches[0].preview).toContain('alpha');
-    });
-
-    it('extracts sources from an inline source map', async () => {
-      const sourceMap = {
-        sources: ['src/index.ts'],
-        sourcesContent: ['console.log(1);'],
-      };
-      const encoded = Buffer.from(JSON.stringify(sourceMap), 'utf-8').toString('base64');
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        text: async () =>
-          `console.log(1);\n//# sourceMappingURL=data:application/json;base64,${encoded}`,
-        headers: new Map(),
-      }) as unknown as typeof globalThis.fetch;
-      vi.stubGlobal('document', {
-        querySelectorAll: () => [{ src: 'https://cdn.example.com/app.js' }],
-      } as unknown as Document);
-
-      try {
-        const body = parseJson<any>(
-          await handlers.handleSourceMapExtract({ includeContent: true, maxFiles: 10 }),
-        );
-
-        expect(body.total).toBe(1);
-        expect(body.files[0].path).toBe('src/index.ts');
-        expect(body.files[0].content).toBe('console.log(1);');
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
-    });
-
-    it('extracts an external source map and applies filterPath', async () => {
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = vi
-        .fn()
-        .mockResolvedValueOnce({
-          text: async () => 'console.log(1);\n//# sourceMappingURL=app.js.map',
-          headers: new Map(),
-        })
-        .mockResolvedValueOnce({
-          json: async () => ({
-            sources: ['src/app.ts', 'src/other.ts'],
-            sourcesContent: ['export const app = 1;', 'export const other = 2;'],
-          }),
-          headers: new Map(),
-        }) as unknown as typeof globalThis.fetch;
-      vi.stubGlobal('document', {
-        querySelectorAll: () => [{ src: 'https://cdn.example.com/app.js' }],
-      } as unknown as Document);
-
-      try {
-        const body = parseJson<any>(
-          await handlers.handleSourceMapExtract({ includeContent: true, filterPath: 'app.ts' }),
-        );
-
-        expect(body.total).toBe(1);
-        expect(body.files[0].path).toBe('src/app.ts');
-        expect(body.files[0].content).toBe('export const app = 1;');
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
     });
   });
 });

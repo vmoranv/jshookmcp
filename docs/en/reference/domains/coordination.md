@@ -20,9 +20,9 @@ Coordination domain for session insights and MCP Task Handoff, bridging the plan
 
 ## Representative tools
 
-- `create_task_handoff` — Create a sub-task handoff for specialist agent delegation. Auto-captures active page URL.
+- `create_task_handoff` — Create a sub-task handoff for specialist agent delegation.
 - `complete_task_handoff` — Complete a task handoff with results. Transitions status to completed.
-- `get_task_context` — Read task handoff context. Without taskId returns all active handoffs + session insights.
+- `get_task_context` — Read task handoff context.
 - `append_session_insight` — Append a discovery to the session-level knowledge accumulator shared across handoffs
 - `save_page_snapshot` — Save current page state (URL, cookies, storage) for checkpoint/restore workflows
 - `restore_page_snapshot` — Restore a saved page snapshot — navigates to URL and reinjects cookies and storage
@@ -32,9 +32,9 @@ Coordination domain for session insights and MCP Task Handoff, bridging the plan
 
 | Tool | Description |
 | --- | --- |
-| `create_task_handoff` | Create a sub-task handoff for specialist agent delegation. Auto-captures active page URL. |
+| `create_task_handoff` | Create a sub-task handoff for specialist agent delegation. |
 | `complete_task_handoff` | Complete a task handoff with results. Transitions status to completed. |
-| `get_task_context` | Read task handoff context. Without taskId returns all active handoffs + session insights. |
+| `get_task_context` | Read task handoff context. |
 | `append_session_insight` | Append a discovery to the session-level knowledge accumulator shared across handoffs |
 | `save_page_snapshot` | Save current page state (URL, cookies, storage) for checkpoint/restore workflows |
 | `restore_page_snapshot` | Restore a saved page snapshot — navigates to URL and reinjects cookies and storage |

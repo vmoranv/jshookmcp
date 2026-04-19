@@ -44,10 +44,7 @@ function withWebcrackOpts(b: ToolBuilder) {
 export const coreTools: Tool[] = [
   tool('collect_code', (t) =>
     t
-      .desc(
-        'Collect JavaScript from a target website in summary, priority, incremental, or full mode',
-      )
-      .string('url', 'Target website URL')
+      .desc('Collect JavaScript from a target website in summary, priority, incremental, o...')
       .boolean('includeInline', 'Include inline scripts', { default: true })
       .boolean('includeExternal', 'Include external scripts', { default: true })
       .boolean('includeDynamic', 'Include dynamically loaded scripts', { default: false })
@@ -59,6 +56,7 @@ export const coreTools: Tool[] = [
       .number('maxFileSize', 'Maximum single file size in KB', { default: 500 })
       .array('priorities', { type: 'string' }, 'Preferred URL patterns for priority mode')
       .boolean('returnSummaryOnly', 'Return summary only', { default: false })
+      .string('url', 'Target URL to collect scripts from')
       .requiredOpenWorld('url'),
   ),
   tool('search_in_scripts', (t) =>
@@ -87,10 +85,27 @@ export const coreTools: Tool[] = [
   tool('deobfuscate', (t) =>
     withWebcrackOpts(
       t
-        .desc('Run webcrack-powered JavaScript deobfuscation with bundle unpacking')
+        .desc(
+          'Run webcrack-powered JavaScript deobfuscation with bundle unpacking. Use engine="webcrack" for aggressive VM/advanced options.',
+        )
         .string('code', 'Obfuscated JavaScript source')
+        .enum('engine', ['auto', 'webcrack'], 'Deobfuscation engine', { default: 'auto' })
         .enum('llm', ['gpt-4', 'claude'], 'Preferred LLM for analysis', { default: 'gpt-4' })
-        .boolean('aggressive', 'Aggressive deobfuscation strategy', { default: false }),
+        .boolean('aggressive', 'Aggressive deobfuscation strategy', { default: false })
+        .boolean('detectOnly', 'Detect only without transformation (webcrack engine)', {
+          default: false,
+        })
+        .boolean('aggressiveVM', 'Aggressive VM deobfuscation (webcrack engine)', {
+          default: false,
+        })
+        .boolean(
+          'useASTOptimization',
+          'Apply AST optimization after transformation (webcrack engine)',
+          {
+            default: true,
+          },
+        )
+        .number('timeout', 'Operation timeout in ms (webcrack engine)', { default: 60000 }),
     ).required('code'),
   ),
   tool('understand_code', (t) =>
@@ -133,19 +148,6 @@ export const coreTools: Tool[] = [
       .required('code')
       .query(),
   ),
-  tool('advanced_deobfuscate', (t) =>
-    withWebcrackOpts(
-      t
-        .desc('Advanced deobfuscation with webcrack backend')
-        .string('code', 'Obfuscated JavaScript source')
-        .boolean('detectOnly', 'Detect only without transformation', { default: false })
-        .boolean('aggressiveVM', 'Aggressive VM deobfuscation', { default: false })
-        .boolean('useASTOptimization', 'Apply AST optimization after transformation', {
-          default: true,
-        })
-        .number('timeout', 'Operation timeout in ms', { default: 60000 }),
-    ).required('code'),
-  ),
   tool('webcrack_unpack', (t) =>
     withWebcrackOpts(
       t
@@ -167,22 +169,9 @@ export const coreTools: Tool[] = [
       .number('maxResults', 'Maximum matching modules', { default: 20 })
       .openWorld(),
   ),
-  tool('source_map_extract', (t) =>
-    t
-      .desc('Find and parse JavaScript source maps to recover original source code')
-      .boolean('includeContent', 'Include full source file content', { default: false })
-      .string('filterPath', 'Filter by path substring')
-      .number('maxFiles', 'Maximum source files', { default: 50 })
-      .query(),
-  ),
   tool('llm_suggest_names', (t) =>
     t
-      .desc(
-        'Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated identifiers. ' +
-          'Requires the connected client to support sampling/createMessage. ' +
-          'Returns null suggestions gracefully if sampling is unavailable.',
-      )
-      .string('code', 'JavaScript code snippet containing the identifiers')
+      .desc('Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated ...')
       .array('identifiers', { type: 'string' }, 'Array of obfuscated identifier names to rename')
       .required('code', 'identifiers')
       .readOnly(),

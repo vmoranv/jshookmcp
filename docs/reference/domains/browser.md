@@ -34,7 +34,7 @@
 - `browser_launch` — 启动浏览器实例。
 - `browser_close` — 关闭当前浏览器实例。
 
-## 工具清单（67）
+## 工具清单（61）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -74,15 +74,11 @@
 | `dom_find_by_text` | 按文本内容查找元素，适合定位动态内容。 |
 | `dom_get_xpath` | 获取指定元素的 XPath。 |
 | `dom_is_in_viewport` | 检查元素当前是否位于可视区域内。 |
-| `page_get_performance` | 获取页面性能指标，如加载与网络耗时。 |
 | `page_inject_script` | 向当前页面注入 JavaScript 代码。 |
-| `page_set_cookies` | 为当前页面设置 Cookie。 |
-| `page_get_cookies` | 获取当前页面的全部 Cookie。 |
-| `page_clear_cookies` | 清除当前页面的全部 Cookie。 |
+| `page_cookies` | 待补充中文：Manage page cookies. Actions: get (all cookies), set (requires cookies array), clear (all cookies). |
 | `page_set_viewport` | 设置浏览器视口尺寸。 |
 | `page_emulate_device` | 模拟移动设备环境，如 iPhone、iPad 或 Android。 |
-| `page_get_local_storage` | 获取当前页面的全部 localStorage 项。 |
-| `page_set_local_storage` | 设置指定 localStorage 项。 |
+| `page_local_storage` | 待补充中文：Manage localStorage. Actions: get (all items), set (requires key, value). |
 | `page_press_key` | 触发一次键盘按键操作，如 Enter、Escape 或 ArrowDown。 |
 | `page_get_all_links` | 获取当前页面中的全部链接。 |
 | `captcha_detect` | 使用 AI 视觉分析检测当前页面上的 CAPTCHA。 |
@@ -93,9 +89,7 @@
 | `stealth_configure_jitter` | 配置 CDP 命令时序抖动，在每个 CDP send() 调用间注入随机延迟以防止基于时序的自动化检测。 |
 | `stealth_generate_fingerprint` | 生成真实的浏览器指纹配置文件，使用 fingerprint-generator 创建一致的浏览器特征集，自动缓存到当前会话。 |
 | `stealth_verify` | 运行离线反检测审计，检查 10 项隐身指标并返回 0-100 分的评分与修复建议。 |
-| `camoufox_server_launch` | 启动 Camoufox WebSocket 服务器，用于多进程或远程连接。 |
-| `camoufox_server_close` | 关闭 Camoufox WebSocket 服务器，并断开所有已连接客户端。 |
-| `camoufox_server_status` | 获取 Camoufox WebSocket 服务器的当前状态。 |
+| `camoufox_server` | 待补充中文：Manage Camoufox WebSocket server. Launch server, then connect via browser_launch. |
 | `framework_state_extract` | 提取当前页面中 React/Vue/Svelte/Solid/Preact 组件状态，同时检测 Next.js/Nuxt 元框架元数据（路由、构建信息），便于调试和逆向分析 SPA 应用。 |
 | `indexeddb_dump` | 导出所有 IndexedDB 数据库及其内容，便于分析 PWA 数据、令牌或离线状态。 |
 | `js_heap_search` | 在浏览器 JavaScript 堆中检索匹配模式的字符串值，用于定位令牌、密钥、签名等内存数据。 |

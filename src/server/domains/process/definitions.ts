@@ -7,14 +7,7 @@ import { tool } from '@server/registry/tool-builder';
  */
 
 export const processToolDefinitions: Tool[] = [
-  tool('process_find', (t) =>
-    t
-      .desc(
-        'Find processes by name pattern. Returns process IDs, names, paths, and window handles. Use with an empty pattern to list all processes.',
-      )
-      .string('pattern', 'Process name pattern to search for (e.g., "chrome", "msedge")')
-      .required('pattern'),
-  ),
+  tool('process_find', (t) => t.desc('Find processes by name pattern.').required('pattern')),
   tool('process_get', (t) =>
     t
       .desc('Get detailed information about a specific process by PID.')
@@ -26,18 +19,6 @@ export const processToolDefinitions: Tool[] = [
       .desc('Get all window handles for a process.')
       .number('pid', 'Process ID to get windows for')
       .required('pid'),
-  ),
-  tool('process_find_chromium', (t) =>
-    t
-      .desc(
-        'Disabled by design: does not scan user-installed browser processes. Use managed browser sessions (browser_launch/browser_attach with explicit endpoint) instead.',
-      )
-      .string(
-        'processName',
-        'Process name pattern to search for (e.g., "chrome", "msedge", "chromium")',
-        { default: 'chromium' },
-      )
-      .string('windowClass', 'Window class pattern to match (e.g., "Chrome_WidgetWin")'),
   ),
   tool('process_check_debug_port', (t) =>
     t
@@ -58,20 +39,14 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('memory_read', (t) =>
     t
-      .desc(
-        'Read memory from a process at a specific address. Failures include structured diagnostics for permissions, region checks, and ASLR guidance.',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Read memory from a process at a specific address.')
       .string('address', 'Memory address to read (hex string like "0x12345678")')
       .number('size', 'Number of bytes to read')
       .required('pid', 'address', 'size'),
   ),
   tool('memory_write', (t) =>
     t
-      .desc(
-        'Write data to process memory at a specific address. Failures include structured diagnostics for permissions, region checks, and ASLR guidance.',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Write data to process memory at a specific address.')
       .string('address', 'Memory address to write to (hex string like "0x12345678")')
       .string('data', 'Data to write (hex string or base64)')
       .enum('encoding', ['hex', 'base64'], 'Encoding of the data parameter', { default: 'hex' })
@@ -79,10 +54,7 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('memory_scan', (t) =>
     t
-      .desc(
-        'Scan process memory for a pattern or value. Failures include structured diagnostics for permissions, region checks, and ASLR guidance.',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Scan process memory for a pattern or value.')
       .string('pattern', 'Pattern to search for (hex bytes like "48 8B 05" or value)')
       .enum(
         'patternType',
@@ -99,19 +71,13 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('memory_check_protection', (t) =>
     t
-      .desc(
-        'Check memory protection flags at a specific address. Detects if memory is writable/readable/executable.',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Check memory protection flags at a specific address.')
       .string('address', 'Memory address to check (hex string like "0x12345678")')
       .required('pid', 'address'),
   ),
   tool('memory_scan_filtered', (t) =>
     t
-      .desc(
-        'Scan memory within a filtered set of addresses (secondary scan). Useful for narrowing down results.',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Scan memory within a filtered set of addresses (secondary scan).')
       .string('pattern', 'Pattern to search for')
       .array(
         'addresses',
@@ -128,7 +94,7 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('memory_batch_write', (t) =>
     t
-      .desc('Write multiple memory patches at once. Useful for applying cheats or modifications.')
+      .desc('Write multiple memory patches at once.')
       .number('pid', 'Target process ID')
       .array(
         'patches',
@@ -161,29 +127,19 @@ export const processToolDefinitions: Tool[] = [
       .required('pid'),
   ),
   tool('memory_audit_export', (t) =>
-    t
-      .desc(
-        'Export the in-memory audit trail for memory operations as JSON. Supports clear=true to flush the buffer after export.',
-      )
-      .boolean('clear', 'Clear audit trail after export'),
+    t.desc('Export the in-memory audit trail for memory operations as JSON.'),
   ),
 
   // Injection tools
   tool('inject_dll', (t) =>
     t
-      .desc(
-        'Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA (Windows) or gdb/lldb (Linux/macOS). Enabled by default; set ENABLE_INJECTION_TOOLS=false to disable. Requires administrator privileges.',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA (W...')
       .string('dllPath', 'Full path to the DLL file to inject')
       .required('pid', 'dllPath'),
   ),
   tool('inject_shellcode', (t) =>
     t
-      .desc(
-        'Inject and execute shellcode in a target process. Accepts hex or base64. Enabled by default; set ENABLE_INJECTION_TOOLS=false to disable.',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Inject and execute shellcode in a target process.')
       .string('shellcode', 'Shellcode bytes (hex string or base64)')
       .enum('encoding', ['hex', 'base64'], 'Encoding of shellcode', { default: 'hex' })
       .required('pid', 'shellcode'),
@@ -192,10 +148,7 @@ export const processToolDefinitions: Tool[] = [
   // Anti-detection tools
   tool('check_debug_port', (t) =>
     t
-      .desc(
-        'Check if a process is being debugged using NtQueryInformationProcess (ProcessDebugPort).',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Check if a process is being debugged using NtQueryInformationProcess (Process...')
       .required('pid'),
   ),
   tool('enumerate_modules', (t) =>
@@ -206,19 +159,7 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('electron_attach', (t) =>
     t
-      .desc(
-        'Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect/execute JS. Useful for debugging Electron applications or extracting extension data.',
-      )
-      .number(
-        'port',
-        'CDP debugger port (default: 9229 for --inspect, 9222 for --remote-debugging-port)',
-        { default: 9229 },
-      )
-      .string(
-        'wsEndpoint',
-        'Full WebSocket endpoint (overrides port). e.g. ws://127.0.0.1:9229/devtools/browser/xxx',
-      )
-      .string('evaluate', 'JavaScript expression to evaluate in the first matching page')
+      .desc('Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect...')
       .string(
         'pageUrl',
         'Filter pages by URL substring (e.g. "extension-host" to target VS Code extension host)',

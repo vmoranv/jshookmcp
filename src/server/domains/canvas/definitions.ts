@@ -4,10 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const canvasTools: Tool[] = [
   tool('canvas_engine_fingerprint', (t) =>
     t
-      .desc(
-        'Detect Canvas/WebGL game engine instances running in the page (LayaAir, PixiJS, Phaser, Cocos Creator, Unity WebGL, etc.)',
-      )
-      .string('canvasId', 'Canvas element ID or index to target')
+      .desc('Detect Canvas/WebGL game engine instances running in the page (LayaAir, PixiJ...')
       .query(),
   ),
   tool('canvas_scene_dump', (t) =>
@@ -35,9 +32,7 @@ export const canvasTools: Tool[] = [
   ),
   tool('trace_click_to_handler', (t) =>
     t
-      .desc(
-        'Trace a click event through DOM events, engine dispatch, and JS call stack to identify the final handler',
-      )
+      .desc('Trace a click event through DOM events, engine dispatch, and JS call stack to...')
       .number('x', 'Screen X coordinate to click')
       .number('y', 'Screen Y coordinate to click')
       .string('canvasId', 'Canvas element ID or index to target')

@@ -140,8 +140,8 @@ vi.mock('@utils/outputPaths', () => ({ resolveOutputDirectory: vi.fn() }));
 vi.mock('@server/domains/encoding/handlers.impl.core.runtime', () => ({
   EncodingToolHandlers: vi.fn().mockImplementation(() => ({})),
 }));
-vi.mock('@server/domains/graphql/handlers.impl.core.runtime.replay', () => ({
-  GraphQLToolHandlersRuntime: vi.fn().mockImplementation(() => ({})),
+vi.mock('@server/domains/graphql/handlers.impl', () => ({
+  GraphQLToolHandlers: vi.fn().mockImplementation(() => ({})),
 }));
 vi.mock('@server/domains/network/handlers.impl.core.runtime.intercept', () => ({
   AdvancedToolHandlersIntercept: vi.fn().mockImplementation(() => ({})),
@@ -149,8 +149,8 @@ vi.mock('@server/domains/network/handlers.impl.core.runtime.intercept', () => ({
 vi.mock('@server/domains/network/handlers.impl.core.runtime.replay', () => ({
   AdvancedToolHandlersRuntime: vi.fn().mockImplementation(() => ({})),
 }));
-vi.mock('@server/domains/process/handlers.impl.core.runtime.inject', () => ({
-  ProcessToolHandlersRuntime: vi.fn().mockImplementation(() => ({})),
+vi.mock('@server/domains/process/handlers.impl', () => ({
+  ProcessToolHandlers: vi.fn().mockImplementation(() => ({})),
 }));
 vi.mock('@server/domains/sourcemap/handlers.impl.sourcemap-main', () => ({
   SourcemapToolHandlersMain: vi.fn().mockImplementation(() => ({})),
@@ -193,33 +193,33 @@ describe('Handler delegation (handlers.ts -> implementation)', () => {
     });
   });
 
-  // ── graphql: handlers.ts -> handlers.impl.core.runtime.replay.ts ──
+  // ── graphql: handlers.ts -> handlers.impl.ts ──
   describe('graphql', () => {
-    it('handlers.ts exports the same GraphQLToolHandlers as the runtime implementation', async () => {
+    it('handlers.ts exports the same GraphQLToolHandlers as handlers.impl.ts', async () => {
       const handlers = await import('@server/domains/graphql/handlers');
-      const runtime = await import('@server/domains/graphql/handlers.impl.core.runtime.replay');
+      const impl = await import('@server/domains/graphql/handlers.impl');
       expect(handlers.GraphQLToolHandlers).toBeDefined();
-      expect(handlers.GraphQLToolHandlers).toBe(runtime.GraphQLToolHandlersRuntime);
+      expect(handlers.GraphQLToolHandlers).toBe(impl.GraphQLToolHandlers);
     });
   });
 
-  // ── network: handlers.ts -> handlers.impl.core.ts ──
+  // ── network: handlers.ts -> handlers.impl.ts (composition facade) ──
   describe('network', () => {
-    it('handlers.ts exports the same AdvancedToolHandlers as handlers.impl.core.ts', async () => {
+    it('handlers.ts exports the same AdvancedToolHandlers as handlers.impl.ts', async () => {
       const handlers = await import('@server/domains/network/handlers');
-      const core = await import('@server/domains/network/handlers.impl.core');
+      const impl = await import('@server/domains/network/handlers.impl');
       expect(handlers.AdvancedToolHandlers).toBeDefined();
-      expect(handlers.AdvancedToolHandlers).toBe(core.AdvancedToolHandlers);
+      expect(handlers.AdvancedToolHandlers).toBe(impl.AdvancedToolHandlers);
     });
   });
 
-  // ── process: handlers.ts -> handlers.impl.core.runtime.inject.ts ──
+  // ── process: handlers.ts -> handlers.impl.ts (composition facade) ──
   describe('process', () => {
-    it('handlers.ts exports the same ProcessToolHandlers as the runtime implementation', async () => {
+    it('handlers.ts exports ProcessToolHandlers from the composition facade', async () => {
       const handlers = await import('@server/domains/process/handlers');
-      const runtime = await import('@server/domains/process/handlers.impl.core.runtime.inject');
+      const impl = await import('@server/domains/process/handlers.impl');
       expect(handlers.ProcessToolHandlers).toBeDefined();
-      expect(handlers.ProcessToolHandlers).toBe(runtime.ProcessToolHandlersRuntime);
+      expect(handlers.ProcessToolHandlers).toBe(impl.ProcessToolHandlers);
     });
   });
 

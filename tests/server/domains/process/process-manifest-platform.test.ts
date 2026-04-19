@@ -11,7 +11,6 @@ const CROSS_PLATFORM_TOOLS = [
   'process_find',
   'process_get',
   'process_windows',
-  'process_find_chromium',
   'process_check_debug_port',
   'process_launch_debug',
   'process_kill',
@@ -57,7 +56,7 @@ describe('process manifest platform filtering', () => {
     const manifest = await loadManifestWithPlatform('linux');
     const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
 
-    expect(manifest.registrations.length).toBe(20);
+    expect(manifest.registrations.length).toBe(19);
     for (const tool of CROSS_PLATFORM_TOOLS) {
       expect(registeredNames.has(tool), `Missing cross-platform tool: ${tool}`).toBe(true);
     }
@@ -78,7 +77,7 @@ describe('process manifest platform filtering', () => {
     const manifest = await loadManifestWithPlatform('win32');
     const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
 
-    expect(manifest.registrations.length).toBe(21);
+    expect(manifest.registrations.length).toBe(20);
     for (const tool of WIN32_ONLY_TOOLS) {
       expect(registeredNames.has(tool), `Missing Win32-only tool on win32 override: ${tool}`).toBe(
         true,

@@ -1,1 +1,1 @@
-export { BoringsslInspectorHandlers } from './handlers.impl';
+export { BoringsslInspectorHandlers } from './handlers.impl.core';

@@ -79,27 +79,20 @@ describe('network tool definitions', () => {
     expect(names.has('performance_start_coverage')).toBe(true);
     expect(names.has('performance_stop_coverage')).toBe(true);
     expect(names.has('performance_take_heap_snapshot')).toBe(true);
-    expect(names.has('performance_trace_start')).toBe(true);
-    expect(names.has('performance_trace_stop')).toBe(true);
+    expect(names.has('performance_trace')).toBe(true);
   });
 
   it('contains expected profiler tools', () => {
     const names = new Set(advancedTools.map((t) => t.name));
-    expect(names.has('profiler_cpu_start')).toBe(true);
-    expect(names.has('profiler_cpu_stop')).toBe(true);
-    expect(names.has('profiler_heap_sampling_start')).toBe(true);
-    expect(names.has('profiler_heap_sampling_stop')).toBe(true);
+    expect(names.has('profiler_cpu')).toBe(true);
+    expect(names.has('profiler_heap_sampling')).toBe(true);
   });
 
   it('contains expected console tools', () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('console_get_exceptions')).toBe(true);
-    expect(names.has('console_inject_script_monitor')).toBe(true);
-    expect(names.has('console_inject_xhr_interceptor')).toBe(true);
-    expect(names.has('console_inject_fetch_interceptor')).toBe(true);
-    expect(names.has('console_clear_injected_buffers')).toBe(true);
-    expect(names.has('console_reset_injected_interceptors')).toBe(true);
-    expect(names.has('console_inject_function_tracer')).toBe(true);
+    expect(names.has('console_inject')).toBe(true);
+    expect(names.has('console_buffers')).toBe(true);
   });
 
   it('contains expected analysis tools', () => {
@@ -111,6 +104,7 @@ describe('network tool definitions', () => {
     expect(names.has('http_plain_request')).toBe(true);
     expect(names.has('network_export_har')).toBe(true);
     expect(names.has('network_replay_request')).toBe(true);
+    expect(names.has('network_intercept')).toBe(true);
   });
 
   // ---------- required field checks ----------
@@ -167,9 +161,9 @@ describe('network tool definitions', () => {
     expect(props.maxResponseBytes).toBeDefined();
   });
 
-  it('console_inject_function_tracer requires functionName', () => {
-    const tool = findTool('console_inject_function_tracer');
-    expect(tool.inputSchema.required).toContain('functionName');
+  it('console_inject requires type', () => {
+    const tool = findTool('console_inject');
+    expect(tool.inputSchema.required).toContain('type');
   });
 
   // ---------- property type checks ----------
@@ -189,17 +183,18 @@ describe('network tool definitions', () => {
     expect(props.enableExceptions).toBeDefined();
   });
 
-  it('performance_trace_start has categories and screenshots properties', () => {
-    const tool = findTool('performance_trace_start');
+  it('performance_trace has action, categories, screenshots, artifactPath', () => {
+    const tool = findTool('performance_trace');
     const props = getProperties(tool);
+    expect(props.action).toBeDefined();
     expect(props.categories).toBeDefined();
     expect(props.categories?.type).toBe('array');
     expect(props.screenshots).toBeDefined();
     expect(props.screenshots?.type).toBe('boolean');
   });
 
-  it('profiler_heap_sampling_start has samplingInterval property', () => {
-    const tool = findTool('profiler_heap_sampling_start');
+  it('profiler_heap_sampling has samplingInterval property', () => {
+    const tool = findTool('profiler_heap_sampling');
     const props = getProperties(tool);
     expect(props.samplingInterval).toBeDefined();
     expect(props.samplingInterval?.type).toBe('number');

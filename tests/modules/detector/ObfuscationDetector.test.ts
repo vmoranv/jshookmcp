@@ -106,10 +106,8 @@ describe('ObfuscationDetector', () => {
         'urlencoded',
       ]),
     );
-    expect(result.toolRecommendations.some((item) => item.tool === 'manage_hooks')).toBe(true);
-    expect(result.toolRecommendations.some((item) => item.tool === 'advanced_deobfuscate')).toBe(
-      true,
-    );
+    expect(result.toolRecommendations.some((item) => item.tool === 'ai_hook')).toBe(true);
+    expect(result.toolRecommendations.some((item) => item.tool === 'deobfuscate')).toBe(true);
   });
 
   it('accumulates JScrambler heuristics from multiple indicators', () => {

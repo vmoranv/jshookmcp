@@ -23,50 +23,50 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 
 ## Representative tools
 
-- `get_detailed_data` —  Retrieve detailed data using detailId token.
-- `browser_attach` — Attach to an existing browser instance via Chrome DevTools Protocol (CDP).
-- `browser_list_tabs` — List all open tabs/pages in the connected browser.
-- `browser_list_cdp_targets` — List all CDP targets visible from the connected browser target.
-- `browser_select_tab` — Switch the active tab/page by index or URL/title pattern.
-- `browser_attach_cdp_target` — Attach to a specific CDP target by targetId.
+- `get_detailed_data` — Retrieve large data using detailId token from previous tool response.
+- `browser_attach` — Attach to a running browser via CDP. Supports browserURL, wsEndpoint, and autoConnect.
+- `browser_list_tabs` — List all open tabs/pages. Can auto-connect via browserURL/wsEndpoint/autoConnect.
+- `browser_list_cdp_targets` — List all CDP targets (pages, workers, iframes). Can auto-connect first.
+- `browser_select_tab` — Switch active tab by index or URL/title pattern. Console/network rebind lazily.
+- `browser_attach_cdp_target` — Attach to a specific CDP target by targetId. Network/hooks bind to this target.
 - `browser_detach_cdp_target` — Detach the currently attached low-level CDP target session and return network/hooks to normal page-based binding.
-- `browser_evaluate_cdp_target` — Evaluate JavaScript inside the currently attached CDP target session.
-- `browser_launch` — Launch browser instance.
+- `browser_evaluate_cdp_target` — Evaluate JS in the currently attached CDP target session (OOPIF/iframe/worker).
+- `browser_launch` — Launch or connect to a browser. Drivers: chrome (full CDP) or camoufox (anti-detect Firefox).
 - `browser_close` — Close browser instance
 
-## Full tool list (67)
+## Full tool list (61)
 
 | Tool | Description |
 | --- | --- |
-| `get_detailed_data` |  Retrieve detailed data using detailId token. |
-| `browser_attach` | Attach to an existing browser instance via Chrome DevTools Protocol (CDP). |
-| `browser_list_tabs` | List all open tabs/pages in the connected browser. |
-| `browser_list_cdp_targets` | List all CDP targets visible from the connected browser target. |
-| `browser_select_tab` | Switch the active tab/page by index or URL/title pattern. |
-| `browser_attach_cdp_target` | Attach to a specific CDP target by targetId. |
+| `get_detailed_data` | Retrieve large data using detailId token from previous tool response. |
+| `browser_attach` | Attach to a running browser via CDP. Supports browserURL, wsEndpoint, and autoConnect. |
+| `browser_list_tabs` | List all open tabs/pages. Can auto-connect via browserURL/wsEndpoint/autoConnect. |
+| `browser_list_cdp_targets` | List all CDP targets (pages, workers, iframes). Can auto-connect first. |
+| `browser_select_tab` | Switch active tab by index or URL/title pattern. Console/network rebind lazily. |
+| `browser_attach_cdp_target` | Attach to a specific CDP target by targetId. Network/hooks bind to this target. |
 | `browser_detach_cdp_target` | Detach the currently attached low-level CDP target session and return network/hooks to normal page-based binding. |
-| `browser_evaluate_cdp_target` | Evaluate JavaScript inside the currently attached CDP target session. |
-| `browser_launch` | Launch browser instance. |
+| `browser_evaluate_cdp_target` | Evaluate JS in the currently attached CDP target session (OOPIF/iframe/worker). |
+| `browser_launch` | Launch or connect to a browser. Drivers: chrome (full CDP) or camoufox (anti-detect Firefox). |
 | `browser_close` | Close browser instance |
 | `browser_status` | Get browser status (running, pages count, version) |
-| `page_navigate` | Navigate to a URL |
+| `page_navigate` | Navigate to a URL. Supports auto CAPTCHA detection and optional network monitoring. |
 | `page_reload` | Reload current page |
 | `page_back` | Navigate back in history |
 | `page_forward` | Navigate forward in history |
 | `dom_query_selector` | Query single element (like document.querySelector). AI should use this BEFORE clicking to verify element exists. |
 | `dom_query_all` | Query all matching elements (like document.querySelectorAll) |
-| `dom_get_structure` | Get page DOM structure (for AI to understand page layout). |
-| `dom_find_clickable` | Find all clickable elements (buttons, links). Use this to discover what can be clicked. |
-| `page_click` | Click an element. Use dom_query_selector FIRST to verify element exists. Supports clicking inside iframes via frameUrl/frameSelector. |
+| `dom_get_structure` | Get page DOM structure. |
+| `dom_find_clickable` | Find all clickable elements (buttons, links). |
+| `page_click` | Click an element. Supports iframes via frameUrl/frameSelector. |
 | `page_type` | Type text into an input element. Supports typing inside iframes via frameUrl/frameSelector. |
 | `page_select` | Select option(s) in a &lt;select&gt; element. Supports iframes via frameUrl/frameSelector. |
 | `page_hover` | Hover over an element. Supports iframes via frameUrl/frameSelector. |
 | `page_scroll` | Scroll the page |
 | `page_wait_for_selector` | Wait for an element to appear |
-| `page_evaluate` | Execute JavaScript code in page context and get result. |
-| `page_screenshot` | Take a screenshot of the page, a specific DOM element, multiple elements, or a pixel region. |
+| `page_evaluate` | Execute JavaScript in page context. Large results (&gt;50KB) auto-return summary + detailId. |
+| `page_screenshot` | Take a screenshot: full page, element(s), or pixel region. |
 | `get_all_scripts` | Get list of all loaded scripts on the page |
-| `get_script_source` | Get source code of a specific script. |
+| `get_script_source` | Get source code of a specific script. Large scripts auto-return summary + detailId. |
 | `console_enable` | Enable console monitoring to capture console.log, console.error, etc. |
 | `console_get_logs` | Get captured console logs |
 | `console_execute` | Execute JavaScript expression in console context |
@@ -74,34 +74,28 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `dom_find_by_text` | Find elements by text content (useful for dynamic content) |
 | `dom_get_xpath` | Get XPath of an element |
 | `dom_is_in_viewport` | Check if element is visible in viewport |
-| `page_get_performance` | Get page performance metrics (load time, network time, etc.) |
 | `page_inject_script` | Inject JavaScript code into page |
-| `page_set_cookies` | Set cookies for the page |
-| `page_get_cookies` | Get all cookies for the page |
-| `page_clear_cookies` | Clear all cookies |
+| `page_cookies` | Manage page cookies. Actions: get (all cookies), set (requires cookies array), clear (all cookies). |
 | `page_set_viewport` | Set viewport size |
 | `page_emulate_device` | Emulate mobile device (iPhone, iPad, Android) |
-| `page_get_local_storage` | Get all localStorage items |
-| `page_set_local_storage` | Set localStorage item |
+| `page_local_storage` | Manage localStorage. Actions: get (all items), set (requires key, value). |
 | `page_press_key` | Press a keyboard key (e.g., "Enter", "Escape", "ArrowDown") |
 | `page_get_all_links` | Get all links on the page |
-| `captcha_detect` | Detect CAPTCHA on the current page using AI vision analysis. |
-| `captcha_wait` | Wait for the user to manually solve a CAPTCHA. |
-| `captcha_config` | Configure CAPTCHA detection behavior. |
-| `stealth_inject` | Inject modern stealth scripts to bypass bot detection. |
-| `stealth_set_user_agent` | Set a realistic User-Agent and browser fingerprint for the target platform. |
+| `captcha_detect` | Detect CAPTCHA on the current page via AI vision + rule-based analysis. |
+| `captcha_wait` | Wait for manual CAPTCHA solve. Polls until CAPTCHA disappears. |
+| `captcha_config` | Configure CAPTCHA detection and auto-handling behavior. |
+| `stealth_inject` | Inject stealth scripts: webdriver, chrome, plugins, canvas, WebGL, permissions patches. |
+| `stealth_set_user_agent` | Set realistic User-Agent and fingerprint for target platform. |
 | `stealth_configure_jitter` | Configure CDP command timing jitter to mimic natural network latency. |
-| `stealth_generate_fingerprint` | Generate a realistic browser fingerprint using real-world datasets. |
-| `stealth_verify` | Run offline anti-detection checks on the current page. |
-| `camoufox_server_launch` | Launch a Camoufox WebSocket server for multi-process / remote connections. |
-| `camoufox_server_close` | Close the Camoufox WebSocket server. Connected clients are disconnected. |
-| `camoufox_server_status` | Get the current status of the Camoufox WebSocket server (running, wsEndpoint). |
-| `framework_state_extract` | Extract component state from the live page. Supports React, Vue 2/3, Svelte 3/4/5, Solid.js, and Preact. Also detects Next.js/Nuxt meta-framework metadata (routes, build info, payload). Useful for debugging frontend applications, reverse-engineering SPA state, and finding hidden data. |
-| `indexeddb_dump` | Dump all IndexedDB databases and their contents. Useful for analyzing PWA data, stored tokens, or offline application state. |
-| `js_heap_search` | Search the browser JavaScript heap for string values matching a pattern. This is the CE (Cheat Engine) equivalent for web — scans the JS runtime memory to find tokens, API keys, signatures, or any string stored in JS objects. |
-| `tab_workflow` | Cross-tab coordination for multi-page automation flows. |
-| `human_mouse` | Move the mouse along a natural Bezier curve path with random jitter. |
-| `human_scroll` | Scroll the page with human-like behavior: variable speed, micro-pauses, and deceleration. |
-| `human_typing` | Type text with human-like patterns: variable speed, occasional typos, and natural corrections. |
-| `captcha_vision_solve` | Attempt to solve a CAPTCHA using an external solving service or AI vision. |
-| `widget_challenge_solve` | Solve an embedded widget challenge. |
+| `stealth_generate_fingerprint` | Generate realistic browser fingerprint. Cached per session, auto-applied on stealth_inject. |
+| `stealth_verify` | Run anti-detection checks. Returns pass/fail per check + overall score (0-100). |
+| `camoufox_server` | Manage Camoufox WebSocket server. Launch server, then connect via browser_launch. |
+| `framework_state_extract` | Extract component state from the live page (React, Vue, Svelte, Solid, Preact). |
+| `indexeddb_dump` | Dump IndexedDB databases and their contents. |
+| `js_heap_search` | Search JS heap for string values matching a pattern. WARNING: takes a full heap snapshot. |
+| `tab_workflow` | Cross-tab coordination: list/bind/navigate/wait/context-set/transfer across named tabs. |
+| `human_mouse` | Move mouse along a natural Bezier curve with jitter. Use before page_click for anti-bot. |
+| `human_scroll` | Scroll with human-like behavior: variable speed, micro-pauses, deceleration. |
+| `human_typing` | Type text with human-like patterns: variable speed, occasional typos, corrections. |
+| `captcha_vision_solve` | Solve CAPTCHA via external service or AI vision. Auto-detects challenge type. |
+| `widget_challenge_solve` | Solve embedded widget challenge: detect, solve, inject token, trigger callback. |

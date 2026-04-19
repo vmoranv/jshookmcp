@@ -96,7 +96,6 @@ describe('ToolCatalog – tier system', () => {
 
   it('representative tools resolve to expected domains', () => {
     expect(getToolDomain('webpack_enumerate')).toBe('core');
-    expect(getToolDomain('source_map_extract')).toBe('core');
     expect(getToolDomain('framework_state_extract')).toBe('browser');
     expect(getToolDomain('indexeddb_dump')).toBe('browser');
     expect(getToolDomain('electron_attach')).toBe('process');

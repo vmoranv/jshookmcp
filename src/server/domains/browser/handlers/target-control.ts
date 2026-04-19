@@ -2,6 +2,7 @@ import type { CodeCollector, ConsoleMonitor } from '@server/domains/shared/modul
 import type { TabRegistry } from '@modules/browser/TabRegistry';
 import { argBool, argString, argStringArray } from '@server/domains/shared/parse-args';
 import { logger } from '@utils/logger';
+import { R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 
 interface TargetControlHandlersDeps {
   collector: CodeCollector;
@@ -57,7 +58,7 @@ export class TargetControlHandlers {
     };
   }
 
-  async handleBrowserListCdpTargets(args: Record<string, unknown>) {
+  async handleBrowserListCdpTargets(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       const type = argString(args, 'type');
       const types = argStringArray(args, 'types');
@@ -117,59 +118,33 @@ export class TargetControlHandlers {
         };
       });
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                count: enrichedTargets.length,
-                activeTarget,
-                currentTab: currentTab
-                  ? {
-                      index: currentTab.index,
-                      url: currentTab.url,
-                      title: currentTab.title,
-                    }
-                  : null,
-                filters: {
-                  type: type ?? null,
-                  types: types ?? null,
-                  targetId: targetId ?? null,
-                  urlPattern: urlPattern ?? null,
-                  titlePattern: titlePattern ?? null,
-                  attachedOnly,
-                },
-                targets: enrichedTargets,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.ok().build({
+        count: enrichedTargets.length,
+        activeTarget,
+        currentTab: currentTab
+          ? {
+              index: currentTab.index,
+              url: currentTab.url,
+              title: currentTab.title,
+            }
+          : null,
+        filters: {
+          type: type ?? null,
+          types: types ?? null,
+          targetId: targetId ?? null,
+          urlPattern: urlPattern ?? null,
+          titlePattern: titlePattern ?? null,
+          attachedOnly,
+        },
+        targets: enrichedTargets,
+      });
     } catch (error) {
       logger.error('Failed to list CDP targets:', error);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error instanceof Error ? error.message : String(error)).build();
     }
   }
 
-  async handleBrowserAttachCdpTarget(args: Record<string, unknown>) {
+  async handleBrowserAttachCdpTarget(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       const targetId = argString(args, 'targetId');
       if (!targetId) {
@@ -179,43 +154,17 @@ export class TargetControlHandlers {
       const target = await this.deps.collector.attachCdpTarget(targetId);
       this.markMonitoringContextChanged('browser_attach_cdp_target');
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                attached: true,
-                target,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.ok().build({
+        attached: true,
+        target,
+      });
     } catch (error) {
       logger.error('Failed to attach CDP target:', error);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error instanceof Error ? error.message : String(error)).build();
     }
   }
 
-  async handleBrowserDetachCdpTarget(_args: Record<string, unknown>) {
+  async handleBrowserDetachCdpTarget(_args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       const activeTarget = this.deps.collector.getAttachedTargetInfo();
       const detached = await this.deps.collector.detachCdpTarget();
@@ -224,39 +173,13 @@ export class TargetControlHandlers {
         this.markMonitoringContextChanged('browser_detach_cdp_target');
       }
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                detached,
-                targetId: activeTarget?.targetId ?? null,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.ok().build({
+        detached,
+        targetId: activeTarget?.targetId ?? null,
+      });
     } catch (error) {
       logger.error('Failed to detach CDP target:', error);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error instanceof Error ? error.message : String(error)).build();
     }
   }
 }

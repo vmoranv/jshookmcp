@@ -7,25 +7,13 @@ export const systemPhases: Phase[] = [
   {
     name: 'Antidebug',
     setup: [],
-    tools: [
-      'antidebug_detect_protections',
-      'antidebug_bypass_all',
-      'antidebug_bypass_debugger_statement',
-      'antidebug_bypass_console_detect',
-      'antidebug_bypass_stack_trace',
-      'antidebug_bypass_timing',
-    ],
+    tools: ['antidebug_detect_protections', 'antidebug_bypass'],
   },
   {
     name: 'Sourcemap',
     concurrent: true,
     setup: [],
-    tools: [
-      'sourcemap_discover',
-      'source_map_extract',
-      'sourcemap_fetch_and_parse',
-      'sourcemap_reconstruct_tree',
-    ],
+    tools: ['sourcemap_discover', 'sourcemap_fetch_and_parse', 'sourcemap_reconstruct_tree'],
   },
   {
     name: 'Workflow',
@@ -54,7 +42,6 @@ export const systemPhases: Phase[] = [
       'process_get',
       'process_windows',
       'process_find',
-      'process_find_chromium',
       'process_check_debug_port',
       'process_launch_debug',
     ],
@@ -148,7 +135,7 @@ export const systemPhases: Phase[] = [
     concurrent: true,
     group: 'compute-core',
     setup: [],
-    tools: ['frida_bridge', 'jadx_bridge'],
+    tools: ['frida_attach', 'jadx_decompile'],
   },
   {
     name: 'Trace & Time-Travel',
@@ -241,7 +228,6 @@ export const systemPhases: Phase[] = [
       'tls_keylog_summarize',
       'tls_keylog_lookup_secret',
       'tls_cert_pin_bypass',
-      'tls_handshake_parse',
       'tls_parse_handshake',
       'tls_cipher_suites',
       'tls_parse_certificate',
@@ -436,7 +422,7 @@ export const systemPhases: Phase[] = [
     concurrent: true,
     group: 'compute-core',
     setup: [],
-    tools: ['webhook_create', 'webhook_list', 'webhook_delete', 'webhook_commands'],
+    tools: ['webhook'],
   },
   {
     name: 'Stealth Advanced',
@@ -451,7 +437,6 @@ export const systemPhases: Phase[] = [
     group: 'compute-browser',
     setup: ['reload_extensions', 'list_extension_workflows'],
     tools: [
-      'install_extension',
       'extension_reload',
       'extension_uninstall',
       'extension_execute_in_context',

@@ -21,20 +21,14 @@ Evidence-graph domain that models provenance between URLs, scripts, functions, h
 
 ## Representative tools
 
-- `evidence_query_url` — Query reverse evidence graph for all nodes associated with a URL
-- `evidence_query_function` — Query reverse evidence graph for all nodes associated with a function name
-- `evidence_query_script` — Query reverse evidence graph for all nodes associated with a script ID
-- `evidence_export_json` — Export entire reverse evidence graph as JSON snapshot
-- `evidence_export_markdown` — Export reverse evidence graph as Markdown report grouped by node type
+- `evidence_query` — Query reverse evidence graph by URL, function name, or script ID to find associated nodes.
+- `evidence_export` — Export the reverse evidence graph as JSON snapshot or Markdown report.
 - `evidence_chain` — Get full provenance chain from a node ID in specified direction
 
-## Full tool list (6)
+## Full tool list (3)
 
 | Tool | Description |
 | --- | --- |
-| `evidence_query_url` | Query reverse evidence graph for all nodes associated with a URL |
-| `evidence_query_function` | Query reverse evidence graph for all nodes associated with a function name |
-| `evidence_query_script` | Query reverse evidence graph for all nodes associated with a script ID |
-| `evidence_export_json` | Export entire reverse evidence graph as JSON snapshot |
-| `evidence_export_markdown` | Export reverse evidence graph as Markdown report grouped by node type |
+| `evidence_query` | Query reverse evidence graph by URL, function name, or script ID to find associated nodes. |
+| `evidence_export` | Export the reverse evidence graph as JSON snapshot or Markdown report. |
 | `evidence_chain` | Get full provenance chain from a node ID in specified direction |

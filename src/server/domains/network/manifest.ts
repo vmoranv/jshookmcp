@@ -104,30 +104,19 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       bind: b((h, a) => h.handlePerformanceTakeHeapSnapshot(a)),
     },
     {
-      tool: t('performance_trace_start'),
+      tool: t('performance_trace'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handlePerformanceTraceStart(a)),
+      bind: b((h, a) => h.handlePerformanceTraceDispatch(a)),
     },
     {
-      tool: t('performance_trace_stop'),
+      tool: t('profiler_cpu'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handlePerformanceTraceStop(a)),
+      bind: b((h, a) => h.handleProfilerCpuDispatch(a)),
     },
     {
-      tool: t('profiler_cpu_start'),
+      tool: t('profiler_heap_sampling'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleProfilerCpuStart(a)),
-    },
-    { tool: t('profiler_cpu_stop'), domain: DOMAIN, bind: b((h, a) => h.handleProfilerCpuStop(a)) },
-    {
-      tool: t('profiler_heap_sampling_start'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleProfilerHeapSamplingStart(a)),
-    },
-    {
-      tool: t('profiler_heap_sampling_stop'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleProfilerHeapSamplingStop(a)),
+      bind: b((h, a) => h.handleProfilerHeapSamplingDispatch(a)),
     },
     {
       tool: t('console_get_exceptions'),
@@ -135,34 +124,14 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       bind: b((h, a) => h.handleConsoleGetExceptions(a)),
     },
     {
-      tool: t('console_inject_script_monitor'),
+      tool: t('console_inject'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleInjectScriptMonitor(a)),
+      bind: b((h, a) => h.handleConsoleInjectDispatch(a)),
     },
     {
-      tool: t('console_inject_xhr_interceptor'),
+      tool: t('console_buffers'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleInjectXhrInterceptor(a)),
-    },
-    {
-      tool: t('console_inject_fetch_interceptor'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleInjectFetchInterceptor(a)),
-    },
-    {
-      tool: t('console_clear_injected_buffers'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleClearInjectedBuffers(a)),
-    },
-    {
-      tool: t('console_reset_injected_interceptors'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleResetInjectedInterceptors(a)),
-    },
-    {
-      tool: t('console_inject_function_tracer'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleInjectFunctionTracer(a)),
+      bind: b((h, a) => h.handleConsoleBuffersDispatch(a)),
     },
     { tool: t('dns_resolve'), domain: DOMAIN, bind: b((h, a) => h.handleDnsResolve(a)) },
     { tool: t('dns_reverse'), domain: DOMAIN, bind: b((h, a) => h.handleDnsReverse(a)) },
@@ -183,6 +152,11 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       bind: b((h, a) => h.handleHttp2FrameBuild(a)),
     },
     {
+      tool: t('network_rtt_measure'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleNetworkRttMeasure(a)),
+    },
+    {
       tool: t('network_extract_auth'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleNetworkExtractAuth(a)),
@@ -198,19 +172,9 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       bind: b((h, a) => h.handleNetworkReplayRequest(a)),
     },
     {
-      tool: t('network_intercept_response'),
+      tool: t('network_intercept'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkInterceptResponse(a)),
-    },
-    {
-      tool: t('network_intercept_list'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkInterceptList(a)),
-    },
-    {
-      tool: t('network_intercept_disable'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkInterceptDisable(a)),
+      bind: b((h, a) => h.handleNetworkInterceptDispatch(a)),
     },
   ],
 };

@@ -32,11 +32,6 @@ const allRegistrations = [
   { tool: t('process_get'), domain: DOMAIN, bind: b((h, a) => h.handleProcessGet(a)) },
   { tool: t('process_windows'), domain: DOMAIN, bind: b((h, a) => h.handleProcessWindows(a)) },
   {
-    tool: t('process_find_chromium'),
-    domain: DOMAIN,
-    bind: b((h, a) => h.handleProcessFindChromium(a)),
-  },
-  {
     tool: t('process_check_debug_port'),
     domain: DOMAIN,
     bind: b((h, a) => h.handleProcessCheckDebugPort(a)),

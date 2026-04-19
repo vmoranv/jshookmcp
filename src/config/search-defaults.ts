@@ -80,6 +80,80 @@ export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
       { domain: 'analysis', weight: 1.1 },
     ],
   },
+  {
+    pattern:
+      '(?:v8|heap\\s?(?:snapshot|dump|profile)|bytecode|jit|turbofan|ignition|hidden\\s?class)',
+    flags: 'i',
+    domainBoosts: [
+      { domain: 'v8-inspector', weight: 1.6 },
+      { domain: 'memory', weight: 1.2 },
+    ],
+  },
+  {
+    pattern: '(?:tls|ssl|boringssl|cert(?:ificate)?|pinning|handshake|keylog|nss)',
+    flags: 'i',
+    domainBoosts: [
+      { domain: 'boringssl-inspector', weight: 1.6 },
+      { domain: 'network', weight: 1.1 },
+    ],
+  },
+  {
+    pattern: '(?:skia|gpu|render|scenegraph|scene\\s?tree|raster|draw\\s?call|layer)',
+    flags: 'i',
+    domainBoosts: [
+      { domain: 'skia-capture', weight: 1.6 },
+      { domain: 'browser', weight: 1.1 },
+    ],
+  },
+  {
+    pattern: '(?:frida|ghidra|ida|unidbg|jadx|disassemble|instrument)',
+    flags: 'i',
+    domainBoosts: [
+      { domain: 'binary-instrument', weight: 1.6 },
+      { domain: 'memory', weight: 1.2 },
+    ],
+  },
+  {
+    pattern: '(?:adb|android|webview|apk|dalvik|art\\s?(?:runtime)?)',
+    flags: 'i',
+    domainBoosts: [
+      { domain: 'adb-bridge', weight: 1.6 },
+      { domain: 'browser', weight: 1.1 },
+    ],
+  },
+  {
+    pattern: '(?:mojo|ipc|chromium.*ipc|broker|chromium.*interface)',
+    flags: 'i',
+    domainBoosts: [
+      { domain: 'mojo-ipc', weight: 1.6 },
+      { domain: 'debugger', weight: 1.1 },
+    ],
+  },
+  {
+    pattern: '(?:syscall|etw|strace|dtrace|kernel.*call|system\\s?call|tracefs)',
+    flags: 'i',
+    domainBoosts: [
+      { domain: 'syscall-hook', weight: 1.6 },
+      { domain: 'process', weight: 1.1 },
+    ],
+  },
+  {
+    pattern: '(?:protocol.*analy|state\\s?machine|packet.*decode|field.*extract)',
+    flags: 'i',
+    domainBoosts: [
+      { domain: 'protocol-analysis', weight: 1.6 },
+      { domain: 'network', weight: 1.1 },
+    ],
+  },
+  {
+    pattern:
+      '(?:extension.*(?:install|registry|list)|plugin.*(?:install|manage)|addon|webhook.*(?:create|manage))',
+    flags: 'i',
+    domainBoosts: [
+      { domain: 'extension-registry', weight: 1.6 },
+      { domain: 'workflow', weight: 1.1 },
+    ],
+  },
 ] satisfies SearchQueryCategoryProfileConfig[];
 
 export const DEFAULT_CJK_QUERY_ALIAS_CONFIGS = [
@@ -164,7 +238,7 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
     flags: 'i',
     boosts: [
       { tool: 'js_bundle_search', bonus: 20 },
-      { tool: 'source_map_extract', bonus: 10 },
+      { tool: 'sourcemap_fetch_and_parse', bonus: 10 },
       { tool: 'webpack_enumerate', bonus: 8 },
     ],
   },
@@ -216,7 +290,7 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       { tool: 'list_extension_workflows', bonus: 24 },
       { tool: 'js_bundle_search', bonus: 14 },
       { tool: 'collect_code', bonus: 10 },
-      { tool: 'source_map_extract', bonus: 8 },
+      { tool: 'sourcemap_fetch_and_parse', bonus: 8 },
     ],
   },
   {
@@ -231,7 +305,7 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
     ],
   },
   {
-    pattern: '(?:evidence|export|har|report|snapshot|证据|导出|报告|快照|取证)',
+    pattern: '(?:evidence|export.*(?:har|markdown|json)|har|report|证据|导出|报告|取证)',
     flags: 'i',
     boosts: [
       { tool: 'run_extension_workflow', bonus: 40 },

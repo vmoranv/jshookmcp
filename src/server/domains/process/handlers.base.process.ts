@@ -356,32 +356,6 @@ export class ProcessHandlersCore {
     }
   }
 
-  async handleProcessFindChromium(_args: Record<string, unknown>) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: false,
-              disabled: true,
-              message:
-                'process_find_chromium is disabled to avoid scanning user-installed browser processes.',
-              guidance: [
-                'Use browser_launch(driver="chrome"|"camoufox") to start a managed browser session.',
-                'Use browser_attach/browser_launch(mode="connect") with an explicit browserURL/wsEndpoint.',
-                'Use process_launch_debug for explicitly targeted Electron/Chromium executables.',
-              ],
-              platform: this.platform,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
-  }
-
   async handleProcessCheckDebugPort(args: Record<string, unknown>) {
     try {
       const pid = validatePid(args.pid);

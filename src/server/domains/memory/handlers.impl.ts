@@ -72,6 +72,17 @@ export class MemoryScanHandlers {
 
   // ── Session ──
 
+  handleScanSessionDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    switch (action) {
+      case 'delete':
+        return this.sessions.handleScanDelete(args);
+      case 'export':
+        return this.sessions.handleScanExport(args);
+      default:
+        return this.sessions.handleScanList(args);
+    }
+  }
   handleScanList = (args: Record<string, unknown>) => this.sessions.handleScanList(args);
   handleScanDelete = (args: Record<string, unknown>) => this.sessions.handleScanDelete(args);
   handleScanExport = (args: Record<string, unknown>) => this.sessions.handleScanExport(args);
@@ -86,6 +97,19 @@ export class MemoryScanHandlers {
 
   // ── Pointer Chain ──
 
+  handlePointerChainDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    switch (action) {
+      case 'validate':
+        return this.ptrChains.handlePointerChainValidate(args);
+      case 'resolve':
+        return this.ptrChains.handlePointerChainResolve(args);
+      case 'export':
+        return this.ptrChains.handlePointerChainExport(args);
+      default:
+        return this.ptrChains.handlePointerChainScan(args);
+    }
+  }
   handlePointerChainScan = (args: Record<string, unknown>) =>
     this.ptrChains.handlePointerChainScan(args);
   handlePointerChainValidate = (args: Record<string, unknown>) =>
@@ -107,6 +131,19 @@ export class MemoryScanHandlers {
 
   // ── Hook (breakpoint + injection) ──
 
+  handleBreakpointDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    switch (action) {
+      case 'remove':
+        return this.hooks.handleBreakpointRemove(args);
+      case 'list':
+        return this.hooks.handleBreakpointList(args);
+      case 'trace':
+        return this.hooks.handleBreakpointTrace(args);
+      default:
+        return this.hooks.handleBreakpointSet(args);
+    }
+  }
   handleBreakpointSet = (args: Record<string, unknown>) => this.hooks.handleBreakpointSet(args);
   handleBreakpointRemove = (args: Record<string, unknown>) =>
     this.hooks.handleBreakpointRemove(args);
@@ -119,6 +156,16 @@ export class MemoryScanHandlers {
 
   // ── Read / Write ──
 
+  handleFreezeDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    if (action === 'unfreeze') return this.readwrite.handleUnfreeze(args);
+    return this.readwrite.handleFreeze(args);
+  }
+  handleWriteHistoryDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    if (action === 'redo') return this.readwrite.handleWriteRedo(args);
+    return this.readwrite.handleWriteUndo(args);
+  }
   handleWriteValue = (args: Record<string, unknown>) => this.readwrite.handleWriteValue(args);
   handleFreeze = (args: Record<string, unknown>) => this.readwrite.handleFreeze(args);
   handleUnfreeze = (args: Record<string, unknown>) => this.readwrite.handleUnfreeze(args);
@@ -128,6 +175,11 @@ export class MemoryScanHandlers {
 
   // ── Integrity (speedhack + heap + PE + anti-cheat) ──
 
+  handleSpeedhackDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    if (action === 'set') return this.integrity.handleSpeedhackSet(args);
+    return this.integrity.handleSpeedhackApply(args);
+  }
   handleSpeedhackApply = (args: Record<string, unknown>) =>
     this.integrity.handleSpeedhackApply(args);
   handleSpeedhackSet = (args: Record<string, unknown>) => this.integrity.handleSpeedhackSet(args);

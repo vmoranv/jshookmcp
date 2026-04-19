@@ -13,6 +13,7 @@ import {
 import { buildHttp2Frame } from '@server/domains/network/http2-raw';
 import type { Http2FrameBuildInput, Http2SettingsEntry } from '@server/domains/network/http2-raw';
 import { AdvancedToolHandlersRuntime as AdvancedToolHandlersReplay } from '@server/domains/network/handlers.impl.core.runtime.replay';
+import { R } from '@server/domains/shared/ResponseBuilder';
 import {
   createNetworkAuthorizationPolicy,
   hasAuthorizedTargets,
@@ -27,6 +28,27 @@ import {
 } from '@server/domains/network/ssrf-policy';
 
 const HTTP_TOKEN_RE = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function roundMs(ms: number): number {
+  return Math.round(ms * 100) / 100;
+}
+
+function computeRttStats(samples: number[]) {
+  const sorted = [...samples].toSorted((a, b) => a - b);
+  if (sorted.length === 0) return null;
+  return {
+    count: sorted.length,
+    minMs: sorted[0]!,
+    maxMs: sorted[sorted.length - 1]!,
+    avgMs: roundMs(sorted.reduce((s, v) => s + v, 0) / sorted.length),
+    p50Ms: sorted[Math.floor(sorted.length * 0.5)]!,
+    p95Ms: sorted[Math.floor(sorted.length * 0.95)]!,
+  };
+}
 
 type AuthorizedTransportTarget = {
   url: URL;
@@ -479,39 +501,29 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
       const all = this.parseBooleanArg(args.all, true);
       if (isIP(host) !== 0) {
         const familyValue = isIP(host) as 4 | 6;
-        const result = {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  hostname: host,
-                  familyRequested: familyArg,
-                  count: 1,
-                  results: [
-                    {
-                      address: host,
-                      family: familyValue,
-                      hostname: host,
-                      isPrivate: isPrivateHost(host),
-                      isLoopback: isLoopbackHost(host),
-                    },
-                  ],
-                  note: 'Input was already an IP literal, so no DNS lookup was required.',
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
         this.emit('network:dns_resolved', {
           hostname: host,
           count: 1,
           timestamp: new Date().toISOString(),
         });
-        return result;
+
+        return R.ok()
+          .merge({
+            hostname: host,
+            familyRequested: familyArg,
+            count: 1,
+            results: [
+              {
+                address: host,
+                family: familyValue,
+                hostname: host,
+                isPrivate: isPrivateHost(host),
+                isLoopback: isLoopbackHost(host),
+              },
+            ],
+            note: 'Input was already an IP literal, so no DNS lookup was required.',
+          })
+          .json();
       }
 
       const lookupResult = await dnsPromises.lookup(host, {
@@ -524,46 +536,22 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
         Array.isArray(lookupResult) ? lookupResult : [lookupResult],
       );
 
-      const result = {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                hostname: host,
-                familyRequested: familyArg,
-                count: results.length,
-                results,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
       this.emit('network:dns_resolved', {
         hostname: host,
         count: results.length,
         timestamp: new Date().toISOString(),
       });
-      return result;
+
+      return R.ok()
+        .merge({
+          hostname: host,
+          familyRequested: familyArg,
+          count: results.length,
+          results,
+        })
+        .json();
     } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error instanceof Error ? error.message : String(error)).json();
     }
   }
 
@@ -581,31 +569,21 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
 
       try {
         const hostnames = await dnsPromises.reverse(normalized);
-        const result = {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  address: normalized,
-                  isPrivate: isPrivateHost(normalized),
-                  isLoopback: isLoopbackHost(normalized),
-                  count: hostnames.length,
-                  hostnames: [...hostnames].toSorted((left, right) => left.localeCompare(right)),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
         this.emit('network:dns_reversed', {
           address: normalized,
           count: hostnames.length,
           timestamp: new Date().toISOString(),
         });
-        return result;
+
+        return R.ok()
+          .merge({
+            address: normalized,
+            isPrivate: isPrivateHost(normalized),
+            isLoopback: isLoopbackHost(normalized),
+            count: hostnames.length,
+            hostnames: [...hostnames].toSorted((left, right) => left.localeCompare(right)),
+          })
+          .json();
       } catch (error) {
         const code =
           typeof error === 'object' &&
@@ -616,53 +594,28 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
             : undefined;
 
         if (code === 'ENOTFOUND' || code === 'ENODATA' || code === 'ENOTIMP') {
-          const result = {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    success: true,
-                    address: normalized,
-                    isPrivate: isPrivateHost(normalized),
-                    isLoopback: isLoopbackHost(normalized),
-                    count: 0,
-                    hostnames: [],
-                    note: 'No PTR records were returned for this address.',
-                  },
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
           this.emit('network:dns_reversed', {
             address: normalized,
             count: 0,
             timestamp: new Date().toISOString(),
           });
-          return result;
+
+          return R.ok()
+            .merge({
+              address: normalized,
+              isPrivate: isPrivateHost(normalized),
+              isLoopback: isLoopbackHost(normalized),
+              count: 0,
+              hostnames: [],
+              note: 'No PTR records were returned for this address.',
+            })
+            .json();
         }
 
         throw error;
       }
     } catch (error) {
-      const result = {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-      return result;
+      return R.fail(error instanceof Error ? error.message : String(error)).json();
     }
   }
 
@@ -691,45 +644,18 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
         addConnectionClose: this.parseBooleanArg(args.addConnectionClose, true),
       });
 
-      const result = {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                ...built,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
       this.emit('network:http_request_built', {
         method: built.startLine.split(' ', 1)[0] ?? 'UNKNOWN',
         target,
         byteLength: built.requestBytes,
         timestamp: new Date().toISOString(),
       });
-      return result;
+
+      return R.ok()
+        .merge(built as unknown as Record<string, unknown>)
+        .json();
     } catch (error) {
-      const result = {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-      return result;
+      return R.fail(error instanceof Error ? error.message : String(error)).json();
     }
   }
 
@@ -737,12 +663,8 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
     try {
       const hostArg = parseOptionalString(args.host, 'host');
       const requestText = parseRawString(args.requestText, 'requestText');
-      if (!hostArg) {
-        throw new Error('host is required');
-      }
-      if (!requestText) {
-        throw new Error('requestText is required');
-      }
+      if (!hostArg) throw new Error('host is required');
+      if (!requestText) throw new Error('requestText is required');
 
       const host = normalizeTargetHost(hostArg);
       const port = this.parseNumberArg(args.port, {
@@ -765,20 +687,16 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
       });
       const requestMethod = getRequestMethod(requestText);
       const authorization = parseNetworkAuthorization(args.authorization);
+
       const { target } = await resolveAuthorizedTransportTarget(
         `http://${formatHostForUrl(host)}:${String(port)}/`,
         authorization,
         'HTTP request',
       );
 
-      // Validate request-line target and Host header against authorized host
-      // to prevent SSRF via absolute-form URIs or mismatched Host headers
-      // that could redirect the request through a proxy/gateway to a private target.
       if (authorization) {
         const requestLine = requestText.split(/\r?\n/, 1)[0] ?? '';
         const requestTarget = requestLine.split(/\s+/)[1] ?? '';
-
-        // Block absolute-form targets that diverge from the authorized host
         if (requestTarget.includes('://')) {
           try {
             const targetUrl = new URL(requestTarget);
@@ -790,11 +708,9 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
             }
           } catch (e) {
             if (e instanceof Error && e.message.startsWith('HTTP request blocked:')) throw e;
-            // Not a valid URL in request-line — origin-form is fine
           }
         }
 
-        // Check Host header in the raw request text
         const hostHeaderMatch = requestText.match(/^Host:\s*(\S+)/im);
         const hostHeaderValue = hostHeaderMatch?.[1];
         if (hostHeaderValue) {
@@ -816,53 +732,16 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
         maxResponseBytes,
       );
       const analysis = analyzeHttpResponse(exchange.rawResponse, requestMethod);
-      if (!analysis) {
+      if (!analysis)
         throw new Error('Received data but could not parse complete HTTP response headers.');
-      }
 
       const contentType =
-        analysis.rawHeaders.find((header) => header.name.toLowerCase() === 'content-type')?.value ??
-        null;
+        analysis.rawHeaders.find((h) => h.name.toLowerCase() === 'content-type')?.value ?? null;
       const bodyIsText = isLikelyTextHttpBody(contentType, analysis.bodyBuffer);
       const complete =
         analysis.complete ||
         (analysis.bodyMode === 'until-close' && exchange.endedBy === 'socket-close');
 
-      const result = {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                host,
-                port,
-                resolvedAddress: target.resolvedAddress ?? target.hostname,
-                requestBytes: Buffer.byteLength(requestText, 'utf8'),
-                response: {
-                  statusLine: analysis.statusLine,
-                  httpVersion: analysis.httpVersion,
-                  statusCode: analysis.statusCode,
-                  statusText: analysis.statusText,
-                  headers: analysis.headers,
-                  rawHeaders: analysis.rawHeaders,
-                  headerBytes: analysis.headerBytes,
-                  bodyBytes: analysis.bodyBytes,
-                  bodyMode: analysis.bodyMode,
-                  chunkedDecoded: analysis.chunkedDecoded,
-                  complete,
-                  truncated: exchange.endedBy === 'max-bytes',
-                  endedBy: exchange.endedBy,
-                  bodyText: bodyIsText ? analysis.bodyBuffer.toString('utf8') : undefined,
-                  bodyBase64: bodyIsText ? undefined : analysis.bodyBuffer.toString('base64'),
-                },
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
       this.emit('network:http_plain_request_completed', {
         host,
         port,
@@ -870,23 +749,34 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
         byteLength: exchange.rawResponse.length,
         timestamp: new Date().toISOString(),
       });
-      return result;
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
+
+      return R.ok()
+        .merge({
+          host,
+          port,
+          resolvedAddress: target.resolvedAddress ?? target.hostname,
+          requestBytes: Buffer.byteLength(requestText, 'utf8'),
+          response: {
+            statusLine: analysis.statusLine,
+            httpVersion: analysis.httpVersion,
+            statusCode: analysis.statusCode,
+            statusText: analysis.statusText,
+            headers: analysis.headers,
+            rawHeaders: analysis.rawHeaders,
+            headerBytes: analysis.headerBytes,
+            bodyBytes: analysis.bodyBytes,
+            bodyMode: analysis.bodyMode,
+            chunkedDecoded: analysis.chunkedDecoded,
+            complete,
+            truncated: exchange.endedBy === 'max-bytes',
+            endedBy: exchange.endedBy,
+            bodyText: bodyIsText ? analysis.bodyBuffer.toString('utf8') : undefined,
+            bodyBase64: bodyIsText ? undefined : analysis.bodyBuffer.toString('base64'),
           },
-        ],
-      };
+        })
+        .json();
+    } catch (error) {
+      return R.fail(error instanceof Error ? error.message : String(error)).json();
     }
   }
 
@@ -898,14 +788,10 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
     let eventSuccess = false;
 
     try {
-      if (!rawUrl) {
-        throw new Error('url is required');
-      }
+      if (!rawUrl) throw new Error('url is required');
 
       const method = (parseOptionalString(args.method, 'method') ?? 'GET').toUpperCase();
-      if (!HTTP_TOKEN_RE.test(method)) {
-        throw new Error('method must be a valid HTTP token');
-      }
+      if (!HTTP_TOKEN_RE.test(method)) throw new Error('method must be a valid HTTP token');
 
       const timeoutMs = this.parseNumberArg(args.timeoutMs, {
         defaultValue: 30_000,
@@ -926,6 +812,7 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
       const alpnProtocols = parseStringArray(args.alpnProtocols, 'alpnProtocols');
       const requestHeaders = toHttp2RequestHeaders(parseHeaderRecord(args.headers, 'headers'));
       const authorization = parseNetworkAuthorization(args.authorization);
+
       const { url, target } = await resolveAuthorizedTransportTarget(
         rawUrl,
         authorization,
@@ -942,139 +829,26 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
         10,
       );
       const requestedAlpnProtocols = alpnProtocols.length > 0 ? alpnProtocols : ['h2', 'http/1.1'];
-      const transportProtocol = url.protocol === 'https:' ? 'h2' : 'h2c';
-      let observedAlpnProtocol: string | null = null;
 
-      const response = await new Promise<{
-        responseHeaders: http2.IncomingHttpHeaders;
-        bodyBuffer: Buffer;
-        truncated: boolean;
-      }>((resolve, reject) => {
-        let settled = false;
-        let responseHeaders: http2.IncomingHttpHeaders | undefined;
-        let capturedBody = Buffer.alloc(0);
-        let truncated = false;
-        let request: http2.ClientHttp2Stream | null = null;
-        let connectedSocket: net.Socket | tls.TLSSocket | null = null;
-
-        const session = http2.connect(url.origin, {
-          createConnection: () => {
-            if (url.protocol === 'https:') {
-              const socket = tls.connect({
-                host: target.resolvedAddress ?? target.hostname,
-                port: effectivePort,
-                servername: target.hostname,
-                ALPNProtocols: requestedAlpnProtocols,
-                rejectUnauthorized: true,
-              });
-              socket.setTimeout(timeoutMs, () => {
-                socket.destroy(new Error(`Timed out probing HTTP/2 endpoint ${url.toString()}`));
-              });
-              socket.once('secureConnect', () => {
-                observedAlpnProtocol = normalizeAlpnProtocol(socket.alpnProtocol);
-              });
-              connectedSocket = socket;
-              return socket;
-            }
-
-            const socket = net.connect({
-              host: target.resolvedAddress ?? target.hostname,
-              port: effectivePort,
-            });
-            socket.setTimeout(timeoutMs, () => {
-              socket.destroy(new Error(`Timed out probing HTTP/2 endpoint ${url.toString()}`));
-            });
-            connectedSocket = socket;
-            return socket;
-          },
-        });
-
-        const cleanup = () => {
-          request?.removeAllListeners();
-          session.removeAllListeners();
-        };
-
-        const finish = () => {
-          if (settled) {
-            return;
-          }
-          settled = true;
-          cleanup();
-          session.close();
-          resolve({
-            responseHeaders: responseHeaders ?? {},
-            bodyBuffer: capturedBody,
-            truncated,
-          });
-        };
-
-        const fail = (error: Error) => {
-          if (settled) {
-            return;
-          }
-          settled = true;
-          cleanup();
-          session.destroy(error);
-          reject(error);
-        };
-
-        session.once('error', (error) => {
-          if (connectedSocket instanceof tls.TLSSocket) {
-            observedAlpnProtocol = normalizeAlpnProtocol(connectedSocket.alpnProtocol);
-          }
-          fail(error instanceof Error ? error : new Error(String(error)));
-        });
-        session.once('connect', () => {
-          if (connectedSocket instanceof tls.TLSSocket) {
-            observedAlpnProtocol = normalizeAlpnProtocol(connectedSocket.alpnProtocol);
-          }
-
-          request = session.request({
-            ':method': method,
-            ':path': `${url.pathname}${url.search}`,
-            ':scheme': url.protocol.slice(0, -1),
-            ':authority': url.host,
-            ...requestHeaders,
-          });
-          request.once('response', (headers) => {
-            responseHeaders = headers;
-          });
-          request.on('data', (chunk: string | Buffer) => {
-            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
-            const remaining = maxBodyBytes - capturedBody.length;
-            if (remaining > 0) {
-              capturedBody = Buffer.concat(
-                [capturedBody, buffer.subarray(0, remaining)],
-                capturedBody.length + Math.min(buffer.length, remaining),
-              );
-            }
-
-            if (buffer.length > remaining && !truncated) {
-              truncated = true;
-              request?.close(http2.constants.NGHTTP2_CANCEL);
-            }
-          });
-          request.once('end', finish);
-          request.once('close', () => {
-            if (truncated) {
-              finish();
-            }
-          });
-          request.once('error', (error) => {
-            fail(error instanceof Error ? error : new Error(String(error)));
-          });
-
-          if (bodyBuffer.length > 0) {
-            request.end(bodyBuffer);
-            return;
-          }
-
-          request.end();
-        });
+      const {
+        responseHeaders,
+        bodyBuffer: capturedBody,
+        truncated,
+        alpnProtocol,
+      } = await this.performHttp2ProbeInternal({
+        url,
+        target,
+        method,
+        requestHeaders,
+        bodyBuffer,
+        timeoutMs,
+        maxBodyBytes,
+        effectivePort,
+        requestedAlpnProtocols,
       });
 
-      const normalizedHeaders = normalizeHttp2Headers(response.responseHeaders);
-      const rawStatus = response.responseHeaders[':status'];
+      const normalizedHeaders = normalizeHttp2Headers(responseHeaders);
+      const rawStatus = responseHeaders[':status'];
       const statusCode =
         typeof rawStatus === 'number'
           ? rawStatus
@@ -1087,72 +861,184 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
           : Array.isArray(normalizedHeaders['content-type'])
             ? (normalizedHeaders['content-type'][0] ?? null)
             : null;
-      const bodyIsText = isLikelyTextHttpBody(contentType, response.bodyBuffer);
+      const bodyIsText = isLikelyTextHttpBody(contentType, capturedBody);
 
       eventStatusCode = Number.isFinite(statusCode ?? Number.NaN) ? statusCode : null;
-      eventAlpnProtocol = observedAlpnProtocol;
+      eventAlpnProtocol = alpnProtocol;
       eventSuccess = true;
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                url: url.toString(),
-                resolvedAddress: target.resolvedAddress ?? target.hostname,
-                transport: {
-                  scheme: url.protocol,
-                  protocol: transportProtocol,
-                  alpnProtocol: observedAlpnProtocol,
-                  encrypted: url.protocol === 'https:',
-                },
-                response: {
-                  statusCode,
-                  headers: normalizedHeaders,
-                  bodyBytes: response.bodyBuffer.length,
-                  truncated: response.truncated,
-                  bodyTextSnippet: bodyIsText ? response.bodyBuffer.toString('utf8') : undefined,
-                  bodyBase64Snippet: bodyIsText
-                    ? undefined
-                    : response.bodyBuffer.toString('base64'),
-                },
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.ok()
+        .merge({
+          url: eventUrl,
+          statusCode: eventStatusCode,
+          alpnProtocol: eventAlpnProtocol,
+          headers: normalizedHeaders,
+          bodyBytes: capturedBody.length,
+          truncated,
+          bodyText: bodyIsText ? capturedBody.toString('utf8') : undefined,
+          bodyBase64: bodyIsText ? undefined : capturedBody.toString('base64'),
+        })
+        .json();
     } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                url: rawUrl ?? undefined,
-                alpnProtocol: eventAlpnProtocol,
-                statusCode: eventStatusCode,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error instanceof Error ? error.message : String(error)).json();
     } finally {
-      this.emit('network:http2_probe_completed', {
+      this.emit('network:http2_probed', {
         url: eventUrl,
+        success: eventSuccess,
         statusCode: eventStatusCode,
         alpnProtocol: eventAlpnProtocol,
-        success: eventSuccess,
         timestamp: new Date().toISOString(),
       });
     }
+  }
+
+  private async performHttp2ProbeInternal(options: {
+    url: URL;
+    target: ResolvedNetworkTarget;
+    method: string;
+    requestHeaders: http2.OutgoingHttpHeaders;
+    bodyBuffer: Buffer;
+    timeoutMs: number;
+    maxBodyBytes: number;
+    effectivePort: number;
+    requestedAlpnProtocols: string[];
+  }): Promise<{
+    responseHeaders: http2.IncomingHttpHeaders;
+    bodyBuffer: Buffer;
+    truncated: boolean;
+    alpnProtocol: string | null;
+  }> {
+    const {
+      url,
+      target,
+      method,
+      requestHeaders,
+      bodyBuffer,
+      timeoutMs,
+      maxBodyBytes,
+      effectivePort,
+      requestedAlpnProtocols,
+    } = options;
+    let observedAlpnProtocol: string | null = null;
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let responseHeaders: http2.IncomingHttpHeaders | undefined;
+      let capturedBody = Buffer.alloc(0);
+      let truncated = false;
+      let request: http2.ClientHttp2Stream | null = null;
+      let connectedSocket: net.Socket | tls.TLSSocket | null = null;
+
+      const session = http2.connect(url.origin, {
+        createConnection: () => {
+          if (url.protocol === 'https:') {
+            const socket = tls.connect({
+              host: target.resolvedAddress ?? target.hostname,
+              port: effectivePort,
+              servername: target.hostname,
+              ALPNProtocols: requestedAlpnProtocols,
+              rejectUnauthorized: true,
+            });
+            socket.setTimeout(timeoutMs, () => {
+              socket.destroy(new Error(`Timed out probing HTTP/2 endpoint ${url.toString()}`));
+            });
+            socket.once('secureConnect', () => {
+              observedAlpnProtocol = normalizeAlpnProtocol(socket.alpnProtocol);
+            });
+            connectedSocket = socket;
+            return socket;
+          }
+
+          const socket = net.connect({
+            host: target.resolvedAddress ?? target.hostname,
+            port: effectivePort,
+          });
+          socket.setTimeout(timeoutMs, () => {
+            socket.destroy(new Error(`Timed out probing HTTP/2 endpoint ${url.toString()}`));
+          });
+          connectedSocket = socket;
+          return socket;
+        },
+      });
+
+      const cleanup = () => {
+        request?.removeAllListeners();
+        session.removeAllListeners();
+      };
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        session.close();
+        resolve({
+          responseHeaders: responseHeaders ?? {},
+          bodyBuffer: capturedBody,
+          truncated,
+          alpnProtocol: observedAlpnProtocol,
+        });
+      };
+
+      const fail = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        session.destroy(error);
+        reject(error);
+      };
+
+      session.once('error', (error) => {
+        if (connectedSocket instanceof tls.TLSSocket) {
+          observedAlpnProtocol = normalizeAlpnProtocol(connectedSocket.alpnProtocol);
+        }
+        fail(error instanceof Error ? error : new Error(String(error)));
+      });
+
+      session.once('connect', () => {
+        if (connectedSocket instanceof tls.TLSSocket) {
+          observedAlpnProtocol = normalizeAlpnProtocol(connectedSocket.alpnProtocol);
+        }
+
+        request = session.request({
+          ':method': method,
+          ':path': `${url.pathname}${url.search}`,
+          ':scheme': url.protocol.slice(0, -1),
+          ':authority': url.host,
+          ...requestHeaders,
+        });
+        request.once('response', (headers) => {
+          responseHeaders = headers;
+        });
+        request.on('data', (chunk: string | Buffer) => {
+          const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
+          const remaining = maxBodyBytes - capturedBody.length;
+          if (remaining > 0) {
+            capturedBody = Buffer.concat(
+              [capturedBody, buffer.subarray(0, remaining)],
+              capturedBody.length + Math.min(buffer.length, remaining),
+            );
+          }
+
+          if (buffer.length > remaining && !truncated) {
+            truncated = true;
+            request?.close(http2.constants.NGHTTP2_CANCEL);
+          }
+        });
+        request.once('end', finish);
+        request.once('close', () => {
+          if (truncated) finish();
+        });
+        request.once('error', (error) => {
+          fail(error instanceof Error ? error : new Error(String(error)));
+        });
+
+        if (bodyBuffer.length > 0) {
+          request.end(bodyBuffer);
+        } else {
+          request.end();
+        }
+      });
+    });
   }
 
   async handleHttp2FrameBuild(args: Record<string, unknown>) {
@@ -1278,13 +1164,160 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
       timestamp: new Date().toISOString(),
     });
 
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(result, null, 2),
-        },
-      ],
-    };
+    return R.ok()
+      .merge(result as unknown as Record<string, unknown>)
+      .json();
+  }
+
+  async handleNetworkRttMeasure(args: Record<string, unknown>) {
+    const urlRaw = parseOptionalString(args.url, 'url');
+    if (!urlRaw) {
+      throw new Error('url is required');
+    }
+
+    const probeType = (parseOptionalString(args.probeType, 'probeType') ?? 'tcp') as
+      | 'tcp'
+      | 'tls'
+      | 'http';
+    if (!['tcp', 'tls', 'http'].includes(probeType)) {
+      throw new Error('probeType must be one of: tcp, tls, http');
+    }
+
+    const iterations = clamp(
+      args.iterations !== undefined
+        ? this.parseNumberArg(args.iterations, { defaultValue: 5, min: 1, integer: true })
+        : 5,
+      1,
+      50,
+    );
+
+    const timeoutMs = clamp(
+      args.timeoutMs !== undefined
+        ? this.parseNumberArg(args.timeoutMs, { defaultValue: 5000, min: 100, integer: true })
+        : 5000,
+      100,
+      30000,
+    );
+
+    const authorization = parseNetworkAuthorization(args.authorization);
+    const { url, target } = await resolveAuthorizedTransportTarget(
+      urlRaw,
+      authorization,
+      'RTT measurement',
+    );
+
+    const hostname = target.hostname;
+    const port = Number(url.port) || (url.protocol === 'https:' ? 443 : 80);
+    const resolvedIp = target.resolvedAddress ?? hostname;
+
+    const samples: number[] = [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < iterations; i++) {
+      try {
+        const rtt = await this.measureSingleRtt(resolvedIp, port, probeType, timeoutMs);
+        samples.push(rtt);
+      } catch (err) {
+        errors.push(err instanceof Error ? err.message : String(err));
+      }
+    }
+
+    const stats = computeRttStats(samples);
+
+    this.emit('network:rtt_measured', {
+      url: urlRaw,
+      probeType,
+      iterations,
+      successCount: samples.length,
+      errorCount: errors.length,
+      stats,
+      timestamp: new Date().toISOString(),
+    });
+
+    return R.ok()
+      .merge({
+        target: { hostname, port, resolvedIp, probeType },
+        stats,
+        samples,
+        errors: errors.length > 0 ? errors : undefined,
+        timestamp: new Date().toISOString(),
+      })
+      .json();
+  }
+
+  private measureSingleRtt(
+    host: string,
+    port: number,
+    probeType: 'tcp' | 'tls' | 'http',
+    timeoutMs: number,
+  ): Promise<number> {
+    switch (probeType) {
+      case 'tcp':
+        return this.probeTcp(host, port, timeoutMs);
+      case 'tls':
+        return this.probeTls(host, port, timeoutMs);
+      case 'http':
+        return this.probeHttp(host, port, timeoutMs);
+    }
+  }
+
+  private probeTcp(host: string, port: number, timeoutMs: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const start = performance.now();
+      const timer = setTimeout(
+        () => reject(new Error(`TCP probe timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      );
+      const socket = net.createConnection({ host, port }, () => {
+        clearTimeout(timer);
+        socket.destroy();
+        resolve(roundMs(performance.now() - start));
+      });
+      socket.on('error', (err) => {
+        clearTimeout(timer);
+        socket.destroy();
+        reject(err);
+      });
+    });
+  }
+
+  private probeTls(host: string, port: number, timeoutMs: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const start = performance.now();
+      const timer = setTimeout(
+        () => reject(new Error(`TLS probe timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      );
+      const socket = tls.connect({ host, port, rejectUnauthorized: false }, () => {
+        clearTimeout(timer);
+        socket.destroy();
+        resolve(roundMs(performance.now() - start));
+      });
+      socket.on('error', (err) => {
+        clearTimeout(timer);
+        socket.destroy();
+        reject(err);
+      });
+    });
+  }
+
+  private async probeHttp(host: string, port: number, timeoutMs: number): Promise<number> {
+    const protocol = port === 443 ? 'https:' : 'http:';
+    const probeUrl = `${protocol}//${host}:${port}/`;
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), timeoutMs);
+    const start = performance.now();
+    try {
+      await fetch(probeUrl, {
+        method: 'HEAD',
+        signal: ac.signal,
+        redirect: 'manual',
+        // @ts-expect-error -- Node.js fetch option
+        rejectUnauthorized: false,
+      });
+      return roundMs(performance.now() - start);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }

@@ -28,4 +28,3 @@ export {
 } from '@server/domains/platform/handlers/platform-utils';
 export { MiniappHandlers } from '@server/domains/platform/handlers/miniapp-handlers';
 export { ElectronHandlers } from '@server/domains/platform/handlers/electron-handlers';
-export { BridgeHandlers } from '@server/domains/platform/handlers/bridge-handlers';

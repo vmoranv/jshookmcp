@@ -51,12 +51,7 @@ const manifest = {
   profiles: ['full'],
   ensure,
   registrations: [
-    { tool: t('ai_hook_inject'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookInject(a)) },
-    { tool: t('ai_hook_get_data'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookGetData(a)) },
-    { tool: t('ai_hook_list'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookList(a)) },
-    { tool: t('ai_hook_clear'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookClear(a)) },
-    { tool: t('ai_hook_toggle'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookToggle(a)) },
-    { tool: t('ai_hook_export'), domain: DOMAIN, bind: b((h, a) => h.handleAIHookExport(a)) },
+    { tool: t('ai_hook'), domain: DOMAIN, bind: b((h, a) => h.handleAIHook(a)) },
     // hook_preset uses the secondary handler
     {
       tool: t('hook_preset'),

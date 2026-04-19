@@ -63,7 +63,6 @@ const {
     handlePageWaitForSelector: vi.fn(async (args: any) => ({ from: 'wait-selector', args })),
   } as MockHandler,
   pageDataMocks: {
-    handlePageGetPerformance: vi.fn(async (args: any) => ({ from: 'perf', args })),
     handlePageSetCookies: vi.fn(async (args: any) => ({ from: 'set-cookies', args })),
     handlePageGetCookies: vi.fn(async (args: any) => ({ from: 'get-cookies', args })),
     handlePageClearCookies: vi.fn(async (args: any) => ({ from: 'clear-cookies', args })),
@@ -268,18 +267,24 @@ class TestBrowserToolHandlers extends BrowserToolHandlers {
 }
 
 type JsonResponse = {
-  content: Array<{ text: string }>;
+  content: Array<{ type: string; text?: string; [key: string]: any }>;
+  isError?: boolean;
+  [key: string]: any;
 };
 
-function getResponseText(response: JsonResponse): string {
-  const [content] = response.content;
-  if (!content) {
+function getResponseText(response: any): string {
+  const res = response as JsonResponse;
+  if (!res || !Array.isArray(res.content) || res.content.length === 0) {
     throw new Error('Expected response content');
+  }
+  const content = res.content[0];
+  if (!content || content.type !== 'text' || typeof content.text !== 'string') {
+    throw new Error(`Expected text content, got ${content?.type ?? 'nothing'}`);
   }
   return content.text;
 }
 
-function parseJson<T = Record<string, any>>(response: JsonResponse): T {
+function parseJson<T = Record<string, any>>(response: any): T {
   return JSON.parse(getResponseText(response)) as T;
 }
 
@@ -395,26 +400,20 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
 
   // ============ Page Data delegation ============
   describe('page data delegation', () => {
-    it('delegates handlePageGetPerformance', async () => {
-      const result = await handlers.handlePageGetPerformance({});
-      expect(pageDataMocks.handlePageGetPerformance).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'perf', args: {} });
+    it('delegates handlePageCookiesDispatch (get)', async () => {
+      await handlers.handlePageCookiesDispatch({ action: 'get' });
+      expect(pageDataMocks.handlePageGetCookies).toHaveBeenCalledWith({ action: 'get' });
     });
 
-    it('delegates handlePageSetCookies', async () => {
-      const args = { cookies: [{ name: 'a', value: 'b' }] };
-      await handlers.handlePageSetCookies(args);
+    it('delegates handlePageCookiesDispatch (set)', async () => {
+      const args = { action: 'set', cookies: [{ name: 'a', value: 'b' }] };
+      await handlers.handlePageCookiesDispatch(args);
       expect(pageDataMocks.handlePageSetCookies).toHaveBeenCalledWith(args);
     });
 
-    it('delegates handlePageGetCookies', async () => {
-      await handlers.handlePageGetCookies({});
-      expect(pageDataMocks.handlePageGetCookies).toHaveBeenCalledWith({});
-    });
-
-    it('delegates handlePageClearCookies', async () => {
-      await handlers.handlePageClearCookies({});
-      expect(pageDataMocks.handlePageClearCookies).toHaveBeenCalledWith({});
+    it('delegates handlePageCookiesDispatch (clear)', async () => {
+      await handlers.handlePageCookiesDispatch({ action: 'clear' });
+      expect(pageDataMocks.handlePageClearCookies).toHaveBeenCalledWith({ action: 'clear' });
     });
 
     it('delegates handlePageSetViewport', async () => {
@@ -429,14 +428,14 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
       expect(pageDataMocks.handlePageEmulateDevice).toHaveBeenCalledWith(args);
     });
 
-    it('delegates handlePageGetLocalStorage', async () => {
-      await handlers.handlePageGetLocalStorage({});
-      expect(pageDataMocks.handlePageGetLocalStorage).toHaveBeenCalledWith({});
+    it('delegates handlePageLocalStorageDispatch (get)', async () => {
+      await handlers.handlePageLocalStorageDispatch({ action: 'get' });
+      expect(pageDataMocks.handlePageGetLocalStorage).toHaveBeenCalledWith({ action: 'get' });
     });
 
-    it('delegates handlePageSetLocalStorage', async () => {
-      const args = { key: 'k', value: 'v' };
-      await handlers.handlePageSetLocalStorage(args);
+    it('delegates handlePageLocalStorageDispatch (set)', async () => {
+      const args = { action: 'set', key: 'k', value: 'v' };
+      await handlers.handlePageLocalStorageDispatch(args);
       expect(pageDataMocks.handlePageSetLocalStorage).toHaveBeenCalledWith(args);
     });
 
@@ -832,14 +831,15 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
 
   // ============ getCamoufoxPage private method coverage ============
   describe('getCamoufoxPage', () => {
-    it('throws when camoufoxManager is null', async () => {
+    it('returns failure response when camoufoxManager is null', async () => {
       handlers.setActiveDriver('camoufox');
       handlers.setCamoufoxManager(null);
 
       // Navigate triggers getCamoufoxPage internally
-      await expect(handlers.handlePageNavigate({ url: 'https://example.com' })).rejects.toThrow(
-        /Camoufox browser not launched/,
-      );
+      const response = await handlers.handlePageNavigate({ url: 'https://example.com' });
+      const body = parseJson<any>(response);
+      expect(body.success).toBe(false);
+      expect(body.message).toMatch(/Camoufox browser not launched/);
     });
   });
 });

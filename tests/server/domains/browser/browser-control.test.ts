@@ -202,12 +202,13 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
   });
 
   it('rejects chrome connect mode with an invalid channel', async () => {
-    await expect(
-      handlers.handleBrowserLaunch({
-        mode: 'connect',
-        channel: 'nightly',
-      }),
-    ).rejects.toThrow('Invalid channel "nightly"');
+    const response = await handlers.handleBrowserLaunch({
+      mode: 'connect',
+      channel: 'nightly',
+    });
+    const body = parseJson<BrowserLaunchResponse>(response);
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('Invalid channel "nightly"');
   });
 
   it('launches camoufox in default launch mode', async () => {
@@ -292,9 +293,12 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
     expect(collector.init).toHaveBeenCalledWith(undefined);
   });
 
-  it('re-throws non-linux-display errors from init', async () => {
+  it('returns failure response for non-linux-display errors from init', async () => {
     collector.init.mockRejectedValueOnce(new Error('some other error'));
-    await expect(handlers.handleBrowserLaunch({})).rejects.toThrow('some other error');
+    const response = await handlers.handleBrowserLaunch({});
+    const body = parseJson<BrowserLaunchResponse>(response);
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('some other error');
   });
 
   it('falls back to headless mode on Linux display errors and persists .env', async () => {

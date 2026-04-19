@@ -34,10 +34,7 @@ import { type ObfuscationDetector } from '@server/domains/shared/modules';
 import { type CodeAnalyzer } from '@server/domains/shared/modules';
 import { type CryptoDetector } from '@server/domains/shared/modules';
 import { type HookManager } from '@server/domains/shared/modules';
-import {
-  runSourceMapExtract,
-  runWebpackEnumerate,
-} from '@server/domains/analysis/handlers.web-tools';
+import { runWebpackEnumerate } from '@server/domains/analysis/handlers.web-tools';
 import { runWebcrack } from '@modules/deobfuscator/webcrack';
 import type { DeobfuscateMappingRule } from '@internal-types/deobfuscator';
 
@@ -346,6 +343,24 @@ export class CoreAnalysisHandlers {
       });
     }
 
+    const engine = argEnum(args, 'engine', new Set(['auto', 'webcrack'] as const), 'auto');
+
+    // webcrack engine = former advanced_deobfuscate path
+    if (engine === 'webcrack') {
+      const result = await this.advancedDeobfuscator.deobfuscate({
+        code,
+        ...this.extractWebcrackArgs(args),
+        ...(typeof args.detectOnly === 'boolean' ? { detectOnly: args.detectOnly } : {}),
+        ...(typeof args.aggressiveVM === 'boolean' ? { aggressiveVM: args.aggressiveVM } : {}),
+        ...(typeof args.useASTOptimization === 'boolean'
+          ? { useASTOptimization: args.useASTOptimization }
+          : {}),
+        ...(typeof args.timeout === 'number' ? { timeout: args.timeout } : {}),
+      });
+      return asJsonResponse(result);
+    }
+
+    // auto engine = former deobfuscate path
     const result = await this.deobfuscator.deobfuscate({
       code,
       aggressive: argBool(args, 'aggressive'),
@@ -453,29 +468,6 @@ export class CoreAnalysisHandlers {
     return asTextResponse(`${JSON.stringify(result, null, 2)}\n\n${report}`);
   }
 
-  async handleAdvancedDeobfuscate(args: ToolArgs): Promise<ToolResponse> {
-    const code = this.requireCodeArg(args, 'advanced_deobfuscate');
-    if (!code) {
-      return asJsonResponse({
-        success: false,
-        error: 'code is required and must be a non-empty string',
-      });
-    }
-
-    const result = await this.advancedDeobfuscator.deobfuscate({
-      code,
-      ...this.extractWebcrackArgs(args),
-      ...(typeof args.detectOnly === 'boolean' ? { detectOnly: args.detectOnly } : {}),
-      ...(typeof args.aggressiveVM === 'boolean' ? { aggressiveVM: args.aggressiveVM } : {}),
-      ...(typeof args.useASTOptimization === 'boolean'
-        ? { useASTOptimization: args.useASTOptimization }
-        : {}),
-      ...(typeof args.timeout === 'number' ? { timeout: args.timeout } : {}),
-    });
-
-    return asJsonResponse(result);
-  }
-
   async handleWebcrackUnpack(args: ToolArgs): Promise<ToolResponse> {
     const code = this.requireCodeArg(args, 'webcrack_unpack');
     if (!code) {
@@ -515,10 +507,6 @@ export class CoreAnalysisHandlers {
 
   async handleWebpackEnumerate(args: ToolArgs): Promise<ToolResponse> {
     return runWebpackEnumerate(this.collector, args);
-  }
-
-  async handleSourceMapExtract(args: ToolArgs): Promise<ToolResponse> {
-    return runSourceMapExtract(this.collector, args);
   }
 
   async handleClearCollectedData(): Promise<ToolResponse> {

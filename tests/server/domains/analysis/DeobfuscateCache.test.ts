@@ -148,21 +148,21 @@ describe('DeobfuscateCache Integration', () => {
     });
   });
 
-  describe('handleAdvancedDeobfuscate caching', () => {
+  describe('handleDeobfuscate caching (engine: webcrack)', () => {
     it('should cache successful advanced deobfuscation results', async () => {
       const handlers = createHandlers();
       const code = 'const x = 1; const y = 2; console.log(x + y);';
 
       // First call
       const result1 = parseToolResponse<{ code: string; cached?: boolean }>(
-        await handlers.handleAdvancedDeobfuscate({ code }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack' }),
       );
       expect(result1.code).toContain('console.log');
       expect(result1.cached).toBe(false);
 
       // Second call with same code - should use cache
       const result2 = parseToolResponse<{ code: string; cached?: boolean }>(
-        await handlers.handleAdvancedDeobfuscate({ code }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack' }),
       );
       expect(result2.code).toContain('console.log');
       expect(result2.cached).toBe(true);
@@ -174,12 +174,12 @@ describe('DeobfuscateCache Integration', () => {
 
       // Call without aggressiveVM
       const result1 = parseToolResponse<{ cached?: boolean }>(
-        await handlers.handleAdvancedDeobfuscate({ code }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack' }),
       );
 
       // Call with aggressiveVM
       const result2 = parseToolResponse<{ cached?: boolean; warnings?: string[] }>(
-        await handlers.handleAdvancedDeobfuscate({ code, aggressiveVM: true }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack', aggressiveVM: true }),
       );
 
       // Should have different cache entries
@@ -191,7 +191,7 @@ describe('DeobfuscateCache Integration', () => {
 
       // Repeat call with aggressiveVM - should be cached
       const result3 = parseToolResponse<{ cached?: boolean }>(
-        await handlers.handleAdvancedDeobfuscate({ code, aggressiveVM: true }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack', aggressiveVM: true }),
       );
       expect(result3.cached).toBe(true);
     });
@@ -201,10 +201,10 @@ describe('DeobfuscateCache Integration', () => {
       const code = 'var _0x1234 = ["test"];';
 
       const result1 = parseToolResponse<{ cached?: boolean; webcrackApplied?: boolean }>(
-        await handlers.handleAdvancedDeobfuscate({ code, detectOnly: true }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack', detectOnly: true }),
       );
       const result2 = parseToolResponse<{ cached?: boolean; webcrackApplied?: boolean }>(
-        await handlers.handleAdvancedDeobfuscate({ code, detectOnly: false }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack', detectOnly: false }),
       );
 
       // Different detectOnly values should have different cache entries
@@ -215,7 +215,7 @@ describe('DeobfuscateCache Integration', () => {
 
       // Repeat with same detectOnly - should be cached
       const result3 = parseToolResponse<{ cached?: boolean }>(
-        await handlers.handleAdvancedDeobfuscate({ code, detectOnly: true }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack', detectOnly: true }),
       );
       expect(result3.cached).toBe(true);
     });
@@ -225,10 +225,10 @@ describe('DeobfuscateCache Integration', () => {
       const code = 'const x = 1;';
 
       const result1 = parseToolResponse<{ cached?: boolean; warnings?: string[] }>(
-        await handlers.handleAdvancedDeobfuscate({ code, timeout: 5000 }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack', timeout: 5000 }),
       );
       const result2 = parseToolResponse<{ cached?: boolean; warnings?: string[] }>(
-        await handlers.handleAdvancedDeobfuscate({ code, timeout: 10000 }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack', timeout: 10000 }),
       );
 
       expect(result1.cached).toBe(false);
@@ -242,7 +242,7 @@ describe('DeobfuscateCache Integration', () => {
 
       // Same timeout - should be cached
       const result3 = parseToolResponse<{ cached?: boolean }>(
-        await handlers.handleAdvancedDeobfuscate({ code, timeout: 5000 }),
+        await handlers.handleDeobfuscate({ code, engine: 'webcrack', timeout: 5000 }),
       );
       expect(result3.cached).toBe(true);
     });

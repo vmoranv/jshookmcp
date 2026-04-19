@@ -21,18 +21,16 @@ Mojo IPC monitoring domain for Chromium inter-process communication analysis.
 
 ## Representative tools
 
-- `mojo_monitor_start` — Start Mojo IPC monitoring for the active Chromium-based target
-- `mojo_monitor_stop` — Stop the active Mojo IPC monitoring session
+- `mojo_monitor` — Start or stop Mojo IPC monitoring for the active Chromium-based target.
 - `mojo_decode_message` — Decode a Mojo IPC hex payload into a structured field map
 - `mojo_list_interfaces` — List discovered Mojo IPC interfaces and their pending message counts
 - `mojo_messages_get` — Retrieve captured Mojo IPC messages from the active monitoring session
 
-## Full tool list (5)
+## Full tool list (4)
 
 | Tool | Description |
 | --- | --- |
-| `mojo_monitor_start` | Start Mojo IPC monitoring for the active Chromium-based target |
-| `mojo_monitor_stop` | Stop the active Mojo IPC monitoring session |
+| `mojo_monitor` | Start or stop Mojo IPC monitoring for the active Chromium-based target. |
 | `mojo_decode_message` | Decode a Mojo IPC hex payload into a structured field map |
 | `mojo_list_interfaces` | List discovered Mojo IPC interfaces and their pending message counts |
 | `mojo_messages_get` | Retrieve captured Mojo IPC messages from the active monitoring session |

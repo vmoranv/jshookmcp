@@ -69,11 +69,8 @@ describe('canvas domain definitions', () => {
   describe('canvas_engine_fingerprint', () => {
     const tool = canvasTools.find((t) => t.name === 'canvas_engine_fingerprint')!;
 
-    it('has canvasId as optional string', () => {
-      const prop = tool.inputSchema.properties!.canvasId as Record<string, unknown>;
-      expect(prop.type).toBe('string');
-      const required: string[] | undefined = tool.inputSchema.required;
-      expect(required === undefined || !required.includes('canvasId')).toBe(true);
+    it('has no required properties (query tool)', () => {
+      expect(tool.inputSchema.required).toBeUndefined();
     });
   });
 

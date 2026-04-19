@@ -58,23 +58,6 @@ interface ApiProbeResponse {
   results?: Record<string, unknown>;
 }
 
-interface WebApiCaptureResponse {
-  success: boolean;
-  error?: string;
-  steps: string[];
-  summary: {
-    capturedRequests: number;
-    succeeded?: number;
-    failed?: number;
-  };
-  authFindings: Array<{ type: string; confidence: number }>;
-  requestStats: {
-    detailId?: string;
-    hint?: string;
-  };
-  warnings?: string[];
-}
-
 interface ListWorkflowsResponse {
   success: boolean;
   count: number;
@@ -251,59 +234,6 @@ describe('WorkflowHandlers', () => {
     >;
     expect(String(payload.code)).toContain('Promise.all');
     expect(String(payload.code)).toContain('maxConcurrency');
-  });
-
-  it('executes web_api_capture_session without exporting files', async () => {
-    const body = parseJson<WebApiCaptureResponse>(
-      await handlers.handleWebApiCaptureSession({
-        url: 'https://vmoranv.github.io/jshookmcp',
-        waitUntil: 'domcontentloaded',
-        actions: [{ type: 'click', selector: 'button.capture' }],
-        exportHar: false,
-        exportReport: false,
-        waitAfterActionsMs: 0,
-      }),
-    );
-
-    expect(body.success).toBe(true);
-    expect(deps.advancedHandlers.handleNetworkEnable).toHaveBeenCalledOnce();
-    expect(deps.browserHandlers.handlePageNavigate).toHaveBeenCalledWith({
-      url: 'https://vmoranv.github.io/jshookmcp',
-      waitUntil: 'domcontentloaded',
-      enableNetworkMonitoring: true,
-    });
-    expect(deps.browserHandlers.handlePageClick).toHaveBeenCalledWith({
-      selector: 'button.capture',
-    });
-  });
-
-  it('retries batch_register accounts and summarizes success', async () => {
-    const successResult = {
-      content: [{ type: 'text', text: JSON.stringify({ success: true, verified: true }) }],
-    };
-    const failureResult = {
-      content: [{ type: 'text', text: JSON.stringify({ success: false, error: 'temporary' }) }],
-    };
-
-    const flowSpy = vi
-      .spyOn(handlers as any, 'handleRegisterAccountFlow')
-      .mockResolvedValueOnce(failureResult)
-      .mockResolvedValueOnce(successResult);
-
-    const body = parseJson<WebApiCaptureResponse>(
-      await handlers.handleBatchRegister({
-        registerUrl: 'https://vmoranv.github.io/jshookmcp/register',
-        accounts: [{ fields: { email: 'alice@example.com', password: 'secret' } }],
-        maxRetries: 1,
-        retryBackoffMs: 0,
-        timeoutPerAccountMs: 5000,
-      }),
-    );
-
-    expect(flowSpy).toHaveBeenCalledTimes(2);
-    expect(body.success).toBe(true);
-    expect(body.summary.succeeded).toBe(1);
-    expect(body.summary.failed).toBe(0);
   });
 
   it('lists loaded extension workflows', async () => {

@@ -16,6 +16,22 @@ export class EvidenceHandlers {
     }));
   }
 
+  handleQueryDispatch(args: Record<string, unknown>) {
+    const by = args['by'] as string;
+    switch (by) {
+      case 'function':
+        return this.handleQueryFunction(args);
+      case 'script':
+        return this.handleQueryScript(args);
+      default:
+        return this.handleQueryUrl(args);
+    }
+  }
+  handleExportDispatch(args: Record<string, unknown>) {
+    const format = args['format'] as string;
+    if (format === 'markdown') return this.handleExportMarkdown();
+    return this.handleExportJson();
+  }
   handleQueryUrl(args: Record<string, unknown>) {
     const url = args.url as string;
     const nodes = this.graph.queryByUrl(url);

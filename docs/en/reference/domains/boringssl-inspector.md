@@ -29,11 +29,11 @@ BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate 
 - `tls_keylog_summarize` — Summarize the contents of an SSLKEYLOGFILE by label distribution.
 - `tls_keylog_lookup_secret` — Look up a TLS secret by client random hex from the parsed keylog.
 - `tls_cert_pin_bypass` — Return a certificate pinning bypass strategy for the selected platform.
-- `tls_handshake_parse` — Parse a TLS record header and basic handshake metadata from a hex payload.
-- `tls_parse_handshake` — Parse TLS handshake metadata (version, cipher suites, SNI, extensions) from raw hex.
+- `tls_parse_handshake` — Parse TLS record header and handshake metadata (version, cipher suites, SNI, extensions) from raw hex. Optionally decrypts payload preview when keylog is available.
 - `tls_cipher_suites` — List IANA TLS cipher suites, optionally filtered by keyword.
+- `tls_parse_certificate` — Parse a TLS Certificate message from raw hex and extract fingerprints.
 
-## Full tool list (30)
+## Full tool list (29)
 
 | Tool | Description |
 | --- | --- |
@@ -44,8 +44,7 @@ BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate 
 | `tls_keylog_summarize` | Summarize the contents of an SSLKEYLOGFILE by label distribution. |
 | `tls_keylog_lookup_secret` | Look up a TLS secret by client random hex from the parsed keylog. |
 | `tls_cert_pin_bypass` | Return a certificate pinning bypass strategy for the selected platform. |
-| `tls_handshake_parse` | Parse a TLS record header and basic handshake metadata from a hex payload. |
-| `tls_parse_handshake` | Parse TLS handshake metadata (version, cipher suites, SNI, extensions) from raw hex. |
+| `tls_parse_handshake` | Parse TLS record header and handshake metadata (version, cipher suites, SNI, extensions) from raw hex. Optionally decrypts payload preview when keylog is available. |
 | `tls_cipher_suites` | List IANA TLS cipher suites, optionally filtered by keyword. |
 | `tls_parse_certificate` | Parse a TLS Certificate message from raw hex and extract fingerprints. |
 | `tls_probe_endpoint` | Connect to a TLS endpoint and report certificate chain basics, trust result, ALPN, protocol, cipher, and SNI/hostname validation details for authorized target testing. |

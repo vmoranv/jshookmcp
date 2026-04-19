@@ -57,6 +57,7 @@ describe('ScriptManagementHandlers', () => {
     );
     expect(body).toEqual({
       success: false,
+      error: 'Script not found',
       message: 'Script not found',
     });
   });
@@ -124,9 +125,8 @@ describe('ScriptManagementHandlers', () => {
     );
 
     expect(detailedDataManager.smartHandle).toHaveBeenCalledWith(script, 51200);
-    expect(body).toEqual({
-      detailId: 'detail-123',
-      truncated: true,
-    });
+    expect(body.success).toBe(true);
+    expect(body.detailId).toBe('detail-123');
+    expect(body.truncated).toBe(true);
   });
 });

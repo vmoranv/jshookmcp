@@ -76,13 +76,11 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleElectronDebugStatus(a)),
     },
-    { tool: t('frida_bridge'), domain: DOMAIN, bind: b((h, a) => h.handleFridaBridge(a)) },
     {
       tool: t('electron_ipc_sniff'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleElectronIPCSniff(a)),
     },
-    { tool: t('jadx_bridge'), domain: DOMAIN, bind: b((h, a) => h.handleJadxBridge(a)) },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

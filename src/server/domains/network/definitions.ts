@@ -122,64 +122,46 @@ export const advancedTools: Tool[] = [
     t.desc('Stop coverage recording and return coverage report'),
   ),
   tool('performance_take_heap_snapshot', (t) => t.desc('Take a V8 heap memory snapshot')),
-  tool('performance_trace_start', (t) =>
+  tool('performance_trace', (t) =>
     t
       .desc(
-        'Start a Chrome Performance Trace recording using the CDP Tracing domain.\n\nCaptures timeline events (JS execution, layout, paint, rendering) that can be loaded in Chrome DevTools Performance tab.\n\nUSE THIS to:\n- Profile WASM execution performance\n- Find JavaScript performance bottlenecks\n- Analyze rendering and layout thrashing\n- Record screenshots during trace (set screenshots: true)\n\nCall performance_trace_stop to end recording and save the trace file.',
+        `Chrome Performance Trace recording. Action 'start' begins capture; 'stop' ends and saves trace file.
+
+Captures timeline events (JS execution, layout, paint, rendering) loadable in Chrome DevTools Performance tab.`,
       )
+      .enum('action', ['start', 'stop'], 'Trace action')
       .array(
         'categories',
         { type: 'string' },
-        'Trace categories to include (default: devtools.timeline, v8.execute, blink.user_timing). Pass custom categories for specific tracing needs.',
+        'Trace categories (action=start, default: devtools.timeline, v8.execute)',
       )
-      .boolean(
-        'screenshots',
-        'Capture screenshots during tracing (increases trace file size). Default: false',
-        { default: false },
-      ),
+      .boolean('screenshots', 'Capture screenshots during tracing (action=start, default: false)', {
+        default: false,
+      })
+      .string('artifactPath', 'Custom output path (action=stop)')
+      .required('action'),
   ),
-  tool('performance_trace_stop', (t) =>
+  tool('profiler_cpu', (t) =>
     t
       .desc(
-        'Stop a running Performance Trace and save the trace file.\n\nReturns the artifact path (loadable in Chrome DevTools Performance tab), event count, and file size.',
+        `CDP CPU profiling. Action 'start' begins recording; 'stop' ends and saves profile with top hot functions.`,
       )
-      .string(
-        'artifactPath',
-        'Custom output file path. If omitted, auto-generates path in artifacts/traces/',
-      ),
+      .enum('action', ['start', 'stop'], 'Profiler action')
+      .string('artifactPath', 'Custom output path (action=stop)')
+      .required('action'),
   ),
-  tool('profiler_cpu_start', (t) =>
-    t.desc(
-      'Start CDP CPU profiling.\n\nRecords a V8 CPU profile with call tree, hit counts, and time deltas. The result can be loaded in Chrome DevTools.\n\nCall profiler_cpu_stop to end and retrieve the profile.',
-    ),
-  ),
-  tool('profiler_cpu_stop', (t) =>
-    t
-      .desc('Stop CPU profiling, save the profile, and return top hot functions.')
-      .string(
-        'artifactPath',
-        'Custom output file path. If omitted, auto-generates path in artifacts/profiles/',
-      ),
-  ),
-  tool('profiler_heap_sampling_start', (t) =>
+  tool('profiler_heap_sampling', (t) =>
     t
       .desc(
-        'Start V8 heap allocation sampling.\n\nTracks memory allocations over time. Useful for finding memory leaks and high-allocation code paths.\n\nCall profiler_heap_sampling_stop to end and retrieve the report.',
+        `V8 heap allocation sampling. Action 'start' begins tracking; 'stop' ends and returns top allocators.`,
       )
-      .number(
-        'samplingInterval',
-        'Sampling interval in bytes. Lower values = more detail but higher overhead.',
-        { default: 32768 },
-      ),
-  ),
-  tool('profiler_heap_sampling_stop', (t) =>
-    t
-      .desc('Stop heap allocation sampling and return the top allocators.')
-      .string(
-        'artifactPath',
-        'Custom output file path. If omitted, auto-generates path in artifacts/profiles/',
-      )
-      .number('topN', 'Number of top allocators to return', { default: 20 }),
+      .enum('action', ['start', 'stop'], 'Sampling action')
+      .number('samplingInterval', 'Sampling interval bytes (action=start, default: 32768)', {
+        default: 32768,
+      })
+      .string('artifactPath', 'Custom output path (action=stop)')
+      .number('topN', 'Number of top allocators (action=stop, default: 20)', { default: 20 })
+      .required('action'),
   ),
   tool('console_get_exceptions', (t) =>
     t
@@ -188,60 +170,33 @@ export const advancedTools: Tool[] = [
       .number('limit', 'Maximum number of exceptions to return', { default: 50 })
       .readOnly(),
   ),
-  tool('console_inject_script_monitor', (t) =>
+  tool('console_inject', (t) =>
     t
       .desc(
-        'Inject a monitor that tracks dynamically created script elements. Use persistent: true to survive page navigations.',
+        `Inject an in-page monitor/interceptor. Types:
+- script: Track dynamically created script elements
+- xhr: Capture AJAX request/response data
+- fetch: Capture fetch() calls (useful when CDP misses wrapped fetch)
+- function: Proxy-based tracer for a named global function (requires functionName)`,
+      )
+      .enum('type', ['script', 'xhr', 'fetch', 'function'], 'Injection type')
+      .string(
+        'functionName',
+        'Global function path to trace (type=function, e.g. "window.someFunction")',
       )
       .boolean(
         'persistent',
-        'When true, monitor survives page navigations (uses evaluateOnNewDocument). Default: false.',
+        'Survive page navigations via evaluateOnNewDocument (default: false)',
+        { default: false },
       )
+      .required('type')
       .openWorld(),
   ),
-  tool('console_inject_xhr_interceptor', (t) =>
+  tool('console_buffers', (t) =>
     t
-      .desc(
-        'Inject an XHR interceptor to capture AJAX request/response data. Use persistent: true for the interceptor to survive page navigations.',
-      )
-      .boolean(
-        'persistent',
-        'When true, interceptor survives page navigations (uses evaluateOnNewDocument). Default: false.',
-      )
-      .openWorld(),
-  ),
-  tool('console_inject_fetch_interceptor', (t) =>
-    t
-      .desc(
-        'Inject a Fetch API interceptor to capture fetch request/response data including headers, body, and timing.\n\nUSE THIS when:\n- network_get_requests returns 0 results after page_navigate\n- The target page wraps fetch() internally (SPA, React, Vue apps)\n- You need to capture request signatures, tokens, or custom headers added by frontend JS\n- CDP network monitoring misses dynamically-constructed requests\n\nUse persistent: true to make the interceptor survive page navigations — no need to inject before page_navigate.',
-      )
-      .boolean(
-        'persistent',
-        'When true, interceptor survives page navigations (uses evaluateOnNewDocument). Default: false.',
-      )
-      .openWorld(),
-  ),
-  tool('console_clear_injected_buffers', (t) =>
-    t.desc(
-      'Clear injected in-page monitoring buffers (XHR/Fetch queues and dynamic script records) without removing interceptors',
-    ),
-  ),
-  tool('console_reset_injected_interceptors', (t) =>
-    t.desc(
-      'Reset injected interceptors/monitors to recover from stale hook state and allow clean reinjection',
-    ),
-  ),
-  tool('console_inject_function_tracer', (t) =>
-    t
-      .desc(
-        'Inject a Proxy-based function tracer to log all calls to a named function. Use persistent: true to survive page navigations.',
-      )
-      .string('functionName', 'Global function path to trace (e.g., "window.someFunction")')
-      .boolean(
-        'persistent',
-        'When true, tracer survives page navigations (uses evaluateOnNewDocument). Default: false.',
-      )
-      .requiredOpenWorld('functionName'),
+      .desc('Manage injected interceptor state.')
+      .enum('action', ['clear', 'reset'], 'Buffer action: clear buffers or reset interceptors')
+      .required('action'),
   ),
   tool('dns_resolve', (t) =>
     t
@@ -387,6 +342,24 @@ export const advancedTools: Tool[] = [
       .string('debugDataEncoding', 'Encoding for debugDataText: utf8 or ascii. Default: utf8')
       .requiredOpenWorld('frameType'),
   ),
+  tool('network_rtt_measure', (t) =>
+    t
+      .desc(
+        'Measure round-trip time (RTT) to a target URL using TCP, TLS, or HTTP probes. Returns per-sample latencies and aggregate statistics (min/max/mean/median/p95).',
+      )
+      .string('url', 'Target URL to measure RTT to')
+      .string('probeType', 'Probe type: tcp, tls, or http. Default: tcp', { default: 'tcp' })
+      .number('iterations', 'Number of probe iterations (1-50). Default: 5', { default: 5 })
+      .number('timeoutMs', 'Per-probe timeout in milliseconds (100-30000). Default: 5000', {
+        default: 5000,
+      })
+      .object(
+        'authorization',
+        { additionalProperties: { type: 'string' } },
+        'Authorization policy for network access',
+      )
+      .requiredOpenWorld('url'),
+  ),
 
   // P1: Full-chain analysis tools
   tool('network_extract_auth', (t) =>
@@ -442,14 +415,19 @@ export const advancedTools: Tool[] = [
   ),
 
   // Fetch Interception
-  tool('network_intercept_response', (t) =>
+  tool('network_intercept', (t) =>
     t
       .desc(
-        'Add response interception rules using CDP Fetch domain. Matched requests will receive a custom response instead of the real server response.\n\nUSE THIS to:\n- Override API responses (e.g., spoof subscription/paywall status)\n- Inject custom feature flags\n- Test error handling by returning specific error codes\n- Mock API endpoints during development\n\nSupports both single rule and batch mode. URL patterns support glob (* for segment, ** for any) and regex.\n\nPrerequisites: Browser must be launched and a page active.\n\nExample (single rule):\n  urlPattern: "*api/subscription*"\n  responseBody: \'{"status":"active","plan":"pro"}\'\n\nExample (batch):\n  rules: [{urlPattern: "*api/status*", responseBody: "..."}, ...]',
+        `Manage response interception rules using CDP Fetch domain. Actions: add (create rule), list (show active rules), disable (remove rules).
+
+When adding rules, matched requests receive a custom response instead of the real server response.
+URL patterns support glob (* for segment, ** for any) and regex.
+When all rules are removed, the CDP Fetch domain is automatically disabled.`,
       )
+      .enum('action', ['add', 'list', 'disable'], 'Intercept operation')
       .string(
         'urlPattern',
-        'URL pattern to match (single rule mode). Supports glob (* = segment, ** = any) or regex.',
+        'URL pattern to match (action=add). Supports glob (* = segment, ** = any) or regex.',
       )
       .enum('urlPatternType', ['glob', 'regex'], 'How to interpret urlPattern', { default: 'glob' })
       .enum(
@@ -479,26 +457,12 @@ export const advancedTools: Tool[] = [
           },
           required: ['urlPattern'],
         },
-        'Batch mode: array of rule objects',
+        'Batch mode: array of rule objects (action=add)',
       )
-      .openWorld(),
-  ),
-  tool('network_intercept_list', (t) =>
-    t
-      .desc(
-        "List all active response interception rules with hit statistics.\n\nShows each rule's ID, URL pattern, response code, hit count, and creation time.\nUse this to monitor which rules are being triggered.",
-      )
-      .query(),
-  ),
-  tool('network_intercept_disable', (t) =>
-    t
-      .desc(
-        'Remove interception rules. Provide ruleId to remove a single rule, or all=true to disable all interception.\n\nWhen all rules are removed, the CDP Fetch domain is automatically disabled.',
-      )
-      .string('ruleId', 'ID of the rule to remove (from network_intercept_list)')
-      .boolean('all', 'Set to true to remove all rules and disable interception', {
+      .string('ruleId', 'ID of the rule to remove (action=disable)')
+      .boolean('all', 'Set to true to remove all rules and disable interception (action=disable)', {
         default: false,
       })
-      .destructive(),
+      .required('action'),
   ),
 ];

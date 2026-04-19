@@ -28,6 +28,7 @@ describe('DOMSearchHandlers', () => {
 
     expect(domInspector.findByText).toHaveBeenCalledWith('Continue', undefined);
     expect(body).toEqual({
+      success: true,
       count: 2,
       elements: [
         { selector: 'button.primary', text: 'Continue' },
@@ -56,14 +57,18 @@ describe('DOMSearchHandlers', () => {
 
     expect(domInspector.getXPath).toHaveBeenCalledWith('#submit');
     expect(body).toEqual({
+      success: true,
       selector: '#submit',
       xpath: '//*[@id="submit"]',
     });
   });
 
-  it('rethrows inspector errors from xpath lookup', async () => {
+  it('returns failure response from xpath lookup error', async () => {
     domInspector.getXPath.mockRejectedValue(new Error('xpath failed'));
 
-    await expect(handlers.handleDOMGetXPath({ selector: '#bad' })).rejects.toThrow('xpath failed');
+    const response = await handlers.handleDOMGetXPath({ selector: '#bad' });
+    const body = parseJson<BrowserStatusResponse>(response);
+    expect(body.success).toBe(false);
+    expect(body.message).toContain('xpath failed');
   });
 });

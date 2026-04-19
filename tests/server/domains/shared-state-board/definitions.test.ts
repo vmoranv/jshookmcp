@@ -6,8 +6,8 @@ describe('shared-state-board domain definitions', () => {
     expect(Array.isArray(sharedStateBoardTools)).toBe(true);
   });
 
-  it('defines exactly 10 tools', () => {
-    expect(sharedStateBoardTools).toHaveLength(10);
+  it('defines exactly 8 tools', () => {
+    expect(sharedStateBoardTools).toHaveLength(8);
   });
 
   it('each tool has a name, description, and inputSchema', () => {
@@ -83,19 +83,14 @@ describe('shared-state-board domain definitions', () => {
 
   describe('state_board_watch', () => {
     const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_watch')!;
-    it('requires key', () => {
-      expect(tool.inputSchema.required).toContain('key');
+    it('requires action', () => {
+      expect(tool.inputSchema.required).toContain('action');
     });
-    it('has optional namespace and pollIntervalMs', () => {
+    it('has optional key, namespace, pollIntervalMs, watchId', () => {
+      expect(tool.inputSchema.properties).toHaveProperty('key');
       expect(tool.inputSchema.properties).toHaveProperty('namespace');
       expect(tool.inputSchema.properties).toHaveProperty('pollIntervalMs');
-    });
-  });
-
-  describe('state_board_unwatch', () => {
-    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_unwatch')!;
-    it('requires watchId', () => {
-      expect(tool.inputSchema.required).toContain('watchId');
+      expect(tool.inputSchema.properties).toHaveProperty('watchId');
     });
   });
 
@@ -110,21 +105,15 @@ describe('shared-state-board domain definitions', () => {
     });
   });
 
-  describe('state_board_export', () => {
-    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_export')!;
-    it('has optional namespace and keyPattern', () => {
+  describe('state_board_io', () => {
+    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_io')!;
+    it('requires action', () => {
+      expect(tool.inputSchema.required).toContain('action');
+    });
+    it('has optional namespace, keyPattern, data, overwrite', () => {
       expect(tool.inputSchema.properties).toHaveProperty('namespace');
       expect(tool.inputSchema.properties).toHaveProperty('keyPattern');
-    });
-  });
-
-  describe('state_board_import', () => {
-    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_import')!;
-    it('requires data', () => {
-      expect(tool.inputSchema.required).toContain('data');
-    });
-    it('has optional namespace and overwrite', () => {
-      expect(tool.inputSchema.properties).toHaveProperty('namespace');
+      expect(tool.inputSchema.properties).toHaveProperty('data');
       expect(tool.inputSchema.properties).toHaveProperty('overwrite');
     });
   });

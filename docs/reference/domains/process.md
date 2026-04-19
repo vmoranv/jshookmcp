@@ -25,14 +25,14 @@
 - `process_find` — 按名称模式查找进程，返回 PID、名称、路径和窗口句柄。
 - `process_get` — 根据 PID 获取指定进程的详细信息。
 - `process_windows` — 获取指定进程关联的全部窗口句柄。
-- `process_find_chromium` — 按设计禁用浏览器进程扫描；请改用受管浏览器会话连接。
 - `process_check_debug_port` — 检查进程是否启用了可供 CDP 附加的调试端口。
 - `process_launch_debug` — 以启用远程调试端口的方式启动可执行文件。
 - `process_kill` — 按 PID 终止指定进程。
 - `memory_read` — 读取目标进程指定地址的内存内容；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
 - `memory_write` — 向目标进程指定地址写入内存数据；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
+- `memory_scan` — 按模式或数值扫描进程内存；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
 
-## 工具清单（21）
+## 工具清单（20）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -40,7 +40,6 @@
 | `process_find` | 按名称模式查找进程，返回 PID、名称、路径和窗口句柄。 |
 | `process_get` | 根据 PID 获取指定进程的详细信息。 |
 | `process_windows` | 获取指定进程关联的全部窗口句柄。 |
-| `process_find_chromium` | 按设计禁用浏览器进程扫描；请改用受管浏览器会话连接。 |
 | `process_check_debug_port` | 检查进程是否启用了可供 CDP 附加的调试端口。 |
 | `process_launch_debug` | 以启用远程调试端口的方式启动可执行文件。 |
 | `process_kill` | 按 PID 终止指定进程。 |

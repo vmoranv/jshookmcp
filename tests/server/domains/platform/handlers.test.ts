@@ -11,10 +11,7 @@ const mocks = vi.hoisted(() => ({
     handleElectronInspectApp: vi.fn(async (args) => ({ kind: 'inspect', args })),
     handleAsarSearch: vi.fn(async (args) => ({ kind: 'asar_search', args })),
   },
-  bridge: {
-    handleFridaBridge: vi.fn(async (args) => ({ kind: 'frida', args })),
-    handleJadxBridge: vi.fn(async (args) => ({ kind: 'jadx', args })),
-  },
+
   topLevel: {
     handleElectronScanUserdata: vi.fn(async (args) => ({ kind: 'scan_userdata', args })),
     handleElectronCheckFuses: vi.fn(async (args) => ({ kind: 'check_fuses', args })),
@@ -49,14 +46,6 @@ vi.mock('@src/server/domains/platform/handlers/electron-handlers', () => ({
   ElectronHandlers: function ElectronHandlersMock(_collector: any) {
     return {
       ...mocks.electron,
-    };
-  },
-}));
-
-vi.mock('@src/server/domains/platform/handlers/bridge-handlers', () => ({
-  BridgeHandlers: function BridgeHandlersMock(_runner: any) {
-    return {
-      ...mocks.bridge,
     };
   },
 }));
@@ -183,20 +172,5 @@ describe('PlatformToolHandlers', () => {
     expect(mocks.topLevel.handleElectronLaunchDebug).toHaveBeenCalledWith(launchArgs);
     expect(mocks.topLevel.handleElectronDebugStatus).toHaveBeenCalledWith(statusArgs);
     expect(mocks.topLevel.handleElectronIPCSniff).toHaveBeenCalledWith(sniffArgs);
-  });
-
-  it('delegates frida bridge and jadx bridge', async () => {
-    const handlers = new PlatformToolHandlers(collector);
-    const fridaArgs = { cmd: 'hook' };
-    const jadxArgs = { dex: 'classes.dex' };
-
-    await expect(handlers.handleFridaBridge(fridaArgs)).resolves.toEqual({
-      kind: 'frida',
-      args: fridaArgs,
-    });
-    await expect(handlers.handleJadxBridge(jadxArgs)).resolves.toEqual({
-      kind: 'jadx',
-      args: jadxArgs,
-    });
   });
 });

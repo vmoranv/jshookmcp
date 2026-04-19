@@ -1,11 +1,9 @@
-/**
- * JS Heap Search — CE-like search over browser JS heap snapshot strings.
- */
-
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { cdpLimit } from '@utils/concurrency';
 import { logger } from '@utils/logger';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
+import { R } from '@server/domains/shared/ResponseBuilder';
+import type { ToolResponse } from '@server/domains/shared/ResponseBuilder';
 
 interface JSHeapSearchDeps {
   getActivePage: () => Promise<unknown>;
@@ -91,20 +89,13 @@ export class JSHeapSearchHandlers {
     this.detailedDataManager = DetailedDataManager.getInstance();
   }
 
-  async handleJSHeapSearch(args: Record<string, unknown>) {
+  async handleJSHeapSearch(args: Record<string, unknown>): Promise<ToolResponse> {
     const pattern = argString(args, 'pattern', '');
     const maxResults = argNumber(args, 'maxResults', 50);
     const caseSensitive = argBool(args, 'caseSensitive', false);
 
     if (!pattern) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({ success: false, error: 'pattern is required' }, null, 2),
-          },
-        ],
-      };
+      return R.fail('pattern is required').build();
     }
 
     return cdpLimit(async () => {
@@ -162,31 +153,10 @@ export class JSHeapSearchHandlers {
               : 'No matches found. The value may be encrypted, compressed, or stored in a non-string form.',
         };
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(this.detailedDataManager.smartHandle(result, 51200), null, 2),
-            },
-          ],
-        };
+        return R.ok().build(this.detailedDataManager.smartHandle(result, 51200) as any);
       } catch (error) {
         logger.error('[js_heap_search] Error:', error);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: false,
-                  error: error instanceof Error ? error.message : String(error),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return R.fail(error).build();
       } finally {
         if (ownedSession && cdpSession) {
           try {

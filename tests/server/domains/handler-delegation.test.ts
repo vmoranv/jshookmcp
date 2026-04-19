@@ -156,10 +156,7 @@ vi.mock('@server/domains/platform/handlers/electron-handlers', () => ({
   })),
 }));
 vi.mock('@server/domains/platform/handlers/bridge-handlers', () => ({
-  BridgeHandlers: vi.fn().mockImplementation(() => ({
-    handleFridaBridge: vi.fn(),
-    handleJadxBridge: vi.fn(),
-  })),
+  BridgeHandlers: vi.fn().mockImplementation(() => ({})),
 }));
 
 // Hooks dependencies
@@ -517,8 +514,6 @@ describe('Domain handler delegation (handlers.ts)', () => {
         'handleMiniappPkgAnalyze',
         'handleAsarExtract',
         'handleElectronInspectApp',
-        'handleFridaBridge',
-        'handleJadxBridge',
       ];
 
       for (const method of expectedMethods) {

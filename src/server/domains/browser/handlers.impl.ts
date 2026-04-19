@@ -238,6 +238,7 @@ export class BrowserToolHandlers {
             type: 'text',
             text: JSON.stringify(
               {
+                success: true,
                 driver: 'camoufox',
                 running,
                 hasActivePage: !!this.camoufoxPage,
@@ -285,6 +286,17 @@ export class BrowserToolHandlers {
   }
 
   // ── Camoufox Server ──
+  async handleCamoufoxServerDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    switch (action) {
+      case 'close':
+        return this.camoufoxBrowser.handleCamoufoxServerClose(args);
+      case 'status':
+        return this.camoufoxBrowser.handleCamoufoxServerStatus(args);
+      default:
+        return this.camoufoxBrowser.handleCamoufoxServerLaunch(args);
+    }
+  }
   async handleCamoufoxServerLaunch(args: Record<string, unknown>) {
     return this.camoufoxBrowser.handleCamoufoxServerLaunch(args);
   }
@@ -360,20 +372,24 @@ export class BrowserToolHandlers {
   }
 
   // ── Page Data ──
-  async handlePageGetPerformance(args: Record<string, unknown>) {
-    return this.pageData.handlePageGetPerformance(args);
-  }
 
-  async handlePageSetCookies(args: Record<string, unknown>) {
-    return this.pageData.handlePageSetCookies(args);
-  }
-
-  async handlePageGetCookies(args: Record<string, unknown>) {
-    return this.pageData.handlePageGetCookies(args);
-  }
-
-  async handlePageClearCookies(args: Record<string, unknown>) {
-    return this.pageData.handlePageClearCookies(args);
+  async handlePageCookiesDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    switch (action) {
+      case 'get':
+        return this.pageData.handlePageGetCookies(args);
+      case 'set':
+        return this.pageData.handlePageSetCookies(args);
+      case 'clear':
+        return this.pageData.handlePageClearCookies(args);
+      default:
+        return {
+          content: [
+            { type: 'text', text: `Invalid action: "${action}". Expected one of: get, set, clear` },
+          ],
+          isError: true,
+        };
+    }
   }
 
   async handlePageSetViewport(args: Record<string, unknown>) {
@@ -384,12 +400,21 @@ export class BrowserToolHandlers {
     return this.pageData.handlePageEmulateDevice(args);
   }
 
-  async handlePageGetLocalStorage(args: Record<string, unknown>) {
-    return this.pageData.handlePageGetLocalStorage(args);
-  }
-
-  async handlePageSetLocalStorage(args: Record<string, unknown>) {
-    return this.pageData.handlePageSetLocalStorage(args);
+  async handlePageLocalStorageDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    switch (action) {
+      case 'get':
+        return this.pageData.handlePageGetLocalStorage(args);
+      case 'set':
+        return this.pageData.handlePageSetLocalStorage(args);
+      default:
+        return {
+          content: [
+            { type: 'text', text: `Invalid action: "${action}". Expected one of: get, set` },
+          ],
+          isError: true,
+        };
+    }
   }
 
   async handlePageGetAllLinks(args: Record<string, unknown>) {
@@ -415,7 +440,14 @@ export class BrowserToolHandlers {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(processedStructure, null, 2),
+          text: JSON.stringify(
+            {
+              success: true,
+              ...processedStructure,
+            },
+            null,
+            2,
+          ),
         },
       ],
     };

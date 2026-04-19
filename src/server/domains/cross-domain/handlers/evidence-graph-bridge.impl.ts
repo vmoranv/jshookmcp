@@ -40,8 +40,8 @@ export interface BinarySymbolInput {
 export class CrossDomainEvidenceBridge {
   private readonly graph: ReverseEvidenceGraph;
 
-  constructor() {
-    this.graph = new ReverseEvidenceGraph();
+  constructor(graph: ReverseEvidenceGraph) {
+    this.graph = graph;
   }
 
   getGraph(): ReverseEvidenceGraph {

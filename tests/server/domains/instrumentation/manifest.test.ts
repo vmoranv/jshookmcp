@@ -20,14 +20,9 @@ describe('instrumentation manifest', () => {
   it('registers the expected instrumentation tools without hard-coded count coupling', () => {
     const names = manifest.registrations.map((r) => r.tool.name);
     expect(new Set(names).size).toBe(names.length);
-    expect(names).toContain('instrumentation_session_create');
-    expect(names).toContain('instrumentation_session_list');
-    expect(names).toContain('instrumentation_session_destroy');
-    expect(names).toContain('instrumentation_session_status');
-    expect(names).toContain('instrumentation_operation_register');
-    expect(names).toContain('instrumentation_operation_list');
-    expect(names).toContain('instrumentation_artifact_record');
-    expect(names).toContain('instrumentation_artifact_query');
+    expect(names).toContain('instrumentation_session');
+    expect(names).toContain('instrumentation_operation');
+    expect(names).toContain('instrumentation_artifact');
     expect(names).toContain('instrumentation_hook_preset');
     expect(names).toContain('instrumentation_network_replay');
   });

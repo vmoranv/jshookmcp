@@ -44,11 +44,6 @@ const manifest = {
       bind: b((handlers, args) => handlers.handleExecuteInContext(args)),
     },
     {
-      tool: t('extension_install'),
-      domain: DOMAIN,
-      bind: b((handlers, args) => handlers.handleInstall(args)),
-    },
-    {
       tool: t('extension_reload'),
       domain: DOMAIN,
       bind: b((handlers, args) => handlers.handleReload(args)),
@@ -59,24 +54,9 @@ const manifest = {
       bind: b((handlers, args) => handlers.handleUninstall(args)),
     },
     {
-      tool: t('webhook_create'),
+      tool: t('webhook'),
       domain: DOMAIN,
-      bind: b((handlers, args) => handlers.handleWebhookCreate(args)),
-    },
-    {
-      tool: t('webhook_list'),
-      domain: DOMAIN,
-      bind: b((handlers) => handlers.handleWebhookList()),
-    },
-    {
-      tool: t('webhook_delete'),
-      domain: DOMAIN,
-      bind: b((handlers, args) => handlers.handleWebhookDelete(args)),
-    },
-    {
-      tool: t('webhook_commands'),
-      domain: DOMAIN,
-      bind: b((handlers, args) => handlers.handleWebhookCommands(args)),
+      bind: b((handlers, args) => handlers.handleWebhookDispatch(args)),
     },
   ],
   workflowRule: {
@@ -85,17 +65,11 @@ const manifest = {
       /(install|uninstall|reload).*(extension|plugin)/i,
     ],
     priority: 70,
-    tools: ['extension_install', 'extension_list_installed', 'webhook_create', 'webhook_commands'],
+    tools: ['install_extension', 'extension_list_installed', 'webhook'],
     hint: 'Plugin + webhook C2 + BLE HID + serial flashing pipeline.',
   },
   prerequisites: {
-    extension_install: [
-      {
-        condition: 'EXTENSION_REGISTRY_BASE_URL must be configured for registry installs',
-        fix: 'Set EXTENSION_REGISTRY_BASE_URL env or pass a direct git URL / file path',
-      },
-    ],
-    webhook_create: [
+    webhook: [
       {
         condition: 'Webhook listen port must be free',
         fix: 'Pick an unused port via the `port` argument or stop the conflicting service',
@@ -103,14 +77,7 @@ const manifest = {
     ],
   },
   toolDependencies: [
-    {
-      from: 'extension_install',
-      to: 'extension_list_installed',
-      relation: 'suggests',
-      weight: 0.5,
-    },
-    { from: 'webhook_create', to: 'webhook_list', relation: 'suggests', weight: 0.5 },
-    { from: 'webhook_commands', to: 'webhook_list', relation: 'precedes', weight: 0.3 },
+    { from: 'webhook', to: 'extension_list_installed', relation: 'suggests', weight: 0.5 },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

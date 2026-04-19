@@ -26,6 +26,12 @@ export class MojoIPCHandlers {
     private eventBus?: EventBus<ServerEventMap>,
   ) {}
 
+  async handleMojoMonitorDispatch(args: Record<string, unknown>): Promise<unknown> {
+    return String(args['action'] ?? '') === 'stop'
+      ? this.handleMojoMonitorStop()
+      : this.handleMojoMonitorStart(args);
+  }
+
   async handleMojoMonitorStart(args: Record<string, unknown>): Promise<unknown> {
     const monitor = this.getMonitor();
     if (!monitor.isAvailable()) {

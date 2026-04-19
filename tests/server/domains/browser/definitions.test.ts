@@ -163,9 +163,7 @@ describe('browser tool definitions', () => {
     const expectedNames = [
       'get_detailed_data',
       'browser_launch',
-      'camoufox_server_launch',
-      'camoufox_server_close',
-      'camoufox_server_status',
+      'camoufox_server',
       'browser_attach',
       'browser_close',
       'browser_status',
@@ -306,16 +304,14 @@ describe('browser tool definitions', () => {
       expect(getInputSchema(tool).required).toContain('device');
     });
 
-    it('page_set_cookies requires cookies', () => {
-      const tool = getToolByName(browserPageSystemTools, 'page_set_cookies');
-      expect(getInputSchema(tool).required).toContain('cookies');
+    it('page_cookies requires action', () => {
+      const tool = getToolByName(browserPageSystemTools, 'page_cookies');
+      expect(getInputSchema(tool).required).toContain('action');
     });
 
-    it('page_set_local_storage requires key and value', () => {
-      const tool = getToolByName(browserPageSystemTools, 'page_set_local_storage');
-      const schema = getInputSchema(tool);
-      expect(schema.required).toContain('key');
-      expect(schema.required).toContain('value');
+    it('page_local_storage requires action', () => {
+      const tool = getToolByName(browserPageSystemTools, 'page_local_storage');
+      expect(getInputSchema(tool).required).toContain('action');
     });
 
     it('page_press_key requires key', () => {
@@ -348,14 +344,7 @@ describe('browser tool definitions', () => {
       expect(getInputSchema(tool).required).toContain('script');
     });
 
-    const noArgSystemTools = [
-      'console_enable',
-      'page_get_performance',
-      'page_get_cookies',
-      'page_clear_cookies',
-      'page_get_local_storage',
-      'page_get_all_links',
-    ];
+    const noArgSystemTools = ['console_enable', 'page_get_all_links'];
 
     it.each(noArgSystemTools)('%s has no required properties', (name) => {
       const tool = getToolByName(browserPageSystemTools, name);

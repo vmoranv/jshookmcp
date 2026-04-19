@@ -3,6 +3,7 @@ import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { crossDomainToolDefinitions } from './definitions';
 import { CrossDomainHandlers, CrossDomainWorkflowClassifier } from './handlers';
 import { CrossDomainEvidenceBridge } from './handlers/evidence-graph-bridge';
+import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 
 const DOMAIN = 'cross-domain' as const;
 const DEP_KEY = 'crossDomainHandlers' as const;
@@ -19,9 +20,17 @@ function ensure(ctx: MCPServerContext): CrossDomainHandlers {
     return existing;
   }
 
+  // Use the shared evidence graph (created by evidence domain, or create + bind eventBus here)
+  let graph = ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');
+  if (!graph) {
+    graph = new ReverseEvidenceGraph();
+    graph.setEventBus(ctx.eventBus);
+    ctx.setDomainInstance('evidenceGraph', graph);
+  }
+
   let bridge = ctx.getDomainInstance<CrossDomainEvidenceBridge>('crossDomainEvidenceBridge');
   if (!bridge) {
-    bridge = new CrossDomainEvidenceBridge();
+    bridge = new CrossDomainEvidenceBridge(graph);
     ctx.setDomainInstance('crossDomainEvidenceBridge', bridge);
   }
 

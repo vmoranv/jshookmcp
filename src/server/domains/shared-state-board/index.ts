@@ -1,2 +1,2 @@
 export * from './definitions';
-export * from './handlers.impl';
+export * from './handlers.impl.core';

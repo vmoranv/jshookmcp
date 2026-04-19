@@ -8,12 +8,11 @@ function getTool(name: string) {
 }
 
 describe('behaviorTools', () => {
-  it('describes captcha_vision_solve with generic mode and challenge type fields', () => {
+  it('describes captcha_vision_solve with challenge type fields', () => {
     const tool = getTool('captcha_vision_solve');
     const props = tool.inputSchema.properties as Record<string, { description?: string }>;
 
-    expect(tool.description).toContain('mode: "external_service"');
-    expect(tool.description).toContain('challenge class (`image` or `widget`)');
+    expect(tool.description).toContain('CAPTCHA');
     expect(tool.description).not.toContain('2captcha');
     expect(tool.description).not.toContain('reCAPTCHA');
     expect(tool.description).not.toContain('hCaptcha');
@@ -25,7 +24,7 @@ describe('behaviorTools', () => {
     const tool = getTool('widget_challenge_solve');
     const props = tool.inputSchema.properties as Record<string, { description?: string }>;
 
-    expect(tool.description).toContain('embedded widget challenge');
+    expect(tool.description).toContain('widget');
     expect(tool.description).not.toContain('Turnstile');
     expect(tool.description).not.toContain('Cloudflare');
     expect(tool.description).not.toContain('capsolver');

@@ -476,4 +476,34 @@ export class AIHookToolHandlers {
       };
     }
   }
+
+  async handleAIHook(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    switch (action) {
+      case 'inject':
+        return this.handleAIHookInject(args);
+      case 'get_data':
+        return this.handleAIHookGetData(args);
+      case 'list':
+        return this.handleAIHookList(args);
+      case 'clear':
+        return this.handleAIHookClear(args);
+      case 'toggle':
+        return this.handleAIHookToggle(args);
+      case 'export':
+        return this.handleAIHookExport(args);
+      default:
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: `Unknown action: ${action}. Valid actions: inject, get_data, list, clear, toggle, export`,
+              }),
+            },
+          ],
+        };
+    }
+  }
 }

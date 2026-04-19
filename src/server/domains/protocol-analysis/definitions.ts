@@ -3,44 +3,7 @@ import { tool } from '@server/registry/tool-builder';
 
 export const protocolAnalysisTools: Tool[] = [
   tool('payload_template_build', (t) =>
-    t
-      .desc(
-        'Build a binary payload from declarative field definitions. Supports primitive numeric fields, raw bytes, and UTF-8 strings.',
-      )
-      .array(
-        'fields',
-        {
-          type: 'object',
-          properties: {
-            name: { type: 'string', description: 'Field name for reporting' },
-            type: {
-              type: 'string',
-              enum: ['u8', 'u16', 'u32', 'bytes', 'utf8'],
-              description: 'Field encoding type',
-            },
-            value: {
-              description: 'Field value. Numbers for u8/u16/u32, string for bytes/utf8',
-            },
-            endian: {
-              type: 'string',
-              enum: ['be', 'le'],
-              description: 'Byte order for multi-byte numeric fields (default: be)',
-            },
-            length: {
-              type: 'number',
-              description: 'Optional fixed length for bytes/utf8 fields; truncates or zero-pads',
-            },
-            padByte: {
-              type: 'number',
-              description: 'Optional pad byte for bytes/utf8 fields (default: 0)',
-            },
-          },
-          required: ['name', 'type', 'value'],
-        },
-        'Declarative payload field list',
-      )
-      .required('fields')
-      .idempotent(),
+    t.desc('Build a binary payload from declarative field definitions.').idempotent(),
   ),
   tool('payload_mutate', (t) =>
     t
@@ -113,11 +76,7 @@ export const protocolAnalysisTools: Tool[] = [
   ),
   tool('raw_ip_packet_build', (t) =>
     t
-      .desc(
-        'Build a deterministic raw IPv4 or IPv6 packet header around an existing payload. IPv4 header checksum is computed automatically.',
-      )
-      .enum('version', ['ipv4', 'ipv6'], 'IP version to build', { default: 'ipv4' })
-      .string('sourceIp', 'Source IPv4/IPv6 address')
+      .desc('Build a deterministic raw IPv4 or IPv6 packet header around an existing payload.')
       .string('destinationIp', 'Destination IPv4/IPv6 address')
       .string(
         'protocol',

@@ -1,6 +1,14 @@
-import { EncodingHandlersBase } from '@server/domains/encoding/handlers.base';
+/**
+ * Encoding domain — composition facade.
+ *
+ * All utility functions extracted to ./handlers/shared.ts.
+ * Handler methods call those functions directly instead of inheriting from a base class.
+ */
+
+import type { CodeCollector } from '@server/domains/shared/modules';
 import { parseProtobufMessage } from '@server/domains/encoding/encoding-protobuf';
 import { decodeMsgPack } from '@server/domains/encoding/encoding-msgpack';
+import { argString, argNumber, argEnum } from '@server/domains/shared/parse-args';
 import {
   DECODE_ENCODING_SET,
   DETECT_SOURCE_SET,
@@ -8,10 +16,57 @@ import {
   INPUT_FORMAT_SET,
   OUTPUT_ENCODING_SET,
   OUTPUT_FORMAT_SET,
-} from '@server/domains/encoding/handlers.impl.core.runtime.shared';
-import { argString, argNumber, argEnum } from '@server/domains/shared/parse-args';
+  ok,
+  fail,
+  decodeHexString,
+  decodeBase64String,
+  decodeBinaryAuto,
+  decodeUrl,
+  encodeUrlBytes,
+  previewHex,
+  hexDump,
+  renderDecodedOutput,
+  resolveBufferBySource,
+  resolveRequestBodyFromActivePage,
+  detectMagicFormats,
+  detectStructuredFormats,
+  detectEncodingSignals,
+  calculateShannonEntropy,
+  calculateByteFrequency,
+  calculateBlockEntropies,
+  assessEntropy,
+  tryParseJson,
+} from './handlers/shared';
 
-export class EncodingToolHandlers extends EncodingHandlersBase {
+// Re-export shared types for backward compat
+export type {
+  DetectSource,
+  EntropySource,
+  DecodeEncoding,
+  OutputFormat,
+  InputFormat,
+  OutputEncoding,
+  EntropyAssessment,
+  MagicSignature,
+  ByteFrequencyEntry,
+} from './handlers/shared';
+export {
+  MAGIC_SIGNATURES,
+  DETECT_SOURCE_SET,
+  ENTROPY_SOURCE_SET,
+  DECODE_ENCODING_SET,
+  OUTPUT_FORMAT_SET,
+  INPUT_FORMAT_SET,
+  OUTPUT_ENCODING_SET,
+} from './handlers/shared';
+
+export class EncodingToolHandlers {
+  protected collector: CodeCollector;
+
+  constructor(collector: CodeCollector) {
+    this.collector = collector;
+  }
+
   async handleBinaryDetectFormat(args: Record<string, unknown>) {
     try {
       const source = argEnum(args, 'source', DETECT_SOURCE_SET, 'raw');
@@ -23,18 +78,16 @@ export class EncodingToolHandlers extends EncodingHandlersBase {
       let requestBodyUsed = false;
 
       if (source === 'raw' && requestId) {
-        buffer = await this.resolveRequestBodyFromActivePage(requestId);
+        buffer = await resolveRequestBodyFromActivePage(this.collector, requestId);
         requestBodyUsed = buffer !== null;
       }
 
       if (!buffer) {
-        if (source !== 'file' && !data) {
+        if (source !== 'file' && !data)
           throw new Error(
             'data is required for non-file source when requestId payload is unavailable',
           );
-        }
-
-        buffer = await this.resolveBufferBySource({
+        buffer = await resolveBufferBySource({
           source,
           data,
           filePath,
@@ -42,28 +95,23 @@ export class EncodingToolHandlers extends EncodingHandlersBase {
         });
       }
 
-      const entropy = this.calculateShannonEntropy(buffer);
-      const magicFormats = this.detectMagicFormats(buffer);
-      const encodingSignals = this.detectEncodingSignals(source, data, buffer);
-      const structuredFormats = this.detectStructuredFormats(buffer);
-      const assessment = this.assessEntropy(entropy, buffer);
-
-      return this.ok({
+      const entropy = calculateShannonEntropy(buffer);
+      return ok({
         success: true,
         source,
         requestId: requestId ?? null,
         requestBodyUsed,
         byteLength: buffer.length,
-        previewHex: this.previewHex(buffer, 64),
-        magicFormats,
-        structuredFormats,
-        encodingSignals,
+        previewHex: previewHex(buffer, 64),
+        magicFormats: detectMagicFormats(buffer),
+        structuredFormats: detectStructuredFormats(buffer),
+        encodingSignals: detectEncodingSignals(source, data, buffer),
         entropy,
-        assessment,
-        topBytes: this.calculateByteFrequency(buffer).slice(0, 8),
+        assessment: assessEntropy(entropy, buffer),
+        topBytes: calculateByteFrequency(buffer).slice(0, 8),
       });
     } catch (error) {
-      return this.fail('binary_detect_format', error);
+      return fail('binary_detect_format', error);
     }
   }
 
@@ -73,54 +121,38 @@ export class EncodingToolHandlers extends EncodingHandlersBase {
       const encoding = argEnum(args, 'encoding', DECODE_ENCODING_SET);
       const outputFormat = argEnum(args, 'outputFormat', OUTPUT_FORMAT_SET, 'hex');
 
-      if (!data) {
-        throw new Error('data is required');
-      }
-      if (!encoding) {
-        throw new Error('encoding is required');
-      }
+      if (!data) throw new Error('data is required');
+      if (!encoding) throw new Error('encoding is required');
 
       if (encoding === 'url') {
-        const decoded = this.decodeUrl(data);
+        const decoded = decodeUrl(data);
         if (outputFormat === 'hex') {
           const raw = Buffer.from(decoded, 'utf8');
-          return this.ok({
+          return ok({
             success: true,
             encoding,
             outputFormat,
             byteLength: raw.length,
             result: raw.toString('hex'),
-            hexDump: this.hexDump(raw),
+            hexDump: hexDump(raw),
           });
         }
-        if (outputFormat === 'utf8') {
-          return this.ok({
-            success: true,
-            encoding,
-            outputFormat,
-            result: decoded,
-          });
-        }
-
-        const parsed = this.tryParseJson(decoded);
-        return this.ok({
-          success: true,
-          encoding,
-          outputFormat,
-          result: parsed ?? { text: decoded },
-        });
+        if (outputFormat === 'utf8')
+          return ok({ success: true, encoding, outputFormat, result: decoded });
+        const parsed = tryParseJson(decoded);
+        return ok({ success: true, encoding, outputFormat, result: parsed ?? { text: decoded } });
       }
 
       const rawBuffer =
         encoding === 'base64'
-          ? this.decodeBase64String(data)
+          ? decodeBase64String(data)
           : encoding === 'hex'
-            ? this.decodeHexString(data)
-            : this.decodeBinaryAuto(data);
+            ? decodeHexString(data)
+            : decodeBinaryAuto(data);
 
       if (encoding === 'protobuf') {
         const parsed = parseProtobufMessage(rawBuffer, 0, 5);
-        return this.renderDecodedOutput({
+        return renderDecodedOutput({
           encoding,
           outputFormat,
           buffer: rawBuffer,
@@ -133,22 +165,17 @@ export class EncodingToolHandlers extends EncodingHandlersBase {
       }
 
       if (encoding === 'msgpack') {
-        const parsed = decodeMsgPack(rawBuffer);
-        return this.renderDecodedOutput({
+        return renderDecodedOutput({
           encoding,
           outputFormat,
           buffer: rawBuffer,
-          jsonValue: parsed,
+          jsonValue: decodeMsgPack(rawBuffer),
         });
       }
 
-      return this.renderDecodedOutput({
-        encoding,
-        outputFormat,
-        buffer: rawBuffer,
-      });
+      return renderDecodedOutput({ encoding, outputFormat, buffer: rawBuffer });
     } catch (error) {
-      return this.fail('binary_decode', error);
+      return fail('binary_decode', error);
     }
   }
 
@@ -158,16 +185,12 @@ export class EncodingToolHandlers extends EncodingHandlersBase {
       const inputFormat = argEnum(args, 'inputFormat', INPUT_FORMAT_SET, 'utf8');
       const outputEncoding = argEnum(args, 'outputEncoding', OUTPUT_ENCODING_SET, 'base64');
 
-      if (!data) {
-        throw new Error('data is required');
-      }
+      if (!data) throw new Error('data is required');
 
       let buffer: Buffer;
-      if (inputFormat === 'utf8') {
-        buffer = Buffer.from(data, 'utf8');
-      } else if (inputFormat === 'hex') {
-        buffer = this.decodeHexString(data);
-      } else {
+      if (inputFormat === 'utf8') buffer = Buffer.from(data, 'utf8');
+      else if (inputFormat === 'hex') buffer = decodeHexString(data);
+      else {
         const parsed = JSON.parse(data) as unknown;
         buffer = Buffer.from(JSON.stringify(parsed), 'utf8');
       }
@@ -177,17 +200,11 @@ export class EncodingToolHandlers extends EncodingHandlersBase {
           ? buffer.toString('base64')
           : outputEncoding === 'hex'
             ? buffer.toString('hex')
-            : this.encodeUrlBytes(buffer);
+            : encodeUrlBytes(buffer);
 
-      return this.ok({
-        success: true,
-        inputFormat,
-        outputEncoding,
-        byteLength: buffer.length,
-        output,
-      });
+      return ok({ success: true, inputFormat, outputEncoding, byteLength: buffer.length, output });
     } catch (error) {
-      return this.fail('binary_encode', error);
+      return fail('binary_encode', error);
     }
   }
 
@@ -197,52 +214,40 @@ export class EncodingToolHandlers extends EncodingHandlersBase {
       const data = argString(args, 'data');
       const filePath = argString(args, 'filePath');
 
-      if (source !== 'file' && !data) {
-        throw new Error('data is required for non-file source');
-      }
+      if (source !== 'file' && !data) throw new Error('data is required for non-file source');
 
       const blockSizeRaw = argNumber(args, 'blockSize', 256);
       const blockSize = Math.max(16, Math.min(8192, Math.trunc(blockSizeRaw || 256)));
 
-      const buffer = await this.resolveBufferBySource({
-        source,
-        data,
-        filePath,
-      });
+      const buffer = await resolveBufferBySource({ source, data, filePath });
+      const overallEntropy = calculateShannonEntropy(buffer);
 
-      const overallEntropy = this.calculateShannonEntropy(buffer);
-      const blockEntropies = this.calculateBlockEntropies(buffer, blockSize);
-      const byteFrequency = this.calculateByteFrequency(buffer).slice(0, 20);
-      const assessment = this.assessEntropy(overallEntropy, buffer);
-
-      return this.ok({
+      return ok({
         success: true,
         source,
         byteLength: buffer.length,
         blockSize,
         overallEntropy,
-        blockEntropies,
-        byteFrequency,
-        assessment,
+        blockEntropies: calculateBlockEntropies(buffer, blockSize),
+        byteFrequency: calculateByteFrequency(buffer).slice(0, 20),
+        assessment: assessEntropy(overallEntropy, buffer),
       });
     } catch (error) {
-      return this.fail('binary_entropy_analysis', error);
+      return fail('binary_entropy_analysis', error);
     }
   }
 
   async handleProtobufDecodeRaw(args: Record<string, unknown>) {
     try {
       const data = argString(args, 'data', '');
-      if (!data) {
-        throw new Error('data is required');
-      }
+      if (!data) throw new Error('data is required');
 
       const maxDepthRaw = argNumber(args, 'maxDepth', 5);
       const maxDepth = Math.max(1, Math.min(20, Math.trunc(maxDepthRaw || 5)));
-      const buffer = this.decodeBase64String(data);
+      const buffer = decodeBase64String(data);
       const parsed = parseProtobufMessage(buffer, 0, maxDepth);
 
-      return this.ok({
+      return ok({
         success: parsed.error === undefined,
         byteLength: buffer.length,
         maxDepth,
@@ -251,7 +256,7 @@ export class EncodingToolHandlers extends EncodingHandlersBase {
         error: parsed.error ?? null,
       });
     } catch (error) {
-      return this.fail('protobuf_decode_raw', error);
+      return fail('protobuf_decode_raw', error);
     }
   }
 }

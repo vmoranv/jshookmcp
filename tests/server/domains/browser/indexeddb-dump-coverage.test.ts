@@ -135,7 +135,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
-      expect(Object.keys(body)).toEqual(['db1', 'db2']);
+      expect(Object.keys(body)).toEqual(['success', 'db1', 'db2']);
       expect(body.db1.users).toHaveLength(1);
       expect(body.db1.settings).toHaveLength(1);
       expect(body.db2.logs).toHaveLength(1);
@@ -150,7 +150,7 @@ describe('IndexedDBDumpHandlers — coverage expansion', () => {
 
       const body = parseJson<BrowserStatusResponse>(await handlers.handleIndexedDBDump({}));
 
-      expect(body).toEqual({});
+      expect(body).toEqual({ success: true });
     });
 
     it('returns database with empty stores', async () => {

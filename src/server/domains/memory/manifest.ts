@@ -129,13 +129,9 @@ const WIN32_ONLY_TOOLS = new Set([
   'memory_guard_pages',
   'memory_integrity_check',
   // Hardware breakpoints (debug registers)
-  'memory_breakpoint_set',
-  'memory_breakpoint_remove',
-  'memory_breakpoint_list',
-  'memory_breakpoint_trace',
+  'memory_breakpoint',
   // Speedhack (Win32 timer hooking)
-  'memory_speedhack_apply',
-  'memory_speedhack_set',
+  'memory_speedhack',
 ]);
 
 // All tool registrations — then filtered by platform
@@ -167,40 +163,15 @@ const allRegistrations = [
     bind: bindByKey((h, a) => h.handleGroupScan(a)),
   },
   {
-    tool: toolByName('memory_scan_list'),
+    tool: toolByName('memory_scan_session'),
     domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleScanList(a)),
-  },
-  {
-    tool: toolByName('memory_scan_delete'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleScanDelete(a)),
-  },
-  {
-    tool: toolByName('memory_scan_export'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleScanExport(a)),
+    bind: bindByKey((h, a) => h.handleScanSessionDispatch(a)),
   },
   // ── Pointer Chain Tools ──
   {
-    tool: toolByName('memory_pointer_chain_scan'),
+    tool: toolByName('memory_pointer_chain'),
     domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handlePointerChainScan(a)),
-  },
-  {
-    tool: toolByName('memory_pointer_chain_validate'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handlePointerChainValidate(a)),
-  },
-  {
-    tool: toolByName('memory_pointer_chain_resolve'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handlePointerChainResolve(a)),
-  },
-  {
-    tool: toolByName('memory_pointer_chain_export'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handlePointerChainExport(a)),
+    bind: bindByKey((h, a) => h.handlePointerChainDispatch(a)),
   },
   // ── Structure Analysis Tools ──
   {
@@ -225,24 +196,9 @@ const allRegistrations = [
   },
   // ── Breakpoint Tools (Win32-only) ──
   {
-    tool: toolByName('memory_breakpoint_set'),
+    tool: toolByName('memory_breakpoint'),
     domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleBreakpointSet(a)),
-  },
-  {
-    tool: toolByName('memory_breakpoint_remove'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleBreakpointRemove(a)),
-  },
-  {
-    tool: toolByName('memory_breakpoint_list'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleBreakpointList(a)),
-  },
-  {
-    tool: toolByName('memory_breakpoint_trace'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleBreakpointTrace(a)),
+    bind: bindByKey((h, a) => h.handleBreakpointDispatch(a)),
   },
   // ── Injection Tools ──
   {
@@ -274,35 +230,20 @@ const allRegistrations = [
   {
     tool: toolByName('memory_freeze'),
     domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleFreeze(a)),
-  },
-  {
-    tool: toolByName('memory_unfreeze'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleUnfreeze(a)),
+    bind: bindByKey((h, a) => h.handleFreezeDispatch(a)),
   },
   { tool: toolByName('memory_dump'), domain: DOMAIN, bind: bindByKey((h, a) => h.handleDump(a)) },
   // ── Time Tools (Win32-only) ──
   {
-    tool: toolByName('memory_speedhack_apply'),
+    tool: toolByName('memory_speedhack'),
     domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleSpeedhackApply(a)),
-  },
-  {
-    tool: toolByName('memory_speedhack_set'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleSpeedhackSet(a)),
+    bind: bindByKey((h, a) => h.handleSpeedhackDispatch(a)),
   },
   // ── History Tools ──
   {
-    tool: toolByName('memory_write_undo'),
+    tool: toolByName('memory_write_history'),
     domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleWriteUndo(a)),
-  },
-  {
-    tool: toolByName('memory_write_redo'),
-    domain: DOMAIN,
-    bind: bindByKey((h, a) => h.handleWriteRedo(a)),
+    bind: bindByKey((h, a) => h.handleWriteHistoryDispatch(a)),
   },
   // ── Heap Analysis Tools (Win32-only) ──
   {
@@ -394,23 +335,23 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       'memory_first_scan',
       'memory_next_scan',
       'memory_unknown_scan',
-      'memory_pointer_chain_scan',
+      'memory_pointer_chain',
       'memory_structure_analyze',
       'memory_vtable_parse',
-      'memory_scan_list',
-      ...(IS_WIN32 ? ['memory_breakpoint_set', 'memory_breakpoint_trace'] : []),
+      'memory_scan_session',
+      ...(IS_WIN32 ? ['memory_breakpoint', 'memory_speedhack'] : []),
       'memory_patch_bytes',
       'memory_freeze',
       'memory_dump',
       ...(IS_WIN32
         ? [
-            'memory_speedhack_apply',
+            'memory_speedhack',
             'memory_heap_enumerate',
             'memory_pe_headers',
             'memory_anticheat_detect',
           ]
         : []),
-      'memory_write_undo',
+      'memory_write_history',
     ],
     hint: IS_WIN32
       ? 'Memory domain: scan → narrow → pointer chain → structure | breakpoint trace → patch/NOP → freeze | speedhack | heap analysis | PE introspection | anti-cheat detection'

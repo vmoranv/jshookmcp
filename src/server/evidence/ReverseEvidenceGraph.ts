@@ -31,9 +31,22 @@ export class ReverseEvidenceGraph {
   private readonly edges = new Map<string, EvidenceEdge>();
   private eventBus?: EventBus<ServerEventMap>;
   private isDirty = false;
+  private mutationSeq = 0;
+  private lastPersistedSeq = 0;
+  private persistNotifier?: () => void;
 
   setEventBus(eventBus: EventBus<ServerEventMap>): void {
     this.eventBus = eventBus;
+  }
+
+  setPersistNotifier(notify?: () => void): void {
+    this.persistNotifier = notify;
+  }
+
+  private markDirty(): void {
+    this.isDirty = true;
+    this.mutationSeq++;
+    this.persistNotifier?.();
   }
 
   commit(): void {
@@ -62,7 +75,7 @@ export class ReverseEvidenceGraph {
       createdAt: Date.now(),
     };
     this.nodes.set(node.id, node);
-    this.isDirty = true;
+    this.markDirty();
     return node;
   }
 
@@ -84,7 +97,7 @@ export class ReverseEvidenceGraph {
       metadata,
     };
     this.edges.set(edge.id, edge);
-    this.isDirty = true;
+    this.markDirty();
     return edge;
   }
 
@@ -103,7 +116,7 @@ export class ReverseEvidenceGraph {
         this.edges.delete(edgeId);
       }
     }
-    this.isDirty = true;
+    this.markDirty();
     return true;
   }
 
@@ -340,5 +353,49 @@ export class ReverseEvidenceGraph {
     }
 
     return lines.join('\n');
+  }
+
+  // ── Snapshot Persistence ───────────────────────────────
+
+  getSnapshotSeq(): number {
+    return this.mutationSeq;
+  }
+
+  getLastPersistedSeq(): number {
+    return this.lastPersistedSeq;
+  }
+
+  markPersisted(): void {
+    this.lastPersistedSeq = this.mutationSeq;
+  }
+
+  isPersistDirty(): boolean {
+    return this.mutationSeq !== this.lastPersistedSeq;
+  }
+
+  exportSnapshot(): { schemaVersion: number; savedAt: string; graph: EvidenceGraphSnapshot } {
+    return {
+      schemaVersion: 1,
+      savedAt: new Date().toISOString(),
+      graph: this.exportJson(),
+    };
+  }
+
+  restoreSnapshot(data: unknown): void {
+    if (!data || typeof data !== 'object') return;
+    const snapshot = data as { schemaVersion?: number; graph?: EvidenceGraphSnapshot };
+    if (snapshot.schemaVersion !== 1 || !snapshot.graph) return;
+    const { nodes, edges } = snapshot.graph;
+    this.nodes.clear();
+    this.edges.clear();
+    for (const node of nodes) {
+      this.nodes.set(node.id, node);
+    }
+    for (const edge of edges) {
+      this.edges.set(edge.id, edge);
+    }
+    this.mutationSeq = nodes.length + edges.length;
+    this.lastPersistedSeq = this.mutationSeq;
+    this.isDirty = false;
   }
 }

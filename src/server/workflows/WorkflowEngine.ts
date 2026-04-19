@@ -4,6 +4,7 @@ import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph
 import { getEffectivePrerequisites } from '@server/ToolRouter.policy';
 import { getRoutingState } from '@server/ToolRouter.probe';
 import type { ToolArgs, ToolResponse } from '@server/types';
+import { WorkflowRunStore } from '@server/workflows/WorkflowRunStore';
 import type {
   BranchNode,
   FallbackNode,
@@ -143,6 +144,12 @@ export interface ExecuteWorkflowResult {
   spans: WorkflowSpan[];
 }
 
+const globalRunStore = new WorkflowRunStore();
+
+export function getWorkflowRunStore(): WorkflowRunStore {
+  return globalRunStore;
+}
+
 function extractConfigValue<T = unknown>(config: unknown, path: string, fallback?: T): T {
   const segments = path.split('.').filter(Boolean);
   let current: unknown = config;
@@ -224,6 +231,21 @@ function collectSuccessStats(value: unknown): { success: number; failure: number
 
   if (!value || typeof value !== 'object') {
     return { success: 0, failure: 0 };
+  }
+
+  const obj = value as Record<string, unknown>;
+
+  // Handle keyed parallel results with __order
+  if (Array.isArray(obj['__order'])) {
+    return (obj['__order'] as string[]).reduce(
+      (acc, key) => {
+        const next = collectSuccessStats(obj[key]);
+        acc.success += next.success;
+        acc.failure += next.failure;
+        return acc;
+      },
+      { success: 0, failure: 0 },
+    );
   }
 
   const payload = parseToolPayload(value);
@@ -340,14 +362,19 @@ async function runToolNode(
   throw new Error(`Workflow tool node "${node.id}" exhausted retries`);
 }
 
+export interface ParallelResult {
+  [stepId: string]: unknown;
+  __order: string[];
+}
+
 async function runParallelNode(
   ctx: MCPServerContext,
   node: ParallelNode,
   executionContext: InternalExecutionContext,
   options: ExecuteWorkflowOptions,
-): Promise<unknown[]> {
+): Promise<ParallelResult> {
   const concurrency = Math.max(1, node.maxConcurrency ?? 4);
-  const results: unknown[] = Array.from({ length: node.steps.length });
+  const keyedResults: ParallelResult = { __order: [] };
   let nextIndex = 0;
   let stopped = false;
 
@@ -362,16 +389,19 @@ async function runParallelNode(
       /* istanbul ignore next */
       if (!step) return;
       try {
-        results[currentIndex] = await executeNode(ctx, step, executionContext, options);
+        const result = await executeNode(ctx, step, executionContext, options);
+        keyedResults[step.id] = result;
+        keyedResults.__order.push(step.id);
       } catch (error) {
         if (node.failFast) {
           stopped = true;
           throw error;
         }
-        results[currentIndex] = {
+        keyedResults[step.id] = {
           success: false,
           error: error instanceof Error ? error.message : String(error),
         };
+        keyedResults.__order.push(step.id);
       }
     }
   };
@@ -379,7 +409,7 @@ async function runParallelNode(
   await Promise.all(
     Array.from({ length: Math.min(concurrency, node.steps.length) }, () => worker()),
   );
-  return results;
+  return keyedResults;
 }
 
 /**
@@ -776,7 +806,7 @@ export async function executeExtensionWorkflow(
       });
     }
 
-    return {
+    const runResult: ExecuteWorkflowResult = {
       workflowId: workflow.id,
       displayName: workflow.displayName,
       runId,
@@ -789,8 +819,11 @@ export async function executeExtensionWorkflow(
       metrics,
       spans,
     };
+    globalRunStore.recordSuccess(runResult);
+    return runResult;
   } catch (error) {
     const workflowError = error instanceof Error ? error : new Error(String(error));
+    globalRunStore.recordError(workflow.id, runId, startedAt, workflowError);
     await workflow.onError?.(executionContext, workflowError);
     throw workflowError;
   }

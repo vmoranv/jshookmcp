@@ -74,6 +74,7 @@ describe('FrameworkStateHandlers', () => {
       maxDepth: 5,
     });
     expect(body).toEqual({
+      success: true,
       detected: 'react',
       states: [{ component: 'App', state: [{ count: 1 }] }],
       found: true,

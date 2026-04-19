@@ -1,3 +1,8 @@
+import { argString, argNumber } from '@server/domains/shared/parse-args';
+import { PrerequisiteError } from '@errors/PrerequisiteError';
+import { R } from '@server/domains/shared/ResponseBuilder';
+import type { ToolResponse } from '@server/domains/shared/ResponseBuilder';
+
 interface EvaluatablePage {
   evaluate(pageFunction: unknown, ...args: unknown[]): Promise<unknown>;
   createCDPSession(): Promise<{
@@ -9,13 +14,10 @@ interface FrameworkStateHandlersDeps {
   getActivePage: () => Promise<unknown>;
 }
 
-import { argString, argNumber } from '@server/domains/shared/parse-args';
-import { PrerequisiteError } from '@errors/PrerequisiteError';
-
 export class FrameworkStateHandlers {
   constructor(private deps: FrameworkStateHandlersDeps) {}
 
-  async handleFrameworkStateExtract(args: Record<string, unknown>) {
+  async handleFrameworkStateExtract(args: Record<string, unknown>): Promise<ToolResponse> {
     const framework = argString(args, 'framework', 'auto');
     const selector = argString(args, 'selector', '');
     const maxDepth = argNumber(args, 'maxDepth', 5);
@@ -24,9 +26,6 @@ export class FrameworkStateHandlers {
       const page = (await this.deps.getActivePage()) as EvaluatablePage;
 
       // Pre-flight CDP health check: verify the page's CDP target is responsive.
-      // After debugger enable + pause/resume, the CDP target may enter a zombie state
-      // where Runtime.evaluate hangs indefinitely without firing 'disconnected'.
-      // This 3s check catches that and fails fast with a clear prerequisite error.
       try {
         const cdp = await page.createCDPSession();
         await Promise.race([
@@ -216,9 +215,6 @@ export class FrameworkStateHandlers {
 
           // ── Svelte 3/4/5 ──
           const extractSvelte = (): unknown[] | null => {
-            // Svelte components attach internal context via $$ on the component instance.
-            // In dev mode, __svelte_meta provides source file location.
-            // We scan all DOM elements for Svelte-managed nodes.
             const states: unknown[] = [];
             const visited = new WeakSet<object>();
 
@@ -230,7 +226,6 @@ export class FrameworkStateHandlers {
               const obj = el as unknown as AnyObj;
               const keys = Object.keys(obj);
 
-              // Svelte 5 runes: look for $$
               const hasSvelte = keys.some(
                 (k) => k === '$$' || k === '__svelte_meta' || k.startsWith('__s'),
               );
@@ -246,7 +241,6 @@ export class FrameworkStateHandlers {
                 | string
                 | undefined;
 
-              // Extract reactive context — ctx.ctx is the component's reactive state array
               const ctxArray = ctx['ctx'] as unknown[] | undefined;
               const stateObj: AnyObj = {};
               if (Array.isArray(ctxArray)) {
@@ -259,7 +253,6 @@ export class FrameworkStateHandlers {
                 }
               }
 
-              // Svelte 5 runes: check for reactive signals in $$
               const fragment = ctx['fragment'] as AnyObj | undefined;
 
               if (Object.keys(stateObj).length > 0 || fragment) {
@@ -278,19 +271,15 @@ export class FrameworkStateHandlers {
 
           // ── Solid.js ──
           const extractSolid = (): unknown[] | null => {
-            // Solid uses _$DX for DevTools integration and _$HY for hydration context.
-            // Fine-grained reactivity means state is NOT stored on DOM elements.
             const states: unknown[] = [];
 
             const dx = win['_$DX'] as AnyObj | undefined;
             const hy = win['_$HY'] as AnyObj | undefined;
 
             if (!dx && !hy) {
-              // Fallback: check for Solid hydration markers
               const hydrationMarker = document.querySelector('[data-hk]');
               if (!hydrationMarker) return null;
 
-              // Solid detected by hydration markers but no DevTools — limited info
               states.push({
                 component: 'SolidRoot',
                 state: [
@@ -303,7 +292,6 @@ export class FrameworkStateHandlers {
               return states;
             }
 
-            // DevTools integration available
             if (dx) {
               const roots = dx['roots'] as Map<unknown, AnyObj> | AnyObj | undefined;
               if (roots && typeof roots === 'object') {
@@ -322,7 +310,6 @@ export class FrameworkStateHandlers {
               }
             }
 
-            // Hydration context supplements
             if (hy && states.length === 0) {
               states.push({
                 component: 'SolidHydration',
@@ -335,13 +322,10 @@ export class FrameworkStateHandlers {
 
           // ── Preact ──
           const extractPreact = (): unknown[] | null => {
-            // Preact stores VNodes on DOM elements via __k (children), __c (component)
-            // Must exclude React fiber keys to avoid false positives.
             const rootEl = getRootEl();
             const rootObj = rootEl as unknown as AnyObj;
             const rootKeys = Object.keys(rootObj);
 
-            // Avoid false positive: if React fiber detected, this is NOT Preact
             if (
               rootKeys.some(
                 (k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance'),
@@ -350,7 +334,6 @@ export class FrameworkStateHandlers {
               return null;
             }
 
-            // Preact VNode internal key
             const hasPreact = rootKeys.some((k) => k === '__k' || k === '__e' || k === '_dom');
             if (!hasPreact) return null;
 
@@ -361,13 +344,11 @@ export class FrameworkStateHandlers {
               if (!vnode || depth > opts.maxDepth || visited.has(vnode)) return;
               visited.add(vnode);
 
-              // __c is the component instance (class or hooks)
               const component = vnode['__c'] as AnyObj | undefined;
               if (component) {
                 const compState = component['state'] as AnyObj | undefined;
                 const compProps = component['props'] as AnyObj | undefined;
 
-                // For hooks-based components, check __H (hooks state)
                 const hooks = component['__H'] as AnyObj | undefined;
                 const hookStates: unknown[] = [];
                 if (hooks) {
@@ -404,7 +385,6 @@ export class FrameworkStateHandlers {
                 }
               }
 
-              // Traverse children VNodes
               const children = vnode['__k'] as AnyObj[] | undefined;
               if (Array.isArray(children)) {
                 for (const child of children) {
@@ -413,14 +393,12 @@ export class FrameworkStateHandlers {
               }
             };
 
-            // Find Preact root VNode — stored on the container element
             const rootVNode = rootObj['__k'] as AnyObj[] | undefined;
             if (Array.isArray(rootVNode)) {
               for (const vn of rootVNode) {
                 if (vn) visitVNode(vn, 0);
               }
             } else if (rootObj['_children']) {
-              // Preact 10.x alternate key
               const alt = rootObj['_children'] as AnyObj[] | undefined;
               if (Array.isArray(alt)) {
                 for (const vn of alt) {
@@ -434,7 +412,6 @@ export class FrameworkStateHandlers {
 
           // ── Meta-framework metadata (Next.js / Nuxt) ──
           const extractMetaFramework = (): AnyObj | null => {
-            // Next.js
             const nextData = win['__NEXT_DATA__'] as AnyObj | undefined;
             if (nextData) {
               return {
@@ -446,7 +423,6 @@ export class FrameworkStateHandlers {
               };
             }
 
-            // Nuxt 3
             const nuxt = win['__NUXT__'] as AnyObj | undefined;
             if (nuxt) {
               const isNuxt3 = nuxt['config'] !== undefined || nuxt['_errors'] !== undefined;
@@ -458,7 +434,6 @@ export class FrameworkStateHandlers {
                   payload: safeSerialize(nuxt['data']),
                 };
               }
-              // Nuxt 2
               return {
                 framework: 'nuxt2',
                 state: safeSerialize(nuxt['state']),
@@ -534,7 +509,6 @@ export class FrameworkStateHandlers {
             states = extractPreact();
           }
 
-          // Always try to extract meta-framework metadata regardless of component framework
           const meta = extractMetaFramework();
 
           return {
@@ -546,37 +520,17 @@ export class FrameworkStateHandlers {
         },
         { framework, selector, maxDepth },
       );
+
       const result = (await Promise.race([
         evalPromise,
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('page.evaluate timed out after 30000ms')), 30000),
         ),
-      ])) as unknown;
+      ])) as Record<string, unknown>;
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      return R.ok().build(result);
     } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error).build();
     }
   }
 }

@@ -1,24 +1,12 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
-/**
- * Human behavior simulation and captcha solving tools.
- * These tools enhance anti-detection capabilities.
- */
 export const behaviorTools: Tool[] = [
   tool('human_mouse', (t) =>
     t
-      .desc(`Move the mouse along a natural Bezier curve path with random jitter.
-
-Simulates human-like mouse movement using cubic Bezier curves with:
-- Non-linear speed (ease-in-out)
-- Configurable jitter/noise
-- Viewport-clamped trajectory
-
-Use this before page_click for anti-bot bypass on browser-check or widget challenges.
-
-Example:
-  human_mouse({ toX: 500, toY: 300, durationMs: 800 })`)
+      .desc(
+        `Move mouse along a natural Bezier curve with jitter. Use before page_click for anti-bot.`,
+      )
       .number('fromX', 'Start X coordinate (default: current mouse position or 0)')
       .number('fromY', 'Start Y coordinate (default: current mouse position or 0)')
       .number('toX', 'Target X coordinate')
@@ -38,15 +26,7 @@ Example:
   ),
   tool('human_scroll', (t) =>
     t
-      .desc(`Scroll the page with human-like behavior: variable speed, micro-pauses, and deceleration.
-
-Simulates natural scrolling patterns:
-- Segmented scroll with random segment sizes
-- Brief pauses between segments
-- Velocity deceleration near the end
-
-Example:
-  human_scroll({ distance: 1000, direction: "down", durationMs: 2000 })`)
+      .desc(`Scroll with human-like behavior: variable speed, micro-pauses, deceleration.`)
       .number('distance', 'Total scroll distance in pixels (default: 500)', { default: 500 })
       .enum('direction', ['up', 'down', 'left', 'right'], 'Scroll direction (default: down)', {
         default: 'down',
@@ -60,18 +40,7 @@ Example:
   ),
   tool('human_typing', (t) =>
     t
-      .desc(`Type text with human-like patterns: variable speed, occasional typos, and natural corrections.
-
-Features:
-- Per-character random delay based on WPM
-- Configurable typo rate with auto-correction (backspace + retype)
-- Word boundary pauses
-- Shift key simulation for uppercase
-
-Use this instead of page_type for anti-bot bypass.
-
-Example:
-  human_typing({ selector: "#email", text: "user@example.com", wpm: 80 })`)
+      .desc(`Type text with human-like patterns: variable speed, occasional typos, corrections.`)
       .string('selector', 'CSS selector of the input field')
       .string('text', 'Text to type')
       .number('wpm', 'Words per minute (default: 90)', { default: 90 })
@@ -88,16 +57,7 @@ Example:
   ),
   tool('captcha_vision_solve', (t) =>
     t
-      .desc(`Attempt to solve a CAPTCHA using an external solving service or AI vision.
-
-Public contract:
-- \`mode: "external_service"\` routes to the configured solver backend
-- \`mode: "manual"\` waits for the user to solve manually
-
-Automatically detects the challenge class (\`image\` or \`widget\`) if \`challengeType\` is omitted.
-
-Example:
-  captcha_vision_solve({ mode: "external_service", apiKey: "..." })`)
+      .desc(`Solve CAPTCHA via external service or AI vision. Auto-detects challenge type.`)
       .enum(
         'mode',
         ['external_service', 'manual'],
@@ -120,18 +80,7 @@ Example:
   ),
   tool('widget_challenge_solve', (t) =>
     t
-      .desc(`Solve an embedded widget challenge.
-
-Strategy:
-1. Detect the widget and extract siteKey
-2. Send to the configured external solver service (or hook the page callback to extract token)
-3. Inject the solved token back into the page
-4. Trigger callback to proceed
-
-Requires either external solver credentials or uses the built-in hook approach.
-
-Example:
-  widget_challenge_solve({ mode: "external_service" })`)
+      .desc(`Solve embedded widget challenge: detect, solve, inject token, trigger callback.`)
       .string('siteKey', 'Widget site key (auto-detected if omitted)')
       .string('pageUrl', 'Page URL (auto-detected if omitted)')
       .enum(

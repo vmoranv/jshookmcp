@@ -3,13 +3,20 @@ import {
   CrossDomainEvidenceBridge,
   _resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
+import {
+  ReverseEvidenceGraph,
+  _resetIdCounter as _resetGraphIdCounter,
+} from '@server/evidence/ReverseEvidenceGraph';
 
 describe('CrossDomainEvidenceBridge', () => {
   let bridge: CrossDomainEvidenceBridge;
+  let graph: ReverseEvidenceGraph;
 
   beforeEach(() => {
     _resetIdCounter();
-    bridge = new CrossDomainEvidenceBridge();
+    _resetGraphIdCounter();
+    graph = new ReverseEvidenceGraph();
+    bridge = new CrossDomainEvidenceBridge(graph);
   });
 
   describe('addV8Object', () => {

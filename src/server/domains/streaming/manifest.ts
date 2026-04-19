@@ -24,12 +24,7 @@ const manifest = {
   profiles: ['workflow', 'full'],
   ensure,
   registrations: [
-    { tool: t('ws_monitor_enable'), domain: DOMAIN, bind: b((h, a) => h.handleWsMonitorEnable(a)) },
-    {
-      tool: t('ws_monitor_disable'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleWsMonitorDisable(a)),
-    },
+    { tool: t('ws_monitor'), domain: DOMAIN, bind: b((h, a) => h.handleWsMonitorDispatch(a)) },
     { tool: t('ws_get_frames'), domain: DOMAIN, bind: b((h, a) => h.handleWsGetFrames(a)) },
     {
       tool: t('ws_get_connections'),

@@ -5,6 +5,7 @@ import type { BuildHarParams } from '@server/domains/network/har';
 import { replayRequest } from '@server/domains/network/replay';
 import type { NetworkAuthorizationInput } from '@server/domains/network/ssrf-policy';
 import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
+import { R } from '@server/domains/shared/ResponseBuilder';
 
 interface ReplayableRequest {
   requestId: string;
@@ -156,114 +157,71 @@ const parseReplayAuthorization = (
 
 export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
   async handleNetworkExtractAuth(args: Record<string, unknown>) {
-    const minConfidence = this.parseNumberArg(args.minConfidence, { defaultValue: 0.4 });
-    const requests = this.consoleMonitor.getNetworkRequests();
+    try {
+      const minConfidence = this.parseNumberArg(args.minConfidence, { defaultValue: 0.4 });
+      const requests = this.consoleMonitor.getNetworkRequests();
 
-    if (requests.length === 0) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                message:
-                  'No captured requests found. Call network_enable then page_navigate first.',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      if (requests.length === 0) {
+        return R.fail(
+          'No captured requests found. Call network_enable then page_navigate first.',
+        ).json();
+      }
+
+      const findings = extractAuthFromRequests(requests).filter(
+        (f) => f.confidence >= minConfidence,
+      );
+
+      return R.ok()
+        .merge({
+          scannedRequests: requests.length,
+          found: findings.length,
+          findings,
+          note: 'Values are masked (first 6 + last 4 chars). Use network_replay_request to test with actual values.',
+        })
+        .json();
+    } catch (error) {
+      return R.fail(error).json();
     }
-
-    const findings = extractAuthFromRequests(requests).filter((f) => f.confidence >= minConfidence);
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              scannedRequests: requests.length,
-              found: findings.length,
-              findings,
-              note: 'Values are masked (first 6 + last 4 chars). Use network_replay_request to test with actual values.',
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
   }
 
   async handleNetworkExportHar(args: Record<string, unknown>) {
-    const outputPath = args.outputPath as string | undefined;
-    const includeBodies = this.parseBooleanArg(args.includeBodies, false);
-
-    let resolvedOutputPath: string | undefined;
-    if (outputPath) {
-      const path = await import('node:path');
-      const fsDynamic = await import('node:fs/promises');
-      const resolved = path.resolve(outputPath);
-      const cwd = await fsDynamic.realpath(process.cwd());
-      const tmpDir = await fsDynamic.realpath((await import('node:os')).tmpdir());
-      const parentDir = path.dirname(resolved);
-      let realParent: string;
-      try {
-        realParent = await fsDynamic.realpath(parentDir);
-      } catch {
-        realParent = parentDir;
-      }
-      const realPath = path.join(realParent, path.basename(resolved));
-      const inCwd = realPath === cwd || realPath.startsWith(cwd + path.sep);
-      const inTmp = realPath === tmpDir || realPath.startsWith(tmpDir + path.sep);
-      if (!inCwd && !inTmp) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: false,
-                  error:
-                    'outputPath must be within the current working directory or system temp dir.',
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
-      }
-      resolvedOutputPath = realPath;
-    }
-
-    const requests = this.consoleMonitor.getNetworkRequests();
-
-    if (requests.length === 0) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                message:
-                  'No captured requests to export. Call network_enable then page_navigate first.',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    }
-
     try {
+      const outputPath = args.outputPath as string | undefined;
+      const includeBodies = this.parseBooleanArg(args.includeBodies, false);
+
+      let resolvedOutputPath: string | undefined;
+      if (outputPath) {
+        const path = await import('node:path');
+        const fsDynamic = await import('node:fs/promises');
+        const resolved = path.resolve(outputPath);
+        const cwd = await fsDynamic.realpath(process.cwd());
+        const tmpDir = await fsDynamic.realpath((await import('node:os')).tmpdir());
+        const parentDir = path.dirname(resolved);
+        let realParent: string;
+        try {
+          realParent = await fsDynamic.realpath(parentDir);
+        } catch {
+          realParent = parentDir;
+        }
+        const realPath = path.join(realParent, path.basename(resolved));
+        const inCwd = realPath === cwd || realPath.startsWith(cwd + path.sep);
+        const inTmp = realPath === tmpDir || realPath.startsWith(tmpDir + path.sep);
+        if (!inCwd && !inTmp) {
+          return R.fail(
+            'outputPath must be within the current working directory or system temp dir.',
+          ).json();
+        }
+        resolvedOutputPath = realPath;
+      }
+
+      const requests = this.consoleMonitor.getNetworkRequests();
+
+      if (requests.length === 0) {
+        return R.fail(
+          'No captured requests to export. Call network_enable then page_navigate first.',
+        ).json();
+      }
+
       const getResponse: BuildHarParams['getResponse'] = (id) =>
         this.consoleMonitor.getNetworkActivity(id)?.response as ReturnType<
           BuildHarParams['getResponse']
@@ -287,119 +245,57 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
         try {
           const stat = await fs.lstat(resolvedOutputPath);
           if (stat.isSymbolicLink()) {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify(
-                    { success: false, error: 'outputPath must not be a symbolic link.' },
-                    null,
-                    2,
-                  ),
-                },
-              ],
-            };
+            return R.fail('outputPath must not be a symbolic link.').json();
           }
         } catch {
           // File doesn't exist yet
         }
 
         await fs.writeFile(resolvedOutputPath, JSON.stringify(har, null, 2), 'utf-8');
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  message: `HAR exported to ${resolvedOutputPath}`,
-                  entryCount: har.log.entries.length,
-                  outputPath: resolvedOutputPath,
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return R.ok()
+          .merge({
+            message: `HAR exported to ${resolvedOutputPath}`,
+            entryCount: har.log.entries.length,
+            outputPath: resolvedOutputPath,
+          })
+          .json();
       }
 
       const result = this.detailedDataManager.smartHandle(
         {
-          success: true,
           entryCount: har.log.entries.length,
           har,
         },
         51200,
       );
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      return R.ok()
+        .merge(result as unknown as Record<string, unknown>)
+        .json();
     } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error).json();
     }
   }
 
   async handleNetworkReplayRequest(args: Record<string, unknown>) {
-    const requestId = args.requestId as string;
-    if (!requestId) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({ success: false, error: 'requestId is required' }, null, 2),
-          },
-        ],
-      };
-    }
-
-    const requests = this.consoleMonitor.getNetworkRequests();
-    const base = requests.find(
-      (request: unknown): request is ReplayableRequest =>
-        isReplayableRequest(request) && request.requestId === requestId,
-    );
-
-    if (!base) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: `Request ${requestId} not found in captured requests`,
-                hint: 'Use network_get_requests to list available requestIds',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    }
-
     try {
+      const requestId = args.requestId as string;
+      if (!requestId) {
+        return R.fail('requestId is required').json();
+      }
+
+      const requests = this.consoleMonitor.getNetworkRequests();
+      const base = requests.find(
+        (request: unknown): request is ReplayableRequest =>
+          isReplayableRequest(request) && request.requestId === requestId,
+      );
+
+      if (!base) {
+        return R.fail(`Request ${requestId} not found in captured requests`)
+          .merge({ hint: 'Use network_get_requests to list available requestIds' })
+          .json();
+      }
+
       const authorization = parseReplayAuthorization(args, requestId);
       const result = await replayRequest(base, {
         requestId,
@@ -412,30 +308,11 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
         authorization,
       });
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({ success: true, ...result }, null, 2),
-          },
-        ],
-      };
+      return R.ok()
+        .merge(result as unknown as Record<string, unknown>)
+        .json();
     } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error).json();
     }
   }
 }

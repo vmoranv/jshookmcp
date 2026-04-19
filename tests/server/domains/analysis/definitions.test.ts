@@ -37,12 +37,10 @@ describe('server/domains/analysis/definitions', () => {
     expect(names).toContain('detect_crypto');
     expect(names).toContain('manage_hooks');
     expect(names).toContain('detect_obfuscation');
-    expect(names).toContain('advanced_deobfuscate');
     expect(names).toContain('webcrack_unpack');
     expect(names).toContain('clear_collected_data');
     expect(names).toContain('get_collection_stats');
     expect(names).toContain('webpack_enumerate');
-    expect(names).toContain('source_map_extract');
   });
 
   it('collect_code requires url parameter', () => {
@@ -95,9 +93,10 @@ describe('server/domains/analysis/definitions', () => {
     expect(actionProp.enum).toEqual(['create', 'list', 'records', 'clear']);
   });
 
-  it('advanced_deobfuscate requires code and has webcrack options', () => {
-    const tool = coreTools.find((t) => t.name === 'advanced_deobfuscate')!;
+  it('deobfuscate supports engine parameter and webcrack options', () => {
+    const tool = coreTools.find((t) => t.name === 'deobfuscate')!;
     expect(tool.inputSchema.required).toContain('code');
+    expect(tool.inputSchema.properties).toHaveProperty('engine');
     expect(tool.inputSchema.properties).toHaveProperty('aggressiveVM');
     expect(tool.inputSchema.properties).toHaveProperty('useASTOptimization');
     expect(tool.inputSchema.properties).toHaveProperty('timeout');
@@ -126,13 +125,6 @@ describe('server/domains/analysis/definitions', () => {
     expect(tool.inputSchema.properties).toHaveProperty('maxResults');
     // No required params
     expect(tool.inputSchema.required ?? []).toHaveLength(0);
-  });
-
-  it('source_map_extract has optional filter and content params', () => {
-    const tool = coreTools.find((t) => t.name === 'source_map_extract')!;
-    expect(tool.inputSchema.properties).toHaveProperty('includeContent');
-    expect(tool.inputSchema.properties).toHaveProperty('filterPath');
-    expect(tool.inputSchema.properties).toHaveProperty('maxFiles');
   });
 
   it('deobfuscate mappings items have required path and pattern', () => {

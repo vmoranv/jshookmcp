@@ -17,7 +17,7 @@ function toolByName(name: string) {
 
 describe('memory tool annotations', () => {
   it('adds the full MCP annotation set to every memory tool', () => {
-    expect(memoryScanToolDefinitions).toHaveLength(41);
+    expect(memoryScanToolDefinitions).toHaveLength(30);
 
     for (const tool of memoryScanToolDefinitions) {
       expect(tool.annotations, `Missing annotations for ${tool.name}`).toBeDefined();
@@ -46,17 +46,17 @@ describe('memory tool annotations', () => {
       openWorldHint: true,
     });
 
-    expect(toolByName('memory_scan_delete').annotations).toEqual({
+    expect(toolByName('memory_scan_session').annotations).toEqual({
       readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
       openWorldHint: false,
     });
 
-    expect(toolByName('memory_pointer_chain_export').annotations).toEqual({
-      readOnlyHint: true,
+    expect(toolByName('memory_pointer_chain').annotations).toEqual({
+      readOnlyHint: false,
       destructiveHint: false,
-      idempotentHint: true,
+      idempotentHint: false,
       openWorldHint: false,
     });
 
@@ -67,7 +67,7 @@ describe('memory tool annotations', () => {
       openWorldHint: true,
     });
 
-    expect(toolByName('memory_write_undo').annotations).toEqual({
+    expect(toolByName('memory_write_history').annotations).toEqual({
       readOnlyHint: false,
       destructiveHint: true,
       idempotentHint: false,
