@@ -141,11 +141,30 @@ export function createCodeCollectorMock(
 }
 
 /**
+ * Interface representing an MCP tool response content item.
+ */
+export interface McpResponseContent {
+  type: string;
+  text?: string;
+  image?: {
+    data: string;
+    format: string;
+  };
+  resource?: {
+    uri: string;
+    text?: string;
+    blob?: string;
+  };
+  [key: string]: any;
+}
+
+/**
  * Interface representing an MCP tool response.
  */
 export interface McpResponse {
-  content: Array<{ type: string; text: string }>;
+  content: McpResponseContent[];
   isError?: boolean;
+  [key: string]: any;
 }
 
 /**
@@ -153,8 +172,23 @@ export interface McpResponse {
  */
 export function parseJson<T>(response: unknown): T {
   const res = response as McpResponse;
-  if (!res || !res.content || !res.content[0] || !res.content[0].text) {
-    throw new Error('Invalid MCP response format');
+  if (!res || !Array.isArray(res.content) || res.content.length === 0) {
+    throw new Error('Invalid MCP response format: content is missing or empty');
   }
-  return JSON.parse(res.content[0].text) as T;
+
+  const first = res.content[0];
+  if (!first || first.type !== 'text' || typeof first.text !== 'string') {
+    throw new Error(
+      `Invalid MCP response format: expected text content, got ${first?.type ?? 'nothing'}`,
+    );
+  }
+
+  try {
+    return JSON.parse(first.text) as T;
+  } catch (error) {
+    throw new Error(
+      `Failed to parse MCP response as JSON: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
 }

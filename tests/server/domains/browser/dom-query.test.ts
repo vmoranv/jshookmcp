@@ -36,6 +36,7 @@ describe('DOMQueryHandlers', () => {
 
     expect(domInspector.querySelector).toHaveBeenCalledWith('#submit', true);
     expect(body).toEqual({
+      success: true,
       selector: '#submit',
       tagName: 'button',
     });
@@ -67,6 +68,7 @@ describe('DOMQueryHandlers', () => {
 
     expect(domInspector.querySelectorAll).toHaveBeenCalledWith('.card', 100);
     expect(body).toEqual({
+      success: true,
       count: 2,
       elements: [{ selector: '.card' }, { selector: '.card:nth-child(2)' }],
       diagnostics: { truncated: false },
@@ -99,17 +101,20 @@ describe('DOMQueryHandlers', () => {
 
     expect(domInspector.findClickable).toHaveBeenCalledWith('Save');
     expect(body).toEqual({
+      success: true,
       count: 1,
       elements: [{ text: 'Save', selector: 'button.primary' }],
       diagnostics: { scanned: 4 },
     });
   });
 
-  it('rethrows inspector errors from selector queries', async () => {
+  it('returns failure response when inspector fails', async () => {
     domInspector.querySelector.mockRejectedValue(new Error('query failed'));
 
-    await expect(handlers.handleDOMQuerySelector({ selector: '#missing' })).rejects.toThrow(
-      'query failed',
-    );
+    const response = await handlers.handleDOMQuerySelector({ selector: '#missing' });
+    const body = parseJson<{ success: boolean; error: string }>(response);
+
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('query failed');
   });
 });

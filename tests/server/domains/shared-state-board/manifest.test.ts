@@ -22,15 +22,15 @@ describe('shared-state-board manifest', () => {
     expect(toolNames).toContain('state_board_delete');
     expect(toolNames).toContain('state_board_list');
     expect(toolNames).toContain('state_board_watch');
-    expect(toolNames).toContain('state_board_unwatch');
     expect(toolNames).toContain('state_board_history');
-    expect(toolNames).toContain('state_board_export');
-    expect(toolNames).toContain('state_board_import');
+    expect(toolNames).toContain('state_board_io');
     expect(toolNames).toContain('state_board_clear');
   });
 
   it('should have ensure function that returns handler instance', () => {
-    const mockCtx = {} as import('@server/MCPServer.context').MCPServerContext;
+    const mockCtx = {
+      getDomainInstance: () => undefined,
+    } as unknown as import('@server/MCPServer.context').MCPServerContext;
     const handler = manifest.ensure(mockCtx);
 
     expect(handler).toBeDefined();

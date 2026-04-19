@@ -112,13 +112,11 @@ export function applyContextCapture(
   }
 
   // ── AI Hooks ──
-  if (toolName === 'ai_hook_inject' && isRecord(parsed)) {
+  if (toolName === 'ai_hook' && isRecord(parsed) && parsed['action'] === 'inject') {
     const hookId = parsed.hookId ?? parsed.id;
     if (hookId !== undefined && hookId !== null) {
       ctx.hookId = String(hookId);
-      overrides.ai_hook_inject = { hookId: ctx.hookId };
-      overrides.ai_hook_toggle = { hookId: ctx.hookId, enabled: true };
-      overrides.ai_hook_get_data = { hookId: ctx.hookId };
+      overrides.ai_hook = { action: 'inject', hookId: ctx.hookId };
     }
   }
 
@@ -239,7 +237,7 @@ export function applyContextCapture(
   }
 
   if (
-    (toolName === 'process_find' || toolName === 'process_find_chromium') &&
+    toolName === 'process_find' &&
     isRecord(parsed) &&
     Array.isArray(parsed.processes) &&
     parsed.processes.length > 0
@@ -266,11 +264,11 @@ export function applyContextCapture(
   }
 
   // ── Debugger session: capture session file path for load ──
-  if (toolName === 'debugger_save_session' && isRecord(parsed)) {
+  if (toolName === 'debugger_session' && isRecord(parsed) && parsed['action'] === 'save') {
     const path = parsed.filePath ?? parsed.path ?? parsed.sessionPath;
     if (typeof path === 'string' && path.length > 0) {
       ctx.sessionPath = path;
-      overrides.debugger_load_session = { filePath: ctx.sessionPath };
+      overrides.debugger_session = { action: 'load', filePath: ctx.sessionPath };
     }
   }
 

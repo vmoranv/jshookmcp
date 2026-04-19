@@ -21,7 +21,7 @@ describe('ToolSearchEngine', () => {
   const testTools: Tool[] = [
     makeTool('page_navigate', 'Navigate to a URL in the browser tab'),
     makeTool('debugger_pause', 'Pause JavaScript execution at the current point'),
-    makeTool('breakpoint_set', 'Set a breakpoint at a specific line in a script'),
+    makeTool('breakpoint', 'Set, remove, or list breakpoints'),
     makeTool('network_get_requests', 'Get captured network requests with filtering options'),
     makeTool('ws_monitor_enable', 'Enable WebSocket frame monitoring'),
     makeTool('wasm_dump', 'Dump WebAssembly module binary from page memory'),
@@ -42,7 +42,7 @@ describe('ToolSearchEngine', () => {
     const engine = new ToolSearchEngine(testTools);
     const results = await engine.search('breakpoint');
     const names = results.map((r) => r.name);
-    expect(names).toContain('breakpoint_set');
+    expect(names).toContain('breakpoint');
   });
 
   it('finds tools by partial name (prefix match)', async () => {
@@ -104,11 +104,9 @@ describe('ToolSearchEngine', () => {
     // Expand topK because the catalog now ships >10 breakpoint-related tools.
     const results = await engine.search('breakpoint', 20);
     expect(results.length).toBeGreaterThan(0);
-    // Should find tools like breakpoint_set, breakpoint_remove, breakpoint_list
+    // Should find tools like breakpoint (consolidated)
     const names = results.map((r) => r.name);
-    expect(names).toContain('breakpoint_set');
-    expect(names).toContain('breakpoint_remove');
-    expect(names).toContain('breakpoint_list');
+    expect(names).toContain('breakpoint');
   });
 
   it('handles empty query gracefully', async () => {
@@ -264,19 +262,17 @@ describe('ToolSearchEngine', () => {
   describe('tool affinity graph (§4.1.4)', () => {
     it('boosts prefix-group neighbors of top results', async () => {
       const tools: Tool[] = [
-        makeTool('breakpoint_set', 'Set a breakpoint at a line'),
-        makeTool('breakpoint_list', 'List all active breakpoints'),
-        makeTool('breakpoint_remove', 'Remove a breakpoint'),
+        makeTool('breakpoint', 'Set, remove, or list breakpoints'),
+        makeTool('breakpoint_conditions', 'Conditional breakpoint helpers'),
         makeTool('page_navigate', 'Navigate to a URL'),
       ];
       const engine = new ToolSearchEngine(tools);
       const results = await engine.search('set breakpoint');
       const names = results.map((r) => r.name);
-      // breakpoint_set should be first
-      expect(names[0]).toBe('breakpoint_set');
-      // affinity should surface breakpoint_list and breakpoint_remove
-      expect(names).toContain('breakpoint_list');
-      expect(names).toContain('breakpoint_remove');
+      // breakpoint should be first
+      expect(names[0]).toBe('breakpoint');
+      // affinity should surface breakpoint_conditions
+      expect(names).toContain('breakpoint_conditions');
     });
 
     it('prefix affinity decays for larger groups', async () => {

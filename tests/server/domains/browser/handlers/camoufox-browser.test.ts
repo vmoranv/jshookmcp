@@ -340,8 +340,9 @@ describe('CamoufoxBrowserHandlers', () => {
 
       const response = await handlers.handleCamoufoxServerClose({});
       expect(response.content).toHaveLength(1);
-      expect(response.content[0]?.type).toBe('text');
-      expect(() => JSON.parse(response.content[0]!.text)).not.toThrow();
+      const first = response.content[0] as any;
+      expect(first?.type).toBe('text');
+      expect(() => JSON.parse(first.text)).not.toThrow();
     });
 
     it('wraps status response in content array with type text', async () => {
@@ -351,8 +352,9 @@ describe('CamoufoxBrowserHandlers', () => {
 
       const response = await handlers.handleCamoufoxServerStatus({});
       expect(response.content).toHaveLength(1);
-      expect(response.content[0]?.type).toBe('text');
-      expect(() => JSON.parse(response.content[0]!.text)).not.toThrow();
+      const first = response.content[0] as any;
+      expect(first?.type).toBe('text');
+      expect(() => JSON.parse(first.text)).not.toThrow();
     });
 
     it('wraps launch response in content array with type text', async () => {
@@ -361,8 +363,9 @@ describe('CamoufoxBrowserHandlers', () => {
 
       const response = await handlers.handleCamoufoxServerLaunch({});
       expect(response.content).toHaveLength(1);
-      expect(response.content[0]?.type).toBe('text');
-      expect(() => JSON.parse(response.content[0]!.text)).not.toThrow();
+      const first = response.content[0] as any;
+      expect(first?.type).toBe('text');
+      expect(() => JSON.parse(first.text)).not.toThrow();
     });
 
     it('formats JSON with 2-space indentation', async () => {
@@ -371,7 +374,7 @@ describe('CamoufoxBrowserHandlers', () => {
       handlers = new CamoufoxBrowserHandlers(deps);
 
       const response = await handlers.handleCamoufoxServerStatus({});
-      const text = response.content[0]!.text;
+      const text = (response.content[0] as any).text;
 
       expect(text).toContain('\n  ');
     });

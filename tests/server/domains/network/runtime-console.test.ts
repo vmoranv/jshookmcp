@@ -53,7 +53,9 @@ import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
 // ---------------------------------------------------------------------------
 
 type HandlerArgs = ConstructorParameters<typeof AdvancedHandlersBase>;
-type TextToolResponse = { content: Array<{ type: string; text: string }> };
+type TextToolResponse = {
+  content: Array<{ type: string; text?: string; [key: string]: any }>;
+};
 type ConsoleException = { message: string; url?: string };
 type ConsoleExceptionsPayload = {
   success: boolean;
@@ -81,8 +83,7 @@ function createHandler(): TestAdvancedHandlersBase {
 function getTextContent(result: TextToolResponse): string {
   const first = result.content[0];
   expect(first).toBeDefined();
-  expect(first?.type).toBe('text');
-  if (first?.type !== 'text') {
+  if (!first || first.type !== 'text' || typeof first.text !== 'string') {
     throw new Error('Expected text tool response');
   }
   return first.text;
@@ -230,9 +231,10 @@ describe('AdvancedHandlersBase (console)', () => {
         new Error('CDP session closed'),
       );
 
-      await expect(handler.handleConsoleInjectScriptMonitor({})).rejects.toThrow(
-        'CDP session closed',
-      );
+      const result = await handler.handleConsoleInjectScriptMonitor({});
+      const parsed = parseContent(result);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('CDP session closed');
     });
   });
 
@@ -256,9 +258,10 @@ describe('AdvancedHandlersBase (console)', () => {
         new Error('Injection failed'),
       );
 
-      await expect(handler.handleConsoleInjectXhrInterceptor({})).rejects.toThrow(
-        'Injection failed',
-      );
+      const result = await handler.handleConsoleInjectXhrInterceptor({});
+      const parsed = parseContent(result);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('Injection failed');
     });
   });
 
@@ -282,9 +285,10 @@ describe('AdvancedHandlersBase (console)', () => {
         new Error('Page not available'),
       );
 
-      await expect(handler.handleConsoleInjectFetchInterceptor({})).rejects.toThrow(
-        'Page not available',
-      );
+      const result = await handler.handleConsoleInjectFetchInterceptor({});
+      const parsed = parseContent(result);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('Page not available');
     });
   });
 
@@ -321,7 +325,10 @@ describe('AdvancedHandlersBase (console)', () => {
     it('propagates errors from clearInjectedBuffers', async () => {
       mocks.consoleMonitorMock.clearInjectedBuffers.mockRejectedValue(new Error('Clear failed'));
 
-      await expect(handler.handleConsoleClearInjectedBuffers({})).rejects.toThrow('Clear failed');
+      const result = await handler.handleConsoleClearInjectedBuffers({});
+      const parsed = parseContent(result);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('Clear failed');
     });
   });
 
@@ -348,9 +355,10 @@ describe('AdvancedHandlersBase (console)', () => {
         new Error('Reset failed'),
       );
 
-      await expect(handler.handleConsoleResetInjectedInterceptors({})).rejects.toThrow(
-        'Reset failed',
-      );
+      const result = await handler.handleConsoleResetInjectedInterceptors({});
+      const parsed = parseContent(result);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('Reset failed');
     });
   });
 
@@ -372,16 +380,18 @@ describe('AdvancedHandlersBase (console)', () => {
     });
 
     it('throws when functionName is not provided', async () => {
-      await expect(handler.handleConsoleInjectFunctionTracer({})).rejects.toThrow(
-        'functionName is required',
-      );
+      const result = await handler.handleConsoleInjectFunctionTracer({});
+      const parsed = parseContent(result);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('functionName is required');
       expect(mocks.consoleMonitorMock.injectFunctionTracer).not.toHaveBeenCalled();
     });
 
     it('throws when functionName is empty string', async () => {
-      await expect(handler.handleConsoleInjectFunctionTracer({ functionName: '' })).rejects.toThrow(
-        'functionName is required',
-      );
+      const result = await handler.handleConsoleInjectFunctionTracer({ functionName: '' });
+      const parsed = parseContent(result);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('functionName is required');
     });
 
     it('handles dot-notation function names', async () => {
@@ -404,9 +414,12 @@ describe('AdvancedHandlersBase (console)', () => {
         new Error('Function not found'),
       );
 
-      await expect(
-        handler.handleConsoleInjectFunctionTracer({ functionName: 'nonexistent' }),
-      ).rejects.toThrow('Function not found');
+      const result = await handler.handleConsoleInjectFunctionTracer({
+        functionName: 'nonexistent',
+      });
+      const parsed = parseContent(result);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBe('Function not found');
     });
   });
 

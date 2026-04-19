@@ -165,8 +165,9 @@ describe('CoreAnalysisHandlers', () => {
     });
 
     const body = parseJson<AdvancedDeobfuscateResponse>(
-      await handlers.handleAdvancedDeobfuscate({
+      await handlers.handleDeobfuscate({
         code: 'obf',
+        engine: 'webcrack',
         useASTOptimization: true,
         aggressiveVM: true,
         timeout: 3210,
@@ -186,11 +187,11 @@ describe('CoreAnalysisHandlers', () => {
   });
 
   it('does not inject deprecated defaults when advanced args are omitted', async () => {
-    deps.advancedDeobfuscator.deobfuscate.mockResolvedValue({ code: 'raw2', success: true });
+    deps.deobfuscator.deobfuscate.mockResolvedValue({ code: 'raw2', success: true });
 
-    await handlers.handleAdvancedDeobfuscate({ code: 'obf' });
+    await handlers.handleDeobfuscate({ code: 'obf' });
 
-    expect(deps.advancedDeobfuscator.deobfuscate).toHaveBeenCalledWith({
+    expect(deps.deobfuscator.deobfuscate).toHaveBeenCalledWith({
       code: 'obf',
     });
   });

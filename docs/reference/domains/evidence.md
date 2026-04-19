@@ -21,20 +21,14 @@
 
 ## 代表工具
 
-- `evidence_query_url` — 查询逆向证据图中与某个 URL 关联的全部节点，返回包含请求、发起栈、脚本、函数与捕获数据节点的连通子图。
-- `evidence_query_function` — 查询逆向证据图中与某个函数名关联的全部节点，返回包含函数、断点 Hook 与捕获数据节点的连通子图。
-- `evidence_query_script` — 查询逆向证据图中与某个 scriptId 关联的全部节点，返回包含脚本、函数及其下游节点的连通子图。
-- `evidence_export_json` — 将整个逆向证据图导出为 JSON 快照，包含全部节点、边和元数据。
-- `evidence_export_markdown` — 将逆向证据图导出为可读的 Markdown 报告，按节点类型分组并展示边连接关系。
+- `evidence_query` — 待补充中文：Query reverse evidence graph by URL, function name, or script ID to find associated nodes.
+- `evidence_export` — 待补充中文：Export the reverse evidence graph as JSON snapshot or Markdown report.
 - `evidence_chain` — 从指定节点 ID 出发，按给定方向（forward/backward）遍历并返回完整溯源链。
 
-## 工具清单（6）
+## 工具清单（3）
 
 | 工具 | 说明 |
 | --- | --- |
-| `evidence_query_url` | 查询逆向证据图中与某个 URL 关联的全部节点，返回包含请求、发起栈、脚本、函数与捕获数据节点的连通子图。 |
-| `evidence_query_function` | 查询逆向证据图中与某个函数名关联的全部节点，返回包含函数、断点 Hook 与捕获数据节点的连通子图。 |
-| `evidence_query_script` | 查询逆向证据图中与某个 scriptId 关联的全部节点，返回包含脚本、函数及其下游节点的连通子图。 |
-| `evidence_export_json` | 将整个逆向证据图导出为 JSON 快照，包含全部节点、边和元数据。 |
-| `evidence_export_markdown` | 将逆向证据图导出为可读的 Markdown 报告，按节点类型分组并展示边连接关系。 |
+| `evidence_query` | 待补充中文：Query reverse evidence graph by URL, function name, or script ID to find associated nodes. |
+| `evidence_export` | 待补充中文：Export the reverse evidence graph as JSON snapshot or Markdown report. |
 | `evidence_chain` | 从指定节点 ID 出发，按给定方向（forward/backward）遍历并返回完整溯源链。 |

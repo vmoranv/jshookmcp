@@ -33,10 +33,7 @@ const ScanCompareModeOptions = [
 export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_first_scan', (t) =>
     t
-      .desc(
-        'Start a new memory scan session. Scans entire process memory for a value and returns matching addresses. Supports all numeric types (byte/int8/int16/uint16/int32/uint32/int64/uint64/float/double/pointer) plus hex/string patterns. Creates a session for iterative narrowing with memory_next_scan.',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Start a new memory scan session.')
       .string('value', 'Value to search for (as string, e.g. "100", "3.14", "48 65 6C 6C 6F")')
       .enum('valueType', [...ScanValueTypeOptions], 'Data type of the value')
       .number(
@@ -57,10 +54,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   ),
   tool('memory_next_scan', (t) =>
     t
-      .desc(
-        'Narrow an existing scan session. Re-reads previously matched addresses and filters using a comparison mode. Use after memory_first_scan or memory_unknown_scan to iteratively narrow results (like Cheat Engine\'s "Next Scan").',
-      )
-      .string('sessionId', 'Scan session ID from a previous scan')
+      .desc('Narrow an existing scan session.')
       .enum('mode', [...ScanCompareModeOptions], 'Comparison mode')
       .string('value', 'Target value for exact/greater_than/less_than/between/not_equal modes')
       .string('value2', 'Upper bound value for "between" mode')
@@ -68,10 +62,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   ),
   tool('memory_unknown_scan', (t) =>
     t
-      .desc(
-        'Start an unknown initial value scan. Captures all readable memory addresses of the given type, then use memory_next_scan with "changed"/"unchanged"/"increased"/"decreased" to narrow down. This is the CE equivalent of "Unknown initial value" scan.',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Start an unknown initial value scan.')
       .enum('valueType', [...ScanValueTypeOptions], 'Data type to capture')
       .number('alignment', 'Alignment in bytes (default: natural for type)')
       .number('maxResults', 'Maximum addresses to capture (default: 5,000,000)')
@@ -87,10 +78,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   ),
   tool('memory_pointer_scan', (t) =>
     t
-      .desc(
-        'Find pointers to a target address. Scans process memory for pointer-sized values that point to or near the target address (within ±4096 bytes for struct member access).',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Find pointers to a target address.')
       .string('targetAddress', 'Target address to find pointers to (hex, e.g. "0x7FF612340000")')
       .number('maxResults', 'Maximum results (default: 10,000)')
       .boolean('moduleOnly', 'Only scan module-backed regions')
@@ -100,10 +88,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   ),
   tool('memory_group_scan', (t) =>
     t
-      .desc(
-        'Search for multiple values at known offsets simultaneously. Useful for finding structures where you know the relative layout (e.g. health at +0, mana at +4, level at +8).',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Search for multiple values at known offsets simultaneously.')
       .array(
         'pattern',
         {
@@ -126,79 +111,45 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
       .required('pid', 'pattern')
       .query(),
   ),
-  tool('memory_scan_list', (t) =>
+  tool('memory_scan_session', (t) =>
     t
       .desc(
-        'List all active scan sessions, showing PID, value type, match count, scan count, and age.',
+        `Manage scan sessions. Actions: list (all sessions), delete (by sessionId), export (as JSON).`,
       )
-      .query(),
-  ),
-  tool('memory_scan_delete', (t) =>
-    t
-      .desc('Delete a scan session and free its resources.')
-      .string('sessionId', 'Scan session ID to delete')
-      .required('sessionId')
-      .resettable(),
-  ),
-  tool('memory_scan_export', (t) =>
-    t
-      .desc(
-        'Export a scan session as JSON for persistence. Can be imported later to resume the scan workflow.',
-      )
-      .string('sessionId', 'Scan session ID to export')
-      .required('sessionId')
-      .query(),
+      .enum('action', ['list', 'delete', 'export'], 'Session management action')
+      .string('sessionId', 'Scan session ID (required for delete/export)')
+      .required('action'),
   ),
 
   // Pointer Chain Tools
-  tool('memory_pointer_chain_scan', (t) =>
+  tool('memory_pointer_chain', (t) =>
     t
       .desc(
-        'Multi-level pointer chain scan. Finds stable pointer paths from module-relative bases to a target address. Uses BFS to discover chains like [game.exe+0x1A3C] → [+0x10] → [+0x08] → target. Static chains (module-relative base) survive process restarts.',
+        `Multi-level pointer chain operations.
+
+Actions:
+- scan: Find pointer chains to a target address
+- validate: Validate chains by re-dereferencing
+- resolve: Resolve a single chain to its current target
+- export: Export chains as JSON`,
       )
+      .enum('action', ['scan', 'validate', 'resolve', 'export'], 'Chain operation')
       .number('pid', 'Target process ID')
-      .string('targetAddress', 'Target address to find pointer chains to (hex)')
-      .number('maxDepth', 'Maximum chain depth 1-6 (default: 4)')
-      .number('maxOffset', 'Maximum offset at each level in bytes (default: 4096)')
-      .boolean('staticOnly', 'Only return chains with module-relative base (default: false)')
-      .array('modules', { type: 'string' }, 'Only scan specific modules by name')
-      .number('maxResults', 'Maximum chains to return (default: 1000)')
-      .required('pid', 'targetAddress')
-      .query(),
-  ),
-  tool('memory_pointer_chain_validate', (t) =>
-    t
-      .desc(
-        'Validate pointer chains by re-dereferencing each link. Returns which chains are still valid and at which level broken chains fail.',
-      )
-      .number('pid', 'Target process ID')
-      .string('chains', 'JSON string of PointerChain[] to validate')
-      .required('pid', 'chains')
-      .query(),
-  ),
-  tool('memory_pointer_chain_resolve', (t) =>
-    t
-      .desc('Resolve a pointer chain to its current target address by dereferencing each link.')
-      .number('pid', 'Target process ID')
-      .string('chain', 'JSON string of a single PointerChain to resolve')
-      .required('pid', 'chain')
-      .query(),
-  ),
-  tool('memory_pointer_chain_export', (t) =>
-    t
-      .desc('Export pointer chains as JSON for persistence. Can be imported across sessions.')
-      .string('chains', 'JSON string of PointerChain[] to export')
-      .required('chains')
-      .query(),
+      .string('targetAddress', 'Target address hex (action=scan)')
+      .number('maxDepth', 'Max chain depth 1-6 (action=scan, default: 4)')
+      .number('maxOffset', 'Max offset per level in bytes (action=scan, default: 4096)')
+      .boolean('staticOnly', 'Only module-relative chains (action=scan, default: false)')
+      .array('modules', { type: 'string' }, 'Only scan specific modules (action=scan)')
+      .number('maxResults', 'Max chains to return (action=scan, default: 1000)')
+      .string('chains', 'JSON PointerChain[] (action=validate/export)')
+      .string('chain', 'JSON single PointerChain (action=resolve)')
+      .required('action'),
   ),
 
   // Structure Analysis Tools
   tool('memory_structure_analyze', (t) =>
     t
-      .desc(
-        'Analyze memory at an address to infer data structure layout. Uses heuristics to classify fields as vtable pointers, regular pointers, string pointers, floats, ints, booleans, or padding. Optionally parses RTTI for class name and inheritance chain (MSVC x64).',
-      )
-      .number('pid', 'Target process ID')
+      .desc('Analyze memory at an address to infer data structure layout.')
       .string('address', 'Base address of the structure (hex)')
       .number('size', 'Size to analyze in bytes (default: 256)')
       .array(
@@ -244,40 +195,27 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   ),
 
   // Breakpoint Tools
-  tool('memory_breakpoint_set', (t) =>
+  tool('memory_breakpoint', (t) =>
     t
       .desc(
-        'Set a hardware breakpoint using x64 debug registers (DR0-DR3). Max 4 concurrent breakpoints. Supports read/write/readwrite/execute access monitoring.',
+        `Hardware breakpoint operations using x64 debug registers (DR0-DR3). Max 4 concurrent.
+
+Actions:
+- set: Set a breakpoint (requires pid, address, access)
+- remove: Remove by breakpointId
+- list: List all active breakpoints
+- trace: Set temporary breakpoint, collect N hits, then auto-remove`,
       )
-      .number('pid', 'Target process ID')
-      .string('address', 'Address to watch (hex)')
-      .enum('access', ['read', 'write', 'readwrite', 'execute'], 'Access type to trigger on')
-      .number('size', 'Watch size in bytes (default: 4)')
-      .required('pid', 'address', 'access')
+      .enum('action', ['set', 'remove', 'list', 'trace'], 'Breakpoint operation')
+      .number('pid', 'Target process ID (action=set/trace)')
+      .string('address', 'Address hex (action=set/trace)')
+      .enum('access', ['read', 'write', 'readwrite', 'execute'], 'Access type (action=set/trace)')
+      .number('size', 'Watch size in bytes (action=set, default: 4)')
+      .string('breakpointId', 'Breakpoint ID (action=remove)')
+      .number('maxHits', 'Max hits to collect (action=trace, default: 50)')
+      .number('timeoutMs', 'Timeout ms (action=trace, default: 10000)')
+      .required('action')
       .destructive(),
-  ),
-  tool('memory_breakpoint_remove', (t) =>
-    t
-      .desc('Remove a hardware breakpoint by ID and free its debug register.')
-      .string('breakpointId', 'Breakpoint ID to remove')
-      .required('breakpointId')
-      .resettable(),
-  ),
-  tool('memory_breakpoint_list', (t) =>
-    t.desc('List all active hardware breakpoints with hit counts.').query(),
-  ),
-  tool('memory_breakpoint_trace', (t) =>
-    t
-      .desc(
-        'Trace access to an address: set a temporary breakpoint, collect N hits, then remove. Answers "who reads/writes this address?" by returning instruction addresses and register state for each access.',
-      )
-      .number('pid', 'Target process ID')
-      .string('address', 'Address to trace (hex)')
-      .enum('access', ['read', 'write', 'readwrite', 'execute'], 'Access type to trace')
-      .number('maxHits', 'Maximum hits to collect (default: 50)')
-      .number('timeoutMs', 'Timeout in milliseconds (default: 10000)')
-      .required('pid', 'address', 'access')
-      .idempotent(),
   ),
 
   // Injection Tools
@@ -336,22 +274,17 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_freeze', (t) =>
     t
       .desc(
-        'Freeze an address to a value. Continuously writes the value at an interval to prevent changes.',
+        `Freeze or unfreeze a memory address. Freeze continuously writes a value to prevent changes; unfreeze stops it.`,
       )
-      .number('pid', 'Target process ID')
-      .string('address', 'Address to freeze (hex)')
-      .string('value', 'Value to maintain')
-      .enum('valueType', [...ScanValueTypeOptions], 'Data type')
-      .number('intervalMs', 'Write interval in ms (default: 100)')
-      .required('pid', 'address', 'value', 'valueType')
+      .enum('action', ['freeze', 'unfreeze'], 'Freeze operation')
+      .number('pid', 'Target process ID (action=freeze)')
+      .string('address', 'Address to freeze hex (action=freeze)')
+      .string('value', 'Value to maintain (action=freeze)')
+      .enum('valueType', [...ScanValueTypeOptions], 'Data type (action=freeze)')
+      .number('intervalMs', 'Write interval ms (action=freeze, default: 100)')
+      .string('freezeId', 'Freeze ID to remove (action=unfreeze)')
+      .required('action')
       .destructive(),
-  ),
-  tool('memory_unfreeze', (t) =>
-    t
-      .desc('Stop freezing a previously frozen address.')
-      .string('freezeId', 'Freeze ID to remove')
-      .required('freezeId')
-      .resettable(),
   ),
   tool('memory_dump', (t) =>
     t
@@ -366,34 +299,30 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   ),
 
   // Time Tools
-  tool('memory_speedhack_apply', (t) =>
+  tool('memory_speedhack', (t) =>
     t
       .desc(
-        'Apply speedhack to a process. Hooks time APIs (GetTickCount64, QueryPerformanceCounter) to scale time. Speed 2.0 = 2x faster, 0.5 = half speed.',
+        `Speedhack: hook time APIs to scale process time. Speed 2.0 = 2x faster, 0.5 = half speed.
+
+Actions:
+- apply: Hook and apply speed multiplier (requires pid, speed)
+- set: Adjust speed on active hack (requires pid, speed)`,
       )
+      .enum('action', ['apply', 'set'], 'Speedhack action')
       .number('pid', 'Target process ID')
-      .number('speed', 'Speed multiplier (e.g. 2.0 for 2x speed)')
-      .required('pid', 'speed')
+      .number('speed', 'Speed multiplier')
+      .required('action', 'pid', 'speed')
       .destructive(),
-  ),
-  tool('memory_speedhack_set', (t) =>
-    t
-      .desc('Adjust the speed multiplier of an active speedhack without re-hooking.')
-      .number('pid', 'Target process ID')
-      .number('speed', 'New speed multiplier')
-      .required('pid', 'speed')
-      .resettable(),
   ),
 
   // History Tools
-  tool('memory_write_undo', (t) =>
+  tool('memory_write_history', (t) =>
     t
-      .desc('Undo the last memory write operation, restoring the previous value.')
+      .desc('Undo or redo the last memory write operation.')
+      .enum('action', ['undo', 'redo'], 'History action')
+      .required('action')
       .destructive()
       .openWorld(),
-  ),
-  tool('memory_write_redo', (t) =>
-    t.desc('Redo the last undone memory write operation.').destructive(),
   ),
 
   // Heap Analysis Tools

@@ -1,3 +1,3 @@
-// Re-export for backward compatibility - redirects to merged handlers.base.ts
-// ProcessHandlersBase now contains all functionality from both base and memory classes
-export { ProcessHandlersBase as ProcessToolHandlersMemory } from '@server/domains/process/handlers.base';
+// Backward-compatible re-export — redirects to composition facade.
+// ProcessHandlersBase now covers all memory handlers via composition.
+export { ProcessHandlersBase as ProcessToolHandlersMemory } from '@server/domains/process/handlers.impl';

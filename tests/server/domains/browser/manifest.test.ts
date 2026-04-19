@@ -38,14 +38,12 @@ describe('server/domains/browser/manifest', () => {
     });
   });
 
-  it('includes camoufox server tools in registrations', async () => {
+  it('includes camoufox server tool in registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 
     const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
-    expect(toolNames).toContain('camoufox_server_launch');
-    expect(toolNames).toContain('camoufox_server_close');
-    expect(toolNames).toContain('camoufox_server_status');
+    expect(toolNames).toContain('camoufox_server');
   });
 
   it('includes core browser tools in registrations', async () => {

@@ -17,12 +17,6 @@ export const extensionRegistryTools: Tool[] = [
       })
       .requiredOpenWorld('pluginId', 'contextName'),
   ),
-  tool('extension_install', (t) =>
-    t
-      .desc('Install an extension from a local or remote manifest/module URL')
-      .string('url', 'Manifest URL or module URL')
-      .requiredOpenWorld('url'),
-  ),
   tool('extension_reload', (t) =>
     t
       .desc('Reload an installed extension by unloading and loading it again')
@@ -36,35 +30,28 @@ export const extensionRegistryTools: Tool[] = [
       .required('pluginId')
       .destructive(),
   ),
-  tool('webhook_create', (t) =>
+  tool('webhook', (t) =>
     t
-      .desc('Create a new webhook endpoint for external callbacks')
-      .string('name', 'Human-readable webhook name')
-      .string('path', 'URL path for the webhook endpoint (e.g. /c2)')
-      .string('secret', 'Optional HMAC secret for webhook authentication')
-      .string('url', 'Optional external callback URL for webhook forwarding')
-      .array('events', { type: 'string' }, 'List of events to subscribe to')
-      .requiredOpenWorld('name', 'path'),
-  ),
-  tool('webhook_list', (t) => t.desc('List all registered webhook endpoints').query()),
-  tool('webhook_delete', (t) =>
-    t
-      .desc('Delete a webhook endpoint by ID')
-      .string('endpointId', 'Webhook endpoint identifier')
-      .required('endpointId')
-      .destructive(),
-  ),
-  tool('webhook_commands', (t) =>
-    t
-      .desc('Get or set commands queued for a webhook endpoint')
-      .string('endpointId', 'Webhook endpoint identifier')
-      .string('status', 'Filter commands by status (pending, processing, completed, failed)')
+      .desc(
+        'Manage webhook endpoints for external callbacks. Actions: create, list, delete, commands.',
+      )
+      .enum('action', ['create', 'list', 'delete', 'commands'], 'Webhook operation')
+      .string('name', 'Human-readable webhook name (action=create)')
+      .string('path', 'URL path for the webhook endpoint (action=create)')
+      .string('secret', 'Optional HMAC secret for webhook authentication (action=create)')
+      .string('url', 'Optional external callback URL for webhook forwarding (action=create)')
+      .array('events', { type: 'string' }, 'List of events to subscribe to (action=create)')
+      .string('endpointId', 'Webhook endpoint identifier (action=delete, commands)')
+      .string(
+        'status',
+        'Filter commands by status: pending, processing, completed, failed (action=commands)',
+      )
       .prop('command', {
         type: 'object',
-        description: 'Command to enqueue (if provided, adds to queue instead of listing)',
+        description:
+          'Command to enqueue (action=commands, if provided adds to queue instead of listing)',
         additionalProperties: true,
       })
-      .required('endpointId')
-      .readOnly(),
+      .required('action'),
   ),
 ];

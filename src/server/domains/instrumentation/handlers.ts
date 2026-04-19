@@ -34,6 +34,52 @@ export class InstrumentationHandlers {
     private readonly deps: InstrumentationHandlerDeps = {},
   ) {}
 
+  async handleSessionDispatch(args: Record<string, unknown>) {
+    const action = argString(args, 'action');
+    switch (action) {
+      case 'create':
+        return this.handleSessionCreate(args);
+      case 'list':
+        return this.handleSessionList(args);
+      case 'destroy':
+        return this.handleSessionDestroy(args);
+      case 'status':
+        return this.handleSessionStatus(args);
+      default:
+        return jsonResponse({
+          success: false,
+          error: `Unknown action: ${action}. Valid: create, list, destroy, status`,
+        });
+    }
+  }
+  async handleOperationDispatch(args: Record<string, unknown>) {
+    const action = argString(args, 'action');
+    switch (action) {
+      case 'register':
+        return this.handleOperationRegister(args);
+      case 'list':
+        return this.handleOperationList(args);
+      default:
+        return jsonResponse({
+          success: false,
+          error: `Unknown action: ${action}. Valid: register, list`,
+        });
+    }
+  }
+  async handleArtifactDispatch(args: Record<string, unknown>) {
+    const action = argString(args, 'action');
+    switch (action) {
+      case 'record':
+        return this.handleArtifactRecord(args);
+      case 'query':
+        return this.handleArtifactQuery(args);
+      default:
+        return jsonResponse({
+          success: false,
+          error: `Unknown action: ${action}. Valid: record, query`,
+        });
+    }
+  }
   async handleSessionCreate(args: Record<string, unknown>) {
     try {
       const name = argString(args, 'name');

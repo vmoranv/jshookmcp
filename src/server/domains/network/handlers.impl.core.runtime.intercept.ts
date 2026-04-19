@@ -1,4 +1,5 @@
 import { AdvancedToolHandlersRaw as AdvancedToolHandlersReplay } from '@server/domains/network/handlers.impl.core.runtime.raw';
+import { R } from '@server/domains/shared/ResponseBuilder';
 
 interface InterceptRuleInput {
   urlPattern: string;
@@ -63,37 +64,27 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
       }
 
       if (rules.length === 0) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: false,
-                  error:
-                    'No valid rules provided. Provide either "urlPattern" (single) or "rules" array (batch).',
-                  usage: {
-                    single: {
-                      urlPattern: '*api/status*',
-                      responseCode: 200,
-                      responseBody: '{"status":"active"}',
-                    },
-                    batch: {
-                      rules: [
-                        {
-                          urlPattern: '*api/status*',
-                          responseBody: '{"status":"active"}',
-                        },
-                      ],
-                    },
+        return R.fail(
+          'No valid rules provided. Provide either "urlPattern" (single) or "rules" array (batch).',
+        )
+          .merge({
+            usage: {
+              single: {
+                urlPattern: '*api/status*',
+                responseCode: 200,
+                responseBody: '{"status":"active"}',
+              },
+              batch: {
+                rules: [
+                  {
+                    urlPattern: '*api/status*',
+                    responseBody: '{"status":"active"}',
                   },
-                },
-                null,
-                2,
-              ),
+                ],
+              },
             },
-          ],
-        };
+          })
+          .json();
       }
 
       const createdRules = await this.consoleMonitor.enableFetchIntercept(rules);
@@ -103,46 +94,25 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
         timestamp: new Date().toISOString(),
       });
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                message: `Added ${createdRules.length} interception rule(s)`,
-                createdRules: createdRules.map((r) => ({
-                  id: r.id,
-                  urlPattern: r.urlPattern,
-                  stage: r.stage,
-                  responseCode: r.responseCode,
-                })),
-                totalActiveRules: status.rules.length,
-                hint: 'Use network_intercept_list to see all rules and hit counts. Use network_intercept_disable to remove rules.',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.ok()
+        .merge({
+          message: `Added ${createdRules.length} interception rule(s)`,
+          createdRules: createdRules.map((r) => ({
+            id: r.id,
+            urlPattern: r.urlPattern,
+            stage: r.stage,
+            responseCode: r.responseCode,
+          })),
+          totalActiveRules: status.rules.length,
+          hint: 'Use network_intercept_list to see all rules and hit counts. Use network_intercept_disable to remove rules.',
+        })
+        .json();
     } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                hint: 'Ensure browser is launched and a page is active before enabling interception.',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error instanceof Error ? error.message : String(error))
+        .merge({
+          hint: 'Ensure browser is launched and a page is active before enabling interception.',
+        })
+        .json();
     }
   }
 
@@ -152,25 +122,15 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
   async handleNetworkInterceptList(_args: Record<string, unknown>) {
     const status = this.consoleMonitor.getFetchInterceptStatus();
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              ...status,
-              hint:
-                status.rules.length > 0
-                  ? 'Use network_intercept_disable(ruleId) to remove a specific rule, or network_intercept_disable(all=true) to remove all.'
-                  : 'No active interception rules. Use network_intercept_response to add rules.',
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
+    return R.ok()
+      .merge(status as unknown as Record<string, unknown>)
+      .merge({
+        hint:
+          status.rules.length > 0
+            ? 'Use network_intercept(action: "disable", ruleId) to remove a specific rule, or network_intercept(action: "disable", all: true) to remove all.'
+            : 'No active interception rules. Use network_intercept(action: "add") to add rules.',
+      })
+      .json();
   }
 
   /**
@@ -181,80 +141,34 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
     const all = args.all === true;
 
     if (!ruleId && !all) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error:
-                  'Provide either "ruleId" to remove a specific rule, or "all": true to disable all.',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(
+        'Provide either "ruleId" to remove a specific rule, or "all": true to disable all.',
+      ).json();
     }
 
     try {
       if (all) {
         const result = await this.consoleMonitor.disableFetchIntercept();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  message: `Disabled all interception. Removed ${result.removedRules} rule(s).`,
-                  removedRules: result.removedRules,
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return R.ok()
+          .merge({
+            message: `Disabled all interception. Removed ${result.removedRules} rule(s).`,
+            removedRules: result.removedRules,
+          })
+          .json();
       }
 
       const removed = await this.consoleMonitor.removeFetchInterceptRule(ruleId!);
       const status = this.consoleMonitor.getFetchInterceptStatus();
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: removed,
-                message: removed ? `Rule ${ruleId} removed.` : `Rule ${ruleId} not found.`,
-                remainingRules: status.rules.length,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.ok()
+        .merge({
+          success: removed,
+          message: removed ? `Rule ${ruleId} removed.` : `Rule ${ruleId} not found.`,
+          remainingRules: status.rules.length,
+        })
+        .json();
     } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error instanceof Error ? error.message : String(error)).json();
     }
   }
 }

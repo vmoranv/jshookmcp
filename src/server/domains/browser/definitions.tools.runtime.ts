@@ -4,15 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const browserRuntimeTools: Tool[] = [
   tool('get_detailed_data', (t) =>
     t
-      .desc(` Retrieve detailed data using detailId token.
-
-When tools return large data, they provide a detailId instead of full data to prevent context overflow.
-Use this tool to retrieve the full data or specific parts.
-
-Examples:
-- get_detailed_data("detail_abc123") -> Get full data
-- get_detailed_data("detail_abc123", path="frontierSign") -> Get specific property
-- get_detailed_data("detail_abc123", path="methods.0") -> Get first method`)
+      .desc(`Retrieve large data using detailId token from previous tool response.`)
       .string('detailId', 'Detail ID token from previous tool response')
       .string('path', 'Optional: Path to specific data (e.g., "frontierSign" or "methods.0")')
       .required('detailId')
@@ -20,19 +12,9 @@ Examples:
   ),
   tool('browser_launch', (t) =>
     t
-      .desc(`Launch browser instance.
-
-Drivers:
-- chrome (default): rebrowser-puppeteer-core, Chromium-based, full CDP support (debugger, network, stealth scripts, etc.)
-- camoufox: Firefox-based anti-detect browser, C++ engine-level fingerprint spoofing.
-  Requires binaries first: npx camoufox-js fetch
-  Note: CDP tools (debugger, network monitor, etc.) are not available in camoufox mode.
-
-Modes:
-- launch (default): launch a local browser instance
-- connect: reuse an existing browser instance
-  - chrome: connect via browserURL (http://host:port), wsEndpoint, or Chrome 144+ autoConnect
-  - camoufox: connect via wsEndpoint from camoufox_server_launch`)
+      .desc(
+        `Launch or connect to a browser. Drivers: chrome (full CDP) or camoufox (anti-detect Firefox).`,
+      )
       .enum(
         'driver',
         ['chrome', 'camoufox'],
@@ -78,54 +60,31 @@ Modes:
       )
       .openWorld(),
   ),
-  tool('camoufox_server_launch', (t) =>
+  tool('camoufox_server', (t) =>
     t
-      .desc(`Launch a Camoufox WebSocket server for multi-process / remote connections.
+      .desc(
+        `Manage Camoufox WebSocket server. Launch server, then connect via browser_launch.
 
-Use this when you need concurrent browser instances or want to manage the browser lifecycle separately from the automation client.
-
-Steps:
-1. Call camoufox_server_launch → get wsEndpoint
-2. Call browser_launch(driver="camoufox", mode="connect", wsEndpoint=<endpoint>) from one or more sessions
-3. Use page_navigate and other tools normally
-4. Call camoufox_server_close when done
-
-Requires binaries: npx camoufox-js fetch`)
-      .number('port', 'Port to listen on (default: auto-assigned)')
-      .string('ws_path', 'WebSocket path (default: auto-generated)')
-      .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint to spoof', { default: 'windows' })
-      .boolean('headless', 'Run headless (default: true)', { default: true })
-      .openWorld(),
-  ),
-  tool('camoufox_server_close', (t) =>
-    t
-      .desc('Close the Camoufox WebSocket server. Connected clients are disconnected.')
+Actions:
+- launch: Start server (returns wsEndpoint)
+- close: Stop server, disconnect clients
+- status: Check server status`,
+      )
+      .enum('action', ['launch', 'close', 'status'], 'Server action')
+      .number('port', 'Port to listen on (action=launch, default: auto-assigned)')
+      .string('ws_path', 'WebSocket path (action=launch, default: auto-generated)')
+      .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint (action=launch)', {
+        default: 'windows',
+      })
+      .boolean('headless', 'Run headless (action=launch, default: true)', { default: true })
+      .required('action')
       .destructive(),
-  ),
-  tool('camoufox_server_status', (t) =>
-    t
-      .desc('Get the current status of the Camoufox WebSocket server (running, wsEndpoint).')
-      .query(),
   ),
   tool('browser_attach', (t) =>
     t
-      .desc(`Attach to an existing browser instance via Chrome DevTools Protocol (CDP).
-
-Use this when a browser is already running with remote debugging enabled.
-Supports browserURL (http://host:port), WebSocket endpoint (ws://...), and Chrome 144+ autoConnect.
-The selected tab becomes active immediately, while console/network monitoring rebinds lazily on the next console_* or network_* call.
-
-Example:
-- browser_attach(browserURL="http://127.0.0.1:9222")
-- browser_attach(wsEndpoint="ws://127.0.0.1:9222/devtools/browser/xxx")
-- browser_attach(autoConnect=true, channel="stable")
-- browser_attach(browserURL="http://127.0.0.1:9222", pageIndex=0)
-
-Response notes:
-- contextSwitched: whether an active tab context was established during attach
-- monitoringBindingDeferred: whether monitoring will auto-rebind later for the selected tab
-
-After attaching, use page_navigate / page_screenshot / debugger_enable normally.`)
+      .desc(
+        `Attach to a running browser via CDP. Supports browserURL, wsEndpoint, and autoConnect.`,
+      )
       .string(
         'browserURL',
         'HTTP URL of the remote debugging endpoint (e.g., http://127.0.0.1:9222)',
@@ -154,11 +113,7 @@ After attaching, use page_navigate / page_screenshot / debugger_enable normally.
   ),
   tool('browser_list_cdp_targets', (t) =>
     t
-      .desc(`List all CDP targets visible from the connected browser target.
-
-This is lower-level than browser_list_tabs and includes non-page targets such as iframe, service_worker, shared_worker, and browser targets when the browser exposes them.
-
-Optional connect parameters behave like browser_attach when provided.`)
+      .desc(`List all CDP targets (pages, workers, iframes). Can auto-connect first.`)
       .string('browserURL', 'Optional: connect to this browser URL before listing targets.')
       .string(
         'wsEndpoint',
@@ -200,10 +155,7 @@ Optional connect parameters behave like browser_attach when provided.`)
   ),
   tool('browser_attach_cdp_target', (t) =>
     t
-      .desc(`Attach to a specific CDP target by targetId.
-
-This creates an active target session distinct from the selected page/tab.
-After attachment, network_* and ai_hook_* bind to this target session until browser_detach_cdp_target() is called or the page context is switched.`)
+      .desc(`Attach to a specific CDP target by targetId. Network/hooks bind to this target.`)
       .string('targetId', 'Target ID returned by browser_list_cdp_targets.')
       .required('targetId'),
   ),
@@ -216,11 +168,7 @@ After attachment, network_* and ai_hook_* bind to this target session until brow
   ),
   tool('browser_evaluate_cdp_target', (t) =>
     t
-      .desc(`Evaluate JavaScript inside the currently attached CDP target session.
-
-This is explicit target-context evaluation. It does not reuse page_evaluate because page_* tools are reserved for the active Puppeteer Page context.
-
-Use this for OOPIF/iframe/service_worker/page targets that need direct target-session execution.`)
+      .desc(`Evaluate JS in the currently attached CDP target session (OOPIF/iframe/worker).`)
       .string('code', 'JavaScript expression or IIFE string to evaluate in the attached target.')
       .string('script', 'Alias of code.')
       .boolean('returnByValue', 'Return primitive/JSON-serializable result by value.', {

@@ -29,29 +29,9 @@ const manifest = {
   ensure,
   registrations: [
     {
-      tool: t('antidebug_bypass_all'),
+      tool: t('antidebug_bypass'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleAntiDebugBypassAll(a)),
-    },
-    {
-      tool: t('antidebug_bypass_debugger_statement'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleAntiDebugBypassDebuggerStatement(a)),
-    },
-    {
-      tool: t('antidebug_bypass_timing'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleAntiDebugBypassTiming(a)),
-    },
-    {
-      tool: t('antidebug_bypass_stack_trace'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleAntiDebugBypassStackTrace(a)),
-    },
-    {
-      tool: t('antidebug_bypass_console_detect'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleAntiDebugBypassConsoleDetect(a)),
+      bind: b((h, a) => h.handleAntidebugBypass(a)),
     },
     {
       tool: t('antidebug_detect_protections'),

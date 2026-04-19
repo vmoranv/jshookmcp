@@ -4,10 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const binaryInstrumentTools: Tool[] = [
   tool('frida_attach', (t) =>
     t
-      .desc(
-        'Attach Frida to a local process, PID, or binary path and create a binary instrumentation session.',
-      )
-      .string('target', 'Target process name, PID, or binary path')
+      .desc('Attach Frida to a local process, PID, or binary path and create a binary inst...')
       .required('target'),
   ),
   tool('frida_enumerate_modules', (t) =>
@@ -19,10 +16,7 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('ghidra_analyze', (t) =>
     t
-      .desc(
-        'Run binary metadata analysis with Ghidra headless when available, with structured fallback output when unavailable.',
-      )
-      .string('binaryPath', 'Absolute or workspace-relative path to the binary file')
+      .desc('Run binary metadata analysis with Ghidra headless when available, with struct...')
       .number('timeout', 'Optional timeout in milliseconds for headless analysis')
       .required('binaryPath'),
   ),
@@ -45,10 +39,7 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('unidbg_emulate', (t) =>
     t
-      .desc(
-        'Attempt to emulate a native function with unidbg, or return structured mock output when unavailable.',
-      )
-      .string('binaryPath', 'Path to the target binary')
+      .desc('Attempt to emulate a native function with unidbg, or return structured mock o...')
       .string('functionName', 'Function name to emulate')
       .array('args', { type: 'string' }, 'Optional string arguments forwarded to emulation')
       .required('binaryPath', 'functionName'),

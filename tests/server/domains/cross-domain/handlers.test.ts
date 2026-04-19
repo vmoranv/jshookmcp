@@ -4,6 +4,10 @@ import {
   CrossDomainEvidenceBridge,
   _resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
+import {
+  ReverseEvidenceGraph,
+  _resetIdCounter as _resetGraphIdCounter,
+} from '@server/evidence/ReverseEvidenceGraph';
 
 describe('CrossDomainHandlers', () => {
   let bridge: CrossDomainEvidenceBridge;
@@ -11,7 +15,8 @@ describe('CrossDomainHandlers', () => {
 
   beforeEach(() => {
     _resetIdCounter();
-    bridge = new CrossDomainEvidenceBridge();
+    _resetGraphIdCounter();
+    bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
     handlers = new CrossDomainHandlers(bridge);
   });
 

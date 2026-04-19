@@ -23,24 +23,16 @@ Extension registry domain for managing and discovering community extensions.
 
 - `extension_list_installed` — List installed extensions from the local extension registry
 - `extension_execute_in_context` — Load an extension and execute a named exported context function
-- `extension_install` — Install an extension from a local or remote manifest/module URL
 - `extension_reload` — Reload an installed extension by unloading and loading it again
 - `extension_uninstall` — Uninstall an extension from the local extension registry
-- `webhook_create` — Create a new webhook endpoint for external callbacks
-- `webhook_list` — List all registered webhook endpoints
-- `webhook_delete` — Delete a webhook endpoint by ID
-- `webhook_commands` — Get or set commands queued for a webhook endpoint
+- `webhook` — Manage webhook endpoints for external callbacks. Actions: create, list, delete, commands.
 
-## Full tool list (9)
+## Full tool list (5)
 
 | Tool | Description |
 | --- | --- |
 | `extension_list_installed` | List installed extensions from the local extension registry |
 | `extension_execute_in_context` | Load an extension and execute a named exported context function |
-| `extension_install` | Install an extension from a local or remote manifest/module URL |
 | `extension_reload` | Reload an installed extension by unloading and loading it again |
 | `extension_uninstall` | Uninstall an extension from the local extension registry |
-| `webhook_create` | Create a new webhook endpoint for external callbacks |
-| `webhook_list` | List all registered webhook endpoints |
-| `webhook_delete` | Delete a webhook endpoint by ID |
-| `webhook_commands` | Get or set commands queued for a webhook endpoint |
+| `webhook` | Manage webhook endpoints for external callbacks. Actions: create, list, delete, commands. |

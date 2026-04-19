@@ -23,15 +23,31 @@ const {
   camoufoxBrowserMocks,
 } = vi.hoisted(() => ({
   browserControlMocks: {
-    handleBrowserLaunch: vi.fn(async (args: any) => ({ from: 'browser-launch', args })),
-    handleBrowserClose: vi.fn(async (args: any) => ({ from: 'browser-close', args })),
-    handleBrowserStatus: vi.fn(async (args: any) => ({ from: 'browser-status', args })),
-    handleBrowserListTabs: vi.fn(async (args: any) => ({ from: 'list-tabs', args })),
-    handleBrowserSelectTab: vi.fn(async (args: any) => ({ from: 'select-tab', args })),
-    handleBrowserAttach: vi.fn(async (args: any) => ({ from: 'attach', args })),
+    handleBrowserLaunch: vi.fn(async (args: any) => ({
+      success: true,
+      from: 'browser-launch',
+      args,
+    })),
+    handleBrowserClose: vi.fn(async (args: any) => ({
+      success: true,
+      from: 'browser-close',
+      args,
+    })),
+    handleBrowserStatus: vi.fn(async (args: any) => ({
+      success: true,
+      from: 'browser-status',
+      args,
+    })),
+    handleBrowserListTabs: vi.fn(async (args: any) => ({ success: true, from: 'list-tabs', args })),
+    handleBrowserSelectTab: vi.fn(async (args: any) => ({
+      success: true,
+      from: 'select-tab',
+      args,
+    })),
+    handleBrowserAttach: vi.fn(async (args: any) => ({ success: true, from: 'attach', args })),
   },
   pageNavigationMocks: {
-    handlePageNavigate: vi.fn(async (args: any) => ({ from: 'page-nav', args })),
+    handlePageNavigate: vi.fn(async (args: any) => ({ success: true, from: 'page-nav', args })),
     handlePageReload: vi.fn(async () => ({ from: 'reload' })),
     handlePageBack: vi.fn(async () => ({ from: 'back' })),
     handlePageForward: vi.fn(async () => ({ from: 'forward' })),
@@ -51,7 +67,6 @@ const {
     handlePageWaitForSelector: vi.fn(),
   },
   pageDataMocks: {
-    handlePageGetPerformance: vi.fn(),
     handlePageSetCookies: vi.fn(),
     handlePageGetCookies: vi.fn(),
     handlePageClearCookies: vi.fn(),
@@ -265,7 +280,7 @@ describe('BrowserToolHandlers', () => {
     (handlers as any).camoufoxManager = { close: vi.fn(async () => {}) };
 
     const result = await handlers.handleBrowserLaunch({ driver: 'chrome' });
-    expect(result).toEqual({ from: 'browser-launch', args: { driver: 'chrome' } });
+    expect(result).toEqual({ success: true, from: 'browser-launch', args: { driver: 'chrome' } });
     expect(browserControlMocks.handleBrowserLaunch).toHaveBeenCalledWith({ driver: 'chrome' });
     expect(consoleMonitor.disable).toHaveBeenCalledTimes(1);
     expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalledTimes(1);
@@ -276,7 +291,11 @@ describe('BrowserToolHandlers', () => {
     (handlers as any).camoufoxManager = { close: vi.fn(async () => {}) };
 
     const result = await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' });
-    expect(result).toEqual({ from: 'attach', args: { browserURL: 'http://127.0.0.1:9222' } });
+    expect(result).toEqual({
+      success: true,
+      from: 'attach',
+      args: { browserURL: 'http://127.0.0.1:9222' },
+    });
     expect(browserControlMocks.handleBrowserAttach).toHaveBeenCalledWith({
       browserURL: 'http://127.0.0.1:9222',
     });
@@ -313,7 +332,7 @@ describe('BrowserToolHandlers', () => {
   it('delegates browser close when chrome is active', async () => {
     const result = await handlers.handleBrowserClose({ reason: 'manual' });
 
-    expect(result).toEqual({ from: 'browser-close', args: { reason: 'manual' } });
+    expect(result).toEqual({ success: true, from: 'browser-close', args: { reason: 'manual' } });
     expect(browserControlMocks.handleBrowserClose).toHaveBeenCalledWith({ reason: 'manual' });
   });
 
@@ -324,6 +343,7 @@ describe('BrowserToolHandlers', () => {
     });
 
     expect(result).toEqual({
+      success: true,
       from: 'page-nav',
       args: {
         url: 'https://example.com',
@@ -357,6 +377,7 @@ describe('BrowserToolHandlers', () => {
 
     const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
 
+    expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
     expect(body.running).toBe(true);
     expect(body.hasActivePage).toBe(true);
@@ -365,7 +386,7 @@ describe('BrowserToolHandlers', () => {
   it('delegates browser status when chrome is active', async () => {
     const result = await handlers.handleBrowserStatus({ verbose: true });
 
-    expect(result).toEqual({ from: 'browser-status', args: { verbose: true } });
+    expect(result).toEqual({ success: true, from: 'browser-status', args: { verbose: true } });
     expect(browserControlMocks.handleBrowserStatus).toHaveBeenCalledWith({ verbose: true });
   });
 
@@ -375,6 +396,7 @@ describe('BrowserToolHandlers', () => {
     );
     expect(domInspector.getStructure).toHaveBeenCalledWith(2, false);
     expect(smartHandleMock).toHaveBeenCalled();
+    expect(body.success).toBe(true);
     expect(body.wrapped).toEqual({ node: 'root' });
   });
 

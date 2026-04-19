@@ -96,12 +96,10 @@ describe('server/domains/analysis/manifest', () => {
     expect(toolNames).toContain('detect_crypto');
     expect(toolNames).toContain('manage_hooks');
     expect(toolNames).toContain('detect_obfuscation');
-    expect(toolNames).toContain('advanced_deobfuscate');
     expect(toolNames).toContain('webcrack_unpack');
     expect(toolNames).toContain('clear_collected_data');
     expect(toolNames).toContain('get_collection_stats');
     expect(toolNames).toContain('webpack_enumerate');
-    expect(toolNames).toContain('source_map_extract');
   });
 
   it('has no duplicate tool names across registrations', async () => {

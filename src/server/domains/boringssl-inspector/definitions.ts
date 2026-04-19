@@ -117,29 +117,19 @@ export const boringsslInspectorTools: Tool[] = [
     },
   },
   {
-    name: 'tls_handshake_parse',
-    description: 'Parse a TLS record header and basic handshake metadata from a hex payload.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        hexPayload: {
-          type: 'string',
-          description: 'Hex-encoded TLS record',
-        },
-      },
-      required: ['hexPayload'],
-    },
-  },
-  {
     name: 'tls_parse_handshake',
     description:
-      'Parse TLS handshake metadata (version, cipher suites, SNI, extensions) from raw hex.',
+      'Parse TLS record header and handshake metadata (version, cipher suites, SNI, extensions) from raw hex. Optionally decrypts payload preview when keylog is available.',
     inputSchema: {
       type: 'object',
       properties: {
         rawHex: {
           type: 'string',
           description: 'Hex-encoded TLS handshake record',
+        },
+        decrypt: {
+          type: 'boolean',
+          description: 'If true, attempt payload decryption using loaded keylog (default: false)',
         },
       },
       required: ['rawHex'],

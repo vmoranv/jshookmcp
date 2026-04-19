@@ -23,25 +23,6 @@ describe('PageDataHandlers', () => {
     handlers = new PageDataHandlers({
       pageController,
       getActiveDriver: () => 'chrome',
-      getCamoufoxPage: async () => null,
-    });
-  });
-
-  it('returns performance metrics', async () => {
-    pageController.getPerformanceMetrics.mockResolvedValue({
-      domContentLoaded: 120,
-      loadEvent: 180,
-    });
-
-    const body = parseJson<BrowserStatusResponse>(await handlers.handlePageGetPerformance({}));
-
-    expect(pageController.getPerformanceMetrics).toHaveBeenCalledOnce();
-    expect(body).toEqual({
-      success: true,
-      metrics: {
-        domContentLoaded: 120,
-        loadEvent: 180,
-      },
     });
   });
 
@@ -71,6 +52,7 @@ describe('PageDataHandlers', () => {
 
     expect(pageController.getCookies).toHaveBeenCalledOnce();
     expect(body).toEqual({
+      success: true,
       count: 2,
       cookies: [
         { name: 'session', value: 'abc' },
@@ -129,6 +111,7 @@ describe('PageDataHandlers', () => {
 
     expect(pageController.getLocalStorage).toHaveBeenCalledOnce();
     expect(body).toEqual({
+      success: true,
       count: 2,
       storage: {
         token: 'abc',
@@ -161,6 +144,7 @@ describe('PageDataHandlers', () => {
 
     expect(pageController.getAllLinks).toHaveBeenCalledOnce();
     expect(body).toEqual({
+      success: true,
       count: 2,
       links: [
         { text: 'Docs', href: 'https://vmoranv.github.io/jshookmcp/docs' },
@@ -169,11 +153,14 @@ describe('PageDataHandlers', () => {
     });
   });
 
-  it('rethrows page controller errors when setting cookies', async () => {
+  it('returns failure response when setting cookies fails', async () => {
     pageController.setCookies.mockRejectedValue(new Error('set cookies failed'));
 
-    await expect(
-      handlers.handlePageSetCookies({ cookies: [{ name: 'session', value: 'abc' }] }),
-    ).rejects.toThrow('set cookies failed');
+    const response = await handlers.handlePageSetCookies({
+      cookies: [{ name: 'session', value: 'abc' }],
+    });
+    const body = parseJson<BrowserStatusResponse>(response);
+    expect(body.success).toBe(false);
+    expect(body.message).toContain('set cookies failed');
   });
 });

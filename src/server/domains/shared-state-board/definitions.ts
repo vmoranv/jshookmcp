@@ -4,10 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const sharedStateBoardTools: Tool[] = [
   tool('state_board_set', (t) =>
     t
-      .desc(
-        'Set a value in the shared state board. Supports string, number, boolean, object, and array values.',
-      )
-      .string('key', 'The key to store the value under')
+      .desc('Set a value in the shared state board.')
       .prop('value', {
         type: 'object',
         description: 'The value to store (any JSON-serializable type)',
@@ -40,19 +37,13 @@ export const sharedStateBoardTools: Tool[] = [
   ),
   tool('state_board_watch', (t) =>
     t
-      .desc(
-        'Watch a key or pattern for changes. Returns a watch ID that can be used to poll for updates.',
-      )
-      .string('key', 'The key to watch (supports * wildcard for pattern matching)')
+      .desc('Start or stop watching a key or pattern for changes.')
+      .enum('action', ['start', 'stop'], 'Watch operation: start or stop')
+      .string('key', 'The key or pattern to watch (action=start)')
       .string('namespace', 'Optional namespace (default: "default")')
-      .number('pollIntervalMs', 'Polling interval in milliseconds (default: 1000)')
-      .required('key'),
-  ),
-  tool('state_board_unwatch', (t) =>
-    t
-      .desc('Stop watching a key or pattern.')
-      .string('watchId', 'The watch ID returned by state_board_watch')
-      .required('watchId'),
+      .number('pollIntervalMs', 'Polling interval in ms (action=start, default: 1000)')
+      .string('watchId', 'Watch ID to stop (action=stop)')
+      .required('action'),
   ),
   tool('state_board_history', (t) =>
     t
@@ -63,23 +54,21 @@ export const sharedStateBoardTools: Tool[] = [
       .query()
       .required('key'),
   ),
-  tool('state_board_export', (t) =>
+  tool('state_board_io', (t) =>
     t
-      .desc('Export all or filtered state board entries as JSON.')
-      .string('namespace', 'Optional namespace filter (default: all)')
-      .string('keyPattern', 'Optional key pattern filter (supports * wildcard)')
-      .query(),
-  ),
-  tool('state_board_import', (t) =>
-    t
-      .desc('Import state board entries from JSON. Merges with existing state.')
+      .desc('Export or import state board entries.')
+      .enum('action', ['export', 'import'], 'IO operation')
+      .string(
+        'namespace',
+        'Optional namespace filter for export / target namespace for import (default: all/"default")',
+      )
+      .string('keyPattern', 'Optional key pattern filter for export (supports * wildcard)')
       .prop('data', {
         type: 'object',
-        description: 'Object with keys and values to import',
+        description: 'Object with keys and values to import (action=import)',
       })
-      .string('namespace', 'Optional namespace (default: "default")')
-      .boolean('overwrite', 'Overwrite existing keys (default: false)')
-      .required('data'),
+      .boolean('overwrite', 'Overwrite existing keys on import (default: false)')
+      .required('action'),
   ),
   tool('state_board_clear', (t) =>
     t

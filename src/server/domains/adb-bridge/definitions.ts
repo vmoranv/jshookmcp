@@ -24,9 +24,7 @@ export const adbBridgeTools = [
 
   tool('adb_apk_analyze', (t) =>
     t
-      .desc(
-        'Analyze an installed APK — package name, version, permissions, activities, services, receivers.',
-      )
+      .desc('Analyze an installed APK — package name, version, permissions, activities, se...')
       .string('serial', 'Required. Android device serial or emulator id.')
       .string('packageName', 'Required. Android package name, for example com.example.app.')
       .requiredOpenWorld('serial', 'packageName'),
@@ -34,9 +32,7 @@ export const adbBridgeTools = [
 
   tool('adb_webview_list', (t) =>
     t
-      .desc(
-        'List debuggable WebView targets via ADB port forwarding to Chrome DevTools. Requires android:debuggable="true".',
-      )
+      .desc('List debuggable WebView targets via ADB port forwarding to Chrome DevTools.')
       .string('serial', 'Required. Android device serial or emulator id.')
       .number('hostPort', 'Optional. Local port to use for forwarding.', { default: 9222 })
       .requiredOpenWorld('serial'),

@@ -26,7 +26,8 @@ export const deobfuscateAstFlow: MacroDefinition = {
     },
     {
       id: 'advanced_deobfuscate',
-      toolName: 'advanced_deobfuscate',
+      toolName: 'deobfuscate',
+      input: { engine: 'webcrack' },
       inputFrom: { code: 'deobfuscate.code' },
       optional: true,
     },
@@ -52,7 +53,8 @@ export const unpackerFlow: MacroDefinition = {
     },
     {
       id: 'deep_deobfuscate',
-      toolName: 'advanced_deobfuscate',
+      toolName: 'deobfuscate',
+      input: { engine: 'webcrack' },
       inputFrom: { code: 'detect_and_unpack.code' },
       optional: true,
     },

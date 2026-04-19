@@ -58,14 +58,13 @@ describe('ConsoleHandlers', () => {
       },
       51200,
     );
-    expect(body).toEqual({
-      wrapped: {
-        count: 2,
-        logs: [
-          { type: 'error', text: 'boom' },
-          { type: 'warn', text: 'careful' },
-        ],
-      },
+    expect(body.success).toBe(true);
+    expect(body.wrapped).toEqual({
+      count: 2,
+      logs: [
+        { type: 'error', text: 'boom' },
+        { type: 'warn', text: 'careful' },
+      ],
     });
   });
 
@@ -95,11 +94,12 @@ describe('ConsoleHandlers', () => {
     });
   });
 
-  it('rethrows console execution errors', async () => {
+  it('returns failure response for console execution errors', async () => {
     consoleMonitor.execute.mockRejectedValue(new Error('execution failed'));
 
-    await expect(
-      handlers.handleConsoleExecute({ expression: 'throw new Error()' }),
-    ).rejects.toThrow('execution failed');
+    const response = await handlers.handleConsoleExecute({ expression: 'throw new Error()' });
+    const body = parseJson<BrowserStatusResponse>(response);
+    expect(body.success).toBe(false);
+    expect(body.message).toContain('execution failed');
   });
 });

@@ -4,6 +4,8 @@ import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import type { CamoufoxBrowserManager } from '@server/domains/shared/modules';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
 import { argBool, argString, argNumber } from '@server/domains/shared/parse-args';
+import { R } from '@server/domains/shared/ResponseBuilder';
+import type { ToolResponse } from '@server/types';
 import { logger } from '@utils/logger';
 import { projectRoot } from '@utils/config';
 import { readFile, writeFile } from 'fs/promises';
@@ -182,221 +184,135 @@ export class BrowserControlHandlers {
     }
   }
 
-  async handleBrowserLaunch(args: Record<string, unknown>) {
-    const driver = argString(args, 'driver', 'chrome');
+  async handleBrowserLaunch(args: Record<string, unknown>): Promise<ToolResponse> {
+    try {
+      const driver = argString(args, 'driver', 'chrome');
 
-    if (driver === 'camoufox') {
-      const mode = argString(args, 'mode', 'launch');
+      if (driver === 'camoufox') {
+        const mode = argString(args, 'mode', 'launch');
 
-      if (mode === 'connect') {
-        const wsEndpoint = argString(args, 'wsEndpoint');
-        if (!wsEndpoint) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    success: false,
-                    error:
-                      'wsEndpoint is required for connect mode. Use camoufox_server_launch first to get a wsEndpoint.',
-                  },
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
+        if (mode === 'connect') {
+          const wsEndpoint = argString(args, 'wsEndpoint');
+          if (!wsEndpoint) {
+            return R.fail(
+              'wsEndpoint is required for connect mode. Use camoufox_server_launch first to get a wsEndpoint.',
+            ).json();
+          }
+          return R.ok()
+            .merge({
+              driver: 'camoufox',
+              mode: 'connect',
+              wsEndpoint,
+              message: 'Connected to Camoufox server. Use page_navigate to begin.',
+            })
+            .json();
         }
-        // Note: camoufoxManager is managed by parent class
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  driver: 'camoufox',
-                  mode: 'connect',
-                  wsEndpoint,
-                  message: 'Connected to Camoufox server. Use page_navigate to begin.',
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+
+        return R.ok()
+          .merge({
+            driver: 'camoufox',
+            mode: 'launch',
+            message: 'Camoufox (Firefox) browser launched',
+            note: 'Use page_navigate to begin. CDP debugger is limited in Firefox; network_enable and console_enable use Playwright events and are fully supported.',
+          })
+          .json();
       }
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                driver: 'camoufox',
-                mode: 'launch',
-                message: 'Camoufox (Firefox) browser launched',
-                note: 'Use page_navigate to begin. CDP debugger is limited in Firefox; network_enable and console_enable use Playwright events and are fully supported.',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    }
+      const mode = argString(args, 'mode', 'launch');
+      if (mode === 'connect') {
+        const connectRequest = this.parseChromeConnectRequest(args);
 
-    const mode = argString(args, 'mode', 'launch');
-    if (mode === 'connect') {
-      const connectRequest = this.parseChromeConnectRequest(args);
+        if (!this.hasChromeConnectRequest(connectRequest)) {
+          return R.fail(
+            'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
+          ).json();
+        }
 
-      if (!this.hasChromeConnectRequest(connectRequest)) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: false,
-                  error:
-                    'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        await this.deps.collector.connect(connectRequest);
+        const status = await this.deps.collector.getStatus();
+
+        return R.ok()
+          .merge({
+            driver: 'chrome',
+            mode: 'connect',
+            endpoint: this.describeChromeConnectRequest(connectRequest),
+            autoConnect: this.isAutoConnectRequest(connectRequest),
+            channel: connectRequest.channel ?? null,
+            userDataDir: connectRequest.userDataDir ?? null,
+            manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
+            approvalHint: this.getAutoConnectApprovalHint(connectRequest),
+            message: 'Connected to existing Chrome browser successfully',
+            status,
+          })
+          .json();
       }
 
-      await this.deps.collector.connect(connectRequest);
+      const chromeHeadless = this.parseHeadlessArg(args.headless);
+      try {
+        await this.deps.collector.init(chromeHeadless);
+      } catch (error) {
+        if (!this.shouldAttemptLinuxHeadfulFallback(chromeHeadless, error)) {
+          throw error;
+        }
+
+        const reason = error instanceof Error ? error.message : String(error);
+        logger.warn(`Headful launch failed on Linux, fallback to headless=true: ${reason}`);
+        process.env.PUPPETEER_HEADLESS = 'true';
+        await this.persistHeadlessEnv('true');
+        await this.deps.collector.init(true);
+        const fallbackStatus = await this.deps.collector.getStatus();
+
+        return R.ok()
+          .merge({
+            driver: 'chrome',
+            message: 'Browser launched with Linux fallback (headless=true)',
+            status: fallbackStatus,
+            fallback: {
+              applied: true,
+              reason:
+                'Headful browser is unavailable in current Linux runtime; switched to headless and updated .env',
+              newEnv: 'PUPPETEER_HEADLESS=true',
+            },
+          })
+          .json();
+      }
       const status = await this.deps.collector.getStatus();
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                driver: 'chrome',
-                mode: 'connect',
-                endpoint: this.describeChromeConnectRequest(connectRequest),
-                autoConnect: this.isAutoConnectRequest(connectRequest),
-                channel: connectRequest.channel ?? null,
-                userDataDir: connectRequest.userDataDir ?? null,
-                manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
-                approvalHint: this.getAutoConnectApprovalHint(connectRequest),
-                message: 'Connected to existing Chrome browser successfully',
-                status,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    }
-
-    const chromeHeadless = this.parseHeadlessArg(args.headless);
-    try {
-      await this.deps.collector.init(chromeHeadless);
+      return R.ok()
+        .merge({
+          driver: 'chrome',
+          message: 'Browser launched successfully',
+          status,
+        })
+        .json();
     } catch (error) {
-      if (!this.shouldAttemptLinuxHeadfulFallback(chromeHeadless, error)) {
-        throw error;
-      }
-
-      const reason = error instanceof Error ? error.message : String(error);
-      logger.warn(`Headful launch failed on Linux, fallback to headless=true: ${reason}`);
-      process.env.PUPPETEER_HEADLESS = 'true';
-      await this.persistHeadlessEnv('true');
-      await this.deps.collector.init(true);
-      const fallbackStatus = await this.deps.collector.getStatus();
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                driver: 'chrome',
-                message: 'Browser launched with Linux fallback (headless=true)',
-                status: fallbackStatus,
-                fallback: {
-                  applied: true,
-                  reason:
-                    'Headful browser is unavailable in current Linux runtime; switched to headless and updated .env',
-                  newEnv: 'PUPPETEER_HEADLESS=true',
-                },
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error).json();
     }
-    const status = await this.deps.collector.getStatus();
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              driver: 'chrome',
-              message: 'Browser launched successfully',
-              status,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
   }
 
-  async handleBrowserClose(_args: Record<string, unknown>) {
-    await this.deps.collector.close();
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              message: 'Browser closed successfully',
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
-  }
-
-  async handleBrowserStatus(_args: Record<string, unknown>) {
-    const status = await this.deps.collector.getStatus();
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ driver: 'chrome', ...status }, null, 2),
-        },
-      ],
-    };
-  }
-
-  async handleBrowserListTabs(args: Record<string, unknown>) {
+  async handleBrowserClose(_args: Record<string, unknown>): Promise<ToolResponse> {
     try {
-      const connectRequest = this.parseChromeConnectRequest(args);
+      await this.deps.collector.close();
+      return R.ok().set('message', 'Browser closed successfully').json();
+    } catch (e) {
+      return R.fail(e).json();
+    }
+  }
+
+  async handleBrowserStatus(_args: Record<string, unknown>): Promise<ToolResponse> {
+    try {
+      const status = await this.deps.collector.getStatus();
+      return R.ok()
+        .merge({ driver: 'chrome', ...status })
+        .json();
+    } catch (e) {
+      return R.fail(e).json();
+    }
+  }
+
+  async handleBrowserListTabs(args: Record<string, unknown>): Promise<ToolResponse> {
+    const connectRequest = this.parseChromeConnectRequest(args);
+    try {
       if (this.hasChromeConnectRequest(connectRequest)) {
         await this.deps.collector.connect(connectRequest);
       }
@@ -405,9 +321,6 @@ export class BrowserControlHandlers {
       const registry = this.deps.getTabRegistry();
       await this.syncTabRegistryWithCollectorPages('browser_list_tabs');
 
-      // Reconcile registry with fresh page list
-      // Note: collector.listPages() returns metadata, not page objects.
-      // We enrich the response with pageId from registry where available.
       const enrichedPages = pages.map((page: { index: number; url: string; title: string }) => {
         const tab = registry.getTabByIndex(page.index);
         return {
@@ -419,50 +332,30 @@ export class BrowserControlHandlers {
 
       const currentInfo = registry.getContextMeta();
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                count: pages.length,
-                pages: enrichedPages,
-                currentPageId: currentInfo.pageId,
-                currentIndex: currentInfo.tabIndex,
-                autoConnect: this.isAutoConnectRequest(connectRequest),
-                manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
-                approvalHint: this.getAutoConnectApprovalHint(connectRequest),
-                hint: 'Use browser_select_tab(index=N) to switch to a specific tab',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.ok()
+        .merge({
+          count: pages.length,
+          pages: enrichedPages,
+          currentPageId: currentInfo.pageId,
+          currentIndex: currentInfo.tabIndex,
+          autoConnect: this.isAutoConnectRequest(connectRequest),
+          manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
+          approvalHint: this.getAutoConnectApprovalHint(connectRequest),
+          hint: 'Use browser_select_tab(index=N) to switch to a specific tab',
+        })
+        .json();
     } catch (error) {
-      logger.error('Failed to list tabs:', error);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                hint: 'Make sure browser is attached via browser_attach first, or provide browserURL/autoConnect. Chrome 144+ autoConnect may require manual approval in the Chrome window.',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error)
+        .set(
+          'hint',
+          'Make sure browser is attached via browser_attach first, or provide browserURL/autoConnect. Chrome 144+ autoConnect may require manual approval in the Chrome window.',
+        )
+        .set('approvalHint', this.getAutoConnectApprovalHint(connectRequest))
+        .json();
     }
   }
 
-  async handleBrowserSelectTab(args: Record<string, unknown>) {
+  async handleBrowserSelectTab(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       const index = argNumber(args, 'index');
       const urlPattern = argString(args, 'urlPattern');
@@ -479,30 +372,20 @@ export class BrowserControlHandlers {
         if (tab?.pageId || clearedTarget.detached) {
           this.markMonitoringContextChanged('browser_select_tab');
         }
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  selectedIndex: index,
-                  selectedPageId: tab?.pageId ?? null,
-                  url: selected?.url,
-                  title: selected?.title,
-                  contextSwitched: true,
-                  detachedCdpTarget: clearedTarget.detached,
-                  detachedCdpTargetId: clearedTarget.targetId,
-                  monitoringBindingDeferred: Boolean(tab?.pageId),
-                  networkMonitoringEnabled: false,
-                  consoleMonitoringEnabled: false,
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return R.ok()
+          .merge({
+            selectedIndex: index,
+            selectedPageId: tab?.pageId ?? null,
+            url: selected?.url,
+            title: selected?.title,
+            contextSwitched: true,
+            detachedCdpTarget: clearedTarget.detached,
+            detachedCdpTargetId: clearedTarget.targetId,
+            monitoringBindingDeferred: Boolean(tab?.pageId),
+            networkMonitoringEnabled: false,
+            consoleMonitoringEnabled: false,
+          })
+          .json();
       }
 
       const pages = await this.deps.collector.listPages();
@@ -519,22 +402,7 @@ export class BrowserControlHandlers {
       }
 
       if (matchIndex === -1) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: false,
-                  error: 'No matching tab found',
-                  availablePages: pages,
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return R.fail('No matching tab found').set('availablePages', pages).json();
       }
 
       const clearedTarget = await this.deps.clearAttachedTargetContext('browser_select_tab');
@@ -545,77 +413,39 @@ export class BrowserControlHandlers {
       if (tab?.pageId || clearedTarget.detached) {
         this.markMonitoringContextChanged('browser_select_tab');
       }
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                selectedIndex: matchIndex,
-                selectedPageId: tab?.pageId ?? null,
-                url: selected?.url,
-                title: selected?.title,
-                contextSwitched: true,
-                detachedCdpTarget: clearedTarget.detached,
-                detachedCdpTargetId: clearedTarget.targetId,
-                monitoringBindingDeferred: Boolean(tab?.pageId),
-                networkMonitoringEnabled: false,
-                consoleMonitoringEnabled: false,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.ok()
+        .merge({
+          selectedIndex: matchIndex,
+          selectedPageId: tab?.pageId ?? null,
+          url: selected?.url,
+          title: selected?.title,
+          contextSwitched: true,
+          detachedCdpTarget: clearedTarget.detached,
+          detachedCdpTargetId: clearedTarget.targetId,
+          monitoringBindingDeferred: Boolean(tab?.pageId),
+          networkMonitoringEnabled: false,
+          consoleMonitoringEnabled: false,
+        })
+        .json();
     } catch (error) {
-      logger.error('Failed to select tab:', error);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error).json();
     }
   }
 
-  async handleBrowserAttach(args: Record<string, unknown>) {
+  async handleBrowserAttach(args: Record<string, unknown>): Promise<ToolResponse> {
     let connectRequest: ChromeConnectRequest | null = null;
     try {
       connectRequest = this.parseChromeConnectRequest(args);
 
       if (!this.hasChromeConnectRequest(connectRequest)) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: false,
-                  error: 'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required',
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return R.fail(
+          'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required',
+        ).json();
       }
 
       const clearedTarget = await this.deps.clearAttachedTargetContext('browser_attach');
       await this.deps.collector.connect(connectRequest);
 
-      // Select the requested page (default to first page) - handles both number and string inputs
       const rawPageIndex = args.pageIndex;
       const pageIndex =
         typeof rawPageIndex === 'number'
@@ -635,7 +465,6 @@ export class BrowserControlHandlers {
         );
       }
 
-      // Update TabRegistry
       const registry = this.deps.getTabRegistry();
       await this.syncTabRegistryWithCollectorPages('browser_attach');
       const actualIndex = pages.length > 0 ? Math.min(selectedIndex, pages.length - 1) : 0;
@@ -648,61 +477,37 @@ export class BrowserControlHandlers {
 
       const status = await this.deps.collector.getStatus();
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                message: 'Attached to existing browser successfully',
-                endpoint: this.describeChromeConnectRequest(connectRequest),
-                autoConnect: this.isAutoConnectRequest(connectRequest),
-                channel: connectRequest.channel ?? null,
-                userDataDir: connectRequest.userDataDir ?? null,
-                manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
-                approvalHint: this.getAutoConnectApprovalHint(connectRequest),
-                selectedIndex: actualIndex,
-                selectedPageId: tab?.pageId ?? null,
-                currentUrl: selected?.url ?? null,
-                currentTitle: selected?.title ?? null,
-                totalPages: pages.length,
-                contextSwitched: pages.length > 0,
-                detachedCdpTarget: clearedTarget.detached,
-                detachedCdpTargetId: clearedTarget.targetId,
-                monitoringBindingDeferred: pageHandleReady,
-                networkMonitoringEnabled: false,
-                consoleMonitoringEnabled: false,
-                takeoverReady: pageHandleReady,
-                note: pageHandleReady
-                  ? 'Monitoring will auto-rebind on the next console/network operation for the selected tab.'
-                  : 'Connected to existing Chrome, but the selected tab does not currently expose a stable Puppeteer Page handle. Tab discovery still works; try selecting a different tab or navigate the tab and retry.',
-                status,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.ok()
+        .merge({
+          message: 'Attached to existing browser successfully',
+          endpoint: this.describeChromeConnectRequest(connectRequest),
+          autoConnect: this.isAutoConnectRequest(connectRequest),
+          channel: connectRequest.channel ?? null,
+          userDataDir: connectRequest.userDataDir ?? null,
+          manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
+          approvalHint: this.getAutoConnectApprovalHint(connectRequest),
+          selectedIndex: actualIndex,
+          selectedPageId: tab?.pageId ?? null,
+          currentUrl: selected?.url ?? null,
+          currentTitle: selected?.title ?? null,
+          totalPages: pages.length,
+          contextSwitched: pages.length > 0,
+          detachedCdpTarget: clearedTarget.detached,
+          detachedCdpTargetId: clearedTarget.targetId,
+          monitoringBindingDeferred: pageHandleReady,
+          networkMonitoringEnabled: false,
+          consoleMonitoringEnabled: false,
+          takeoverReady: pageHandleReady,
+          note: pageHandleReady
+            ? 'Monitoring will auto-rebind on the next console/network operation for the selected tab.'
+            : 'Connected to existing Chrome, but the selected tab does not currently expose a stable Puppeteer Page handle. Tab discovery still works; try selecting a different tab or navigate the tab and retry.',
+          status,
+        })
+        .json();
     } catch (error) {
-      logger.error('Failed to attach to browser:', error);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                hint: this.getAutoConnectApprovalHint(connectRequest ?? {}),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error)
+        .set('approvalHint', this.getAutoConnectApprovalHint(connectRequest ?? {}))
+        .json();
     }
   }
 }

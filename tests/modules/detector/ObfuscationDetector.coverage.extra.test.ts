@@ -55,7 +55,7 @@ describe('ObfuscationDetector extra coverage', () => {
       ]),
     );
     expect(result.toolRecommendations.map((item) => item.tool)).toEqual(
-      expect.arrayContaining(['deobfuscate', 'advanced_deobfuscate']),
+      expect.arrayContaining(['deobfuscate']),
     );
   });
 

@@ -71,13 +71,11 @@ const config: E2EConfig = {
 
 // Tools that require runtime context and should be skipped if not available
 const STRICT_OVERRIDE_TOOLS = new Set<string>([
-  'ai_hook_get_data',
-  'ai_hook_inject',
-  'ai_hook_toggle',
+  'ai_hook',
   'asar_extract',
   'breakpoint_remove',
   'check_debug_port',
-  'debugger_load_session',
+  'debugger_session',
   'electron_attach',
   'electron_check_fuses',
   'electron_debug_status',
@@ -95,7 +93,6 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'get_object_properties',
   'inject_dll',
   'inject_shellcode',
-  'install_extension',
   'memory_batch_write',
   'memory_check_protection',
   'memory_dump_region',
@@ -158,13 +155,12 @@ function getToolTimeoutOverride(toolName: string): number | null {
     toolName === 'restore_page_snapshot' ||
     toolName === 'process_launch_debug' ||
     toolName === 'process_find' ||
-    toolName === 'process_find_chromium' ||
     toolName === 'process_get' ||
     toolName === 'process_windows' ||
     toolName === 'process_check_debug_port' ||
     toolName === 'check_debug_port' ||
     toolName === 'enumerate_modules' ||
-    toolName === 'debugger_evaluate_global'
+    toolName === 'debugger_evaluate'
   ) {
     return 12_000;
   }
@@ -258,8 +254,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     console_enable: { enableNetwork: true },
     console_execute: { expression: '1+1' },
     console_inject_function_tracer: { functionName: 'fetch' },
-    debugger_evaluate: { expression: '1+1' },
-    debugger_evaluate_global: { expression: 'document.title' },
+    debugger_evaluate: { expression: '1+1', context: 'frame' },
     debugger_wait_for_paused: { timeout: 5000 },
     breakpoint_set: ctx.scriptId
       ? { scriptId: ctx.scriptId, lineNumber: 1 }
@@ -287,8 +282,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     ...(ctx.watchId ? { watch_remove: { watchId: ctx.watchId } } : {}),
     get_scope_variables_enhanced: { includeObjectProperties: true, maxDepth: 1 },
     debugger_get_paused_state: {},
-    debugger_step_into: {},
-    debugger_step_out: {},
+    debugger_step: { direction: 'into' },
     network_enable: {},
     network_get_requests: {},
     ...(ctx.requestId
@@ -318,19 +312,20 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     binary_entropy_analysis: { data: 'SGVsbG8gV29ybGQ=', source: 'base64' },
     protobuf_decode_raw: { data: 'CAESBXdvcmxk' },
     manage_hooks: { action: 'list' },
+    ai_hook: { action: 'list' },
     ...(ctx.hookId
       ? {
-          ai_hook_inject: { hookId: ctx.hookId, code: 'console.log("e2e hook")' },
-          ai_hook_toggle: { hookId: ctx.hookId, enabled: true },
-          ai_hook_get_data: { hookId: ctx.hookId },
+          ai_hook_inject: {
+            action: 'inject',
+            hookId: ctx.hookId,
+            code: 'console.log("e2e hook")',
+          },
+          ai_hook_toggle: { action: 'toggle', hookId: ctx.hookId, enabled: true },
+          ai_hook_get_data: { action: 'get_data', hookId: ctx.hookId },
         }
       : {}),
-    ai_hook_export: {},
-    ai_hook_clear: {},
-    ai_hook_list: {},
     hook_preset: { preset: 'network_monitor' },
     deobfuscate: { code: 'var a = 1;' },
-    advanced_deobfuscate: { code: 'var a = 1;' },
     webcrack_unpack: { code: 'var a = 1;' },
     understand_code: { code: 'function add(a,b){return a+b}' },
     detect_obfuscation: { code: 'eval(atob("YWxlcnQoMSk="))' },
@@ -362,7 +357,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     },
     blackbox_add: { urlPattern: '/node_modules/' },
     process_find: { pattern: 'chrome' },
-    process_find_chromium: {},
     process_launch_debug: { executablePath: browserPath, debugPort: 19222, args: ['--headless'] },
     ...(browserPid
       ? {
@@ -379,12 +373,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     wasm_optimize: { inputPath: wasmInputPath },
     wasm_vmp_trace: {},
     antidebug_detect_protections: {},
-    antidebug_bypass_all: {},
-    antidebug_bypass_debugger_statement: {},
-    antidebug_bypass_console_detect: {},
-    antidebug_bypass_stack_trace: {},
-    antidebug_bypass_timing: {},
-    source_map_extract: { url: targetUrl },
+    antidebug_bypass: { types: ['all'] },
     sourcemap_fetch_and_parse: { sourceMapUrl: targetUrl },
     sourcemap_reconstruct_tree: { sourceMapUrl: targetUrl },
     sourcemap_discover: {},
@@ -475,12 +464,10 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
           process_kill: { pid: browserPid },
         }
       : {}),
-    frida_bridge: { action: 'status' },
-    jadx_bridge: { action: 'status' },
     camoufox_server_launch: {},
     camoufox_server_close: {},
     ...(browserPid ? { check_debug_port: { pid: browserPid } } : {}),
-    ...(ctx.sessionPath ? { debugger_load_session: { filePath: ctx.sessionPath } } : {}),
+    ...(ctx.sessionPath ? { debugger_session: { action: 'load', filePath: ctx.sessionPath } } : {}),
     ...(ctx.workflowId ? { run_extension_workflow: { workflowId: ctx.workflowId } } : {}),
     ...(ctx.v8SnapshotId ? { v8_heap_snapshot_analyze: { snapshotId: ctx.v8SnapshotId } } : {}),
     ...(ctx.v8SnapshotId

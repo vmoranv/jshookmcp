@@ -21,12 +21,6 @@ describe('Workflow Domain Manifest', () => {
     vi.clearAllMocks();
 
     // Mock class methods instead of module to avoid re-export issues
-    vi.spyOn(WorkflowHandlers.prototype, 'handleWebApiCaptureSession').mockResolvedValue(
-      undefined as any,
-    );
-    vi.spyOn(WorkflowHandlers.prototype, 'handleRegisterAccountFlow').mockResolvedValue(
-      undefined as any,
-    );
     vi.spyOn(WorkflowHandlers.prototype, 'handlePageScriptRegister').mockResolvedValue(
       undefined as any,
     );
@@ -35,7 +29,6 @@ describe('Workflow Domain Manifest', () => {
     vi.spyOn(WorkflowHandlers.prototype, 'handleJsBundleSearch').mockResolvedValue(
       undefined as any,
     );
-    vi.spyOn(WorkflowHandlers.prototype, 'handleBatchRegister').mockResolvedValue(undefined as any);
     vi.spyOn(WorkflowHandlers.prototype, 'handleListExtensionWorkflows').mockResolvedValue(
       undefined as any,
     );
@@ -84,13 +77,10 @@ describe('Workflow Domain Manifest', () => {
         // Execute the bound function and verify it calls the right handler method
         // Extract the method name from the reg array by mapping tool names to method names
         const methodNameMap: Record<string, string> = {
-          web_api_capture_session: 'handleWebApiCaptureSession',
-          register_account_flow: 'handleRegisterAccountFlow',
           page_script_register: 'handlePageScriptRegister',
           page_script_run: 'handlePageScriptRun',
           api_probe_batch: 'handleApiProbeBatch',
           js_bundle_search: 'handleJsBundleSearch',
-          batch_register: 'handleBatchRegister',
           list_extension_workflows: 'handleListExtensionWorkflows',
           run_extension_workflow: 'handleRunExtensionWorkflow',
         };

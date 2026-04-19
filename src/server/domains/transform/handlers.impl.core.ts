@@ -1,86 +1,61 @@
-import { TransformToolHandlersCrypto } from '@server/domains/transform/handlers.impl.transform-crypto';
+/**
+ * Transform domain — composition facade.
+ *
+ * All utility functions extracted to ./handlers/shared.ts.
+ * Transform operations extracted to ./handlers/transform-operations.ts.
+ * Handler methods delegated to AstHandlers and CryptoHandlers sub-handlers.
+ */
 
-export class TransformToolHandlers extends TransformToolHandlersCrypto {
-  async handleAstTransformPreview(args: Record<string, unknown>) {
-    try {
-      const code = this.requireString(args.code, 'code');
-      const transforms = this.parseTransforms(args.transforms);
-      const preview = this.parseBoolean(args.preview, true);
+import type { CodeCollector } from '@server/domains/shared/modules';
+import type { TransformSharedState } from './handlers/shared';
+import { createTransformSharedState } from './handlers/shared';
+import { AstHandlers } from './handlers/ast-handlers';
+import { CryptoHandlers } from './handlers/crypto-handlers';
 
-      const result = this.applyTransforms(code, transforms);
-      const diff = preview ? this.buildDiff(code, result.transformed) : '';
+export class TransformToolHandlers {
+  protected collector: CodeCollector;
+  protected state: TransformSharedState;
+  private ast: AstHandlers;
+  private crypto: CryptoHandlers;
 
-      return this.toTextResponse({
-        original: code,
-        transformed: result.transformed,
-        diff,
-        appliedTransforms: result.appliedTransforms,
-      });
-    } catch (error) {
-      return this.fail('ast_transform_preview', error);
-    }
+  constructor(collector: CodeCollector) {
+    this.collector = collector;
+    this.state = createTransformSharedState(collector);
+    this.ast = new AstHandlers(this.state);
+    this.crypto = new CryptoHandlers(this.state);
   }
 
-  async handleAstTransformChain(args: Record<string, unknown>) {
-    try {
-      const name = this.requireString(args.name, 'name').trim();
-      const description =
-        typeof args.description === 'string' && args.description.trim().length > 0
-          ? args.description.trim()
-          : undefined;
-      const transforms = this.parseTransforms(args.transforms);
-
-      if (name.length === 0) {
-        throw new Error('name cannot be empty');
-      }
-
-      this.chains.set(name, {
-        name,
-        transforms,
-        description,
-        createdAt: Date.now(),
-      });
-
-      return this.toTextResponse({
-        name,
-        transforms,
-        created: true,
-      });
-    } catch (error) {
-      return this.fail('ast_transform_chain', error);
-    }
+  async close(): Promise<void> {
+    await this.state.cryptoHarnessPool.close();
   }
 
-  async handleAstTransformApply(args: Record<string, unknown>) {
-    try {
-      const chainName = typeof args.chainName === 'string' ? args.chainName.trim() : '';
-      const inlineCode = typeof args.code === 'string' ? args.code : '';
-      const scriptId = typeof args.scriptId === 'string' ? args.scriptId.trim() : '';
-
-      const sourceCode =
-        inlineCode.length > 0
-          ? inlineCode
-          : scriptId.length > 0
-            ? await this.resolveScriptSource(scriptId)
-            : '';
-
-      if (sourceCode.length === 0) {
-        throw new Error('Either code or scriptId must be provided');
-      }
-
-      const transforms = this.resolveTransformsForApply(chainName, args.transforms);
-      const result = this.applyTransforms(sourceCode, transforms);
-
-      return this.toTextResponse({
-        transformed: result.transformed,
-        stats: {
-          originalSize: sourceCode.length,
-          transformedSize: result.transformed.length,
-          transformsApplied: result.appliedTransforms,
-        },
-      });
-    } catch (error) {
-      return this.fail('ast_transform_apply', error);
-    }
+  protected get chains() {
+    return this.state.chains;
   }
+  protected get cryptoHarnessPool() {
+    return this.state.cryptoHarnessPool;
+  }
+
+  protected async runCryptoHarness(
+    code: string,
+    functionName: string,
+    testInputs: string[],
+  ): Promise<{
+    results: Array<{ input: string; output: string; duration: number; error?: string }>;
+    allPassed: boolean;
+  }> {
+    return this.crypto.runCryptoHarnessProxy(code, functionName, testInputs);
+  }
+
+  handleAstTransformPreview = (args: Record<string, unknown>) =>
+    this.ast.handleAstTransformPreview(args);
+  handleAstTransformChain = (args: Record<string, unknown>) =>
+    this.ast.handleAstTransformChain(args);
+  handleAstTransformApply = (args: Record<string, unknown>) =>
+    this.ast.handleAstTransformApply(args);
+  handleCryptoExtractStandalone = (args: Record<string, unknown>) =>
+    this.crypto.handleCryptoExtractStandalone(args);
+  handleCryptoTestHarness = (args: Record<string, unknown>) =>
+    this.crypto.handleCryptoTestHarness(args);
+  handleCryptoCompare = (args: Record<string, unknown>) => this.crypto.handleCryptoCompare(args);
 }

@@ -1,5 +1,6 @@
 import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
+import { R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 
 export type CamoufoxWaitUntil = 'load' | 'domcontentloaded' | 'networkidle' | 'commit';
 
@@ -21,80 +22,46 @@ export interface CamoufoxLaunchFlowContext {
 export async function handleCamoufoxLaunchFlow(
   context: CamoufoxLaunchFlowContext,
   args: Record<string, unknown>,
-) {
-  const headless = argBool(args, 'headless', true);
-  const os = argString(args, 'os', 'windows') as 'windows' | 'macos' | 'linux';
-  const mode = argString(args, 'mode', 'launch');
+): Promise<ToolResponse> {
+  try {
+    const headless = argBool(args, 'headless', true);
+    const os = argString(args, 'os', 'windows') as 'windows' | 'macos' | 'linux';
+    const mode = argString(args, 'mode', 'launch');
 
-  if (mode === 'connect') {
-    const wsEndpoint = argString(args, 'wsEndpoint');
-    if (!wsEndpoint) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: 'wsEndpoint is required for connect mode.',
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+    if (mode === 'connect') {
+      const wsEndpoint = argString(args, 'wsEndpoint');
+      if (!wsEndpoint) {
+        return R.fail('wsEndpoint is required for connect mode.').build();
+      }
+
+      const manager = new CamoufoxBrowserManager({ headless, os });
+      await manager.connectToServer(wsEndpoint);
+      context.setCamoufoxManager(manager);
+      context.setActiveDriver('camoufox');
+      context.clearCamoufoxPage();
+
+      return R.ok().build({
+        driver: 'camoufox',
+        mode: 'connect',
+        wsEndpoint,
+        message: 'Connected to Camoufox server.',
+      });
     }
 
     const manager = new CamoufoxBrowserManager({ headless, os });
-    await manager.connectToServer(wsEndpoint);
+    await manager.launch();
     context.setCamoufoxManager(manager);
     context.setActiveDriver('camoufox');
     context.clearCamoufoxPage();
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              driver: 'camoufox',
-              mode: 'connect',
-              wsEndpoint,
-              message: 'Connected to Camoufox server.',
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
+    return R.ok().build({
+      driver: 'camoufox',
+      mode: 'launch',
+      message: 'Camoufox (Firefox) browser launched',
+    });
+  } catch (e) {
+    return R.fail(e).build();
   }
-
-  const manager = new CamoufoxBrowserManager({ headless, os });
-  await manager.launch();
-  context.setCamoufoxManager(manager);
-  context.setActiveDriver('camoufox');
-  context.clearCamoufoxPage();
-
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify(
-          {
-            success: true,
-            driver: 'camoufox',
-            mode: 'launch',
-            message: 'Camoufox (Firefox) browser launched',
-          },
-          null,
-          2,
-        ),
-      },
-    ],
-  };
 }
 
 export interface CamoufoxNavigateFlowContext {
@@ -113,30 +80,22 @@ function normalizeWaitUntil(waitUntil: string): CamoufoxWaitUntil {
 export async function handleCamoufoxNavigateFlow(
   context: CamoufoxNavigateFlowContext,
   args: Record<string, unknown>,
-) {
-  const url = argString(args, 'url', '');
-  const rawWaitUntil = argString(args, 'waitUntil', 'networkidle');
-  const timeout = argNumber(args, 'timeout');
+): Promise<ToolResponse> {
+  try {
+    const url = argString(args, 'url', '');
+    const rawWaitUntil = argString(args, 'waitUntil', 'networkidle');
+    const timeout = argNumber(args, 'timeout');
 
-  const page = await context.getCamoufoxPage();
-  await page.goto(url, { waitUntil: normalizeWaitUntil(rawWaitUntil), timeout });
-  context.setConsoleMonitorPage(page);
+    const page = await context.getCamoufoxPage();
+    await page.goto(url, { waitUntil: normalizeWaitUntil(rawWaitUntil), timeout });
+    context.setConsoleMonitorPage(page);
 
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify(
-          {
-            success: true,
-            driver: 'camoufox',
-            url: page.url(),
-            title: await page.title(),
-          },
-          null,
-          2,
-        ),
-      },
-    ],
-  };
+    return R.ok().build({
+      driver: 'camoufox',
+      url: page.url(),
+      title: await page.title(),
+    });
+  } catch (e) {
+    return R.fail(e).build();
+  }
 }

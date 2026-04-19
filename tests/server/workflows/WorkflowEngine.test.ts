@@ -127,10 +127,10 @@ describe('workflows/WorkflowEngine', () => {
     );
 
     const result = await executeExtensionWorkflow(ctx as never, workflow);
-    const parallelResult = result.stepResults.parallel as Array<Record<string, unknown>>;
+    const parallelResult = result.stepResults.parallel as Record<string, unknown>;
 
-    expect(parallelResult[0]?.content).toBeDefined();
-    expect(parallelResult[1]).toEqual({ success: false, error: 'boom' });
+    expect((parallelResult['good-step'] as any)?.content).toBeDefined();
+    expect(parallelResult['bad-step']).toEqual({ success: false, error: 'boom' });
   });
 
   it('uses predicate functions and built-in predicates for branch routing', async () => {
@@ -340,8 +340,8 @@ describe('workflows/WorkflowEngine', () => {
       ),
     );
     const res = await executeExtensionWorkflow(ctx as never, workflow);
-    expect((res.stepResults.p as any)[0].error).toBe('boom');
-    expect((res.stepResults.p as any)[1].error).toBe('string error');
+    expect((res.stepResults.p as any)['t1'].error).toBe('boom');
+    expect((res.stepResults.p as any)['t3'].error).toBe('string error');
 
     const wf2 = defineWorkflow('w2', 'w2', (w) =>
       w.buildGraph(() =>

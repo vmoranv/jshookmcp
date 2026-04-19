@@ -19,9 +19,11 @@ function createMockCollector(hasPage = true) {
 }
 
 describe('handleCaptchaVisionSolve', () => {
-  it('throws when no active page', async () => {
+  it('returns failure when no active page', async () => {
     const collector = createMockCollector(false);
-    await expect(handleCaptchaVisionSolve({}, collector)).rejects.toThrow(/No active page/);
+    const result = parseJson<BrowserStatusResponse>(await handleCaptchaVisionSolve({}, collector));
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/No active page/);
   });
 
   it('returns manual mode instruction when mode is manual', async () => {
@@ -148,9 +150,13 @@ describe('handleCaptchaVisionSolve', () => {
 });
 
 describe('handleWidgetChallengeSolve', () => {
-  it('throws when no active page', async () => {
+  it('returns failure when no active page', async () => {
     const collector = createMockCollector(false);
-    await expect(handleWidgetChallengeSolve({}, collector)).rejects.toThrow(/No active page/);
+    const result = parseJson<BrowserStatusResponse>(
+      await handleWidgetChallengeSolve({}, collector),
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/No active page/);
   });
 
   it('requires siteKey detection or manual input', async () => {

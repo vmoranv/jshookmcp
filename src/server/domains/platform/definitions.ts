@@ -36,17 +36,17 @@ export const platformTools: Tool[] = [
   tool('electron_inspect_app', (t) =>
     t
       .desc(
-        '分析 Electron 应用结构（.exe 或 app 目录）：package.json、main、preload、dependencies、devToolsEnabled。',
+        '分析 Electron 应用结构（.exe 或 app 目录）：package.json、main、preload、dependencies、devToo...',
       )
-      .string('appPath', '必填。Electron .exe 路径或应用目录路径。')
+      .string('appPath', 'Path to Electron app (.exe or app directory)')
       .required('appPath'),
   ),
   tool('electron_scan_userdata', (t) =>
     t
       .desc(
-        '扫描指定目录中的所有 JSON 文件，返回 raw 内容。适用于 Electron 应用的用户数据目录（Windows: %APPDATA%, macOS: ~/Library/Application Support, Linux: ~/.config）。Agent 自行解读数据。',
+        '扫描指定目录中的所有 JSON 文件，返回 raw 内容。适用于 Electron 应用的用户数据目录（Windows: %APPDATA%, macOS...',
       )
-      .string('dirPath', '必填。要扫描的目录绝对路径（任意平台）。')
+      .string('dirPath', 'Directory path to scan for JSON files')
       .number('maxFiles', '可选。最多读取的 JSON 文件数量。默认 20。', { default: 20 })
       .number('maxFileSizeKB', '可选。单个文件大小上限（KB）。超限文件跳过。默认 1024。', {
         default: 1024,
@@ -73,10 +73,8 @@ export const platformTools: Tool[] = [
   ),
   tool('electron_patch_fuses', (t) =>
     t
-      .desc(
-        'Patch Electron binary fuses to enable/disable debug capabilities. Creates backup before patching. Use profile="debug" to enable RunAsNode, NodeOptions, InspectArguments and disable OnlyLoadAppFromAsar.',
-      )
-      .string('exePath', 'Required. Path to the Electron .exe file to patch.')
+      .desc('Patch Electron binary fuses to enable/disable debug capabilities.')
+      .string('exePath', 'Electron .exe file path')
       .enum(
         'profile',
         ['debug', 'custom'],
@@ -94,19 +92,15 @@ export const platformTools: Tool[] = [
   ),
   tool('v8_bytecode_decompile', (t) =>
     t
-      .desc(
-        'Decompile V8 bytecode (.jsc / bytenode) files. Uses view8 Python package for full decompilation (preferred), falls back to built-in constant pool extraction. Returns pseudocode or extracted strings for LLM analysis.',
-      )
-      .string('filePath', 'Required. Path to the .jsc or V8 bytecode file.')
+      .desc('Decompile V8 bytecode (.jsc / bytenode) files. Uses view8 Python package for ...')
+      .string('filePath', 'Path to .jsc bytecode file')
       .required('filePath')
       .query(),
   ),
   tool('electron_launch_debug', (t) =>
     t
-      .desc(
-        'Launch Electron app with dual CDP debugging: --inspect for main process (Node.js) and --remote-debugging-port for renderer (Chromium). Auto-checks fuse status.',
-      )
-      .string('exePath', 'Required. Path to the Electron .exe file.')
+      .desc('Launch Electron app with dual CDP debugging: --inspect for main process (Node...')
+      .string('exePath', 'Electron .exe file path')
       .number('mainPort', 'Main process inspect port.', { default: 9229 })
       .number('rendererPort', 'Renderer remote debugging port.', { default: 9222 })
       .array('args', { type: 'string' }, 'Extra command-line arguments.')
@@ -120,67 +114,15 @@ export const platformTools: Tool[] = [
       .string('sessionId', 'Optional. Check specific session. Omit to list all.')
       .query(),
   ),
-  tool('frida_bridge', (t) =>
-    t
-      .desc(
-        'Dynamic instrumentation bridge via Frida. Actions: check_env (verify frida installed), generate_script (hook template), attach (live-attach to process), run_script (inject script), detach (disconnect), list_sessions, guide (usage help).',
-      )
-      .enum(
-        'action',
-        [
-          'check_env',
-          'generate_script',
-          'attach',
-          'run_script',
-          'detach',
-          'list_sessions',
-          'guide',
-        ],
-        'Action to perform.',
-        { default: 'guide' },
-      )
-      .number('pid', 'Process ID for attach/run_script.')
-      .string('processName', 'Process name for attach (alternative to pid).')
-      .string('sessionId', 'Session ID for run_script/detach.')
-      .string('script', 'Frida JS script to inject (for run_script).')
-      .enum(
-        'hookType',
-        ['intercept', 'replace', 'stalker', 'module_export'],
-        'Hook template type (for generate_script).',
-        { default: 'intercept' },
-      )
-      .string('functionName', 'Target function name (for generate_script).')
-      .string('target', 'Target process name (for generate_script usage hint).')
-      .openWorld(),
-  ),
   tool('electron_ipc_sniff', (t) =>
     t
-      .desc(
-        'Sniff Electron IPC messages by injecting hooks into ipcRenderer via CDP. Captures invoke/send/sendSync with channel names and arguments. Actions: start (inject hooks), dump (retrieve captured messages), stop (end session), list (show sessions), guide.',
-      )
+      .desc('Sniff Electron IPC messages by injecting hooks into ipcRenderer via CDP.')
       .enum('action', ['start', 'dump', 'stop', 'list', 'guide'], 'Action to perform.', {
         default: 'guide',
       })
       .number('port', 'Renderer CDP port (--remote-debugging-port).', { default: 9222 })
       .string('sessionId', 'Session ID for dump/stop.')
       .boolean('clear', 'Clear captured messages after dump.', { default: true })
-      .openWorld(),
-  ),
-  tool('jadx_bridge', (t) =>
-    t
-      .desc(
-        'JADX decompiler bridge for Android APK/DEX/AAR files. Actions: check_env (verify jadx installed), decompile (run jadx on input), guide (usage help).',
-      )
-      .enum('action', ['check_env', 'decompile', 'guide'], 'Action to perform.', {
-        default: 'guide',
-      })
-      .string('inputPath', 'Required for decompile. Path to APK/DEX/AAR file.')
-      .string('outputDir', 'Optional. Output directory for decompiled sources.')
-      .array(
-        'extraArgs',
-        { type: 'string' },
-        'Extra jadx CLI arguments (e.g. ["--deobf", "--show-bad-code"]).',
-      )
       .openWorld(),
   ),
 ];

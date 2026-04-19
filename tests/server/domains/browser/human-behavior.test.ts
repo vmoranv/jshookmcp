@@ -65,16 +65,20 @@ describe('handleHumanMouse', () => {
     vi.useRealTimers();
   });
 
-  it('throws when no active page', async () => {
+  it('returns failure when no active page', async () => {
     const { collector } = createMockCollector(false);
-    await expect(handleHumanMouse({ toX: 100, toY: 100 }, collector)).rejects.toThrow(
-      /No active page/,
-    );
+    const result = await handleHumanMouse({ toX: 100, toY: 100 }, collector);
+    const body = parseJson<BrowserStatusResponse>(result);
+    expect(body.success).toBe(false);
+    expect(body.error).toMatch(/No active page/);
   });
 
-  it('throws when neither selector nor coordinates provided', async () => {
+  it('returns failure when neither selector nor coordinates provided', async () => {
     const { collector } = createMockCollector(true);
-    await expect(handleHumanMouse({}, collector)).rejects.toThrow(/selector.*toX\/toY/i);
+    const result = await handleHumanMouse({}, collector);
+    const body = parseJson<BrowserStatusResponse>(result);
+    expect(body.success).toBe(false);
+    expect(body.error).toMatch(/selector.*toX\/toY/i);
   });
 
   it('clamps steps to [1, 500]', async () => {
@@ -82,13 +86,13 @@ describe('handleHumanMouse', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanMouse({ toX: 100, toY: 100, steps: 0 }, collector),
     );
-    expect(parseJson<BrowserStatusResponse>(result).steps).toBe(1);
+    expect(parseJson<BrowserStatusResponse>(result)).toMatchObject({ success: true, steps: 1 });
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanMouse({ toX: 100, toY: 100, steps: 999 }, c2),
     );
-    expect(parseJson<BrowserStatusResponse>(result2).steps).toBe(500);
+    expect(parseJson<BrowserStatusResponse>(result2)).toMatchObject({ success: true, steps: 500 });
   }, 30_000);
 
   it('clamps durationMs to [10, 30000]', async () => {
@@ -96,13 +100,19 @@ describe('handleHumanMouse', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanMouse({ toX: 100, toY: 100, durationMs: 0, steps: 1 }, collector),
     );
-    expect(parseJson<BrowserStatusResponse>(result).durationMs).toBe(10);
+    expect(parseJson<BrowserStatusResponse>(result)).toMatchObject({
+      success: true,
+      durationMs: 10,
+    });
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanMouse({ toX: 100, toY: 100, durationMs: 99999, steps: 1 }, c2),
     );
-    expect(parseJson<BrowserStatusResponse>(result2).durationMs).toBe(30000);
+    expect(parseJson<BrowserStatusResponse>(result2)).toMatchObject({
+      success: true,
+      durationMs: 30000,
+    });
   }, 30_000);
 
   it('moves mouse and reports success', async () => {
@@ -143,9 +153,12 @@ describe('handleHumanScroll', () => {
     vi.useRealTimers();
   });
 
-  it('throws when no active page', async () => {
+  it('returns failure when no active page', async () => {
     const { collector } = createMockCollector(false);
-    await expect(handleHumanScroll({}, collector)).rejects.toThrow(/No active page/);
+    const result = await handleHumanScroll({}, collector);
+    const body = parseJson<BrowserStatusResponse>(result);
+    expect(body.success).toBe(false);
+    expect(body.error).toMatch(/No active page/);
   });
 
   it('clamps distance to [1, 10000]', async () => {
@@ -153,23 +166,32 @@ describe('handleHumanScroll', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanScroll({ distance: -5, segments: 1 }, collector),
     );
-    expect(parseJson<BrowserStatusResponse>(result).requestedDistance).toBe(1);
+    expect(parseJson<BrowserStatusResponse>(result)).toMatchObject({
+      success: true,
+      requestedDistance: 1,
+    });
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanScroll({ distance: 99999, segments: 1 }, c2),
     );
-    expect(parseJson<BrowserStatusResponse>(result2).requestedDistance).toBe(10000);
+    expect(parseJson<BrowserStatusResponse>(result2)).toMatchObject({
+      success: true,
+      requestedDistance: 10000,
+    });
   });
 
   it('clamps segments to [1, 200]', async () => {
     const { collector } = createMockCollector(true);
     const result = await runWithFakeTimers(() => handleHumanScroll({ segments: 0 }, collector));
-    expect(parseJson<BrowserStatusResponse>(result).segments).toBe(1);
+    expect(parseJson<BrowserStatusResponse>(result)).toMatchObject({ success: true, segments: 1 });
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() => handleHumanScroll({ segments: 999 }, c2));
-    expect(parseJson<BrowserStatusResponse>(result2).segments).toBe(200);
+    expect(parseJson<BrowserStatusResponse>(result2)).toMatchObject({
+      success: true,
+      segments: 200,
+    });
   }, 30_000);
 
   it('scrolls and reports success', async () => {
@@ -189,16 +211,20 @@ describe('handleHumanTyping', () => {
     vi.useRealTimers();
   });
 
-  it('throws when no active page', async () => {
+  it('returns failure when no active page', async () => {
     const { collector } = createMockCollector(false);
-    await expect(handleHumanTyping({ selector: '#input', text: 'hi' }, collector)).rejects.toThrow(
-      /No active page/,
-    );
+    const result = await handleHumanTyping({ selector: '#input', text: 'hi' }, collector);
+    const body = parseJson<BrowserStatusResponse>(result);
+    expect(body.success).toBe(false);
+    expect(body.error).toMatch(/No active page/);
   });
 
   it('requires selector and text', async () => {
     const { collector } = createMockCollector(true);
-    await expect(handleHumanTyping({}, collector)).rejects.toThrow(/selector.*text/i);
+    const result = await handleHumanTyping({}, collector);
+    const body = parseJson<BrowserStatusResponse>(result);
+    expect(body.success).toBe(false);
+    expect(body.error).toMatch(/selector.*text/i);
   });
 
   it('clamps wpm to [10, 300]', async () => {
@@ -206,13 +232,13 @@ describe('handleHumanTyping', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanTyping({ selector: '#in', text: 'a', wpm: 1 }, collector),
     );
-    expect(parseJson<BrowserStatusResponse>(result).wpm).toBe(10);
+    expect(parseJson<BrowserStatusResponse>(result)).toMatchObject({ success: true, wpm: 10 });
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanTyping({ selector: '#in', text: 'a', wpm: 999 }, c2),
     );
-    expect(parseJson<BrowserStatusResponse>(result2).wpm).toBe(300);
+    expect(parseJson<BrowserStatusResponse>(result2)).toMatchObject({ success: true, wpm: 300 });
   });
 
   it('clamps errorRate to [0, 0.3]', async () => {
@@ -220,13 +246,16 @@ describe('handleHumanTyping', () => {
     const result = await runWithFakeTimers(() =>
       handleHumanTyping({ selector: '#in', text: 'a', errorRate: -1 }, collector),
     );
-    expect(parseJson<BrowserStatusResponse>(result).errorRate).toBe(0);
+    expect(parseJson<BrowserStatusResponse>(result)).toMatchObject({ success: true, errorRate: 0 });
 
     const { collector: c2 } = createMockCollector(true);
     const result2 = await runWithFakeTimers(() =>
       handleHumanTyping({ selector: '#in', text: 'a', errorRate: 0.9 }, c2),
     );
-    expect(parseJson<BrowserStatusResponse>(result2).errorRate).toBeCloseTo(0.3);
+    expect(parseJson<BrowserStatusResponse>(result2)).toMatchObject({
+      success: true,
+      errorRate: 0.3,
+    });
   });
 
   it('types text and reports success', async () => {

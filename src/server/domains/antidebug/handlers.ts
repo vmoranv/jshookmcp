@@ -324,4 +324,63 @@ export class AntiDebugToolHandlers {
       });
     }
   }
+
+  async handleAntidebugBypass(args: Record<string, unknown>) {
+    const rawTypes = args['types'];
+    const typesArr: string[] = Array.isArray(rawTypes) ? (rawTypes as string[]) : ['all'];
+    const types = typesArr.length === 0 ? ['all'] : typesArr;
+
+    // If 'all' is in the list, delegate to the all-in-one handler
+    if (types.includes('all')) {
+      return this.handleAntiDebugBypassAll(args);
+    }
+
+    const persistent = this.parseBooleanArg(args['persistent'], true);
+    const mode = this.parseDebuggerMode(args['mode']);
+    const maxDrift = this.parseNumberArg(args['maxDrift'], {
+      defaultValue: AntiDebugToolHandlers.DEFAULT_MAX_DRIFT,
+      min: 0,
+      max: 1000,
+    });
+    const userPatterns = this.parseStringArrayArg(args['filterPatterns']);
+
+    const applied: string[] = [];
+    try {
+      const page = await this.getPage();
+
+      if (types.includes('debugger_statement')) {
+        const script = this.buildDebuggerBypassScript(mode);
+        await this.injectScripts(page, [script], persistent);
+        applied.push('debugger_statement');
+      }
+      if (types.includes('timing')) {
+        const script = this.buildTimingBypassScript(maxDrift);
+        await this.injectScripts(page, [script], persistent);
+        applied.push('timing');
+      }
+      if (types.includes('stack_trace')) {
+        const mergedPatterns = this.mergeStackFilterPatterns(userPatterns);
+        const script = this.buildStackTraceBypassScript(mergedPatterns);
+        await this.injectScripts(page, [script], persistent);
+        applied.push('stack_trace');
+      }
+      if (types.includes('console_detect')) {
+        await this.injectScripts(page, [ANTI_DEBUG_SCRIPTS.bypassConsoleDetect], persistent);
+        applied.push('console_detect');
+      }
+
+      return this.toTextResponse({
+        success: true,
+        tool: 'antidebug_bypass',
+        applied,
+        persistent,
+      });
+    } catch (error) {
+      return this.toTextResponse({
+        success: false,
+        tool: 'antidebug_bypass',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 }

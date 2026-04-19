@@ -1,20 +1,6 @@
-/**
- * Tab Workflow — cross-tab coordination for multi-page automation flows.
- *
- * Now backed by TabRegistry for stable pageId-based alias binding.
- * Solves the registration-page ↔ email-verification-page problem:
- * - alias_bind: name a tab by index (resolved to stable pageId)
- * - alias_open: open a URL in a new tab and bind an alias
- * - navigate: navigate a specific aliased tab
- * - wait_for: wait for text/selector in an aliased tab
- * - context_set / context_get: share data between tabs
- * - transfer: copy data from one tab's page.evaluate to the shared context
- * - list: show all aliases, pageIds, and shared context
- * - clear: clear all state
- */
-
 import { logger } from '@utils/logger';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
+import { R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 
 interface TabPageLike {
   goto(url: string, options?: { waitUntil?: string; timeout?: number }): Promise<unknown>;
@@ -133,14 +119,14 @@ export class TabWorkflowHandlers {
     return this.deps.getTabRegistry();
   }
 
-  async handleTabWorkflow(args: Record<string, unknown>) {
+  async handleTabWorkflow(args: Record<string, unknown>): Promise<ToolResponse> {
     const action = args.action;
 
     try {
       if (!isTabAction(action)) {
-        return this.error(
+        return R.fail(
           `Unknown action: "${String(action)}". Valid: list, alias_bind, alias_open, navigate, wait_for, context_set, context_get, transfer, clear`,
-        );
+        ).build();
       }
 
       switch (action) {
@@ -164,20 +150,21 @@ export class TabWorkflowHandlers {
           return await this.transfer(args);
       }
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
       logger.error('[tab_workflow] Action failed', {
         action: typeof action === 'string' ? action : String(action),
         alias: typeof args.alias === 'string' ? args.alias : undefined,
         fromAlias: typeof args.fromAlias === 'string' ? args.fromAlias : undefined,
-        error: err instanceof Error ? err.message : String(err),
+        error: errorMsg,
       });
-      return this.error(err instanceof Error ? err.message : String(err));
+      return R.fail(errorMsg).build();
     }
   }
 
-  private listAliases() {
+  private listAliases(): ToolResponse {
     const info = this.registry.getCurrentTabInfo(this.deps.getActiveDriver());
     const context = this.registry.getSharedContextMap();
-    return this.ok({
+    return R.ok().build({
       aliases: info.aliases,
       staleAliases: info.staleAliases,
       currentPageId: info.currentPageId,
@@ -187,39 +174,39 @@ export class TabWorkflowHandlers {
     });
   }
 
-  private clearState() {
+  private clearState(): ToolResponse {
     this.registry.clear();
-    return this.ok({ cleared: true });
+    return R.ok().build({ cleared: true });
   }
 
-  private async aliasBind(args: Record<string, unknown>) {
+  private async aliasBind(args: Record<string, unknown>): Promise<ToolResponse> {
     const alias = readRequiredString(args.alias);
     const index = readAliasIndex(args.index);
-    if (!alias) return this.error('alias is required');
-    if (index === null) return this.error('index is required');
+    if (!alias) return R.fail('alias is required').build();
+    if (index === null) return R.fail('index is required').build();
 
     // Reconcile pages first to ensure registry is fresh
     await this.reconcilePages();
 
     const pageId = this.registry.bindAliasByIndex(alias, index);
     if (!pageId) {
-      return this.error(
+      return R.fail(
         `No active page at index ${index}. Use browser_list_tabs to check available pages.`,
-      );
+      ).build();
     }
-    return this.ok({ bound: { alias, index, pageId } });
+    return R.ok().build({ bound: { alias, index, pageId } });
   }
 
-  private async aliasOpen(args: Record<string, unknown>) {
+  private async aliasOpen(args: Record<string, unknown>): Promise<ToolResponse> {
     const alias = readRequiredString(args.alias);
     const url = readRequiredString(args.url);
-    if (!alias) return this.error('alias is required');
-    if (!url) return this.error('url is required');
+    if (!alias) return R.fail('alias is required').build();
+    if (!url) return R.fail('url is required').build();
 
     if (this.deps.getActiveDriver() === 'camoufox') {
       const currentPage = await this.deps.getCamoufoxPage();
       if (!isCamoufoxPageLike(currentPage)) {
-        return this.error('Cannot open new tab: camoufox page context not accessible');
+        return R.fail('Cannot open new tab: camoufox page context not accessible').build();
       }
 
       const context = currentPage.context();
@@ -234,13 +221,15 @@ export class TabWorkflowHandlers {
         title: pageTitle,
       });
       this.registry.bindAlias(alias, pageId);
-      return this.ok({ alias, index: idx, pageId, url: newPage.url(), title: pageTitle });
+      return R.ok().build({ alias, index: idx, pageId, url: newPage.url(), title: pageTitle });
     }
 
     // Puppeteer path
     const browser = await this.getBrowserFromController();
     if (!browser)
-      return this.error('Cannot open new tab: browser instance not accessible via PageController');
+      return R.fail(
+        'Cannot open new tab: browser instance not accessible via PageController',
+      ).build();
     const newPage = await browser.newPage();
     await newPage.goto(url, { waitUntil: 'domcontentloaded' });
     const pages = await browser.pages();
@@ -252,38 +241,40 @@ export class TabWorkflowHandlers {
       title: pageTitle,
     });
     this.registry.bindAlias(alias, pageId);
-    return this.ok({ alias, index: idx, pageId, url: newPage.url(), title: pageTitle });
+    return R.ok().build({ alias, index: idx, pageId, url: newPage.url(), title: pageTitle });
   }
 
-  private async navigateAlias(args: Record<string, unknown>) {
+  private async navigateAlias(args: Record<string, unknown>): Promise<ToolResponse> {
     const alias = readRequiredString(args.alias);
     const url = readRequiredString(args.url);
-    if (!alias) return this.error('alias is required');
-    if (!url) return this.error('url is required');
+    if (!alias) return R.fail('alias is required').build();
+    if (!url) return R.fail('url is required').build();
 
     const page = await this.getPageByAlias(alias);
     if (!page)
-      return this.error(`No tab found for alias "${alias}". Use alias_bind or alias_open first.`);
+      return R.fail(
+        `No tab found for alias "${alias}". Use alias_bind or alias_open first.`,
+      ).build();
 
     await page.goto(url, { waitUntil: 'domcontentloaded' });
-    return this.ok({ alias, navigated: url, currentUrl: page.url() });
+    return R.ok().build({ alias, navigated: url, currentUrl: page.url() });
   }
 
-  private async waitFor(args: Record<string, unknown>) {
+  private async waitFor(args: Record<string, unknown>): Promise<ToolResponse> {
     const alias = readRequiredString(args.alias);
     const selector = readRequiredString(args.selector);
     const text = readRequiredString(args.waitForText);
     const timeoutMs = readTimeout(args.timeoutMs, 10000);
 
-    if (!alias) return this.error('alias is required');
-    if (!selector && !text) return this.error('selector or waitForText is required');
+    if (!alias) return R.fail('alias is required').build();
+    if (!selector && !text) return R.fail('selector or waitForText is required').build();
 
     const page = await this.getPageByAlias(alias);
-    if (!page) return this.error(`No tab found for alias "${alias}"`);
+    if (!page) return R.fail(`No tab found for alias "${alias}"`).build();
 
     if (selector) {
       await page.waitForSelector(selector, { timeout: timeoutMs });
-      return this.ok({ alias, waitedFor: selector, found: true });
+      return R.ok().build({ alias, waitedFor: selector, found: true });
     }
 
     // Wait for text
@@ -294,43 +285,43 @@ export class TabWorkflowHandlers {
       const bodyText =
         typeof bodyTextValue === 'string' ? bodyTextValue : String(bodyTextValue ?? '');
       if (bodyText.includes(waitText)) {
-        return this.ok({ alias, waitedForText: waitText, found: true });
+        return R.ok().build({ alias, waitedForText: waitText, found: true });
       }
       await new Promise((r) => setTimeout(r, 500));
     }
-    return this.error(`Timeout waiting for text "${waitText}" in tab "${alias}"`);
+    return R.fail(`Timeout waiting for text "${waitText}" in tab "${alias}"`).build();
   }
 
-  private contextSet(args: Record<string, unknown>) {
+  private contextSet(args: Record<string, unknown>): ToolResponse {
     const key = readRequiredString(args.key);
     const value = args.value;
-    if (!key) return this.error('key is required');
+    if (!key) return R.fail('key is required').build();
     this.registry.setSharedContext(key, value);
-    return this.ok({ set: { key, value } });
+    return R.ok().build({ set: { key, value } });
   }
 
-  private contextGet(args: Record<string, unknown>) {
+  private contextGet(args: Record<string, unknown>): ToolResponse {
     const key = readRequiredString(args.key);
-    if (!key) return this.error('key is required');
+    if (!key) return R.fail('key is required').build();
     const { value, found } = this.registry.getSharedContext(key);
-    return this.ok({ key, value, found });
+    return R.ok().build({ key, value, found });
   }
 
-  private async transfer(args: Record<string, unknown>) {
+  private async transfer(args: Record<string, unknown>): Promise<ToolResponse> {
     const fromAlias = readRequiredString(args.fromAlias);
     const key = readRequiredString(args.key);
     const expression = readRequiredString(args.expression);
 
-    if (!fromAlias) return this.error('fromAlias is required');
-    if (!key) return this.error('key is required');
-    if (!expression) return this.error('expression is required');
+    if (!fromAlias) return R.fail('fromAlias is required').build();
+    if (!key) return R.fail('key is required').build();
+    if (!expression) return R.fail('expression is required').build();
 
     const page = await this.getPageByAlias(fromAlias);
-    if (!page) return this.error(`No tab found for alias "${fromAlias}"`);
+    if (!page) return R.fail(`No tab found for alias "${fromAlias}"`).build();
 
     const value = await page.evaluate(expression);
     this.registry.setSharedContext(key, value);
-    return this.ok({ transferred: { fromAlias, key, value } });
+    return R.ok().build({ transferred: { fromAlias, key, value } });
   }
 
   private async getPageByAlias(alias: string): Promise<TabPageLike | null> {
@@ -386,27 +377,5 @@ export class TabWorkflowHandlers {
 
     const browser = await pc.getBrowser();
     return isBrowserLike(browser) ? browser : null;
-  }
-
-  private ok(data: Record<string, unknown>) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ success: true, ...data }, null, 2),
-        },
-      ],
-    };
-  }
-
-  private error(message: string) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ success: false, error: message }, null, 2),
-        },
-      ],
-    };
   }
 }

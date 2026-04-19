@@ -2,46 +2,32 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const aiHookTools: Tool[] = [
-  tool('ai_hook_inject', (t) =>
+  tool('ai_hook', (t) =>
     t
       .desc(
-        'Inject a generated hook into the page.\n\nMethods:\n- evaluateOnNewDocument: Runs before page scripts (use for API hooks like fetch/XHR)\n- evaluate: Runs in current page context (use for hooking already-loaded code)',
+        'Manage AI hooks. Actions: inject (inject code into page), get_data (retrieve captured hook data), list (all active hooks), clear (remove hook data by id or all), toggle (enable/disable a hook), export (export data as JSON/CSV).',
       )
-      .string('hookId', 'Hook ID for injection')
-      .string('code', 'Hook code to inject')
-      .enum('method', ['evaluateOnNewDocument', 'evaluate'], 'Injection method', {
-        default: 'evaluate',
-      })
-      .required('hookId', 'code'),
-  ),
-  tool('ai_hook_get_data', (t) =>
-    t
-      .desc(
-        'Retrieve captured data from an active hook (arguments, return values, timestamps, call count)',
+      .enum(
+        'action',
+        ['inject', 'get_data', 'list', 'clear', 'toggle', 'export'],
+        'Operation to perform',
       )
-      .string('hookId', 'Hook ID')
-      .required('hookId'),
-  ),
-  tool('ai_hook_list', (t) =>
-    t.desc('List all active hooks with their IDs, types, creation time, and call counts'),
-  ),
-  tool('ai_hook_clear', (t) =>
-    t
-      .desc('Remove one hook by ID or clear all hooks and their captured data')
-      .string('hookId', 'Hook ID to clear (omit to clear all hooks)'),
-  ),
-  tool('ai_hook_toggle', (t) =>
-    t
-      .desc('Enable or disable a hook without removing it')
-      .string('hookId', 'Hook ID')
-      .boolean('enabled', 'true to enable, false to disable')
-      .required('hookId', 'enabled'),
-  ),
-  tool('ai_hook_export', (t) =>
-    t
-      .desc('Export captured hook data in JSON or CSV format')
-      .string('hookId', 'Hook ID to export (omit to export all hooks)')
-      .enum('format', ['json', 'csv'], 'Export format', { default: 'json' }),
+      .string(
+        'hookId',
+        'Hook identifier (required for inject/get_data/toggle; optional for clear/export)',
+      )
+      .string('code', 'Hook code to inject (required for action=inject)')
+      .enum(
+        'method',
+        ['evaluateOnNewDocument', 'evaluate'],
+        'Injection method (for action=inject)',
+        {
+          default: 'evaluate',
+        },
+      )
+      .boolean('enabled', 'Enable or disable hook (required for action=toggle)')
+      .enum('format', ['json', 'csv'], 'Export format (for action=export)', { default: 'json' })
+      .required('action'),
   ),
 ];
 

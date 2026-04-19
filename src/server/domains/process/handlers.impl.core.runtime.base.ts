@@ -1,7 +1,7 @@
-// Re-export for backward compatibility - redirects to merged handlers.base.ts
+// Backward-compatible re-export — redirects to composition facade.
 export {
   validatePid,
   requireString,
   requirePositiveNumber,
   ProcessHandlersBase as ProcessToolHandlersBase,
-} from '@server/domains/process/handlers.base';
+} from '@server/domains/process/handlers.impl';

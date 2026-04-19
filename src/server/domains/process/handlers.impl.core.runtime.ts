@@ -1,1 +1,2 @@
-export { ProcessToolHandlersRuntime as ProcessToolHandlers } from '@server/domains/process/handlers.impl.core.runtime.inject';
+// Backward-compatible re-export — redirects to composition facade.
+export { ProcessToolHandlers } from '@server/domains/process/handlers.impl';

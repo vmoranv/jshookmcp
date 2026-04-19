@@ -9,83 +9,55 @@ const queryTypes = [
 ] as const;
 
 export const instrumentationTools: Tool[] = [
-  tool('instrumentation_session_create', (t) =>
+  tool('instrumentation_session', (t) =>
     t
       .desc(
-        'Create a new instrumentation session that groups hooks, intercepts, and traces into a single queryable container.\n\nAll subsequent instrumentation operations can be associated with this session for unified management and artifact export.',
+        `Manage instrumentation sessions that group hooks, intercepts, and traces.
+
+Actions:
+- create: Create a new session
+- list: List all active sessions
+- destroy: Destroy a session (requires sessionId)
+- status: Get detailed session status (requires sessionId)`,
       )
-      .string('name', 'Optional human-readable name for the session'),
+      .enum('action', ['create', 'list', 'destroy', 'status'], 'Session operation')
+      .string('sessionId', 'Session ID (required for destroy/status)')
+      .required('action'),
   ),
-  tool('instrumentation_session_list', (t) =>
-    t
-      .desc('List all active instrumentation sessions with their operation and artifact counts.')
-      .query(),
-  ),
-  tool('instrumentation_session_destroy', (t) =>
-    t
-      .desc(
-        'Destroy an instrumentation session, marking all its operations as completed. Session data is retained for querying but no new operations can be added.',
-      )
-      .string('sessionId', 'Session ID returned by instrumentation_session_create')
-      .required('sessionId')
-      .resettable(),
-  ),
-  tool('instrumentation_session_status', (t) =>
+  tool('instrumentation_operation', (t) =>
     t
       .desc(
-        'Get detailed status for an instrumentation session including operation count, artifact count, and active/destroyed state.',
+        `Manage operations within an instrumentation session.
+
+Actions:
+- register: Register a new operation (requires sessionId, type, target)
+- list: List operations in a session (requires sessionId)`,
       )
-      .string('sessionId', 'Session ID')
-      .required('sessionId')
-      .query(),
+      .enum('action', ['register', 'list'], 'Operation')
+      .enum('type', queryTypes, 'Instrumentation type (action=register)')
+      .string('target', 'Function name, URL pattern, or script target (action=register)')
+      .object('config', {}, 'Operation-specific config (action=register)')
+      .required('action', 'sessionId'),
   ),
-  tool('instrumentation_operation_register', (t) =>
+  tool('instrumentation_artifact', (t) =>
     t
       .desc(
-        'Register a new instrumentation operation within a session so hooks, intercepts, and traces become queryable evidence-producing work items.',
+        `Manage captured artifacts for instrumentation operations.
+
+Actions:
+- record: Record a captured artifact (requires operationId, data)
+- query: Query captured artifacts (requires sessionId)`,
       )
-      .string('sessionId', 'Session ID returned by instrumentation_session_create')
-      .enum('type', queryTypes, 'Instrumentation type to register')
-      .string('target', 'Function name, URL pattern, or script target for the operation')
-      .object('config', {}, 'Operation-specific configuration payload')
-      .required('sessionId', 'type', 'target'),
-  ),
-  tool('instrumentation_operation_list', (t) =>
-    t
-      .desc(
-        'List all operations (hooks, intercepts, traces) registered within a session, optionally filtered by type.',
-      )
-      .string('sessionId', 'Session ID')
-      .enum('type', queryTypes, 'Optional filter by instrumentation type')
-      .required('sessionId')
-      .query(),
-  ),
-  tool('instrumentation_artifact_record', (t) =>
-    t
-      .desc(
-        'Record a captured artifact for an instrumentation operation so the session and evidence graph reflect observed runtime data.',
-      )
-      .string('operationId', 'Operation ID returned by instrumentation_operation_register')
-      .object('data', {}, 'Captured artifact payload such as args, returnValue, headers, or body')
-      .required('operationId', 'data'),
-  ),
-  tool('instrumentation_artifact_query', (t) =>
-    t
-      .desc(
-        'Query captured artifacts (args, return values, intercepted requests, trace data) from a session, optionally filtered by type and limited.',
-      )
-      .string('sessionId', 'Session ID')
-      .enum('type', queryTypes, 'Optional filter by artifact type')
-      .number('limit', 'Maximum number of artifacts to return', { default: 50 })
-      .required('sessionId')
-      .query(),
+      .enum('action', ['record', 'query'], 'Artifact operation')
+      .string('operationId', 'Operation ID (action=record)')
+      .object('data', {}, 'Captured artifact payload (action=record)')
+      .enum('type', queryTypes, 'Optional artifact type filter (action=query)')
+      .number('limit', 'Max artifacts to return (action=query, default: 50)', { default: 50 })
+      .required('action', 'sessionId'),
   ),
   tool('instrumentation_hook_preset', (t) =>
     t
-      .desc(
-        'Apply hooks domain preset hooks within an instrumentation session and persist the injected preset summary as session artifacts.',
-      )
-      .string('sessionId', 'Session ID returned by instrumentation_session_create')
+      .desc('Apply hooks domain preset hooks within an instrumentation session and persist...')
       .string('preset', 'Single preset id to inject')
       .array('presets', { type: 'string' }, 'Multiple preset ids to inject in one call')
       .boolean('captureStack', 'Whether injected presets should capture stack traces', {
@@ -112,10 +84,7 @@ export const instrumentationTools: Tool[] = [
   ),
   tool('instrumentation_network_replay', (t) =>
     t
-      .desc(
-        'Replay a previously captured network request inside an instrumentation session and persist the replay result or dry-run preview as session artifacts.',
-      )
-      .string('sessionId', 'Session ID returned by instrumentation_session_create')
+      .desc('Replay a previously captured network request inside an instrumentation sessio...')
       .string('requestId', 'Captured request ID returned by network_get_requests')
       .object(
         'headerPatch',

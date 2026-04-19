@@ -5,6 +5,8 @@ import { EvidenceHandlers } from '@server/domains/evidence/handlers';
 import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 import { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
 import { EvidenceGraphBridge } from '@server/instrumentation/EvidenceGraphBridge';
+import type { RuntimeSnapshotScheduler } from '@server/persistence/RuntimeSnapshotScheduler';
+import { resolve } from 'node:path';
 
 const DOMAIN = 'evidence' as const;
 const DEP_KEY = 'evidenceHandlers' as const;
@@ -35,6 +37,15 @@ function ensure(ctx: MCPServerContext): H {
   if (!ctx.evidenceHandlers) {
     ctx.evidenceHandlers = new EvidenceHandlers(graph);
   }
+
+  const scheduler = ctx.getDomainInstance<RuntimeSnapshotScheduler>('snapshotScheduler');
+  const stateDir = ctx.getDomainInstance<string>('snapshotStateDir');
+  graph.setPersistNotifier(scheduler ? () => scheduler.notifyDirty() : undefined);
+  if (scheduler && stateDir && !ctx.getDomainInstance<boolean>('evidenceGraphSnapshotRegistered')) {
+    scheduler.register(resolve(stateDir, 'evidence-graph', 'current.json'), graph);
+    ctx.setDomainInstance('evidenceGraphSnapshotRegistered', true);
+  }
+
   return ctx.evidenceHandlers;
 }
 
@@ -52,35 +63,20 @@ const manifest = {
       /(证据|溯源|链).*(图|查询|导出|报告)/i,
     ],
     priority: 90,
-    tools: ['evidence_query_url', 'evidence_export_markdown'],
+    tools: ['evidence_query', 'evidence_export'],
     hint: 'Evidence graph: query by URL/function/scriptId → get provenance chain → export as JSON or Markdown report',
   },
 
   registrations: [
     {
-      tool: t('evidence_query_url'),
+      tool: t('evidence_query'),
       domain: DOMAIN,
-      bind: b(async (h, a) => h.handleQueryUrl(a)),
+      bind: b(async (h, a) => h.handleQueryDispatch(a)),
     },
     {
-      tool: t('evidence_query_function'),
+      tool: t('evidence_export'),
       domain: DOMAIN,
-      bind: b(async (h, a) => h.handleQueryFunction(a)),
-    },
-    {
-      tool: t('evidence_query_script'),
-      domain: DOMAIN,
-      bind: b(async (h, a) => h.handleQueryScript(a)),
-    },
-    {
-      tool: t('evidence_export_json'),
-      domain: DOMAIN,
-      bind: b(async (h) => h.handleExportJson()),
-    },
-    {
-      tool: t('evidence_export_markdown'),
-      domain: DOMAIN,
-      bind: b(async (h) => h.handleExportMarkdown()),
+      bind: b(async (h, a) => h.handleExportDispatch(a)),
     },
     {
       tool: t('evidence_chain'),

@@ -2,14 +2,16 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const streamingTools: Tool[] = [
-  tool('ws_monitor_enable', (t) =>
+  tool('ws_monitor', (t) =>
     t
-      .desc('Enable WebSocket frame capture via CDP Network events')
-      .string('urlFilter', 'Regex filter for WebSocket URL')
-      .number('maxFrames', 'Maximum frames in memory', { default: 1000 }),
-  ),
-  tool('ws_monitor_disable', (t) =>
-    t.desc('Disable WebSocket monitoring and return capture summary').destructive(),
+      .desc('Enable or disable WebSocket frame capture via CDP Network events.')
+      .enum('action', ['enable', 'disable'], 'Monitor action')
+      .string('urlFilter', 'Regex filter for WebSocket URL (action=enable)')
+      .number('maxFrames', 'Maximum frames in memory (action=enable, default: 1000)', {
+        default: 1000,
+      })
+      .required('action')
+      .destructive(),
   ),
   tool('ws_get_frames', (t) =>
     t

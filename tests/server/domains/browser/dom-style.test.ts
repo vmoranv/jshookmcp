@@ -28,6 +28,7 @@ describe('DOMStyleHandlers', () => {
 
     expect(domInspector.getComputedStyle).toHaveBeenCalledWith('#hero');
     expect(body).toEqual({
+      success: true,
       selector: '#hero',
       styles: {
         display: 'block',
@@ -45,16 +46,18 @@ describe('DOMStyleHandlers', () => {
 
     expect(domInspector.isInViewport).toHaveBeenCalledWith('#cta');
     expect(body).toEqual({
+      success: true,
       selector: '#cta',
       inViewport: true,
     });
   });
 
-  it('rethrows inspector errors from computed style lookup', async () => {
+  it('returns failure response from computed style lookup error', async () => {
     domInspector.getComputedStyle.mockRejectedValue(new Error('style failed'));
 
-    await expect(
-      handlers.handleDOMGetComputedStyle({ selector: '#missing-style' }),
-    ).rejects.toThrow('style failed');
+    const response = await handlers.handleDOMGetComputedStyle({ selector: '#missing-style' });
+    const body = parseJson<BrowserStatusResponse>(response);
+    expect(body.success).toBe(false);
+    expect(body.message).toContain('style failed');
   });
 });

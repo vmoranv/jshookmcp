@@ -515,10 +515,10 @@ describe('ScriptManagementHandlers — comprehensive coverage', () => {
       detailedDataManager.smartHandle.mockReturnValue({});
 
       const response = await handlers.handleGetAllScripts({});
-
       expect(response.content).toHaveLength(1);
-      expect(response.content[0]?.type).toBe('text');
-      expect(() => JSON.parse(response.content[0]!.text)).not.toThrow();
+      const first = response.content[0] as any;
+      expect(first?.type).toBe('text');
+      expect(() => JSON.parse(first.text)).not.toThrow();
     });
 
     it('wraps getScriptSource result in content array with type text', async () => {
@@ -535,7 +535,7 @@ describe('ScriptManagementHandlers — comprehensive coverage', () => {
       detailedDataManager.smartHandle.mockImplementation((v) => v);
 
       const response = await handlers.handleGetAllScripts({});
-      const text = response.content[0]!.text;
+      const text = (response.content[0] as any).text;
 
       expect(text).toContain('\n  ');
     });

@@ -4,23 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const browserPageCoreTools: Tool[] = [
   tool('page_navigate', (t) =>
     t
-      .desc(`Navigate to a URL
-
-Features:
-- Automatic CAPTCHA detection
-- Optional network monitoring (set enableNetworkMonitoring=true to auto-enable)
-- Waits for page load based on waitUntil strategy
-
-Network Monitoring:
-If you want to capture network requests, you have two options:
-1. Call network_enable before page_navigate (recommended for full control)
-2. Set enableNetworkMonitoring=true in page_navigate (convenient for quick capture)
-
-Example with network monitoring:
-page_navigate(url="https:")
--> Network monitoring auto-enabled
--> Page loads
--> Use network_get_requests to see captured requests`)
+      .desc(`Navigate to a URL. Supports auto CAPTCHA detection and optional network monitoring.`)
       .string('url', 'Target URL to navigate to')
       .enum(
         'waitUntil',
@@ -61,18 +45,7 @@ page_navigate(url="https:")
   ),
   tool('dom_get_structure', (t) =>
     t
-      .desc(`Get page DOM structure (for AI to understand page layout).
-
-IMPORTANT: Large DOM structures (>50KB) automatically return summary + detailId.
-
-Best Practices:
-1. Use maxDepth=2 for initial exploration (faster, smaller)
-2. Use maxDepth=3 only when needed (may be large)
-3. Set includeText=false to reduce size if text not needed
-
-Example:
-dom_get_structure(maxDepth=2, includeText=false)
--> Returns compact structure without text content`)
+      .desc('Get page DOM structure.')
       .number('maxDepth', 'Maximum depth of DOM tree (default: 3, recommend: 2 for large pages)', {
         default: 3,
       })
@@ -83,17 +56,13 @@ dom_get_structure(maxDepth=2, includeText=false)
   ),
   tool('dom_find_clickable', (t) =>
     t
-      .desc(
-        'Find all clickable elements (buttons, links). Use this to discover what can be clicked.',
-      )
+      .desc('Find all clickable elements (buttons, links).')
       .string('filterText', 'Filter by text content (optional)')
       .query(),
   ),
   tool('page_click', (t) =>
     t
-      .desc(
-        'Click an element. Use dom_query_selector FIRST to verify element exists. Supports clicking inside iframes via frameUrl/frameSelector.',
-      )
+      .desc('Click an element. Supports iframes via frameUrl/frameSelector.')
       .string('selector', 'CSS selector of element to click')
       .enum('button', ['left', 'right', 'middle'], 'Mouse button to click', { default: 'left' })
       .number('clickCount', 'Number of clicks (numeric string is accepted and auto-normalized)', {
@@ -160,20 +129,9 @@ dom_get_structure(maxDepth=2, includeText=false)
   ),
   tool('page_evaluate', (t) =>
     t
-      .desc(`Execute JavaScript code in page context and get result.
-
-IMPORTANT: Large results (>50KB) automatically return summary + detailId to prevent context overflow.
-Use get_detailed_data(detailId) to retrieve full data if needed.
-
-Best Practices:
--  Query specific properties: { hasAcrawler: !!window.byted_acrawler }
--  Return only needed data: Object.keys(window.byted_acrawler)
--  Avoid returning entire objects: window (too large!)
-
-Example:
-page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.byted_acrawler })")
--> Returns small summary
--> If you need full object, use the returned detailId`)
+      .desc(
+        `Execute JavaScript in page context. Large results (>50KB) auto-return summary + detailId.`,
+      )
       .string('code', 'JavaScript code to execute')
       .boolean('autoSummarize', 'Auto-summarize large results (default: true)', { default: true })
       .number('maxSize', 'Max result size in bytes before auto-summarizing (default: 50KB)', {
@@ -201,13 +159,7 @@ page_evaluate("({ keys: Object.keys(window.byted_acrawler), type: typeof window.
   ),
   tool('page_screenshot', (t) =>
     t
-      .desc(`Take a screenshot of the page, a specific DOM element, multiple elements, or a pixel region.
-
-Modes:
-- Full page: omit selector or pass "all"
-- Single element: selector = ".my-class"
-- Multiple elements: selector = [".header", "#main", ".footer"] — returns one screenshot per element
-- Pixel region: pass clip = {x, y, width, height} (ignored when selector is set)`)
+      .desc(`Take a screenshot: full page, element(s), or pixel region.`)
       .prop('selector', {
         oneOf: [
           { type: 'string', description: 'Single CSS selector' },
@@ -251,20 +203,7 @@ Modes:
   ),
   tool('get_script_source', (t) =>
     t
-      .desc(`Get source code of a specific script.
-
-IMPORTANT: Large scripts (>50KB) automatically return summary + detailId.
-Use preview mode first to check script size before fetching full source.
-
-Best Practices:
-1. Use preview=true first to see script overview
-2. If script is large, use detailId to get full source
-3. Or use startLine/endLine to get specific sections
-
-Example:
-get_script_source(scriptId="abc", preview=true)
--> Returns: { lines: 5000, size: "500KB", preview: "...", detailId: "..." }
--> Then: get_detailed_data(detailId) to get full source`)
+      .desc(`Get source code of a specific script. Large scripts auto-return summary + detailId.`)
       .string('scriptId', 'Script ID from get_all_scripts')
       .string('url', 'Script URL (supports wildcards like *.js)')
       .boolean('preview', 'Return preview only (first 100 lines + metadata)', { default: false })

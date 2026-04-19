@@ -48,18 +48,18 @@ export const browserPageSystemTools: Tool[] = [
       .required('selector')
       .query(),
   ),
-  tool('page_get_performance', (t) =>
-    t.desc('Get page performance metrics (load time, network time, etc.)').query(),
-  ),
   tool('page_inject_script', (t) =>
     t
       .desc('Inject JavaScript code into page')
       .string('script', 'JavaScript code to inject')
       .requiredOpenWorld('script'),
   ),
-  tool('page_set_cookies', (t) =>
+  tool('page_cookies', (t) =>
     t
-      .desc('Set cookies for the page')
+      .desc(
+        'Manage page cookies. Actions: get (all cookies), set (requires cookies array), clear (all cookies).',
+      )
+      .enum('action', ['get', 'set', 'clear'], 'Cookie action')
       .array(
         'cookies',
         {
@@ -76,13 +76,10 @@ export const browserPageSystemTools: Tool[] = [
           },
           required: ['name', 'value'],
         },
-        'Array of cookie objects',
+        'Array of cookie objects (action=set)',
       )
-      .required('cookies')
-      .idempotent(),
+      .required('action'),
   ),
-  tool('page_get_cookies', (t) => t.desc('Get all cookies for the page').query()),
-  tool('page_clear_cookies', (t) => t.desc('Clear all cookies').resettable()),
   tool('page_set_viewport', (t) =>
     t
       .desc('Set viewport size')
@@ -101,14 +98,13 @@ export const browserPageSystemTools: Tool[] = [
       .required('device')
       .idempotent(),
   ),
-  tool('page_get_local_storage', (t) => t.desc('Get all localStorage items').query()),
-  tool('page_set_local_storage', (t) =>
+  tool('page_local_storage', (t) =>
     t
-      .desc('Set localStorage item')
-      .string('key', 'Storage key')
-      .string('value', 'Storage value')
-      .required('key', 'value')
-      .idempotent(),
+      .desc('Manage localStorage. Actions: get (all items), set (requires key, value).')
+      .enum('action', ['get', 'set'], 'Storage action')
+      .string('key', 'Storage key (action=set)')
+      .string('value', 'Storage value (action=set)')
+      .required('action'),
   ),
   tool('page_press_key', (t) =>
     t

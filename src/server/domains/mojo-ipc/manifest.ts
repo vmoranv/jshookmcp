@@ -30,14 +30,9 @@ const manifest: DomainManifest<typeof DEP_KEY, MojoIPCHandlers, typeof DOMAIN> =
   profiles: ['full'],
   registrations: [
     {
-      tool: toolByName('mojo_monitor_start'),
+      tool: toolByName('mojo_monitor'),
       domain: DOMAIN,
-      bind: bind((handlers, args) => handlers.handleMojoMonitorStart(args)),
-    },
-    {
-      tool: toolByName('mojo_monitor_stop'),
-      domain: DOMAIN,
-      bind: bind((handlers) => handlers.handleMojoMonitorStop()),
+      bind: bind((handlers, args) => handlers.handleMojoMonitorDispatch(args)),
     },
     {
       tool: toolByName('mojo_decode_message'),
@@ -62,11 +57,11 @@ const manifest: DomainManifest<typeof DEP_KEY, MojoIPCHandlers, typeof DOMAIN> =
       /(mojo|ipc|chromium).*(monitor|capture|hook|trace)/i,
     ],
     priority: 75,
-    tools: ['mojo_monitor_start', 'mojo_decode_message', 'mojo_list_interfaces'],
+    tools: ['mojo_monitor', 'mojo_decode_message', 'mojo_list_interfaces'],
     hint: 'Mojo IPC: start monitor → capture messages → decode payloads → correlate with CDP',
   },
   prerequisites: {
-    mojo_monitor_start: [
+    mojo_monitor: [
       {
         condition: 'Frida must be available for real process attachment',
         fix: 'Install Frida and ensure the Chromium target process is launched first',
@@ -75,7 +70,7 @@ const manifest: DomainManifest<typeof DEP_KEY, MojoIPCHandlers, typeof DOMAIN> =
     mojo_decode_message: [
       {
         condition: 'Captured message payload hex is required',
-        fix: 'Start a monitoring session via mojo_monitor_start and capture traffic first',
+        fix: 'Start a monitoring session via mojo_monitor and capture traffic first',
       },
     ],
   },

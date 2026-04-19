@@ -1,1 +1,1 @@
-export { BinaryInstrumentHandlers } from './handlers.impl';
+export { BinaryInstrumentHandlers } from './handlers.impl.core';

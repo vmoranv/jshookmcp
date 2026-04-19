@@ -62,7 +62,7 @@ describe('Profile Restructuring (PROF-01~04)', () => {
   describe('hooks domain visibility (PROF-02)', () => {
     it('hooks tools are visible in full profile', () => {
       const fullTools = getToolsForProfile('full').map((t) => t.name);
-      expect(fullTools).toContain('ai_hook_inject');
+      expect(fullTools).toContain('ai_hook');
       expect(fullTools).toContain('hook_preset');
     });
 

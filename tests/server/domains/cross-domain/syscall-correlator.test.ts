@@ -4,13 +4,18 @@ import {
   CrossDomainEvidenceBridge,
   _resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
+import {
+  ReverseEvidenceGraph,
+  _resetIdCounter as _resetGraphIdCounter,
+} from '@server/evidence/ReverseEvidenceGraph';
 
 describe('SYSCALL-02: Syscall-to-JS Correlator', () => {
   let bridge: CrossDomainEvidenceBridge;
 
   beforeEach(() => {
     _resetIdCounter();
-    bridge = new CrossDomainEvidenceBridge();
+    _resetGraphIdCounter();
+    bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });
 
   it('should create syscall event nodes', () => {

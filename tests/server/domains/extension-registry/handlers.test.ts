@@ -43,26 +43,6 @@ describe('ExtensionRegistryHandlers', () => {
     expect(result.isError).toBeUndefined();
   });
 
-  it('installs a plugin from a remote manifest URL', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true,
-      headers: new Headers({ 'content-type': 'application/json' }),
-      text: async () =>
-        JSON.stringify({
-          id: 'plugin-1',
-          name: 'test-plugin',
-          version: '1.0.0',
-          entry: './plugin.mjs',
-        }),
-      status: 200,
-      statusText: 'OK',
-    } as Response);
-    const result = await handlers.handleInstall({ url: 'https://example.com/plugin.json' } as any);
-    expect(registry.register).toHaveBeenCalledOnce();
-    expect(result.isError).toBeUndefined();
-    fetchSpy.mockRestore();
-  });
-
   it('uninstalls a plugin', async () => {
     const result = await handlers.handleUninstall({ pluginId: 'plugin-1' } as any);
     expect(registry.unregister).toHaveBeenCalledWith('plugin-1');

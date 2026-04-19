@@ -76,10 +76,9 @@ const manifest = {
     ],
     priority: 95,
     tools: [
-      'instrumentation_session_create',
-      'instrumentation_operation_register',
-      'instrumentation_artifact_record',
-      'instrumentation_artifact_query',
+      'instrumentation_session',
+      'instrumentation_operation',
+      'instrumentation_artifact',
       'instrumentation_hook_preset',
       'instrumentation_network_replay',
     ],
@@ -88,44 +87,19 @@ const manifest = {
 
   registrations: [
     {
-      tool: t('instrumentation_session_create'),
+      tool: t('instrumentation_session'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleSessionCreate(a)),
+      bind: b((h, a) => h.handleSessionDispatch(a)),
     },
     {
-      tool: t('instrumentation_session_list'),
+      tool: t('instrumentation_operation'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleSessionList(a)),
+      bind: b((h, a) => h.handleOperationDispatch(a)),
     },
     {
-      tool: t('instrumentation_session_destroy'),
+      tool: t('instrumentation_artifact'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleSessionDestroy(a)),
-    },
-    {
-      tool: t('instrumentation_session_status'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleSessionStatus(a)),
-    },
-    {
-      tool: t('instrumentation_operation_register'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleOperationRegister(a)),
-    },
-    {
-      tool: t('instrumentation_operation_list'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleOperationList(a)),
-    },
-    {
-      tool: t('instrumentation_artifact_record'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleArtifactRecord(a)),
-    },
-    {
-      tool: t('instrumentation_artifact_query'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleArtifactQuery(a)),
+      bind: b((h, a) => h.handleArtifactDispatch(a)),
     },
     {
       tool: t('instrumentation_hook_preset'),

@@ -4,10 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const coordinationTools: Tool[] = [
   tool('create_task_handoff', (t) =>
     t
-      .desc(
-        'Create a sub-task handoff for specialist agent delegation. Auto-captures active page URL.',
-      )
-      .string('description', 'What the specialist should accomplish')
+      .desc('Create a sub-task handoff for specialist agent delegation.')
       .array('constraints', { type: 'string' }, 'Constraints for the specialist')
       .string('targetDomain', 'Suggested domain for the specialist')
       .required('description'),
@@ -21,14 +18,7 @@ export const coordinationTools: Tool[] = [
       .array('artifacts', { type: 'string' }, 'Paths to generated artifact files')
       .required('taskId', 'summary'),
   ),
-  tool('get_task_context', (t) =>
-    t
-      .desc(
-        'Read task handoff context. Without taskId returns all active handoffs + session insights.',
-      )
-      .string('taskId', 'Specific task ID to retrieve')
-      .query(),
-  ),
+  tool('get_task_context', (t) => t.desc('Read task handoff context.').query()),
   tool('append_session_insight', (t) =>
     t
       .desc('Append a discovery to the session-level knowledge accumulator shared across handoffs')

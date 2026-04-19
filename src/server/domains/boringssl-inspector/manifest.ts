@@ -90,11 +90,6 @@ const manifest = {
       bind: bind((handler, args) => handler.handleTlsCertPinBypass(args)),
     },
     {
-      tool: lookup('tls_handshake_parse'),
-      domain: DOMAIN,
-      bind: bind((handler, args) => handler.handleTlsHandshakeParse(args)),
-    },
-    {
       tool: lookup('tls_parse_handshake'),
       domain: DOMAIN,
       bind: bind((handler, args) => handler.handleParseHandshake(args)),

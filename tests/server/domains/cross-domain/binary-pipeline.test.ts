@@ -4,13 +4,18 @@ import {
   CrossDomainEvidenceBridge,
   _resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
+import {
+  ReverseEvidenceGraph,
+  _resetIdCounter as _resetGraphIdCounter,
+} from '@server/evidence/ReverseEvidenceGraph';
 
 describe('BIN-04: Binary-to-JS Pipeline', () => {
   let bridge: CrossDomainEvidenceBridge;
 
   beforeEach(() => {
     _resetIdCounter();
-    bridge = new CrossDomainEvidenceBridge();
+    _resetGraphIdCounter();
+    bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });
 
   it('should generate Frida hook script for native callable functions', () => {

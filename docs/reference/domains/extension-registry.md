@@ -23,24 +23,16 @@
 
 - `extension_list_installed` — 列出已安装的 Chrome 扩展。
 - `extension_execute_in_context` — 在指定 Chrome 扩展的后台上下文中执行代码。
-- `extension_install` — 从本地或远程 manifest/模块 URL 安装扩展。
 - `extension_reload` — 重新加载已安装的扩展（先卸载再加载）。
 - `extension_uninstall` — 从本地扩展注册表中卸载扩展。
-- `webhook_create` — 创建新的 Webhook 端点用于外部回调。
-- `webhook_list` — 列出所有已注册的 Webhook 端点。
-- `webhook_delete` — 按 ID 删除 Webhook 端点。
-- `webhook_commands` — 获取或设置 Webhook 端点队列中的命令。
+- `webhook` — 待补充中文：Manage webhook endpoints for external callbacks. Actions: create, list, delete, commands.
 
-## 工具清单（9）
+## 工具清单（5）
 
 | 工具 | 说明 |
 | --- | --- |
 | `extension_list_installed` | 列出已安装的 Chrome 扩展。 |
 | `extension_execute_in_context` | 在指定 Chrome 扩展的后台上下文中执行代码。 |
-| `extension_install` | 从本地或远程 manifest/模块 URL 安装扩展。 |
 | `extension_reload` | 重新加载已安装的扩展（先卸载再加载）。 |
 | `extension_uninstall` | 从本地扩展注册表中卸载扩展。 |
-| `webhook_create` | 创建新的 Webhook 端点用于外部回调。 |
-| `webhook_list` | 列出所有已注册的 Webhook 端点。 |
-| `webhook_delete` | 按 ID 删除 Webhook 端点。 |
-| `webhook_commands` | 获取或设置 Webhook 端点队列中的命令。 |
+| `webhook` | 待补充中文：Manage webhook endpoints for external callbacks. Actions: create, list, delete, commands. |

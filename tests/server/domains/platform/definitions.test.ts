@@ -26,7 +26,7 @@ describe('platform tool definitions', () => {
     });
 
     it('tool count matches snapshot (run with --update to sync)', () => {
-      expect(platformTools.length).toMatchInlineSnapshot(`15`);
+      expect(platformTools.length).toMatchInlineSnapshot(`13`);
     });
 
     it('has unique tool names', () => {
@@ -79,6 +79,7 @@ describe('platform tool definitions', () => {
       'v8_bytecode_decompile',
       'electron_launch_debug',
       'electron_debug_status',
+      'electron_ipc_sniff',
     ];
 
     it.each(expectedNames)('includes tool "%s"', (name) => {
@@ -185,6 +186,32 @@ describe('platform tool definitions', () => {
     it('has only one property', () => {
       const tool = getTool('electron_inspect_app');
       expect(Object.keys(tool.inputSchema.properties ?? {})).toHaveLength(1);
+    });
+  });
+
+  describe('electron_ipc_sniff', () => {
+    it('exposes action, port, sessionId, and clear properties', () => {
+      const tool = getTool('electron_ipc_sniff');
+      expect(tool.inputSchema.properties).toHaveProperty('action');
+      expect(tool.inputSchema.properties).toHaveProperty('port');
+      expect(tool.inputSchema.properties).toHaveProperty('sessionId');
+      expect(tool.inputSchema.properties).toHaveProperty('clear');
+    });
+
+    it('action enum includes guide and session operations', () => {
+      const action = getToolProperty('electron_ipc_sniff', 'action');
+      expect(action.type).toBe('string');
+      expect(action.enum).toEqual(['start', 'dump', 'stop', 'list', 'guide']);
+      expect(action.default).toBe('guide');
+    });
+
+    it('port defaults to 9222 and clear defaults to true', () => {
+      const port = getToolProperty('electron_ipc_sniff', 'port');
+      const clear = getToolProperty('electron_ipc_sniff', 'clear');
+      expect(port.type).toBe('number');
+      expect(port.default).toBe(9222);
+      expect(clear.type).toBe('boolean');
+      expect(clear.default).toBe(true);
     });
   });
 

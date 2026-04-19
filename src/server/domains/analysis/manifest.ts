@@ -80,7 +80,7 @@ const manifest = {
       /(反混淆|美化|分析).*(javascript|js|脚本|代码)/i,
     ],
     priority: 85,
-    tools: ['deobfuscate', 'advanced_deobfuscate', 'extract_function_tree', 'llm_suggest_names'],
+    tools: ['deobfuscate', 'extract_function_tree', 'llm_suggest_names'],
     hint: 'JavaScript analysis workflow: collect -> deobfuscate -> inspect function tree | LLM-powered naming',
   },
 
@@ -107,11 +107,6 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleDetectObfuscation(a)),
     },
-    {
-      tool: t('advanced_deobfuscate'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleAdvancedDeobfuscate(a)),
-    },
     { tool: t('webcrack_unpack'), domain: DOMAIN, bind: b((h, a) => h.handleWebcrackUnpack(a)) },
     {
       tool: t('clear_collected_data'),
@@ -127,11 +122,6 @@ const manifest = {
       tool: t('webpack_enumerate'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleWebpackEnumerate(a)),
-    },
-    {
-      tool: t('source_map_extract'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleSourceMapExtract(a)),
     },
     {
       tool: t('llm_suggest_names'),

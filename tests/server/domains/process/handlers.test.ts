@@ -86,13 +86,6 @@ describe('ProcessToolHandlers', () => {
     expect(pm.checkDebugPort).toHaveBeenCalledWith(77, { commandLine: 'node app.js' });
   });
 
-  it('returns disabled response for process_find_chromium', async () => {
-    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFindChromium({}));
-    expect(body.success).toBe(false);
-    expect(body.disabled).toBe(true);
-    expect(body.platform).toBe('win32');
-  });
-
   it('returns canAttach on process_check_debug_port', async () => {
     pm.checkDebugPort.mockResolvedValue(9333);
     const body = parseJson<ProcessFindResponse>(

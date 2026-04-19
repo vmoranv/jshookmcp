@@ -55,12 +55,7 @@ describe('Hooks Manifest', () => {
       } as unknown as HookPresetToolHandlers;
 
       const mockAIHandler = {
-        handleAIHookInject: vi.fn(),
-        handleAIHookGetData: vi.fn(),
-        handleAIHookList: vi.fn(),
-        handleAIHookClear: vi.fn(),
-        handleAIHookToggle: vi.fn(),
-        handleAIHookExport: vi.fn(),
+        handleAIHook: vi.fn(),
       } as unknown as AIHookToolHandlers;
 
       const args = { foo: 'bar' };
@@ -77,12 +72,7 @@ describe('Hooks Manifest', () => {
       }
 
       expect(mockPresetHandler.handleHookPreset).toHaveBeenCalledWith(args);
-      expect(mockAIHandler.handleAIHookInject).toHaveBeenCalledWith(args);
-      expect(mockAIHandler.handleAIHookGetData).toHaveBeenCalledWith(args);
-      expect(mockAIHandler.handleAIHookList).toHaveBeenCalledWith(args);
-      expect(mockAIHandler.handleAIHookClear).toHaveBeenCalledWith(args);
-      expect(mockAIHandler.handleAIHookToggle).toHaveBeenCalledWith(args);
-      expect(mockAIHandler.handleAIHookExport).toHaveBeenCalledWith(args);
+      expect(mockAIHandler.handleAIHook).toHaveBeenCalledWith(args);
     });
   });
 });

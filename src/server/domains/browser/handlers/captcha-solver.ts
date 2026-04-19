@@ -7,6 +7,7 @@
 import type { CodeCollector } from '@server/domains/shared/modules';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
 import { logger } from '@utils/logger';
+import { R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import {
   CAPTCHA_SOLVER_BASE_URL,
   CAPTCHA_SUBMIT_TIMEOUT_MS,
@@ -23,19 +24,6 @@ import {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function toTextResponse(payload: Record<string, unknown>) {
-  return { content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }] };
-}
-
-function toErrorResponse(tool: string, error: unknown, extra: Record<string, unknown> = {}) {
-  return toTextResponse({
-    success: false,
-    tool,
-    error: error instanceof Error ? error.message : String(error),
-    ...extra,
-  });
 }
 
 // ── Provider interface ──
@@ -193,9 +181,9 @@ async function solveWith2Captcha(
 export async function handleCaptchaVisionSolve(
   args: Record<string, unknown>,
   collector: CodeCollector,
-): Promise<unknown> {
+): Promise<ToolResponse> {
   const page = await collector.getActivePage();
-  if (!page) throw new Error('No active page.');
+  if (!page) return R.fail('No active page.').build();
 
   const mode = normalizeSolverMode(args.mode ?? args.provider ?? process.env.CAPTCHA_PROVIDER);
   const externalService = resolveExternalServiceName(args);
@@ -251,8 +239,7 @@ export async function handleCaptchaVisionSolve(
   }
 
   if (mode === 'manual') {
-    return toTextResponse({
-      success: true,
+    return R.ok().build({
       mode: 'manual',
       challengeType,
       siteKey: siteKey ?? null,
@@ -263,10 +250,7 @@ export async function handleCaptchaVisionSolve(
 
   // External provider solving
   if (!apiKey) {
-    return toErrorResponse(
-      'captcha_vision_solve',
-      new Error('External solver credentials are required. Set CAPTCHA_API_KEY.'),
-    );
+    return R.fail('External solver credentials are required. Set CAPTCHA_API_KEY.').build();
   }
 
   let lastError: Error | null = null;
@@ -295,8 +279,7 @@ export async function handleCaptchaVisionSolve(
         throw new Error('Unsupported external solver service.');
       }
 
-      return toTextResponse({
-        success: true,
+      return R.ok().build({
         token: result.token,
         challengeType: result.challengeType,
         mode: result.mode,
@@ -309,20 +292,22 @@ export async function handleCaptchaVisionSolve(
     }
   }
 
-  return toErrorResponse('captcha_vision_solve', lastError ?? new Error('All attempts failed'), {
-    challengeType,
-    mode,
-    maxRetries,
-    suggestion: 'Try manual mode or adjust the external solver configuration.',
-  });
+  return R.fail(lastError ?? new Error('All attempts failed'))
+    .merge({
+      challengeType,
+      mode,
+      maxRetries,
+      suggestion: 'Try manual mode or adjust the external solver configuration.',
+    })
+    .build();
 }
 
 export async function handleWidgetChallengeSolve(
   args: Record<string, unknown>,
   collector: CodeCollector,
-): Promise<unknown> {
+): Promise<ToolResponse> {
   const page = await collector.getActivePage();
-  if (!page) throw new Error('No active page.');
+  if (!page) return R.fail('No active page.').build();
 
   const mode = normalizeSolverMode(args.mode ?? args.provider ?? process.env.CAPTCHA_PROVIDER);
   const externalService = resolveExternalServiceName(args);
@@ -345,12 +330,9 @@ export async function handleWidgetChallengeSolve(
   }
 
   if (!siteKey) {
-    return toErrorResponse(
-      'widget_challenge_solve',
-      new Error(
-        'Could not detect the widget siteKey. Provide it manually or ensure the page exposes a site key.',
-      ),
-    );
+    return R.fail(
+      'Could not detect the widget siteKey. Provide it manually or ensure the page exposes a site key.',
+    ).build();
   }
 
   if (mode === 'hook') {
@@ -381,8 +363,7 @@ export async function handleWidgetChallengeSolve(
       .catch(() => null);
 
     if (token) {
-      return toTextResponse({
-        success: true,
+      return R.ok().build({
         token,
         method: 'hook',
         challengeType: 'widget',
@@ -392,8 +373,7 @@ export async function handleWidgetChallengeSolve(
   }
 
   if (mode === 'manual') {
-    return toTextResponse({
-      success: true,
+    return R.ok().build({
       mode: 'manual',
       challengeType: 'widget',
       siteKey,
@@ -404,20 +384,14 @@ export async function handleWidgetChallengeSolve(
 
   // External solver: only allow services implemented for this widget flow.
   if (externalService !== '2captcha') {
-    return toErrorResponse(
-      'widget_challenge_solve',
-      new Error(
-        'The selected external solver service is not implemented for this widget flow. ' +
-          'Currently only the configured primary service, manual mode, and hook mode are supported.',
-      ),
-    );
+    return R.fail(
+      'The selected external solver service is not implemented for this widget flow. ' +
+        'Currently only the configured primary service, manual mode, and hook mode are supported.',
+    ).build();
   }
 
   if (!apiKey) {
-    return toErrorResponse(
-      'widget_challenge_solve',
-      new Error('External solver credentials are required.'),
-    );
+    return R.fail('External solver credentials are required.').build();
   }
 
   try {
@@ -452,8 +426,7 @@ export async function handleWidgetChallengeSolve(
       }, result.token);
     }
 
-    return toTextResponse({
-      success: true,
+    return R.ok().build({
       token: result.token,
       challengeType: result.challengeType,
       siteKey,
@@ -462,10 +435,12 @@ export async function handleWidgetChallengeSolve(
       injected: injectToken,
     });
   } catch (error) {
-    return toErrorResponse('widget_challenge_solve', error, {
-      siteKey,
-      mode,
-      suggestion: 'Try manual mode or hook mode.',
-    });
+    return R.fail(error)
+      .merge({
+        siteKey,
+        mode,
+        suggestion: 'Try manual mode or hook mode.',
+      })
+      .build();
   }
 }

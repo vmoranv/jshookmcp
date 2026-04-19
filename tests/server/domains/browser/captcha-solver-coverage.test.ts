@@ -518,37 +518,6 @@ describe('captcha-solver — deep coverage', () => {
       expect(parsed.success).toBe(true);
     });
 
-    it('handleCaptchaVisionSolve error includes tool name', async () => {
-      delete process.env.CAPTCHA_API_KEY;
-      const page = createMockPage();
-      const collector = createMockCollector(page);
-
-      const response = (await handleCaptchaVisionSolve(
-        {
-          mode: 'external_service',
-        },
-        collector,
-      )) as any;
-
-      const parsed = JSON.parse(response.content[0].text);
-      expect(parsed.success).toBe(false);
-      expect(parsed.tool).toBe('captcha_vision_solve');
-    });
-
-    it('handleWidgetChallengeSolve error includes tool name', async () => {
-      const page = createMockPage({
-        evaluate: vi.fn().mockResolvedValue(''),
-        url: vi.fn(() => 'http://test.local'),
-      });
-      const collector = createMockCollector(page);
-
-      const response = (await handleWidgetChallengeSolve({}, collector)) as any;
-
-      const parsed = JSON.parse(response.content[0].text);
-      expect(parsed.success).toBe(false);
-      expect(parsed.tool).toBe('widget_challenge_solve');
-    });
-
     it('toErrorResponse converts non-Error objects to string', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue(''),

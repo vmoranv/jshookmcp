@@ -1,7 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import type { RegisteredPluginManifest } from '@modules/extension-registry';
 import { PluginRegistry, WebhookBridge } from '@modules/extension-registry';
 import { WebhookServer, CommandQueue } from '@server/webhook';
 import { argObject, argString, argStringRequired } from '@server/domains/shared/parse-args';
@@ -14,52 +10,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isCallable(value: unknown): value is (input: unknown) => unknown {
   return typeof value === 'function';
-}
-
-function sanitizePluginId(value: string): string {
-  const normalized = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, '-');
-  return normalized.length > 0 ? normalized : `plugin-${Date.now()}`;
-}
-
-function createManifestFromEntry(entry: string): RegisteredPluginManifest {
-  const parsed = path.parse(entry);
-  const baseName = parsed.name || 'plugin';
-  return {
-    id: sanitizePluginId(baseName),
-    name: baseName,
-    version: '0.0.0',
-    entry,
-    permissions: [],
-  };
-}
-
-function parseManifest(value: unknown): RegisteredPluginManifest {
-  if (!isRecord(value)) {
-    throw new Error('Extension manifest must be an object');
-  }
-
-  const { id, name, version, entry, permissions } = value;
-  if (
-    typeof id !== 'string' ||
-    typeof name !== 'string' ||
-    typeof version !== 'string' ||
-    typeof entry !== 'string'
-  ) {
-    throw new Error('Extension manifest requires id, name, version, and entry');
-  }
-
-  return {
-    id,
-    name,
-    version,
-    entry,
-    permissions: Array.isArray(permissions)
-      ? permissions.filter((permission): permission is string => typeof permission === 'string')
-      : [],
-  };
 }
 
 export class ExtensionRegistryHandlers {
@@ -97,19 +47,6 @@ export class ExtensionRegistryHandlers {
       manifest,
       contextName,
       result,
-    });
-  }
-
-  async handleInstall(args: ToolArgs): Promise<ToolResponse> {
-    const url = argStringRequired(args, 'url');
-    const manifest = await this.loadManifestFromUrl(url);
-    const pluginId = await this.getRegistry().register(manifest);
-    this.emitEvent('extension.installed', { pluginId, url });
-
-    return asJsonResponse({
-      success: true,
-      pluginId,
-      manifest,
     });
   }
 
@@ -308,77 +245,21 @@ export class ExtensionRegistryHandlers {
     return null;
   }
 
-  private async loadManifestFromUrl(url: string): Promise<RegisteredPluginManifest> {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return this.loadManifestFromRemoteUrl(url);
+  async handleWebhookDispatch(args: ToolArgs): Promise<ToolResponse> {
+    const action = argString(args, 'action');
+    switch (action) {
+      case 'create':
+        return this.handleWebhookCreate(args);
+      case 'list':
+        return this.handleWebhookList();
+      case 'delete':
+        return this.handleWebhookDelete(args);
+      case 'commands':
+        return this.handleWebhookCommands(args);
+      default:
+        return asJsonResponse({
+          error: `Invalid action: "${action}". Expected one of: create, list, delete, commands`,
+        });
     }
-
-    return this.loadManifestFromLocalUrl(url);
-  }
-
-  private async loadManifestFromRemoteUrl(url: string): Promise<RegisteredPluginManifest> {
-    // SECURITY: Validate remote URL before fetching
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'https:') {
-      throw new Error(`Extension URLs must use HTTPS. Got: ${parsed.protocol}`);
-    }
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch extension from ${url}: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    const contentType = response.headers.get('content-type') ?? '';
-    const body = await response.text();
-
-    if (contentType.includes('json') || url.endsWith('.json')) {
-      const manifest = parseManifest(JSON.parse(body));
-      return {
-        ...manifest,
-        entry: this.resolveRemoteEntry(url, manifest.entry),
-      };
-    }
-
-    return createManifestFromEntry(url);
-  }
-
-  private async loadManifestFromLocalUrl(url: string): Promise<RegisteredPluginManifest> {
-    const localPath = url.startsWith('file://') ? fileURLToPath(new URL(url)) : path.resolve(url);
-    if (localPath.endsWith('.json')) {
-      const content = await readFile(localPath, 'utf8');
-      const manifest = parseManifest(JSON.parse(content));
-      return {
-        ...manifest,
-        entry: this.resolveLocalEntry(localPath, manifest.entry),
-      };
-    }
-
-    return createManifestFromEntry(localPath);
-  }
-
-  private resolveRemoteEntry(baseUrl: string, entry: string): string {
-    if (
-      entry.startsWith('http://') ||
-      entry.startsWith('https://') ||
-      entry.startsWith('file://')
-    ) {
-      return entry;
-    }
-
-    return new URL(entry, baseUrl).href;
-  }
-
-  private resolveLocalEntry(manifestPath: string, entry: string): string {
-    if (
-      entry.startsWith('http://') ||
-      entry.startsWith('https://') ||
-      entry.startsWith('file://')
-    ) {
-      return entry;
-    }
-
-    return path.isAbsolute(entry) ? entry : path.resolve(path.dirname(manifestPath), entry);
   }
 }

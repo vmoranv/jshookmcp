@@ -96,10 +96,8 @@ describe('CaptchaHandlers', () => {
 
     expect(loggerState.info).toHaveBeenCalledWith('Waiting for CAPTCHA to be solved...');
     expect(captchaDetector.waitForCompletion).toHaveBeenCalledWith(page, 30000);
-    expect(body).toEqual({
-      success: true,
-      message: 'CAPTCHA solved',
-    });
+    expect(body.success).toBe(true);
+    expect(body.message).toBe('CAPTCHA solved');
   });
 
   it('uses an explicit timeout and reports timeout failures', async () => {
@@ -112,6 +110,7 @@ describe('CaptchaHandlers', () => {
     expect(captchaDetector.waitForCompletion).toHaveBeenCalledWith(page, 1500);
     expect(body).toEqual({
       success: false,
+      error: 'CAPTCHA wait timed out',
       message: 'CAPTCHA wait timed out',
     });
   });

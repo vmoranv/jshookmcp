@@ -2,10 +2,10 @@
  * Hybrid BM25 + RRF multi-signal tool search engine for progressive tool discovery.
  *
  * Enhancements:
- * - BM25 keyword scoring with synonym-expanded queries
- * - TF-IDF cosine similarity as an independent RRF signal
+ * - BM25 keyword scoring with synonym-expanded queries and field weights
  * - Trigram fuzzy matching for typo tolerance
  * - RRF (Reciprocal Rank Fusion) combining all signals
+ * - Dense vector similarity (384-dim embeddings) as semantic signal
  * - Tool affinity graph with prefix-group expansion (§4.1.4 dependency hull)
  * - Query category adaptive domain weights (§4.1.3 task-type encoding)
  * - Parameter name indexing for schema-aware search
@@ -48,7 +48,6 @@ import {
   SEARCH_RRF_BM25_BLEND,
   SEARCH_RRF_K,
   SEARCH_RRF_RESCALE_FACTOR,
-  SEARCH_TFIDF_COSINE_WEIGHT,
   SEARCH_TIER_PENALTY,
   SEARCH_TRIGRAM_THRESHOLD,
   SEARCH_TRIGRAM_WEIGHT,
@@ -86,10 +85,6 @@ interface ToolDocument {
   nameTokenSet: ReadonlySet<string>;
   /** nameTokenSet.size cached for quick access. */
   nameTokenCount: number;
-  /** Sparse TF-IDF vector: term → tfidf weight. */
-  tfidfWeights: ReadonlyMap<string, number>;
-  /** Pre-computed L2 magnitude of the TF-IDF vector. */
-  tfidfMagnitude: number;
 }
 
 interface AffinityEdge {
@@ -169,8 +164,6 @@ export class ToolSearchEngine {
   private readonly domainScoreMultipliers?: ReadonlyMap<string, number>;
   private readonly toolScoreMultipliers?: ReadonlyMap<string, number>;
 
-  /** IDF values per term, used for TF-IDF cosine computation. */
-  private readonly idfMap: ReadonlyMap<string, number>;
   /** Name → doc index for O(1) lookup during affinity expansion. */
   private readonly docNameIndex = new Map<string, number>();
   /** Prefix-group affinity graph: docIndex → neighbor edges. */
@@ -244,9 +237,6 @@ export class ToolSearchEngine {
         nameTokens,
         nameTokenSet,
         nameTokenCount: nameTokenSet.size,
-        // TF-IDF fields filled below
-        tfidfWeights: new Map(),
-        tfidfMagnitude: 0,
       };
       this.docs.push(doc);
       this.docNameIndex.set(tool.name, i);
@@ -291,32 +281,6 @@ export class ToolSearchEngine {
 
     this.avgDocLength = this.docCount > 0 ? totalLength / this.docCount : 1;
     this.sortedKeys = [...this.invertedIndex.keys()].toSorted();
-
-    // ── TF-IDF vector computation (§4.1.3 hybrid retrieval) ──
-    const idfMap = new Map<string, number>();
-    for (const [term, postings] of this.invertedIndex) {
-      idfMap.set(term, Math.log(1 + this.docCount / postings.length));
-    }
-    this.idfMap = idfMap;
-
-    for (let i = 0; i < this.docCount; i++) {
-      const doc = this.docs[i]!;
-      const rawTf = new Map<string, number>();
-      for (const token of doc.tokens) {
-        rawTf.set(token, (rawTf.get(token) ?? 0) + 1);
-      }
-      const tfidfWeights = new Map<string, number>();
-      let magnitudeSq = 0;
-      for (const [term, tf] of rawTf) {
-        const idf = idfMap.get(term) ?? 0;
-        const w = (1 + Math.log(tf)) * idf;
-        tfidfWeights.set(term, w);
-        magnitudeSq += w * w;
-      }
-      // Mutate to assign computed values
-      (doc as { tfidfWeights: ReadonlyMap<string, number> }).tfidfWeights = tfidfWeights;
-      (doc as { tfidfMagnitude: number }).tfidfMagnitude = Math.sqrt(magnitudeSq);
-    }
 
     // ── Tool affinity graph (§4.1.4 dependency hull expansion) ──
     this.affinityGraph = this.buildAffinityGraph();
@@ -460,11 +424,8 @@ export class ToolSearchEngine {
       }
     }
 
-    // ── Tool affinity expansion (§4.1.4 dependency hull) ──
-    this.applyAffinityExpansion(scores);
-
-    // ── Domain hub expansion (§4.1.4) ──
-    this.applyDomainHubExpansion(scores);
+    // ── Graph expansion: affinity + domain hub (§4.1.4) ──
+    this.applyGraphExpansion(scores);
 
     // ── Curated intent-routing bonuses ──
     this.applyIntentBonusBand(scores, intentToolBonuses);
@@ -660,26 +621,21 @@ export class ToolSearchEngine {
    * similarity can still surface.
    */
   private async applyRRFFusion(
-    queryTokens: string[],
+    _queryTokens: string[],
     query: string,
     scores: Float64Array,
   ): Promise<void> {
     const k = SEARCH_RRF_K;
     const trigramWeight = SEARCH_TRIGRAM_WEIGHT;
-    const tfidfWeight = SEARCH_TFIDF_COSINE_WEIGHT;
 
     // ── Signal 1: BM25 ranking (already in scores) ──
     const bm25Ranked = this.rankByScores(scores);
 
-    // ── Signal 2: TF-IDF cosine similarity ──
-    const cosineScores = this.computeTfidfCosineScores(queryTokens);
-    const cosineRanked = this.rankByMap(cosineScores);
-
-    // ── Signal 3: Trigram fuzzy matching ──
+    // ── Signal 2: Trigram fuzzy matching ──
     const trigramScores = this.trigramIndex.search(query, SEARCH_TRIGRAM_THRESHOLD);
     const trigramRanked = this.rankByMap(trigramScores);
 
-    // ── Signal 4: Dense vector cosine similarity ──
+    // ── Signal 3: Dense vector cosine similarity ──
     const vectorScores = await this.computeVectorCosineScores(query);
     const vectorRanked = this.rankByMap(vectorScores);
 
@@ -693,18 +649,12 @@ export class ToolSearchEngine {
     }
 
     // ── Fuse via RRF ──
-    // Reset scores and rebuild from RRF
     for (let i = 0; i < this.docCount; i++) {
       let rrfScore = 0;
 
       const bm25Rank = bm25Ranked.get(i);
       if (bm25Rank !== undefined) {
         rrfScore += 1 / (k + bm25Rank);
-      }
-
-      const cosineRank = cosineRanked.get(i);
-      if (cosineRank !== undefined && tfidfWeight > 0) {
-        rrfScore += tfidfWeight * (1 / (k + cosineRank));
       }
 
       const trigramRank = trigramRanked.get(i);
@@ -727,44 +677,6 @@ export class ToolSearchEngine {
         scores[i] = Math.max(bm25Original, rrfRescaled * blend) + rrfRescaled * blend;
       }
     }
-  }
-
-  /**
-   * Compute raw TF-IDF cosine similarity scores for each document.
-   * Returns Map<docIndex, cosineScore>.
-   */
-  private computeTfidfCosineScores(queryTokens: string[]): Map<number, number> {
-    const queryTf = new Map<string, number>();
-    for (const token of queryTokens) {
-      queryTf.set(token, (queryTf.get(token) ?? 0) + 1);
-    }
-    const queryWeights = new Map<string, number>();
-    let queryMagSq = 0;
-    for (const [term, tf] of queryTf) {
-      const idf = this.idfMap.get(term) ?? 0;
-      if (idf === 0) continue;
-      const w = (1 + Math.log(tf)) * idf;
-      queryWeights.set(term, w);
-      queryMagSq += w * w;
-    }
-    if (queryMagSq === 0) return new Map();
-    const queryMagnitude = Math.sqrt(queryMagSq);
-
-    const results = new Map<number, number>();
-    for (let i = 0; i < this.docCount; i++) {
-      const doc = this.docs[i]!;
-      if (doc.tfidfMagnitude === 0) continue;
-
-      let dot = 0;
-      for (const [term, qw] of queryWeights) {
-        const dw = doc.tfidfWeights.get(term);
-        if (dw !== undefined) dot += qw * dw;
-      }
-      if (dot <= 0) continue;
-
-      results.set(i, dot / (queryMagnitude * doc.tfidfMagnitude));
-    }
-    return results;
   }
 
   /**
@@ -968,75 +880,60 @@ export class ToolSearchEngine {
   }
 
   /**
-   * Boost affinity neighbors of top results (§4.1.4).
-   * For each of the top-N scored documents, add a fraction of its score
-   * to its prefix-group neighbors, encouraging co-retrieval.
+   * Combined graph-based expansion: affinity (prefix-group co-retrieval) +
+   * domain hub (coherence boost for well-represented domains).
+   * Single sort of scored documents feeds both expansion strategies.
    */
-  private applyAffinityExpansion(scores: Float64Array): void {
-    if (this.affinityGraph.size === 0) return;
-
-    // Find top-N scoring indices
-    const topN = SEARCH_AFFINITY_TOP_N;
+  private applyGraphExpansion(scores: Float64Array): void {
+    // ── Find top scored indices (shared by both strategies) ──
     const scored: Array<{ idx: number; score: number }> = [];
     for (let i = 0; i < this.docCount; i++) {
       if (scores[i]! > 0) {
         scored.push({ idx: i, score: scores[i]! });
       }
     }
+    if (scored.length === 0) return;
     scored.sort((a, b) => b.score - a.score);
 
-    const boostFactor = SEARCH_AFFINITY_BOOST_FACTOR;
-    const limit = Math.min(topN, scored.length);
+    // ── Affinity expansion: boost prefix-group neighbors of top-N ──
+    if (this.affinityGraph.size > 0) {
+      const topN = SEARCH_AFFINITY_TOP_N;
+      const boostFactor = SEARCH_AFFINITY_BOOST_FACTOR;
+      const limit = Math.min(topN, scored.length);
 
-    for (let rank = 0; rank < limit; rank++) {
-      const { idx, score } = scored[rank]!;
-      const neighbors = this.affinityGraph.get(idx);
-      if (!neighbors) continue;
+      for (let rank = 0; rank < limit; rank++) {
+        const { idx, score } = scored[rank]!;
+        const neighbors = this.affinityGraph.get(idx);
+        if (!neighbors) continue;
 
-      const rankDecay = 1 / (1 + rank);
-      for (const { docIndex, weight } of neighbors) {
-        // Only boost neighbors that already have some relevance signal
-        if (scores[docIndex]! > 0) {
-          scores[docIndex]! += score * weight * rankDecay * boostFactor;
+        const rankDecay = 1 / (1 + rank);
+        for (const { docIndex, weight } of neighbors) {
+          if (scores[docIndex]! > 0) {
+            scores[docIndex]! += score * weight * rankDecay * boostFactor;
+          }
         }
       }
     }
-  }
 
-  /**
-   * Domain hub expansion (§4.1.4): when a domain is heavily represented
-   * in top results, slightly boost remaining tools from that domain.
-   */
-  private applyDomainHubExpansion(scores: Float64Array): void {
+    // ── Domain hub expansion: coherence boost for well-represented domains ──
     const threshold = SEARCH_DOMAIN_HUB_THRESHOLD;
-    if (threshold <= 0) return;
+    if (threshold > 0 && scored.length >= threshold) {
+      const top10 = scored.slice(0, 10);
 
-    // Count domains in top-10 scored results
-    const scored: Array<{ idx: number; score: number }> = [];
-    for (let i = 0; i < this.docCount; i++) {
-      if (scores[i]! > 0) {
-        scored.push({ idx: i, score: scores[i]! });
+      const domainCounts = new Map<string, number>();
+      for (const { idx } of top10) {
+        const domain = this.docs[idx]!.domain;
+        if (domain) {
+          domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
+        }
       }
-    }
-    if (scored.length < threshold) return;
 
-    scored.sort((a, b) => b.score - a.score);
-    const top10 = scored.slice(0, 10);
-
-    const domainCounts = new Map<string, number>();
-    for (const { idx } of top10) {
-      const domain = this.docs[idx]!.domain;
-      if (domain) {
-        domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
-      }
-    }
-
-    for (const [domain, count] of domainCounts) {
-      if (count >= threshold) {
-        // Apply a small coherence boost to other tools in this domain
-        for (let i = 0; i < this.docCount; i++) {
-          if (scores[i]! > 0 && this.docs[i]!.domain === domain) {
-            scores[i]! *= SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER;
+      for (const [domain, count] of domainCounts) {
+        if (count >= threshold) {
+          for (let i = 0; i < this.docCount; i++) {
+            if (scores[i]! > 0 && this.docs[i]!.domain === domain) {
+              scores[i]! *= SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER;
+            }
           }
         }
       }

@@ -21,11 +21,11 @@ Binary instrumentation domain providing binary analysis and runtime instrumentat
 
 ## Representative tools
 
-- `frida_attach` — Attach Frida to a local process, PID, or binary path and create a binary instrumentation session.
+- `frida_attach` — Attach Frida to a local process, PID, or binary path and create a binary inst...
 - `frida_enumerate_modules` — Enumerate modules for an attached Frida session.
-- `ghidra_analyze` — Run binary metadata analysis with Ghidra headless when available, with structured fallback output when unavailable.
+- `ghidra_analyze` — Run binary metadata analysis with Ghidra headless when available, with struct...
 - `generate_hooks` — Generate a Frida interceptor script for a list of symbols.
-- `unidbg_emulate` — Attempt to emulate a native function with unidbg, or return structured mock output when unavailable.
+- `unidbg_emulate` — Attempt to emulate a native function with unidbg, or return structured mock o...
 - `frida_run_script` — Execute a Frida JavaScript snippet inside an attached Frida session.
 - `frida_detach` — Detach from a Frida session and clean up resources.
 - `frida_list_sessions` — List all active Frida sessions.
@@ -36,11 +36,11 @@ Binary instrumentation domain providing binary analysis and runtime instrumentat
 
 | Tool | Description |
 | --- | --- |
-| `frida_attach` | Attach Frida to a local process, PID, or binary path and create a binary instrumentation session. |
+| `frida_attach` | Attach Frida to a local process, PID, or binary path and create a binary inst... |
 | `frida_enumerate_modules` | Enumerate modules for an attached Frida session. |
-| `ghidra_analyze` | Run binary metadata analysis with Ghidra headless when available, with structured fallback output when unavailable. |
+| `ghidra_analyze` | Run binary metadata analysis with Ghidra headless when available, with struct... |
 | `generate_hooks` | Generate a Frida interceptor script for a list of symbols. |
-| `unidbg_emulate` | Attempt to emulate a native function with unidbg, or return structured mock output when unavailable. |
+| `unidbg_emulate` | Attempt to emulate a native function with unidbg, or return structured mock o... |
 | `frida_run_script` | Execute a Frida JavaScript snippet inside an attached Frida session. |
 | `frida_detach` | Detach from a Frida session and clean up resources. |
 | `frida_list_sessions` | List all active Frida sessions. |

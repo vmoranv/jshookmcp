@@ -1,3 +1,7 @@
+import { argString, argNumber } from '@server/domains/shared/parse-args';
+import { R } from '@server/domains/shared/ResponseBuilder';
+import type { ToolResponse } from '@server/domains/shared/ResponseBuilder';
+
 interface EvaluatablePage {
   evaluate(pageFunction: unknown, ...args: unknown[]): Promise<unknown>;
 }
@@ -6,12 +10,10 @@ interface IndexedDBDumpHandlersDeps {
   getActivePage: () => Promise<unknown>;
 }
 
-import { argString, argNumber } from '@server/domains/shared/parse-args';
-
 export class IndexedDBDumpHandlers {
   constructor(private deps: IndexedDBDumpHandlersDeps) {}
 
-  async handleIndexedDBDump(args: Record<string, unknown>) {
+  async handleIndexedDBDump(args: Record<string, unknown>): Promise<ToolResponse> {
     const database = argString(args, 'database', '');
     const store = argString(args, 'store', '');
     const maxRecords = argNumber(args, 'maxRecords', 100);
@@ -76,30 +78,9 @@ export class IndexedDBDumpHandlers {
         { database, store, maxRecords },
       );
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      return R.ok().build(result as Record<string, unknown>);
     } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return R.fail(error).build();
     }
   }
 }

@@ -27,13 +27,13 @@
 - `memory_unknown_scan` — 开始未知初始值扫描。先捕获指定类型的全部可读内存地址，再结合 memory_next_scan 的 "changed"、"unchanged"、"increased"、"decreased" 模式逐步缩小范围。等同于 Cheat Engine 的“Unknown initial value”扫描。
 - `memory_pointer_scan` — 查找指向目标地址的指针。扫描进程内存中的指针大小值，定位那些直接指向目标地址或落在目标地址附近（±4096 字节，适用于结构体成员访问）的指针。
 - `memory_group_scan` — 同时搜索多个已知偏移上的值。适合在你已知结构体相对布局时使用，例如生命值在 +0、法力值在 +4、等级在 +8。
-- `memory_scan_list` — 列出所有活动中的扫描会话，显示 PID、值类型、匹配数量、扫描次数和存活时间。
-- `memory_scan_delete` — 删除一个扫描会话并释放其占用资源。
-- `memory_scan_export` — 将扫描会话导出为 JSON 以便持久化保存，后续可重新导入并恢复扫描流程。
-- `memory_pointer_chain_scan` — 执行多级指针链扫描。从模块相对基址出发，查找通向目标地址的稳定指针路径。使用 BFS 发现类似 [game.exe+0x1A3C] → [+0x10] → [+0x08] → target 的链路。静态链（模块相对基址）在进程重启后通常仍然有效。
-- `memory_pointer_chain_validate` — 重新逐级解引用指针链并验证其有效性，返回哪些链仍然成立，以及失效链具体断在哪一层。
+- `memory_scan_session` — 待补充中文：Manage scan sessions. Actions: list (all sessions), delete (by sessionId), export (as JSON).
+- `memory_pointer_chain` — 待补充中文：Multi-level pointer chain operations.
+- `memory_structure_analyze` — 分析某个地址处的内存内容，以推断数据结构布局。使用启发式规则将字段识别为 vtable 指针、普通指针、字符串指针、浮点数、整数、布尔值或填充区。可选解析 RTTI，以获取类名和继承链（MSVC x64）。
+- `memory_vtable_parse` — 解析 vtable，枚举其中的虚函数指针并解析为模块名 + 偏移。同时尝试解析 RTTI，以恢复类名和继承层级。
+- `memory_structure_export_c` — 将推断出的结构体导出为 C 风格的 struct 定义，并附带偏移注释和类型标注。
 
-## 工具清单（41）
+## 工具清单（30）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -42,33 +42,22 @@
 | `memory_unknown_scan` | 开始未知初始值扫描。先捕获指定类型的全部可读内存地址，再结合 memory_next_scan 的 "changed"、"unchanged"、"increased"、"decreased" 模式逐步缩小范围。等同于 Cheat Engine 的“Unknown initial value”扫描。 |
 | `memory_pointer_scan` | 查找指向目标地址的指针。扫描进程内存中的指针大小值，定位那些直接指向目标地址或落在目标地址附近（±4096 字节，适用于结构体成员访问）的指针。 |
 | `memory_group_scan` | 同时搜索多个已知偏移上的值。适合在你已知结构体相对布局时使用，例如生命值在 +0、法力值在 +4、等级在 +8。 |
-| `memory_scan_list` | 列出所有活动中的扫描会话，显示 PID、值类型、匹配数量、扫描次数和存活时间。 |
-| `memory_scan_delete` | 删除一个扫描会话并释放其占用资源。 |
-| `memory_scan_export` | 将扫描会话导出为 JSON 以便持久化保存，后续可重新导入并恢复扫描流程。 |
-| `memory_pointer_chain_scan` | 执行多级指针链扫描。从模块相对基址出发，查找通向目标地址的稳定指针路径。使用 BFS 发现类似 [game.exe+0x1A3C] → [+0x10] → [+0x08] → target 的链路。静态链（模块相对基址）在进程重启后通常仍然有效。 |
-| `memory_pointer_chain_validate` | 重新逐级解引用指针链并验证其有效性，返回哪些链仍然成立，以及失效链具体断在哪一层。 |
-| `memory_pointer_chain_resolve` | 逐级解引用一条指针链，并解析出它当前最终指向的目标地址。 |
-| `memory_pointer_chain_export` | 将指针链导出为 JSON 以便持久化保存，可在不同会话之间重新导入使用。 |
+| `memory_scan_session` | 待补充中文：Manage scan sessions. Actions: list (all sessions), delete (by sessionId), export (as JSON). |
+| `memory_pointer_chain` | 待补充中文：Multi-level pointer chain operations. |
 | `memory_structure_analyze` | 分析某个地址处的内存内容，以推断数据结构布局。使用启发式规则将字段识别为 vtable 指针、普通指针、字符串指针、浮点数、整数、布尔值或填充区。可选解析 RTTI，以获取类名和继承链（MSVC x64）。 |
 | `memory_vtable_parse` | 解析 vtable，枚举其中的虚函数指针并解析为模块名 + 偏移。同时尝试解析 RTTI，以恢复类名和继承层级。 |
 | `memory_structure_export_c` | 将推断出的结构体导出为 C 风格的 struct 定义，并附带偏移注释和类型标注。 |
 | `memory_structure_compare` | 比较两个结构体实例，找出哪些字段会变化（如生命值、坐标等动态值），哪些字段保持不变（如 vtable、类型标志等），便于定位关键字段。 |
-| `memory_breakpoint_set` | 使用 x64 调试寄存器（DR0-DR3）设置硬件断点。最多支持 4 个并发断点，可监视 read、write、readwrite、execute 四类访问。 |
-| `memory_breakpoint_remove` | 按 ID 移除一个硬件断点，并释放对应的调试寄存器槽位。 |
-| `memory_breakpoint_list` | 列出所有活动中的硬件断点及其命中次数。 |
-| `memory_breakpoint_trace` | 跟踪某个地址的访问行为：设置一个临时断点，收集 N 次命中后自动移除。可回答“谁在读/写这个地址？”并返回每次访问对应的指令地址和寄存器状态。 |
+| `memory_breakpoint` | 待补充中文：Hardware breakpoint operations using x64 debug registers (DR0-DR3). Max 4 concurrent. |
 | `memory_patch_bytes` | 向目标进程的指定地址写入字节序列。会保存原始字节，便于后续撤销。适用于运行时代码补丁。 |
 | `memory_patch_nop` | 将指定地址处的指令改写为 NOP（0x90）。常用于禁用检查逻辑或跳转指令。 |
 | `memory_patch_undo` | 撤销之前的补丁，并恢复原始字节内容。 |
 | `memory_code_caves` | 在已加载模块的可执行节中查找 code cave（连续的 0x00 或 0xCC 区段），并按大小优先返回。 |
 | `memory_write_value` | 向指定内存地址写入一个带类型的值，并支持通过 memory_write_undo 进行撤销。 |
 | `memory_freeze` | 将某个地址冻结为固定值。工具会按设定间隔持续回写该值，防止它被其他逻辑修改。 |
-| `memory_unfreeze` | 停止冻结一个之前已经冻结的地址。 |
 | `memory_dump` | 以十六进制 + ASCII 列的形式导出一段内存区域，输出风格类似 xxd 的格式化十六进制转储。 |
-| `memory_speedhack_apply` | 对目标进程应用 speedhack。通过 Hook 时间相关 API（GetTickCount64、QueryPerformanceCounter）来缩放时间流逝速度。speed=2.0 表示两倍速，0.5 表示半速。 |
-| `memory_speedhack_set` | 在不重新 Hook 的情况下，调整当前 speedhack 的速度倍率。 |
-| `memory_write_undo` | 撤销最近一次内存写入操作，并恢复之前的值。 |
-| `memory_write_redo` | 重做最近一次被撤销的内存写入操作。 |
+| `memory_speedhack` | 待补充中文：Speedhack: hook time APIs to scale process time. Speed 2.0 = 2x faster, 0.5 = half speed. |
+| `memory_write_history` | 待补充中文：Undo or redo the last memory write operation. |
 | `memory_heap_enumerate` | 通过 Toolhelp32 快照枚举目标进程中的所有堆和堆块，返回堆列表、块数量、块大小以及整体统计信息。 |
 | `memory_heap_stats` | 获取详细的堆统计信息，包括大小分布桶（0-64B、64B-1KB、1-64KB、64KB-1MB、&gt;1MB）、碎片率和各类汇总指标。 |
 | `memory_heap_anomalies` | 检测堆异常，包括堆喷射模式（大量同尺寸块）、可能的 use-after-free（已释放块中仍存在非零数据），以及可疑块尺寸（0 或大于 100MB）。 |

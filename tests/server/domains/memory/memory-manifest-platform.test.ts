@@ -34,12 +34,8 @@ const WIN32_ONLY_TOOLS = new Set([
   'memory_anticheat_detect',
   'memory_guard_pages',
   'memory_integrity_check',
-  'memory_breakpoint_set',
-  'memory_breakpoint_remove',
-  'memory_breakpoint_list',
-  'memory_breakpoint_trace',
-  'memory_speedhack_apply',
-  'memory_speedhack_set',
+  'memory_breakpoint',
+  'memory_speedhack',
 ]);
 
 // Cross-platform tools that should always be present
@@ -49,13 +45,8 @@ const CROSS_PLATFORM_TOOLS = [
   'memory_unknown_scan',
   'memory_pointer_scan',
   'memory_group_scan',
-  'memory_scan_list',
-  'memory_scan_delete',
-  'memory_scan_export',
-  'memory_pointer_chain_scan',
-  'memory_pointer_chain_validate',
-  'memory_pointer_chain_resolve',
-  'memory_pointer_chain_export',
+  'memory_scan_session',
+  'memory_pointer_chain',
   'memory_structure_analyze',
   'memory_vtable_parse',
   'memory_structure_export_c',
@@ -66,10 +57,8 @@ const CROSS_PLATFORM_TOOLS = [
   'memory_code_caves',
   'memory_write_value',
   'memory_freeze',
-  'memory_unfreeze',
   'memory_dump',
-  'memory_write_undo',
-  'memory_write_redo',
+  'memory_write_history',
 ];
 
 async function loadManifestWithPlatform(platform?: 'win32' | 'linux' | 'darwin') {
@@ -92,9 +81,9 @@ describe('memory manifest platform filtering', () => {
     expect(manifest.domain).toBe('memory');
   });
 
-  it(`should have ${IS_WIN32 ? 41 : 26} tools on ${process.platform}`, async () => {
+  it(`should have ${IS_WIN32 ? 30 : 19} tools on ${process.platform}`, async () => {
     const manifest = await loadManifestWithPlatform();
-    const expected = IS_WIN32 ? 41 : 26;
+    const expected = IS_WIN32 ? 30 : 19;
     expect(manifest.registrations.length).toBe(expected);
   });
 
@@ -142,7 +131,7 @@ describe('memory manifest platform filtering', () => {
     const win32Manifest = await loadManifestWithPlatform('win32');
     const linuxManifest = await loadManifestWithPlatform('linux');
 
-    expect(win32Manifest.registrations.length).toBe(41);
-    expect(linuxManifest.registrations.length).toBe(26);
+    expect(win32Manifest.registrations.length).toBe(30);
+    expect(linuxManifest.registrations.length).toBe(19);
   });
 });

@@ -85,16 +85,22 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       expect(body.message).toContain('Stealth scripts injected');
     });
 
-    it('propagates error when injectAll throws', async () => {
+    it('returns failure response when injectAll throws', async () => {
       injectAllMock.mockRejectedValue(new Error('injection failed'));
 
-      await expect(handlers.handleStealthInject({})).rejects.toThrow('injection failed');
+      const response = await handlers.handleStealthInject({});
+      const body = parseJson<StealthInjectResponse>(response);
+      expect(body.success).toBe(false);
+      expect(body.message).toContain('injection failed');
     });
 
-    it('propagates error when getPage throws', async () => {
+    it('returns failure response when getPage throws', async () => {
       getPageMock.mockRejectedValue(new Error('no page'));
 
-      await expect(handlers.handleStealthInject({})).rejects.toThrow('no page');
+      const response = await handlers.handleStealthInject({});
+      const body = parseJson<StealthInjectResponse>(response);
+      expect(body.success).toBe(false);
+      expect(body.message).toContain('no page');
     });
 
     it('ignores args parameter (unused)', async () => {
@@ -143,18 +149,22 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       expect(body.platform).toBe('linux');
     });
 
-    it('propagates error when setRealisticUserAgent fails', async () => {
+    it('returns failure response when setRealisticUserAgent fails', async () => {
       setRealisticUserAgentMock.mockRejectedValue(new Error('ua error'));
 
-      await expect(handlers.handleStealthSetUserAgent({ platform: 'mac' })).rejects.toThrow(
-        'ua error',
-      );
+      const response = await handlers.handleStealthSetUserAgent({ platform: 'mac' });
+      const body = parseJson<StealthSetUserAgentResponse>(response);
+      expect(body.success).toBe(false);
+      expect(body.message).toContain('ua error');
     });
 
-    it('propagates error when getPage fails', async () => {
+    it('returns failure response when getPage fails', async () => {
       getPageMock.mockRejectedValue(new Error('page unavailable'));
 
-      await expect(handlers.handleStealthSetUserAgent({})).rejects.toThrow('page unavailable');
+      const response = await handlers.handleStealthSetUserAgent({});
+      const body = parseJson<StealthSetUserAgentResponse>(response);
+      expect(body.success).toBe(false);
+      expect(body.message).toContain('page unavailable');
     });
 
     it('response has correct structure', async () => {
@@ -165,12 +175,13 @@ describe('StealthInjectionHandlers — additional coverage', () => {
       expect(response).toHaveProperty('content');
       expect(response.content).toHaveLength(1);
 
-      const [content] = response.content;
+      const [content] = response.content as any[];
       expect(content).toBeDefined();
-      expect(content).toHaveProperty('type', 'text');
+      expect(content.type).toBe('text');
       expect(content).toHaveProperty('text');
 
-      const parsed = JSON.parse(content!.text) as StealthSetUserAgentResponse;
+      const parsed = JSON.parse(content.text) as StealthSetUserAgentResponse;
+
       expect(parsed).toMatchObject({
         success: true,
         platform: 'windows',

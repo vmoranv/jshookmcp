@@ -475,7 +475,6 @@ describe('canvas tool definitions', () => {
     expect(tool).toBeDefined();
     expect(tool!.description).toContain('Canvas');
     expect(tool!.description).toContain('engine');
-    expect(tool!.inputSchema.properties).toHaveProperty('canvasId');
   });
 
   it('canvas_scene_dump tool is defined correctly', () => {

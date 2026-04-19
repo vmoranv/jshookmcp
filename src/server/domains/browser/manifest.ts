@@ -163,22 +163,11 @@ const manifest = {
       bind: b((h, a) => h.handleDOMIsInViewport(a)),
     },
     {
-      tool: t('page_get_performance'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePageGetPerformance(a)),
-    },
-    {
       tool: t('page_inject_script'),
       domain: DOMAIN,
       bind: b((h, a) => h.handlePageInjectScript(a)),
     },
-    { tool: t('page_set_cookies'), domain: DOMAIN, bind: b((h, a) => h.handlePageSetCookies(a)) },
-    { tool: t('page_get_cookies'), domain: DOMAIN, bind: b((h, a) => h.handlePageGetCookies(a)) },
-    {
-      tool: t('page_clear_cookies'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePageClearCookies(a)),
-    },
+    { tool: t('page_cookies'), domain: DOMAIN, bind: b((h, a) => h.handlePageCookiesDispatch(a)) },
     { tool: t('page_set_viewport'), domain: DOMAIN, bind: b((h, a) => h.handlePageSetViewport(a)) },
     {
       tool: t('page_emulate_device'),
@@ -186,14 +175,9 @@ const manifest = {
       bind: b((h, a) => h.handlePageEmulateDevice(a)),
     },
     {
-      tool: t('page_get_local_storage'),
+      tool: t('page_local_storage'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handlePageGetLocalStorage(a)),
-    },
-    {
-      tool: t('page_set_local_storage'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePageSetLocalStorage(a)),
+      bind: b((h, a) => h.handlePageLocalStorageDispatch(a)),
     },
     { tool: t('page_press_key'), domain: DOMAIN, bind: b((h, a) => h.handlePagePressKey(a)) },
     {
@@ -226,19 +210,9 @@ const manifest = {
       bind: b((h, a) => h.handleStealthVerify(a)),
     },
     {
-      tool: t('camoufox_server_launch'),
+      tool: t('camoufox_server'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleCamoufoxServerLaunch(a)),
-    },
-    {
-      tool: t('camoufox_server_close'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleCamoufoxServerClose(a)),
-    },
-    {
-      tool: t('camoufox_server_status'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleCamoufoxServerStatus(a)),
+      bind: b((h, a) => h.handleCamoufoxServerDispatch(a)),
     },
     {
       tool: t('framework_state_extract'),
