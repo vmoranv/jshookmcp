@@ -30,6 +30,10 @@ import { registerServerPrompts } from '@server/MCPServer.prompts';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { createServerEventBus, type EventBus, type ServerEventMap } from '@server/EventBus';
 import { getAllManifests } from '@server/registry/index';
+import {
+  RuntimeSnapshotScheduler,
+  getStateDir,
+} from '@server/persistence/RuntimeSnapshotScheduler';
 import type { ToolHandlerDeps } from '@server/registry/contracts';
 import type {
   ExtensionListResult,
@@ -313,6 +317,13 @@ export class MCPServer implements MCPServerContext {
     this.samplingBridge = new LLMSamplingBridge(this.server);
     this.elicitationBridge = new ElicitationBridge(this.server);
     this.setDomainInstance('activationController', new ActivationController(this.eventBus, this));
+
+    // Snapshot scheduler for StateBoard + EvidenceGraph persistence
+    const stateDir = getStateDir(process.cwd());
+    const snapshotScheduler = new RuntimeSnapshotScheduler();
+    this.setDomainInstance('snapshotScheduler', snapshotScheduler);
+    this.setDomainInstance('snapshotStateDir', stateDir);
+    snapshotScheduler.start().catch((err) => logger.warn('snapshot scheduler start failed:', err));
 
     this.eventBus.on('tool:progress', async (payload) => {
       try {

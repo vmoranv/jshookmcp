@@ -192,6 +192,24 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
 
   ctx.shutdownStarted = true;
   ctx.shutdownPromise = (async () => {
+    // Flush snapshots before any other cleanup
+    const getInst =
+      typeof ctx.getDomainInstance === 'function' ? ctx.getDomainInstance.bind(ctx) : null;
+    if (getInst) {
+      const scheduler =
+        getInst<import('@server/persistence/RuntimeSnapshotScheduler').RuntimeSnapshotScheduler>(
+          'snapshotScheduler',
+        );
+      if (scheduler) {
+        try {
+          await scheduler.flushAll();
+          scheduler.dispose();
+        } catch (error) {
+          logger.warn('snapshot flush on shutdown failed:', error);
+        }
+      }
+    }
+
     // Clear all domain TTL timers
     for (const [, entry] of ctx.domainTtlEntries) {
       clearTimeout(entry.timer);
