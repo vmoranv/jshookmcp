@@ -58,6 +58,39 @@ function handleToolError(toolName: string, error: unknown): never {
 }
 
 import type { BuiltTool } from '@server/registry/tool-builder';
+import { MCP_COMPACT_SCHEMA } from '@src/constants';
+
+type JsonSchemaObj = Record<string, unknown> & {
+  properties?: Record<string, JsonSchemaObj>;
+  items?: JsonSchemaObj;
+  additionalProperties?: unknown;
+};
+
+function stripParamDescriptions(schema: JsonSchemaObj): JsonSchemaObj {
+  const clone: JsonSchemaObj = { ...schema };
+  if (clone.properties) {
+    const props: Record<string, JsonSchemaObj> = {};
+    for (const [key, val] of Object.entries(clone.properties)) {
+      const { description: _d, ...rest } = val;
+      props[key] = stripParamDescriptions(rest as JsonSchemaObj);
+    }
+    clone.properties = props;
+  }
+  if (clone.items && typeof clone.items === 'object') {
+    const { description: _d, ...rest } = clone.items as JsonSchemaObj;
+    clone.items = stripParamDescriptions(rest);
+  }
+  if (
+    clone.additionalProperties &&
+    typeof clone.additionalProperties === 'object' &&
+    !Array.isArray(clone.additionalProperties)
+  ) {
+    clone.additionalProperties = stripParamDescriptions(
+      clone.additionalProperties as JsonSchemaObj,
+    );
+  }
+  return clone;
+}
 
 export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): RegisteredTool {
   const builtTool = toolDef as BuiltTool;
@@ -65,7 +98,10 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
     ctx.toolAutocompleteHandlers.set(toolDef.name, builtTool.__autocomplete);
   }
 
-  const rawSchema = toolDef.inputSchema;
+  const rawSchema =
+    MCP_COMPACT_SCHEMA && toolDef.inputSchema
+      ? stripParamDescriptions(toolDef.inputSchema as JsonSchemaObj)
+      : toolDef.inputSchema;
   const shape =
     rawSchema && typeof rawSchema === 'object'
       ? buildZodShape(rawSchema as Record<string, unknown>)

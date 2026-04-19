@@ -666,6 +666,17 @@ export const HTTP_CLEANUP_INTERVAL_MS = int('HTTP_CLEANUP_INTERVAL_MS', 5 * 60_0
 export const SSE_HEARTBEAT_MS = int('SSE_HEARTBEAT_MS', 30_000);
 
 /* ================================================================== */
+/*  Compact tool schema (token optimization)                           */
+/* ================================================================== */
+
+/**
+ * When true, strip parameter descriptions from registered tool schemas
+ * to reduce the tools/list payload. Full schemas remain available via
+ * the describe_tool meta-tool. Default: true for full profile.
+ */
+export const MCP_COMPACT_SCHEMA = bool('MCP_COMPACT_SCHEMA', true);
+
+/* ================================================================== */
 /*  Sandbox / native bridge / sourcemap / v8                           */
 /* ================================================================== */
 
