@@ -25,7 +25,7 @@ Canvas game engine reverse analysis domain supporting Laya, Pixi, Phaser, Cocos,
 - `canvas_engine_fingerprint` — Detect Canvas/WebGL game engine instances running in the page (LayaAir, PixiJ...
 - `canvas_scene_dump` — Extract the full scene tree / display list from a detected canvas engine
 - `canvas_pick_object_at_point` — Pick / hit-test the topmost object at a given screen coordinate using the engine's hit-test system
-- `trace_click_to_handler` — Trace a click event through DOM events, engine dispatch, and JS call stack to...
+- `canvas_trace_click_handler` — Trace a click event through DOM events, engine dispatch, and JS call stack to...
 
 ## Full tool list (4)
 
@@ -34,4 +34,4 @@ Canvas game engine reverse analysis domain supporting Laya, Pixi, Phaser, Cocos,
 | `canvas_engine_fingerprint` | Detect Canvas/WebGL game engine instances running in the page (LayaAir, PixiJ... |
 | `canvas_scene_dump` | Extract the full scene tree / display list from a detected canvas engine |
 | `canvas_pick_object_at_point` | Pick / hit-test the topmost object at a given screen coordinate using the engine's hit-test system |
-| `trace_click_to_handler` | Trace a click event through DOM events, engine dispatch, and JS call stack to... |
+| `canvas_trace_click_handler` | Trace a click event through DOM events, engine dispatch, and JS call stack to... |
