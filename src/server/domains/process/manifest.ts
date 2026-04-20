@@ -28,9 +28,6 @@ const WIN32_ONLY_TOOLS = new Set(['check_debug_port']);
 
 const allRegistrations = [
   { tool: t('electron_attach'), domain: DOMAIN, bind: b((h, a) => h.handleElectronAttach(a)) },
-  { tool: t('process_list'), domain: DOMAIN, bind: b((h, a) => h.handleProcessList(a)) },
-  { tool: t('process_find'), domain: DOMAIN, bind: b((h, a) => h.handleProcessFind(a)) },
-  { tool: t('process_get'), domain: DOMAIN, bind: b((h, a) => h.handleProcessGet(a)) },
   { tool: t('process_windows'), domain: DOMAIN, bind: b((h, a) => h.handleProcessWindows(a)) },
   {
     tool: t('process_check_debug_port'),
@@ -42,7 +39,6 @@ const allRegistrations = [
     domain: DOMAIN,
     bind: b((h, a) => h.handleProcessLaunchDebug(a)),
   },
-  { tool: t('process_kill'), domain: DOMAIN, bind: b((h, a) => h.handleProcessKill(a)) },
   { tool: t('memory_read'), domain: DOMAIN, bind: b((h, a) => h.handleMemoryRead(a)) },
   { tool: t('memory_write'), domain: DOMAIN, bind: b((h, a) => h.handleMemoryWrite(a)) },
   { tool: t('memory_scan'), domain: DOMAIN, bind: b((h, a) => h.handleMemoryScan(a)) },

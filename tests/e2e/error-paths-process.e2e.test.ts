@@ -76,28 +76,7 @@ describe('Error Paths & Process/Memory E2E', { timeout: 120_000, sequential: tru
 
   // --- Process/Memory Tests ---
 
-  test('PROC-01: process_find returns process data', async () => {
-    if (!client.getToolMap().has('process_find')) {
-      client.recordSynthetic('process-list', 'SKIP', 'Tool not registered');
-      return;
-    }
-
-    const result = await client.call('process_find', { pattern: 'node' }, 15_000);
-    expect(result.result.status).not.toBe('FAIL');
-  });
-
-  test('PROC-02: process_find locates running processes', async () => {
-    if (!client.getToolMap().has('process_find')) {
-      client.recordSynthetic('process-find', 'SKIP', 'Tool not registered');
-      return;
-    }
-
-    const result = await client.call('process_find', { pattern: 'node' }, 15_000);
-    // Should find at least the current node process
-    expect(['PASS', 'EXPECTED_LIMITATION']).toContain(result.result.status);
-  });
-
-  test('PROC-03: memory_audit_export returns audit trail', async () => {
+  test('PROC-01: memory_audit_export returns audit trail', async () => {
     if (!client.getToolMap().has('memory_audit_export')) {
       client.recordSynthetic('memory-audit', 'SKIP', 'Tool not registered');
       return;
@@ -107,7 +86,7 @@ describe('Error Paths & Process/Memory E2E', { timeout: 120_000, sequential: tru
     expect(result.result.status).not.toBe('FAIL');
   });
 
-  test('memory_list_regions returns valid structure', async () => {
+  test('PROC-02: memory_list_regions returns valid structure', async () => {
     if (!client.getToolMap().has('memory_list_regions')) {
       client.recordSynthetic('memory-regions', 'SKIP', 'Tool not registered');
       return;

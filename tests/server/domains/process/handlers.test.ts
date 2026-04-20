@@ -39,40 +39,6 @@ describe('ProcessToolHandlers', () => {
     handlers = new ProcessToolHandlers();
   });
 
-  it('returns not-found message for missing PID', async () => {
-    pm.getProcessByPid.mockResolvedValue(null);
-    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 1234 }));
-    expect(body.success).toBe(false);
-    expect(body.message).toContain('1234');
-  });
-
-  it('returns process_get with command line and debug port', async () => {
-    pm.getProcessByPid.mockResolvedValue({ pid: 77, name: 'node' });
-    pm.getProcessCommandLine.mockResolvedValue({ commandLine: 'node app.js', parentPid: 1 });
-    pm.checkDebugPort.mockResolvedValue(9222);
-
-    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 77 }));
-    expect(body.success).toBe(true);
-    expect(body.process.commandLine).toBe('node app.js');
-    expect(body.process.parentPid).toBe(1);
-    expect(body.process.debugPort).toBe(9222);
-    expect(pm.checkDebugPort).toHaveBeenCalledWith(77, { commandLine: 'node app.js' });
-  });
-
-  it('returns process_find results through the facade', async () => {
-    pm.findProcesses.mockResolvedValue([
-      { pid: 55, name: 'chrome', executablePath: 'C:/chrome.exe', memoryUsage: 5 * 1024 * 1024 },
-    ]);
-
-    const body = parseJson<ProcessFindResponse>(
-      await handlers.handleProcessFind({ pattern: 'chrome' }),
-    );
-    expect(body.success).toBe(true);
-    expect(body.count).toBe(1);
-    expect(body.processes[0]!.pid).toBe(55);
-    expect(pm.findProcesses).toHaveBeenCalledWith('chrome');
-  });
-
   it('returns process_check_debug_port results through the facade', async () => {
     pm.checkDebugPort.mockResolvedValue(9333);
 
@@ -83,16 +49,6 @@ describe('ProcessToolHandlers', () => {
     expect(body.debugPort).toBe(9333);
     expect(body.canAttach).toBe(true);
     expect(body.attachUrl).toBe('http://localhost:9333');
-  });
-
-  it('returns process_kill results through the facade', async () => {
-    pm.killProcess.mockResolvedValue(true);
-
-    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 77 }));
-    expect(body.success).toBe(true);
-    expect(body.pid).toBe(77);
-    expect(body.message).toContain('77');
-    expect(pm.killProcess).toHaveBeenCalledWith(77);
   });
 
   it('returns check_debug_port results through the injection facade', async () => {

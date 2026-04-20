@@ -34,12 +34,14 @@ export function applyContextCapture(
   ctx: E2EContext,
   overrides: Record<string, Record<string, unknown>>,
 ): void {
-  // ── browser PID from browser_launch ──
-  if (toolName === 'browser_launch' && isRecord(parsed)) {
-    // browser_launch may return pid directly or in nested browser object
+  // ── browser PID from browser launch flows ──
+  if ((toolName === 'browser_launch' || toolName === 'process_launch_debug') && isRecord(parsed)) {
+    // launch flows may return pid directly, in nested browser, or nested process
     const pid = parsed.pid ?? (isRecord(parsed.browser) ? parsed.browser.pid : undefined);
-    if (typeof pid === 'number' && pid > 0) {
-      ctx.browserPid = pid;
+    const processPid = isRecord(parsed.process) ? parsed.process.pid : undefined;
+    const candidatePid = pid ?? processPid;
+    if (typeof candidatePid === 'number' && candidatePid > 0) {
+      ctx.browserPid = candidatePid;
     }
   }
 
@@ -234,33 +236,6 @@ export function applyContextCapture(
     parsed.added.length > 0
   ) {
     overrides.blackbox_add = { pattern: parsed.added[0] as string };
-  }
-
-  if (
-    toolName === 'process_find' &&
-    isRecord(parsed) &&
-    Array.isArray(parsed.processes) &&
-    parsed.processes.length > 0
-  ) {
-    const browserProc = (parsed.processes as Record<string, unknown>[]).find((p) => {
-      const name = String(p.name ?? p.processName ?? '').toLowerCase();
-      return (
-        (name.includes('chrom') ||
-          name.includes('browser') ||
-          name.includes('puppeteer') ||
-          name.includes('camoufox') ||
-          name.includes('node')) &&
-        typeof p.pid === 'number' &&
-        p.pid > 0
-      );
-    });
-    const anyProc = (parsed.processes as Record<string, unknown>[]).find(
-      (p) => typeof p.pid === 'number' && p.pid > 0,
-    );
-    const proc = browserProc ?? anyProc;
-    if (proc && typeof proc.pid === 'number' && proc.pid > 0) {
-      ctx.browserPid = proc.pid;
-    }
   }
 
   // ── Debugger session: capture session file path for load ──

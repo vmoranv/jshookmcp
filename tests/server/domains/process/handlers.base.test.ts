@@ -141,37 +141,6 @@ describe('ProcessToolHandlersBase', () => {
     handlers = new TestProcessToolHandlersBase();
   });
 
-  describe('handleProcessGet', () => {
-    it('returns not found for missing PID', async () => {
-      pm.getProcessByPid.mockResolvedValue(null);
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 999 }));
-      expect(body.success).toBe(false);
-      expect(body.message).toContain('999');
-    });
-
-    it('returns process with debug port info', async () => {
-      pm.getProcessByPid.mockResolvedValue({ pid: 50, name: 'chrome' });
-      pm.getProcessCommandLine.mockResolvedValue({
-        commandLine: 'chrome --headless',
-        parentPid: 1,
-      });
-      pm.checkDebugPort.mockResolvedValue(9222);
-
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 50 }));
-      expect(body.success).toBe(true);
-      expect(body.process!.debugPort).toBe(9222);
-      expect(body.process!.commandLine).toBe('chrome --headless');
-    });
-
-    it('handles error when getProcessByPid throws', async () => {
-      pm.getProcessByPid.mockRejectedValue(new Error('boom'));
-
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 50 }));
-      expect(body.success).toBe(false);
-      expect(body.error).toBe('boom');
-    });
-  });
-
   describe('handleProcessWindows', () => {
     it('returns windows for a process', async () => {
       pm.getProcessWindows.mockResolvedValue([

@@ -22,28 +22,24 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 ## Representative tools
 
 - `electron_attach` — Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect...
-- `process_list` — List running processes.
-- `process_find` — Find processes by name pattern.
-- `process_get` — Get detailed information about a specific process by PID.
 - `process_windows` — Get all window handles for a process.
 - `process_check_debug_port` — Check if a process has a debug port enabled for CDP attachment.
 - `process_launch_debug` — Launch an executable with remote debugging port enabled.
-- `process_kill` — Kill a process by PID.
 - `memory_read` — Read memory from a process at a specific address.
 - `memory_write` — Write data to process memory at a specific address.
+- `memory_scan` — Scan process memory for a pattern or value.
+- `memory_check_protection` — Check memory protection flags at a specific address.
+- `memory_scan_filtered` — Scan memory within a filtered set of addresses (secondary scan).
+- `memory_batch_write` — Write multiple memory patches at once.
 
-## Full tool list (21)
+## Full tool list (17)
 
 | Tool | Description |
 | --- | --- |
 | `electron_attach` | Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect... |
-| `process_list` | List running processes. |
-| `process_find` | Find processes by name pattern. |
-| `process_get` | Get detailed information about a specific process by PID. |
 | `process_windows` | Get all window handles for a process. |
 | `process_check_debug_port` | Check if a process has a debug port enabled for CDP attachment. |
 | `process_launch_debug` | Launch an executable with remote debugging port enabled. |
-| `process_kill` | Kill a process by PID. |
 | `memory_read` | Read memory from a process at a specific address. |
 | `memory_write` | Write data to process memory at a specific address. |
 | `memory_scan` | Scan process memory for a pattern or value. |

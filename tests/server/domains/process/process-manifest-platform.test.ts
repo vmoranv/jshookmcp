@@ -6,13 +6,9 @@ vi.mock('@server/domains/process/index', () => ({
 
 const CROSS_PLATFORM_TOOLS = [
   'electron_attach',
-  'process_list',
-  'process_find',
-  'process_get',
   'process_windows',
   'process_check_debug_port',
   'process_launch_debug',
-  'process_kill',
   'memory_read',
   'memory_write',
   'memory_scan',
@@ -56,7 +52,7 @@ describe('process manifest platform filtering', () => {
     const manifest = await loadManifestWithPlatform('linux');
     const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
 
-    expect(manifest.registrations.length).toBe(20);
+    expect(manifest.registrations.length).toBe(16);
     for (const tool of CROSS_PLATFORM_TOOLS) {
       if (tool === 'inject_dll' || tool === 'inject_shellcode' || tool === 'check_debug_port') {
         continue;
