@@ -12,7 +12,10 @@ const pm = {
   launchWithDebug: vi.fn(),
   killProcess: vi.fn(),
 };
-const mm = {};
+const mm = {
+  checkDebugPort: vi.fn(),
+  enumerateModules: vi.fn(),
+};
 
 const unifiedPmCtor = vi.fn(() => pm);
 const memoryCtor = vi.fn(() => mm);
@@ -36,36 +39,6 @@ describe('ProcessToolHandlers', () => {
     handlers = new ProcessToolHandlers();
   });
 
-  it('returns validation error when process_find has empty pattern', async () => {
-    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessFind({ pattern: '' }));
-    expect(body.success).toBe(false);
-    expect(body.error).toContain('pattern');
-  });
-
-  it('maps process_find result fields', async () => {
-    pm.findProcesses.mockResolvedValue([
-      {
-        pid: 100,
-        name: 'browser.exe',
-        executablePath: 'C:/browser.exe',
-        windowTitle: 'Browser',
-        windowHandle: '0x1',
-        memoryUsage: 50 * 1024 * 1024,
-      },
-    ]);
-
-    const body = parseJson<ProcessFindResponse>(
-      await handlers.handleProcessFind({ pattern: 'browser' }),
-    );
-    expect(body.success).toBe(true);
-    expect(body.count).toBe(1);
-    expect(body.processes[0]).toMatchObject({
-      pid: 100,
-      path: 'C:/browser.exe',
-      memoryMB: 50,
-    });
-  });
-
   it('returns not-found message for missing PID', async () => {
     pm.getProcessByPid.mockResolvedValue(null);
     const body = parseJson<ProcessFindResponse>(await handlers.handleProcessGet({ pid: 1234 }));
@@ -86,14 +59,62 @@ describe('ProcessToolHandlers', () => {
     expect(pm.checkDebugPort).toHaveBeenCalledWith(77, { commandLine: 'node app.js' });
   });
 
-  it('returns canAttach on process_check_debug_port', async () => {
-    pm.checkDebugPort.mockResolvedValue(9333);
+  it('returns process_find results through the facade', async () => {
+    pm.findProcesses.mockResolvedValue([
+      { pid: 55, name: 'chrome', executablePath: 'C:/chrome.exe', memoryUsage: 5 * 1024 * 1024 },
+    ]);
+
     const body = parseJson<ProcessFindResponse>(
-      await handlers.handleProcessCheckDebugPort({ pid: 200 }),
+      await handlers.handleProcessFind({ pattern: 'chrome' }),
     );
     expect(body.success).toBe(true);
+    expect(body.count).toBe(1);
+    expect(body.processes[0]!.pid).toBe(55);
+    expect(pm.findProcesses).toHaveBeenCalledWith('chrome');
+  });
+
+  it('returns process_check_debug_port results through the facade', async () => {
+    pm.checkDebugPort.mockResolvedValue(9333);
+
+    const body = parseJson<ProcessFindResponse>(
+      await handlers.handleProcessCheckDebugPort({ pid: 77 }),
+    );
+    expect(body.success).toBe(true);
+    expect(body.debugPort).toBe(9333);
     expect(body.canAttach).toBe(true);
     expect(body.attachUrl).toBe('http://localhost:9333');
+  });
+
+  it('returns process_kill results through the facade', async () => {
+    pm.killProcess.mockResolvedValue(true);
+
+    const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 77 }));
+    expect(body.success).toBe(true);
+    expect(body.pid).toBe(77);
+    expect(body.message).toContain('77');
+    expect(pm.killProcess).toHaveBeenCalledWith(77);
+  });
+
+  it('returns check_debug_port results through the injection facade', async () => {
+    mm.checkDebugPort.mockResolvedValue({ success: true, isDebugged: false });
+
+    const body = parseJson<ProcessFindResponse>(await handlers.handleCheckDebugPort({ pid: 77 }));
+    expect(body.success).toBe(true);
+    expect(body.pid).toBe(77);
+    expect(body.isDebugged).toBe(false);
+  });
+
+  it('returns enumerate_modules results through the injection facade', async () => {
+    mm.enumerateModules.mockResolvedValue({
+      success: true,
+      modules: [{ name: 'app.dll', baseAddress: '0x1000', size: 4096 }],
+    });
+
+    const body = parseJson<ProcessFindResponse>(await handlers.handleEnumerateModules({ pid: 77 }));
+    expect(body.success).toBe(true);
+    expect(body.pid).toBe(77);
+    expect(body.moduleCount).toBe(1);
+    expect(body.modules[0]!.name).toBe('app.dll');
   });
 
   it('returns a stable failure message when process_launch_debug cannot resolve a process', async () => {

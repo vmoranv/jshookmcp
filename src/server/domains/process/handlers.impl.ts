@@ -74,6 +74,10 @@ export class ProcessHandlersBase {
 
   // ── Process Management ──
 
+  async handleProcessList(args: Record<string, unknown>) {
+    return this.processMgmt.handleProcessList(args);
+  }
+
   async handleProcessFind(args: Record<string, unknown>) {
     return this.processMgmt.handleProcessFind(args);
   }

@@ -269,20 +269,36 @@ export class InjectionHandlers {
   async handleCheckDebugPort(args: Record<string, unknown>) {
     try {
       const pid = validatePid(args.pid);
-
       const result = await this.memoryManager.checkDebugPort(pid);
 
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    } catch (error) {
-      logger.error('Debug port check failed:', error);
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
-              { success: false, error: error instanceof Error ? error.message : String(error) },
+              {
+                success: result.success,
+                pid,
+                isDebugged: result.isDebugged ?? null,
+                error: result.error,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      logger.error('check_debug_port failed:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+              },
               null,
               2,
             ),
@@ -295,20 +311,37 @@ export class InjectionHandlers {
   async handleEnumerateModules(args: Record<string, unknown>) {
     try {
       const pid = validatePid(args.pid);
-
       const result = await this.memoryManager.enumerateModules(pid);
 
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    } catch (error) {
-      logger.error('Module enumeration failed:', error);
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
-              { success: false, error: error instanceof Error ? error.message : String(error) },
+              {
+                success: result.success,
+                pid,
+                moduleCount: result.modules?.length ?? 0,
+                modules: result.modules ?? [],
+                error: result.error,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      logger.error('enumerate_modules failed:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+              },
               null,
               2,
             ),

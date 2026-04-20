@@ -7,7 +7,13 @@ import { tool } from '@server/registry/tool-builder';
  */
 
 export const processToolDefinitions: Tool[] = [
-  tool('process_find', (t) => t.desc('Find processes by name pattern.').required('pattern')),
+  tool('process_list', (t) => t.desc('List running processes.').query()),
+  tool('process_find', (t) =>
+    t
+      .desc('Find processes by name pattern.')
+      .string('pattern', 'Name or command-line pattern to match')
+      .required('pattern'),
+  ),
   tool('process_get', (t) =>
     t
       .desc('Get detailed information about a specific process by PID.')
@@ -26,6 +32,7 @@ export const processToolDefinitions: Tool[] = [
       .number('pid', 'Process ID to check')
       .required('pid'),
   ),
+
   tool('process_launch_debug', (t) =>
     t
       .desc('Launch an executable with remote debugging port enabled.')
@@ -37,6 +44,7 @@ export const processToolDefinitions: Tool[] = [
   tool('process_kill', (t) =>
     t.desc('Kill a process by PID.').number('pid', 'Process ID to kill').required('pid'),
   ),
+
   tool('memory_read', (t) =>
     t
       .desc('Read memory from a process at a specific address.')
@@ -148,7 +156,10 @@ export const processToolDefinitions: Tool[] = [
   // Anti-detection tools
   tool('check_debug_port', (t) =>
     t
-      .desc('Check if a process is being debugged using NtQueryInformationProcess (Process...')
+      .desc(
+        'Check if a process is being debugged using NtQueryInformationProcess (ProcessDebugPort).',
+      )
+      .number('pid', 'Target process ID')
       .required('pid'),
   ),
   tool('enumerate_modules', (t) =>
@@ -157,6 +168,7 @@ export const processToolDefinitions: Tool[] = [
       .number('pid', 'Target process ID')
       .required('pid'),
   ),
+
   tool('electron_attach', (t) =>
     t
       .desc('Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect...')

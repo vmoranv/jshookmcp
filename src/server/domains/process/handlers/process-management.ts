@@ -160,6 +160,53 @@ export class ProcessManagementHandlers {
 
   // ── Process Handler Methods ──
 
+  async handleProcessList(_args: Record<string, unknown>) {
+    try {
+      const processes = await this.processManager.findProcesses('');
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                count: processes.length,
+                processes: processes.map((p: ProcessSummarySource) => ({
+                  pid: p.pid,
+                  name: p.name,
+                  path: p.executablePath,
+                  windowTitle: p.windowTitle,
+                  windowHandle: p.windowHandle,
+                  memoryMB: p.memoryUsage ? Math.round(p.memoryUsage / 1024 / 1024) : undefined,
+                })),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      logger.error('Process list failed:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
+  }
+
   async handleProcessFind(args: Record<string, unknown>) {
     try {
       const pattern = requireString(args.pattern, 'pattern');

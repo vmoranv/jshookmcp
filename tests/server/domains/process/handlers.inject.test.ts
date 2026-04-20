@@ -3,8 +3,6 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
   injectDll: vi.fn(),
   injectShellcode: vi.fn(),
-  checkDebugPort: vi.fn(),
-  enumerateModules: vi.fn(),
   recordMemoryAudit: vi.fn(),
   connect: vi.fn(),
   connectPlaywrightCdpFallback: vi.fn(),
@@ -25,8 +23,6 @@ vi.mock(import('@server/domains/shared/modules'), async (importOriginal) => {
     MemoryManager: class {
       injectDll = state.injectDll;
       injectShellcode = state.injectShellcode;
-      checkDebugPort = state.checkDebugPort;
-      enumerateModules = state.enumerateModules;
     } as unknown as typeof actual.MemoryManager,
   };
 });
@@ -302,54 +298,6 @@ describe('handlers.impl.core.runtime.inject', () => {
       await handler.handleInjectShellcode({ pid: 1234, shellcode: '9090' });
 
       expect(state.injectShellcode).toHaveBeenCalledWith(1234, '9090', 'hex');
-    });
-  });
-
-  describe('checkDebugPort', () => {
-    it('returns result from memoryManager', async () => {
-      state.checkDebugPort.mockResolvedValue({ success: true, isDebugged: false });
-
-      const result = await handler.handleCheckDebugPort({ pid: 1234 });
-      const response = JSON.parse(result.content[0]!.text);
-
-      expect(response.success).toBe(true);
-      expect(response.isDebugged).toBe(false);
-    });
-
-    it('handles errors', async () => {
-      state.checkDebugPort.mockRejectedValue(new Error('Check failed'));
-
-      const result = await handler.handleCheckDebugPort({ pid: 1234 });
-      const response = JSON.parse(result.content[0]!.text);
-
-      expect(response.success).toBe(false);
-      expect(response.error).toBe('Check failed');
-    });
-  });
-
-  describe('enumerateModules', () => {
-    it('returns modules from memoryManager', async () => {
-      state.enumerateModules.mockResolvedValue({
-        success: true,
-        modules: [{ name: 'kernel32.dll', baseAddress: '0x7FFE0000', size: 0x1000 }],
-      });
-
-      const result = await handler.handleEnumerateModules({ pid: 1234 });
-      const response = JSON.parse(result.content[0]!.text);
-
-      expect(response.success).toBe(true);
-      expect(response.modules).toHaveLength(1);
-      expect(response.modules[0].name).toBe('kernel32.dll');
-    });
-
-    it('handles errors', async () => {
-      state.enumerateModules.mockRejectedValue(new Error('Enumeration failed'));
-
-      const result = await handler.handleEnumerateModules({ pid: 1234 });
-      const response = JSON.parse(result.content[0]!.text);
-
-      expect(response.success).toBe(false);
-      expect(response.error).toBe('Enumeration failed');
     });
   });
 

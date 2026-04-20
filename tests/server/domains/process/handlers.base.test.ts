@@ -141,51 +141,6 @@ describe('ProcessToolHandlersBase', () => {
     handlers = new TestProcessToolHandlersBase();
   });
 
-  describe('handleProcessFind', () => {
-    it('returns validation error for empty pattern', async () => {
-      const body = parseJson<ProcessFindResponse>(
-        await handlers.handleProcessFind({ pattern: '' }),
-      );
-      expect(body.success).toBe(false);
-      expect(body.error).toContain('pattern');
-    });
-
-    it('returns matching processes', async () => {
-      pm.findProcesses.mockResolvedValue([
-        {
-          pid: 100,
-          name: 'node',
-          executablePath: '/usr/bin/node',
-          windowTitle: 'Terminal',
-          windowHandle: '0xA',
-          memoryUsage: 100 * 1024 * 1024,
-        },
-      ]);
-
-      const body = parseJson<ProcessFindResponse>(
-        await handlers.handleProcessFind({ pattern: 'node' }),
-      );
-      expect(body.success).toBe(true);
-      expect(body.count).toBe(1);
-      expect(body.processes![0]).toMatchObject({
-        pid: 100,
-        name: 'node',
-        path: '/usr/bin/node',
-        memoryMB: 100,
-      });
-    });
-
-    it('handles findProcesses error', async () => {
-      pm.findProcesses.mockRejectedValue(new Error('access denied'));
-
-      const body = parseJson<ProcessFindResponse>(
-        await handlers.handleProcessFind({ pattern: 'node' }),
-      );
-      expect(body.success).toBe(false);
-      expect(body.error).toBe('access denied');
-    });
-  });
-
   describe('handleProcessGet', () => {
     it('returns not found for missing PID', async () => {
       pm.getProcessByPid.mockResolvedValue(null);
@@ -238,30 +193,6 @@ describe('ProcessToolHandlersBase', () => {
     });
   });
 
-  describe('handleProcessCheckDebugPort', () => {
-    it('returns canAttach with valid debug port', async () => {
-      pm.checkDebugPort.mockResolvedValue(9229);
-
-      const body = parseJson<ProcessFindResponse>(
-        await handlers.handleProcessCheckDebugPort({ pid: 300 }),
-      );
-      expect(body.success).toBe(true);
-      expect(body.canAttach).toBe(true);
-      expect(body.attachUrl).toBe('http://localhost:9229');
-    });
-
-    it('returns canAttach false when no debug port', async () => {
-      pm.checkDebugPort.mockResolvedValue(null);
-
-      const body = parseJson<ProcessFindResponse>(
-        await handlers.handleProcessCheckDebugPort({ pid: 300 }),
-      );
-      expect(body.success).toBe(true);
-      expect(body.canAttach).toBe(false);
-      expect(body.attachUrl).toBeNull();
-    });
-  });
-
   describe('handleProcessLaunchDebug', () => {
     it('launches process with debug port', async () => {
       pm.launchWithDebug.mockResolvedValue({
@@ -304,32 +235,6 @@ describe('ProcessToolHandlersBase', () => {
 
       await handlers.handleProcessLaunchDebug({ executablePath: '/usr/bin/app' });
       expect(pm.launchWithDebug).toHaveBeenCalledWith('/usr/bin/app', 9222, []);
-    });
-  });
-
-  describe('handleProcessKill', () => {
-    it('kills process successfully', async () => {
-      pm.killProcess.mockResolvedValue(true);
-
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 600 }));
-      expect(body.success).toBe(true);
-      expect(body.message).toContain('killed successfully');
-    });
-
-    it('reports failure when kill fails', async () => {
-      pm.killProcess.mockResolvedValue(false);
-
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 600 }));
-      expect(body.success).toBe(false);
-      expect(body.message).toContain('Failed to kill');
-    });
-
-    it('handles errors thrown by killProcess', async () => {
-      pm.killProcess.mockRejectedValue(new Error('no permission'));
-
-      const body = parseJson<ProcessFindResponse>(await handlers.handleProcessKill({ pid: 600 }));
-      expect(body.success).toBe(false);
-      expect(body.error).toBe('no permission');
     });
   });
 

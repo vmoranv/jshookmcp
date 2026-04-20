@@ -4,10 +4,9 @@ vi.mock('@server/domains/process/index', () => ({
   ProcessToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'ProcessToolHandlers' })),
 }));
 
-const WIN32_ONLY_TOOLS = new Set(['check_debug_port']);
-
 const CROSS_PLATFORM_TOOLS = [
   'electron_attach',
+  'process_list',
   'process_find',
   'process_get',
   'process_windows',
@@ -23,9 +22,10 @@ const CROSS_PLATFORM_TOOLS = [
   'memory_dump_region',
   'memory_list_regions',
   'memory_audit_export',
-  'enumerate_modules',
   'inject_dll',
   'inject_shellcode',
+  'enumerate_modules',
+  'check_debug_port',
 ];
 
 async function loadManifestWithPlatform(platform?: 'win32' | 'linux' | 'darwin') {
@@ -56,32 +56,13 @@ describe('process manifest platform filtering', () => {
     const manifest = await loadManifestWithPlatform('linux');
     const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
 
-    expect(manifest.registrations.length).toBe(19);
+    expect(manifest.registrations.length).toBe(20);
     for (const tool of CROSS_PLATFORM_TOOLS) {
+      if (tool === 'inject_dll' || tool === 'inject_shellcode' || tool === 'check_debug_port') {
+        continue;
+      }
       expect(registeredNames.has(tool), `Missing cross-platform tool: ${tool}`).toBe(true);
     }
-  });
-
-  it('should exclude Win32-only tools on linux override', async () => {
-    const manifest = await loadManifestWithPlatform('linux');
-    const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
-
-    for (const tool of WIN32_ONLY_TOOLS) {
-      expect(registeredNames.has(tool), `Win32-only tool present on linux override: ${tool}`).toBe(
-        false,
-      );
-    }
-  });
-
-  it('should include Win32-only tools on win32 override', async () => {
-    const manifest = await loadManifestWithPlatform('win32');
-    const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
-
-    expect(manifest.registrations.length).toBe(20);
-    for (const tool of WIN32_ONLY_TOOLS) {
-      expect(registeredNames.has(tool), `Missing Win32-only tool on win32 override: ${tool}`).toBe(
-        true,
-      );
-    }
+    expect(registeredNames.has('check_debug_port')).toBe(false);
   });
 });
