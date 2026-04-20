@@ -1,6 +1,6 @@
 import type { CodeCollector } from '@server/domains/shared/modules';
 import type { PageController } from '@server/domains/shared/modules';
-import type { DOMInspector } from '@server/domains/shared/modules';
+
 import type { ScriptManager } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
@@ -13,9 +13,7 @@ import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-na
 import { PageInteractionHandlers } from '@server/domains/browser/handlers/page-interaction';
 import { PageEvaluationHandlers } from '@server/domains/browser/handlers/page-evaluation';
 import { PageDataHandlers } from '@server/domains/browser/handlers/page-data';
-import { DOMQueryHandlers } from '@server/domains/browser/handlers/dom-query';
-import { DOMStyleHandlers } from '@server/domains/browser/handlers/dom-style';
-import { DOMSearchHandlers } from '@server/domains/browser/handlers/dom-search';
+
 import { ConsoleHandlers } from '@server/domains/browser/handlers/console-handlers';
 import { ScriptManagementHandlers } from '@server/domains/browser/handlers/script-management';
 import { CaptchaHandlers } from '@server/domains/browser/handlers/captcha-handlers';
@@ -32,7 +30,7 @@ import { TabRegistry } from '@modules/browser/TabRegistry';
 export interface BrowserHandlerModuleInitDeps {
   collector: CodeCollector;
   pageController: PageController;
-  domInspector: DOMInspector;
+
   scriptManager: ScriptManager;
   consoleMonitor: ConsoleMonitor;
   captchaDetector: AICaptchaDetector;
@@ -61,9 +59,7 @@ export interface BrowserHandlerModules {
   pageEvaluation: PageEvaluationHandlers;
   targetEvaluation: TargetEvaluationHandlers;
   pageData: PageDataHandlers;
-  domQuery: DOMQueryHandlers;
-  domStyle: DOMStyleHandlers;
-  domSearch: DOMSearchHandlers;
+
   consoleHandlers: ConsoleHandlers;
   scriptManagement: ScriptManagementHandlers;
   captchaHandlers: CaptchaHandlers;
@@ -137,18 +133,6 @@ export function initializeBrowserHandlerModules(
     pageData: new PageDataHandlers({
       pageController: deps.pageController,
       ...commonDeps,
-    }),
-
-    domQuery: new DOMQueryHandlers({
-      domInspector: deps.domInspector,
-    }),
-
-    domStyle: new DOMStyleHandlers({
-      domInspector: deps.domInspector,
-    }),
-
-    domSearch: new DOMSearchHandlers({
-      domInspector: deps.domInspector,
     }),
 
     consoleHandlers: new ConsoleHandlers({

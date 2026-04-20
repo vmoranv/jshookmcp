@@ -119,7 +119,7 @@ describe('FrameworkStateHandlers', () => {
 
       const parsed = JSON.parse((result.content[0] as { text: string }).text);
       expect(parsed.success).toBe(false);
-      expect(parsed.error).toContain('debugger_disable');
+      expect(parsed.error).toContain("debugger_lifecycle({ action: 'disable' })");
     });
   });
 

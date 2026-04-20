@@ -86,7 +86,7 @@ const {
     handleDOMGetXPath: vi.fn(async (args: any) => ({ from: 'xpath', args })),
   } as MockHandler,
   consoleMocks: {
-    handleConsoleEnable: vi.fn(async (args: any) => ({ from: 'console-enable', args })),
+    handleConsoleMonitor: vi.fn(async (args: any) => ({ from: 'console-enable', args })),
     handleConsoleGetLogs: vi.fn(async (args: any) => ({ from: 'console-logs', args })),
     handleConsoleExecute: vi.fn(async (args: any) => ({ from: 'console-exec', args })),
   } as MockHandler,
@@ -532,9 +532,9 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
 
   // ============ Console delegation ============
   describe('console delegation', () => {
-    it('delegates handleConsoleEnable', async () => {
-      const result = await handlers.handleConsoleEnable({});
-      expect(consoleMocks.handleConsoleEnable).toHaveBeenCalledWith({});
+    it('delegates handleConsoleMonitor', async () => {
+      const result = await handlers.handleConsoleMonitor({});
+      expect(consoleMocks.handleConsoleMonitor).toHaveBeenCalledWith({});
       expect(result).toEqual({ from: 'console-enable', args: {} });
     });
 

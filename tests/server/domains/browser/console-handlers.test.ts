@@ -24,7 +24,9 @@ describe('ConsoleHandlers', () => {
   it('enables console monitoring and returns a success payload', async () => {
     consoleMonitor.enable.mockResolvedValue(undefined);
 
-    const body = parseJson<BrowserStatusResponse>(await handlers.handleConsoleEnable({}));
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleConsoleMonitor({ action: 'enable' }),
+    );
 
     expect(consoleMonitor.enable).toHaveBeenCalledOnce();
     expect(body).toEqual({

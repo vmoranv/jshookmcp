@@ -156,13 +156,4 @@ export class PageDataHandlers {
       return R.fail(e).build();
     }
   }
-
-  async handlePageGetAllLinks(_args: Record<string, unknown>): Promise<ToolResponse> {
-    try {
-      const links = await this.deps.pageController.getAllLinks();
-      return R.ok().build({ count: links.length, links });
-    } catch (e) {
-      return R.fail(e).build();
-    }
-  }
 }

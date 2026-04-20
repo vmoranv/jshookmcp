@@ -229,16 +229,6 @@ describe('browser tool definitions', () => {
       expect(getInputSchema(tool).required).toBeUndefined();
     });
 
-    it('dom_query_selector requires selector', () => {
-      const tool = getToolByName(browserPageCoreTools, 'dom_query_selector');
-      expect(getInputSchema(tool).required).toContain('selector');
-    });
-
-    it('dom_query_all requires selector', () => {
-      const tool = getToolByName(browserPageCoreTools, 'dom_query_all');
-      expect(getInputSchema(tool).required).toContain('selector');
-    });
-
     it('page_click requires selector', () => {
       const tool = getToolByName(browserPageCoreTools, 'page_click');
       expect(getInputSchema(tool).required).toContain('selector');
@@ -319,37 +309,12 @@ describe('browser tool definitions', () => {
       expect(getInputSchema(tool).required).toContain('key');
     });
 
-    it('dom_get_computed_style requires selector', () => {
-      const tool = getToolByName(browserPageSystemTools, 'dom_get_computed_style');
-      expect(getInputSchema(tool).required).toContain('selector');
-    });
-
-    it('dom_find_by_text requires text', () => {
-      const tool = getToolByName(browserPageSystemTools, 'dom_find_by_text');
-      expect(getInputSchema(tool).required).toContain('text');
-    });
-
-    it('dom_get_xpath requires selector', () => {
-      const tool = getToolByName(browserPageSystemTools, 'dom_get_xpath');
-      expect(getInputSchema(tool).required).toContain('selector');
-    });
-
-    it('dom_is_in_viewport requires selector', () => {
-      const tool = getToolByName(browserPageSystemTools, 'dom_is_in_viewport');
-      expect(getInputSchema(tool).required).toContain('selector');
-    });
-
     it('page_inject_script requires script', () => {
       const tool = getToolByName(browserPageSystemTools, 'page_inject_script');
       expect(getInputSchema(tool).required).toContain('script');
     });
 
-    const noArgSystemTools = ['console_enable', 'page_get_all_links'];
-
-    it.each(noArgSystemTools)('%s has no required properties', (name) => {
-      const tool = getToolByName(browserPageSystemTools, name);
-      expect(getInputSchema(tool).required).toBeUndefined();
-    });
+    // No noArgSystemTools remaining
   });
 
   // ── Security state tools ────────────────────────────────────

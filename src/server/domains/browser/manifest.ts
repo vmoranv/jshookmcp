@@ -17,7 +17,6 @@ function ensure(ctx: MCPServerContext): H {
     ctx.browserHandlers = new BrowserToolHandlers(
       ctx.collector!,
       ctx.pageController!,
-      ctx.domInspector!,
       ctx.scriptManager!,
       ctx.consoleMonitor!,
       ctx.eventBus,
@@ -77,12 +76,6 @@ const manifest = {
     page_reload: [
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
-    dom_get_structure: [
-      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
-    ],
-    dom_query_selector: [
-      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
-    ],
   },
 
   registrations: [
@@ -121,18 +114,7 @@ const manifest = {
     { tool: t('page_reload'), domain: DOMAIN, bind: b((h, a) => h.handlePageReload(a)) },
     { tool: t('page_back'), domain: DOMAIN, bind: b((h, a) => h.handlePageBack(a)) },
     { tool: t('page_forward'), domain: DOMAIN, bind: b((h, a) => h.handlePageForward(a)) },
-    {
-      tool: t('dom_query_selector'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleDOMQuerySelector(a)),
-    },
-    { tool: t('dom_query_all'), domain: DOMAIN, bind: b((h, a) => h.handleDOMQueryAll(a)) },
-    { tool: t('dom_get_structure'), domain: DOMAIN, bind: b((h, a) => h.handleDOMGetStructure(a)) },
-    {
-      tool: t('dom_find_clickable'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleDOMFindClickable(a)),
-    },
+
     { tool: t('page_click'), domain: DOMAIN, bind: b((h, a) => h.handlePageClick(a)) },
     { tool: t('page_type'), domain: DOMAIN, bind: b((h, a) => h.handlePageType(a)) },
     { tool: t('page_select'), domain: DOMAIN, bind: b((h, a) => h.handlePageSelect(a)) },
@@ -147,21 +129,10 @@ const manifest = {
     { tool: t('page_screenshot'), domain: DOMAIN, bind: b((h, a) => h.handlePageScreenshot(a)) },
     { tool: t('get_all_scripts'), domain: DOMAIN, bind: b((h, a) => h.handleGetAllScripts(a)) },
     { tool: t('get_script_source'), domain: DOMAIN, bind: b((h, a) => h.handleGetScriptSource(a)) },
-    { tool: t('console_enable'), domain: DOMAIN, bind: b((h, a) => h.handleConsoleEnable(a)) },
+    { tool: t('console_monitor'), domain: DOMAIN, bind: b((h, a) => h.handleConsoleMonitor(a)) },
     { tool: t('console_get_logs'), domain: DOMAIN, bind: b((h, a) => h.handleConsoleGetLogs(a)) },
     { tool: t('console_execute'), domain: DOMAIN, bind: b((h, a) => h.handleConsoleExecute(a)) },
-    {
-      tool: t('dom_get_computed_style'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleDOMGetComputedStyle(a)),
-    },
-    { tool: t('dom_find_by_text'), domain: DOMAIN, bind: b((h, a) => h.handleDOMFindByText(a)) },
-    { tool: t('dom_get_xpath'), domain: DOMAIN, bind: b((h, a) => h.handleDOMGetXPath(a)) },
-    {
-      tool: t('dom_is_in_viewport'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleDOMIsInViewport(a)),
-    },
+
     {
       tool: t('page_inject_script'),
       domain: DOMAIN,
@@ -180,11 +151,7 @@ const manifest = {
       bind: b((h, a) => h.handlePageLocalStorageDispatch(a)),
     },
     { tool: t('page_press_key'), domain: DOMAIN, bind: b((h, a) => h.handlePagePressKey(a)) },
-    {
-      tool: t('page_get_all_links'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePageGetAllLinks(a)),
-    },
+
     { tool: t('captcha_detect'), domain: DOMAIN, bind: b((h, a) => h.handleCaptchaDetect(a)) },
     { tool: t('captcha_wait'), domain: DOMAIN, bind: b((h, a) => h.handleCaptchaWait(a)) },
     { tool: t('captcha_config'), domain: DOMAIN, bind: b((h, a) => h.handleCaptchaConfig(a)) },

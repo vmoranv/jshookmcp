@@ -25,41 +25,6 @@ export const browserPageCoreTools: Tool[] = [
   tool('page_reload', (t) => t.desc('Reload current page').idempotent().openWorld()),
   tool('page_back', (t) => t.desc('Navigate back in history').openWorld()),
   tool('page_forward', (t) => t.desc('Navigate forward in history').openWorld()),
-  tool('dom_query_selector', (t) =>
-    t
-      .desc(
-        'Query single element (like document.querySelector). AI should use this BEFORE clicking to verify element exists.',
-      )
-      .string('selector', 'CSS selector')
-      .boolean('getAttributes', 'Whether to get element attributes', { default: true })
-      .required('selector')
-      .query(),
-  ),
-  tool('dom_query_all', (t) =>
-    t
-      .desc('Query all matching elements (like document.querySelectorAll)')
-      .string('selector', 'CSS selector')
-      .number('limit', 'Maximum number of elements to return', { default: 100 })
-      .required('selector')
-      .query(),
-  ),
-  tool('dom_get_structure', (t) =>
-    t
-      .desc('Get page DOM structure.')
-      .number('maxDepth', 'Maximum depth of DOM tree (default: 3, recommend: 2 for large pages)', {
-        default: 3,
-      })
-      .boolean('includeText', 'Whether to include text content (set false to reduce size)', {
-        default: true,
-      })
-      .query(),
-  ),
-  tool('dom_find_clickable', (t) =>
-    t
-      .desc('Find all clickable elements (buttons, links).')
-      .string('filterText', 'Filter by text content (optional)')
-      .query(),
-  ),
   tool('page_click', (t) =>
     t
       .desc('Click an element. Supports iframes via frameUrl/frameSelector.')

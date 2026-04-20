@@ -90,7 +90,7 @@ const {
     handleDOMGetXPath: vi.fn(),
   },
   consoleMocks: {
-    handleConsoleEnable: vi.fn(),
+    handleConsoleMonitor: vi.fn(),
     handleConsoleGetLogs: vi.fn(),
     handleConsoleExecute: vi.fn(),
   },

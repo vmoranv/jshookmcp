@@ -6,7 +6,7 @@ vi.mock('@server/domains/shared/modules', () => ({
   CamoufoxBrowserManager: vi.fn(),
   CodeCollector: vi.fn(),
   PageController: vi.fn(),
-  DOMInspector: vi.fn(),
+
   ScriptManager: vi.fn(),
   ConsoleMonitor: vi.fn(),
 }));
@@ -37,9 +37,7 @@ const handlers = vi.hoisted(() => ({
     .fn()
     .mockImplementation((d: any) => ({ _type: 'targetControl', deps: d })),
   PageDataHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'pageData', deps: d })),
-  DOMQueryHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'domQuery', deps: d })),
-  DOMStyleHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'domStyle', deps: d })),
-  DOMSearchHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'domSearch', deps: d })),
+
   ConsoleHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'console', deps: d })),
   ScriptManagementHandlers: vi
     .fn()
@@ -79,15 +77,7 @@ vi.mock('@server/domains/browser/handlers/target-control', () => ({
 vi.mock('@server/domains/browser/handlers/page-data', () => ({
   PageDataHandlers: handlers.PageDataHandlers,
 }));
-vi.mock('@server/domains/browser/handlers/dom-query', () => ({
-  DOMQueryHandlers: handlers.DOMQueryHandlers,
-}));
-vi.mock('@server/domains/browser/handlers/dom-style', () => ({
-  DOMStyleHandlers: handlers.DOMStyleHandlers,
-}));
-vi.mock('@server/domains/browser/handlers/dom-search', () => ({
-  DOMSearchHandlers: handlers.DOMSearchHandlers,
-}));
+
 vi.mock('@server/domains/browser/handlers/console-handlers', () => ({
   ConsoleHandlers: handlers.ConsoleHandlers,
 }));
@@ -126,7 +116,7 @@ describe('initializeBrowserHandlerModules', () => {
     return {
       collector: { getActivePage: vi.fn() } as any,
       pageController: {} as any,
-      domInspector: {} as any,
+
       scriptManager: {} as any,
       consoleMonitor: {} as any,
       captchaDetector: {} as any,
@@ -162,9 +152,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(modules.pageEvaluation).toBeDefined();
     expect(modules.targetEvaluation).toBeDefined();
     expect(modules.pageData).toBeDefined();
-    expect(modules.domQuery).toBeDefined();
-    expect(modules.domStyle).toBeDefined();
-    expect(modules.domSearch).toBeDefined();
+
     expect(modules.consoleHandlers).toBeDefined();
     expect(modules.scriptManagement).toBeDefined();
     expect(modules.captchaHandlers).toBeDefined();
@@ -176,7 +164,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(modules.detailedData).toBeDefined();
   });
 
-  it('creates all 20 handler instances', () => {
+  it('creates all 17 handler instances', () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
@@ -188,9 +176,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(handlers.PageEvaluationHandlers).toHaveBeenCalledTimes(1);
     expect(handlers.TargetEvaluationHandlers).toHaveBeenCalledTimes(1);
     expect(handlers.PageDataHandlers).toHaveBeenCalledTimes(1);
-    expect(handlers.DOMQueryHandlers).toHaveBeenCalledTimes(1);
-    expect(handlers.DOMStyleHandlers).toHaveBeenCalledTimes(1);
-    expect(handlers.DOMSearchHandlers).toHaveBeenCalledTimes(1);
+
     expect(handlers.ConsoleHandlers).toHaveBeenCalledTimes(1);
     expect(handlers.ScriptManagementHandlers).toHaveBeenCalledTimes(1);
     expect(handlers.CaptchaHandlers).toHaveBeenCalledTimes(1);
@@ -244,15 +230,6 @@ describe('initializeBrowserHandlerModules', () => {
     expect(call.autoDetectCaptcha).toBe(true);
     expect(call.captchaTimeout).toBe(60000);
     expect(call.setAutoDetectCaptcha).toBe(deps.setAutoDetectCaptcha);
-  });
-
-  it('passes domInspector to DOM handlers', () => {
-    const deps = makeDeps();
-    initializeBrowserHandlerModules(deps);
-
-    expect(handlers.DOMQueryHandlers.mock.calls[0]![0].domInspector).toBe(deps.domInspector);
-    expect(handlers.DOMStyleHandlers.mock.calls[0]![0].domInspector).toBe(deps.domInspector);
-    expect(handlers.DOMSearchHandlers.mock.calls[0]![0].domInspector).toBe(deps.domInspector);
   });
 
   it('provides getActivePage to framework state handlers', () => {

@@ -2,11 +2,11 @@
 
 import type { CodeCollector } from '@server/domains/shared/modules';
 import type { PageController } from '@server/domains/shared/modules';
-import type { DOMInspector } from '@server/domains/shared/modules';
+
 import type { ScriptManager } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import { AICaptchaDetector } from '@server/domains/shared/modules';
-import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
+import { argString } from '@server/domains/shared/parse-args';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { getConfig } from '@utils/config';
 import { resolveOutputDirectory } from '@utils/outputPaths';
@@ -20,9 +20,7 @@ import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-na
 import { PageInteractionHandlers } from '@server/domains/browser/handlers/page-interaction';
 import { PageEvaluationHandlers } from '@server/domains/browser/handlers/page-evaluation';
 import { PageDataHandlers } from '@server/domains/browser/handlers/page-data';
-import { DOMQueryHandlers } from '@server/domains/browser/handlers/dom-query';
-import { DOMStyleHandlers } from '@server/domains/browser/handlers/dom-style';
-import { DOMSearchHandlers } from '@server/domains/browser/handlers/dom-search';
+
 import { ConsoleHandlers } from '@server/domains/browser/handlers/console-handlers';
 import { ScriptManagementHandlers } from '@server/domains/browser/handlers/script-management';
 import { CaptchaHandlers } from '@server/domains/browser/handlers/captcha-handlers';
@@ -54,7 +52,7 @@ import {
 export class BrowserToolHandlers {
   protected collector: CodeCollector;
   protected pageController: PageController;
-  protected domInspector: DOMInspector;
+
   protected scriptManager: ScriptManager;
   protected consoleMonitor: ConsoleMonitor;
   protected captchaDetector: AICaptchaDetector;
@@ -75,9 +73,7 @@ export class BrowserToolHandlers {
   private pageEvaluation: PageEvaluationHandlers;
   private targetEvaluation: TargetEvaluationHandlers;
   private pageData: PageDataHandlers;
-  private domQuery: DOMQueryHandlers;
-  private domStyle: DOMStyleHandlers;
-  private domSearch: DOMSearchHandlers;
+
   private consoleHandlers: ConsoleHandlers;
   private scriptManagement: ScriptManagementHandlers;
   private captchaHandlers: CaptchaHandlers;
@@ -92,14 +88,14 @@ export class BrowserToolHandlers {
   constructor(
     collector: CodeCollector,
     pageController: PageController,
-    domInspector: DOMInspector,
+
     scriptManager: ScriptManager,
     consoleMonitor: ConsoleMonitor,
     eventBus?: EventBus<ServerEventMap>,
   ) {
     this.collector = collector;
     this.pageController = pageController;
-    this.domInspector = domInspector;
+
     this.scriptManager = scriptManager;
     this.consoleMonitor = consoleMonitor;
 
@@ -113,7 +109,7 @@ export class BrowserToolHandlers {
     const modules = initializeBrowserHandlerModules({
       collector: this.collector,
       pageController: this.pageController,
-      domInspector: this.domInspector,
+
       scriptManager: this.scriptManager,
       consoleMonitor: this.consoleMonitor,
       eventBus,
@@ -148,9 +144,7 @@ export class BrowserToolHandlers {
     this.pageEvaluation = modules.pageEvaluation;
     this.targetEvaluation = modules.targetEvaluation;
     this.pageData = modules.pageData;
-    this.domQuery = modules.domQuery;
-    this.domStyle = modules.domStyle;
-    this.domSearch = modules.domSearch;
+
     this.consoleHandlers = modules.consoleHandlers;
     this.scriptManagement = modules.scriptManagement;
     this.captchaHandlers = modules.captchaHandlers;
@@ -417,67 +411,9 @@ export class BrowserToolHandlers {
     }
   }
 
-  async handlePageGetAllLinks(args: Record<string, unknown>) {
-    return this.pageData.handlePageGetAllLinks(args);
-  }
-
-  // ── DOM Query ──
-  async handleDOMQuerySelector(args: Record<string, unknown>) {
-    return this.domQuery.handleDOMQuerySelector(args);
-  }
-
-  async handleDOMQueryAll(args: Record<string, unknown>) {
-    return this.domQuery.handleDOMQueryAll(args);
-  }
-
-  async handleDOMGetStructure(args: Record<string, unknown>) {
-    const structure = await this.domInspector.getStructure(
-      argNumber(args, 'maxDepth', 3),
-      argBool(args, 'includeText', true),
-    );
-    const processedStructure = this.detailedDataManager.smartHandle(structure, 51200);
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              ...processedStructure,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
-  }
-
-  async handleDOMFindClickable(args: Record<string, unknown>) {
-    return this.domQuery.handleDOMFindClickable(args);
-  }
-
-  // ── DOM Style ──
-  async handleDOMGetComputedStyle(args: Record<string, unknown>) {
-    return this.domStyle.handleDOMGetComputedStyle(args);
-  }
-
-  async handleDOMIsInViewport(args: Record<string, unknown>) {
-    return this.domStyle.handleDOMIsInViewport(args);
-  }
-
-  // ── DOM Search ──
-  async handleDOMFindByText(args: Record<string, unknown>) {
-    return this.domSearch.handleDOMFindByText(args);
-  }
-
-  async handleDOMGetXPath(args: Record<string, unknown>) {
-    return this.domSearch.handleDOMGetXPath(args);
-  }
-
   // ── Console ──
-  async handleConsoleEnable(args: Record<string, unknown>) {
-    return this.consoleHandlers.handleConsoleEnable(args);
+  async handleConsoleMonitor(args: Record<string, unknown>) {
+    return this.consoleHandlers.handleConsoleMonitor(args);
   }
 
   async handleConsoleGetLogs(args: Record<string, unknown>) {
@@ -617,9 +553,6 @@ export {
   PageInteractionHandlers,
   PageEvaluationHandlers,
   PageDataHandlers,
-  DOMQueryHandlers,
-  DOMStyleHandlers,
-  DOMSearchHandlers,
   ConsoleHandlers,
   ScriptManagementHandlers,
   CaptchaHandlers,

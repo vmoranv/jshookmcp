@@ -213,7 +213,7 @@ export class BrowserControlHandlers {
             driver: 'camoufox',
             mode: 'launch',
             message: 'Camoufox (Firefox) browser launched',
-            note: 'Use page_navigate to begin. CDP debugger is limited in Firefox; network_enable and console_enable use Playwright events and are fully supported.',
+            note: 'Use page_navigate to begin. CDP debugger is limited in Firefox; network_enable and console_monitor({ action: "enable" }) use Playwright events and are fully supported.',
           })
           .json();
       }

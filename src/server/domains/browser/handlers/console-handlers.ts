@@ -12,10 +12,16 @@ interface ConsoleHandlersDeps {
 export class ConsoleHandlers {
   constructor(private deps: ConsoleHandlersDeps) {}
 
-  async handleConsoleEnable(_args: Record<string, unknown>): Promise<ToolResponse> {
+  async handleConsoleMonitor(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
-      await this.deps.consoleMonitor.enable();
-      return R.ok().build({ message: 'Console monitoring enabled' });
+      const action = argString(args, 'action') as 'enable' | 'disable';
+      if (action === 'enable') {
+        await this.deps.consoleMonitor.enable();
+        return R.ok().build({ message: 'Console monitoring enabled' });
+      } else {
+        await this.deps.consoleMonitor.disable();
+        return R.ok().build({ message: 'Console monitoring disabled' });
+      }
     } catch (e) {
       return R.fail(e).build();
     }

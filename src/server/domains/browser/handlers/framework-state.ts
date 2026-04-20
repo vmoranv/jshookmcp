@@ -37,7 +37,7 @@ export class FrameworkStateHandlers {
       } catch {
         throw new PrerequisiteError(
           'CDP session unresponsive — the debugger may be blocking page evaluation. ' +
-            'Call debugger_disable() before framework_state_extract, or run it before debugger_enable.',
+            "Call debugger_lifecycle({ action: 'disable' })() before framework_state_extract, or run it before debugger_lifecycle({ action: 'enable' }).",
         );
       }
 

@@ -2,8 +2,12 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const browserPageSystemTools: Tool[] = [
-  tool('console_enable', (t) =>
-    t.desc('Enable console monitoring to capture console.log, console.error, etc.').idempotent(),
+  tool('console_monitor', (t) =>
+    t
+      .desc('Enable or disable console monitoring to capture console.log, console.error, etc.')
+      .enum('action', ['enable', 'disable'], 'Action to perform')
+      .required('action')
+      .idempotent(),
   ),
   tool('console_get_logs', (t) =>
     t
@@ -18,35 +22,6 @@ export const browserPageSystemTools: Tool[] = [
       .desc('Execute JavaScript expression in console context')
       .string('expression', 'JavaScript expression to execute')
       .requiredOpenWorld('expression'),
-  ),
-  tool('dom_get_computed_style', (t) =>
-    t
-      .desc('Get computed CSS styles of an element')
-      .string('selector', 'CSS selector')
-      .required('selector')
-      .query(),
-  ),
-  tool('dom_find_by_text', (t) =>
-    t
-      .desc('Find elements by text content (useful for dynamic content)')
-      .string('text', 'Text to search for')
-      .string('tag', 'Optional tag name to filter (e.g., "button", "a")')
-      .required('text')
-      .query(),
-  ),
-  tool('dom_get_xpath', (t) =>
-    t
-      .desc('Get XPath of an element')
-      .string('selector', 'CSS selector')
-      .required('selector')
-      .query(),
-  ),
-  tool('dom_is_in_viewport', (t) =>
-    t
-      .desc('Check if element is visible in viewport')
-      .string('selector', 'CSS selector')
-      .required('selector')
-      .query(),
   ),
   tool('page_inject_script', (t) =>
     t
@@ -112,5 +87,4 @@ export const browserPageSystemTools: Tool[] = [
       .string('key', 'Key to press')
       .requiredOpenWorld('key'),
   ),
-  tool('page_get_all_links', (t) => t.desc('Get all links on the page').query()),
 ];
