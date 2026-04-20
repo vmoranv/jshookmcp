@@ -21,14 +21,14 @@
 
 ## 代表工具
 
-- `evidence_query` — 待补充中文：Query reverse evidence graph by URL, function name, or script ID to find associated nodes.
-- `evidence_export` — 待补充中文：Export the reverse evidence graph as JSON snapshot or Markdown report.
+- `evidence_query` — 按 URL、函数名或脚本 ID 查询逆向证据图中的关联节点。
+- `evidence_export` — 将逆向证据图导出为 JSON 快照或 Markdown 报告。
 - `evidence_chain` — 从指定节点 ID 出发，按给定方向（forward/backward）遍历并返回完整溯源链。
 
 ## 工具清单（3）
 
 | 工具 | 说明 |
 | --- | --- |
-| `evidence_query` | 待补充中文：Query reverse evidence graph by URL, function name, or script ID to find associated nodes. |
-| `evidence_export` | 待补充中文：Export the reverse evidence graph as JSON snapshot or Markdown report. |
+| `evidence_query` | 按 URL、函数名或脚本 ID 查询逆向证据图中的关联节点。 |
+| `evidence_export` | 将逆向证据图导出为 JSON 快照或 Markdown 报告。 |
 | `evidence_chain` | 从指定节点 ID 出发，按给定方向（forward/backward）遍历并返回完整溯源链。 |

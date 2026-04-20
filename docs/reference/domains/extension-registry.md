@@ -25,7 +25,7 @@
 - `extension_execute_in_context` — 在指定 Chrome 扩展的后台上下文中执行代码。
 - `extension_reload` — 重新加载已安装的扩展（先卸载再加载）。
 - `extension_uninstall` — 从本地扩展注册表中卸载扩展。
-- `webhook` — 待补充中文：Manage webhook endpoints for external callbacks. Actions: create, list, delete, commands.
+- `webhook` — 管理 Webhook 端点用于外部回调。操作：create（创建）、list（列表）、delete（删除）、commands（命令）。
 
 ## 工具清单（5）
 
@@ -35,4 +35,4 @@
 | `extension_execute_in_context` | 在指定 Chrome 扩展的后台上下文中执行代码。 |
 | `extension_reload` | 重新加载已安装的扩展（先卸载再加载）。 |
 | `extension_uninstall` | 从本地扩展注册表中卸载扩展。 |
-| `webhook` | 待补充中文：Manage webhook endpoints for external callbacks. Actions: create, list, delete, commands. |
+| `webhook` | 管理 Webhook 端点用于外部回调。操作：create（创建）、list（列表）、delete（删除）、commands（命令）。 |

@@ -27,8 +27,8 @@
 - `memory_unknown_scan` — 开始未知初始值扫描。先捕获指定类型的全部可读内存地址，再结合 memory_next_scan 的 "changed"、"unchanged"、"increased"、"decreased" 模式逐步缩小范围。等同于 Cheat Engine 的“Unknown initial value”扫描。
 - `memory_pointer_scan` — 查找指向目标地址的指针。扫描进程内存中的指针大小值，定位那些直接指向目标地址或落在目标地址附近（±4096 字节，适用于结构体成员访问）的指针。
 - `memory_group_scan` — 同时搜索多个已知偏移上的值。适合在你已知结构体相对布局时使用，例如生命值在 +0、法力值在 +4、等级在 +8。
-- `memory_scan_session` — 待补充中文：Manage scan sessions. Actions: list (all sessions), delete (by sessionId), export (as JSON).
-- `memory_pointer_chain` — 待补充中文：Multi-level pointer chain operations.
+- `memory_scan_session` — 管理扫描会话。操作：list（列出全部会话）、delete（按 sessionId 删除）、export（导出为 JSON）。
+- `memory_pointer_chain` — 多级指针链操作：扫描、验证、解析和导出指针链。
 - `memory_structure_analyze` — 分析某个地址处的内存内容，以推断数据结构布局。使用启发式规则将字段识别为 vtable 指针、普通指针、字符串指针、浮点数、整数、布尔值或填充区。可选解析 RTTI，以获取类名和继承链（MSVC x64）。
 - `memory_vtable_parse` — 解析 vtable，枚举其中的虚函数指针并解析为模块名 + 偏移。同时尝试解析 RTTI，以恢复类名和继承层级。
 - `memory_structure_export_c` — 将推断出的结构体导出为 C 风格的 struct 定义，并附带偏移注释和类型标注。
@@ -42,13 +42,13 @@
 | `memory_unknown_scan` | 开始未知初始值扫描。先捕获指定类型的全部可读内存地址，再结合 memory_next_scan 的 "changed"、"unchanged"、"increased"、"decreased" 模式逐步缩小范围。等同于 Cheat Engine 的“Unknown initial value”扫描。 |
 | `memory_pointer_scan` | 查找指向目标地址的指针。扫描进程内存中的指针大小值，定位那些直接指向目标地址或落在目标地址附近（±4096 字节，适用于结构体成员访问）的指针。 |
 | `memory_group_scan` | 同时搜索多个已知偏移上的值。适合在你已知结构体相对布局时使用，例如生命值在 +0、法力值在 +4、等级在 +8。 |
-| `memory_scan_session` | 待补充中文：Manage scan sessions. Actions: list (all sessions), delete (by sessionId), export (as JSON). |
-| `memory_pointer_chain` | 待补充中文：Multi-level pointer chain operations. |
+| `memory_scan_session` | 管理扫描会话。操作：list（列出全部会话）、delete（按 sessionId 删除）、export（导出为 JSON）。 |
+| `memory_pointer_chain` | 多级指针链操作：扫描、验证、解析和导出指针链。 |
 | `memory_structure_analyze` | 分析某个地址处的内存内容，以推断数据结构布局。使用启发式规则将字段识别为 vtable 指针、普通指针、字符串指针、浮点数、整数、布尔值或填充区。可选解析 RTTI，以获取类名和继承链（MSVC x64）。 |
 | `memory_vtable_parse` | 解析 vtable，枚举其中的虚函数指针并解析为模块名 + 偏移。同时尝试解析 RTTI，以恢复类名和继承层级。 |
 | `memory_structure_export_c` | 将推断出的结构体导出为 C 风格的 struct 定义，并附带偏移注释和类型标注。 |
 | `memory_structure_compare` | 比较两个结构体实例，找出哪些字段会变化（如生命值、坐标等动态值），哪些字段保持不变（如 vtable、类型标志等），便于定位关键字段。 |
-| `memory_breakpoint` | 待补充中文：Hardware breakpoint operations using x64 debug registers (DR0-DR3). Max 4 concurrent. |
+| `memory_breakpoint` | 使用 x64 调试寄存器（DR0-DR3）的硬件断点操作，最多支持 4 个并发断点。 |
 | `memory_patch_bytes` | 向目标进程的指定地址写入字节序列。会保存原始字节，便于后续撤销。适用于运行时代码补丁。 |
 | `memory_patch_nop` | 将指定地址处的指令改写为 NOP（0x90）。常用于禁用检查逻辑或跳转指令。 |
 | `memory_patch_undo` | 撤销之前的补丁，并恢复原始字节内容。 |
@@ -56,8 +56,8 @@
 | `memory_write_value` | 向指定内存地址写入一个带类型的值，并支持通过 memory_write_undo 进行撤销。 |
 | `memory_freeze` | 将某个地址冻结为固定值。工具会按设定间隔持续回写该值，防止它被其他逻辑修改。 |
 | `memory_dump` | 以十六进制 + ASCII 列的形式导出一段内存区域，输出风格类似 xxd 的格式化十六进制转储。 |
-| `memory_speedhack` | 待补充中文：Speedhack: hook time APIs to scale process time. Speed 2.0 = 2x faster, 0.5 = half speed. |
-| `memory_write_history` | 待补充中文：Undo or redo the last memory write operation. |
+| `memory_speedhack` | 变速器：Hook 时间 API 以缩放进程时间流速。speed=2.0 为两倍速，0.5 为半速。 |
+| `memory_write_history` | 撤销或重做最近一次内存写入操作。 |
 | `memory_heap_enumerate` | 通过 Toolhelp32 快照枚举目标进程中的所有堆和堆块，返回堆列表、块数量、块大小以及整体统计信息。 |
 | `memory_heap_stats` | 获取详细的堆统计信息，包括大小分布桶（0-64B、64B-1KB、1-64KB、64KB-1MB、&gt;1MB）、碎片率和各类汇总指标。 |
 | `memory_heap_anomalies` | 检测堆异常，包括堆喷射模式（大量同尺寸块）、可能的 use-after-free（已释放块中仍存在非零数据），以及可疑块尺寸（0 或大于 100MB）。 |

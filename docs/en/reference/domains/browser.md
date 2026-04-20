@@ -34,7 +34,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 - `browser_launch` — Launch or connect to a browser. Drivers: chrome (full CDP) or camoufox (anti-detect Firefox).
 - `browser_close` — Close browser instance
 
-## Full tool list (52)
+## Full tool list (57)
 
 | Tool | Description |
 | --- | --- |
@@ -90,3 +90,8 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `human_typing` | Type text with human-like patterns: variable speed, occasional typos, corrections. |
 | `captcha_vision_solve` | Solve CAPTCHA via external service or AI vision. Auto-detects challenge type. |
 | `widget_challenge_solve` | Solve embedded widget challenge: detect, solve, inject token, trigger callback. |
+| `browser_jsdom_parse` | Parse HTML into an in-memory JSDOM session (no browser needed). Returns a sessionId used by other browser_jsdom_* tools. Sessions auto-expire after 10 minutes. |
+| `browser_jsdom_query` | Run a CSS selector against a JSDOM session and return matched elements with attributes, text and optional HTML or source location. |
+| `browser_jsdom_execute` | Evaluate JavaScript inside a JSDOM session. Requires the session to be parsed with runScripts="outside-only" or "dangerously". Console output is captured and returned. |
+| `browser_jsdom_serialize` | Serialize a JSDOM session back to HTML. Supports whole-document output or a CSS-selector fragment, with optional pretty-print. |
+| `browser_jsdom_cookies` | Inspect or manage cookies on a JSDOM session's cookie jar. Actions: "get" (list), "set" (add), "clear" (remove all). |

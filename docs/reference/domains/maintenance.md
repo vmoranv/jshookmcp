@@ -6,7 +6,6 @@
 
 ## Profile
 
-- search
 - workflow
 - full
 

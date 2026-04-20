@@ -22,14 +22,14 @@ The following tool domains are available:
 | `core` | Core | workflow, full | Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection. |
 | `cross-domain` | Cross-Domain | full | Cross-domain correlation domain that bridges analysis results across multiple domains, supporting workflow orchestration and evidence graph integration. |
 | `debugger` | Debugger | workflow, full | CDP-based debugging domain covering breakpoints, stepping, call stacks, watches, and debugger sessions. |
-| `encoding` | Encoding | search, workflow, full | Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding. |
+| `encoding` | Encoding | workflow, full | Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding. |
 | `evidence` | Evidence | full | Evidence-graph domain that models provenance between URLs, scripts, functions, hooks, and captured artifacts. |
 | `extension-registry` | Extension Registry | full | Extension registry domain for managing and discovering community extensions. |
 | `graphql` | GraphQL | workflow, full | GraphQL discovery, extraction, replay, and introspection tooling. |
 | `hooks` | Hooks | full | AI hook generation, injection, export, and built-in/custom preset management. |
 | `instrumentation` | Instrumentation | full | Unified instrumentation-session domain that groups hooks, intercepts, traces, and artifacts into a queryable session. |
 | `macro` | Macro | full | Sub-agent macro orchestration domain that chains multiple tool calls into reusable macro workflows. |
-| `maintenance` | Maintenance | search, workflow, full | Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management. |
+| `maintenance` | Maintenance | workflow, full | Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management. |
 | `memory` | Memory | full | Memory analysis domain for native scans, pointer-chain discovery, structure inference, and breakpoint-based observation. |
 | `mojo-ipc` | Mojo IPC | full | Mojo IPC monitoring domain for Chromium inter-process communication analysis. |
 | `network` | Network | workflow, full | Request capture, response extraction, HAR export, safe replay, and performance tracing. |

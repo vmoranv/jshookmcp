@@ -21,24 +21,14 @@ Cross-agent state synchronization domain providing a global shared state board f
 
 ## Representative tools
 
-- `state_board_set` — Set a value in the shared state board.
-- `state_board_get` — Get a value from the shared state board by key.
-- `state_board_delete` — Delete a value from the shared state board by key.
-- `state_board_list` — List all keys in the shared state board, optionally filtered by namespace.
+- `state_board` — Unified shared state board for cross-agent key-value coordination.
 - `state_board_watch` — Start or stop watching a key or pattern for changes.
-- `state_board_history` — Get the change history for a key.
 - `state_board_io` — Export or import state board entries.
-- `state_board_clear` — Clear all or filtered state board entries.
 
-## Full tool list (8)
+## Full tool list (3)
 
 | Tool | Description |
 | --- | --- |
-| `state_board_set` | Set a value in the shared state board. |
-| `state_board_get` | Get a value from the shared state board by key. |
-| `state_board_delete` | Delete a value from the shared state board by key. |
-| `state_board_list` | List all keys in the shared state board, optionally filtered by namespace. |
+| `state_board` | Unified shared state board for cross-agent key-value coordination. |
 | `state_board_watch` | Start or stop watching a key or pattern for changes. |
-| `state_board_history` | Get the change history for a key. |
 | `state_board_io` | Export or import state board entries. |
-| `state_board_clear` | Clear all or filtered state board entries. |

@@ -21,9 +21,9 @@
 
 ## 代表工具
 
-- `instrumentation_session` — 待补充中文：Manage instrumentation sessions that group hooks, intercepts, and traces.
-- `instrumentation_operation` — 待补充中文：Manage operations within an instrumentation session.
-- `instrumentation_artifact` — 待补充中文：Manage captured artifacts for instrumentation operations.
+- `instrumentation_session` — 管理 instrumentation 会话，将 Hook、拦截和 Trace 收拢为统一的可查询容器。
+- `instrumentation_operation` — 管理 instrumentation 会话内的操作（Hook、拦截、Trace）。
+- `instrumentation_artifact` — 管理 instrumentation 操作捕获的产物（参数、返回值、拦截数据等）。
 - `instrumentation_hook_preset` — 在 instrumentation 会话内应用 hooks 域预设 Hook，并将注入摘要持久化为会话产物。
 - `instrumentation_network_replay` — 在 instrumentation 会话内重放先前捕获的网络请求，并将重放结果或 dry-run 预览持久化为会话产物。
 
@@ -31,8 +31,8 @@
 
 | 工具 | 说明 |
 | --- | --- |
-| `instrumentation_session` | 待补充中文：Manage instrumentation sessions that group hooks, intercepts, and traces. |
-| `instrumentation_operation` | 待补充中文：Manage operations within an instrumentation session. |
-| `instrumentation_artifact` | 待补充中文：Manage captured artifacts for instrumentation operations. |
+| `instrumentation_session` | 管理 instrumentation 会话，将 Hook、拦截和 Trace 收拢为统一的可查询容器。 |
+| `instrumentation_operation` | 管理 instrumentation 会话内的操作（Hook、拦截、Trace）。 |
+| `instrumentation_artifact` | 管理 instrumentation 操作捕获的产物（参数、返回值、拦截数据等）。 |
 | `instrumentation_hook_preset` | 在 instrumentation 会话内应用 hooks 域预设 Hook，并将注入摘要持久化为会话产物。 |
 | `instrumentation_network_replay` | 在 instrumentation 会话内重放先前捕获的网络请求，并将重放结果或 dry-run 预览持久化为会话产物。 |

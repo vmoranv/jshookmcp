@@ -20,7 +20,7 @@
 
 ## 代表工具
 
-- `trace_recording` — 待补充中文：Start or stop time-travel trace recording into a SQLite database.
+- `trace_recording` — 开始或停止时间旅行跟踪录制，数据存入 SQLite 数据库。
 - `query_trace_sql` — 对跟踪数据库执行 SQL 查询，可按时间戳、类别或内容搜索录制事件。
 - `seek_to_timestamp` — 将跟踪回放跳转到指定时间戳，返回该时刻的快照上下文。
 - `diff_heap_snapshots` — 对比两个堆快照的差异，找出新增、删除和大小变化的对象。
@@ -31,7 +31,7 @@
 
 | 工具 | 说明 |
 | --- | --- |
-| `trace_recording` | 待补充中文：Start or stop time-travel trace recording into a SQLite database. |
+| `trace_recording` | 开始或停止时间旅行跟踪录制，数据存入 SQLite 数据库。 |
 | `query_trace_sql` | 对跟踪数据库执行 SQL 查询，可按时间戳、类别或内容搜索录制事件。 |
 | `seek_to_timestamp` | 将跟踪回放跳转到指定时间戳，返回该时刻的快照上下文。 |
 | `diff_heap_snapshots` | 对比两个堆快照的差异，找出新增、删除和大小变化的对象。 |
