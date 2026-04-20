@@ -36,10 +36,10 @@ export class IntegrityHandlers {
       return toTextResponse({
         ...result,
         success: true,
-        hint: `Speedhack active (${args.speed}x). Use memory_speedhack_set to adjust.`,
+        hint: `Speedhack active (${args.speed}x). Use memory_speedhack({ action: 'set' }) to adjust.`,
       });
     } catch (error) {
-      return toErrorResponse('memory_speedhack_apply', error);
+      return toErrorResponse('memory_speedhack', error);
     }
   }
 
@@ -51,7 +51,7 @@ export class IntegrityHandlers {
         newSpeed: args.speed,
       });
     } catch (error) {
-      return toErrorResponse('memory_speedhack_set', error);
+      return toErrorResponse('memory_speedhack', error);
     }
   }
 

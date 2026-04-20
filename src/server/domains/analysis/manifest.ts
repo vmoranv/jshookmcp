@@ -92,19 +92,35 @@ const manifest = {
 
   registrations: [
     { tool: t('collect_code'), domain: DOMAIN, bind: b((h, a) => h.handleCollectCode(a)) },
-    { tool: t('search_in_scripts'), domain: DOMAIN, bind: b((h, a) => h.handleSearchInScripts(a)) },
+    {
+      tool: t('search_in_scripts'),
+      domain: DOMAIN,
+      profiles: ['search', 'workflow', 'full'],
+      bind: b((h, a) => h.handleSearchInScripts(a)),
+    },
     {
       tool: t('extract_function_tree'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleExtractFunctionTree(a)),
     },
     { tool: t('deobfuscate'), domain: DOMAIN, bind: b((h, a) => h.handleDeobfuscate(a)) },
-    { tool: t('understand_code'), domain: DOMAIN, bind: b((h, a) => h.handleUnderstandCode(a)) },
-    { tool: t('detect_crypto'), domain: DOMAIN, bind: b((h, a) => h.handleDetectCrypto(a)) },
+    {
+      tool: t('understand_code'),
+      domain: DOMAIN,
+      profiles: ['search', 'workflow', 'full'],
+      bind: b((h, a) => h.handleUnderstandCode(a)),
+    },
+    {
+      tool: t('detect_crypto'),
+      domain: DOMAIN,
+      profiles: ['search', 'workflow', 'full'],
+      bind: b((h, a) => h.handleDetectCrypto(a)),
+    },
     { tool: t('manage_hooks'), domain: DOMAIN, bind: b((h, a) => h.handleManageHooks(a)) },
     {
       tool: t('detect_obfuscation'),
       domain: DOMAIN,
+      profiles: ['search', 'workflow', 'full'],
       bind: b((h, a) => h.handleDetectObfuscation(a)),
     },
     { tool: t('webcrack_unpack'), domain: DOMAIN, bind: b((h, a) => h.handleWebcrackUnpack(a)) },

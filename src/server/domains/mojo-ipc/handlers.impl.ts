@@ -37,7 +37,7 @@ export class MojoIPCHandlers {
     if (!monitor.isAvailable()) {
       return unavailablePayload(
         monitor.getUnavailableReason() ?? 'Mojo IPC monitoring is not available',
-        'mojo_monitor_start',
+        'mojo_monitor',
       );
     }
 
@@ -57,7 +57,7 @@ export class MojoIPCHandlers {
     if (!monitor.isAvailable()) {
       return unavailablePayload(
         monitor.getUnavailableReason() ?? 'Mojo IPC monitoring is not available',
-        'mojo_monitor_stop',
+        'mojo_monitor',
       );
     }
 
