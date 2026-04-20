@@ -16,6 +16,25 @@
 - **[🚀 快速开始](https://vmoranv.github.io/jshookmcp/guide/getting-started.html)**
 - **[⚙️ 配置指南](https://vmoranv.github.io/jshookmcp/guide/configuration.html)**
 - **[📚 API 与工具参考](https://vmoranv.github.io/jshookmcp/reference/)**
+## 🚀 快速接入 (Quick Start)
+
+无需全局安装任何环境，使用 `npx` 即可让 Claude Desktop 或 Cursor 瞬间获得强大的全双工安全分析能力。
+
+**Claude Desktop 配置 (`claude_desktop_config.json`)**:
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook@latest"],
+      "env": {
+        "JSHOOK_BASE_PROFILE": "search"
+      }
+    }
+  }
+}
+```
+*(Windows 用户注意: 若报错找不到 npx，请指定为绝对路径 `npx.cmd`)*
 
 ## 🌟 核心亮点
 
@@ -28,13 +47,22 @@
 - 🔧 **零胶水扩展性**：通过 `manifest.ts` 自动发现域、懒加载处理器实例化、B-Skeleton 契约驱动的插件/工作流架构。
 - 🛠️ **全能逆向工具链**：集成 WASM 反编译、二进制漏洞/熵分析、实时内存扫描，并原生提供 Burp Suite 与 Ghidra/IDA Pro 桥接。
 
-## 功能特性
+## 🛡️ 核心能力矩阵
 
-提供了一整套用于 AI 辅助 JavaScript 分析、浏览器自动化、CDP 调试、网络拦截与内存分析的全面工具集。
+JSHookMCP 跨 36 个技术域提供了 **360+ 个内置原子工具**，赋予 AI 前所未有的能力栈：
 
-> **[查看完整功能列表 ↗](https://vmoranv.github.io/jshookmcp/)**
+- 🕸️ **浏览器自动化与逆向**：零配置注入 Chromium/Camoufox，接管 CDP (Chrome DevTools Protocol) 编排，支持 iframe 跨域突破。
+- 📡 **网络拦截与流量嗅探**：深度 HTTP/2 帧构造、中间人 (MiTM) 流量捕获、GraphQL 内省嗅探以及 Burp Suite 无缝桥接。
+- 🧠 **AST 与语义分析**：大模型驱动的代码反混淆、WebAssembly (WASM) 实时反编译、Source Map 重建以及二进制熵值可视化。
+- 🧰 **进程与内存剖析**：系统级 Frida hook 注入、内存地址扫描挖掘、指针解引用以及严苛的反反调试 (Anti-Debug) 对抗。
+- 🔌 **动态扩展性引擎**：支持热重载的 B-Skeleton 插件系统与声明式 `WorkflowContract` 业务流管线。
+
+> **[查看完整的 36 个能力域与工具参考 ↗](https://vmoranv.github.io/jshookmcp/reference/)**
 
 ## 架构与性能
+
+> [!TIP]
+> **上下文效率基准 (Context Efficiency Benchmark)**：基于 Claude 服务端实测，“Schema 初始化 Context 增量” —— `search` 档 ≈ 3.0K tokens vs `full` 档 ≈ 40.0K+ tokens。
 
 - **渐进式工具发现**：`search_tools` 元工具（BM25 排序）+ `activate_tools` / `activate_domain` + 配置档位升级（`boost_profile`）
 - **search 档行为说明**：`search_tools` 只负责检索与排序，不会自动 `activate_tools`，也不会自动 `boost_profile`；推荐链路是 `search_tools -> activate_tools / activate_domain -> （确有需要时）boost_profile`
@@ -43,7 +71,6 @@
 - **域自发现架构**：运行时扫描 `domains/*/manifest.ts` 替代硬编码导入；新增域只需创建一个 manifest 文件
 - **B-Skeleton 契约**：插件（`PluginContract`）、工作流（`WorkflowContract`）、可观测性（`InstrumentationContract`）的扩展性契约
 - **MCP ToolAnnotations**：每个工具均带有语义标注（`readOnlyHint`、`destructiveHint`、`idempotentHint`、`openWorldHint`），使 AI 协调器能在调用前推理工具安全性与副作用
-- **上下文效率基准**：基于 Claude 服务端实测，`search` 档 ≈ 3K tokens，`full` 档 ≈ 40K+ tokens；数值会随工具与描述变更而变化
 
 ## 注册表快照
 
@@ -51,6 +78,7 @@
 
 <!-- metadata-sync:start -->
 - 包版本：`0.2.8`
+- 内置工具数：`363`
 - 域列表：`adb-bridge`, `antidebug`, `binary-instrument`, `boringssl-inspector`, `browser`, `canvas`, `coordination`, `core`, `cross-domain`, `debugger`, `encoding`, `evidence`, `extension-registry`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `mojo-ipc`, `network`, `platform`, `process`, `protocol-analysis`, `proxy`, `sandbox`, `shared-state-board`, `skia-capture`, `sourcemap`, `streaming`, `syscall-hook`, `trace`, `transform`, `v8-inspector`, `wasm`, `workflow`
 - 说明：以上数据由运行时 registry 动态生成，不要手改计数。
 <!-- metadata-sync:end -->

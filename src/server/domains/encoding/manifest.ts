@@ -25,7 +25,7 @@ const manifest = {
   version: 1,
   domain: DOMAIN,
   depKey: DEP_KEY,
-  profiles: ['search', 'workflow', 'full'],
+  profiles: ['workflow', 'full'],
   ensure,
   registrations: [
     {

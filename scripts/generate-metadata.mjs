@@ -102,6 +102,7 @@ function buildMetadataBlock(summary, language) {
     return [
       README_SYNC_START,
       `- 包版本：\`${summary.packageVersion}\``,
+      `- 内置工具数：\`${summary.toolCount}\``,
       `- 域列表：${summary.domains.map((domain) => `\`${domain}\``).join(', ')}`,
       '- 说明：以上数据由运行时 registry 动态生成，不要手改计数。',
       README_SYNC_END,
@@ -111,6 +112,7 @@ function buildMetadataBlock(summary, language) {
   return [
     README_SYNC_START,
     `- Package version: \`${summary.packageVersion}\``,
+    `- Built-in Tools: \`${summary.toolCount}\``,
     `- Domains: ${summary.domains.map((domain) => `\`${domain}\``).join(', ')}`,
     '- Note: this snapshot is generated from the runtime registry; do not edit the counts by hand.',
     README_SYNC_END,

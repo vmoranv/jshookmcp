@@ -227,8 +227,6 @@ const TOOLS = [
   makeTool('webhook', 'Create and manage webhook endpoints'),
   // antidebug
   makeTool('antidebug_bypass', 'Bypass common anti-debugging protections'),
-  // process
-  makeTool('process_list', 'List running processes'),
   // encoding
   makeTool('decode_base64', 'Decode base64 encoded strings'),
   // macro

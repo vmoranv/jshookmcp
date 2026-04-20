@@ -16,6 +16,25 @@ An MCP (Model Context Protocol) server with a runtime-registry-driven catalog of
 - **[🚀 Getting Started](https://vmoranv.github.io/jshookmcp/guide/getting-started.html)**
 - **[⚙️ Configuration](https://vmoranv.github.io/jshookmcp/guide/configuration.html)**
 - **[📚 Tool Reference](https://vmoranv.github.io/jshookmcp/reference/)**
+## 🚀 Quick Start
+
+Use jshookmcp instantly with Claude Desktop or Cursor without installing anything globally.
+
+**Claude Desktop Configuration (`claude_desktop_config.json`)**:
+```json
+{
+  "mcpServers": {
+    "jshook": {
+      "command": "npx",
+      "args": ["-y", "@jshookmcp/jshook@latest"],
+      "env": {
+        "JSHOOK_BASE_PROFILE": "search"
+      }
+    }
+  }
+}
+```
+*(Note for Windows users: If `npx` is not found, specify the absolute path to `npx.cmd`)*
 
 ## 🌟 Key Highlights
 
@@ -28,13 +47,22 @@ An MCP (Model Context Protocol) server with a runtime-registry-driven catalog of
 - 🔧 **Zero-Wiring Extensibility**: Auto-discovered domains via `manifest.ts`, lazy handler instantiation, and B-Skeleton contracts for plugins/workflows.
 - 🛠️ **Reverse Engineering Toolchain**: Integrated WASM disassembly, binary entropy analysis, in-memory scanning, and bridges for Burp Suite/Ghidra/IDA Pro.
 
-## Features
+## 🛡️ Core Capabilities
 
-Provides a comprehensive suite of tools for AI-assisted JavaScript analysis, browser automation, CDP debugging, network interception, memory analysis, and more.
+JSHookMCP exposes **360+ atomic tools** across 36 domains, empowering AI orchestrators with unparalleled capabilities:
 
-> **[View the full feature list in the documentation ↗](https://vmoranv.github.io/jshookmcp/guide/getting-started.html)**
+- 🕸️ **Browser Automation & Reverse Engineering**: Zero-config Chromium/Camoufox injection, CDP (Chrome DevTools Protocol) orchestration, and iframe evaluation bypasses.
+- 📡 **Network Interception & Spoofing**: Deep HTTP/2 frame building, MiTM traffic capture, GraphQL introspection, and Burp Suite bridge.
+- 🧠 **AST & Semantic Analysis**: LLM-powered deobfuscation, WebAssembly (WASM) disassembly, Source Map reconstruction, and binary entropy visualization.
+- 🧰 **Process & Memory Forensics**: Native Frida instrumentation, memory scanning, pointer dereferencing, and strict Anti-Debug mitigation.
+- 🔌 **Dynamic Extensibility**: Hot-reloadable B-Skeleton plugins and declarative `WorkflowContract` pipelines.
+
+> **[View the complete 36-domain tool catalog ↗](https://vmoranv.github.io/jshookmcp/reference/)**
 
 ## Architecture & Performance
+
+> [!TIP]
+> **Context Efficiency Benchmark**: Built-in tool-schema init delta (Claude server-side count): `search` ≈ 3.0K tokens vs `full` ≈ 40.0K+ tokens.
 
 - **Progressive Tool Discovery**: `search_tools` meta-tool (BM25 ranking) + `activate_tools` / `activate_domain` + profile-based tier upgrades (`boost_profile`)
 - **Search-tier behavior**: `search_tools` only searches and ranks results; it does not auto-run `activate_tools`, and it does not auto-run `boost_profile`. Preferred chain: `search_tools -> activate_tools / activate_domain -> boost_profile only when needed`
@@ -43,7 +71,6 @@ Provides a comprehensive suite of tools for AI-assisted JavaScript analysis, bro
 - **Domain Self-Discovery**: Runtime manifest scanning (`domains/*/manifest.ts`) replaces hardcoded imports; add new domains by creating a single manifest file
 - **B-Skeleton Contracts**: Extensibility contracts for plugins (`PluginContract`), workflows (`WorkflowContract`), and observability (`InstrumentationContract`)
 - **MCP ToolAnnotations**: Every tool carries semantic annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) enabling AI orchestrators to reason about tool safety and side-effects before invocation
-- **Context Efficiency Benchmark**: Built-in tool-schema init delta (Claude server-side count): `search` ≈ 3K tokens vs `full` ≈ 40K+ tokens; values change as tools/descriptions evolve
 
 ## Registry Snapshot
 
@@ -51,6 +78,7 @@ The built-in surface below is generated from the runtime registry and checked in
 
 <!-- metadata-sync:start -->
 - Package version: `0.2.8`
+- Built-in Tools: `363`
 - Domains: `adb-bridge`, `antidebug`, `binary-instrument`, `boringssl-inspector`, `browser`, `canvas`, `coordination`, `core`, `cross-domain`, `debugger`, `encoding`, `evidence`, `extension-registry`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `mojo-ipc`, `network`, `platform`, `process`, `protocol-analysis`, `proxy`, `sandbox`, `shared-state-board`, `skia-capture`, `sourcemap`, `streaming`, `syscall-hook`, `trace`, `transform`, `v8-inspector`, `wasm`, `workflow`
 - Note: this snapshot is generated from the runtime registry; do not edit the counts by hand.
 <!-- metadata-sync:end -->
