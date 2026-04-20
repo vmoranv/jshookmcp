@@ -6,8 +6,8 @@ describe('shared-state-board domain definitions', () => {
     expect(Array.isArray(sharedStateBoardTools)).toBe(true);
   });
 
-  it('defines exactly 8 tools', () => {
-    expect(sharedStateBoardTools).toHaveLength(8);
+  it('defines exactly 3 consolidated tools', () => {
+    expect(sharedStateBoardTools).toHaveLength(3);
   });
 
   it('each tool has a name, description, and inputSchema', () => {
@@ -37,47 +37,25 @@ describe('shared-state-board domain definitions', () => {
 
   it('each tool inputSchema has a required array (or none if all fields are optional)', () => {
     for (const tool of sharedStateBoardTools) {
-      // required may be absent or an empty array when all fields are optional
       if (tool.inputSchema.required !== undefined) {
         expect(Array.isArray(tool.inputSchema.required)).toBe(true);
       }
     }
   });
 
-  describe('state_board_set', () => {
-    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_set')!;
-    it('requires key and value', () => {
-      expect(tool.inputSchema.required).toContain('key');
-      expect(tool.inputSchema.required).toContain('value');
+  describe('state_board (unified CRUD)', () => {
+    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board')!;
+    it('requires action', () => {
+      expect(tool.inputSchema.required).toContain('action');
     });
-    it('defines optional namespace and ttlSeconds', () => {
+    it('has key, value, namespace, ttlSeconds, includeValues, limit, keyPattern', () => {
+      expect(tool.inputSchema.properties).toHaveProperty('key');
+      expect(tool.inputSchema.properties).toHaveProperty('value');
       expect(tool.inputSchema.properties).toHaveProperty('namespace');
       expect(tool.inputSchema.properties).toHaveProperty('ttlSeconds');
-    });
-  });
-
-  describe('state_board_get', () => {
-    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_get')!;
-    it('requires key', () => {
-      expect(tool.inputSchema.required).toContain('key');
-    });
-    it('has optional namespace', () => {
-      expect(tool.inputSchema.properties).toHaveProperty('namespace');
-    });
-  });
-
-  describe('state_board_delete', () => {
-    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_delete')!;
-    it('requires key', () => {
-      expect(tool.inputSchema.required).toContain('key');
-    });
-  });
-
-  describe('state_board_list', () => {
-    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_list')!;
-    it('has optional namespace and includeValues', () => {
-      expect(tool.inputSchema.properties).toHaveProperty('namespace');
       expect(tool.inputSchema.properties).toHaveProperty('includeValues');
+      expect(tool.inputSchema.properties).toHaveProperty('limit');
+      expect(tool.inputSchema.properties).toHaveProperty('keyPattern');
     });
   });
 
@@ -94,17 +72,6 @@ describe('shared-state-board domain definitions', () => {
     });
   });
 
-  describe('state_board_history', () => {
-    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_history')!;
-    it('requires key', () => {
-      expect(tool.inputSchema.required).toContain('key');
-    });
-    it('has optional namespace and limit', () => {
-      expect(tool.inputSchema.properties).toHaveProperty('namespace');
-      expect(tool.inputSchema.properties).toHaveProperty('limit');
-    });
-  });
-
   describe('state_board_io', () => {
     const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_io')!;
     it('requires action', () => {
@@ -115,14 +82,6 @@ describe('shared-state-board domain definitions', () => {
       expect(tool.inputSchema.properties).toHaveProperty('keyPattern');
       expect(tool.inputSchema.properties).toHaveProperty('data');
       expect(tool.inputSchema.properties).toHaveProperty('overwrite');
-    });
-  });
-
-  describe('state_board_clear', () => {
-    const tool = sharedStateBoardTools.find((t) => t.name === 'state_board_clear')!;
-    it('has optional namespace and keyPattern', () => {
-      expect(tool.inputSchema.properties).toHaveProperty('namespace');
-      expect(tool.inputSchema.properties).toHaveProperty('keyPattern');
     });
   });
 });

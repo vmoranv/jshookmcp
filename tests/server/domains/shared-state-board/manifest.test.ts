@@ -17,14 +17,10 @@ describe('shared-state-board manifest', () => {
   it('should have all tool registrations', () => {
     const toolNames = manifest.registrations.map((r) => r.tool.name);
 
-    expect(toolNames).toContain('state_board_set');
-    expect(toolNames).toContain('state_board_get');
-    expect(toolNames).toContain('state_board_delete');
-    expect(toolNames).toContain('state_board_list');
+    expect(toolNames).toContain('state_board');
     expect(toolNames).toContain('state_board_watch');
-    expect(toolNames).toContain('state_board_history');
     expect(toolNames).toContain('state_board_io');
-    expect(toolNames).toContain('state_board_clear');
+    expect(toolNames).toHaveLength(3);
   });
 
   it('should have ensure function that returns handler instance', () => {
@@ -38,6 +34,7 @@ describe('shared-state-board manifest', () => {
     expect(typeof handler.handleGet).toBe('function');
     expect(typeof handler.handleDelete).toBe('function');
     expect(typeof handler.handleList).toBe('function');
+    expect(typeof handler.handleDispatch).toBe('function');
     expect(typeof handler.handleWatch).toBe('function');
     expect(typeof handler.handleUnwatch).toBe('function');
     expect(typeof handler.handleHistory).toBe('function');

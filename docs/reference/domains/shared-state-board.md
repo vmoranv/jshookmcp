@@ -21,24 +21,14 @@
 
 ## 代表工具
 
-- `state_board_set` — 在共享状态板中写入一个值，支持字符串、数字、布尔值、对象和数组。
-- `state_board_get` — 按 key 读取共享状态板中的值。
-- `state_board_delete` — 按 key 删除共享状态板中的值。
-- `state_board_list` — 列出共享状态板中的全部 key，并可按命名空间过滤。
+- `state_board` — 待补充中文：Unified shared state board for cross-agent key-value coordination.
 - `state_board_watch` — 监听某个 key 或模式的变化，返回可用于轮询更新的 watch ID。
-- `state_board_history` — 获取某个 key 的变更历史。
-- `state_board_io` — 待补充中文：Export or import state board entries.
-- `state_board_clear` — 清空全部或过滤后的状态板条目。
+- `state_board_io` — 导出或导入共享状态板条目。
 
-## 工具清单（8）
+## 工具清单（3）
 
 | 工具 | 说明 |
 | --- | --- |
-| `state_board_set` | 在共享状态板中写入一个值，支持字符串、数字、布尔值、对象和数组。 |
-| `state_board_get` | 按 key 读取共享状态板中的值。 |
-| `state_board_delete` | 按 key 删除共享状态板中的值。 |
-| `state_board_list` | 列出共享状态板中的全部 key，并可按命名空间过滤。 |
+| `state_board` | 待补充中文：Unified shared state board for cross-agent key-value coordination. |
 | `state_board_watch` | 监听某个 key 或模式的变化，返回可用于轮询更新的 watch ID。 |
-| `state_board_history` | 获取某个 key 的变更历史。 |
-| `state_board_io` | 待补充中文：Export or import state board entries. |
-| `state_board_clear` | 清空全部或过滤后的状态板条目。 |
+| `state_board_io` | 导出或导入共享状态板条目。 |

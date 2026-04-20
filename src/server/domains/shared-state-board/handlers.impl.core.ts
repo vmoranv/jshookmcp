@@ -74,6 +74,33 @@ export class SharedStateBoardHandlers {
   handleClear(args: Record<string, unknown>) {
     return this.storeHandlers.handleClear(args);
   }
+  handleDispatch(args: Record<string, unknown>) {
+    const action = String(args['action'] ?? '');
+    switch (action) {
+      case 'set':
+        return this.storeHandlers.handleSet(args);
+      case 'get':
+        return this.storeHandlers.handleGet(args);
+      case 'delete':
+        return this.storeHandlers.handleDelete(args);
+      case 'list':
+        return this.storeHandlers.handleList(args);
+      case 'history':
+        return this.ioHandlers.handleHistory(args);
+      case 'clear':
+        return this.storeHandlers.handleClear(args);
+      default:
+        return Promise.resolve({
+          content: [
+            {
+              type: 'text',
+              text: `Invalid action: "${action}". Expected one of: set, get, delete, list, history, clear`,
+            },
+          ],
+          isError: true,
+        });
+    }
+  }
   handleStats() {
     return this.storeHandlers.handleStats();
   }

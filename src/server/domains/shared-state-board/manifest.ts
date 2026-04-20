@@ -46,24 +46,9 @@ const manifest = {
   ensure,
   registrations: [
     {
-      tool: t('state_board_set'),
+      tool: t('state_board'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleSet(a)),
-    },
-    {
-      tool: t('state_board_get'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleGet(a)),
-    },
-    {
-      tool: t('state_board_delete'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleDelete(a)),
-    },
-    {
-      tool: t('state_board_list'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleList(a)),
+      bind: b((h, a) => h.handleDispatch(a)),
     },
     {
       tool: t('state_board_watch'),
@@ -71,19 +56,9 @@ const manifest = {
       bind: b((h, a) => h.handleWatchDispatch(a)),
     },
     {
-      tool: t('state_board_history'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleHistory(a)),
-    },
-    {
       tool: t('state_board_io'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleIODispatch(a)),
-    },
-    {
-      tool: t('state_board_clear'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleClear(a)),
     },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
