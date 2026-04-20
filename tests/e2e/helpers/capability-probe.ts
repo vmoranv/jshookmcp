@@ -56,7 +56,7 @@ export function recordCapabilityObservation(
 ): void {
   if (name === 'browser_launch' && isPass(result)) state.browserLaunch = true;
   if (name === 'page_navigate' && isPass(result)) state.pageNavigate = true;
-  if (name === 'debugger_enable' && isPass(result)) state.debuggerEnabled = true;
+  if (name === 'debugger_lifecycle' && isPass(result)) state.debuggerEnabled = true;
   if (name === 'debugger_wait_for_paused' && isPass(result)) state.debuggerPaused = true;
 
   if (name === 'debugger_get_paused_state' && isRecord(parsed) && parsed.paused === true) {

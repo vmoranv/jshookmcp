@@ -273,7 +273,7 @@ describe('ToolCallContextGuard', () => {
 
     // All domain prefixes
     expect(guard.isContextSensitive('console_execute')).toBe(true);
-    expect(guard.isContextSensitive('debugger_enable')).toBe(true);
+    expect(guard.isContextSensitive('debugger_lifecycle')).toBe(true);
     expect(guard.isContextSensitive('network_enable')).toBe(true);
     expect(guard.isContextSensitive('dom_get_structure')).toBe(true);
     expect(guard.isContextSensitive('stealth_check')).toBe(true);

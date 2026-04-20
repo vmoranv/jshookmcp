@@ -16,7 +16,7 @@ export interface WorkflowBrowserHandlers {
 }
 
 export interface WorkflowAdvancedHandlers {
-  handleNetworkEnable(args: Record<string, unknown>): Promise<ToolResponse>;
+  handleNetworkMonitor(args: Record<string, unknown>): Promise<ToolResponse>;
   handleConsoleInjectFetchInterceptor(args: Record<string, unknown>): Promise<ToolResponse>;
   handleConsoleInjectXhrInterceptor(args: Record<string, unknown>): Promise<ToolResponse>;
   handleNetworkGetStats(args: Record<string, unknown>): Promise<ToolResponse>;

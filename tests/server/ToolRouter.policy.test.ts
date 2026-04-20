@@ -25,10 +25,16 @@ vi.mock('@server/registry/index', () => ({
           { condition: 'Network monitoring must be enabled', fix: 'Call network_enable' },
         ],
         test_debugger_tool: [
-          { condition: 'Debugger must be enabled', fix: 'Call debugger_enable' },
+          {
+            condition: 'Debugger must be enabled',
+            fix: "Call debugger_lifecycle({ action: 'enable' })",
+          },
         ],
         test_debugger_attach_tool: [
-          { condition: 'Debugger must be attached', fix: 'Call debugger_enable' },
+          {
+            condition: 'Debugger must be attached',
+            fix: "Call debugger_lifecycle({ action: 'enable' })",
+          },
         ],
         test_page_tool: [{ condition: 'Page must be navigated', fix: 'Call page_navigate' }],
         test_ws_tool: [

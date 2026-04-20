@@ -251,7 +251,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     dom_get_xpath: { selector: 'body' },
     dom_is_in_viewport: { selector: 'body' },
     dom_get_computed_style: { selector: 'body' },
-    console_enable: { enableNetwork: true },
+    console_monitor: { action: 'enable', enableNetwork: true },
     console_execute: { expression: '1+1' },
     console_inject_function_tracer: { functionName: 'fetch' },
     debugger_evaluate: { expression: '1+1', context: 'frame' },

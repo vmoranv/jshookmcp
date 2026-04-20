@@ -67,7 +67,7 @@ const TOOLS = [
   ['human_scroll', { direction: 'down', amount: 200 }],
   ['human_typing', { selector: 'body', text: 'e2e' }],
   // Debugger phase (55-94)
-  ['debugger_enable', {}],
+  ['debugger_lifecycle', {}],
   ['get_all_scripts', {}],
   ['get_script_source', { url: TARGET }],
   ['get_detailed_data', { detailId: '__placeholder__' }],
@@ -107,7 +107,7 @@ const TOOLS = [
   ['debugger_list_sessions', {}],
   ['debugger_export_session', {}],
   // Console & Streaming phase (95-126)
-  ['console_enable', { enableNetwork: true }],
+  ['console_monitor', { enableNetwork: true }],
   ['console_get_logs', {}],
   ['console_execute', { expression: '1+1' }],
   ['console_get_exceptions', {}],
@@ -140,7 +140,7 @@ const TOOLS = [
   ['network_export_har', {}],
   // Code Analysis phase (127-160)
   ['network_disable', {}],
-  ['debugger_disable', {}],
+  ['debugger_lifecycle', {}],
   ['binary_detect_format', { data: 'SGVsbG8=', source: 'base64' }],
   ['binary_decode', { data: 'SGVsbG8=', encoding: 'base64' }],
   ['binary_encode', { data: 'Hello', inputFormat: 'utf8', outputEncoding: 'base64' }],

@@ -25,12 +25,12 @@ const mocks = vi.hoisted(() => {
     tool('page_click', 'Click an element'),
     tool('page_type', 'Type into an input'),
     tool('page_evaluate', 'Evaluate JavaScript'),
-    tool('network_enable', 'Enable request capture'),
+    tool('network_monitor', 'Enable request capture'),
     tool('network_get_requests', 'Inspect captured requests'),
     tool('network_extract_auth', 'Extract auth credentials'),
     tool('network_export_har', 'Export captured traffic as HAR'),
     tool('network_replay_request', 'Replay a captured request'),
-    tool('debugger_enable', 'Enable the debugger'),
+    tool('debugger_lifecycle', 'Enable the debugger'),
     tool('detect_crypto', 'Detect cryptographic code'),
     tool('ai_hook_inject', 'Inject a runtime hook'),
     tool('binary_decode', 'Decode binary data'),
@@ -54,12 +54,12 @@ const mocks = vi.hoisted(() => {
     ['page_click', 'browser'],
     ['page_type', 'browser'],
     ['page_evaluate', 'browser'],
-    ['network_enable', 'network'],
+    ['network_monitor', 'network'],
     ['network_get_requests', 'network'],
     ['network_extract_auth', 'network'],
     ['network_export_har', 'network'],
     ['network_replay_request', 'network'],
-    ['debugger_enable', 'debugger'],
+    ['debugger_lifecycle', 'debugger'],
     ['detect_crypto', 'core'],
     ['ai_hook_inject', 'hooks'],
     ['binary_decode', 'encoding'],
@@ -268,7 +268,7 @@ describe('ToolRouter', () => {
       action: 'activate',
       toolName: undefined,
       command:
-        'activate_tools with names: ["browser_launch", "browser_attach", "run_extension_workflow", "list_extension_workflows", "network_enable"]',
+        'activate_tools with names: ["browser_launch", "browser_attach", "run_extension_workflow", "list_extension_workflows", "network_monitor"]',
       description: 'Activate 5 recommended tools',
     });
   });
@@ -368,7 +368,7 @@ describe('ToolRouter', () => {
               steps: [
                 {
                   id: 'network',
-                  toolName: 'network_enable',
+                  toolName: 'network_monitor',
                   description: 'Enable request capture before reproducing the signed request flow',
                   prerequisites: [],
                 },
@@ -381,7 +381,7 @@ describe('ToolRouter', () => {
                 },
                 {
                   id: 'debugger',
-                  toolName: 'debugger_enable',
+                  toolName: 'debugger_lifecycle',
                   description:
                     'Enable the debugger so the signing path can be paused and inspected live',
                   prerequisites: ['capture'],
@@ -423,7 +423,7 @@ describe('ToolRouter', () => {
               steps: [
                 {
                   id: 'network',
-                  toolName: 'network_enable',
+                  toolName: 'network_monitor',
                   description: 'Enable request capture before reproducing the signed request flow',
                   prerequisites: [],
                 },
@@ -436,7 +436,7 @@ describe('ToolRouter', () => {
                 },
                 {
                   id: 'debugger',
-                  toolName: 'debugger_enable',
+                  toolName: 'debugger_lifecycle',
                   description:
                     'Enable the debugger so the signing path can be paused and inspected live',
                   prerequisites: ['capture'],
@@ -476,7 +476,7 @@ describe('ToolRouter', () => {
                 steps: [
                   {
                     id: 'network',
-                    toolName: 'network_enable',
+                    toolName: 'network_monitor',
                     description:
                       'Enable request capture before reproducing the signed request flow',
                     prerequisites: [],
@@ -490,7 +490,7 @@ describe('ToolRouter', () => {
                   },
                   {
                     id: 'debugger',
-                    toolName: 'debugger_enable',
+                    toolName: 'debugger_lifecycle',
                     description:
                       'Enable the debugger so the signing path can be paused and inspected live',
                     prerequisites: ['capture'],
@@ -544,7 +544,7 @@ describe('ToolRouter', () => {
       action: 'activate',
       toolName: undefined,
       command:
-        'activate_tools with names: ["browser_launch", "browser_attach", "network_enable", "network_get_requests", "debugger_enable", "detect_crypto", "ai_hook_inject"]',
+        'activate_tools with names: ["browser_launch", "browser_attach", "network_monitor", "network_get_requests", "debugger_lifecycle", "detect_crypto", "ai_hook_inject"]',
       description: 'Activate 7 preset tools for 签名定位 / Signature Locate',
     });
     expect(response.nextActions[1]).toEqual({
@@ -563,7 +563,7 @@ describe('ToolRouter', () => {
       exampleArgs: {},
       description: 'Attach preset tooling to the active browser session before capture begins',
     });
-    expect(response.nextActions[3]?.toolName).toBe('network_enable');
+    expect(response.nextActions[3]?.toolName).toBe('network_monitor');
     expect(response.workflowHint).toContain('Preset 签名定位 / Signature Locate');
   });
 
@@ -864,7 +864,7 @@ describe('ToolRouter', () => {
       const searchEngine = {
         search: vi.fn(() => [
           {
-            name: 'network_enable',
+            name: 'network_monitor',
             shortDescription: 'Enable network',
             score: 1,
             domain: 'network',
@@ -873,8 +873,8 @@ describe('ToolRouter', () => {
         ]),
       } as any;
       const response = await routeToolRequest({ task: 'intercept network' }, ctx, searchEngine);
-      // Reranker boosts network_enable
-      expect(response.recommendations[0]?.name).toBe('network_enable');
+      // Reranker boosts network_monitor
+      expect(response.recommendations[0]?.name).toBe('network_monitor');
       expect(response.recommendations[0]?.score).toBeGreaterThan(1);
     });
 
@@ -1124,7 +1124,7 @@ describe('ToolRouter', () => {
           getNetworkStatus: vi.fn(() => ({ enabled: true })),
           getNetworkRequests: vi.fn(() => []),
         },
-        activatedToolNames: new Set(['network_enable', 'page_navigate', 'network_get_requests']), // ensure these don't pop up as inactive
+        activatedToolNames: new Set(['network_monitor', 'page_navigate', 'network_get_requests']), // ensure these don't pop up as inactive
       });
       const searchEngine = {
         search: vi.fn(() => [
@@ -1306,17 +1306,17 @@ describe('ToolRouter', () => {
   });
 
   describe('ToolRouter.policy — buildWorkflowToolSequence edge cases', () => {
-    it('pushes network_enable when page exists but network is disabled', () => {
+    it('pushes network_monitor when page exists but network is disabled', () => {
       const state = { hasActivePage: true, networkEnabled: false, capturedRequestCount: 0 };
       const available = new Set([
         'browser_launch',
         'browser_attach',
-        'network_enable',
+        'network_monitor',
         'network_get_requests',
       ]);
       const wf = { domain: 'network', tools: [] } as any;
       const seq = buildWorkflowToolSequence(wf, state, available);
-      expect(seq).toContain('network_enable');
+      expect(seq).toContain('network_monitor');
     });
 
     it('pushes network_get_requests once when page+network+captures (duplicate at end is no-op)', () => {
@@ -1413,8 +1413,8 @@ describe('ToolRouter', () => {
       expect(reranked[0]!.score).toBeCloseTo(1.2, 2);
     });
 
-    it('boosts network_enable 1.35x when page exists but network disabled', () => {
-      const results = [{ name: 'network_enable', domain: 'network', score: 1.0 }] as any;
+    it('boosts network_monitor 1.35x when page exists but network disabled', () => {
+      const results = [{ name: 'network_monitor', domain: 'network', score: 1.0 }] as any;
       const state = { hasActivePage: true, networkEnabled: false, capturedRequestCount: 0 };
       const reranked = rerankResultsForContext(results, 'capture network', null, state);
       expect(reranked[0]!.score).toBeCloseTo(1.35, 2);
@@ -1648,7 +1648,7 @@ describe('ToolRouter', () => {
       const searchEngine = {
         search: vi.fn(() => [
           {
-            name: 'network_enable',
+            name: 'network_monitor',
             shortDescription: 'net',
             score: 10,
             domain: 'network',

@@ -54,7 +54,7 @@ const manifest = {
       'canvas_engine_fingerprint',
       'canvas_scene_dump',
       'canvas_pick_object_at_point',
-      'trace_click_to_handler',
+      'canvas_trace_click_handler',
     ],
     hint: 'Canvas reverse: fingerprint engine → dump scene tree → pick object at point → trace click to handler',
   },
@@ -78,10 +78,10 @@ const manifest = {
         fix: 'Call browser_launch or browser_attach first',
       },
     ],
-    trace_click_to_handler: [
+    canvas_trace_click_handler: [
       {
         condition: 'Debugger must be enabled',
-        fix: 'Call debugger_enable first',
+        fix: "Call debugger_lifecycle({ action: 'enable' }) first",
       },
     ],
   },
@@ -103,7 +103,7 @@ const manifest = {
       bind: b((h, a) => h.handlePick(a)),
     },
     {
-      tool: t('trace_click_to_handler'),
+      tool: t('canvas_trace_click_handler'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleTraceClick(a)),
     },

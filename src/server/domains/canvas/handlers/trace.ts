@@ -1,5 +1,5 @@
 /**
- * trace_click_to_handler tool handler.
+ * canvas_trace_click_handler tool handler.
  *
  * Enables CDP event breakpoints, dispatches click, captures call stack,
  * records evidence.

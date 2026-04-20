@@ -257,7 +257,7 @@ describe('canvas domain manifest', () => {
       expect(manifest.workflowRule.tools).toContain('canvas_engine_fingerprint');
       expect(manifest.workflowRule.tools).toContain('canvas_scene_dump');
       expect(manifest.workflowRule.tools).toContain('canvas_pick_object_at_point');
-      expect(manifest.workflowRule.tools).toContain('trace_click_to_handler');
+      expect(manifest.workflowRule.tools).toContain('canvas_trace_click_handler');
     });
 
     it('has priority 80', () => {
@@ -292,12 +292,12 @@ describe('canvas domain manifest', () => {
       expect(manifest.prerequisites['canvas_pick_object_at_point']).toBeDefined();
     });
 
-    it('has prerequisite for trace_click_to_handler', () => {
-      expect(manifest.prerequisites['trace_click_to_handler']).toBeDefined();
-      expect(manifest.prerequisites['trace_click_to_handler'][0]).toEqual(
+    it('has prerequisite for canvas_trace_click_handler', () => {
+      expect(manifest.prerequisites['canvas_trace_click_handler']).toBeDefined();
+      expect(manifest.prerequisites['canvas_trace_click_handler'][0]).toEqual(
         expect.objectContaining({
           condition: expect.stringContaining('Debugger'),
-          fix: expect.stringContaining('debugger_enable'),
+          fix: expect.stringContaining("debugger_lifecycle({ action: 'enable' })"),
         }),
       );
     });
@@ -348,9 +348,9 @@ describe('canvas domain manifest', () => {
       expect(names).toContain('canvas_pick_object_at_point');
     });
 
-    it('includes trace_click_to_handler registration', () => {
+    it('includes canvas_trace_click_handler registration', () => {
       const names = manifest.registrations.map(getToolName);
-      expect(names).toContain('trace_click_to_handler');
+      expect(names).toContain('canvas_trace_click_handler');
     });
 
     it('registration tool names match definitions export', () => {
@@ -497,8 +497,8 @@ describe('canvas tool definitions', () => {
     expect(tool!.inputSchema.required).toContain('y');
   });
 
-  it('trace_click_to_handler tool is defined correctly', () => {
-    const tool = canvasTools.find((t) => t.name === 'trace_click_to_handler');
+  it('canvas_trace_click_handler tool is defined correctly', () => {
+    const tool = canvasTools.find((t) => t.name === 'canvas_trace_click_handler');
     expect(tool).toBeDefined();
     expect(tool!.inputSchema.properties).toHaveProperty('x');
     expect(tool!.inputSchema.properties).toHaveProperty('y');
@@ -537,9 +537,9 @@ describe('canvas tool bind functions', () => {
     expect(typeof registration!.bind).toBe('function');
   });
 
-  it('trace_click_to_handler registration has correct bind structure', () => {
+  it('canvas_trace_click_handler registration has correct bind structure', () => {
     const registration = manifest.registrations.find(
-      (r) => getToolName(r) === 'trace_click_to_handler',
+      (r) => getToolName(r) === 'canvas_trace_click_handler',
     );
     expect(registration).toBeDefined();
     expect(typeof registration!.bind).toBe('function');

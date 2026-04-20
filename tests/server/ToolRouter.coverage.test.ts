@@ -157,7 +157,7 @@ describe('ToolRouter coverage additions', () => {
         expect.objectContaining({
           condition: expect.stringContaining('Network monitoring must be enabled'),
           satisfied: false,
-          fix: expect.stringContaining('network_enable'),
+          fix: expect.stringContaining('network_monitor'),
         }),
       ]),
     );

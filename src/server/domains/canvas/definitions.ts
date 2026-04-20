@@ -30,7 +30,7 @@ export const canvasTools: Tool[] = [
       .required('x', 'y')
       .readOnly(),
   ),
-  tool('trace_click_to_handler', (t) =>
+  tool('canvas_trace_click_handler', (t) =>
     t
       .desc('Trace a click event through DOM events, engine dispatch, and JS call stack to...')
       .number('x', 'Screen X coordinate to click')

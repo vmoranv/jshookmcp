@@ -60,8 +60,8 @@ describe('canvas domain definitions', () => {
     expect(canvasTools.find((t) => t.name === 'canvas_pick_object_at_point')).toBeDefined();
   });
 
-  it('includes trace_click_to_handler', () => {
-    expect(canvasTools.find((t) => t.name === 'trace_click_to_handler')).toBeDefined();
+  it('includes canvas_trace_click_handler', () => {
+    expect(canvasTools.find((t) => t.name === 'canvas_trace_click_handler')).toBeDefined();
   });
 
   // ── canvas_engine_fingerprint schema ─────────────────────────────────
@@ -134,10 +134,10 @@ describe('canvas domain definitions', () => {
     });
   });
 
-  // ── trace_click_to_handler schema ───────────────────────────────────
+  // ── canvas_trace_click_handler schema ───────────────────────────────────
 
-  describe('trace_click_to_handler', () => {
-    const tool = canvasTools.find((t) => t.name === 'trace_click_to_handler')!;
+  describe('canvas_trace_click_handler', () => {
+    const tool = canvasTools.find((t) => t.name === 'canvas_trace_click_handler')!;
 
     it('requires x and y as numbers', () => {
       expect(tool.inputSchema.required).toContain('x');

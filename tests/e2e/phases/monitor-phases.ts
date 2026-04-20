@@ -3,7 +3,7 @@ import type { Phase } from '@tests/e2e/helpers/types';
 export const monitorPhases: Phase[] = [
   {
     name: 'Console Monitor',
-    setup: ['console_enable'],
+    setup: ['console_monitor'],
     tools: [
       'console_get_logs',
       'console_execute',
@@ -92,5 +92,5 @@ export const monitorPhases: Phase[] = [
     ],
   },
   { name: 'Network Teardown', setup: [], tools: ['network_export_har', 'network_disable'] },
-  { name: 'Debugger Teardown', setup: [], tools: ['debugger_disable'] },
+  { name: 'Debugger Teardown', setup: [], tools: ['debugger_lifecycle'] },
 ];

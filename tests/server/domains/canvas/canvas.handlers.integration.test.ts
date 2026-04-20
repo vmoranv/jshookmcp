@@ -744,10 +744,10 @@ describe('canvas_pick_object_at_point integration', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TEST SUITE: trace_click_to_handler integration
+// TEST SUITE: canvas_trace_click_handler integration
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('trace_click_to_handler integration', () => {
+describe('canvas_trace_click_handler integration', () => {
   let pageController: PageController;
   let debuggerManager: ReturnType<typeof createMockDebuggerManager>;
   let evidenceStore: ReturnType<typeof createMockEvidenceStore>;

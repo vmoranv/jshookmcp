@@ -889,10 +889,10 @@ describe('canvas_pick_object_at_point coverage', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECTION 4: trace_click_to_handler coverage
+// SECTION 4: canvas_trace_click_handler coverage
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('trace_click_to_handler coverage', () => {
+describe('canvas_trace_click_handler coverage', () => {
   describe('debugger is enabled before setting breakpoint', () => {
     it('calls debuggerManager.enable before setEventListenerBreakpoint', async () => {
       const callOrder: string[] = [];
@@ -2376,10 +2376,10 @@ describe('canvas_pick_object_at_point error handling', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECTION 9: trace_click_to_handler error handling
+// SECTION 9: canvas_trace_click_handler error handling
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('trace_click_to_handler error handling', () => {
+describe('canvas_trace_click_handler error handling', () => {
   describe('dispatches canvas click even when canvas not found', () => {
     it('returns result even when no canvas is at the click coordinates', async () => {
       // The dispatchCanvasClick script returns { domEventChain: [], ... } when no canvas found

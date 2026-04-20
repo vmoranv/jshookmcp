@@ -110,7 +110,7 @@ export function buildWorkflowToolSequence(
 
   if (workflow.domain === 'network') {
     if (state.hasActivePage && !state.networkEnabled) {
-      pushIfAvailable('network_enable');
+      pushIfAvailable('network_monitor');
     }
     if (state.hasActivePage && state.networkEnabled && state.capturedRequestCount > 0) {
       pushIfAvailable('network_get_requests');
@@ -240,7 +240,7 @@ export function rerankResultsForContext(
       if (!state.hasActivePage && result.name === 'browser_attach') {
         score *= 1.2;
       }
-      if (state.hasActivePage && !state.networkEnabled && result.name === 'network_enable') {
+      if (state.hasActivePage && !state.networkEnabled && result.name === 'network_monitor') {
         score *= 1.35;
       }
       if (

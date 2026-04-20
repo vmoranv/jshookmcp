@@ -1,7 +1,7 @@
 import type { Phase } from '@tests/e2e/helpers/types';
 
 export const debuggerPhases: Phase[] = [
-  { name: 'Debugger Enable', setup: [], tools: ['debugger_enable'] },
+  { name: 'Debugger Enable', setup: [], tools: ['debugger_lifecycle'] },
   {
     name: 'Scripts & Source',
     setup: [],

@@ -48,7 +48,7 @@ export const browserPhases: Phase[] = [
       await call('save_page_snapshot', { label: 'e2e-dom-phase' });
     },
     tools: [
-      'trace_click_to_handler',
+      'canvas_trace_click_handler',
       'dom_query_selector',
       'dom_query_all',
       'dom_get_structure',

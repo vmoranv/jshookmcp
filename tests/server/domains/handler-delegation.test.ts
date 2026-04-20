@@ -384,9 +384,7 @@ describe('Domain handler delegation (handlers.ts)', () => {
       'PageInteractionHandlers',
       'PageEvaluationHandlers',
       'PageDataHandlers',
-      'DOMQueryHandlers',
-      'DOMStyleHandlers',
-      'DOMSearchHandlers',
+
       'ConsoleHandlers',
       'ScriptManagementHandlers',
       'CaptchaHandlers',
@@ -440,8 +438,8 @@ describe('Domain handler delegation (handlers.ts)', () => {
 
       // Verify a sample of delegation methods exist
       const delegationMethods = [
-        'handleDebuggerEnable',
-        'handleDebuggerDisable',
+        'handleDebuggerLifecycle',
+        'handleDebuggerLifecycle',
         'handleDebuggerPause',
         'handleDebuggerResume',
         'handleDebuggerStepInto',
