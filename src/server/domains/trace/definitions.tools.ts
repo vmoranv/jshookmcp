@@ -2,23 +2,20 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const TRACE_TOOLS: Tool[] = [
-  tool('start_trace_recording', (t) =>
+  tool('trace_recording', (t) =>
     t
       .desc(
-        'Start recording CDP events, debugger state, and memory writes into a SQLite trace database.\n\nRecording captures events from:\n- Debugger: breakpoints, pauses, script parsing\n- Runtime: console calls, exceptions\n- Network: requests, responses\n- Page: navigation events\n- EventBus: tool calls, memory scans, browser events\n\nCall stop_trace_recording to end the recording session.\n\nExamples:\nstart_trace_recording()\nstart_trace_recording(cdpDomains=["Debugger", "Network"])',
+        'Start or stop time-travel trace recording into a SQLite database.\n\nRecording captures events from Debugger, Runtime, Network, Page, and EventBus.\nUse action="stop" to finalize and get a session summary.',
       )
+      .enum('action', ['start', 'stop'], 'Recording action')
       .array(
         'cdpDomains',
         { type: 'string' },
-        'CDP domains to record (default: Debugger, Runtime, Network, Page)',
+        'CDP domains to record (action=start, default: Debugger, Runtime, Network, Page)',
       )
-      .boolean('recordMemoryDeltas', 'Record memory write deltas', { default: true })
+      .boolean('recordMemoryDeltas', 'Record memory write deltas (action=start)', { default: true })
+      .required('action')
       .idempotent(),
-  ),
-  tool('stop_trace_recording', (t) =>
-    t.desc(
-      'Stop the active trace recording and finalize the SQLite database.\n\nReturns session summary including:\n- Database file path\n- Total event count\n- Memory delta count\n- Heap snapshot count\n- Recording duration\n\nExamples:\nstop_trace_recording()',
-    ),
   ),
   tool('query_trace_sql', (t) =>
     t

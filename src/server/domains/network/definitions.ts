@@ -126,11 +126,11 @@ export const advancedTools: Tool[] = [
       .boolean('includeTimeline', 'Include detailed timeline events', { default: false })
       .query(),
   ),
-  tool('performance_start_coverage', (t) =>
-    t.desc('Start JavaScript and CSS code coverage recording'),
-  ),
-  tool('performance_stop_coverage', (t) =>
-    t.desc('Stop coverage recording and return coverage report'),
+  tool('performance_coverage', (t) =>
+    t
+      .desc('Start or stop JavaScript and CSS code coverage recording')
+      .enum('action', ['start', 'stop'], 'Coverage action')
+      .required('action'),
   ),
   tool('performance_take_heap_snapshot', (t) => t.desc('Take a V8 heap memory snapshot')),
   tool('performance_trace', (t) =>

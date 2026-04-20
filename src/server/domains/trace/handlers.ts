@@ -12,6 +12,7 @@ import { TraceDB } from '@modules/trace/TraceDB';
 import { type TraceRecorder } from '@modules/trace/TraceRecorder';
 import type { CDPSessionLike } from '@modules/trace/TraceRecorder';
 import { resolveArtifactPath } from '@utils/artifacts';
+import { argEnum } from '@server/domains/shared/parse-args';
 import {
   summarizeEvents,
   summarizeMemoryDeltas,
@@ -25,6 +26,15 @@ export class TraceToolHandlers {
     private readonly recorder: TraceRecorder,
     private readonly ctx: MCPServerContext,
   ) {}
+
+  // ── trace_recording dispatch ──
+
+  async handleTraceRecording(args: Record<string, unknown>): Promise<unknown> {
+    const action = argEnum(args, 'action', new Set(['start', 'stop'] as const));
+    return action === 'stop'
+      ? this.handleStopTraceRecording()
+      : this.handleStartTraceRecording(args);
+  }
 
   // ── start_trace_recording ──
 

@@ -6,6 +6,7 @@
  */
 
 import { NetworkHandlersCore } from './handlers.base.core';
+import { argEnum } from '@server/domains/shared/parse-args';
 import {
   asOptionalBoolean,
   asOptionalNumber,
@@ -31,6 +32,13 @@ export class NetworkHandlersPerformance extends NetworkHandlersCore {
     } catch (error) {
       return R.fail(error).json();
     }
+  }
+
+  async handlePerformanceCoverage(args: Record<string, unknown>): Promise<ToolResponse> {
+    const action = argEnum(args, 'action', new Set(['start', 'stop'] as const));
+    return action === 'stop'
+      ? this.handlePerformanceStopCoverage(args)
+      : this.handlePerformanceStartCoverage(args);
   }
 
   async handlePerformanceStartCoverage(_args: Record<string, unknown>): Promise<ToolResponse> {

@@ -80,6 +80,8 @@ export class AdvancedToolHandlers {
 
   handlePerformanceGetMetrics = (args: Record<string, unknown>) =>
     this.perf.handlePerformanceGetMetrics(args);
+  handlePerformanceCoverage = (args: Record<string, unknown>) =>
+    this.perf.handlePerformanceCoverage(args);
   handlePerformanceStartCoverage = (args: Record<string, unknown>) =>
     this.perf.handlePerformanceStartCoverage(args);
   handlePerformanceStopCoverage = (args: Record<string, unknown>) =>

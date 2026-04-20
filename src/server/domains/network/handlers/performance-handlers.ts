@@ -6,6 +6,7 @@
 
 import { PerformanceMonitor } from '@server/domains/shared/modules';
 import type { CodeCollector } from '@server/domains/shared/modules';
+import { argEnum } from '@server/domains/shared/parse-args';
 import {
   asOptionalBoolean,
   asOptionalNumber,
@@ -39,6 +40,13 @@ export class PerformanceHandlers {
     } catch (error) {
       return R.fail(error).json();
     }
+  }
+
+  async handlePerformanceCoverage(args: Record<string, unknown>): Promise<ToolResponse> {
+    const action = argEnum(args, 'action', new Set(['start', 'stop'] as const));
+    return action === 'stop'
+      ? this.handlePerformanceStopCoverage(args)
+      : this.handlePerformanceStartCoverage(args);
   }
 
   async handlePerformanceStartCoverage(_args: Record<string, unknown>): Promise<ToolResponse> {

@@ -35,8 +35,7 @@ const manifest = {
     patterns: [/trace/i, /time.?travel/i, /replay/i, /recorded?\s+events?/i],
     priority: 70,
     tools: [
-      'start_trace_recording',
-      'stop_trace_recording',
+      'trace_recording',
       'query_trace_sql',
       'seek_to_timestamp',
       'diff_heap_snapshots',
@@ -48,14 +47,9 @@ const manifest = {
 
   registrations: [
     {
-      tool: t('start_trace_recording'),
+      tool: t('trace_recording'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handleStartTraceRecording(a)),
-    },
-    {
-      tool: t('stop_trace_recording'),
-      domain: DOMAIN,
-      bind: b((h) => h.handleStopTraceRecording()),
+      bind: b((h, a) => h.handleTraceRecording(a)),
     },
     { tool: t('query_trace_sql'), domain: DOMAIN, bind: b((h, a) => h.handleQueryTraceSql(a)) },
     { tool: t('seek_to_timestamp'), domain: DOMAIN, bind: b((h, a) => h.handleSeekToTimestamp(a)) },

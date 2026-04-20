@@ -99,14 +99,9 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       bind: b((h, a) => h.handlePerformanceGetMetrics(a)),
     },
     {
-      tool: t('performance_start_coverage'),
+      tool: t('performance_coverage'),
       domain: DOMAIN,
-      bind: b((h, a) => h.handlePerformanceStartCoverage(a)),
-    },
-    {
-      tool: t('performance_stop_coverage'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePerformanceStopCoverage(a)),
+      bind: b((h, a) => h.handlePerformanceCoverage(a)),
     },
     {
       tool: t('performance_take_heap_snapshot'),
