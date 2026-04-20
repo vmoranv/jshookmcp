@@ -59,8 +59,8 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 | `http2_probe` | Probe an HTTP/2 endpoint using Node http2 with deterministic DNS pinning and bounded response capture. Reports the negotiated protocol, ALPN result, response headers, status, and a response body snippet. Non-loopback plaintext h2c targets require explicit request-scoped authorization. |
 | `http2_frame_build` | Build a raw HTTP/2 binary frame of any supported type (DATA, SETTINGS, PING, WINDOW_UPDATE, RST_STREAM, GOAWAY, or RAW). Returns the 9-byte frame header and full frame as hex strings, ready to send over a tcp_write or tls_write channel for protocol-level fuzzing and injection. |
 | `network_rtt_measure` | Measure round-trip time (RTT) to a target URL using TCP, TLS, or HTTP probes. Returns per-sample latencies and aggregate statistics (min/max/mean/median/p95). |
-| `dns_resolve` | Resolve DNS records for a hostname using Node.js dns.resolve. Supports A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, and SRV record types. For reverse DNS lookup use rrType='PTR' with an IP address. |
-| `dns_reverse` | Reverse DNS lookup: resolve a hostname from an IP address using Node.js dns.reverse. |
+| `network_traceroute` | ICMP traceroute with per-hop RTT and error classification. Windows: no admin required. Linux/macOS: requires root or CAP_NET_RAW. |
+| `network_icmp_probe` | ICMP echo probe with TTL control and error classification. Windows: no admin required. Linux/macOS: requires root or CAP_NET_RAW. |
 | `network_extract_auth` | Scan all captured network requests and extract authentication credentials (tokens, cookies, API keys, signatures). |
 | `network_export_har` | Export all captured network traffic as a standard HAR 1.2 file. |
 | `network_replay_request` | Replay a previously captured network request with optional modifications. |

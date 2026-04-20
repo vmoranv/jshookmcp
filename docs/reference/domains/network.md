@@ -23,45 +23,45 @@
 
 ## 代表工具
 
-- `network_enable` — 启用网络请求监控，供后续页面导航与抓包使用。
-- `network_disable` — 禁用网络请求监控。
-- `network_get_status` — 获取网络监控状态及请求统计。
-- `network_monitor` — 待补充中文：Manage network request monitoring. Enable/disable monitoring or check status. Must enable before page_navigate to capture requests.
+- `network_enable` — 待补充中文：Enable network request monitoring. Must be called before page_navigate to capture requests.
+- `network_disable` — 待补充中文：Disable network request monitoring
+- `network_get_status` — 待补充中文：Get network monitoring status (enabled, request count, response count)
+- `network_monitor` — 管理网络请求监控。启用/禁用监控或查看状态，需在 page_navigate 前启用以捕获请求。
 - `network_get_requests` — 获取已捕获的网络请求；大结果会返回摘要与 detailId。
 - `network_get_response_body` — 获取指定请求的响应体；大响应会自动截断或摘要化。
 - `network_get_stats` — 获取网络流量统计，包括请求量、响应量、错误率与时序信息。
 - `performance_get_metrics` — 获取页面性能指标，如 FCP、LCP、FID、CLS。
-- `performance_coverage` — 待补充中文：Start or stop JavaScript and CSS code coverage recording
-- `performance_take_heap_snapshot` — 生成 V8 堆内存快照。
+- `performance_coverage` — 开始或停止 JavaScript 与 CSS 代码覆盖率录制。
+- `performance_take_heap_snapshot` — 待补充中文：Take a V8 heap memory snapshot
 
 ## 工具清单（27）
 
 | 工具 | 说明 |
 | --- | --- |
-| `network_enable` | 启用网络请求监控，供后续页面导航与抓包使用。 |
-| `network_disable` | 禁用网络请求监控。 |
-| `network_get_status` | 获取网络监控状态及请求统计。 |
-| `network_monitor` | 待补充中文：Manage network request monitoring. Enable/disable monitoring or check status. Must enable before page_navigate to capture requests. |
+| `network_enable` | 待补充中文：Enable network request monitoring. Must be called before page_navigate to capture requests. |
+| `network_disable` | 待补充中文：Disable network request monitoring |
+| `network_get_status` | 待补充中文：Get network monitoring status (enabled, request count, response count) |
+| `network_monitor` | 管理网络请求监控。启用/禁用监控或查看状态，需在 page_navigate 前启用以捕获请求。 |
 | `network_get_requests` | 获取已捕获的网络请求；大结果会返回摘要与 detailId。 |
 | `network_get_response_body` | 获取指定请求的响应体；大响应会自动截断或摘要化。 |
 | `network_get_stats` | 获取网络流量统计，包括请求量、响应量、错误率与时序信息。 |
 | `performance_get_metrics` | 获取页面性能指标，如 FCP、LCP、FID、CLS。 |
-| `performance_coverage` | 待补充中文：Start or stop JavaScript and CSS code coverage recording |
-| `performance_take_heap_snapshot` | 生成 V8 堆内存快照。 |
-| `performance_trace` | 待补充中文：Chrome Performance Trace recording. Action 'start' begins capture; 'stop' ends and saves trace file. |
-| `profiler_cpu` | 待补充中文：CDP CPU profiling. Action 'start' begins recording; 'stop' ends and saves profile with top hot functions. |
-| `profiler_heap_sampling` | 待补充中文：V8 heap allocation sampling. Action 'start' begins tracking; 'stop' ends and returns top allocators. |
-| `console_get_exceptions` | 获取页面捕获到的未处理异常。 |
-| `console_inject` | 待补充中文：Inject an in-page monitor/interceptor. Types: |
-| `console_buffers` | 待补充中文：Manage injected interceptor state. |
+| `performance_coverage` | 开始或停止 JavaScript 与 CSS 代码覆盖率录制。 |
+| `performance_take_heap_snapshot` | 待补充中文：Take a V8 heap memory snapshot |
+| `performance_trace` | Chrome Performance Trace 录制。start 开始捕获，stop 结束并保存跟踪文件。 |
+| `profiler_cpu` | CDP CPU 性能分析。start 开始录制，stop 结束并保存含热点函数的 Profile。 |
+| `profiler_heap_sampling` | V8 堆分配采样。start 开始追踪，stop 结束并返回主要分配热点。 |
+| `console_get_exceptions` | 待补充中文：Get captured uncaught exceptions from the page |
+| `console_inject` | 注入页面内监控器/拦截器，支持 script_monitor、xhr_interceptor、fetch_interceptor、function_tracer 等类型。 |
+| `console_buffers` | 管理已注入拦截器的状态，支持清空缓冲区或重置拦截器。 |
 | `http_request_build` | 构建原始 HTTP/1.x 请求载荷（CRLF 行尾）。用于为 http_plain_request 或其他原始套接字工具准备确定性请求文本。 |
 | `http_plain_request` | 通过原始 TCP 发送 HTTP 请求，使用确定性服务端逻辑，包含 DNS 固定、响应解析和有界捕获。非回环 HTTP 目标需要显式请求级授权。 |
 | `http2_probe` | 使用 Node http2 探测 HTTP/2 端点，带确定性 DNS 固定和有界响应捕获。报告协商协议、ALPN 结果、响应头、状态码和响应体片段。非回环明文 h2c 目标需要显式请求级授权。 |
 | `http2_frame_build` | 构建任意支持类型（DATA、SETTINGS、PING、WINDOW_UPDATE、RST_STREAM、GOAWAY、RAW）的原始 HTTP/2 二进制帧。返回 9 字节帧头和完整帧的十六进制字符串，可通过 tcp_write 或 tls_write 发送，用于协议级模糊测试与注入。 |
 | `network_rtt_measure` | 测量到目标主机的网络往返时间（RTT），支持 TCP、TLS 和 HTTP 三种探测模式。多次迭代平滑抖动，返回 min/max/avg/p50/p95 统计数据。非回环目标需要显式授权。 |
-| `dns_resolve` | 待补充中文：Resolve DNS records for a hostname using Node.js dns.resolve. Supports A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, and SRV record types. For reverse DNS lookup use rrType='PTR' with an IP address. |
-| `dns_reverse` | 待补充中文：Reverse DNS lookup: resolve a hostname from an IP address using Node.js dns.reverse. |
+| `network_traceroute` | 基于 ICMP 的路由追踪，逐跳返回 RTT 与错误分类。Windows 无需管理员权限；Linux/macOS 需要 root 或 CAP_NET_RAW。 |
+| `network_icmp_probe` | ICMP 探测，支持 TTL 控制与错误分类。Windows 无需管理员权限；Linux/macOS 需要 root 或 CAP_NET_RAW。 |
 | `network_extract_auth` | 扫描已捕获请求并提取认证凭据，如 Token、Cookie、API Key 与签名。 |
 | `network_export_har` | 将捕获到的网络流量导出为标准 HAR 1.2 文件。 |
 | `network_replay_request` | 重放已捕获的网络请求，并支持按需修改请求内容。 |
-| `network_intercept` | 待补充中文：Manage response interception rules using CDP Fetch domain. Actions: add (create rule), list (show active rules), disable (remove rules). |
+| `network_intercept` | 管理基于 CDP Fetch 域的响应拦截规则。操作：add（创建规则）、list（显示活跃规则）、disable（移除规则）。 |

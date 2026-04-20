@@ -402,26 +402,34 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
   ),
 
   // Fetch Interception
-  tool('dns_resolve', (t) =>
+  tool('network_traceroute', (t) =>
     t
       .desc(
-        `Resolve DNS records for a hostname using Node.js dns.resolve. Supports A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, and SRV record types. For reverse DNS lookup use rrType='PTR' with an IP address.`,
+        'ICMP traceroute with per-hop RTT and error classification. Windows: no admin required. Linux/macOS: requires root or CAP_NET_RAW.',
       )
-      .string('hostname', 'Hostname or IP address to resolve')
-      .enum(
-        'rrType',
-        ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME', 'SOA', 'PTR', 'SRV', 'ANY'],
-        'DNS record type (default: A)',
-        { default: 'A' },
-      )
-      .required('hostname')
+      .string('target', 'Target IP address to trace route to')
+      .number('maxHops', 'Maximum number of hops (1-64). Default: 30', { default: 30 })
+      .number('timeout', 'Per-hop timeout in milliseconds (100-30000). Default: 5000', {
+        default: 5000,
+      })
+      .number('packetSize', 'ICMP echo request payload size in bytes (8-65500). Default: 32', {
+        default: 32,
+      })
+      .required('target')
       .query(),
   ),
-  tool('dns_reverse', (t) =>
+  tool('network_icmp_probe', (t) =>
     t
-      .desc(`Reverse DNS lookup: resolve a hostname from an IP address using Node.js dns.reverse.`)
-      .string('ip', 'IP address to reverse-resolve')
-      .required('ip')
+      .desc(
+        'ICMP echo probe with TTL control and error classification. Windows: no admin required. Linux/macOS: requires root or CAP_NET_RAW.',
+      )
+      .string('target', 'Target IP address to probe')
+      .number('ttl', 'Time-to-live value (1-255). Default: 128', { default: 128 })
+      .number('packetSize', 'ICMP echo request payload size in bytes (8-65500). Default: 32', {
+        default: 32,
+      })
+      .number('timeout', 'Timeout in milliseconds (100-30000). Default: 5000', { default: 5000 })
+      .required('target')
       .query(),
   ),
   tool('network_intercept', (t) =>

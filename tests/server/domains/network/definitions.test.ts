@@ -73,6 +73,12 @@ describe('network tool definitions', () => {
     expect(names.has('http_plain_request')).toBe(true);
   });
 
+  it('contains expected ICMP tools', () => {
+    const names = new Set(advancedTools.map((t) => t.name));
+    expect(names.has('network_traceroute')).toBe(true);
+    expect(names.has('network_icmp_probe')).toBe(true);
+  });
+
   it('contains expected performance tools', () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('performance_get_metrics')).toBe(true);

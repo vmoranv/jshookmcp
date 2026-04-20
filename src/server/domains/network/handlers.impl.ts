@@ -7,7 +7,7 @@
  *   - ConsoleHandlers:     exceptions/interceptors/tracers
  *   - ReplayHandlers:      auth extraction, HAR export, request replay
  *   - InterceptHandlers:   response interception
- *   - RawHandlers:         DNS, HTTP, HTTP/2, RTT
+ *   - RawHandlers:         HTTP, HTTP/2, RTT, ICMP
  */
 
 import type { CodeCollector } from '@server/domains/shared/modules';
@@ -188,10 +188,11 @@ export class AdvancedToolHandlers {
     }
   };
 
-  // ── Raw (DNS / HTTP / HTTP2 / RTT) ──
+  // ── Raw (HTTP / HTTP2 / RTT / ICMP) ──
 
-  handleDnsResolve = (args: Record<string, unknown>) => this.raw.handleDnsResolve(args);
-  handleDnsReverse = (args: Record<string, unknown>) => this.raw.handleDnsReverse(args);
+  handleNetworkTraceroute = (args: Record<string, unknown>) =>
+    this.raw.handleNetworkTraceroute(args);
+  handleNetworkIcmpProbe = (args: Record<string, unknown>) => this.raw.handleNetworkIcmpProbe(args);
   handleHttpRequestBuild = (args: Record<string, unknown>) => this.raw.handleHttpRequestBuild(args);
   handleHttpPlainRequest = (args: Record<string, unknown>) => this.raw.handleHttpPlainRequest(args);
   handleHttp2Probe = (args: Record<string, unknown>) => this.raw.handleHttp2Probe(args);

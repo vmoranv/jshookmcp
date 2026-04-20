@@ -159,8 +159,17 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleNetworkRttMeasure(a)),
     },
-    { tool: t('dns_resolve'), domain: DOMAIN, bind: b((h, a) => h.handleDnsResolve(a)) },
-    { tool: t('dns_reverse'), domain: DOMAIN, bind: b((h, a) => h.handleDnsReverse(a)) },
+
+    {
+      tool: t('network_traceroute'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleNetworkTraceroute(a)),
+    },
+    {
+      tool: t('network_icmp_probe'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleNetworkIcmpProbe(a)),
+    },
     {
       tool: t('network_extract_auth'),
       domain: DOMAIN,

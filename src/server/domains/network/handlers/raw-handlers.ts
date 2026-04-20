@@ -40,6 +40,7 @@ import { buildHttp2Frame } from '@server/domains/network/http2-raw';
 import type { Http2FrameBuildInput, Http2SettingsEntry } from '@server/domains/network/http2-raw';
 
 import { emitEvent, parseBooleanArg, parseNumberArg } from './shared';
+import { icmpProbe, traceroute, isIcmpAvailable } from '@native/IcmpProbe';
 
 export class RawHandlers {
   constructor(private eventBus?: EventBus<ServerEventMap>) {}
@@ -50,20 +51,23 @@ export class RawHandlers {
     try {
       const hostname = parseOptionalString(args.hostname, 'hostname');
       if (!hostname) {
-        return R.error('hostname is required');
+        return R.text('hostname is required', true);
       }
       const rrType = parseOptionalString(args.rrType, 'rrType') ?? 'A';
       const validTypes = ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME', 'SOA', 'PTR', 'SRV', 'ANY'];
       if (!validTypes.includes(rrType)) {
-        return R.error(`Invalid rrType: "${rrType}". Expected one of: ${validTypes.join(', ')}`);
+        return R.text(
+          `Invalid rrType: "${rrType}". Expected one of: ${validTypes.join(', ')}`,
+          true,
+        );
       }
       const start = performance.now();
-      const records = await dns.resolve(hostname, rrType as dns.RecordType);
+      const records = await dns.resolve(hostname, rrType as any);
       const timing = roundMs(performance.now() - start);
-      return R.ok({ hostname, rrType, records, timing });
+      return R.ok().json({ hostname, rrType, records, timing });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return R.error(`DNS resolve failed: ${message}`);
+      return R.fail(`DNS resolve failed: ${message}`).json();
     }
   }
 
@@ -71,15 +75,15 @@ export class RawHandlers {
     try {
       const ip = parseOptionalString(args.ip, 'ip');
       if (!ip) {
-        return R.error('ip is required');
+        return R.text('ip is required', true);
       }
       const start = performance.now();
       const hostnames = await dns.reverse(ip);
       const timing = roundMs(performance.now() - start);
-      return R.ok({ ip, hostnames, timing });
+      return R.ok().json({ ip, hostnames, timing });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return R.error(`DNS reverse lookup failed: ${message}`);
+      return R.fail(`DNS reverse lookup failed: ${message}`).json();
     }
   }
 
@@ -645,6 +649,64 @@ export class RawHandlers {
       return roundMs(performance.now() - start);
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  // ── ICMP ──
+
+  async handleNetworkTraceroute(args: Record<string, unknown>) {
+    try {
+      if (!isIcmpAvailable()) {
+        return R.text(
+          'ICMP traceroute not available on this platform (Windows: native API, Linux/macOS: requires root/CAP_NET_RAW)',
+          true,
+        );
+      }
+      const target = parseOptionalString(args.target, 'target');
+      if (!target) {
+        return R.text('target is required', true);
+      }
+      const maxHops = clamp(args.maxHops !== undefined ? Number(args.maxHops) : 30, 1, 64);
+      const timeout = clamp(args.timeout !== undefined ? Number(args.timeout) : 5000, 100, 30000);
+      const packetSize = clamp(
+        args.packetSize !== undefined ? Number(args.packetSize) : 32,
+        8,
+        65500,
+      );
+
+      const result = traceroute({ target, maxHops, timeout, packetSize });
+      return R.ok().json(result as unknown as Record<string, unknown>);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return R.fail(`Traceroute failed: ${message}`).json();
+    }
+  }
+
+  async handleNetworkIcmpProbe(args: Record<string, unknown>) {
+    try {
+      if (!isIcmpAvailable()) {
+        return R.text(
+          'ICMP probe not available on this platform (Windows: native API, Linux/macOS: requires root/CAP_NET_RAW)',
+          true,
+        );
+      }
+      const target = parseOptionalString(args.target, 'target');
+      if (!target) {
+        return R.text('target is required', true);
+      }
+      const ttl = clamp(args.ttl !== undefined ? Number(args.ttl) : 128, 1, 255);
+      const timeout = clamp(args.timeout !== undefined ? Number(args.timeout) : 5000, 100, 30000);
+      const packetSize = clamp(
+        args.packetSize !== undefined ? Number(args.packetSize) : 32,
+        8,
+        65500,
+      );
+
+      const result = icmpProbe({ target, ttl, packetSize, timeout });
+      return R.ok().json(result as unknown as Record<string, unknown>);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return R.fail(`ICMP probe failed: ${message}`).json();
     }
   }
 }
