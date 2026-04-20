@@ -34,7 +34,7 @@
 - `performance_coverage` — 待补充中文：Start or stop JavaScript and CSS code coverage recording
 - `performance_take_heap_snapshot` — 生成 V8 堆内存快照。
 
-## 工具清单（25）
+## 工具清单（27）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -59,6 +59,8 @@
 | `http2_probe` | 使用 Node http2 探测 HTTP/2 端点，带确定性 DNS 固定和有界响应捕获。报告协商协议、ALPN 结果、响应头、状态码和响应体片段。非回环明文 h2c 目标需要显式请求级授权。 |
 | `http2_frame_build` | 构建任意支持类型（DATA、SETTINGS、PING、WINDOW_UPDATE、RST_STREAM、GOAWAY、RAW）的原始 HTTP/2 二进制帧。返回 9 字节帧头和完整帧的十六进制字符串，可通过 tcp_write 或 tls_write 发送，用于协议级模糊测试与注入。 |
 | `network_rtt_measure` | 测量到目标主机的网络往返时间（RTT），支持 TCP、TLS 和 HTTP 三种探测模式。多次迭代平滑抖动，返回 min/max/avg/p50/p95 统计数据。非回环目标需要显式授权。 |
+| `dns_resolve` | 待补充中文：Resolve DNS records for a hostname using Node.js dns.resolve. Supports A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, and SRV record types. For reverse DNS lookup use rrType='PTR' with an IP address. |
+| `dns_reverse` | 待补充中文：Reverse DNS lookup: resolve a hostname from an IP address using Node.js dns.reverse. |
 | `network_extract_auth` | 扫描已捕获请求并提取认证凭据，如 Token、Cookie、API Key 与签名。 |
 | `network_export_har` | 将捕获到的网络流量导出为标准 HAR 1.2 文件。 |
 | `network_replay_request` | 重放已捕获的网络请求，并支持按需修改请求内容。 |

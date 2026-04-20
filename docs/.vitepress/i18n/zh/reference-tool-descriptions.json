@@ -461,5 +461,7 @@
   "process_kill": "待补充中文：Kill a process by PID.",
   "enumerate_modules": "待补充中文：List all loaded modules (DLLs) in a process with their base addresses.",
   "performance_coverage": "待补充中文：Start or stop JavaScript and CSS code coverage recording",
-  "trace_recording": "待补充中文：Start or stop time-travel trace recording into a SQLite database."
+  "trace_recording": "待补充中文：Start or stop time-travel trace recording into a SQLite database.",
+  "dns_resolve": "待补充中文：Resolve DNS records for a hostname using Node.js dns.resolve. Supports A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, and SRV record types. For reverse DNS lookup use rrType='PTR' with an IP address.",
+  "dns_reverse": "待补充中文：Reverse DNS lookup: resolve a hostname from an IP address using Node.js dns.reverse."
 }
