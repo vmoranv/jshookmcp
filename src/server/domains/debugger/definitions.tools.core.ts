@@ -2,11 +2,12 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const DEBUGGER_CORE_TOOLS: Tool[] = [
-  tool('debugger_enable', (t) =>
-    t.desc('Enable the debugger (must be called before setting breakpoints)').idempotent(),
-  ),
-  tool('debugger_disable', (t) =>
-    t.desc('Disable the debugger and clear all breakpoints').destructive(),
+  tool('debugger_lifecycle', (t) =>
+    t
+      .desc('Manage the debugger lifecycle (enable or disable)')
+      .enum('action', ['enable', 'disable'], 'Action to perform')
+      .required('action')
+      .idempotent(),
   ),
   tool('debugger_pause', (t) => t.desc('Pause execution at the next statement')),
   tool('debugger_resume', (t) => t.desc('Resume execution (continue)')),

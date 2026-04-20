@@ -51,7 +51,7 @@ describe('DebuggerSteppingHandlers', () => {
     expect(body).toEqual({
       success: false,
       error: 'Debugger not enabled',
-      hint: 'Call debugger_enable() first to enable the debugger',
+      hint: "Call debugger_lifecycle({ action: 'enable' })() first to enable the debugger",
     });
   });
 

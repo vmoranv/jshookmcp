@@ -9,48 +9,50 @@ interface DebuggerControlHandlersDeps {
 export class DebuggerControlHandlers {
   constructor(private deps: DebuggerControlHandlersDeps) {}
 
-  async handleDebuggerEnable(_args: Record<string, unknown>) {
-    await this.deps.debuggerManager.init();
-    await this.deps.runtimeInspector.init();
-    await this.deps.debuggerManager.initAdvancedFeatures(this.deps.runtimeInspector);
+  async handleDebuggerLifecycle(args: Record<string, unknown>) {
+    const action = args.action as 'enable' | 'disable';
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              message: 'Debugger enabled',
-              enabled: this.deps.debuggerManager.isEnabled(),
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
-  }
+    if (action === 'enable') {
+      await this.deps.debuggerManager.init();
+      await this.deps.runtimeInspector.init();
+      await this.deps.debuggerManager.initAdvancedFeatures(this.deps.runtimeInspector);
 
-  async handleDebuggerDisable(_args: Record<string, unknown>) {
-    await this.deps.debuggerManager.disable();
-    await this.deps.runtimeInspector.disable();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                message: 'Debugger enabled',
+                enabled: this.deps.debuggerManager.isEnabled(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } else {
+      await this.deps.debuggerManager.disable();
+      await this.deps.runtimeInspector.disable();
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              message: 'Debugger disabled',
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                message: 'Debugger disabled',
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
   }
 
   async handleDebuggerPause(_args: Record<string, unknown>) {

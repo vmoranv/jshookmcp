@@ -92,8 +92,7 @@ describe('debugger manifest', () => {
 
     const expectedRegistrations = [
       // Core tools
-      'debugger_enable',
-      'debugger_disable',
+      'debugger_lifecycle',
       'debugger_pause',
       'debugger_resume',
       'debugger_step',

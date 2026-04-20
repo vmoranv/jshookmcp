@@ -21,7 +21,7 @@ export class DebuggerSteppingHandlers {
               {
                 success: false,
                 error: 'Debugger not enabled',
-                hint: 'Call debugger_enable() first to enable the debugger',
+                hint: "Call debugger_lifecycle({ action: 'enable' })() first to enable the debugger",
               },
               null,
               2,
@@ -102,7 +102,7 @@ export class DebuggerSteppingHandlers {
               {
                 success: false,
                 error: 'Debugger not enabled',
-                hint: 'Call debugger_enable() first to enable the debugger',
+                hint: "Call debugger_lifecycle({ action: 'enable' })() first to enable the debugger",
               },
               null,
               2,
@@ -183,7 +183,7 @@ export class DebuggerSteppingHandlers {
               {
                 success: false,
                 error: 'Debugger not enabled',
-                hint: 'Call debugger_enable() first to enable the debugger',
+                hint: "Call debugger_lifecycle({ action: 'enable' })() first to enable the debugger",
               },
               null,
               2,
