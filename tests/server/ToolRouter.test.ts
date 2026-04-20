@@ -98,6 +98,7 @@ vi.mock('@server/MCPServer.search.helpers', () => ({
       ...ctx.activatedToolNames,
     ]),
   getVisibleDomainsForTier: () => new Set<string>(),
+  getBaseTier: () => 'full' as const,
 }));
 
 vi.mock('@server/extensions/ExtensionManager', () => ({
@@ -253,6 +254,7 @@ describe('ToolRouter', () => {
       10,
       new Set<string>(),
       new Set<string>(),
+      'full',
     );
     expect(response.workflowHint).toContain('Network capture workflow');
     expect(response.recommendations[0]).toMatchObject({
