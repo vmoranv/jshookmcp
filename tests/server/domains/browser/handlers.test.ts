@@ -241,9 +241,6 @@ vi.mock('@src/server/domains/browser/handlers/tab-workflow', () => ({
 import { BrowserToolHandlers } from '@server/domains/browser/handlers';
 
 describe('BrowserToolHandlers', () => {
-  const domInspector = {
-    getStructure: vi.fn(async () => ({ node: 'root' })),
-  } as any;
   const collector = {
     getActivePage: vi.fn(),
   } as any;
@@ -254,20 +251,12 @@ describe('BrowserToolHandlers', () => {
     disable: vi.fn(async () => {}),
     clearPlaywrightPage: vi.fn(),
   } as any;
-  const llmService = {} as any;
 
   let handlers: BrowserToolHandlers;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handlers = new BrowserToolHandlers(
-      collector,
-      pageController,
-      domInspector,
-      scriptManager,
-      consoleMonitor,
-      llmService,
-    );
+    handlers = new BrowserToolHandlers(collector, pageController, scriptManager, consoleMonitor);
   });
 
   it('constructs BrowserControlHandlers and resolves screenshot dir', () => {
@@ -388,16 +377,6 @@ describe('BrowserToolHandlers', () => {
 
     expect(result).toEqual({ success: true, from: 'browser-status', args: { verbose: true } });
     expect(browserControlMocks.handleBrowserStatus).toHaveBeenCalledWith({ verbose: true });
-  });
-
-  it('wraps DOM structure via DetailedDataManager smartHandle', async () => {
-    const body = parseJson<BrowserStatusResponse>(
-      await handlers.handleDOMGetStructure({ maxDepth: 2, includeText: false }),
-    );
-    expect(domInspector.getStructure).toHaveBeenCalledWith(2, false);
-    expect(smartHandleMock).toHaveBeenCalled();
-    expect(body.success).toBe(true);
-    expect(body.wrapped).toEqual({ node: 'root' });
   });
 
   it('navigates with camoufox page and updates console monitor', async () => {

@@ -6,7 +6,6 @@ vi.mock('@server/domains/shared/modules', () => ({
   CamoufoxBrowserManager: vi.fn(),
   CodeCollector: vi.fn(),
   PageController: vi.fn(),
-  DOMInspector: vi.fn(),
   ScriptManager: vi.fn(),
   ConsoleMonitor: vi.fn(),
 }));
@@ -35,9 +34,6 @@ const handlers = vi.hoisted(() => ({
     .mockImplementation((d: any) => ({ _type: 'pageInteract', deps: d })),
   PageEvaluationHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'pageEval', deps: d })),
   PageDataHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'pageData', deps: d })),
-  DOMQueryHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'domQuery', deps: d })),
-  DOMStyleHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'domStyle', deps: d })),
-  DOMSearchHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'domSearch', deps: d })),
   ConsoleHandlers: vi.fn().mockImplementation((d: any) => ({ _type: 'console', deps: d })),
   ScriptManagementHandlers: vi
     .fn()
@@ -70,15 +66,6 @@ vi.mock('@server/domains/browser/handlers/page-evaluation', () => ({
 }));
 vi.mock('@server/domains/browser/handlers/page-data', () => ({
   PageDataHandlers: handlers.PageDataHandlers,
-}));
-vi.mock('@server/domains/browser/handlers/dom-query', () => ({
-  DOMQueryHandlers: handlers.DOMQueryHandlers,
-}));
-vi.mock('@server/domains/browser/handlers/dom-style', () => ({
-  DOMStyleHandlers: handlers.DOMStyleHandlers,
-}));
-vi.mock('@server/domains/browser/handlers/dom-search', () => ({
-  DOMSearchHandlers: handlers.DOMSearchHandlers,
 }));
 vi.mock('@server/domains/browser/handlers/console-handlers', () => ({
   ConsoleHandlers: handlers.ConsoleHandlers,
