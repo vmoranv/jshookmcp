@@ -59,8 +59,6 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'network_get_response_body',
   'network_replay_request',
   'process_check_debug_port',
-  'process_get',
-  'process_kill',
   'process_windows',
   'run_extension_workflow',
   'unidbg_call',

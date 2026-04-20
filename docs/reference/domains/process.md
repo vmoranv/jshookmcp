@@ -22,28 +22,24 @@
 ## 代表工具
 
 - `electron_attach` — 通过 CDP 连接正在运行的 Electron 应用并执行检查或脚本。
-- `process_list` — 待补充中文：List running processes.
-- `process_find` — 待补充中文：Find processes by name pattern.
-- `process_get` — 根据 PID 获取指定进程的详细信息。
 - `process_windows` — 获取指定进程关联的全部窗口句柄。
 - `process_check_debug_port` — 待补充中文：Check if a process has a debug port enabled for CDP attachment.
 - `process_launch_debug` — 以启用远程调试端口的方式启动可执行文件。
-- `process_kill` — 待补充中文：Kill a process by PID.
 - `memory_read` — 读取目标进程指定地址的内存内容；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
 - `memory_write` — 向目标进程指定地址写入内存数据；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
+- `memory_scan` — 按模式或数值扫描进程内存；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
+- `memory_check_protection` — 检查指定内存地址的保护属性，如可读、可写、可执行。
+- `memory_scan_filtered` — 在已筛选地址范围内执行二次内存扫描。
+- `memory_batch_write` — 一次性写入多处内存补丁。
 
-## 工具清单（21）
+## 工具清单（17）
 
 | 工具 | 说明 |
 | --- | --- |
 | `electron_attach` | 通过 CDP 连接正在运行的 Electron 应用并执行检查或脚本。 |
-| `process_list` | 待补充中文：List running processes. |
-| `process_find` | 待补充中文：Find processes by name pattern. |
-| `process_get` | 根据 PID 获取指定进程的详细信息。 |
 | `process_windows` | 获取指定进程关联的全部窗口句柄。 |
 | `process_check_debug_port` | 待补充中文：Check if a process has a debug port enabled for CDP attachment. |
 | `process_launch_debug` | 以启用远程调试端口的方式启动可执行文件。 |
-| `process_kill` | 待补充中文：Kill a process by PID. |
 | `memory_read` | 读取目标进程指定地址的内存内容；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。 |
 | `memory_write` | 向目标进程指定地址写入内存数据；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。 |
 | `memory_scan` | 按模式或数值扫描进程内存；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。 |
@@ -56,4 +52,4 @@
 | `inject_dll` | 通过 CreateRemoteThread 与 LoadLibraryA (Windows) 或 gdb/lldb (Linux/macOS) 向目标进程注入 DLL 或 shared object。默认启用；可通过 ENABLE_INJECTION_TOOLS=false 禁用。需要高权限。 |
 | `inject_shellcode` | 向目标进程注入并执行 Shellcode，支持 hex 或 base64。默认启用；可通过 ENABLE_INJECTION_TOOLS=false 禁用。 |
 | `check_debug_port` | 通过 NtQueryInformationProcess 检查进程是否处于调试状态。 |
-| `enumerate_modules` | 待补充中文：List all loaded modules (DLLs) in a process with their base addresses. |
+| `enumerate_modules` | 列出进程中所有已加载模块（DLL）及其基址。 |

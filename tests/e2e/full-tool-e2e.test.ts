@@ -106,8 +106,6 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'network_get_response_body',
   'network_replay_request',
   'process_check_debug_port',
-  'process_get',
-  'process_kill',
   'process_windows',
   'run_extension_workflow',
   'watch_remove',
@@ -117,6 +115,8 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'wasm_offline_run',
   'wasm_optimize',
   'xhr_breakpoint_remove',
+  'network_traceroute',
+  'network_icmp_probe',
 ]);
 
 const LEGACY_EXPECTED_LIMITATION_PATTERNS = [
@@ -154,8 +154,6 @@ function getToolTimeoutOverride(toolName: string): number | null {
     toolName === 'framework_state_extract' ||
     toolName === 'restore_page_snapshot' ||
     toolName === 'process_launch_debug' ||
-    toolName === 'process_find' ||
-    toolName === 'process_get' ||
     toolName === 'process_windows' ||
     toolName === 'process_check_debug_port' ||
     toolName === 'check_debug_port' ||
@@ -295,6 +293,8 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     network_get_status: {},
     network_extract_auth: {},
     network_export_har: { path: `${artifactDir}/network.har` },
+    network_traceroute: { target: '1.1.1.1', maxHops: 5, timeout: 2000 },
+    network_icmp_probe: { target: '1.1.1.1', ttl: 5, timeout: 2000 },
     performance_get_metrics: {},
     performance_trace_stop: {},
     profiler_cpu_stop: {},
@@ -356,11 +356,9 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
       testInputs: ['test'],
     },
     blackbox_add: { urlPattern: '/node_modules/' },
-    process_find: { pattern: 'chrome' },
     process_launch_debug: { executablePath: browserPath, debugPort: 19222, args: ['--headless'] },
     ...(browserPid
       ? {
-          process_get: { pid: browserPid },
           process_windows: { pid: browserPid },
           process_check_debug_port: { pid: browserPid },
         }
@@ -461,7 +459,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
           inject_shellcode: { pid: browserPid, shellcode: 'cc' },
           memory_write: { pid: browserPid, address: '0x10000', data: '00' },
           memory_batch_write: { pid: browserPid, patches: [{ address: '0x10000', data: '00' }] },
-          process_kill: { pid: browserPid },
         }
       : {}),
     camoufox_server_launch: {},

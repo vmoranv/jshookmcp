@@ -7,19 +7,6 @@ import { tool } from '@server/registry/tool-builder';
  */
 
 export const processToolDefinitions: Tool[] = [
-  tool('process_list', (t) => t.desc('List running processes.').query()),
-  tool('process_find', (t) =>
-    t
-      .desc('Find processes by name pattern.')
-      .string('pattern', 'Name or command-line pattern to match')
-      .required('pattern'),
-  ),
-  tool('process_get', (t) =>
-    t
-      .desc('Get detailed information about a specific process by PID.')
-      .number('pid', 'Process ID to query')
-      .required('pid'),
-  ),
   tool('process_windows', (t) =>
     t
       .desc('Get all window handles for a process.')
@@ -40,9 +27,6 @@ export const processToolDefinitions: Tool[] = [
       .number('debugPort', 'Debug port to use', { default: 9222 })
       .array('args', { type: 'string' }, 'Additional command line arguments')
       .required('executablePath'),
-  ),
-  tool('process_kill', (t) =>
-    t.desc('Kill a process by PID.').number('pid', 'Process ID to kill').required('pid'),
   ),
 
   tool('memory_read', (t) =>

@@ -32,19 +32,8 @@ export const systemPhases: Phase[] = [
   {
     name: 'Process',
     group: 'compute-system',
-    setup: async (call) => {
-      // Find chrome/browser processes to get a real PID for process/memory tools
-      await call('process_find', { pattern: 'chrome' });
-      await new Promise((r) => setTimeout(r, 50));
-    },
-    tools: [
-      'process_list',
-      'process_get',
-      'process_windows',
-      'process_find',
-      'process_check_debug_port',
-      'process_launch_debug',
-    ],
+    setup: [],
+    tools: ['process_windows', 'process_check_debug_port', 'process_launch_debug'],
   },
   {
     name: 'Module Enumeration',
@@ -445,11 +434,5 @@ export const systemPhases: Phase[] = [
       'run_extension_workflow',
       'register_account_flow',
     ],
-  },
-  {
-    name: 'Process Kill (last)',
-    group: 'cleanup',
-    setup: [],
-    tools: ['process_kill'],
   },
 ];
