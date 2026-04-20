@@ -34,7 +34,7 @@
 - `browser_launch` — 启动浏览器实例。
 - `browser_close` — 关闭当前浏览器实例。
 
-## 工具清单（52）
+## 工具清单（57）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -63,14 +63,14 @@
 | `page_screenshot` | 截取页面或指定 DOM 元素的截图。 |
 | `get_all_scripts` | 获取页面中所有已加载脚本的列表。 |
 | `get_script_source` | 获取指定脚本的源代码。 |
-| `console_monitor` | 待补充中文：Enable or disable console monitoring to capture console.log, console.error, etc. |
-| `console_get_logs` | 获取已捕获的控制台日志。 |
+| `console_monitor` | 启用或禁用控制台监控，捕获 console.log、console.error 等输出。 |
+| `console_get_logs` | 待补充中文：Get captured console logs |
 | `console_execute` | 在控制台上下文中执行 JavaScript 表达式。 |
 | `page_inject_script` | 向当前页面注入 JavaScript 代码。 |
-| `page_cookies` | 待补充中文：Manage page cookies. Actions: get (all cookies), set (requires cookies array), clear (all cookies). |
-| `page_set_viewport` | 设置浏览器视口尺寸。 |
-| `page_emulate_device` | 模拟移动设备环境，如 iPhone、iPad 或 Android。 |
-| `page_local_storage` | 待补充中文：Manage localStorage. Actions: get (all items), set (requires key, value). |
+| `page_cookies` | 管理页面 Cookie。操作：get（获取全部）、set（需提供 cookies 数组）、clear（清除全部）。 |
+| `page_set_viewport` | 待补充中文：Set viewport size |
+| `page_emulate_device` | 待补充中文：Emulate mobile device (iPhone, iPad, Android) |
+| `page_local_storage` | 管理 localStorage。操作：get（获取全部项）、set（需提供 key 和 value）。 |
 | `page_press_key` | 触发一次键盘按键操作，如 Enter、Escape 或 ArrowDown。 |
 | `captcha_detect` | 使用 AI 视觉分析检测当前页面上的 CAPTCHA。 |
 | `captcha_wait` | 等待用户手动完成 CAPTCHA 验证。 |
@@ -80,7 +80,7 @@
 | `stealth_configure_jitter` | 配置 CDP 命令时序抖动，在每个 CDP send() 调用间注入随机延迟以防止基于时序的自动化检测。 |
 | `stealth_generate_fingerprint` | 生成真实的浏览器指纹配置文件，使用 fingerprint-generator 创建一致的浏览器特征集，自动缓存到当前会话。 |
 | `stealth_verify` | 运行离线反检测审计，检查 10 项隐身指标并返回 0-100 分的评分与修复建议。 |
-| `camoufox_server` | 待补充中文：Manage Camoufox WebSocket server. Launch server, then connect via browser_launch. |
+| `camoufox_server` | 管理 Camoufox WebSocket 服务器。先启动服务器，再通过 browser_launch 连接。 |
 | `framework_state_extract` | 提取当前页面中 React/Vue/Svelte/Solid/Preact 组件状态，同时检测 Next.js/Nuxt 元框架元数据（路由、构建信息），便于调试和逆向分析 SPA 应用。 |
 | `indexeddb_dump` | 导出所有 IndexedDB 数据库及其内容，便于分析 PWA 数据、令牌或离线状态。 |
 | `js_heap_search` | 在浏览器 JavaScript 堆中检索匹配模式的字符串值，用于定位令牌、密钥、签名等内存数据。 |
@@ -90,3 +90,8 @@
 | `human_typing` | 以拟人化方式输入文本，模拟变速、偶发输入错误与自动修正。 |
 | `captcha_vision_solve` | 使用外部打码服务或 AI 视觉能力尝试自动完成 CAPTCHA。 |
 | `widget_challenge_solve` | 处理并尝试完成嵌入式组件类验证挑战。 |
+| `browser_jsdom_parse` | 将 HTML 解析到内存中的 JSDOM 会话（无需浏览器）。返回供其他 browser_jsdom_* 工具使用的 sessionId，会话闲置 10 分钟后自动过期。 |
+| `browser_jsdom_query` | 在 JSDOM 会话中执行 CSS 选择器查询，返回匹配元素的属性、文本及可选的 HTML 或源码位置信息。 |
+| `browser_jsdom_execute` | 在 JSDOM 会话中执行 JavaScript。需要会话以 runScripts="outside-only" 或 "dangerously" 模式解析。控制台输出会被捕获并返回。 |
+| `browser_jsdom_serialize` | 将 JSDOM 会话序列化为 HTML。支持完整文档输出或 CSS 选择器片段输出，可选美化格式。 |
+| `browser_jsdom_cookies` | 管理 JSDOM 会话的 Cookie。操作：get（列出）、set（添加）、clear（全部清除）。 |

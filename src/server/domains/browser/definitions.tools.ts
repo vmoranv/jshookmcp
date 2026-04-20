@@ -5,6 +5,7 @@ import { browserPageSystemTools } from '@server/domains/browser/definitions.tool
 import { browserRuntimeTools } from '@server/domains/browser/definitions.tools.runtime';
 import { browserSecurityStateTools } from '@server/domains/browser/definitions.tools.security';
 import { behaviorTools } from '@server/domains/browser/definitions.tools.behavior';
+import { browserJsdomToolDefinitions } from '@server/domains/browser/definitions.tools.jsdom';
 
 export const browserTools: Tool[] = [
   ...browserRuntimeTools,
@@ -12,6 +13,7 @@ export const browserTools: Tool[] = [
   ...browserPageSystemTools,
   ...browserSecurityStateTools,
   ...behaviorTools,
+  ...browserJsdomToolDefinitions,
 ];
 
-export { advancedBrowserToolDefinitions };
+export { advancedBrowserToolDefinitions, browserJsdomToolDefinitions };

@@ -32,6 +32,7 @@ import { TargetEvaluationHandlers } from '@server/domains/browser/handlers/targe
 import { TargetControlHandlers } from '@server/domains/browser/handlers/target-control';
 import { type JSHeapSearchHandlers } from '@server/domains/browser/handlers/js-heap';
 import { type TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
+import { type JsdomHandlers } from '@server/domains/browser/handlers/jsdom-tools';
 import { initializeBrowserHandlerModules } from '@server/domains/browser/handlers/facade-initializer';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
 import {
@@ -83,6 +84,7 @@ export class BrowserToolHandlers {
   private jsHeapSearch: JSHeapSearchHandlers;
   private tabWorkflow: TabWorkflowHandlers;
   private detailedData: DetailedDataHandlers;
+  private jsdomHandlers: JsdomHandlers;
   private _tabRegistry: TabRegistry;
 
   constructor(
@@ -154,6 +156,7 @@ export class BrowserToolHandlers {
     this.jsHeapSearch = modules.jsHeapSearch;
     this.tabWorkflow = modules.tabWorkflow;
     this.detailedData = modules.detailedData;
+    this.jsdomHandlers = modules.jsdomHandlers;
     this._tabRegistry = modules.tabRegistry;
   }
 
@@ -542,6 +545,27 @@ export class BrowserToolHandlers {
 
   async handleWidgetChallengeSolve(args: Record<string, unknown>) {
     return handleWidgetChallengeSolve(args, this.collector);
+  }
+
+  // ── JSDOM (headless DOM, no browser) ──
+  async handleJsdomParse(args: Record<string, unknown>) {
+    return this.jsdomHandlers.handleJsdomParse(args);
+  }
+
+  async handleJsdomQuery(args: Record<string, unknown>) {
+    return this.jsdomHandlers.handleJsdomQuery(args);
+  }
+
+  async handleJsdomExecute(args: Record<string, unknown>) {
+    return this.jsdomHandlers.handleJsdomExecute(args);
+  }
+
+  async handleJsdomSerialize(args: Record<string, unknown>) {
+    return this.jsdomHandlers.handleJsdomSerialize(args);
+  }
+
+  async handleJsdomCookies(args: Record<string, unknown>) {
+    return this.jsdomHandlers.handleJsdomCookies(args);
   }
 }
 

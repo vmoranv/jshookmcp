@@ -25,6 +25,7 @@ import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workfl
 import { DetailedDataHandlers } from '@server/domains/browser/handlers/detailed-data';
 import { TargetEvaluationHandlers } from '@server/domains/browser/handlers/target-evaluation';
 import { TargetControlHandlers } from '@server/domains/browser/handlers/target-control';
+import { JsdomHandlers } from '@server/domains/browser/handlers/jsdom-tools';
 import { TabRegistry } from '@modules/browser/TabRegistry';
 
 export interface BrowserHandlerModuleInitDeps {
@@ -69,6 +70,7 @@ export interface BrowserHandlerModules {
   jsHeapSearch: JSHeapSearchHandlers;
   tabWorkflow: TabWorkflowHandlers;
   detailedData: DetailedDataHandlers;
+  jsdomHandlers: JsdomHandlers;
 }
 
 export function initializeBrowserHandlerModules(
@@ -184,5 +186,7 @@ export function initializeBrowserHandlerModules(
     detailedData: new DetailedDataHandlers({
       detailedDataManager: deps.detailedDataManager,
     }),
+
+    jsdomHandlers: new JsdomHandlers(),
   };
 }

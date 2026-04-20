@@ -204,6 +204,32 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleWidgetChallengeSolve(a)),
     },
+    // ── JSDOM (headless DOM, no browser) ──
+    {
+      tool: t('browser_jsdom_parse'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleJsdomParse(a)),
+    },
+    {
+      tool: t('browser_jsdom_query'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleJsdomQuery(a)),
+    },
+    {
+      tool: t('browser_jsdom_execute'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleJsdomExecute(a)),
+    },
+    {
+      tool: t('browser_jsdom_serialize'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleJsdomSerialize(a)),
+    },
+    {
+      tool: t('browser_jsdom_cookies'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleJsdomCookies(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
