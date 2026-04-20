@@ -1,9 +1,8 @@
 import { ToolError } from '@errors/ToolError';
 import { ADBClient, WebViewDebugger } from '@modules/adb';
-import { argNumber, argString, argStringRequired } from '@server/domains/shared/parse-args';
+import { argNumber, argStringRequired } from '@server/domains/shared/parse-args';
 import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
-import type { EventBus, ServerEventMap } from '@server/EventBus';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -13,40 +12,13 @@ function getErrorMessage(error: unknown): string {
   return String(error);
 }
 
-function readPackagePath(output: string): string | null {
-  const packagePaths: string[] = [];
-
-  for (const line of output.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith('package:')) {
-      continue;
-    }
-
-    const candidate = trimmed.slice('package:'.length);
-    if (candidate.length > 0) {
-      packagePaths.push(candidate);
-    }
-  }
-
-  if (packagePaths.length === 0) {
-    return null;
-  }
-
-  return packagePaths.find((path) => path.endsWith('/base.apk')) ?? packagePaths[0] ?? null;
-}
-
 export class ADBBridgeHandlers {
   private adbClient?: ADBClient;
   private webviewDbg?: WebViewDebugger;
-  private eventBus?: EventBus<ServerEventMap>;
 
   constructor(adbClient?: ADBClient, webviewDbg?: WebViewDebugger) {
     this.adbClient = adbClient;
     this.webviewDbg = webviewDbg;
-  }
-
-  setEventBus(eventBus: EventBus<ServerEventMap>): void {
-    this.eventBus = eventBus;
   }
 
   private getADBClient(): ADBClient {
@@ -77,68 +49,6 @@ export class ADBBridgeHandlers {
         toolName: _toolName,
       });
     }
-  }
-
-  async handleDeviceList(_args: Record<string, unknown>): Promise<ToolResponse> {
-    const devices = await this.getADBClient().listDevices();
-    for (const device of devices) {
-      if (device.type === 'device') {
-        void this.eventBus?.emit('adb:device_connected', {
-          serial: device.id,
-          model: device.model ?? device.id,
-          timestamp: new Date().toISOString(),
-        });
-      }
-    }
-    return this.run('adb_device_list', async () => ({
-      success: true,
-      devices,
-    }));
-  }
-
-  async handleShell(args: Record<string, unknown>): Promise<ToolResponse> {
-    return this.run('adb_shell', async () => {
-      const serial = argStringRequired(args, 'serial');
-      const command = argStringRequired(args, 'command');
-
-      return {
-        success: true,
-        serial,
-        command,
-        output: await this.getADBClient().shell(serial, command),
-      };
-    });
-  }
-
-  async handlePullApk(args: Record<string, unknown>): Promise<ToolResponse> {
-    return this.run('adb_apk_pull', async () => {
-      const serial = argStringRequired(args, 'serial');
-      const packageName = argStringRequired(args, 'packageName');
-      const outputPath = argString(args, 'outputPath') ?? `/tmp/${packageName}.apk`;
-
-      const remotePathOutput = await this.getADBClient().shell(serial, `pm path ${packageName}`);
-      const remotePath = readPackagePath(remotePathOutput);
-
-      if (!remotePath) {
-        throw new ToolError(
-          'NOT_FOUND',
-          `Package ${packageName} was not found on device ${serial}.`,
-          {
-            toolName: 'adb_apk_pull',
-          },
-        );
-      }
-
-      await this.getADBClient().pull(serial, remotePath, outputPath);
-
-      return {
-        success: true,
-        serial,
-        packageName,
-        remotePath,
-        outputPath,
-      };
-    });
   }
 
   async handleAnalyzeApk(args: Record<string, unknown>): Promise<ToolResponse> {

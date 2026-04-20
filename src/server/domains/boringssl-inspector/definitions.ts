@@ -735,18 +735,4 @@ export const boringsslInspectorTools: Tool[] = [
       required: ['port'],
     },
   },
-  {
-    name: 'net_raw_tcp_scan',
-    description: 'Scan a TCP port range on a host for open ports.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        host: { type: 'string', default: '127.0.0.1', description: 'Target host address' },
-        startPort: { type: 'number', default: 1, description: 'Start of port range' },
-        endPort: { type: 'number', default: 1024, description: 'End of port range' },
-        timeout: { type: 'number', default: 1000, description: 'Per-port timeout in ms' },
-      },
-      required: [],
-    },
-  },
 ];

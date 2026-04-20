@@ -14,21 +14,6 @@ const bind = (
 
 const registrations: ToolRegistration[] = [
   {
-    tool: toolByName('adb_device_list'),
-    domain: DOMAIN,
-    bind: bind((handlers, args) => handlers.handleDeviceList(args)),
-  },
-  {
-    tool: toolByName('adb_shell'),
-    domain: DOMAIN,
-    bind: bind((handlers, args) => handlers.handleShell(args)),
-  },
-  {
-    tool: toolByName('adb_apk_pull'),
-    domain: DOMAIN,
-    bind: bind((handlers, args) => handlers.handlePullApk(args)),
-  },
-  {
     tool: toolByName('adb_apk_analyze'),
     domain: DOMAIN,
     bind: bind((handlers, args) => handlers.handleAnalyzeApk(args)),
@@ -52,7 +37,6 @@ function ensure(ctx: MCPServerContext): ADBBridgeHandlers {
   }
 
   const handlers = new ADBBridgeHandlers();
-  handlers.setEventBus(ctx.eventBus);
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
 }
@@ -71,14 +55,7 @@ const manifest: DomainManifest<'adbBridgeHandlers', ADBBridgeHandlers, 'adb-brid
       /(adb|android).*(webview|chrome|debug|cdp|inspect)/i,
     ],
     priority: 75,
-    tools: [
-      'adb_device_list',
-      'adb_shell',
-      'adb_apk_pull',
-      'adb_apk_analyze',
-      'adb_webview_list',
-      'adb_webview_attach',
-    ],
+    tools: ['adb_apk_analyze', 'adb_webview_list', 'adb_webview_attach'],
     hint: 'Android/ADB: list devices → run shell commands → pull/analyze APK → debug WebViews via CDP',
   },
   prerequisites: {

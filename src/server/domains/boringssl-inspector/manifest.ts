@@ -194,11 +194,6 @@ const manifest = {
       domain: DOMAIN,
       bind: bind((handler, args) => handler.handleRawUdpListen(args)),
     },
-    {
-      tool: lookup('net_raw_tcp_scan'),
-      domain: DOMAIN,
-      bind: bind((handler, args) => handler.handleRawTcpScan(args)),
-    },
   ],
   ensure,
   workflowRule: {

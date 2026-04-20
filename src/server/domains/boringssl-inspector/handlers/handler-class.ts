@@ -2479,63 +2479,7 @@ export class BoringsslInspectorHandlers {
         socket.close();
         resolve({ ok: false, error: error.message });
       });
-
       socket.bind(port, '127.0.0.1');
     });
-  }
-
-  async handleRawTcpScan(args: Record<string, unknown>): Promise<unknown> {
-    const host = argString(args, 'host') ?? '127.0.0.1';
-    const startPort = argNumber(args, 'startPort') ?? 1;
-    const endPort = argNumber(args, 'endPort') ?? 1024;
-
-    if (startPort < 1 || endPort > 65535 || startPort > endPort) {
-      return { ok: false, error: 'Invalid port range' };
-    }
-
-    if (endPort - startPort > 1000) {
-      return { ok: false, error: 'Port range too large (max 1000 ports)' };
-    }
-
-    const timeout = argNumber(args, 'timeout') ?? 1000;
-    const openPorts: number[] = [];
-    const scanPromises: Promise<void>[] = [];
-
-    for (let p = startPort; p <= endPort; p++) {
-      scanPromises.push(
-        new Promise<void>((resolve) => {
-          const socket = new NetSocket();
-          const timer = setTimeout(() => {
-            socket.destroy();
-            resolve();
-          }, timeout);
-
-          socket.on('connect', () => {
-            clearTimeout(timer);
-            openPorts.push(p);
-            socket.destroy();
-            resolve();
-          });
-
-          socket.on('error', () => {
-            clearTimeout(timer);
-            resolve();
-          });
-
-          socket.connect(p, host);
-        }),
-      );
-    }
-
-    await Promise.all(scanPromises);
-
-    return {
-      ok: true,
-      host,
-      portRange: { start: startPort, end: endPort },
-      openPorts: openPorts.toSorted((a, b) => a - b),
-      openCount: openPorts.length,
-      scannedCount: endPort - startPort + 1,
-    };
   }
 }

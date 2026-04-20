@@ -23,8 +23,8 @@ describe('adb-bridge tool definitions', () => {
       expect(adbBridgeTools.length).toBeGreaterThan(0);
     });
 
-    it('tool count matches expected (6 tools)', () => {
-      expect(adbBridgeTools.length).toBe(6);
+    it('tool count matches expected (3 tools)', () => {
+      expect(adbBridgeTools.length).toBe(3);
     });
 
     it('has unique tool names', () => {
@@ -62,62 +62,11 @@ describe('adb-bridge tool definitions', () => {
   });
 
   describe('expected tool names', () => {
-    const expectedNames = [
-      'adb_device_list',
-      'adb_shell',
-      'adb_apk_pull',
-      'adb_apk_analyze',
-      'adb_webview_list',
-      'adb_webview_attach',
-    ];
+    const expectedNames = ['adb_apk_analyze', 'adb_webview_list', 'adb_webview_attach'];
 
     it.each(expectedNames)('includes tool "%s"', (name) => {
       const found = adbBridgeTools.find((tool) => tool.name === name);
       expect(found).toBeDefined();
-    });
-  });
-
-  describe('adb_device_list', () => {
-    it('has no required properties', () => {
-      const tool = getTool('adb_device_list');
-      expect(tool.inputSchema.required).toBeUndefined();
-    });
-
-    it('has no input properties', () => {
-      const tool = getTool('adb_device_list');
-      expect(Object.keys(tool.inputSchema.properties ?? {})).toHaveLength(0);
-    });
-  });
-
-  describe('adb_shell', () => {
-    it('requires serial and command', () => {
-      const tool = getTool('adb_shell');
-      expect(tool.inputSchema.required ?? []).toContain('serial');
-      expect(tool.inputSchema.required ?? []).toContain('command');
-    });
-
-    it('serial and command are type string', () => {
-      expect(getToolProperty('adb_shell', 'serial').type).toBe('string');
-      expect(getToolProperty('adb_shell', 'command').type).toBe('string');
-    });
-  });
-
-  describe('adb_apk_pull', () => {
-    it('requires serial and packageName', () => {
-      const tool = getTool('adb_apk_pull');
-      expect(tool.inputSchema.required ?? []).toContain('serial');
-      expect(tool.inputSchema.required ?? []).toContain('packageName');
-    });
-
-    it('has optional outputPath', () => {
-      const tool = getTool('adb_apk_pull');
-      expect(tool.inputSchema.properties).toHaveProperty('outputPath');
-      expect(getToolProperty('adb_apk_pull', 'outputPath').type).toBe('string');
-    });
-
-    it('outputPath is not required', () => {
-      const tool = getTool('adb_apk_pull');
-      expect(tool.inputSchema.required ?? []).not.toContain('outputPath');
     });
   });
 

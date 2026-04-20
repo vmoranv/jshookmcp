@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ToolError } from '@errors/ToolError';
 import { ADBBridgeHandlers } from '@server/domains/adb-bridge/handlers.impl';
 
 describe('ADBBridgeHandlers', () => {
@@ -37,36 +36,6 @@ describe('ADBBridgeHandlers', () => {
       }),
     };
     handlers = new ADBBridgeHandlers(adbClient as any, webviewDebugger as any);
-  });
-
-  it('lists devices through the injected ADB client', async () => {
-    const result = await handlers.handleDeviceList({});
-    expect(adbClient.listDevices).toHaveBeenCalledOnce();
-    expect(result.isError).toBeUndefined();
-  });
-
-  it('returns tool error response when device listing fails', async () => {
-    adbClient.listDevices.mockRejectedValueOnce(new ToolError('RUNTIME', 'ADB not available'));
-    await expect(handlers.handleDeviceList({})).rejects.toThrow();
-  });
-
-  it('runs shell commands through the injected ADB client', async () => {
-    const result = await handlers.handleShell({ serial: 'emulator-5554', command: 'ls' });
-    expect(adbClient.shell).toHaveBeenCalledWith('emulator-5554', 'ls');
-    expect(result.isError).toBeUndefined();
-  });
-
-  it('pulls an apk using the resolved remote package path', async () => {
-    const result = await handlers.handlePullApk({
-      serial: 'emulator-5554',
-      packageName: 'com.example.app',
-    });
-    expect(adbClient.pull).toHaveBeenCalledWith(
-      'emulator-5554',
-      '/data/app/base.apk',
-      '/tmp/com.example.app.apk',
-    );
-    expect(result.isError).toBeUndefined();
   });
 
   it('analyzes apk metadata from dumpsys output', async () => {
