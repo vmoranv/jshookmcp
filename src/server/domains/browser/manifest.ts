@@ -64,9 +64,6 @@ const manifest = {
     page_hover: [
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
-    page_scroll: [
-      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
-    ],
     page_back: [
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
@@ -74,6 +71,9 @@ const manifest = {
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
     page_reload: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    page_scroll: [
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
   },
