@@ -4,7 +4,13 @@
  * Provides tool name resolution, search engine construction with caching,
  * and domain description generation.
  */
-import { allTools, getProfileDomains, getToolDomain } from '@server/ToolCatalog';
+import {
+  allTools,
+  getProfileDomains,
+  getToolDomain,
+  getToolsForProfile,
+} from '@server/ToolCatalog';
+import type { ToolProfile } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { ToolSearchEngine } from '@server/ToolSearch';
 import { getAllRegistrations } from '@server/registry/index';
@@ -42,6 +48,20 @@ export function getVisibleDomainsForTier(ctx: MCPServerContext): ReadonlySet<str
     if (toolDomain) visible.add(toolDomain);
   }
   return visible;
+}
+
+export function getVisibleToolNamesForTier(ctx: MCPServerContext): ReadonlySet<string> {
+  const visible = new Set(getToolsForProfile(ctx.baseTier).map((tool) => tool.name));
+  for (const name of ctx.activatedToolNames) visible.add(name);
+  for (const tool of ctx.selectedTools) visible.add(tool.name);
+  for (const record of ctx.extensionToolsByName.values()) {
+    visible.add(record.name);
+  }
+  return visible;
+}
+
+export function getBaseTier(ctx: MCPServerContext): ToolProfile {
+  return ctx.baseTier;
 }
 
 export function getExtensionDomainMap(ctx: MCPServerContext): Map<string, string> {

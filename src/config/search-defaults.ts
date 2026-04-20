@@ -17,8 +17,9 @@ export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
       '(?:security|vuln|xss|injection|csrf|exploit|attack|prototype\\s*pollution|漏洞|安全|注入|攻击)',
     flags: 'i',
     domainBoosts: [
-      { domain: 'security', weight: 1.6 },
-      { domain: 'analysis', weight: 1.2 },
+      { domain: 'hooks', weight: 1.35 },
+      { domain: 'antidebug', weight: 1.2 },
+      { domain: 'core', weight: 1.1 },
     ],
   },
   {
@@ -26,7 +27,7 @@ export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
     flags: 'i',
     domainBoosts: [
       { domain: 'debugger', weight: 1.6 },
-      { domain: 'runtime', weight: 1.2 },
+      { domain: 'v8-inspector', weight: 1.2 },
     ],
   },
   {
@@ -42,7 +43,7 @@ export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
     flags: 'i',
     domainBoosts: [
       { domain: 'transform', weight: 1.6 },
-      { domain: 'analysis', weight: 1.2 },
+      { domain: 'core', weight: 1.2 },
     ],
   },
   {
@@ -50,7 +51,8 @@ export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
     flags: 'i',
     domainBoosts: [
       { domain: 'memory', weight: 1.6 },
-      { domain: 'native', weight: 1.2 },
+      { domain: 'process', weight: 1.15 },
+      { domain: 'binary-instrument', weight: 1.1 },
     ],
   },
   {
@@ -66,10 +68,7 @@ export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
   {
     pattern: '(?:captcha|人机验证|验证码|图形验证)',
     flags: 'i',
-    domainBoosts: [
-      { domain: 'captcha', weight: 1.6 },
-      { domain: 'browser', weight: 1.1 },
-    ],
+    domainBoosts: [{ domain: 'browser', weight: 1.65 }],
   },
   {
     pattern:
@@ -77,7 +76,7 @@ export const DEFAULT_QUERY_CATEGORY_PROFILE_CONFIGS = [
     flags: 'i',
     domainBoosts: [
       { domain: 'workflow', weight: 1.8 },
-      { domain: 'analysis', weight: 1.1 },
+      { domain: 'core', weight: 1.1 },
     ],
   },
   {
@@ -207,8 +206,8 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       '(?:端到端闭环|全链路闭环|一键闭环|api(?:[_\\s-]*)capture(?:[_\\s-]*)session|web_api_capture_session|抓取接口|抓包流程)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
+      { tool: 'run_extension_workflow', bonus: 18 },
+      { tool: 'list_extension_workflows', bonus: 12 },
       { tool: 'api_probe_batch', bonus: 18 },
       { tool: 'network_extract_auth', bonus: 10 },
       { tool: 'network_export_har', bonus: 8 },
@@ -219,8 +218,8 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       '(?:register|signup|sign\\s*up|账号注册|账户注册|邮箱验证|验证账号|激活账号|注册验证|验证码|邮箱激活|激活链接|mail\\s*verify|email\\s*verify|account\\s*pending|keygen)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
+      { tool: 'run_extension_workflow', bonus: 12 },
+      { tool: 'list_extension_workflows', bonus: 8 },
       { tool: 'tab_workflow', bonus: 8 },
     ],
   },
@@ -255,8 +254,8 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       '(?=.*(?:抓包|抓取|捕获|capture|sniff|collect))(?=.*(?:鉴权|认证|令牌|凭证|jwt|token|auth|credential))',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 28 },
-      { tool: 'list_extension_workflows', bonus: 16 },
+      { tool: 'run_extension_workflow', bonus: 18 },
+      { tool: 'list_extension_workflows', bonus: 12 },
       { tool: 'network_extract_auth', bonus: 18 },
     ],
   },
@@ -264,55 +263,50 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
     pattern: '(?:signature|crypto|encrypt|hash|hook|签名|加签|加密)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'search_in_scripts', bonus: 12 },
-      { tool: 'detect_crypto', bonus: 10 },
-      { tool: 'manage_hooks', bonus: 8 },
+      { tool: 'search_in_scripts', bonus: 14 },
+      { tool: 'detect_crypto', bonus: 12 },
+      { tool: 'manage_hooks', bonus: 10 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
     pattern: '(?:websocket|\\bws\\b|protocol|socket|handler|协议|消息|帧)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'ws_monitor_enable', bonus: 12 },
-      { tool: 'ws_get_frames', bonus: 10 },
-      { tool: 'ws_get_connections', bonus: 8 },
+      { tool: 'ws_monitor', bonus: 14 },
+      { tool: 'ws_get_frames', bonus: 12 },
+      { tool: 'ws_get_connections', bonus: 10 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
     pattern: '(?:bundle|webpack|chunk|source.*map|deobfusc|源码|打包|混淆|反混淆)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'js_bundle_search', bonus: 14 },
-      { tool: 'collect_code', bonus: 10 },
-      { tool: 'sourcemap_fetch_and_parse', bonus: 8 },
+      { tool: 'js_bundle_search', bonus: 18 },
+      { tool: 'collect_code', bonus: 12 },
+      { tool: 'sourcemap_fetch_and_parse', bonus: 10 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
     pattern: '(?:stealth|fingerprint|webdriver|antibot|bot.*detect|反爬|反检测|指纹)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'stealth_inject', bonus: 10 },
-      { tool: 'stealth_generate_fingerprint', bonus: 10 },
-      { tool: 'stealth_verify', bonus: 8 },
+      { tool: 'stealth_inject', bonus: 14 },
+      { tool: 'stealth_generate_fingerprint', bonus: 12 },
+      { tool: 'stealth_verify', bonus: 10 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
     pattern: '(?:evidence|export.*(?:har|markdown|json)|har|report|证据|导出|报告|取证)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'evidence_query_url', bonus: 14 },
-      { tool: 'evidence_export_markdown', bonus: 12 },
-      { tool: 'evidence_export_json', bonus: 10 },
+      { tool: 'evidence_query_url', bonus: 16 },
+      { tool: 'evidence_export_markdown', bonus: 14 },
+      { tool: 'evidence_export_json', bonus: 12 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
@@ -320,10 +314,9 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       '(?:auth.*surface|token.*enum|credential.*map|鉴权面|认证面|凭证枚举|jwt|csrf|api.?key|授权)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'network_extract_auth', bonus: 14 },
-      { tool: 'page_get_cookies', bonus: 8 },
+      { tool: 'network_extract_auth', bonus: 16 },
+      { tool: 'run_extension_workflow', bonus: 6 },
+      { tool: 'list_extension_workflows', bonus: 4 },
     ],
   },
   {
@@ -331,11 +324,10 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       '(?:protocol.*registry|channel.*enum|通道枚举|协议注册|协议归类|SSE|EventSource|beacon|postMessage)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'ws_monitor_enable', bonus: 10 },
+      { tool: 'ws_monitor', bonus: 12 },
+      { tool: 'network_get_requests', bonus: 10 },
       { tool: 'sse_monitor_enable', bonus: 10 },
-      { tool: 'network_get_requests', bonus: 8 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
@@ -343,10 +335,9 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       '(?:challenge|turnstile|cloudflare|hcaptcha|datadome|akamai|perimeterx|kasada|人机|挑战|风控|拦截页)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'captcha_detect', bonus: 14 },
-      { tool: 'stealth_verify', bonus: 10 },
+      { tool: 'captcha_detect', bonus: 16 },
+      { tool: 'stealth_verify', bonus: 12 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
@@ -354,46 +345,42 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
       '(?:signing.*lineage|签名谱系|签名链路|加签链路|签名追踪|plaintext.*cipher|明文.*密文)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'detect_crypto', bonus: 12 },
-      { tool: 'extract_function_tree', bonus: 10 },
-      { tool: 'manage_hooks', bonus: 8 },
+      { tool: 'detect_crypto', bonus: 14 },
+      { tool: 'extract_function_tree', bonus: 12 },
+      { tool: 'manage_hooks', bonus: 10 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
     pattern: '(?:replay.*lab|request.*replay|复现|重发|篡改|参数篡改|request.*tamper)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'network_replay_request', bonus: 14 },
-      { tool: 'instrumentation_network_replay', bonus: 12 },
-      { tool: 'network_export_har', bonus: 8 },
+      { tool: 'network_replay_request', bonus: 16 },
+      { tool: 'instrumentation_network_replay', bonus: 14 },
+      { tool: 'network_export_har', bonus: 10 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
     pattern: '(?:deobfusc.*pipeline|反混淆链|反混淆管道|清洗|还原|ast.*transform|packer|unpack)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'webcrack_unpack', bonus: 14 },
-      { tool: 'ast_transform_apply', bonus: 12 },
-      { tool: 'deobfuscate', bonus: 10 },
-      { tool: 'detect_obfuscation', bonus: 8 },
+      { tool: 'webcrack_unpack', bonus: 16 },
+      { tool: 'ast_transform_apply', bonus: 14 },
+      { tool: 'deobfuscate', bonus: 12 },
+      { tool: 'detect_obfuscation', bonus: 10 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
   {
     pattern: '(?:electron|nwjs|preload|ipc|asar|桌面应用|预加载|桥接|electron.*bridge)',
     flags: 'i',
     boosts: [
-      { tool: 'run_extension_workflow', bonus: 40 },
-      { tool: 'list_extension_workflows', bonus: 24 },
-      { tool: 'electron_inspect_app', bonus: 14 },
-      { tool: 'electron_ipc_sniff', bonus: 12 },
-      { tool: 'asar_search', bonus: 10 },
-      { tool: 'electron_check_fuses', bonus: 8 },
+      { tool: 'electron_inspect_app', bonus: 16 },
+      { tool: 'electron_ipc_sniff', bonus: 14 },
+      { tool: 'asar_search', bonus: 12 },
+      { tool: 'electron_check_fuses', bonus: 10 },
+      { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },
 ] satisfies SearchIntentToolBoostRuleConfig[];

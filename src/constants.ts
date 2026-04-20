@@ -397,6 +397,11 @@ export const SEARCH_VECTOR_LEARN_TOP_N = int('SEARCH_VECTOR_LEARN_TOP_N', 5);
  */
 export const SEARCH_TIER_PENALTY = float('SEARCH_TIER_PENALTY', 0.7);
 
+/** Per-profile tier penalty overrides. When set, these take precedence over SEARCH_TIER_PENALTY. */
+export const SEARCH_TIER_PENALTY_SEARCH = float('SEARCH_TIER_PENALTY_SEARCH', 0.4);
+export const SEARCH_TIER_PENALTY_WORKFLOW = float('SEARCH_TIER_PENALTY_WORKFLOW', 0.7);
+export const SEARCH_TIER_PENALTY_FULL = float('SEARCH_TIER_PENALTY_FULL', 1.0);
+
 /**
  * Recency / frequency boost: tools invoked within SEARCH_RECENCY_WINDOW_MS
  * receive a log-scaled boost up to SEARCH_RECENCY_MAX_BOOST. Helps user-

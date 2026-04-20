@@ -14,7 +14,11 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '@utils/logger';
 import { type ToolSearchEngine, type ToolSearchResult } from '@server/ToolSearch';
 import { ensureWorkflowsLoaded } from '@server/extensions/ExtensionManager';
-import { getActiveToolNames, getVisibleDomainsForTier } from '@server/MCPServer.search.helpers';
+import {
+  getActiveToolNames,
+  getBaseTier,
+  getVisibleDomainsForTier,
+} from '@server/MCPServer.search.helpers';
 
 // ── Types (re-exported from sub-modules for backward compatibility) ──
 
@@ -156,6 +160,7 @@ export async function routeToolRequest(
     maxRecommendations * 2,
     activeNames,
     visibleDomains,
+    getBaseTier(ctx),
   );
 
   let finalResults: ToolSearchResult[] = [];

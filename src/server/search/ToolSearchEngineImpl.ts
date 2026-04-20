@@ -27,6 +27,7 @@ function findDelimitedIndex(haystack: string, needle: string, wordChar: RegExp):
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
+import type { ToolProfile } from '@server/ToolCatalog';
 import type { SearchConfig } from '@internal-types/config';
 import {
   SEARCH_AFFINITY_BASE_WEIGHT,
@@ -49,6 +50,9 @@ import {
   SEARCH_RRF_K,
   SEARCH_RRF_RESCALE_FACTOR,
   SEARCH_TIER_PENALTY,
+  SEARCH_TIER_PENALTY_SEARCH,
+  SEARCH_TIER_PENALTY_WORKFLOW,
+  SEARCH_TIER_PENALTY_FULL,
   SEARCH_TRIGRAM_THRESHOLD,
   SEARCH_TRIGRAM_WEIGHT,
   SEARCH_VECTOR_ENABLED,
@@ -297,6 +301,7 @@ export class ToolSearchEngine {
     topK = 10,
     activeToolNames?: ReadonlySet<string>,
     visibleDomains?: ReadonlySet<string>,
+    profile?: ToolProfile,
   ): Promise<ToolSearchResult[]> {
     // Synonym expansion enabled at query time
     const queryTokens = this.bm25Scorer.tokenise(query, { expandSynonyms: true });
@@ -438,7 +443,7 @@ export class ToolSearchEngine {
     // active tier. Keeping them visible lets the LLM discover higher-tier
     // capabilities when lexical evidence is strong, but prevents them from
     // crowding the top of workflow/search tier results.
-    this.applyTierPenalty(scores, visibleDomains);
+    this.applyTierPenalty(scores, visibleDomains, profile);
 
     // ── Explicit tool mention promotion (Scheme 1) ──
     if (explicitToolMention) {
@@ -533,9 +538,16 @@ export class ToolSearchEngine {
   private applyTierPenalty(
     scores: Float64Array,
     visibleDomains: ReadonlySet<string> | undefined,
+    profile?: ToolProfile,
   ): void {
     if (!visibleDomains || visibleDomains.size === 0) return;
-    const penalty = SEARCH_TIER_PENALTY;
+    const penalty = profile
+      ? profile === 'full'
+        ? SEARCH_TIER_PENALTY_FULL
+        : profile === 'workflow'
+          ? SEARCH_TIER_PENALTY_WORKFLOW
+          : SEARCH_TIER_PENALTY_SEARCH
+      : SEARCH_TIER_PENALTY;
     if (penalty >= 1 || penalty <= 0) return;
 
     for (let i = 0; i < this.docCount; i++) {

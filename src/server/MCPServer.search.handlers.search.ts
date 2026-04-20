@@ -11,6 +11,7 @@ import {
   getActiveToolNames,
   getSearchEngine,
   getVisibleDomainsForTier,
+  getBaseTier,
 } from '@server/MCPServer.search.helpers';
 import { describeTool, generateExampleArgs } from '@server/ToolRouter';
 
@@ -24,7 +25,7 @@ export async function handleSearchTools(
   const engine = getSearchEngine(ctx);
   const activeNames = getActiveToolNames(ctx);
   const visibleDomains = getVisibleDomainsForTier(ctx);
-  const results = await engine.search(query, topK, activeNames, visibleDomains);
+  const results = await engine.search(query, topK, activeNames, visibleDomains, getBaseTier(ctx));
 
   // SECURITY: Domain auto-activation is disabled for safety.
   // Auto-activation bypassed tier guardrails and could escalate privileges.
