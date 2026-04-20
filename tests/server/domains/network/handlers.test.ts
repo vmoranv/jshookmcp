@@ -104,7 +104,7 @@ describe('AdvancedToolHandlers (network)', () => {
     });
 
     const body = parseJson<NetworkRequestsResponse>(
-      await handlers.handleNetworkEnable({ enableExceptions: '0' }),
+      await handlers.handleNetworkMonitor({ action: 'enable', enableExceptions: '0' }),
     );
     expect(consoleMonitor.enable).toHaveBeenCalledWith({
       enableNetwork: true,
@@ -122,7 +122,9 @@ describe('AdvancedToolHandlers (network)', () => {
       cdpSessionActive: false,
     });
 
-    const body = parseJson<NetworkRequestsResponse>(await handlers.handleNetworkGetStatus({}));
+    const body = parseJson<NetworkRequestsResponse>(
+      await handlers.handleNetworkMonitor({ action: 'status' }),
+    );
     expect(body.success).toBe(false);
     // @ts-expect-error — auto-suppressed [TS2339]
     expect(body.enabled).toBe(false);
@@ -286,36 +288,6 @@ describe('AdvancedToolHandlers (network)', () => {
 
     expect(body.success).toBe(false);
     expect(body.error).toContain('requestId does not match');
-  });
-
-  it('resolves hostnames through dns_resolve', async () => {
-    const body = parseJson<NetworkRequestsResponse>(
-      await handlers.handleDnsResolve({ hostname: 'example.test', family: 'auto', all: true }),
-    );
-    expect(body.success).toBe(true);
-    // @ts-expect-error
-    expect(body.results).toEqual([
-      {
-        address: '127.0.0.1',
-        family: 4,
-        hostname: 'example.test',
-        isPrivate: true,
-        isLoopback: true,
-      },
-    ]);
-    expect(eventBus.emit).toHaveBeenCalledWith(
-      'network:dns_resolved',
-      expect.objectContaining({ hostname: 'example.test', count: 1 }),
-    );
-  });
-
-  it('reverse-resolves addresses through dns_reverse', async () => {
-    const body = parseJson<NetworkRequestsResponse>(
-      await handlers.handleDnsReverse({ address: '127.0.0.1' }),
-    );
-    expect(body.success).toBe(true);
-    // @ts-expect-error
-    expect(body.hostnames).toEqual(['localhost']);
   });
 
   it('builds raw HTTP requests deterministically', async () => {

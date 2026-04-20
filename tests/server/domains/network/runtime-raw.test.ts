@@ -157,24 +157,6 @@ describe('AdvancedToolHandlers raw DNS/HTTP handlers', () => {
     vi.restoreAllMocks();
   });
 
-  it('dns_resolve returns IP literals without performing DNS lookup', async () => {
-    const body = parseJson<any>(await handler.handleDnsResolve({ hostname: '127.0.0.1' }));
-
-    expect(body.success).toBe(true);
-    expect(body.count).toBe(1);
-    expect(body.results[0]?.address).toBe('127.0.0.1');
-    expect(mockState.lookupMock).not.toHaveBeenCalled();
-  });
-
-  it('dns_reverse returns sorted PTR records', async () => {
-    mockState.reverseMock.mockResolvedValue(['b.example.test', 'a.example.test']);
-
-    const body = parseJson<any>(await handler.handleDnsReverse({ address: '203.0.113.20' }));
-
-    expect(body.success).toBe(true);
-    expect(body.hostnames).toEqual(['a.example.test', 'b.example.test']);
-  });
-
   it('http_request_build emits deterministic CRLF-delimited request text', async () => {
     const body = parseJson<any>(
       await handler.handleHttpRequestBuild({
@@ -310,14 +292,5 @@ describe('AdvancedToolHandlers raw DNS/HTTP handlers', () => {
     await expect(
       handler.handleHttp2FrameBuild({ frameType: 'SETTINGS', settings: [{ id: 'bad', value: 1 }] }),
     ).rejects.toThrow('settings[0].id must be a number');
-  });
-
-  it('dns_resolve with family filter', async () => {
-    mockState.lookupMock.mockResolvedValue({ address: '93.184.216.34', family: 4 });
-    const body = parseJson<any>(
-      await handler.handleDnsResolve({ hostname: 'example.com', family: 'ipv4', all: false }),
-    );
-    expect(body.success).toBe(true);
-    expect(body.count).toBe(1);
   });
 });

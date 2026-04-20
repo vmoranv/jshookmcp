@@ -65,12 +65,11 @@ export class AdvancedToolHandlers {
     return this.performanceMonitor;
   }
 
-  // ── Core ──
-
   handleNetworkEnable = (args: Record<string, unknown>) => this.core.handleNetworkEnable(args);
   handleNetworkDisable = (args: Record<string, unknown>) => this.core.handleNetworkDisable(args);
   handleNetworkGetStatus = (args: Record<string, unknown>) =>
     this.core.handleNetworkGetStatus(args);
+  handleNetworkMonitor = (args: Record<string, unknown>) => this.core.handleNetworkMonitor(args);
   handleNetworkGetRequests = (args: Record<string, unknown>) =>
     this.core.handleNetworkGetRequests(args);
   handleNetworkGetResponseBody = (args: Record<string, unknown>) =>
@@ -189,8 +188,6 @@ export class AdvancedToolHandlers {
 
   // ── Raw (DNS / HTTP / HTTP2 / RTT) ──
 
-  handleDnsResolve = (args: Record<string, unknown>) => this.raw.handleDnsResolve(args);
-  handleDnsReverse = (args: Record<string, unknown>) => this.raw.handleDnsReverse(args);
   handleHttpRequestBuild = (args: Record<string, unknown>) => this.raw.handleHttpRequestBuild(args);
   handleHttpPlainRequest = (args: Record<string, unknown>) => this.raw.handleHttpPlainRequest(args);
   handleHttp2Probe = (args: Record<string, unknown>) => this.raw.handleHttp2Probe(args);

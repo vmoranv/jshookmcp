@@ -1,7 +1,4 @@
-import * as dnsPromises from 'node:dns/promises';
-import type { LookupAddress } from 'node:dns';
 import * as http2 from 'node:http2';
-import { isIP } from 'node:net';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 
@@ -172,32 +169,6 @@ function parseNetworkAuthorization(
   if (reason !== undefined) authorization.reason = reason;
 
   return authorization;
-}
-
-function normalizeLookupResults(
-  hostname: string,
-  results: LookupAddress[],
-): Array<{
-  address: string;
-  family: 4 | 6;
-  hostname: string;
-  isPrivate: boolean;
-  isLoopback: boolean;
-}> {
-  return [...results]
-    .toSorted((left, right) => {
-      if (left.family !== right.family) {
-        return left.family - right.family;
-      }
-      return left.address.localeCompare(right.address);
-    })
-    .map((result) => ({
-      address: result.address,
-      family: result.family as 4 | 6,
-      hostname,
-      isPrivate: isPrivateHost(result.address),
-      isLoopback: isLoopbackHost(result.address),
-    }));
 }
 
 function normalizeTargetHost(host: string): string {
@@ -484,141 +455,6 @@ async function exchangePlainHttp(
 }
 
 export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
-  async handleDnsResolve(args: Record<string, unknown>) {
-    try {
-      const hostname = parseOptionalString(args.hostname, 'hostname');
-      if (!hostname) {
-        throw new Error('hostname is required');
-      }
-
-      const host = normalizeTargetHost(hostname);
-      const familyArg = parseOptionalString(args.family, 'family') ?? 'auto';
-      const family = familyArg === 'ipv4' ? 4 : familyArg === 'ipv6' ? 6 : 0;
-      if (!['auto', 'ipv4', 'ipv6'].includes(familyArg)) {
-        throw new Error('family must be one of: auto, ipv4, ipv6');
-      }
-
-      const all = this.parseBooleanArg(args.all, true);
-      if (isIP(host) !== 0) {
-        const familyValue = isIP(host) as 4 | 6;
-        this.emit('network:dns_resolved', {
-          hostname: host,
-          count: 1,
-          timestamp: new Date().toISOString(),
-        });
-
-        return R.ok()
-          .merge({
-            hostname: host,
-            familyRequested: familyArg,
-            count: 1,
-            results: [
-              {
-                address: host,
-                family: familyValue,
-                hostname: host,
-                isPrivate: isPrivateHost(host),
-                isLoopback: isLoopbackHost(host),
-              },
-            ],
-            note: 'Input was already an IP literal, so no DNS lookup was required.',
-          })
-          .json();
-      }
-
-      const lookupResult = await dnsPromises.lookup(host, {
-        family,
-        all,
-        verbatim: true,
-      });
-      const results = normalizeLookupResults(
-        host,
-        Array.isArray(lookupResult) ? lookupResult : [lookupResult],
-      );
-
-      this.emit('network:dns_resolved', {
-        hostname: host,
-        count: results.length,
-        timestamp: new Date().toISOString(),
-      });
-
-      return R.ok()
-        .merge({
-          hostname: host,
-          familyRequested: familyArg,
-          count: results.length,
-          results,
-        })
-        .json();
-    } catch (error) {
-      return R.fail(error instanceof Error ? error.message : String(error)).json();
-    }
-  }
-
-  async handleDnsReverse(args: Record<string, unknown>) {
-    try {
-      const address = parseOptionalString(args.address, 'address');
-      if (!address) {
-        throw new Error('address is required');
-      }
-
-      const normalized = normalizeTargetHost(address);
-      if (isIP(normalized) === 0) {
-        throw new Error('address must be a valid IPv4 or IPv6 literal');
-      }
-
-      try {
-        const hostnames = await dnsPromises.reverse(normalized);
-        this.emit('network:dns_reversed', {
-          address: normalized,
-          count: hostnames.length,
-          timestamp: new Date().toISOString(),
-        });
-
-        return R.ok()
-          .merge({
-            address: normalized,
-            isPrivate: isPrivateHost(normalized),
-            isLoopback: isLoopbackHost(normalized),
-            count: hostnames.length,
-            hostnames: [...hostnames].toSorted((left, right) => left.localeCompare(right)),
-          })
-          .json();
-      } catch (error) {
-        const code =
-          typeof error === 'object' &&
-          error !== null &&
-          'code' in error &&
-          typeof (error as { code?: unknown }).code === 'string'
-            ? (error as { code: string }).code
-            : undefined;
-
-        if (code === 'ENOTFOUND' || code === 'ENODATA' || code === 'ENOTIMP') {
-          this.emit('network:dns_reversed', {
-            address: normalized,
-            count: 0,
-            timestamp: new Date().toISOString(),
-          });
-
-          return R.ok()
-            .merge({
-              address: normalized,
-              isPrivate: isPrivateHost(normalized),
-              isLoopback: isLoopbackHost(normalized),
-              count: 0,
-              hostnames: [],
-              note: 'No PTR records were returned for this address.',
-            })
-            .json();
-        }
-
-        throw error;
-      }
-    } catch (error) {
-      return R.fail(error instanceof Error ? error.message : String(error)).json();
-    }
-  }
-
   async handleHttpRequestBuild(args: Record<string, unknown>) {
     try {
       const method = parseOptionalString(args.method, 'method');

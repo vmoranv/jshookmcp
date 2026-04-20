@@ -44,6 +44,17 @@ export const advancedTools: Tool[] = [
   tool('network_get_status', (t) =>
     t.desc('Get network monitoring status (enabled, request count, response count)').query(),
   ),
+  tool('network_monitor', (t) =>
+    t
+      .desc(
+        'Manage network request monitoring. Enable/disable monitoring or check status. Must enable before page_navigate to capture requests.',
+      )
+      .enum('action', ['enable', 'disable', 'status'], 'Action to perform')
+      .boolean('enableExceptions', 'Only for enable action: Also capture uncaught exceptions', {
+        default: true,
+      })
+      .required('action'),
+  ),
   tool('network_get_requests', (t) =>
     t
       .desc(
@@ -197,30 +208,6 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
       .desc('Manage injected interceptor state.')
       .enum('action', ['clear', 'reset'], 'Buffer action: clear buffers or reset interceptors')
       .required('action'),
-  ),
-  tool('dns_resolve', (t) =>
-    t
-      .desc(
-        'Resolve a hostname to IPv4/IPv6 addresses using deterministic server-side DNS lookup. Accepts hostnames or IP literals. Results are sorted by family and address.',
-      )
-      .string('hostname', 'Hostname or IP literal to resolve')
-      .enum('family', ['auto', 'ipv4', 'ipv6'], 'Address family to query. Default: auto', {
-        default: 'auto',
-      })
-      .boolean(
-        'all',
-        'When true (default), return all matching addresses. When false, return only the first result.',
-        { default: true },
-      )
-      .requiredOpenWorld('hostname'),
-  ),
-  tool('dns_reverse', (t) =>
-    t
-      .desc(
-        'Perform a reverse DNS lookup (PTR) for an IPv4 or IPv6 literal using deterministic server-side DNS logic.',
-      )
-      .string('address', 'IPv4 or IPv6 literal to reverse-resolve')
-      .requiredOpenWorld('address'),
   ),
   tool('http_request_build', (t) =>
     t

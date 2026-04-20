@@ -60,6 +60,7 @@ describe('network tool definitions', () => {
     expect(names.has('network_enable')).toBe(true);
     expect(names.has('network_disable')).toBe(true);
     expect(names.has('network_get_status')).toBe(true);
+    expect(names.has('network_monitor')).toBe(true);
     expect(names.has('network_get_requests')).toBe(true);
     expect(names.has('network_get_response_body')).toBe(true);
     expect(names.has('network_get_stats')).toBe(true);
@@ -67,8 +68,7 @@ describe('network tool definitions', () => {
 
   it('contains expected raw DNS and HTTP tools', () => {
     const names = new Set(advancedTools.map((t) => t.name));
-    expect(names.has('dns_resolve')).toBe(true);
-    expect(names.has('dns_reverse')).toBe(true);
+
     expect(names.has('http_request_build')).toBe(true);
     expect(names.has('http_plain_request')).toBe(true);
   });
@@ -98,8 +98,7 @@ describe('network tool definitions', () => {
   it('contains expected analysis tools', () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('network_extract_auth')).toBe(true);
-    expect(names.has('dns_resolve')).toBe(true);
-    expect(names.has('dns_reverse')).toBe(true);
+
     expect(names.has('http_request_build')).toBe(true);
     expect(names.has('http_plain_request')).toBe(true);
     expect(names.has('network_export_har')).toBe(true);
@@ -114,19 +113,14 @@ describe('network tool definitions', () => {
     expect(tool.inputSchema.required).toContain('requestId');
   });
 
+  it('network_monitor requires action', () => {
+    const tool = findTool('network_monitor');
+    expect(tool.inputSchema.required).toContain('action');
+  });
+
   it('network_replay_request requires requestId', () => {
     const tool = findTool('network_replay_request');
     expect(tool.inputSchema.required).toContain('requestId');
-  });
-
-  it('dns_resolve requires hostname', () => {
-    const tool = findTool('dns_resolve');
-    expect(tool.inputSchema.required).toContain('hostname');
-  });
-
-  it('dns_reverse requires address', () => {
-    const tool = findTool('dns_reverse');
-    expect(tool.inputSchema.required).toContain('address');
   });
 
   it('http_request_build requires method and target', () => {

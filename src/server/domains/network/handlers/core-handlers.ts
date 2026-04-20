@@ -26,6 +26,22 @@ export class CoreHandlers {
 
   // ── Network enable/disable/status ──
 
+  async handleNetworkMonitor(args: Record<string, unknown>): Promise<ToolResponse> {
+    const action = String(args['action'] ?? '');
+    switch (action) {
+      case 'enable':
+        return this.handleNetworkEnable(args);
+      case 'disable':
+        return this.handleNetworkDisable(args);
+      case 'status':
+        return this.handleNetworkGetStatus(args);
+      default:
+        return R.fail(
+          `Invalid generic action parameter: ${action}. Expected enable, disable, status.`,
+        ).json();
+    }
+  }
+
   async handleNetworkEnable(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       const enableExceptions = parseBooleanArg(args.enableExceptions, true);

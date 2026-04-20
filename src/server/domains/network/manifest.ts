@@ -43,7 +43,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     tools: [
       'run_extension_workflow',
       'list_extension_workflows',
-      'network_enable',
+      'network_monitor',
       'page_navigate',
       'network_get_requests',
     ],
@@ -53,14 +53,23 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
   prerequisites: {
     network_get_requests: [
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
-      { condition: 'Network monitoring must be enabled', fix: 'Call network_enable first' },
+      {
+        condition: 'Network monitoring must be enabled',
+        fix: 'Call network_monitor(enable) first',
+      },
     ],
     network_get_response_body: [
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
-      { condition: 'Network monitoring must be enabled', fix: 'Call network_enable first' },
+      {
+        condition: 'Network monitoring must be enabled',
+        fix: 'Call network_monitor(enable) first',
+      },
     ],
     network_extract_auth: [
-      { condition: 'Network monitoring must be enabled', fix: 'Call network_enable first' },
+      {
+        condition: 'Network monitoring must be enabled',
+        fix: 'Call network_monitor(enable) first',
+      },
     ],
   },
 
@@ -72,6 +81,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleNetworkGetStatus(a)),
     },
+    { tool: t('network_monitor'), domain: DOMAIN, bind: b((h, a) => h.handleNetworkMonitor(a)) },
     {
       tool: t('network_get_requests'),
       domain: DOMAIN,
@@ -133,8 +143,6 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleConsoleBuffersDispatch(a)),
     },
-    { tool: t('dns_resolve'), domain: DOMAIN, bind: b((h, a) => h.handleDnsResolve(a)) },
-    { tool: t('dns_reverse'), domain: DOMAIN, bind: b((h, a) => h.handleDnsReverse(a)) },
     {
       tool: t('http_request_build'),
       domain: DOMAIN,
