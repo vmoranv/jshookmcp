@@ -98,12 +98,8 @@ export class DebuggerToolHandlers {
   }
 
   // ── Debugger Control ──
-  async handleDebuggerEnable(args: Record<string, unknown>) {
-    return this.debuggerControl.handleDebuggerEnable(args);
-  }
-
-  async handleDebuggerDisable(args: Record<string, unknown>) {
-    return this.debuggerControl.handleDebuggerDisable(args);
+  async handleDebuggerLifecycle(args: Record<string, unknown>) {
+    return this.debuggerControl.handleDebuggerLifecycle(args);
   }
 
   async handleDebuggerPause(args: Record<string, unknown>) {

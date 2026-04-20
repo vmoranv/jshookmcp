@@ -16,8 +16,7 @@ const {
   ctorSpies,
 } = vi.hoisted(() => ({
   debuggerControl: {
-    handleDebuggerEnable: vi.fn(async (args) => ({ from: 'control-enable', args })),
-    handleDebuggerDisable: vi.fn(async (args) => ({ from: 'control-disable', args })),
+    handleDebuggerLifecycle: vi.fn(async (args) => ({ from: 'control-lifecycle', args })),
     handleDebuggerPause: vi.fn(async (args) => ({ from: 'control-pause', args })),
     handleDebuggerResume: vi.fn(async (args) => ({ from: 'control-resume', args })),
   },
@@ -259,22 +258,13 @@ describe('DebuggerToolHandlers', () => {
   // ── Debugger Control delegation ──────────────────────────────
 
   describe('debugger control delegation', () => {
-    it('delegates handleDebuggerEnable', async () => {
-      const args = { x: 1 };
-      await expect(handlers.handleDebuggerEnable(args)).resolves.toEqual({
-        from: 'control-enable',
+    it('delegates handleDebuggerLifecycle', async () => {
+      const args = { action: 'enable' };
+      await expect(handlers.handleDebuggerLifecycle(args)).resolves.toEqual({
+        from: 'control-lifecycle',
         args,
       });
-      expect(debuggerControl.handleDebuggerEnable).toHaveBeenCalledWith(args);
-    });
-
-    it('delegates handleDebuggerDisable', async () => {
-      const args = {};
-      await expect(handlers.handleDebuggerDisable(args)).resolves.toEqual({
-        from: 'control-disable',
-        args,
-      });
-      expect(debuggerControl.handleDebuggerDisable).toHaveBeenCalledWith(args);
+      expect(debuggerControl.handleDebuggerLifecycle).toHaveBeenCalledWith(args);
     });
 
     it('delegates handleDebuggerPause', async () => {
@@ -641,8 +631,7 @@ describe('DebuggerToolHandlers', () => {
 
   describe('method completeness', () => {
     const allMethods = [
-      'handleDebuggerEnable',
-      'handleDebuggerDisable',
+      'handleDebuggerLifecycle',
       'handleDebuggerPause',
       'handleDebuggerResume',
       'handleDebuggerStepInto',
@@ -680,8 +669,8 @@ describe('DebuggerToolHandlers', () => {
       'handleBlackboxList',
     ];
 
-    it('has exactly 37 public handler methods', () => {
-      expect(allMethods).toHaveLength(37);
+    it('has exactly 36 public handler methods', () => {
+      expect(allMethods).toHaveLength(36);
     });
 
     it.each(allMethods)('%s is a function on the instance', (method) => {

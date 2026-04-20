@@ -16,8 +16,8 @@ describe('debugger tool definitions', () => {
     });
 
     it('contains the expected number of core tools', () => {
-      // 13 core tools defined in definitions.tools.core.ts
-      expect(DEBUGGER_CORE_TOOLS).toHaveLength(13);
+      // 12 core tools defined in definitions.tools.core.ts
+      expect(DEBUGGER_CORE_TOOLS).toHaveLength(12);
     });
 
     it.each(DEBUGGER_CORE_TOOLS.map((tool) => [tool.name, tool]))(
@@ -42,8 +42,7 @@ describe('debugger tool definitions', () => {
     });
 
     const expectedCoreNames = [
-      'debugger_enable',
-      'debugger_disable',
+      'debugger_lifecycle',
       'debugger_pause',
       'debugger_resume',
       'debugger_step',
@@ -135,8 +134,6 @@ describe('debugger tool definitions', () => {
     });
 
     const noArgTools = [
-      'debugger_enable',
-      'debugger_disable',
       'debugger_pause',
       'debugger_resume',
       'get_call_stack',

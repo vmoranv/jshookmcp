@@ -66,7 +66,7 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     expect(body).toEqual({
       success: false,
       error: 'Debugger not enabled',
-      hint: 'Call debugger_enable() first to enable the debugger',
+      hint: "Call debugger_lifecycle({ action: 'enable' })() first to enable the debugger",
     });
     expect(debuggerManager.stepOver).not.toHaveBeenCalled();
   });
@@ -115,7 +115,7 @@ describe('DebuggerSteppingHandlers – edge cases', () => {
     expect(body).toEqual({
       success: false,
       error: 'Debugger not enabled',
-      hint: 'Call debugger_enable() first to enable the debugger',
+      hint: "Call debugger_lifecycle({ action: 'enable' })() first to enable the debugger",
     });
     expect(debuggerManager.stepOut).not.toHaveBeenCalled();
   });

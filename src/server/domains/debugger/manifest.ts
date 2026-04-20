@@ -36,20 +36,23 @@ const manifest = {
   ensure,
 
   prerequisites: {
-    debugger_enable: [
+    debugger_lifecycle: [
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
     breakpoint: [
       {
         condition: 'Browser must be launched',
-        fix: 'Call browser_launch and debugger_enable first',
+        fix: 'Call browser_launch and debugger_lifecycle(enable) first',
       },
     ],
   },
 
   registrations: [
-    { tool: t('debugger_enable'), domain: DOMAIN, bind: b((h, a) => h.handleDebuggerEnable(a)) },
-    { tool: t('debugger_disable'), domain: DOMAIN, bind: b((h, a) => h.handleDebuggerDisable(a)) },
+    {
+      tool: t('debugger_lifecycle'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleDebuggerLifecycle(a)),
+    },
     { tool: t('debugger_pause'), domain: DOMAIN, bind: b((h, a) => h.handleDebuggerPause(a)) },
     { tool: t('debugger_resume'), domain: DOMAIN, bind: b((h, a) => h.handleDebuggerResume(a)) },
     { tool: t('debugger_step'), domain: DOMAIN, bind: b((h, a) => h.handleDebuggerStep(a)) },
