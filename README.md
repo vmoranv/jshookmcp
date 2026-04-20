@@ -16,11 +16,13 @@ An MCP (Model Context Protocol) server with a runtime-registry-driven catalog of
 - **[🚀 Getting Started](https://vmoranv.github.io/jshookmcp/guide/getting-started.html)**
 - **[⚙️ Configuration](https://vmoranv.github.io/jshookmcp/guide/configuration.html)**
 - **[📚 Tool Reference](https://vmoranv.github.io/jshookmcp/reference/)**
+
 ## 🚀 Quick Start
 
 Use jshookmcp instantly with Claude Desktop or Cursor without installing anything globally.
 
 **Claude Desktop Configuration (`claude_desktop_config.json`)**:
+
 ```json
 {
   "mcpServers": {
@@ -34,6 +36,7 @@ Use jshookmcp instantly with Claude Desktop or Cursor without installing anythin
   }
 }
 ```
+
 *(Note for Windows users: If `npx` is not found, specify the absolute path to `npx.cmd`)*
 
 ## 🌟 Key Highlights

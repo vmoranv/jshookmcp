@@ -18,7 +18,6 @@ describe('PageDataHandlers', () => {
       emulateDevice: vi.fn(),
       getLocalStorage: vi.fn(),
       setLocalStorage: vi.fn(),
-      getAllLinks: vi.fn(),
     };
     handlers = new PageDataHandlers({
       pageController,
@@ -131,25 +130,6 @@ describe('PageDataHandlers', () => {
     expect(body).toEqual({
       success: true,
       key: 'token',
-    });
-  });
-
-  it('returns all links with a count', async () => {
-    pageController.getAllLinks.mockResolvedValue([
-      { text: 'Docs', href: 'https://vmoranv.github.io/jshookmcp/docs' },
-      { text: 'GitHub', href: 'https://github.com/vmoranv/jshookmcp' },
-    ]);
-
-    const body = parseJson<BrowserStatusResponse>(await handlers.handlePageGetAllLinks({}));
-
-    expect(pageController.getAllLinks).toHaveBeenCalledOnce();
-    expect(body).toEqual({
-      success: true,
-      count: 2,
-      links: [
-        { text: 'Docs', href: 'https://vmoranv.github.io/jshookmcp/docs' },
-        { text: 'GitHub', href: 'https://github.com/vmoranv/jshookmcp' },
-      ],
     });
   });
 

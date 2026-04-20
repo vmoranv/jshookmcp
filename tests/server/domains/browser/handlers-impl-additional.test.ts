@@ -15,9 +15,6 @@ const {
   pageInteractionMocks,
   pageEvaluationMocks,
   pageDataMocks,
-  domQueryMocks,
-  domStyleMocks,
-  domSearchMocks,
   consoleMocks,
   scriptManagementMocks,
   captchaMocks,
@@ -70,20 +67,6 @@ const {
     handlePageEmulateDevice: vi.fn(async (args: any) => ({ from: 'emulate', args })),
     handlePageGetLocalStorage: vi.fn(async (args: any) => ({ from: 'get-ls', args })),
     handlePageSetLocalStorage: vi.fn(async (args: any) => ({ from: 'set-ls', args })),
-    handlePageGetAllLinks: vi.fn(async (args: any) => ({ from: 'all-links', args })),
-  } as MockHandler,
-  domQueryMocks: {
-    handleDOMQuerySelector: vi.fn(async (args: any) => ({ from: 'qs', args })),
-    handleDOMQueryAll: vi.fn(async (args: any) => ({ from: 'qsa', args })),
-    handleDOMFindClickable: vi.fn(async (args: any) => ({ from: 'clickable', args })),
-  } as MockHandler,
-  domStyleMocks: {
-    handleDOMGetComputedStyle: vi.fn(async (args: any) => ({ from: 'computed-style', args })),
-    handleDOMIsInViewport: vi.fn(async (args: any) => ({ from: 'in-viewport', args })),
-  } as MockHandler,
-  domSearchMocks: {
-    handleDOMFindByText: vi.fn(async (args: any) => ({ from: 'find-text', args })),
-    handleDOMGetXPath: vi.fn(async (args: any) => ({ from: 'xpath', args })),
   } as MockHandler,
   consoleMocks: {
     handleConsoleMonitor: vi.fn(async (args: any) => ({ from: 'console-enable', args })),
@@ -205,15 +188,6 @@ vi.mock('@src/server/domains/browser/handlers/page-evaluation', () => ({
 vi.mock('@src/server/domains/browser/handlers/page-data', () => ({
   PageDataHandlers: classFactory(vi.fn(), pageDataMocks),
 }));
-vi.mock('@src/server/domains/browser/handlers/dom-query', () => ({
-  DOMQueryHandlers: classFactory(vi.fn(), domQueryMocks),
-}));
-vi.mock('@src/server/domains/browser/handlers/dom-style', () => ({
-  DOMStyleHandlers: classFactory(vi.fn(), domStyleMocks),
-}));
-vi.mock('@src/server/domains/browser/handlers/dom-search', () => ({
-  DOMSearchHandlers: classFactory(vi.fn(), domSearchMocks),
-}));
 vi.mock('@src/server/domains/browser/handlers/console-handlers', () => ({
   ConsoleHandlers: classFactory(vi.fn(), consoleMocks),
 }));
@@ -295,9 +269,6 @@ import {
 } from '@tests/server/domains/shared/mock-factories';
 
 describe('BrowserToolHandlers — additional delegation coverage', () => {
-  const domInspector = {
-    getStructure: vi.fn(async () => ({ node: 'root' })),
-  } as any;
   const collector = createCodeCollectorMock({ getActivePage: vi.fn() } as any);
   const pageController = createPageMock();
   const scriptManager = {} as any;
@@ -306,7 +277,6 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
     disable: vi.fn(async () => {}),
     clearPlaywrightPage: vi.fn(),
   } as any);
-  const llmService = {} as any;
 
   let handlers: TestBrowserToolHandlers;
 
@@ -315,10 +285,8 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
     handlers = new TestBrowserToolHandlers(
       collector as any,
       pageController as any,
-      domInspector as any,
       scriptManager as any,
       consoleMonitor as any,
-      llmService as any,
     );
   });
 
@@ -439,407 +407,336 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
       expect(pageDataMocks.handlePageSetLocalStorage).toHaveBeenCalledWith(args);
     });
 
-    it('delegates handlePageGetAllLinks', async () => {
-      await handlers.handlePageGetAllLinks({});
-      expect(pageDataMocks.handlePageGetAllLinks).toHaveBeenCalledWith({});
-    });
-  });
-
-  // ============ Page Navigation ============
-  describe('page navigation delegation', () => {
-    it('delegates handlePageReload', async () => {
-      const result = await handlers.handlePageReload({});
-      expect(pageNavigationMocks.handlePageReload).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'reload', args: {} });
-    });
-
-    it('delegates handlePageBack', async () => {
-      const result = await handlers.handlePageBack({});
-      expect(pageNavigationMocks.handlePageBack).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'back', args: {} });
-    });
-
-    it('delegates handlePageForward', async () => {
-      const result = await handlers.handlePageForward({});
-      expect(pageNavigationMocks.handlePageForward).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'forward', args: {} });
-    });
-
-    it('delegates handlePageNavigate to pageNavigation for chrome driver', async () => {
-      const args = { url: 'https://example.com' };
-      const result = await handlers.handlePageNavigate(args);
-      expect(pageNavigationMocks.handlePageNavigate).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'page-nav', args });
-    });
-  });
-
-  // ============ DOM Query delegation ============
-  describe('DOM query delegation', () => {
-    it('delegates handleDOMQuerySelector', async () => {
-      const args = { selector: 'div' };
-      const result = await handlers.handleDOMQuerySelector(args);
-      expect(domQueryMocks.handleDOMQuerySelector).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'qs', args });
-    });
-
-    it('delegates handleDOMQueryAll', async () => {
-      const args = { selector: 'div' };
-      const result = await handlers.handleDOMQueryAll(args);
-      expect(domQueryMocks.handleDOMQueryAll).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'qsa', args });
-    });
-
-    it('delegates handleDOMFindClickable', async () => {
-      const result = await handlers.handleDOMFindClickable({});
-      expect(domQueryMocks.handleDOMFindClickable).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'clickable', args: {} });
-    });
-  });
-
-  // ============ DOM Style delegation ============
-  describe('DOM style delegation', () => {
-    it('delegates handleDOMGetComputedStyle', async () => {
-      const args = { selector: '.el' };
-      const result = await handlers.handleDOMGetComputedStyle(args);
-      expect(domStyleMocks.handleDOMGetComputedStyle).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'computed-style', args });
-    });
-
-    it('delegates handleDOMIsInViewport', async () => {
-      const args = { selector: '.el' };
-      const result = await handlers.handleDOMIsInViewport(args);
-      expect(domStyleMocks.handleDOMIsInViewport).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'in-viewport', args });
-    });
-  });
-
-  // ============ DOM Search delegation ============
-  describe('DOM search delegation', () => {
-    it('delegates handleDOMFindByText', async () => {
-      const args = { text: 'hello' };
-      const result = await handlers.handleDOMFindByText(args);
-      expect(domSearchMocks.handleDOMFindByText).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'find-text', args });
-    });
-
-    it('delegates handleDOMGetXPath', async () => {
-      const args = { selector: 'div' };
-      const result = await handlers.handleDOMGetXPath(args);
-      expect(domSearchMocks.handleDOMGetXPath).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'xpath', args });
-    });
-  });
-
-  // ============ Console delegation ============
-  describe('console delegation', () => {
-    it('delegates handleConsoleMonitor', async () => {
-      const result = await handlers.handleConsoleMonitor({});
-      expect(consoleMocks.handleConsoleMonitor).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'console-enable', args: {} });
-    });
-
-    it('delegates handleConsoleGetLogs', async () => {
-      await handlers.handleConsoleGetLogs({});
-      expect(consoleMocks.handleConsoleGetLogs).toHaveBeenCalledWith({});
-    });
-
-    it('delegates handleConsoleExecute', async () => {
-      const args = { code: 'console.log("test")' };
-      await handlers.handleConsoleExecute(args);
-      expect(consoleMocks.handleConsoleExecute).toHaveBeenCalledWith(args);
-    });
-  });
-
-  // ============ Script Management delegation ============
-  describe('script management delegation', () => {
-    it('delegates handleGetAllScripts', async () => {
-      const result = await handlers.handleGetAllScripts({});
-      expect(scriptManagementMocks.handleGetAllScripts).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'all-scripts', args: {} });
-    });
-
-    it('delegates handleGetScriptSource', async () => {
-      const args = { scriptId: '123' };
-      const result = await handlers.handleGetScriptSource(args);
-      expect(scriptManagementMocks.handleGetScriptSource).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'script-source', args });
-    });
-  });
-
-  // ============ CAPTCHA delegation ============
-  describe('captcha delegation', () => {
-    it('delegates handleCaptchaDetect', async () => {
-      const result = await handlers.handleCaptchaDetect({});
-      expect(captchaMocks.handleCaptchaDetect).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'captcha-detect', args: {} });
-    });
-
-    it('delegates handleCaptchaWait', async () => {
-      await handlers.handleCaptchaWait({});
-      expect(captchaMocks.handleCaptchaWait).toHaveBeenCalledWith({});
-    });
-
-    it('delegates handleCaptchaConfig', async () => {
-      const args = { autoDetect: true };
-      await handlers.handleCaptchaConfig(args);
-      expect(captchaMocks.handleCaptchaConfig).toHaveBeenCalledWith(args);
-    });
-  });
-
-  // ============ Stealth delegation ============
-  describe('stealth delegation', () => {
-    it('delegates handleStealthInject', async () => {
-      const result = await handlers.handleStealthInject({});
-      expect(stealthMocks.handleStealthInject).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'stealth-inject', args: {} });
-    });
-
-    it('delegates handleStealthSetUserAgent', async () => {
-      const args = { platform: 'mac' };
-      const result = await handlers.handleStealthSetUserAgent(args);
-      expect(stealthMocks.handleStealthSetUserAgent).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'stealth-ua', args });
-    });
-  });
-
-  // ============ Framework State delegation ============
-  describe('framework state delegation', () => {
-    it('delegates handleFrameworkStateExtract', async () => {
-      const args = { framework: 'react' };
-      const result = await handlers.handleFrameworkStateExtract(args);
-      expect(frameworkMocks.handleFrameworkStateExtract).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'framework', args });
-    });
-  });
-
-  // ============ IndexedDB delegation ============
-  describe('IndexedDB delegation', () => {
-    it('delegates handleIndexedDBDump', async () => {
-      const result = await handlers.handleIndexedDBDump({});
-      expect(indexedMocks.handleIndexedDBDump).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'indexed-dump', args: {} });
-    });
-  });
-
-  // ============ JS Heap Search delegation ============
-  describe('JS heap search delegation', () => {
-    it('delegates handleJSHeapSearch', async () => {
-      const args = { query: 'token' };
-      const result = await handlers.handleJSHeapSearch(args);
-      expect(jsHeapMocks.handleJSHeapSearch).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'heap-search', args });
-    });
-  });
-
-  // ============ Tab Workflow delegation ============
-  describe('tab workflow delegation', () => {
-    it('delegates handleTabWorkflow', async () => {
-      const args = { action: 'open' };
-      const result = await handlers.handleTabWorkflow(args);
-      expect(tabWorkflowMocks.handleTabWorkflow).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'tab-workflow', args });
-    });
-  });
-
-  // ============ Detailed Data delegation ============
-  describe('detailed data delegation', () => {
-    it('delegates handleGetDetailedData', async () => {
-      const args = { id: 'abc' };
-      const result = await handlers.handleGetDetailedData(args);
-      expect(detailedDataHandlerMocks.handleGetDetailedData).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'detailed-data', args });
-    });
-  });
-
-  // ============ Camoufox Server delegation ============
-  describe('camoufox server delegation', () => {
-    it('delegates handleCamoufoxServerLaunch', async () => {
-      const result = await handlers.handleCamoufoxServerLaunch({});
-      expect(camoufoxBrowserMocks.handleCamoufoxServerLaunch).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'cfox-launch', args: {} });
-    });
-
-    it('delegates handleCamoufoxServerClose', async () => {
-      const result = await handlers.handleCamoufoxServerClose({});
-      expect(camoufoxBrowserMocks.handleCamoufoxServerClose).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'cfox-close', args: {} });
-    });
-
-    it('delegates handleCamoufoxServerStatus', async () => {
-      const result = await handlers.handleCamoufoxServerStatus({});
-      expect(camoufoxBrowserMocks.handleCamoufoxServerStatus).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'cfox-status', args: {} });
-    });
-  });
-
-  // ============ Human Behavior delegation ============
-  describe('human behavior delegation', () => {
-    it('delegates handleHumanMouse with collector', async () => {
-      const args = { toX: 100, toY: 200 };
-      const result = await handlers.handleHumanMouse(args);
-      expect(humanMouseMock).toHaveBeenCalledWith(args, collector);
-      expect(result).toEqual({ from: 'human-mouse', args });
-    });
-
-    it('delegates handleHumanScroll with collector', async () => {
-      const args = { distance: 500 };
-      const result = await handlers.handleHumanScroll(args);
-      expect(humanScrollMock).toHaveBeenCalledWith(args, collector);
-      expect(result).toEqual({ from: 'human-scroll', args });
-    });
-
-    it('delegates handleHumanTyping with collector', async () => {
-      const args = { selector: '#input', text: 'hello' };
-      const result = await handlers.handleHumanTyping(args);
-      expect(humanTypingMock).toHaveBeenCalledWith(args, collector);
-      expect(result).toEqual({ from: 'human-typing', args });
-    });
-  });
-
-  // ============ CAPTCHA Solving delegation ============
-  describe('captcha solving delegation', () => {
-    it('delegates handleCaptchaVisionSolve with collector', async () => {
-      const args = { mode: 'manual' };
-      const result = await handlers.handleCaptchaVisionSolve(args);
-      expect(captchaVisionSolveMock).toHaveBeenCalledWith(args, collector);
-      expect(result).toEqual({ from: 'captcha-vision', args });
-    });
-
-    it('delegates handleWidgetChallengeSolve with collector', async () => {
-      const args = { siteKey: 'abc' };
-      const result = await handlers.handleWidgetChallengeSolve(args);
-      expect(widgetChallengeSolveMock).toHaveBeenCalledWith(args, collector);
-      expect(result).toEqual({ from: 'widget-solve', args });
-    });
-  });
-
-  // ============ Browser status with camoufox ============
-  describe('browser status with camoufox active', () => {
-    it('returns camoufox status when camoufoxManager has a browser', async () => {
-      handlers.setActiveDriver('camoufox');
-      handlers.setCamoufoxManager({ getBrowser: vi.fn(() => ({})) });
-      handlers.setCamoufoxPage({ fake: true });
-
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
-      expect(body.driver).toBe('camoufox');
-      expect(body.running).toBe(true);
-      expect(body.hasActivePage).toBe(true);
-    });
-
-    it('returns camoufox status when camoufoxManager has no browser', async () => {
-      handlers.setActiveDriver('camoufox');
-      handlers.setCamoufoxManager({ getBrowser: vi.fn(() => null) });
-
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
-      expect(body.driver).toBe('camoufox');
-      expect(body.running).toBe(false);
-      expect(body.hasActivePage).toBe(false);
-    });
-
-    it('delegates to browserControl for chrome driver', async () => {
-      const result = await handlers.handleBrowserStatus({});
-      expect(browserControlMocks.handleBrowserStatus).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'browser-status', args: {} });
-    });
-  });
-
-  // ============ Browser close edge cases ============
-  describe('browser close edge cases', () => {
-    it('delegates directly to browserControl when activeDriver is chrome', async () => {
-      const result = await handlers.handleBrowserClose({});
-      expect(browserControlMocks.handleBrowserClose).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'browser-close', args: {} });
-    });
-  });
-
-  // ============ Browser launch chrome (no existing camoufox) ============
-  describe('browser launch chrome — no existing camoufox', () => {
-    it('launches chrome without closing camoufox when none is active', async () => {
-      const result = await handlers.handleBrowserLaunch({ driver: 'chrome' });
-      expect(browserControlMocks.handleBrowserLaunch).toHaveBeenCalledWith({ driver: 'chrome' });
-      expect(consoleMonitor.disable).not.toHaveBeenCalled();
-      expect(result).toEqual({ from: 'browser-launch', args: { driver: 'chrome' } });
-    });
-
-    it('defaults driver to chrome when not specified', async () => {
-      const result = await handlers.handleBrowserLaunch({});
-      expect(browserControlMocks.handleBrowserLaunch).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'browser-launch', args: {} });
-    });
-  });
-
-  // ============ Browser tabs ============
-  describe('browser tabs delegation', () => {
-    it('delegates handleBrowserListTabs', async () => {
-      const result = await handlers.handleBrowserListTabs({});
-      expect(browserControlMocks.handleBrowserListTabs).toHaveBeenCalledWith({});
-      expect(result).toEqual({ from: 'list-tabs', args: {} });
-    });
-
-    it('delegates handleBrowserSelectTab', async () => {
-      const args = { tabIndex: 1 };
-      const result = await handlers.handleBrowserSelectTab(args);
-      expect(browserControlMocks.handleBrowserSelectTab).toHaveBeenCalledWith(args);
-      expect(result).toEqual({ from: 'select-tab', args });
-    });
-  });
-
-  // ============ closeCamoufox error handling ============
-  describe('closeCamoufox error handling', () => {
-    it('continues closing camoufox even if consoleMonitor.disable throws', async () => {
-      consoleMonitor.disable.mockRejectedValueOnce(new Error('disable failed'));
-      handlers.setActiveDriver('camoufox');
-      const closeSpy = vi.fn(async () => {});
-      handlers.setCamoufoxManager({ close: closeSpy });
-
-      await handlers.handleBrowserLaunch({ driver: 'chrome' });
-
-      expect(consoleMonitor.disable).toHaveBeenCalled();
-      expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalled();
-      expect(closeSpy).toHaveBeenCalled();
-      expect(browserControlMocks.handleBrowserLaunch).toHaveBeenCalled();
-    });
-  });
-
-  // ============ getTabRegistry ============
-  describe('getTabRegistry', () => {
-    it('returns the TabRegistry instance', () => {
-      const registry = handlers.getTabRegistry();
-      expect(registry).toBeDefined();
-    });
-  });
-
-  // ============ handleDOMGetStructure defaults ============
-  describe('handleDOMGetStructure defaults', () => {
-    it('uses default maxDepth=3 and includeText=true when not provided', async () => {
-      const body = parseJson<BrowserStatusResponse>(await handlers.handleDOMGetStructure({}));
-      expect(domInspector.getStructure).toHaveBeenCalledWith(3, true);
-      expect(body.wrapped).toEqual({ node: 'root' });
-    });
-  });
-
-  // ============ handleBrowserAttach without camoufox ============
-  describe('handleBrowserAttach without camoufox', () => {
-    it('attaches chrome without closing camoufox when none active', async () => {
-      await handlers.handleBrowserAttach({ browserURL: 'http://localhost:9222' });
-      expect(browserControlMocks.handleBrowserAttach).toHaveBeenCalledWith({
-        browserURL: 'http://localhost:9222',
+    // ============ Page Navigation ============
+    describe('page navigation delegation', () => {
+      it('delegates handlePageReload', async () => {
+        const result = await handlers.handlePageReload({});
+        expect(pageNavigationMocks.handlePageReload).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'reload', args: {} });
       });
-      expect(consoleMonitor.disable).not.toHaveBeenCalled();
+
+      it('delegates handlePageBack', async () => {
+        const result = await handlers.handlePageBack({});
+        expect(pageNavigationMocks.handlePageBack).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'back', args: {} });
+      });
+
+      it('delegates handlePageForward', async () => {
+        const result = await handlers.handlePageForward({});
+        expect(pageNavigationMocks.handlePageForward).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'forward', args: {} });
+      });
+
+      it('delegates handlePageNavigate to pageNavigation for chrome driver', async () => {
+        const args = { url: 'https://example.com' };
+        const result = await handlers.handlePageNavigate(args);
+        expect(pageNavigationMocks.handlePageNavigate).toHaveBeenCalledWith(args);
+        expect(result).toEqual({ from: 'page-nav', args });
+      });
     });
-  });
 
-  // ============ getCamoufoxPage private method coverage ============
-  describe('getCamoufoxPage', () => {
-    it('returns failure response when camoufoxManager is null', async () => {
-      handlers.setActiveDriver('camoufox');
-      handlers.setCamoufoxManager(null);
+    // ============ Console delegation ============
+    describe('console delegation', () => {
+      it('delegates handleConsoleMonitor', async () => {
+        const result = await handlers.handleConsoleMonitor({});
+        expect(consoleMocks.handleConsoleMonitor).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'console-enable', args: {} });
+      });
 
-      // Navigate triggers getCamoufoxPage internally
-      const response = await handlers.handlePageNavigate({ url: 'https://example.com' });
-      const body = parseJson<any>(response);
-      expect(body.success).toBe(false);
-      expect(body.message).toMatch(/Camoufox browser not launched/);
+      it('delegates handleConsoleGetLogs', async () => {
+        await handlers.handleConsoleGetLogs({});
+        expect(consoleMocks.handleConsoleGetLogs).toHaveBeenCalledWith({});
+      });
+
+      it('delegates handleConsoleExecute', async () => {
+        const args = { code: 'console.log("test")' };
+        await handlers.handleConsoleExecute(args);
+        expect(consoleMocks.handleConsoleExecute).toHaveBeenCalledWith(args);
+      });
+    });
+
+    // ============ Script Management delegation ============
+    describe('script management delegation', () => {
+      it('delegates handleGetAllScripts', async () => {
+        const result = await handlers.handleGetAllScripts({});
+        expect(scriptManagementMocks.handleGetAllScripts).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'all-scripts', args: {} });
+      });
+
+      it('delegates handleGetScriptSource', async () => {
+        const args = { scriptId: '123' };
+        const result = await handlers.handleGetScriptSource(args);
+        expect(scriptManagementMocks.handleGetScriptSource).toHaveBeenCalledWith(args);
+        expect(result).toEqual({ from: 'script-source', args });
+      });
+    });
+
+    // ============ CAPTCHA delegation ============
+    describe('captcha delegation', () => {
+      it('delegates handleCaptchaDetect', async () => {
+        const result = await handlers.handleCaptchaDetect({});
+        expect(captchaMocks.handleCaptchaDetect).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'captcha-detect', args: {} });
+      });
+
+      it('delegates handleCaptchaWait', async () => {
+        await handlers.handleCaptchaWait({});
+        expect(captchaMocks.handleCaptchaWait).toHaveBeenCalledWith({});
+      });
+
+      it('delegates handleCaptchaConfig', async () => {
+        const args = { autoDetect: true };
+        await handlers.handleCaptchaConfig(args);
+        expect(captchaMocks.handleCaptchaConfig).toHaveBeenCalledWith(args);
+      });
+    });
+
+    // ============ Stealth delegation ============
+    describe('stealth delegation', () => {
+      it('delegates handleStealthInject', async () => {
+        const result = await handlers.handleStealthInject({});
+        expect(stealthMocks.handleStealthInject).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'stealth-inject', args: {} });
+      });
+
+      it('delegates handleStealthSetUserAgent', async () => {
+        const args = { platform: 'mac' };
+        const result = await handlers.handleStealthSetUserAgent(args);
+        expect(stealthMocks.handleStealthSetUserAgent).toHaveBeenCalledWith(args);
+        expect(result).toEqual({ from: 'stealth-ua', args });
+      });
+    });
+
+    // ============ Framework State delegation ============
+    describe('framework state delegation', () => {
+      it('delegates handleFrameworkStateExtract', async () => {
+        const args = { framework: 'react' };
+        const result = await handlers.handleFrameworkStateExtract(args);
+        expect(frameworkMocks.handleFrameworkStateExtract).toHaveBeenCalledWith(args);
+        expect(result).toEqual({ from: 'framework', args });
+      });
+    });
+
+    // ============ IndexedDB delegation ============
+    describe('IndexedDB delegation', () => {
+      it('delegates handleIndexedDBDump', async () => {
+        const result = await handlers.handleIndexedDBDump({});
+        expect(indexedMocks.handleIndexedDBDump).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'indexed-dump', args: {} });
+      });
+    });
+
+    // ============ JS Heap Search delegation ============
+    describe('JS heap search delegation', () => {
+      it('delegates handleJSHeapSearch', async () => {
+        const args = { query: 'token' };
+        const result = await handlers.handleJSHeapSearch(args);
+        expect(jsHeapMocks.handleJSHeapSearch).toHaveBeenCalledWith(args);
+        expect(result).toEqual({ from: 'heap-search', args });
+      });
+    });
+
+    // ============ Tab Workflow delegation ============
+    describe('tab workflow delegation', () => {
+      it('delegates handleTabWorkflow', async () => {
+        const args = { action: 'open' };
+        const result = await handlers.handleTabWorkflow(args);
+        expect(tabWorkflowMocks.handleTabWorkflow).toHaveBeenCalledWith(args);
+        expect(result).toEqual({ from: 'tab-workflow', args });
+      });
+    });
+
+    // ============ Detailed Data delegation ============
+    describe('detailed data delegation', () => {
+      it('delegates handleGetDetailedData', async () => {
+        const args = { id: 'abc' };
+        const result = await handlers.handleGetDetailedData(args);
+        expect(detailedDataHandlerMocks.handleGetDetailedData).toHaveBeenCalledWith(args);
+        expect(result).toEqual({ from: 'detailed-data', args });
+      });
+    });
+
+    // ============ Camoufox Server delegation ============
+    describe('camoufox server delegation', () => {
+      it('delegates handleCamoufoxServerLaunch', async () => {
+        const result = await handlers.handleCamoufoxServerLaunch({});
+        expect(camoufoxBrowserMocks.handleCamoufoxServerLaunch).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'cfox-launch', args: {} });
+      });
+
+      it('delegates handleCamoufoxServerClose', async () => {
+        const result = await handlers.handleCamoufoxServerClose({});
+        expect(camoufoxBrowserMocks.handleCamoufoxServerClose).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'cfox-close', args: {} });
+      });
+
+      it('delegates handleCamoufoxServerStatus', async () => {
+        const result = await handlers.handleCamoufoxServerStatus({});
+        expect(camoufoxBrowserMocks.handleCamoufoxServerStatus).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'cfox-status', args: {} });
+      });
+    });
+
+    // ============ Human Behavior delegation ============
+    describe('human behavior delegation', () => {
+      it('delegates handleHumanMouse with collector', async () => {
+        const args = { toX: 100, toY: 200 };
+        const result = await handlers.handleHumanMouse(args);
+        expect(humanMouseMock).toHaveBeenCalledWith(args, collector);
+        expect(result).toEqual({ from: 'human-mouse', args });
+      });
+
+      it('delegates handleHumanScroll with collector', async () => {
+        const args = { distance: 500 };
+        const result = await handlers.handleHumanScroll(args);
+        expect(humanScrollMock).toHaveBeenCalledWith(args, collector);
+        expect(result).toEqual({ from: 'human-scroll', args });
+      });
+
+      it('delegates handleHumanTyping with collector', async () => {
+        const args = { selector: '#input', text: 'hello' };
+        const result = await handlers.handleHumanTyping(args);
+        expect(humanTypingMock).toHaveBeenCalledWith(args, collector);
+        expect(result).toEqual({ from: 'human-typing', args });
+      });
+    });
+
+    // ============ CAPTCHA Solving delegation ============
+    describe('captcha solving delegation', () => {
+      it('delegates handleCaptchaVisionSolve with collector', async () => {
+        const args = { mode: 'manual' };
+        const result = await handlers.handleCaptchaVisionSolve(args);
+        expect(captchaVisionSolveMock).toHaveBeenCalledWith(args, collector);
+        expect(result).toEqual({ from: 'captcha-vision', args });
+      });
+
+      it('delegates handleWidgetChallengeSolve with collector', async () => {
+        const args = { siteKey: 'abc' };
+        const result = await handlers.handleWidgetChallengeSolve(args);
+        expect(widgetChallengeSolveMock).toHaveBeenCalledWith(args, collector);
+        expect(result).toEqual({ from: 'widget-solve', args });
+      });
+    });
+
+    // ============ Browser status with camoufox ============
+    describe('browser status with camoufox active', () => {
+      it('returns camoufox status when camoufoxManager has a browser', async () => {
+        handlers.setActiveDriver('camoufox');
+        handlers.setCamoufoxManager({ getBrowser: vi.fn(() => ({})) });
+        handlers.setCamoufoxPage({ fake: true });
+
+        const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
+        expect(body.driver).toBe('camoufox');
+        expect(body.running).toBe(true);
+        expect(body.hasActivePage).toBe(true);
+      });
+
+      it('returns camoufox status when camoufoxManager has no browser', async () => {
+        handlers.setActiveDriver('camoufox');
+        handlers.setCamoufoxManager({ getBrowser: vi.fn(() => null) });
+
+        const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
+        expect(body.driver).toBe('camoufox');
+        expect(body.running).toBe(false);
+        expect(body.hasActivePage).toBe(false);
+      });
+
+      it('delegates to browserControl for chrome driver', async () => {
+        const result = await handlers.handleBrowserStatus({});
+        expect(browserControlMocks.handleBrowserStatus).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'browser-status', args: {} });
+      });
+    });
+
+    // ============ Browser close edge cases ============
+    describe('browser close edge cases', () => {
+      it('delegates directly to browserControl when activeDriver is chrome', async () => {
+        const result = await handlers.handleBrowserClose({});
+        expect(browserControlMocks.handleBrowserClose).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'browser-close', args: {} });
+      });
+    });
+
+    // ============ Browser launch chrome (no existing camoufox) ============
+    describe('browser launch chrome — no existing camoufox', () => {
+      it('launches chrome without closing camoufox when none is active', async () => {
+        const result = await handlers.handleBrowserLaunch({ driver: 'chrome' });
+        expect(browserControlMocks.handleBrowserLaunch).toHaveBeenCalledWith({ driver: 'chrome' });
+        expect(consoleMonitor.disable).not.toHaveBeenCalled();
+        expect(result).toEqual({ from: 'browser-launch', args: { driver: 'chrome' } });
+      });
+
+      it('defaults driver to chrome when not specified', async () => {
+        const result = await handlers.handleBrowserLaunch({});
+        expect(browserControlMocks.handleBrowserLaunch).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'browser-launch', args: {} });
+      });
+    });
+
+    // ============ Browser tabs ============
+    describe('browser tabs delegation', () => {
+      it('delegates handleBrowserListTabs', async () => {
+        const result = await handlers.handleBrowserListTabs({});
+        expect(browserControlMocks.handleBrowserListTabs).toHaveBeenCalledWith({});
+        expect(result).toEqual({ from: 'list-tabs', args: {} });
+      });
+
+      it('delegates handleBrowserSelectTab', async () => {
+        const args = { tabIndex: 1 };
+        const result = await handlers.handleBrowserSelectTab(args);
+        expect(browserControlMocks.handleBrowserSelectTab).toHaveBeenCalledWith(args);
+        expect(result).toEqual({ from: 'select-tab', args });
+      });
+    });
+
+    // ============ closeCamoufox error handling ============
+    describe('closeCamoufox error handling', () => {
+      it('continues closing camoufox even if consoleMonitor.disable throws', async () => {
+        consoleMonitor.disable.mockRejectedValueOnce(new Error('disable failed'));
+        handlers.setActiveDriver('camoufox');
+        const closeSpy = vi.fn(async () => {});
+        handlers.setCamoufoxManager({ close: closeSpy });
+
+        await handlers.handleBrowserLaunch({ driver: 'chrome' });
+
+        expect(consoleMonitor.disable).toHaveBeenCalled();
+        expect(consoleMonitor.clearPlaywrightPage).toHaveBeenCalled();
+        expect(closeSpy).toHaveBeenCalled();
+        expect(browserControlMocks.handleBrowserLaunch).toHaveBeenCalled();
+      });
+    });
+
+    // ============ getTabRegistry ============
+    describe('getTabRegistry', () => {
+      it('returns the TabRegistry instance', () => {
+        const registry = handlers.getTabRegistry();
+        expect(registry).toBeDefined();
+      });
+    });
+
+    // ============ handleBrowserAttach without camoufox ============
+    describe('handleBrowserAttach without camoufox', () => {
+      it('attaches chrome without closing camoufox when none active', async () => {
+        await handlers.handleBrowserAttach({ browserURL: 'http://localhost:9222' });
+        expect(browserControlMocks.handleBrowserAttach).toHaveBeenCalledWith({
+          browserURL: 'http://localhost:9222',
+        });
+        expect(consoleMonitor.disable).not.toHaveBeenCalled();
+      });
+    });
+
+    // ============ getCamoufoxPage private method coverage ============
+    describe('getCamoufoxPage', () => {
+      it('returns failure response when camoufoxManager is null', async () => {
+        handlers.setActiveDriver('camoufox');
+        handlers.setCamoufoxManager(null);
+
+        // Navigate triggers getCamoufoxPage internally
+        const response = await handlers.handlePageNavigate({ url: 'https://example.com' });
+        const body = parseJson<any>(response);
+        expect(body.success).toBe(false);
+        expect(body.message).toMatch(/Camoufox browser not launched/);
+      });
     });
   });
 });

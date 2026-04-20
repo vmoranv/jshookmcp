@@ -16,11 +16,13 @@
 - **[🚀 快速开始](https://vmoranv.github.io/jshookmcp/guide/getting-started.html)**
 - **[⚙️ 配置指南](https://vmoranv.github.io/jshookmcp/guide/configuration.html)**
 - **[📚 API 与工具参考](https://vmoranv.github.io/jshookmcp/reference/)**
+
 ## 🚀 快速接入 (Quick Start)
 
 无需全局安装任何环境，使用 `npx` 即可让 Claude Desktop 或 Cursor 瞬间获得强大的全双工安全分析能力。
 
 **Claude Desktop 配置 (`claude_desktop_config.json`)**:
+
 ```json
 {
   "mcpServers": {
@@ -34,6 +36,7 @@
   }
 }
 ```
+
 *(Windows 用户注意: 若报错找不到 npx，请指定为绝对路径 `npx.cmd`)*
 
 ## 🌟 核心亮点
