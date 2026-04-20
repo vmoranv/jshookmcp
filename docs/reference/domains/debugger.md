@@ -22,8 +22,7 @@
 
 ## 代表工具
 
-- `debugger_enable` — 启用调试器，可在此后设置断点。
-- `debugger_disable` — 禁用调试器并清除全部断点。
+- `debugger_lifecycle` — 待补充中文：Manage the debugger lifecycle (enable or disable)
 - `debugger_pause` — 在下一条语句处暂停执行。
 - `debugger_resume` — 恢复执行。
 - `debugger_step` — 单步执行代码（进入/跳过/跳出）。
@@ -32,13 +31,13 @@
 - `debugger_evaluate` — 在特定上下文（当前调用帧或全局）中求值表达式。
 - `debugger_wait_for_paused` — 等待调试器进入暂停状态。
 - `debugger_get_paused_state` — 获取当前暂停状态及原因。
+- `get_object_properties` — 获取对象的全部属性。
 
-## 工具清单（17）
+## 工具清单（16）
 
 | 工具 | 说明 |
 | --- | --- |
-| `debugger_enable` | 启用调试器，可在此后设置断点。 |
-| `debugger_disable` | 禁用调试器并清除全部断点。 |
+| `debugger_lifecycle` | 待补充中文：Manage the debugger lifecycle (enable or disable) |
 | `debugger_pause` | 在下一条语句处暂停执行。 |
 | `debugger_resume` | 恢复执行。 |
 | `debugger_step` | 单步执行代码（进入/跳过/跳出）。 |

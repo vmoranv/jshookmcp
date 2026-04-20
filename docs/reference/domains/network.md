@@ -26,21 +26,22 @@
 - `network_enable` — 启用网络请求监控，供后续页面导航与抓包使用。
 - `network_disable` — 禁用网络请求监控。
 - `network_get_status` — 获取网络监控状态及请求统计。
+- `network_monitor` — 待补充中文：Manage network request monitoring. Enable/disable monitoring or check status. Must enable before page_navigate to capture requests.
 - `network_get_requests` — 获取已捕获的网络请求；大结果会返回摘要与 detailId。
 - `network_get_response_body` — 获取指定请求的响应体；大响应会自动截断或摘要化。
 - `network_get_stats` — 获取网络流量统计，包括请求量、响应量、错误率与时序信息。
 - `performance_get_metrics` — 获取页面性能指标，如 FCP、LCP、FID、CLS。
 - `performance_start_coverage` — 开始记录 JavaScript 与 CSS 覆盖率。
 - `performance_stop_coverage` — 停止覆盖率记录并返回报告。
-- `performance_take_heap_snapshot` — 生成 V8 堆内存快照。
 
-## 工具清单（27）
+## 工具清单（26）
 
 | 工具 | 说明 |
 | --- | --- |
 | `network_enable` | 启用网络请求监控，供后续页面导航与抓包使用。 |
 | `network_disable` | 禁用网络请求监控。 |
 | `network_get_status` | 获取网络监控状态及请求统计。 |
+| `network_monitor` | 待补充中文：Manage network request monitoring. Enable/disable monitoring or check status. Must enable before page_navigate to capture requests. |
 | `network_get_requests` | 获取已捕获的网络请求；大结果会返回摘要与 detailId。 |
 | `network_get_response_body` | 获取指定请求的响应体；大响应会自动截断或摘要化。 |
 | `network_get_stats` | 获取网络流量统计，包括请求量、响应量、错误率与时序信息。 |
@@ -54,8 +55,6 @@
 | `console_get_exceptions` | 获取页面捕获到的未处理异常。 |
 | `console_inject` | 待补充中文：Inject an in-page monitor/interceptor. Types: |
 | `console_buffers` | 待补充中文：Manage injected interceptor state. |
-| `dns_resolve` | 使用服务端确定性 DNS 查询将主机名解析为 IPv4/IPv6 地址。接受主机名或 IP 字面量，结果按地址族和地址排序。 |
-| `dns_reverse` | 对 IPv4 或 IPv6 字面量执行反向 DNS 查询（PTR 记录），使用服务端确定性逻辑。 |
 | `http_request_build` | 构建原始 HTTP/1.x 请求载荷（CRLF 行尾）。用于为 http_plain_request 或其他原始套接字工具准备确定性请求文本。 |
 | `http_plain_request` | 通过原始 TCP 发送 HTTP 请求，使用确定性服务端逻辑，包含 DNS 固定、响应解析和有界捕获。非回环 HTTP 目标需要显式请求级授权。 |
 | `http2_probe` | 使用 Node http2 探测 HTTP/2 端点，带确定性 DNS 固定和有界响应捕获。报告协商协议、ALPN 结果、响应头、状态码和响应体片段。非回环明文 h2c 目标需要显式请求级授权。 |

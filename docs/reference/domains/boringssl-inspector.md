@@ -33,7 +33,7 @@ BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。
 - `tls_cipher_suites` — 列出 IANA TLS 密码套件，支持按关键词过滤。
 - `tls_parse_certificate` — 从原始十六进制解析 TLS Certificate 消息并提取指纹。
 
-## 工具清单（29）
+## 工具清单（28）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -65,4 +65,3 @@ BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。
 | `net_raw_tcp_listen` | 在本地 TCP 端口监听一个传入连接。 |
 | `net_raw_udp_send` | 向本地 UDP 端口发送原始 UDP 数据报并等待响应。 |
 | `net_raw_udp_listen` | 在本地 UDP 端口监听传入的数据报。 |
-| `net_raw_tcp_scan` | 扫描主机 TCP 端口范围内的开放端口。 |

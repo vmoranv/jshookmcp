@@ -22,8 +22,7 @@ CDP-based debugging domain covering breakpoints, stepping, call stacks, watches,
 
 ## Representative tools
 
-- `debugger_enable` — Enable the debugger (must be called before setting breakpoints)
-- `debugger_disable` — Disable the debugger and clear all breakpoints
+- `debugger_lifecycle` — Manage the debugger lifecycle (enable or disable)
 - `debugger_pause` — Pause execution at the next statement
 - `debugger_resume` — Resume execution (continue)
 - `debugger_step` — Step execution: into (enter next call), over (skip next call), out (exit current function).
@@ -32,13 +31,13 @@ CDP-based debugging domain covering breakpoints, stepping, call stacks, watches,
 - `debugger_evaluate` — Evaluate a JavaScript expression. context="frame" evaluates in the current call frame (requires paused state); context="global" evaluates in the global context (no pause required).
 - `debugger_wait_for_paused` — Wait for the debugger to pause (useful after setting breakpoints and triggering code)
 - `debugger_get_paused_state` — Get the current paused state (check if debugger is paused and why)
+- `get_object_properties` — Get all properties of an object (when paused, use objectId from variables)
 
-## Full tool list (17)
+## Full tool list (16)
 
 | Tool | Description |
 | --- | --- |
-| `debugger_enable` | Enable the debugger (must be called before setting breakpoints) |
-| `debugger_disable` | Disable the debugger and clear all breakpoints |
+| `debugger_lifecycle` | Manage the debugger lifecycle (enable or disable) |
 | `debugger_pause` | Pause execution at the next statement |
 | `debugger_resume` | Resume execution (continue) |
 | `debugger_step` | Step execution: into (enter next call), over (skip next call), out (exit current function). |

@@ -34,7 +34,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 - `browser_launch` — Launch or connect to a browser. Drivers: chrome (full CDP) or camoufox (anti-detect Firefox).
 - `browser_close` — Close browser instance
 
-## Full tool list (61)
+## Full tool list (52)
 
 | Tool | Description |
 | --- | --- |
@@ -53,10 +53,6 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `page_reload` | Reload current page |
 | `page_back` | Navigate back in history |
 | `page_forward` | Navigate forward in history |
-| `dom_query_selector` | Query single element (like document.querySelector). AI should use this BEFORE clicking to verify element exists. |
-| `dom_query_all` | Query all matching elements (like document.querySelectorAll) |
-| `dom_get_structure` | Get page DOM structure. |
-| `dom_find_clickable` | Find all clickable elements (buttons, links). |
 | `page_click` | Click an element. Supports iframes via frameUrl/frameSelector. |
 | `page_type` | Type text into an input element. Supports typing inside iframes via frameUrl/frameSelector. |
 | `page_select` | Select option(s) in a &lt;select&gt; element. Supports iframes via frameUrl/frameSelector. |
@@ -67,20 +63,15 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `page_screenshot` | Take a screenshot: full page, element(s), or pixel region. |
 | `get_all_scripts` | Get list of all loaded scripts on the page |
 | `get_script_source` | Get source code of a specific script. Large scripts auto-return summary + detailId. |
-| `console_enable` | Enable console monitoring to capture console.log, console.error, etc. |
+| `console_monitor` | Enable or disable console monitoring to capture console.log, console.error, etc. |
 | `console_get_logs` | Get captured console logs |
 | `console_execute` | Execute JavaScript expression in console context |
-| `dom_get_computed_style` | Get computed CSS styles of an element |
-| `dom_find_by_text` | Find elements by text content (useful for dynamic content) |
-| `dom_get_xpath` | Get XPath of an element |
-| `dom_is_in_viewport` | Check if element is visible in viewport |
 | `page_inject_script` | Inject JavaScript code into page |
 | `page_cookies` | Manage page cookies. Actions: get (all cookies), set (requires cookies array), clear (all cookies). |
 | `page_set_viewport` | Set viewport size |
 | `page_emulate_device` | Emulate mobile device (iPhone, iPad, Android) |
 | `page_local_storage` | Manage localStorage. Actions: get (all items), set (requires key, value). |
 | `page_press_key` | Press a keyboard key (e.g., "Enter", "Escape", "ArrowDown") |
-| `page_get_all_links` | Get all links on the page |
 | `captcha_detect` | Detect CAPTCHA on the current page via AI vision + rule-based analysis. |
 | `captcha_wait` | Wait for manual CAPTCHA solve. Polls until CAPTCHA disappears. |
 | `captcha_config` | Configure CAPTCHA detection and auto-handling behavior. |

@@ -34,7 +34,7 @@
 - `browser_launch` — 启动浏览器实例。
 - `browser_close` — 关闭当前浏览器实例。
 
-## 工具清单（61）
+## 工具清单（52）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -53,10 +53,6 @@
 | `page_reload` | 重新加载当前页面。 |
 | `page_back` | 在浏览历史中后退。 |
 | `page_forward` | 在浏览历史中前进。 |
-| `dom_query_selector` | 查询单个 DOM 元素，适合在点击前确认元素是否存在。 |
-| `dom_query_all` | 查询所有匹配选择器的 DOM 元素。 |
-| `dom_get_structure` | 获取页面 DOM 结构，便于理解页面布局与层级。 |
-| `dom_find_clickable` | 查找页面中所有可点击元素，如按钮与链接。 |
 | `page_click` | 点击指定元素，建议先用 dom_query_selector 确认元素存在。 |
 | `page_type` | 在输入元素中输入文本。 |
 | `page_select` | 在 &lt;select&gt; 元素中选择一个或多个选项。 |
@@ -67,20 +63,15 @@
 | `page_screenshot` | 截取页面或指定 DOM 元素的截图。 |
 | `get_all_scripts` | 获取页面中所有已加载脚本的列表。 |
 | `get_script_source` | 获取指定脚本的源代码。 |
-| `console_enable` | 启用控制台监控，以捕获 console.log、console.error 等输出。 |
+| `console_monitor` | 待补充中文：Enable or disable console monitoring to capture console.log, console.error, etc. |
 | `console_get_logs` | 获取已捕获的控制台日志。 |
 | `console_execute` | 在控制台上下文中执行 JavaScript 表达式。 |
-| `dom_get_computed_style` | 获取指定元素的计算后 CSS 样式。 |
-| `dom_find_by_text` | 按文本内容查找元素，适合定位动态内容。 |
-| `dom_get_xpath` | 获取指定元素的 XPath。 |
-| `dom_is_in_viewport` | 检查元素当前是否位于可视区域内。 |
 | `page_inject_script` | 向当前页面注入 JavaScript 代码。 |
 | `page_cookies` | 待补充中文：Manage page cookies. Actions: get (all cookies), set (requires cookies array), clear (all cookies). |
 | `page_set_viewport` | 设置浏览器视口尺寸。 |
 | `page_emulate_device` | 模拟移动设备环境，如 iPhone、iPad 或 Android。 |
 | `page_local_storage` | 待补充中文：Manage localStorage. Actions: get (all items), set (requires key, value). |
 | `page_press_key` | 触发一次键盘按键操作，如 Enter、Escape 或 ArrowDown。 |
-| `page_get_all_links` | 获取当前页面中的全部链接。 |
 | `captcha_detect` | 使用 AI 视觉分析检测当前页面上的 CAPTCHA。 |
 | `captcha_wait` | 等待用户手动完成 CAPTCHA 验证。 |
 | `captcha_config` | 配置 CAPTCHA 检测相关行为。 |

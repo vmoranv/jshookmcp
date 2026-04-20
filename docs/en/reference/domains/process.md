@@ -22,6 +22,7 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 ## Representative tools
 
 - `electron_attach` — Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect...
+- `process_list` — List running processes.
 - `process_find` — Find processes by name pattern.
 - `process_get` — Get detailed information about a specific process by PID.
 - `process_windows` — Get all window handles for a process.
@@ -30,13 +31,13 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 - `process_kill` — Kill a process by PID.
 - `memory_read` — Read memory from a process at a specific address.
 - `memory_write` — Write data to process memory at a specific address.
-- `memory_scan` — Scan process memory for a pattern or value.
 
-## Full tool list (20)
+## Full tool list (21)
 
 | Tool | Description |
 | --- | --- |
 | `electron_attach` | Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect... |
+| `process_list` | List running processes. |
 | `process_find` | Find processes by name pattern. |
 | `process_get` | Get detailed information about a specific process by PID. |
 | `process_windows` | Get all window handles for a process. |
@@ -54,5 +55,5 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 | `memory_audit_export` | Export the in-memory audit trail for memory operations as JSON. |
 | `inject_dll` | Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA (W... |
 | `inject_shellcode` | Inject and execute shellcode in a target process. |
-| `check_debug_port` | Check if a process is being debugged using NtQueryInformationProcess (Process... |
+| `check_debug_port` | Check if a process is being debugged using NtQueryInformationProcess (ProcessDebugPort). |
 | `enumerate_modules` | List all loaded modules (DLLs) in a process with their base addresses. |

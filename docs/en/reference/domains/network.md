@@ -26,21 +26,22 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 - `network_enable` — Enable network request monitoring. Must be called before page_navigate to capture requests.
 - `network_disable` — Disable network request monitoring
 - `network_get_status` — Get network monitoring status (enabled, request count, response count)
+- `network_monitor` — Manage network request monitoring. Enable/disable monitoring or check status. Must enable before page_navigate to capture requests.
 - `network_get_requests` — Get captured network requests. Large results (>25KB) automatically return a summary with detailId.
 - `network_get_response_body` — Get response body for a specific request. Auto-truncates responses >100KB. Use returnSummary=true for large files.
 - `network_get_stats` — Get network statistics (total requests, response count, error rate, timing)
 - `performance_get_metrics` — Get page performance metrics (Web Vitals: FCP, LCP, FID, CLS)
 - `performance_start_coverage` — Start JavaScript and CSS code coverage recording
 - `performance_stop_coverage` — Stop coverage recording and return coverage report
-- `performance_take_heap_snapshot` — Take a V8 heap memory snapshot
 
-## Full tool list (27)
+## Full tool list (26)
 
 | Tool | Description |
 | --- | --- |
 | `network_enable` | Enable network request monitoring. Must be called before page_navigate to capture requests. |
 | `network_disable` | Disable network request monitoring |
 | `network_get_status` | Get network monitoring status (enabled, request count, response count) |
+| `network_monitor` | Manage network request monitoring. Enable/disable monitoring or check status. Must enable before page_navigate to capture requests. |
 | `network_get_requests` | Get captured network requests. Large results (&gt;25KB) automatically return a summary with detailId. |
 | `network_get_response_body` | Get response body for a specific request. Auto-truncates responses &gt;100KB. Use returnSummary=true for large files. |
 | `network_get_stats` | Get network statistics (total requests, response count, error rate, timing) |
@@ -54,8 +55,6 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 | `console_get_exceptions` | Get captured uncaught exceptions from the page |
 | `console_inject` | Inject an in-page monitor/interceptor. Types: |
 | `console_buffers` | Manage injected interceptor state. |
-| `dns_resolve` | Resolve a hostname to IPv4/IPv6 addresses using deterministic server-side DNS lookup. Accepts hostnames or IP literals. Results are sorted by family and address. |
-| `dns_reverse` | Perform a reverse DNS lookup (PTR) for an IPv4 or IPv6 literal using deterministic server-side DNS logic. |
 | `http_request_build` | Build a raw HTTP/1.x request payload with CRLF line endings. Useful for preparing deterministic request text for http_plain_request or other raw socket tools. |
 | `http_plain_request` | Send a raw HTTP request over plain TCP using deterministic server-side logic with DNS pinning, response parsing, and bounded capture. Non-loopback HTTP targets require explicit request-scoped authorization. |
 | `http2_probe` | Probe an HTTP/2 endpoint using Node http2 with deterministic DNS pinning and bounded response capture. Reports the negotiated protocol, ALPN result, response headers, status, and a response body snippet. Non-loopback plaintext h2c targets require explicit request-scoped authorization. |

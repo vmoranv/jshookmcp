@@ -33,7 +33,7 @@ BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate 
 - `tls_cipher_suites` — List IANA TLS cipher suites, optionally filtered by keyword.
 - `tls_parse_certificate` — Parse a TLS Certificate message from raw hex and extract fingerprints.
 
-## Full tool list (29)
+## Full tool list (28)
 
 | Tool | Description |
 | --- | --- |
@@ -65,4 +65,3 @@ BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate 
 | `net_raw_tcp_listen` | Listen on a local TCP port for one incoming connection. |
 | `net_raw_udp_send` | Send a raw UDP datagram and wait for a response. |
 | `net_raw_udp_listen` | Listen on a local UDP port for an incoming datagram. |
-| `net_raw_tcp_scan` | Scan a TCP port range on a host for open ports. |
