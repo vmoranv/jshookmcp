@@ -190,6 +190,8 @@ export class AdvancedToolHandlers {
 
   // ── Raw (DNS / HTTP / HTTP2 / RTT) ──
 
+  handleDnsResolve = (args: Record<string, unknown>) => this.raw.handleDnsResolve(args);
+  handleDnsReverse = (args: Record<string, unknown>) => this.raw.handleDnsReverse(args);
   handleHttpRequestBuild = (args: Record<string, unknown>) => this.raw.handleHttpRequestBuild(args);
   handleHttpPlainRequest = (args: Record<string, unknown>) => this.raw.handleHttpPlainRequest(args);
   handleHttp2Probe = (args: Record<string, unknown>) => this.raw.handleHttp2Probe(args);

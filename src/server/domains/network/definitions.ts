@@ -402,6 +402,28 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
   ),
 
   // Fetch Interception
+  tool('dns_resolve', (t) =>
+    t
+      .desc(
+        `Resolve DNS records for a hostname using Node.js dns.resolve. Supports A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, and SRV record types. For reverse DNS lookup use rrType='PTR' with an IP address.`,
+      )
+      .string('hostname', 'Hostname or IP address to resolve')
+      .enum(
+        'rrType',
+        ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME', 'SOA', 'PTR', 'SRV', 'ANY'],
+        'DNS record type (default: A)',
+        { default: 'A' },
+      )
+      .required('hostname')
+      .query(),
+  ),
+  tool('dns_reverse', (t) =>
+    t
+      .desc(`Reverse DNS lookup: resolve a hostname from an IP address using Node.js dns.reverse.`)
+      .string('ip', 'IP address to reverse-resolve')
+      .required('ip')
+      .query(),
+  ),
   tool('network_intercept', (t) =>
     t
       .desc(

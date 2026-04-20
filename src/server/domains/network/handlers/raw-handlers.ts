@@ -7,6 +7,7 @@
 
 import * as net from 'node:net';
 import * as tls from 'node:tls';
+import * as dns from 'node:dns/promises';
 
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { R } from '@server/domains/shared/ResponseBuilder';
@@ -42,6 +43,45 @@ import { emitEvent, parseBooleanArg, parseNumberArg } from './shared';
 
 export class RawHandlers {
   constructor(private eventBus?: EventBus<ServerEventMap>) {}
+
+  // ── DNS ──
+
+  async handleDnsResolve(args: Record<string, unknown>) {
+    try {
+      const hostname = parseOptionalString(args.hostname, 'hostname');
+      if (!hostname) {
+        return R.error('hostname is required');
+      }
+      const rrType = parseOptionalString(args.rrType, 'rrType') ?? 'A';
+      const validTypes = ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME', 'SOA', 'PTR', 'SRV', 'ANY'];
+      if (!validTypes.includes(rrType)) {
+        return R.error(`Invalid rrType: "${rrType}". Expected one of: ${validTypes.join(', ')}`);
+      }
+      const start = performance.now();
+      const records = await dns.resolve(hostname, rrType as dns.RecordType);
+      const timing = roundMs(performance.now() - start);
+      return R.ok({ hostname, rrType, records, timing });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return R.error(`DNS resolve failed: ${message}`);
+    }
+  }
+
+  async handleDnsReverse(args: Record<string, unknown>) {
+    try {
+      const ip = parseOptionalString(args.ip, 'ip');
+      if (!ip) {
+        return R.error('ip is required');
+      }
+      const start = performance.now();
+      const hostnames = await dns.reverse(ip);
+      const timing = roundMs(performance.now() - start);
+      return R.ok({ ip, hostnames, timing });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return R.error(`DNS reverse lookup failed: ${message}`);
+    }
+  }
 
   // ── HTTP Request Build ──
 

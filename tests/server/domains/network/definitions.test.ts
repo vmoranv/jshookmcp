@@ -76,8 +76,7 @@ describe('network tool definitions', () => {
   it('contains expected performance tools', () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('performance_get_metrics')).toBe(true);
-    expect(names.has('performance_start_coverage')).toBe(true);
-    expect(names.has('performance_stop_coverage')).toBe(true);
+    expect(names.has('performance_coverage')).toBe(true);
     expect(names.has('performance_take_heap_snapshot')).toBe(true);
     expect(names.has('performance_trace')).toBe(true);
   });
