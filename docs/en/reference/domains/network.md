@@ -31,10 +31,10 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 - `network_get_response_body` — Get response body for a specific request. Auto-truncates responses >100KB. Use returnSummary=true for large files.
 - `network_get_stats` — Get network statistics (total requests, response count, error rate, timing)
 - `performance_get_metrics` — Get page performance metrics (Web Vitals: FCP, LCP, FID, CLS)
-- `performance_start_coverage` — Start JavaScript and CSS code coverage recording
-- `performance_stop_coverage` — Stop coverage recording and return coverage report
+- `performance_coverage` — Start or stop JavaScript and CSS code coverage recording
+- `performance_take_heap_snapshot` — Take a V8 heap memory snapshot
 
-## Full tool list (26)
+## Full tool list (25)
 
 | Tool | Description |
 | --- | --- |
@@ -46,8 +46,7 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 | `network_get_response_body` | Get response body for a specific request. Auto-truncates responses &gt;100KB. Use returnSummary=true for large files. |
 | `network_get_stats` | Get network statistics (total requests, response count, error rate, timing) |
 | `performance_get_metrics` | Get page performance metrics (Web Vitals: FCP, LCP, FID, CLS) |
-| `performance_start_coverage` | Start JavaScript and CSS code coverage recording |
-| `performance_stop_coverage` | Stop coverage recording and return coverage report |
+| `performance_coverage` | Start or stop JavaScript and CSS code coverage recording |
 | `performance_take_heap_snapshot` | Take a V8 heap memory snapshot |
 | `performance_trace` | Chrome Performance Trace recording. Action 'start' begins capture; 'stop' ends and saves trace file. |
 | `profiler_cpu` | CDP CPU profiling. Action 'start' begins recording; 'stop' ends and saves profile with top hot functions. |

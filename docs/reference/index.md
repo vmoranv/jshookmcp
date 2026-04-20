@@ -22,7 +22,7 @@
 | `core` | Core | workflow, full | 核心静态/半静态分析域，覆盖脚本采集、反混淆、语义理解、webpack/source map 与加密识别。 |
 | `cross-domain` | Cross-Domain | full | 跨域关联域，将多个域的分析结果进行交叉关联，支持自动化工作流编排与证据图桥接。 |
 | `debugger` | Debugger | workflow, full | 基于 CDP 的断点、单步、调用栈、watch 与调试会话管理域。 |
-| `encoding` | Encoding | workflow, full | 二进制格式检测、编码转换、熵分析与 protobuf 原始解码。 |
+| `encoding` | Encoding | search, workflow, full | 二进制格式检测、编码转换、熵分析与 protobuf 原始解码。 |
 | `evidence` | Evidence | full | 逆向证据图域，用图结构串联 URL、脚本、函数、Hook 与捕获产物之间的溯源关系。 |
 | `extension-registry` | Extension Registry | full | 扩展注册域，管理和发现社区扩展。 |
 | `graphql` | GraphQL | workflow, full | GraphQL 发现、提取、重放与 introspection 能力。 |

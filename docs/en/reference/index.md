@@ -22,7 +22,7 @@ The following tool domains are available:
 | `core` | Core | workflow, full | Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection. |
 | `cross-domain` | Cross-Domain | full | Cross-domain correlation domain that bridges analysis results across multiple domains, supporting workflow orchestration and evidence graph integration. |
 | `debugger` | Debugger | workflow, full | CDP-based debugging domain covering breakpoints, stepping, call stacks, watches, and debugger sessions. |
-| `encoding` | Encoding | workflow, full | Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding. |
+| `encoding` | Encoding | search, workflow, full | Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding. |
 | `evidence` | Evidence | full | Evidence-graph domain that models provenance between URLs, scripts, functions, hooks, and captured artifacts. |
 | `extension-registry` | Extension Registry | full | Extension registry domain for managing and discovering community extensions. |
 | `graphql` | GraphQL | workflow, full | GraphQL discovery, extraction, replay, and introspection tooling. |

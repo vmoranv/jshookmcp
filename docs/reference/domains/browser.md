@@ -57,7 +57,7 @@
 | `page_type` | 在输入元素中输入文本。 |
 | `page_select` | 在 &lt;select&gt; 元素中选择一个或多个选项。 |
 | `page_hover` | 将鼠标悬停到指定元素上。 |
-| `page_scroll` | 滚动当前页面。 |
+| `page_scroll` | 滚动页面到指定位置。 |
 | `page_wait_for_selector` | 等待指定元素出现。 |
 | `page_evaluate` | 在页面上下文中执行 JavaScript 代码并返回结果。 |
 | `page_screenshot` | 截取页面或指定 DOM 元素的截图。 |

@@ -31,10 +31,10 @@
 - `network_get_response_body` — 获取指定请求的响应体；大响应会自动截断或摘要化。
 - `network_get_stats` — 获取网络流量统计，包括请求量、响应量、错误率与时序信息。
 - `performance_get_metrics` — 获取页面性能指标，如 FCP、LCP、FID、CLS。
-- `performance_start_coverage` — 开始记录 JavaScript 与 CSS 覆盖率。
-- `performance_stop_coverage` — 停止覆盖率记录并返回报告。
+- `performance_coverage` — 待补充中文：Start or stop JavaScript and CSS code coverage recording
+- `performance_take_heap_snapshot` — 生成 V8 堆内存快照。
 
-## 工具清单（26）
+## 工具清单（25）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -46,8 +46,7 @@
 | `network_get_response_body` | 获取指定请求的响应体；大响应会自动截断或摘要化。 |
 | `network_get_stats` | 获取网络流量统计，包括请求量、响应量、错误率与时序信息。 |
 | `performance_get_metrics` | 获取页面性能指标，如 FCP、LCP、FID、CLS。 |
-| `performance_start_coverage` | 开始记录 JavaScript 与 CSS 覆盖率。 |
-| `performance_stop_coverage` | 停止覆盖率记录并返回报告。 |
+| `performance_coverage` | 待补充中文：Start or stop JavaScript and CSS code coverage recording |
 | `performance_take_heap_snapshot` | 生成 V8 堆内存快照。 |
 | `performance_trace` | 待补充中文：Chrome Performance Trace recording. Action 'start' begins capture; 'stop' ends and saves trace file. |
 | `profiler_cpu` | 待补充中文：CDP CPU profiling. Action 'start' begins recording; 'stop' ends and saves profile with top hot functions. |
