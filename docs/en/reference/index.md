@@ -38,7 +38,7 @@ The following tool domains are available:
 | `protocol-analysis` | Protocol Analysis | full | Custom protocol analysis domain supporting protocol pattern definition, automatic field detection from hex payloads, state machine inference from captured messages, and Mermaid diagram visualization. |
 | `proxy` | Proxy | full | Full-stack HTTP/HTTPS MITM proxy domain for system-level traffic interception, modification, and application configuration. |
 | `sandbox` | Sandbox | full | WASM-isolated QuickJS sandbox domain for secure custom script execution with MCP tool access. |
-| `shared-state-board` | Shared State Board | full | Cross-agent state synchronization domain providing a global shared state board for multi-agent collaboration. |
+| `shared-state-board` | Shared State Board | workflow, full | Cross-agent state synchronization domain providing a global shared state board for multi-agent collaboration. |
 | `skia-capture` | Skia Capture | workflow, full | Skia rendering engine capture domain for UI rendering analysis and visualization. |
 | `sourcemap` | SourceMap | full | Source map discovery, fetching, parsing, and source tree reconstruction. |
 | `streaming` | Streaming | workflow, full | WebSocket and SSE monitoring domain. |

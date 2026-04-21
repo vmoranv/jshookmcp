@@ -6,6 +6,7 @@ Cross-agent state synchronization domain providing a global shared state board f
 
 ## Profiles
 
+- workflow
 - full
 
 ## Typical scenarios
@@ -22,7 +23,7 @@ Cross-agent state synchronization domain providing a global shared state board f
 ## Representative tools
 
 - `state_board` — Unified shared state board for cross-agent key-value coordination.
-- `state_board_watch` — Start or stop watching a key or pattern for changes.
+- `state_board_watch` — Watch a key or pattern for changes. This is a POLL-based watch — call state_board_watch with action=poll and the returned watchId to check for changes. No server-side push; the caller must poll periodically.
 - `state_board_io` — Export or import state board entries.
 
 ## Full tool list (3)
@@ -30,5 +31,5 @@ Cross-agent state synchronization domain providing a global shared state board f
 | Tool | Description |
 | --- | --- |
 | `state_board` | Unified shared state board for cross-agent key-value coordination. |
-| `state_board_watch` | Start or stop watching a key or pattern for changes. |
+| `state_board_watch` | Watch a key or pattern for changes. This is a POLL-based watch — call state_board_watch with action=poll and the returned watchId to check for changes. No server-side push; the caller must poll periodically. |
 | `state_board_io` | Export or import state board entries. |

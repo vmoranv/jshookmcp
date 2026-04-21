@@ -5,6 +5,7 @@
 import { randomUUID } from 'node:crypto';
 import type { StateBoardStore, StateWatch } from './shared';
 import { matchesKeyPattern } from './shared';
+import { argString, argNumber, argStringRequired } from '@server/domains/shared/parse-args';
 
 export class WatchHandlers {
   private store: StateBoardStore;
@@ -14,13 +15,10 @@ export class WatchHandlers {
   }
 
   async handleWatch(args: Record<string, unknown>): Promise<unknown> {
-    const key = args.key as string;
-    const namespace = (args.namespace as string) ?? 'default';
-    const pollIntervalMs = (args.pollIntervalMs as number) ?? 1000;
-
-    if (!key || typeof key !== 'string') {
-      throw new Error('key must be a non-empty string');
-    }
+    const key = argStringRequired(args, 'key');
+    if (!key) throw new Error('key must be a non-empty string');
+    const namespace = argString(args, 'namespace', 'default');
+    const pollIntervalMs = argNumber(args, 'pollIntervalMs', 1000);
 
     const watchId = `watch_${randomUUID().slice(0, 8)}`;
     const isPattern = key.includes('*');
@@ -62,7 +60,7 @@ export class WatchHandlers {
   }
 
   async handleUnwatch(args: Record<string, unknown>): Promise<unknown> {
-    const watchId = args.watchId as string;
+    const watchId = argStringRequired(args, 'watchId');
 
     const watch = this.store.watches.get(watchId);
     if (!watch) {
@@ -75,7 +73,7 @@ export class WatchHandlers {
   }
 
   async handlePoll(args: Record<string, unknown>): Promise<unknown> {
-    const watchId = args.watchId as string;
+    const watchId = argStringRequired(args, 'watchId');
 
     const watch = this.store.watches.get(watchId);
     if (!watch) {

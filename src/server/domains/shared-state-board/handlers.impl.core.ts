@@ -46,6 +46,7 @@ export class SharedStateBoardHandlers {
   handleWatchDispatch(args: Record<string, unknown>) {
     const action = String(args['action'] ?? '');
     if (action === 'stop') return this.watchHandlers.handleUnwatch(args);
+    if (action === 'poll') return this.watchHandlers.handlePoll(args);
     return this.watchHandlers.handleWatch(args);
   }
   handleIODispatch(args: Record<string, unknown>) {

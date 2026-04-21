@@ -32,8 +32,16 @@ Actions:
   ),
   tool('state_board_watch', (t) =>
     t
-      .desc('Start or stop watching a key or pattern for changes.')
-      .enum('action', ['start', 'stop'], 'Watch operation: start or stop')
+      .desc(
+        'Watch a key or pattern for changes. ' +
+          'This is a POLL-based watch — call state_board_watch with action=poll and the returned watchId to check for changes. ' +
+          'No server-side push; the caller must poll periodically.',
+      )
+      .enum(
+        'action',
+        ['start', 'poll', 'stop'],
+        'Watch operation: start watching, poll for changes, or stop watching',
+      )
       .string('key', 'The key or pattern to watch (action=start)')
       .string('namespace', 'Optional namespace (default: "default")')
       .number('pollIntervalMs', 'Polling interval in ms (action=start, default: 1000)')
