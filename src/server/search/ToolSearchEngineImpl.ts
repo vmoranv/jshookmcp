@@ -303,11 +303,36 @@ export class ToolSearchEngine {
     visibleDomains?: ReadonlySet<string>,
     profile?: ToolProfile,
   ): Promise<ToolSearchResult[]> {
-    // Synonym expansion enabled at query time
-    const queryTokens = this.bm25Scorer.tokenise(query, { expandSynonyms: true });
+    // Tokenise without synonyms first, distill, then expand.
+    let queryTokens = this.bm25Scorer.tokenise(query);
     if (queryTokens.length === 0) {
       return [];
     }
+
+    // ── IDF-based query distillation ──
+    // When the query is verbose (>6 tokens), keep only the most discriminative ones.
+    // Uses IDF as a proxy for informativeness — rare tokens carry more signal.
+    // Only considers tokens that exist in the index (df > 0); OOV tokens are noise.
+    if (queryTokens.length > 6) {
+      const inVocab = queryTokens.filter((t) => this.invertedIndex.has(t));
+      if (inVocab.length >= 3) {
+        const scored = inVocab.map((t) => {
+          const postings = this.invertedIndex.get(t)!;
+          const df = postings.length;
+          const idf = Math.log((this.docCount - df + 0.5) / (df + 0.5) + 1);
+          return { token: t, idf };
+        });
+        scored.sort((a, b) => b.idf - a.idf);
+        const kept = new Set(scored.slice(0, 6).map((s) => s.token));
+        queryTokens = queryTokens.filter((t) => kept.has(t));
+      }
+    }
+
+    // Synonym expansion after distillation to preserve synonym signal
+    const synonymTokens = this.bm25Scorer
+      .tokenise(queryTokens.join(' '), { expandSynonyms: true })
+      .filter((t) => !queryTokens.includes(t));
+    queryTokens.push(...synonymTokens);
 
     // ── Explicit tool name mention short-circuit (Scheme 1) ──
     // If the user explicitly mentions a known tool name *and* uses an invocation verb,

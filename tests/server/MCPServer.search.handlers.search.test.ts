@@ -267,7 +267,8 @@ describe('MCPServer.search.handlers.search', () => {
       nextActions: [],
       hint:
         'For guided tool discovery with workflow detection, use route_tool instead. ' +
-        'Use activate_tools to enable specific tools, activate_domain for entire domains.',
+        'Use activate_tools to enable specific tools, activate_domain for entire domains.' +
+        ' Few results — try distilling your query to key concepts (e.g. "hook fetch" instead of "how to intercept fetch requests").',
     });
     expect(state.describeTool).not.toHaveBeenCalled();
     expect(state.generateExampleArgs).not.toHaveBeenCalled();

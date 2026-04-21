@@ -63,7 +63,9 @@ function buildMetaToolDefinitions(ctx: MCPServerContext): MetaToolDef[] {
         properties: {
           query: {
             type: 'string',
-            description: 'Search query: keywords, tool name, domain name, or description fragment',
+            description:
+              'Before calling, distill your intent into 2-5 key concepts: what action, on what target, in which domain. ' +
+              'Pass only those distilled keywords — not the original user request.',
           },
           top_k: { type: 'number', description: 'Max results to return (default: 10, max: 30)' },
         },

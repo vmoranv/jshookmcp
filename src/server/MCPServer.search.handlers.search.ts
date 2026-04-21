@@ -73,17 +73,21 @@ export async function handleSearchTools(
     }
   }
 
+  const baseHint =
+    'For guided tool discovery with workflow detection, use route_tool instead. ' +
+    'Use activate_tools to enable specific tools, activate_domain for entire domains.';
+  const refinementHint =
+    results.length < 3
+      ? ' Few results — try distilling your query to key concepts (e.g. "hook fetch" instead of "how to intercept fetch requests").'
+      : '';
+
   const response: Record<string, unknown> = {
     query,
     resultCount: results.length,
     results,
     nextActions: searchNextActions,
-    hint:
-      'For guided tool discovery with workflow detection, use route_tool instead. ' +
-      'Use activate_tools to enable specific tools, activate_domain for entire domains.',
+    hint: baseHint + refinementHint,
   };
-
-  // Auto-activation metadata removed — feature disabled for security.
 
   return asTextResponse(JSON.stringify(response, null, 2));
 }

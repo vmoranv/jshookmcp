@@ -159,6 +159,8 @@ export function buildDomainDescription(ctx: MCPServerContext): string {
     `This includes built-in tools plus any loaded plugin/workflow tools (${ctx.extensionToolsByName.size} currently loaded). ` +
     `In search-tier sessions, call this before assuming a capability is unavailable. ` +
     `Use activate_tools for exact matches, activate_domain for an entire domain. ` +
-    `Domains: ${parts}.`
+    `Domains: ${parts}. ` +
+    `Query tip: before searching, distill your intent into key concepts (action verb + target + domain). ` +
+    `Pass distilled keywords, not full sentences — the search engine works on token matching, not semantic understanding.`
   );
 }
