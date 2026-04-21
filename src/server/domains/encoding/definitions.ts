@@ -32,7 +32,11 @@ export const encodingTools: Tool[] = [
       .desc('Compute Shannon entropy + byte frequency to assess plaintext/encoded/compress...')
       .enum('source', ['base64', 'hex', 'raw', 'file'], 'How to interpret input payload')
       .string('filePath', 'File path when source=file')
-      .number('blockSize', 'Block size for per-block entropy', { default: 256 })
+      .number('blockSize', 'Block size for per-block entropy', {
+        default: 256,
+        minimum: 16,
+        maximum: 8192,
+      })
       .required('source')
       .query(),
   ),
@@ -40,7 +44,7 @@ export const encodingTools: Tool[] = [
     t
       .desc('Decode base64 protobuf bytes without schema using wire-type aware recursive parser')
       .string('data', 'Base64-encoded protobuf payload')
-      .number('maxDepth', 'Maximum recursive decode depth', { default: 5 })
+      .number('maxDepth', 'Maximum recursive decode depth', { default: 5, minimum: 1, maximum: 20 })
       .required('data')
       .query(),
   ),

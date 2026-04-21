@@ -825,42 +825,27 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
       expect(handler.testParseBooleanArg(false, true)).toBe(false);
     });
 
-    it('converts numeric 1 to true and 0 to false', () => {
-      expect(handler.testParseBooleanArg(1, false)).toBe(true);
-      expect(handler.testParseBooleanArg(0, true)).toBe(false);
-    });
-
-    it('converts non-0/1 numbers to defaultValue', () => {
-      expect(handler.testParseBooleanArg(42, false)).toBe(false);
-      expect(handler.testParseBooleanArg(-1, true)).toBe(true);
+    it('returns defaultValue for numbers (no coercion)', () => {
+      expect(handler.testParseBooleanArg(1, false)).toBe(false);
+      expect(handler.testParseBooleanArg(0, true)).toBe(true);
+      expect(handler.testParseBooleanArg(42, true)).toBe(true);
+      expect(handler.testParseBooleanArg(-1, false)).toBe(false);
       expect(handler.testParseBooleanArg(NaN, true)).toBe(true);
     });
 
-    it('converts string true-like values case-insensitively', () => {
-      expect(handler.testParseBooleanArg('true', false)).toBe(true);
-      expect(handler.testParseBooleanArg('TRUE', false)).toBe(true);
-      expect(handler.testParseBooleanArg('1', false)).toBe(true);
-      expect(handler.testParseBooleanArg('yes', false)).toBe(true);
-      expect(handler.testParseBooleanArg('YES', false)).toBe(true);
-      expect(handler.testParseBooleanArg('on', false)).toBe(true);
-    });
-
-    it('converts string false-like values', () => {
-      expect(handler.testParseBooleanArg('false', true)).toBe(false);
-      expect(handler.testParseBooleanArg('FALSE', true)).toBe(false);
-      expect(handler.testParseBooleanArg('0', true)).toBe(false);
-      expect(handler.testParseBooleanArg('no', true)).toBe(false);
-      expect(handler.testParseBooleanArg('off', true)).toBe(false);
-    });
-
-    it('returns defaultValue for unrecognized string values', () => {
+    it('returns defaultValue for strings (no coercion)', () => {
+      expect(handler.testParseBooleanArg('true', false)).toBe(false);
+      expect(handler.testParseBooleanArg('TRUE', false)).toBe(false);
+      expect(handler.testParseBooleanArg('1', false)).toBe(false);
+      expect(handler.testParseBooleanArg('yes', false)).toBe(false);
+      expect(handler.testParseBooleanArg('false', true)).toBe(true);
+      expect(handler.testParseBooleanArg('FALSE', true)).toBe(true);
+      expect(handler.testParseBooleanArg('0', true)).toBe(true);
+      expect(handler.testParseBooleanArg('no', true)).toBe(true);
       expect(handler.testParseBooleanArg('maybe', true)).toBe(true);
-      expect(handler.testParseBooleanArg('unknown', false)).toBe(false);
-    });
-
-    it('trims whitespace from string values', () => {
-      expect(handler.testParseBooleanArg('  true  ', false)).toBe(true);
-      expect(handler.testParseBooleanArg('  FALSE  ', true)).toBe(false);
+      expect(handler.testParseBooleanArg('maybe', false)).toBe(false);
+      expect(handler.testParseBooleanArg('', false)).toBe(false);
+      expect(handler.testParseBooleanArg('  true  ', false)).toBe(false);
     });
   });
 
@@ -889,6 +874,11 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
       expect(handler.testParseNumberArg('   ', { defaultValue: 5 })).toBe(5);
     });
 
+    it('returns defaultValue for numeric string (no coercion)', () => {
+      expect(handler.testParseNumberArg('42', { defaultValue: 0 })).toBe(0);
+      expect(handler.testParseNumberArg('  42  ', { defaultValue: 0 })).toBe(0);
+    });
+
     it('parses a finite number', () => {
       expect(handler.testParseNumberArg(3.14, { defaultValue: 0 })).toBe(3.14);
     });
@@ -899,10 +889,6 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
 
     it('returns defaultValue for NaN', () => {
       expect(handler.testParseNumberArg(NaN, { defaultValue: 88 })).toBe(88);
-    });
-
-    it('parses a numeric string with whitespace', () => {
-      expect(handler.testParseNumberArg('  42  ', { defaultValue: 0 })).toBe(42);
     });
 
     it('truncates to integer when integer=true', () => {

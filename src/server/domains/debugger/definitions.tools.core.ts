@@ -79,7 +79,11 @@ Types & params:
   tool('debugger_wait_for_paused', (t) =>
     t
       .desc('Wait for the debugger to pause (useful after setting breakpoints and triggering code)')
-      .number('timeout', 'Timeout in milliseconds (default: 30000)', { default: 30000 })
+      .number('timeout', 'Timeout in milliseconds (default: 30000)', {
+        default: 30000,
+        minimum: 1000,
+        maximum: 120000,
+      })
       .query(),
   ),
   tool('debugger_get_paused_state', (t) =>
@@ -99,7 +103,11 @@ Types & params:
       .boolean('includeObjectProperties', 'Expand object properties recursively (default: false)', {
         default: false,
       })
-      .number('maxDepth', 'Maximum traversal depth for nested objects (default: 1)', { default: 1 })
+      .number('maxDepth', 'Maximum traversal depth for nested objects (default: 1)', {
+        default: 1,
+        minimum: 1,
+        maximum: 10,
+      })
       .boolean('skipErrors', 'Skip properties that throw errors during access (default: true)', {
         default: true,
       })

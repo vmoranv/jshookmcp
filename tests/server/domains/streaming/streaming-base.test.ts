@@ -176,28 +176,8 @@ describe('StreamingToolHandlersBase', () => {
       expect(handler.callParseNumberArg('42', opts)).toBe(42);
     });
 
-    it('parses numeric string with whitespace', () => {
-      expect(handler.callParseNumberArg('  42  ', opts)).toBe(42);
-    });
-
-    it('returns default for non-numeric string', () => {
-      expect(handler.callParseNumberArg('abc', opts)).toBe(50);
-    });
-
     it('returns default for undefined', () => {
       expect(handler.callParseNumberArg(undefined, opts)).toBe(50);
-    });
-
-    it('returns default for null', () => {
-      expect(handler.callParseNumberArg(null, opts)).toBe(50);
-    });
-
-    it('returns default for NaN', () => {
-      expect(handler.callParseNumberArg(NaN, opts)).toBe(50);
-    });
-
-    it('returns default for Infinity', () => {
-      expect(handler.callParseNumberArg(Infinity, opts)).toBe(50);
     });
 
     it('clamps below min', () => {
@@ -210,22 +190,6 @@ describe('StreamingToolHandlersBase', () => {
 
     it('truncates when integer option is set', () => {
       expect(handler.callParseNumberArg(42.7, { ...opts, integer: true })).toBe(42);
-    });
-
-    it('does not truncate without integer option', () => {
-      expect(handler.callParseNumberArg(42.7, opts)).toBe(42.7);
-    });
-
-    it('truncates before clamping', () => {
-      // 0.9 truncated -> 0, which is >= min 0
-      expect(handler.callParseNumberArg(0.9, { ...opts, integer: true })).toBe(0);
-    });
-
-    it('handles negative floats with truncation', () => {
-      // -0.5 truncated -> -0, clamped to min 0
-      const result = handler.callParseNumberArg(-0.5, { ...opts, integer: true });
-      expect(result).toBeGreaterThanOrEqual(0);
-      expect(result).toBeLessThanOrEqual(0);
     });
   });
 

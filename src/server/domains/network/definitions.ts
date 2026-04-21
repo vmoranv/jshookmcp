@@ -80,11 +80,13 @@ export const advancedTools: Tool[] = [
       )
       .number('limit', 'Maximum number of results per page (default: 100, max: 1000)', {
         default: 100,
+        minimum: 1,
+        maximum: 1000,
       })
       .number(
         'offset',
         'Skip first N results for pagination (default: 0). Use page.nextOffset from previous response.',
-        { default: 0 },
+        { default: 0, minimum: 0 },
       )
       .boolean('autoEnable', 'Auto-enable network monitoring when currently disabled', {
         default: true,
@@ -101,12 +103,24 @@ export const advancedTools: Tool[] = [
         'Get response body for a specific request. Auto-truncates responses >100KB. Use returnSummary=true for large files.',
       )
       .string('requestId', 'Request ID (from network_get_requests)')
-      .number('maxSize', 'Maximum response size in bytes', { default: 100000 })
+      .number('maxSize', 'Maximum response size in bytes', {
+        default: 100000,
+        minimum: 1024,
+        maximum: 20000000,
+      })
       .boolean('returnSummary', 'Return only size and preview instead of full body', {
         default: false,
       })
-      .number('retries', 'Retry count when response body is not yet available', { default: 3 })
-      .number('retryIntervalMs', 'Retry interval in milliseconds', { default: 500 })
+      .number('retries', 'Retry count when response body is not yet available', {
+        default: 3,
+        minimum: 0,
+        maximum: 10,
+      })
+      .number('retryIntervalMs', 'Retry interval in milliseconds', {
+        default: 500,
+        minimum: 100,
+        maximum: 10000,
+      })
       .boolean('autoEnable', 'Auto-enable network monitoring when currently disabled', {
         default: false,
       })
@@ -169,16 +183,26 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
       .enum('action', ['start', 'stop'], 'Sampling action')
       .number('samplingInterval', 'Sampling interval bytes (action=start, default: 32768)', {
         default: 32768,
+        minimum: 256,
+        maximum: 1048576,
       })
       .string('artifactPath', 'Custom output path (action=stop)')
-      .number('topN', 'Number of top allocators (action=stop, default: 20)', { default: 20 })
+      .number('topN', 'Number of top allocators (action=stop, default: 20)', {
+        default: 20,
+        minimum: 1,
+        maximum: 100,
+      })
       .required('action'),
   ),
   tool('console_get_exceptions', (t) =>
     t
       .desc('Get captured uncaught exceptions from the page')
       .string('url', 'Filter by URL substring')
-      .number('limit', 'Maximum number of exceptions to return', { default: 50 })
+      .number('limit', 'Maximum number of exceptions to return', {
+        default: 50,
+        minimum: 1,
+        maximum: 1000,
+      })
       .readOnly(),
   ),
   tool('console_inject', (t) =>
@@ -245,18 +269,26 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
         'Send a raw HTTP request over plain TCP using deterministic server-side logic with DNS pinning, response parsing, and bounded capture. Non-loopback HTTP targets require explicit request-scoped authorization.',
       )
       .string('host', 'Target hostname or IP literal')
-      .number('port', 'TCP port to connect to. Default: 80', { default: 80 })
+      .number('port', 'TCP port to connect to. Default: 80', {
+        default: 80,
+        minimum: 1,
+        maximum: 65535,
+      })
       .string('requestText', 'Raw HTTP request text to send as UTF-8 bytes')
       .object(
         'authorization',
         networkAuthorizationSchema,
         'Request-scoped authorization policy for private-network or insecure-HTTP targets. Use exact hosts/CIDRs instead of process-wide bypasses.',
       )
-      .number('timeoutMs', 'Socket timeout in milliseconds', { default: 30000 })
+      .number('timeoutMs', 'Socket timeout in milliseconds', {
+        default: 30000,
+        minimum: 1000,
+        maximum: 120000,
+      })
       .number(
         'maxResponseBytes',
         'Maximum number of raw response bytes to capture before truncating the exchange',
-        { default: 512000 },
+        { default: 512000, minimum: 1024, maximum: 10485760 },
       )
       .requiredOpenWorld('host', 'requestText'),
   ),
@@ -283,11 +315,15 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
         networkAuthorizationSchema,
         'Request-scoped authorization policy for private-network or insecure-HTTP targets. Use exact hosts/CIDRs instead of process-wide bypasses.',
       )
-      .number('timeoutMs', 'Probe timeout in milliseconds', { default: 30000 })
+      .number('timeoutMs', 'Probe timeout in milliseconds', {
+        default: 30000,
+        minimum: 1000,
+        maximum: 120000,
+      })
       .number(
         'maxBodyBytes',
         'Maximum number of response body bytes to capture for the snippet before truncating',
-        { default: 32768 },
+        { default: 32768, minimum: 1024, maximum: 1048576 },
       )
       .requiredOpenWorld('url'),
   ),
@@ -302,11 +338,17 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
       )
       .number('streamId', 'Stream identifier (0 for connection-level frames). Default: 0', {
         default: 0,
+        minimum: 0,
+        maximum: 2147483647,
       })
-      .number('flags', 'Raw flags byte (0-255). Overrides type-specific defaults when set.')
+      .number('flags', 'Raw flags byte (0-255). Overrides type-specific defaults when set.', {
+        minimum: 0,
+        maximum: 255,
+      })
       .number(
         'frameTypeCode',
         'Explicit frame type code for RAW frames (0-255). Required when frameType is RAW.',
+        { minimum: 0, maximum: 255 },
       )
       .string('payloadHex', 'Frame payload as a hex string. Mutually exclusive with payloadText.')
       .string('payloadText', 'Frame payload as a text string. Mutually exclusive with payloadHex.')
@@ -336,9 +378,15 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
       )
       .string('url', 'Target URL to measure RTT to')
       .string('probeType', 'Probe type: tcp, tls, or http. Default: tcp', { default: 'tcp' })
-      .number('iterations', 'Number of probe iterations (1-50). Default: 5', { default: 5 })
+      .number('iterations', 'Number of probe iterations (1-50). Default: 5', {
+        default: 5,
+        minimum: 1,
+        maximum: 50,
+      })
       .number('timeoutMs', 'Per-probe timeout in milliseconds (100-30000). Default: 5000', {
         default: 5000,
+        minimum: 100,
+        maximum: 30000,
       })
       .object(
         'authorization',
@@ -354,7 +402,11 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
       .desc(
         'Scan all captured network requests and extract authentication credentials (tokens, cookies, API keys, signatures).\n\nReturns masked values (first 6 + last 4 chars) sorted by confidence.\nSources scanned: request headers, cookies, URL query params, JSON request body.\n\nUSE THIS after capturing traffic to automatically identify:\n- Bearer tokens / JWT tokens\n- Session cookies\n- Custom auth headers (X-Token, X-Signature, X-Api-Key)\n- Signing parameters in request body or query string',
       )
-      .number('minConfidence', 'Minimum confidence threshold 0-1', { default: 0.4 }),
+      .number('minConfidence', 'Minimum confidence threshold 0-1', {
+        default: 0.4,
+        minimum: 0,
+        maximum: 1,
+      }),
   ),
   tool('network_export_har', (t) =>
     t
@@ -392,7 +444,11 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
         'authorizationCapability',
         'Base64url-encoded JSON capability for request-scoped authorization. Payload fields mirror authorization and must include requestId.',
       )
-      .number('timeoutMs', 'Request timeout in milliseconds', { default: 30000 })
+      .number('timeoutMs', 'Request timeout in milliseconds', {
+        default: 30000,
+        minimum: 1000,
+        maximum: 120000,
+      })
       .boolean(
         'dryRun',
         'If true (default), only preview the request without sending. Set false to execute.',
@@ -408,12 +464,20 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
         'ICMP traceroute with per-hop RTT and error classification. Windows: no admin required. Linux/macOS: requires root or CAP_NET_RAW.',
       )
       .string('target', 'Target IP address to trace route to')
-      .number('maxHops', 'Maximum number of hops (1-64). Default: 30', { default: 30 })
+      .number('maxHops', 'Maximum number of hops (1-64). Default: 30', {
+        default: 30,
+        minimum: 1,
+        maximum: 64,
+      })
       .number('timeout', 'Per-hop timeout in milliseconds (100-30000). Default: 5000', {
         default: 5000,
+        minimum: 100,
+        maximum: 30000,
       })
       .number('packetSize', 'ICMP echo request payload size in bytes (8-65500). Default: 32', {
         default: 32,
+        minimum: 8,
+        maximum: 65500,
       })
       .required('target')
       .query(),
@@ -424,11 +488,21 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
         'ICMP echo probe with TTL control and error classification. Windows: no admin required. Linux/macOS: requires root or CAP_NET_RAW.',
       )
       .string('target', 'Target IP address to probe')
-      .number('ttl', 'Time-to-live value (1-255). Default: 128', { default: 128 })
+      .number('ttl', 'Time-to-live value (1-255). Default: 128', {
+        default: 128,
+        minimum: 1,
+        maximum: 255,
+      })
       .number('packetSize', 'ICMP echo request payload size in bytes (8-65500). Default: 32', {
         default: 32,
+        minimum: 8,
+        maximum: 65500,
       })
-      .number('timeout', 'Timeout in milliseconds (100-30000). Default: 5000', { default: 5000 })
+      .number('timeout', 'Timeout in milliseconds (100-30000). Default: 5000', {
+        default: 5000,
+        minimum: 100,
+        maximum: 30000,
+      })
       .required('target')
       .query(),
   ),
@@ -453,7 +527,11 @@ When all rules are removed, the CDP Fetch domain is automatically disabled.`,
         'Intercept stage. Response (default) intercepts after server responds.',
         { default: 'Response' },
       )
-      .number('responseCode', 'HTTP status code to return', { default: 200 })
+      .number('responseCode', 'HTTP status code to return', {
+        default: 200,
+        minimum: 100,
+        maximum: 599,
+      })
       .object(
         'responseHeaders',
         { additionalProperties: { type: 'string' } },

@@ -47,9 +47,15 @@ export const platformTools: Tool[] = [
         '扫描指定目录中的所有 JSON 文件，返回 raw 内容。适用于 Electron 应用的用户数据目录（Windows: %APPDATA%, macOS...',
       )
       .string('dirPath', 'Directory path to scan for JSON files')
-      .number('maxFiles', '可选。最多读取的 JSON 文件数量。默认 20。', { default: 20 })
+      .number('maxFiles', '可选。最多读取的 JSON 文件数量。默认 20。', {
+        default: 20,
+        minimum: 1,
+        maximum: 10000,
+      })
       .number('maxFileSizeKB', '可选。单个文件大小上限（KB）。超限文件跳过。默认 1024。', {
         default: 1024,
+        minimum: 1,
+        maximum: 102400,
       })
       .required('dirPath')
       .query(),
@@ -60,7 +66,11 @@ export const platformTools: Tool[] = [
       .string('inputPath', '必填。ASAR 文件路径。')
       .string('pattern', '必填。正则表达式字符串。')
       .string('fileGlob', '可选。文件扩展名过滤。默认 *.js。', { default: '*.js' })
-      .number('maxResults', '可选。最大返回匹配数。默认 100。', { default: 100 })
+      .number('maxResults', '可选。最大返回匹配数。默认 100。', {
+        default: 100,
+        minimum: 1,
+        maximum: 10000,
+      })
       .required('inputPath', 'pattern')
       .query(),
   ),
@@ -101,11 +111,23 @@ export const platformTools: Tool[] = [
     t
       .desc('Launch Electron app with dual CDP debugging: --inspect for main process (Node...')
       .string('exePath', 'Electron .exe file path')
-      .number('mainPort', 'Main process inspect port.', { default: 9229 })
-      .number('rendererPort', 'Renderer remote debugging port.', { default: 9222 })
+      .number('mainPort', 'Main process inspect port.', {
+        default: 9229,
+        minimum: 1,
+        maximum: 65535,
+      })
+      .number('rendererPort', 'Renderer remote debugging port.', {
+        default: 9222,
+        minimum: 1,
+        maximum: 65535,
+      })
       .array('args', { type: 'string' }, 'Extra command-line arguments.')
       .boolean('skipFuseCheck', 'Skip fuse status check.', { default: false })
-      .number('waitMs', 'Milliseconds to wait for CDP ports.', { default: 8000 })
+      .number('waitMs', 'Milliseconds to wait for CDP ports.', {
+        default: 8000,
+        minimum: 1000,
+        maximum: 120000,
+      })
       .requiredOpenWorld('exePath'),
   ),
   tool('electron_debug_status', (t) =>
@@ -120,7 +142,11 @@ export const platformTools: Tool[] = [
       .enum('action', ['start', 'dump', 'stop', 'list', 'guide'], 'Action to perform.', {
         default: 'guide',
       })
-      .number('port', 'Renderer CDP port (--remote-debugging-port).', { default: 9222 })
+      .number('port', 'Renderer CDP port (--remote-debugging-port).', {
+        default: 9222,
+        minimum: 1,
+        maximum: 65535,
+      })
       .string('sessionId', 'Session ID for dump/stop.')
       .boolean('clear', 'Clear captured messages after dump.', { default: true })
       .openWorld(),

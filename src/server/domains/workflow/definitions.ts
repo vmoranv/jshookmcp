@@ -69,7 +69,11 @@ export const workflowToolDefinitions: Tool[] = [
         default: true,
       })
       .boolean('stripNoise', 'Skip matches inside SVG path data or base64 blobs', { default: true })
-      .number('maxMatches', 'Maximum matches to return per pattern', { default: 10 })
+      .number('maxMatches', 'Maximum matches to return per pattern', {
+        default: 10,
+        minimum: 1,
+        maximum: 1000,
+      })
       .prop('networkPolicy', workflowNetworkPolicySchema)
       .requiredOpenWorld('url', 'patterns'),
   ),
@@ -130,7 +134,11 @@ export const workflowToolDefinitions: Tool[] = [
         { type: 'number' },
         'Status codes for which to include response body snippet (default: [200, 201, 204])',
       )
-      .number('maxBodySnippetLength', 'Max characters per response body snippet', { default: 500 })
+      .number('maxBodySnippetLength', 'Max characters per response body snippet', {
+        default: 500,
+        minimum: 0,
+        maximum: 10000,
+      })
       .boolean(
         'autoInjectAuth',
         'Auto-inject Bearer token from localStorage (token / active_token / access_token).',
