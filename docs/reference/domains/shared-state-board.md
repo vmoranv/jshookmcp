@@ -21,7 +21,7 @@
 
 ## 代表工具
 
-- `state_board` — 待补充中文：Unified shared state board for cross-agent key-value coordination.
+- `state_board` — 统一的共享状态板，用于跨 Agent 的键值协调。
 - `state_board_watch` — 监听某个 key 或模式的变化，返回可用于轮询更新的 watch ID。
 - `state_board_io` — 导出或导入共享状态板条目。
 
@@ -29,6 +29,6 @@
 
 | 工具 | 说明 |
 | --- | --- |
-| `state_board` | 待补充中文：Unified shared state board for cross-agent key-value coordination. |
+| `state_board` | 统一的共享状态板，用于跨 Agent 的键值协调。 |
 | `state_board_watch` | 监听某个 key 或模式的变化，返回可用于轮询更新的 watch ID。 |
 | `state_board_io` | 导出或导入共享状态板条目。 |

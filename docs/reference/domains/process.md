@@ -23,7 +23,7 @@
 
 - `electron_attach` — 通过 CDP 连接正在运行的 Electron 应用并执行检查或脚本。
 - `process_windows` — 获取指定进程关联的全部窗口句柄。
-- `process_check_debug_port` — 待补充中文：Check if a process has a debug port enabled for CDP attachment.
+- `process_check_debug_port` — 检查目标进程是否已开启可用于 CDP 附加的调试端口。
 - `process_launch_debug` — 以启用远程调试端口的方式启动可执行文件。
 - `memory_read` — 读取目标进程指定地址的内存内容；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
 - `memory_write` — 向目标进程指定地址写入内存数据；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
@@ -38,7 +38,7 @@
 | --- | --- |
 | `electron_attach` | 通过 CDP 连接正在运行的 Electron 应用并执行检查或脚本。 |
 | `process_windows` | 获取指定进程关联的全部窗口句柄。 |
-| `process_check_debug_port` | 待补充中文：Check if a process has a debug port enabled for CDP attachment. |
+| `process_check_debug_port` | 检查目标进程是否已开启可用于 CDP 附加的调试端口。 |
 | `process_launch_debug` | 以启用远程调试端口的方式启动可执行文件。 |
 | `memory_read` | 读取目标进程指定地址的内存内容；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。 |
 | `memory_write` | 向目标进程指定地址写入内存数据；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。 |

@@ -23,35 +23,35 @@
 
 ## 代表工具
 
-- `network_enable` — 待补充中文：Enable network request monitoring. Must be called before page_navigate to capture requests.
-- `network_disable` — 待补充中文：Disable network request monitoring
-- `network_get_status` — 待补充中文：Get network monitoring status (enabled, request count, response count)
+- `network_enable` — 启用网络请求监控；必须在 page_navigate 之前调用才能捕获请求。
+- `network_disable` — 禁用网络请求监控。
+- `network_get_status` — 获取网络监控状态，包括是否启用、请求数和响应数。
 - `network_monitor` — 管理网络请求监控。启用/禁用监控或查看状态，需在 page_navigate 前启用以捕获请求。
 - `network_get_requests` — 获取已捕获的网络请求；大结果会返回摘要与 detailId。
 - `network_get_response_body` — 获取指定请求的响应体；大响应会自动截断或摘要化。
 - `network_get_stats` — 获取网络流量统计，包括请求量、响应量、错误率与时序信息。
 - `performance_get_metrics` — 获取页面性能指标，如 FCP、LCP、FID、CLS。
 - `performance_coverage` — 开始或停止 JavaScript 与 CSS 代码覆盖率录制。
-- `performance_take_heap_snapshot` — 待补充中文：Take a V8 heap memory snapshot
+- `performance_take_heap_snapshot` — 采集一份 V8 堆内存快照。
 
 ## 工具清单（27）
 
 | 工具 | 说明 |
 | --- | --- |
-| `network_enable` | 待补充中文：Enable network request monitoring. Must be called before page_navigate to capture requests. |
-| `network_disable` | 待补充中文：Disable network request monitoring |
-| `network_get_status` | 待补充中文：Get network monitoring status (enabled, request count, response count) |
+| `network_enable` | 启用网络请求监控；必须在 page_navigate 之前调用才能捕获请求。 |
+| `network_disable` | 禁用网络请求监控。 |
+| `network_get_status` | 获取网络监控状态，包括是否启用、请求数和响应数。 |
 | `network_monitor` | 管理网络请求监控。启用/禁用监控或查看状态，需在 page_navigate 前启用以捕获请求。 |
 | `network_get_requests` | 获取已捕获的网络请求；大结果会返回摘要与 detailId。 |
 | `network_get_response_body` | 获取指定请求的响应体；大响应会自动截断或摘要化。 |
 | `network_get_stats` | 获取网络流量统计，包括请求量、响应量、错误率与时序信息。 |
 | `performance_get_metrics` | 获取页面性能指标，如 FCP、LCP、FID、CLS。 |
 | `performance_coverage` | 开始或停止 JavaScript 与 CSS 代码覆盖率录制。 |
-| `performance_take_heap_snapshot` | 待补充中文：Take a V8 heap memory snapshot |
+| `performance_take_heap_snapshot` | 采集一份 V8 堆内存快照。 |
 | `performance_trace` | Chrome Performance Trace 录制。start 开始捕获，stop 结束并保存跟踪文件。 |
 | `profiler_cpu` | CDP CPU 性能分析。start 开始录制，stop 结束并保存含热点函数的 Profile。 |
 | `profiler_heap_sampling` | V8 堆分配采样。start 开始追踪，stop 结束并返回主要分配热点。 |
-| `console_get_exceptions` | 待补充中文：Get captured uncaught exceptions from the page |
+| `console_get_exceptions` | 获取页面中已捕获的未处理异常。 |
 | `console_inject` | 注入页面内监控器/拦截器，支持 script_monitor、xhr_interceptor、fetch_interceptor、function_tracer 等类型。 |
 | `console_buffers` | 管理已注入拦截器的状态，支持清空缓冲区或重置拦截器。 |
 | `http_request_build` | 构建原始 HTTP/1.x 请求载荷（CRLF 行尾）。用于为 http_plain_request 或其他原始套接字工具准备确定性请求文本。 |

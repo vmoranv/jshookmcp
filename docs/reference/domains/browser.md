@@ -64,12 +64,12 @@
 | `get_all_scripts` | 获取页面中所有已加载脚本的列表。 |
 | `get_script_source` | 获取指定脚本的源代码。 |
 | `console_monitor` | 启用或禁用控制台监控，捕获 console.log、console.error 等输出。 |
-| `console_get_logs` | 待补充中文：Get captured console logs |
+| `console_get_logs` | 获取当前页面已捕获的控制台日志输出。 |
 | `console_execute` | 在控制台上下文中执行 JavaScript 表达式。 |
 | `page_inject_script` | 向当前页面注入 JavaScript 代码。 |
 | `page_cookies` | 管理页面 Cookie。操作：get（获取全部）、set（需提供 cookies 数组）、clear（清除全部）。 |
-| `page_set_viewport` | 待补充中文：Set viewport size |
-| `page_emulate_device` | 待补充中文：Emulate mobile device (iPhone, iPad, Android) |
+| `page_set_viewport` | 设置当前页面视口尺寸。 |
+| `page_emulate_device` | 模拟移动设备环境，例如 iPhone、iPad 或 Android 机型。 |
 | `page_local_storage` | 管理 localStorage。操作：get（获取全部项）、set（需提供 key 和 value）。 |
 | `page_press_key` | 触发一次键盘按键操作，如 Enter、Escape 或 ArrowDown。 |
 | `captcha_detect` | 使用 AI 视觉分析检测当前页面上的 CAPTCHA。 |
