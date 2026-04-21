@@ -8,6 +8,10 @@ import {
 } from '@modules/process/memory/types';
 import { nativeMemoryManager } from '@native/NativeMemoryManager';
 import { isKoffiAvailable } from '@native/NativeMemoryManager.utils';
+import {
+  MEMORY_PROTECTION_QUERY_TIMEOUT_MS,
+  MEMORY_PROTECTION_PWSH_TIMEOUT_MS,
+} from '@src/constants';
 import { parseProcMaps, formatLinuxProtection } from './linux/mapsParser';
 
 function buildProtectionCheckScript(pid: number, address: number): string {
@@ -191,7 +195,7 @@ export async function checkMemoryProtection(
       const darwinAddr = parseInt(address, 16);
       if (isNaN(darwinAddr)) return { success: false, error: 'Invalid address format' };
       const { stdout } = await execAsync(`vmmap -v ${pid}`, {
-        timeout: 15000,
+        timeout: MEMORY_PROTECTION_QUERY_TIMEOUT_MS,
         maxBuffer: 1024 * 1024 * 5,
       });
       const regionRe = /^(\S[^\t]*?)\s{2,}([0-9a-f]+)-([0-9a-f]+)\s+\[.*?\]\s+([a-z-]+)\/([a-z-]+)/;
@@ -252,7 +256,7 @@ export async function checkMemoryProtection(
     const psScript = buildProtectionCheckScript(pid, winAddr);
     const { stdout } = await executePowerShellScript(psScript, {
       maxBuffer: 1024 * 1024,
-      timeout: 30000,
+      timeout: MEMORY_PROTECTION_PWSH_TIMEOUT_MS,
     });
 
     const _trimmed = stdout.trim();

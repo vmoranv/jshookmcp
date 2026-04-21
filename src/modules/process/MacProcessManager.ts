@@ -13,6 +13,8 @@ import {
   DEFAULT_DEBUG_PORT,
   PROCESS_LIST_MAX_BUFFER_BYTES,
   PROCESS_LAUNCH_WAIT_MS,
+  EXTERNAL_TOOL_PROBE_TIMEOUT_MS,
+  NATIVE_ADMIN_CHECK_TIMEOUT_MS,
 } from '@src/constants';
 import { ScriptLoader } from '@native/ScriptLoader';
 import { ProcessRegistry } from '@utils/ProcessRegistry';
@@ -203,7 +205,7 @@ export class MacProcessManager {
 
       const { stdout } = await execAsync(
         `osascript -e '${appleScript.replace(/'/g, "'\"'\"'")}' 2>/dev/null || echo "[]"`,
-        { timeout: 5000 },
+        { timeout: EXTERNAL_TOOL_PROBE_TIMEOUT_MS },
       );
 
       const windows: WindowInfo[] = [];
@@ -245,7 +247,7 @@ export class MacProcessManager {
       });
 
       const { stdout } = await execFileAsync('python3', ['-c', pythonScript], {
-        timeout: 10_000,
+        timeout: NATIVE_ADMIN_CHECK_TIMEOUT_MS * 2,
         windowsHide: true,
       });
 

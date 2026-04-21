@@ -1,5 +1,6 @@
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { logger } from '@utils/logger';
+import { PAGE_FRAME_SELECTOR_TIMEOUT_MS, PAGE_NETWORK_IDLE_TIMEOUT_MS } from '@src/constants';
 import { setTimeout as asyncSetTimeout } from 'node:timers/promises';
 import type { Page, Frame } from 'rebrowser-puppeteer-core';
 import type { BrowserTargetInfo } from '@modules/browser/BrowserTargetSessionManager';
@@ -281,7 +282,9 @@ export class PageController {
     }
 
     if (options.frameSelector) {
-      await page.waitForSelector(options.frameSelector, { timeout: 10000 }).catch(() => null);
+      await page
+        .waitForSelector(options.frameSelector, { timeout: PAGE_FRAME_SELECTOR_TIMEOUT_MS })
+        .catch(() => null);
       const handle = await page.$(options.frameSelector);
       if (!handle) {
         throw new Error(`No element found for iframe selector: ${options.frameSelector}`);
@@ -466,7 +469,7 @@ export class PageController {
     return resolvedDevice;
   }
 
-  async waitForNetworkIdle(timeout = 30000): Promise<void> {
+  async waitForNetworkIdle(timeout = PAGE_NETWORK_IDLE_TIMEOUT_MS): Promise<void> {
     const page = await this.collector.getActivePage();
     await page.waitForNetworkIdle({ timeout });
     logger.info('Network is idle');

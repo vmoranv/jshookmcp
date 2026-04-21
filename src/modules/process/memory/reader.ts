@@ -6,7 +6,11 @@ import { promises as fs } from 'node:fs';
 import { logger } from '@utils/logger';
 import { nativeMemoryManager } from '@native/NativeMemoryManager';
 import { isKoffiAvailable } from '@native/Win32API';
-import { MEMORY_MAX_READ_BYTES } from '@src/constants';
+import {
+  MEMORY_MAX_READ_BYTES,
+  MEMORY_READ_TIMEOUT_MS,
+  MEMORY_VMMAP_TIMEOUT_MS,
+} from '@src/constants';
 import {
   execAsync,
   executePowerShellScript,
@@ -108,7 +112,7 @@ async function readMemoryLinux(
   try {
     const { stdout } = await execAsync(
       `sudo dd if=/proc/${pid}/mem bs=1 skip=${address} count=${size} 2>/dev/null | xxd -p | tr -d '\\n' || echo ""`,
-      { maxBuffer: 1024 * 1024 * 10, timeout: 10000 },
+      { maxBuffer: 1024 * 1024 * 10, timeout: MEMORY_READ_TIMEOUT_MS },
     );
 
     if (!stdout.trim()) {
@@ -191,7 +195,7 @@ async function readMemoryMac(
   try {
     const { stdout } = await execAsync(
       `lldb --batch -p ${pid} -o "memory read --outfile ${tmpFile} --binary ${addrHex} -c ${size}" -o "process detach"`,
-      { timeout: 15000, maxBuffer: 1024 * 1024 * 10 },
+      { timeout: MEMORY_VMMAP_TIMEOUT_MS, maxBuffer: 1024 * 1024 * 10 },
     );
     if (!stdout.includes('bytes written')) {
       const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? stdout;

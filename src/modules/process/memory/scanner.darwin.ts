@@ -5,6 +5,7 @@ import { promises as fs } from 'node:fs';
 import { logger } from '@utils/logger';
 import type { MemoryScanResult } from '@modules/process/memory/types';
 import { execAsync } from '@modules/process/memory/types';
+import { MEMORY_SCAN_TIMEOUT_MS } from '@src/constants';
 import { patternToBytesMac } from './scanner.patterns';
 import { findPatternInBuffer } from '@native/NativeMemoryManager.utils';
 
@@ -153,7 +154,7 @@ def __lldb_init_module(debugger, internal_dict):
   await fs.writeFile(cmdFile, `command script import ${pyFile}\nprocess detach\n`, 'utf8');
   try {
     const { stdout } = await execAsync(`lldb --batch -p ${pid} --source ${cmdFile}`, {
-      timeout: 120000,
+      timeout: MEMORY_SCAN_TIMEOUT_MS,
       maxBuffer: 1024 * 1024 * 5,
     });
     const line = stdout.split('\n').find((l) => l.startsWith('SCAN_RESULT:'));

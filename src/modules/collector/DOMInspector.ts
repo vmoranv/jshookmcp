@@ -17,6 +17,7 @@ import {
   type DOMObserverOptions,
 } from '@modules/collector/DOMInspector.evaluations';
 import { logger } from '@utils/logger';
+import { DOM_QUERY_DEFAULT_LIMIT, DOM_WAIT_ELEMENT_TIMEOUT_MS } from '@src/constants';
 
 export type {
   DOMInspectorClickableElement,
@@ -95,7 +96,10 @@ export class DOMInspector {
     }
   }
 
-  async querySelectorAll(selector: string, limit = 50): Promise<DOMQueryAllResult> {
+  async querySelectorAll(
+    selector: string,
+    limit = DOM_QUERY_DEFAULT_LIMIT,
+  ): Promise<DOMQueryAllResult> {
     try {
       const page = await this.collector.getActivePage();
       const readyStateStatus = await this.waitForReadyState(page);
@@ -211,7 +215,10 @@ export class DOMInspector {
     }
   }
 
-  async waitForElement(selector: string, timeout = 30000): Promise<ElementInfo | null> {
+  async waitForElement(
+    selector: string,
+    timeout = DOM_WAIT_ELEMENT_TIMEOUT_MS,
+  ): Promise<ElementInfo | null> {
     try {
       const page = await this.collector.getActivePage();
       await page.waitForSelector(selector, { timeout });

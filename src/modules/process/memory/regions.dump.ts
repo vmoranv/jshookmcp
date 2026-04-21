@@ -4,6 +4,7 @@ import {
   executePowerShellScript,
   type Platform,
 } from '@modules/process/memory/types';
+import { MEMORY_DUMP_TIMEOUT_MS } from '@src/constants';
 
 function buildMemoryDumpScript(
   pid: number,
@@ -97,7 +98,7 @@ export async function dumpMemoryRegion(
           '-o',
           'process detach',
         ],
-        { timeout: 60000, maxBuffer: 1024 * 1024 },
+        { timeout: MEMORY_DUMP_TIMEOUT_MS, maxBuffer: 1024 * 1024 },
       );
       if (!stdout.includes('bytes written')) {
         const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? stdout;
@@ -118,7 +119,7 @@ export async function dumpMemoryRegion(
     const psScript = buildMemoryDumpScript(pid, addrNum, size, outputPath);
     const { stdout } = await executePowerShellScript(psScript, {
       maxBuffer: 1024 * 1024,
-      timeout: 60000,
+      timeout: MEMORY_DUMP_TIMEOUT_MS,
     });
 
     const _trimmed = stdout.trim();

@@ -9,6 +9,7 @@
  */
 
 import { execSync, execFileSync } from 'node:child_process';
+import { ADB_VERSION_CHECK_TIMEOUT_MS } from '@src/constants';
 import { createWriteStream } from 'node:fs';
 import type { Duplex, Readable } from 'node:stream';
 import type { ADBDevice, ADBForwardEntry, APKInfo, ADBShellResult, CDPTarget } from './types.js';
@@ -39,7 +40,7 @@ function sdkUnavailableError(): never {
 /** Check if ADB binary is accessible. */
 function checkADBBinary(): boolean {
   try {
-    execSync('adb version', { stdio: 'pipe', timeout: 5000 });
+    execSync('adb version', { stdio: 'pipe', timeout: ADB_VERSION_CHECK_TIMEOUT_MS });
     return true;
   } catch {
     return false;
@@ -201,7 +202,7 @@ export class ADBConnector {
     try {
       execFileSync('adb', ['-s', serial, 'forward', '--remove', `tcp:${localPort}`], {
         stdio: 'pipe',
-        timeout: 5000,
+        timeout: ADB_VERSION_CHECK_TIMEOUT_MS,
       });
     } catch {
       // Forward may already be removed, ignore error

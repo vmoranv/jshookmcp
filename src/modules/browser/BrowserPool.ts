@@ -19,6 +19,7 @@
 
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'rebrowser-puppeteer-core';
 import { logger } from '@utils/logger';
+import { BROWSER_POOL_IDLE_TIMEOUT_MS, BROWSER_POOL_MAX_TABS } from '@src/constants';
 import { UnifiedBrowserManager, type UnifiedBrowserConfig } from './UnifiedBrowserManager';
 
 /**
@@ -84,12 +85,14 @@ export interface BrowserPoolStats {
 /**
  * Default idle timeout: 5 minutes
  */
-const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+
+const DEFAULT_IDLE_TIMEOUT_MS = BROWSER_POOL_IDLE_TIMEOUT_MS;
 
 /**
  * Default max tabs per browser: 10
  */
-const DEFAULT_MAX_TABS = 10;
+
+const DEFAULT_MAX_TABS = BROWSER_POOL_MAX_TABS;
 
 export class BrowserPool {
   private entries = new Map<string, PoolEntry>();

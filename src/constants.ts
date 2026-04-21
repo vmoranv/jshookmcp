@@ -712,3 +712,71 @@ export const MACRO_DEFAULT_TIMEOUT_MS = int('MACRO_DEFAULT_TIMEOUT_MS', 120_000)
 
 /** Default per-invocation timeout for built-in macro definitions. */
 export const MACRO_BUILTIN_TIMEOUT_MS = int('MACRO_BUILTIN_TIMEOUT_MS', 60_000);
+
+/* ================================================================== */
+/*  Collector / DOM / Browser pool                                     */
+/* ================================================================== */
+
+/** Timeout for waiting on an iframe selector during frame resolution. */
+export const PAGE_FRAME_SELECTOR_TIMEOUT_MS = int('PAGE_FRAME_SELECTOR_TIMEOUT_MS', 10_000);
+
+/** Timeout for waitForNetworkIdle in PageController. */
+export const PAGE_NETWORK_IDLE_TIMEOUT_MS = int('PAGE_NETWORK_IDLE_TIMEOUT_MS', 30_000);
+
+/** Default limit for querySelectorAll results in DOMInspector. */
+export const DOM_QUERY_DEFAULT_LIMIT = int('DOM_QUERY_DEFAULT_LIMIT', 50);
+
+/** Timeout for waitForElement (waitForSelector) in DOMInspector. */
+export const DOM_WAIT_ELEMENT_TIMEOUT_MS = int('DOM_WAIT_ELEMENT_TIMEOUT_MS', 30_000);
+
+/** Browser pool idle timeout before auto-disconnect. Default: 5 minutes. */
+export const BROWSER_POOL_IDLE_TIMEOUT_MS = int('BROWSER_POOL_IDLE_TIMEOUT_MS', 300_000);
+
+/** Max tabs per pooled browser instance. */
+export const BROWSER_POOL_MAX_TABS = int('BROWSER_POOL_MAX_TABS', 10);
+
+/* ================================================================== */
+/*  ICMP probe                                                         */
+/* ================================================================== */
+
+/** Default timeout for a single ICMP ping probe. */
+export const ICMP_PROBE_TIMEOUT_MS = int('ICMP_PROBE_TIMEOUT_MS', 5_000);
+
+/** Default max hops for traceroute. */
+export const ICMP_TRACEROUTE_MAX_HOPS = int('ICMP_TRACEROUTE_MAX_HOPS', 30);
+
+/** Default ICMP packet payload size in bytes. */
+export const ICMP_DEFAULT_PACKET_SIZE = int('ICMP_DEFAULT_PACKET_SIZE', 32);
+
+/* ================================================================== */
+/*  ADB connector                                                      */
+/* ================================================================== */
+
+/** Timeout for `adb version` availability check. */
+export const ADB_VERSION_CHECK_TIMEOUT_MS = int('ADB_VERSION_CHECK_TIMEOUT_MS', 5_000);
+
+/* ================================================================== */
+/*  Coordination domain                                                */
+/* ================================================================== */
+
+/** Timeout for page.goto when restoring a page snapshot. */
+export const COORDINATION_GOTO_TIMEOUT_MS = int('COORDINATION_GOTO_TIMEOUT_MS', 30_000);
+
+/* ================================================================== */
+/*  Memory audit / region / process signal                             */
+/* ================================================================== */
+
+/** Capacity of the ring-buffer audit trail for memory operations. */
+export const MEMORY_AUDIT_TRAIL_CAPACITY = int('MEMORY_AUDIT_TRAIL_CAPACITY', 5_000);
+
+/** Timeout for process stop/continue signals during memory scan. */
+export const MEMORY_PROCESS_SIGNAL_TIMEOUT_MS = int('MEMORY_PROCESS_SIGNAL_TIMEOUT_MS', 2_000);
+
+/** Timeout for shell probes during memory availability detection. */
+export const MEMORY_PROBE_CMD_TIMEOUT_MS = int('MEMORY_PROBE_CMD_TIMEOUT_MS', 5_000);
+
+/** Timeout for vmmap and similar region enumeration subprocesses. */
+export const MEMORY_VMMAP_ENUM_TIMEOUT_MS = int('MEMORY_VMMAP_ENUM_TIMEOUT_MS', 15_000);
+
+/** Timeout for PowerShell-based module listing subprocesses. */
+export const MEMORY_MODULES_TIMEOUT_MS = int('MEMORY_MODULES_TIMEOUT_MS', 30_000);

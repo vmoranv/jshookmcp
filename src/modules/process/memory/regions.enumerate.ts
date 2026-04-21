@@ -8,6 +8,7 @@ import {
 } from '@modules/process/memory/types';
 import { nativeMemoryManager } from '@native/NativeMemoryManager';
 import { isKoffiAvailable } from '@native/NativeMemoryManager.utils';
+import { MEMORY_VMMAP_ENUM_TIMEOUT_MS, MEMORY_MODULES_TIMEOUT_MS } from '@src/constants';
 import { parseProcMaps, formatLinuxProtection } from './linux/mapsParser';
 
 interface DarwinMemoryRegion {
@@ -170,7 +171,7 @@ export async function enumerateRegions(
   if (platform === 'darwin') {
     try {
       const { stdout } = await execAsync(`vmmap -v ${pid}`, {
-        timeout: 15000,
+        timeout: MEMORY_VMMAP_ENUM_TIMEOUT_MS,
         maxBuffer: 1024 * 1024 * 5,
       });
       const regions: DarwinMemoryRegion[] = [];
@@ -229,7 +230,7 @@ export async function enumerateRegions(
     const psScript = buildEnumerateRegionsScript(pid);
     const { stdout } = await executePowerShellScript(psScript, {
       maxBuffer: 1024 * 1024 * 10,
-      timeout: 30000,
+      timeout: MEMORY_MODULES_TIMEOUT_MS,
     });
 
     const _trimmed = stdout.trim();

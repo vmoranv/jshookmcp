@@ -5,7 +5,7 @@
 import { logger } from '@utils/logger';
 import { nativeMemoryManager } from '@native/NativeMemoryManager';
 import { isKoffiAvailable } from '@native/Win32API';
-import { MEMORY_MAX_WRITE_BYTES } from '@src/constants';
+import { MEMORY_MAX_WRITE_BYTES, MEMORY_WRITE_TIMEOUT_MS } from '@src/constants';
 import {
   execAsync,
   executePowerShellScript,
@@ -115,7 +115,7 @@ async function writeMemoryLinux(
 
     const { stderr } = await execAsync(
       `sudo sh -c 'printf "${hexData}" | xxd -r -p | dd of=/proc/${pid}/mem bs=1 seek=${address} conv=notrunc 2>&1' || echo ""`,
-      { maxBuffer: 1024 * 1024, timeout: 10000 },
+      { maxBuffer: 1024 * 1024, timeout: MEMORY_WRITE_TIMEOUT_MS },
     );
 
     if (stderr && stderr.includes('error')) {
@@ -194,7 +194,7 @@ async function writeMemoryMac(
       .join(' ');
     const { stdout } = await execAsync(
       `lldb --batch -p ${pid} -o "memory write ${addrHex} ${hexBytes}" -o "process detach"`,
-      { timeout: 10000, maxBuffer: 1024 * 1024 },
+      { timeout: MEMORY_WRITE_TIMEOUT_MS, maxBuffer: 1024 * 1024 },
     );
     if (stdout.includes('error:')) {
       const errLine = stdout.split('\n').find((l) => l.includes('error:')) ?? stdout;

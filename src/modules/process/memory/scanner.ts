@@ -14,6 +14,7 @@
  *   - Windows: NtSuspendProcess / NtResumeProcess
  */
 import { logger } from '@utils/logger';
+import { MEMORY_PROCESS_SIGNAL_TIMEOUT_MS, MEMORY_PROBE_CMD_TIMEOUT_MS } from '@src/constants';
 import type { Platform, MemoryScanResult, PatternType } from '@modules/process/memory/types';
 import { scanMemoryWindows } from './scanner.windows';
 import { scanMemoryLinux } from './scanner.linux';
@@ -151,15 +152,14 @@ async function suspendProcess(platform: Platform, pid: number): Promise<boolean>
       }
       case 'linux': {
         const { execAsync } = await import('@modules/process/memory/types');
-        await execAsync(`kill -STOP ${pid}`, { timeout: 2000 });
+        await execAsync(`kill -STOP ${pid}`, { timeout: MEMORY_PROCESS_SIGNAL_TIMEOUT_MS });
         return true;
       }
       case 'win32': {
         const { execAsync } = await import('@modules/process/memory/types');
-        // Windows: use PowerShell to call NtSuspendProcess
         await execAsync(
           `powershell -NoProfile -Command "(Add-Type -MemberDefinition '[DllImport("ntdll.dll")] public static extern int NtSuspendProcess(IntPtr h);' -Name W -Namespace N -PassThru)::NtSuspendProcess((Get-Process -Id ${pid}).Handle)"`,
-          { timeout: 5000 },
+          { timeout: MEMORY_PROBE_CMD_TIMEOUT_MS },
         );
         return true;
       }
@@ -184,14 +184,14 @@ async function resumeProcess(platform: Platform, pid: number): Promise<void> {
       }
       case 'linux': {
         const { execAsync } = await import('@modules/process/memory/types');
-        await execAsync(`kill -CONT ${pid}`, { timeout: 2000 });
+        await execAsync(`kill -CONT ${pid}`, { timeout: MEMORY_PROCESS_SIGNAL_TIMEOUT_MS });
         break;
       }
       case 'win32': {
         const { execAsync } = await import('@modules/process/memory/types');
         await execAsync(
           `powershell -NoProfile -Command "(Add-Type -MemberDefinition '[DllImport("ntdll.dll")] public static extern int NtResumeProcess(IntPtr h);' -Name W -Namespace N -PassThru)::NtResumeProcess((Get-Process -Id ${pid}).Handle)"`,
-          { timeout: 5000 },
+          { timeout: MEMORY_PROBE_CMD_TIMEOUT_MS },
         );
         break;
       }

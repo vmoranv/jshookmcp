@@ -50,7 +50,7 @@ function detectFridaNpmPackage(): boolean {
 async function probeFridaCli(): Promise<string | null> {
   return new Promise<string | null>((resolve) => {
     const child = spawn('frida', ['--version'], {
-      timeout: 5000,
+      timeout: MOJO_MONITOR_TIMEOUT_MS,
       windowsHide: true,
     });
 

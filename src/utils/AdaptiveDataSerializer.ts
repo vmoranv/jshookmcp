@@ -1,4 +1,5 @@
 import { DetailedDataManager } from '@utils/DetailedDataManager';
+import { DETAILED_DATA_SMART_THRESHOLD_BYTES } from '@src/constants';
 
 export interface SerializationContext {
   maxDepth?: number;
@@ -34,7 +35,7 @@ export class AdaptiveDataSerializer {
     maxArrayLength: 10,
     maxStringLength: 1000,
     maxObjectKeys: 20,
-    threshold: 50 * 1024,
+    threshold: DETAILED_DATA_SMART_THRESHOLD_BYTES,
   };
 
   serialize(data: unknown, context: SerializationContext = {}): string {

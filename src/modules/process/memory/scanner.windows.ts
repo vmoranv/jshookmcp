@@ -5,6 +5,7 @@ import { logger } from '@utils/logger';
 import { executePowerShellScript, type MemoryScanResult } from '@modules/process/memory/types';
 import { nativeMemoryManager } from '@native/NativeMemoryManager';
 import { isKoffiAvailable } from '@native/NativeMemoryManager.utils';
+import { MEMORY_SCAN_TIMEOUT_MS, MEMORY_SCAN_MAX_BUFFER_BYTES } from '@src/constants';
 import type { PatternType } from '@modules/process/memory/types';
 import { buildPatternBytesAndMask } from './scanner.patterns';
 
@@ -176,8 +177,8 @@ export async function scanMemoryWindows(
     const psScript = buildMemoryScanScript(pid, pattern, patternType);
 
     const { stdout, stderr } = await executePowerShellScript(psScript, {
-      maxBuffer: 1024 * 1024 * 50,
-      timeout: 120000,
+      maxBuffer: MEMORY_SCAN_MAX_BUFFER_BYTES,
+      timeout: MEMORY_SCAN_TIMEOUT_MS,
     });
 
     if (stderr && stderr.includes('Error')) {

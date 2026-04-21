@@ -8,6 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { COORDINATION_GOTO_TIMEOUT_MS } from '@src/constants';
 import type { MCPServerContext } from '@server/domains/shared/registry';
 export * from './definitions';
 
@@ -314,7 +315,10 @@ export class CoordinationHandlers {
     if (!page) throw new Error('No active page for restoration');
 
     // Navigate to saved URL
-    await page.goto(snapshot.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(snapshot.url, {
+      waitUntil: 'domcontentloaded',
+      timeout: COORDINATION_GOTO_TIMEOUT_MS,
+    });
 
     // Restore cookies via CDP
     if (snapshot.cookies.length > 0) {

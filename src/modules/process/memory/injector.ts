@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { logger } from '@utils/logger';
+import { MEMORY_INJECT_TIMEOUT_MS } from '@src/constants';
 import { executePowerShellScript, execAsync, type Platform } from '@modules/process/memory/types';
 
 // Reject paths containing shell metacharacters to prevent command injection.
@@ -129,7 +130,7 @@ export async function injectDll(
       validatePath(dllPath);
       const { stderr } = await execAsync(
         `gdb -p ${pid} -batch -ex "call (void*)dlopen(\\"${dllPath}\\", 1)" -ex "quit"`,
-        { timeout: 30000 },
+        { timeout: MEMORY_INJECT_TIMEOUT_MS },
       );
       if (stderr.includes('Operation not permitted') || stderr.includes('ptrace:')) {
         throw new Error(`GDB injection failed (ptrace blocked): ${stderr}`);
@@ -144,7 +145,7 @@ export async function injectDll(
       validatePath(dllPath);
       const { stdout, stderr } = await execAsync(
         `lldb --batch -p ${pid} -o "expr (void*)dlopen(\\"${dllPath}\\", 1)"`,
-        { timeout: 30000 },
+        { timeout: MEMORY_INJECT_TIMEOUT_MS },
       );
       if (stderr.includes('error:') || stdout.includes('error:')) {
         throw new Error(`LLDB injection failed: ${stderr || stdout}`);
@@ -163,7 +164,7 @@ export async function injectDll(
 
     const { stdout } = await executePowerShellScript(psScript, {
       maxBuffer: 1024 * 1024,
-      timeout: 30000,
+      timeout: MEMORY_INJECT_TIMEOUT_MS,
     });
 
     const _trimmed = stdout.trim();
@@ -326,7 +327,7 @@ inject()
       await fs.writeFile(scriptPath, pyScript, 'utf8');
       try {
         const { stdout, stderr } = await execAsync(`gdb -p ${pid} -batch -x ${scriptPath}`, {
-          timeout: 30000,
+          timeout: MEMORY_INJECT_TIMEOUT_MS,
         });
         if (stdout.includes('ERROR_INJECT:') || stderr.includes('ERROR_INJECT:')) {
           throw new Error(`GDB injection failed: ${stdout || stderr}`);
@@ -381,7 +382,7 @@ def __lldb_init_module(debugger, internal_dict):
       await fs.writeFile(cmdFile, `command script import ${pyFile}\\nprocess detach\\n`, 'utf8');
       try {
         const { stdout } = await execAsync(`lldb --batch -p ${pid} --source ${cmdFile}`, {
-          timeout: 30000,
+          timeout: MEMORY_INJECT_TIMEOUT_MS,
         });
         if (stdout.includes('ERROR_INJECT:')) {
           throw new Error(`LLDB injection failed: ${stdout}`);
@@ -399,7 +400,7 @@ def __lldb_init_module(debugger, internal_dict):
 
     const { stdout } = await executePowerShellScript(psScript, {
       maxBuffer: 1024 * 1024,
-      timeout: 30000,
+      timeout: MEMORY_INJECT_TIMEOUT_MS,
     });
 
     const _trimmed = stdout.trim();

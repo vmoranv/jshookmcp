@@ -6,6 +6,8 @@
  * Memory footprint: ~238 names × ~5 trigrams avg ≈ ~1200 entries (~10KB).
  */
 
+import { SEARCH_TRIGRAM_THRESHOLD } from '@src/constants';
+
 // ── TrigramIndex class ──
 
 export class TrigramIndex {
@@ -23,7 +25,7 @@ export class TrigramIndex {
    * @param threshold  Minimum Jaccard similarity to include in results (default 0.3).
    * @returns Map from document index to similarity score (0–1).
    */
-  search(query: string, threshold = 0.3): Map<number, number> {
+  search(query: string, threshold = SEARCH_TRIGRAM_THRESHOLD): Map<number, number> {
     const queryTrigrams = TrigramIndex.extractTrigrams(query);
     if (queryTrigrams.size === 0) return new Map();
 

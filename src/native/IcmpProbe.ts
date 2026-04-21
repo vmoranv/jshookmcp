@@ -10,6 +10,11 @@
 
 import koffi from 'koffi';
 import { logger } from '@utils/logger';
+import {
+  ICMP_PROBE_TIMEOUT_MS,
+  ICMP_TRACEROUTE_MAX_HOPS,
+  ICMP_DEFAULT_PACKET_SIZE,
+} from '@src/constants';
 
 // ── Exported Types ──
 
@@ -182,7 +187,12 @@ function winIcmpProbe(params: {
   packetSize?: number;
   timeout?: number;
 }): IcmpProbeResult {
-  const { target, ttl = 128, packetSize = 32, timeout = 5000 } = params;
+  const {
+    target,
+    ttl = 128,
+    packetSize = ICMP_DEFAULT_PACKET_SIZE,
+    timeout = ICMP_PROBE_TIMEOUT_MS,
+  } = params;
 
   const destAddr = win_inet_addr(target);
   if (destAddr === 0xffffffff) {
@@ -245,7 +255,12 @@ function winTraceroute(params: {
   timeout?: number;
   packetSize?: number;
 }): TracerouteResult {
-  const { target, maxHops = 30, timeout = 5000, packetSize = 32 } = params;
+  const {
+    target,
+    maxHops = ICMP_TRACEROUTE_MAX_HOPS,
+    timeout = ICMP_PROBE_TIMEOUT_MS,
+    packetSize = ICMP_DEFAULT_PACKET_SIZE,
+  } = params;
 
   const destAddr = win_inet_addr(target);
   if (destAddr === 0xffffffff) {
@@ -473,7 +488,12 @@ function posixIcmpProbe(params: {
   packetSize?: number;
   timeout?: number;
 }): IcmpProbeResult {
-  const { target, ttl = 128, packetSize = 32, timeout = 5000 } = params;
+  const {
+    target,
+    ttl = 128,
+    packetSize = ICMP_DEFAULT_PACKET_SIZE,
+    timeout = ICMP_PROBE_TIMEOUT_MS,
+  } = params;
 
   if (!isValidIpv4(target)) {
     return {
@@ -578,7 +598,12 @@ function posixTraceroute(params: {
   timeout?: number;
   packetSize?: number;
 }): TracerouteResult {
-  const { target, maxHops = 30, timeout = 5000, packetSize = 32 } = params;
+  const {
+    target,
+    maxHops = ICMP_TRACEROUTE_MAX_HOPS,
+    timeout = ICMP_PROBE_TIMEOUT_MS,
+    packetSize = ICMP_DEFAULT_PACKET_SIZE,
+  } = params;
 
   if (!isValidIpv4(target)) {
     return { target, ip: '', hops: [], reached: false, totalHops: 0, totalTime: 0 };
@@ -697,7 +722,12 @@ export function icmpProbe(params: {
   packetSize?: number;
   timeout?: number;
 }): IcmpProbeResult {
-  const { target, ttl = 128, packetSize = 32, timeout = 5000 } = params;
+  const {
+    target,
+    ttl = 128,
+    packetSize = ICMP_DEFAULT_PACKET_SIZE,
+    timeout = ICMP_PROBE_TIMEOUT_MS,
+  } = params;
 
   if (!isIcmpAvailable()) {
     return {
@@ -725,7 +755,12 @@ export function traceroute(params: {
   timeout?: number;
   packetSize?: number;
 }): TracerouteResult {
-  const { target, maxHops = 30, timeout = 5000, packetSize = 32 } = params;
+  const {
+    target,
+    maxHops = ICMP_TRACEROUTE_MAX_HOPS,
+    timeout = ICMP_PROBE_TIMEOUT_MS,
+    packetSize = ICMP_DEFAULT_PACKET_SIZE,
+  } = params;
 
   if (!isIcmpAvailable()) {
     return { target, ip: '', hops: [], reached: false, totalHops: 0, totalTime: 0 };
