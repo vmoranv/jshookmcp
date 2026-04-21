@@ -24,7 +24,7 @@ export const processToolDefinitions: Tool[] = [
     t
       .desc('Launch an executable with remote debugging port enabled.')
       .string('executablePath', 'Full path to the executable to launch')
-      .number('debugPort', 'Debug port to use', { default: 9222 })
+      .number('debugPort', 'Debug port to use', { default: 9222, minimum: 1, maximum: 65535 })
       .array('args', { type: 'string' }, 'Additional command line arguments')
       .required('executablePath'),
   ),

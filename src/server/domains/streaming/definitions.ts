@@ -9,6 +9,8 @@ export const streamingTools: Tool[] = [
       .string('urlFilter', 'Regex filter for WebSocket URL (action=enable)')
       .number('maxFrames', 'Maximum frames in memory (action=enable, default: 1000)', {
         default: 1000,
+        minimum: 1,
+        maximum: 100000,
       })
       .required('action')
       .destructive(),
@@ -17,8 +19,8 @@ export const streamingTools: Tool[] = [
     t
       .desc('Get captured WebSocket frames with pagination and payload filter')
       .enum('direction', ['sent', 'received', 'all'], 'Frame direction filter', { default: 'all' })
-      .number('limit', 'Maximum frames to return', { default: 100 })
-      .number('offset', 'Pagination offset', { default: 0 })
+      .number('limit', 'Maximum frames to return', { default: 100, minimum: 1, maximum: 10000 })
+      .number('offset', 'Pagination offset', { default: 0, minimum: 0 })
       .string('payloadFilter', 'Regex filter on frame payload')
       .readOnly(),
   ),
@@ -29,7 +31,11 @@ export const streamingTools: Tool[] = [
     t
       .desc('Enable SSE monitoring by injecting EventSource interceptor')
       .string('urlFilter', 'Regex filter for EventSource URL')
-      .number('maxEvents', 'Maximum SSE events in memory', { default: 2000 })
+      .number('maxEvents', 'Maximum SSE events in memory', {
+        default: 2000,
+        minimum: 1,
+        maximum: 100000,
+      })
       .boolean('persistent', 'Survive page navigations via evaluateOnNewDocument'),
   ),
   tool('sse_get_events', (t) =>
@@ -37,8 +43,8 @@ export const streamingTools: Tool[] = [
       .desc('Get captured SSE events with filters and pagination')
       .string('sourceUrl', 'Filter by EventSource URL')
       .string('eventType', 'Filter by SSE event type')
-      .number('limit', 'Maximum events', { default: 100 })
-      .number('offset', 'Pagination offset', { default: 0 })
+      .number('limit', 'Maximum events', { default: 100, minimum: 1, maximum: 10000 })
+      .number('offset', 'Pagination offset', { default: 0, minimum: 0 })
       .readOnly(),
   ),
 ];

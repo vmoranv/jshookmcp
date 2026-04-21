@@ -177,25 +177,18 @@ describe('AntiDebugToolHandlers', () => {
       expect(parsed.error).toBe('No page');
     });
 
-    it('accepts string "false" for persistent arg', async () => {
+    it('uses default persistent=true when omitted', async () => {
       const { handler } = createHandler();
-      const result = await handler.handleAntiDebugBypassAll({ persistent: 'false' });
-      const parsed = parseJsonResponse(result);
-      expect(parsed.persistent).toBe(false);
-    });
-
-    it('accepts number 0 for persistent arg', async () => {
-      const { handler } = createHandler();
-      const result = await handler.handleAntiDebugBypassAll({ persistent: 0 });
-      const parsed = parseJsonResponse(result);
-      expect(parsed.persistent).toBe(false);
-    });
-
-    it('accepts string "yes" for persistent arg', async () => {
-      const { handler } = createHandler();
-      const result = await handler.handleAntiDebugBypassAll({ persistent: 'yes' });
+      const result = await handler.handleAntiDebugBypassAll({});
       const parsed = parseJsonResponse(result);
       expect(parsed.persistent).toBe(true);
+    });
+
+    it('respects persistent=false', async () => {
+      const { handler } = createHandler();
+      const result = await handler.handleAntiDebugBypassAll({ persistent: false });
+      const parsed = parseJsonResponse(result);
+      expect(parsed.persistent).toBe(false);
     });
   });
 
@@ -246,39 +239,11 @@ describe('AntiDebugToolHandlers', () => {
       expect(parsed.maxDrift).toBe(100);
     });
 
-    it('accepts string maxDrift', async () => {
+    it('uses provided maxDrift', async () => {
       const { handler } = createHandler();
-      const result = await handler.handleAntiDebugBypassTiming({ maxDrift: '200' });
+      const result = await handler.handleAntiDebugBypassTiming({ maxDrift: 200 });
       const parsed = parseJsonResponse(result);
       expect(parsed.maxDrift).toBe(200);
-    });
-
-    it('clamps maxDrift to min=0', async () => {
-      const { handler } = createHandler();
-      const result = await handler.handleAntiDebugBypassTiming({ maxDrift: -10 });
-      const parsed = parseJsonResponse(result);
-      expect(parsed.maxDrift).toBe(0);
-    });
-
-    it('clamps maxDrift to max=1000', async () => {
-      const { handler } = createHandler();
-      const result = await handler.handleAntiDebugBypassTiming({ maxDrift: 5000 });
-      const parsed = parseJsonResponse(result);
-      expect(parsed.maxDrift).toBe(1000);
-    });
-
-    it('uses default for non-finite number', async () => {
-      const { handler } = createHandler();
-      const result = await handler.handleAntiDebugBypassTiming({ maxDrift: NaN });
-      const parsed = parseJsonResponse(result);
-      expect(parsed.maxDrift).toBe(50);
-    });
-
-    it('uses default for non-numeric string', async () => {
-      const { handler } = createHandler();
-      const result = await handler.handleAntiDebugBypassTiming({ maxDrift: 'abc' });
-      const parsed = parseJsonResponse(result);
-      expect(parsed.maxDrift).toBe(50);
     });
   });
 
@@ -302,10 +267,10 @@ describe('AntiDebugToolHandlers', () => {
       expect(parsed.filterPatterns).toContain('custom_pattern');
     });
 
-    it('parses comma-separated string patterns', async () => {
+    it('accepts array of filter patterns', async () => {
       const { handler } = createHandler();
       const result = await handler.handleAntiDebugBypassStackTrace({
-        filterPatterns: 'foo,bar',
+        filterPatterns: ['foo', 'bar'],
       });
       const parsed = parseJsonResponse(result);
       expect(parsed.filterPatterns).toContain('foo');

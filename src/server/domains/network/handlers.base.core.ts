@@ -8,6 +8,7 @@
 import { logger } from '@utils/logger';
 import type { CodeCollector } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
+import { argBool, argNumber } from '@server/domains/shared/parse-args';
 import { PerformanceMonitor } from '@server/domains/shared/modules';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import {
@@ -46,50 +47,18 @@ export class NetworkHandlersCore {
   }
 
   protected parseBooleanArg(value: unknown, defaultValue: boolean): boolean {
-    if (typeof value === 'boolean') {
-      return value;
-    }
-    if (typeof value === 'number') {
-      if (value === 1) return true;
-      if (value === 0) return false;
-      return defaultValue;
-    }
-    if (typeof value === 'string') {
-      const normalized = value.trim().toLowerCase();
-      if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
-      if (['false', '0', 'no', 'off'].includes(normalized)) return false;
-    }
-    return defaultValue;
+    return argBool({ value } as Record<string, unknown>, 'value', defaultValue);
   }
 
   protected parseNumberArg(
     value: unknown,
     options: { defaultValue: number; min?: number; max?: number; integer?: boolean },
   ): number {
-    let parsed: number | undefined;
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      parsed = value;
-    } else if (typeof value === 'string') {
-      const trimmed = value.trim();
-      if (trimmed.length > 0) {
-        const n = Number(trimmed);
-        if (Number.isFinite(n)) {
-          parsed = n;
-        }
-      }
-    }
-    if (parsed === undefined) {
-      parsed = options.defaultValue;
-    }
-    if (options.integer) {
-      parsed = Math.trunc(parsed);
-    }
-    if (typeof options.min === 'number') {
-      parsed = Math.max(options.min, parsed);
-    }
-    if (typeof options.max === 'number') {
-      parsed = Math.min(options.max, parsed);
-    }
+    const raw = argNumber({ value } as Record<string, unknown>, 'value', options.defaultValue);
+    let parsed = typeof raw === 'number' && Number.isFinite(raw) ? raw : options.defaultValue;
+    if (options.integer) parsed = Math.trunc(parsed);
+    if (typeof options.min === 'number') parsed = Math.max(options.min, parsed);
+    if (typeof options.max === 'number') parsed = Math.min(options.max, parsed);
     return parsed;
   }
 

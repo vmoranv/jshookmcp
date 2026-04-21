@@ -37,7 +37,11 @@ function withWebcrackOpts(b: ToolBuilder) {
     .string('outputDir', 'Directory to save deobfuscated artifacts')
     .boolean('forceOutput', 'Remove outputDir before saving', { default: false })
     .boolean('includeModuleCode', 'Include module source in bundle output', { default: false })
-    .number('maxBundleModules', 'Maximum bundle modules to return', { default: 100 })
+    .number('maxBundleModules', 'Maximum bundle modules to return', {
+      default: 100,
+      minimum: 1,
+      maximum: 10000,
+    })
     .prop('mappings', webcrackMappingsSchema);
 }
 
@@ -52,8 +56,16 @@ export const coreTools: Tool[] = [
         default: 'full',
       })
       .boolean('compress', 'Enable compression', { default: false })
-      .number('maxTotalSize', 'Maximum total size in bytes', { default: 2097152 })
-      .number('maxFileSize', 'Maximum single file size in KB', { default: 500 })
+      .number('maxTotalSize', 'Maximum total size in bytes', {
+        default: 2097152,
+        minimum: 1024,
+        maximum: 10485760,
+      })
+      .number('maxFileSize', 'Maximum single file size in KB', {
+        default: 500,
+        minimum: 1,
+        maximum: 102400,
+      })
       .array('priorities', { type: 'string' }, 'Preferred URL patterns for priority mode')
       .boolean('returnSummaryOnly', 'Return summary only', { default: false })
       .string('url', 'Target URL to collect scripts from')
@@ -65,10 +77,18 @@ export const coreTools: Tool[] = [
       .string('keyword', 'Search keyword or regex pattern')
       .boolean('isRegex', 'Treat keyword as regex', { default: false })
       .boolean('caseSensitive', 'Case-sensitive search', { default: false })
-      .number('contextLines', 'Context lines around each match', { default: 3 })
-      .number('maxMatches', 'Maximum matches', { default: 100 })
+      .number('contextLines', 'Context lines around each match', {
+        default: 3,
+        minimum: 0,
+        maximum: 50,
+      })
+      .number('maxMatches', 'Maximum matches', { default: 100, minimum: 1, maximum: 10000 })
       .boolean('returnSummary', 'Return summary instead of full payload', { default: false })
-      .number('maxContextSize', 'Max response size before summary fallback', { default: 50000 })
+      .number('maxContextSize', 'Max response size before summary fallback', {
+        default: 50000,
+        minimum: 1000,
+        maximum: 1000000,
+      })
       .required('keyword')
       .query(),
   ),
@@ -77,8 +97,12 @@ export const coreTools: Tool[] = [
       .desc('Extract a function and its dependency tree from collected scripts')
       .string('scriptId', 'Script identifier')
       .string('functionName', 'Function name to extract')
-      .number('maxDepth', 'Maximum dependency traversal depth', { default: 3 })
-      .number('maxSize', 'Maximum output size in KB', { default: 500 })
+      .number('maxDepth', 'Maximum dependency traversal depth', {
+        default: 3,
+        minimum: 1,
+        maximum: 20,
+      })
+      .number('maxSize', 'Maximum output size in KB', { default: 500, minimum: 1, maximum: 10240 })
       .boolean('includeComments', 'Include comments in extracted source', { default: true })
       .required('scriptId', 'functionName'),
   ),
@@ -105,7 +129,11 @@ export const coreTools: Tool[] = [
             default: true,
           },
         )
-        .number('timeout', 'Operation timeout in ms (webcrack engine)', { default: 60000 }),
+        .number('timeout', 'Operation timeout in ms (webcrack engine)', {
+          default: 60000,
+          minimum: 1000,
+          maximum: 120000,
+        }),
     ).required('code'),
   ),
   tool('understand_code', (t) =>
@@ -166,7 +194,7 @@ export const coreTools: Tool[] = [
       .desc('Enumerate webpack modules in current page and search for keywords')
       .string('searchKeyword', 'Keyword to search across module exports')
       .boolean('forceRequireAll', 'Force-require every module', { default: false })
-      .number('maxResults', 'Maximum matching modules', { default: 20 })
+      .number('maxResults', 'Maximum matching modules', { default: 20, minimum: 1, maximum: 10000 })
       .openWorld(),
   ),
   tool('llm_suggest_names', (t) =>

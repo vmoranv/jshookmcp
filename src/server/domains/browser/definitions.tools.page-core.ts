@@ -12,7 +12,11 @@ export const browserPageCoreTools: Tool[] = [
         'When to consider navigation succeeded',
         { default: 'networkidle' },
       )
-      .number('timeout', 'Navigation timeout in milliseconds', { default: 30000 })
+      .number('timeout', 'Navigation timeout in milliseconds', {
+        default: 30000,
+        minimum: 1000,
+        maximum: 120000,
+      })
       .boolean(
         'enableNetworkMonitoring',
         'Auto-enable network monitoring before navigation to capture all requests. If already enabled, this has no effect.',
@@ -32,10 +36,13 @@ export const browserPageCoreTools: Tool[] = [
       .enum('button', ['left', 'right', 'middle'], 'Mouse button to click', { default: 'left' })
       .number('clickCount', 'Number of clicks (numeric string is accepted and auto-normalized)', {
         default: 1,
+        minimum: 1,
+        maximum: 10,
       })
       .number(
         'delay',
         'Delay between mousedown and mouseup in milliseconds (numeric string is accepted)',
+        { minimum: 0, maximum: 10000 },
       )
       .string('frameUrl', 'Target iframe by URL substring match (e.g. "payment.example.com")')
       .string(
@@ -51,7 +58,7 @@ export const browserPageCoreTools: Tool[] = [
       )
       .string('selector', 'CSS selector of input element')
       .string('text', 'Text to type')
-      .number('delay', 'Delay between key presses in milliseconds')
+      .number('delay', 'Delay between key presses in milliseconds', { minimum: 0, maximum: 1000 })
       .string('frameUrl', 'Target iframe by URL substring match')
       .string('frameSelector', 'Target iframe by CSS selector of the iframe element')
       .requiredOpenWorld('selector', 'text'),
@@ -88,7 +95,11 @@ export const browserPageCoreTools: Tool[] = [
     t
       .desc('Wait for an element to appear')
       .string('selector', 'CSS selector to wait for')
-      .number('timeout', 'Timeout in milliseconds', { default: 30000 })
+      .number('timeout', 'Timeout in milliseconds', {
+        default: 30000,
+        minimum: 1000,
+        maximum: 120000,
+      })
       .required('selector')
       .query(),
   ),
@@ -101,6 +112,8 @@ export const browserPageCoreTools: Tool[] = [
       .boolean('autoSummarize', 'Auto-summarize large results (default: true)', { default: true })
       .number('maxSize', 'Max result size in bytes before auto-summarizing (default: 50KB)', {
         default: 51200,
+        minimum: 1024,
+        maximum: 10485760,
       })
       .array(
         'fieldFilter',
@@ -154,7 +167,7 @@ export const browserPageCoreTools: Tool[] = [
         'File path to save screenshot (optional). For batch mode, used as directory or base name.',
       )
       .enum('type', ['png', 'jpeg'], 'Image format', { default: 'png' })
-      .number('quality', 'Image quality (0-100, only for jpeg)')
+      .number('quality', 'Image quality (0-100, only for jpeg)', { minimum: 1, maximum: 100 })
       .boolean('fullPage', 'Capture full scrollable page (ignored when selector or clip is set)', {
         default: false,
       })
@@ -172,9 +185,13 @@ export const browserPageCoreTools: Tool[] = [
       .string('scriptId', 'Script ID from get_all_scripts')
       .string('url', 'Script URL (supports wildcards like *.js)')
       .boolean('preview', 'Return preview only (first 100 lines + metadata)', { default: false })
-      .number('maxLines', 'Max lines to return in preview mode (default: 100)', { default: 100 })
-      .number('startLine', 'Start line number (1-based, for partial fetch)')
-      .number('endLine', 'End line number (1-based, for partial fetch)')
+      .number('maxLines', 'Max lines to return in preview mode (default: 100)', {
+        default: 100,
+        minimum: 1,
+        maximum: 10000,
+      })
+      .number('startLine', 'Start line number (1-based, for partial fetch)', { minimum: 1 })
+      .number('endLine', 'End line number (1-based, for partial fetch)', { minimum: 1 })
       .query(),
   ),
 ];

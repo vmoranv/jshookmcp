@@ -30,6 +30,15 @@ interface ParamOpts {
   default?: unknown;
 }
 
+interface NumberOpts extends ParamOpts {
+  minimum?: number;
+  maximum?: number;
+}
+
+interface StringOpts extends ParamOpts {
+  pattern?: string;
+}
+
 type AnnotationState = Readonly<{
   readOnlyHint: boolean;
   destructiveHint: boolean;
@@ -50,9 +59,9 @@ type BuilderState = Readonly<{
 
 export interface ToolBuilder {
   desc(description: string): this;
-  string(name: string, description: string, opts?: ParamOpts): this;
-  number(name: string, description: string, opts?: ParamOpts): this;
-  integer(name: string, description: string, opts?: ParamOpts): this;
+  string(name: string, description: string, opts?: StringOpts): this;
+  number(name: string, description: string, opts?: NumberOpts): this;
+  integer(name: string, description: string, opts?: NumberOpts): this;
   boolean(name: string, description: string, opts?: ParamOpts): this;
   enum(name: string, values: readonly string[], description: string, opts?: ParamOpts): this;
   array(name: string, items: PropertySchema | Record<string, unknown>, description: string): this;
@@ -169,32 +178,44 @@ function createBuilder(state: BuilderState, tracker?: BuilderTracker): InternalT
     desc(description: string) {
       return next(withState(state, { description })) as InternalToolBuilder;
     },
-    string(name: string, description: string, opts?: ParamOpts) {
-      return next(
-        withProperty(state, name, {
-          type: 'string',
-          description,
-          ...defaults(opts),
-        }),
-      ) as InternalToolBuilder;
+    string(name: string, description: string, opts?: StringOpts) {
+      const schema: PropertySchema = {
+        type: 'string',
+        description,
+        ...defaults(opts),
+      };
+      if (opts?.pattern) {
+        schema.pattern = opts.pattern;
+      }
+      return next(withProperty(state, name, schema)) as InternalToolBuilder;
     },
-    number(name: string, description: string, opts?: ParamOpts) {
-      return next(
-        withProperty(state, name, {
-          type: 'number',
-          description,
-          ...defaults(opts),
-        }),
-      ) as InternalToolBuilder;
+    number(name: string, description: string, opts?: NumberOpts) {
+      const schema: PropertySchema = {
+        type: 'number',
+        description,
+        ...defaults(opts),
+      };
+      if (opts?.minimum !== undefined) {
+        schema.minimum = opts.minimum;
+      }
+      if (opts?.maximum !== undefined) {
+        schema.maximum = opts.maximum;
+      }
+      return next(withProperty(state, name, schema)) as InternalToolBuilder;
     },
-    integer(name: string, description: string, opts?: ParamOpts) {
-      return next(
-        withProperty(state, name, {
-          type: 'integer',
-          description,
-          ...defaults(opts),
-        }),
-      ) as InternalToolBuilder;
+    integer(name: string, description: string, opts?: NumberOpts) {
+      const schema: PropertySchema = {
+        type: 'integer',
+        description,
+        ...defaults(opts),
+      };
+      if (opts?.minimum !== undefined) {
+        schema.minimum = opts.minimum;
+      }
+      if (opts?.maximum !== undefined) {
+        schema.maximum = opts.maximum;
+      }
+      return next(withProperty(state, name, schema)) as InternalToolBuilder;
     },
     boolean(name: string, description: string, opts?: ParamOpts) {
       return next(

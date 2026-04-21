@@ -98,12 +98,6 @@ describe('AntiDebugToolHandlers', () => {
       expect(res.content[0].text).toContain('"maxDrift": 100');
     });
 
-    it('parses string maxDrift gracefully', async () => {
-      const res = await handlers.handleAntiDebugBypassTiming({ maxDrift: '200' });
-      // @ts-expect-error
-      expect(res.content[0].text).toContain('"maxDrift": 200');
-    });
-
     it('bubbles and catches errors', async () => {
       vi.mocked(evaluateOnNewDocumentWithTimeout).mockRejectedValue(new Error('err'));
       const res = await handlers.handleAntiDebugBypassTiming({});
@@ -116,33 +110,6 @@ describe('AntiDebugToolHandlers', () => {
       const res = await handlers.handleAntiDebugBypassTiming({});
       // @ts-expect-error
       expect(res.content[0].text).toContain('"success": false');
-    });
-
-    it('handles parseNumberArg without optional min/max constraints (private method coverage)', () => {
-      // @ts-expect-error testing private fallback branch
-      const res = handlers.parseNumberArg(50, { defaultValue: 10 });
-      expect(res).toBe(50);
-    });
-
-    it('parses valid positive strings returning true', () => {
-      // @ts-expect-error private method test
-      expect(handlers.parseBooleanArg('yes', false)).toBe(true);
-    });
-
-    it('handles intercept boolean fallbacks for unknown numbers and strings', async () => {
-      const resNum = await handlers.handleAntiDebugBypassAll({ persistent: 2 });
-      // @ts-expect-error
-      expect(resNum.content[0].text).toContain('"persistent": true');
-
-      const resStr = await handlers.handleAntiDebugBypassAll({ persistent: 'unrecognized' });
-      // @ts-expect-error
-      expect(resStr.content[0].text).toContain('"persistent": true');
-    });
-
-    it('handles numeric maxDrift fallback for invalid strings', async () => {
-      const res = await handlers.handleAntiDebugBypassTiming({ maxDrift: 'invalid string' });
-      // @ts-expect-error
-      expect(res.content[0].text).toContain('"success": true');
     });
 
     it('handles parseDebuggerMode with invalid mode returning default', async () => {
@@ -175,8 +142,10 @@ describe('AntiDebugToolHandlers', () => {
       expect(res.content[0].text).toContain('my_pattern');
     });
 
-    it('parses string string arrays', async () => {
-      const res = await handlers.handleAntiDebugBypassStackTrace({ filterPatterns: 'pat1, pat2' });
+    it('accepts array filter patterns', async () => {
+      const res = await handlers.handleAntiDebugBypassStackTrace({
+        filterPatterns: ['pat1', 'pat2'],
+      });
       // @ts-expect-error
       expect(res.content[0].text).toContain('pat1');
       // @ts-expect-error
@@ -276,22 +245,17 @@ describe('AntiDebugToolHandlers', () => {
     });
   });
 
-  describe('Boolean parsing internals', () => {
-    it('parses various boolean formats in handleAntiDebugBypassAll implicitly passing through parseBooleanArg', async () => {
-      await handlers.handleAntiDebugBypassAll({ persistent: 1 });
+  describe('Boolean handling', () => {
+    it('respects boolean persistent=true', async () => {
+      await handlers.handleAntiDebugBypassAll({ persistent: true });
       expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(4);
       vi.clearAllMocks();
+    });
 
-      await handlers.handleAntiDebugBypassAll({ persistent: 0 });
+    it('respects boolean persistent=false', async () => {
+      await handlers.handleAntiDebugBypassAll({ persistent: false });
       expect(evaluateOnNewDocumentWithTimeout).not.toHaveBeenCalled();
       vi.clearAllMocks();
-
-      await handlers.handleAntiDebugBypassAll({ persistent: 'yes' });
-      expect(evaluateOnNewDocumentWithTimeout).toHaveBeenCalledTimes(4);
-      vi.clearAllMocks();
-
-      await handlers.handleAntiDebugBypassAll({ persistent: 'false' });
-      expect(evaluateOnNewDocumentWithTimeout).not.toHaveBeenCalled();
     });
   });
 });

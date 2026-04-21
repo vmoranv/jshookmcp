@@ -1,4 +1,13 @@
-import chalk from 'chalk';
+const ANSI = {
+  gray: '\x1b[90m',
+  blue: '\x1b[34m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  reset: '\x1b[0m',
+} as const;
+
+const colorize = (color: string, text: string) => `${color}${text}${ANSI.reset}`;
 
 const SENSITIVE_KEYS =
   /^(auth(orization)?|cookie|set[_-]?cookie|x[_-]?api[_-]?key|token|access[_-]?token|refresh[_-]?token|id[_-]?token|secret|client[_-]?secret|password|passwd|api[_-]?key|private[_-]?key|credentials?|session[_-]?id|csrf[_-]?token)$/i;
@@ -68,21 +77,21 @@ class Logger {
 
   debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog('debug')) {
-      console.error(chalk.gray(this.formatMessage('debug', message, ...args)));
+      console.error(colorize(ANSI.gray, this.formatMessage('debug', message, ...args)));
       this.emit('debug', message, args);
     }
   }
 
   info(message: string, ...args: unknown[]): void {
     if (this.shouldLog('info')) {
-      console.error(chalk.blue(this.formatMessage('info', message, ...args)));
+      console.error(colorize(ANSI.blue, this.formatMessage('info', message, ...args)));
       this.emit('info', message, args);
     }
   }
 
   warn(message: string, ...args: unknown[]): void {
     if (this.shouldLog('warn')) {
-      console.error(chalk.yellow(this.formatMessage('warn', message, ...args)));
+      console.error(colorize(ANSI.yellow, this.formatMessage('warn', message, ...args)));
       this.emit('warn', message, args);
     }
   }
@@ -90,14 +99,14 @@ class Logger {
   error(message: string, ...args: unknown[]): void {
     /* v8 ignore next 4 */
     if (this.shouldLog('error')) {
-      console.error(chalk.red(this.formatMessage('error', message, ...args)));
+      console.error(colorize(ANSI.red, this.formatMessage('error', message, ...args)));
       this.emit('error', message, args);
     }
   }
 
   success(message: string, ...args: unknown[]): void {
     if (this.shouldLog('info')) {
-      console.error(chalk.green(this.formatMessage('info', message, ...args)));
+      console.error(colorize(ANSI.green, this.formatMessage('info', message, ...args)));
       this.emit('info', message, args); // success maps to info for MCP
     }
   }

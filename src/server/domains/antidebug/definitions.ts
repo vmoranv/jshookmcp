@@ -19,7 +19,11 @@ export const antidebugTools: Tool[] = [
       .enum('mode', ['remove', 'noop'], 'Debugger statement mode (for debugger_statement type)', {
         default: 'remove',
       })
-      .number('maxDrift', 'Max timing drift per call in ms (for timing type)', { default: 50 })
+      .number('maxDrift', 'Max timing drift per call in ms (for timing type)', {
+        default: 50,
+        minimum: 0,
+        maximum: 10000,
+      })
       .array(
         'filterPatterns',
         { type: 'string' },

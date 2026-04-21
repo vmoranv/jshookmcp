@@ -64,36 +64,27 @@ describe('AdvancedHandlersBase', () => {
       expect(handler.parseBooleanArg(false, true)).toBe(false);
     });
 
-    it('returns true for number 1 and false for number 0', () => {
-      expect(handler.parseBooleanArg(1, false)).toBe(true);
-      expect(handler.parseBooleanArg(0, true)).toBe(false);
-    });
-
-    it('returns default for non-boolean numbers other than 0 and 1', () => {
+    it('returns default for numbers (no coercion)', () => {
+      expect(handler.parseBooleanArg(1, false)).toBe(false);
+      expect(handler.parseBooleanArg(0, true)).toBe(true);
       expect(handler.parseBooleanArg(2, false)).toBe(false);
       expect(handler.parseBooleanArg(-1, true)).toBe(true);
       expect(handler.parseBooleanArg(0.5, false)).toBe(false);
     });
 
-    it('parses truthy string values case-insensitively', () => {
-      expect(handler.parseBooleanArg('true', false)).toBe(true);
-      expect(handler.parseBooleanArg('TRUE', false)).toBe(true);
-      expect(handler.parseBooleanArg('1', false)).toBe(true);
-      expect(handler.parseBooleanArg('yes', false)).toBe(true);
-      expect(handler.parseBooleanArg('on', false)).toBe(true);
-      expect(handler.parseBooleanArg('  Yes  ', false)).toBe(true);
-    });
-
-    it('parses falsy string values case-insensitively', () => {
-      expect(handler.parseBooleanArg('false', true)).toBe(false);
-      expect(handler.parseBooleanArg('FALSE', true)).toBe(false);
-      expect(handler.parseBooleanArg('0', true)).toBe(false);
-      expect(handler.parseBooleanArg('no', true)).toBe(false);
-      expect(handler.parseBooleanArg('off', true)).toBe(false);
-      expect(handler.parseBooleanArg('  Off  ', true)).toBe(false);
-    });
-
-    it('returns default for unrecognized strings', () => {
+    it('returns default for strings (no coercion)', () => {
+      expect(handler.parseBooleanArg('true', false)).toBe(false);
+      expect(handler.parseBooleanArg('TRUE', false)).toBe(false);
+      expect(handler.parseBooleanArg('1', false)).toBe(false);
+      expect(handler.parseBooleanArg('yes', false)).toBe(false);
+      expect(handler.parseBooleanArg('on', false)).toBe(false);
+      expect(handler.parseBooleanArg('  Yes  ', false)).toBe(false);
+      expect(handler.parseBooleanArg('false', true)).toBe(true);
+      expect(handler.parseBooleanArg('FALSE', true)).toBe(true);
+      expect(handler.parseBooleanArg('0', true)).toBe(true);
+      expect(handler.parseBooleanArg('no', true)).toBe(true);
+      expect(handler.parseBooleanArg('off', true)).toBe(true);
+      expect(handler.parseBooleanArg('  Off  ', true)).toBe(true);
       expect(handler.parseBooleanArg('maybe', false)).toBe(false);
       expect(handler.parseBooleanArg('maybe', true)).toBe(true);
       expect(handler.parseBooleanArg('', false)).toBe(false);
@@ -120,9 +111,9 @@ describe('AdvancedHandlersBase', () => {
       expect(handler.parseNumberArg(-Infinity, { defaultValue: 10 })).toBe(10);
     });
 
-    it('parses numeric strings', () => {
-      expect(handler.parseNumberArg('42', { defaultValue: 0 })).toBe(42);
-      expect(handler.parseNumberArg('  3.14  ', { defaultValue: 0 })).toBe(3.14);
+    it('returns default for numeric strings (no coercion)', () => {
+      expect(handler.parseNumberArg('42', { defaultValue: 0 })).toBe(0);
+      expect(handler.parseNumberArg('  3.14  ', { defaultValue: 5 })).toBe(5);
     });
 
     it('returns default for non-numeric strings', () => {
@@ -293,7 +284,7 @@ describe('AdvancedHandlersBase', () => {
       });
     });
 
-    it('parses string enableExceptions args', async () => {
+    it('returns default (true) for string enableExceptions args (no coercion)', async () => {
       consoleMonitor.getNetworkStatus.mockReturnValue({
         enabled: true,
         cdpSessionActive: true,
@@ -303,7 +294,7 @@ describe('AdvancedHandlersBase', () => {
       await handler.handleNetworkEnable({ enableExceptions: '0' });
       expect(consoleMonitor.enable).toHaveBeenCalledWith({
         enableNetwork: true,
-        enableExceptions: false,
+        enableExceptions: true,
       });
     });
   });
