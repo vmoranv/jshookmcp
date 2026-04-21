@@ -31,18 +31,14 @@ export const processToolDefinitions: Tool[] = [
 
   tool('memory_read', (t) =>
     t
-      .desc(
-        'Read memory from a process at a specific address. Windows: requires admin. Linux: requires ptrace access or root (check kernel.yama.ptrace_scope). macOS: requires sudo or debugger entitlement.',
-      )
+      .desc('Read memory from a process at a specific address. Requires elevated privileges.')
       .string('address', 'Memory address to read (hex string like "0x12345678")')
       .number('size', 'Number of bytes to read')
       .required('pid', 'address', 'size'),
   ),
   tool('memory_write', (t) =>
     t
-      .desc(
-        'Write data to process memory at a specific address. Windows: requires admin. Linux: requires ptrace access or root (check kernel.yama.ptrace_scope). macOS: requires sudo or debugger entitlement.',
-      )
+      .desc('Write data to process memory at a specific address. Requires elevated privileges.')
       .string('address', 'Memory address to write to (hex string like "0x12345678")')
       .string('data', 'Data to write (hex string or base64)')
       .enum('encoding', ['hex', 'base64'], 'Encoding of the data parameter', { default: 'hex' })
@@ -50,9 +46,7 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('memory_scan', (t) =>
     t
-      .desc(
-        'Scan process memory for a pattern or value. Platform permissions: Windows admin / Linux ptrace or root / macOS sudo.',
-      )
+      .desc('Scan process memory for a pattern or value. Requires elevated privileges.')
       .string('pattern', 'Pattern to search for (hex bytes like "48 8B 05" or value)')
       .enum(
         'patternType',
