@@ -36,12 +36,17 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
-import { writeMemory, batchMemoryWrite } from '@modules/process/memory/writer';
+import {
+  writeMemory,
+  batchMemoryWrite,
+  _resetLinuxProviderCache,
+} from '@modules/process/memory/writer';
 import { MEMORY_MAX_WRITE_BYTES } from '@src/constants';
 
 describe('memory/writer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetLinuxProviderCache();
     state.isKoffiAvailable.mockReturnValue(false);
   });
 
@@ -97,6 +102,9 @@ describe('memory/writer', () => {
   });
 
   it('returns a Linux memory write error when stderr reports a failure', async () => {
+    state.createPlatformProvider.mockReturnValue({
+      checkAvailability: vi.fn().mockResolvedValue({ available: false }),
+    });
     state.execAsync.mockResolvedValue({
       stdout: '',
       stderr: 'error: permission denied',
@@ -105,7 +113,21 @@ describe('memory/writer', () => {
     const result = await writeMemory('linux', 4, '0x30', 'AA', 'hex', vi.fn());
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Requires root privileges');
+    expect(result.error).toContain('Requires ptrace access');
+  });
+
+  it('uses native Linux provider for write when available', async () => {
+    state.createPlatformProvider.mockReturnValue({
+      checkAvailability: vi.fn().mockResolvedValue({ available: true }),
+      openProcess: vi.fn().mockReturnValue({ pid: 4 }),
+      writeMemory: vi.fn().mockReturnValue({ bytesWritten: 1 }),
+      closeProcess: vi.fn(),
+    });
+
+    const result = await writeMemory('linux', 4, '0x30', 'AA', 'hex', vi.fn());
+
+    expect(result.success).toBe(true);
+    expect(result.bytesWritten).toBe(1);
   });
 
   it('returns a Linux memory write error when the shell command throws', async () => {
@@ -114,7 +136,7 @@ describe('memory/writer', () => {
     const result = await writeMemory('linux', 4, '0x30', 'AA', 'hex', vi.fn());
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Run as root');
+    expect(result.error).toContain('ptrace access or root');
   });
 
   it('returns macOS protection error when region is not writable', async () => {

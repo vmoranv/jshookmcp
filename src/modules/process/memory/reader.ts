@@ -104,21 +104,71 @@ async function readMemoryWindows(
 
 // ── Linux ──
 
+let _linuxProvider: import('@native/platform/PlatformMemoryAPI.js').PlatformMemoryAPI | null = null;
+let _linuxProviderChecked = false;
+
+async function getLinuxProvider(): Promise<
+  import('@native/platform/PlatformMemoryAPI.js').PlatformMemoryAPI | null
+> {
+  if (_linuxProviderChecked) return _linuxProvider;
+  try {
+    const { createPlatformProvider } = await import('@native/platform/factory.js');
+    const provider = createPlatformProvider();
+    const avail = await provider.checkAvailability();
+    if (avail.available) {
+      _linuxProvider = provider;
+    }
+  } catch {
+    // provider not available on this platform
+  }
+  _linuxProviderChecked = true;
+  return _linuxProvider;
+}
+
+/** @internal Reset cached provider for test isolation */
+export function _resetLinuxProviderCache(): void {
+  _linuxProvider = null;
+  _linuxProviderChecked = false;
+}
+
+function bufferToHex(data: Buffer, bytesRead: number): string {
+  return data.subarray(0, bytesRead).toString('hex').toUpperCase().replace(/../g, '$& ');
+}
+
 async function readMemoryLinux(
   pid: number,
   address: number,
   size: number,
 ): Promise<MemoryReadResult> {
+  // ── Native fast-path: direct /proc/pid/mem read (no sudo needed for same-user processes) ──
+  try {
+    const provider = await getLinuxProvider();
+    if (provider) {
+      const handle = provider.openProcess(pid, false);
+      try {
+        const result = provider.readMemory(handle, BigInt(address), size);
+        logger.debug('Native Linux memory read succeeded');
+        return { success: true, data: bufferToHex(result.data, result.bytesRead).trim() };
+      } finally {
+        provider.closeProcess(handle);
+      }
+    }
+  } catch (nativeErr) {
+    logger.debug('Native Linux read failed, falling back to dd:', nativeErr);
+  }
+
+  // ── Fallback: dd via /proc/pid/mem (may require ptrace or root) ──
   try {
     const { stdout } = await execAsync(
-      `sudo dd if=/proc/${pid}/mem bs=1 skip=${address} count=${size} 2>/dev/null | xxd -p | tr -d '\\n' || echo ""`,
+      `dd if=/proc/${pid}/mem bs=1 skip=${address} count=${size} 2>/dev/null | xxd -p | tr -d '\\n' || echo ""`,
       { maxBuffer: 1024 * 1024 * 10, timeout: MEMORY_READ_TIMEOUT_MS },
     );
 
     if (!stdout.trim()) {
       return {
         success: false,
-        error: 'Failed to read memory. Requires root privileges or ptrace access.',
+        error:
+          'Failed to read memory. Requires ptrace access or root. Check kernel.yama.ptrace_scope if access denied.',
       };
     }
 
@@ -136,7 +186,7 @@ async function readMemoryLinux(
     logger.error('Linux memory read failed:', error);
     return {
       success: false,
-      error: 'Memory read failed. Run as root or use ptrace.',
+      error: 'Memory read failed. Requires ptrace access or root (check kernel.yama.ptrace_scope).',
     };
   }
 }

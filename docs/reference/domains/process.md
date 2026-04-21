@@ -4,6 +4,14 @@
 
 进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。
 
+## 平台权限要求（内存操作）
+
+| 平台 | 要求 |
+|------|------|
+| Windows | 管理员权限（Administrator） |
+| Linux | root 或 ptrace 访问权限。若权限拒绝，检查 `kernel.yama.ptrace_scope` |
+| macOS | root 或 `com.apple.security.cs.debugger` 签名授权。ARM64 可能需要关闭 SIP |
+
 ## Profile
 
 - full

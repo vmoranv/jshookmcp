@@ -129,26 +129,28 @@ export async function scanMemoryFiltered(
 
 // ── Cross-platform process suspend/resume ──
 
+async function withScopedTaskPort<R>(pid: number, fn: (task: number) => R): Promise<R | false> {
+  const { machTaskSelf, taskForPid, machPortDeallocate, KERN } =
+    await import('@native/platform/darwin/DarwinAPI.js');
+  const selfTask = machTaskSelf();
+  const { kr, task } = taskForPid(selfTask, pid);
+  if (kr !== KERN.SUCCESS) return false;
+  try {
+    return fn(task);
+  } finally {
+    machPortDeallocate(selfTask, task);
+  }
+}
+
 async function suspendProcess(platform: Platform, pid: number): Promise<boolean> {
   try {
     switch (platform) {
       case 'darwin': {
-        const { createPlatformProvider } = await import('@native/platform/factory.js');
-        const provider = createPlatformProvider();
-        const avail = await provider.checkAvailability();
-        if (!avail.available) return false;
-        const handle = provider.openProcess(pid, false);
-        try {
-          const { taskSuspend } = await import('@native/platform/darwin/DarwinAPI.js');
-          const { machTaskSelf, taskForPid, KERN } =
-            await import('@native/platform/darwin/DarwinAPI.js');
-          const { kr, task } = taskForPid(machTaskSelf(), pid);
-          if (kr !== KERN.SUCCESS) return false;
-          const suspendKr = taskSuspend(task);
-          return suspendKr === KERN.SUCCESS;
-        } finally {
-          provider.closeProcess(handle);
-        }
+        const { taskSuspend, KERN } = await import('@native/platform/darwin/DarwinAPI.js');
+        return withScopedTaskPort(
+          pid,
+          (task) => taskSuspend(task) === KERN.SUCCESS,
+        ) as Promise<boolean>;
       }
       case 'linux': {
         const { execAsync } = await import('@modules/process/memory/types');
@@ -176,10 +178,10 @@ async function resumeProcess(platform: Platform, pid: number): Promise<void> {
   try {
     switch (platform) {
       case 'darwin': {
-        const { machTaskSelf, taskForPid, taskResume, KERN } =
-          await import('@native/platform/darwin/DarwinAPI.js');
-        const { kr, task } = taskForPid(machTaskSelf(), pid);
-        if (kr === KERN.SUCCESS) taskResume(task);
+        const { taskResume } = await import('@native/platform/darwin/DarwinAPI.js');
+        await withScopedTaskPort(pid, (task) => {
+          taskResume(task);
+        });
         break;
       }
       case 'linux': {

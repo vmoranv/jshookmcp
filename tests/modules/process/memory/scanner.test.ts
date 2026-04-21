@@ -18,6 +18,7 @@ const state = vi.hoisted(() => ({
   taskResume: vi.fn(),
   taskForPid: vi.fn(),
   machTaskSelf: vi.fn(),
+  machPortDeallocate: vi.fn(),
 }));
 
 vi.mock(import('node:fs'), async (importOriginal) => {
@@ -62,6 +63,7 @@ vi.mock('@native/platform/darwin/DarwinAPI.js', () => ({
   taskResume: state.taskResume,
   taskForPid: state.taskForPid,
   machTaskSelf: state.machTaskSelf,
+  machPortDeallocate: state.machPortDeallocate,
   KERN: {
     SUCCESS: 0,
   },
@@ -353,6 +355,7 @@ describe('memory/scanner', () => {
       expect(result.addresses).toEqual(['0x1001']);
       expect(state.taskSuspend).toHaveBeenCalledWith({ pid: 9 });
       expect(state.taskResume).toHaveBeenCalledWith({ pid: 9 });
+      expect(state.machPortDeallocate).toHaveBeenCalledWith(1, { pid: 9 });
     });
   });
 });

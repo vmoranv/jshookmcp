@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const originalPlatform = process.platform;
 
-const { state, mockKoffi } = vi.hoisted(() => {
+const { state, mockKoffi, posixMocks } = vi.hoisted(() => {
   const shared = {
     replySizes: [] as number[],
   };
@@ -28,6 +28,11 @@ const { state, mockKoffi } = vi.hoisted(() => {
     },
   );
 
+  const posixSocket = vi.fn(() => 10);
+  const posixClose = vi.fn(() => 0);
+  const posixSendto = vi.fn(() => 32);
+  const posixRecv = vi.fn(() => 0);
+
   return {
     state: shared,
     mockKoffi: {
@@ -37,11 +42,17 @@ const { state, mockKoffi } = vi.hoisted(() => {
           if (signature.includes('IcmpCreateFile')) return createFile;
           if (signature.includes('IcmpCloseHandle')) return closeHandle;
           if (signature.includes('IcmpSendEcho')) return sendEcho;
+          if (signature.includes('socket')) return posixSocket;
+          if (signature.includes('close')) return posixClose;
+          if (signature.includes('sendto')) return posixSendto;
+          if (signature.includes('recv')) return posixRecv;
+          if (signature.includes('setsockopt')) return vi.fn(() => 0);
           return vi.fn();
         }),
         unload: vi.fn(),
       })),
     },
+    posixMocks: { posixSocket, posixClose, posixSendto, posixRecv },
   };
 });
 
@@ -84,6 +95,32 @@ describe('IcmpProbe Windows reply buffer sizing', () => {
     expect(result.totalHops).toBe(1);
     expect(state.replySizes).toHaveLength(1);
     expect(state.replySizes[0]).toBeGreaterThan(4096);
+
+    unloadIcmpLibraries();
+  });
+});
+
+describe('IcmpProbe POSIX traceroute SEND_ERROR', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    state.replySizes.length = 0;
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+  });
+
+  it('handles SEND_ERROR in posixTraceroute and stops after consecutive failures', async () => {
+    posixMocks.posixSendto.mockReturnValue(-1);
+    vi.resetModules();
+    const { traceroute, unloadIcmpLibraries } = await import('@src/native/IcmpProbe');
+
+    const result = traceroute({ target: '1.1.1.1', maxHops: 30, timeout: 1000 });
+
+    expect(result.hops.length).toBeLessThanOrEqual(5);
+    expect(result.hops.every((h) => h.status === 'SEND_ERROR')).toBe(true);
+    expect(result.reached).toBe(false);
 
     unloadIcmpLibraries();
   });

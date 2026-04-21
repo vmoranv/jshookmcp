@@ -117,7 +117,7 @@ describe('memory/writer — coverage expansion', () => {
       const result = await writeMemory('linux', 1, '0x1000', 'DEADBEEF', 'hex', vi.fn());
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Requires root privileges');
+      expect(result.error).toContain('Requires ptrace access');
     });
 
     it('catches execAsync rejection and returns root error', async () => {
@@ -126,7 +126,7 @@ describe('memory/writer — coverage expansion', () => {
       const result = await writeMemory('linux', 1, '0x1000', 'DEADBEEF', 'hex', vi.fn());
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Run as root');
+      expect(result.error).toContain('ptrace access or root');
     });
   });
 

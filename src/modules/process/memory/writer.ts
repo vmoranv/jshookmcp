@@ -105,23 +105,69 @@ async function writeMemoryWindows(
 
 // ── Linux ──
 
+let _linuxProvider: import('@native/platform/PlatformMemoryAPI.js').PlatformMemoryAPI | null = null;
+let _linuxProviderChecked = false;
+
+async function getLinuxProvider(): Promise<
+  import('@native/platform/PlatformMemoryAPI.js').PlatformMemoryAPI | null
+> {
+  if (_linuxProviderChecked) return _linuxProvider;
+  try {
+    const { createPlatformProvider } = await import('@native/platform/factory.js');
+    const provider = createPlatformProvider();
+    const avail = await provider.checkAvailability();
+    if (avail.available) {
+      _linuxProvider = provider;
+    }
+  } catch {
+    // provider not available on this platform
+  }
+  _linuxProviderChecked = true;
+  return _linuxProvider;
+}
+
+/** @internal Reset cached provider for test isolation */
+export function _resetLinuxProviderCache(): void {
+  _linuxProvider = null;
+  _linuxProviderChecked = false;
+}
+
 async function writeMemoryLinux(
   pid: number,
   address: number,
   data: Buffer,
 ): Promise<MemoryWriteResult> {
+  // ── Native fast-path: direct /proc/pid/mem write (no sudo needed for same-user processes) ──
+  try {
+    const provider = await getLinuxProvider();
+    if (provider) {
+      const handle = provider.openProcess(pid, true);
+      try {
+        const result = provider.writeMemory(handle, BigInt(address), data);
+        logger.debug('Native Linux memory write succeeded');
+        return { success: true, bytesWritten: result.bytesWritten };
+      } finally {
+        provider.closeProcess(handle);
+      }
+    }
+  } catch (nativeErr) {
+    logger.debug('Native Linux write failed, falling back to dd:', nativeErr);
+  }
+
+  // ── Fallback: dd via /proc/pid/mem (may require root) ──
   try {
     const hexData = data.toString('hex');
 
     const { stderr } = await execAsync(
-      `sudo sh -c 'printf "${hexData}" | xxd -r -p | dd of=/proc/${pid}/mem bs=1 seek=${address} conv=notrunc 2>&1' || echo ""`,
+      `printf "${hexData}" | xxd -r -p | dd of=/proc/${pid}/mem bs=1 seek=${address} conv=notrunc`,
       { maxBuffer: 1024 * 1024, timeout: MEMORY_WRITE_TIMEOUT_MS },
     );
 
-    if (stderr && stderr.includes('error')) {
+    if (stderr && /error|denied|cannot/i.test(stderr)) {
       return {
         success: false,
-        error: 'Memory write failed. Requires root privileges.',
+        error:
+          'Memory write failed. Requires ptrace access or root. Check kernel.yama.ptrace_scope if access denied.',
       };
     }
 
@@ -133,7 +179,8 @@ async function writeMemoryLinux(
     logger.error('Linux memory write failed:', error);
     return {
       success: false,
-      error: 'Memory write failed. Run as root.',
+      error:
+        'Memory write failed. Requires ptrace access or root (check kernel.yama.ptrace_scope).',
     };
   }
 }

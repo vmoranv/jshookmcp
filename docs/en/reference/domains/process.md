@@ -4,6 +4,14 @@ Domain: `process`
 
 Process, module, memory diagnostics, and controlled injection domain for host-level inspection, troubleshooting, and Windows process experimentation workflows.
 
+## Platform Requirements for Memory Operations
+
+| Platform | Requirement |
+|----------|-------------|
+| Windows | Administrator privileges |
+| Linux | root or ptrace access. Check `kernel.yama.ptrace_scope` if denied |
+| macOS | root or `com.apple.security.cs.debugger` entitlement. ARM64 may require SIP disabled |
+
 ## Profiles
 
 - full

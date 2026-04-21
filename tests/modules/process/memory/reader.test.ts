@@ -45,12 +45,13 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
-import { readMemory } from '@modules/process/memory/reader';
+import { readMemory, _resetLinuxProviderCache } from '@modules/process/memory/reader';
 import { MEMORY_MAX_READ_BYTES } from '@src/constants';
 
 describe('memory/reader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetLinuxProviderCache();
     state.isKoffiAvailable.mockReturnValue(false);
   });
 
@@ -93,11 +94,38 @@ describe('memory/reader', () => {
   });
 
   it('returns Linux privilege error when read output is empty', async () => {
+    state.createPlatformProvider.mockReturnValue({
+      checkAvailability: vi.fn().mockResolvedValue({ available: false }),
+    });
     state.execAsync.mockResolvedValue({ stdout: '', stderr: '' });
     const result = await readMemory('linux', 4, '0x30', 8, vi.fn());
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Requires root');
+    expect(result.error).toContain('Requires ptrace access');
+  });
+
+  it('uses native Linux provider when available', async () => {
+    state.createPlatformProvider.mockReturnValue({
+      checkAvailability: vi.fn().mockResolvedValue({ available: true }),
+      openProcess: vi.fn().mockReturnValue({ pid: 4 }),
+      readMemory: vi.fn().mockReturnValue({ data: Buffer.from([0xde, 0xad]), bytesRead: 2 }),
+      closeProcess: vi.fn(),
+    });
+    const result = await readMemory('linux', 4, '0x30', 2, vi.fn());
+
+    expect(result.success).toBe(true);
+    expect(result.data).toContain('DE');
+    expect(result.data).toContain('AD');
+  });
+
+  it('falls back to dd when native Linux provider throws', async () => {
+    state.createPlatformProvider.mockReturnValue({
+      checkAvailability: vi.fn().mockRejectedValue(new Error('no /proc')),
+    });
+    state.execAsync.mockResolvedValue({ stdout: 'deadbeef', stderr: '' });
+    const result = await readMemory('linux', 4, '0x30', 4, vi.fn());
+
+    expect(result.success).toBe(true);
   });
 
   it('returns Linux read failure when the shell command throws', async () => {
@@ -106,7 +134,7 @@ describe('memory/reader', () => {
     const result = await readMemory('linux', 4, '0x30', 8, vi.fn());
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Run as root or use ptrace');
+    expect(result.error).toContain('ptrace access or root');
   });
 
   it('returns macOS protection error when region is not readable', async () => {

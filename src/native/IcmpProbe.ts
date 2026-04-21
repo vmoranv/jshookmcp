@@ -619,6 +619,9 @@ function posixTraceroute(params: {
   const destAddr = buildSockaddrIn(target);
   const t0 = performance.now();
 
+  const MAX_CONSECUTIVE_SEND_ERRORS = 5;
+  let consecutiveSendErrors = 0;
+
   try {
     posixSetRecvTimeout(fd, timeout);
 
@@ -626,7 +629,20 @@ function posixTraceroute(params: {
       posixSetTtl(fd, ttl);
       const packet = buildIcmpEcho(id, ttl, packetSize);
       const sendT0 = performance.now();
-      posixSendto(fd, packet, destAddr);
+      const sent = posixSendto(fd, packet, destAddr);
+      if (sent < 0) {
+        consecutiveSendErrors++;
+        hops.push({
+          hop: ttl,
+          ip: null,
+          rtt: null,
+          status: 'SEND_ERROR',
+          errorClass: 'error',
+        });
+        if (consecutiveSendErrors >= MAX_CONSECUTIVE_SEND_ERRORS) break;
+        continue;
+      }
+      consecutiveSendErrors = 0;
 
       const recvBuf = Buffer.alloc(512);
       const n = posixRecv(fd, recvBuf);
