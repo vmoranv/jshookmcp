@@ -507,6 +507,10 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     save_page_snapshot: { label: 'e2e-checkpoint' },
     list_page_snapshots: {},
     summarize_trace: { detail: 'compact' },
+    execute_sandbox_script: { code: '1 + 2', timeoutMs: 1000 },
+    frida_attach: { target: 'test-target' },
+    state_board_watch: { action: 'start', key: 'e2e-watch-key', pollIntervalMs: 250 },
+    webhook: { action: 'list' },
   };
 }
 

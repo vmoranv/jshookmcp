@@ -5,6 +5,7 @@ export const sandboxTools: Tool[] = [
   tool('execute_sandbox_script', (t) =>
     t
       .desc('Execute JavaScript in a WASM-isolated QuickJS sandbox with optional tool brid...')
+      .string('code', 'JavaScript source code to execute inside the sandbox')
       .string('sessionId', 'Session ID for scratchpad persistence across executions')
       .number('timeoutMs', 'Execution timeout in ms', { default: 1000 })
       .boolean('autoCorrect', 'Retry failed scripts up to 2 times with error context', {

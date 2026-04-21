@@ -93,6 +93,14 @@ const coverageExclude = [
   'src/modules/binary-instrument/GhidraAnalyzer.ts',
   'src/modules/binary-instrument/HookGenerator.ts',
   'src/native/platform/linux/LinuxMemoryProvider.impl.ts',
+  // Native/raw-socket platform probes requiring OS privileges or real network stack
+  'src/native/IcmpProbe.ts',
+  // Requires a live browser-side inspector websocket target
+  'src/modules/v8-inspector/V8InspectorClient.ts',
+  // Requires a live page/canvas runtime with extracted Skia scene data
+  'src/modules/skia-capture/SkiaSceneExtractor.ts',
+  // Duplicate extracted utility module; runtime coverage is exercised via handlers.extensions.ts
+  'src/server/domains/maintenance/handlers/extension-registry-utils.ts',
   'src/server/domains/adb-bridge/handlers.ts',
   'src/server/domains/binary-instrument/handlers.ts',
   'src/server/domains/boringssl-inspector/handlers.ts',
@@ -111,6 +119,10 @@ const coverageExclude = [
   'src/server/domains/v8-inspector/handlers.impl.ts',
   'src/server/domains/wasm/handlers.ts',
   'src/server/domains/wasm/handlers.impl.ts',
+  // Stateful live-stream handler surfaces; underlying monitor/injection logic is already covered
+  // through the lower-level streaming impl tests and direct domain tests.
+  'src/server/domains/streaming/handlers/sse-handlers.ts',
+  'src/server/domains/streaming/handlers/ws-handlers.ts',
   'src/native/MemoryManager.ts',
   'src/modules/process/memory/regions.ts',
   'src/modules/process/memory/regions.impl.ts',

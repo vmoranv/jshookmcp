@@ -5,6 +5,7 @@ export const binaryInstrumentTools: Tool[] = [
   tool('frida_attach', (t) =>
     t
       .desc('Attach Frida to a local process, PID, or binary path and create a binary inst...')
+      .string('target', 'Process name, PID, or binary path to attach to')
       .required('target'),
   ),
   tool('frida_enumerate_modules', (t) =>
