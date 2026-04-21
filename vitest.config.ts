@@ -114,6 +114,9 @@ const coverageExclude = [
   'src/server/domains/mojo-ipc/handlers.ts',
   'src/server/domains/protocol-analysis/handlers.ts',
   'src/server/domains/protocol-analysis/handlers.impl.core.ts',
+  // Pure composition facades delegating to focused sub-handlers; covered at the sub-handler layer.
+  'src/server/domains/debugger/handlers.ts',
+  'src/server/domains/memory/handlers.impl.ts',
   'src/server/domains/syscall-hook/handlers.ts',
   'src/server/domains/v8-inspector/handlers.ts',
   'src/server/domains/v8-inspector/handlers.impl.ts',
