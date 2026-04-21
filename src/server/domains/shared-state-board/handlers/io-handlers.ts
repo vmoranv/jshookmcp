@@ -5,6 +5,13 @@
 import { randomUUID } from 'node:crypto';
 import type { StateEntry, StateBoardStore } from './shared';
 import { matchesKeyPattern } from './shared';
+import {
+  argString,
+  argNumber,
+  argBool,
+  argStringRequired,
+  argObject,
+} from '@server/domains/shared/parse-args';
 
 export class IOHandlers {
   private store: StateBoardStore;
@@ -14,9 +21,9 @@ export class IOHandlers {
   }
 
   async handleHistory(args: Record<string, unknown>): Promise<unknown> {
-    const key = args.key as string;
-    const namespace = (args.namespace as string) ?? 'default';
-    const limit = (args.limit as number) ?? 50;
+    const key = argStringRequired(args, 'key');
+    const namespace = argString(args, 'namespace', 'default');
+    const limit = argNumber(args, 'limit', 50);
 
     const fullKey = `${namespace}:${key}`;
     const records = this.store.history.get(fullKey) ?? [];
@@ -37,8 +44,8 @@ export class IOHandlers {
   }
 
   async handleExport(args: Record<string, unknown>): Promise<unknown> {
-    const namespace = args.namespace as string | undefined;
-    const keyPattern = args.keyPattern as string | undefined;
+    const namespace = argString(args, 'namespace');
+    const keyPattern = argString(args, 'keyPattern');
 
     const now = Date.now();
     const data: Record<string, unknown> = {};
@@ -68,11 +75,11 @@ export class IOHandlers {
   }
 
   async handleImport(args: Record<string, unknown>): Promise<unknown> {
-    const data = args.data as Record<string, unknown>;
-    const namespace = (args.namespace as string) ?? 'default';
-    const overwrite = (args.overwrite as boolean) ?? false;
+    const data = argObject(args, 'data');
+    const namespace = argString(args, 'namespace', 'default');
+    const overwrite = argBool(args, 'overwrite', false);
 
-    if (!data || typeof data !== 'object') {
+    if (!data) {
       throw new Error('data must be an object');
     }
 

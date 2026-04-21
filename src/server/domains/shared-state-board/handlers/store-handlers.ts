@@ -5,6 +5,12 @@
 import { randomUUID } from 'node:crypto';
 import type { StateBoardStore, StateBoardStats } from './shared';
 import { matchesKeyPattern } from './shared';
+import {
+  argString,
+  argNumber,
+  argBool,
+  argStringRequired,
+} from '@server/domains/shared/parse-args';
 
 export class StoreHandlers {
   private store: StateBoardStore;
@@ -14,14 +20,11 @@ export class StoreHandlers {
   }
 
   async handleSet(args: Record<string, unknown>): Promise<unknown> {
-    const key = args.key as string;
-    const value = args.value as unknown;
-    const namespace = (args.namespace as string) ?? 'default';
-    const ttlSeconds = args.ttlSeconds as number | undefined;
-
-    if (!key || typeof key !== 'string') {
-      throw new Error('key must be a non-empty string');
-    }
+    const key = argStringRequired(args, 'key');
+    if (!key) throw new Error('key must be a non-empty string');
+    const value = args.value;
+    const namespace = argString(args, 'namespace', 'default');
+    const ttlSeconds = argNumber(args, 'ttlSeconds');
 
     const fullKey = `${namespace}:${key}`;
     const now = Date.now();
@@ -62,12 +65,9 @@ export class StoreHandlers {
   }
 
   async handleGet(args: Record<string, unknown>): Promise<unknown> {
-    const key = args.key as string;
-    const namespace = (args.namespace as string) ?? 'default';
-
-    if (!key || typeof key !== 'string') {
-      throw new Error('key must be a non-empty string');
-    }
+    const key = argStringRequired(args, 'key');
+    if (!key) throw new Error('key must be a non-empty string');
+    const namespace = argString(args, 'namespace', 'default');
 
     const fullKey = `${namespace}:${key}`;
     const entry = this.store.state.get(fullKey);
@@ -95,8 +95,9 @@ export class StoreHandlers {
   }
 
   async handleDelete(args: Record<string, unknown>): Promise<unknown> {
-    const key = args.key as string;
-    const namespace = (args.namespace as string) ?? 'default';
+    const key = argStringRequired(args, 'key');
+    if (!key) throw new Error('key must be a non-empty string');
+    const namespace = argString(args, 'namespace', 'default');
 
     const fullKey = `${namespace}:${key}`;
     const existing = this.store.state.get(fullKey);
@@ -110,8 +111,8 @@ export class StoreHandlers {
   }
 
   async handleList(args: Record<string, unknown>): Promise<unknown> {
-    const namespace = args.namespace as string | undefined;
-    const includeValues = (args.includeValues as boolean) ?? false;
+    const namespace = argString(args, 'namespace');
+    const includeValues = argBool(args, 'includeValues', false);
 
     const entries: Array<{
       key: string;
@@ -122,6 +123,8 @@ export class StoreHandlers {
       expired?: boolean;
     }> = [];
 
+    const toDelete: string[] = [];
+
     for (const entry of this.store.state.values()) {
       if (namespace && entry.namespace !== namespace) {
         continue;
@@ -129,7 +132,7 @@ export class StoreHandlers {
 
       const expired = this.store.isExpired(entry);
       if (expired) {
-        this.store.deleteEntry(`${entry.namespace}:${entry.key}`);
+        toDelete.push(`${entry.namespace}:${entry.key}`);
         continue;
       }
 
@@ -140,6 +143,10 @@ export class StoreHandlers {
         updatedAt: new Date(entry.updatedAt).toISOString(),
         ...(includeValues ? { value: entry.value } : {}),
       });
+    }
+
+    for (const fullKey of toDelete) {
+      this.store.deleteEntry(fullKey);
     }
 
     entries.sort((a, b) => {
@@ -157,8 +164,8 @@ export class StoreHandlers {
   }
 
   async handleClear(args: Record<string, unknown>): Promise<unknown> {
-    const namespace = args.namespace as string | undefined;
-    const keyPattern = args.keyPattern as string | undefined;
+    const namespace = argString(args, 'namespace');
+    const keyPattern = argString(args, 'keyPattern');
 
     const toDelete: string[] = [];
 

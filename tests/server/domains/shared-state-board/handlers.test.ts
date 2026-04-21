@@ -61,7 +61,7 @@ describe('SharedStateBoardHandlers', () => {
 
     it('rejects a non-string key', async () => {
       await expect(handler.handleSet({ key: 123, value: 'val' })).rejects.toThrow(
-        'key must be a non-empty string',
+        'Missing required string argument: "key"',
       );
     });
   });
@@ -105,7 +105,9 @@ describe('SharedStateBoardHandlers', () => {
     });
 
     it('rejects a missing key argument', async () => {
-      await expect(handler.handleGet({})).rejects.toThrow('key must be a non-empty string');
+      await expect(handler.handleGet({})).rejects.toThrow(
+        'Missing required string argument: "key"',
+      );
     });
 
     it('retrieves a value in a non-default namespace', async () => {
