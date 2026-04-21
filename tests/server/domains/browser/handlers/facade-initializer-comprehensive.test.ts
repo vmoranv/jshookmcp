@@ -108,7 +108,6 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
         getActivePage: vi.fn().mockResolvedValue({ id: 'page-1' }),
       } as any,
       pageController: { _mock: 'pageController' } as any,
-      domInspector: { _mock: 'domInspector' } as any,
       scriptManager: { _mock: 'scriptManager' } as any,
       consoleMonitor: { _mock: 'consoleMonitor' } as any,
       captchaDetector: { _mock: 'captchaDetector' } as any,
@@ -143,9 +142,6 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(modules.pageInteraction).toBeDefined();
       expect(modules.pageEvaluation).toBeDefined();
       expect(modules.pageData).toBeDefined();
-      expect(modules.domQuery).toBeDefined();
-      expect(modules.domStyle).toBeDefined();
-      expect(modules.domSearch).toBeDefined();
       expect(modules.consoleHandlers).toBeDefined();
       expect(modules.scriptManagement).toBeDefined();
       expect(modules.captchaHandlers).toBeDefined();
@@ -167,9 +163,6 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(handlers.PageInteractionHandlers).toHaveBeenCalledTimes(1);
       expect(handlers.PageEvaluationHandlers).toHaveBeenCalledTimes(1);
       expect(handlers.PageDataHandlers).toHaveBeenCalledTimes(1);
-      expect(handlers.DOMQueryHandlers).toHaveBeenCalledTimes(1);
-      expect(handlers.DOMStyleHandlers).toHaveBeenCalledTimes(1);
-      expect(handlers.DOMSearchHandlers).toHaveBeenCalledTimes(1);
       expect(handlers.ConsoleHandlers).toHaveBeenCalledTimes(1);
       expect(handlers.ScriptManagementHandlers).toHaveBeenCalledTimes(1);
       expect(handlers.CaptchaHandlers).toHaveBeenCalledTimes(1);
@@ -342,32 +335,6 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.pageController).toBe(deps.pageController);
       expect(call.getActiveDriver).toBe(deps.getActiveDriver);
       expect(call.getCamoufoxPage).toBe(deps.getCamoufoxPage);
-    });
-  });
-
-  describe('DOM handler deps', () => {
-    it('passes domInspector to DOMQueryHandlers', () => {
-      const deps = makeDeps();
-      initializeBrowserHandlerModules(deps);
-
-      const call = handlers.DOMQueryHandlers.mock.calls[0]![0];
-      expect(call.domInspector).toBe(deps.domInspector);
-    });
-
-    it('passes domInspector to DOMStyleHandlers', () => {
-      const deps = makeDeps();
-      initializeBrowserHandlerModules(deps);
-
-      const call = handlers.DOMStyleHandlers.mock.calls[0]![0];
-      expect(call.domInspector).toBe(deps.domInspector);
-    });
-
-    it('passes domInspector to DOMSearchHandlers', () => {
-      const deps = makeDeps();
-      initializeBrowserHandlerModules(deps);
-
-      const call = handlers.DOMSearchHandlers.mock.calls[0]![0];
-      expect(call.domInspector).toBe(deps.domInspector);
     });
   });
 
@@ -569,9 +536,6 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
         'pageInteraction',
         'pageEvaluation',
         'pageData',
-        'domQuery',
-        'domStyle',
-        'domSearch',
         'consoleHandlers',
         'scriptManagement',
         'captchaHandlers',

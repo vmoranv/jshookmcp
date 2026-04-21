@@ -28,6 +28,7 @@ vi.mock('@server/MCPServer.search.helpers', () => ({
   getSearchEngine: state.getSearchEngine,
   getActiveToolNames: state.getActiveToolNames,
   getVisibleDomainsForTier: () => new Set<string>(),
+  getBaseTier: () => 'search',
 }));
 
 vi.mock('@server/MCPServer.search.handlers.domain', () => ({
@@ -101,6 +102,7 @@ describe('MCPServer.search.handlers.search', () => {
       10,
       new Set(['page_navigate']),
       new Set(),
+      'search',
     );
     expect(response.nextActions).toEqual([
       {

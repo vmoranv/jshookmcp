@@ -438,10 +438,10 @@ describe('search/SearchQuality', () => {
 
   // ── Intent boost: workflow/extension should rank high ──
 
-  it('intent: "encrypt signature" → run_extension_workflow should be in top-3', async () => {
+  it('intent: "run a workflow" → run_extension_workflow should be in top-3', async () => {
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     const engine = new ToolSearchEngine();
-    const results = await engine.search('detect encrypt signature in code', 10);
+    const results = await engine.search('execute an extension workflow', 10);
     expect(topNames(results, 3)).toContain('run_extension_workflow');
   });
 

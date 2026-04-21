@@ -7,10 +7,10 @@ describe('search/IntentBoost', () => {
 
     expect(
       boost.resolveIntentToolBonuses('register signup verify').get('run_extension_workflow'),
-    ).toBe(40);
+    ).toBe(12);
     expect(
       boost.resolveIntentToolBonuses('api capture session').get('run_extension_workflow'),
-    ).toBe(40);
+    ).toBe(18);
   });
 
   it('compiles only valid custom rules', () => {

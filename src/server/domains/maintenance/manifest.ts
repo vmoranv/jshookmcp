@@ -48,7 +48,7 @@ const manifest = {
       tool: t('get_token_budget_stats'),
       domain: DOMAIN,
       bind: b((h) => h.handleGetTokenBudgetStats()),
-      profiles: ['search', 'workflow', 'full'],
+      profiles: ['workflow', 'full'],
     },
     {
       tool: t('manual_token_cleanup'),
@@ -64,7 +64,7 @@ const manifest = {
       tool: t('get_cache_stats'),
       domain: DOMAIN,
       bind: b((h) => h.handleGetCacheStats()),
-      profiles: ['search', 'workflow', 'full'],
+      profiles: ['workflow', 'full'],
     },
     {
       tool: t('smart_cache_cleanup'),
@@ -100,14 +100,14 @@ const manifest = {
       tool: t('list_extensions'),
       domain: DOMAIN,
       bind: be((h) => h.handleListExtensions()),
-      profiles: ['search', 'workflow', 'full'],
+      profiles: ['workflow', 'full'],
     },
     { tool: t('reload_extensions'), domain: DOMAIN, bind: be((h) => h.handleReloadExtensions()) },
     {
       tool: t('browse_extension_registry'),
       domain: DOMAIN,
       bind: be((h, a) => h.handleBrowseExtensionRegistry((a.kind as string) ?? 'all')),
-      profiles: ['search', 'workflow', 'full'],
+      profiles: ['workflow', 'full'],
     },
     {
       tool: t('install_extension'),

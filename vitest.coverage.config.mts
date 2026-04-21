@@ -13,7 +13,7 @@ export default defineConfig({
       },
     },
     coverage: {
-      ...(base.test?.coverage ?? {}),
+      ...base.test?.coverage,
       reporter: ['text'],
     },
   },

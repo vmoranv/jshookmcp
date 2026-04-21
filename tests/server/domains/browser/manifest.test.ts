@@ -76,18 +76,6 @@ describe('server/domains/browser/manifest', () => {
     expect(toolNames).toContain('page_evaluate');
   });
 
-  it('includes DOM tools in registrations', async () => {
-    const { default: manifest } = await import('@server/domains/browser/manifest');
-
-    const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
-
-    expect(toolNames).toContain('dom_query_selector');
-    expect(toolNames).toContain('dom_query_all');
-    expect(toolNames).toContain('dom_get_structure');
-    expect(toolNames).toContain('dom_find_clickable');
-    expect(toolNames).toContain('dom_find_by_text');
-  });
-
   it('includes advanced browser tools in registrations', async () => {
     const { default: manifest } = await import('@server/domains/browser/manifest');
 

@@ -12,7 +12,7 @@ describe('search/BM25Scorer', () => {
     expect(scorer.detectQueryCategoryBoosts('debug breakpoint request')).toEqual(
       new Map([
         ['debugger', 1.6],
-        ['runtime', 1.2],
+        ['v8-inspector', 1.2],
         ['network', 1.6],
         ['browser', 1.1],
       ]),

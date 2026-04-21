@@ -3,6 +3,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
   browserTools,
   advancedBrowserToolDefinitions,
+  browserJsdomToolDefinitions,
 } from '@server/domains/browser/definitions.tools';
 import { browserRuntimeTools } from '@server/domains/browser/definitions.tools.runtime';
 import { browserPageCoreTools } from '@server/domains/browser/definitions.tools.page-core';
@@ -57,7 +58,8 @@ describe('browser tool definitions', () => {
         browserPageCoreTools.length +
         browserPageSystemTools.length +
         browserSecurityStateTools.length +
-        behaviorTools.length;
+        behaviorTools.length +
+        browserJsdomToolDefinitions.length;
       expect(browserTools).toHaveLength(expected);
     });
 
