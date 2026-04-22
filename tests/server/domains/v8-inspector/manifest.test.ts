@@ -54,7 +54,7 @@ describe('v8-inspector manifest', () => {
       workerPool: null,
     } as unknown as import('@server/MCPServer.context').MCPServerContext;
 
-    const handler = await await manifest.ensure(mockCtx);
+    const handler = await manifest.ensure(mockCtx);
 
     expect(handler).toBeDefined();
     expect(typeof handler.v8_heap_snapshot_capture).toBe('function');

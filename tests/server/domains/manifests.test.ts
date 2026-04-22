@@ -9,70 +9,44 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ── vi.mock declarations (hoisted) ──────────────────────────────────────────
 
 vi.mock('@server/domains/shared/modules', () => ({
-  AdvancedDeobfuscator: class {
-    constructor() {
-      return { _mock: 'AdvancedDeobfuscator' };
-    }
+  AdvancedDeobfuscator: function () {
+    return { _mock: 'AdvancedDeobfuscator' };
   },
-  CodeAnalyzer: class {
-    constructor() {
-      return { _mock: 'CodeAnalyzer' };
-    }
+  CodeAnalyzer: function () {
+    return { _mock: 'CodeAnalyzer' };
   },
-  CodeCollector: class {
-    constructor() {
-      return { _mock: 'CodeCollector', on: vi.fn() };
-    }
+  CodeCollector: function () {
+    return { _mock: 'CodeCollector', on: vi.fn() };
   },
-  CryptoDetector: class {
-    constructor() {
-      return { _mock: 'CryptoDetector' };
-    }
+  CryptoDetector: function () {
+    return { _mock: 'CryptoDetector' };
   },
-  Deobfuscator: class {
-    constructor() {
-      return { _mock: 'Deobfuscator' };
-    }
+  Deobfuscator: function () {
+    return { _mock: 'Deobfuscator' };
   },
-  HookManager: class {
-    constructor() {
-      return { _mock: 'HookManager' };
-    }
+  HookManager: function () {
+    return { _mock: 'HookManager' };
   },
-  ObfuscationDetector: class {
-    constructor() {
-      return { _mock: 'ObfuscationDetector' };
-    }
+  ObfuscationDetector: function () {
+    return { _mock: 'ObfuscationDetector' };
   },
-  DebuggerManager: class {
-    constructor() {
-      return { _mock: 'DebuggerManager' };
-    }
+  DebuggerManager: function () {
+    return { _mock: 'DebuggerManager' };
   },
-  RuntimeInspector: class {
-    constructor() {
-      return { _mock: 'RuntimeInspector' };
-    }
+  RuntimeInspector: function () {
+    return { _mock: 'RuntimeInspector' };
   },
-  ScriptManager: class {
-    constructor() {
-      return { _mock: 'ScriptManager' };
-    }
+  ScriptManager: function () {
+    return { _mock: 'ScriptManager' };
   },
-  ConsoleMonitor: class {
-    constructor() {
-      return { _mock: 'ConsoleMonitor' };
-    }
+  ConsoleMonitor: function () {
+    return { _mock: 'ConsoleMonitor' };
   },
-  PageController: class {
-    constructor() {
-      return { _mock: 'PageController' };
-    }
+  PageController: function () {
+    return { _mock: 'PageController' };
   },
-  DOMInspector: class {
-    constructor() {
-      return { _mock: 'DOMInspector' };
-    }
+  DOMInspector: function () {
+    return { _mock: 'DOMInspector' };
   },
 }));
 
@@ -88,149 +62,111 @@ vi.mock('@server/registry/ensure-browser-core', () => ({
 }));
 
 vi.mock('@services/LLMService', () => ({
-  LLMService: class {
-    constructor() {
-      return { _mock: 'LLMService' };
-    }
+  LLMService: function () {
+    return { _mock: 'LLMService' };
   },
 }));
 
 // Handler class mocks — each returns a unique instance
 vi.mock('@server/domains/analysis/index', () => ({
-  CoreAnalysisHandlers: class {
-    constructor() {
-      return { _mock: 'CoreAnalysisHandlers' };
-    }
+  CoreAnalysisHandlers: function () {
+    return { _mock: 'CoreAnalysisHandlers' };
   },
 }));
 
 vi.mock('@server/domains/antidebug/index', () => ({
-  AntiDebugToolHandlers: class {
-    constructor() {
-      return { _mock: 'AntiDebugToolHandlers' };
-    }
+  AntiDebugToolHandlers: function () {
+    return { _mock: 'AntiDebugToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/browser/index', () => ({
-  BrowserToolHandlers: class {
-    constructor() {
-      return { _mock: 'BrowserToolHandlers' };
-    }
+  BrowserToolHandlers: function () {
+    return { _mock: 'BrowserToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/debugger/index', () => ({
-  DebuggerToolHandlers: class {
-    constructor() {
-      return { _mock: 'DebuggerToolHandlers' };
-    }
+  DebuggerToolHandlers: function () {
+    return { _mock: 'DebuggerToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/encoding/index', () => ({
-  EncodingToolHandlers: class {
-    constructor() {
-      return { _mock: 'EncodingToolHandlers' };
-    }
+  EncodingToolHandlers: function () {
+    return { _mock: 'EncodingToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/graphql/index', () => ({
-  GraphQLToolHandlers: class {
-    constructor() {
-      return { _mock: 'GraphQLToolHandlers' };
-    }
+  GraphQLToolHandlers: function () {
+    return { _mock: 'GraphQLToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/hooks/index', () => ({
-  AIHookToolHandlers: class {
-    constructor() {
-      return { _mock: 'AIHookToolHandlers' };
-    }
+  AIHookToolHandlers: function () {
+    return { _mock: 'AIHookToolHandlers' };
   },
-  HookPresetToolHandlers: class {
-    constructor() {
-      return { _mock: 'HookPresetToolHandlers' };
-    }
+  HookPresetToolHandlers: function () {
+    return { _mock: 'HookPresetToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/maintenance/index', () => ({
-  CoreMaintenanceHandlers: class {
-    constructor() {
-      return { _mock: 'CoreMaintenanceHandlers' };
-    }
+  CoreMaintenanceHandlers: function () {
+    return { _mock: 'CoreMaintenanceHandlers' };
   },
-  ExtensionManagementHandlers: class {
-    constructor() {
-      return { _mock: 'ExtensionManagementHandlers' };
-    }
+  ExtensionManagementHandlers: function () {
+    return { _mock: 'ExtensionManagementHandlers' };
   },
 }));
 
 vi.mock('@server/domains/network/index', () => ({
-  AdvancedToolHandlers: class {
-    constructor() {
-      return { _mock: 'AdvancedToolHandlers' };
-    }
+  AdvancedToolHandlers: function () {
+    return { _mock: 'AdvancedToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/platform/index', () => ({
-  PlatformToolHandlers: class {
-    constructor() {
-      return { _mock: 'PlatformToolHandlers' };
-    }
+  PlatformToolHandlers: function () {
+    return { _mock: 'PlatformToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/process/index', () => ({
-  ProcessToolHandlers: class {
-    constructor() {
-      return { _mock: 'ProcessToolHandlers' };
-    }
+  ProcessToolHandlers: function () {
+    return { _mock: 'ProcessToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/sourcemap/index', () => ({
-  SourcemapToolHandlers: class {
-    constructor() {
-      return { _mock: 'SourcemapToolHandlers' };
-    }
+  SourcemapToolHandlers: function () {
+    return { _mock: 'SourcemapToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/streaming/index', () => ({
-  StreamingToolHandlers: class {
-    constructor() {
-      return { _mock: 'StreamingToolHandlers' };
-    }
+  StreamingToolHandlers: function () {
+    return { _mock: 'StreamingToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/transform/index', () => ({
-  TransformToolHandlers: class {
-    constructor() {
-      return { _mock: 'TransformToolHandlers' };
-    }
+  TransformToolHandlers: function () {
+    return { _mock: 'TransformToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/wasm/index', () => ({
-  WasmToolHandlers: class {
-    constructor() {
-      return { _mock: 'WasmToolHandlers' };
-    }
+  WasmToolHandlers: function () {
+    return { _mock: 'WasmToolHandlers' };
   },
 }));
 
 vi.mock('@server/domains/workflow/index', () => ({
-  WorkflowHandlers: class {
-    constructor() {
-      return { _mock: 'WorkflowHandlers' };
-    }
+  WorkflowHandlers: function () {
+    return { _mock: 'WorkflowHandlers' };
   },
 }));
 
@@ -481,7 +417,7 @@ describe('domain manifests', () => {
   describe.each(ALL_MANIFESTS)('$label manifest ensure()', ({ manifest, expectedDepKey }) => {
     it('returns a truthy handler and populates ctx[depKey]', async () => {
       const ctx = mockContext();
-      const handler = await await manifest.ensure(ctx);
+      const handler = await manifest.ensure(ctx);
 
       expect(handler).toBeTruthy();
       expect(ctx[expectedDepKey]).toBeTruthy();
@@ -490,8 +426,8 @@ describe('domain manifests', () => {
 
     it('is idempotent — returns the same instance on second call', async () => {
       const ctx = mockContext();
-      const first = await await manifest.ensure(ctx);
-      const second = await await manifest.ensure(ctx);
+      const first = await manifest.ensure(ctx);
+      const second = await manifest.ensure(ctx);
 
       expect(second).toBe(first);
     });

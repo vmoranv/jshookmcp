@@ -219,7 +219,7 @@ describe('registry/discovery', () => {
       const manifests = await discoverDomainManifests(new Set(['a']));
 
       expect(manifests).toHaveLength(1);
-      expect(manifests[0].domain).toBe('a');
+      expect(manifests[0]!.domain).toBe('a');
       expect(loadA).toHaveBeenCalled();
       expect(loadB).not.toHaveBeenCalled();
     });

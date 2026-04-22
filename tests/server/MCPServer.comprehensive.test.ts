@@ -168,7 +168,7 @@ vi.mock(import('@server/registry/discovery'), () => ({
       domain: m.domain,
       depKey: m.depKey,
       profiles: ['full'] as const,
-      secondaryDepKeys: (m.secondaryDepKeys ?? []) as const,
+      secondaryDepKeys: (m.secondaryDepKeys ?? []) as readonly string[],
       load: () => Promise.resolve({ default: m }),
     })),
 }));

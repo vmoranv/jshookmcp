@@ -131,10 +131,8 @@ vi.mock('@server/domains/shared/registry', () => ({
 
 vi.mock('@server/domains/shared/modules', () => {
   return {
-    DebuggerManager: class {
-      constructor() {
-        return createDebuggerManagerMock();
-      }
+    DebuggerManager: function () {
+      return createDebuggerManagerMock();
     },
   };
 });
@@ -143,10 +141,8 @@ vi.mock('@server/domains/shared/modules', () => {
 
 vi.mock('@modules/trace/TraceRecorder', () => {
   return {
-    TraceRecorder: class {
-      constructor() {
-        return createTraceRecorderMock();
-      }
+    TraceRecorder: function () {
+      return createTraceRecorderMock();
     },
   };
 });
@@ -155,10 +151,8 @@ vi.mock('@modules/trace/TraceRecorder', () => {
 
 vi.mock('@server/evidence/ReverseEvidenceGraph', () => {
   return {
-    ReverseEvidenceGraph: class {
-      constructor() {
-        return createEvidenceStoreMock();
-      }
+    ReverseEvidenceGraph: function () {
+      return createEvidenceStoreMock();
     },
   };
 });

@@ -23,6 +23,7 @@ import {
   getDomainsForProfile,
   getAllKnownDomainNames,
 } from '@server/registry/discovery';
+import { DOMAIN_PROFILE_MAP } from '@server/registry/generated-domains.js';
 import { logger } from '@utils/logger';
 
 // ── Lazy-init singleton ──
@@ -225,9 +226,11 @@ export function buildProfileDomains(): Record<ToolProfileId, string[]> {
     full: new Set(),
   };
 
-  for (const m of getManifests()) {
-    for (const p of m.profiles) {
-      profiles[p]?.add(m.domain);
+  // Use build-time metadata as single source of truth — works even when
+  // manifests haven't been loaded yet (search profile starts with 0 loaded).
+  for (const [domain, domainProfiles] of Object.entries(DOMAIN_PROFILE_MAP)) {
+    for (const p of domainProfiles) {
+      profiles[p]?.add(domain);
     }
   }
 
