@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
   discoverDomainManifests: vi.fn(),
+  domainProfileMap: {} as Record<string, readonly string[]>,
   logger: {
     warn: vi.fn(),
     info: vi.fn(),
@@ -12,6 +13,12 @@ const state = vi.hoisted(() => ({
 
 vi.mock('@server/registry/discovery', () => ({
   discoverDomainManifests: state.discoverDomainManifests,
+}));
+
+vi.mock('@server/registry/generated-domains.js', () => ({
+  get DOMAIN_PROFILE_MAP() {
+    return state.domainProfileMap;
+  },
 }));
 
 vi.mock('@utils/logger', () => ({
@@ -53,6 +60,7 @@ describe('registry/index', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    state.domainProfileMap = {};
   });
 
   it('throws from getters before initialization', async () => {
@@ -109,6 +117,11 @@ describe('registry/index', () => {
   });
 
   it('warns when profile hierarchies are not proper subsets', async () => {
+    state.domainProfileMap = {
+      'search-only': ['search'],
+      'workflow-only': ['workflow'],
+      'full-only': ['full'],
+    };
     state.discoverDomainManifests.mockResolvedValue([
       makeManifest(
         'search-only',

@@ -14,10 +14,13 @@ function extractConstString(source, varName) {
   const re = new RegExp('const\\s+' + varName + '\\s*=\\s*[\'"]([^\'"]+)[\'"]');
   const m = source.match(re);
   if (m) return m[1];
-  // Try depKey: '...' (manifest object literal)
-  const re2 = new RegExp('depKey\\s*:\\s*[\'"]([^\'"]+)[\'"]');
-  const m2 = source.match(re2);
-  return m2 ? m2[1] : null;
+  return null;
+}
+
+function extractObjectString(source, propName) {
+  const re = new RegExp(propName + '\\s*:\\s*[\'"]([^\'"]+)[\'"]');
+  const m = source.match(re);
+  return m ? m[1] : null;
 }
 
 /**
@@ -81,12 +84,18 @@ async function main() {
       }
     }
 
-    const depKey = extractConstString(source, 'DEP_KEY') ?? `${domain}Handlers`;
+    const manifestDomain =
+      extractConstString(source, 'DOMAIN') ?? extractObjectString(source, 'domain') ?? domain;
+    const depKey =
+      extractConstString(source, 'DEP_KEY') ??
+      extractObjectString(source, 'depKey') ??
+      `${domain}Handlers`;
     const profiles = extractStringArray(source, 'profiles');
     const secondaryDepKeys = extractStringArray(source, 'secondaryDepKeys');
 
     loaderEntries.push({
-      domain,
+      directory: domain,
+      domain: manifestDomain,
       depKey,
       profiles: profiles.length > 0 ? profiles : ['full'],
       secondaryDepKeys,
@@ -96,7 +105,7 @@ async function main() {
   const loaders = loaderEntries
     .map(
       (e) =>
-        `  { domain: '${e.domain}', depKey: '${e.depKey}', profiles: [${e.profiles.map((p) => `'${p}'`).join(', ')}] as const, secondaryDepKeys: [${e.secondaryDepKeys.map((k) => `'${k}'`).join(', ')}] as const, load: () => import('../domains/${e.domain}/manifest.js') },`,
+        `  { domain: '${e.domain}', depKey: '${e.depKey}', profiles: [${e.profiles.map((p) => `'${p}'`).join(', ')}] as const, secondaryDepKeys: [${e.secondaryDepKeys.map((k) => `'${k}'`).join(', ')}] as const, load: () => import('../domains/${e.directory}/manifest.js') },`,
     )
     .join('\n');
 

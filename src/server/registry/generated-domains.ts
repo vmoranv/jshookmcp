@@ -10,7 +10,7 @@ export const generatedManifestLoaders = [
     load: () => import('../domains/adb-bridge/manifest.js'),
   },
   {
-    domain: 'analysis',
+    domain: 'core',
     depKey: 'coreAnalysisHandlers',
     profiles: ['workflow', 'full'] as const,
     secondaryDepKeys: [] as const,
@@ -259,7 +259,7 @@ export const generatedManifestLoaders = [
 /** Domains included in each profile tier (derived at build time from manifest sources). */
 export const DOMAIN_PROFILE_MAP: Readonly<Record<string, readonly string[]>> = {
   'adb-bridge': ['full'],
-  analysis: ['workflow', 'full'],
+  core: ['workflow', 'full'],
   antidebug: ['full'],
   'binary-instrument': ['full'],
   'boringssl-inspector': ['full'],
