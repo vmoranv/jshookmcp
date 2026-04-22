@@ -70,12 +70,15 @@ vi.mock('@server/ToolHandlerMap', () => ({
 
 vi.mock('@server/registry/index', () => ({
   getAllDomains: () => new Set(['browser', 'network', 'workflow']),
+  getAllKnownDomains: () => new Set(['browser', 'network', 'workflow']),
+  ensureDomainLoaded: vi.fn().mockResolvedValue(null),
   getAllRegistrations: () => [
     { domain: 'browser', tool: tool('browser_launch') },
     { domain: 'browser', tool: tool('page_navigate') },
     { domain: 'network', tool: tool('network_enable') },
     { domain: 'network', tool: tool('network_get_requests') },
   ],
+  ensureAllDomainsLoaded: vi.fn().mockResolvedValue(undefined),
   getAllManifests: () => [
     {
       domain: 'browser',

@@ -102,7 +102,16 @@ export async function main() {
     }
 
     logger.info('Creating MCP server instance...');
-    await initRegistry();
+    const explicitProfile = (process.env.MCP_TOOL_PROFILE ?? '').trim().toLowerCase() as
+      | 'search'
+      | 'workflow'
+      | 'full'
+      | undefined;
+    const profile =
+      explicitProfile === 'full' || explicitProfile === 'workflow' || explicitProfile === 'search'
+        ? explicitProfile
+        : 'search';
+    await initRegistry(profile);
     const server = new MCPServer(config);
     const stopArtifactRetentionScheduler = startArtifactRetentionScheduler();
     const recoveryWindowMs = Math.max(1000, RUNTIME_ERROR_WINDOW_MS);

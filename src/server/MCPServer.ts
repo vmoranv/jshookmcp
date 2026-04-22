@@ -19,6 +19,7 @@ import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { ToolArgs } from '@server/types';
 import { resolveToolsForRegistration } from '@server/MCPServer.registration';
 import { createDomainProxy, resolveEnabledDomains } from '@server/MCPServer.domain';
+import { getLoaderMetadata } from '@server/registry/discovery';
 import { refreshDomainTtlForTool } from '@server/MCPServer.activation.ttl';
 import type { DomainTtlEntry } from '@server/MCPServer.activation.ttl';
 import { closeServer, startHttpTransport, startStdioTransport } from '@server/MCPServer.transport';
@@ -29,7 +30,7 @@ import { registerServerResources } from '@server/MCPServer.resources';
 import { registerServerPrompts } from '@server/MCPServer.prompts';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { createServerEventBus, type EventBus, type ServerEventMap } from '@server/EventBus';
-import { getAllManifests } from '@server/registry/index';
+import { getAllManifests, ensureDomainLoaded } from '@server/registry/index';
 import {
   RuntimeSnapshotScheduler,
   getStateDir,
@@ -220,34 +221,65 @@ export class MCPServer implements MCPServerContext {
     this.baseTier = profile;
     this.enabledDomains = this.resolveEnabledDomains(this.selectedTools);
 
-    // Build handlerDeps dynamically from discovered manifests
-    // Each manifest's depKey gets a lazy proxy that calls ensure(ctx) on first access
+    // Build handlerDeps for ALL domains (loaded + unloaded) using build-time metadata.
+    // Loaded domains use manifest.ensure() directly; unloaded domains lazy-load on first access.
     const depsEntries: Array<[string, unknown]> = [];
     const manifests = getAllManifests();
-    for (const m of manifests) {
-      depsEntries.push([
-        m.depKey,
-        createDomainProxy(
-          this,
-          m.domain,
-          `${m.domain}:${m.depKey}`,
-          () => m.ensure(this) as object,
-        ),
-      ]);
-    }
-    // Register secondary dep keys declared by manifests
-    for (const m of manifests) {
-      if (m.secondaryDepKeys) {
-        for (const key of m.secondaryDepKeys) {
-          if (!depsEntries.some(([k]) => k === key)) {
-            depsEntries.push([
-              key,
-              createDomainProxy(this, m.domain, `${m.domain}:${key}`, async () => {
-                // Wait for primary ensure() to complete, then return ctx[key]
-                await m.ensure(this);
-                return (this as Record<string, unknown>)[key] as object;
-              }),
-            ]);
+    const loadedByDomain = new Map(manifests.map((m) => [m.domain, m]));
+    const allMeta = getLoaderMetadata();
+    if (!Array.isArray(allMeta)) {
+      // Mock may return non-array in test environments
+      logger.warn('[MCPServer] getLoaderMetadata returned non-array, skipping domain proxy setup');
+    } else {
+      for (const meta of allMeta) {
+        const loaded = loadedByDomain.get(meta.domain);
+        if (loaded) {
+          depsEntries.push([
+            meta.depKey,
+            createDomainProxy(
+              this,
+              meta.domain,
+              `${meta.domain}:${meta.depKey}`,
+              () => loaded.ensure(this) as object,
+            ),
+          ]);
+          // Secondary dep keys from loaded manifest
+          if (loaded.secondaryDepKeys) {
+            for (const key of loaded.secondaryDepKeys) {
+              if (!depsEntries.some(([k]) => k === key)) {
+                depsEntries.push([
+                  key,
+                  createDomainProxy(this, meta.domain, `${meta.domain}:${key}`, async () => {
+                    await loaded.ensure(this);
+                    return (this as Record<string, unknown>)[key] as object;
+                  }),
+                ]);
+              }
+            }
+          }
+        } else {
+          // Unloaded domain — proxy that loads manifest on first access
+          depsEntries.push([
+            meta.depKey,
+            createDomainProxy(this, meta.domain, `${meta.domain}:${meta.depKey}`, async () => {
+              const manifest = await ensureDomainLoaded(meta.domain);
+              if (!manifest) throw new Error(`Failed to load domain ${meta.domain}`);
+              return manifest.ensure(this) as object;
+            }),
+          ]);
+          // Secondary dep keys for unloaded domains
+          for (const key of meta.secondaryDepKeys) {
+            if (!depsEntries.some(([k]) => k === key)) {
+              depsEntries.push([
+                key,
+                createDomainProxy(this, meta.domain, `${meta.domain}:${key}`, async () => {
+                  const manifest = await ensureDomainLoaded(meta.domain);
+                  if (!manifest) throw new Error(`Failed to load domain ${meta.domain}`);
+                  await manifest.ensure(this);
+                  return (this as Record<string, unknown>)[key] as object;
+                }),
+              ]);
+            }
           }
         }
       }

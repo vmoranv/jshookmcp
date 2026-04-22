@@ -22,7 +22,7 @@ export async function handleSearchTools(
   const query = args.query as string;
   const topK = (args.top_k as number | undefined) ?? 10;
 
-  const engine = getSearchEngine(ctx);
+  const engine = await getSearchEngine(ctx);
   const activeNames = getActiveToolNames(ctx);
   const visibleDomains = getVisibleDomainsForTier(ctx);
   const results = await engine.search(query, topK, activeNames, visibleDomains, getBaseTier(ctx));

@@ -7,7 +7,7 @@ import { getToolsByDomains } from '@server/ToolCatalog';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
-import { getAllDomains } from '@server/registry/index';
+import { getAllKnownDomains, ensureDomainLoaded } from '@server/registry/index';
 import { getActiveToolNames } from '@server/MCPServer.search.helpers';
 import { startDomainTtl } from '@server/MCPServer.activation.ttl';
 import { ACTIVATION_TTL_MINUTES } from '@src/constants';
@@ -22,7 +22,7 @@ export async function handleActivateDomain(
       JSON.stringify({ success: false, error: 'domain must be a non-empty string' }),
     );
   }
-  const validDomains = new Set<string>(getAllDomains());
+  const validDomains = new Set<string>(getAllKnownDomains());
   for (const record of ctx.extensionToolsByName.values()) {
     validDomains.add(record.domain);
   }
@@ -35,6 +35,9 @@ export async function handleActivateDomain(
       }),
     );
   }
+
+  // Ensure the domain manifest is loaded before accessing tools/handlers
+  await ensureDomainLoaded(domain);
 
   const ttlMinutes = typeof args.ttlMinutes === 'number' ? args.ttlMinutes : ACTIVATION_TTL_MINUTES;
 

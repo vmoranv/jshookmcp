@@ -49,6 +49,10 @@ vi.mock('@utils/logger', () => ({
   logger: state.logger,
 }));
 
+vi.mock('@server/registry/index', () => ({
+  ensureAllDomainsLoaded: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   activateToolNames,
   handleActivateTools,

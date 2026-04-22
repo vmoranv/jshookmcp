@@ -38,6 +38,7 @@ vi.mock('@server/ToolCatalog', () => ({
 
 vi.mock('@server/registry/index', () => ({
   getAllRegistrations: () => mocks.registrations,
+  ensureAllDomainsLoaded: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@src/constants', async (importOriginal) => ({
@@ -116,7 +117,7 @@ describe('MCPServer.search.helpers', () => {
     );
   });
 
-  it('builds extension-domain and tool-name lookup maps', () => {
+  it('builds extension-domain and tool-name lookup maps', async () => {
     const extensionTool = tool('custom_tool', 'Custom workflow tool');
     const ctx = createCtx({
       extensionToolsByName: new Map([
@@ -132,13 +133,13 @@ describe('MCPServer.search.helpers', () => {
       ]),
     );
 
-    const combined = getCombinedTools(ctx);
+    const combined = await getCombinedTools(ctx);
     expect(combined.find((candidate) => candidate.name === 'custom_tool')).toBe(extensionTool);
     // Extension overwrites the 'page_navigate' key in the internal Map, but the tool object
     // stored there has name 'custom_tool', so no entry with name 'page_navigate' survives.
     expect(combined.find((candidate) => candidate.name === 'page_navigate')).toBeUndefined();
 
-    const byName = getToolByName(ctx);
+    const byName = await getToolByName(ctx);
     expect(byName.get('custom_tool')).toBe(extensionTool);
     expect(byName.get('page_navigate')).toBeUndefined();
   });
@@ -158,7 +159,7 @@ describe('MCPServer.search.helpers', () => {
     expect(buildSearchSignature(ctx)).toBe('2::a_tool:browser|z_tool:workflow');
   });
 
-  it('caches the search engine by signature and applies workflow and extension boosts', () => {
+  it('caches the search engine by signature and applies workflow and extension boosts', async () => {
     const ctx = createCtx({
       extensionToolsByName: new Map([
         [
@@ -173,8 +174,8 @@ describe('MCPServer.search.helpers', () => {
       extensionWorkflowRuntimeById: new Map([['wf-1', {}]]),
     });
 
-    const first = getSearchEngine(ctx);
-    const second = getSearchEngine(ctx);
+    const first = await getSearchEngine(ctx);
+    const second = await getSearchEngine(ctx);
 
     expect(first).toBe(second);
     expect(mocks.engineInstances).toHaveLength(1);
@@ -195,7 +196,7 @@ describe('MCPServer.search.helpers', () => {
     );
 
     ctx.extensionWorkflowRuntimeById.set('wf-2', {});
-    const third = getSearchEngine(ctx);
+    const third = await getSearchEngine(ctx);
     expect(third).not.toBe(first);
     expect(mocks.engineInstances).toHaveLength(2);
   });

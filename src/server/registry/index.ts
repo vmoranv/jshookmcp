@@ -1,11 +1,8 @@
 /**
- * Central tool registry - single source of truth.
+ * Central tool registry — single source of truth with lazy domain loading.
  *
- * Uses runtime discovery: scans domains/STAR/manifest.js on startup,
- * dynamically imports each DomainManifest, and builds all derived data
- * structures (tool groups, domain map, handler map, profile domains).
- *
- * No more manual imports - add a new domain by creating its manifest.ts.
+ * Startup loads only manifests for the active profile tier.
+ * Additional domains are loaded on-demand via ensureDomainLoaded().
  */
 function isSubset(a: string[], b: string[]): boolean {
   const bSet = new Set(b);
@@ -20,7 +17,12 @@ import type {
   ToolProfileId,
 } from '@server/registry/contracts';
 import type { ToolHandler } from '@server/types';
-import { discoverDomainManifests } from '@server/registry/discovery';
+import {
+  discoverDomainManifests,
+  loadSingleManifest,
+  getDomainsForProfile,
+  getAllKnownDomainNames,
+} from '@server/registry/discovery';
 import { logger } from '@utils/logger';
 
 // ── Lazy-init singleton ──
@@ -29,39 +31,38 @@ let _manifests: DomainManifest[] | null = null;
 let _registrations: ToolRegistration[] | null = null;
 let _initPromise: Promise<void> | null = null;
 
-// Cached views — materialized once after init, never rebuilt.
-let _domainsView: ReadonlySet<string> | null = null;
+// Cached views — materialized once after init, updated on lazy loads.
+let _domainsView: Set<string> | null = null;
 let _toolNamesView: ReadonlySet<string> | null = null;
-let _registrationsByName: ReadonlyMap<string, ToolRegistration> | null = null;
+let _registrationsByName: Map<string, ToolRegistration> | null = null;
 
-async function init(): Promise<void> {
+async function init(profile?: ToolProfileId): Promise<void> {
   if (_manifests !== null) return;
   if (_initPromise) {
     await _initPromise;
     return;
   }
   _initPromise = (async () => {
-    const discovered = await discoverDomainManifests();
+    const domainsToLoad = profile ? getDomainsForProfile(profile) : undefined;
+    const discovered = await discoverDomainManifests(domainsToLoad);
     _manifests = discovered;
 
-    const uniqueByToolName = new Map<string, ToolRegistration>();
+    _registrationsByName = new Map();
     for (const m of discovered) {
       for (const r of m.registrations) {
-        // Auto-inherit domain from manifest if not specified on the registration
         const registration: ToolRegistration = r.domain ? r : { ...r, domain: m.domain };
-        const existing = uniqueByToolName.get(registration.tool.name);
+        const existing = _registrationsByName.get(registration.tool.name);
         if (existing) {
           logger.warn(
             `[registry] Duplicate tool name "${registration.tool.name}": domain "${registration.domain}" conflicts with "${existing.domain}" — keeping first`,
           );
         } else {
-          uniqueByToolName.set(registration.tool.name, registration);
+          _registrationsByName.set(registration.tool.name, registration);
         }
       }
     }
-    _registrations = [...uniqueByToolName.values()];
+    _registrations = [..._registrationsByName.values()];
 
-    // Materialize cached views once — avoids rebuilding on every access
     _domainsView = new Set(_manifests.map((m) => m.domain));
     _toolNamesView = new Set(_registrations.map((r) => r.tool.name));
   })();
@@ -70,8 +71,65 @@ async function init(): Promise<void> {
 
 // ── Public initialiser (call before first use) ──
 
-export async function initRegistry(): Promise<void> {
-  await init();
+export async function initRegistry(profile?: ToolProfileId): Promise<void> {
+  await init(profile);
+}
+
+// ── On-demand loading ──
+
+/**
+ * Ensure a single domain's manifest is loaded.
+ * Loads the manifest, adds its registrations, and updates cached views.
+ * Returns the manifest or null if loading failed.
+ */
+export async function ensureDomainLoaded(domainName: string): Promise<DomainManifest | null> {
+  if (!_manifests) throw new Error('[registry] Not initialised - call initRegistry() first.');
+
+  // Already loaded
+  if (_manifests.some((m) => m.domain === domainName)) {
+    return _manifests.find((m) => m.domain === domainName)!;
+  }
+
+  const manifest = await loadSingleManifest(domainName);
+  if (!manifest) return null;
+
+  // Add to manifests array
+  _manifests.push(manifest);
+  _domainsView!.add(manifest.domain);
+
+  // Add registrations
+  for (const r of manifest.registrations) {
+    const registration: ToolRegistration = r.domain ? r : { ...r, domain: manifest.domain };
+    if (!_registrationsByName!.has(registration.tool.name)) {
+      _registrationsByName!.set(registration.tool.name, registration);
+    }
+  }
+  _registrations = [..._registrationsByName!.values()];
+
+  // Update tool names view
+  for (const r of manifest.registrations) {
+    (_toolNamesView as Set<string>).add(r.tool.name);
+  }
+
+  return manifest;
+}
+
+/**
+ * Ensure ALL domain manifests are loaded.
+ * Useful for search_tools which needs to index all tools.
+ * No-op if all domains are already loaded.
+ */
+export async function ensureAllDomainsLoaded(): Promise<void> {
+  if (!_manifests) throw new Error('[registry] Not initialised - call initRegistry() first.');
+
+  const allDomains = getAllKnownDomainNames();
+  const loaded = new Set(_manifests.map((m) => m.domain));
+  const missing = [...allDomains].filter((d) => !loaded.has(d));
+
+  if (missing.length === 0) return;
+
+  logger.info(`[registry] Loading ${missing.length} remaining domains for full discovery`);
+  await Promise.all(missing.map((d) => ensureDomainLoaded(d)));
 }
 
 // ── Accessors ──
@@ -96,9 +154,15 @@ export function getAllRegistrations(): readonly ToolRegistration[] {
   return getRegistrations();
 }
 
+/** Returns domain names of LOADED manifests only. */
 export function getAllDomains(): ReadonlySet<string> {
   if (!_domainsView) throw new Error('[registry] Not initialised - call initRegistry() first.');
   return _domainsView;
+}
+
+/** Returns ALL known domain names from build-time metadata (no loading needed). */
+export function getAllKnownDomains(): ReadonlySet<string> {
+  return getAllKnownDomainNames();
 }
 
 export function getAllToolNames(): ReadonlySet<string> {

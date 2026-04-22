@@ -9,6 +9,7 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolResponse } from '@server/types';
 import { normalizeToolName, validateToolNameArray } from '@server/MCPServer.search.validation';
 import { getActiveToolNames, getToolByName } from '@server/MCPServer.search.helpers';
+import { ensureAllDomainsLoaded } from '@server/registry/index';
 
 interface ActivationSummary {
   activated: string[];
@@ -33,6 +34,9 @@ export async function activateToolNames(
   ctx: MCPServerContext,
   names: string[],
 ): Promise<ActivationSummary> {
+  // Ensure all domains are loaded so tool lookup can find any tool
+  await ensureAllDomainsLoaded();
+
   const activeNames = getActiveToolNames(ctx);
   const activated: string[] = [];
   const alreadyActive: string[] = [];
@@ -45,7 +49,7 @@ export async function activateToolNames(
       continue;
     }
 
-    const toolDef = getToolByName(ctx).get(name);
+    const toolDef = (await getToolByName(ctx)).get(name);
     if (!toolDef) {
       notFound.push(name);
       continue;

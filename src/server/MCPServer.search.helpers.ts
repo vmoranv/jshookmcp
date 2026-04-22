@@ -13,7 +13,7 @@ import {
 import type { ToolProfile } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { ToolSearchEngine } from '@server/ToolSearch';
-import { getAllRegistrations } from '@server/registry/index';
+import { getAllRegistrations, ensureAllDomainsLoaded } from '@server/registry/index';
 import { SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER } from '@src/constants';
 
 // ── active-tool helpers ──
@@ -72,7 +72,8 @@ export function getExtensionDomainMap(ctx: MCPServerContext): Map<string, string
   return map;
 }
 
-export function getCombinedTools(ctx: MCPServerContext): typeof allTools {
+export async function getCombinedTools(ctx: MCPServerContext): Promise<typeof allTools> {
+  await ensureAllDomainsLoaded();
   const tools = new Map(allTools.map((tool) => [tool.name, tool]));
   for (const record of ctx.extensionToolsByName.values()) {
     tools.set(record.name, record.tool);
@@ -80,8 +81,10 @@ export function getCombinedTools(ctx: MCPServerContext): typeof allTools {
   return [...tools.values()];
 }
 
-export function getToolByName(ctx: MCPServerContext): Map<string, (typeof allTools)[number]> {
-  return new Map(getCombinedTools(ctx).map((tool) => [tool.name, tool]));
+export async function getToolByName(
+  ctx: MCPServerContext,
+): Promise<Map<string, (typeof allTools)[number]>> {
+  return new Map((await getCombinedTools(ctx)).map((tool) => [tool.name, tool]));
 }
 
 // ── ToolSearchEngine build cache ──
@@ -108,12 +111,15 @@ export function buildSearchSignature(ctx: MCPServerContext): string {
   return [ctx.extensionWorkflowRuntimeById.size, extParts.join('|')].join('::');
 }
 
-export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
+export async function getSearchEngine(ctx: MCPServerContext): Promise<ToolSearchEngine> {
+  // Ensure all domains are loaded for full search coverage
+  await ensureAllDomainsLoaded();
+
   const signature = buildSearchSignature(ctx);
   const cached = searchEngineCache.get(ctx);
   if (cached?.signature === signature) return cached.engine;
 
-  const tools = getCombinedTools(ctx);
+  const tools = await getCombinedTools(ctx);
   const extensionDomains = getExtensionDomainMap(ctx);
   const domainScoreMultipliers = new Map<string, number>();
   const toolScoreMultipliers = new Map<string, number>();
@@ -140,7 +146,7 @@ export function getSearchEngine(ctx: MCPServerContext): ToolSearchEngine {
 
 // ── domain description ──
 
-/** Generate domain summary description from discovered manifests. */
+/** Generate domain summary description. Uses metadata when not all domains are loaded. */
 export function buildDomainDescription(ctx: MCPServerContext): string {
   const groups: Record<string, number> = {};
   for (const r of getAllRegistrations()) {
@@ -149,14 +155,19 @@ export function buildDomainDescription(ctx: MCPServerContext): string {
   for (const record of ctx.extensionToolsByName.values()) {
     groups[record.domain] = (groups[record.domain] ?? 0) + 1;
   }
-  const totalTools = getAllRegistrations().length + ctx.extensionToolsByName.size;
+  const loadedCount = getAllRegistrations().length;
+  const extensionCount = ctx.extensionToolsByName.size;
+  const totalTools = loadedCount + extensionCount;
+  const domainCount = Object.keys(groups).length;
+
   const parts = Object.entries(groups)
     .toSorted((a, b) => b[1] - a[1])
     .map(([domain, count]) => `${domain} (${count})`)
     .join(' | ');
+
   return (
-    `Search ${totalTools} tools across ${Object.keys(groups).length} capability domains. ` +
-    `This includes built-in tools plus any loaded plugin/workflow tools (${ctx.extensionToolsByName.size} currently loaded). ` +
+    `Search ${totalTools} tools across ${domainCount} capability domains. ` +
+    `This includes built-in tools plus any loaded plugin/workflow tools (${extensionCount} currently loaded). ` +
     `In search-tier sessions, call this before assuming a capability is unavailable. ` +
     `Use activate_tools for exact matches, activate_domain for an entire domain. ` +
     `Domains: ${parts}. ` +

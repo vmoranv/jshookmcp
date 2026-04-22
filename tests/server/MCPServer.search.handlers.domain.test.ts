@@ -46,6 +46,8 @@ vi.mock('@server/ToolHandlerMap', () => ({
 
 vi.mock('@server/registry/index', () => ({
   getAllDomains: () => new Set(['browser', 'network']),
+  getAllKnownDomains: () => new Set(['browser', 'network']),
+  ensureDomainLoaded: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@server/MCPServer.activation.ttl', () => ({

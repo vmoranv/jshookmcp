@@ -44,7 +44,7 @@ export async function handleRouteTool(
     );
   }
 
-  const engine = getSearchEngine(ctx);
+  const engine = await getSearchEngine(ctx);
   // SECURITY: Default autoActivate to false to prevent privilege escalation.
   // Previously defaulted to true, allowing prompt injection to activate powerful tools.
   const autoActivate = context?.autoActivate === true;

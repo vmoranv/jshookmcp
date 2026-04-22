@@ -104,7 +104,7 @@ export async function handleCallTool(
 
     // Record feedback for vector weight tuning (Phase 8)
     try {
-      const engine = getSearchEngine(ctx);
+      const engine = await getSearchEngine(ctx);
       engine.recordToolCallFeedback(name, '');
     } catch {
       /* non-critical — ignore feedback errors */

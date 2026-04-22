@@ -159,6 +159,18 @@ vi.mock('@src/server/registry/index', () => ({
   buildAllTools: () => [],
   buildProfileDomains: () => ({ search: [], workflow: [], full: [] }),
   buildHandlerMapFromRegistry: () => ({}),
+  ensureDomainLoaded: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock(import('@server/registry/discovery'), () => ({
+  getLoaderMetadata: () =>
+    mocks.allManifests.map((m: any) => ({
+      domain: m.domain,
+      depKey: m.depKey,
+      profiles: ['full'] as const,
+      secondaryDepKeys: (m.secondaryDepKeys ?? []) as const,
+      load: () => Promise.resolve({ default: m }),
+    })),
 }));
 
 import { MCPServer } from '@server/MCPServer';
