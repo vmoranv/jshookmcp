@@ -50,6 +50,123 @@ import {
   reloadExtensions as reloadExtensionsImpl,
 } from '@server/extensions/ExtensionManager';
 
+interface ExecutionMetricMemorySnapshot {
+  source: 'server';
+  rssBytes: number;
+  privateBytes: null;
+  virtualBytes: null;
+  heapUsedBytes: number;
+  heapTotalBytes: number;
+  externalBytes: number;
+  arrayBuffersBytes: number;
+}
+
+interface ExecutionMetricPayload {
+  source: 'server';
+  startedAt: string;
+  finishedAt: string;
+  elapsedMs: number;
+  timeoutMs: number;
+  serverPid: number;
+  cpuUserMicros: number;
+  cpuSystemMicros: number;
+  memoryBefore: ExecutionMetricMemorySnapshot;
+  memoryAfter: ExecutionMetricMemorySnapshot;
+  memoryDelta: {
+    rssBytes: number;
+    privateBytes: null;
+    virtualBytes: null;
+    heapUsedBytes: number;
+    heapTotalBytes: number;
+    externalBytes: number;
+    arrayBuffersBytes: number;
+  };
+}
+
+function shouldCollectExecutionMetrics(): boolean {
+  return process.env.E2E_COLLECT_PERFORMANCE === '1';
+}
+
+function captureExecutionMetricMemory(): ExecutionMetricMemorySnapshot {
+  const memory = process.memoryUsage();
+  return {
+    source: 'server',
+    rssBytes: memory.rss,
+    privateBytes: null,
+    virtualBytes: null,
+    heapUsedBytes: memory.heapUsed,
+    heapTotalBytes: memory.heapTotal,
+    externalBytes: memory.external,
+    arrayBuffersBytes: memory.arrayBuffers,
+  };
+}
+
+function buildExecutionMetrics(
+  startedAt: string,
+  startTime: number,
+  timeoutMs: number,
+  cpuStart: NodeJS.CpuUsage,
+  memoryBefore: ExecutionMetricMemorySnapshot,
+): ExecutionMetricPayload {
+  const finishedAt = new Date().toISOString();
+  const cpuUsage = process.cpuUsage(cpuStart);
+  const memoryAfter = captureExecutionMetricMemory();
+  return {
+    source: 'server',
+    startedAt,
+    finishedAt,
+    elapsedMs: Number((performance.now() - startTime).toFixed(2)),
+    timeoutMs,
+    serverPid: process.pid,
+    cpuUserMicros: cpuUsage.user,
+    cpuSystemMicros: cpuUsage.system,
+    memoryBefore,
+    memoryAfter,
+    memoryDelta: {
+      rssBytes: memoryAfter.rssBytes - memoryBefore.rssBytes,
+      privateBytes: null,
+      virtualBytes: null,
+      heapUsedBytes: memoryAfter.heapUsedBytes - memoryBefore.heapUsedBytes,
+      heapTotalBytes: memoryAfter.heapTotalBytes - memoryBefore.heapTotalBytes,
+      externalBytes: memoryAfter.externalBytes - memoryBefore.externalBytes,
+      arrayBuffersBytes: memoryAfter.arrayBuffersBytes - memoryBefore.arrayBuffersBytes,
+    },
+  };
+}
+
+function appendExecutionMetrics<T extends { content?: unknown[] }>(
+  response: T,
+  metrics: ExecutionMetricPayload,
+): T {
+  const content = response.content;
+  if (!Array.isArray(content)) return response;
+
+  const firstText = content.find(
+    (entry: unknown): entry is { type: string; text: string } =>
+      typeof entry === 'object' &&
+      entry !== null &&
+      (entry as Record<string, unknown>).type === 'text' &&
+      typeof (entry as Record<string, unknown>).text === 'string',
+  );
+  if (!firstText) return response;
+
+  try {
+    const parsed = JSON.parse(firstText.text) as unknown;
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return response;
+    }
+    const record = parsed as Record<string, unknown>;
+    if (!('_executionMetrics' in record)) {
+      record._executionMetrics = metrics;
+      firstText.text = JSON.stringify(record);
+    }
+  } catch {
+    return response;
+  }
+
+  return response;
+}
+
 export class MCPServer implements MCPServerContext {
   public readonly config: Config;
   public readonly server: McpServer;
@@ -464,6 +581,12 @@ export class MCPServer implements MCPServerContext {
 
   public async executeToolWithTracking(name: string, args: ToolArgs) {
     let timeoutTimer: NodeJS.Timeout | undefined;
+    const timeoutMs = 30000;
+    const collectExecutionMetrics = shouldCollectExecutionMetrics();
+    const executionStartedAt = collectExecutionMetrics ? new Date().toISOString() : null;
+    const executionStartTime = collectExecutionMetrics ? performance.now() : 0;
+    const executionCpuStart = collectExecutionMetrics ? process.cpuUsage() : null;
+    const executionMemoryBefore = collectExecutionMetrics ? captureExecutionMetricMemory() : null;
     try {
       timeoutTimer = setTimeout(() => {
         try {
@@ -474,7 +597,7 @@ export class MCPServer implements MCPServerContext {
         } catch {
           logger.warn(`Telemetry Alert [ERR-03]: Tool execution hung (>30s) for '${name}'.`);
         }
-      }, 30000);
+      }, timeoutMs);
       timeoutTimer.unref();
 
       let response;
@@ -487,7 +610,24 @@ export class MCPServer implements MCPServerContext {
       // Track consecutive tool calls for repeat loop detection
       this.contextGuard.recordCall(name);
       // Enrich context-sensitive tool responses with current tab metadata
-      const enriched = this.contextGuard.enrichResponse(name, response);
+      let enriched = this.contextGuard.enrichResponse(name, response);
+      if (
+        collectExecutionMetrics &&
+        executionStartedAt &&
+        executionCpuStart &&
+        executionMemoryBefore
+      ) {
+        enriched = appendExecutionMetrics(
+          enriched,
+          buildExecutionMetrics(
+            executionStartedAt,
+            executionStartTime,
+            timeoutMs,
+            executionCpuStart,
+            executionMemoryBefore,
+          ),
+        );
+      }
       try {
         this.tokenBudget.recordToolCall(name, args, enriched);
       } catch (trackingError) {

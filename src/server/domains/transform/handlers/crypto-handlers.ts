@@ -9,6 +9,7 @@ import {
   parseBoolean,
   parseTestInputs,
   resolveFunctionName,
+  ensureCryptoPoolWarmed,
   buildCryptoPolyfills,
   runCryptoHarness,
   toTextResponse,
@@ -238,6 +239,8 @@ export class CryptoHandlers {
       const functionName = requireString(args.functionName, 'functionName');
       const testInputs = parseTestInputs(args.testInputs);
 
+      await ensureCryptoPoolWarmed(this.state.cryptoHarnessPool);
+
       const harness = await runCryptoHarness(
         this.state.cryptoHarnessPool,
         code,
@@ -265,6 +268,8 @@ export class CryptoHandlers {
       const code2 = requireString(args.code2, 'code2');
       const functionName = requireString(args.functionName, 'functionName');
       const testInputs = parseTestInputs(args.testInputs);
+
+      await ensureCryptoPoolWarmed(this.state.cryptoHarnessPool);
 
       const [run1, run2] = await Promise.all([
         runCryptoHarness(this.state.cryptoHarnessPool, code1, functionName, testInputs),

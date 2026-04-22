@@ -355,6 +355,12 @@ export function isValidIdentifier(value: string): boolean {
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value);
 }
 
+export async function ensureCryptoPoolWarmed(
+  pool: WorkerPool<Record<string, unknown>, WorkerHarnessMessage>,
+): Promise<void> {
+  await pool.warmup(1);
+}
+
 export function buildCryptoPolyfills(): string {
   return `
 const __textEncoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;

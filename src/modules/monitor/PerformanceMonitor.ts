@@ -472,19 +472,19 @@ export class PerformanceMonitor {
     return profile;
   }
 
-  async takeHeapSnapshot(): Promise<string> {
+  async takeHeapSnapshot(): Promise<number> {
     const cdp = await this.ensureCDPSession();
 
     await cdp.send('HeapProfiler.enable');
 
-    let snapshotData = '';
+    let snapshotSize = 0;
 
     // Use a named handler so we can reliably remove it after the snapshot
     const chunkHandler = (params: unknown) => {
       if (!isCDPHeapSnapshotChunkPayload(params)) {
         return;
       }
-      snapshotData += params.chunk;
+      snapshotSize += params.chunk.length;
     };
 
     cdp.on('HeapProfiler.addHeapSnapshotChunk', chunkHandler);
@@ -501,10 +501,10 @@ export class PerformanceMonitor {
     }
 
     logger.success('Heap snapshot taken', {
-      size: snapshotData.length,
+      size: snapshotSize,
     });
 
-    return snapshotData;
+    return snapshotSize;
   }
 
   // ── CDP Tracing (Performance Trace) ──────────────────────────

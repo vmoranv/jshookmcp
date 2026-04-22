@@ -88,12 +88,15 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
   describe('successful introspection', () => {
     it('returns schema data from successful introspection', async () => {
+      const schemaData = { __schema: { types: [] } };
       const browserResult: BrowserFetchResult = {
         ok: true,
         status: 200,
         statusText: 'OK',
-        responseText: '{"data":{"__schema":{"types":[]}}}',
-        responseJson: { data: { __schema: { types: [] } } },
+        totalLength: 50,
+        preview: JSON.stringify({ data: schemaData }),
+        truncated: false,
+        json: { data: schemaData },
         responseHeaders: { 'content-type': 'application/json' },
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
@@ -113,12 +116,15 @@ describe('GraphQLToolHandlersIntrospection', () => {
     });
 
     it('extracts data field from response when present', async () => {
+      const schemaData = { __schema: { queryType: { name: 'Query' } } };
       const browserResult: BrowserFetchResult = {
         ok: true,
         status: 200,
         statusText: 'OK',
-        responseText: '',
-        responseJson: { data: { __schema: { queryType: { name: 'Query' } } } },
+        totalLength: 60,
+        preview: JSON.stringify({ data: schemaData }),
+        truncated: false,
+        json: { data: schemaData },
         responseHeaders: {},
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
@@ -136,8 +142,10 @@ describe('GraphQLToolHandlersIntrospection', () => {
         ok: true,
         status: 200,
         statusText: 'OK',
-        responseText: '{}',
-        responseJson: {},
+        totalLength: 2,
+        preview: '{}',
+        truncated: false,
+        json: {},
         responseHeaders: {},
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
@@ -162,8 +170,10 @@ describe('GraphQLToolHandlersIntrospection', () => {
         ok: true,
         status: 200,
         statusText: 'OK',
-        responseText: '{}',
-        responseJson: {},
+        totalLength: 2,
+        preview: '{}',
+        truncated: false,
+        json: {},
         responseHeaders: { 'x-custom': 'value' },
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
@@ -185,8 +195,10 @@ describe('GraphQLToolHandlersIntrospection', () => {
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
-        responseText: 'Server broke',
-        responseJson: null,
+        totalLength: 12,
+        preview: 'Server broke',
+        truncated: false,
+        json: null,
         error: 'Server error',
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
@@ -208,8 +220,10 @@ describe('GraphQLToolHandlersIntrospection', () => {
         ok: false,
         status: 0,
         statusText: 'FETCH_ERROR',
-        responseText: '',
-        responseJson: null,
+        totalLength: 0,
+        preview: '',
+        truncated: false,
+        json: null,
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
 
@@ -226,8 +240,10 @@ describe('GraphQLToolHandlersIntrospection', () => {
         ok: true,
         status: 200,
         statusText: 'OK',
-        responseText: '',
-        responseJson: {
+        totalLength: 60,
+        preview: JSON.stringify({ data: null, errors: [{ message: 'Not authorized' }] }),
+        truncated: false,
+        json: {
           data: null,
           errors: [{ message: 'Not authorized' }],
         },
@@ -248,8 +264,10 @@ describe('GraphQLToolHandlersIntrospection', () => {
         ok: true,
         status: 200,
         statusText: 'OK',
-        responseText: '{}',
-        responseJson: {},
+        totalLength: 2,
+        preview: '{}',
+        truncated: false,
+        json: {},
         responseHeaders: {},
         error: 'CORS issue',
       };
@@ -269,12 +287,15 @@ describe('GraphQLToolHandlersIntrospection', () => {
   describe('schema truncation', () => {
     it('does not include schema field when truncated', async () => {
       const largeSchema = { data: { bigField: 'x'.repeat(200000) } };
+      const largeText = JSON.stringify(largeSchema);
       const browserResult: BrowserFetchResult = {
         ok: true,
         status: 200,
         statusText: 'OK',
-        responseText: JSON.stringify(largeSchema),
-        responseJson: largeSchema,
+        totalLength: largeText.length,
+        preview: largeText.slice(0, 100000) + '\n... (truncated)',
+        truncated: true,
+        json: largeSchema,
         responseHeaders: {},
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
@@ -287,6 +308,37 @@ describe('GraphQLToolHandlersIntrospection', () => {
       expect(body.schemaTruncated).toBe(true);
       expect(body.schema).toBeUndefined();
       expect(body.schemaPreview).toBeDefined();
+    });
+
+    it('keeps schema when only non-schema fields make the raw body exceed the limit', async () => {
+      const schemaData = { __schema: { queryType: { name: 'Query' } } };
+      const rawPayload = {
+        data: schemaData,
+        extensions: { trace: 'x'.repeat(200000) },
+      };
+      const rawText = JSON.stringify(rawPayload);
+      const browserResult: BrowserFetchResult = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        totalLength: rawText.length,
+        preview: rawText.slice(0, 100000) + '\n... (truncated)',
+        truncated: true,
+        json: rawPayload,
+        responseHeaders: {},
+      };
+      page.evaluate.mockResolvedValueOnce(browserResult);
+
+      const body = parseJson<any>(
+        await handlers.handleGraphqlIntrospect({
+          endpoint: 'https://example.com/graphql',
+        }),
+      );
+
+      expect(body.schemaTruncated).toBe(false);
+      expect(body.schema).toEqual(schemaData);
+      expect(body.schemaLength).toBe(JSON.stringify(schemaData, null, 2).length);
+      expect(body.schemaPreview).toBe(JSON.stringify(schemaData, null, 2));
     });
   });
 
@@ -308,8 +360,10 @@ describe('GraphQLToolHandlersIntrospection', () => {
         ok: true,
         status: 200,
         statusText: 'OK',
-        responseText: '"just a string"',
-        responseJson: 'just a string',
+        totalLength: 16,
+        preview: '"just a string"',
+        truncated: false,
+        json: 'just a string',
         responseHeaders: {},
       };
       page.evaluate.mockResolvedValueOnce(browserResult);
@@ -327,8 +381,10 @@ describe('GraphQLToolHandlersIntrospection', () => {
         ok: false,
         status: 200,
         statusText: 'OK',
-        responseText: 'raw text data',
-        responseJson: null,
+        totalLength: 13,
+        preview: 'raw text data',
+        truncated: false,
+        json: null,
         responseHeaders: {},
       };
       page.evaluate.mockResolvedValueOnce(browserResult);

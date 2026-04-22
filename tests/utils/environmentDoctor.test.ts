@@ -72,6 +72,16 @@ function makeMinimalReport(overrides?: Partial<EnvironmentDoctorReport>): Enviro
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 // ---------------------------------------------------------------------------
 // runEnvironmentDoctor
 // ---------------------------------------------------------------------------
@@ -98,6 +108,39 @@ describe('runEnvironmentDoctor', () => {
     expect(report.runtime.arch).toBe(process.arch);
     expect(report.runtime.node).toBe(process.version);
     expect(report.generatedAt).toBeDefined();
+  });
+
+  it('starts command probes in parallel with external tool probing', async () => {
+    const probeDeferred = createDeferred<Record<string, never>>();
+    const commandDeferreds = new Map<
+      string,
+      ReturnType<typeof createDeferred<{ stdout: string; stderr: string }>>
+    >();
+
+    probeAllMock.mockReturnValue(probeDeferred.promise);
+    execFileMock.mockImplementation((cmd: string, args?: string[]) => {
+      const targetCmd = cmd === 'cmd' ? (args?.[1] ?? cmd) : cmd;
+      const deferred = createDeferred<{ stdout: string; stderr: string }>();
+      commandDeferreds.set(targetCmd, deferred);
+      return deferred.promise;
+    });
+
+    const reportPromise = runEnvironmentDoctor({ includeBridgeHealth: false });
+    await Promise.resolve();
+
+    expect(probeAllMock).toHaveBeenCalledOnce();
+    expect(commandDeferreds.has('git')).toBe(true);
+    expect(commandDeferreds.has('python')).toBe(true);
+    expect(commandDeferreds.has('pnpm')).toBe(true);
+    expect(commandDeferreds.has('corepack')).toBe(true);
+
+    probeDeferred.resolve({});
+    for (const deferred of commandDeferreds.values()) {
+      deferred.resolve({ stdout: 'ok', stderr: '' });
+    }
+
+    const report = await reportPromise;
+    expect(report.commands.find((c) => c.name === 'git')?.status).toBe('ok');
   });
 
   it('reports installed packages', async () => {
@@ -301,6 +344,11 @@ describe('runEnvironmentDoctor', () => {
     expect(wasm2wat!.status).toBe('ok');
     const decompile = report.commands.find((c) => c.name === 'wabt.wasm-decompile');
     expect(decompile!.status).toBe('missing');
+  });
+
+  it('forces a fresh external tool probe for each doctor run', async () => {
+    await runEnvironmentDoctor({ includeBridgeHealth: false });
+    expect(probeAllMock).toHaveBeenCalledWith(true);
   });
 
   it('external tool uses PATH fallback when path is undefined', async () => {

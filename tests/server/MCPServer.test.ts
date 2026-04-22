@@ -554,6 +554,25 @@ describe('MCPServer', () => {
     });
   });
 
+  it('executeToolWithTracking injects execution metrics into JSON responses when enabled', async () => {
+    process.env.E2E_COLLECT_PERFORMANCE = '1';
+    const server = new MCPServer(baseConfig) as any;
+    server.router.execute = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: '{"success":true}' }],
+    });
+
+    const response = await server.executeToolWithTracking('tool_alpha', { x: 7 });
+    const payload = JSON.parse(response.content[0].text);
+
+    expect(payload.success).toBe(true);
+    expect(payload._executionMetrics).toBeDefined();
+    expect(payload._executionMetrics.source).toBe('server');
+    expect(payload._executionMetrics.serverPid).toBe(process.pid);
+    expect(typeof payload._executionMetrics.elapsedMs).toBe('number');
+
+    delete process.env.E2E_COLLECT_PERFORMANCE;
+  });
+
   it('registerCaches catches errors from createCacheAdapters and logs them', async () => {
     const server = new MCPServer(baseConfig) as any;
     server.collector = { getCache: vi.fn(), getCompressor: vi.fn() };

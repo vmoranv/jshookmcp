@@ -85,6 +85,7 @@
     "format:check": "oxfmt \"src/**\" \"tests/**\" \"!tests/tmp/**\" --check --no-error-on-unmatched-pattern",
     "test": "node scripts/run-vitest-smart.mjs run",
     "test:e2e": "cross-env E2E_TARGET_URL=https://vmoranv.github.io/jshookmcp/ vitest run --config tests/e2e/vitest.e2e.config.ts",
+    "test:e2e:perf": "cross-env E2E_TARGET_URL=https://vmoranv.github.io/jshookmcp/ E2E_COLLECT_PERFORMANCE=1 vitest run --config tests/e2e/vitest.e2e.config.ts",
     "test:coverage": "node -e \"require('fs').mkdirSync('coverage/.tmp', { recursive: true })\" && cross-env ENABLE_INJECTION_TOOLS=true COVERAGE_FULL=true node scripts/run-vitest-smart.mjs run --coverage",
     "prepack": "corepack pnpm run metadata:check && corepack pnpm run build",
     "package:verify-bin": "node scripts/verify-packed-bin.mjs",

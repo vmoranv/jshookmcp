@@ -52,10 +52,14 @@ export type ToolStatus = 'PASS' | 'SKIP' | 'EXPECTED_LIMITATION' | 'FAIL';
 
 /** Cross-platform process memory sample for the MCP server child process. */
 export interface ProcessMemorySample {
-  source: 'procfs' | 'ps' | 'powershell';
+  source: 'procfs' | 'ps' | 'powershell' | 'server';
   rssBytes: number | null;
   privateBytes: number | null;
   virtualBytes: number | null;
+  heapUsedBytes?: number | null;
+  heapTotalBytes?: number | null;
+  externalBytes?: number | null;
+  arrayBuffersBytes?: number | null;
 }
 
 /** Delta between two process memory samples. */
@@ -67,11 +71,14 @@ export interface ProcessMemoryDelta {
 
 /** Per-tool runtime performance metrics captured by the E2E harness. */
 export interface ToolPerformanceMetrics {
+  source: 'client' | 'server';
   startedAt: string;
   finishedAt: string;
   elapsedMs: number;
   timeoutMs: number;
   serverPid: number | null;
+  cpuUserMicros?: number | null;
+  cpuSystemMicros?: number | null;
   memoryBefore: ProcessMemorySample | null;
   memoryAfter: ProcessMemorySample | null;
   memoryDelta: ProcessMemoryDelta | null;

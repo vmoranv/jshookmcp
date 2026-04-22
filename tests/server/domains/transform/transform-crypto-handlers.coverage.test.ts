@@ -10,6 +10,7 @@ const mockSubmit = vi.fn();
 
 const mockPool = {
   submit: mockSubmit,
+  warmup: vi.fn().mockResolvedValue(undefined),
 } as any;
 
 const mockGetActivePage = vi.fn();

@@ -81,6 +81,7 @@ describe('e2e perf-metrics helpers', () => {
         detail: 'ok',
         isError: false,
         performance: {
+          source: 'server',
           startedAt: '2026-01-01T00:00:00.000Z',
           finishedAt: '2026-01-01T00:00:01.000Z',
           elapsedMs: 1000,
@@ -97,6 +98,7 @@ describe('e2e perf-metrics helpers', () => {
         detail: 'timeout',
         isError: false,
         performance: {
+          source: 'server',
           startedAt: '2026-01-01T00:00:00.000Z',
           finishedAt: '2026-01-01T00:00:00.100Z',
           elapsedMs: 100,

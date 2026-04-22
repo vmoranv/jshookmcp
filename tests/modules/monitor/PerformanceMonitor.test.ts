@@ -187,7 +187,7 @@ describe('PerformanceMonitor', () => {
 
     const snapshot = await monitor.takeHeapSnapshot();
 
-    expect(snapshot).toBe('partApartB');
+    expect(snapshot).toBe('partApartB'.length);
     expect(on).toHaveBeenCalledWith('HeapProfiler.addHeapSnapshotChunk', expect.any(Function));
     expect(off).toHaveBeenCalledWith('HeapProfiler.addHeapSnapshotChunk', expect.any(Function));
   });
@@ -529,7 +529,7 @@ describe('PerformanceMonitor', () => {
     const snapshot = await monitor.takeHeapSnapshot();
 
     // Only valid string chunks are accumulated; malformed ones are silently skipped
-    expect(snapshot).toBe('validalsoValid');
+    expect(snapshot).toBe('validalsoValid'.length);
   });
 
   it('throws when startHeapSampling is called twice', async () => {

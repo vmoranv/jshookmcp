@@ -5,7 +5,7 @@
 import { evaluateWithTimeout } from '@modules/collector/PageController';
 import type { CodeCollector } from '@server/domains/shared/modules';
 import type { SourceMapV3, ParsedSourceMapResult } from './shared';
-import { decodeMappings, hasProtocol, asRecord, asString } from './shared';
+import { decodeMappings, countMappingsStats, hasProtocol, asRecord, asString } from './shared';
 
 export function parseSourceMap(
   sourceMapUrl: string,
@@ -22,6 +22,17 @@ export function parseSourceMap(
       mappingsCount: generatedLines.size,
       segmentCount: mappings.length,
     };
+  });
+}
+
+export function parseSourceMapStats(
+  sourceMapUrl: string,
+  scriptUrl: string | undefined,
+  collector: CodeCollector,
+): Promise<{ resolvedUrl: string; map: SourceMapV3; mappingsCount: number; segmentCount: number }> {
+  return loadSourceMap(sourceMapUrl, scriptUrl, collector).then((loaded) => {
+    const { mappingsCount, segmentCount } = countMappingsStats(loaded.map.mappings);
+    return { resolvedUrl: loaded.resolvedUrl, map: loaded.map, mappingsCount, segmentCount };
   });
 }
 

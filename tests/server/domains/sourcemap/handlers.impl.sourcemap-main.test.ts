@@ -156,7 +156,8 @@ describe('SourcemapToolHandlersMain', () => {
   describe('handleSourcemapFetchAndParse', () => {
     it('fetches and returns limited sources payload', async () => {
       vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
-        map: { sources: ['a.ts'], sourcesContent: ['code'] },
+        map: { version: 3, sources: ['a.ts'], sourcesContent: ['code'], mappings: '', names: [] },
+        mappings: [],
         mappingsCount: 1,
         segmentCount: 1,
       });
@@ -185,13 +186,18 @@ describe('SourcemapToolHandlersMain', () => {
   describe('handleSourcemapReconstructTree', () => {
     it('reconstructs tree to artifact directory', async () => {
       // Mock base methods
-      vi.spyOn(handlers as any, 'parseSourceMap').mockResolvedValue({
+      vi.spyOn(handlers as any, 'parseSourceMapStats').mockResolvedValue({
         resolvedUrl: 'http://example.com/source.map',
         map: {
+          version: 3,
           sourceRoot: '/test',
           sources: ['src/a.ts', null, 'src/b.ts'], // one null branch coverage
           sourcesContent: ['console.log("a")', null, null],
+          mappings: '',
+          names: [],
         },
+        mappingsCount: 3,
+        segmentCount: 3,
       });
       vi.spyOn(handlers as any, 'safeTarget').mockReturnValue('target');
       vi.spyOn(handlers as any, 'combineSourceRoot').mockImplementation((_r: any, s: any) => s);
@@ -220,7 +226,7 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles error during reconstruct', async () => {
-      vi.spyOn(handlers as any, 'parseSourceMap').mockRejectedValue(new Error('no map found'));
+      vi.spyOn(handlers as any, 'parseSourceMapStats').mockRejectedValue(new Error('no map found'));
 
       const res = await handlers.handleSourcemapReconstructTree({
         sourceMapUrl: 'http://foo.com/map',
@@ -231,7 +237,7 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles string based error during reconstruct without throwing', async () => {
-      vi.spyOn(handlers as any, 'parseSourceMap').mockRejectedValue('no map string err');
+      vi.spyOn(handlers as any, 'parseSourceMapStats').mockRejectedValue('no map string err');
       const res = await handlers.handleSourcemapReconstructTree({
         sourceMapUrl: 'http://foo.com/map',
       });

@@ -425,6 +425,9 @@ class TestSourcemapToolHandlersMain extends SourcemapToolHandlersMain {
   public override async parseSourceMap(sourceMapUrl: string, scriptUrl?: string) {
     return super.parseSourceMap(sourceMapUrl, scriptUrl);
   }
+  public override async parseSourceMapStats(sourceMapUrl: string, scriptUrl?: string) {
+    return super.parseSourceMapStats(sourceMapUrl, scriptUrl);
+  }
 }
 
 describe('SourcemapToolHandlersMain', () => {
@@ -513,12 +516,16 @@ describe('SourcemapToolHandlersMain', () => {
       vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
+          version: 3,
           sources: ['src/index.ts', 'src/utils.ts'],
           sourcesContent: ['const a = 1;', 'const b = 2;'],
+          mappings: '',
+          names: [],
         },
+        mappings: [],
         mappingsCount: 10,
         segmentCount: 50,
-      } as any);
+      });
 
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
@@ -536,11 +543,15 @@ describe('SourcemapToolHandlersMain', () => {
       vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
+          version: 3,
           sources: ['src/index.ts'],
+          mappings: '',
+          names: [],
         },
+        mappings: [],
         mappingsCount: 5,
         segmentCount: 20,
-      } as any);
+      });
 
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
@@ -566,10 +577,11 @@ describe('SourcemapToolHandlersMain', () => {
     it('passes scriptUrl to parseSourceMap when provided', async () => {
       const spy = vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
         resolvedUrl: 'url',
-        map: { sources: [] },
+        map: { version: 3, sources: [], mappings: '', names: [] },
+        mappings: [],
         mappingsCount: 0,
         segmentCount: 0,
-      } as any);
+      });
 
       await handlers.handleSourcemapFetchAndParse({
         sourceMapUrl: 'app.js.map',
@@ -590,15 +602,18 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('reconstructs file tree from source map', async () => {
-      vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
+      vi.spyOn(handlers, 'parseSourceMapStats').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
+          version: 3,
           sources: ['src/index.ts', 'src/utils.ts'],
           sourcesContent: ['const a = 1;', 'const b = 2;'],
+          mappings: '',
+          names: [],
         },
         mappingsCount: 10,
         segmentCount: 50,
-      } as any);
+      });
 
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
@@ -614,14 +629,17 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles missing sourcesContent gracefully', async () => {
-      vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
+      vi.spyOn(handlers, 'parseSourceMapStats').mockResolvedValue({
         resolvedUrl: 'https://example.com/app.js.map',
         map: {
+          version: 3,
           sources: ['src/main.js'],
+          mappings: '',
+          names: [],
         },
         mappingsCount: 5,
         segmentCount: 20,
-      } as any);
+      });
 
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
@@ -634,7 +652,7 @@ describe('SourcemapToolHandlersMain', () => {
     });
 
     it('handles parseSourceMap error in reconstruct', async () => {
-      vi.spyOn(handlers, 'parseSourceMap').mockRejectedValue(new Error('Failed fetch'));
+      vi.spyOn(handlers, 'parseSourceMapStats').mockRejectedValue(new Error('Failed fetch'));
 
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({ sourceMapUrl: 'bad' }),

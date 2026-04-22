@@ -146,6 +146,32 @@ export function decodeMappings(mappings: string): DecodedMapping[] {
   return decoded;
 }
 
+export function countMappingsStats(mappings: string): {
+  mappingsCount: number;
+  segmentCount: number;
+} {
+  if (!mappings) return { mappingsCount: 0, segmentCount: 0 };
+  let mappingsCount = 0;
+  let segmentCount = 0;
+  let inNonEmptyLine = false;
+  for (let i = 0; i < mappings.length; i++) {
+    const ch = mappings[i];
+    if (ch === ';') {
+      if (inNonEmptyLine) mappingsCount++;
+      inNonEmptyLine = false;
+    } else if (ch === ',') {
+      segmentCount++;
+    } else {
+      if (!inNonEmptyLine) {
+        inNonEmptyLine = true;
+        segmentCount++;
+      }
+    }
+  }
+  if (inNonEmptyLine) mappingsCount++;
+  return { mappingsCount, segmentCount };
+}
+
 // ── Response helpers ──
 
 export function json(payload: unknown): TextToolResponse {

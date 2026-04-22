@@ -152,7 +152,7 @@ function buildReplayPayload(
       payload.response = browserResult.responseJson;
     }
   } else {
-    const textPreview = createPreview(browserResult.responseText, GRAPHQL_MAX_SCHEMA_CHARS);
+    const textPreview = createPreview(browserResult.responseText ?? '', GRAPHQL_MAX_SCHEMA_CHARS);
 
     payload.responseLength = textPreview.totalLength;
     payload.responsePreview = textPreview.preview;

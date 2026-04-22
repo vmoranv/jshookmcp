@@ -36,19 +36,50 @@ export interface EnvironmentDoctorReport {
   recommendations: string[];
 }
 
+let sharedRegistry: ToolRegistry | null = null;
+let sharedRegistryTimestamp = 0;
+const REGISTRY_CACHE_TTL_MS = 120_000;
+
+function getSharedRegistry(): ToolRegistry {
+  const now = Date.now();
+  if (!sharedRegistry || now - sharedRegistryTimestamp > REGISTRY_CACHE_TTL_MS) {
+    sharedRegistry = new ToolRegistry();
+    sharedRegistryTimestamp = now;
+  }
+  return sharedRegistry;
+}
+
 export async function runEnvironmentDoctor(options?: {
   includeBridgeHealth?: boolean;
 }): Promise<EnvironmentDoctorReport> {
   const includeBridgeHealth = options?.includeBridgeHealth ?? true;
-  const registry = new ToolRegistry();
-  const externalResults = await registry.probeAll(true);
-  const gitCommand = await checkCommand('git', ['--version']);
-  const pythonCommand = await checkCommand('python', ['--version']);
-  const pnpmCommand = await checkPnpmCommand();
-  const corepackCommand = normalizeCorepackCheck(
-    await checkCommand('corepack', ['--version']),
-    pnpmCommand,
-  );
+  const registry = getSharedRegistry();
+  const externalResultsPromise = registry.probeAll(true);
+  const gitCommandPromise = checkCommand('git', ['--version']);
+  const pythonCommandPromise = checkCommand('python', ['--version']);
+  const pnpmCommandPromise = checkPnpmCommand();
+  const corepackCheckPromise = checkCommand('corepack', ['--version']);
+  const bridgesPromise = includeBridgeHealth
+    ? Promise.all([
+        checkHttpEndpoint('ghidra-bridge', `${GHIDRA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
+        checkHttpEndpoint('ida-bridge', `${IDA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
+        checkHttpEndpoint(
+          'burp-mcp-sse',
+          process.env.BURP_MCP_SSE_URL?.trim() || 'http://127.0.0.1:9876',
+        ),
+      ])
+    : Promise.resolve([] as DoctorCheck[]);
+
+  const [externalResults, gitCommand, pythonCommand, pnpmCommand, corepackCheck, bridges] =
+    await Promise.all([
+      externalResultsPromise,
+      gitCommandPromise,
+      pythonCommandPromise,
+      pnpmCommandPromise,
+      corepackCheckPromise,
+      bridgesPromise,
+    ]);
+  const corepackCommand = normalizeCorepackCheck(corepackCheck, pnpmCommand);
 
   const packages: DoctorCheck[] = [
     checkPackage('@modelcontextprotocol/sdk'),
@@ -72,17 +103,6 @@ export async function runEnvironmentDoctor(options?: {
         : (result.reason ?? 'Unavailable'),
     })),
   ];
-
-  const bridges: DoctorCheck[] = includeBridgeHealth
-    ? await Promise.all([
-        checkHttpEndpoint('ghidra-bridge', `${GHIDRA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
-        checkHttpEndpoint('ida-bridge', `${IDA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
-        checkHttpEndpoint(
-          'burp-mcp-sse',
-          process.env.BURP_MCP_SSE_URL?.trim() || 'http://127.0.0.1:9876',
-        ),
-      ])
-    : [];
 
   const limitations = buildPlatformLimitations();
   const recommendations = buildRecommendations(packages, commands, bridges, limitations);

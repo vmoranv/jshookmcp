@@ -1,6 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { diffProcessMemory, sampleProcessMemory } from '@tests/e2e/helpers/perf-metrics';
 import type { ToolPerformanceMetrics, ToolResult, ToolStatus } from '@tests/e2e/helpers/types';
 
 const KNOWN_EXPECTED_LIMITATION_PATTERNS = [
@@ -67,6 +66,16 @@ function isPerformanceSamplingEnabled(): boolean {
   return process.env.E2E_COLLECT_PERFORMANCE === '1';
 }
 
+function isPerformanceMetrics(value: unknown): value is ToolPerformanceMetrics {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as Record<string, unknown>).elapsedMs === 'number' &&
+    typeof (value as Record<string, unknown>).startedAt === 'string' &&
+    typeof (value as Record<string, unknown>).finishedAt === 'string'
+  );
+}
+
 export class MCPTestClient {
   private client: Client;
   private transport: StdioClientTransport | null = null;
@@ -94,41 +103,34 @@ export class MCPTestClient {
     );
   }
 
-  getServerPid(): number | null {
-    const proc = this.transport as unknown as { _process?: { pid?: number } } | null;
-    return typeof proc?._process?.pid === 'number' ? proc._process.pid : null;
-  }
-
-  private async buildPerformanceMetrics(timeoutMs: number): Promise<{
-    serverPid: number | null;
-    memoryBefore: Awaited<ReturnType<typeof sampleProcessMemory>>;
+  private buildPerformanceMetrics(timeoutMs: number): {
     startedAt: string;
     startTime: number;
-    finalize: () => Promise<ToolPerformanceMetrics>;
-  }> {
-    const serverPid = this.getServerPid();
-    const memoryBefore = await sampleProcessMemory(serverPid);
+    finalize: (serverMetrics?: ToolPerformanceMetrics) => ToolPerformanceMetrics;
+  } {
     const startedAt = new Date().toISOString();
     const startTime = performance.now();
 
     return {
-      serverPid,
-      memoryBefore,
       startedAt,
       startTime,
-      finalize: async () => {
-        const finishedAt = new Date().toISOString();
-        const elapsedMs = Number((performance.now() - startTime).toFixed(2));
-        const memoryAfter = await sampleProcessMemory(serverPid);
+      finalize: (serverMetrics?: ToolPerformanceMetrics) => {
+        if (serverMetrics) {
+          return serverMetrics;
+        }
+
         return {
+          source: 'client',
           startedAt,
-          finishedAt,
-          elapsedMs,
+          finishedAt: new Date().toISOString(),
+          elapsedMs: Number((performance.now() - startTime).toFixed(2)),
           timeoutMs,
-          serverPid,
-          memoryBefore,
-          memoryAfter,
-          memoryDelta: diffProcessMemory(memoryBefore, memoryAfter),
+          serverPid: null,
+          cpuUserMicros: null,
+          cpuSystemMicros: null,
+          memoryBefore: null,
+          memoryAfter: null,
+          memoryDelta: null,
         };
       },
     };
@@ -165,37 +167,45 @@ export class MCPTestClient {
     performance?: ToolPerformanceMetrics,
   ): { parsed: unknown; result: ToolResult } {
     const parsed = error ? null : parseContent(resp);
+    let parsedForResult = parsed;
+    let performanceMetrics = performance;
+
+    if (!error && isRecord(parsed) && isPerformanceMetrics(parsed['_executionMetrics'])) {
+      performanceMetrics = parsed['_executionMetrics'];
+      const { _executionMetrics: _ignored, ...rest } = parsed;
+      parsedForResult = rest;
+    }
     const isError = isRecord(resp) && resp.isError === true;
 
     let detail: string;
     if (error) {
       detail = error.message;
-    } else if (isRecord(parsed)) {
-      if (parsed.success === false) {
-        detail = `GRACEFUL: ${String(parsed.message ?? parsed.error ?? 'success=false')}`;
-      } else if (parsed.success === true) {
+    } else if (isRecord(parsedForResult)) {
+      if (parsedForResult.success === false) {
+        detail = `GRACEFUL: ${String(parsedForResult.message ?? parsedForResult.error ?? 'success=false')}`;
+      } else if (parsedForResult.success === true) {
         detail = 'success=true';
       } else {
-        detail = JSON.stringify(parsed).substring(0, 120);
+        detail = JSON.stringify(parsedForResult).substring(0, 120);
       }
     } else {
-      detail = String(parsed).substring(0, 120);
+      detail = String(parsedForResult).substring(0, 120);
     }
 
     const normalizedDetail = detail.substring(0, 200);
-    const { status, code } = classifyStatus(parsed, error, isError, normalizedDetail);
+    const { status, code } = classifyStatus(parsedForResult, error, isError, normalizedDetail);
     const result: ToolResult = {
       name,
       status,
       code,
       detail: normalizedDetail,
       isError,
-      performance,
+      performance: performanceMetrics,
       ok: status === 'PASS',
     };
     this.results.push(result);
     this.logResult(result);
-    return { parsed, result };
+    return { parsed: parsedForResult, result };
   }
 
   async connect(): Promise<void> {
@@ -243,7 +253,7 @@ export class MCPTestClient {
     timeoutMs = 30000,
   ): Promise<{ parsed: unknown; result: ToolResult }> {
     const collectPerformance = isPerformanceSamplingEnabled();
-    const metrics = collectPerformance ? await this.buildPerformanceMetrics(timeoutMs) : null;
+    const metrics = collectPerformance ? this.buildPerformanceMetrics(timeoutMs) : null;
 
     try {
       const resp = await withTimeout(
@@ -251,10 +261,17 @@ export class MCPTestClient {
         timeoutMs,
         name,
       );
-      return this.record(name, resp, null, metrics ? await metrics.finalize() : undefined);
+      const parsedResponse = parseContent(resp);
+      const serverMetrics =
+        collectPerformance &&
+        isRecord(parsedResponse) &&
+        isPerformanceMetrics(parsedResponse['_executionMetrics'])
+          ? (parsedResponse['_executionMetrics'] as ToolPerformanceMetrics)
+          : undefined;
+      return this.record(name, resp, null, metrics ? metrics.finalize(serverMetrics) : undefined);
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
-      return this.record(name, null, error, metrics ? await metrics.finalize() : undefined);
+      return this.record(name, null, error, metrics ? metrics.finalize() : undefined);
     }
   }
 

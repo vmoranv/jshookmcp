@@ -133,7 +133,7 @@ export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
       const sourceMapUrl = this.requiredStringArg(args.sourceMapUrl, 'sourceMapUrl');
       const outputDir = this.optionalStringArg(args.outputDir);
 
-      const parsed = await this.parseSourceMap(sourceMapUrl, undefined);
+      const parsed = await this.parseSourceMapStats(sourceMapUrl, undefined);
 
       const artifactTarget = this.safeTarget(parsed.resolvedUrl);
       const artifactPath = await resolveArtifactPath({

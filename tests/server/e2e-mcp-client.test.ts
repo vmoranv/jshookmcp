@@ -9,7 +9,6 @@ const state = vi.hoisted(() => ({
     content: [{ type: 'text', text: '{"success":true}' }],
   })),
   closeTransport: vi.fn(async () => undefined),
-  sampleProcessMemory: vi.fn(),
 }));
 
 vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
@@ -27,16 +26,6 @@ vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
   },
 }));
 
-vi.mock('@tests/e2e/helpers/perf-metrics', async () => {
-  const actual = await vi.importActual<typeof import('@tests/e2e/helpers/perf-metrics')>(
-    '@tests/e2e/helpers/perf-metrics',
-  );
-  return {
-    ...actual,
-    sampleProcessMemory: state.sampleProcessMemory,
-  };
-});
-
 import { MCPTestClient } from '@tests/e2e/helpers/mcp-client';
 
 describe('e2e MCPTestClient performance metrics', () => {
@@ -50,19 +39,6 @@ describe('e2e MCPTestClient performance metrics', () => {
     state.callTool.mockResolvedValue({
       content: [{ type: 'text', text: '{"success":true}' }],
     });
-    state.sampleProcessMemory
-      .mockResolvedValueOnce({
-        source: 'procfs',
-        rssBytes: 1000,
-        privateBytes: 500,
-        virtualBytes: 4000,
-      })
-      .mockResolvedValueOnce({
-        source: 'procfs',
-        rssBytes: 1250,
-        privateBytes: 650,
-        virtualBytes: 4300,
-      });
   });
 
   it('does not collect performance metrics unless explicitly enabled', async () => {
@@ -73,11 +49,59 @@ describe('e2e MCPTestClient performance metrics', () => {
 
     expect(result.status).toBe('PASS');
     expect(result.performance).toBeUndefined();
-    expect(state.sampleProcessMemory).not.toHaveBeenCalled();
   });
 
-  it('records elapsed time and process memory deltas when explicitly enabled', async () => {
+  it('records server-supplied execution metrics when explicitly enabled', async () => {
     process.env.E2E_COLLECT_PERFORMANCE = '1';
+    state.callTool.mockResolvedValueOnce({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            _executionMetrics: {
+              source: 'server',
+              startedAt: '2026-01-01T00:00:00.000Z',
+              finishedAt: '2026-01-01T00:00:00.250Z',
+              elapsedMs: 250,
+              timeoutMs: 2000,
+              serverPid: 4321,
+              cpuUserMicros: 1000,
+              cpuSystemMicros: 500,
+              memoryBefore: {
+                source: 'server',
+                rssBytes: 1000,
+                privateBytes: null,
+                virtualBytes: null,
+                heapUsedBytes: 500,
+                heapTotalBytes: 800,
+                externalBytes: 10,
+                arrayBuffersBytes: 5,
+              },
+              memoryAfter: {
+                source: 'server',
+                rssBytes: 1250,
+                privateBytes: null,
+                virtualBytes: null,
+                heapUsedBytes: 650,
+                heapTotalBytes: 800,
+                externalBytes: 25,
+                arrayBuffersBytes: 10,
+              },
+              memoryDelta: {
+                rssBytes: 250,
+                privateBytes: null,
+                virtualBytes: null,
+                heapUsedBytes: 150,
+                heapTotalBytes: 0,
+                externalBytes: 15,
+                arrayBuffersBytes: 5,
+              },
+            },
+          }),
+        },
+      ],
+    });
     const client = new MCPTestClient();
     await client.connect();
 
@@ -87,13 +111,19 @@ describe('e2e MCPTestClient performance metrics', () => {
     expect(result.performance).toBeDefined();
     expect(result.performance?.serverPid).toBe(4321);
     expect(result.performance?.timeoutMs).toBe(2000);
-    expect(result.performance?.elapsedMs).toBeGreaterThanOrEqual(0);
+    expect(result.performance?.elapsedMs).toBe(250);
+    expect(result.performance?.cpuUserMicros).toBe(1000);
+    expect(result.performance?.cpuSystemMicros).toBe(500);
     expect(result.performance?.memoryBefore?.rssBytes).toBe(1000);
     expect(result.performance?.memoryAfter?.rssBytes).toBe(1250);
     expect(result.performance?.memoryDelta).toEqual({
       rssBytes: 250,
-      privateBytes: 150,
-      virtualBytes: 300,
+      privateBytes: null,
+      virtualBytes: null,
+      heapUsedBytes: 150,
+      heapTotalBytes: 0,
+      externalBytes: 15,
+      arrayBuffersBytes: 5,
     });
   });
 });

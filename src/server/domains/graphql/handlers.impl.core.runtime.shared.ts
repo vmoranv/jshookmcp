@@ -44,9 +44,13 @@ export interface BrowserFetchResult {
   ok: boolean;
   status: number;
   statusText: string;
-  responseText: string;
-  responseJson: unknown | null;
+  responseText?: string;
+  responseJson?: unknown | null;
   responseHeaders?: Record<string, string>;
+  totalLength?: number;
+  preview?: string;
+  truncated?: boolean;
+  json?: unknown | null;
   error?: string;
 }
 

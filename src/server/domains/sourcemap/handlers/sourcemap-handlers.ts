@@ -27,6 +27,7 @@ import {
 } from './shared';
 import {
   parseSourceMap,
+  parseSourceMapStats,
   resolveSourceMapUrl,
   extractSourceMappingUrlFromScript,
   combineSourceRoot,
@@ -138,7 +139,7 @@ export class SourcemapHandlers {
     try {
       const sourceMapUrl = requiredStringArg(args.sourceMapUrl, 'sourceMapUrl');
       const outputDir = optionalStringArg(args.outputDir);
-      const parsed = await parseSourceMap(sourceMapUrl, undefined, this.state.collector);
+      const parsed = await parseSourceMapStats(sourceMapUrl, undefined, this.state.collector);
 
       const artifactTarget = safeTarget(parsed.resolvedUrl);
       const artifactPath = await resolveArtifactPath({

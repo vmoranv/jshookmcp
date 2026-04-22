@@ -116,8 +116,10 @@ export class ExternalToolRunner {
       });
       ProcessRegistry.register(child);
 
-      let stdout = '';
-      let stderr = '';
+      let stdoutBufs: Buffer[] = [];
+      let stderrBufs: Buffer[] = [];
+      let stdoutLen = 0;
+      let stderrLen = 0;
       let stdoutTruncated = false;
       let stderrTruncated = false;
       let settled = false;
@@ -141,6 +143,20 @@ export class ExternalToolRunner {
         settled = true;
         clearTimeout(timeoutHandle);
 
+        const stdout =
+          stdoutBufs.length === 1
+            ? stdoutBufs[0]!.toString('utf-8')
+            : stdoutBufs.length > 1
+              ? Buffer.concat(stdoutBufs).toString('utf-8')
+              : '';
+        const stderr =
+          stderrBufs.length === 1
+            ? stderrBufs[0]!.toString('utf-8')
+            : stderrBufs.length > 1
+              ? Buffer.concat(stderrBufs).toString('utf-8')
+              : '';
+        stdoutBufs = [];
+        stderrBufs = [];
         const durationMs = Date.now() - startTime;
         const result: ToolRunResult = {
           ok: exitCode === 0,
@@ -172,27 +188,31 @@ export class ExternalToolRunner {
       }
 
       child.stdout.on('data', (chunk: Buffer) => {
-        if (stdout.length < maxStdout) {
-          const remaining = maxStdout - stdout.length;
-          stdout += chunk.toString('utf-8', 0, Math.min(chunk.length, remaining));
-          if (stdout.length >= maxStdout) stdoutTruncated = true;
+        if (stdoutLen < maxStdout) {
+          const remaining = maxStdout - stdoutLen;
+          const slice = chunk.length <= remaining ? chunk : chunk.subarray(0, remaining);
+          stdoutBufs.push(slice);
+          stdoutLen += slice.length;
+          if (stdoutLen >= maxStdout) stdoutTruncated = true;
         }
         request.onProgress?.({
           phase: 'stdout',
-          bytesRead: stdout.length,
+          bytesRead: stdoutLen,
           ts: Date.now(),
         });
       });
 
       child.stderr.on('data', (chunk: Buffer) => {
-        if (stderr.length < maxStderr) {
-          const remaining = maxStderr - stderr.length;
-          stderr += chunk.toString('utf-8', 0, Math.min(chunk.length, remaining));
-          if (stderr.length >= maxStderr) stderrTruncated = true;
+        if (stderrLen < maxStderr) {
+          const remaining = maxStderr - stderrLen;
+          const slice = chunk.length <= remaining ? chunk : chunk.subarray(0, remaining);
+          stderrBufs.push(slice);
+          stderrLen += slice.length;
+          if (stderrLen >= maxStderr) stderrTruncated = true;
         }
         request.onProgress?.({
           phase: 'stderr',
-          bytesRead: stderr.length,
+          bytesRead: stderrLen,
           ts: Date.now(),
         });
       });
@@ -202,7 +222,9 @@ export class ExternalToolRunner {
       });
 
       child.on('error', (err) => {
-        stderr += `\nSpawn error: ${err.message}`;
+        const errBuf = Buffer.from(`\nSpawn error: ${err.message}`, 'utf-8');
+        stderrBufs.push(errBuf);
+        stderrLen += errBuf.length;
         finish(1, null);
       });
 

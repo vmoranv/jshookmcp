@@ -68,10 +68,10 @@ export class NetworkHandlersPerformance extends NetworkHandlersCore {
   async handlePerformanceTakeHeapSnapshot(_args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       const monitor = this.getPerformanceMonitor();
-      const snapshot = await monitor.takeHeapSnapshot();
+      const snapshotSize = await monitor.takeHeapSnapshot();
       return R.ok()
         .merge({
-          snapshotSize: snapshot.length,
+          snapshotSize,
           message: 'Heap snapshot taken (data too large to return, saved internally)',
         })
         .json();

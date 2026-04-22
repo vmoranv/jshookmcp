@@ -94,6 +94,20 @@ export class SourcemapToolHandlersParseBase {
     };
   }
 
+  protected async parseSourceMapStats(
+    sourceMapUrl: string,
+    scriptUrl?: string,
+  ): Promise<{
+    resolvedUrl: string;
+    map: SourceMapV3;
+    mappingsCount: number;
+    segmentCount: number;
+  }> {
+    const loaded = await this.loadSourceMap(sourceMapUrl, scriptUrl);
+    const { mappingsCount, segmentCount } = this.countMappingsStats(loaded.map.mappings);
+    return { resolvedUrl: loaded.resolvedUrl, map: loaded.map, mappingsCount, segmentCount };
+  }
+
   protected async loadSourceMap(
     sourceMapUrl: string,
     scriptUrl?: string,
@@ -225,6 +239,29 @@ export class SourcemapToolHandlersParseBase {
     }
 
     return decoded;
+  }
+
+  protected countMappingsStats(mappings: string): { mappingsCount: number; segmentCount: number } {
+    if (!mappings) return { mappingsCount: 0, segmentCount: 0 };
+    let mappingsCount = 0;
+    let segmentCount = 0;
+    let inNonEmptyLine = false;
+    for (let i = 0; i < mappings.length; i++) {
+      const ch = mappings[i];
+      if (ch === ';') {
+        if (inNonEmptyLine) mappingsCount++;
+        inNonEmptyLine = false;
+      } else if (ch === ',') {
+        segmentCount++;
+      } else {
+        if (!inNonEmptyLine) {
+          inNonEmptyLine = true;
+          segmentCount++;
+        }
+      }
+    }
+    if (inNonEmptyLine) mappingsCount++;
+    return { mappingsCount, segmentCount };
   }
 
   protected decodeVlqSegment(segment: string): number[] {

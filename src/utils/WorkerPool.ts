@@ -110,6 +110,15 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
     });
   }
 
+  async warmup(count = 1): Promise<void> {
+    if (this.closed) return;
+    const toSpawn = Math.min(count, this.maxWorkers - this.workers.size);
+    for (let i = 0; i < toSpawn; i++) {
+      const worker = this.spawnWorker();
+      this.armIdleTimer(worker);
+    }
+  }
+
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;

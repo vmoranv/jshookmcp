@@ -47,7 +47,18 @@ export class IntrospectionHandlers {
           endpoint: string;
           headers: Record<string, string>;
           query: string;
-        }): Promise<BrowserFetchResult> => {
+          maxSchemaChars: number;
+        }): Promise<{
+          ok: boolean;
+          status: number;
+          statusText: string;
+          responseHeaders: Record<string, string>;
+          totalLength: number;
+          preview: string;
+          truncated: boolean;
+          json: unknown;
+          error?: string;
+        }> => {
           const requestHeaders: Record<string, string> = {
             'content-type': 'application/json',
             ...input.headers,
@@ -73,78 +84,92 @@ export class IntrospectionHandlers {
               clearTimeout(t);
             }
 
-            let responseJson: unknown = null;
-            try {
-              responseJson = JSON.parse(responseText);
-            } catch {
-              responseJson = null;
-            }
-
             const responseHeaders: Record<string, string> = {};
             response.headers.forEach((value, key) => {
               responseHeaders[key] = value;
             });
 
+            const totalLength = responseText.length;
+            const truncated = totalLength > input.maxSchemaChars;
+            const preview = truncated
+              ? `${responseText.slice(0, input.maxSchemaChars)}\n... (truncated)`
+              : responseText;
+
+            let json: unknown = null;
+            try {
+              json = JSON.parse(responseText);
+            } catch {
+              // not JSON — json stays null
+            }
+
             return {
               ok: response.ok,
               status: response.status,
               statusText: response.statusText,
-              responseText,
-              responseJson,
               responseHeaders,
+              totalLength,
+              preview,
+              truncated,
+              json,
             };
           } catch (error) {
             return {
               ok: false,
               status: 0,
               statusText: 'FETCH_ERROR',
-              responseText: '',
-              responseJson: null,
+              responseHeaders: {},
+              totalLength: 0,
+              preview: '',
+              truncated: false,
+              json: null,
               error: error instanceof Error ? error.message : String(error),
             };
           }
         },
-        { endpoint, headers, query: INTROSPECTION_QUERY },
+        { endpoint, headers, query: INTROSPECTION_QUERY, maxSchemaChars: GRAPHQL_MAX_SCHEMA_CHARS },
       )) as BrowserFetchResult;
 
-      if (!browserResult.ok && !browserResult.responseJson) {
+      if (!browserResult.ok && !browserResult.json) {
         return toResponse({
           success: false,
           endpoint,
           status: browserResult.status,
           statusText: browserResult.statusText,
           error: browserResult.error ?? 'Introspection request failed',
-          responsePreview: createPreview(
-            browserResult.responseText || '',
-            GRAPHQL_MAX_PREVIEW_CHARS,
-          ),
+          responsePreview: createPreview(browserResult.preview || '', GRAPHQL_MAX_PREVIEW_CHARS),
         });
       }
 
       const jsonRecord =
-        browserResult.responseJson && typeof browserResult.responseJson === 'object'
-          ? (browserResult.responseJson as Record<string, unknown>)
+        browserResult.json && typeof browserResult.json === 'object'
+          ? (browserResult.json as Record<string, unknown>)
           : null;
 
       const schemaPayload =
-        jsonRecord && 'data' in jsonRecord
-          ? jsonRecord.data
-          : (browserResult.responseJson ?? browserResult.responseText);
-
-      const schemaPreview = serializeForPreview(schemaPayload, GRAPHQL_MAX_SCHEMA_CHARS);
+        jsonRecord && 'data' in jsonRecord ? jsonRecord.data : browserResult.json;
+      const schemaPreviewPayload =
+        browserResult.json !== null &&
+        browserResult.json !== undefined &&
+        typeof schemaPayload !== 'undefined'
+          ? serializeForPreview(schemaPayload, GRAPHQL_MAX_SCHEMA_CHARS)
+          : {
+              preview: browserResult.preview ?? '',
+              truncated: browserResult.truncated ?? false,
+              totalLength: browserResult.totalLength ?? 0,
+            };
 
       const payload: Record<string, unknown> = {
         success: browserResult.ok,
         endpoint,
         status: browserResult.status,
         statusText: browserResult.statusText,
-        schemaLength: schemaPreview.totalLength,
-        schemaPreview: schemaPreview.preview,
-        schemaTruncated: schemaPreview.truncated,
+        schemaLength: schemaPreviewPayload.totalLength,
+        schemaPreview: schemaPreviewPayload.preview,
+        schemaTruncated: schemaPreviewPayload.truncated,
         responseHeaders: browserResult.responseHeaders ?? {},
       };
 
-      if (!schemaPreview.truncated) {
+      if (!schemaPreviewPayload.truncated) {
         payload.schema = schemaPayload;
       }
 

@@ -19,6 +19,7 @@ interface IntrospectResponse {
   success: boolean;
   status: number;
   schema?: any;
+  schemaPreview?: string;
   error?: string;
 }
 
@@ -104,8 +105,9 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
       }),
     );
     expect(body.success).toBe(true);
-    // responseJson should be null since the text isn't JSON
-    expect(body.schema).toBe('not valid json');
+    // Non-JSON responses: schema is null, raw text in schemaPreview
+    expect(body.schema).toBeNull();
+    expect(body.schemaPreview).toBe('not valid json');
   });
 
   it('executes callback when fetch throws', async () => {

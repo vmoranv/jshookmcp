@@ -167,7 +167,7 @@ describe('SourcemapToolHandlers', () => {
       expect(res.content[0].text).toContain('inline.ts');
     });
 
-    it('checks mapping VLQ errors on corrupted string payloads', async () => {
+    it('surfaces corrupted VLQ payloads as parse errors', async () => {
       const mockMap = {
         version: 3,
         sources: ['error.ts'],
@@ -185,7 +185,10 @@ describe('SourcemapToolHandlers', () => {
       });
 
       // @ts-expect-error
-      expect(res.content[0].text).toContain('Invalid VLQ base64 char');
+      const parsed = JSON.parse(res.content[0].text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.tool).toBe('sourcemap_fetch_and_parse');
+      expect(parsed.error).toContain('Invalid VLQ base64 char');
     });
 
     it('handles restricted domains for SSRF filtering appropriately', async () => {

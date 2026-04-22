@@ -172,7 +172,7 @@ describe('AdvancedHandlersBase (performance)', () => {
 
   describe('handlePerformanceTakeHeapSnapshot', () => {
     it('takes heap snapshot and returns size', async () => {
-      performanceMonitorMethods.takeHeapSnapshot.mockResolvedValue('x'.repeat(1024));
+      performanceMonitorMethods.takeHeapSnapshot.mockResolvedValue(1024);
 
       const body = parseJson<NetworkRequestsResponse>(
         await handler.handlePerformanceTakeHeapSnapshot({}),
