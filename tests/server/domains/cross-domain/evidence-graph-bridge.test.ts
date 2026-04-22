@@ -20,7 +20,7 @@ describe('CrossDomainEvidenceBridge', () => {
   });
 
   describe('addV8Object', () => {
-    it('should add a V8 heap object node to the graph', () => {
+    it('should add a V8 heap object node to the graph', async () => {
       const node = bridge.addV8Object({ address: '0x1234', name: 'TestObject' });
       expect(node.id).toMatch(/^v8-heap-object-/);
       expect(node.type).toBe('v8-heap-object');
@@ -28,7 +28,7 @@ describe('CrossDomainEvidenceBridge', () => {
       expect(node.metadata.address).toBe('0x1234');
     });
 
-    it('should link V8 object to a script node when scriptNodeId provided', () => {
+    it('should link V8 object to a script node when scriptNodeId provided', async () => {
       const scriptNode = bridge.addNode('script', 'bundle.js', {});
       const v8Node = bridge.addV8Object({ address: '0x5678', name: 'GameScene' }, scriptNode.id);
       const edges = bridge.getGraph().getEdgesFrom(scriptNode.id);
@@ -41,14 +41,14 @@ describe('CrossDomainEvidenceBridge', () => {
   });
 
   describe('addNetworkRequest', () => {
-    it('should add a network request node', () => {
+    it('should add a network request node', async () => {
       const { node } = bridge.addNetworkRequest({ url: 'https://api.example.com/data' });
       expect(node.id).toMatch(/^network-request-/);
       expect(node.type).toBe('network-request');
       expect(node.metadata.url).toBe('https://api.example.com/data');
     });
 
-    it('should link network request to initiator heap node', () => {
+    it('should link network request to initiator heap node', async () => {
       const heapNode = bridge.addV8Object({ address: '0x9999', name: 'FetchWrapper' });
       const { node: netNode } = bridge.addNetworkRequest(
         { url: 'https://api.example.com/secure', method: 'POST' },
@@ -62,7 +62,7 @@ describe('CrossDomainEvidenceBridge', () => {
   });
 
   describe('addCanvasNode', () => {
-    it('should add a canvas scene node', () => {
+    it('should add a canvas scene node', async () => {
       const node = bridge.addCanvasNode({ nodeId: 'layer-1', label: 'Background' });
       expect(node.id).toMatch(/^canvas-scene-node-/);
       expect(node.type).toBe('canvas-scene-node');
@@ -72,7 +72,7 @@ describe('CrossDomainEvidenceBridge', () => {
   });
 
   describe('addSyscallEvent', () => {
-    it('should add a syscall event node', () => {
+    it('should add a syscall event node', async () => {
       const node = bridge.addSyscallEvent({
         pid: 1234,
         tid: 5678,
@@ -87,7 +87,7 @@ describe('CrossDomainEvidenceBridge', () => {
   });
 
   describe('addMojoMessage', () => {
-    it('should add a mojo message node', () => {
+    it('should add a mojo message node', async () => {
       const node = bridge.addMojoMessage({
         interface: 'MojomURLLoader',
         method: 'OnResponseReceived',
@@ -100,7 +100,7 @@ describe('CrossDomainEvidenceBridge', () => {
   });
 
   describe('addBinarySymbol', () => {
-    it('should add a binary symbol node', () => {
+    it('should add a binary symbol node', async () => {
       const node = bridge.addBinarySymbol({
         moduleName: 'libnative.so',
         symbolName: 'native_encrypt',
@@ -114,7 +114,7 @@ describe('CrossDomainEvidenceBridge', () => {
   });
 
   describe('queryByNetworkUrl', () => {
-    it('should find network nodes by URL', () => {
+    it('should find network nodes by URL', async () => {
       bridge.addNetworkRequest({ url: 'https://secret.game/api/check' });
       bridge.addNetworkRequest({ url: 'https://other.example.com' });
       const results = bridge.queryByNetworkUrl('secret.game');
@@ -124,7 +124,7 @@ describe('CrossDomainEvidenceBridge', () => {
   });
 
   describe('exportGraph', () => {
-    it('should export a valid graph snapshot', () => {
+    it('should export a valid graph snapshot', async () => {
       bridge.addV8Object({ address: '0x1000', name: 'Obj1' });
       bridge.addNetworkRequest({ url: 'https://example.com' });
       const snapshot = bridge.exportGraph();
@@ -136,7 +136,7 @@ describe('CrossDomainEvidenceBridge', () => {
   });
 
   describe('getStats', () => {
-    it('should return correct node/edge counts', () => {
+    it('should return correct node/edge counts', async () => {
       bridge.addV8Object({ address: '0x1', name: 'A' });
       bridge.addV8Object({ address: '0x2', name: 'B' });
       const stats = bridge.getStats();

@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { extensionRegistryTools } from './definitions';
-import { ExtensionRegistryHandlers } from './handlers';
+import type { ExtensionRegistryHandlers } from './handlers';
 
 const DOMAIN = 'extension-registry';
 const DEP_KEY = 'extensionRegistryHandlers';
@@ -10,7 +10,8 @@ const t = toolLookup(extensionRegistryTools);
 const b = (invoke: (handlers: H, args: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { ExtensionRegistryHandlers } = await import('./handlers');
   const existing = ctx.getDomainInstance<H>(DEP_KEY);
   if (existing) {
     return existing;

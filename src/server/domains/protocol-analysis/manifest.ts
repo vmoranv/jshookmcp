@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { protocolAnalysisTools } from './definitions';
-import { ProtocolAnalysisHandlers } from './handlers';
+import type { ProtocolAnalysisHandlers } from './handlers';
 
 const DOMAIN = 'protocol-analysis';
 const DEP_KEY = 'protocolAnalysisHandlers';
@@ -10,7 +10,8 @@ const t = toolLookup(protocolAnalysisTools);
 const b = (invoke: (handlers: H, args: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { ProtocolAnalysisHandlers } = await import('./handlers');
   const existing = ctx.getDomainInstance<H>(DEP_KEY);
   if (existing) {
     return existing;

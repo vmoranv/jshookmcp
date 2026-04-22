@@ -7,36 +7,36 @@ import {
 } from '@server/domains/shared/response';
 
 describe('shared response helpers', () => {
-  it('asTextResponse returns MCP text payload', () => {
+  it('asTextResponse returns MCP text payload', async () => {
     const res = asTextResponse('ok');
     expect(res).toEqual({
       content: [{ type: 'text', text: 'ok' }],
     });
   });
 
-  it('asTextResponse marks error responses when requested', () => {
+  it('asTextResponse marks error responses when requested', async () => {
     const res = asTextResponse('bad', true);
     expect((res as any).isError).toBe(true);
     expect((res.content[0] as any)?.text).toBe('bad');
   });
 
-  it('asJsonResponse formats JSON content', () => {
+  it('asJsonResponse formats JSON content', async () => {
     const res = asJsonResponse({ a: 1, b: 'x' });
     expect((res.content[0] as any)?.text).toBe('{\n  "a": 1,\n  "b": "x"\n}');
   });
 
-  it('asErrorResponse uses message from Error instances', () => {
+  it('asErrorResponse uses message from Error instances', async () => {
     const res = asErrorResponse(new Error('boom'));
     expect((res as any).isError).toBe(true);
     expect((res.content[0] as any)?.text).toBe('Error: boom');
   });
 
-  it('asErrorResponse stringifies non-Error values', () => {
+  it('asErrorResponse stringifies non-Error values', async () => {
     const res = asErrorResponse({ code: 500 });
     expect((res.content[0] as any)?.text).toContain('Error: [object Object]');
   });
 
-  it('serializeError returns normalized error object', () => {
+  it('serializeError returns normalized error object', async () => {
     expect(serializeError(new Error('fail'))).toEqual({
       success: false,
       error: 'fail',

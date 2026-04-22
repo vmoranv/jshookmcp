@@ -21,12 +21,12 @@ describe('V8InspectorHandlers', () => {
   });
 
   describe('construction', () => {
-    it('should create handler instance with minimal deps', () => {
+    it('should create handler instance with minimal deps', async () => {
       const handlers = new V8InspectorHandlers(createMockDeps());
       expect(handlers).toBeDefined();
     });
 
-    it('should expose expected tool methods', () => {
+    it('should expose expected tool methods', async () => {
       const handlers = new V8InspectorHandlers(createMockDeps());
       expect(typeof handlers.v8_heap_snapshot_capture).toBe('function');
       expect(typeof handlers.v8_heap_snapshot_analyze).toBe('function');

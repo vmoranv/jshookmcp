@@ -6,19 +6,19 @@ import {
 } from '../../../../src/server/domains/v8-inspector/handlers/heap-snapshot';
 
 describe('v8-inspector manifest', () => {
-  it('should have correct domain configuration', () => {
+  it('should have correct domain configuration', async () => {
     expect(manifest.domain).toBe('v8-inspector');
     expect(manifest.depKey).toBe('v8InspectorHandlers');
     expect(manifest.version).toBe(1);
     expect(manifest.kind).toBe('domain-manifest');
   });
 
-  it('should have workflow and full profiles', () => {
+  it('should have workflow and full profiles', async () => {
     expect(manifest.profiles).toContain('workflow');
     expect(manifest.profiles).toContain('full');
   });
 
-  it('should have all tool registrations', () => {
+  it('should have all tool registrations', async () => {
     const toolNames = manifest.registrations.map((r) => r.tool.name);
 
     expect(toolNames).toContain('v8_heap_snapshot_capture');
@@ -28,19 +28,19 @@ describe('v8-inspector manifest', () => {
     expect(toolNames).toContain('v8_heap_stats');
   });
 
-  it('should have prerequisites configured', () => {
+  it('should have prerequisites configured', async () => {
     expect(manifest.prerequisites).toBeDefined();
     expect(manifest.prerequisites?.v8_heap_snapshot_capture).toBeDefined();
     expect(manifest.prerequisites?.v8_heap_snapshot_analyze).toBeDefined();
     expect(manifest.prerequisites?.v8_heap_diff).toBeDefined();
   });
 
-  it('should have tool dependencies', () => {
+  it('should have tool dependencies', async () => {
     expect(manifest.toolDependencies).toBeDefined();
     expect(manifest.toolDependencies?.length).toBeGreaterThan(0);
   });
 
-  it('should have a workflow rule', () => {
+  it('should have a workflow rule', async () => {
     expect(manifest.workflowRule).toBeDefined();
     expect(manifest.workflowRule?.patterns.length).toBeGreaterThan(0);
     expect(manifest.workflowRule?.tools).toContain('v8_heap_snapshot_capture');
@@ -54,7 +54,7 @@ describe('v8-inspector manifest', () => {
       workerPool: null,
     } as unknown as import('@server/MCPServer.context').MCPServerContext;
 
-    const handler = await manifest.ensure(mockCtx);
+    const handler = await await manifest.ensure(mockCtx);
 
     expect(handler).toBeDefined();
     expect(typeof handler.v8_heap_snapshot_capture).toBe('function');
@@ -82,12 +82,12 @@ describe('v8-inspector snapshot cache', () => {
     clearSnapshotCache();
   });
 
-  it('should return empty cache initially', () => {
+  it('should return empty cache initially', async () => {
     const cache = getSnapshotCache();
     expect(cache.size).toBe(0);
   });
 
-  it('should allow clearing', () => {
+  it('should allow clearing', async () => {
     const cache = getSnapshotCache();
     cache.set('test', {
       id: 'test',

@@ -708,7 +708,7 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
 
     // ============ getTabRegistry ============
     describe('getTabRegistry', () => {
-      it('returns the TabRegistry instance', () => {
+      it('returns the TabRegistry instance', async () => {
         const registry = handlers.getTabRegistry();
         expect(registry).toBeDefined();
       });

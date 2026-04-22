@@ -81,7 +81,7 @@ describe('PlatformToolHandlers', () => {
     vi.clearAllMocks();
   });
 
-  it('constructs internal dependencies and handler modules', () => {
+  it('constructs internal dependencies and handler modules', async () => {
     void new PlatformToolHandlers(collector);
 
     expect(mocks.toolRegistryCtor).toHaveBeenCalledOnce();

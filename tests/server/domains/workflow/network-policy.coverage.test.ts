@@ -35,40 +35,40 @@ const defaultPolicy: WorkflowNetworkPolicy = {
 
 describe('network-policy', () => {
   describe('parseWorkflowStringArray', () => {
-    it('returns empty array for undefined', () => {
+    it('returns empty array for undefined', async () => {
       expect(parseWorkflowStringArray(undefined)).toEqual([]);
     });
 
-    it('parses JSON string array', () => {
+    it('parses JSON string array', async () => {
       expect(parseWorkflowStringArray('["a","b"]')).toEqual(['a', 'b']);
     });
 
-    it('returns null for invalid JSON string', () => {
+    it('returns null for invalid JSON string', async () => {
       expect(parseWorkflowStringArray('not json')).toBeNull();
     });
 
-    it('returns null for non-array', () => {
+    it('returns null for non-array', async () => {
       expect(parseWorkflowStringArray(42)).toBeNull();
     });
 
-    it('returns null for mixed array', () => {
+    it('returns null for mixed array', async () => {
       expect(parseWorkflowStringArray(['a', 1])).toBeNull();
     });
 
-    it('trims entries and filters empty', () => {
+    it('trims entries and filters empty', async () => {
       expect(parseWorkflowStringArray([' a ', '', 'b '])).toEqual(['a', 'b']);
     });
   });
 
   describe('parseWorkflowNetworkPolicy', () => {
-    it('returns default policy when no networkPolicy arg', () => {
+    it('returns default policy when no networkPolicy arg', async () => {
       const result = parseWorkflowNetworkPolicy({});
       expect(result.policy).toBeDefined();
       expect(result.policy!.allowPrivateNetwork).toBe(false);
       expect(result.policy!.allowedHosts).toEqual([]);
     });
 
-    it('parses networkPolicy from object', () => {
+    it('parses networkPolicy from object', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: {
           allowPrivateNetwork: true,
@@ -83,7 +83,7 @@ describe('network-policy', () => {
       expect(result.policy!.allowInsecureHttp).toBe(true);
     });
 
-    it('parses networkPolicy from JSON string', () => {
+    it('parses networkPolicy from JSON string', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: JSON.stringify({
           allowPrivateNetwork: false,
@@ -95,64 +95,64 @@ describe('network-policy', () => {
       expect(result.policy).toBeDefined();
     });
 
-    it('returns error for invalid JSON string', () => {
+    it('returns error for invalid JSON string', async () => {
       const result = parseWorkflowNetworkPolicy({ networkPolicy: 'not json' });
       expect(result.error).toBeDefined();
     });
 
-    it('returns error for non-object networkPolicy', () => {
+    it('returns error for non-object networkPolicy', async () => {
       const result = parseWorkflowNetworkPolicy({ networkPolicy: 42 });
       expect(result.error).toContain('must be an object');
     });
 
-    it('returns error for array networkPolicy', () => {
+    it('returns error for array networkPolicy', async () => {
       const result = parseWorkflowNetworkPolicy({ networkPolicy: [] });
       expect(result.error).toContain('must be an object');
     });
 
-    it('returns error for non-boolean allowPrivateNetwork', () => {
+    it('returns error for non-boolean allowPrivateNetwork', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowPrivateNetwork: 'yes' },
       });
       expect(result.error).toContain('must be a boolean');
     });
 
-    it('returns error for non-boolean allowInsecureHttp', () => {
+    it('returns error for non-boolean allowInsecureHttp', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowInsecureHttp: 1 },
       });
       expect(result.error).toContain('must be a boolean');
     });
 
-    it('returns error for non-string allowedHosts', () => {
+    it('returns error for non-string allowedHosts', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowedHosts: [123] },
       });
       expect(result.error).toContain('allowedHosts');
     });
 
-    it('returns error for invalid CIDR format', () => {
+    it('returns error for invalid CIDR format', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowedCidrs: ['not-a-cidr'] },
       });
       expect(result.error).toContain('Invalid CIDR');
     });
 
-    it('returns error for non-IP CIDR address', () => {
+    it('returns error for non-IP CIDR address', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowedCidrs: ['example.com/24'] },
       });
       expect(result.error).toContain('Invalid CIDR base address');
     });
 
-    it('returns error for invalid CIDR prefix', () => {
+    it('returns error for invalid CIDR prefix', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowedCidrs: ['10.0.0.0/33'] },
       });
       expect(result.error).toContain('Invalid CIDR prefix');
     });
 
-    it('parses valid CIDR', () => {
+    it('parses valid CIDR', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowedCidrs: ['10.0.0.0/8'] },
       });
@@ -160,7 +160,7 @@ describe('network-policy', () => {
       expect(result.policy!.allowedCidrs).toEqual(['10.0.0.0/8']);
     });
 
-    it('normalizes host patterns with port', () => {
+    it('normalizes host patterns with port', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowedHosts: ['example.com:8080'] },
       });
@@ -170,7 +170,7 @@ describe('network-policy', () => {
       });
     });
 
-    it('normalizes host patterns without port', () => {
+    it('normalizes host patterns without port', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowedHosts: ['example.com'] },
       });
@@ -180,7 +180,7 @@ describe('network-policy', () => {
       });
     });
 
-    it('handles IPv6 CIDR', () => {
+    it('handles IPv6 CIDR', async () => {
       const result = parseWorkflowNetworkPolicy({
         networkPolicy: { allowedCidrs: ['::1/128'] },
       });

@@ -18,7 +18,7 @@ import {
   toolLookup,
 } from '@server/domains/shared/registry';
 import { aiHookTools, hookPresetTools } from '@server/domains/hooks/definitions';
-import { AIHookToolHandlers, HookPresetToolHandlers } from '@server/domains/hooks/index';
+import type { AIHookToolHandlers, HookPresetToolHandlers } from '@server/domains/hooks/index';
 import type { ToolArgs } from '@server/types';
 
 const DOMAIN = 'hooks' as const;
@@ -30,14 +30,18 @@ const t = toolLookup([...aiHookTools, ...hookPresetTools]);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { AIHookToolHandlers, HookPresetToolHandlers } =
+    await import('@server/domains/hooks/index');
   ensureBrowserCore(ctx);
-  if (!ctx.aiHookHandlers) {
-    ctx.aiHookHandlers = new AIHookToolHandlers(ctx.pageController!);
-  }
-  // Also ensure the preset handlers are available
-  if (!ctx.hookPresetHandlers) {
-    ctx.hookPresetHandlers = new HookPresetToolHandlers(ctx.pageController!);
+  if (!ctx.aiHookHandlers || !ctx.hookPresetHandlers) {
+    if (!ctx.aiHookHandlers) {
+      ctx.aiHookHandlers = new AIHookToolHandlers(ctx.pageController!);
+    }
+    // Also ensure the preset handlers are available
+    if (!ctx.hookPresetHandlers) {
+      ctx.hookPresetHandlers = new HookPresetToolHandlers(ctx.pageController!);
+    }
   }
   return ctx.aiHookHandlers;
 }

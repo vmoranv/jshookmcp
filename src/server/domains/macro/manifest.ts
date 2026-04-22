@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { macroTools } from '@server/domains/macro/definitions';
-import { MacroToolHandlers } from '@server/domains/macro/handlers';
+import type { MacroToolHandlers } from '@server/domains/macro/handlers';
 
 const DOMAIN = 'macro' as const;
 const DEP_KEY = 'macroHandlers' as const;
@@ -10,7 +10,8 @@ const t = toolLookup(macroTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { MacroToolHandlers } = await import('@server/domains/macro/handlers');
   const existing = ctx.getDomainInstance<H>(DEP_KEY);
   if (existing) return existing;
   const handlers = new MacroToolHandlers(ctx);

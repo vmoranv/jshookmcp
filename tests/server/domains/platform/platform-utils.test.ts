@@ -83,7 +83,7 @@ describe('platform-utils', () => {
   // toTextResponse
   // =========================================================================
   describe('toTextResponse', () => {
-    it('wraps payload as a JSON text content array', () => {
+    it('wraps payload as a JSON text content array', async () => {
       const result = toTextResponse({ success: true, data: 'hello' });
       expect(result.content).toHaveLength(1);
       const content = getFirstTextContent(result);
@@ -93,20 +93,20 @@ describe('platform-utils', () => {
       expect(parsed.data).toBe('hello');
     });
 
-    it('pretty-prints JSON with 2-space indent', () => {
+    it('pretty-prints JSON with 2-space indent', async () => {
       const result = toTextResponse({ key: 'value' });
       const content = getFirstTextContent(result);
       expect(content.text).toContain('\n');
       expect(content.text).toContain('  ');
     });
 
-    it('handles nested objects', () => {
+    it('handles nested objects', async () => {
       const result = toTextResponse({ outer: { inner: 'val' } });
       const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.outer.inner).toBe('val');
     });
 
-    it('handles arrays in payload', () => {
+    it('handles arrays in payload', async () => {
       const result = toTextResponse({ items: [1, 2, 3] });
       const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.items).toEqual([1, 2, 3]);
@@ -117,7 +117,7 @@ describe('platform-utils', () => {
   // toErrorResponse
   // =========================================================================
   describe('toErrorResponse', () => {
-    it('formats an Error object', () => {
+    it('formats an Error object', async () => {
       const result = toErrorResponse('my_tool', new Error('something broke'));
       const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.success).toBe(false);
@@ -125,19 +125,19 @@ describe('platform-utils', () => {
       expect(parsed.error).toBe('something broke');
     });
 
-    it('formats a string error', () => {
+    it('formats a string error', async () => {
       const result = toErrorResponse('my_tool', 'plain string error');
       const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.error).toBe('plain string error');
     });
 
-    it('formats a number error', () => {
+    it('formats a number error', async () => {
       const result = toErrorResponse('my_tool', 42);
       const parsed = JSON.parse(getFirstTextContent(result).text);
       expect(parsed.error).toBe('42');
     });
 
-    it('includes extra fields', () => {
+    it('includes extra fields', async () => {
       const result = toErrorResponse('my_tool', new Error('fail'), {
         hint: 'try again',
       });
@@ -145,7 +145,7 @@ describe('platform-utils', () => {
       expect(parsed.hint).toBe('try again');
     });
 
-    it('extra fields do not override success/tool/error', () => {
+    it('extra fields do not override success/tool/error', async () => {
       const result = toErrorResponse('my_tool', new Error('fail'), {
         success: true,
         tool: 'override',
@@ -161,12 +161,12 @@ describe('platform-utils', () => {
   // getCollectorState
   // =========================================================================
   describe('getCollectorState', () => {
-    it('always returns "attached"', () => {
+    it('always returns "attached"', async () => {
       const fakeCollector = {} as any;
       expect(getCollectorState(fakeCollector)).toBe('attached');
     });
 
-    it('works with any collector-like object', () => {
+    it('works with any collector-like object', async () => {
       expect(getCollectorState(null as any)).toBe('attached');
     });
   });
@@ -175,41 +175,41 @@ describe('platform-utils', () => {
   // parseStringArg
   // =========================================================================
   describe('parseStringArg', () => {
-    it('returns trimmed string value', () => {
+    it('returns trimmed string value', async () => {
       expect(parseStringArg({ key: '  hello  ' }, 'key')).toBe('hello');
     });
 
-    it('returns undefined for missing key', () => {
+    it('returns undefined for missing key', async () => {
       expect(parseStringArg({}, 'key')).toBeUndefined();
     });
 
-    it('returns undefined for empty string', () => {
+    it('returns undefined for empty string', async () => {
       expect(parseStringArg({ key: '   ' }, 'key')).toBeUndefined();
     });
 
-    it('returns undefined for non-string value', () => {
+    it('returns undefined for non-string value', async () => {
       expect(parseStringArg({ key: 42 }, 'key')).toBeUndefined();
       expect(parseStringArg({ key: null }, 'key')).toBeUndefined();
       expect(parseStringArg({ key: true }, 'key')).toBeUndefined();
     });
 
-    it('throws when required and missing', () => {
+    it('throws when required and missing', async () => {
       expect(() => parseStringArg({}, 'key', true)).toThrow('key must be a non-empty string');
     });
 
-    it('throws when required and value is empty string', () => {
+    it('throws when required and value is empty string', async () => {
       expect(() => parseStringArg({ key: '' }, 'key', true)).toThrow(
         'key must be a non-empty string',
       );
     });
 
-    it('throws when required and value is whitespace-only', () => {
+    it('throws when required and value is whitespace-only', async () => {
       expect(() => parseStringArg({ key: '   ' }, 'key', true)).toThrow(
         'key must be a non-empty string',
       );
     });
 
-    it('does not throw when required and value is present', () => {
+    it('does not throw when required and value is present', async () => {
       expect(parseStringArg({ key: 'valid' }, 'key', true)).toBe('valid');
     });
   });
@@ -218,44 +218,44 @@ describe('platform-utils', () => {
   // parseBooleanArg
   // =========================================================================
   describe('parseBooleanArg', () => {
-    it('returns boolean directly', () => {
+    it('returns boolean directly', async () => {
       expect(parseBooleanArg({ flag: true }, 'flag', false)).toBe(true);
       expect(parseBooleanArg({ flag: false }, 'flag', true)).toBe(false);
     });
 
-    it('parses number 1 as true and 0 as false', () => {
+    it('parses number 1 as true and 0 as false', async () => {
       expect(parseBooleanArg({ flag: 1 }, 'flag', false)).toBe(true);
       expect(parseBooleanArg({ flag: 0 }, 'flag', true)).toBe(false);
     });
 
-    it('returns default for other numbers', () => {
+    it('returns default for other numbers', async () => {
       expect(parseBooleanArg({ flag: 42 }, 'flag', false)).toBe(false);
       expect(parseBooleanArg({ flag: -1 }, 'flag', true)).toBe(true);
     });
 
-    it('parses truthy strings', () => {
+    it('parses truthy strings', async () => {
       for (const val of ['true', 'True', 'TRUE', '1', 'yes', 'YES', 'on', 'ON']) {
         expect(parseBooleanArg({ flag: val }, 'flag', false)).toBe(true);
       }
     });
 
-    it('parses falsy strings', () => {
+    it('parses falsy strings', async () => {
       for (const val of ['false', 'False', 'FALSE', '0', 'no', 'NO', 'off', 'OFF']) {
         expect(parseBooleanArg({ flag: val }, 'flag', true)).toBe(false);
       }
     });
 
-    it('returns default for unrecognized strings', () => {
+    it('returns default for unrecognized strings', async () => {
       expect(parseBooleanArg({ flag: 'maybe' }, 'flag', true)).toBe(true);
       expect(parseBooleanArg({ flag: 'maybe' }, 'flag', false)).toBe(false);
     });
 
-    it('returns default when key is missing', () => {
+    it('returns default when key is missing', async () => {
       expect(parseBooleanArg({}, 'flag', true)).toBe(true);
       expect(parseBooleanArg({}, 'flag', false)).toBe(false);
     });
 
-    it('trims and lowercases string input', () => {
+    it('trims and lowercases string input', async () => {
       expect(parseBooleanArg({ flag: '  True  ' }, 'flag', false)).toBe(true);
       expect(parseBooleanArg({ flag: '  OFF  ' }, 'flag', true)).toBe(false);
     });
@@ -265,21 +265,21 @@ describe('platform-utils', () => {
   // isRecord
   // =========================================================================
   describe('isRecord', () => {
-    it('returns true for plain objects', () => {
+    it('returns true for plain objects', async () => {
       expect(isRecord({})).toBe(true);
       expect(isRecord({ a: 1 })).toBe(true);
     });
 
-    it('returns false for null', () => {
+    it('returns false for null', async () => {
       expect(isRecord(null)).toBe(false);
     });
 
-    it('returns false for arrays', () => {
+    it('returns false for arrays', async () => {
       expect(isRecord([])).toBe(false);
       expect(isRecord([1, 2])).toBe(false);
     });
 
-    it('returns false for primitives', () => {
+    it('returns false for primitives', async () => {
       expect(isRecord('string')).toBe(false);
       expect(isRecord(42)).toBe(false);
       expect(isRecord(true)).toBe(false);
@@ -291,7 +291,7 @@ describe('platform-utils', () => {
   // toStringArray
   // =========================================================================
   describe('toStringArray', () => {
-    it('returns empty array for non-array input', () => {
+    it('returns empty array for non-array input', async () => {
       expect(toStringArray(null)).toEqual([]);
       expect(toStringArray('string')).toEqual([]);
       expect(toStringArray(42)).toEqual([]);
@@ -299,19 +299,19 @@ describe('platform-utils', () => {
       expect(toStringArray({})).toEqual([]);
     });
 
-    it('filters out non-string items', () => {
+    it('filters out non-string items', async () => {
       expect(toStringArray(['a', 42, null, 'b', true])).toEqual(['a', 'b']);
     });
 
-    it('trims and filters empty strings', () => {
+    it('trims and filters empty strings', async () => {
       expect(toStringArray(['  hello  ', '', '   ', 'world'])).toEqual(['hello', 'world']);
     });
 
-    it('returns empty array for array of non-strings', () => {
+    it('returns empty array for array of non-strings', async () => {
       expect(toStringArray([1, 2, 3])).toEqual([]);
     });
 
-    it('preserves order of valid strings', () => {
+    it('preserves order of valid strings', async () => {
       expect(toStringArray(['c', 'a', 'b'])).toEqual(['c', 'a', 'b']);
     });
   });
@@ -335,36 +335,36 @@ describe('platform-utils', () => {
   // sanitizeArchiveRelativePath
   // =========================================================================
   describe('sanitizeArchiveRelativePath', () => {
-    it('removes leading/trailing slashes and dots', () => {
+    it('removes leading/trailing slashes and dots', async () => {
       expect(sanitizeArchiveRelativePath('./src/index.js')).toBe('src/index.js');
     });
 
-    it('removes directory traversal segments', () => {
+    it('removes directory traversal segments', async () => {
       expect(sanitizeArchiveRelativePath('../../../etc/passwd')).toBe('etc/passwd');
     });
 
-    it('normalizes backslashes to forward slashes', () => {
+    it('normalizes backslashes to forward slashes', async () => {
       expect(sanitizeArchiveRelativePath('src\\lib\\util.js')).toBe('src/lib/util.js');
     });
 
-    it('handles empty string', () => {
+    it('handles empty string', async () => {
       expect(sanitizeArchiveRelativePath('')).toBe('');
     });
 
-    it('collapses multiple slashes', () => {
+    it('collapses multiple slashes', async () => {
       const result = sanitizeArchiveRelativePath('src///lib//util.js');
       expect(result).toBe('src/lib/util.js');
     });
 
-    it('removes lone dot segments', () => {
+    it('removes lone dot segments', async () => {
       expect(sanitizeArchiveRelativePath('./././file.js')).toBe('file.js');
     });
 
-    it('handles pure traversal path', () => {
+    it('handles pure traversal path', async () => {
       expect(sanitizeArchiveRelativePath('../../..')).toBe('');
     });
 
-    it('preserves valid nested paths', () => {
+    it('preserves valid nested paths', async () => {
       expect(sanitizeArchiveRelativePath('a/b/c/d.js')).toBe('a/b/c/d.js');
     });
   });
@@ -373,36 +373,36 @@ describe('platform-utils', () => {
   // resolveSafeOutputPath
   // =========================================================================
   describe('resolveSafeOutputPath', () => {
-    it('resolves a normal relative path within root', () => {
+    it('resolves a normal relative path within root', async () => {
       const result = resolveSafeOutputPath('/output', 'src/index.js');
       expect(result).toContain('src');
       expect(result).toContain('index.js');
     });
 
-    it('sanitizes traversal segments before resolving', () => {
+    it('sanitizes traversal segments before resolving', async () => {
       // "../../../etc/passwd" is sanitized to "etc/passwd" which resolves inside root
       const result = resolveSafeOutputPath('/output', '../../../etc/passwd');
       expect(result).toContain('etc');
       expect(result).toContain('passwd');
     });
 
-    it('uses basename as fallback when sanitized path is empty', () => {
+    it('uses basename as fallback when sanitized path is empty', async () => {
       const result = resolveSafeOutputPath('/output', '.');
       expect(result).toBeDefined();
     });
 
-    it('uses "unnamed.bin" when basename is empty', () => {
+    it('uses "unnamed.bin" when basename is empty', async () => {
       const result = resolveSafeOutputPath('/output', '');
       expect(result).toContain('unnamed.bin');
     });
 
-    it('handles deeply nested relative paths', () => {
+    it('handles deeply nested relative paths', async () => {
       const result = resolveSafeOutputPath('/output', 'a/b/c/d/e.txt');
       expect(result).toContain('a');
       expect(result).toContain('e.txt');
     });
 
-    it('sanitizes absolute paths so they stay within root directory', () => {
+    it('sanitizes absolute paths so they stay within root directory', async () => {
       // sanitizeArchiveRelativePath strips leading / and .., so absolute escape paths
       // get collapsed to safe relative paths inside rootDir
       const result = resolveSafeOutputPath('/safe/output', '/elsewhere/evil/file.bin');
@@ -481,32 +481,32 @@ describe('platform-utils', () => {
   // extractAppIdFromPath
   // =========================================================================
   describe('extractAppIdFromPath', () => {
-    it('extracts ID from generic miniapp pattern in path', () => {
+    it('extracts ID from generic miniapp pattern in path', async () => {
       const result = extractAppIdFromPath('/data/Applet/wx1234567890/pkg.wxapkg');
       expect(result).toBe('wx1234567890');
     });
 
-    it('extracts ID from Applet directory pattern', () => {
+    it('extracts ID from Applet directory pattern', async () => {
       const result = extractAppIdFromPath('/data/Applet/myappid123/file.pkg');
       expect(result).toBe('myappid123');
     });
 
-    it('extracts ID from filename when no path pattern matches', () => {
+    it('extracts ID from filename when no path pattern matches', async () => {
       const result = extractAppIdFromPath('/tmp/wx12345678ab.pkg');
       expect(result).toBe('wx12345678ab');
     });
 
-    it('returns null when no pattern matches', () => {
+    it('returns null when no pattern matches', async () => {
       const result = extractAppIdFromPath('/tmp/ab.pkg');
       expect(result).toBeNull();
     });
 
-    it('normalizes backslashes in path', () => {
+    it('normalizes backslashes in path', async () => {
       const result = extractAppIdFromPath('C:\\Users\\data\\Applet\\wx1234567890\\file.pkg');
       expect(result).toBe('wx1234567890');
     });
 
-    it('returns null for very short IDs', () => {
+    it('returns null for very short IDs', async () => {
       const result = extractAppIdFromPath('/tmp/xy.pkg');
       expect(result).toBeNull();
     });
@@ -549,19 +549,19 @@ describe('platform-utils', () => {
   // getDefaultSearchPaths
   // =========================================================================
   describe('getDefaultSearchPaths', () => {
-    it('returns an array of resolved paths', () => {
+    it('returns an array of resolved paths', async () => {
       const paths = getDefaultSearchPaths();
       expect(Array.isArray(paths)).toBe(true);
       expect(paths.length).toBeGreaterThan(0);
     });
 
-    it('includes known sub-patterns (Applet, XPlugin, MiniApp)', () => {
+    it('includes known sub-patterns (Applet, XPlugin, MiniApp)', async () => {
       const paths = getDefaultSearchPaths();
       const allPaths = paths.join('|');
       expect(allPaths).toMatch(/Applet|XPlugin|MiniApp/);
     });
 
-    it('returns deduplicated paths', () => {
+    it('returns deduplicated paths', async () => {
       const paths = getDefaultSearchPaths();
       const uniquePaths = new Set(paths);
       expect(uniquePaths.size).toBe(paths.length);
@@ -671,7 +671,7 @@ describe('platform-utils', () => {
   // toDisplayPath
   // =========================================================================
   describe('toDisplayPath', () => {
-    it('returns relative path when within cwd', () => {
+    it('returns relative path when within cwd', async () => {
       const cwd = process.cwd().replace(/\\/g, '/');
       const testPath = `${cwd}/src/file.js`.replace(/\//g, require('node:path').sep);
       const result = toDisplayPath(testPath);
@@ -679,13 +679,13 @@ describe('platform-utils', () => {
       expect(result).not.toMatch(/^\.\./);
     });
 
-    it('returns absolute path when outside cwd', () => {
+    it('returns absolute path when outside cwd', async () => {
       const result = toDisplayPath('/completely/different/path/file.js');
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
     });
 
-    it('returns "." for cwd itself', () => {
+    it('returns "." for cwd itself', async () => {
       const result = toDisplayPath(process.cwd());
       expect(result).toBe('.');
     });

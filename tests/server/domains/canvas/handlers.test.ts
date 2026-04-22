@@ -121,7 +121,7 @@ describe('CanvasToolHandlers', () => {
   // ── handleFingerprint ─────────────────────────────────────────────────
 
   describe('shared canvas helpers', () => {
-    it('resolveAdapter loads built-in adapters through the shared adapter registry', () => {
+    it('resolveAdapter loads built-in adapters through the shared adapter registry', async () => {
       expect(resolveAdapter({ adapterId: 'laya' })?.id).toBe('laya');
       expect(resolveAdapter({ adapterId: 'pixi' })?.id).toBe('pixi');
       expect(resolveAdapter({ adapterId: 'phaser' })?.id).toBe('phaser');

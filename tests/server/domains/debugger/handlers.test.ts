@@ -164,7 +164,7 @@ describe('DebuggerToolHandlers', () => {
   // ── Constructor ──────────────────────────────────────────────
 
   describe('constructor', () => {
-    it('constructs all 12 sub-handlers', () => {
+    it('constructs all 12 sub-handlers', async () => {
       expect(ctorSpies.control).toHaveBeenCalledOnce();
       expect(ctorSpies.stepping).toHaveBeenCalledOnce();
       expect(ctorSpies.evaluate).toHaveBeenCalledOnce();
@@ -179,76 +179,76 @@ describe('DebuggerToolHandlers', () => {
       expect(ctorSpies.blackbox).toHaveBeenCalledOnce();
     });
 
-    it('passes commonDeps (debuggerManager + runtimeInspector) to control handler', () => {
+    it('passes commonDeps (debuggerManager + runtimeInspector) to control handler', async () => {
       expect(ctorSpies.control).toHaveBeenCalledWith({
         debuggerManager,
         runtimeInspector,
       });
     });
 
-    it('passes commonDeps to state handler', () => {
+    it('passes commonDeps to state handler', async () => {
       expect(ctorSpies.state).toHaveBeenCalledWith({
         debuggerManager,
         runtimeInspector,
       });
     });
 
-    it('passes commonDeps to scope handler', () => {
+    it('passes commonDeps to scope handler', async () => {
       expect(ctorSpies.scope).toHaveBeenCalledWith({
         debuggerManager,
         runtimeInspector,
       });
     });
 
-    it('passes only debuggerManager to stepping handler', () => {
+    it('passes only debuggerManager to stepping handler', async () => {
       expect(ctorSpies.stepping).toHaveBeenCalledWith({
         debuggerManager,
       });
     });
 
-    it('passes only runtimeInspector to evaluate handler', () => {
+    it('passes only runtimeInspector to evaluate handler', async () => {
       expect(ctorSpies.evaluate).toHaveBeenCalledWith({
         runtimeInspector,
       });
     });
 
-    it('passes only debuggerManager to session handler', () => {
+    it('passes only debuggerManager to session handler', async () => {
       expect(ctorSpies.session).toHaveBeenCalledWith({
         debuggerManager,
       });
     });
 
-    it('passes only debuggerManager to basic breakpoint handler', () => {
+    it('passes only debuggerManager to basic breakpoint handler', async () => {
       expect(ctorSpies.basic).toHaveBeenCalledWith({
         debuggerManager,
       });
     });
 
-    it('passes only debuggerManager to exception breakpoint handler', () => {
+    it('passes only debuggerManager to exception breakpoint handler', async () => {
       expect(ctorSpies.exception).toHaveBeenCalledWith({
         debuggerManager,
       });
     });
 
-    it('passes only debuggerManager to xhr breakpoint handler', () => {
+    it('passes only debuggerManager to xhr breakpoint handler', async () => {
       expect(ctorSpies.xhr).toHaveBeenCalledWith({
         debuggerManager,
       });
     });
 
-    it('passes only debuggerManager to event breakpoint handler', () => {
+    it('passes only debuggerManager to event breakpoint handler', async () => {
       expect(ctorSpies.event).toHaveBeenCalledWith({
         debuggerManager,
       });
     });
 
-    it('passes only debuggerManager to watch handler', () => {
+    it('passes only debuggerManager to watch handler', async () => {
       expect(ctorSpies.watch).toHaveBeenCalledWith({
         debuggerManager,
       });
     });
 
-    it('passes only debuggerManager to blackbox handler', () => {
+    it('passes only debuggerManager to blackbox handler', async () => {
       expect(ctorSpies.blackbox).toHaveBeenCalledWith({
         debuggerManager,
       });
@@ -669,7 +669,7 @@ describe('DebuggerToolHandlers', () => {
       'handleBlackboxList',
     ];
 
-    it('has exactly 36 public handler methods', () => {
+    it('has exactly 36 public handler methods', async () => {
       expect(allMethods).toHaveLength(36);
     });
 
@@ -681,51 +681,51 @@ describe('DebuggerToolHandlers', () => {
   // ── Re-exports ───────────────────────────────────────────────
 
   describe('re-exports', () => {
-    it('re-exports DebuggerControlHandlers', () => {
+    it('re-exports DebuggerControlHandlers', async () => {
       expect(DebuggerControlHandlers).toBeDefined();
     });
 
-    it('re-exports DebuggerSteppingHandlers', () => {
+    it('re-exports DebuggerSteppingHandlers', async () => {
       expect(DebuggerSteppingHandlers).toBeDefined();
     });
 
-    it('re-exports DebuggerEvaluateHandlers', () => {
+    it('re-exports DebuggerEvaluateHandlers', async () => {
       expect(DebuggerEvaluateHandlers).toBeDefined();
     });
 
-    it('re-exports DebuggerStateHandlers', () => {
+    it('re-exports DebuggerStateHandlers', async () => {
       expect(DebuggerStateHandlers).toBeDefined();
     });
 
-    it('re-exports SessionManagementHandlers', () => {
+    it('re-exports SessionManagementHandlers', async () => {
       expect(SessionManagementHandlers).toBeDefined();
     });
 
-    it('re-exports BreakpointBasicHandlers', () => {
+    it('re-exports BreakpointBasicHandlers', async () => {
       expect(BreakpointBasicHandlers).toBeDefined();
     });
 
-    it('re-exports BreakpointExceptionHandlers', () => {
+    it('re-exports BreakpointExceptionHandlers', async () => {
       expect(BreakpointExceptionHandlers).toBeDefined();
     });
 
-    it('re-exports XHRBreakpointHandlers', () => {
+    it('re-exports XHRBreakpointHandlers', async () => {
       expect(XHRBreakpointHandlers).toBeDefined();
     });
 
-    it('re-exports EventBreakpointHandlers', () => {
+    it('re-exports EventBreakpointHandlers', async () => {
       expect(EventBreakpointHandlers).toBeDefined();
     });
 
-    it('re-exports WatchExpressionsHandlers', () => {
+    it('re-exports WatchExpressionsHandlers', async () => {
       expect(WatchExpressionsHandlers).toBeDefined();
     });
 
-    it('re-exports ScopeInspectionHandlers', () => {
+    it('re-exports ScopeInspectionHandlers', async () => {
       expect(ScopeInspectionHandlers).toBeDefined();
     });
 
-    it('re-exports BlackboxHandlers', () => {
+    it('re-exports BlackboxHandlers', async () => {
       expect(BlackboxHandlers).toBeDefined();
     });
   });

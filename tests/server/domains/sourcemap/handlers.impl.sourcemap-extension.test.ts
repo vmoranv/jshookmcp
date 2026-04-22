@@ -35,35 +35,35 @@ describe('SourcemapToolHandlersExtension', () => {
     returnByValue: true,
   };
 
-  it('instantiates correctly', () => {
+  it('instantiates correctly', async () => {
     expect(handlers).toBeInstanceOf(SourcemapToolHandlersExtension);
   });
 
   describe('extractExtensionId', () => {
-    it('extracts valid ID', () => {
+    it('extracts valid ID', async () => {
       expect(
         (handlers as any).extractExtensionId(
           'chrome-extension://abcdefghijklmnopabcdefghijklmnop/foo',
         ),
       ).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
-    it('returns null for invalid url', () => {
+    it('returns null for invalid url', async () => {
       expect((handlers as any).extractExtensionId('http://example.com')).toBe(null);
     });
-    it('returns null for malformed ID', () => {
+    it('returns null for malformed ID', async () => {
       expect((handlers as any).extractExtensionId('chrome-extension://123/foo')).toBe(null);
     });
   });
 
   describe('pickPreferredExtensionTarget', () => {
-    it('prefers service_worker', () => {
+    it('prefers service_worker', async () => {
       const targets: any[] = [
         { type: 'background_page', url: 'A' },
         { type: 'service_worker', url: 'B' },
       ];
       expect((handlers as any).pickPreferredExtensionTarget(targets).url).toBe('B');
     });
-    it('falls back to background_page', () => {
+    it('falls back to background_page', async () => {
       const targets: any[] = [{ type: 'background_page', url: 'A' }];
       expect((handlers as any).pickPreferredExtensionTarget(targets).url).toBe('A');
     });

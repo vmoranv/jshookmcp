@@ -19,53 +19,53 @@ describe('PRESETS (combined)', () => {
     mockBuildHookCode.mockClear();
   });
 
-  it('exports a Record<string, PresetEntry>', () => {
+  it('exports a Record<string, PresetEntry>', async () => {
     expect(PRESETS).toBeDefined();
     expect(typeof PRESETS).toBe('object');
     expect(PRESETS).not.toBeNull();
   });
 
-  it('contains all core preset IDs', () => {
+  it('contains all core preset IDs', async () => {
     const presetIds = Object.keys(PRESETS);
     for (const coreId of Object.keys(CORE_PRESETS)) {
       expect(presetIds).toContain(coreId);
     }
   });
 
-  it('contains all security preset IDs', () => {
+  it('contains all security preset IDs', async () => {
     const presetIds = Object.keys(PRESETS);
     for (const securityId of Object.keys(SECURITY_PRESETS)) {
       expect(presetIds).toContain(securityId);
     }
   });
 
-  it('has a size equal to the sum of core and security presets', () => {
+  it('has a size equal to the sum of core and security presets', async () => {
     const coreCount = Object.keys(CORE_PRESETS).length;
     const securityCount = Object.keys(SECURITY_PRESETS).length;
     const totalCount = Object.keys(PRESETS).length;
     expect(totalCount).toBe(coreCount + securityCount);
   });
 
-  it('has no duplicate IDs across core and security presets', () => {
+  it('has no duplicate IDs across core and security presets', async () => {
     const coreIds = Object.keys(CORE_PRESETS);
     const securityIds = Object.keys(SECURITY_PRESETS);
     const overlap = coreIds.filter((id) => securityIds.includes(id));
     expect(overlap).toEqual([]);
   });
 
-  it('entries from PRESETS match their source (core)', () => {
+  it('entries from PRESETS match their source (core)', async () => {
     for (const [id, entry] of Object.entries(CORE_PRESETS)) {
       expect(PRESETS[id]).toBe(entry);
     }
   });
 
-  it('entries from PRESETS match their source (security)', () => {
+  it('entries from PRESETS match their source (security)', async () => {
     for (const [id, entry] of Object.entries(SECURITY_PRESETS)) {
       expect(PRESETS[id]).toBe(entry);
     }
   });
 
-  it('every entry has a description and buildCode function', () => {
+  it('every entry has a description and buildCode function', async () => {
     for (const entry of Object.values(PRESETS)) {
       expect(typeof entry.description).toBe('string');
       expect(entry.description.length).toBeGreaterThan(0);
@@ -75,15 +75,15 @@ describe('PRESETS (combined)', () => {
 });
 
 describe('PRESET_LIST', () => {
-  it('is an array', () => {
+  it('is an array', async () => {
     expect(Array.isArray(PRESET_LIST)).toBe(true);
   });
 
-  it('has the same length as PRESETS', () => {
+  it('has the same length as PRESETS', async () => {
     expect(PRESET_LIST.length).toBe(Object.keys(PRESETS).length);
   });
 
-  it('each element has only id and description fields', () => {
+  it('each element has only id and description fields', async () => {
     for (const item of PRESET_LIST) {
       expect(item).toHaveProperty('id');
       expect(item).toHaveProperty('description');
@@ -95,26 +95,26 @@ describe('PRESET_LIST', () => {
     }
   });
 
-  it('does not include buildCode in list items', () => {
+  it('does not include buildCode in list items', async () => {
     for (const item of PRESET_LIST) {
       expect(item).not.toHaveProperty('buildCode');
     }
   });
 
-  it('contains IDs for all PRESETS entries', () => {
+  it('contains IDs for all PRESETS entries', async () => {
     const listIds = PRESET_LIST.map((p) => p.id);
     for (const presetId of Object.keys(PRESETS)) {
       expect(listIds).toContain(presetId);
     }
   });
 
-  it('has no duplicate IDs', () => {
+  it('has no duplicate IDs', async () => {
     const ids = PRESET_LIST.map((p) => p.id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
   });
 
-  it('descriptions in PRESET_LIST match descriptions in PRESETS', () => {
+  it('descriptions in PRESET_LIST match descriptions in PRESETS', async () => {
     for (const item of PRESET_LIST) {
       const presetEntry = PRESETS[item.id];
       expect(presetEntry).toBeDefined();
@@ -122,7 +122,7 @@ describe('PRESET_LIST', () => {
     }
   });
 
-  it('contains specific known entries', () => {
+  it('contains specific known entries', async () => {
     const ids = PRESET_LIST.map((p) => p.id);
     expect(ids).toContain('eval');
     expect(ids).toContain('anti-debug-bypass');

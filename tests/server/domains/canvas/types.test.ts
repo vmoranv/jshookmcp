@@ -25,35 +25,35 @@ describe('canvas domain types', () => {
   // ── Primitive types ───────────────────────────────────────────────────
 
   describe('CanvasContextType', () => {
-    it('accepts all expected literal values', () => {
+    it('accepts all expected literal values', async () => {
       const values: CanvasContextType[] = ['2d', 'webgl', 'webgl2', 'webgpu'];
       expect(values).toBeDefined();
     });
   });
 
   describe('CanvasTraceBreakpointType', () => {
-    it('accepts all expected literal values', () => {
+    it('accepts all expected literal values', async () => {
       const values: CanvasTraceBreakpointType[] = ['click', 'mousedown', 'pointerdown'];
       expect(values).toBeDefined();
     });
   });
 
   describe('CanvasDumpCompleteness', () => {
-    it('accepts "full" and "partial"', () => {
+    it('accepts "full" and "partial"', async () => {
       const values: CanvasDumpCompleteness[] = ['full', 'partial'];
       expect(values).toBeDefined();
     });
   });
 
   describe('CanvasHitTestMethod', () => {
-    it('accepts all expected literal values', () => {
+    it('accepts all expected literal values', async () => {
       const values: CanvasHitTestMethod[] = ['engine', 'manual', 'none'];
       expect(values).toBeDefined();
     });
   });
 
   describe('CanvasNetworkProtocol', () => {
-    it('accepts all expected literal values', () => {
+    it('accepts all expected literal values', async () => {
       const values: CanvasNetworkProtocol[] = ['http', 'websocket', 'fetch'];
       expect(values).toBeDefined();
     });
@@ -62,7 +62,7 @@ describe('canvas domain types', () => {
   // ── WorldBounds ──────────────────────────────────────────────────────
 
   describe('WorldBounds', () => {
-    it('has required numeric fields', () => {
+    it('has required numeric fields', async () => {
       const wb: WorldBounds = { x: 10, y: 20, width: 100, height: 200 };
       expect(wb.x).toBe(10);
       expect(wb.y).toBe(20);
@@ -74,7 +74,7 @@ describe('canvas domain types', () => {
   // ── CanvasSceneNode ─────────────────────────────────────────────────
 
   describe('CanvasSceneNode', () => {
-    it('has all required primitive fields', () => {
+    it('has all required primitive fields', async () => {
       const node: CanvasSceneNode = {
         id: 'node-1',
         type: 'Sprite',
@@ -104,7 +104,7 @@ describe('canvas domain types', () => {
       expect(node.path).toBe('Laya.stage/Scene/Player');
     });
 
-    it('accepts optional name and mouseEnabled', () => {
+    it('accepts optional name and mouseEnabled', async () => {
       const node: CanvasSceneNode = {
         id: 'node-2',
         type: 'Node',
@@ -123,7 +123,7 @@ describe('canvas domain types', () => {
       expect(node.mouseEnabled).toBeUndefined();
     });
 
-    it('accepts optional children array of CanvasSceneNode', () => {
+    it('accepts optional children array of CanvasSceneNode', async () => {
       const child: CanvasSceneNode = {
         id: 'child-1',
         type: 'Image',
@@ -157,7 +157,7 @@ describe('canvas domain types', () => {
       expect(parent.children![0]!.id).toBe('child-1');
     });
 
-    it('accepts optional customData record', () => {
+    it('accepts optional customData record', async () => {
       const node: CanvasSceneNode = {
         id: 'node-3',
         type: 'Button',
@@ -182,7 +182,7 @@ describe('canvas domain types', () => {
   // ── CanvasSceneDump ─────────────────────────────────────────────────
 
   describe('CanvasSceneDump', () => {
-    it('has required engine, canvas, sceneTree, totalNodes, completeness', () => {
+    it('has required engine, canvas, sceneTree, totalNodes, completeness', async () => {
       const sceneTree: CanvasSceneNode = {
         id: 'root',
         type: 'Stage',
@@ -223,7 +223,7 @@ describe('canvas domain types', () => {
       expect(dump.completeness).toBe('full');
     });
 
-    it('accepts missing version', () => {
+    it('accepts missing version', async () => {
       const dump: CanvasSceneDump = {
         engine: 'PixiJS',
         canvas: { width: 800, height: 600, dpr: 1, contextType: 'webgl' },
@@ -252,7 +252,7 @@ describe('canvas domain types', () => {
   // ── CanvasPickResult ─────────────────────────────────────────────────
 
   describe('CanvasPickResult', () => {
-    it('has all required fields for a successful pick', () => {
+    it('has all required fields for a successful pick', async () => {
       const pickedNode: CanvasSceneNode = {
         id: 'sprite-1',
         type: 'Sprite',
@@ -289,7 +289,7 @@ describe('canvas domain types', () => {
       expect(result.hitTestMethod).toBe('engine');
     });
 
-    it('has all required fields for a failed pick', () => {
+    it('has all required fields for a failed pick', async () => {
       const result: CanvasPickResult = {
         success: false,
         picked: null,
@@ -307,7 +307,7 @@ describe('canvas domain types', () => {
       expect(result.hitTestMethod).toBe('none');
     });
 
-    it('accepts optional stage coordinates', () => {
+    it('accepts optional stage coordinates', async () => {
       const result: CanvasPickResult = {
         success: true,
         picked: null,
@@ -327,7 +327,7 @@ describe('canvas domain types', () => {
   // ── CanvasDetection ─────────────────────────────────────────────────
 
   describe('CanvasDetection', () => {
-    it('has required fields', () => {
+    it('has required fields', async () => {
       const detection: CanvasDetection = {
         engine: 'LayaAir',
         version: '3.0.0',
@@ -342,7 +342,7 @@ describe('canvas domain types', () => {
       expect(detection.adapterId).toBe('laya');
     });
 
-    it('accepts missing version', () => {
+    it('accepts missing version', async () => {
       const detection: CanvasDetection = {
         engine: 'PixiJS',
         confidence: 0.9,
@@ -357,7 +357,7 @@ describe('canvas domain types', () => {
   // ── CanvasEngineAdapter ───────────────────────────────────────────────
 
   describe('CanvasEngineAdapter interface', () => {
-    it('can be implemented with required fields', () => {
+    it('can be implemented with required fields', async () => {
       const adapter: CanvasEngineAdapter = {
         id: 'laya',
         engine: 'LayaAir',
@@ -399,7 +399,7 @@ describe('canvas domain types', () => {
   // ── CanvasTraceResult ────────────────────────────────────────────────
 
   describe('CanvasTraceResult', () => {
-    it('has all required fields', () => {
+    it('has all required fields', async () => {
       const result: CanvasTraceResult = {
         inputFlow: ['pointerdown', 'pointerup', 'click'],
         hitTarget: null,
@@ -426,7 +426,7 @@ describe('canvas domain types', () => {
   // ── DOMEventFrame ────────────────────────────────────────────────────
 
   describe('DOMEventFrame', () => {
-    it('has all phase literal variants', () => {
+    it('has all phase literal variants', async () => {
       const phases: DOMEventFrame['phase'][] = ['capturing', 'at-target', 'bubbling'];
       phases.forEach((p) => {
         const frame: DOMEventFrame = { type: 'click', phase: p };
@@ -438,7 +438,7 @@ describe('canvas domain types', () => {
   // ── StackFrame & HandlerInfo ─────────────────────────────────────────
 
   describe('StackFrame', () => {
-    it('has required functionName and optional source location', () => {
+    it('has required functionName and optional source location', async () => {
       const frame: StackFrame = {
         functionName: 'Sprite.onClick',
         scriptUrl: 'Sprite.ts',
@@ -454,7 +454,7 @@ describe('canvas domain types', () => {
   });
 
   describe('HandlerInfo', () => {
-    it('has required functionName and optional source location', () => {
+    it('has required functionName and optional source location', async () => {
       const info: HandlerInfo = {
         functionName: 'handleTap',
         scriptUrl: 'Game.ts',
@@ -469,7 +469,7 @@ describe('canvas domain types', () => {
   // ── NetworkEvent ─────────────────────────────────────────────────────
 
   describe('NetworkEvent', () => {
-    it('has required protocol and optional request fields', () => {
+    it('has required protocol and optional request fields', async () => {
       const event: NetworkEvent = {
         protocol: 'fetch',
         url: 'https://api.example.com/data',
@@ -486,7 +486,7 @@ describe('canvas domain types', () => {
   // ── Option types ────────────────────────────────────────────────────
 
   describe('DumpOpts', () => {
-    it('has all optional fields', () => {
+    it('has all optional fields', async () => {
       const opts: DumpOpts = {
         canvasId: 'canvas-0',
         maxDepth: 10,
@@ -501,7 +501,7 @@ describe('canvas domain types', () => {
   });
 
   describe('PickOpts', () => {
-    it('requires x, y and accepts optional canvasId', () => {
+    it('requires x, y and accepts optional canvasId', async () => {
       const opts: PickOpts = { x: 100, y: 200, canvasId: 'game' };
       expect(opts.x).toBe(100);
       expect(opts.y).toBe(200);
@@ -510,7 +510,7 @@ describe('canvas domain types', () => {
   });
 
   describe('TraceOpts', () => {
-    it('has all optional fields', () => {
+    it('has all optional fields', async () => {
       const opts: TraceOpts = {
         targetNodeId: 'node-5',
         breakpointType: 'mousedown',

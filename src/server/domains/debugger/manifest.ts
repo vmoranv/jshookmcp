@@ -1,9 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
 import { debuggerTools } from '@server/domains/debugger/definitions';
-import { DebuggerToolHandlers } from '@server/domains/debugger/index';
-import { DebuggerManager } from '@server/domains/shared/modules';
-import { RuntimeInspector } from '@server/domains/shared/modules';
+import type { DebuggerToolHandlers } from '@server/domains/debugger/index';
 
 const DOMAIN = 'debugger' as const;
 const DEP_KEY = 'debuggerHandlers' as const;
@@ -12,19 +10,23 @@ const t = toolLookup(debuggerTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { DebuggerManager, RuntimeInspector } = await import('@server/domains/shared/modules');
+  const { DebuggerToolHandlers } = await import('@server/domains/debugger/index');
   ensureBrowserCore(ctx);
-  if (!ctx.debuggerManager) ctx.debuggerManager = new DebuggerManager(ctx.collector!);
-  if (!ctx.runtimeInspector)
-    ctx.runtimeInspector = new RuntimeInspector(ctx.collector!, ctx.debuggerManager);
-  if (!ctx.debuggerHandlers) {
-    ctx.debuggerHandlers = new DebuggerToolHandlers(
-      ctx.debuggerManager,
-      ctx.runtimeInspector,
-      ctx.eventBus,
-    );
+  if (!ctx.debuggerManager || !ctx.runtimeInspector || !ctx.debuggerHandlers) {
+    if (!ctx.debuggerManager) ctx.debuggerManager = new DebuggerManager(ctx.collector!);
+    if (!ctx.runtimeInspector)
+      ctx.runtimeInspector = new RuntimeInspector(ctx.collector!, ctx.debuggerManager);
+    if (!ctx.debuggerHandlers) {
+      ctx.debuggerHandlers = new DebuggerToolHandlers(
+        ctx.debuggerManager,
+        ctx.runtimeInspector,
+        ctx.eventBus,
+      );
+    }
   }
-  return ctx.debuggerHandlers;
+  return ctx.debuggerHandlers!;
 }
 
 const manifest = {

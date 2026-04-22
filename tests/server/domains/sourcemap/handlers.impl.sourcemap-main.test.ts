@@ -49,7 +49,7 @@ describe('SourcemapToolHandlersMain', () => {
     sourceMapUrl: 'http://test.com/map.js.map',
   };
 
-  it('instantiates correctly', () => {
+  it('instantiates correctly', async () => {
     expect(handlers).toBeInstanceOf(SourcemapToolHandlersMain);
   });
 

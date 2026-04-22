@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { coordinationTools } from '@server/domains/coordination/definitions';
-import { CoordinationHandlers } from '@server/domains/coordination/index';
+import type { CoordinationHandlers } from '@server/domains/coordination/index';
 
 const DOMAIN = 'coordination' as const;
 const DEP_KEY = 'coordinationHandlers' as const;
@@ -10,7 +10,8 @@ const t = toolLookup(coordinationTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { CoordinationHandlers } = await import('@server/domains/coordination/index');
   if (!ctx.coordinationHandlers) {
     ctx.coordinationHandlers = new CoordinationHandlers(ctx);
   }

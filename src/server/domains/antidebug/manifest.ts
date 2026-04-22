@@ -1,8 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { antidebugTools } from '@server/domains/antidebug/definitions';
-import { AntiDebugToolHandlers } from '@server/domains/antidebug/index';
-import { CodeCollector } from '@server/domains/shared/modules';
+import type { AntiDebugToolHandlers } from '@server/domains/antidebug/index';
 
 const DOMAIN = 'antidebug' as const;
 const DEP_KEY = 'antidebugHandlers' as const;
@@ -11,12 +10,16 @@ const t = toolLookup(antidebugTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { CodeCollector } = await import('@server/domains/shared/modules');
+  const { AntiDebugToolHandlers } = await import('@server/domains/antidebug/index');
   if (!ctx.collector) {
     ctx.collector = new CodeCollector(ctx.config.puppeteer);
     void ctx.registerCaches();
   }
-  if (!ctx.antidebugHandlers) ctx.antidebugHandlers = new AntiDebugToolHandlers(ctx.collector);
+  if (!ctx.antidebugHandlers) {
+    ctx.antidebugHandlers = new AntiDebugToolHandlers(ctx.collector);
+  }
   return ctx.antidebugHandlers;
 }
 

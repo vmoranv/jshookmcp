@@ -56,42 +56,42 @@ function fieldFixed64(fieldNumber: number, value: bigint): Buffer {
 }
 
 describe('EncodingToolHandlersProtobuf.tryParseVarint', () => {
-  it('parses single-byte varint 0', () => {
+  it('parses single-byte varint 0', async () => {
     const result = tool.tryParseVarint(Buffer.from([0x00]), 0);
     expect(result.error).toBeUndefined();
     expect(result.value).toBe(0n);
     expect(result.offset).toBe(1);
   });
 
-  it('parses single-byte varint 1', () => {
+  it('parses single-byte varint 1', async () => {
     const result = tool.tryParseVarint(Buffer.from([0x01]), 0);
     expect(result.error).toBeUndefined();
     expect(result.value).toBe(1n);
     expect(result.offset).toBe(1);
   });
 
-  it('parses single-byte varint 127', () => {
+  it('parses single-byte varint 127', async () => {
     const result = tool.tryParseVarint(Buffer.from([0x7f]), 0);
     expect(result.error).toBeUndefined();
     expect(result.value).toBe(127n);
     expect(result.offset).toBe(1);
   });
 
-  it('parses multi-byte varint 128', () => {
+  it('parses multi-byte varint 128', async () => {
     const result = tool.tryParseVarint(Buffer.from([0x80, 0x01]), 0);
     expect(result.error).toBeUndefined();
     expect(result.value).toBe(128n);
     expect(result.offset).toBe(2);
   });
 
-  it('parses multi-byte varint 300', () => {
+  it('parses multi-byte varint 300', async () => {
     const result = tool.tryParseVarint(Buffer.from([0xac, 0x02]), 0);
     expect(result.error).toBeUndefined();
     expect(result.value).toBe(300n);
     expect(result.offset).toBe(2);
   });
 
-  it('parses a varint at a non-zero startOffset', () => {
+  it('parses a varint at a non-zero startOffset', async () => {
     const buffer = Buffer.from([0x00, 0x00, 0xac, 0x02, 0xff]);
     const result = tool.tryParseVarint(buffer, 2);
     expect(result.error).toBeUndefined();
@@ -99,7 +99,7 @@ describe('EncodingToolHandlersProtobuf.tryParseVarint', () => {
     expect(result.offset).toBe(4);
   });
 
-  it('parses the maximum 10-byte uint64 varint (2^64-1)', () => {
+  it('parses the maximum 10-byte uint64 varint (2^64-1)', async () => {
     const buffer = Buffer.from([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01]);
     const result = tool.tryParseVarint(buffer, 0);
     expect(result.error).toBeUndefined();
@@ -107,21 +107,21 @@ describe('EncodingToolHandlersProtobuf.tryParseVarint', () => {
     expect(result.offset).toBe(10);
   });
 
-  it('returns error for empty buffer', () => {
+  it('returns error for empty buffer', async () => {
     const result = tool.tryParseVarint(Buffer.alloc(0), 0);
     expect(result.value).toBeUndefined();
     expect(result.offset).toBeUndefined();
     expect(result.error).toBe('Unexpected EOF while parsing varint at offset 0');
   });
 
-  it('returns error for truncated varint (continuation bit set then EOF)', () => {
+  it('returns error for truncated varint (continuation bit set then EOF)', async () => {
     const result = tool.tryParseVarint(Buffer.from([0x80]), 0);
     expect(result.value).toBeUndefined();
     expect(result.offset).toBeUndefined();
     expect(result.error).toBe('Unexpected EOF while parsing varint at offset 1');
   });
 
-  it('returns error when varint exceeds 10 bytes (never terminates)', () => {
+  it('returns error when varint exceeds 10 bytes (never terminates)', async () => {
     const buffer = Buffer.alloc(10, 0x80);
     const result = tool.tryParseVarint(buffer, 0);
     expect(result.value).toBeUndefined();
@@ -129,7 +129,7 @@ describe('EncodingToolHandlersProtobuf.tryParseVarint', () => {
     expect(result.error).toBe('Varint exceeds 10 bytes at offset 0');
   });
 
-  it('returns error for multi-byte truncated varint', () => {
+  it('returns error for multi-byte truncated varint', async () => {
     const result = tool.tryParseVarint(Buffer.from([0x80, 0x80]), 0);
     expect(result.value).toBeUndefined();
     expect(result.offset).toBeUndefined();
@@ -138,80 +138,80 @@ describe('EncodingToolHandlersProtobuf.tryParseVarint', () => {
 });
 
 describe('EncodingToolHandlersProtobuf.protobufWireTypeName', () => {
-  it('returns "varint" for wire type 0', () => {
+  it('returns "varint" for wire type 0', async () => {
     expect(tool.protobufWireTypeName(0)).toBe('varint');
   });
 
-  it('returns "fixed64" for wire type 1', () => {
+  it('returns "fixed64" for wire type 1', async () => {
     expect(tool.protobufWireTypeName(1)).toBe('fixed64');
   });
 
-  it('returns "length-delimited" for wire type 2', () => {
+  it('returns "length-delimited" for wire type 2', async () => {
     expect(tool.protobufWireTypeName(2)).toBe('length-delimited');
   });
 
-  it('returns "fixed32" for wire type 5', () => {
+  it('returns "fixed32" for wire type 5', async () => {
     expect(tool.protobufWireTypeName(5)).toBe('fixed32');
   });
 
-  it('returns "unknown" for wire type 3 (unsupported)', () => {
+  it('returns "unknown" for wire type 3 (unsupported)', async () => {
     expect(tool.protobufWireTypeName(3)).toBe('unknown');
   });
 
-  it('returns "unknown" for wire type -1', () => {
+  it('returns "unknown" for wire type -1', async () => {
     expect(tool.protobufWireTypeName(-1)).toBe('unknown');
   });
 });
 
 describe('EncodingToolHandlersProtobuf.bigIntToSafeValue', () => {
-  it('returns number for 0n', () => {
+  it('returns number for 0n', async () => {
     const value = tool.bigIntToSafeValue(0n);
     expect(value).toBe(0);
     expect(typeof value).toBe('number');
   });
 
-  it('returns number for 42n', () => {
+  it('returns number for 42n', async () => {
     const value = tool.bigIntToSafeValue(42n);
     expect(value).toBe(42);
     expect(typeof value).toBe('number');
   });
 
-  it('returns number for Number.MAX_SAFE_INTEGER', () => {
+  it('returns number for Number.MAX_SAFE_INTEGER', async () => {
     const max = BigInt(Number.MAX_SAFE_INTEGER);
     const value = tool.bigIntToSafeValue(max);
     expect(value).toBe(Number.MAX_SAFE_INTEGER);
     expect(typeof value).toBe('number');
   });
 
-  it('returns number for Number.MIN_SAFE_INTEGER', () => {
+  it('returns number for Number.MIN_SAFE_INTEGER', async () => {
     const min = BigInt(Number.MIN_SAFE_INTEGER);
     const value = tool.bigIntToSafeValue(min);
     expect(value).toBe(Number.MIN_SAFE_INTEGER);
     expect(typeof value).toBe('number');
   });
 
-  it('returns string when above Number.MAX_SAFE_INTEGER', () => {
+  it('returns string when above Number.MAX_SAFE_INTEGER', async () => {
     const value = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
     expect(tool.bigIntToSafeValue(value)).toBe(value.toString());
   });
 
-  it('returns string when below Number.MIN_SAFE_INTEGER', () => {
+  it('returns string when below Number.MIN_SAFE_INTEGER', async () => {
     const value = BigInt(Number.MIN_SAFE_INTEGER) - 1n;
     expect(tool.bigIntToSafeValue(value)).toBe(value.toString());
   });
 
-  it('returns string for a very large magnitude bigint', () => {
+  it('returns string for a very large magnitude bigint', async () => {
     const value = 1n << 62n;
     expect(tool.bigIntToSafeValue(value)).toBe(value.toString());
   });
 });
 
 describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
-  it('returns kind=empty for empty payload', () => {
+  it('returns kind=empty for empty payload', async () => {
     expect(tool.decodeLengthDelimited(Buffer.alloc(0), 0, 5)).toEqual({ kind: 'empty', length: 0 });
   });
 
-  it('returns kind=message for a valid nested protobuf message', () => {
+  it('returns kind=message for a valid nested protobuf message', async () => {
     const payload = fieldVarint(1, 150);
     const decoded = tool.decodeLengthDelimited(payload, 0, 5) as any;
     expect(decoded.kind).toBe('message');
@@ -225,7 +225,7 @@ describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
     });
   });
 
-  it('does not treat payload as message when nested parsing is disabled by depth/maxDepth', () => {
+  it('does not treat payload as message when nested parsing is disabled by depth/maxDepth', async () => {
     const payload = fieldVarint(1, 150);
     const decoded = tool.decodeLengthDelimited(payload, 5, 5);
     expect(decoded).toEqual({
@@ -236,19 +236,19 @@ describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
     });
   });
 
-  it('returns kind=string for valid UTF-8 when nested message parsing is skipped', () => {
+  it('returns kind=string for valid UTF-8 when nested message parsing is skipped', async () => {
     const payload = Buffer.from('hello world', 'utf8');
     const decoded = tool.decodeLengthDelimited(payload, 1, 1);
     expect(decoded).toEqual({ kind: 'string', value: 'hello world' });
   });
 
-  it('treats printable ratio 0.85 as string', () => {
+  it('treats printable ratio 0.85 as string', async () => {
     const payload = Buffer.from(`${'a'.repeat(17)}\x01\x02\x03`, 'utf8');
     const decoded = tool.decodeLengthDelimited(payload, 1, 1);
     expect(decoded).toEqual({ kind: 'string', value: payload.toString('utf8') });
   });
 
-  it('treats printable ratio below 0.85 as bytes', () => {
+  it('treats printable ratio below 0.85 as bytes', async () => {
     const payload = Buffer.from(`${'a'.repeat(16)}\x01\x02\x03\x04`, 'utf8');
     const decoded = tool.decodeLengthDelimited(payload, 1, 1);
     expect(decoded).toEqual({
@@ -259,7 +259,7 @@ describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
     });
   });
 
-  it('returns kind=bytes for valid UTF-8 that is mostly non-printable', () => {
+  it('returns kind=bytes for valid UTF-8 that is mostly non-printable', async () => {
     const payload = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05]);
     const decoded = tool.decodeLengthDelimited(payload, 1, 1);
     expect(decoded).toEqual({
@@ -270,7 +270,7 @@ describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
     });
   });
 
-  it('returns kind=bytes for invalid UTF-8', () => {
+  it('returns kind=bytes for invalid UTF-8', async () => {
     const payload = Buffer.from([0xff, 0xfe, 0xfd]);
     const decoded = tool.decodeLengthDelimited(payload, 1, 1);
     expect(decoded).toEqual({
@@ -281,7 +281,7 @@ describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
     });
   });
 
-  it('requires nested parsing to consume all bytes before returning kind=message', () => {
+  it('requires nested parsing to consume all bytes before returning kind=message', async () => {
     const payload = Buffer.concat([fieldVarint(1, 1), Buffer.from([0x00])]);
     const decoded = tool.decodeLengthDelimited(payload, 0, 5);
     expect(decoded).toEqual({
@@ -292,7 +292,7 @@ describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
     });
   });
 
-  it('prefers nested message decoding over string when nested parsing succeeds', () => {
+  it('prefers nested message decoding over string when nested parsing succeeds', async () => {
     const payload = Buffer.from('hi', 'utf8');
     const decoded = tool.decodeLengthDelimited(payload, 0, 5) as any;
     expect(decoded.kind).toBe('message');
@@ -301,14 +301,14 @@ describe('EncodingToolHandlersProtobuf.decodeLengthDelimited', () => {
 });
 
 describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
-  it('parses empty buffer', () => {
+  it('parses empty buffer', async () => {
     const result = tool.parseProtobufMessage(Buffer.alloc(0), 0, 5);
     expect(result.error).toBeUndefined();
     expect(result.bytesConsumed).toBe(0);
     expect(result.fields).toEqual([]);
   });
 
-  it('parses a simple varint field', () => {
+  it('parses a simple varint field', async () => {
     const buffer = fieldVarint(1, 150);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.error).toBeUndefined();
@@ -324,7 +324,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     ]);
   });
 
-  it('parses multiple varint fields and assigns incremental indices', () => {
+  it('parses multiple varint fields and assigns incremental indices', async () => {
     const buffer = Buffer.concat([fieldVarint(1, 1), fieldVarint(2, 300)]);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.error).toBeUndefined();
@@ -334,7 +334,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.fields[1]!).toMatchObject({ index: 1, fieldNumber: 2, wireType: 0, value: 300 });
   });
 
-  it('parses a varint that exceeds JS safe integer as string value', () => {
+  it('parses a varint that exceeds JS safe integer as string value', async () => {
     const big = BigInt(Number.MAX_SAFE_INTEGER) + 123n;
     const buffer = fieldVarint(1, big);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
@@ -343,7 +343,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.fields[0]!.value).toBe(big.toString());
   });
 
-  it('parses a length-delimited field as string when payload is printable UTF-8', () => {
+  it('parses a length-delimited field as string when payload is printable UTF-8', async () => {
     const buffer = fieldLengthDelimited(1, Buffer.from('hello', 'utf8'));
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.error).toBeUndefined();
@@ -351,14 +351,14 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.fields[0]!.value).toEqual({ kind: 'string', value: 'hello' });
   });
 
-  it('parses a length-delimited field with empty payload as kind=empty', () => {
+  it('parses a length-delimited field with empty payload as kind=empty', async () => {
     const buffer = fieldLengthDelimited(1, Buffer.alloc(0));
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.error).toBeUndefined();
     expect(result.fields[0]!.value).toEqual({ kind: 'empty', length: 0 });
   });
 
-  it('parses a nested message inside a length-delimited field', () => {
+  it('parses a nested message inside a length-delimited field', async () => {
     const inner = fieldVarint(2, 7);
     const outer = fieldLengthDelimited(1, inner);
     const result = tool.parseProtobufMessage(outer, 0, 5);
@@ -375,7 +375,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     });
   });
 
-  it('does not parse nested message when max depth is exceeded (falls back to bytes)', () => {
+  it('does not parse nested message when max depth is exceeded (falls back to bytes)', async () => {
     const inner = fieldVarint(2, 7);
     const outer = fieldLengthDelimited(1, inner);
     const result = tool.parseProtobufMessage(outer, 0, 0);
@@ -386,7 +386,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(decoded.hex).toBe(inner.toString('hex'));
   });
 
-  it('parses fixed32 fields', () => {
+  it('parses fixed32 fields', async () => {
     const buffer = fieldFixed32(3, 0xdeadbeef);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.error).toBeUndefined();
@@ -395,7 +395,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.fields[0]!.value).toEqual({ uint32: 0xdeadbeef, hex: 'efbeadde' });
   });
 
-  it('parses fixed64 fields with safe uint64 as number', () => {
+  it('parses fixed64 fields with safe uint64 as number', async () => {
     const buffer = fieldFixed64(4, 42n);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.error).toBeUndefined();
@@ -404,7 +404,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(value).toEqual({ uint64: 42, hex: '2a00000000000000' });
   });
 
-  it('parses fixed64 fields with unsafe uint64 as string', () => {
+  it('parses fixed64 fields with unsafe uint64 as string', async () => {
     const unsafe = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
     const buffer = fieldFixed64(4, unsafe);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
@@ -416,7 +416,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(value.hex).toBe(expectedRaw.toString('hex'));
   });
 
-  it('returns error for unsupported wire type', () => {
+  it('returns error for unsupported wire type', async () => {
     const buffer = Buffer.concat([encodeKey(1, 3)]);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.fields).toEqual([]);
@@ -424,7 +424,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.error).toBe('Unsupported wire type 3 at offset 1');
   });
 
-  it('returns error for invalid field number 0', () => {
+  it('returns error for invalid field number 0', async () => {
     const buffer = encodeVarint(0);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.fields).toEqual([]);
@@ -432,7 +432,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.error).toBe('Invalid field number 0 at offset 1');
   });
 
-  it('returns error for truncated key varint', () => {
+  it('returns error for truncated key varint', async () => {
     const buffer = Buffer.from([0x80]);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.fields).toEqual([]);
@@ -440,7 +440,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.error).toBe('Unexpected EOF while parsing varint at offset 1');
   });
 
-  it('returns error for truncated varint value', () => {
+  it('returns error for truncated varint value', async () => {
     const buffer = Buffer.from([0x08, 0x80]);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.fields).toEqual([]);
@@ -448,7 +448,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.error).toBe('Unexpected EOF while parsing varint at offset 2');
   });
 
-  it('returns error for invalid length-delimited field length that exceeds buffer', () => {
+  it('returns error for invalid length-delimited field length that exceeds buffer', async () => {
     const buffer = Buffer.concat([
       encodeKey(1, 2),
       encodeVarint(5),
@@ -460,7 +460,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.error).toBe('Invalid length-delimited field length=5 at offset 2');
   });
 
-  it('returns error for truncated length varint in length-delimited field', () => {
+  it('returns error for truncated length varint in length-delimited field', async () => {
     const buffer = Buffer.from([0x0a, 0x80]);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.fields).toEqual([]);
@@ -468,7 +468,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.error).toBe('Unexpected EOF while parsing varint at offset 2');
   });
 
-  it('returns error when fixed32 runs past EOF', () => {
+  it('returns error when fixed32 runs past EOF', async () => {
     const buffer = Buffer.concat([encodeKey(1, 5), Buffer.from([0x01, 0x02])]);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.fields).toEqual([]);
@@ -476,7 +476,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.error).toBe('Unexpected EOF for fixed32 at offset 1');
   });
 
-  it('returns previously parsed fields when a later field is malformed', () => {
+  it('returns previously parsed fields when a later field is malformed', async () => {
     const okField = fieldVarint(1, 1);
     const badField = Buffer.from([0x0b]); // field 1, wire type 3 (unsupported)
     const buffer = Buffer.concat([okField, badField]);
@@ -487,7 +487,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.bytesConsumed).toBe(3);
   });
 
-  it('returns error when length-delimited field length is too large', () => {
+  it('returns error when length-delimited field length is too large', async () => {
     const huge = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
     const buffer = Buffer.concat([encodeKey(1, 2), encodeVarint(huge)]);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
@@ -495,7 +495,7 @@ describe('EncodingToolHandlersProtobuf.parseProtobufMessage', () => {
     expect(result.error).toBe(`Length-delimited field is too large at offset ${buffer.length}`);
   });
 
-  it('returns error when fixed64 runs past EOF', () => {
+  it('returns error when fixed64 runs past EOF', async () => {
     const buffer = Buffer.concat([encodeKey(1, 1), Buffer.from([0x01, 0x02, 0x03])]);
     const result = tool.parseProtobufMessage(buffer, 0, 5);
     expect(result.fields).toEqual([]);

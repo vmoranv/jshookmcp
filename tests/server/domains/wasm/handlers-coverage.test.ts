@@ -187,7 +187,7 @@ describe('WasmToolHandlers — remaining coverage', () => {
   // ── wasm_memory_inspect: format edge cases ────────────────
 
   describe('handleWasmMemoryInspect — format edge cases', () => {
-    it('handles non-printable ASCII bytes in hex dump ascii column', () => {
+    it('handles non-printable ASCII bytes in hex dump ascii column', async () => {
       // Include byte values at boundaries: 0x1F (non-printable), 0x20 (space, printable), 0x7E (~, printable), 0x7F (DEL, non-printable)
       const data = [0x1f, 0x20, 0x7e, 0x7f];
       page.evaluate.mockResolvedValueOnce({
@@ -207,7 +207,7 @@ describe('WasmToolHandlers — remaining coverage', () => {
       });
     });
 
-    it('handles ascii format with non-printable bytes replaced by dots', () => {
+    it('handles ascii format with non-printable bytes replaced by dots', async () => {
       const data = [0x00, 0x41, 0x42, 0xff]; // NUL, A, B, 0xFF
       page.evaluate.mockResolvedValueOnce({
         totalMemoryPages: 1,
@@ -226,7 +226,7 @@ describe('WasmToolHandlers — remaining coverage', () => {
       });
     });
 
-    it('returns hexDump without asciiDump for format=both with empty data', () => {
+    it('returns hexDump without asciiDump for format=both with empty data', async () => {
       page.evaluate.mockResolvedValueOnce({
         totalMemoryPages: 1,
         totalMemoryBytes: 65536,
@@ -244,7 +244,7 @@ describe('WasmToolHandlers — remaining coverage', () => {
       });
     });
 
-    it('handles large offset addresses in hex dump', () => {
+    it('handles large offset addresses in hex dump', async () => {
       page.evaluate.mockResolvedValueOnce({
         totalMemoryPages: 100,
         totalMemoryBytes: 6553600,

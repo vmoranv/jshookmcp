@@ -13,7 +13,7 @@ describe('CrossDomainConfig', () => {
     process.env = originalEnv;
   });
 
-  it('should return default config with sensible values', () => {
+  it('should return default config with sensible values', async () => {
     const config = getCrossDomainConfig();
 
     expect(config.fridaEnabled).toBe(true);
@@ -28,7 +28,7 @@ describe('CrossDomainConfig', () => {
     expect(['win32', 'linux', 'darwin']).toContain(config.platform);
   });
 
-  it('should read Frida config from environment', () => {
+  it('should read Frida config from environment', async () => {
     process.env.FRIDA_ENABLED = 'false';
     process.env.FRIDA_SERVER_HOST = '192.168.1.100';
     process.env.FRIDA_SERVER_PORT = '27043';
@@ -41,7 +41,7 @@ describe('CrossDomainConfig', () => {
     expect(config.fridaServerPort).toBe(27043);
   });
 
-  it('should enable Ghidra when path is set', () => {
+  it('should enable Ghidra when path is set', async () => {
     process.env.GHIDRA_HEADLESS_PATH = '/opt/ghidra/support/analyzeHeadless';
 
     _resetConfigCache();
@@ -51,7 +51,7 @@ describe('CrossDomainConfig', () => {
     expect(config.ghidraHeadlessPath).toBe('/opt/ghidra/support/analyzeHeadless');
   });
 
-  it('should enable Unidbg when JAR path is set', () => {
+  it('should enable Unidbg when JAR path is set', async () => {
     process.env.UNIDBG_JAR_PATH = '/opt/unidbg/unidbg-android.jar';
 
     _resetConfigCache();
@@ -61,13 +61,13 @@ describe('CrossDomainConfig', () => {
     expect(config.unidbgJarPath).toBe('/opt/unidbg/unidbg-android.jar');
   });
 
-  it('should cache config for repeated calls', () => {
+  it('should cache config for repeated calls', async () => {
     const first = getCrossDomainConfig();
     const second = getCrossDomainConfig();
     expect(first).toBe(second); // Same reference
   });
 
-  it('should disable ETW on non-Windows platforms', () => {
+  it('should disable ETW on non-Windows platforms', async () => {
     // Platform is read-only from process.platform, so this test just documents behavior
     const config = getCrossDomainConfig();
     if (process.platform !== 'win32') {

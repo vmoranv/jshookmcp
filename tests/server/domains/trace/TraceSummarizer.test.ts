@@ -11,7 +11,7 @@ describe('TraceSummarizer', () => {
   // ── summarizeEvents ──
 
   describe('summarizeEvents', () => {
-    it('returns empty summary for empty input', () => {
+    it('returns empty summary for empty input', async () => {
       const summaryBalanced = summarizeEvents([], 'balanced');
       expect(summaryBalanced.totalEvents).toBe(0);
       expect(summaryBalanced.keyMoments).toEqual([]);
@@ -20,7 +20,7 @@ describe('TraceSummarizer', () => {
       expect(summaryCompact.keyMoments).toBeUndefined();
     });
 
-    it('aggregates events by category', () => {
+    it('aggregates events by category', async () => {
       const events: TraceEvent[] = [
         { timestamp: 100, category: 'debugger', eventType: 'Debugger.paused' },
         { timestamp: 200, category: 'debugger', eventType: 'Debugger.resumed' },
@@ -41,7 +41,7 @@ describe('TraceSummarizer', () => {
       expect(summary.categories[1]!.count).toBe(1);
     });
 
-    it('compact mode does not include keyMoments', () => {
+    it('compact mode does not include keyMoments', async () => {
       const events: TraceEvent[] = [
         { timestamp: 100, category: 'debugger', eventType: 'Debugger.paused' },
       ];
@@ -49,7 +49,7 @@ describe('TraceSummarizer', () => {
       expect(summary.keyMoments).toBeUndefined();
     });
 
-    it('balanced mode includes keyMoments', () => {
+    it('balanced mode includes keyMoments', async () => {
       const events: TraceEvent[] = [
         {
           timestamp: 100,
@@ -67,7 +67,7 @@ describe('TraceSummarizer', () => {
       expect(summary.keyMoments![1]!.type).toBe('exception');
     });
 
-    it('topEventTypes is limited to 5 entries per category', () => {
+    it('topEventTypes is limited to 5 entries per category', async () => {
       const events: TraceEvent[] = Array.from({ length: 20 }, (_, i) => ({
         timestamp: i * 100,
         category: 'test',
@@ -82,7 +82,7 @@ describe('TraceSummarizer', () => {
   // ── extractKeyMoments ──
 
   describe('extractKeyMoments', () => {
-    it('extracts breakpoint events with optional fields', () => {
+    it('extracts breakpoint events with optional fields', async () => {
       const events: TraceEvent[] = [
         {
           timestamp: 100,
@@ -118,7 +118,7 @@ describe('TraceSummarizer', () => {
       expect(moments[3]!.description).toBe('Debugger paused:42');
     });
 
-    it('extracts network completion events', () => {
+    it('extracts network completion events', async () => {
       const events: TraceEvent[] = [
         { timestamp: 200, category: 'network', eventType: 'Network.loadingFinished' },
       ];
@@ -127,7 +127,7 @@ describe('TraceSummarizer', () => {
       expect(moments[0]!.type).toBe('network_complete');
     });
 
-    it('extracts exception events', () => {
+    it('extracts exception events', async () => {
       const events: TraceEvent[] = [
         { timestamp: 300, category: 'runtime', eventType: 'Runtime.exceptionThrown' },
       ];
@@ -136,7 +136,7 @@ describe('TraceSummarizer', () => {
       expect(moments[0]!.type).toBe('exception');
     });
 
-    it('extracts navigation events', () => {
+    it('extracts navigation events', async () => {
       const events: TraceEvent[] = [
         { timestamp: 400, category: 'page', eventType: 'Page.frameNavigated' },
         { timestamp: 500, category: 'page', eventType: 'Page.navigatedWithinDocument' },
@@ -146,7 +146,7 @@ describe('TraceSummarizer', () => {
       expect(moments.every((m) => m.type === 'navigation')).toBe(true);
     });
 
-    it('ignores non-key events', () => {
+    it('ignores non-key events', async () => {
       const events: TraceEvent[] = [
         { timestamp: 100, category: 'runtime', eventType: 'Runtime.consoleAPICalled' },
         { timestamp: 200, category: 'debugger', eventType: 'Debugger.scriptParsed' },
@@ -159,7 +159,7 @@ describe('TraceSummarizer', () => {
   // ── summarizeMemoryDeltas ──
 
   describe('summarizeMemoryDeltas', () => {
-    it('returns empty summary for empty input', () => {
+    it('returns empty summary for empty input', async () => {
       const summary = summarizeMemoryDeltas([]);
       expect(summary.totalDeltas).toBe(0);
       expect(summary.uniqueAddresses).toBe(0);
@@ -167,7 +167,7 @@ describe('TraceSummarizer', () => {
       expect(summary.topAddresses).toEqual([]);
     });
 
-    it('counts unique addresses and total deltas', () => {
+    it('counts unique addresses and total deltas', async () => {
       const deltas: MemoryDelta[] = [
         {
           timestamp: 100,
@@ -200,7 +200,7 @@ describe('TraceSummarizer', () => {
       expect(summary.uniqueAddresses).toBe(2);
     });
 
-    it('sorts topAddresses by write count descending', () => {
+    it('sorts topAddresses by write count descending', async () => {
       const deltas: MemoryDelta[] = [
         {
           timestamp: 100,
@@ -241,7 +241,7 @@ describe('TraceSummarizer', () => {
       expect(summary.topAddresses[0]!.writeCount).toBe(3);
     });
 
-    it('detects anomalies (>3× mean write count)', () => {
+    it('detects anomalies (>3× mean write count)', async () => {
       // 4 addresses, 13 total writes -> mean = 3.25
       // anomaly threshold = 9.75
       const deltas: MemoryDelta[] = [

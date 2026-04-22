@@ -110,37 +110,37 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   // ── Exported constants ────────────────────────────────────
 
   describe('exported constants', () => {
-    it('exports CRYPTO_KEYWORDS array', () => {
+    it('exports CRYPTO_KEYWORDS array', async () => {
       expect(Array.isArray(CRYPTO_KEYWORDS)).toBe(true);
       expect(CRYPTO_KEYWORDS).toContain('cryptojs');
       expect(CRYPTO_KEYWORDS).toContain('md5');
       expect(CRYPTO_KEYWORDS).toContain('sha');
     });
 
-    it('exports NUMERIC_BINARY_EXPR regex', () => {
+    it('exports NUMERIC_BINARY_EXPR regex', async () => {
       expect(NUMERIC_BINARY_EXPR instanceof RegExp).toBe(true);
       expect('1+2'.match(NUMERIC_BINARY_EXPR)).toBeTruthy();
     });
 
-    it('exports STRING_CONCAT_EXPR regex', () => {
+    it('exports STRING_CONCAT_EXPR regex', async () => {
       expect(STRING_CONCAT_EXPR instanceof RegExp).toBe(true);
       expect(`'a'+'b'`.match(STRING_CONCAT_EXPR)).toBeTruthy();
     });
 
-    it('exports STRING_LITERAL_EXPR regex', () => {
+    it('exports STRING_LITERAL_EXPR regex', async () => {
       expect(STRING_LITERAL_EXPR instanceof RegExp).toBe(true);
       expect(`'hello'`.match(STRING_LITERAL_EXPR)).toBeTruthy();
     });
 
-    it('exports DEAD_CODE_IF_FALSE regex', () => {
+    it('exports DEAD_CODE_IF_FALSE regex', async () => {
       expect(DEAD_CODE_IF_FALSE instanceof RegExp).toBe(true);
     });
 
-    it('exports DEAD_CODE_IF_FALSE_WITH_ELSE regex', () => {
+    it('exports DEAD_CODE_IF_FALSE_WITH_ELSE regex', async () => {
       expect(DEAD_CODE_IF_FALSE_WITH_ELSE instanceof RegExp).toBe(true);
     });
 
-    it('exports TransformLimit enum', () => {
+    it('exports TransformLimit enum', async () => {
       expect(TransformLimit.MAX_LCS_CELLS).toBe(250000);
     });
   });
@@ -148,17 +148,17 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   // ── resolveFunctionName ───────────────────────────────────
 
   describe('resolveFunctionName — edge cases', () => {
-    it('extracts function name from window.prefix target', () => {
+    it('extracts function name from window.prefix target', async () => {
       const name = base.testResolveFunctionName('window.myFunc', '', '() => {}');
       expect(name).toBe('myFunc');
     });
 
-    it('extracts function name from nested path without window prefix', () => {
+    it('extracts function name from nested path without window prefix', async () => {
       const name = base.testResolveFunctionName('CryptoJS.AES.encrypt', '', '() => {}');
       expect(name).toBe('encrypt');
     });
 
-    it('falls back to targetPath when targetFunction has invalid last segment', () => {
+    it('falls back to targetPath when targetFunction has invalid last segment', async () => {
       const name = base.testResolveFunctionName(
         '123', // invalid identifier
         'window.validName',
@@ -167,7 +167,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
       expect(name).toBe('validName');
     });
 
-    it('falls back to source function declaration when both targets are invalid', () => {
+    it('falls back to source function declaration when both targets are invalid', async () => {
       const name = base.testResolveFunctionName(
         '123',
         '456',
@@ -176,7 +176,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
       expect(name).toBe('actualName');
     });
 
-    it('returns default name when all fallbacks fail', () => {
+    it('returns default name when all fallbacks fail', async () => {
       const name = base.testResolveFunctionName(
         '123',
         '456',
@@ -185,12 +185,12 @@ describe('TransformToolHandlersBase — additional coverage', () => {
       expect(name).toBe('extractedCryptoFn');
     });
 
-    it('handles empty targetFunction and targetPath', () => {
+    it('handles empty targetFunction and targetPath', async () => {
       const name = base.testResolveFunctionName('', '', 'function foo() {}');
       expect(name).toBe('foo');
     });
 
-    it('handles window.prefix removal correctly', () => {
+    it('handles window.prefix removal correctly', async () => {
       const name = base.testResolveFunctionName('window.', '', '() => {}');
       expect(name).toBe('extractedCryptoFn');
     });
@@ -199,7 +199,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   // ── buildCryptoPolyfills ──────────────────────────────────
 
   describe('buildCryptoPolyfills', () => {
-    it('includes atob and btoa polyfills', () => {
+    it('includes atob and btoa polyfills', async () => {
       const polyfills = base.testBuildCryptoPolyfills();
       expect(polyfills).toContain('globalThis.atob');
       expect(polyfills).toContain('globalThis.btoa');
@@ -305,7 +305,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   // ── toTextResponse and fail ───────────────────────────────
 
   describe('toTextResponse', () => {
-    it('wraps payload in MCP text content format', () => {
+    it('wraps payload in MCP text content format', async () => {
       const response = base.testToTextResponse({ key: 'value' });
       expect(response.content).toHaveLength(1);
       // @ts-expect-error
@@ -316,7 +316,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   });
 
   describe('fail', () => {
-    it('formats Error instance message', () => {
+    it('formats Error instance message', async () => {
       const response = base.testFail('test_tool', new Error('Something broke'));
       // @ts-expect-error
       const body = JSON.parse(response.content[0].text);
@@ -324,14 +324,14 @@ describe('TransformToolHandlersBase — additional coverage', () => {
       expect(body.error).toBe('Something broke');
     });
 
-    it('formats non-Error value as string', () => {
+    it('formats non-Error value as string', async () => {
       const response = base.testFail('test_tool', 42);
       // @ts-expect-error
       const body = JSON.parse(response.content[0].text);
       expect(body.error).toBe('42');
     });
 
-    it('formats object as string', () => {
+    it('formats object as string', async () => {
       const response = base.testFail('test_tool', { custom: 'error' });
       // @ts-expect-error
       const body = JSON.parse(response.content[0].text);
@@ -352,17 +352,17 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   // ── parseBoolean additional branches ──────────────────────
 
   describe('parseBoolean — additional branches', () => {
-    it('handles numeric 1 and 0', () => {
+    it('handles numeric 1 and 0', async () => {
       expect(base.testParseBoolean(1, false)).toBe(true);
       expect(base.testParseBoolean(0, true)).toBe(false);
     });
 
-    it('returns default for numbers other than 1 and 0', () => {
+    it('returns default for numbers other than 1 and 0', async () => {
       expect(base.testParseBoolean(2, true)).toBe(true);
       expect(base.testParseBoolean(-1, false)).toBe(false);
     });
 
-    it('handles string variants case-insensitively', () => {
+    it('handles string variants case-insensitively', async () => {
       expect(base.testParseBoolean('YES', false)).toBe(true);
       expect(base.testParseBoolean('NO', true)).toBe(false);
       expect(base.testParseBoolean('ON', false)).toBe(true);
@@ -373,7 +373,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   // ── parseTransforms / parseTestInputs / escapeStringContent ───────
 
   describe('parseTransforms and parseTestInputs', () => {
-    it('normalizes, deduplicates, and validates transforms', () => {
+    it('normalizes, deduplicates, and validates transforms', async () => {
       expect(base.testParseTransforms('constant_fold, dead_code_remove, constant_fold')).toEqual([
         'constant_fold',
         'dead_code_remove',
@@ -385,7 +385,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
       expect(() => base.testParseTransforms(['unsupported'])).toThrow('Unsupported transform');
     });
 
-    it('validates testInputs arrays', () => {
+    it('validates testInputs arrays', async () => {
       expect(base.testParseTestInputs(['a', 1, null])).toEqual(['a', '1', 'null']);
       expect(() => base.testParseTestInputs('nope' as any)).toThrow(
         'testInputs must be an array of strings',
@@ -395,7 +395,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   });
 
   describe('escapeStringContent', () => {
-    it('escapes quotes and control characters for both quote styles', () => {
+    it('escapes quotes and control characters for both quote styles', async () => {
       expect(base.testEscapeStringContent(`a"b\\c\n`, '"')).toBe('a\\"b\\\\c\\n');
       expect(base.testEscapeStringContent(`a'b\\c\t`, "'")).toBe("a\\'b\\\\c\\t");
     });
@@ -520,16 +520,16 @@ describe('TransformToolHandlersBase — additional coverage', () => {
   // ── decodeEscapedString additional patterns ───────────────
 
   describe('decodeEscapedString — additional patterns', () => {
-    it('decodes \\v and \\f control characters', () => {
+    it('decodes \\v and \\f control characters', async () => {
       expect(base.testDecodeEscapedString('\\v')).toBe('\v');
       expect(base.testDecodeEscapedString('\\f')).toBe('\f');
     });
 
-    it('decodes \\0 null character', () => {
+    it('decodes \\0 null character', async () => {
       expect(base.testDecodeEscapedString('\\0')).toBe('\0');
     });
 
-    it('decodes mixed escape sequences', () => {
+    it('decodes mixed escape sequences', async () => {
       const decoded = base.testDecodeEscapedString('\\x41\\u0042\\n\\t');
       expect(decoded).toBe('AB\n\t');
     });

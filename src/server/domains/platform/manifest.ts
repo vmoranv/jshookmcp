@@ -1,8 +1,8 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { platformTools } from '@server/domains/platform/definitions';
-import { PlatformToolHandlers } from '@server/domains/platform/index';
-import { CodeCollector } from '@server/domains/shared/modules';
+import type { PlatformToolHandlers } from '@server/domains/platform/index';
+import type { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'platform' as const;
 const DEP_KEY = 'platformHandlers' as const;
@@ -11,7 +11,9 @@ const t = toolLookup(platformTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { CodeCollector } = await import('@server/domains/shared/modules');
+  const { PlatformToolHandlers } = await import('@server/domains/platform/index');
   if (!ctx.collector) {
     ctx.collector = new CodeCollector(ctx.config.puppeteer);
     void ctx.registerCaches();

@@ -10,16 +10,16 @@ import { graphqlTools } from '@server/domains/graphql/definitions';
 
 describe('graphql definitions', () => {
   describe('tool array structure', () => {
-    it('exports a non-empty array of tools', () => {
+    it('exports a non-empty array of tools', async () => {
       expect(Array.isArray(graphqlTools)).toBe(true);
       expect(graphqlTools.length).toBeGreaterThan(0);
     });
 
-    it('contains exactly 5 tools', () => {
+    it('contains exactly 5 tools', async () => {
       expect(graphqlTools).toHaveLength(5);
     });
 
-    it('every tool has a name and description', () => {
+    it('every tool has a name and description', async () => {
       for (const tool of graphqlTools) {
         expect(typeof tool.name).toBe('string');
         expect(tool.name.length).toBeGreaterThan(0);
@@ -28,14 +28,14 @@ describe('graphql definitions', () => {
       }
     });
 
-    it('every tool has an inputSchema', () => {
+    it('every tool has an inputSchema', async () => {
       for (const tool of graphqlTools) {
         expect(tool.inputSchema).toBeDefined();
         expect(tool.inputSchema.type).toBe('object');
       }
     });
 
-    it('tool names are unique', () => {
+    it('tool names are unique', async () => {
       const names = graphqlTools.map((t) => t.name);
       expect(new Set(names).size).toBe(names.length);
     });
@@ -44,22 +44,22 @@ describe('graphql definitions', () => {
   describe('call_graph_analyze tool', () => {
     const tool = graphqlTools.find((t) => t.name === 'call_graph_analyze')!;
 
-    it('exists', () => {
+    it('exists', async () => {
       expect(tool).toBeDefined();
     });
 
-    it('has maxDepth property', () => {
+    it('has maxDepth property', async () => {
       expect(tool.inputSchema.properties).toHaveProperty('maxDepth');
       expect((tool.inputSchema.properties as any).maxDepth.type).toBe('number');
       expect((tool.inputSchema.properties as any).maxDepth.default).toBe(5);
     });
 
-    it('has filterPattern property', () => {
+    it('has filterPattern property', async () => {
       expect(tool.inputSchema.properties).toHaveProperty('filterPattern');
       expect((tool.inputSchema.properties as any).filterPattern.type).toBe('string');
     });
 
-    it('has no required fields', () => {
+    it('has no required fields', async () => {
       expect(tool.inputSchema.required).toBeUndefined();
     });
   });
@@ -67,23 +67,23 @@ describe('graphql definitions', () => {
   describe('script_replace_persist tool', () => {
     const tool = graphqlTools.find((t) => t.name === 'script_replace_persist')!;
 
-    it('exists', () => {
+    it('exists', async () => {
       expect(tool).toBeDefined();
     });
 
-    it('has url and replacement as required', () => {
+    it('has url and replacement as required', async () => {
       expect(tool.inputSchema.required).toEqual(['url', 'replacement']);
     });
 
-    it('has url property', () => {
+    it('has url property', async () => {
       expect(tool.inputSchema.properties).toHaveProperty('url');
     });
 
-    it('has replacement property', () => {
+    it('has replacement property', async () => {
       expect(tool.inputSchema.properties).toHaveProperty('replacement');
     });
 
-    it('has matchType property with enum', () => {
+    it('has matchType property with enum', async () => {
       const matchType = (tool.inputSchema.properties as any).matchType;
       expect(matchType).toBeDefined();
       expect(matchType.enum).toEqual(['exact', 'contains', 'regex']);
@@ -94,15 +94,15 @@ describe('graphql definitions', () => {
   describe('graphql_introspect tool', () => {
     const tool = graphqlTools.find((t) => t.name === 'graphql_introspect')!;
 
-    it('exists', () => {
+    it('exists', async () => {
       expect(tool).toBeDefined();
     });
 
-    it('has endpoint as required', () => {
+    it('has endpoint as required', async () => {
       expect(tool.inputSchema.required).toEqual(['endpoint']);
     });
 
-    it('has headers property with additionalProperties string', () => {
+    it('has headers property with additionalProperties string', async () => {
       const headers = (tool.inputSchema.properties as any).headers;
       expect(headers).toBeDefined();
       expect(headers.type).toBe('object');
@@ -113,18 +113,18 @@ describe('graphql definitions', () => {
   describe('graphql_extract_queries tool', () => {
     const tool = graphqlTools.find((t) => t.name === 'graphql_extract_queries')!;
 
-    it('exists', () => {
+    it('exists', async () => {
       expect(tool).toBeDefined();
     });
 
-    it('has limit property', () => {
+    it('has limit property', async () => {
       const limit = (tool.inputSchema.properties as any).limit;
       expect(limit).toBeDefined();
       expect(limit.type).toBe('number');
       expect(limit.default).toBe(50);
     });
 
-    it('has no required fields', () => {
+    it('has no required fields', async () => {
       expect(tool.inputSchema.required).toBeUndefined();
     });
   });
@@ -132,28 +132,28 @@ describe('graphql definitions', () => {
   describe('graphql_replay tool', () => {
     const tool = graphqlTools.find((t) => t.name === 'graphql_replay')!;
 
-    it('exists', () => {
+    it('exists', async () => {
       expect(tool).toBeDefined();
     });
 
-    it('has endpoint and query as required', () => {
+    it('has endpoint and query as required', async () => {
       expect(tool.inputSchema.required).toEqual(['endpoint', 'query']);
     });
 
-    it('has variables property', () => {
+    it('has variables property', async () => {
       const variables = (tool.inputSchema.properties as any).variables;
       expect(variables).toBeDefined();
       expect(variables.type).toBe('object');
       expect(variables.additionalProperties).toBe(true);
     });
 
-    it('has operationName property', () => {
+    it('has operationName property', async () => {
       const operationName = (tool.inputSchema.properties as any).operationName;
       expect(operationName).toBeDefined();
       expect(operationName.type).toBe('string');
     });
 
-    it('has headers property', () => {
+    it('has headers property', async () => {
       const headers = (tool.inputSchema.properties as any).headers;
       expect(headers).toBeDefined();
       expect(headers.type).toBe('object');
@@ -241,7 +241,7 @@ describe('graphql manifest', () => {
       registerCaches: vi.fn(async () => {}),
     };
 
-    const result = manifest.ensure(ctx);
+    const result = await manifest.ensure(ctx);
     expect(result).toBeDefined();
     expect(ctx.graphqlHandlers).toBe(result);
     expect(ctx.collector).toBeDefined();
@@ -256,8 +256,8 @@ describe('graphql manifest', () => {
       registerCaches: vi.fn(async () => {}),
     };
 
-    const first = manifest.ensure(ctx);
-    const second = manifest.ensure(ctx);
+    const first = await manifest.ensure(ctx);
+    const second = await manifest.ensure(ctx);
     expect(first).toBe(second);
   });
 
@@ -272,7 +272,7 @@ describe('graphql manifest', () => {
       registerCaches: vi.fn(async () => {}),
     };
 
-    manifest.ensure(ctx);
+    await manifest.ensure(ctx);
     expect(ctx.collector).toBe(existingCollector);
   });
 });

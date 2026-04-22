@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
 import { streamingTools } from '@server/domains/streaming/definitions';
-import { StreamingToolHandlers } from '@server/domains/streaming/index';
+import type { StreamingToolHandlers } from '@server/domains/streaming/index';
 
 const DOMAIN = 'streaming' as const;
 const DEP_KEY = 'streamingHandlers' as const;
@@ -10,7 +10,9 @@ const t = toolLookup(streamingTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { StreamingToolHandlers } = await import('@server/domains/streaming/index');
+
   ensureBrowserCore(ctx);
   if (!ctx.streamingHandlers) ctx.streamingHandlers = new StreamingToolHandlers(ctx.collector!);
   return ctx.streamingHandlers;

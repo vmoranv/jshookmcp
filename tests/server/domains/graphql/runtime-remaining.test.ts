@@ -588,7 +588,7 @@ describe('graphql manifest bind functions', () => {
     };
 
     // Ensure creates the handlers
-    manifest.ensure(ctx as any);
+    await manifest.ensure(ctx as any);
 
     // Now test that each bind function routes to the right method
     for (const reg of manifest.registrations) {

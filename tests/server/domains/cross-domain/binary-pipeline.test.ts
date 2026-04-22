@@ -18,7 +18,7 @@ describe('BIN-04: Binary-to-JS Pipeline', () => {
     bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });
 
-  it('should generate Frida hook script for native callable functions', () => {
+  it('should generate Frida hook script for native callable functions', async () => {
     const result = buildBinaryToJSPipeline(bridge, {
       functions: [
         { name: 'native_encrypt', moduleName: 'libcrypto.so', address: '0x7fff1000' },
@@ -32,7 +32,7 @@ describe('BIN-04: Binary-to-JS Pipeline', () => {
     expect(result.generatedHookScript).toContain('Interceptor.attach');
   });
 
-  it('should filter functions by native_ prefix pattern', () => {
+  it('should filter functions by native_ prefix pattern', async () => {
     const result = buildBinaryToJSPipeline(bridge, {
       functions: [
         { name: 'native_process_payment', moduleName: 'libcore.so' },
@@ -48,7 +48,7 @@ describe('BIN-04: Binary-to-JS Pipeline', () => {
     expect(result.hookCount).toBeGreaterThanOrEqual(1);
   });
 
-  it('should filter functions by explicit call-graph from Ghidra', () => {
+  it('should filter functions by explicit call-graph from Ghidra', async () => {
     const result = buildBinaryToJSPipeline(bridge, {
       functions: [
         { name: 'unexported_helper', moduleName: 'libcore.so', calledFrom: ['main'] },
@@ -60,7 +60,7 @@ describe('BIN-04: Binary-to-JS Pipeline', () => {
     expect(result.injectedFunctions).toContain('unexported_helper');
   });
 
-  it('should filter functions by caller-provided list', () => {
+  it('should filter functions by caller-provided list', async () => {
     const result = buildBinaryToJSPipeline(
       bridge,
       {
@@ -77,7 +77,7 @@ describe('BIN-04: Binary-to-JS Pipeline', () => {
     expect(result.injectedFunctions).not.toContain('other_func');
   });
 
-  it('should create evidence graph links for generated hooks', () => {
+  it('should create evidence graph links for generated hooks', async () => {
     const result = buildBinaryToJSPipeline(bridge, {
       functions: [{ name: 'native_foo', moduleName: 'libtest.so' }],
       moduleName: 'libtest.so',
@@ -90,7 +90,7 @@ describe('BIN-04: Binary-to-JS Pipeline', () => {
     }
   });
 
-  it('should handle empty function list', () => {
+  it('should handle empty function list', async () => {
     const result = buildBinaryToJSPipeline(bridge, {
       functions: [],
       moduleName: 'libempty.so',
@@ -101,7 +101,7 @@ describe('BIN-04: Binary-to-JS Pipeline', () => {
     expect(result.generatedHookScript).toContain('Binary-to-JS hook script loaded');
   });
 
-  it('should include module name in hook script', () => {
+  it('should include module name in hook script', async () => {
     const result = buildBinaryToJSPipeline(bridge, {
       functions: [{ name: 'native_crypto', moduleName: 'libcustom.so' }],
       moduleName: 'libcustom.so',

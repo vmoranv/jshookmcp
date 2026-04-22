@@ -1,5 +1,5 @@
 import { skiaTools } from '@server/domains/skia-capture/definitions';
-import { SkiaCaptureHandlers } from '@server/domains/skia-capture/handlers';
+import type { SkiaCaptureHandlers } from '@server/domains/skia-capture/handlers';
 import { asJsonResponse } from '@server/domains/shared/response';
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
@@ -16,7 +16,8 @@ const bind = (invoke: (handler: H, args: Record<string, unknown>) => Promise<unk
     return asJsonResponse(await invoke(handler, args));
   });
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { SkiaCaptureHandlers } = await import('@server/domains/skia-capture/handlers');
   const existing = ctx.getDomainInstance<SkiaCaptureHandlers>(DEP_KEY);
   if (existing) {
     return existing;

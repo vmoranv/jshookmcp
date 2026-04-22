@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { coreTools } from '@server/domains/analysis/definitions';
 
 describe('server/domains/analysis/definitions', () => {
-  it('exports coreTools as a non-empty array', () => {
+  it('exports coreTools as a non-empty array', async () => {
     expect(Array.isArray(coreTools)).toBe(true);
     expect(coreTools.length).toBeGreaterThan(0);
   });
 
-  it('every tool has name, description, and inputSchema', () => {
+  it('every tool has name, description, and inputSchema', async () => {
     coreTools.forEach((tool) => {
       expect(tool).toEqual(
         expect.objectContaining({
@@ -21,12 +21,12 @@ describe('server/domains/analysis/definitions', () => {
     });
   });
 
-  it('has no duplicate tool names', () => {
+  it('has no duplicate tool names', async () => {
     const names = coreTools.map((t) => t.name);
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('includes expected core tools', () => {
+  it('includes expected core tools', async () => {
     const names = coreTools.map((t) => t.name);
 
     expect(names).toContain('collect_code');
@@ -43,7 +43,7 @@ describe('server/domains/analysis/definitions', () => {
     expect(names).toContain('webpack_enumerate');
   });
 
-  it('collect_code requires url parameter', () => {
+  it('collect_code requires url parameter', async () => {
     const tool = coreTools.find((t) => t.name === 'collect_code')!;
     expect(tool.inputSchema.required).toContain('url');
     expect(tool.inputSchema.properties).toHaveProperty('url');
@@ -51,7 +51,7 @@ describe('server/domains/analysis/definitions', () => {
     expect(tool.inputSchema.properties).toHaveProperty('compress');
   });
 
-  it('search_in_scripts requires keyword parameter', () => {
+  it('search_in_scripts requires keyword parameter', async () => {
     const tool = coreTools.find((t) => t.name === 'search_in_scripts')!;
     expect(tool.inputSchema.required).toContain('keyword');
     expect(tool.inputSchema.properties).toHaveProperty('isRegex');
@@ -59,13 +59,13 @@ describe('server/domains/analysis/definitions', () => {
     expect(tool.inputSchema.properties).toHaveProperty('maxMatches');
   });
 
-  it('extract_function_tree requires scriptId and functionName', () => {
+  it('extract_function_tree requires scriptId and functionName', async () => {
     const tool = coreTools.find((t) => t.name === 'extract_function_tree')!;
     expect(tool.inputSchema.required).toContain('scriptId');
     expect(tool.inputSchema.required).toContain('functionName');
   });
 
-  it('deobfuscate requires code and has webcrack options', () => {
+  it('deobfuscate requires code and has webcrack options', async () => {
     const tool = coreTools.find((t) => t.name === 'deobfuscate')!;
     expect(tool.inputSchema.required).toContain('code');
     expect(tool.inputSchema.properties).toHaveProperty('unpack');
@@ -76,7 +76,7 @@ describe('server/domains/analysis/definitions', () => {
     expect(tool.inputSchema.properties).toHaveProperty('mappings');
   });
 
-  it('understand_code requires code and has focus enum', () => {
+  it('understand_code requires code and has focus enum', async () => {
     const tool = coreTools.find((t) => t.name === 'understand_code')!;
     expect(tool.inputSchema.required).toContain('code');
     const focusProp = tool.inputSchema.properties!.focus as { enum?: string[] };
@@ -86,14 +86,14 @@ describe('server/domains/analysis/definitions', () => {
     expect(focusProp.enum).toContain('all');
   });
 
-  it('manage_hooks requires action and has correct enums', () => {
+  it('manage_hooks requires action and has correct enums', async () => {
     const tool = coreTools.find((t) => t.name === 'manage_hooks')!;
     expect(tool.inputSchema.required).toContain('action');
     const actionProp = tool.inputSchema.properties!.action as { enum?: string[] };
     expect(actionProp.enum).toEqual(['create', 'list', 'records', 'clear']);
   });
 
-  it('deobfuscate supports engine parameter and webcrack options', () => {
+  it('deobfuscate supports engine parameter and webcrack options', async () => {
     const tool = coreTools.find((t) => t.name === 'deobfuscate')!;
     expect(tool.inputSchema.required).toContain('code');
     expect(tool.inputSchema.properties).toHaveProperty('engine');
@@ -103,7 +103,7 @@ describe('server/domains/analysis/definitions', () => {
     expect(tool.inputSchema.properties).toHaveProperty('unpack');
   });
 
-  it('webcrack_unpack requires code and has extraction options', () => {
+  it('webcrack_unpack requires code and has extraction options', async () => {
     const tool = coreTools.find((t) => t.name === 'webcrack_unpack')!;
     expect(tool.inputSchema.required).toContain('code');
     expect(tool.inputSchema.properties).toHaveProperty('includeModuleCode');
@@ -111,7 +111,7 @@ describe('server/domains/analysis/definitions', () => {
     expect(tool.inputSchema.properties).toHaveProperty('mappings');
   });
 
-  it('clear_collected_data and get_collection_stats have no required params', () => {
+  it('clear_collected_data and get_collection_stats have no required params', async () => {
     const clearTool = coreTools.find((t) => t.name === 'clear_collected_data')!;
     const statsTool = coreTools.find((t) => t.name === 'get_collection_stats')!;
 
@@ -119,7 +119,7 @@ describe('server/domains/analysis/definitions', () => {
     expect(statsTool.inputSchema.required ?? []).toHaveLength(0);
   });
 
-  it('webpack_enumerate has optional searchKeyword', () => {
+  it('webpack_enumerate has optional searchKeyword', async () => {
     const tool = coreTools.find((t) => t.name === 'webpack_enumerate')!;
     expect(tool.inputSchema.properties).toHaveProperty('searchKeyword');
     expect(tool.inputSchema.properties).toHaveProperty('maxResults');
@@ -127,7 +127,7 @@ describe('server/domains/analysis/definitions', () => {
     expect(tool.inputSchema.required ?? []).toHaveLength(0);
   });
 
-  it('deobfuscate mappings items have required path and pattern', () => {
+  it('deobfuscate mappings items have required path and pattern', async () => {
     const tool = coreTools.find((t) => t.name === 'deobfuscate')!;
     const mappings = tool.inputSchema.properties!.mappings as {
       items?: { required?: string[] };

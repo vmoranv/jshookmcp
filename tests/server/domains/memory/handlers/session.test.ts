@@ -24,7 +24,7 @@ describe('SessionHandlers', () => {
     handlers = new SessionHandlers(mocksessionManager);
   });
 
-  it('instantiates correctly', () => {
+  it('instantiates correctly', async () => {
     expect(handlers).toBeInstanceOf(SessionHandlers);
   });
 

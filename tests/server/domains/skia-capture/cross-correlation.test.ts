@@ -5,7 +5,7 @@ import type { SkiaSceneTree } from '@modules/skia-capture/types';
 
 describe('SkiaObjectCorrelator', () => {
   describe('correlateToJS', () => {
-    it('should match Skia draw text to JS string properties', () => {
+    it('should match Skia draw text to JS string properties', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [],
@@ -41,7 +41,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(result.summary.matchedCount).toBe(1);
     });
 
-    it('should match Skia dimensions to JS numeric properties', () => {
+    it('should match Skia dimensions to JS numeric properties', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [],
@@ -76,7 +76,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(result.correlations[0]!.confidence).toBeGreaterThanOrEqual(0.7);
     });
 
-    it('should match Skia colors to JS color properties', () => {
+    it('should match Skia colors to JS color properties', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [],
@@ -110,7 +110,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(result.correlations[0]!.matchType).toBe('color');
     });
 
-    it('should match layer names to JS object names', () => {
+    it('should match layer names to JS object names', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [
@@ -149,7 +149,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(result.correlations[0]!.confidence).toBeGreaterThanOrEqual(0.7);
     });
 
-    it('should match geometry (x,y positions) to JS numeric properties', () => {
+    it('should match geometry (x,y positions) to JS numeric properties', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [
@@ -188,7 +188,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(geometryMatch).toBeDefined();
     });
 
-    it('should return unmatched objects when no matches found', () => {
+    it('should return unmatched objects when no matches found', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [
@@ -226,7 +226,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(result.unmatchedSkiaObjects.length).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle empty scene tree', () => {
+    it('should handle empty scene tree', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [],
@@ -256,7 +256,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(result.summary.averageConfidence).toBe(0);
     });
 
-    it('should handle empty JS objects list', () => {
+    it('should handle empty JS objects list', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [
@@ -284,7 +284,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(result.summary.matchedCount).toBe(0);
     });
 
-    it('should compute summary statistics correctly', () => {
+    it('should compute summary statistics correctly', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [
@@ -332,7 +332,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(result.summary.matchedCount).toBeGreaterThanOrEqual(1);
     });
 
-    it('should use best confidence when multiple JS objects match', () => {
+    it('should use best confidence when multiple JS objects match', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [],
@@ -375,7 +375,7 @@ describe('SkiaObjectCorrelator', () => {
       expect(result.correlations[0]!.confidence).toBeGreaterThanOrEqual(0.85);
     });
 
-    it('should not match below confidence threshold', () => {
+    it('should not match below confidence threshold', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: null,
         layers: [
@@ -414,7 +414,7 @@ describe('SkiaObjectCorrelator', () => {
   });
 
   describe('Cross-domain integration (mocked v8-inspector)', () => {
-    it('should correlate with realistic heap snapshot data', () => {
+    it('should correlate with realistic heap snapshot data', async () => {
       const sceneTree: SkiaSceneTree = {
         rootLayer: {
           id: 'root',

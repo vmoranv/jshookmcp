@@ -158,26 +158,26 @@ function encodeMap32(entries: Array<[Buffer, Buffer]>): Buffer {
 }
 
 describe('EncodingToolHandlersMsgPack.ensureRange', () => {
-  it('allows a valid range', () => {
+  it('allows a valid range', async () => {
     const buffer = Buffer.from([0x00, 0x01, 0x02]);
     expect(() => tool.ensureRange(buffer, 1, 2)).not.toThrow();
   });
 
-  it('throws when offset is out of bounds', () => {
+  it('throws when offset is out of bounds', async () => {
     const buffer = Buffer.from([0x00, 0x01, 0x02]);
     expect(() => tool.ensureRange(buffer, 4, 0)).toThrow(
       'Unexpected EOF while reading 0 bytes at offset 4',
     );
   });
 
-  it('throws when length exceeds buffer', () => {
+  it('throws when length exceeds buffer', async () => {
     const buffer = Buffer.from([0x00, 0x01, 0x02]);
     expect(() => tool.ensureRange(buffer, 2, 2)).toThrow(
       'Unexpected EOF while reading 2 bytes at offset 2',
     );
   });
 
-  it('throws on negative values', () => {
+  it('throws on negative values', async () => {
     const buffer = Buffer.from([0x00, 0x01, 0x02]);
     expect(() => tool.ensureRange(buffer, -1, 1)).toThrow(
       'Unexpected EOF while reading 1 bytes at offset -1',
@@ -189,28 +189,28 @@ describe('EncodingToolHandlersMsgPack.ensureRange', () => {
 });
 
 describe('EncodingToolHandlersMsgPack.msgPackMapKey', () => {
-  it('returns string keys unchanged', () => {
+  it('returns string keys unchanged', async () => {
     expect(tool.msgPackMapKey('alpha')).toBe('alpha');
   });
 
-  it('stringifies number keys', () => {
+  it('stringifies number keys', async () => {
     expect(tool.msgPackMapKey(123)).toBe('123');
   });
 
-  it('stringifies boolean keys', () => {
+  it('stringifies boolean keys', async () => {
     expect(tool.msgPackMapKey(true)).toBe('true');
     expect(tool.msgPackMapKey(false)).toBe('false');
   });
 
-  it('stringifies null key as "null"', () => {
+  it('stringifies null key as "null"', async () => {
     expect(tool.msgPackMapKey(null)).toBe('null');
   });
 
-  it('JSON-stringifies object keys', () => {
+  it('JSON-stringifies object keys', async () => {
     expect(tool.msgPackMapKey({ a: 1, b: 'x' })).toBe('{"a":1,"b":"x"}');
   });
 
-  it('falls back to String(value) when JSON.stringify throws', () => {
+  it('falls back to String(value) when JSON.stringify throws', async () => {
     const circular: Record<string, unknown> = {};
     circular.self = circular;
     expect(tool.msgPackMapKey(circular)).toBe('[object Object]');
@@ -218,105 +218,105 @@ describe('EncodingToolHandlersMsgPack.msgPackMapKey', () => {
 });
 
 describe('EncodingToolHandlersMsgPack.decodeMsgPack (single value)', () => {
-  it('decodes positive fixint (0x00-0x7f)', () => {
+  it('decodes positive fixint (0x00-0x7f)', async () => {
     expect(tool.decodeMsgPack(b(0x00))).toBe(0);
     expect(tool.decodeMsgPack(b(0x7f))).toBe(127);
     expect(tool.decodeMsgPack(b(0x2a))).toBe(42);
   });
 
-  it('decodes negative fixint (0xe0-0xff)', () => {
+  it('decodes negative fixint (0xe0-0xff)', async () => {
     expect(tool.decodeMsgPack(b(0xe0))).toBe(-32);
     expect(tool.decodeMsgPack(b(0xff))).toBe(-1);
   });
 
-  it('decodes nil / false / true', () => {
+  it('decodes nil / false / true', async () => {
     expect(tool.decodeMsgPack(b(0xc0))).toBeNull();
     expect(tool.decodeMsgPack(b(0xc2))).toBe(false);
     expect(tool.decodeMsgPack(b(0xc3))).toBe(true);
   });
 
-  it('decodes fixstr', () => {
+  it('decodes fixstr', async () => {
     expect(tool.decodeMsgPack(concat(b(0xa2), Buffer.from('hi', 'utf8')))).toBe('hi');
   });
 
-  it('decodes fixarray', () => {
+  it('decodes fixarray', async () => {
     const buf = encodeFixArray([b(0x01), encodeFixStr('a')]);
     expect(tool.decodeMsgPack(buf)).toEqual([1, 'a']);
   });
 
-  it('decodes fixmap', () => {
+  it('decodes fixmap', async () => {
     const buf = encodeFixMap([[encodeFixStr('a'), b(0x01)]]);
     expect(tool.decodeMsgPack(buf)).toEqual({ a: 1 });
   });
 
-  it('decodes uint8', () => {
+  it('decodes uint8', async () => {
     expect(tool.decodeMsgPack(b(0xcc, 0xff))).toBe(255);
   });
 
-  it('decodes uint16', () => {
+  it('decodes uint16', async () => {
     expect(tool.decodeMsgPack(concat(b(0xcd), u16be(0x1234)))).toBe(0x1234);
   });
 
-  it('decodes uint32', () => {
+  it('decodes uint32', async () => {
     expect(tool.decodeMsgPack(concat(b(0xce), u32be(0x89abcdef)))).toBe(0x89abcdef);
   });
 
-  it('decodes uint64 within Number.MAX_SAFE_INTEGER as number', () => {
+  it('decodes uint64 within Number.MAX_SAFE_INTEGER as number', async () => {
     const value = 42n;
     expect(tool.decodeMsgPack(concat(b(0xcf), u64be(value)))).toBe(42);
   });
 
-  it('decodes uint64 beyond Number.MAX_SAFE_INTEGER as string', () => {
+  it('decodes uint64 beyond Number.MAX_SAFE_INTEGER as string', async () => {
     const value = 9_007_199_254_740_993n;
     expect(tool.decodeMsgPack(concat(b(0xcf), u64be(value)))).toBe('9007199254740993');
   });
 
-  it('decodes int8', () => {
+  it('decodes int8', async () => {
     expect(tool.decodeMsgPack(b(0xd0, 0xfb))).toBe(-5);
   });
 
-  it('decodes int16', () => {
+  it('decodes int16', async () => {
     expect(tool.decodeMsgPack(concat(b(0xd1), i16be(-300)))).toBe(-300);
   });
 
-  it('decodes int32', () => {
+  it('decodes int32', async () => {
     expect(tool.decodeMsgPack(concat(b(0xd2), i32be(-70_000)))).toBe(-70_000);
   });
 
-  it('decodes int64 within safe range as number', () => {
+  it('decodes int64 within safe range as number', async () => {
     const value = -42n;
     expect(tool.decodeMsgPack(concat(b(0xd3), i64be(value)))).toBe(-42);
   });
 
-  it('decodes int64 beyond safe range as string', () => {
+  it('decodes int64 beyond safe range as string', async () => {
     const value = -9_007_199_254_740_993n;
     expect(tool.decodeMsgPack(concat(b(0xd3), i64be(value)))).toBe('-9007199254740993');
   });
 
-  it('decodes float32', () => {
+  it('decodes float32', async () => {
     const buf = concat(b(0xca), f32be(1.5));
     expect(tool.decodeMsgPack(buf)).toBeCloseTo(1.5, 6);
   });
 
-  it('decodes float64', () => {
+  it('decodes float64', async () => {
     const buf = concat(b(0xcb), f64be(1.2345));
     expect(tool.decodeMsgPack(buf)).toBeCloseTo(1.2345, 12);
   });
 
-  it('decodes str8', () => {
+  it('decodes str8', async () => {
     expect(tool.decodeMsgPack(encodeStr8('hey'))).toBe('hey');
   });
 
-  it('decodes str16', () => {
+  it('decodes str16', async () => {
     const text = 'a'.repeat(256);
     expect(tool.decodeMsgPack(encodeStr16(text))).toBe(text);
   });
 
-  it('decodes str32', () => {
+  it('decodes str32', async () => {
     expect(tool.decodeMsgPack(encodeStr32('hello'))).toBe('hello');
   });
 
-  it('decodes bin8', () => {
+  it('decodes bin8', async () => {
     const payload = Buffer.from([0x01, 0x02, 0x03]);
     const decoded = tool.decodeMsgPack(encodeBin8(payload));
     expect(decoded).toEqual({
@@ -326,7 +326,7 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPack (single value)', () => {
     });
   });
 
-  it('decodes bin16', () => {
+  it('decodes bin16', async () => {
     const payload = Buffer.from([0xde, 0xad, 0xbe, 0xef, 0x00]);
     const decoded = tool.decodeMsgPack(encodeBin16(payload));
     expect(decoded).toEqual({
@@ -336,7 +336,7 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPack (single value)', () => {
     });
   });
 
-  it('decodes bin32', () => {
+  it('decodes bin32', async () => {
     const payload = Buffer.from([0x10, 0x20, 0x30, 0x40]);
     const decoded = tool.decodeMsgPack(encodeBin32(payload));
     expect(decoded).toEqual({
@@ -346,27 +346,27 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPack (single value)', () => {
     });
   });
 
-  it('decodes array16', () => {
+  it('decodes array16', async () => {
     const buf = encodeArray16([encodeFixStr('a')]);
     expect(tool.decodeMsgPack(buf)).toEqual(['a']);
   });
 
-  it('decodes array32', () => {
+  it('decodes array32', async () => {
     const buf = encodeArray32([b(0x01), b(0x02)]);
     expect(tool.decodeMsgPack(buf)).toEqual([1, 2]);
   });
 
-  it('decodes map16', () => {
+  it('decodes map16', async () => {
     const buf = encodeMap16([[encodeFixStr('k'), b(0x01)]]);
     expect(tool.decodeMsgPack(buf)).toEqual({ k: 1 });
   });
 
-  it('decodes map32', () => {
+  it('decodes map32', async () => {
     const buf = encodeMap32([[encodeFixStr('k'), encodeFixStr('v')]]);
     expect(tool.decodeMsgPack(buf)).toEqual({ k: 'v' });
   });
 
-  it('throws when decode does not consume the whole buffer', () => {
+  it('throws when decode does not consume the whole buffer', async () => {
     expect(() => tool.decodeMsgPack(b(0x01, 0x00))).toThrow(
       'MessagePack decode ended early: consumed 1 of 2 bytes',
     );
@@ -374,45 +374,45 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPack (single value)', () => {
 });
 
 describe('EncodingToolHandlersMsgPack.decodeMsgPackValue (offset + safety)', () => {
-  it('throws when depth exceeds safety limit', () => {
+  it('throws when depth exceeds safety limit', async () => {
     expect(() => tool.decodeMsgPackValue(b(0x01), 0, 65)).toThrow(
       'MessagePack decode depth exceeds safety limit',
     );
   });
 
-  it('throws on unexpected EOF when startOffset is beyond buffer', () => {
+  it('throws on unexpected EOF when startOffset is beyond buffer', async () => {
     expect(() => tool.decodeMsgPackValue(Buffer.alloc(0), 0, 0)).toThrow(
       'Unexpected EOF at offset 0',
     );
     expect(() => tool.decodeMsgPackValue(b(0x01), 2, 0)).toThrow('Unexpected EOF at offset 2');
   });
 
-  it('returns value + next offset without requiring full-buffer consumption', () => {
+  it('returns value + next offset without requiring full-buffer consumption', async () => {
     const buf = concat(b(0xcc, 0xff), b(0x01));
     const decoded = tool.decodeMsgPackValue(buf, 0, 0);
     expect(decoded).toEqual({ value: 255, offset: 2 });
   });
 
-  it('decodes from a non-zero startOffset', () => {
+  it('decodes from a non-zero startOffset', async () => {
     const buf = concat(b(0x01), encodeFixStr('a'), b(0x02));
     const decoded = tool.decodeMsgPackValue(buf, 1, 0);
     expect(decoded).toEqual({ value: 'a', offset: 3 });
   });
 
-  it('throws on unsupported prefix', () => {
+  it('throws on unsupported prefix', async () => {
     expect(() => tool.decodeMsgPackValue(b(0xc1), 0, 0)).toThrow(
       'Unsupported MessagePack prefix 0xc1 at offset 0',
     );
   });
 
-  it('throws on truncated fixstr payload (ensureRange)', () => {
+  it('throws on truncated fixstr payload (ensureRange)', async () => {
     // fixstr length=2 but only 1 byte present
     expect(() => tool.decodeMsgPackValue(b(0xa2, 0x61), 0, 0)).toThrow(
       'Unexpected EOF while reading 2 bytes at offset 1',
     );
   });
 
-  it('decodes fixext1', () => {
+  it('decodes fixext1', async () => {
     const payload = Buffer.from([0xab]);
     const buf = concat(b(0xd4), b(0x05), payload);
     expect(tool.decodeMsgPackValue(buf, 0, 0)).toEqual({
@@ -426,7 +426,7 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPackValue (offset + safety)', () 
     });
   });
 
-  it('decodes ext8', () => {
+  it('decodes ext8', async () => {
     const payload = Buffer.from([0xde, 0xad, 0xbe]);
     const buf = concat(b(0xc7, payload.length), b(0xff), payload);
     const decoded = tool.decodeMsgPackValue(buf, 0, 0);
@@ -443,12 +443,12 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPackValue (offset + safety)', () 
 });
 
 describe('EncodingToolHandlersMsgPack.decodeMsgPackArray', () => {
-  it('decodes an empty array when length=0', () => {
+  it('decodes an empty array when length=0', async () => {
     const decoded = tool.decodeMsgPackArray(Buffer.alloc(0), 0, 0, 0);
     expect(decoded).toEqual({ value: [], offset: 0 });
   });
 
-  it('decodes an array with mixed types', () => {
+  it('decodes an array with mixed types', async () => {
     const buf = concat(b(0x01), encodeFixStr('a'), b(0xc0), b(0xc3));
     const decoded = tool.decodeMsgPackArray(buf, 0, 4, 0);
     expect(decoded).toEqual({ value: [1, 'a', null, true], offset: buf.length });
@@ -456,12 +456,12 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPackArray', () => {
 });
 
 describe('EncodingToolHandlersMsgPack.decodeMsgPackMap', () => {
-  it('decodes an empty map when length=0', () => {
+  it('decodes an empty map when length=0', async () => {
     const decoded = tool.decodeMsgPackMap(Buffer.alloc(0), 0, 0, 0);
     expect(decoded).toEqual({ value: {}, offset: 0 });
   });
 
-  it('decodes a map with various key/value types', () => {
+  it('decodes a map with various key/value types', async () => {
     const buf = concat(
       encodeFixStr('a'),
       b(0x01),
@@ -481,7 +481,7 @@ describe('EncodingToolHandlersMsgPack.decodeMsgPackMap', () => {
 });
 
 describe('Roundtrip (manually encoded bytes -> decodeMsgPack)', () => {
-  it('decodes a nested structure with arrays, maps, and bytes', () => {
+  it('decodes a nested structure with arrays, maps, and bytes', async () => {
     const bytes = Buffer.from([0x00, 0x01, 0x02, 0x03]);
     const nested = encodeFixMap([
       [encodeFixStr('arr'), encodeFixArray([b(0x01), b(0x02), encodeFixStr('x')])],
@@ -496,7 +496,7 @@ describe('Roundtrip (manually encoded bytes -> decodeMsgPack)', () => {
     });
   });
 
-  it('decodes numbers across multiple integer widths consistently', () => {
+  it('decodes numbers across multiple integer widths consistently', async () => {
     const asFixInt = b(0x2a);
     const asUint8 = concat(b(0xcc), b(0x2a));
     const asUint16 = concat(b(0xcd), u16be(0x2a));
@@ -510,7 +510,7 @@ describe('Roundtrip (manually encoded bytes -> decodeMsgPack)', () => {
     expect(tool.decodeMsgPack(asUint64)).toBe(42);
   });
 
-  it('decodes strings across str8/str16/str32 consistently', () => {
+  it('decodes strings across str8/str16/str32 consistently', async () => {
     expect(tool.decodeMsgPack(encodeStr8('ok'))).toBe('ok');
     expect(tool.decodeMsgPack(encodeStr16('ok'))).toBe('ok');
     expect(tool.decodeMsgPack(encodeStr32('ok'))).toBe('ok');

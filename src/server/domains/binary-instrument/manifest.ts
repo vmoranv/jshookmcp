@@ -1,8 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
-import { GhidraAnalyzer, HookGenerator } from '@modules/binary-instrument';
 import { binaryInstrumentTools } from './definitions';
-import { BinaryInstrumentHandlers } from './handlers';
+import type { BinaryInstrumentHandlers } from './handlers';
 
 const DOMAIN = 'binary-instrument' as const;
 const DEP_KEY = 'binaryInstrumentHandlers' as const;
@@ -11,7 +10,10 @@ const toolByName = toolLookup(binaryInstrumentTools);
 const bind = (invoke: (handlers: H, args: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { BinaryInstrumentHandlers } = await import('./handlers');
+  const { GhidraAnalyzer, HookGenerator } = await import('@modules/binary-instrument');
+
   let handlers = ctx.getDomainInstance<H>(DEP_KEY);
   if (!handlers) {
     handlers = new BinaryInstrumentHandlers(ctx, new GhidraAnalyzer(), new HookGenerator());

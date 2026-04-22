@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { processToolDefinitions } from '@server/domains/process/definitions';
-import { ProcessToolHandlers } from '@server/domains/process/index';
+import type { ProcessToolHandlers } from '@server/domains/process/index';
 
 const DOMAIN = 'process' as const;
 const DEP_KEY = 'processHandlers' as const;
@@ -16,7 +16,9 @@ const EFFECTIVE_PLATFORM =
     ? process.env.JSHOOK_REGISTRY_PLATFORM
     : process.platform;
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { ProcessToolHandlers } = await import('@server/domains/process/index');
+
   if (!ctx.processHandlers) ctx.processHandlers = new ProcessToolHandlers();
   return ctx.processHandlers;
 }

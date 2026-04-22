@@ -16,7 +16,7 @@ function toolByName(name: string) {
 }
 
 describe('memory tool annotations', () => {
-  it('adds the full MCP annotation set to every memory tool', () => {
+  it('adds the full MCP annotation set to every memory tool', async () => {
     expect(memoryScanToolDefinitions).toHaveLength(30);
 
     for (const tool of memoryScanToolDefinitions) {
@@ -31,7 +31,7 @@ describe('memory tool annotations', () => {
     }
   });
 
-  it('classifies representative memory tools by behavior', () => {
+  it('classifies representative memory tools by behavior', async () => {
     expect(toolByName('memory_first_scan').annotations).toEqual({
       readOnlyHint: false,
       destructiveHint: false,

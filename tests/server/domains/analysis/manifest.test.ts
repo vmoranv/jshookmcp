@@ -135,7 +135,7 @@ describe('server/domains/analysis/manifest', () => {
       hookManager: undefined,
     };
 
-    const result = manifest.ensure(ctx);
+    const result = await manifest.ensure(ctx);
 
     expect(result).toBeDefined();
     expect(ctx.coreAnalysisHandlers).toBeDefined();
@@ -170,7 +170,7 @@ describe('server/domains/analysis/manifest', () => {
       hookManager: {},
     };
 
-    const result = manifest.ensure(ctx);
+    const result = await manifest.ensure(ctx);
     expect(result).toBe(existingHandlers);
   });
 });

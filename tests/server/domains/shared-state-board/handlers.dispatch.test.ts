@@ -116,7 +116,7 @@ describe('SharedStateBoardHandlers — dispatch methods (handlers.impl.core cove
   // ── setPersistNotifier ─────────────────────────────────────────────────────
 
   describe('setPersistNotifier', () => {
-    it('accepts a callback without throwing', () => {
+    it('accepts a callback without throwing', async () => {
       expect(() => {
         handler.setPersistNotifier(() => {
           /* no-op */
@@ -124,7 +124,7 @@ describe('SharedStateBoardHandlers — dispatch methods (handlers.impl.core cove
       }).not.toThrow();
     });
 
-    it('accepts undefined without throwing', () => {
+    it('accepts undefined without throwing', async () => {
       expect(() => {
         handler.setPersistNotifier(undefined);
       }).not.toThrow();
@@ -144,13 +144,13 @@ describe('SharedStateBoardHandlers — dispatch methods (handlers.impl.core cove
   // ── getStore ───────────────────────────────────────────────────────────────
 
   describe('getStore', () => {
-    it('returns a StateBoardStore instance', () => {
+    it('returns a StateBoardStore instance', async () => {
       const store = handler.getStore();
       expect(store).toBeDefined();
       expect(typeof store.cleanupExpired).toBe('function');
     });
 
-    it('returns the same store instance across multiple calls', () => {
+    it('returns the same store instance across multiple calls', async () => {
       const store1 = handler.getStore();
       const store2 = handler.getStore();
       expect(store1).toBe(store2);

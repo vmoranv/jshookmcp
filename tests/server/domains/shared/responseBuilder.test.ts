@@ -3,7 +3,7 @@ import { ResponseBuilder, R } from '@server/domains/shared/ResponseBuilder';
 
 describe('ResponseBuilder', () => {
   describe('fluent api', () => {
-    it('should set a value and return this', () => {
+    it('should set a value and return this', async () => {
       const builder = new ResponseBuilder();
       const returned = builder.set('key', 'value');
       expect(returned).toBe(builder);
@@ -11,61 +11,61 @@ describe('ResponseBuilder', () => {
       expect((res.content[0] as { text: string }).text).toContain('"key": "value"');
     });
 
-    it('should build a success response', () => {
+    it('should build a success response', async () => {
       const res = new ResponseBuilder().ok().set('data', 123).json();
       expect(res.isError).toBeUndefined();
       expect((res.content[0] as { text: string }).text).toContain('"success": true');
       expect((res.content[0] as { text: string }).text).toContain('"data": 123');
     });
 
-    it('should build a failure response', () => {
+    it('should build a failure response', async () => {
       const res = new ResponseBuilder().fail(new Error('test err')).json();
       expect(res.isError).toBeUndefined();
       expect((res.content[0] as { text: string }).text).toContain('"success": false');
       expect((res.content[0] as { text: string }).text).toContain('"error": "test err"');
     });
 
-    it('should build a failure response from string', () => {
+    it('should build a failure response from string', async () => {
       const res = new ResponseBuilder().fail('test err string').json();
       expect((res.content[0] as { text: string }).text).toContain('"error": "test err string"');
     });
 
-    it('should merge objects', () => {
+    it('should merge objects', async () => {
       const res = new ResponseBuilder().merge({ a: 1, b: 2 }).json();
       expect((res.content[0] as { text: string }).text).toContain('"a": 1');
       expect((res.content[0] as { text: string }).text).toContain('"b": 2');
     });
 
-    it('should set mcpError', () => {
+    it('should set mcpError', async () => {
       const res = new ResponseBuilder().mcpError().json();
       expect(res.isError).toBe(true);
     });
 
-    it('raw() should work', () => {
+    it('raw() should work', async () => {
       const res = ResponseBuilder.raw({ rawKey: 'val' });
       expect((res.content[0] as { text: string }).text).toContain('rawKey');
     });
 
-    it('text() should work with default isError', () => {
+    it('text() should work with default isError', async () => {
       const res = ResponseBuilder.text('hello');
       expect((res.content[0] as { text: string }).text).toBe('hello');
       expect(res.isError).toBeUndefined();
     });
 
-    it('text() should work with explicit isError', () => {
+    it('text() should work with explicit isError', async () => {
       const res = ResponseBuilder.text('hello', true);
       expect((res.content[0] as { text: string }).text).toBe('hello');
       expect(res.isError).toBe(true);
     });
 
-    it('should support .structured() for native payload schemas', () => {
+    it('should support .structured() for native payload schemas', async () => {
       const builder = new ResponseBuilder();
       const res = builder.set('foo', 'bar').structured().json();
       expect((res as any).structuredContent).toEqual({ foo: 'bar' });
       expect(res.content.length).toBe(1); // Still has fallback text content
     });
 
-    it('should support .image() content blocks', () => {
+    it('should support .image() content blocks', async () => {
       const res = new ResponseBuilder().image('base64...', 'image/png').json();
       expect(res.content).toHaveLength(2);
       expect(res.content[1]).toEqual({
@@ -75,7 +75,7 @@ describe('ResponseBuilder', () => {
       });
     });
 
-    it('should support .embeddedResource() content blocks', () => {
+    it('should support .embeddedResource() content blocks', async () => {
       const res = new ResponseBuilder().embeddedResource('jshook://test', 'test content').json();
       expect(res.content).toHaveLength(2);
       expect((res.content[1] as any).resource.uri).toBe('jshook://test');
@@ -85,22 +85,22 @@ describe('ResponseBuilder', () => {
   });
 
   describe('R shorthand', () => {
-    it('ok()', () => {
+    it('ok()', async () => {
       const res = R.ok().json();
       expect((res.content[0] as { text: string }).text).toContain('"success": true');
     });
 
-    it('fail()', () => {
+    it('fail()', async () => {
       const res = R.fail('err').json();
       expect((res.content[0] as { text: string }).text).toContain('"error": "err"');
     });
 
-    it('raw()', () => {
+    it('raw()', async () => {
       const res = R.raw({ x: 1 });
       expect((res.content[0] as { text: string }).text).toContain('"x": 1');
     });
 
-    it('text()', () => {
+    it('text()', async () => {
       const res = R.text('str');
       expect((res.content[0] as { text: string }).text).toBe('str');
       expect(res.isError).toBeUndefined();

@@ -4,11 +4,11 @@ import { macroTools } from '@server/domains/macro/definitions';
 import { MacroToolHandlers } from '@server/domains/macro/handlers';
 
 describe('macro domain exports', () => {
-  it('should export macroTools', () => {
+  it('should export macroTools', async () => {
     expect(exports.macroTools).toBe(macroTools);
   });
 
-  it('should export MacroToolHandlers', () => {
+  it('should export MacroToolHandlers', async () => {
     expect(exports.MacroToolHandlers).toBe(MacroToolHandlers);
   });
 });

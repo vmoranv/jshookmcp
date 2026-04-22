@@ -13,24 +13,24 @@ describe('buildHookCode', () => {
     return _orig.call(this, code);
   };`;
 
-  it('returns a string wrapped in an IIFE', () => {
+  it('returns a string wrapped in an IIFE', async () => {
     const code = buildHookCode('test-hook', SAMPLE_BODY, false, false);
     expect(code).toContain('(function() {');
     expect(code).toContain('})();');
   });
 
-  it('sets up the __hookPresets idempotency guard', () => {
+  it('sets up the __hookPresets idempotency guard', async () => {
     const code = buildHookCode('test-hook', SAMPLE_BODY, false, false);
     expect(code).toContain('if (window.__hookPresets === undefined) window.__hookPresets = {};');
     expect(code).toContain("if (window.__hookPresets['test-hook']) return;");
   });
 
-  it('marks the preset as installed at the end', () => {
+  it('marks the preset as installed at the end', async () => {
     const code = buildHookCode('my-preset', SAMPLE_BODY, false, false);
     expect(code).toContain("window.__hookPresets['my-preset'] = true;");
   });
 
-  it('initialises the __aiHooks collection for the preset', () => {
+  it('initialises the __aiHooks collection for the preset', async () => {
     const code = buildHookCode('my-preset', SAMPLE_BODY, false, false);
     expect(code).toContain('window.__aiHooks = window.__aiHooks || {};');
     expect(code).toContain(
@@ -39,7 +39,7 @@ describe('buildHookCode', () => {
   });
 
   describe('captureStack parameter', () => {
-    it('emits stack-capture code when captureStack is true', () => {
+    it('emits stack-capture code when captureStack is true', async () => {
       const code = buildHookCode('test', SAMPLE_BODY, true, false);
       expect(code).toContain(
         "const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';",
@@ -47,7 +47,7 @@ describe('buildHookCode', () => {
       expect(code).not.toContain('{{STACK_CODE}}');
     });
 
-    it('emits empty-stack assignment when captureStack is false', () => {
+    it('emits empty-stack assignment when captureStack is false', async () => {
       const code = buildHookCode('test', SAMPLE_BODY, false, false);
       expect(code).toContain("const __stack = '';");
       expect(code).not.toContain('new Error().stack');
@@ -56,13 +56,13 @@ describe('buildHookCode', () => {
   });
 
   describe('logToConsole parameter', () => {
-    it('emits console.log call when logToConsole is true', () => {
+    it('emits console.log call when logToConsole is true', async () => {
       const code = buildHookCode('test', SAMPLE_BODY, false, true);
       expect(code).toContain("console.log(__msg + (__stack ? ' | Stack: ' + __stack : ''));");
       expect(code).not.toContain('{{LOG_FN}}');
     });
 
-    it('omits console.log call when logToConsole is false', () => {
+    it('omits console.log call when logToConsole is false', async () => {
       const code = buildHookCode('test', SAMPLE_BODY, false, false);
       expect(code).not.toContain('console.log');
       expect(code).not.toContain('{{LOG_FN}}');
@@ -70,7 +70,7 @@ describe('buildHookCode', () => {
   });
 
   describe('combined captureStack + logToConsole', () => {
-    it('emits both stack capture and console.log when both are true', () => {
+    it('emits both stack capture and console.log when both are true', async () => {
       const code = buildHookCode('combo', SAMPLE_BODY, true, true);
       expect(code).toContain(
         "const __stack = new Error().stack?.split('\\n').slice(1,4).join(' | ') || '';",
@@ -78,14 +78,14 @@ describe('buildHookCode', () => {
       expect(code).toContain('console.log');
     });
 
-    it('emits neither stack capture nor console.log when both are false', () => {
+    it('emits neither stack capture nor console.log when both are false', async () => {
       const code = buildHookCode('combo', SAMPLE_BODY, false, false);
       expect(code).toContain("const __stack = '';");
       expect(code).not.toContain('console.log');
     });
   });
 
-  it('replaces all {{STACK_CODE}} and {{LOG_FN}} placeholders in multi-occurrence body', () => {
+  it('replaces all {{STACK_CODE}} and {{LOG_FN}} placeholders in multi-occurrence body', async () => {
     const multiBody = `
     fn1() { {{STACK_CODE}} {{LOG_FN}} }
     fn2() { {{STACK_CODE}} {{LOG_FN}} }`;
@@ -99,13 +99,13 @@ describe('buildHookCode', () => {
     expect(logMatches).toHaveLength(2);
   });
 
-  it('embeds the preset name correctly into generated code', () => {
+  it('embeds the preset name correctly into generated code', async () => {
     const code = buildHookCode('my-custom-name', '{{STACK_CODE}} {{LOG_FN}}', false, false);
     expect(code).toContain("window.__hookPresets['my-custom-name']");
     expect(code).toContain("window.__aiHooks['preset-my-custom-name']");
   });
 
-  it('preserves the body content beyond placeholders', () => {
+  it('preserves the body content beyond placeholders', async () => {
     const body = `
     {{STACK_CODE}}
     const __msg = 'unique-marker-string';
@@ -118,7 +118,7 @@ describe('buildHookCode', () => {
 });
 
 describe('PresetEntry type contract', () => {
-  it('accepts an object conforming to the PresetEntry shape', () => {
+  it('accepts an object conforming to the PresetEntry shape', async () => {
     const entry: PresetEntry = {
       description: 'A test preset',
       buildCode: (captureStack: boolean, logToConsole: boolean) =>

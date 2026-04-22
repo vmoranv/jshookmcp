@@ -129,21 +129,39 @@ vi.mock('@server/domains/shared/registry', () => ({
 
 // ── Mock DebuggerManager from shared modules ───────────────────────────────────
 
-vi.mock('@server/domains/shared/modules', () => ({
-  DebuggerManager: vi.fn().mockImplementation(() => createDebuggerManagerMock()),
-}));
+vi.mock('@server/domains/shared/modules', () => {
+  return {
+    DebuggerManager: class {
+      constructor() {
+        return createDebuggerManagerMock();
+      }
+    },
+  };
+});
 
 // ── Mock TraceRecorder ────────────────────────────────────────────────────────
 
-vi.mock('@modules/trace/TraceRecorder', () => ({
-  TraceRecorder: vi.fn().mockImplementation(() => createTraceRecorderMock()),
-}));
+vi.mock('@modules/trace/TraceRecorder', () => {
+  return {
+    TraceRecorder: class {
+      constructor() {
+        return createTraceRecorderMock();
+      }
+    },
+  };
+});
 
 // ── Mock ReverseEvidenceGraph ─────────────────────────────────────────────────
 
-vi.mock('@server/evidence/ReverseEvidenceGraph', () => ({
-  ReverseEvidenceGraph: vi.fn().mockImplementation(() => createEvidenceStoreMock()),
-}));
+vi.mock('@server/evidence/ReverseEvidenceGraph', () => {
+  return {
+    ReverseEvidenceGraph: class {
+      constructor() {
+        return createEvidenceStoreMock();
+      }
+    },
+  };
+});
 
 // ── Mock CanvasToolHandlers for manifest ensure() test ────────────────────────
 
@@ -207,33 +225,33 @@ describe('canvas domain manifest', () => {
   // ── 1. Manifest structure ─────────────────────────────────────────────────
 
   describe('manifest structure', () => {
-    it('has kind "domain-manifest"', () => {
+    it('has kind "domain-manifest"', async () => {
       expect(manifest.kind).toBe('domain-manifest');
     });
 
-    it('has version 1', () => {
+    it('has version 1', async () => {
       expect(manifest.version).toBe(1);
     });
 
-    it('has domain "canvas"', () => {
+    it('has domain "canvas"', async () => {
       expect(manifest.domain).toBe('canvas');
     });
 
-    it('has depKey "canvasHandlers"', () => {
+    it('has depKey "canvasHandlers"', async () => {
       expect(manifest.depKey).toBe('canvasHandlers');
     });
 
-    it('profiles include only "full"', () => {
+    it('profiles include only "full"', async () => {
       expect(manifest.profiles).toContain('full');
       expect(manifest.profiles).not.toContain('workflow');
       expect(manifest.profiles).toHaveLength(1);
     });
 
-    it('ensure is a function', () => {
+    it('ensure is a function', async () => {
       expect(typeof manifest.ensure).toBe('function');
     });
 
-    it('registrations is a non-empty array', () => {
+    it('registrations is a non-empty array', async () => {
       expect(Array.isArray(manifest.registrations)).toBe(true);
       expect(manifest.registrations.length).toBeGreaterThan(0);
     });
@@ -242,7 +260,7 @@ describe('canvas domain manifest', () => {
   // ── 2. Workflow rule ─────────────────────────────────────────────────────
 
   describe('workflowRule', () => {
-    it('has patterns array with canvas-related regex patterns', () => {
+    it('has patterns array with canvas-related regex patterns', async () => {
       expect(manifest.workflowRule).toBeDefined();
       expect(manifest.workflowRule.patterns).toBeInstanceOf(Array);
       expect(manifest.workflowRule.patterns.length).toBeGreaterThan(0);
@@ -253,18 +271,18 @@ describe('canvas domain manifest', () => {
       expect(manifest.workflowRule.patterns[0]!.test('game engine scene dump')).toBe(true);
     });
 
-    it('includes canvas tool names in workflowRule.tools', () => {
+    it('includes canvas tool names in workflowRule.tools', async () => {
       expect(manifest.workflowRule.tools).toContain('canvas_engine_fingerprint');
       expect(manifest.workflowRule.tools).toContain('canvas_scene_dump');
       expect(manifest.workflowRule.tools).toContain('canvas_pick_object_at_point');
       expect(manifest.workflowRule.tools).toContain('canvas_trace_click_handler');
     });
 
-    it('has priority 80', () => {
+    it('has priority 80', async () => {
       expect(manifest.workflowRule.priority).toBe(80);
     });
 
-    it('has a descriptive hint', () => {
+    it('has a descriptive hint', async () => {
       expect(typeof manifest.workflowRule.hint).toBe('string');
       expect(manifest.workflowRule.hint.length).toBeGreaterThan(0);
     });
@@ -273,7 +291,7 @@ describe('canvas domain manifest', () => {
   // ── 3. Prerequisites ────────────────────────────────────────────────────
 
   describe('prerequisites', () => {
-    it('has prerequisite for canvas_engine_fingerprint', () => {
+    it('has prerequisite for canvas_engine_fingerprint', async () => {
       expect(manifest.prerequisites['canvas_engine_fingerprint']).toBeDefined();
       expect(manifest.prerequisites['canvas_engine_fingerprint']).toHaveLength(1);
       expect(manifest.prerequisites['canvas_engine_fingerprint'][0]).toEqual(
@@ -284,15 +302,15 @@ describe('canvas domain manifest', () => {
       );
     });
 
-    it('has prerequisite for canvas_scene_dump', () => {
+    it('has prerequisite for canvas_scene_dump', async () => {
       expect(manifest.prerequisites['canvas_scene_dump']).toBeDefined();
     });
 
-    it('has prerequisite for canvas_pick_object_at_point', () => {
+    it('has prerequisite for canvas_pick_object_at_point', async () => {
       expect(manifest.prerequisites['canvas_pick_object_at_point']).toBeDefined();
     });
 
-    it('has prerequisite for canvas_trace_click_handler', () => {
+    it('has prerequisite for canvas_trace_click_handler', async () => {
       expect(manifest.prerequisites['canvas_trace_click_handler']).toBeDefined();
       expect(manifest.prerequisites['canvas_trace_click_handler'][0]).toEqual(
         expect.objectContaining({
@@ -306,17 +324,17 @@ describe('canvas domain manifest', () => {
   // ── 4. Tool registrations ────────────────────────────────────────────────
 
   describe('registrations', () => {
-    it('has exactly 4 tool registrations', () => {
+    it('has exactly 4 tool registrations', async () => {
       expect(manifest.registrations).toHaveLength(4);
     });
 
-    it('all registrations reference domain "canvas"', () => {
+    it('all registrations reference domain "canvas"', async () => {
       manifest.registrations.forEach((reg) => {
         expect(reg.domain).toBe('canvas');
       });
     });
 
-    it('every registration has tool, domain, and bind', () => {
+    it('every registration has tool, domain, and bind', async () => {
       manifest.registrations.forEach((reg) => {
         expect(reg).toEqual(
           expect.objectContaining({
@@ -328,32 +346,32 @@ describe('canvas domain manifest', () => {
       });
     });
 
-    it('has no duplicate tool registrations', () => {
+    it('has no duplicate tool registrations', async () => {
       const names = manifest.registrations.map(getToolName);
       expect(new Set(names).size).toBe(names.length);
     });
 
-    it('includes canvas_engine_fingerprint registration', () => {
+    it('includes canvas_engine_fingerprint registration', async () => {
       const names = manifest.registrations.map(getToolName);
       expect(names).toContain('canvas_engine_fingerprint');
     });
 
-    it('includes canvas_scene_dump registration', () => {
+    it('includes canvas_scene_dump registration', async () => {
       const names = manifest.registrations.map(getToolName);
       expect(names).toContain('canvas_scene_dump');
     });
 
-    it('includes canvas_pick_object_at_point registration', () => {
+    it('includes canvas_pick_object_at_point registration', async () => {
       const names = manifest.registrations.map(getToolName);
       expect(names).toContain('canvas_pick_object_at_point');
     });
 
-    it('includes canvas_trace_click_handler registration', () => {
+    it('includes canvas_trace_click_handler registration', async () => {
       const names = manifest.registrations.map(getToolName);
       expect(names).toContain('canvas_trace_click_handler');
     });
 
-    it('registration tool names match definitions export', () => {
+    it('registration tool names match definitions export', async () => {
       const registrationNames = new Set(manifest.registrations.map(getToolName));
       const definitionNames = new Set(canvasTools.map((t) => t.name));
       expect(registrationNames).toEqual(definitionNames);
@@ -368,96 +386,96 @@ describe('canvas domain ensure()', () => {
     vi.clearAllMocks();
   });
 
-  it('ensureBrowserCore is called', () => {
+  it('ensureBrowserCore is called', async () => {
     const ctx = mockContext();
-    manifest.ensure(ctx as never);
+    await manifest.ensure(ctx as never);
     expect(ensureBrowserCoreMock).toHaveBeenCalledWith(ctx);
   });
 
-  it('creates DebuggerManager if not present', () => {
+  it('creates DebuggerManager if not present', async () => {
     const ctx = mockContext();
     ctx.debuggerManager = undefined;
 
-    manifest.ensure(ctx as never);
+    await manifest.ensure(ctx as never);
 
     expect(ctx.debuggerManager).toBeDefined();
     expect(ctx.debuggerManager).not.toBeNull();
   });
 
-  it('reuses existing DebuggerManager if present', () => {
+  it('reuses existing DebuggerManager if present', async () => {
     const existing = createDebuggerManagerMock();
     const ctx = mockContext({ debuggerManager: existing });
 
-    manifest.ensure(ctx as never);
+    await manifest.ensure(ctx as never);
 
     expect(ctx.debuggerManager).toBe(existing);
   });
 
-  it('creates TraceRecorder if not present', () => {
+  it('creates TraceRecorder if not present', async () => {
     const ctx = mockContext();
     ctx.traceRecorder = undefined;
 
-    manifest.ensure(ctx as never);
+    await manifest.ensure(ctx as never);
 
     expect(ctx.traceRecorder).toBeDefined();
     expect(ctx.traceRecorder).not.toBeNull();
   });
 
-  it('reuses existing TraceRecorder if present', () => {
+  it('reuses existing TraceRecorder if present', async () => {
     const existing = createTraceRecorderMock();
     const ctx = mockContext({ traceRecorder: existing });
 
-    manifest.ensure(ctx as never);
+    await manifest.ensure(ctx as never);
 
     expect(ctx.traceRecorder).toBe(existing);
   });
 
-  it('creates ReverseEvidenceGraph if not present', () => {
+  it('creates ReverseEvidenceGraph if not present', async () => {
     const ctx = mockContext();
     ctx.getDomainInstance = vi.fn(() => undefined);
     ctx.setDomainInstance = vi.fn();
 
-    manifest.ensure(ctx as never);
+    await manifest.ensure(ctx as never);
 
     expect(ctx.getDomainInstance).toHaveBeenCalledWith('evidenceGraph');
     expect(ctx.setDomainInstance).toHaveBeenCalledWith('evidenceGraph', expect.any(Object));
   });
 
-  it('reuses existing evidence graph if present', () => {
+  it('reuses existing evidence graph if present', async () => {
     const existingGraph = createEvidenceStoreMock();
     const ctx = mockContext({
       getDomainInstance: vi.fn(() => existingGraph),
       setDomainInstance: vi.fn(),
     });
 
-    manifest.ensure(ctx as never);
+    await manifest.ensure(ctx as never);
 
     expect(ctx.setDomainInstance).not.toHaveBeenCalled();
   });
 
-  it('creates CanvasToolHandlers with all dependencies', () => {
+  it('creates CanvasToolHandlers with all dependencies', async () => {
     const ctx = mockContext();
     ctx.debuggerManager = createDebuggerManagerMock();
     ctx.traceRecorder = createTraceRecorderMock();
     ctx.getDomainInstance = vi.fn(() => createEvidenceStoreMock());
     ctx.setDomainInstance = vi.fn();
 
-    const result = manifest.ensure(ctx as never);
+    const result = await manifest.ensure(ctx as never);
 
     expect(result).toBeDefined();
     // The result should be a CanvasToolHandlers instance (mocked)
     expect(typeof result).toBe('object');
   });
 
-  it('is idempotent — returns same instance on subsequent calls', () => {
+  it('is idempotent — returns same instance on subsequent calls', async () => {
     const ctx = mockContext();
     ctx.debuggerManager = createDebuggerManagerMock();
     ctx.traceRecorder = createTraceRecorderMock();
     ctx.getDomainInstance = vi.fn(() => createEvidenceStoreMock());
     ctx.setDomainInstance = vi.fn();
 
-    const first = manifest.ensure(ctx as never);
-    const second = manifest.ensure(ctx as never);
+    const first = await manifest.ensure(ctx as never);
+    const second = await manifest.ensure(ctx as never);
 
     expect(second).toBe(first);
   });
@@ -466,18 +484,18 @@ describe('canvas domain ensure()', () => {
 // ── 6. Tool definitions match manifest ──────────────────────────────────────
 
 describe('canvas tool definitions', () => {
-  it('canvasTools has exactly 4 tools', () => {
+  it('canvasTools has exactly 4 tools', async () => {
     expect(canvasTools).toHaveLength(4);
   });
 
-  it('canvas_engine_fingerprint tool is defined correctly', () => {
+  it('canvas_engine_fingerprint tool is defined correctly', async () => {
     const tool = canvasTools.find((t) => t.name === 'canvas_engine_fingerprint');
     expect(tool).toBeDefined();
     expect(tool!.description).toContain('Canvas');
     expect(tool!.description).toContain('engine');
   });
 
-  it('canvas_scene_dump tool is defined correctly', () => {
+  it('canvas_scene_dump tool is defined correctly', async () => {
     const tool = canvasTools.find((t) => t.name === 'canvas_scene_dump');
     expect(tool).toBeDefined();
     expect(tool!.inputSchema.properties).toHaveProperty('canvasId');
@@ -486,7 +504,7 @@ describe('canvas tool definitions', () => {
     expect(tool!.inputSchema.properties).toHaveProperty('onlyVisible');
   });
 
-  it('canvas_pick_object_at_point tool is defined correctly', () => {
+  it('canvas_pick_object_at_point tool is defined correctly', async () => {
     const tool = canvasTools.find((t) => t.name === 'canvas_pick_object_at_point');
     expect(tool).toBeDefined();
     expect(tool!.inputSchema.properties).toHaveProperty('x');
@@ -497,7 +515,7 @@ describe('canvas tool definitions', () => {
     expect(tool!.inputSchema.required).toContain('y');
   });
 
-  it('canvas_trace_click_handler tool is defined correctly', () => {
+  it('canvas_trace_click_handler tool is defined correctly', async () => {
     const tool = canvasTools.find((t) => t.name === 'canvas_trace_click_handler');
     expect(tool).toBeDefined();
     expect(tool!.inputSchema.properties).toHaveProperty('x');
@@ -513,7 +531,7 @@ describe('canvas tool definitions', () => {
 // ── 7. Tool binding via bind function ────────────────────────────────────────
 
 describe('canvas tool bind functions', () => {
-  it('canvas_engine_fingerprint registration has correct bind structure', () => {
+  it('canvas_engine_fingerprint registration has correct bind structure', async () => {
     const registration = manifest.registrations.find(
       (r) => getToolName(r) === 'canvas_engine_fingerprint',
     );
@@ -523,13 +541,13 @@ describe('canvas tool bind functions', () => {
     // The actual handler method is handleFingerprint
   });
 
-  it('canvas_scene_dump registration has correct bind structure', () => {
+  it('canvas_scene_dump registration has correct bind structure', async () => {
     const registration = manifest.registrations.find((r) => getToolName(r) === 'canvas_scene_dump');
     expect(registration).toBeDefined();
     expect(typeof registration!.bind).toBe('function');
   });
 
-  it('canvas_pick_object_at_point registration has correct bind structure', () => {
+  it('canvas_pick_object_at_point registration has correct bind structure', async () => {
     const registration = manifest.registrations.find(
       (r) => getToolName(r) === 'canvas_pick_object_at_point',
     );
@@ -537,7 +555,7 @@ describe('canvas tool bind functions', () => {
     expect(typeof registration!.bind).toBe('function');
   });
 
-  it('canvas_trace_click_handler registration has correct bind structure', () => {
+  it('canvas_trace_click_handler registration has correct bind structure', async () => {
     const registration = manifest.registrations.find(
       (r) => getToolName(r) === 'canvas_trace_click_handler',
     );
@@ -545,7 +563,7 @@ describe('canvas tool bind functions', () => {
     expect(typeof registration!.bind).toBe('function');
   });
 
-  it('bind function is callable and invokes handler', () => {
+  it('bind function is callable and invokes handler', async () => {
     // Get the actual CanvasToolHandlers to verify binding
     const registration = manifest.registrations.find(
       (r) => getToolName(r) === 'canvas_engine_fingerprint',
@@ -585,7 +603,7 @@ describe('canvas tool end-to-end flows', () => {
   });
 
   describe('fingerprint tool flow', () => {
-    it('fingerprint tool uses page_evaluate to detect canvas engines', () => {
+    it('fingerprint tool uses page_evaluate to detect canvas engines', async () => {
       // The pageController.evaluate should be called in production
       expect(pageController.evaluate).toBeDefined();
       expect(typeof pageController.evaluate).toBe('function');
@@ -658,7 +676,7 @@ describe('canvas tool end-to-end flows', () => {
   });
 
   describe('trace_click tool flow', () => {
-    it('trace_click uses debugger manager to enable and set breakpoints', () => {
+    it('trace_click uses debugger manager to enable and set breakpoints', async () => {
       // The debuggerManager methods should be available
       expect(debuggerManager).toHaveProperty('enable');
       expect(debuggerManager).toHaveProperty('ensureAdvancedFeatures');
@@ -682,7 +700,7 @@ describe('canvas tool end-to-end flows', () => {
       expect(result).toEqual(pausedState);
     });
 
-    it('trace_click uses evidence store to record canvas_trace', () => {
+    it('trace_click uses evidence store to record canvas_trace', async () => {
       // The evidenceStore should have addNode method
       expect(evidenceStore).toHaveProperty('addNode');
       expect(typeof evidenceStore.addNode).toBe('function');
@@ -765,20 +783,20 @@ describe('canvas adapter registry', () => {
 // ── 10. Cross-domain coordination ────────────────────────────────────────────
 
 describe('canvas cross-domain coordination', () => {
-  it('browser pageController is used for page_evaluate in fingerprint', () => {
+  it('browser pageController is used for page_evaluate in fingerprint', async () => {
     // Verify that page_evaluate is the primary browser interaction method
     const pageController = createPageControllerMock();
     expect(typeof pageController.evaluate).toBe('function');
   });
 
-  it('debugger event_breakpoint_set is used in trace_click', () => {
+  it('debugger event_breakpoint_set is used in trace_click', async () => {
     const debuggerManager = createDebuggerManagerMock();
     const eventManager = debuggerManager.getEventManager();
 
     expect(typeof eventManager.setEventListenerBreakpoint).toBe('function');
   });
 
-  it('TraceRecorder is initialized and available', () => {
+  it('TraceRecorder is initialized and available', async () => {
     const traceRecorder = createTraceRecorderMock();
 
     expect(traceRecorder).toHaveProperty('start');
@@ -787,7 +805,7 @@ describe('canvas cross-domain coordination', () => {
     expect(typeof traceRecorder.stop).toBe('function');
   });
 
-  it('EvidenceStore records canvas_trace evidence', () => {
+  it('EvidenceStore records canvas_trace evidence', async () => {
     const evidenceStore = createEvidenceStoreMock();
     const node = evidenceStore.addNode('function', 'canvas_trace', {
       engine: 'LayaAir',

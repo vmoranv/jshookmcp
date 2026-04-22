@@ -131,7 +131,7 @@ describe('raw-helpers', () => {
   });
 
   describe('argument parsing helpers', () => {
-    it('parses optional strings, raw strings, booleans, arrays, and header records', () => {
+    it('parses optional strings, raw strings, booleans, arrays, and header records', async () => {
       expect(parseOptionalString(' value ', 'field')).toBe('value');
       expect(parseOptionalString('   ', 'field')).toBeUndefined();
       expect(() => parseOptionalString(1, 'field')).toThrow('field must be a string');
@@ -159,7 +159,7 @@ describe('raw-helpers', () => {
       expect(() => parseHeaderRecord({ ok: 1 }, 'headers')).toThrow('headers.ok must be a string');
     });
 
-    it('parses network authorization payloads', () => {
+    it('parses network authorization payloads', async () => {
       expect(
         parseNetworkAuthorization({
           allowedHosts: [' example.com ', ''],
@@ -184,7 +184,7 @@ describe('raw-helpers', () => {
   });
 
   describe('small pure helpers', () => {
-    it('normalizes and summarizes common values', () => {
+    it('normalizes and summarizes common values', async () => {
       expect(clamp(10, 0, 5)).toBe(5);
       expect(roundMs(12.3456)).toBe(12.35);
       expect(computeRttStats([30, 10, 20])).toEqual({
@@ -206,7 +206,7 @@ describe('raw-helpers', () => {
       );
     });
 
-    it('normalizes lookup results and HTTP/2 header values', () => {
+    it('normalizes lookup results and HTTP/2 header values', async () => {
       const lookup = normalizeLookupResults('example.com', [
         { address: '2001:db8::1', family: 6 } as LookupAddress,
         { address: '10.0.0.2', family: 4 } as LookupAddress,

@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
 import { workflowToolDefinitions } from '@server/domains/workflow/definitions';
-import { WorkflowHandlers } from '@server/domains/workflow/index';
+import type { WorkflowHandlers } from '@server/domains/workflow/index';
 
 const DOMAIN = 'workflow' as const;
 const DEP_KEY = 'workflowHandlers' as const;
@@ -10,7 +10,8 @@ const t = toolLookup(workflowToolDefinitions);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { WorkflowHandlers } = await import('@server/domains/workflow/index');
   ensureBrowserCore(ctx);
 
   // Delegate via handlerDeps proxy, not direct imports

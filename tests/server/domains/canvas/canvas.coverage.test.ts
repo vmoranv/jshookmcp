@@ -1598,7 +1598,7 @@ describe('LayaCanvasAdapter coverage', () => {
       expect(result.completeness).toBe('full');
     });
 
-    it('dumpScene payload contains maxDepth guard that prevents infinite loops', () => {
+    it('dumpScene payload contains maxDepth guard that prevents infinite loops', async () => {
       const opts: DumpOpts = { maxDepth: 1 };
       const payload = buildLayaSceneTreeDumpPayload(opts);
 
@@ -1809,29 +1809,29 @@ describe('LayaCanvasAdapter coverage', () => {
 
 describe('LayaCanvasAdapter payload builders coverage', () => {
   describe('buildLayaSceneTreeDumpPayload edge cases', () => {
-    it('uses default maxDepth of 20 when maxDepth is undefined', () => {
+    it('uses default maxDepth of 20 when maxDepth is undefined', async () => {
       const payload = buildLayaSceneTreeDumpPayload({});
       expect(payload).toContain('20');
     });
 
-    it('embeds onlyInteractive=false correctly when not specified', () => {
+    it('embeds onlyInteractive=false correctly when not specified', async () => {
       const payload = buildLayaSceneTreeDumpPayload({});
       // The payload should contain "false" for onlyInteractive when not set
       expect(payload).toContain('false');
     });
 
-    it('embeds onlyVisible=false correctly when not specified', () => {
+    it('embeds onlyVisible=false correctly when not specified', async () => {
       const payload = buildLayaSceneTreeDumpPayload({});
       expect(payload).toContain('false');
     });
 
-    it('builds a valid IIFE that can be evaluated in browser context', () => {
+    it('builds a valid IIFE that can be evaluated in browser context', async () => {
       const payload = buildLayaSceneTreeDumpPayload({ maxDepth: 5 });
       expect(payload).toMatch(/^\s*\(function\(\)\s*\{/);
       expect(payload).toContain('return {');
     });
 
-    it('builds partial dump return when Laya.stage is not found', () => {
+    it('builds partial dump return when Laya.stage is not found', async () => {
       const payload = buildLayaSceneTreeDumpPayload({});
       // The payload should check for Laya.stage and return partial on failure
       expect(payload).toContain('window.Laya');
@@ -1841,42 +1841,42 @@ describe('LayaCanvasAdapter payload builders coverage', () => {
   });
 
   describe('buildLayaHitTestPayload edge cases', () => {
-    it('returns a valid JS string that can be evaluated', () => {
+    it('returns a valid JS string that can be evaluated', async () => {
       const payload = buildLayaHitTestPayload({ x: 0, y: 0 });
       expect(typeof payload).toBe('string');
       // Should be a valid IIFE
       expect(payload).toMatch(/^\s*\(function\(\)\s*\{/);
     });
 
-    it('handles x=0 and y=0 without issues', () => {
+    it('handles x=0 and y=0 without issues', async () => {
       const payload = buildLayaHitTestPayload({ x: 0, y: 0 });
       expect(payload).toContain('0');
     });
 
-    it('handles negative coordinates', () => {
+    it('handles negative coordinates', async () => {
       const payload = buildLayaHitTestPayload({ x: -100, y: -200 });
       expect(payload).toContain('-100');
       expect(payload).toContain('-200');
     });
 
-    it('handles fractional coordinates', () => {
+    it('handles fractional coordinates', async () => {
       const payload = buildLayaHitTestPayload({ x: 123.456, y: 789.012 });
       expect(payload).toContain('123.456');
       expect(payload).toContain('789.012');
     });
 
-    it('handles large coordinate values', () => {
+    it('handles large coordinate values', async () => {
       const payload = buildLayaHitTestPayload({ x: 99999, y: 99999 });
       expect(payload).toContain('99999');
     });
 
-    it('embeds canvasId into the DOM query script', () => {
+    it('embeds canvasId into the DOM query script', async () => {
       const payload = buildLayaHitTestPayload({ x: 100, y: 200, canvasId: 'myCanvas' });
       // The payload should have the canvasId lookup in the DOM query
       expect(payload).toContain('myCanvas');
     });
 
-    it('returns hitTestMethod=engine and hitTestMethod=manual in the script output', () => {
+    it('returns hitTestMethod=engine and hitTestMethod=manual in the script output', async () => {
       const payload = buildLayaHitTestPayload({ x: 50, y: 50 });
       // The payload should try engine hitTest first, then fall back to manual
       expect(payload).toContain('hitTestMethod');
@@ -2512,71 +2512,71 @@ import {
 
 describe('PixiJSCanvasAdapter payload builders', () => {
   describe('buildPixiSceneTreeDumpPayload', () => {
-    it('returns a valid IIFE string', () => {
+    it('returns a valid IIFE string', async () => {
       const payload = buildPixiSceneTreeDumpPayload({});
       expect(payload).toMatch(/^\s*\(function\(\)\s*\{/);
       expect(payload).toContain('PIXI');
     });
 
-    it('embeds maxDepth option', () => {
+    it('embeds maxDepth option', async () => {
       const payload = buildPixiSceneTreeDumpPayload({ maxDepth: 15 });
       expect(payload).toContain('15');
     });
 
-    it('checks for window.__pixiApp and canvas._pixiApp for app discovery', () => {
+    it('checks for window.__pixiApp and canvas._pixiApp for app discovery', async () => {
       const payload = buildPixiSceneTreeDumpPayload({});
       expect(payload).toContain('__pixiApp');
     });
 
-    it('includes _pixiApp lookup for canvas elements', () => {
+    it('includes _pixiApp lookup for canvas elements', async () => {
       const payload = buildPixiSceneTreeDumpPayload({});
       expect(payload).toContain('_pixiApp');
     });
 
-    it('handles onlyInteractive filter', () => {
+    it('handles onlyInteractive filter', async () => {
       const payload = buildPixiSceneTreeDumpPayload({ onlyInteractive: true });
       expect(payload).toContain('true');
     });
 
-    it('handles onlyVisible filter', () => {
+    it('handles onlyVisible filter', async () => {
       const payload = buildPixiSceneTreeDumpPayload({ onlyVisible: true });
       expect(payload).toContain('true');
     });
 
-    it('checks PIXI.Application.stage for scene tree', () => {
+    it('checks PIXI.Application.stage for scene tree', async () => {
       const payload = buildPixiSceneTreeDumpPayload({});
       expect(payload).toContain('stage');
     });
   });
 
   describe('buildPixiHitTestPayload', () => {
-    it('returns a valid IIFE string', () => {
+    it('returns a valid IIFE string', async () => {
       const payload = buildPixiHitTestPayload({ x: 0, y: 0 });
       expect(payload).toMatch(/^\s*\(function\(\)\s*\{/);
     });
 
-    it('embeds x and y coordinates', () => {
+    it('embeds x and y coordinates', async () => {
       const payload = buildPixiHitTestPayload({ x: 123, y: 456 });
       expect(payload).toContain('123');
       expect(payload).toContain('456');
     });
 
-    it('includes canvasId in DOM query', () => {
+    it('includes canvasId in DOM query', async () => {
       const payload = buildPixiHitTestPayload({ x: 0, y: 0, canvasId: 'pixi-canvas' });
       expect(payload).toContain('pixi-canvas');
     });
 
-    it('tries stage.hitTest for PIXI v7+ native hit testing', () => {
+    it('tries stage.hitTest for PIXI v7+ native hit testing', async () => {
       const payload = buildPixiHitTestPayload({ x: 100, y: 100 });
       expect(payload).toContain('hitTest');
     });
 
-    it('falls back to manual DFS bounds check', () => {
+    it('falls back to manual DFS bounds check', async () => {
       const payload = buildPixiHitTestPayload({ x: 100, y: 100 });
       expect(payload).toContain('hitTestDfs');
     });
 
-    it('sorts candidates by depth ascending (topmost first)', () => {
+    it('sorts candidates by depth ascending (topmost first)', async () => {
       const payload = buildPixiHitTestPayload({ x: 50, y: 50 });
       expect(payload).toContain('depth - b.depth');
     });
@@ -2611,57 +2611,57 @@ describe('PixiJSCanvasAdapter payload builders', () => {
 
 describe('PhaserCanvasAdapter payload builders', () => {
   describe('buildPhaserSceneTreeDumpPayload', () => {
-    it('returns a valid IIFE string', () => {
+    it('returns a valid IIFE string', async () => {
       const payload = buildPhaserSceneTreeDumpPayload({});
       expect(payload).toMatch(/^\s*\(function\(\)\s*\{/);
       expect(payload).toContain('Phaser');
     });
 
-    it('checks Phaser.GAMES for game detection', () => {
+    it('checks Phaser.GAMES for game detection', async () => {
       const payload = buildPhaserSceneTreeDumpPayload({});
       expect(payload).toContain('Phaser.GAMES');
     });
 
-    it('embeds maxDepth option', () => {
+    it('embeds maxDepth option', async () => {
       const payload = buildPhaserSceneTreeDumpPayload({ maxDepth: 10 });
       expect(payload).toContain('10');
     });
 
-    it('traverses game.scene.scenes for active scenes', () => {
+    it('traverses game.scene.scenes for active scenes', async () => {
       const payload = buildPhaserSceneTreeDumpPayload({});
       expect(payload).toContain('scenes');
       expect(payload).toContain('displayList');
     });
 
-    it('checks scene sys.settings.status to skip shutdown scenes', () => {
+    it('checks scene sys.settings.status to skip shutdown scenes', async () => {
       const payload = buildPhaserSceneTreeDumpPayload({});
       expect(payload).toContain('status');
     });
   });
 
   describe('buildPhaserHitTestPayload', () => {
-    it('returns a valid IIFE string', () => {
+    it('returns a valid IIFE string', async () => {
       const payload = buildPhaserHitTestPayload({ x: 0, y: 0 });
       expect(payload).toMatch(/^\s*\(function\(\)\s*\{/);
     });
 
-    it('embeds x and y coordinates', () => {
+    it('embeds x and y coordinates', async () => {
       const payload = buildPhaserHitTestPayload({ x: 300, y: 400 });
       expect(payload).toContain('300');
       expect(payload).toContain('400');
     });
 
-    it('includes canvasId in DOM query', () => {
+    it('includes canvasId in DOM query', async () => {
       const payload = buildPhaserHitTestPayload({ x: 0, y: 0, canvasId: 'phaser-game' });
       expect(payload).toContain('phaser-game');
     });
 
-    it('tries scene.input.hitTestPointer for native hit test', () => {
+    it('tries scene.input.hitTestPointer for native hit test', async () => {
       const payload = buildPhaserHitTestPayload({ x: 100, y: 100 });
       expect(payload).toContain('hitTestPointer');
     });
 
-    it('handles canvasId as numeric index', () => {
+    it('handles canvasId as numeric index', async () => {
       const payload = buildPhaserHitTestPayload({ x: 0, y: 0, canvasId: '0' });
       expect(payload).toContain('0');
     });
@@ -2670,52 +2670,52 @@ describe('PhaserCanvasAdapter payload builders', () => {
 
 describe('CocosCanvasAdapter payload builders', () => {
   describe('buildCocosSceneTreeDumpPayload', () => {
-    it('returns a valid IIFE string', () => {
+    it('returns a valid IIFE string', async () => {
       const payload = buildCocosSceneTreeDumpPayload({});
       expect(payload).toMatch(/^\s*\(function\(\)\s*\{/);
       expect(payload).toContain('cc');
     });
 
-    it('checks cc.director.getScene for scene access', () => {
+    it('checks cc.director.getScene for scene access', async () => {
       const payload = buildCocosSceneTreeDumpPayload({});
       expect(payload).toContain('director');
       expect(payload).toContain('getScene');
     });
 
-    it('differentiates v2 vs v3 by checking cc.Scene', () => {
+    it('differentiates v2 vs v3 by checking cc.Scene', async () => {
       const payload = buildCocosSceneTreeDumpPayload({});
       expect(payload).toContain('cc.Scene');
     });
 
-    it('embeds maxDepth option', () => {
+    it('embeds maxDepth option', async () => {
       const payload = buildCocosSceneTreeDumpPayload({ maxDepth: 8 });
       expect(payload).toContain('8');
     });
 
-    it('checks node._eventMask for v3 interactive detection', () => {
+    it('checks node._eventMask for v3 interactive detection', async () => {
       const payload = buildCocosSceneTreeDumpPayload({});
       expect(payload).toContain('_eventMask');
     });
 
-    it('checks mouseEnabled for v2 interactive detection', () => {
+    it('checks mouseEnabled for v2 interactive detection', async () => {
       const payload = buildCocosSceneTreeDumpPayload({});
       expect(payload).toContain('mouseEnabled');
     });
   });
 
   describe('buildCocosHitTestPayload', () => {
-    it('returns a valid IIFE string', () => {
+    it('returns a valid IIFE string', async () => {
       const payload = buildCocosHitTestPayload({ x: 0, y: 0 });
       expect(payload).toMatch(/^\s*\(function\(\)\s*\{/);
     });
 
-    it('embeds x and y coordinates', () => {
+    it('embeds x and y coordinates', async () => {
       const payload = buildCocosHitTestPayload({ x: 200, y: 150 });
       expect(payload).toContain('200');
       expect(payload).toContain('150');
     });
 
-    it('FLIPS Y axis for Cocos bottom-left coordinate system', () => {
+    it('FLIPS Y axis for Cocos bottom-left coordinate system', async () => {
       // canvasY is flipped: cocosY = canvasHeight - canvasY
       const payload = buildCocosHitTestPayload({ x: 100, y: 200 });
       expect(payload).toContain('canvasHeight');
@@ -2723,12 +2723,12 @@ describe('CocosCanvasAdapter payload builders', () => {
       expect(payload).toContain('canvasWidth');
     });
 
-    it('includes canvasId in DOM query', () => {
+    it('includes canvasId in DOM query', async () => {
       const payload = buildCocosHitTestPayload({ x: 0, y: 0, canvasId: 'cocos-canvas' });
       expect(payload).toContain('cocos-canvas');
     });
 
-    it('tries scene.hitTest for v3 native hit test', () => {
+    it('tries scene.hitTest for v3 native hit test', async () => {
       const payload = buildCocosHitTestPayload({ x: 100, y: 100 });
       expect(payload).toContain('hitTest');
     });

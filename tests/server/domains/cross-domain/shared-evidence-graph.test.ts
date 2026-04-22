@@ -15,7 +15,7 @@ describe('Shared Evidence Graph Integration', () => {
     _resetGraphIdCounter();
   });
 
-  it('cross-domain bridge and evidence handlers share the same graph instance', () => {
+  it('cross-domain bridge and evidence handlers share the same graph instance', async () => {
     const sharedGraph = new ReverseEvidenceGraph();
     const bridge = new CrossDomainEvidenceBridge(sharedGraph);
 
@@ -53,7 +53,7 @@ describe('Shared Evidence Graph Integration', () => {
     expect(eventFired).toBe(true);
   });
 
-  it('evidence domain query sees cross-domain written nodes', () => {
+  it('evidence domain query sees cross-domain written nodes', async () => {
     const sharedGraph = new ReverseEvidenceGraph();
     const bridge = new CrossDomainEvidenceBridge(sharedGraph);
 
@@ -66,7 +66,7 @@ describe('Shared Evidence Graph Integration', () => {
     expect(results.some((n) => n.type === 'network-request')).toBe(true);
   });
 
-  it('no duplicate graph instances — bridge.getGraph() returns the injected graph', () => {
+  it('no duplicate graph instances — bridge.getGraph() returns the injected graph', async () => {
     const sharedGraph = new ReverseEvidenceGraph();
     const bridge = new CrossDomainEvidenceBridge(sharedGraph);
 

@@ -28,7 +28,7 @@ describe('HookHandlers', () => {
     handlers = new HookHandlers(mockbpEngine, mockinjector);
   });
 
-  it('instantiates correctly', () => {
+  it('instantiates correctly', async () => {
     expect(handlers).toBeInstanceOf(HookHandlers);
   });
 

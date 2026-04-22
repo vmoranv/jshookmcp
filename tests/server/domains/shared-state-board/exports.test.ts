@@ -4,17 +4,17 @@ import { sharedStateBoardTools } from '@server/domains/shared-state-board/index'
 import { SharedStateBoardHandlers } from '@server/domains/shared-state-board/index';
 
 describe('shared-state-board index barrel exports', () => {
-  it('exports SharedStateBoardHandlers class', () => {
+  it('exports SharedStateBoardHandlers class', async () => {
     expect(exports_.SharedStateBoardHandlers).toBeDefined();
     expect(typeof exports_.SharedStateBoardHandlers).toBe('function');
   });
 
-  it('exports sharedStateBoardTools array', () => {
+  it('exports sharedStateBoardTools array', async () => {
     expect(exports_.sharedStateBoardTools).toBe(sharedStateBoardTools);
     expect(Array.isArray(exports_.sharedStateBoardTools)).toBe(true);
   });
 
-  it('SharedStateBoardHandlers has all required handler methods', () => {
+  it('SharedStateBoardHandlers has all required handler methods', async () => {
     const h = new SharedStateBoardHandlers();
     expect(typeof h.handleSet).toBe('function');
     expect(typeof h.handleGet).toBe('function');

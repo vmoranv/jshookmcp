@@ -20,16 +20,16 @@ describe('platform tool definitions', () => {
   // ── Array structure ──────────────────────────────────────────
 
   describe('platformTools array', () => {
-    it('is a non-empty array', () => {
+    it('is a non-empty array', async () => {
       expect(Array.isArray(platformTools)).toBe(true);
       expect(platformTools.length).toBeGreaterThan(0);
     });
 
-    it('tool count matches snapshot (run with --update to sync)', () => {
+    it('tool count matches snapshot (run with --update to sync)', async () => {
       expect(platformTools.length).toMatchInlineSnapshot(`13`);
     });
 
-    it('has unique tool names', () => {
+    it('has unique tool names', async () => {
       const names = platformTools.map((t) => t.name);
       expect(new Set(names).size).toBe(names.length);
     });
@@ -50,13 +50,13 @@ describe('platform tool definitions', () => {
       },
     );
 
-    it('every tool has a non-empty description', () => {
+    it('every tool has a non-empty description', async () => {
       for (const tool of platformTools) {
         expect(tool.description?.trim().length ?? 0).toBeGreaterThan(0);
       }
     });
 
-    it('every tool inputSchema.type is "object"', () => {
+    it('every tool inputSchema.type is "object"', async () => {
       for (const tool of platformTools) {
         expect(tool.inputSchema.type).toBe('object');
       }
@@ -91,14 +91,14 @@ describe('platform tool definitions', () => {
   // ── miniapp_pkg_scan ─────────────────────────────────────────
 
   describe('miniapp_pkg_scan', () => {
-    it('has optional searchPath property', () => {
+    it('has optional searchPath property', async () => {
       const tool = getTool('miniapp_pkg_scan');
       expect(tool.inputSchema.properties).toHaveProperty('searchPath');
       const searchPathProp = getToolProperty('miniapp_pkg_scan', 'searchPath');
       expect(searchPathProp.type).toBe('string');
     });
 
-    it('has no required properties', () => {
+    it('has no required properties', async () => {
       const tool = getTool('miniapp_pkg_scan');
       expect(tool.inputSchema.required).toBeUndefined();
     });
@@ -107,23 +107,23 @@ describe('platform tool definitions', () => {
   // ── miniapp_pkg_unpack ───────────────────────────────────────
 
   describe('miniapp_pkg_unpack', () => {
-    it('requires inputPath', () => {
+    it('requires inputPath', async () => {
       const tool = getTool('miniapp_pkg_unpack');
       expect(tool.inputSchema.required ?? []).toContain('inputPath');
     });
 
-    it('has inputPath and outputDir properties', () => {
+    it('has inputPath and outputDir properties', async () => {
       const tool = getTool('miniapp_pkg_unpack');
       expect(tool.inputSchema.properties).toHaveProperty('inputPath');
       expect(tool.inputSchema.properties).toHaveProperty('outputDir');
     });
 
-    it('inputPath is type string', () => {
+    it('inputPath is type string', async () => {
       const prop = getToolProperty('miniapp_pkg_unpack', 'inputPath');
       expect(prop.type).toBe('string');
     });
 
-    it('outputDir is type string', () => {
+    it('outputDir is type string', async () => {
       const prop = getToolProperty('miniapp_pkg_unpack', 'outputDir');
       expect(prop.type).toBe('string');
     });
@@ -132,12 +132,12 @@ describe('platform tool definitions', () => {
   // ── miniapp_pkg_analyze ──────────────────────────────────────
 
   describe('miniapp_pkg_analyze', () => {
-    it('requires unpackedDir', () => {
+    it('requires unpackedDir', async () => {
       const tool = getTool('miniapp_pkg_analyze');
       expect(tool.inputSchema.required ?? []).toContain('unpackedDir');
     });
 
-    it('unpackedDir is type string', () => {
+    it('unpackedDir is type string', async () => {
       const prop = getToolProperty('miniapp_pkg_analyze', 'unpackedDir');
       expect(prop.type).toBe('string');
     });
@@ -146,25 +146,25 @@ describe('platform tool definitions', () => {
   // ── asar_extract ─────────────────────────────────────────────
 
   describe('asar_extract', () => {
-    it('requires inputPath', () => {
+    it('requires inputPath', async () => {
       const tool = getTool('asar_extract');
       expect(tool.inputSchema.required ?? []).toContain('inputPath');
     });
 
-    it('has inputPath, outputDir, and listOnly properties', () => {
+    it('has inputPath, outputDir, and listOnly properties', async () => {
       const tool = getTool('asar_extract');
       expect(tool.inputSchema.properties).toHaveProperty('inputPath');
       expect(tool.inputSchema.properties).toHaveProperty('outputDir');
       expect(tool.inputSchema.properties).toHaveProperty('listOnly');
     });
 
-    it('listOnly is type boolean with default false', () => {
+    it('listOnly is type boolean with default false', async () => {
       const prop = getToolProperty('asar_extract', 'listOnly');
       expect(prop.type).toBe('boolean');
       expect(prop.default).toBe(false);
     });
 
-    it('inputPath is type string', () => {
+    it('inputPath is type string', async () => {
       const prop = getToolProperty('asar_extract', 'inputPath');
       expect(prop.type).toBe('string');
     });
@@ -173,24 +173,24 @@ describe('platform tool definitions', () => {
   // ── electron_inspect_app ─────────────────────────────────────
 
   describe('electron_inspect_app', () => {
-    it('requires appPath', () => {
+    it('requires appPath', async () => {
       const tool = getTool('electron_inspect_app');
       expect(tool.inputSchema.required ?? []).toContain('appPath');
     });
 
-    it('appPath is type string', () => {
+    it('appPath is type string', async () => {
       const prop = getToolProperty('electron_inspect_app', 'appPath');
       expect(prop.type).toBe('string');
     });
 
-    it('has only one property', () => {
+    it('has only one property', async () => {
       const tool = getTool('electron_inspect_app');
       expect(Object.keys(tool.inputSchema.properties ?? {})).toHaveLength(1);
     });
   });
 
   describe('electron_ipc_sniff', () => {
-    it('exposes action, port, sessionId, and clear properties', () => {
+    it('exposes action, port, sessionId, and clear properties', async () => {
       const tool = getTool('electron_ipc_sniff');
       expect(tool.inputSchema.properties).toHaveProperty('action');
       expect(tool.inputSchema.properties).toHaveProperty('port');
@@ -198,14 +198,14 @@ describe('platform tool definitions', () => {
       expect(tool.inputSchema.properties).toHaveProperty('clear');
     });
 
-    it('action enum includes guide and session operations', () => {
+    it('action enum includes guide and session operations', async () => {
       const action = getToolProperty('electron_ipc_sniff', 'action');
       expect(action.type).toBe('string');
       expect(action.enum).toEqual(['start', 'dump', 'stop', 'list', 'guide']);
       expect(action.default).toBe('guide');
     });
 
-    it('port defaults to 9222 and clear defaults to true', () => {
+    it('port defaults to 9222 and clear defaults to true', async () => {
       const port = getToolProperty('electron_ipc_sniff', 'port');
       const clear = getToolProperty('electron_ipc_sniff', 'clear');
       expect(port.type).toBe('number');
@@ -218,23 +218,23 @@ describe('platform tool definitions', () => {
   // ── Description quality ──────────────────────────────────────
 
   describe('description quality', () => {
-    it('miniapp_pkg_scan mentions scanning', () => {
+    it('miniapp_pkg_scan mentions scanning', async () => {
       const tool = getTool('miniapp_pkg_scan');
       expect(tool.description?.length ?? 0).toBeGreaterThan(10);
     });
 
-    it('miniapp_pkg_unpack mentions unpacking', () => {
+    it('miniapp_pkg_unpack mentions unpacking', async () => {
       const tool = getTool('miniapp_pkg_unpack');
       expect(tool.description?.length ?? 0).toBeGreaterThan(10);
     });
 
-    it('asar_extract mentions Electron or asar', () => {
+    it('asar_extract mentions Electron or asar', async () => {
       const tool = getTool('asar_extract');
       const desc = tool.description?.toLowerCase() ?? '';
       expect(desc.includes('electron') || desc.includes('asar')).toBe(true);
     });
 
-    it('electron_inspect_app mentions Electron', () => {
+    it('electron_inspect_app mentions Electron', async () => {
       const tool = getTool('electron_inspect_app');
       const desc = tool.description?.toLowerCase() ?? '';
       expect(desc).toContain('electron');
@@ -244,7 +244,7 @@ describe('platform tool definitions', () => {
   // ── Required fields completeness ─────────────────────────────
 
   describe('required fields completeness', () => {
-    it('tools with required field declare an array', () => {
+    it('tools with required field declare an array', async () => {
       for (const tool of platformTools) {
         if (tool.inputSchema.required) {
           expect(Array.isArray(tool.inputSchema.required)).toBe(true);
@@ -253,7 +253,7 @@ describe('platform tool definitions', () => {
       }
     });
 
-    it('every required field exists in properties', () => {
+    it('every required field exists in properties', async () => {
       for (const tool of platformTools) {
         if (tool.inputSchema.required) {
           for (const reqField of tool.inputSchema.required) {

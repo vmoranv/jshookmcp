@@ -8,7 +8,7 @@ function getTool(name: string) {
 }
 
 describe('browserSecurityStateTools', () => {
-  it('describes captcha_detect as AI vision + rule-based analysis', () => {
+  it('describes captcha_detect as AI vision + rule-based analysis', async () => {
     const tool = getTool('captcha_detect');
 
     expect(tool.description).toContain('AI vision');
@@ -16,14 +16,14 @@ describe('browserSecurityStateTools', () => {
     expect(tool.description).not.toContain('- screenshot: base64 screenshot');
   });
 
-  it('describes captcha_wait as polling until CAPTCHA disappears', () => {
+  it('describes captcha_wait as polling until CAPTCHA disappears', async () => {
     const tool = getTool('captcha_wait');
 
     expect(tool.description).toContain('manual');
     expect(tool.description).not.toContain('Browser switches to headed (visible) mode');
   });
 
-  it('describes captcha_config concisely', () => {
+  it('describes captcha_config concisely', async () => {
     const tool = getTool('captcha_config');
 
     expect(tool.description).toContain('CAPTCHA');

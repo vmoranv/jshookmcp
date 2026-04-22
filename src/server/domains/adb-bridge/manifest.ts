@@ -2,7 +2,7 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 import type { DomainManifest, ToolRegistration } from '@server/registry/contracts';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { adbBridgeTools } from './definitions';
-import { ADBBridgeHandlers } from './handlers';
+import type { ADBBridgeHandlers } from './handlers';
 
 const DOMAIN = 'adb-bridge';
 const DEP_KEY = 'adbBridgeHandlers';
@@ -30,7 +30,8 @@ const registrations: ToolRegistration[] = [
   },
 ];
 
-function ensure(ctx: MCPServerContext): ADBBridgeHandlers {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { ADBBridgeHandlers } = await import('./handlers');
   const existingHandlers = ctx.getDomainInstance<ADBBridgeHandlers>(DEP_KEY);
   if (existingHandlers) {
     return existingHandlers;

@@ -64,17 +64,17 @@ describe('electron-asar-helpers', () => {
   // flattenAsarEntries
   // =========================================================================
   describe('flattenAsarEntries', () => {
-    it('returns empty array when no "files" key exists', () => {
+    it('returns empty array when no "files" key exists', async () => {
       expect(flattenAsarEntries({})).toEqual([]);
     });
 
-    it('returns empty array when "files" is not a record', () => {
+    it('returns empty array when "files" is not a record', async () => {
       expect(flattenAsarEntries({ files: 'not_a_record' })).toEqual([]);
       expect(flattenAsarEntries({ files: 42 })).toEqual([]);
       expect(flattenAsarEntries({ files: null })).toEqual([]);
     });
 
-    it('flattens a single-level file tree', () => {
+    it('flattens a single-level file tree', async () => {
       const header = {
         files: {
           'index.js': { size: 100, offset: '0' },
@@ -87,7 +87,7 @@ describe('electron-asar-helpers', () => {
       expect(entries.map((e) => e.path).toSorted()).toEqual(['index.js', 'package.json']);
     });
 
-    it('flattens nested directory structures', () => {
+    it('flattens nested directory structures', async () => {
       const header = {
         files: {
           src: {
@@ -113,7 +113,7 @@ describe('electron-asar-helpers', () => {
       ]);
     });
 
-    it('handles unpacked entries correctly', () => {
+    it('handles unpacked entries correctly', async () => {
       const header = {
         files: {
           'native.node': { size: 500, offset: 0, unpacked: true },
@@ -128,7 +128,7 @@ describe('electron-asar-helpers', () => {
       expect(jsEntry?.unpacked).toBe(false);
     });
 
-    it('defaults size to 0 when not a valid finite number', () => {
+    it('defaults size to 0 when not a valid finite number', async () => {
       const header = {
         files: {
           'bad.js': { offset: 0, size: 'invalid' },
@@ -143,7 +143,7 @@ describe('electron-asar-helpers', () => {
       }
     });
 
-    it('parses offset from string representations', () => {
+    it('parses offset from string representations', async () => {
       const header = {
         files: {
           'file.js': { size: 10, offset: '42' },
@@ -154,7 +154,7 @@ describe('electron-asar-helpers', () => {
       expect(entries[0]!.offset).toBe(42);
     });
 
-    it('defaults offset to 0 for invalid values', () => {
+    it('defaults offset to 0 for invalid values', async () => {
       const header = {
         files: {
           'file.js': { size: 10, offset: 'not_a_number' },
@@ -165,7 +165,7 @@ describe('electron-asar-helpers', () => {
       expect(entries[0]!.offset).toBe(0);
     });
 
-    it('skips non-record entries in files', () => {
+    it('skips non-record entries in files', async () => {
       const header = {
         files: {
           'valid.js': { size: 10, offset: 0 },
@@ -185,7 +185,7 @@ describe('electron-asar-helpers', () => {
   // isAsarDataOffsetValid
   // =========================================================================
   describe('isAsarDataOffsetValid', () => {
-    it('returns true when all samples are within bounds', () => {
+    it('returns true when all samples are within bounds', async () => {
       const files = [
         { path: 'a.js', size: 10, offset: 0, unpacked: false },
         { path: 'b.js', size: 20, offset: 10, unpacked: false },
@@ -194,17 +194,17 @@ describe('electron-asar-helpers', () => {
       expect(isAsarDataOffsetValid(files, 100, 200)).toBe(true);
     });
 
-    it('returns false when an entry extends beyond total size', () => {
+    it('returns false when an entry extends beyond total size', async () => {
       const files = [{ path: 'a.js', size: 500, offset: 0, unpacked: false }];
       expect(isAsarDataOffsetValid(files, 100, 200)).toBe(false);
     });
 
-    it('returns false when start is negative', () => {
+    it('returns false when start is negative', async () => {
       const files = [{ path: 'a.js', size: 10, offset: 0, unpacked: false }];
       expect(isAsarDataOffsetValid(files, -10, 200)).toBe(false);
     });
 
-    it('skips unpacked entries during validation', () => {
+    it('skips unpacked entries during validation', async () => {
       const files = [
         { path: 'native.node', size: 99999, offset: 0, unpacked: true },
         { path: 'index.js', size: 10, offset: 0, unpacked: false },
@@ -213,7 +213,7 @@ describe('electron-asar-helpers', () => {
       expect(isAsarDataOffsetValid(files, 50, 100)).toBe(true);
     });
 
-    it('only checks first 32 packed samples', () => {
+    it('only checks first 32 packed samples', async () => {
       const files = Array.from({ length: 50 }, (_, i) => ({
         path: `file${i}.js`,
         size: 1,
@@ -224,7 +224,7 @@ describe('electron-asar-helpers', () => {
       expect(isAsarDataOffsetValid(files, 0, 1000)).toBe(true);
     });
 
-    it('returns true for empty file list', () => {
+    it('returns true for empty file list', async () => {
       expect(isAsarDataOffsetValid([], 100, 200)).toBe(true);
     });
   });
@@ -233,12 +233,12 @@ describe('electron-asar-helpers', () => {
   // parseAsarBuffer
   // =========================================================================
   describe('parseAsarBuffer', () => {
-    it('throws on buffers smaller than 16 bytes', () => {
+    it('throws on buffers smaller than 16 bytes', async () => {
       const tinyBuf = Buffer.alloc(10);
       expect(() => parseAsarBuffer(tinyBuf)).toThrow('file too small');
     });
 
-    it('throws when header JSON cannot be parsed', () => {
+    it('throws when header JSON cannot be parsed', async () => {
       const buf = Buffer.alloc(32);
       buf.writeUInt32LE(20, 0); // headerSize
       buf.writeUInt32LE(10, 4); // headerStringSize
@@ -250,7 +250,7 @@ describe('electron-asar-helpers', () => {
       expect(() => parseAsarBuffer(buf)).toThrow('cannot parse header JSON');
     });
 
-    it('parses a valid ASAR buffer with files', () => {
+    it('parses a valid ASAR buffer with files', async () => {
       const header = {
         files: {
           'index.js': { size: 5, offset: '0' },
@@ -267,7 +267,7 @@ describe('electron-asar-helpers', () => {
       expect(parsed.headerSize).toBeGreaterThan(0);
     });
 
-    it('handles header without explicit "files" key (auto-wraps)', () => {
+    it('handles header without explicit "files" key (auto-wraps)', async () => {
       // Some ASAR implementations put entries directly without a "files" wrapper
       const header = {
         'main.js': { size: 10, offset: 0 },
@@ -285,7 +285,7 @@ describe('electron-asar-helpers', () => {
   // readAsarEntryBuffer / readAsarEntryText
   // =========================================================================
   describe('readAsarEntryBuffer', () => {
-    it('returns undefined for empty entry path', () => {
+    it('returns undefined for empty entry path', async () => {
       const parsedAsar = {
         files: [{ path: 'file.js', size: 5, offset: 0, unpacked: false }],
         dataOffset: 16,
@@ -298,7 +298,7 @@ describe('electron-asar-helpers', () => {
       expect(readAsarEntryBuffer(Buffer.alloc(100), parsedAsar, '')).toBeUndefined();
     });
 
-    it('returns undefined for non-existent entry', () => {
+    it('returns undefined for non-existent entry', async () => {
       const parsedAsar = {
         files: [{ path: 'file.js', size: 5, offset: 0, unpacked: false }],
         dataOffset: 16,
@@ -311,7 +311,7 @@ describe('electron-asar-helpers', () => {
       expect(readAsarEntryBuffer(Buffer.alloc(100), parsedAsar, 'missing.js')).toBeUndefined();
     });
 
-    it('returns undefined for unpacked entries', () => {
+    it('returns undefined for unpacked entries', async () => {
       const parsedAsar = {
         files: [{ path: 'native.node', size: 5, offset: 0, unpacked: true }],
         dataOffset: 16,
@@ -324,7 +324,7 @@ describe('electron-asar-helpers', () => {
       expect(readAsarEntryBuffer(Buffer.alloc(100), parsedAsar, 'native.node')).toBeUndefined();
     });
 
-    it('returns buffer content for a valid entry', () => {
+    it('returns buffer content for a valid entry', async () => {
       const content = 'hello';
       const dataOffset = 20;
       const buf = Buffer.alloc(dataOffset + content.length);
@@ -344,7 +344,7 @@ describe('electron-asar-helpers', () => {
       expect(result!.toString('utf-8')).toBe('hello');
     });
 
-    it('returns undefined when data range is out of bounds', () => {
+    it('returns undefined when data range is out of bounds', async () => {
       const parsedAsar = {
         files: [{ path: 'big.js', size: 9999, offset: 0, unpacked: false }],
         dataOffset: 16,
@@ -357,7 +357,7 @@ describe('electron-asar-helpers', () => {
       expect(readAsarEntryBuffer(Buffer.alloc(50), parsedAsar, 'big.js')).toBeUndefined();
     });
 
-    it('matches entry by suffix when exact path is not found', () => {
+    it('matches entry by suffix when exact path is not found', async () => {
       const content = 'found';
       const dataOffset = 20;
       const buf = Buffer.alloc(dataOffset + content.length);
@@ -379,7 +379,7 @@ describe('electron-asar-helpers', () => {
   });
 
   describe('readAsarEntryText', () => {
-    it('returns string content for a valid entry', () => {
+    it('returns string content for a valid entry', async () => {
       const content = 'console.log("hi")';
       const dataOffset = 20;
       const buf = Buffer.alloc(dataOffset + content.length);
@@ -397,7 +397,7 @@ describe('electron-asar-helpers', () => {
       expect(readAsarEntryText(buf, parsedAsar, 'main.js')).toBe(content);
     });
 
-    it('returns undefined when entry is not found', () => {
+    it('returns undefined when entry is not found', async () => {
       const parsedAsar = {
         files: [],
         dataOffset: 16,
@@ -415,13 +415,13 @@ describe('electron-asar-helpers', () => {
   // parseBrowserWindowHints
   // =========================================================================
   describe('parseBrowserWindowHints', () => {
-    it('returns empty preloads and null devTools for plain code', () => {
+    it('returns empty preloads and null devTools for plain code', async () => {
       const result = parseBrowserWindowHints('console.log("hello");');
       expect(result.preloadScripts).toEqual([]);
       expect(result.devToolsEnabled).toBeNull();
     });
 
-    it('detects preload from path.join pattern', () => {
+    it('detects preload from path.join pattern', async () => {
       const src = `new BrowserWindow({
         webPreferences: {
           preload: path.join(__dirname, 'preload.js')
@@ -432,37 +432,37 @@ describe('electron-asar-helpers', () => {
       expect(result.preloadScripts).toContain('preload.js');
     });
 
-    it('detects preload from string literal', () => {
+    it('detects preload from string literal', async () => {
       const src = `webPreferences: { preload: "./preload-main.js" }`;
       const result = parseBrowserWindowHints(src);
       expect(result.preloadScripts).toContain('./preload-main.js');
     });
 
-    it('detects preload from path.resolve pattern', () => {
+    it('detects preload from path.resolve pattern', async () => {
       const src = `preload: path.resolve(__dirname, 'scripts/preload.js')`;
       const result = parseBrowserWindowHints(src);
       expect(result.preloadScripts).toContain('scripts/preload.js');
     });
 
-    it('detects explicit devTools: true', () => {
+    it('detects explicit devTools: true', async () => {
       const src = `webPreferences: { devTools: true }`;
       const result = parseBrowserWindowHints(src);
       expect(result.devToolsEnabled).toBe(true);
     });
 
-    it('detects explicit devTools: false', () => {
+    it('detects explicit devTools: false', async () => {
       const src = `webPreferences: { devTools: false }`;
       const result = parseBrowserWindowHints(src);
       expect(result.devToolsEnabled).toBe(false);
     });
 
-    it('detects .openDevTools() call and sets devTools to true', () => {
+    it('detects .openDevTools() call and sets devTools to true', async () => {
       const src = `win.webContents.openDevTools();`;
       const result = parseBrowserWindowHints(src);
       expect(result.devToolsEnabled).toBe(true);
     });
 
-    it('openDevTools overrides explicit devTools: false', () => {
+    it('openDevTools overrides explicit devTools: false', async () => {
       const src = `
         webPreferences: { devTools: false }
         win.webContents.openDevTools();
@@ -472,7 +472,7 @@ describe('electron-asar-helpers', () => {
       expect(result.devToolsEnabled).toBe(true);
     });
 
-    it('detects multiple preload scripts', () => {
+    it('detects multiple preload scripts', async () => {
       const src = `
         preload: path.join(__dirname, 'preloadA.js')
         preload: path.join(__dirname, 'preloadB.js')
@@ -483,7 +483,7 @@ describe('electron-asar-helpers', () => {
       expect(result.preloadScripts).toContain('preloadB.js');
     });
 
-    it('deduplicates identical preload paths', () => {
+    it('deduplicates identical preload paths', async () => {
       const src = `
         preload: path.join(__dirname, 'preload.js')
         preload: path.join(app.getAppPath(), 'preload.js')

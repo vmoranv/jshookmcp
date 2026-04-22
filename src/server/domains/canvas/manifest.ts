@@ -1,10 +1,8 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
-import { DebuggerManager } from '@server/domains/shared/modules';
-import { TraceRecorder } from '@modules/trace/TraceRecorder';
 import { canvasTools } from '@server/domains/canvas/definitions';
-import { CanvasToolHandlers } from '@server/domains/canvas/handlers';
-import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
+import type { CanvasToolHandlers } from '@server/domains/canvas/handlers';
+import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 import type { CanvasDomainDependencies } from '@server/domains/canvas/dependencies';
 
 const DOMAIN = 'canvas' as const;
@@ -14,7 +12,12 @@ const t = toolLookup(canvasTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { DebuggerManager } = await import('@server/domains/shared/modules');
+  const { TraceRecorder } = await import('@modules/trace/TraceRecorder');
+  const { ReverseEvidenceGraph } = await import('@server/evidence/ReverseEvidenceGraph');
+  const { CanvasToolHandlers } = await import('@server/domains/canvas/handlers');
+
   ensureBrowserCore(ctx);
   if (!ctx.debuggerManager) ctx.debuggerManager = new DebuggerManager(ctx.collector!);
   if (!ctx.traceRecorder) ctx.traceRecorder = new TraceRecorder();

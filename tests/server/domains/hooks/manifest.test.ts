@@ -19,13 +19,13 @@ import { ensureBrowserCore } from '@server/domains/shared/registry';
 
 describe('Hooks Manifest', () => {
   describe('ensure', () => {
-    it('initializes context components if missing', () => {
+    it('initializes context components if missing', async () => {
       const mockCtx: any = {
         config: { puppeteer: {} },
         pageController: {} as PageController,
       };
 
-      const ai = manifest.ensure(mockCtx as MCPServerContext);
+      const ai = await manifest.ensure(mockCtx as MCPServerContext);
 
       expect(ensureBrowserCore).toHaveBeenCalledWith(mockCtx);
       expect(mockCtx.hookPresetHandlers).toBeDefined();
@@ -33,7 +33,7 @@ describe('Hooks Manifest', () => {
       expect(ai).toBe(mockCtx.aiHookHandlers);
     });
 
-    it('returns existing handlers if already initialized', () => {
+    it('returns existing handlers if already initialized', async () => {
       const existingPreset = {} as HookPresetToolHandlers;
       const existingAI = {} as AIHookToolHandlers;
       const mockCtx: any = {
@@ -42,7 +42,7 @@ describe('Hooks Manifest', () => {
         pageController: {} as PageController,
       };
 
-      const ai = manifest.ensure(mockCtx as MCPServerContext);
+      const ai = await manifest.ensure(mockCtx as MCPServerContext);
 
       expect(ai).toBe(existingAI);
     });

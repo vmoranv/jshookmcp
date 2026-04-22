@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { mojoIpcTools } from './definitions';
-import { MojoIPCHandlers } from './index';
+import type { MojoIPCHandlers } from './index';
 
 const DOMAIN = 'mojo-ipc' as const;
 const DEP_KEY = 'mojoIpcHandlers' as const;
@@ -11,7 +11,8 @@ const bind = (
   invoke: (handlers: MojoIPCHandlers, args: Record<string, unknown>) => Promise<unknown>,
 ) => bindByDepKey<MojoIPCHandlers>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): MojoIPCHandlers {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { MojoIPCHandlers } = await import('./index');
   const existingHandlers = ctx.getDomainInstance<MojoIPCHandlers>(DEP_KEY);
   if (existingHandlers) {
     return existingHandlers;

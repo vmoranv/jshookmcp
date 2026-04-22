@@ -26,7 +26,7 @@ describe('PointerChainHandlers', () => {
     handlers = new PointerChainHandlers(mockptrEngine);
   });
 
-  it('instantiates correctly', () => {
+  it('instantiates correctly', async () => {
     expect(handlers).toBeInstanceOf(PointerChainHandlers);
   });
 

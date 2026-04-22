@@ -8,7 +8,7 @@ function getTool(name: string) {
 }
 
 describe('behaviorTools', () => {
-  it('describes captcha_vision_solve with challenge type fields', () => {
+  it('describes captcha_vision_solve with challenge type fields', async () => {
     const tool = getTool('captcha_vision_solve');
     const props = tool.inputSchema.properties as Record<string, { description?: string }>;
 
@@ -20,7 +20,7 @@ describe('behaviorTools', () => {
     expect(props.challengeType).toBeDefined();
   });
 
-  it('exposes a generic widget_challenge_solve tool without product branding', () => {
+  it('exposes a generic widget_challenge_solve tool without product branding', async () => {
     const tool = getTool('widget_challenge_solve');
     const props = tool.inputSchema.properties as Record<string, { description?: string }>;
 

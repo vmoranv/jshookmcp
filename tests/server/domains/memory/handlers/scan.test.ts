@@ -24,7 +24,7 @@ describe('ScanHandlers', () => {
     handlers = new ScanHandlers(mockscanner);
   });
 
-  it('instantiates correctly', () => {
+  it('instantiates correctly', async () => {
     expect(handlers).toBeInstanceOf(ScanHandlers);
   });
 

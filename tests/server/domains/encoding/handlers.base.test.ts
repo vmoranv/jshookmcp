@@ -100,7 +100,7 @@ describe('EncodingHandlersBase', () => {
     delete (globalThis as any).window;
   });
 
-  it('decodes hex, base64, and auto-detected binary inputs', () => {
+  it('decodes hex, base64, and auto-detected binary inputs', async () => {
     expect(handlers.testLooksLikeBase64('SGVsbG8=')).toBe(true);
     expect(handlers.testLooksLikeBase64('plain text')).toBe(false);
 
@@ -202,7 +202,7 @@ describe('EncodingHandlersBase', () => {
     expect(second?.toString('utf8')).toBe('plain text body');
   });
 
-  it('classifies formats, entropy bands, and decoded output shapes', () => {
+  it('classifies formats, entropy bands, and decoded output shapes', async () => {
     expect(handlers.testDetectMagicFormats(Buffer.from([0x89, 0x50, 0x4e, 0x47]))).toContain('png');
     expect(handlers.testDetectStructuredFormats(Buffer.from([0x08]))).toEqual(['protobuf']);
     expect(handlers.testDetectStructuredFormats(Buffer.from([0x90]))).toEqual([

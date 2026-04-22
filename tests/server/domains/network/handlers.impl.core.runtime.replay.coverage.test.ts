@@ -804,28 +804,28 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
   // ══════════════════════════════════════════════════════════════════════════
 
   describe('parseBooleanArg — coverage', () => {
-    it('returns defaultValue for null', () => {
+    it('returns defaultValue for null', async () => {
       expect(handler.testParseBooleanArg(null, false)).toBe(false);
     });
 
-    it('returns defaultValue for undefined', () => {
+    it('returns defaultValue for undefined', async () => {
       expect(handler.testParseBooleanArg(undefined, true)).toBe(true);
     });
 
-    it('returns defaultValue for plain object', () => {
+    it('returns defaultValue for plain object', async () => {
       expect(handler.testParseBooleanArg({}, false)).toBe(false);
     });
 
-    it('returns defaultValue for function', () => {
+    it('returns defaultValue for function', async () => {
       expect(handler.testParseBooleanArg(() => {}, true)).toBe(true);
     });
 
-    it('returns boolean value as-is', () => {
+    it('returns boolean value as-is', async () => {
       expect(handler.testParseBooleanArg(true, false)).toBe(true);
       expect(handler.testParseBooleanArg(false, true)).toBe(false);
     });
 
-    it('returns defaultValue for numbers (no coercion)', () => {
+    it('returns defaultValue for numbers (no coercion)', async () => {
       expect(handler.testParseBooleanArg(1, false)).toBe(false);
       expect(handler.testParseBooleanArg(0, true)).toBe(true);
       expect(handler.testParseBooleanArg(42, true)).toBe(true);
@@ -833,7 +833,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
       expect(handler.testParseBooleanArg(NaN, true)).toBe(true);
     });
 
-    it('returns defaultValue for strings (no coercion)', () => {
+    it('returns defaultValue for strings (no coercion)', async () => {
       expect(handler.testParseBooleanArg('true', false)).toBe(false);
       expect(handler.testParseBooleanArg('TRUE', false)).toBe(false);
       expect(handler.testParseBooleanArg('1', false)).toBe(false);
@@ -854,65 +854,65 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
   // ══════════════════════════════════════════════════════════════════════════
 
   describe('parseNumberArg — coverage', () => {
-    it('returns defaultValue for undefined', () => {
+    it('returns defaultValue for undefined', async () => {
       expect(handler.testParseNumberArg(undefined, { defaultValue: 42 })).toBe(42);
     });
 
-    it('returns defaultValue for null', () => {
+    it('returns defaultValue for null', async () => {
       expect(handler.testParseNumberArg(null, { defaultValue: 7 })).toBe(7);
     });
 
-    it('returns defaultValue for non-numeric string', () => {
+    it('returns defaultValue for non-numeric string', async () => {
       expect(handler.testParseNumberArg('abc', { defaultValue: 10 })).toBe(10);
     });
 
-    it('returns defaultValue for empty string', () => {
+    it('returns defaultValue for empty string', async () => {
       expect(handler.testParseNumberArg('', { defaultValue: 7 })).toBe(7);
     });
 
-    it('returns defaultValue for whitespace-only string', () => {
+    it('returns defaultValue for whitespace-only string', async () => {
       expect(handler.testParseNumberArg('   ', { defaultValue: 5 })).toBe(5);
     });
 
-    it('returns defaultValue for numeric string (no coercion)', () => {
+    it('returns defaultValue for numeric string (no coercion)', async () => {
       expect(handler.testParseNumberArg('42', { defaultValue: 0 })).toBe(0);
       expect(handler.testParseNumberArg('  42  ', { defaultValue: 0 })).toBe(0);
     });
 
-    it('parses a finite number', () => {
+    it('parses a finite number', async () => {
       expect(handler.testParseNumberArg(3.14, { defaultValue: 0 })).toBe(3.14);
     });
 
-    it('returns defaultValue for Infinity', () => {
+    it('returns defaultValue for Infinity', async () => {
       expect(handler.testParseNumberArg(Infinity, { defaultValue: 99 })).toBe(99);
     });
 
-    it('returns defaultValue for NaN', () => {
+    it('returns defaultValue for NaN', async () => {
       expect(handler.testParseNumberArg(NaN, { defaultValue: 88 })).toBe(88);
     });
 
-    it('truncates to integer when integer=true', () => {
+    it('truncates to integer when integer=true', async () => {
       expect(handler.testParseNumberArg(3.9, { defaultValue: 0, integer: true })).toBe(3);
       expect(handler.testParseNumberArg(-3.9, { defaultValue: 0, integer: true })).toBe(-3);
     });
 
-    it('applies min constraint — clamps up', () => {
+    it('applies min constraint — clamps up', async () => {
       expect(handler.testParseNumberArg(5, { defaultValue: 0, min: 10 })).toBe(10);
       expect(handler.testParseNumberArg(15, { defaultValue: 0, min: 10 })).toBe(15);
     });
 
-    it('applies max constraint — clamps down', () => {
+    it('applies max constraint — clamps down', async () => {
       expect(handler.testParseNumberArg(50, { defaultValue: 0, max: 20 })).toBe(20);
       expect(handler.testParseNumberArg(10, { defaultValue: 0, max: 20 })).toBe(10);
     });
 
-    it('applies min and max together with clamping', () => {
+    it('applies min and max together with clamping', async () => {
       expect(handler.testParseNumberArg(5, { defaultValue: 0, min: 10, max: 20 })).toBe(10);
       expect(handler.testParseNumberArg(25, { defaultValue: 0, min: 10, max: 20 })).toBe(20);
       expect(handler.testParseNumberArg(15, { defaultValue: 0, min: 10, max: 20 })).toBe(15);
     });
 
-    it('applies integer truncation before min constraint', () => {
+    it('applies integer truncation before min constraint', async () => {
       // 3.9 → truncate to 3 → clamp to min 10 → 10
       expect(handler.testParseNumberArg(3.9, { defaultValue: 0, min: 10, integer: true })).toBe(10);
     });

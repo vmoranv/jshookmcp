@@ -58,17 +58,17 @@ describe('SourcemapToolHandlersCommon', () => {
   });
 
   describe('combineSourceRoot', () => {
-    it('returns path if no root', () => {
+    it('returns path if no root', async () => {
       expect(handlers.testCombineSourceRoot(undefined, 'src/a.ts')).toBe('src/a.ts');
     });
-    it('returns root if no path', () => {
+    it('returns root if no path', async () => {
       expect(handlers.testCombineSourceRoot('http://root', '')).toBe('http://root');
     });
-    it('returns right path if absolute', () => {
+    it('returns right path if absolute', async () => {
       expect(handlers.testCombineSourceRoot('http://root', '/var/log')).toBe('/var/log');
       expect(handlers.testCombineSourceRoot('http://root', 'http://abs')).toBe('http://abs');
     });
-    it('combines url root', () => {
+    it('combines url root', async () => {
       expect(handlers.testCombineSourceRoot('http://root.com/sub', 'path')).toBe(
         'http://root.com/sub/path',
       );
@@ -76,40 +76,40 @@ describe('SourcemapToolHandlersCommon', () => {
         'malformed://root/path',
       );
     });
-    it('combines regular paths', () => {
+    it('combines regular paths', async () => {
       expect(handlers.testCombineSourceRoot('root/', 'path')).toBe('root/path');
       expect(handlers.testCombineSourceRoot('root/', '/path')).toBe('/path');
     });
   });
 
   describe('normalizeSourcePath', () => {
-    it('handles empty path', () => {
+    it('handles empty path', async () => {
       expect(handlers.testNormalizeSourcePath('', 0)).toBe('source_1.js');
     });
-    it('strips webpack prefix', () => {
+    it('strips webpack prefix', async () => {
       expect(handlers.testNormalizeSourcePath('webpack://src/a', 0)).toBe('src/a');
     });
-    it('handles data-uris', () => {
+    it('handles data-uris', async () => {
       expect(handlers.testNormalizeSourcePath('data:app/json', 0)).toBe('inline/source_1.txt');
     });
-    it('handles URLs', () => {
+    it('handles URLs', async () => {
       expect(handlers.testNormalizeSourcePath('http://foo.com/bar.js', 0)).toBe('foo.com/bar.js');
       expect(handlers.testNormalizeSourcePath('invalid://foo.com', 0)).toBe('foo.com');
     });
-    it('strips query strings', () => {
+    it('strips query strings', async () => {
       expect(handlers.testNormalizeSourcePath('foo.js?q=1#hash', 0)).toBe('foo.js');
     });
-    it('strips windows drives', () => {
+    it('strips windows drives', async () => {
       expect(handlers.testNormalizeSourcePath('C:\\foo\\bar', 0)).toBe('_/foo/bar');
     });
-    it('sanitizes segments', () => {
+    it('sanitizes segments', async () => {
       expect(handlers.testNormalizeSourcePath('foo/../bar/./baz', 0)).toBe('foo/_/bar/_/baz');
       expect(handlers.testNormalizeSourcePath('...', 0)).toBe('...');
     });
   });
 
   describe('sanitizePathSegment', () => {
-    it('replaces bad chars', () => {
+    it('replaces bad chars', async () => {
       expect(handlers.testSanitizePathSegment('foo<bar>baz\\qux')).toBe('foo_bar_baz\\qux');
       expect(handlers.testSanitizePathSegment('.')).toBe('_');
       expect(handlers.testSanitizePathSegment('..')).toBe('_');
@@ -117,37 +117,37 @@ describe('SourcemapToolHandlersCommon', () => {
   });
 
   describe('safeTarget', () => {
-    it('transforms url to safe target', () => {
+    it('transforms url to safe target', async () => {
       expect(handlers.testSafeTarget('http://foo.com/bar')).toBe('foo_com_bar');
       expect(handlers.testSafeTarget('a_b++')).toBe('a_b');
     });
   });
 
   describe('arg parsers', () => {
-    it('parseBooleanArg', () => {
+    it('parseBooleanArg', async () => {
       expect(handlers.testParseBooleanArg(true, false)).toBe(true);
       expect(handlers.testParseBooleanArg('true', false)).toBe(false);
     });
 
-    it('requiredStringArg', () => {
+    it('requiredStringArg', async () => {
       expect(handlers.testRequiredStringArg('val', 'name')).toBe('val');
       expect(() => handlers.testRequiredStringArg('', 'name')).toThrow('name is required');
       expect(() => handlers.testRequiredStringArg(null, 'name')).toThrow('name is required');
     });
 
-    it('optionalStringArg', () => {
+    it('optionalStringArg', async () => {
       expect(handlers.testOptionalStringArg(' val ')).toBe('val');
       expect(handlers.testOptionalStringArg('')).toBe(undefined);
       expect(handlers.testOptionalStringArg(null)).toBe(undefined);
     });
 
-    it('asRecord', () => {
+    it('asRecord', async () => {
       expect(handlers.testAsRecord({ a: 1 })).toEqual({ a: 1 });
       expect(handlers.testAsRecord(null)).toEqual({});
       expect(handlers.testAsRecord('str')).toEqual({});
     });
 
-    it('asString', () => {
+    it('asString', async () => {
       expect(handlers.testAsString('str')).toBe('str');
       expect(handlers.testAsString(123)).toBe(undefined);
     });
@@ -203,13 +203,13 @@ describe('SourcemapToolHandlersCommon', () => {
   });
 
   describe('responses', () => {
-    it('json formats content', () => {
+    it('json formats content', async () => {
       const res = handlers.testJson({ ok: true }) as any;
       expect(res.content[0].type).toBe('text');
       expect(res.content[0].text).toContain('"ok": true');
     });
 
-    it('fail formats error', () => {
+    it('fail formats error', async () => {
       const res = handlers.testFail('tool', new Error('msg')) as any;
       expect(res.content[0].text).toContain('"tool": "tool"');
       expect(res.content[0].text).toContain('"error": "msg"');

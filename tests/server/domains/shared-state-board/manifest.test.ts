@@ -2,19 +2,19 @@ import { describe, it, expect } from 'vitest';
 import manifest from '../../../../src/server/domains/shared-state-board/manifest';
 
 describe('shared-state-board manifest', () => {
-  it('should have correct domain configuration', () => {
+  it('should have correct domain configuration', async () => {
     expect(manifest.domain).toBe('shared-state-board');
     expect(manifest.depKey).toBe('sharedStateBoardHandlers');
     expect(manifest.version).toBe(1);
     expect(manifest.kind).toBe('domain-manifest');
   });
 
-  it('should have workflow and full profiles', () => {
+  it('should have workflow and full profiles', async () => {
     expect(manifest.profiles).toContain('full');
     expect(manifest.profiles).toContain('workflow');
   });
 
-  it('should have all tool registrations', () => {
+  it('should have all tool registrations', async () => {
     const toolNames = manifest.registrations.map((r) => r.tool.name);
 
     expect(toolNames).toContain('state_board');
@@ -23,11 +23,11 @@ describe('shared-state-board manifest', () => {
     expect(toolNames).toHaveLength(3);
   });
 
-  it('should have ensure function that returns handler instance', () => {
+  it('should have ensure function that returns handler instance', async () => {
     const mockCtx = {
       getDomainInstance: () => undefined,
     } as unknown as import('@server/MCPServer.context').MCPServerContext;
-    const handler = manifest.ensure(mockCtx);
+    const handler = await manifest.ensure(mockCtx);
 
     expect(handler).toBeDefined();
     expect(typeof handler.handleSet).toBe('function');

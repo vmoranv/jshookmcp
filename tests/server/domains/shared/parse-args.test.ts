@@ -12,10 +12,10 @@ import {
 
 describe('parse-args', () => {
   describe('argString', () => {
-    it('returns the string when present and correct type', () => {
+    it('returns the string when present and correct type', async () => {
       expect(argString({ key: 'val' }, 'key')).toBe('val');
     });
-    it('returns fallback or undefined when missing or wrong type', () => {
+    it('returns fallback or undefined when missing or wrong type', async () => {
       expect(argString({}, 'key')).toBeUndefined();
       expect(argString({ key: 123 }, 'key')).toBeUndefined();
       expect(argString({}, 'key', 'fallback')).toBe('fallback');
@@ -24,10 +24,10 @@ describe('parse-args', () => {
   });
 
   describe('argNumber', () => {
-    it('returns the number when present and correct type', () => {
+    it('returns the number when present and correct type', async () => {
       expect(argNumber({ key: 42 }, 'key')).toBe(42);
     });
-    it('returns fallback or undefined when missing or wrong type', () => {
+    it('returns fallback or undefined when missing or wrong type', async () => {
       expect(argNumber({}, 'key')).toBeUndefined();
       expect(argNumber({ key: '123' }, 'key')).toBeUndefined();
       expect(argNumber({}, 'key', 99)).toBe(99);
@@ -36,11 +36,11 @@ describe('parse-args', () => {
   });
 
   describe('argBool', () => {
-    it('returns the boolean when present and correct type', () => {
+    it('returns the boolean when present and correct type', async () => {
       expect(argBool({ key: true }, 'key')).toBe(true);
       expect(argBool({ key: false }, 'key')).toBe(false);
     });
-    it('returns fallback or undefined when missing or wrong type', () => {
+    it('returns fallback or undefined when missing or wrong type', async () => {
       expect(argBool({}, 'key')).toBeUndefined();
       expect(argBool({ key: 'true' }, 'key')).toBeUndefined();
       expect(argBool({}, 'key', true)).toBe(true);
@@ -50,24 +50,24 @@ describe('parse-args', () => {
 
   describe('argEnum', () => {
     const ALLOWED = new Set(['a', 'b'] as const);
-    it('returns valid enum value', () => {
+    it('returns valid enum value', async () => {
       expect(argEnum({ key: 'a' }, 'key', ALLOWED)).toBe('a');
     });
-    it('returns fallback if absent', () => {
+    it('returns fallback if absent', async () => {
       expect(argEnum({}, 'key', ALLOWED)).toBeUndefined();
       expect(argEnum({}, 'key', ALLOWED, 'a')).toBe('a');
     });
-    it('returns fallback if wrong type', () => {
+    it('returns fallback if wrong type', async () => {
       expect(argEnum({ key: 123 }, 'key', ALLOWED)).toBeUndefined();
       expect(argEnum({ key: 123 }, 'key', ALLOWED, 'a')).toBe('a');
     });
-    it('throws if present but invalid', () => {
+    it('throws if present but invalid', async () => {
       expect(() => argEnum({ key: 'c' }, 'key', ALLOWED)).toThrowError(/Invalid key: "c"/);
     });
   });
 
   describe('REQUIRED variants', () => {
-    it('argStringRequired returns string or throws', () => {
+    it('argStringRequired returns string or throws', async () => {
       expect(argStringRequired({ key: 'val' }, 'key')).toBe('val');
       expect(() => argStringRequired({}, 'key')).toThrowError(
         /Missing required string argument: "key"/,
@@ -77,7 +77,7 @@ describe('parse-args', () => {
       );
     });
 
-    it('argNumberRequired returns number or throws', () => {
+    it('argNumberRequired returns number or throws', async () => {
       expect(argNumberRequired({ key: 42 }, 'key')).toBe(42);
       expect(() => argNumberRequired({}, 'key')).toThrowError(
         /Missing required number argument: "key"/,
@@ -89,14 +89,14 @@ describe('parse-args', () => {
   });
 
   describe('Complex types', () => {
-    it('argStringArray extracts string arrays, dropping non-strings', () => {
+    it('argStringArray extracts string arrays, dropping non-strings', async () => {
       expect(argStringArray({ key: ['a', 'b'] }, 'key')).toEqual(['a', 'b']);
       expect(argStringArray({ key: ['a', 1, 'b'] }, 'key')).toEqual(['a', 'b']);
       expect(argStringArray({ key: 'not array' }, 'key')).toEqual([]);
       expect(argStringArray({}, 'key')).toEqual([]);
     });
 
-    it('argObject extracts plain objects', () => {
+    it('argObject extracts plain objects', async () => {
       expect(argObject({ key: { a: 1 } }, 'key')).toEqual({ a: 1 });
       expect(argObject({ key: 'string' }, 'key')).toBeUndefined();
       expect(argObject({ key: [] }, 'key')).toBeUndefined();

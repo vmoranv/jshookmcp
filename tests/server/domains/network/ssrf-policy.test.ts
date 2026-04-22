@@ -15,114 +15,114 @@ import {
 
 describe('network ssrf-policy helpers', () => {
   describe('isPrivateHost', () => {
-    it('recognizes localhost as private', () => {
+    it('recognizes localhost as private', async () => {
       expect(isPrivateHost('localhost')).toBe(true);
     });
 
-    it('recognizes 127.0.0.1 as private', () => {
+    it('recognizes 127.0.0.1 as private', async () => {
       expect(isPrivateHost('127.0.0.1')).toBe(true);
     });
 
-    it('recognizes 10.x as private', () => {
+    it('recognizes 10.x as private', async () => {
       expect(isPrivateHost('10.0.0.1')).toBe(true);
     });
 
-    it('recognizes 172.16.x as private', () => {
+    it('recognizes 172.16.x as private', async () => {
       expect(isPrivateHost('172.16.0.1')).toBe(true);
     });
 
-    it('recognizes 192.168.x as private', () => {
+    it('recognizes 192.168.x as private', async () => {
       expect(isPrivateHost('192.168.1.1')).toBe(true);
     });
 
-    it('recognizes 169.254.x as private', () => {
+    it('recognizes 169.254.x as private', async () => {
       expect(isPrivateHost('169.254.1.1')).toBe(true);
     });
 
-    it('recognizes 0.0.0.0 as private', () => {
+    it('recognizes 0.0.0.0 as private', async () => {
       expect(isPrivateHost('0.0.0.0')).toBe(true);
     });
 
-    it('recognizes ::1 as private', () => {
+    it('recognizes ::1 as private', async () => {
       expect(isPrivateHost('::1')).toBe(true);
     });
 
-    it('recognizes :: as private', () => {
+    it('recognizes :: as private', async () => {
       expect(isPrivateHost('::')).toBe(true);
     });
 
-    it('recognizes IPv6-mapped IPv4 private as private', () => {
+    it('recognizes IPv6-mapped IPv4 private as private', async () => {
       expect(isPrivateHost('::ffff:127.0.0.1')).toBe(true);
     });
 
-    it('recognizes fc00:: as private', () => {
+    it('recognizes fc00:: as private', async () => {
       expect(isPrivateHost('fc00::1')).toBe(true);
     });
 
-    it('recognizes fe80:: as private', () => {
+    it('recognizes fe80:: as private', async () => {
       expect(isPrivateHost('fe80::1')).toBe(true);
     });
 
-    it('recognizes public IPs as not private', () => {
+    it('recognizes public IPs as not private', async () => {
       expect(isPrivateHost('8.8.8.8')).toBe(false);
     });
 
-    it('handles bracketed IPv6', () => {
+    it('handles bracketed IPv6', async () => {
       expect(isPrivateHost('[::1]')).toBe(true);
     });
 
-    it('returns false for non-IP hostnames', () => {
+    it('returns false for non-IP hostnames', async () => {
       expect(isPrivateHost('example.com')).toBe(false);
     });
   });
 
   describe('isLoopbackHost', () => {
-    it('recognizes localhost', () => {
+    it('recognizes localhost', async () => {
       expect(isLoopbackHost('localhost')).toBe(true);
     });
 
-    it('recognizes 127.0.0.1', () => {
+    it('recognizes 127.0.0.1', async () => {
       expect(isLoopbackHost('127.0.0.1')).toBe(true);
     });
 
-    it('recognizes ::1', () => {
+    it('recognizes ::1', async () => {
       expect(isLoopbackHost('::1')).toBe(true);
     });
 
-    it('rejects non-loopback', () => {
+    it('rejects non-loopback', async () => {
       expect(isLoopbackHost('10.0.0.1')).toBe(false);
     });
   });
 
   describe('isLoopbackHttpUrl', () => {
-    it('recognizes http://localhost as loopback', () => {
+    it('recognizes http://localhost as loopback', async () => {
       expect(isLoopbackHttpUrl('http://localhost:3000/path')).toBe(true);
     });
 
-    it('recognizes http://127.0.0.1 as loopback', () => {
+    it('recognizes http://127.0.0.1 as loopback', async () => {
       expect(isLoopbackHttpUrl('http://127.0.0.1/api')).toBe(true);
     });
 
-    it('rejects https URLs', () => {
+    it('rejects https URLs', async () => {
       expect(isLoopbackHttpUrl('https://localhost/api')).toBe(false);
     });
 
-    it('rejects non-loopback URLs', () => {
+    it('rejects non-loopback URLs', async () => {
       expect(isLoopbackHttpUrl('http://example.com/api')).toBe(false);
     });
 
-    it('returns false for invalid URL', () => {
+    it('returns false for invalid URL', async () => {
       expect(isLoopbackHttpUrl('not-a-url')).toBe(false);
     });
   });
 
   describe('isLocalSsrfBypassEnabled', () => {
-    it('returns false by default', () => {
+    it('returns false by default', async () => {
       delete process.env.ALLOW_LOCAL_SSRF;
       expect(isLocalSsrfBypassEnabled()).toBe(false);
     });
 
-    it('returns true when env is set', () => {
+    it('returns true when env is set', async () => {
       process.env.ALLOW_LOCAL_SSRF = 'true';
       expect(isLocalSsrfBypassEnabled()).toBe(true);
       delete process.env.ALLOW_LOCAL_SSRF;
@@ -130,12 +130,12 @@ describe('network ssrf-policy helpers', () => {
   });
 
   describe('createNetworkAuthorizationPolicy', () => {
-    it('returns undefined for no input', () => {
+    it('returns undefined for no input', async () => {
       expect(createNetworkAuthorizationPolicy()).toBeUndefined();
       expect(createNetworkAuthorizationPolicy(undefined)).toBeUndefined();
     });
 
-    it('creates policy with empty input', () => {
+    it('creates policy with empty input', async () => {
       const policy = createNetworkAuthorizationPolicy({});
       expect(policy).toBeDefined();
       expect(policy!.allowPrivateNetwork).toBe(false);
@@ -144,7 +144,7 @@ describe('network ssrf-policy helpers', () => {
       expect(policy!.reason).toBeNull();
     });
 
-    it('parses allowedHosts', () => {
+    it('parses allowedHosts', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedHosts: ['example.com', 'localhost:8080'],
       });
@@ -152,92 +152,92 @@ describe('network ssrf-policy helpers', () => {
       expect(policy!.allowedHosts.has('localhost:8080')).toBe(true);
     });
 
-    it('parses allowedCidrs for IPv4', () => {
+    it('parses allowedCidrs for IPv4', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedCidrs: ['10.0.0.0/24'],
       });
       expect(policy!.allowedCidrs).toContain('10.0.0.0/24');
     });
 
-    it('parses allowedCidrs for IPv6', () => {
+    it('parses allowedCidrs for IPv6', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedCidrs: ['::1/128'],
       });
       expect(policy!.allowedCidrs.length).toBe(1);
     });
 
-    it('throws on invalid CIDR format', () => {
+    it('throws on invalid CIDR format', async () => {
       expect(() => createNetworkAuthorizationPolicy({ allowedCidrs: ['not-a-cidr'] })).toThrow(
         'Invalid authorization CIDR',
       );
     });
 
-    it('throws on CIDR with no slash', () => {
+    it('throws on CIDR with no slash', async () => {
       expect(() => createNetworkAuthorizationPolicy({ allowedCidrs: ['10.0.0.1'] })).toThrow(
         'Invalid authorization CIDR',
       );
     });
 
-    it('throws on CIDR with slash at end', () => {
+    it('throws on CIDR with slash at end', async () => {
       expect(() => createNetworkAuthorizationPolicy({ allowedCidrs: ['10.0.0.1/'] })).toThrow(
         'Invalid authorization CIDR',
       );
     });
 
-    it('throws on CIDR with invalid prefix', () => {
+    it('throws on CIDR with invalid prefix', async () => {
       expect(() => createNetworkAuthorizationPolicy({ allowedCidrs: ['10.0.0.0/abc'] })).toThrow(
         'Invalid authorization CIDR',
       );
     });
 
-    it('throws on IPv4 CIDR with prefix > 32', () => {
+    it('throws on IPv4 CIDR with prefix > 32', async () => {
       expect(() => createNetworkAuthorizationPolicy({ allowedCidrs: ['10.0.0.0/33'] })).toThrow(
         'Invalid authorization CIDR',
       );
     });
 
-    it('throws on IPv6 CIDR with prefix > 128', () => {
+    it('throws on IPv6 CIDR with prefix > 128', async () => {
       expect(() => createNetworkAuthorizationPolicy({ allowedCidrs: ['::1/129'] })).toThrow(
         'Invalid authorization CIDR',
       );
     });
 
-    it('skips empty CIDR entries', () => {
+    it('skips empty CIDR entries', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedCidrs: ['  ', '10.0.0.0/24'],
       });
       expect(policy!.allowedCidrs.length).toBe(1);
     });
 
-    it('parses valid expiresAt', () => {
+    it('parses valid expiresAt', async () => {
       const future = new Date(Date.now() + 86400000).toISOString();
       const policy = createNetworkAuthorizationPolicy({ expiresAt: future });
       expect(policy!.expiresAt).toBe(future);
       expect(policy!.expiresAtMs).toBeGreaterThan(0);
     });
 
-    it('throws on invalid expiresAt', () => {
+    it('throws on invalid expiresAt', async () => {
       expect(() => createNetworkAuthorizationPolicy({ expiresAt: 'not-a-date' })).toThrow(
         'Invalid authorization expiry',
       );
     });
 
-    it('handles empty expiresAt', () => {
+    it('handles empty expiresAt', async () => {
       const policy = createNetworkAuthorizationPolicy({ expiresAt: '  ' });
       expect(policy!.expiresAt).toBeNull();
     });
 
-    it('stores reason when provided', () => {
+    it('stores reason when provided', async () => {
       const policy = createNetworkAuthorizationPolicy({ reason: 'testing' });
       expect(policy!.reason).toBe('testing');
     });
 
-    it('nulls empty reason', () => {
+    it('nulls empty reason', async () => {
       const policy = createNetworkAuthorizationPolicy({ reason: '  ' });
       expect(policy!.reason).toBeNull();
     });
 
-    it('sets boolean flags', () => {
+    it('sets boolean flags', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowPrivateNetwork: true,
         allowInsecureHttp: true,
@@ -248,23 +248,23 @@ describe('network ssrf-policy helpers', () => {
   });
 
   describe('hasAuthorizedTargets', () => {
-    it('returns false for no policy', () => {
+    it('returns false for no policy', async () => {
       expect(hasAuthorizedTargets(undefined)).toBe(false);
     });
 
-    it('returns false for empty policy', () => {
+    it('returns false for empty policy', async () => {
       const policy = createNetworkAuthorizationPolicy({});
       expect(hasAuthorizedTargets(policy)).toBe(false);
     });
 
-    it('returns true when hosts are allowed', () => {
+    it('returns true when hosts are allowed', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedHosts: ['example.com'],
       });
       expect(hasAuthorizedTargets(policy)).toBe(true);
     });
 
-    it('returns true when CIDRs are allowed', () => {
+    it('returns true when CIDRs are allowed', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedCidrs: ['10.0.0.0/24'],
       });
@@ -273,22 +273,22 @@ describe('network ssrf-policy helpers', () => {
   });
 
   describe('isNetworkAuthorizationExpired', () => {
-    it('returns false for no policy', () => {
+    it('returns false for no policy', async () => {
       expect(isNetworkAuthorizationExpired(undefined)).toBe(false);
     });
 
-    it('returns false when no expiry set', () => {
+    it('returns false when no expiry set', async () => {
       const policy = createNetworkAuthorizationPolicy({});
       expect(isNetworkAuthorizationExpired(policy)).toBe(false);
     });
 
-    it('returns false when expiry is in the future', () => {
+    it('returns false when expiry is in the future', async () => {
       const future = new Date(Date.now() + 86400000).toISOString();
       const policy = createNetworkAuthorizationPolicy({ expiresAt: future });
       expect(isNetworkAuthorizationExpired(policy)).toBe(false);
     });
 
-    it('returns true when expiry is in the past', () => {
+    it('returns true when expiry is in the past', async () => {
       const past = new Date(Date.now() - 86400000).toISOString();
       const policy = createNetworkAuthorizationPolicy({ expiresAt: past });
       expect(isNetworkAuthorizationExpired(policy, Date.now())).toBe(true);
@@ -296,13 +296,13 @@ describe('network ssrf-policy helpers', () => {
   });
 
   describe('isAuthorizedNetworkTarget', () => {
-    it('returns false for no policy', () => {
+    it('returns false for no policy', async () => {
       expect(isAuthorizedNetworkTarget(undefined, { hostname: 'x', resolvedAddress: null })).toBe(
         false,
       );
     });
 
-    it('returns true when hostname is in allowedHosts', () => {
+    it('returns true when hostname is in allowedHosts', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedHosts: ['example.com'],
       });
@@ -314,7 +314,7 @@ describe('network ssrf-policy helpers', () => {
       ).toBe(true);
     });
 
-    it('returns true when resolvedAddress matches CIDR', () => {
+    it('returns true when resolvedAddress matches CIDR', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedCidrs: ['10.0.0.0/8'],
       });
@@ -326,7 +326,7 @@ describe('network ssrf-policy helpers', () => {
       ).toBe(true);
     });
 
-    it('returns false for unauthorized address', () => {
+    it('returns false for unauthorized address', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedHosts: ['other.com'],
         allowedCidrs: ['192.168.0.0/16'],
@@ -339,7 +339,7 @@ describe('network ssrf-policy helpers', () => {
       ).toBe(false);
     });
 
-    it('returns false when resolvedAddress is null', () => {
+    it('returns false when resolvedAddress is null', async () => {
       const policy = createNetworkAuthorizationPolicy({
         allowedHosts: ['example.com'],
       });

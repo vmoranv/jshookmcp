@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
 import { advancedTools } from '@server/domains/network/definitions';
-import { AdvancedToolHandlers } from '@server/domains/network/index';
+import type { AdvancedToolHandlers } from '@server/domains/network/index';
 
 const DOMAIN = 'network' as const;
 const DEP_KEY = 'advancedHandlers' as const;
@@ -10,7 +10,8 @@ const t = toolLookup(advancedTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { AdvancedToolHandlers } = await import('@server/domains/network/index');
   ensureBrowserCore(ctx);
 
   if (!ctx.advancedHandlers) {

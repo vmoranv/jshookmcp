@@ -747,13 +747,13 @@ describe('StreamingToolHandlersWs', () => {
   // handleWsFrame (protected, tested via TestableWs)
   // -----------------------------------------------------------------------
   describe('handleWsFrame', () => {
-    it('ignores params without requestId', () => {
+    it('ignores params without requestId', async () => {
       handler.callHandleWsFrame('sent', { response: { opcode: 1, payloadData: 'hi' } });
 
       expect(handler._wsFrameOrder.length).toBe(0);
     });
 
-    it('creates connection record for untracked requestId when no URL filter', () => {
+    it('creates connection record for untracked requestId when no URL filter', async () => {
       handler.callHandleWsFrame('sent', {
         requestId: 'new-req',
         response: { opcode: 1, payloadData: 'data' },
@@ -766,7 +766,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(conn.status).toBe('open');
     });
 
-    it('returns early when connection is not found after set (defensive guard)', () => {
+    it('returns early when connection is not found after set (defensive guard)', async () => {
       // This tests the defensive guard at line 102 in handleWsFrame.
       // Normally unreachable: after .set() on line 91, line 100 .get() always finds it.
       // We mock .get() to return undefined on the second call to simulate this edge case.
@@ -848,7 +848,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames[0]!.direction).toBe('received');
     });
 
-    it('extracts opcode from response', () => {
+    it('extracts opcode from response', async () => {
       handler.callHandleWsFrame('sent', {
         requestId: 'r1',
         response: { opcode: 2, payloadData: 'binary' },
@@ -859,7 +859,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames[0]!.isBinary).toBe(true);
     });
 
-    it('defaults opcode to -1 when missing', () => {
+    it('defaults opcode to -1 when missing', async () => {
       handler.callHandleWsFrame('sent', {
         requestId: 'r1',
         response: { payloadData: 'data' },
@@ -869,7 +869,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames[0]!.opcode).toBe(-1);
     });
 
-    it('handles params where response is a non-object value', () => {
+    it('handles params where response is a non-object value', async () => {
       handler.callHandleWsFrame('sent', {
         requestId: 'r1',
         response: 'not-an-object',
@@ -882,7 +882,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames![0]!.payloadLength).toBe(0);
     });
 
-    it('handles params where response is null', () => {
+    it('handles params where response is null', async () => {
       handler.callHandleWsFrame('sent', {
         requestId: 'r2',
         response: null,
@@ -893,7 +893,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames![0]!.opcode).toBe(-1);
     });
 
-    it('handles params where response is entirely missing', () => {
+    it('handles params where response is entirely missing', async () => {
       handler.callHandleWsFrame('sent', {
         requestId: 'r3',
       });
@@ -903,7 +903,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames![0]!.payloadPreview).toBe('');
     });
 
-    it('handles params as a primitive value (not an object)', () => {
+    it('handles params as a primitive value (not an object)', async () => {
       // This tests asRecord returning undefined for non-object params
       handler.callHandleWsFrame('sent', 'not-an-object' as any);
 
@@ -911,13 +911,13 @@ describe('StreamingToolHandlersWs', () => {
       expect(handler._wsFramesByRequest.size).toBe(0);
     });
 
-    it('handles params as null', () => {
+    it('handles params as null', async () => {
       handler.callHandleWsFrame('sent', null as any);
 
       expect(handler._wsFramesByRequest.size).toBe(0);
     });
 
-    it('defaults payloadData to empty string when missing', () => {
+    it('defaults payloadData to empty string when missing', async () => {
       handler.callHandleWsFrame('sent', {
         requestId: 'r1',
         response: { opcode: 1 },
@@ -929,7 +929,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames[0]!.payloadSample).toBe('');
     });
 
-    it('truncates payloadPreview to 200 characters', () => {
+    it('truncates payloadPreview to 200 characters', async () => {
       const longPayload = 'x'.repeat(300);
 
       handler.callHandleWsFrame('sent', {
@@ -942,7 +942,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames[0]!.payloadPreview.length).toBeLessThanOrEqual(201);
     });
 
-    it('truncates payloadSample to 2000 characters', () => {
+    it('truncates payloadSample to 2000 characters', async () => {
       const longPayload = 'x'.repeat(3000);
 
       handler.callHandleWsFrame('sent', {
@@ -954,7 +954,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames[0]!.payloadSample.length).toBe(2000);
     });
 
-    it('does not truncate short payloads', () => {
+    it('does not truncate short payloads', async () => {
       handler.callHandleWsFrame('sent', {
         requestId: 'r1',
         response: { opcode: 1, payloadData: 'short' },
@@ -965,7 +965,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames[0]!.payloadSample).toBe('short');
     });
 
-    it('uses provided timestamp', () => {
+    it('uses provided timestamp', async () => {
       handler.callHandleWsFrame('sent', {
         requestId: 'r1',
         response: { opcode: 1, payloadData: '' },
@@ -976,7 +976,7 @@ describe('StreamingToolHandlersWs', () => {
       expect(frames[0]!.timestamp).toBe(123.456);
     });
 
-    it('falls back to Date.now()/1000 when timestamp missing', () => {
+    it('falls back to Date.now()/1000 when timestamp missing', async () => {
       const before = Date.now() / 1000;
 
       handler.callHandleWsFrame('sent', {
@@ -1068,7 +1068,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     describe('webSocketCreated', () => {
-      it('tracks new connection', () => {
+      it('tracks new connection', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
@@ -1080,17 +1080,17 @@ describe('StreamingToolHandlersWs', () => {
         expect(conn.status).toBe('connecting');
       });
 
-      it('ignores event without requestId', () => {
+      it('ignores event without requestId', async () => {
         listeners['Network.webSocketCreated']!({ url: 'wss://example.com/ws' });
         expect(handler._wsConnections.size).toBe(0);
       });
 
-      it('ignores event without url', () => {
+      it('ignores event without url', async () => {
         listeners['Network.webSocketCreated']!({ requestId: 'ws-1' });
         expect(handler._wsConnections.size).toBe(0);
       });
 
-      it('preserves existing connection data on re-created event', () => {
+      it('preserves existing connection data on re-created event', async () => {
         handler._wsConnections.set('ws-1', {
           requestId: 'ws-1',
           url: 'wss://old.com',
@@ -1113,7 +1113,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     describe('webSocketClosed', () => {
-      it('updates connection status to closed', () => {
+      it('updates connection status to closed', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
@@ -1129,17 +1129,17 @@ describe('StreamingToolHandlersWs', () => {
         expect(conn.closedTimestamp).toBe(999);
       });
 
-      it('ignores close for unknown connection', () => {
+      it('ignores close for unknown connection', async () => {
         listeners['Network.webSocketClosed']!({ requestId: 'unknown' });
         expect(handler._wsConnections.has('unknown')).toBe(false);
       });
 
-      it('ignores close without requestId', () => {
+      it('ignores close without requestId', async () => {
         listeners['Network.webSocketClosed']!({});
         // Should not throw
       });
 
-      it('uses Date.now()/1000 when timestamp not provided', () => {
+      it('uses Date.now()/1000 when timestamp not provided', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://x',
@@ -1156,7 +1156,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     describe('webSocketHandshakeResponseReceived', () => {
-      it('updates handshakeStatus and sets open for successful status', () => {
+      it('updates handshakeStatus and sets open for successful status', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
@@ -1172,7 +1172,7 @@ describe('StreamingToolHandlersWs', () => {
         expect(conn.status).toBe('open');
       });
 
-      it('sets error for 4xx handshake status', () => {
+      it('sets error for 4xx handshake status', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
@@ -1187,7 +1187,7 @@ describe('StreamingToolHandlersWs', () => {
         expect(conn.status).toBe('error');
       });
 
-      it('sets open for 1xx-3xx status range', () => {
+      it('sets open for 1xx-3xx status range', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
@@ -1202,7 +1202,7 @@ describe('StreamingToolHandlersWs', () => {
         expect(conn.status).toBe('open');
       });
 
-      it('ignores handshake for unknown connection', () => {
+      it('ignores handshake for unknown connection', async () => {
         listeners['Network.webSocketHandshakeResponseReceived']!({
           requestId: 'unknown',
           response: { status: 101 },
@@ -1210,7 +1210,7 @@ describe('StreamingToolHandlersWs', () => {
         expect(handler._wsConnections.has('unknown')).toBe(false);
       });
 
-      it('ignores handshake without requestId', () => {
+      it('ignores handshake without requestId', async () => {
         listeners['Network.webSocketHandshakeResponseReceived']!({
           response: { status: 101 },
         });
@@ -1219,7 +1219,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     describe('webSocketFrameSent', () => {
-      it('captures sent frame', () => {
+      it('captures sent frame', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',
@@ -1238,7 +1238,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     describe('webSocketFrameReceived', () => {
-      it('captures received frame', () => {
+      it('captures received frame', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
           url: 'wss://example.com/ws',

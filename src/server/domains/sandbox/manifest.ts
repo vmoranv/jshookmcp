@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { sandboxTools } from '@server/domains/sandbox/definitions';
-import { SandboxToolHandlers } from '@server/domains/sandbox/handlers';
+import type { SandboxToolHandlers } from '@server/domains/sandbox/handlers';
 
 const DOMAIN = 'sandbox' as const;
 const DEP_KEY = 'sandboxHandlers' as const;
@@ -10,7 +10,8 @@ const t = toolLookup(sandboxTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { SandboxToolHandlers } = await import('@server/domains/sandbox/handlers');
   const existing = ctx.getDomainInstance<H>(DEP_KEY);
   if (existing) return existing;
   const handlers = new SandboxToolHandlers(ctx);

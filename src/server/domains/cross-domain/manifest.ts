@@ -1,9 +1,9 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { crossDomainToolDefinitions } from './definitions';
-import { CrossDomainHandlers, CrossDomainWorkflowClassifier } from './handlers';
-import { CrossDomainEvidenceBridge } from './handlers/evidence-graph-bridge';
-import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
+import type { CrossDomainHandlers, CrossDomainWorkflowClassifier } from './handlers';
+import type { CrossDomainEvidenceBridge } from './handlers/evidence-graph-bridge';
+import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 
 const DOMAIN = 'cross-domain' as const;
 const DEP_KEY = 'crossDomainHandlers' as const;
@@ -14,11 +14,16 @@ const bindTool = (
   invoke: (handlers: Handlers, args: Record<string, unknown>) => Promise<unknown>,
 ) => bindByDepKey<Handlers>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): CrossDomainHandlers {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { ReverseEvidenceGraph } = await import('@server/evidence/ReverseEvidenceGraph');
+  const { CrossDomainEvidenceBridge } = await import('./handlers/evidence-graph-bridge');
+  const { CrossDomainWorkflowClassifier, CrossDomainHandlers } = await import('./handlers');
   const existing = ctx.getDomainInstance<CrossDomainHandlers>(DEP_KEY);
   if (existing) {
     return existing;
   }
+
+  // Dynamic imports — load only when domain is first accessed
 
   // Use the shared evidence graph (created by evidence domain, or create + bind eventBus here)
   let graph = ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');

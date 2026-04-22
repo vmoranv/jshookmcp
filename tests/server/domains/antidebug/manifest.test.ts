@@ -17,14 +17,14 @@ import manifest from '@server/domains/antidebug/manifest';
 
 describe('Antidebug Manifest', () => {
   describe('ensure', () => {
-    it('initializes context components if missing', () => {
+    it('initializes context components if missing', async () => {
       const registerCachesMock = vi.fn();
       const mockCtx: any = {
         config: { puppeteer: {} },
         registerCaches: registerCachesMock,
       };
 
-      const handler = manifest.ensure(mockCtx as MCPServerContext);
+      const handler = await manifest.ensure(mockCtx as MCPServerContext);
 
       expect(mockCtx.collector).toBeDefined();
       expect(registerCachesMock).toHaveBeenCalled();
@@ -32,7 +32,7 @@ describe('Antidebug Manifest', () => {
       expect(handler).toBe(mockCtx.antidebugHandlers);
     });
 
-    it('returns existing handlers if already initialized', () => {
+    it('returns existing handlers if already initialized', async () => {
       const existingHandler = {} as AntiDebugToolHandlers;
       const existingCollector = {} as CodeCollector;
       const mockCtx: any = {
@@ -40,7 +40,7 @@ describe('Antidebug Manifest', () => {
         antidebugHandlers: existingHandler,
       };
 
-      const handler = manifest.ensure(mockCtx as MCPServerContext);
+      const handler = await manifest.ensure(mockCtx as MCPServerContext);
 
       expect(handler).toBe(existingHandler);
     });

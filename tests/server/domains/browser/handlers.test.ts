@@ -259,7 +259,7 @@ describe('BrowserToolHandlers', () => {
     handlers = new BrowserToolHandlers(collector, pageController, scriptManager, consoleMonitor);
   });
 
-  it('constructs BrowserControlHandlers and resolves screenshot dir', () => {
+  it('constructs BrowserControlHandlers and resolves screenshot dir', async () => {
     expect(browserControlCtor).toHaveBeenCalledOnce();
     expect(resolveOutputDirectoryMock).toHaveBeenCalled();
   });

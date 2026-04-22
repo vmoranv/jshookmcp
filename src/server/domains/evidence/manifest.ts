@@ -1,10 +1,10 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { evidenceTools } from '@server/domains/evidence/definitions';
-import { EvidenceHandlers } from '@server/domains/evidence/handlers';
-import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
+import type { EvidenceHandlers } from '@server/domains/evidence/handlers';
+import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 import { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
-import { EvidenceGraphBridge } from '@server/instrumentation/EvidenceGraphBridge';
+import type { EvidenceGraphBridge } from '@server/instrumentation/EvidenceGraphBridge';
 import type { RuntimeSnapshotScheduler } from '@server/persistence/RuntimeSnapshotScheduler';
 import { resolve } from 'node:path';
 
@@ -15,7 +15,12 @@ const t = toolLookup(evidenceTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { ReverseEvidenceGraph } = await import('@server/evidence/ReverseEvidenceGraph');
+  const { EvidenceGraphBridge } = await import('@server/instrumentation/EvidenceGraphBridge');
+  const { EvidenceHandlers } = await import('@server/domains/evidence/handlers');
+  // Dynamic imports — load only when domain is first accessed
+
   let graph = ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');
   if (!graph) {
     graph = new ReverseEvidenceGraph();

@@ -24,7 +24,7 @@ describe('StructureHandlers', () => {
     handlers = new StructureHandlers(mockstructAnalyzer);
   });
 
-  it('instantiates correctly', () => {
+  it('instantiates correctly', async () => {
     expect(handlers).toBeInstanceOf(StructureHandlers);
   });
 

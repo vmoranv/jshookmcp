@@ -268,25 +268,25 @@ describe('v8-inspector handler coverage', () => {
   // heap-snapshot.ts — cache operations
   // =========================================================================
   describe('heap-snapshot cache operations', () => {
-    it('clearSnapshotCache should empty the cache', () => {
+    it('clearSnapshotCache should empty the cache', async () => {
       storeSnapshot({ id: 'snap-1', chunks: ['{}'], capturedAt: 't', sizeBytes: 0 });
       expect(getSnapshotCache().size).toBe(1);
       clearSnapshotCache();
       expect(getSnapshotCache().size).toBe(0);
     });
 
-    it('storeSnapshot should add and return the snapshot', () => {
+    it('storeSnapshot should add and return the snapshot', async () => {
       const snap = { id: 'snap-2', chunks: ['chunk-a'], capturedAt: '2026-01-01', sizeBytes: 100 };
       const result = storeSnapshot(snap);
       expect(result).toBe(snap);
       expect(getSnapshot('snap-2')).toBe(snap);
     });
 
-    it('getSnapshot should return undefined for missing id', () => {
+    it('getSnapshot should return undefined for missing id', async () => {
       expect(getSnapshot('nonexistent')).toBeUndefined();
     });
 
-    it('getSnapshotCache should return the live map', () => {
+    it('getSnapshotCache should return the live map', async () => {
       const cache = getSnapshotCache();
       expect(cache).toBeInstanceOf(Map);
     });

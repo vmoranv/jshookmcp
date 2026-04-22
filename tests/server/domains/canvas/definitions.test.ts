@@ -4,34 +4,34 @@ import { canvasTools } from '@server/domains/canvas/definitions';
 describe('canvas domain definitions', () => {
   // ── Array shape ───────────────────────────────────────────────────────
 
-  it('exports a non-empty tools array', () => {
+  it('exports a non-empty tools array', async () => {
     expect(Array.isArray(canvasTools)).toBe(true);
     expect(canvasTools.length).toBeGreaterThan(0);
   });
 
-  it('defines exactly 4 tools', () => {
+  it('defines exactly 4 tools', async () => {
     expect(canvasTools).toHaveLength(4);
   });
 
-  it('has unique tool names', () => {
+  it('has unique tool names', async () => {
     const names = canvasTools.map((t) => t.name);
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('every tool has a non-empty description', () => {
+  it('every tool has a non-empty description', async () => {
     for (const tool of canvasTools) {
       expect(typeof tool.description === 'string').toBe(true);
       expect((tool.description ?? '').trim().length).toBeGreaterThan(0);
     }
   });
 
-  it('every tool has inputSchema.type equal to "object"', () => {
+  it('every tool has inputSchema.type equal to "object"', async () => {
     for (const tool of canvasTools) {
       expect(tool.inputSchema.type).toBe('object');
     }
   });
 
-  it('every tool has required structure', () => {
+  it('every tool has required structure', async () => {
     for (const tool of canvasTools) {
       expect(tool).toEqual(
         expect.objectContaining({
@@ -48,19 +48,19 @@ describe('canvas domain definitions', () => {
 
   // ── Tool names ───────────────────────────────────────────────────────
 
-  it('includes canvas_engine_fingerprint', () => {
+  it('includes canvas_engine_fingerprint', async () => {
     expect(canvasTools.find((t) => t.name === 'canvas_engine_fingerprint')).toBeDefined();
   });
 
-  it('includes canvas_scene_dump', () => {
+  it('includes canvas_scene_dump', async () => {
     expect(canvasTools.find((t) => t.name === 'canvas_scene_dump')).toBeDefined();
   });
 
-  it('includes canvas_pick_object_at_point', () => {
+  it('includes canvas_pick_object_at_point', async () => {
     expect(canvasTools.find((t) => t.name === 'canvas_pick_object_at_point')).toBeDefined();
   });
 
-  it('includes canvas_trace_click_handler', () => {
+  it('includes canvas_trace_click_handler', async () => {
     expect(canvasTools.find((t) => t.name === 'canvas_trace_click_handler')).toBeDefined();
   });
 
@@ -69,7 +69,7 @@ describe('canvas domain definitions', () => {
   describe('canvas_engine_fingerprint', () => {
     const tool = canvasTools.find((t) => t.name === 'canvas_engine_fingerprint')!;
 
-    it('has no required properties (query tool)', () => {
+    it('has no required properties (query tool)', async () => {
       expect(tool.inputSchema.required).toBeUndefined();
     });
   });
@@ -79,26 +79,26 @@ describe('canvas domain definitions', () => {
   describe('canvas_scene_dump', () => {
     const tool = canvasTools.find((t) => t.name === 'canvas_scene_dump')!;
 
-    it('has canvasId as optional string', () => {
+    it('has canvasId as optional string', async () => {
       const prop = tool.inputSchema.properties!.canvasId as Record<string, unknown>;
       expect(prop.type).toBe('string');
       const required: string[] | undefined = tool.inputSchema.required;
       expect(required === undefined || !required.includes('canvasId')).toBe(true);
     });
 
-    it('has maxDepth as optional number with default 20', () => {
+    it('has maxDepth as optional number with default 20', async () => {
       const prop = tool.inputSchema.properties!.maxDepth as Record<string, unknown>;
       expect(prop.type).toBe('number');
       expect(prop.default).toBe(20);
     });
 
-    it('has onlyInteractive as optional boolean with default false', () => {
+    it('has onlyInteractive as optional boolean with default false', async () => {
       const prop = tool.inputSchema.properties!.onlyInteractive as Record<string, unknown>;
       expect(prop.type).toBe('boolean');
       expect(prop.default).toBe(false);
     });
 
-    it('has onlyVisible as optional boolean with default false', () => {
+    it('has onlyVisible as optional boolean with default false', async () => {
       const prop = tool.inputSchema.properties!.onlyVisible as Record<string, unknown>;
       expect(prop.type).toBe('boolean');
       expect(prop.default).toBe(false);
@@ -110,7 +110,7 @@ describe('canvas domain definitions', () => {
   describe('canvas_pick_object_at_point', () => {
     const tool = canvasTools.find((t) => t.name === 'canvas_pick_object_at_point')!;
 
-    it('requires x and y as numbers', () => {
+    it('requires x and y as numbers', async () => {
       expect(tool.inputSchema.required).toContain('x');
       expect(tool.inputSchema.required).toContain('y');
 
@@ -120,14 +120,14 @@ describe('canvas domain definitions', () => {
       expect(yProp.type).toBe('number');
     });
 
-    it('has canvasId as optional string', () => {
+    it('has canvasId as optional string', async () => {
       const prop = tool.inputSchema.properties!.canvasId as Record<string, unknown>;
       expect(prop.type).toBe('string');
       const required: string[] | undefined = tool.inputSchema.required;
       expect(required === undefined || !required.includes('canvasId')).toBe(true);
     });
 
-    it('has highlight as optional boolean with default false', () => {
+    it('has highlight as optional boolean with default false', async () => {
       const prop = tool.inputSchema.properties!.highlight as Record<string, unknown>;
       expect(prop.type).toBe('boolean');
       expect(prop.default).toBe(false);
@@ -139,7 +139,7 @@ describe('canvas domain definitions', () => {
   describe('canvas_trace_click_handler', () => {
     const tool = canvasTools.find((t) => t.name === 'canvas_trace_click_handler')!;
 
-    it('requires x and y as numbers', () => {
+    it('requires x and y as numbers', async () => {
       expect(tool.inputSchema.required).toContain('x');
       expect(tool.inputSchema.required).toContain('y');
 
@@ -149,21 +149,21 @@ describe('canvas domain definitions', () => {
       expect(yProp.type).toBe('number');
     });
 
-    it('has canvasId as optional string', () => {
+    it('has canvasId as optional string', async () => {
       const prop = tool.inputSchema.properties!.canvasId as Record<string, unknown>;
       expect(prop.type).toBe('string');
       const required: string[] | undefined = tool.inputSchema.required;
       expect(required === undefined || !required.includes('canvasId')).toBe(true);
     });
 
-    it('has breakpointType as optional enum with default "click"', () => {
+    it('has breakpointType as optional enum with default "click"', async () => {
       const prop = tool.inputSchema.properties!.breakpointType as Record<string, unknown>;
       expect(prop.type).toBe('string');
       expect(prop.enum).toEqual(['click', 'mousedown', 'pointerdown']);
       expect(prop.default).toBe('click');
     });
 
-    it('has maxFrames as optional number with default 50', () => {
+    it('has maxFrames as optional number with default 50', async () => {
       const prop = tool.inputSchema.properties!.maxFrames as Record<string, unknown>;
       expect(prop.type).toBe('number');
       expect(prop.default).toBe(50);

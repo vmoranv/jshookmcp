@@ -18,7 +18,7 @@ describe('SYSCALL-02: Syscall-to-JS Correlator', () => {
     bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });
 
-  it('should create syscall event nodes', () => {
+  it('should create syscall event nodes', async () => {
     const result = correlateSyscallToJS(
       bridge,
       [
@@ -36,7 +36,7 @@ describe('SYSCALL-02: Syscall-to-JS Correlator', () => {
     expect(result.graphNodeIds.length).toBe(1);
   });
 
-  it('should add syscall to unmatched list when no JS stack available', () => {
+  it('should add syscall to unmatched list when no JS stack available', async () => {
     const result = correlateSyscallToJS(
       bridge,
       [
@@ -55,7 +55,7 @@ describe('SYSCALL-02: Syscall-to-JS Correlator', () => {
     expect(result.correlationConfidence).toBe(0);
   });
 
-  it('should correlate syscall with JS stack by thread ID and timestamp', () => {
+  it('should correlate syscall with JS stack by thread ID and timestamp', async () => {
     const syscallEvents = [
       {
         pid: 9999,
@@ -82,7 +82,7 @@ describe('SYSCALL-02: Syscall-to-JS Correlator', () => {
     expect(result.correlationConfidence).toBe(1);
   });
 
-  it('should compute high confidence when syscall matches JS API pattern', () => {
+  it('should compute high confidence when syscall matches JS API pattern', async () => {
     const syscallEvents = [
       {
         pid: 9999,
@@ -104,7 +104,7 @@ describe('SYSCALL-02: Syscall-to-JS Correlator', () => {
     expect(result.correlations[0]?.confidence).toMatch(/high|medium/);
   });
 
-  it('should handle multiple syscalls with mixed match/no-match', () => {
+  it('should handle multiple syscalls with mixed match/no-match', async () => {
     const syscallEvents = [
       { pid: 1, tid: 100, syscallName: 'NtOpenFile', timestamp: 1000 },
       { pid: 1, tid: 200, syscallName: 'NtDeviceIoControlFile', timestamp: 2000 },
@@ -118,7 +118,7 @@ describe('SYSCALL-02: Syscall-to-JS Correlator', () => {
     expect(result.unmatchedSyscalls.length).toBe(1);
   });
 
-  it('should handle empty inputs gracefully', () => {
+  it('should handle empty inputs gracefully', async () => {
     const result = correlateSyscallToJS(bridge, [], []);
 
     expect(result.syscalls).toBe(0);

@@ -47,12 +47,12 @@ describe('browser tool definitions', () => {
   // ── browserTools composite ──────────────────────────────────
 
   describe('browserTools (composite)', () => {
-    it('is a non-empty array', () => {
+    it('is a non-empty array', async () => {
       expect(Array.isArray(browserTools)).toBe(true);
       expect(browserTools.length).toBeGreaterThan(0);
     });
 
-    it('contains all sub-array tools merged together', () => {
+    it('contains all sub-array tools merged together', async () => {
       const expected =
         browserRuntimeTools.length +
         browserPageCoreTools.length +
@@ -63,7 +63,7 @@ describe('browser tool definitions', () => {
       expect(browserTools).toHaveLength(expected);
     });
 
-    it('has unique tool names', () => {
+    it('has unique tool names', async () => {
       const names = browserTools.map((t) => t.name);
       expect(new Set(names).size).toBe(names.length);
     });
@@ -84,13 +84,13 @@ describe('browser tool definitions', () => {
       },
     );
 
-    it('every tool has a non-empty description', () => {
+    it('every tool has a non-empty description', async () => {
       for (const tool of browserTools) {
         expect((tool.description ?? '').trim().length).toBeGreaterThan(0);
       }
     });
 
-    it('every tool inputSchema.type is "object"', () => {
+    it('every tool inputSchema.type is "object"', async () => {
       for (const tool of browserTools) {
         expect(getInputSchema(tool).type).toBe('object');
       }
@@ -100,7 +100,7 @@ describe('browser tool definitions', () => {
   // ── advancedBrowserToolDefinitions ──────────────────────────
 
   describe('advancedBrowserToolDefinitions', () => {
-    it('is a non-empty array', () => {
+    it('is a non-empty array', async () => {
       expect(Array.isArray(advancedBrowserToolDefinitions)).toBe(true);
       expect(advancedBrowserToolDefinitions.length).toBeGreaterThan(0);
     });
@@ -121,16 +121,16 @@ describe('browser tool definitions', () => {
       },
     );
 
-    it('has unique names', () => {
+    it('has unique names', async () => {
       const names = advancedBrowserToolDefinitions.map((t) => t.name);
       expect(new Set(names).size).toBe(names.length);
     });
 
-    it('includes js_heap_search', () => {
+    it('includes js_heap_search', async () => {
       expect(advancedBrowserToolDefinitions.find((t) => t.name === 'js_heap_search')).toBeDefined();
     });
 
-    it('includes tab_workflow', () => {
+    it('includes tab_workflow', async () => {
       expect(advancedBrowserToolDefinitions.find((t) => t.name === 'tab_workflow')).toBeDefined();
     });
   });
@@ -138,7 +138,7 @@ describe('browser tool definitions', () => {
   // ── No name collisions between standard and advanced ────────
 
   describe('cross-array uniqueness', () => {
-    it('no name collisions between browserTools and advancedBrowserToolDefinitions', () => {
+    it('no name collisions between browserTools and advancedBrowserToolDefinitions', async () => {
       const standardNames = new Set(browserTools.map((t) => t.name));
       const advancedNames = advancedBrowserToolDefinitions.map((t) => t.name);
       for (const name of advancedNames) {
@@ -150,11 +150,11 @@ describe('browser tool definitions', () => {
   // ── definitions.ts re-exports ───────────────────────────────
 
   describe('definitions.ts re-exports', () => {
-    it('re-exports browserTools from definitions.tools', () => {
+    it('re-exports browserTools from definitions.tools', async () => {
       expect(definitionsReExport).toBe(browserTools);
     });
 
-    it('re-exports advancedBrowserToolDefinitions from definitions.tools', () => {
+    it('re-exports advancedBrowserToolDefinitions from definitions.tools', async () => {
       expect(advancedReExport).toBe(advancedBrowserToolDefinitions);
     });
   });
@@ -175,20 +175,20 @@ describe('browser tool definitions', () => {
       expect(browserRuntimeTools.find((t) => t.name === name)).toBeDefined();
     });
 
-    it('get_detailed_data requires detailId', () => {
+    it('get_detailed_data requires detailId', async () => {
       const tool = getToolByName(browserRuntimeTools, 'get_detailed_data');
       const schema = getInputSchema(tool);
       expect(schema.required).toContain('detailId');
       expect(schema.properties).toHaveProperty('path');
     });
 
-    it('browser_launch has driver enum with chrome and camoufox', () => {
+    it('browser_launch has driver enum with chrome and camoufox', async () => {
       const tool = getToolByName(browserRuntimeTools, 'browser_launch');
       const driverProp = getSchemaProperty<Record<string, unknown>>(tool, 'driver');
       expect(driverProp.enum).toEqual(['chrome', 'camoufox']);
     });
 
-    it('browser_attach has browserURL and wsEndpoint properties', () => {
+    it('browser_attach has browserURL and wsEndpoint properties', async () => {
       const tool = getToolByName(browserRuntimeTools, 'browser_attach');
       const schema = getInputSchema(tool);
       expect(schema.properties).toHaveProperty('browserURL');
@@ -196,7 +196,7 @@ describe('browser tool definitions', () => {
       expect(schema.properties).toHaveProperty('pageIndex');
     });
 
-    it('browser_close and browser_status have no required properties', () => {
+    it('browser_close and browser_status have no required properties', async () => {
       const closeTool = getToolByName(browserRuntimeTools, 'browser_close');
       const statusTool = getToolByName(browserRuntimeTools, 'browser_status');
       expect(getInputSchema(closeTool).required).toBeUndefined();
@@ -207,18 +207,18 @@ describe('browser tool definitions', () => {
   // ── Page core tools ─────────────────────────────────────────
 
   describe('browserPageCoreTools', () => {
-    it('page_navigate requires url', () => {
+    it('page_navigate requires url', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_navigate');
       expect(getInputSchema(tool).required).toContain('url');
     });
 
-    it('page_navigate has waitUntil enum', () => {
+    it('page_navigate has waitUntil enum', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_navigate');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'waitUntil');
       expect(prop.enum).toEqual(['load', 'domcontentloaded', 'networkidle', 'commit']);
     });
 
-    it('page_navigate has enableNetworkMonitoring boolean', () => {
+    it('page_navigate has enableNetworkMonitoring boolean', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_navigate');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'enableNetworkMonitoring');
       expect(prop.type).toBe('boolean');
@@ -231,40 +231,40 @@ describe('browser tool definitions', () => {
       expect(getInputSchema(tool).required).toBeUndefined();
     });
 
-    it('page_click requires selector', () => {
+    it('page_click requires selector', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_click');
       expect(getInputSchema(tool).required).toContain('selector');
       const buttonProp = getSchemaProperty<Record<string, unknown>>(tool, 'button');
       expect(buttonProp.enum).toEqual(['left', 'right', 'middle']);
     });
 
-    it('page_type requires selector and text', () => {
+    it('page_type requires selector and text', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_type');
       const schema = getInputSchema(tool);
       expect(schema.required).toContain('selector');
       expect(schema.required).toContain('text');
     });
 
-    it('page_select requires selector and values', () => {
+    it('page_select requires selector and values', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_select');
       const schema = getInputSchema(tool);
       expect(schema.required).toContain('selector');
       expect(schema.required).toContain('values');
     });
 
-    it('page_evaluate requires code', () => {
+    it('page_evaluate requires code', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_evaluate');
       expect(getInputSchema(tool).required).toContain('code');
     });
 
-    it('browser_evaluate_cdp_target requires code and keeps target evaluation explicit', () => {
+    it('browser_evaluate_cdp_target requires code and keeps target evaluation explicit', async () => {
       const tool = getToolByName(browserRuntimeTools, 'browser_evaluate_cdp_target');
       const schema = getInputSchema(tool);
       expect(schema.required).toContain('code');
       expect(schema.properties).not.toHaveProperty('targetId');
     });
 
-    it('page_wait_for_selector requires selector', () => {
+    it('page_wait_for_selector requires selector', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_wait_for_selector');
       expect(getInputSchema(tool).required).toContain('selector');
     });
@@ -273,45 +273,45 @@ describe('browser tool definitions', () => {
   // ── Page system tools ───────────────────────────────────────
 
   describe('browserPageSystemTools', () => {
-    it('console_execute requires expression', () => {
+    it('console_execute requires expression', async () => {
       const tool = getToolByName(browserPageSystemTools, 'console_execute');
       expect(getInputSchema(tool).required).toContain('expression');
     });
 
-    it('console_get_logs has optional type enum', () => {
+    it('console_get_logs has optional type enum', async () => {
       const tool = getToolByName(browserPageSystemTools, 'console_get_logs');
       const typeProp = getSchemaProperty<Record<string, unknown>>(tool, 'type');
       expect(typeProp.enum).toEqual(['log', 'warn', 'error', 'info', 'debug']);
     });
 
-    it('page_set_viewport requires width and height', () => {
+    it('page_set_viewport requires width and height', async () => {
       const tool = getToolByName(browserPageSystemTools, 'page_set_viewport');
       const schema = getInputSchema(tool);
       expect(schema.required).toContain('width');
       expect(schema.required).toContain('height');
     });
 
-    it('page_emulate_device requires device', () => {
+    it('page_emulate_device requires device', async () => {
       const tool = getToolByName(browserPageSystemTools, 'page_emulate_device');
       expect(getInputSchema(tool).required).toContain('device');
     });
 
-    it('page_cookies requires action', () => {
+    it('page_cookies requires action', async () => {
       const tool = getToolByName(browserPageSystemTools, 'page_cookies');
       expect(getInputSchema(tool).required).toContain('action');
     });
 
-    it('page_local_storage requires action', () => {
+    it('page_local_storage requires action', async () => {
       const tool = getToolByName(browserPageSystemTools, 'page_local_storage');
       expect(getInputSchema(tool).required).toContain('action');
     });
 
-    it('page_press_key requires key', () => {
+    it('page_press_key requires key', async () => {
       const tool = getToolByName(browserPageSystemTools, 'page_press_key');
       expect(getInputSchema(tool).required).toContain('key');
     });
 
-    it('page_inject_script requires script', () => {
+    it('page_inject_script requires script', async () => {
       const tool = getToolByName(browserPageSystemTools, 'page_inject_script');
       expect(getInputSchema(tool).required).toContain('script');
     });
@@ -322,23 +322,23 @@ describe('browser tool definitions', () => {
   // ── Security state tools ────────────────────────────────────
 
   describe('browserSecurityStateTools', () => {
-    it('captcha_detect has no required properties', () => {
+    it('captcha_detect has no required properties', async () => {
       const tool = getToolByName(browserSecurityStateTools, 'captcha_detect');
       expect(getInputSchema(tool).required).toBeUndefined();
     });
 
-    it('stealth_inject has no required properties', () => {
+    it('stealth_inject has no required properties', async () => {
       const tool = getToolByName(browserSecurityStateTools, 'stealth_inject');
       expect(getInputSchema(tool).required).toBeUndefined();
     });
 
-    it('stealth_set_user_agent has platform enum', () => {
+    it('stealth_set_user_agent has platform enum', async () => {
       const tool = getToolByName(browserSecurityStateTools, 'stealth_set_user_agent');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'platform');
       expect(prop.enum).toEqual(['windows', 'mac', 'linux']);
     });
 
-    it('browser_select_tab has index, urlPattern, and titlePattern', () => {
+    it('browser_select_tab has index, urlPattern, and titlePattern', async () => {
       const tool = getToolByName(browserSecurityStateTools, 'browser_select_tab');
       const schema = getInputSchema(tool);
       expect(schema.properties).toHaveProperty('index');
@@ -346,13 +346,13 @@ describe('browser tool definitions', () => {
       expect(schema.properties).toHaveProperty('titlePattern');
     });
 
-    it('framework_state_extract has framework enum', () => {
+    it('framework_state_extract has framework enum', async () => {
       const tool = getToolByName(browserSecurityStateTools, 'framework_state_extract');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'framework');
       expect(prop.enum).toEqual(['auto', 'react', 'vue2', 'vue3', 'svelte', 'solid', 'preact']);
     });
 
-    it('indexeddb_dump has optional database, store, and maxRecords', () => {
+    it('indexeddb_dump has optional database, store, and maxRecords', async () => {
       const tool = getToolByName(browserSecurityStateTools, 'indexeddb_dump');
       const schema = getInputSchema(tool);
       expect(schema.properties).toHaveProperty('database');
@@ -365,7 +365,7 @@ describe('browser tool definitions', () => {
   // ── Behavior tools ──────────────────────────────────────────
 
   describe('behaviorTools', () => {
-    it('has exactly 5 behavior tools', () => {
+    it('has exactly 5 behavior tools', async () => {
       expect(behaviorTools).toHaveLength(5);
     });
 
@@ -381,43 +381,43 @@ describe('browser tool definitions', () => {
       expect(behaviorTools.find((t) => t.name === name)).toBeDefined();
     });
 
-    it('human_typing requires selector and text', () => {
+    it('human_typing requires selector and text', async () => {
       const tool = getToolByName(behaviorTools, 'human_typing');
       const schema = getInputSchema(tool);
       expect(schema.required).toContain('selector');
       expect(schema.required).toContain('text');
     });
 
-    it('human_mouse has no required properties', () => {
+    it('human_mouse has no required properties', async () => {
       const tool = getToolByName(behaviorTools, 'human_mouse');
       expect(getInputSchema(tool).required).toBeUndefined();
     });
 
-    it('human_scroll has no required properties', () => {
+    it('human_scroll has no required properties', async () => {
       const tool = getToolByName(behaviorTools, 'human_scroll');
       expect(getInputSchema(tool).required).toBeUndefined();
     });
 
-    it('captcha_vision_solve has mode enum', () => {
+    it('captcha_vision_solve has mode enum', async () => {
       const tool = getToolByName(behaviorTools, 'captcha_vision_solve');
       const modeProp = getSchemaProperty<Record<string, unknown>>(tool, 'mode');
       expect(modeProp.enum).toEqual(['external_service', 'manual']);
     });
 
-    it('captcha_vision_solve has challengeType enum', () => {
+    it('captcha_vision_solve has challengeType enum', async () => {
       const tool = getToolByName(behaviorTools, 'captcha_vision_solve');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'challengeType');
       expect(prop.enum).toEqual(['image', 'widget', 'browser_check', 'auto']);
       expect(prop.default).toBe('auto');
     });
 
-    it('widget_challenge_solve has mode enum with three options', () => {
+    it('widget_challenge_solve has mode enum with three options', async () => {
       const tool = getToolByName(behaviorTools, 'widget_challenge_solve');
       const modeProp = getSchemaProperty<Record<string, unknown>>(tool, 'mode');
       expect(modeProp.enum).toEqual(['external_service', 'hook', 'manual']);
     });
 
-    it('widget_challenge_solve has injectToken boolean with default true', () => {
+    it('widget_challenge_solve has injectToken boolean with default true', async () => {
       const tool = getToolByName(behaviorTools, 'widget_challenge_solve');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'injectToken');
       expect(prop.type).toBe('boolean');
@@ -428,7 +428,7 @@ describe('browser tool definitions', () => {
   // ── Advanced tool inputSchema ───────────────────────────────
 
   describe('advanced tool inputSchema', () => {
-    it('js_heap_search requires pattern', () => {
+    it('js_heap_search requires pattern', async () => {
       const tool = getToolByName(advancedBrowserToolDefinitions, 'js_heap_search');
       const schema = getInputSchema(tool);
       expect(schema.required).toContain('pattern');
@@ -436,12 +436,12 @@ describe('browser tool definitions', () => {
       expect(schema.properties).toHaveProperty('caseSensitive');
     });
 
-    it('tab_workflow requires action', () => {
+    it('tab_workflow requires action', async () => {
       const tool = getToolByName(advancedBrowserToolDefinitions, 'tab_workflow');
       expect(getInputSchema(tool).required).toContain('action');
     });
 
-    it('tab_workflow action has correct enum', () => {
+    it('tab_workflow action has correct enum', async () => {
       const tool = getToolByName(advancedBrowserToolDefinitions, 'tab_workflow');
       const actionProp = getSchemaProperty<Record<string, unknown>>(tool, 'action');
       expect(actionProp.enum).toEqual([
@@ -456,13 +456,13 @@ describe('browser tool definitions', () => {
       ]);
     });
 
-    it('js_heap_search maxResults has default 50', () => {
+    it('js_heap_search maxResults has default 50', async () => {
       const tool = getToolByName(advancedBrowserToolDefinitions, 'js_heap_search');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'maxResults');
       expect(prop.default).toBe(50);
     });
 
-    it('js_heap_search caseSensitive has default false', () => {
+    it('js_heap_search caseSensitive has default false', async () => {
       const tool = getToolByName(advancedBrowserToolDefinitions, 'js_heap_search');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'caseSensitive');
       expect(prop.default).toBe(false);
@@ -474,7 +474,7 @@ describe('browser tool definitions', () => {
   describe('required fields completeness', () => {
     const allTools = [...browserTools, ...advancedBrowserToolDefinitions];
 
-    it('every required field exists in properties', () => {
+    it('every required field exists in properties', async () => {
       for (const tool of allTools) {
         const schema = getInputSchema(tool);
         if (schema.required) {
@@ -488,7 +488,7 @@ describe('browser tool definitions', () => {
       }
     });
 
-    it('tools with required field declare a non-empty array', () => {
+    it('tools with required field declare a non-empty array', async () => {
       for (const tool of allTools) {
         const schema = getInputSchema(tool);
         if (schema.required) {

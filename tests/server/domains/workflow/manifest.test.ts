@@ -45,17 +45,17 @@ describe('Workflow Domain Manifest', () => {
   });
 
   describe('ensure()', () => {
-    it('creates and returns workflowHandlers if not present in context', () => {
-      const handlers = manifest.ensure(mockContext);
+    it('creates and returns workflowHandlers if not present in context', async () => {
+      const handlers = await await manifest.ensure(mockContext);
       expect(handlers).toBeDefined();
       expect(mockContext.workflowHandlers).toBe(handlers);
     });
 
-    it('returns existing workflowHandlers from context', () => {
+    it('returns existing workflowHandlers from context', async () => {
       const existingHandlers = new WorkflowHandlers({} as any);
       mockContext.workflowHandlers = existingHandlers;
 
-      const handlers = manifest.ensure(mockContext);
+      const handlers = await await manifest.ensure(mockContext);
       expect(handlers).toBe(existingHandlers);
       // Wait, WorkflowHandlers constructor is called once above, we should check it wasn't called AGAIN
       // Actually we clear mocks before each. But we called `new WorkflowHandlers()` here. So it was called.
@@ -65,7 +65,7 @@ describe('Workflow Domain Manifest', () => {
 
   describe('registrations', () => {
     it('binds all defined tools correctly', async () => {
-      const handlers = manifest.ensure(mockContext);
+      const handlers = await await manifest.ensure(mockContext);
 
       for (const reg of manifest.registrations) {
         expect(reg.tool).toBeDefined();

@@ -38,7 +38,7 @@ describe('MemoryScanHandlers (Facade)', () => {
     );
   });
 
-  it('instantiates all sub-handlers', () => {
+  it('instantiates all sub-handlers', async () => {
     expect(SessionHandlers).toHaveBeenCalled();
     expect(ScanHandlers).toHaveBeenCalled();
     expect(PointerChainHandlers).toHaveBeenCalled();

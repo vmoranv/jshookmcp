@@ -9,19 +9,71 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ── vi.mock declarations (hoisted) ──────────────────────────────────────────
 
 vi.mock('@server/domains/shared/modules', () => ({
-  AdvancedDeobfuscator: vi.fn().mockImplementation(() => ({ _mock: 'AdvancedDeobfuscator' })),
-  CodeAnalyzer: vi.fn().mockImplementation(() => ({ _mock: 'CodeAnalyzer' })),
-  CodeCollector: vi.fn().mockImplementation(() => ({ _mock: 'CodeCollector', on: vi.fn() })),
-  CryptoDetector: vi.fn().mockImplementation(() => ({ _mock: 'CryptoDetector' })),
-  Deobfuscator: vi.fn().mockImplementation(() => ({ _mock: 'Deobfuscator' })),
-  HookManager: vi.fn().mockImplementation(() => ({ _mock: 'HookManager' })),
-  ObfuscationDetector: vi.fn().mockImplementation(() => ({ _mock: 'ObfuscationDetector' })),
-  DebuggerManager: vi.fn().mockImplementation(() => ({ _mock: 'DebuggerManager' })),
-  RuntimeInspector: vi.fn().mockImplementation(() => ({ _mock: 'RuntimeInspector' })),
-  ScriptManager: vi.fn().mockImplementation(() => ({ _mock: 'ScriptManager' })),
-  ConsoleMonitor: vi.fn().mockImplementation(() => ({ _mock: 'ConsoleMonitor' })),
-  PageController: vi.fn().mockImplementation(() => ({ _mock: 'PageController' })),
-  DOMInspector: vi.fn().mockImplementation(() => ({ _mock: 'DOMInspector' })),
+  AdvancedDeobfuscator: class {
+    constructor() {
+      return { _mock: 'AdvancedDeobfuscator' };
+    }
+  },
+  CodeAnalyzer: class {
+    constructor() {
+      return { _mock: 'CodeAnalyzer' };
+    }
+  },
+  CodeCollector: class {
+    constructor() {
+      return { _mock: 'CodeCollector', on: vi.fn() };
+    }
+  },
+  CryptoDetector: class {
+    constructor() {
+      return { _mock: 'CryptoDetector' };
+    }
+  },
+  Deobfuscator: class {
+    constructor() {
+      return { _mock: 'Deobfuscator' };
+    }
+  },
+  HookManager: class {
+    constructor() {
+      return { _mock: 'HookManager' };
+    }
+  },
+  ObfuscationDetector: class {
+    constructor() {
+      return { _mock: 'ObfuscationDetector' };
+    }
+  },
+  DebuggerManager: class {
+    constructor() {
+      return { _mock: 'DebuggerManager' };
+    }
+  },
+  RuntimeInspector: class {
+    constructor() {
+      return { _mock: 'RuntimeInspector' };
+    }
+  },
+  ScriptManager: class {
+    constructor() {
+      return { _mock: 'ScriptManager' };
+    }
+  },
+  ConsoleMonitor: class {
+    constructor() {
+      return { _mock: 'ConsoleMonitor' };
+    }
+  },
+  PageController: class {
+    constructor() {
+      return { _mock: 'PageController' };
+    }
+  },
+  DOMInspector: class {
+    constructor() {
+      return { _mock: 'DOMInspector' };
+    }
+  },
 }));
 
 vi.mock('@server/registry/ensure-browser-core', () => ({
@@ -36,76 +88,150 @@ vi.mock('@server/registry/ensure-browser-core', () => ({
 }));
 
 vi.mock('@services/LLMService', () => ({
-  LLMService: vi.fn().mockImplementation(() => ({ _mock: 'LLMService' })),
+  LLMService: class {
+    constructor() {
+      return { _mock: 'LLMService' };
+    }
+  },
 }));
 
 // Handler class mocks — each returns a unique instance
 vi.mock('@server/domains/analysis/index', () => ({
-  CoreAnalysisHandlers: vi.fn().mockImplementation(() => ({ _mock: 'CoreAnalysisHandlers' })),
+  CoreAnalysisHandlers: class {
+    constructor() {
+      return { _mock: 'CoreAnalysisHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/antidebug/index', () => ({
-  AntiDebugToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'AntiDebugToolHandlers' })),
+  AntiDebugToolHandlers: class {
+    constructor() {
+      return { _mock: 'AntiDebugToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/browser/index', () => ({
-  BrowserToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'BrowserToolHandlers' })),
+  BrowserToolHandlers: class {
+    constructor() {
+      return { _mock: 'BrowserToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/debugger/index', () => ({
-  DebuggerToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'DebuggerToolHandlers' })),
+  DebuggerToolHandlers: class {
+    constructor() {
+      return { _mock: 'DebuggerToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/encoding/index', () => ({
-  EncodingToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'EncodingToolHandlers' })),
+  EncodingToolHandlers: class {
+    constructor() {
+      return { _mock: 'EncodingToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/graphql/index', () => ({
-  GraphQLToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'GraphQLToolHandlers' })),
+  GraphQLToolHandlers: class {
+    constructor() {
+      return { _mock: 'GraphQLToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/hooks/index', () => ({
-  AIHookToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'AIHookToolHandlers' })),
-  HookPresetToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'HookPresetToolHandlers' })),
+  AIHookToolHandlers: class {
+    constructor() {
+      return { _mock: 'AIHookToolHandlers' };
+    }
+  },
+  HookPresetToolHandlers: class {
+    constructor() {
+      return { _mock: 'HookPresetToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/maintenance/index', () => ({
-  CoreMaintenanceHandlers: vi.fn().mockImplementation(() => ({ _mock: 'CoreMaintenanceHandlers' })),
-  ExtensionManagementHandlers: vi
-    .fn()
-    .mockImplementation(() => ({ _mock: 'ExtensionManagementHandlers' })),
+  CoreMaintenanceHandlers: class {
+    constructor() {
+      return { _mock: 'CoreMaintenanceHandlers' };
+    }
+  },
+  ExtensionManagementHandlers: class {
+    constructor() {
+      return { _mock: 'ExtensionManagementHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/network/index', () => ({
-  AdvancedToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'AdvancedToolHandlers' })),
+  AdvancedToolHandlers: class {
+    constructor() {
+      return { _mock: 'AdvancedToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/platform/index', () => ({
-  PlatformToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'PlatformToolHandlers' })),
+  PlatformToolHandlers: class {
+    constructor() {
+      return { _mock: 'PlatformToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/process/index', () => ({
-  ProcessToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'ProcessToolHandlers' })),
+  ProcessToolHandlers: class {
+    constructor() {
+      return { _mock: 'ProcessToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/sourcemap/index', () => ({
-  SourcemapToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'SourcemapToolHandlers' })),
+  SourcemapToolHandlers: class {
+    constructor() {
+      return { _mock: 'SourcemapToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/streaming/index', () => ({
-  StreamingToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'StreamingToolHandlers' })),
+  StreamingToolHandlers: class {
+    constructor() {
+      return { _mock: 'StreamingToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/transform/index', () => ({
-  TransformToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'TransformToolHandlers' })),
+  TransformToolHandlers: class {
+    constructor() {
+      return { _mock: 'TransformToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/wasm/index', () => ({
-  WasmToolHandlers: vi.fn().mockImplementation(() => ({ _mock: 'WasmToolHandlers' })),
+  WasmToolHandlers: class {
+    constructor() {
+      return { _mock: 'WasmToolHandlers' };
+    }
+  },
 }));
 
 vi.mock('@server/domains/workflow/index', () => ({
-  WorkflowHandlers: vi.fn().mockImplementation(() => ({ _mock: 'WorkflowHandlers' })),
+  WorkflowHandlers: class {
+    constructor() {
+      return { _mock: 'WorkflowHandlers' };
+    }
+  },
 }));
 
 // ── Manifest imports ────────────────────────────────────────────────────────
@@ -288,39 +414,39 @@ describe('domain manifests', () => {
   describe.each(ALL_MANIFESTS)(
     '$label manifest structure',
     ({ manifest, expectedDomain, expectedDepKey }) => {
-      it('has kind === "domain-manifest"', () => {
+      it('has kind === "domain-manifest"', async () => {
         expect(manifest.kind).toBe('domain-manifest');
       });
 
-      it('has version === 1', () => {
+      it('has version === 1', async () => {
         expect(manifest.version).toBe(1);
       });
 
-      it('has the expected domain string', () => {
+      it('has the expected domain string', async () => {
         expect(manifest.domain).toBe(expectedDomain);
         expect(typeof manifest.domain).toBe('string');
       });
 
-      it('has the expected depKey string', () => {
+      it('has the expected depKey string', async () => {
         expect(manifest.depKey).toBe(expectedDepKey);
         expect(typeof manifest.depKey).toBe('string');
       });
 
-      it('has profiles as a non-empty array', () => {
+      it('has profiles as a non-empty array', async () => {
         expect(Array.isArray(manifest.profiles)).toBe(true);
         expect(manifest.profiles.length).toBeGreaterThan(0);
       });
 
-      it('has ensure as a function', () => {
+      it('has ensure as a function', async () => {
         expect(typeof manifest.ensure).toBe('function');
       });
 
-      it('has registrations as a non-empty array', () => {
+      it('has registrations as a non-empty array', async () => {
         expect(Array.isArray(manifest.registrations)).toBe(true);
         expect(manifest.registrations.length).toBeGreaterThan(0);
       });
 
-      it('every registration has tool, domain, and bind', () => {
+      it('every registration has tool, domain, and bind', async () => {
         for (const reg of manifest.registrations) {
           expect(reg).toEqual(
             expect.objectContaining({
@@ -332,7 +458,7 @@ describe('domain manifests', () => {
         }
       });
 
-      it('every tool has annotations with valid semantic hints', () => {
+      it('every tool has annotations with valid semantic hints', async () => {
         for (const reg of manifest.registrations) {
           const tool = reg.tool as Record<string, unknown>;
           const annotations = tool.annotations as Record<string, unknown> | undefined;
@@ -353,26 +479,26 @@ describe('domain manifests', () => {
 
   // Ensure function tests for each manifest
   describe.each(ALL_MANIFESTS)('$label manifest ensure()', ({ manifest, expectedDepKey }) => {
-    it('returns a truthy handler and populates ctx[depKey]', () => {
+    it('returns a truthy handler and populates ctx[depKey]', async () => {
       const ctx = mockContext();
-      const handler = manifest.ensure(ctx);
+      const handler = await await manifest.ensure(ctx);
 
       expect(handler).toBeTruthy();
       expect(ctx[expectedDepKey]).toBeTruthy();
       expect(ctx[expectedDepKey]).toBe(handler);
     });
 
-    it('is idempotent — returns the same instance on second call', () => {
+    it('is idempotent — returns the same instance on second call', async () => {
       const ctx = mockContext();
-      const first = manifest.ensure(ctx);
-      const second = manifest.ensure(ctx);
+      const first = await await manifest.ensure(ctx);
+      const second = await await manifest.ensure(ctx);
 
       expect(second).toBe(first);
     });
   });
 
   // Verify all 16 domains are covered
-  it('covers all 16 domains', () => {
+  it('covers all 16 domains', async () => {
     expect(ALL_MANIFESTS).toHaveLength(16);
     const domains = new Set(ALL_MANIFESTS.map((m) => m.label));
     expect(domains).toEqual(

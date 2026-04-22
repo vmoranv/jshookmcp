@@ -19,27 +19,27 @@ describe('SECURITY_PRESETS', () => {
     mockBuildHookCode.mockClear();
   });
 
-  it('exports a Record<string, PresetEntry>', () => {
+  it('exports a Record<string, PresetEntry>', async () => {
     expect(SECURITY_PRESETS).toBeDefined();
     expect(typeof SECURITY_PRESETS).toBe('object');
     expect(SECURITY_PRESETS).not.toBeNull();
   });
 
-  it('contains all expected preset IDs', () => {
+  it('contains all expected preset IDs', async () => {
     const ids = Object.keys(SECURITY_PRESETS);
     for (const expectedId of EXPECTED_SECURITY_IDS) {
       expect(ids).toContain(expectedId);
     }
   });
 
-  it('does not contain unexpected extra entries beyond the known set', () => {
+  it('does not contain unexpected extra entries beyond the known set', async () => {
     const ids = Object.keys(SECURITY_PRESETS);
     for (const id of ids) {
       expect(EXPECTED_SECURITY_IDS).toContain(id);
     }
   });
 
-  it('has unique preset IDs (no duplicates in object keys)', () => {
+  it('has unique preset IDs (no duplicates in object keys)', async () => {
     const ids = Object.keys(SECURITY_PRESETS);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
@@ -61,7 +61,7 @@ describe('SECURITY_PRESETS', () => {
   });
 
   describe('buildCode delegation to buildHookCode', () => {
-    it('anti-debug-bypass preset calls buildHookCode with correct name', () => {
+    it('anti-debug-bypass preset calls buildHookCode with correct name', async () => {
       const result = SECURITY_PRESETS['anti-debug-bypass']!.buildCode(true, false);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'anti-debug-bypass',
@@ -72,7 +72,7 @@ describe('SECURITY_PRESETS', () => {
       expect(result).toBe('[mock:anti-debug-bypass:cs=true:lc=false]');
     });
 
-    it('crypto-key-capture preset calls buildHookCode with correct name', () => {
+    it('crypto-key-capture preset calls buildHookCode with correct name', async () => {
       const result = SECURITY_PRESETS['crypto-key-capture']!.buildCode(false, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'crypto-key-capture',
@@ -83,7 +83,7 @@ describe('SECURITY_PRESETS', () => {
       expect(result).toBe('[mock:crypto-key-capture:cs=false:lc=true]');
     });
 
-    it('webassembly-full preset calls buildHookCode with correct name', () => {
+    it('webassembly-full preset calls buildHookCode with correct name', async () => {
       const result = SECURITY_PRESETS['webassembly-full']!.buildCode(true, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'webassembly-full',
@@ -129,7 +129,7 @@ describe('SECURITY_PRESETS', () => {
       },
     );
 
-    it('anti-debug-bypass body does not use standard placeholders', () => {
+    it('anti-debug-bypass body does not use standard placeholders', async () => {
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS['anti-debug-bypass']!.buildCode(false, false);
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
@@ -148,33 +148,33 @@ describe('SECURITY_PRESETS', () => {
   });
 
   describe('description content', () => {
-    it('anti-debug-bypass description mentions anti-debugging', () => {
+    it('anti-debug-bypass description mentions anti-debugging', async () => {
       expect(SECURITY_PRESETS['anti-debug-bypass']!.description).toContain('anti-debug');
     });
 
-    it('anti-debug-bypass description mentions debugger traps', () => {
+    it('anti-debug-bypass description mentions debugger traps', async () => {
       expect(SECURITY_PRESETS['anti-debug-bypass']!.description).toContain('debugger');
     });
 
-    it('crypto-key-capture description mentions extractable', () => {
+    it('crypto-key-capture description mentions extractable', async () => {
       expect(SECURITY_PRESETS['crypto-key-capture']!.description).toContain('extractable');
     });
 
-    it('crypto-key-capture description mentions WebCrypto', () => {
+    it('crypto-key-capture description mentions WebCrypto', async () => {
       expect(SECURITY_PRESETS['crypto-key-capture']!.description).toContain('WebCrypto');
     });
 
-    it('webassembly-full description mentions WebAssembly', () => {
+    it('webassembly-full description mentions WebAssembly', async () => {
       expect(SECURITY_PRESETS['webassembly-full']!.description).toContain('WebAssembly');
     });
 
-    it('webassembly-full description mentions import calls', () => {
+    it('webassembly-full description mentions import calls', async () => {
       expect(SECURITY_PRESETS['webassembly-full']!.description).toContain('import calls');
     });
   });
 
   describe('security preset body content characteristics', () => {
-    it('anti-debug-bypass body contains debugger detection logic', () => {
+    it('anti-debug-bypass body contains debugger detection logic', async () => {
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS['anti-debug-bypass']!.buildCode(false, false);
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
@@ -184,7 +184,7 @@ describe('SECURITY_PRESETS', () => {
       expect(bodyArg).toContain('outerWidth');
     });
 
-    it('crypto-key-capture body forces extractable:true', () => {
+    it('crypto-key-capture body forces extractable:true', async () => {
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS['crypto-key-capture']!.buildCode(false, false);
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;
@@ -192,7 +192,7 @@ describe('SECURITY_PRESETS', () => {
       expect(bodyArg).toContain('true');
     });
 
-    it('webassembly-full body hooks WebAssembly.Memory', () => {
+    it('webassembly-full body hooks WebAssembly.Memory', async () => {
       mockBuildHookCode.mockClear();
       SECURITY_PRESETS['webassembly-full']!.buildCode(false, false);
       const bodyArg = mockBuildHookCode.mock.calls[0]![1] as string;

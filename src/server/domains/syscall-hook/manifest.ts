@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { syscallHookToolDefinitions } from '@server/domains/syscall-hook/definitions';
-import { SyscallHookHandlers } from '@server/domains/syscall-hook/handlers';
+import type { SyscallHookHandlers } from '@server/domains/syscall-hook/handlers';
 
 const DOMAIN = 'syscall-hook' as const;
 const DEP_KEY = 'syscallHookHandlers' as const;
@@ -13,7 +13,8 @@ const bindTool = (
   invoke: (handlers: Handlers, args: Record<string, unknown>) => Promise<unknown>,
 ) => bindByDepKey<Handlers>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): SyscallHookHandlers {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { SyscallHookHandlers } = await import('@server/domains/syscall-hook/handlers');
   const existing = ctx.getDomainInstance<SyscallHookHandlers>(DEP_KEY);
   if (existing) {
     return existing;

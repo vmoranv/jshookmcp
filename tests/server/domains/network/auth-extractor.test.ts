@@ -33,18 +33,18 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Empty / no-auth scenarios
   // -----------------------------------------------------------------------
-  it('returns empty array when no requests are provided', () => {
+  it('returns empty array when no requests are provided', async () => {
     expect(extractAuthFromRequests([])).toEqual([]);
   });
 
-  it('returns empty array when requests have no auth-related headers', () => {
+  it('returns empty array when requests have no auth-related headers', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { 'content-type': 'text/html', accept: '*/*' } }),
     ]);
     expect(findings).toEqual([]);
   });
 
-  it('ignores header values shorter than 4 characters', () => {
+  it('ignores header values shorter than 4 characters', async () => {
     const findings = extractAuthFromRequests([req({ headers: { authorization: 'ab' } })]);
     expect(findings).toEqual([]);
   });
@@ -52,7 +52,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Bearer token detection
   // -----------------------------------------------------------------------
-  it('detects Bearer token in Authorization header', () => {
+  it('detects Bearer token in Authorization header', async () => {
     const token = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature';
     const findings = extractAuthFromRequests([req({ headers: { Authorization: token } })]);
 
@@ -62,7 +62,7 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).confidence).toBe(0.95);
   });
 
-  it('assigns high confidence (0.95) to Bearer-prefixed values', () => {
+  it('assigns high confidence (0.95) to Bearer-prefixed values', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { Authorization: 'Bearer some-long-opaque-token-value-here' } }),
     ]);
@@ -73,7 +73,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // JWT detection
   // -----------------------------------------------------------------------
-  it('detects standalone JWT tokens with 0.9 confidence', () => {
+  it('detects standalone JWT tokens with 0.9 confidence', async () => {
     const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc123def456';
     const findings = extractAuthFromRequests([req({ headers: { 'x-token': jwt } })]);
 
@@ -85,7 +85,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // API key / custom token headers
   // -----------------------------------------------------------------------
-  it('detects x-api-key header', () => {
+  it('detects x-api-key header', async () => {
     const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678';
     const findings = extractAuthFromRequests([req({ headers: { 'x-api-key': apiKey } })]);
 
@@ -94,7 +94,7 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).source).toBe('header');
   });
 
-  it('detects x-auth-token header', () => {
+  it('detects x-auth-token header', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { 'x-auth-token': 'a]very-long-auth-token-value-for-testing' } }),
     ]);
@@ -103,7 +103,7 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).header).toBe('x-auth-token');
   });
 
-  it('detects x-access-token header', () => {
+  it('detects x-access-token header', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { 'x-access-token': 'some-access-token-value-12345' } }),
     ]);
@@ -112,7 +112,7 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).header).toBe('x-access-token');
   });
 
-  it('detects x-signature header', () => {
+  it('detects x-signature header', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { 'x-signature': 'abcdef1234567890abcdef1234567890' } }),
     ]);
@@ -121,7 +121,7 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).header).toBe('x-signature');
   });
 
-  it('detects x-sign header', () => {
+  it('detects x-sign header', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { 'x-sign': 'abcdef1234567890abcdef1234567890' } }),
     ]);
@@ -130,7 +130,7 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).header).toBe('x-sign');
   });
 
-  it('detects x-csrf-token header', () => {
+  it('detects x-csrf-token header', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { 'x-csrf-token': 'csrf-token-value-abc123def456' } }),
     ]);
@@ -142,7 +142,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Cookie extraction
   // -----------------------------------------------------------------------
-  it('extracts individual cookies from Cookie header', () => {
+  it('extracts individual cookies from Cookie header', async () => {
     const findings = extractAuthFromRequests([
       req({
         headers: {
@@ -158,7 +158,7 @@ describe('extractAuthFromRequests', () => {
     expect(names).not.toContain('cookie[tracking]');
   });
 
-  it('reports cookie findings with source "cookie"', () => {
+  it('reports cookie findings with source "cookie"', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { cookie: 'token=abcdef123456789012345' } }),
     ]);
@@ -166,13 +166,13 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).source).toBe('cookie');
   });
 
-  it('ignores cookie values shorter than 8 characters', () => {
+  it('ignores cookie values shorter than 8 characters', async () => {
     const findings = extractAuthFromRequests([req({ headers: { cookie: 'tiny=abc' } })]);
 
     expect(findings).toEqual([]);
   });
 
-  it('skips cookie parts without an equals sign', () => {
+  it('skips cookie parts without an equals sign', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { cookie: 'noequalssign; valid=abcdef123456789012345' } }),
     ]);
@@ -184,7 +184,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Query parameter extraction
   // -----------------------------------------------------------------------
-  it('extracts auth tokens from URL query parameters', () => {
+  it('extracts auth tokens from URL query parameters', async () => {
     const findings = extractAuthFromRequests([
       req({ url: 'https://api.example.com/data?token=abcdef123456789012345&page=1' }),
     ]);
@@ -194,7 +194,7 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).header).toBe('token');
   });
 
-  it('detects various auth-related query parameter names', () => {
+  it('detects various auth-related query parameter names', async () => {
     const longVal = 'abcdef123456789012345';
     const urls = [
       `https://api.example.com?access_token=${longVal}`,
@@ -216,7 +216,7 @@ describe('extractAuthFromRequests', () => {
     }
   });
 
-  it('applies 0.9 multiplier to query parameter confidence', () => {
+  it('applies 0.9 multiplier to query parameter confidence', async () => {
     // A long base64-ish string (>20, all alphanumeric) gets base score 0.7
     const longAlphanumeric = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef';
     const findings = extractAuthFromRequests([
@@ -227,13 +227,13 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).confidence).toBeCloseTo(0.7 * 0.9, 5);
   });
 
-  it('ignores query parameters with values shorter than 8 chars', () => {
+  it('ignores query parameters with values shorter than 8 chars', async () => {
     const findings = extractAuthFromRequests([req({ url: 'https://api.example.com?token=short' })]);
 
     expect(findings).toEqual([]);
   });
 
-  it('handles invalid URLs gracefully for query param scanning', () => {
+  it('handles invalid URLs gracefully for query param scanning', async () => {
     const findings = extractAuthFromRequests([
       req({
         url: 'not-a-valid-url',
@@ -249,7 +249,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Request body (JSON) extraction
   // -----------------------------------------------------------------------
-  it('extracts auth tokens from JSON request body', () => {
+  it('extracts auth tokens from JSON request body', async () => {
     const findings = extractAuthFromRequests([
       req({
         postData: JSON.stringify({ token: 'abcdef123456789012345', username: 'user' }),
@@ -261,7 +261,7 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).header).toBe('token');
   });
 
-  it('detects various auth-related body field names', () => {
+  it('detects various auth-related body field names', async () => {
     const longVal = 'abcdef123456789012345';
     const keys = [
       'token',
@@ -286,7 +286,7 @@ describe('extractAuthFromRequests', () => {
     }
   });
 
-  it('applies 0.85 multiplier to body field confidence', () => {
+  it('applies 0.85 multiplier to body field confidence', async () => {
     const longAlphanumeric = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef';
     const findings = extractAuthFromRequests([
       req({ postData: JSON.stringify({ token: longAlphanumeric }) }),
@@ -296,7 +296,7 @@ describe('extractAuthFromRequests', () => {
     expect(getFinding(findings).confidence).toBeCloseTo(0.7 * 0.85, 5);
   });
 
-  it('ignores body string values shorter than 8 characters', () => {
+  it('ignores body string values shorter than 8 characters', async () => {
     const findings = extractAuthFromRequests([
       req({ postData: JSON.stringify({ token: 'short' }) }),
     ]);
@@ -304,7 +304,7 @@ describe('extractAuthFromRequests', () => {
     expect(findings).toEqual([]);
   });
 
-  it('ignores non-string body values', () => {
+  it('ignores non-string body values', async () => {
     const findings = extractAuthFromRequests([
       req({ postData: JSON.stringify({ token: 12345678901234 }) }),
     ]);
@@ -312,13 +312,13 @@ describe('extractAuthFromRequests', () => {
     expect(findings).toEqual([]);
   });
 
-  it('skips non-JSON request bodies gracefully', () => {
+  it('skips non-JSON request bodies gracefully', async () => {
     const findings = extractAuthFromRequests([req({ postData: 'this is not json {{{' })]);
 
     expect(findings).toEqual([]);
   });
 
-  it('skips null/non-object JSON bodies', () => {
+  it('skips null/non-object JSON bodies', async () => {
     const findings = extractAuthFromRequests([req({ postData: '"just a string"' })]);
 
     expect(findings).toEqual([]);
@@ -327,14 +327,14 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Value masking
   // -----------------------------------------------------------------------
-  it('masks long secrets showing first 6 and last 4 characters', () => {
+  it('masks long secrets showing first 6 and last 4 characters', async () => {
     const token = 'abcdef_middle_part_ghij';
     const findings = extractAuthFromRequests([req({ headers: { authorization: token } })]);
 
     expect(getFinding(findings).value_masked).toBe('abcdef***ghij');
   });
 
-  it('fully masks short secrets (<=12 chars) as "***"', () => {
+  it('fully masks short secrets (<=12 chars) as "***"', async () => {
     const shortVal = 'shorttoken'; // 10 chars
     const findings = extractAuthFromRequests([req({ headers: { authorization: shortVal } })]);
 
@@ -344,21 +344,21 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Confidence scoring
   // -----------------------------------------------------------------------
-  it('assigns confidence 0.5 for generic strings between 10 and 20 chars', () => {
+  it('assigns confidence 0.5 for generic strings between 10 and 20 chars', async () => {
     const value = 'medium-value'; // 12 chars, no special pattern
     const findings = extractAuthFromRequests([req({ headers: { 'x-token': value } })]);
 
     expect(getFinding(findings).confidence).toBe(0.5);
   });
 
-  it('assigns confidence 0.3 for very short strings', () => {
+  it('assigns confidence 0.3 for very short strings', async () => {
     const value = 'tiny!'; // 5 chars, not alphanumeric-only, length <= 10
     const findings = extractAuthFromRequests([req({ headers: { 'x-token': value } })]);
 
     expect(getFinding(findings).confidence).toBe(0.3);
   });
 
-  it('assigns confidence 0.7 for long base64-like strings', () => {
+  it('assigns confidence 0.7 for long base64-like strings', async () => {
     const base64Like = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef'; // >20, all alphanumeric
     const findings = extractAuthFromRequests([req({ headers: { 'x-token': base64Like } })]);
 
@@ -368,7 +368,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Sorting
   // -----------------------------------------------------------------------
-  it('sorts findings by confidence in descending order', () => {
+  it('sorts findings by confidence in descending order', async () => {
     const findings = extractAuthFromRequests([
       // Bearer → 0.95
       req({ headers: { authorization: 'Bearer some-long-token-value-here-123' } }),
@@ -388,7 +388,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Deduplication
   // -----------------------------------------------------------------------
-  it('deduplicates identical header findings across requests', () => {
+  it('deduplicates identical header findings across requests', async () => {
     const token = 'Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig';
     const findings = extractAuthFromRequests([
       req({ url: 'https://api.example.com/a', headers: { authorization: token } }),
@@ -399,7 +399,7 @@ describe('extractAuthFromRequests', () => {
     expect(findings).toHaveLength(1);
   });
 
-  it('deduplicates identical cookie findings across requests', () => {
+  it('deduplicates identical cookie findings across requests', async () => {
     const cookieVal = 'session_id=abcdef1234567890abcdef1234567890';
     const findings = extractAuthFromRequests([
       req({ url: 'https://api.example.com/a', headers: { cookie: cookieVal } }),
@@ -409,14 +409,14 @@ describe('extractAuthFromRequests', () => {
     expect(findings).toHaveLength(1);
   });
 
-  it('deduplicates identical query param findings across requests', () => {
+  it('deduplicates identical query param findings across requests', async () => {
     const url = 'https://api.example.com/data?token=abcdef123456789012345';
     const findings = extractAuthFromRequests([req({ url }), req({ url })]);
 
     expect(findings).toHaveLength(1);
   });
 
-  it('deduplicates identical body findings across requests', () => {
+  it('deduplicates identical body findings across requests', async () => {
     const body = JSON.stringify({ token: 'abcdef123456789012345' });
     const findings = extractAuthFromRequests([req({ postData: body }), req({ postData: body })]);
 
@@ -426,7 +426,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // request_url field
   // -----------------------------------------------------------------------
-  it('includes the original request URL in findings', () => {
+  it('includes the original request URL in findings', async () => {
     const findings = extractAuthFromRequests([
       req({
         url: 'https://specific.api.com/endpoint',
@@ -440,7 +440,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Missing headers
   // -----------------------------------------------------------------------
-  it('handles requests with undefined headers', () => {
+  it('handles requests with undefined headers', async () => {
     const findings = extractAuthFromRequests([req({ headers: undefined })]);
     expect(findings).toEqual([]);
   });
@@ -448,7 +448,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Multiple sources in single request
   // -----------------------------------------------------------------------
-  it('finds auth in headers, cookies, query, and body of a single request', () => {
+  it('finds auth in headers, cookies, query, and body of a single request', async () => {
     const longVal = 'abcdef123456789012345';
     const findings = extractAuthFromRequests([
       req({
@@ -471,7 +471,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Case-insensitive header matching
   // -----------------------------------------------------------------------
-  it('matches auth headers case-insensitively', () => {
+  it('matches auth headers case-insensitively', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { Authorization: 'Bearer some-long-token-value-here-123' } }),
     ]);
@@ -479,7 +479,7 @@ describe('extractAuthFromRequests', () => {
     expect(findings).toHaveLength(1);
   });
 
-  it('matches X-Api-Key in mixed case', () => {
+  it('matches X-Api-Key in mixed case', async () => {
     const findings = extractAuthFromRequests([
       req({ headers: { 'X-Api-Key': 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef' } }),
     ]);
@@ -490,7 +490,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Non-auth headers should be ignored
   // -----------------------------------------------------------------------
-  it('ignores standard non-auth headers even with long values', () => {
+  it('ignores standard non-auth headers even with long values', async () => {
     const findings = extractAuthFromRequests([
       req({
         headers: {
@@ -507,7 +507,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   // Non-auth query params
   // -----------------------------------------------------------------------
-  it('ignores non-auth query parameters', () => {
+  it('ignores non-auth query parameters', async () => {
     const findings = extractAuthFromRequests([
       req({ url: 'https://api.example.com?page=1&limit=50&sort=name&filter=active' }),
     ]);

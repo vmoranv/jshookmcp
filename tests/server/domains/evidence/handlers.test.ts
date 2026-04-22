@@ -18,7 +18,7 @@ describe('EvidenceHandlers', () => {
   });
 
   describe('handleQueryUrl', () => {
-    it('should query nodes by url and return JSON', () => {
+    it('should query nodes by url and return JSON', async () => {
       mockGraph.queryByUrl.mockReturnValue([
         { id: 'n1', type: 'url', label: 'http://test', metadata: {} },
       ]);
@@ -30,7 +30,7 @@ describe('EvidenceHandlers', () => {
   });
 
   describe('handleQueryFunction', () => {
-    it('should query nodes by function and return JSON', () => {
+    it('should query nodes by function and return JSON', async () => {
       mockGraph.queryByFunction.mockReturnValue([
         { id: 'n2', type: 'function', label: 'eval', metadata: {} },
       ]);
@@ -42,7 +42,7 @@ describe('EvidenceHandlers', () => {
   });
 
   describe('handleQueryScript', () => {
-    it('should query nodes by script id and return JSON', () => {
+    it('should query nodes by script id and return JSON', async () => {
       mockGraph.queryByScriptId.mockReturnValue([
         { id: 'n3', type: 'script', label: 'bundle.js', metadata: {} },
       ]);
@@ -54,7 +54,7 @@ describe('EvidenceHandlers', () => {
   });
 
   describe('handleExportJson', () => {
-    it('should export graph as JSON', () => {
+    it('should export graph as JSON', async () => {
       mockGraph.exportJson.mockReturnValue({ nodes: [], edges: [] });
       const result = handlers.handleExportJson() as any;
       const data = JSON.parse(result.content[0].text);
@@ -63,7 +63,7 @@ describe('EvidenceHandlers', () => {
   });
 
   describe('handleExportMarkdown', () => {
-    it('should export graph as markdown', () => {
+    it('should export graph as markdown', async () => {
       mockGraph.exportMarkdown.mockReturnValue('# Graph\nData');
       const result = handlers.handleExportMarkdown() as any;
       expect(result.content[0].text).toBe('# Graph\nData');
@@ -71,7 +71,7 @@ describe('EvidenceHandlers', () => {
   });
 
   describe('handleChain', () => {
-    it('should get evidence chain forward', () => {
+    it('should get evidence chain forward', async () => {
       mockGraph.getEvidenceChain.mockReturnValue([
         { id: 'n1', type: 'eval', label: 'eval', metadata: {} },
       ]);
@@ -81,7 +81,7 @@ describe('EvidenceHandlers', () => {
       expect(data.nodes[0].id).toBe('n1');
     });
 
-    it('should get evidence chain backward if specified', () => {
+    it('should get evidence chain backward if specified', async () => {
       mockGraph.getEvidenceChain.mockReturnValue([
         { id: 'n2', type: 'eval', label: 'eval', metadata: {} },
       ]);

@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { sharedStateBoardTools } from '@server/domains/shared-state-board/definitions';
-import { SharedStateBoardHandlers } from '@server/domains/shared-state-board/index';
+import type { SharedStateBoardHandlers } from '@server/domains/shared-state-board/index';
 import type { RuntimeSnapshotScheduler } from '@server/persistence/RuntimeSnapshotScheduler';
 import { resolve } from 'node:path';
 
@@ -12,7 +12,8 @@ const t = toolLookup(sharedStateBoardTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { SharedStateBoardHandlers } = await import('@server/domains/shared-state-board/index');
   if (!ctx.sharedStateBoardHandlers) {
     ctx.sharedStateBoardHandlers = new SharedStateBoardHandlers();
   }

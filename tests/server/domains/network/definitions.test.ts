@@ -24,12 +24,12 @@ function getProperties(tool: Tool): Record<string, ToolProperty> {
 }
 
 describe('network tool definitions', () => {
-  it('exports a non-empty array of tool definitions', () => {
+  it('exports a non-empty array of tool definitions', async () => {
     expect(Array.isArray(advancedTools)).toBe(true);
     expect(advancedTools.length).toBeGreaterThan(0);
   });
 
-  it('every tool has a name, description, and inputSchema', () => {
+  it('every tool has a name, description, and inputSchema', async () => {
     for (const tool of advancedTools) {
       expect(tool.name).toEqual(expect.any(String));
       expect(tool.name.length).toBeGreaterThan(0);
@@ -43,19 +43,19 @@ describe('network tool definitions', () => {
     }
   });
 
-  it('has no duplicate tool names', () => {
+  it('has no duplicate tool names', async () => {
     const names = advancedTools.map((t) => t.name);
     const unique = new Set(names);
     expect(unique.size).toBe(names.length);
   });
 
-  it('tool names use snake_case convention', () => {
+  it('tool names use snake_case convention', async () => {
     for (const tool of advancedTools) {
       expect(tool.name).toMatch(/^[a-z][a-z0-9_]*$/);
     }
   });
 
-  it('contains expected core network tools', () => {
+  it('contains expected core network tools', async () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('network_enable')).toBe(true);
     expect(names.has('network_disable')).toBe(true);
@@ -66,20 +66,20 @@ describe('network tool definitions', () => {
     expect(names.has('network_get_stats')).toBe(true);
   });
 
-  it('contains expected raw DNS and HTTP tools', () => {
+  it('contains expected raw DNS and HTTP tools', async () => {
     const names = new Set(advancedTools.map((t) => t.name));
 
     expect(names.has('http_request_build')).toBe(true);
     expect(names.has('http_plain_request')).toBe(true);
   });
 
-  it('contains expected ICMP tools', () => {
+  it('contains expected ICMP tools', async () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('network_traceroute')).toBe(true);
     expect(names.has('network_icmp_probe')).toBe(true);
   });
 
-  it('contains expected performance tools', () => {
+  it('contains expected performance tools', async () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('performance_get_metrics')).toBe(true);
     expect(names.has('performance_coverage')).toBe(true);
@@ -87,20 +87,20 @@ describe('network tool definitions', () => {
     expect(names.has('performance_trace')).toBe(true);
   });
 
-  it('contains expected profiler tools', () => {
+  it('contains expected profiler tools', async () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('profiler_cpu')).toBe(true);
     expect(names.has('profiler_heap_sampling')).toBe(true);
   });
 
-  it('contains expected console tools', () => {
+  it('contains expected console tools', async () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('console_get_exceptions')).toBe(true);
     expect(names.has('console_inject')).toBe(true);
     expect(names.has('console_buffers')).toBe(true);
   });
 
-  it('contains expected analysis tools', () => {
+  it('contains expected analysis tools', async () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('network_extract_auth')).toBe(true);
 
@@ -113,34 +113,34 @@ describe('network tool definitions', () => {
 
   // ---------- required field checks ----------
 
-  it('network_get_response_body requires requestId', () => {
+  it('network_get_response_body requires requestId', async () => {
     const tool = findTool('network_get_response_body');
     expect(tool.inputSchema.required).toContain('requestId');
   });
 
-  it('network_monitor requires action', () => {
+  it('network_monitor requires action', async () => {
     const tool = findTool('network_monitor');
     expect(tool.inputSchema.required).toContain('action');
   });
 
-  it('network_replay_request requires requestId', () => {
+  it('network_replay_request requires requestId', async () => {
     const tool = findTool('network_replay_request');
     expect(tool.inputSchema.required).toContain('requestId');
   });
 
-  it('http_request_build requires method and target', () => {
+  it('http_request_build requires method and target', async () => {
     const tool = findTool('http_request_build');
     expect(tool.inputSchema.required).toContain('method');
     expect(tool.inputSchema.required).toContain('target');
   });
 
-  it('http_plain_request requires host and requestText', () => {
+  it('http_plain_request requires host and requestText', async () => {
     const tool = findTool('http_plain_request');
     expect(tool.inputSchema.required).toContain('host');
     expect(tool.inputSchema.required).toContain('requestText');
   });
 
-  it('network_replay_request exposes request-level authorization inputs', () => {
+  it('network_replay_request exposes request-level authorization inputs', async () => {
     const tool = findTool('network_replay_request');
     const props = getProperties(tool);
 
@@ -150,7 +150,7 @@ describe('network tool definitions', () => {
     expect(props.authorizationCapability?.type).toBe('string');
   });
 
-  it('http_plain_request exposes request-level authorization inputs', () => {
+  it('http_plain_request exposes request-level authorization inputs', async () => {
     const tool = findTool('http_plain_request');
     const props = getProperties(tool);
 
@@ -160,14 +160,14 @@ describe('network tool definitions', () => {
     expect(props.maxResponseBytes).toBeDefined();
   });
 
-  it('console_inject requires type', () => {
+  it('console_inject requires type', async () => {
     const tool = findTool('console_inject');
     expect(tool.inputSchema.required).toContain('type');
   });
 
   // ---------- property type checks ----------
 
-  it('network_get_requests has expected filter properties', () => {
+  it('network_get_requests has expected filter properties', async () => {
     const tool = findTool('network_get_requests');
     const props = getProperties(tool);
     expect(props.url).toBeDefined();
@@ -182,7 +182,7 @@ describe('network tool definitions', () => {
     expect(props.enableExceptions).toBeDefined();
   });
 
-  it('performance_trace has action, categories, screenshots, artifactPath', () => {
+  it('performance_trace has action, categories, screenshots, artifactPath', async () => {
     const tool = findTool('performance_trace');
     const props = getProperties(tool);
     expect(props.action).toBeDefined();
@@ -192,14 +192,14 @@ describe('network tool definitions', () => {
     expect(props.screenshots?.type).toBe('boolean');
   });
 
-  it('profiler_heap_sampling has samplingInterval property', () => {
+  it('profiler_heap_sampling has samplingInterval property', async () => {
     const tool = findTool('profiler_heap_sampling');
     const props = getProperties(tool);
     expect(props.samplingInterval).toBeDefined();
     expect(props.samplingInterval?.type).toBe('number');
   });
 
-  it('http_request_build exposes expected builder properties', () => {
+  it('http_request_build exposes expected builder properties', async () => {
     const tool = findTool('http_request_build');
     const props = getProperties(tool);
     expect(props.host).toBeDefined();
@@ -211,7 +211,7 @@ describe('network tool definitions', () => {
     expect(props.addConnectionClose).toBeDefined();
   });
 
-  it('all inputSchema.properties entries have a type field', () => {
+  it('all inputSchema.properties entries have a type field', async () => {
     for (const tool of advancedTools) {
       const props = getProperties(tool);
       for (const [key, value] of Object.entries(props)) {
@@ -220,7 +220,7 @@ describe('network tool definitions', () => {
     }
   });
 
-  it('all inputSchema.properties entries have a description field', () => {
+  it('all inputSchema.properties entries have a description field', async () => {
     for (const tool of advancedTools) {
       const props = getProperties(tool);
       for (const [key, value] of Object.entries(props)) {
@@ -233,7 +233,7 @@ describe('network tool definitions', () => {
     }
   });
 
-  it('required fields reference properties that exist in the schema', () => {
+  it('required fields reference properties that exist in the schema', async () => {
     for (const tool of advancedTools) {
       const required = tool.inputSchema.required;
       if (!required) continue;

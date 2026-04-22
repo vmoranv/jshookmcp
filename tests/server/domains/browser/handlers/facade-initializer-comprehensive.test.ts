@@ -131,7 +131,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('module initialization', () => {
-    it('returns all required handler modules', () => {
+    it('returns all required handler modules', async () => {
       const deps = makeDeps();
       const modules = initializeBrowserHandlerModules(deps);
 
@@ -153,7 +153,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(modules.detailedData).toBeDefined();
     });
 
-    it('creates exactly 18 handler instances', () => {
+    it('creates exactly 18 handler instances', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -176,7 +176,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('BrowserControlHandlers deps', () => {
-    it('passes collector to BrowserControlHandlers', () => {
+    it('passes collector to BrowserControlHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -184,7 +184,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.collector).toBe(deps.collector);
     });
 
-    it('passes pageController to BrowserControlHandlers', () => {
+    it('passes pageController to BrowserControlHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -192,7 +192,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.pageController).toBe(deps.pageController);
     });
 
-    it('passes consoleMonitor to BrowserControlHandlers', () => {
+    it('passes consoleMonitor to BrowserControlHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -200,7 +200,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.consoleMonitor).toBe(deps.consoleMonitor);
     });
 
-    it('passes getActiveDriver to BrowserControlHandlers', () => {
+    it('passes getActiveDriver to BrowserControlHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -208,7 +208,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.getActiveDriver).toBe(deps.getActiveDriver);
     });
 
-    it('passes getCamoufoxManager to BrowserControlHandlers', () => {
+    it('passes getCamoufoxManager to BrowserControlHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -216,7 +216,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.getCamoufoxManager).toBe(deps.getCamoufoxManager);
     });
 
-    it('passes getCamoufoxPage to BrowserControlHandlers', () => {
+    it('passes getCamoufoxPage to BrowserControlHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -224,7 +224,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.getCamoufoxPage).toBe(deps.getCamoufoxPage);
     });
 
-    it('provides getTabRegistry function that returns tabRegistry', () => {
+    it('provides getTabRegistry function that returns tabRegistry', async () => {
       const deps = makeDeps();
       const modules = initializeBrowserHandlerModules(deps);
 
@@ -235,7 +235,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('CamoufoxBrowserHandlers deps', () => {
-    it('passes getCamoufoxManager to CamoufoxBrowserHandlers', () => {
+    it('passes getCamoufoxManager to CamoufoxBrowserHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -243,7 +243,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.getCamoufoxManager).toBe(deps.getCamoufoxManager);
     });
 
-    it('passes setCamoufoxManager to CamoufoxBrowserHandlers', () => {
+    it('passes setCamoufoxManager to CamoufoxBrowserHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -251,7 +251,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.setCamoufoxManager).toBe(deps.setCamoufoxManager);
     });
 
-    it('passes closeCamoufox to CamoufoxBrowserHandlers', () => {
+    it('passes closeCamoufox to CamoufoxBrowserHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -261,7 +261,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('PageNavigationHandlers deps', () => {
-    it('passes pageController to PageNavigationHandlers', () => {
+    it('passes pageController to PageNavigationHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -269,7 +269,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.pageController).toBe(deps.pageController);
     });
 
-    it('passes consoleMonitor to PageNavigationHandlers', () => {
+    it('passes consoleMonitor to PageNavigationHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -277,7 +277,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.consoleMonitor).toBe(deps.consoleMonitor);
     });
 
-    it('passes getActiveDriver (commonDeps) to PageNavigationHandlers', () => {
+    it('passes getActiveDriver (commonDeps) to PageNavigationHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -285,7 +285,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.getActiveDriver).toBe(deps.getActiveDriver);
     });
 
-    it('passes getCamoufoxPage (commonDeps) to PageNavigationHandlers', () => {
+    it('passes getCamoufoxPage (commonDeps) to PageNavigationHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -295,7 +295,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('PageInteractionHandlers deps', () => {
-    it('passes pageController and commonDeps to PageInteractionHandlers', () => {
+    it('passes pageController and commonDeps to PageInteractionHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -307,7 +307,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('PageEvaluationHandlers deps', () => {
-    it('passes pageController and detailedDataManager to PageEvaluationHandlers', () => {
+    it('passes pageController and detailedDataManager to PageEvaluationHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -316,7 +316,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.detailedDataManager).toBe(deps.detailedDataManager);
     });
 
-    it('passes commonDeps to PageEvaluationHandlers', () => {
+    it('passes commonDeps to PageEvaluationHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -327,7 +327,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('PageDataHandlers deps', () => {
-    it('passes pageController and commonDeps to PageDataHandlers', () => {
+    it('passes pageController and commonDeps to PageDataHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -339,7 +339,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('ConsoleHandlers deps', () => {
-    it('passes consoleMonitor and detailedDataManager to ConsoleHandlers', () => {
+    it('passes consoleMonitor and detailedDataManager to ConsoleHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -350,7 +350,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('ScriptManagementHandlers deps', () => {
-    it('passes scriptManager and detailedDataManager to ScriptManagementHandlers', () => {
+    it('passes scriptManager and detailedDataManager to ScriptManagementHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -361,7 +361,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('CaptchaHandlers deps', () => {
-    it('passes pageController to CaptchaHandlers', () => {
+    it('passes pageController to CaptchaHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -369,7 +369,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.pageController).toBe(deps.pageController);
     });
 
-    it('passes captchaDetector to CaptchaHandlers', () => {
+    it('passes captchaDetector to CaptchaHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -377,7 +377,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.captchaDetector).toBe(deps.captchaDetector);
     });
 
-    it('evaluates and passes current captcha settings', () => {
+    it('evaluates and passes current captcha settings', async () => {
       const deps = makeDeps();
       (deps.getAutoDetectCaptcha as any).mockReturnValue(true);
       (deps.getAutoSwitchHeadless as any).mockReturnValue(true);
@@ -391,7 +391,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.captchaTimeout).toBe(60000);
     });
 
-    it('passes setter functions for captcha settings', () => {
+    it('passes setter functions for captcha settings', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -403,7 +403,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('StealthInjectionHandlers deps', () => {
-    it('passes pageController and commonDeps to StealthInjectionHandlers', () => {
+    it('passes pageController and commonDeps to StealthInjectionHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -414,7 +414,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('FrameworkStateHandlers deps', () => {
-    it('provides getActivePage function wrapping collector.getActivePage', () => {
+    it('provides getActivePage function wrapping collector.getActivePage', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -428,7 +428,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('IndexedDBDumpHandlers deps', () => {
-    it('provides getActivePage function wrapping collector.getActivePage', () => {
+    it('provides getActivePage function wrapping collector.getActivePage', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -441,7 +441,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('JSHeapSearchHandlers deps', () => {
-    it('provides getActivePage function wrapping collector.getActivePage', () => {
+    it('provides getActivePage function wrapping collector.getActivePage', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -452,7 +452,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(deps.collector.getActivePage).toHaveBeenCalled();
     });
 
-    it('passes getActiveDriver to JSHeapSearchHandlers', () => {
+    it('passes getActiveDriver to JSHeapSearchHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -462,7 +462,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('TabWorkflowHandlers deps', () => {
-    it('passes getActiveDriver to TabWorkflowHandlers', () => {
+    it('passes getActiveDriver to TabWorkflowHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -470,7 +470,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.getActiveDriver).toBe(deps.getActiveDriver);
     });
 
-    it('passes getCamoufoxPage to TabWorkflowHandlers', () => {
+    it('passes getCamoufoxPage to TabWorkflowHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -478,7 +478,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.getCamoufoxPage).toBe(deps.getCamoufoxPage);
     });
 
-    it('provides getPageController function returning pageController', () => {
+    it('provides getPageController function returning pageController', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -487,7 +487,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
       expect(call.getPageController()).toBe(deps.pageController);
     });
 
-    it('provides getTabRegistry function returning tabRegistry', () => {
+    it('provides getTabRegistry function returning tabRegistry', async () => {
       const deps = makeDeps();
       const modules = initializeBrowserHandlerModules(deps);
 
@@ -498,7 +498,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('DetailedDataHandlers deps', () => {
-    it('passes detailedDataManager to DetailedDataHandlers', () => {
+    it('passes detailedDataManager to DetailedDataHandlers', async () => {
       const deps = makeDeps();
       initializeBrowserHandlerModules(deps);
 
@@ -508,7 +508,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('TabRegistry sharing', () => {
-    it('shares same tabRegistry between browserControl and tabWorkflow', () => {
+    it('shares same tabRegistry between browserControl and tabWorkflow', async () => {
       const deps = makeDeps();
       const modules = initializeBrowserHandlerModules(deps);
 
@@ -523,7 +523,7 @@ describe('initializeBrowserHandlerModules — comprehensive coverage', () => {
   });
 
   describe('return value structure', () => {
-    it('returns object conforming to BrowserHandlerModules interface', () => {
+    it('returns object conforming to BrowserHandlerModules interface', async () => {
       const deps = makeDeps();
       const modules: BrowserHandlerModules = initializeBrowserHandlerModules(deps);
 

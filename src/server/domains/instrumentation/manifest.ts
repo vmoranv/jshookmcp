@@ -1,10 +1,10 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { instrumentationTools } from '@server/domains/instrumentation/definitions';
-import { InstrumentationHandlers } from '@server/domains/instrumentation/handlers';
-import { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
-import { EvidenceGraphBridge } from '@server/instrumentation/EvidenceGraphBridge';
-import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
+import type { InstrumentationHandlers } from '@server/domains/instrumentation/handlers';
+import type { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
+import type { EvidenceGraphBridge } from '@server/instrumentation/EvidenceGraphBridge';
+import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 import type { ToolResponse } from '@server/types';
 
 const DOMAIN = 'instrumentation' as const;
@@ -22,13 +22,20 @@ interface NetworkReplayHandlerLike {
   handleNetworkReplayRequest(args: Record<string, unknown>): Promise<ToolResponse>;
 }
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { ReverseEvidenceGraph } = await import('@server/evidence/ReverseEvidenceGraph');
+  const { InstrumentationSessionManager } =
+    await import('@server/instrumentation/InstrumentationSession');
+  const { EvidenceGraphBridge } = await import('@server/instrumentation/EvidenceGraphBridge');
+  const { InstrumentationHandlers } = await import('@server/domains/instrumentation/handlers');
   const hookPresetHandlers = ctx.handlerDeps.hookPresetHandlers as unknown as
     | HookPresetHandlerLike
     | undefined;
   const advancedHandlers = ctx.handlerDeps.advancedHandlers as unknown as
     | NetworkReplayHandlerLike
     | undefined;
+
+  // Dynamic imports — load only when domain is first accessed
 
   let graph = ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');
   if (!graph) {

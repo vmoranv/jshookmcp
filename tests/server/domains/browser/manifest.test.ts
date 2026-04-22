@@ -129,7 +129,7 @@ describe('server/domains/browser/manifest', () => {
       browserHandlers: undefined,
     } as any;
 
-    const result = manifest.ensure(ctx);
+    const result = await manifest.ensure(ctx);
     expect(result).toBeDefined();
     expect(ctx.browserHandlers).toBeDefined();
   });
@@ -148,7 +148,7 @@ describe('server/domains/browser/manifest', () => {
       browserHandlers: existingHandlers,
     } as any;
 
-    const result = manifest.ensure(ctx);
+    const result = await manifest.ensure(ctx);
     expect(result).toBe(existingHandlers);
   });
 });

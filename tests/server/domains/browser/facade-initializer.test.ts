@@ -139,7 +139,7 @@ describe('initializeBrowserHandlerModules', () => {
     vi.clearAllMocks();
   });
 
-  it('returns all required handler modules', () => {
+  it('returns all required handler modules', async () => {
     const deps = makeDeps();
     const modules = initializeBrowserHandlerModules(deps);
 
@@ -164,7 +164,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(modules.detailedData).toBeDefined();
   });
 
-  it('creates all 17 handler instances', () => {
+  it('creates all 17 handler instances', async () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
@@ -188,7 +188,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(handlers.DetailedDataHandlers).toHaveBeenCalledTimes(1);
   });
 
-  it('passes correct deps to BrowserControlHandlers', () => {
+  it('passes correct deps to BrowserControlHandlers', async () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
@@ -200,7 +200,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(typeof call.clearAttachedTargetContext).toBe('function');
   });
 
-  it('passes correct deps to TargetControlHandlers', () => {
+  it('passes correct deps to TargetControlHandlers', async () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
@@ -210,7 +210,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(typeof call.getTabRegistry).toBe('function');
   });
 
-  it('passes getCamoufoxManager deps to CamoufoxBrowserHandlers', () => {
+  it('passes getCamoufoxManager deps to CamoufoxBrowserHandlers', async () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
@@ -220,7 +220,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(call.closeCamoufox).toBe(deps.closeCamoufox);
   });
 
-  it('passes captcha settings to CaptchaHandlers', () => {
+  it('passes captcha settings to CaptchaHandlers', async () => {
     const deps = makeDeps();
     (deps.getAutoDetectCaptcha as any).mockReturnValue(true);
     (deps.getCaptchaTimeout as any).mockReturnValue(60000);
@@ -232,7 +232,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(call.setAutoDetectCaptcha).toBe(deps.setAutoDetectCaptcha);
   });
 
-  it('provides getActivePage to framework state handlers', () => {
+  it('provides getActivePage to framework state handlers', async () => {
     const deps = makeDeps();
     initializeBrowserHandlerModules(deps);
 
@@ -240,7 +240,7 @@ describe('initializeBrowserHandlerModules', () => {
     expect(call.getActivePage).toBeTypeOf('function');
   });
 
-  it('shares tabRegistry between browserControl and tabWorkflow', () => {
+  it('shares tabRegistry between browserControl and tabWorkflow', async () => {
     const deps = makeDeps();
     const modules = initializeBrowserHandlerModules(deps);
 

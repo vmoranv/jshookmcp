@@ -6,7 +6,7 @@ import {
   extensionTools,
   artifactTools,
 } from '@server/domains/maintenance/definitions';
-import {
+import type {
   CoreMaintenanceHandlers,
   ExtensionManagementHandlers,
 } from '@server/domains/maintenance/index';
@@ -22,15 +22,19 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 const be = (invoke: (h: E, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<E>(EXT_DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
-  if (!ctx.coreMaintenanceHandlers) {
-    ctx.coreMaintenanceHandlers = new CoreMaintenanceHandlers({
-      tokenBudget: ctx.tokenBudget,
-      unifiedCache: ctx.unifiedCache,
-    });
-  }
-  if (!ctx.extensionManagementHandlers) {
-    ctx.extensionManagementHandlers = new ExtensionManagementHandlers(ctx);
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { CoreMaintenanceHandlers, ExtensionManagementHandlers } =
+    await import('@server/domains/maintenance/index');
+  if (!ctx.coreMaintenanceHandlers || !ctx.extensionManagementHandlers) {
+    if (!ctx.coreMaintenanceHandlers) {
+      ctx.coreMaintenanceHandlers = new CoreMaintenanceHandlers({
+        tokenBudget: ctx.tokenBudget,
+        unifiedCache: ctx.unifiedCache,
+      });
+    }
+    if (!ctx.extensionManagementHandlers) {
+      ctx.extensionManagementHandlers = new ExtensionManagementHandlers(ctx);
+    }
   }
   return ctx.coreMaintenanceHandlers;
 }

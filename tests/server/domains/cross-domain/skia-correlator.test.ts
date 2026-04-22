@@ -18,7 +18,7 @@ describe('SKIA-03: Skia-to-JS Correlator', () => {
     bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });
 
-  it('should create canvas nodes for draw commands', () => {
+  it('should create canvas nodes for draw commands', async () => {
     const result = correlateSkiaToJS(bridge, {
       sceneTree: {
         layers: [],
@@ -32,7 +32,7 @@ describe('SKIA-03: Skia-to-JS Correlator', () => {
     expect(result.graphNodeIds.length).toBeGreaterThan(0);
   });
 
-  it('should match draw commands to JS objects by name similarity', () => {
+  it('should match draw commands to JS objects by name similarity', async () => {
     const result = correlateSkiaToJS(bridge, {
       sceneTree: {
         layers: [],
@@ -58,7 +58,7 @@ describe('SKIA-03: Skia-to-JS Correlator', () => {
     expect(result.unmatchedSkiaNodes).toHaveLength(0);
   });
 
-  it('should create canvas-rendered-by edges for matched objects', () => {
+  it('should create canvas-rendered-by edges for matched objects', async () => {
     correlateSkiaToJS(bridge, {
       sceneTree: {
         layers: [],
@@ -82,7 +82,7 @@ describe('SKIA-03: Skia-to-JS Correlator', () => {
     expect(renderedByEdges.length).toBeGreaterThan(0);
   });
 
-  it('should handle empty scene tree gracefully', () => {
+  it('should handle empty scene tree gracefully', async () => {
     const result = correlateSkiaToJS(bridge, {
       sceneTree: { layers: [], drawCommands: [] },
       jsObjects: [],
@@ -93,7 +93,7 @@ describe('SKIA-03: Skia-to-JS Correlator', () => {
     expect(result.correlations).toHaveLength(0);
   });
 
-  it('should process layers with heapObjectId', () => {
+  it('should process layers with heapObjectId', async () => {
     const result = correlateSkiaToJS(bridge, {
       sceneTree: {
         layers: [{ id: 'layer1', label: 'GameLayer', type: 'container', heapObjectId: 'obj-x' }],

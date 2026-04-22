@@ -40,27 +40,27 @@ describe('CORE_PRESETS', () => {
     mockBuildHookCode.mockClear();
   });
 
-  it('exports a Record<string, PresetEntry>', () => {
+  it('exports a Record<string, PresetEntry>', async () => {
     expect(CORE_PRESETS).toBeDefined();
     expect(typeof CORE_PRESETS).toBe('object');
     expect(CORE_PRESETS).not.toBeNull();
   });
 
-  it('contains all expected preset IDs', () => {
+  it('contains all expected preset IDs', async () => {
     const ids = Object.keys(CORE_PRESETS);
     for (const expectedId of EXPECTED_CORE_IDS) {
       expect(ids).toContain(expectedId);
     }
   });
 
-  it('does not contain unexpected extra entries beyond the known set', () => {
+  it('does not contain unexpected extra entries beyond the known set', async () => {
     const ids = Object.keys(CORE_PRESETS);
     for (const id of ids) {
       expect(EXPECTED_CORE_IDS).toContain(id);
     }
   });
 
-  it('has unique preset IDs (no duplicates in object keys)', () => {
+  it('has unique preset IDs (no duplicates in object keys)', async () => {
     const ids = Object.keys(CORE_PRESETS);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
@@ -82,13 +82,13 @@ describe('CORE_PRESETS', () => {
   });
 
   describe('buildCode delegation to buildHookCode', () => {
-    it('eval preset calls buildHookCode with name "eval"', () => {
+    it('eval preset calls buildHookCode with name "eval"', async () => {
       const result = CORE_PRESETS['eval']!.buildCode(true, false);
       expect(mockBuildHookCode).toHaveBeenCalledWith('eval', expect.any(String), true, false);
       expect(result).toBe('[mock:eval:cs=true:lc=false]');
     });
 
-    it('function-constructor preset calls buildHookCode correctly', () => {
+    it('function-constructor preset calls buildHookCode correctly', async () => {
       const result = CORE_PRESETS['function-constructor']!.buildCode(false, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'function-constructor',
@@ -99,12 +99,12 @@ describe('CORE_PRESETS', () => {
       expect(result).toBe('[mock:function-constructor:cs=false:lc=true]');
     });
 
-    it('atob-btoa preset calls buildHookCode correctly', () => {
+    it('atob-btoa preset calls buildHookCode correctly', async () => {
       CORE_PRESETS['atob-btoa']!.buildCode(true, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith('atob-btoa', expect.any(String), true, true);
     });
 
-    it('crypto-subtle preset calls buildHookCode correctly', () => {
+    it('crypto-subtle preset calls buildHookCode correctly', async () => {
       CORE_PRESETS['crypto-subtle']!.buildCode(false, false);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'crypto-subtle',
@@ -114,12 +114,12 @@ describe('CORE_PRESETS', () => {
       );
     });
 
-    it('settimeout preset calls buildHookCode correctly', () => {
+    it('settimeout preset calls buildHookCode correctly', async () => {
       CORE_PRESETS['settimeout']!.buildCode(true, false);
       expect(mockBuildHookCode).toHaveBeenCalledWith('settimeout', expect.any(String), true, false);
     });
 
-    it('addeventlistener preset calls buildHookCode correctly', () => {
+    it('addeventlistener preset calls buildHookCode correctly', async () => {
       CORE_PRESETS['addeventlistener']!.buildCode(false, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'addeventlistener',
@@ -129,12 +129,12 @@ describe('CORE_PRESETS', () => {
       );
     });
 
-    it('postmessage preset calls buildHookCode correctly', () => {
+    it('postmessage preset calls buildHookCode correctly', async () => {
       CORE_PRESETS['postmessage']!.buildCode(true, true);
       expect(mockBuildHookCode).toHaveBeenCalledWith('postmessage', expect.any(String), true, true);
     });
 
-    it('history-pushstate preset calls buildHookCode correctly', () => {
+    it('history-pushstate preset calls buildHookCode correctly', async () => {
       CORE_PRESETS['history-pushstate']!.buildCode(false, false);
       expect(mockBuildHookCode).toHaveBeenCalledWith(
         'history-pushstate',
@@ -181,23 +181,23 @@ describe('CORE_PRESETS', () => {
   });
 
   describe('description content', () => {
-    it('eval description mentions eval()', () => {
+    it('eval description mentions eval()', async () => {
       expect(CORE_PRESETS['eval']!.description).toContain('eval');
     });
 
-    it('crypto-subtle description mentions WebCrypto', () => {
+    it('crypto-subtle description mentions WebCrypto', async () => {
       expect(CORE_PRESETS['crypto-subtle']!.description).toContain('WebCrypto');
     });
 
-    it('webassembly description mentions WASM', () => {
+    it('webassembly description mentions WASM', async () => {
       expect(CORE_PRESETS['webassembly']!.description).toContain('WASM');
     });
 
-    it('addeventlistener description mentions event listener', () => {
+    it('addeventlistener description mentions event listener', async () => {
       expect(CORE_PRESETS['addeventlistener']!.description).toContain('event listener');
     });
 
-    it('postmessage description mentions postMessage', () => {
+    it('postmessage description mentions postMessage', async () => {
       expect(CORE_PRESETS['postmessage']!.description).toContain('postMessage');
     });
   });

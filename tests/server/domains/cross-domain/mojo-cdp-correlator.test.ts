@@ -18,7 +18,7 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
     bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });
 
-  it('should add mojo message nodes to the graph', () => {
+  it('should add mojo message nodes to the graph', async () => {
     const result = correlateMojoToCDP(
       bridge,
       [
@@ -37,7 +37,7 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
     expect(result.graphNodeIds.length).toBe(1);
   });
 
-  it('should match Mojo to CDP by interface name pattern', () => {
+  it('should match Mojo to CDP by interface name pattern', async () => {
     const mojoMessages = [
       {
         interface: 'MojomURLLoader',
@@ -60,7 +60,7 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
     expect(result.matchedPairs[0]?.matchType).toBe('interface');
   });
 
-  it('should match Mojo to Network by URLLoader pattern', () => {
+  it('should match Mojo to Network by URLLoader pattern', async () => {
     const mojoMessages = [
       {
         interface: 'MojomURLLoader',
@@ -78,7 +78,7 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
     expect(result.matchedPairs.some((p) => p.matchType === 'urlloader')).toBe(true);
   });
 
-  it('should match by timestamp proximity when interface pattern does not apply', () => {
+  it('should match by timestamp proximity when interface pattern does not apply', async () => {
     // Use non-matching interface + close timestamps to ensure Pass 3 (timestamp) fires
     const mojoMessages = [
       { interface: 'MojomCustom', method: 'CustomEvent', timestamp: 50000, messageId: 'msg-ts' },
@@ -96,7 +96,7 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
     expect(matchedPair?.timestampDelta).toBeLessThanOrEqual(50);
   });
 
-  it('should report unmatched mojo messages', () => {
+  it('should report unmatched mojo messages', async () => {
     const result = correlateMojoToCDP(
       bridge,
       [{ interface: 'MojomFoo', method: 'Bar', timestamp: 999, messageId: 'orphan' }],
@@ -108,7 +108,7 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
     expect(result.confidence).toBeLessThan(1);
   });
 
-  it('should handle empty inputs gracefully', () => {
+  it('should handle empty inputs gracefully', async () => {
     const result = correlateMojoToCDP(bridge, [], [], []);
 
     expect(result.mojoMessages).toBe(0);

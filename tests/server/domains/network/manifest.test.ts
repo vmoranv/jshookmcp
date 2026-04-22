@@ -2,11 +2,11 @@ import manifest from '@server/domains/network/manifest';
 import { describe, expect, it } from 'vitest';
 
 describe('Network Domain Manifest', () => {
-  it('has correct domain property', () => {
+  it('has correct domain property', async () => {
     expect(manifest.domain).toBe('network');
   });
 
-  it('has kind and version', () => {
+  it('has kind and version', async () => {
     expect(manifest.kind).toBe('domain-manifest');
     expect(manifest.version).toBe(1);
   });
@@ -36,18 +36,18 @@ describe('Network Domain Manifest', () => {
     }
   });
 
-  it('can ensure context', () => {
+  it('can ensure context', async () => {
     const mockCtx = {
       browser: {},
       networkMonitor: {},
       collector: {},
       consoleMonitor: {},
     };
-    const handlers = manifest.ensure!(mockCtx as any);
+    const handlers = await manifest.ensure!(mockCtx as any);
     expect(handlers).toBeDefined();
 
     // Call again to hit the cached branch
-    const handlers2 = manifest.ensure!(mockCtx as any);
+    const handlers2 = await manifest.ensure!(mockCtx as any);
     expect(handlers2).toBe(handlers);
   });
 });

@@ -18,16 +18,16 @@ function getToolProperty(toolName: string, propertyName: string): Record<string,
 
 describe('adb-bridge tool definitions', () => {
   describe('adbBridgeTools array', () => {
-    it('is a non-empty array', () => {
+    it('is a non-empty array', async () => {
       expect(Array.isArray(adbBridgeTools)).toBe(true);
       expect(adbBridgeTools.length).toBeGreaterThan(0);
     });
 
-    it('tool count matches expected (3 tools)', () => {
+    it('tool count matches expected (3 tools)', async () => {
       expect(adbBridgeTools.length).toBe(3);
     });
 
-    it('has unique tool names', () => {
+    it('has unique tool names', async () => {
       const names = adbBridgeTools.map((t) => t.name);
       expect(new Set(names).size).toBe(names.length);
     });
@@ -48,13 +48,13 @@ describe('adb-bridge tool definitions', () => {
       },
     );
 
-    it('every tool has a non-empty description', () => {
+    it('every tool has a non-empty description', async () => {
       for (const tool of adbBridgeTools) {
         expect(tool.description?.trim().length ?? 0).toBeGreaterThan(0);
       }
     });
 
-    it('every tool inputSchema.type is "object"', () => {
+    it('every tool inputSchema.type is "object"', async () => {
       for (const tool of adbBridgeTools) {
         expect(tool.inputSchema.type).toBe('object');
       }
@@ -71,25 +71,25 @@ describe('adb-bridge tool definitions', () => {
   });
 
   describe('adb_apk_analyze', () => {
-    it('requires serial and packageName', () => {
+    it('requires serial and packageName', async () => {
       const tool = getTool('adb_apk_analyze');
       expect(tool.inputSchema.required ?? []).toContain('serial');
       expect(tool.inputSchema.required ?? []).toContain('packageName');
     });
 
-    it('serial and packageName are type string', () => {
+    it('serial and packageName are type string', async () => {
       expect(getToolProperty('adb_apk_analyze', 'serial').type).toBe('string');
       expect(getToolProperty('adb_apk_analyze', 'packageName').type).toBe('string');
     });
   });
 
   describe('adb_webview_list', () => {
-    it('requires serial', () => {
+    it('requires serial', async () => {
       const tool = getTool('adb_webview_list');
       expect(tool.inputSchema.required ?? []).toContain('serial');
     });
 
-    it('has optional hostPort with default', () => {
+    it('has optional hostPort with default', async () => {
       const prop = getToolProperty('adb_webview_list', 'hostPort');
       expect(prop.type).toBe('number');
       expect(prop.default).toBe(9222);
@@ -97,13 +97,13 @@ describe('adb-bridge tool definitions', () => {
   });
 
   describe('adb_webview_attach', () => {
-    it('requires serial and targetId', () => {
+    it('requires serial and targetId', async () => {
       const tool = getTool('adb_webview_attach');
       expect(tool.inputSchema.required ?? []).toContain('serial');
       expect(tool.inputSchema.required ?? []).toContain('targetId');
     });
 
-    it('has optional hostPort with default', () => {
+    it('has optional hostPort with default', async () => {
       const prop = getToolProperty('adb_webview_attach', 'hostPort');
       expect(prop.type).toBe('number');
       expect(prop.default).toBe(9222);
@@ -111,7 +111,7 @@ describe('adb-bridge tool definitions', () => {
   });
 
   describe('required fields completeness', () => {
-    it('tools with required field declare an array', () => {
+    it('tools with required field declare an array', async () => {
       for (const tool of adbBridgeTools) {
         if (tool.inputSchema.required) {
           expect(Array.isArray(tool.inputSchema.required)).toBe(true);
@@ -120,7 +120,7 @@ describe('adb-bridge tool definitions', () => {
       }
     });
 
-    it('every required field exists in properties', () => {
+    it('every required field exists in properties', async () => {
       for (const tool of adbBridgeTools) {
         if (tool.inputSchema.required) {
           for (const reqField of tool.inputSchema.required) {

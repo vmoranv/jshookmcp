@@ -65,7 +65,7 @@ describe('EncodingHandlersBase extra coverage', () => {
     getActivePage: vi.fn(),
   } as any;
 
-  it('covers printable heuristics, url helpers, and failure payloads', () => {
+  it('covers printable heuristics, url helpers, and failure payloads', async () => {
     const handlers = new ExtraEncodingHandlersBase(collector);
 
     expect(handlers.testIsMostlyPrintableText('hello\tworld\n')).toBe(true);

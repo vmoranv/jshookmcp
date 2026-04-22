@@ -6,41 +6,41 @@ describe('NativeBridgeHandlers', () => {
   /* ── Constructor SSRF protection ──────────────────────────────────── */
 
   describe('constructor - SSRF loopback validation', () => {
-    it('accepts loopback endpoints', () => {
+    it('accepts loopback endpoints', async () => {
       expect(
         () => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://127.0.0.1:18081'),
       ).not.toThrow();
     });
 
-    it('accepts localhost endpoints', () => {
+    it('accepts localhost endpoints', async () => {
       expect(
         () => new NativeBridgeHandlers('http://localhost:18080', 'http://localhost:18081'),
       ).not.toThrow();
     });
 
-    it('accepts [::1] IPv6 loopback', () => {
+    it('accepts [::1] IPv6 loopback', async () => {
       expect(
         () => new NativeBridgeHandlers('http://[::1]:18080', 'http://[::1]:18081'),
       ).not.toThrow();
     });
 
-    it('rejects external Ghidra endpoint', () => {
+    it('rejects external Ghidra endpoint', async () => {
       expect(
         () => new NativeBridgeHandlers('http://evil.com:18080', 'http://127.0.0.1:18081'),
       ).toThrow(/Ghidra.*loopback/);
     });
 
-    it('rejects external IDA endpoint', () => {
+    it('rejects external IDA endpoint', async () => {
       expect(
         () => new NativeBridgeHandlers('http://127.0.0.1:18080', 'http://10.0.0.1:18081'),
       ).toThrow(/IDA.*loopback/);
     });
 
-    it('rejects non-http protocol', () => {
+    it('rejects non-http protocol', async () => {
       expect(() => new NativeBridgeHandlers('ftp://127.0.0.1:18080')).toThrow(/http\/https/);
     });
 
-    it('uses defaults when no args provided', () => {
+    it('uses defaults when no args provided', async () => {
       const h = new NativeBridgeHandlers();
       expect(h).toBeInstanceOf(NativeBridgeHandlers);
     });

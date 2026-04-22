@@ -10,12 +10,12 @@ describe('debugger tool definitions', () => {
   // ── Core tools structure ───────────────────────────────────
 
   describe('DEBUGGER_CORE_TOOLS', () => {
-    it('is a non-empty array', () => {
+    it('is a non-empty array', async () => {
       expect(Array.isArray(DEBUGGER_CORE_TOOLS)).toBe(true);
       expect(DEBUGGER_CORE_TOOLS.length).toBeGreaterThan(0);
     });
 
-    it('contains the expected number of core tools', () => {
+    it('contains the expected number of core tools', async () => {
       // 12 core tools defined in definitions.tools.core.ts
       expect(DEBUGGER_CORE_TOOLS).toHaveLength(12);
     });
@@ -36,7 +36,7 @@ describe('debugger tool definitions', () => {
       },
     );
 
-    it('has unique tool names', () => {
+    it('has unique tool names', async () => {
       const names = DEBUGGER_CORE_TOOLS.map((t) => t.name);
       expect(new Set(names).size).toBe(names.length);
     });
@@ -65,7 +65,7 @@ describe('debugger tool definitions', () => {
   // ── Core tools: inputSchema validation ─────────────────────
 
   describe('core tool inputSchema validation', () => {
-    it('breakpoint requires action', () => {
+    it('breakpoint requires action', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'breakpoint')!;
       expect(tool.inputSchema.required).toContain('action');
       expect(tool.inputSchema.properties).toHaveProperty('action');
@@ -82,37 +82,37 @@ describe('debugger tool definitions', () => {
       expect(tool.inputSchema.properties).toHaveProperty('breakpointId');
     });
 
-    it('breakpoint has type enum with all consolidated types', () => {
+    it('breakpoint has type enum with all consolidated types', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'breakpoint')!;
       const typeProp = tool.inputSchema.properties!.type as Record<string, unknown>;
       expect(typeProp.enum).toEqual(['code', 'xhr', 'event', 'event_category', 'exception']);
     });
 
-    it('breakpoint has action enum', () => {
+    it('breakpoint has action enum', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'breakpoint')!;
       const actionProp = tool.inputSchema.properties!.action as Record<string, unknown>;
       expect(actionProp.enum).toEqual(['set', 'remove', 'list']);
     });
 
-    it('debugger_evaluate requires expression', () => {
+    it('debugger_evaluate requires expression', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'debugger_evaluate')!;
       expect(tool.inputSchema.required).toContain('expression');
       expect(tool.inputSchema.properties).toHaveProperty('callFrameId');
       expect(tool.inputSchema.properties).toHaveProperty('context');
     });
 
-    it('breakpoint has exception state enum', () => {
+    it('breakpoint has exception state enum', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'breakpoint')!;
       const stateProp = tool.inputSchema.properties!.state as Record<string, unknown>;
       expect(stateProp.enum).toEqual(['none', 'uncaught', 'all']);
     });
 
-    it('get_object_properties requires objectId', () => {
+    it('get_object_properties requires objectId', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'get_object_properties')!;
       expect(tool.inputSchema.required).toContain('objectId');
     });
 
-    it('debugger_wait_for_paused has optional timeout with default', () => {
+    it('debugger_wait_for_paused has optional timeout with default', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'debugger_wait_for_paused')!;
       expect(tool.inputSchema.required).toBeUndefined();
       const timeoutProp = tool.inputSchema.properties!.timeout as Record<string, unknown>;
@@ -120,7 +120,7 @@ describe('debugger tool definitions', () => {
       expect(timeoutProp.default).toBe(30000);
     });
 
-    it('get_scope_variables_enhanced has optional properties with defaults', () => {
+    it('get_scope_variables_enhanced has optional properties with defaults', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'get_scope_variables_enhanced')!;
       expect(tool.inputSchema.required).toBeUndefined();
       const props = tool.inputSchema.properties!;
@@ -145,7 +145,7 @@ describe('debugger tool definitions', () => {
       expect(tool.inputSchema.required).toBeUndefined();
     });
 
-    it('debugger_session has action and optional properties', () => {
+    it('debugger_session has action and optional properties', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'debugger_session')!;
       expect(tool.inputSchema.required).toContain('action');
       expect(tool.inputSchema.properties).toHaveProperty('filePath');
@@ -157,12 +157,12 @@ describe('debugger tool definitions', () => {
   // ── Advanced tools structure ───────────────────────────────
 
   describe('DEBUGGER_ADVANCED_TOOLS', () => {
-    it('is a non-empty array', () => {
+    it('is a non-empty array', async () => {
       expect(Array.isArray(DEBUGGER_ADVANCED_TOOLS)).toBe(true);
       expect(DEBUGGER_ADVANCED_TOOLS.length).toBeGreaterThan(0);
     });
 
-    it('contains the expected number of advanced tools', () => {
+    it('contains the expected number of advanced tools', async () => {
       // 4 advanced tools defined in definitions.tools.advanced.ts
       expect(DEBUGGER_ADVANCED_TOOLS).toHaveLength(4);
     });
@@ -183,7 +183,7 @@ describe('debugger tool definitions', () => {
       },
     );
 
-    it('has unique tool names', () => {
+    it('has unique tool names', async () => {
       const names = DEBUGGER_ADVANCED_TOOLS.map((t) => t.name);
       expect(new Set(names).size).toBe(names.length);
     });
@@ -199,7 +199,7 @@ describe('debugger tool definitions', () => {
   // ── Advanced tools: inputSchema validation ─────────────────
 
   describe('advanced tool inputSchema validation', () => {
-    it('watch requires action', () => {
+    it('watch requires action', async () => {
       const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'watch')!;
       expect(tool.inputSchema.required).toContain('action');
       expect(tool.inputSchema.properties).toHaveProperty('action');
@@ -209,13 +209,13 @@ describe('debugger tool definitions', () => {
       expect(tool.inputSchema.properties).toHaveProperty('callFrameId');
     });
 
-    it('watch has action enum with all consolidated actions', () => {
+    it('watch has action enum with all consolidated actions', async () => {
       const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'watch')!;
       const actionProp = tool.inputSchema.properties!.action as Record<string, unknown>;
       expect(actionProp.enum).toEqual(['add', 'remove', 'list', 'evaluate_all', 'clear_all']);
     });
 
-    it('blackbox_add requires urlPattern', () => {
+    it('blackbox_add requires urlPattern', async () => {
       const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'blackbox_add')!;
       expect(tool.inputSchema.required).toContain('urlPattern');
     });
@@ -231,29 +231,29 @@ describe('debugger tool definitions', () => {
   // ── Combined debuggerTools ─────────────────────────────────
 
   describe('debuggerTools (combined)', () => {
-    it('merges core and advanced tools', () => {
+    it('merges core and advanced tools', async () => {
       expect(debuggerTools).toEqual([...DEBUGGER_CORE_TOOLS, ...DEBUGGER_ADVANCED_TOOLS]);
     });
 
-    it('has correct total count', () => {
+    it('has correct total count', async () => {
       expect(debuggerTools).toHaveLength(
         DEBUGGER_CORE_TOOLS.length + DEBUGGER_ADVANCED_TOOLS.length,
       );
     });
 
-    it('has all unique names across both arrays', () => {
+    it('has all unique names across both arrays', async () => {
       const names = debuggerTools.map((t) => t.name);
       expect(new Set(names).size).toBe(names.length);
     });
 
-    it('every tool has a non-empty description', () => {
+    it('every tool has a non-empty description', async () => {
       for (const tool of debuggerTools) {
         const description = tool.description ?? '';
         expect(description.trim().length).toBeGreaterThan(0);
       }
     });
 
-    it('every tool inputSchema.type is "object"', () => {
+    it('every tool inputSchema.type is "object"', async () => {
       for (const tool of debuggerTools) {
         expect(tool.inputSchema.type).toBe('object');
       }
@@ -263,7 +263,7 @@ describe('debugger tool definitions', () => {
   // ── Re-export ──────────────────────────────────────────────
 
   describe('definitions.ts re-export', () => {
-    it('re-exports debuggerTools from definitions.tools', () => {
+    it('re-exports debuggerTools from definitions.tools', async () => {
       expect(definitionsReExport).toBe(debuggerTools);
     });
   });
@@ -271,37 +271,37 @@ describe('debugger tool definitions', () => {
   // ── Property type validation ───────────────────────────────
 
   describe('property type declarations', () => {
-    it('breakpoint lineNumber is type number', () => {
+    it('breakpoint lineNumber is type number', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'breakpoint')!;
       const prop = tool.inputSchema.properties!.lineNumber as Record<string, unknown>;
       expect(prop.type).toBe('number');
     });
 
-    it('breakpoint columnNumber is type number', () => {
+    it('breakpoint columnNumber is type number', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'breakpoint')!;
       const prop = tool.inputSchema.properties!.columnNumber as Record<string, unknown>;
       expect(prop.type).toBe('number');
     });
 
-    it('breakpoint condition is type string', () => {
+    it('breakpoint condition is type string', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'breakpoint')!;
       const prop = tool.inputSchema.properties!.condition as Record<string, unknown>;
       expect(prop.type).toBe('string');
     });
 
-    it('get_scope_variables_enhanced maxDepth is type number', () => {
+    it('get_scope_variables_enhanced maxDepth is type number', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'get_scope_variables_enhanced')!;
       const prop = tool.inputSchema.properties!.maxDepth as Record<string, unknown>;
       expect(prop.type).toBe('number');
     });
 
-    it('get_scope_variables_enhanced skipErrors is type boolean', () => {
+    it('get_scope_variables_enhanced skipErrors is type boolean', async () => {
       const tool = DEBUGGER_CORE_TOOLS.find((t) => t.name === 'get_scope_variables_enhanced')!;
       const prop = tool.inputSchema.properties!.skipErrors as Record<string, unknown>;
       expect(prop.type).toBe('boolean');
     });
 
-    it('watch expression is type string', () => {
+    it('watch expression is type string', async () => {
       const tool = DEBUGGER_ADVANCED_TOOLS.find((t) => t.name === 'watch')!;
       const prop = tool.inputSchema.properties!.expression as Record<string, unknown>;
       expect(prop.type).toBe('string');

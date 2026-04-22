@@ -2,12 +2,12 @@ import manifest from '@server/domains/boringssl-inspector/manifest';
 import { describe, expect, it } from 'vitest';
 
 describe('BoringSSL Inspector Domain Manifest', () => {
-  it('registers tls_probe_endpoint', () => {
+  it('registers tls_probe_endpoint', async () => {
     const toolNames = manifest.registrations.map((registration) => registration.tool.name);
     expect(toolNames).toContain('tls_probe_endpoint');
   });
 
-  it('registers the atomic tcp/tls session tools', () => {
+  it('registers the atomic tcp/tls session tools', async () => {
     const toolNames = manifest.registrations.map((registration) => registration.tool.name);
     expect(toolNames).toEqual(
       expect.arrayContaining([
@@ -23,7 +23,7 @@ describe('BoringSSL Inspector Domain Manifest', () => {
     );
   });
 
-  it('registers the atomic websocket session tools', () => {
+  it('registers the atomic websocket session tools', async () => {
     const toolNames = manifest.registrations.map((registration) => registration.tool.name);
     expect(toolNames).toEqual(
       expect.arrayContaining([
@@ -35,7 +35,7 @@ describe('BoringSSL Inspector Domain Manifest', () => {
     );
   });
 
-  it('registers the atomic websocket session tools', () => {
+  it('registers the atomic websocket session tools', async () => {
     const toolNames = manifest.registrations.map((registration) => registration.tool.name);
     expect(toolNames).toEqual(
       expect.arrayContaining([
@@ -47,7 +47,7 @@ describe('BoringSSL Inspector Domain Manifest', () => {
     );
   });
 
-  it('keeps a callable binding for tls_probe_endpoint', () => {
+  it('keeps a callable binding for tls_probe_endpoint', async () => {
     const registration = manifest.registrations.find(
       (entry) => entry.tool.name === 'tls_probe_endpoint',
     );
@@ -56,7 +56,7 @@ describe('BoringSSL Inspector Domain Manifest', () => {
     expect(registration?.bind).toBeDefined();
   });
 
-  it('caches the ensured handler instance on the context', () => {
+  it('caches the ensured handler instance on the context', async () => {
     const instances = new Map<string, unknown>();
     const ctx = {
       eventBus: {},
@@ -68,8 +68,8 @@ describe('BoringSSL Inspector Domain Manifest', () => {
       },
     };
 
-    const first = manifest.ensure(ctx as never);
-    const second = manifest.ensure(ctx as never);
+    const first = await manifest.ensure(ctx as never);
+    const second = await manifest.ensure(ctx as never);
 
     expect(first).toBeDefined();
     expect(second).toBe(first);

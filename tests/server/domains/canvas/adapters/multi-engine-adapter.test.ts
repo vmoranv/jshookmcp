@@ -80,44 +80,44 @@ function runInterfaceConformanceTests(
   adapterId: string,
 ): void {
   describe('CanvasEngineAdapter interface conformance', () => {
-    it('has the expected id', () => {
+    it('has the expected id', async () => {
       const adapter = createAdapter();
       expect(adapter.id).toBe(adapterId);
     });
 
-    it('has the expected engine name', () => {
+    it('has the expected engine name', async () => {
       const adapter = createAdapter();
       expect(adapter.engine).toBe(engineName);
     });
 
-    it('id is a readonly string', () => {
+    it('id is a readonly string', async () => {
       const adapter = createAdapter();
       expect(typeof adapter.id).toBe('string');
     });
 
-    it('engine is a readonly string', () => {
+    it('engine is a readonly string', async () => {
       const adapter = createAdapter();
       expect(typeof adapter.engine).toBe('string');
     });
 
-    it('version is optional string or undefined', () => {
+    it('version is optional string or undefined', async () => {
       const adapter = createAdapter();
       expect(adapter.version === undefined || typeof adapter.version === 'string').toBe(true);
     });
 
-    it('detect returns a promise', () => {
+    it('detect returns a promise', async () => {
       const adapter = createAdapter();
       const result = adapter.detect(createEnv(createMockPageController({})[0]));
       expect(result).toBeInstanceOf(Promise);
     });
 
-    it('dumpScene returns a promise', () => {
+    it('dumpScene returns a promise', async () => {
       const adapter = createAdapter();
       const result = adapter.dumpScene(createEnv(createMockPageController({})[0]), {});
       expect(result).toBeInstanceOf(Promise);
     });
 
-    it('pickAt returns a promise', () => {
+    it('pickAt returns a promise', async () => {
       const adapter = createAdapter();
       const result = adapter.pickAt(createEnv(createMockPageController({})[0]), { x: 0, y: 0 });
       expect(result).toBeInstanceOf(Promise);
@@ -1032,22 +1032,22 @@ describe('CocosCanvasAdapter', () => {
 // ════════════════════════════════════════════════════════════════════════════════
 
 describe('Multi-engine canvas adapter registry', () => {
-  it('PixiJS adapter has id "pixi"', () => {
+  it('PixiJS adapter has id "pixi"', async () => {
     const adapter = new PixiJSCanvasAdapter();
     expect(adapter.id).toBe('pixi');
   });
 
-  it('Phaser adapter has id "phaser"', () => {
+  it('Phaser adapter has id "phaser"', async () => {
     const adapter = new PhaserCanvasAdapter();
     expect(adapter.id).toBe('phaser');
   });
 
-  it('Cocos adapter has id "cocos"', () => {
+  it('Cocos adapter has id "cocos"', async () => {
     const adapter = new CocosCanvasAdapter();
     expect(adapter.id).toBe('cocos');
   });
 
-  it('each adapter has a unique id', () => {
+  it('each adapter has a unique id', async () => {
     const ids = [
       new PixiJSCanvasAdapter().id,
       new PhaserCanvasAdapter().id,
@@ -1058,7 +1058,7 @@ describe('Multi-engine canvas adapter registry', () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 
-  it('each adapter has the correct engine name', () => {
+  it('each adapter has the correct engine name', async () => {
     expect(new PixiJSCanvasAdapter().engine).toBe('PixiJS');
     expect(new PhaserCanvasAdapter().engine).toBe('Phaser');
     expect(new CocosCanvasAdapter().engine).toBe('CocosCreator');
@@ -1108,7 +1108,7 @@ describe('Multi-engine canvas adapter registry', () => {
     expect(cocosResult.completeness).toBe('partial');
   });
 
-  it('all adapters implement CanvasEngineAdapter interface', () => {
+  it('all adapters implement CanvasEngineAdapter interface', async () => {
     // This test verifies at runtime that each adapter satisfies the interface
     // by checking that all required methods exist and have the correct return types.
 

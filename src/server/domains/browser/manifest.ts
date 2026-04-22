@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
 import { browserTools, advancedBrowserToolDefinitions } from '@server/domains/browser/definitions';
-import { BrowserToolHandlers } from '@server/domains/browser/index';
+import type { BrowserToolHandlers } from '@server/domains/browser/index';
 
 const DOMAIN = 'browser' as const;
 const DEP_KEY = 'browserHandlers' as const;
@@ -10,7 +10,8 @@ const t = toolLookup([...browserTools, ...advancedBrowserToolDefinitions]);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { BrowserToolHandlers } = await import('@server/domains/browser/index');
   ensureBrowserCore(ctx);
 
   if (!ctx.browserHandlers) {

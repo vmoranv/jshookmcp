@@ -284,7 +284,7 @@ describe('DeobfuscateCache Integration', () => {
   });
 
   describe('hashCode utility', () => {
-    it('should generate consistent hash codes', () => {
+    it('should generate consistent hash codes', async () => {
       // The hashCode method is private, so we test through the public API
       // by verifying that identical inputs produce identical cache behavior
       expect(
@@ -292,7 +292,7 @@ describe('DeobfuscateCache Integration', () => {
       ).toBe('number');
     });
 
-    it('should generate different hashes for different strings', () => {
+    it('should generate different hashes for different strings', async () => {
       const hash1 = 'string1'.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
       const hash2 = 'string2'.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
       expect(hash1).not.toBe(hash2);

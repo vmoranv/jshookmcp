@@ -1,13 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
 import { coreTools } from '@server/domains/analysis/definitions';
-import { CoreAnalysisHandlers } from '@server/domains/analysis/index';
-import { Deobfuscator } from '@server/domains/shared/modules';
-import { AdvancedDeobfuscator } from '@server/domains/shared/modules';
-import { ObfuscationDetector } from '@server/domains/shared/modules';
-import { CodeAnalyzer } from '@server/domains/shared/modules';
-import { CryptoDetector } from '@server/domains/shared/modules';
-import { HookManager } from '@server/domains/shared/modules';
+import type { CoreAnalysisHandlers } from '@server/domains/analysis/index';
 import { LLMDeobfuscator } from '@modules/deobfuscator/LLMDeobfuscator';
 
 const DOMAIN = 'core' as const;
@@ -40,30 +34,51 @@ function bindWithProgress(invoke: (h: H, a: Record<string, unknown>) => Promise<
 
 const b = bindWithProgress;
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const {
+    Deobfuscator,
+    AdvancedDeobfuscator,
+    ObfuscationDetector,
+    CodeAnalyzer,
+    CryptoDetector,
+    HookManager,
+  } = await import('@server/domains/shared/modules');
+  const { CoreAnalysisHandlers } = await import('@server/domains/analysis/index');
   globalContext = ctx;
   ensureBrowserCore(ctx);
 
-  if (!ctx.deobfuscator) ctx.deobfuscator = new Deobfuscator();
-  if (!ctx.advancedDeobfuscator) ctx.advancedDeobfuscator = new AdvancedDeobfuscator();
-  if (!ctx.obfuscationDetector) ctx.obfuscationDetector = new ObfuscationDetector();
-  if (!ctx.analyzer) ctx.analyzer = new CodeAnalyzer();
-  if (!ctx.cryptoDetector) ctx.cryptoDetector = new CryptoDetector();
-  if (!ctx.hookManager) ctx.hookManager = new HookManager();
+  // Dynamic import: load shared modules and analysis handler lazily
+  const needsShared =
+    !ctx.deobfuscator ||
+    !ctx.advancedDeobfuscator ||
+    !ctx.obfuscationDetector ||
+    !ctx.analyzer ||
+    !ctx.cryptoDetector ||
+    !ctx.hookManager ||
+    !ctx.coreAnalysisHandlers;
 
-  if (!ctx.coreAnalysisHandlers) {
-    ctx.coreAnalysisHandlers = new CoreAnalysisHandlers({
-      collector: ctx.collector!,
-      scriptManager: ctx.scriptManager!,
-      deobfuscator: ctx.deobfuscator,
-      advancedDeobfuscator: ctx.advancedDeobfuscator,
-      obfuscationDetector: ctx.obfuscationDetector,
-      analyzer: ctx.analyzer,
-      cryptoDetector: ctx.cryptoDetector,
-      hookManager: ctx.hookManager,
-    });
+  if (needsShared) {
+    if (!ctx.deobfuscator) ctx.deobfuscator = new Deobfuscator();
+    if (!ctx.advancedDeobfuscator) ctx.advancedDeobfuscator = new AdvancedDeobfuscator();
+    if (!ctx.obfuscationDetector) ctx.obfuscationDetector = new ObfuscationDetector();
+    if (!ctx.analyzer) ctx.analyzer = new CodeAnalyzer();
+    if (!ctx.cryptoDetector) ctx.cryptoDetector = new CryptoDetector();
+    if (!ctx.hookManager) ctx.hookManager = new HookManager();
+
+    if (!ctx.coreAnalysisHandlers) {
+      ctx.coreAnalysisHandlers = new CoreAnalysisHandlers({
+        collector: ctx.collector!,
+        scriptManager: ctx.scriptManager!,
+        deobfuscator: ctx.deobfuscator,
+        advancedDeobfuscator: ctx.advancedDeobfuscator,
+        obfuscationDetector: ctx.obfuscationDetector,
+        analyzer: ctx.analyzer,
+        cryptoDetector: ctx.cryptoDetector,
+        hookManager: ctx.hookManager,
+      });
+    }
   }
-  return ctx.coreAnalysisHandlers;
+  return ctx.coreAnalysisHandlers!;
 }
 
 const manifest = {

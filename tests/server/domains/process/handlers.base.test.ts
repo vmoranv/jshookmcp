@@ -62,70 +62,70 @@ class TestProcessToolHandlersBase extends ProcessToolHandlersBase {
 
 describe('Validation helpers', () => {
   describe('validatePid', () => {
-    it('returns a valid positive integer PID', () => {
+    it('returns a valid positive integer PID', async () => {
       expect(validatePid(1234)).toBe(1234);
       expect(validatePid('5678')).toBe(5678);
     });
 
-    it('throws on zero', () => {
+    it('throws on zero', async () => {
       expect(() => validatePid(0)).toThrow('Invalid PID');
     });
 
-    it('throws on negative', () => {
+    it('throws on negative', async () => {
       expect(() => validatePid(-1)).toThrow('Invalid PID');
     });
 
-    it('throws on non-integer', () => {
+    it('throws on non-integer', async () => {
       expect(() => validatePid(1.5)).toThrow('Invalid PID');
     });
 
-    it('throws on NaN', () => {
+    it('throws on NaN', async () => {
       expect(() => validatePid('abc')).toThrow('Invalid PID');
     });
 
-    it('throws on null/undefined', () => {
+    it('throws on null/undefined', async () => {
       expect(() => validatePid(null)).toThrow('Invalid PID');
       expect(() => validatePid(undefined)).toThrow('Invalid PID');
     });
   });
 
   describe('requireString', () => {
-    it('returns valid non-empty string', () => {
+    it('returns valid non-empty string', async () => {
       expect(requireString('hello', 'field')).toBe('hello');
     });
 
-    it('throws on empty string', () => {
+    it('throws on empty string', async () => {
       expect(() => requireString('', 'field')).toThrow('field must be a non-empty string');
     });
 
-    it('throws on non-string', () => {
+    it('throws on non-string', async () => {
       expect(() => requireString(123, 'field')).toThrow('field must be a non-empty string');
     });
 
-    it('throws on null', () => {
+    it('throws on null', async () => {
       expect(() => requireString(null, 'field')).toThrow('field must be a non-empty string');
     });
   });
 
   describe('requirePositiveNumber', () => {
-    it('returns valid positive number', () => {
+    it('returns valid positive number', async () => {
       expect(requirePositiveNumber(42, 'size')).toBe(42);
       expect(requirePositiveNumber('10', 'size')).toBe(10);
     });
 
-    it('throws on zero', () => {
+    it('throws on zero', async () => {
       expect(() => requirePositiveNumber(0, 'size')).toThrow('size must be a positive number');
     });
 
-    it('throws on negative', () => {
+    it('throws on negative', async () => {
       expect(() => requirePositiveNumber(-5, 'size')).toThrow('size must be a positive number');
     });
 
-    it('throws on NaN', () => {
+    it('throws on NaN', async () => {
       expect(() => requirePositiveNumber('abc', 'size')).toThrow('size must be a positive number');
     });
 
-    it('throws on Infinity', () => {
+    it('throws on Infinity', async () => {
       expect(() => requirePositiveNumber(Infinity, 'size')).toThrow(
         'size must be a positive number',
       );

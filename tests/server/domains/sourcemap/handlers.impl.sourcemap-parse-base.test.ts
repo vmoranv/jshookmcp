@@ -64,7 +64,7 @@ describe('SourcemapToolHandlersParseBase', () => {
   });
 
   describe('extractSourceMappingUrlFromScript', () => {
-    it('extracts mapped url from comment', () => {
+    it('extracts mapped url from comment', async () => {
       expect(
         handlers.testExtractSourceMappingUrlFromScript(
           'var x = 1;\n//# sourceMappingURL=foo.js.map',
@@ -80,59 +80,59 @@ describe('SourcemapToolHandlersParseBase', () => {
   });
 
   describe('resolveSourceMapUrl', () => {
-    it('resolves bare text', () => {
+    it('resolves bare text', async () => {
       expect(handlers.testResolveSourceMapUrl(' foo ', 'http://script.com/path')).toBe(
         'http://script.com/foo',
       );
     });
-    it('handles empty', () => {
+    it('handles empty', async () => {
       expect(handlers.testResolveSourceMapUrl(' ', 'scrl')).toBe('');
     });
-    it('returns data uri unaltered', () => {
+    it('returns data uri unaltered', async () => {
       expect(handlers.testResolveSourceMapUrl('data:123', 'scrl')).toBe('data:123');
     });
-    it('returns full url unaltered', () => {
+    it('returns full url unaltered', async () => {
       expect(handlers.testResolveSourceMapUrl('http://foo', 'scrl')).toBe('http://foo');
     });
-    it('handles missing scriptUrl', () => {
+    it('handles missing scriptUrl', async () => {
       expect(handlers.testResolveSourceMapUrl('foo', '')).toBe('foo');
     });
-    it('falls back to trimmed if native URL fails', () => {
+    it('falls back to trimmed if native URL fails', async () => {
       expect(handlers.testResolveSourceMapUrl('foo', 'invalid-script-url')).toBe('foo');
     });
   });
 
   describe('decodeDataUriJson', () => {
-    it('decodes base64', () => {
+    it('decodes base64', async () => {
       const b64 = Buffer.from('{"ok":1}').toString('base64');
       expect(handlers.testDecodeDataUriJson(`data:application/json;base64,${b64}`)).toBe(
         '{"ok":1}',
       );
     });
-    it('decodes uri encoded', () => {
+    it('decodes uri encoded', async () => {
       expect(handlers.testDecodeDataUriJson(`data:application/json,%7B%22ok%22%3A1%7D`)).toBe(
         '{"ok":1}',
       );
     });
-    it('throws on missing comma', () => {
+    it('throws on missing comma', async () => {
       expect(() => handlers.testDecodeDataUriJson('data')).toThrow('Invalid data URI');
     });
   });
 
   describe('validateFetchUrl', () => {
-    it('allows valid URLs', () => {
+    it('allows valid URLs', async () => {
       expect(() => handlers.testValidateFetchUrl('http://example.com/')).not.toThrow();
       expect(() => handlers.testValidateFetchUrl('https://example.com/')).not.toThrow();
     });
-    it('blocks unsupported protocols', () => {
+    it('blocks unsupported protocols', async () => {
       expect(() => handlers.testValidateFetchUrl('ftp://example.com/')).toThrow(
         'unsupported protocol',
       );
     });
-    it('blocks invalid URLs', () => {
+    it('blocks invalid URLs', async () => {
       expect(() => handlers.testValidateFetchUrl('not a url')).toThrow('Invalid URL');
     });
-    it('blocks SSRF targets', () => {
+    it('blocks SSRF targets', async () => {
       const targets = [
         'http://localhost',
         'http://metadata.google.internal',
@@ -206,33 +206,33 @@ describe('SourcemapToolHandlersParseBase', () => {
   });
 
   describe('vlq logic', () => {
-    it('fromVlqSigned', () => {
+    it('fromVlqSigned', async () => {
       expect(handlers.testFromVlqSigned(0)).toBe(0);
       expect(handlers.testFromVlqSigned(2)).toBe(1);
       expect(handlers.testFromVlqSigned(3)).toBe(-1);
     });
 
-    it('decodeVlqSegment', () => {
+    it('decodeVlqSegment', async () => {
       expect(handlers.testDecodeVlqSegment('A')).toEqual([0]);
       expect(handlers.testDecodeVlqSegment('C')).toEqual([1]);
       expect(handlers.testDecodeVlqSegment('D')).toEqual([-1]);
     });
 
-    it('throws on incomplete vlq', () => {
+    it('throws on incomplete vlq', async () => {
       expect(() => handlers.testDecodeVlqSegment('w')).toThrow('Unexpected end');
     });
 
-    it('throws on invalid base64 char', () => {
+    it('throws on invalid base64 char', async () => {
       expect(() => handlers.testDecodeVlqSegment('!')).toThrow('Invalid VLQ base64 char');
     });
   });
 
   describe('decodeMappings', () => {
-    it('handles empty', () => {
+    it('handles empty', async () => {
       expect(handlers.testDecodeMappings('')).toEqual([]);
     });
 
-    it('decodes basic mappings', () => {
+    it('decodes basic mappings', async () => {
       // "AAAA" is 0,0,0,0 (all zeros delta)
       // "AAAA;AAAA"
       const res = handlers.testDecodeMappings('AAAA;AACA');
@@ -243,30 +243,30 @@ describe('SourcemapToolHandlersParseBase', () => {
       expect(res[1!]!.generatedColumn).toBe(0);
     });
 
-    it('handles 5-segment mapping', () => {
+    it('handles 5-segment mapping', async () => {
       // 5 segments (column, src, orgLine, orgCol, name)
       const res = handlers.testDecodeMappings('AAAAA');
       expect(res[0!]!.nameIndex).toBe(0);
     });
 
-    it('skips invalid segments', () => {
+    it('skips invalid segments', async () => {
       const res = handlers.testDecodeMappings(';;,;');
       expect(res.length).toBe(0);
     });
   });
 
   describe('normalizeSourceMap', () => {
-    it('validates version 3', () => {
+    it('validates version 3', async () => {
       expect(() => handlers.testNormalizeSourceMap({ version: 2 })).toThrow(
         'Only SourceMap version 3 is supported',
       );
     });
-    it('requires mappings', () => {
+    it('requires mappings', async () => {
       expect(() => handlers.testNormalizeSourceMap({ version: 3 })).toThrow(
         'SourceMap.mappings is required',
       );
     });
-    it('normalizes valid json', () => {
+    it('normalizes valid json', async () => {
       const res = handlers.testNormalizeSourceMap({
         version: 3,
         mappings: 'A',

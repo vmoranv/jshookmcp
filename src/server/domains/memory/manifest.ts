@@ -8,7 +8,7 @@
 import type { DomainManifest } from '@server/registry/contracts';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { memoryScanToolDefinitions } from './definitions';
-import { MemoryScanHandlers } from './handlers.impl';
+import type { MemoryScanHandlers } from './handlers.impl';
 
 const DOMAIN = 'memory' as const;
 const DEP_KEY = 'memoryScanHandlers' as const;
@@ -24,11 +24,12 @@ type H = MemoryScanHandlers;
 let globalContext: MCPServerContext | null = null;
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { MemoryScanHandlers } = await import('./handlers.impl');
   globalContext = ctx;
   const ctxAny = ctx as unknown as Record<string, unknown>;
   if (ctxAny[DEP_KEY]) return ctxAny[DEP_KEY] as H;
 
-  // Dynamic imports: load native koffi modules lazily — only when memory domain is accessed.
+  // Dynamic imports: load native koffi modules AND handler lazily — only when memory domain is accessed.
   // Cross-platform modules (always loaded)
   const [
     memoryScanner,

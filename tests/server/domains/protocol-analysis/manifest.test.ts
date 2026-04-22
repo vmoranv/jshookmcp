@@ -2,7 +2,7 @@ import manifest from '@server/domains/protocol-analysis/manifest';
 import { describe, expect, it } from 'vitest';
 
 describe('Protocol Analysis Domain Manifest', () => {
-  it('registers payload, packet, and pcap atomic tools', () => {
+  it('registers payload, packet, and pcap atomic tools', async () => {
     const toolNames = manifest.registrations.map((registration) => registration.tool.name);
     expect(toolNames).toContain('payload_template_build');
     expect(toolNames).toContain('payload_mutate');
@@ -15,7 +15,7 @@ describe('Protocol Analysis Domain Manifest', () => {
     expect(toolNames).toContain('pcap_read');
   });
 
-  it('keeps callable bindings for all atomic tools', () => {
+  it('keeps callable bindings for all atomic tools', async () => {
     const expectedTools = [
       'payload_template_build',
       'payload_mutate',
@@ -35,7 +35,7 @@ describe('Protocol Analysis Domain Manifest', () => {
     }
   });
 
-  it('caches the ensured handler instance on the context', () => {
+  it('caches the ensured handler instance on the context', async () => {
     const instances = new Map<string, unknown>();
     const ctx = {
       eventBus: {},
@@ -47,8 +47,8 @@ describe('Protocol Analysis Domain Manifest', () => {
       },
     };
 
-    const first = manifest.ensure(ctx as never);
-    const second = manifest.ensure(ctx as never);
+    const first = await manifest.ensure(ctx as never);
+    const second = await manifest.ensure(ctx as never);
 
     expect(first).toBeDefined();
     expect(second).toBe(first);

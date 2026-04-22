@@ -1,7 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { PROXY_TOOLS } from '@server/domains/proxy/definitions';
-import { ProxyHandlers } from '@server/domains/proxy/index';
+import type { ProxyHandlers } from '@server/domains/proxy/index';
 
 const DOMAIN = 'proxy' as const;
 const DEP_KEY = 'proxyHandlers' as const;
@@ -10,7 +10,8 @@ const t = toolLookup(PROXY_TOOLS);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { ProxyHandlers } = await import('@server/domains/proxy/index');
   if (!ctx.proxyHandlers) {
     ctx.proxyHandlers = new ProxyHandlers();
   }

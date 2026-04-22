@@ -588,7 +588,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
   });
 
   describe('module-level exports', () => {
-    it('getJitterOptions returns a copy of current options', () => {
+    it('getJitterOptions returns a copy of current options', async () => {
       const options = getJitterOptions();
 
       expect(options).toBeDefined();
@@ -598,7 +598,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
       expect(typeof options.burstMode).toBe('boolean');
     });
 
-    it('getJitterOptions returns a new object each time (not reference)', () => {
+    it('getJitterOptions returns a new object each time (not reference)', async () => {
       const options1 = getJitterOptions();
       const options2 = getJitterOptions();
 
@@ -606,7 +606,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
       expect(options1).toEqual(options2);
     });
 
-    it('createJitteredSession creates CDPTimingProxy', () => {
+    it('createJitteredSession creates CDPTimingProxy', async () => {
       const mockSession = {
         send: vi.fn(),
         on: vi.fn(),

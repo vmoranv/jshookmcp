@@ -24,7 +24,7 @@ describe('ReadWriteHandlers', () => {
     handlers = new ReadWriteHandlers(mockmemCtrl);
   });
 
-  it('instantiates correctly', () => {
+  it('instantiates correctly', async () => {
     expect(handlers).toBeInstanceOf(ReadWriteHandlers);
   });
 

@@ -319,56 +319,56 @@ describe('LayaCanvasAdapter', () => {
 // ── Payload builders ───────────────────────────────────────────────────────────
 
 describe('buildLayaSceneTreeDumpPayload', () => {
-  it('returns a non-empty JavaScript string', () => {
+  it('returns a non-empty JavaScript string', async () => {
     const payload = buildLayaSceneTreeDumpPayload({});
     expect(typeof payload).toBe('string');
     expect(payload.length).toBeGreaterThan(0);
   });
 
-  it('embeds maxDepth option in the script', () => {
+  it('embeds maxDepth option in the script', async () => {
     const payload = buildLayaSceneTreeDumpPayload({ maxDepth: 5 });
     expect(payload).toContain('5');
   });
 
-  it('embeds onlyInteractive flag in the script', () => {
+  it('embeds onlyInteractive flag in the script', async () => {
     const payload = buildLayaSceneTreeDumpPayload({ onlyInteractive: true });
     expect(payload).toContain('true');
   });
 
-  it('embeds onlyVisible flag in the script', () => {
+  it('embeds onlyVisible flag in the script', async () => {
     const payload = buildLayaSceneTreeDumpPayload({ onlyVisible: true });
     expect(payload).toContain('true');
   });
 
-  it('uses default maxDepth of 20 when not specified', () => {
+  it('uses default maxDepth of 20 when not specified', async () => {
     const payload = buildLayaSceneTreeDumpPayload({});
     expect(payload).toContain('20');
   });
 });
 
 describe('buildLayaHitTestPayload', () => {
-  it('returns a non-empty JavaScript string', () => {
+  it('returns a non-empty JavaScript string', async () => {
     const payload = buildLayaHitTestPayload({ x: 100, y: 200 });
     expect(typeof payload).toBe('string');
     expect(payload.length).toBeGreaterThan(0);
   });
 
-  it('embeds x coordinate in the script', () => {
+  it('embeds x coordinate in the script', async () => {
     const payload = buildLayaHitTestPayload({ x: 123, y: 456 });
     expect(payload).toContain('123');
   });
 
-  it('embeds y coordinate in the script', () => {
+  it('embeds y coordinate in the script', async () => {
     const payload = buildLayaHitTestPayload({ x: 123, y: 456 });
     expect(payload).toContain('456');
   });
 
-  it('embeds canvasId in the script when provided', () => {
+  it('embeds canvasId in the script when provided', async () => {
     const payload = buildLayaHitTestPayload({ x: 0, y: 0, canvasId: 'my-canvas' });
     expect(payload).toContain('my-canvas');
   });
 
-  it('handles missing canvasId (uses topmost canvas detection)', () => {
+  it('handles missing canvasId (uses topmost canvas detection)', async () => {
     const payload = buildLayaHitTestPayload({ x: 50, y: 50 });
     expect(payload).toBeDefined();
   });

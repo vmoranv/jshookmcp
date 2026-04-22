@@ -31,97 +31,97 @@ describe('replay — additional coverage', () => {
   // isPrivateHost
   // ────────────────────────────────────────────────────────────────
   describe('isPrivateHost', () => {
-    it('blocks 127.x.x.x (loopback)', () => {
+    it('blocks 127.x.x.x (loopback)', async () => {
       expect(isPrivateHost('127.0.0.1')).toBe(true);
       expect(isPrivateHost('127.255.255.255')).toBe(true);
     });
 
-    it('blocks 10.x.x.x (private)', () => {
+    it('blocks 10.x.x.x (private)', async () => {
       expect(isPrivateHost('10.0.0.1')).toBe(true);
       expect(isPrivateHost('10.255.255.255')).toBe(true);
     });
 
-    it('blocks 172.16-31.x.x (private)', () => {
+    it('blocks 172.16-31.x.x (private)', async () => {
       expect(isPrivateHost('172.16.0.1')).toBe(true);
       expect(isPrivateHost('172.31.255.255')).toBe(true);
     });
 
-    it('allows 172.32.x.x (not private)', () => {
+    it('allows 172.32.x.x (not private)', async () => {
       expect(isPrivateHost('172.32.0.1')).toBe(false);
     });
 
-    it('blocks 192.168.x.x (private)', () => {
+    it('blocks 192.168.x.x (private)', async () => {
       expect(isPrivateHost('192.168.0.1')).toBe(true);
       expect(isPrivateHost('192.168.255.255')).toBe(true);
     });
 
-    it('blocks 169.254.x.x (link-local)', () => {
+    it('blocks 169.254.x.x (link-local)', async () => {
       expect(isPrivateHost('169.254.169.254')).toBe(true);
     });
 
-    it('blocks 100.64.x.x (shared address space)', () => {
+    it('blocks 100.64.x.x (shared address space)', async () => {
       expect(isPrivateHost('100.64.0.1')).toBe(true);
       expect(isPrivateHost('100.127.255.255')).toBe(true);
     });
 
-    it('blocks 0.x.x.x', () => {
+    it('blocks 0.x.x.x', async () => {
       expect(isPrivateHost('0.0.0.0')).toBe(true);
     });
 
-    it('blocks ::1 (IPv6 loopback)', () => {
+    it('blocks ::1 (IPv6 loopback)', async () => {
       expect(isPrivateHost('::1')).toBe(true);
     });
 
-    it('blocks :: (unspecified)', () => {
+    it('blocks :: (unspecified)', async () => {
       expect(isPrivateHost('::')).toBe(true);
     });
 
-    it('blocks IPv4-mapped IPv6', () => {
+    it('blocks IPv4-mapped IPv6', async () => {
       expect(isPrivateHost('::ffff:127.0.0.1')).toBe(true);
     });
 
-    it('blocks fc00: (IPv6 unique-local)', () => {
+    it('blocks fc00: (IPv6 unique-local)', async () => {
       expect(isPrivateHost('fc00::1')).toBe(true);
     });
 
-    it('blocks fd (IPv6 unique-local)', () => {
+    it('blocks fd (IPv6 unique-local)', async () => {
       expect(isPrivateHost('fd12::1')).toBe(true);
     });
 
-    it('blocks fe80: (IPv6 link-local)', () => {
+    it('blocks fe80: (IPv6 link-local)', async () => {
       expect(isPrivateHost('fe80::1')).toBe(true);
     });
 
-    it('blocks localhost', () => {
+    it('blocks localhost', async () => {
       expect(isPrivateHost('localhost')).toBe(true);
       expect(isPrivateHost('LOCALHOST')).toBe(true);
     });
 
-    it('strips brackets from IPv6 literals', () => {
+    it('strips brackets from IPv6 literals', async () => {
       expect(isPrivateHost('[::1]')).toBe(true);
       expect(isPrivateHost('[fe80::1]')).toBe(true);
     });
 
-    it('allows public IP addresses', () => {
+    it('allows public IP addresses', async () => {
       expect(isPrivateHost('8.8.8.8')).toBe(false);
       expect(isPrivateHost('1.1.1.1')).toBe(false);
       expect(isPrivateHost(buildPublicIp())).toBe(false);
     });
 
-    it('allows public hostnames', () => {
+    it('allows public hostnames', async () => {
       expect(isPrivateHost('example.com')).toBe(false);
       expect(isPrivateHost('google.com')).toBe(false);
     });
 
-    it('blocks 64:ff9b:: (NAT64 prefix)', () => {
+    it('blocks 64:ff9b:: (NAT64 prefix)', async () => {
       expect(isPrivateHost('64:ff9b::1')).toBe(true);
     });
 
-    it('blocks 100:: (discard prefix)', () => {
+    it('blocks 100:: (discard prefix)', async () => {
       expect(isPrivateHost('100::1')).toBe(true);
     });
 
-    it('blocks ::ffff:0: (IPv4-translated)', () => {
+    it('blocks ::ffff:0: (IPv4-translated)', async () => {
       expect(isPrivateHost('::ffff:0:127.0.0.1')).toBe(true);
     });
   });
@@ -130,25 +130,25 @@ describe('replay — additional coverage', () => {
   // isLoopbackHost
   // ────────────────────────────────────────────────────────────────
   describe('isLoopbackHost', () => {
-    it('recognizes localhost', () => {
+    it('recognizes localhost', async () => {
       expect(isLoopbackHost('localhost')).toBe(true);
       expect(isLoopbackHost('LOCALHOST')).toBe(true);
       expect(isLoopbackHost('Localhost')).toBe(true);
     });
 
-    it('recognizes 127.0.0.1', () => {
+    it('recognizes 127.0.0.1', async () => {
       expect(isLoopbackHost('127.0.0.1')).toBe(true);
     });
 
-    it('recognizes ::1', () => {
+    it('recognizes ::1', async () => {
       expect(isLoopbackHost('::1')).toBe(true);
     });
 
-    it('strips brackets from IPv6', () => {
+    it('strips brackets from IPv6', async () => {
       expect(isLoopbackHost('[::1]')).toBe(true);
     });
 
-    it('rejects non-loopback hosts', () => {
+    it('rejects non-loopback hosts', async () => {
       expect(isLoopbackHost('10.0.0.1')).toBe(false);
       expect(isLoopbackHost('example.com')).toBe(false);
       expect(isLoopbackHost('192.168.1.1')).toBe(false);

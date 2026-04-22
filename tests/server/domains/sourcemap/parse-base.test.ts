@@ -55,7 +55,7 @@ const createTool = () => new TestableParseBase();
 
 describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   describe('decodeVlqSegment', () => {
-    it('decodes single-value segments', () => {
+    it('decodes single-value segments', async () => {
       const tool = createTool();
 
       expect(tool.testDecodeVlqSegment('A')).toEqual([0]);
@@ -68,14 +68,14 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       expect(b[0] === 0).toBe(true);
     });
 
-    it('decodes multi-value segments', () => {
+    it('decodes multi-value segments', async () => {
       const tool = createTool();
 
       expect(tool.testDecodeVlqSegment('AAAA')).toEqual([0, 0, 0, 0]);
       expect(tool.testDecodeVlqSegment('CDAA')).toEqual([1, -1, 0, 0]);
     });
 
-    it('handles continuation bits for larger values', () => {
+    it('handles continuation bits for larger values', async () => {
       const tool = createTool();
 
       // "g" (index 32) sets continuation bit with 0 payload, then "B" adds the next 5-bit group => raw=32 => signed=16
@@ -83,19 +83,19 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       expect(tool.testDecodeVlqSegment('gBA')).toEqual([16, 0]);
     });
 
-    it('throws on invalid base64 characters', () => {
+    it('throws on invalid base64 characters', async () => {
       const tool = createTool();
       expect(() => tool.testDecodeVlqSegment('?')).toThrow(/Invalid VLQ base64 char/);
     });
 
-    it('throws on unexpected end (dangling continuation bit)', () => {
+    it('throws on unexpected end (dangling continuation bit)', async () => {
       const tool = createTool();
       expect(() => tool.testDecodeVlqSegment('g')).toThrow(/Unexpected end of VLQ segment/);
     });
   });
 
   describe('fromVlqSigned', () => {
-    it('converts even values to positive numbers', () => {
+    it('converts even values to positive numbers', async () => {
       const tool = createTool();
 
       expect(tool.testFromVlqSigned(0)).toBe(0);
@@ -104,7 +104,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       expect(tool.testFromVlqSigned(6)).toBe(3);
     });
 
-    it('converts odd values to negative numbers', () => {
+    it('converts odd values to negative numbers', async () => {
       const tool = createTool();
 
       const negZero = tool.testFromVlqSigned(1);
@@ -117,17 +117,17 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   });
 
   describe('decodeMappings', () => {
-    it('returns [] for empty mappings', () => {
+    it('returns [] for empty mappings', async () => {
       const tool = createTool();
       expect(tool.testDecodeMappings('')).toEqual([]);
     });
 
-    it('decodes a single generated-only segment', () => {
+    it('decodes a single generated-only segment', async () => {
       const tool = createTool();
       expect(tool.testDecodeMappings('A')).toEqual([{ generatedLine: 1, generatedColumn: 0 }]);
     });
 
-    it('decodes a single full segment (AAAA)', () => {
+    it('decodes a single full segment (AAAA)', async () => {
       const tool = createTool();
       expect(tool.testDecodeMappings('AAAA')).toEqual([
         {
@@ -140,7 +140,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       ]);
     });
 
-    it('decodes multiple segments on one line and tracks generatedColumn cumulatively', () => {
+    it('decodes multiple segments on one line and tracks generatedColumn cumulatively', async () => {
       const tool = createTool();
       expect(tool.testDecodeMappings('AAAA,CAAA,CAAA')).toEqual([
         {
@@ -167,7 +167,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       ]);
     });
 
-    it('decodes multiple lines separated by ";" and resets generatedColumn per line', () => {
+    it('decodes multiple lines separated by ";" and resets generatedColumn per line', async () => {
       const tool = createTool();
       expect(tool.testDecodeMappings('CAAA,CAAA;CAAA')).toEqual([
         {
@@ -194,7 +194,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       ]);
     });
 
-    it('supports 5-value segments (nameIndex) and accumulates name deltas', () => {
+    it('supports 5-value segments (nameIndex) and accumulates name deltas', async () => {
       const tool = createTool();
       expect(tool.testDecodeMappings('AAAAC,AAAAC')).toEqual([
         {
@@ -216,7 +216,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       ]);
     });
 
-    it('accumulates source/original deltas across segments', () => {
+    it('accumulates source/original deltas across segments', async () => {
       const tool = createTool();
       expect(tool.testDecodeMappings('AAAA,CCAA,CACA,CAAC')).toEqual([
         {
@@ -250,7 +250,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       ]);
     });
 
-    it('skips empty lines (still advances generatedLine index)', () => {
+    it('skips empty lines (still advances generatedLine index)', async () => {
       const tool = createTool();
       expect(tool.testDecodeMappings('AAAA;;AAAA')).toEqual([
         {
@@ -272,7 +272,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   });
 
   describe('normalizeSourceMap', () => {
-    it('normalizes a valid v3 sourcemap', () => {
+    it('normalizes a valid v3 sourcemap', async () => {
       const tool = createTool();
       const normalized = tool.testNormalizeSourceMap({
         version: 3,
@@ -293,7 +293,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       });
     });
 
-    it('throws when version is not 3', () => {
+    it('throws when version is not 3', async () => {
       const tool = createTool();
 
       expect(() => tool.testNormalizeSourceMap({ version: 4, mappings: 'A' })).toThrow(
@@ -304,7 +304,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       );
     });
 
-    it('throws when mappings is missing or not a string', () => {
+    it('throws when mappings is missing or not a string', async () => {
       const tool = createTool();
 
       expect(() => tool.testNormalizeSourceMap({ version: 3 })).toThrow(
@@ -315,7 +315,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       );
     });
 
-    it('defaults non-array sources/names to [] and leaves sourcesContent undefined when absent', () => {
+    it('defaults non-array sources/names to [] and leaves sourcesContent undefined when absent', async () => {
       const tool = createTool();
       const normalized = tool.testNormalizeSourceMap({
         version: 3,
@@ -331,13 +331,13 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   });
 
   describe('validateFetchUrl', () => {
-    it('allows public http(s) urls', () => {
+    it('allows public http(s) urls', async () => {
       const tool = createTool();
       expect(() => tool.testValidateFetchUrl('https://example.com/a.map')).not.toThrow();
       expect(() => tool.testValidateFetchUrl('http://example.com/a.map')).not.toThrow();
     });
 
-    it('blocks localhost and metadata hostnames', () => {
+    it('blocks localhost and metadata hostnames', async () => {
       const tool = createTool();
 
       expect(() => tool.testValidateFetchUrl('http://localhost/a.map')).toThrow(
@@ -351,7 +351,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       );
     });
 
-    it('blocks protected/reserved IPv4 ranges', () => {
+    it('blocks protected/reserved IPv4 ranges', async () => {
       const tool = createTool();
 
       expect(() => tool.testValidateFetchUrl('http://127.0.0.1/a.map')).toThrow(
@@ -374,14 +374,14 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       );
     });
 
-    it('blocks IPv6 loopback', () => {
+    it('blocks IPv6 loopback', async () => {
       const tool = createTool();
       expect(() => tool.testValidateFetchUrl('http://[::1]/a.map')).toThrow(
         /SSRF blocked: protected\/reserved IP ".*::1.*" is not allowed/,
       );
     });
 
-    it('rejects invalid urls and unsupported protocols', () => {
+    it('rejects invalid urls and unsupported protocols', async () => {
       const tool = createTool();
 
       expect(() => tool.testValidateFetchUrl('not a url')).toThrow('Invalid URL: not a url');
@@ -392,7 +392,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   });
 
   describe('decodeDataUriJson', () => {
-    it('decodes base64-encoded data: URIs', () => {
+    it('decodes base64-encoded data: URIs', async () => {
       const tool = createTool();
       const json = JSON.stringify({ hello: 'world', n: 1 });
       const base64 = Buffer.from(json, 'utf-8').toString('base64');
@@ -400,14 +400,14 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
       expect(tool.testDecodeDataUriJson(uri)).toBe(json);
     });
 
-    it('decodes URL-encoded data: URIs', () => {
+    it('decodes URL-encoded data: URIs', async () => {
       const tool = createTool();
       const json = JSON.stringify({ ok: true, list: [1, 2, 3] });
       const uri = `data:application/json,${encodeURIComponent(json)}`;
       expect(tool.testDecodeDataUriJson(uri)).toBe(json);
     });
 
-    it('throws when data URI is missing a comma separator', () => {
+    it('throws when data URI is missing a comma separator', async () => {
       const tool = createTool();
       expect(() => tool.testDecodeDataUriJson('data:application/json;base64')).toThrow(
         'Invalid data URI source map',
@@ -416,63 +416,63 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   });
 
   describe('resolveSourceMapUrl', () => {
-    it('returns empty string for blank input', () => {
+    it('returns empty string for blank input', async () => {
       const tool = createTool();
       expect(tool.testResolveSourceMapUrl('   ', 'https://example.com/app.js')).toBe('');
     });
 
-    it('returns data: URIs as-is (trimmed)', () => {
+    it('returns data: URIs as-is (trimmed)', async () => {
       const tool = createTool();
       expect(tool.testResolveSourceMapUrl(' data:application/json,{} ', 'https://x/y.js')).toBe(
         'data:application/json,{}',
       );
     });
 
-    it('returns absolute URLs as-is', () => {
+    it('returns absolute URLs as-is', async () => {
       const tool = createTool();
       expect(
         tool.testResolveSourceMapUrl('https://cdn.example.com/app.js.map', 'https://x/y.js'),
       ).toBe('https://cdn.example.com/app.js.map');
     });
 
-    it('resolves relative URLs against scriptUrl when provided', () => {
+    it('resolves relative URLs against scriptUrl when provided', async () => {
       const tool = createTool();
       expect(tool.testResolveSourceMapUrl('app.js.map', 'https://example.com/assets/app.js')).toBe(
         'https://example.com/assets/app.js.map',
       );
     });
 
-    it('returns relative URLs unchanged when scriptUrl is empty', () => {
+    it('returns relative URLs unchanged when scriptUrl is empty', async () => {
       const tool = createTool();
       expect(tool.testResolveSourceMapUrl(' app.js.map ', '')).toBe('app.js.map');
     });
   });
 
   describe('extractSourceMappingUrlFromScript', () => {
-    it('extracts //# sourceMappingURL=... (preferred modern form)', () => {
+    it('extracts //# sourceMappingURL=... (preferred modern form)', async () => {
       const tool = createTool();
       const script = ['console.log(1);', '//# sourceMappingURL=foo.js.map'].join('\n');
       expect(tool.testExtractSourceMappingUrlFromScript(script)).toBe('foo.js.map');
     });
 
-    it('extracts //@ sourceMappingURL=... (legacy form)', () => {
+    it('extracts //@ sourceMappingURL=... (legacy form)', async () => {
       const tool = createTool();
       const script = ['console.log(1);', '//@ sourceMappingURL=bar.js.map'].join('\n');
       expect(tool.testExtractSourceMappingUrlFromScript(script)).toBe('bar.js.map');
     });
 
-    it('extracts /*# sourceMappingURL=... */ block comment form', () => {
+    it('extracts /*# sourceMappingURL=... */ block comment form', async () => {
       const tool = createTool();
       const script = '/*# sourceMappingURL=baz.js.map */';
       expect(tool.testExtractSourceMappingUrlFromScript(script)).toBe('baz.js.map');
     });
 
-    it('returns null when no sourceMappingURL is present', () => {
+    it('returns null when no sourceMappingURL is present', async () => {
       const tool = createTool();
       expect(tool.testExtractSourceMappingUrlFromScript('console.log(1);')).toBeNull();
     });
 
-    it('returns the last occurrence when multiple directives exist', () => {
+    it('returns the last occurrence when multiple directives exist', async () => {
       const tool = createTool();
       const script = [
         '//# sourceMappingURL=first.js.map',
@@ -485,7 +485,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   });
 
   describe('hasProtocol', () => {
-    it('detects strings with a protocol prefix', () => {
+    it('detects strings with a protocol prefix', async () => {
       const tool = createTool();
       expect(tool.testHasProtocol('https://example.com')).toBe(true);
       expect(tool.testHasProtocol('http://example.com')).toBe(true);
@@ -495,13 +495,13 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   });
 
   describe('asRecord', () => {
-    it('returns the same object when value is a non-null object', () => {
+    it('returns the same object when value is a non-null object', async () => {
       const tool = createTool();
       const obj = { a: 1, b: 'x' };
       expect(tool.testAsRecord(obj)).toBe(obj);
     });
 
-    it('returns {} for null/primitive/undefined', () => {
+    it('returns {} for null/primitive/undefined', async () => {
       const tool = createTool();
       expect(tool.testAsRecord(null)).toEqual({});
       expect(tool.testAsRecord('x')).toEqual({});
@@ -510,12 +510,12 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   });
 
   describe('asString', () => {
-    it('returns string values as-is', () => {
+    it('returns string values as-is', async () => {
       const tool = createTool();
       expect(tool.testAsString('hello')).toBe('hello');
     });
 
-    it('returns undefined for non-string values', () => {
+    it('returns undefined for non-string values', async () => {
       const tool = createTool();
       expect(tool.testAsString(123)).toBeUndefined();
       expect(tool.testAsString(null)).toBeUndefined();

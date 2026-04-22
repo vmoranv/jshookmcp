@@ -8,7 +8,7 @@ import type { TransformKind } from '@server/domains/transform/handlers/shared';
 
 describe('transform-operations', () => {
   describe('resolveTransformsForApply', () => {
-    it('resolves transforms from a named chain', () => {
+    it('resolves transforms from a named chain', async () => {
       const chains = new Map([
         [
           'mychain',
@@ -24,77 +24,77 @@ describe('transform-operations', () => {
       expect(result).toEqual(['constant_fold', 'dead_code_remove']);
     });
 
-    it('throws when chain name not found', () => {
+    it('throws when chain name not found', async () => {
       const chains = new Map();
       expect(() => resolveTransformsForApply(chains, 'missing', [])).toThrow(
         'Transform chain not found: missing',
       );
     });
 
-    it('falls through to parseTransforms when no chain name', () => {
+    it('falls through to parseTransforms when no chain name', async () => {
       const result = resolveTransformsForApply(new Map(), '', ['string_decrypt']);
       expect(result).toEqual(['string_decrypt']);
     });
   });
 
   describe('applyTransforms', () => {
-    it('returns unchanged code when no transforms apply', () => {
+    it('returns unchanged code when no transforms apply', async () => {
       const result = applyTransforms('let x = 1;', ['constant_fold']);
       expect(result.transformed).toBe('let x = 1;');
       expect(result.appliedTransforms).toEqual([]);
     });
 
-    it('applies constant_fold for numeric expressions', () => {
+    it('applies constant_fold for numeric expressions', async () => {
       const result = applyTransforms('let x = 2 + 3;', ['constant_fold']);
       expect(result.transformed).toContain('5');
       expect(result.appliedTransforms).toEqual(['constant_fold']);
     });
 
-    it('applies string_decrypt for escaped strings', () => {
+    it('applies string_decrypt for escaped strings', async () => {
       const result = applyTransforms("let x = '\\x41';", ['string_decrypt']);
       expect(result.transformed).toContain('A');
       expect(result.appliedTransforms).toEqual(['string_decrypt']);
     });
 
-    it('applies dead_code_remove for dead branches', () => {
+    it('applies dead_code_remove for dead branches', async () => {
       const code = 'if (false) { dead(); } else { alive(); }';
       const result = applyTransforms(code, ['dead_code_remove']);
       expect(result.transformed).toContain('alive');
       expect(result.transformed).not.toContain('dead');
     });
 
-    it('applies dead_code_remove without else', () => {
+    it('applies dead_code_remove without else', async () => {
       const code = 'if (false) { dead(); }';
       const result = applyTransforms(code, ['dead_code_remove']);
       expect(result.transformed).not.toContain('dead');
     });
 
-    it('applies control_flow_flatten for dispatcher pattern', () => {
+    it('applies control_flow_flatten for dispatcher pattern', async () => {
       const code = `var _0x1234='a|b'.split('|');var _0x5678=0;while(!![]){switch(_0x1234[_0x5678++]){case'a':doA();continue;case'b':doB();break;}}`;
       const result = applyTransforms(code, ['control_flow_flatten']);
       expect(result.transformed).toContain('doA');
       expect(result.transformed).toContain('doB');
     });
 
-    it('applies rename_vars for single-letter vars', () => {
+    it('applies rename_vars for single-letter vars', async () => {
       const code = 'var a = 1; var b = 2;';
       const result = applyTransforms(code, ['rename_vars']);
       expect(result.transformed).toContain('var_1');
       expect(result.transformed).toContain('var_2');
     });
 
-    it('applies multiple transforms in sequence', () => {
+    it('applies multiple transforms in sequence', async () => {
       const code = 'var a = 2 + 3; if (false) { dead(); }';
       const result = applyTransforms(code, ['constant_fold', 'dead_code_remove']);
       expect(result.appliedTransforms).toContain('constant_fold');
     });
 
-    it('handles empty code', () => {
+    it('handles empty code', async () => {
       const result = applyTransforms('', ['constant_fold']);
       expect(result.transformed).toBe('');
     });
 
-    it('skips unrecognized transforms', () => {
+    it('skips unrecognized transforms', async () => {
       const result = applyTransforms('function hello() { return 1; }', ['rename_vars']);
       expect(result.transformed).toBe('function hello() { return 1; }');
       expect(result.appliedTransforms).toEqual([]);
@@ -102,36 +102,36 @@ describe('transform-operations', () => {
   });
 
   describe('buildDiff', () => {
-    it('returns empty string for identical inputs', () => {
+    it('returns empty string for identical inputs', async () => {
       expect(buildDiff('abc', 'abc')).toBe('');
     });
 
-    it('produces unified diff for changes', () => {
+    it('produces unified diff for changes', async () => {
       const diff = buildDiff('line1\nline2', 'line1\nline3');
       expect(diff).toContain('-line2');
       expect(diff).toContain('+line3');
       expect(diff).toContain(' line1');
     });
 
-    it('handles all lines removed', () => {
+    it('handles all lines removed', async () => {
       const diff = buildDiff('a\nb', '');
       expect(diff).toContain('-a');
       expect(diff).toContain('-b');
     });
 
-    it('handles all lines added', () => {
+    it('handles all lines added', async () => {
       const diff = buildDiff('', 'a\nb');
       expect(diff).toContain('+a');
       expect(diff).toContain('+b');
     });
 
-    it('handles single-line diff', () => {
+    it('handles single-line diff', async () => {
       const diff = buildDiff('old', 'new');
       expect(diff).toContain('-old');
       expect(diff).toContain('+new');
     });
 
-    it('uses fallback for very large inputs', () => {
+    it('uses fallback for very large inputs', async () => {
       const size = 600;
       const oldLines = Array.from({ length: size }, (_, i) => `old_${i}`);
       const newLines = Array.from({ length: size }, (_, i) => `new_${i}`);
@@ -140,7 +140,7 @@ describe('transform-operations', () => {
       expect(diff).toContain('+new_1');
     });
 
-    it('preserves common prefix and suffix in fallback diff', () => {
+    it('preserves common prefix and suffix in fallback diff', async () => {
       const size = 600;
       const oldLines = Array.from({ length: size }, (_, i) => `line_${i}`);
       const newLines = [...oldLines];

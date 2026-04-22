@@ -21,84 +21,84 @@ import type {
 } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
 
 describe('GraphQL runtime shared constants', () => {
-  it('GRAPHQL_MAX_PREVIEW_CHARS is a positive number', () => {
+  it('GRAPHQL_MAX_PREVIEW_CHARS is a positive number', async () => {
     expect(GRAPHQL_MAX_PREVIEW_CHARS).toBeGreaterThan(0);
     expect(typeof GRAPHQL_MAX_PREVIEW_CHARS).toBe('number');
   });
 
-  it('GRAPHQL_MAX_SCHEMA_CHARS is a positive number', () => {
+  it('GRAPHQL_MAX_SCHEMA_CHARS is a positive number', async () => {
     expect(GRAPHQL_MAX_SCHEMA_CHARS).toBeGreaterThan(0);
   });
 
-  it('GRAPHQL_MAX_QUERY_CHARS is a positive number', () => {
+  it('GRAPHQL_MAX_QUERY_CHARS is a positive number', async () => {
     expect(GRAPHQL_MAX_QUERY_CHARS).toBeGreaterThan(0);
   });
 
-  it('GRAPHQL_MAX_GRAPH_NODES is a positive number', () => {
+  it('GRAPHQL_MAX_GRAPH_NODES is a positive number', async () => {
     expect(GRAPHQL_MAX_GRAPH_NODES).toBeGreaterThan(0);
   });
 
-  it('GRAPHQL_MAX_GRAPH_EDGES is a positive number', () => {
+  it('GRAPHQL_MAX_GRAPH_EDGES is a positive number', async () => {
     expect(GRAPHQL_MAX_GRAPH_EDGES).toBeGreaterThan(0);
   });
 
-  it('schema chars limit is larger than preview chars limit', () => {
+  it('schema chars limit is larger than preview chars limit', async () => {
     expect(GRAPHQL_MAX_SCHEMA_CHARS).toBeGreaterThan(GRAPHQL_MAX_PREVIEW_CHARS);
   });
 
-  it('query chars limit is larger than preview chars limit', () => {
+  it('query chars limit is larger than preview chars limit', async () => {
     expect(GRAPHQL_MAX_QUERY_CHARS).toBeGreaterThan(GRAPHQL_MAX_PREVIEW_CHARS);
   });
 });
 
 describe('INTROSPECTION_QUERY', () => {
-  it('is a non-empty string', () => {
+  it('is a non-empty string', async () => {
     expect(typeof INTROSPECTION_QUERY).toBe('string');
     expect(INTROSPECTION_QUERY.length).toBeGreaterThan(0);
   });
 
-  it('starts with query IntrospectionQuery', () => {
+  it('starts with query IntrospectionQuery', async () => {
     expect(INTROSPECTION_QUERY).toMatch(/^query IntrospectionQuery/);
   });
 
-  it('contains __schema root', () => {
+  it('contains __schema root', async () => {
     expect(INTROSPECTION_QUERY).toContain('__schema');
   });
 
-  it('contains queryType, mutationType, and subscriptionType', () => {
+  it('contains queryType, mutationType, and subscriptionType', async () => {
     expect(INTROSPECTION_QUERY).toContain('queryType');
     expect(INTROSPECTION_QUERY).toContain('mutationType');
     expect(INTROSPECTION_QUERY).toContain('subscriptionType');
   });
 
-  it('contains fragment definitions', () => {
+  it('contains fragment definitions', async () => {
     expect(INTROSPECTION_QUERY).toContain('fragment FullType');
     expect(INTROSPECTION_QUERY).toContain('fragment InputValue');
     expect(INTROSPECTION_QUERY).toContain('fragment TypeRef');
   });
 
-  it('references types and directives', () => {
+  it('references types and directives', async () => {
     expect(INTROSPECTION_QUERY).toContain('types { ...FullType }');
     expect(INTROSPECTION_QUERY).toContain('directives');
   });
 
-  it('includes nested ofType for deep type references', () => {
+  it('includes nested ofType for deep type references', async () => {
     const ofTypeCount = (INTROSPECTION_QUERY.match(/ofType/g) ?? []).length;
     expect(ofTypeCount).toBeGreaterThanOrEqual(7);
   });
 
-  it('is trimmed (no leading/trailing whitespace)', () => {
+  it('is trimmed (no leading/trailing whitespace)', async () => {
     expect(INTROSPECTION_QUERY).toBe(INTROSPECTION_QUERY.trim());
   });
 });
 
 describe('shared type interfaces', () => {
-  it('ScriptMatchType accepts valid values', () => {
+  it('ScriptMatchType accepts valid values', async () => {
     const valid: ScriptMatchType[] = ['exact', 'contains', 'regex'];
     expect(valid).toHaveLength(3);
   });
 
-  it('ScriptReplaceRule has required fields', () => {
+  it('ScriptReplaceRule has required fields', async () => {
     const rule: ScriptReplaceRule = {
       id: 'test-id',
       url: 'https://example.com/script.js',
@@ -111,7 +111,7 @@ describe('shared type interfaces', () => {
     expect(rule.hits).toBe(0);
   });
 
-  it('InterceptRequest shape is correct', () => {
+  it('InterceptRequest shape is correct', async () => {
     const request: InterceptRequest = {
       url: () => 'https://example.com/script.js',
       resourceType: () => 'script',
@@ -122,7 +122,7 @@ describe('shared type interfaces', () => {
     expect(request.resourceType()).toBe('script');
   });
 
-  it('InterceptRequest with optional isInterceptResolutionHandled', () => {
+  it('InterceptRequest with optional isInterceptResolutionHandled', async () => {
     const request: InterceptRequest = {
       url: () => '',
       resourceType: () => 'script',
@@ -133,7 +133,7 @@ describe('shared type interfaces', () => {
     expect(request.isInterceptResolutionHandled?.()).toBe(true);
   });
 
-  it('PreviewPayload has required fields', () => {
+  it('PreviewPayload has required fields', async () => {
     const payload: PreviewPayload = {
       preview: 'text...',
       truncated: true,
@@ -143,7 +143,7 @@ describe('shared type interfaces', () => {
     expect(payload.totalLength).toBe(1000);
   });
 
-  it('CallGraphNode has required fields', () => {
+  it('CallGraphNode has required fields', async () => {
     const node: CallGraphNode = {
       id: 'fn1',
       name: 'doSomething',
@@ -152,7 +152,7 @@ describe('shared type interfaces', () => {
     expect(node.callCount).toBe(5);
   });
 
-  it('CallGraphEdge has required fields', () => {
+  it('CallGraphEdge has required fields', async () => {
     const edge: CallGraphEdge = {
       source: 'fn1',
       target: 'fn2',
@@ -161,7 +161,7 @@ describe('shared type interfaces', () => {
     expect(edge.count).toBe(3);
   });
 
-  it('BrowserFetchResult has required fields', () => {
+  it('BrowserFetchResult has required fields', async () => {
     const result: BrowserFetchResult = {
       ok: true,
       status: 200,
@@ -174,7 +174,7 @@ describe('shared type interfaces', () => {
     expect(result.responseHeaders).toBeUndefined();
   });
 
-  it('BrowserFetchResult with optional fields', () => {
+  it('BrowserFetchResult with optional fields', async () => {
     const result: BrowserFetchResult = {
       ok: false,
       status: 500,
@@ -188,7 +188,7 @@ describe('shared type interfaces', () => {
     expect(result.responseHeaders).toEqual({ 'x-err': 'yes' });
   });
 
-  it('ExtractedGraphQLQuery has required fields', () => {
+  it('ExtractedGraphQLQuery has required fields', async () => {
     const query: ExtractedGraphQLQuery = {
       source: 'window.__fetchRequests',
       url: 'https://example.com/graphql',
@@ -202,7 +202,7 @@ describe('shared type interfaces', () => {
     expect(query.operationName).toBe('GetUser');
   });
 
-  it('ExtractedGraphQLQuery allows null operationName and timestamp', () => {
+  it('ExtractedGraphQLQuery allows null operationName and timestamp', async () => {
     const query: ExtractedGraphQLQuery = {
       source: 'window.__xhrRequests',
       url: 'https://example.com/graphql',

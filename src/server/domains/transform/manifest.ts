@@ -1,8 +1,8 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { transformTools } from '@server/domains/transform/definitions';
-import { TransformToolHandlers } from '@server/domains/transform/index';
-import { CodeCollector } from '@server/domains/shared/modules';
+import type { TransformToolHandlers } from '@server/domains/transform/index';
+import type { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'transform' as const;
 const DEP_KEY = 'transformHandlers' as const;
@@ -11,7 +11,9 @@ const t = toolLookup(transformTools);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { CodeCollector } = await import('@server/domains/shared/modules');
+  const { TransformToolHandlers } = await import('@server/domains/transform/index');
   if (!ctx.collector) {
     ctx.collector = new CodeCollector(ctx.config.puppeteer);
     void ctx.registerCaches();

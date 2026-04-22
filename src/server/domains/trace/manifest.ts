@@ -1,8 +1,7 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { TRACE_TOOLS } from '@server/domains/trace/definitions.tools';
-import { TraceToolHandlers } from '@server/domains/trace/handlers';
-import { TraceRecorder } from '@modules/trace/TraceRecorder';
+import type { TraceToolHandlers } from '@server/domains/trace/handlers';
 
 const DOMAIN = 'trace' as const;
 const DEP_KEY = 'traceHandlers' as const;
@@ -11,14 +10,18 @@ const t = toolLookup(TRACE_TOOLS);
 const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
-function ensure(ctx: MCPServerContext): H {
-  if (!ctx.traceRecorder) {
-    ctx.traceRecorder = new TraceRecorder();
+async function ensure(ctx: MCPServerContext): Promise<H> {
+  const { TraceRecorder } = await import('@modules/trace/TraceRecorder');
+  const { TraceToolHandlers } = await import('@server/domains/trace/handlers');
+  if (!ctx.traceRecorder || !ctx.traceHandlers) {
+    if (!ctx.traceRecorder) {
+      ctx.traceRecorder = new TraceRecorder();
+    }
+    if (!ctx.traceHandlers) {
+      ctx.traceHandlers = new TraceToolHandlers(ctx.traceRecorder, ctx);
+    }
   }
-  if (!ctx.traceHandlers) {
-    ctx.traceHandlers = new TraceToolHandlers(ctx.traceRecorder, ctx);
-  }
-  return ctx.traceHandlers;
+  return ctx.traceHandlers!;
 }
 
 const manifest = {

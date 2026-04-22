@@ -230,7 +230,7 @@ describe('SourcemapToolHandlersExtension', () => {
   // ── pickPreferredExtensionTarget ───────────────────────────────────
 
   describe('pickPreferredExtensionTarget', () => {
-    it('prefers service_worker over background_page', () => {
+    it('prefers service_worker over background_page', async () => {
       const targets: ExtensionTarget[] = [
         {
           targetId: 't1',
@@ -246,7 +246,7 @@ describe('SourcemapToolHandlersExtension', () => {
       expect(result.type).toBe('service_worker');
     });
 
-    it('falls back to first target if no service_worker', () => {
+    it('falls back to first target if no service_worker', async () => {
       const targets: ExtensionTarget[] = [
         {
           targetId: 't1',
@@ -265,24 +265,24 @@ describe('SourcemapToolHandlersExtension', () => {
   // ── extractExtensionId ─────────────────────────────────────────────
 
   describe('extractExtensionId', () => {
-    it('extracts ID from valid chrome-extension URL', () => {
+    it('extracts ID from valid chrome-extension URL', async () => {
       const id = handlers.extractExtensionId(
         'chrome-extension://abcdefghijklmnopabcdefghijklmnop/sw.js',
       );
       expect(id).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
 
-    it('returns null for non-chrome-extension URL', () => {
+    it('returns null for non-chrome-extension URL', async () => {
       const id = handlers.extractExtensionId('https://example.com/sw.js');
       expect(id).toBeNull();
     });
 
-    it('returns null for invalid extension ID format', () => {
+    it('returns null for invalid extension ID format', async () => {
       const id = handlers.extractExtensionId('chrome-extension://short/sw.js');
       expect(id).toBeNull();
     });
 
-    it('handles URL with no path after extension ID', () => {
+    it('handles URL with no path after extension ID', async () => {
       const id = handlers.extractExtensionId('chrome-extension://abcdefghijklmnopabcdefghijklmnop');
       expect(id).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
