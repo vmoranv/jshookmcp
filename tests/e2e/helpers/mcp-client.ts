@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import type { ToolResult, ToolStatus } from '@tests/e2e/helpers/types';
+import { diffProcessMemory, sampleProcessMemory } from '@tests/e2e/helpers/perf-metrics';
+import type { ToolPerformanceMetrics, ToolResult, ToolStatus } from '@tests/e2e/helpers/types';
 
 const KNOWN_EXPECTED_LIMITATION_PATTERNS = [
   'GRACEFUL:',
@@ -62,6 +63,10 @@ export function parseContent(result: unknown): unknown {
   }
 }
 
+function isPerformanceSamplingEnabled(): boolean {
+  return process.env.E2E_COLLECT_PERFORMANCE === '1';
+}
+
 export class MCPTestClient {
   private client: Client;
   private transport: StdioClientTransport | null = null;
@@ -89,11 +94,55 @@ export class MCPTestClient {
     );
   }
 
+  getServerPid(): number | null {
+    const proc = this.transport as unknown as { _process?: { pid?: number } } | null;
+    return typeof proc?._process?.pid === 'number' ? proc._process.pid : null;
+  }
+
+  private async buildPerformanceMetrics(timeoutMs: number): Promise<{
+    serverPid: number | null;
+    memoryBefore: Awaited<ReturnType<typeof sampleProcessMemory>>;
+    startedAt: string;
+    startTime: number;
+    finalize: () => Promise<ToolPerformanceMetrics>;
+  }> {
+    const serverPid = this.getServerPid();
+    const memoryBefore = await sampleProcessMemory(serverPid);
+    const startedAt = new Date().toISOString();
+    const startTime = performance.now();
+
+    return {
+      serverPid,
+      memoryBefore,
+      startedAt,
+      startTime,
+      finalize: async () => {
+        const finishedAt = new Date().toISOString();
+        const elapsedMs = Number((performance.now() - startTime).toFixed(2));
+        const memoryAfter = await sampleProcessMemory(serverPid);
+        return {
+          startedAt,
+          finishedAt,
+          elapsedMs,
+          timeoutMs,
+          serverPid,
+          memoryBefore,
+          memoryAfter,
+          memoryDelta: diffProcessMemory(memoryBefore, memoryAfter),
+        };
+      },
+    };
+  }
+
   recordSynthetic(
     name: string,
     status: ToolStatus,
     detail: string,
-    options?: { code?: string; isError?: boolean },
+    options?: {
+      code?: string;
+      isError?: boolean;
+      performance?: ToolPerformanceMetrics;
+    },
   ): ToolResult {
     const result: ToolResult = {
       name,
@@ -101,6 +150,7 @@ export class MCPTestClient {
       code: options?.code,
       detail: detail.substring(0, 200),
       isError: options?.isError ?? status === 'FAIL',
+      performance: options?.performance,
       ok: status === 'PASS',
     };
     this.results.push(result);
@@ -112,6 +162,7 @@ export class MCPTestClient {
     name: string,
     resp: unknown,
     error: Error | null,
+    performance?: ToolPerformanceMetrics,
   ): { parsed: unknown; result: ToolResult } {
     const parsed = error ? null : parseContent(resp);
     const isError = isRecord(resp) && resp.isError === true;
@@ -139,6 +190,7 @@ export class MCPTestClient {
       code,
       detail: normalizedDetail,
       isError,
+      performance,
       ok: status === 'PASS',
     };
     this.results.push(result);
@@ -190,16 +242,19 @@ export class MCPTestClient {
     args?: Record<string, unknown>,
     timeoutMs = 30000,
   ): Promise<{ parsed: unknown; result: ToolResult }> {
+    const collectPerformance = isPerformanceSamplingEnabled();
+    const metrics = collectPerformance ? await this.buildPerformanceMetrics(timeoutMs) : null;
+
     try {
       const resp = await withTimeout(
         this.client.callTool({ name, arguments: args ?? {} }),
         timeoutMs,
         name,
       );
-      return this.record(name, resp, null);
+      return this.record(name, resp, null, metrics ? await metrics.finalize() : undefined);
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
-      return this.record(name, null, error);
+      return this.record(name, null, error, metrics ? await metrics.finalize() : undefined);
     }
   }
 

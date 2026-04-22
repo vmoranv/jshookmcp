@@ -6,6 +6,7 @@ import { buildArgs } from '@tests/e2e/helpers/schema-builder';
 import { ALL_PHASES } from '@tests/e2e/phases/index';
 import { applyContextCapture } from '@tests/e2e/context-capture';
 import { analyzeCoverage, formatCoverageReport } from '@tests/e2e/helpers/coverage-analyzer';
+import { buildPerformanceSummary } from '@tests/e2e/helpers/perf-metrics';
 import type {
   CallFn,
   E2EConfig,
@@ -54,6 +55,7 @@ const ARTIFACT_DIR = join(process.cwd(), '.tmp_mcp_artifacts');
 const WASM_FIXTURE_PATH = join(process.cwd(), 'tests', 'e2e', 'fixtures', 'wasm', 'sample.wasm');
 const FIXTURE_URL =
   'data:text/html,<html><body><h1>jshook e2e</h1><script>window.__e2e=true;</script></body></html>';
+const COLLECT_PERFORMANCE = process.env.E2E_COLLECT_PERFORMANCE === '1';
 
 const config: E2EConfig = {
   targetUrl: TARGET_URL,
@@ -794,8 +796,10 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 600_000 }, () => {
     };
 
     const coverageReport = analyzeCoverage(representativeToolMap);
+    const performanceSummary = COLLECT_PERFORMANCE ? buildPerformanceSummary(allResults) : null;
     const fullReport = {
       ...report,
+      ...(performanceSummary ? { performance: performanceSummary } : {}),
       coverage: {
         totalRegisteredTools: coverageReport.totalTools,
         exercised: coverageReport.exercised,
@@ -823,6 +827,12 @@ describe.skipIf(!TARGET_URL)('Full Tool E2E', { timeout: 600_000 }, () => {
         join(ARTIFACT_DIR, 'e2e-coverage-report.json'),
         JSON.stringify(coverageReport, null, 2),
       );
+      if (performanceSummary) {
+        await writeFile(
+          join(ARTIFACT_DIR, 'e2e-performance-summary.json'),
+          JSON.stringify(performanceSummary, null, 2),
+        );
+      }
       await writeFile(
         join(ARTIFACT_DIR, 'e2e-coverage-summary.txt'),
         formatCoverageReport(coverageReport),

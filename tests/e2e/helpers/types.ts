@@ -50,6 +50,33 @@ export interface E2EContext {
 /** Tool test status (unified result model) */
 export type ToolStatus = 'PASS' | 'SKIP' | 'EXPECTED_LIMITATION' | 'FAIL';
 
+/** Cross-platform process memory sample for the MCP server child process. */
+export interface ProcessMemorySample {
+  source: 'procfs' | 'ps' | 'powershell';
+  rssBytes: number | null;
+  privateBytes: number | null;
+  virtualBytes: number | null;
+}
+
+/** Delta between two process memory samples. */
+export interface ProcessMemoryDelta {
+  rssBytes: number | null;
+  privateBytes: number | null;
+  virtualBytes: number | null;
+}
+
+/** Per-tool runtime performance metrics captured by the E2E harness. */
+export interface ToolPerformanceMetrics {
+  startedAt: string;
+  finishedAt: string;
+  elapsedMs: number;
+  timeoutMs: number;
+  serverPid: number | null;
+  memoryBefore: ProcessMemorySample | null;
+  memoryAfter: ProcessMemorySample | null;
+  memoryDelta: ProcessMemoryDelta | null;
+}
+
 /** Per-tool test result */
 export interface ToolResult {
   name: string;
@@ -57,6 +84,7 @@ export interface ToolResult {
   code?: string;
   detail: string;
   isError: boolean;
+  performance?: ToolPerformanceMetrics;
   /** @deprecated Use status instead */
   ok?: boolean;
 }
@@ -107,4 +135,20 @@ export interface CoverageReport {
   overallCoveragePercent: number;
   domains: DomainCoverage[];
   untestedTools: string[];
+}
+
+export interface ToolPerformanceSummaryEntry {
+  name: string;
+  status: ToolStatus;
+  elapsedMs: number;
+  rssDeltaBytes: number | null;
+  privateDeltaBytes: number | null;
+}
+
+export interface ToolPerformanceSummary {
+  measuredTools: number;
+  totalElapsedMs: number;
+  averageElapsedMs: number;
+  slowestTools: ToolPerformanceSummaryEntry[];
+  highestRssDeltaTools: ToolPerformanceSummaryEntry[];
 }
