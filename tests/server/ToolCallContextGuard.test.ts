@@ -120,6 +120,15 @@ describe('ToolCallContextGuard', () => {
     expect(getText(guard.enrichResponse('page_evaluate', response))).toBe('{"success":true}');
   });
 
+  it('skips enrichment when provider is malformed at runtime', () => {
+    const guard = new ToolCallContextGuard(
+      () => Promise.resolve({ getContextMeta: () => meta }) as unknown as any,
+    );
+    const response = makeResponse('{"success":true}');
+
+    expect(getText(guard.enrichResponse('page_evaluate', response))).toBe('{"success":true}');
+  });
+
   it('skips enrichment when content is not a text array entry', () => {
     const guard = new ToolCallContextGuard(() => ({
       getContextMeta: () => meta,
