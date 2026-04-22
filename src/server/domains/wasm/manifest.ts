@@ -2,7 +2,6 @@ import type { DomainManifest, MCPServerContext } from '@server/domains/shared/re
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { wasmTools } from '@server/domains/wasm/definitions';
 import type { WasmToolHandlers } from '@server/domains/wasm/index';
-import type { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'wasm' as const;
 const DEP_KEY = 'wasmHandlers' as const;

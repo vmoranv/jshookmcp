@@ -14,7 +14,7 @@ const bindTool = (
   invoke: (handlers: Handlers, args: Record<string, unknown>) => Promise<unknown>,
 ) => bindByDepKey<Handlers>(DEP_KEY, invoke);
 
-async function ensure(ctx: MCPServerContext): Promise<H> {
+async function ensure(ctx: MCPServerContext): Promise<CrossDomainHandlers> {
   const { ReverseEvidenceGraph } = await import('@server/evidence/ReverseEvidenceGraph');
   const { CrossDomainEvidenceBridge } = await import('./handlers/evidence-graph-bridge');
   const { CrossDomainWorkflowClassifier, CrossDomainHandlers } = await import('./handlers');

@@ -13,7 +13,7 @@ const bindTool = (
   invoke: (handlers: Handlers, args: Record<string, unknown>) => Promise<unknown>,
 ) => bindByDepKey<Handlers>(DEP_KEY, invoke);
 
-async function ensure(ctx: MCPServerContext): Promise<H> {
+async function ensure(ctx: MCPServerContext): Promise<SyscallHookHandlers> {
   const { SyscallHookHandlers } = await import('@server/domains/syscall-hook/handlers');
   const existing = ctx.getDomainInstance<SyscallHookHandlers>(DEP_KEY);
   if (existing) {

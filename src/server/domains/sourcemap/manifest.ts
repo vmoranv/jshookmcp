@@ -2,7 +2,6 @@ import type { DomainManifest, MCPServerContext } from '@server/domains/shared/re
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { sourcemapTools } from '@server/domains/sourcemap/definitions';
 import type { SourcemapToolHandlers } from '@server/domains/sourcemap/index';
-import type { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'sourcemap' as const;
 const DEP_KEY = 'sourcemapHandlers' as const;

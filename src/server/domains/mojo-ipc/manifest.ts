@@ -11,7 +11,7 @@ const bind = (
   invoke: (handlers: MojoIPCHandlers, args: Record<string, unknown>) => Promise<unknown>,
 ) => bindByDepKey<MojoIPCHandlers>(DEP_KEY, invoke);
 
-async function ensure(ctx: MCPServerContext): Promise<H> {
+async function ensure(ctx: MCPServerContext): Promise<MojoIPCHandlers> {
   const { MojoIPCHandlers } = await import('./index');
   const existingHandlers = ctx.getDomainInstance<MojoIPCHandlers>(DEP_KEY);
   if (existingHandlers) {

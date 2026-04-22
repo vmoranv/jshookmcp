@@ -2,7 +2,6 @@ import type { DomainManifest, MCPServerContext } from '@server/domains/shared/re
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { transformTools } from '@server/domains/transform/definitions';
 import type { TransformToolHandlers } from '@server/domains/transform/index';
-import type { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'transform' as const;
 const DEP_KEY = 'transformHandlers' as const;

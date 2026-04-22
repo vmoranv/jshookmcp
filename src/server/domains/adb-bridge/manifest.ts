@@ -30,7 +30,7 @@ const registrations: ToolRegistration[] = [
   },
 ];
 
-async function ensure(ctx: MCPServerContext): Promise<H> {
+async function ensure(ctx: MCPServerContext): Promise<ADBBridgeHandlers> {
   const { ADBBridgeHandlers } = await import('./handlers');
   const existingHandlers = ctx.getDomainInstance<ADBBridgeHandlers>(DEP_KEY);
   if (existingHandlers) {

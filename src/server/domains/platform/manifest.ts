@@ -2,7 +2,6 @@ import type { DomainManifest, MCPServerContext } from '@server/domains/shared/re
 import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
 import { platformTools } from '@server/domains/platform/definitions';
 import type { PlatformToolHandlers } from '@server/domains/platform/index';
-import type { CodeCollector } from '@server/domains/shared/modules';
 
 const DOMAIN = 'platform' as const;
 const DEP_KEY = 'platformHandlers' as const;
