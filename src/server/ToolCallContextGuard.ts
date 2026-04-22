@@ -154,8 +154,8 @@ export class ToolCallContextGuard {
     if (!this.isContextSensitive(toolName)) return response;
     if (response.isError) return response;
 
-    const provider = this.getProvider();
-    if (!provider) return response;
+    const provider = this.getProvider() as Partial<TabContextProvider> | null;
+    if (!provider || typeof provider.getContextMeta !== 'function') return response;
 
     const meta = provider.getContextMeta();
     // Skip if no active page tracked

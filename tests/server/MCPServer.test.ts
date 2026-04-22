@@ -440,6 +440,28 @@ describe('MCPServer', () => {
     expect(enriched.content[0].text).toContain('_tabContext');
   });
 
+  it('contextGuard skips tab context when getTabRegistry resolves asynchronously', async () => {
+    const server = new MCPServer(baseConfig) as any;
+    const dummyResponse = { content: [{ type: 'text', text: '{}' }] };
+
+    server.handlerDeps.browserHandlers = {
+      getTabRegistry: () =>
+        Promise.resolve({
+          getContextMeta: () => ({
+            url: 'tab',
+            title: 'async-test',
+            tabIndex: 1,
+            pageId: '1',
+          }),
+        }),
+    };
+
+    expect(
+      server.contextGuard.enrichResponse('instrumentation_hook_preset', dummyResponse).content[0]
+        .text,
+    ).not.toContain('_tabContext');
+  });
+
   it('registerCaches handles early returns and concurrent registration', async () => {
     const server = new MCPServer(baseConfig) as any;
     // 1: no collector
