@@ -9,6 +9,7 @@ yarn.lock
 # Build output
 dist/
 build/
+stats.html
 *.tsbuildinfo
 plugins/**/manifest.js
 

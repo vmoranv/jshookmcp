@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
-  mockManifests: [] as unknown[],
+  mockLoaders: [] as Array<{ domain: string; load: () => Promise<unknown> }>,
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -10,8 +10,8 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock('@server/registry/generated-domains.js', () => ({
-  get generatedManifests() {
-    return state.mockManifests;
+  get generatedManifestLoaders() {
+    return state.mockLoaders;
   },
 }));
 
@@ -24,7 +24,7 @@ describe('registry/discovery', () => {
     vi.resetModules();
     vi.clearAllMocks();
     delete process.env.DISCOVERY_STRICT;
-    state.mockManifests = [];
+    state.mockLoaders = [];
   });
 
   it('handles empty generated manifests', async () => {
@@ -74,7 +74,16 @@ describe('registry/discovery', () => {
       ensure: () => {},
     };
 
-    state.mockManifests = [valid1, valid2, invalid, duplicateDomain, duplicateDep];
+    state.mockLoaders = [
+      { domain: 'alpha', manifest: valid1 },
+      { domain: 'beta', manifest: valid2 },
+      { domain: 'invalid', manifest: invalid },
+      { domain: 'alpha-dup', manifest: duplicateDomain },
+      { domain: 'gamma', manifest: duplicateDep },
+    ].map((entry) => ({
+      domain: entry.domain,
+      load: () => Promise.resolve({ default: entry.manifest }),
+    }));
 
     const { discoverDomainManifests } = await import('@server/registry/discovery');
     const manifests = await discoverDomainManifests();
@@ -95,17 +104,34 @@ describe('registry/discovery', () => {
   });
 
   it('rethrows errors in strict mode when processing a manifest throws', async () => {
-    // We can simulate an error by making a getter throw
-    const throwingManifest = {
-      get kind() {
-        throw new Error('fixture import failed');
+    state.mockLoaders = [
+      {
+        domain: 'broken',
+        load: () => Promise.reject(new Error('fixture import failed')),
       },
-    };
-    state.mockManifests = [throwingManifest];
+    ];
 
     process.env.DISCOVERY_STRICT = 'true';
     const { discoverDomainManifests } = await import('@server/registry/discovery');
 
     await expect(discoverDomainManifests()).rejects.toThrow('fixture import failed');
+  });
+
+  it('logs domain name when loader fails in non-strict mode', async () => {
+    state.mockLoaders = [
+      {
+        domain: 'broken-domain',
+        load: () => Promise.reject(new Error('chunk missing')),
+      },
+    ];
+
+    const { discoverDomainManifests } = await import('@server/registry/discovery');
+    const manifests = await discoverDomainManifests();
+
+    expect(manifests).toEqual([]);
+    expect(state.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('broken-domain'),
+      expect.any(Error),
+    );
   });
 });

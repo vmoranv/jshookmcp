@@ -4,14 +4,6 @@ Domain: `process`
 
 Process, module, memory diagnostics, and controlled injection domain for host-level inspection, troubleshooting, and Windows process experimentation workflows.
 
-## Platform Requirements for Memory Operations
-
-| Platform | Requirement |
-|----------|-------------|
-| Windows | Administrator privileges |
-| Linux | root or ptrace access. Check `kernel.yama.ptrace_scope` if denied |
-| macOS | root or `com.apple.security.cs.debugger` entitlement. ARM64 may require SIP disabled |
-
 ## Profiles
 
 - full
@@ -33,9 +25,9 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 - `process_windows` — Get all window handles for a process.
 - `process_check_debug_port` — Check if a process has a debug port enabled for CDP attachment.
 - `process_launch_debug` — Launch an executable with remote debugging port enabled.
-- `memory_read` — Read memory from a process at a specific address.
-- `memory_write` — Write data to process memory at a specific address.
-- `memory_scan` — Scan process memory for a pattern or value.
+- `memory_read` — Read memory from a process at a specific address. Requires elevated privileges.
+- `memory_write` — Write data to process memory at a specific address. Requires elevated privileges.
+- `memory_scan` — Scan process memory for a pattern or value. Requires elevated privileges.
 - `memory_check_protection` — Check memory protection flags at a specific address.
 - `memory_scan_filtered` — Scan memory within a filtered set of addresses (secondary scan).
 - `memory_batch_write` — Write multiple memory patches at once.
@@ -48,9 +40,9 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 | `process_windows` | Get all window handles for a process. |
 | `process_check_debug_port` | Check if a process has a debug port enabled for CDP attachment. |
 | `process_launch_debug` | Launch an executable with remote debugging port enabled. |
-| `memory_read` | Read memory from a process at a specific address. |
-| `memory_write` | Write data to process memory at a specific address. |
-| `memory_scan` | Scan process memory for a pattern or value. |
+| `memory_read` | Read memory from a process at a specific address. Requires elevated privileges. |
+| `memory_write` | Write data to process memory at a specific address. Requires elevated privileges. |
+| `memory_scan` | Scan process memory for a pattern or value. Requires elevated privileges. |
 | `memory_check_protection` | Check memory protection flags at a specific address. |
 | `memory_scan_filtered` | Scan memory within a filtered set of addresses (secondary scan). |
 | `memory_batch_write` | Write multiple memory patches at once. |

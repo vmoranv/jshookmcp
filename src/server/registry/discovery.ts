@@ -1,7 +1,7 @@
 // Runtime domain discovery via static generated index
 import { logger } from '@utils/logger';
 import type { DomainManifest } from '@server/registry/contracts';
-import { generatedManifests } from './generated-domains.js';
+import { generatedManifestLoaders } from './generated-domains.js';
 
 // ── validation ──
 
@@ -31,18 +31,19 @@ function extractManifest(mod: unknown): DomainManifest | null {
 
 // ── public API ──
 
-// Iterates across the pre-generated static list of manifests imported from the
-// build-time generated file (generated-domains.js) to avoid node fs operations.
+// Dynamically imports each domain manifest via the generated loader array.
+// Each manifest ends up in its own Rolldown chunk, enabling per-domain lazy loading.
 export async function discoverDomainManifests(): Promise<DomainManifest[]> {
   const manifests: DomainManifest[] = [];
   const seenDomains = new Set<string>();
   const seenDepKeys = new Set<string>();
 
-  for (const mod of generatedManifests) {
+  for (const { domain: domainName, load } of generatedManifestLoaders) {
     try {
-      const manifest = extractManifest({ default: mod });
+      const mod = await load();
+      const manifest = extractManifest(mod);
       if (!manifest) {
-        logger.warn('[discovery] Skipping a generated manifest: no valid DomainManifest export');
+        logger.warn(`[discovery] Skipping domain "${domainName}": no valid DomainManifest export`);
         continue;
       }
 
@@ -74,7 +75,7 @@ export async function discoverDomainManifests(): Promise<DomainManifest[]> {
           ' tools)',
       );
     } catch (err) {
-      logger.error('[discovery] Failed to load a generated manifest', err);
+      logger.error(`[discovery] Failed to load domain "${domainName}"`, err);
       if (process.env.DISCOVERY_STRICT === 'true') {
         throw err;
       }

@@ -4,14 +4,6 @@
 
 进程、模块、内存诊断与受控注入域，适合宿主级分析、故障排查与 Windows 进程实验场景。
 
-## 平台权限要求（内存操作）
-
-| 平台 | 要求 |
-|------|------|
-| Windows | 管理员权限（Administrator） |
-| Linux | root 或 ptrace 访问权限。若权限拒绝，检查 `kernel.yama.ptrace_scope` |
-| macOS | root 或 `com.apple.security.cs.debugger` 签名授权。ARM64 可能需要关闭 SIP |
-
 ## Profile
 
 - full
@@ -33,9 +25,9 @@
 - `process_windows` — 获取指定进程关联的全部窗口句柄。
 - `process_check_debug_port` — 检查目标进程是否已开启可用于 CDP 附加的调试端口。
 - `process_launch_debug` — 以启用远程调试端口的方式启动可执行文件。
-- `memory_read` — 读取目标进程指定地址的内存内容；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
-- `memory_write` — 向目标进程指定地址写入内存数据；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
-- `memory_scan` — 按模式或数值扫描进程内存；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。
+- `memory_read` — 读取目标进程指定地址的内存内容。需要提权。失败时返回结构化 diagnostics。
+- `memory_write` — 向目标进程指定地址写入内存数据。需要提权。失败时返回结构化 diagnostics。
+- `memory_scan` — 按模式或数值扫描进程内存。需要提权。失败时返回结构化 diagnostics。
 - `memory_check_protection` — 检查指定内存地址的保护属性，如可读、可写、可执行。
 - `memory_scan_filtered` — 在已筛选地址范围内执行二次内存扫描。
 - `memory_batch_write` — 一次性写入多处内存补丁。
@@ -48,9 +40,9 @@
 | `process_windows` | 获取指定进程关联的全部窗口句柄。 |
 | `process_check_debug_port` | 检查目标进程是否已开启可用于 CDP 附加的调试端口。 |
 | `process_launch_debug` | 以启用远程调试端口的方式启动可执行文件。 |
-| `memory_read` | 读取目标进程指定地址的内存内容；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。 |
-| `memory_write` | 向目标进程指定地址写入内存数据；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。 |
-| `memory_scan` | 按模式或数值扫描进程内存；失败时返回结构化 diagnostics，包含权限、区域检查、ASLR 提示和建议操作。 |
+| `memory_read` | 读取目标进程指定地址的内存内容。需要提权。失败时返回结构化 diagnostics。 |
+| `memory_write` | 向目标进程指定地址写入内存数据。需要提权。失败时返回结构化 diagnostics。 |
+| `memory_scan` | 按模式或数值扫描进程内存。需要提权。失败时返回结构化 diagnostics。 |
 | `memory_check_protection` | 检查指定内存地址的保护属性，如可读、可写、可执行。 |
 | `memory_scan_filtered` | 在已筛选地址范围内执行二次内存扫描。 |
 | `memory_batch_write` | 一次性写入多处内存补丁。 |

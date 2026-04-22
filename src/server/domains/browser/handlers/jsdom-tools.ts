@@ -8,7 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { JSDOM } from 'jsdom';
+import type { JSDOM as JSDOMType } from 'jsdom';
 
 import { R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import {
@@ -36,7 +36,7 @@ const COOKIE_ACTIONS: ReadonlySet<CookieAction> = new Set(['get', 'set', 'clear'
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
 interface JsdomSession {
-  dom: JSDOM;
+  dom: JSDOMType;
   url: string;
   runScripts: RunScriptsMode;
   includeNodeLocations: boolean;
@@ -108,7 +108,7 @@ export class JsdomHandlers {
       const referrer = argString(args, 'referrer', '');
       const storageQuotaBytes = argNumber(args, 'storageQuotaBytes', 5_000_000);
 
-      const options: ConstructorParameters<typeof JSDOM>[1] = {
+      const options: ConstructorParameters<typeof JSDOMType>[1] = {
         url,
         contentType,
         includeNodeLocations,
@@ -122,6 +122,7 @@ export class JsdomHandlers {
         (options as Record<string, unknown>).referrer = referrer;
       }
 
+      const { JSDOM } = await import('jsdom');
       const dom = new JSDOM(html, options);
       const sessionId = this.createSessionId();
       const session: JsdomSession = {

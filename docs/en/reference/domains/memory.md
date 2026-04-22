@@ -4,14 +4,6 @@ Domain: `memory`
 
 Memory analysis domain for native scans, pointer-chain discovery, structure inference, and breakpoint-based observation.
 
-## Platform Requirements
-
-| Platform | Requirement |
-|----------|-------------|
-| Windows | Administrator privileges |
-| Linux | root or ptrace access. If access denied, check `kernel.yama.ptrace_scope` sysctl |
-| macOS | root or `com.apple.security.cs.debugger` entitlement. ARM64 may require SIP disabled |
-
 ## Profiles
 
 - full

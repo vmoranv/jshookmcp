@@ -4,14 +4,6 @@
 
 面向原生内存扫描、指针链分析、结构体推断与断点观测的内存分析域。
 
-## 平台权限要求
-
-| 平台 | 要求 |
-|------|------|
-| Windows | 管理员权限（Administrator） |
-| Linux | root 或 ptrace 访问权限。若遇到权限拒绝，检查 `kernel.yama.ptrace_scope` sysctl 设置 |
-| macOS | root 或 `com.apple.security.cs.debugger` 签名授权。ARM64 可能需要关闭 SIP |
-
 ## Profile
 
 - full

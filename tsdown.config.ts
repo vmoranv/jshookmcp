@@ -1,10 +1,22 @@
 import { defineConfig } from 'tsdown';
 
-export default defineConfig({
+const analyzeEnabled = process.env.BUNDLE_ANALYZE === '1';
+
+export default defineConfig(async () => ({
   entry: ['src/index.ts', 'src/server/plugin-api.ts'],
   format: 'esm',
   clean: true,
   dts: true,
+  plugins: analyzeEnabled
+    ? [
+        (await import('rollup-plugin-visualizer')).visualizer({
+          filename: './stats.html',
+          open: false,
+          gzipSize: true,
+          brotliSize: true,
+        }),
+      ]
+    : [],
   deps: {
     neverBundle: [
       'koffi',
@@ -19,4 +31,4 @@ export default defineConfig({
     ],
   },
   onSuccess: 'node scripts/copy-native-scripts.mjs && node scripts/fix-bin-permissions.mjs',
-});
+}));
