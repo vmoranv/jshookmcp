@@ -107,6 +107,11 @@ export class PageDataHandlers {
     }
   }
 
+  async getPageCookieCount(): Promise<number> {
+    const cookies = await this.deps.pageController.getCookies();
+    return cookies.length;
+  }
+
   async handlePageClearCookies(_args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       await this.deps.pageController.clearCookies();

@@ -377,8 +377,33 @@ export class BrowserToolHandlers {
         return this.pageData.handlePageGetCookies(args);
       case 'set':
         return this.pageData.handlePageSetCookies(args);
-      case 'clear':
+      case 'clear': {
+        const expectedCount = args['expectedCount'];
+        if (typeof expectedCount !== 'number' || expectedCount < 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: 'action=clear requires expectedCount (number). Call action=get first to obtain the current cookie count.',
+              },
+            ],
+            isError: true,
+          };
+        }
+        const current = await this.pageData.getPageCookieCount();
+        if (current !== expectedCount) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Cookie count mismatch: expected ${expectedCount} but found ${current}. Call action=get to refresh, then retry with the correct count.`,
+              },
+            ],
+            isError: true,
+          };
+        }
         return this.pageData.handlePageClearCookies(args);
+      }
       default:
         return {
           content: [

@@ -63,6 +63,7 @@ const {
     handlePageSetCookies: vi.fn(async (args: any) => ({ from: 'set-cookies', args })),
     handlePageGetCookies: vi.fn(async (args: any) => ({ from: 'get-cookies', args })),
     handlePageClearCookies: vi.fn(async (args: any) => ({ from: 'clear-cookies', args })),
+    getPageCookieCount: vi.fn(async () => 3),
     handlePageSetViewport: vi.fn(async (args: any) => ({ from: 'set-viewport', args })),
     handlePageEmulateDevice: vi.fn(async (args: any) => ({ from: 'emulate', args })),
     handlePageGetLocalStorage: vi.fn(async (args: any) => ({ from: 'get-ls', args })),
@@ -379,9 +380,29 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
       expect(pageDataMocks.handlePageSetCookies).toHaveBeenCalledWith(args);
     });
 
-    it('delegates handlePageCookiesDispatch (clear)', async () => {
-      await handlers.handlePageCookiesDispatch({ action: 'clear' });
-      expect(pageDataMocks.handlePageClearCookies).toHaveBeenCalledWith({ action: 'clear' });
+    it('delegates handlePageCookiesDispatch (clear) with matching expectedCount', async () => {
+      (pageDataMocks.getPageCookieCount as any).mockResolvedValueOnce(3);
+      await handlers.handlePageCookiesDispatch({ action: 'clear', expectedCount: 3 });
+      expect(pageDataMocks.handlePageClearCookies).toHaveBeenCalledWith({
+        action: 'clear',
+        expectedCount: 3,
+      });
+    });
+
+    it('rejects clear without expectedCount', async () => {
+      const result = (await handlers.handlePageCookiesDispatch({ action: 'clear' })) as any;
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('expectedCount');
+    });
+
+    it('rejects clear with wrong expectedCount', async () => {
+      (pageDataMocks.getPageCookieCount as any).mockResolvedValueOnce(5);
+      const result = (await handlers.handlePageCookiesDispatch({
+        action: 'clear',
+        expectedCount: 3,
+      })) as any;
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('mismatch');
     });
 
     it('delegates handlePageSetViewport', async () => {

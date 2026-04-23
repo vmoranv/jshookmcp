@@ -4,37 +4,36 @@ import { tool } from '@server/registry/tool-builder';
 export const browserPageSystemTools: Tool[] = [
   tool('console_monitor', (t) =>
     t
-      .desc('Enable or disable console monitoring to capture console.log, console.error, etc.')
-      .enum('action', ['enable', 'disable'], 'Action to perform')
+      .desc('Enable or disable console monitoring.')
+      .enum('action', ['enable', 'disable'], 'Action')
       .required('action')
       .idempotent(),
   ),
   tool('console_get_logs', (t) =>
     t
-      .desc('Get captured console logs')
-      .enum('type', ['log', 'warn', 'error', 'info', 'debug'], 'Filter by log type')
-      .number('limit', 'Maximum number of logs to return')
-      .number('since', 'Only return logs after this timestamp')
+      .desc('Get captured console logs.')
+      .enum('type', ['log', 'warn', 'error', 'info', 'debug'], 'Log type filter')
+      .number('limit', 'Max logs')
+      .number('since', 'Timestamp filter')
       .query(),
   ),
   tool('console_execute', (t) =>
     t
-      .desc('Execute JavaScript expression in console context')
-      .string('expression', 'JavaScript expression to execute')
+      .desc('Execute JS in console context.')
+      .string('expression', 'JavaScript expression')
       .requiredOpenWorld('expression'),
   ),
   tool('page_inject_script', (t) =>
     t
-      .desc('Inject JavaScript code into page')
-      .string('script', 'JavaScript code to inject')
+      .desc('Inject JS into the page.')
+      .string('script', 'JavaScript code')
       .requiredOpenWorld('script'),
   ),
   tool('page_cookies', (t) =>
     t
-      .desc(
-        'Manage page cookies. Actions: get (all cookies), set (requires cookies array), clear (all cookies).',
-      )
-      .enum('action', ['get', 'set', 'clear'], 'Cookie action')
+      .desc('Manage page cookies. Clear requires expectedCount (call get first).')
+      .enum('action', ['get', 'set', 'clear'], 'Action')
+      .number('expectedCount', 'Required for clear: must match current count')
       .array(
         'cookies',
         {
@@ -51,40 +50,35 @@ export const browserPageSystemTools: Tool[] = [
           },
           required: ['name', 'value'],
         },
-        'Array of cookie objects (action=set)',
+        'Cookies (action=set)',
       )
+      .destructive()
       .required('action'),
   ),
   tool('page_set_viewport', (t) =>
     t
-      .desc('Set viewport size')
-      .number('width', 'Viewport width')
-      .number('height', 'Viewport height')
+      .desc('Set viewport size.')
+      .number('width', 'Width')
+      .number('height', 'Height')
       .required('width', 'height')
       .idempotent(),
   ),
   tool('page_emulate_device', (t) =>
     t
-      .desc('Emulate mobile device (iPhone, iPad, Android)')
-      .string(
-        'device',
-        'Device to emulate. Supports canonical values (iPhone, iPad, Android) and aliases like "iPhone 13" / "iPhone 14".',
-      )
+      .desc('Emulate a mobile device.')
+      .string('device', 'Device name')
       .required('device')
       .idempotent(),
   ),
   tool('page_local_storage', (t) =>
     t
-      .desc('Manage localStorage. Actions: get (all items), set (requires key, value).')
-      .enum('action', ['get', 'set'], 'Storage action')
-      .string('key', 'Storage key (action=set)')
-      .string('value', 'Storage value (action=set)')
+      .desc('Manage localStorage.')
+      .enum('action', ['get', 'set'], 'Action')
+      .string('key', 'Key')
+      .string('value', 'Value')
       .required('action'),
   ),
   tool('page_press_key', (t) =>
-    t
-      .desc('Press a keyboard key (e.g., "Enter", "Escape", "ArrowDown")')
-      .string('key', 'Key to press')
-      .requiredOpenWorld('key'),
+    t.desc('Press a keyboard key.').string('key', 'Key name').requiredOpenWorld('key'),
   ),
 ];
