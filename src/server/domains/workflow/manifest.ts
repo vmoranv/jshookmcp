@@ -12,7 +12,7 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { WorkflowHandlers } = await import('@server/domains/workflow/index');
-  ensureBrowserCore(ctx);
+  await ensureBrowserCore(ctx);
 
   // Delegate via handlerDeps proxy, not direct imports
   const browserHandlers = ctx.handlerDeps.browserHandlers as typeof ctx.browserHandlers;

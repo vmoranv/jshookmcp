@@ -113,18 +113,32 @@ export class MemoryScanner {
             break; // Skip unreadable chunks
           }
 
-          // Scan for aligned matches
-          const alignStep = alignment > 0 ? alignment : 1;
-          const startOffset = alignment > 0 ? (alignStep - (offset % alignStep)) % alignStep : 0;
-
-          for (let i = startOffset; i <= chunk.length - valueSize; i += alignStep) {
-            const currentBuf = chunk.subarray(i, i + valueSize);
-            if (compareScanValues(currentBuf, null, targetBuf, null, 'exact', valueType)) {
-              const addr = chunkAddr + BigInt(i);
+          // Fast path: Buffer.indexOf uses V8's SIMD-optimized native search
+          if (alignment === valueSize && valueSize > 0) {
+            const alignStep = this.getAlignStep(alignment);
+            let searchFrom = this.getAlignedChunkStart(chunkAddr, alignStep);
+            while (searchFrom <= chunk.length - valueSize && addresses.length < maxResults) {
+              const hit = chunk.indexOf(targetBuf, searchFrom);
+              if (hit === -1) break;
+              if (!this.isAlignedAddress(chunkAddr + BigInt(hit), alignStep)) {
+                searchFrom = hit + 1;
+                continue;
+              }
+              const addr = chunkAddr + BigInt(hit);
               addresses.push(addr);
-              values.set(addr, Buffer.from(currentBuf));
-
-              if (addresses.length >= maxResults) break;
+              values.set(addr, Buffer.from(chunk.subarray(hit, hit + valueSize)));
+              searchFrom = hit + alignStep;
+            }
+          } else {
+            const alignStep = this.getAlignStep(alignment);
+            const chunkStart = this.getAlignedChunkStart(chunkAddr, alignStep);
+            for (let i = chunkStart; i <= chunk.length - valueSize; i += alignStep) {
+              if (Buffer.compare(chunk.subarray(i, i + valueSize), targetBuf) === 0) {
+                const addr = chunkAddr + BigInt(i);
+                addresses.push(addr);
+                values.set(addr, Buffer.from(chunk.subarray(i, i + valueSize)));
+                if (addresses.length >= maxResults) break;
+              }
             }
           }
         }
@@ -268,12 +282,12 @@ export class MemoryScanner {
             break;
           }
 
-          const alignStep = alignment > 0 ? alignment : 1;
-          for (let i = 0; i <= chunk.length - valueSize; i += alignStep) {
+          const alignStep = this.getAlignStep(alignment);
+          const chunkStart = this.getAlignedChunkStart(chunkAddr, alignStep);
+          for (let i = chunkStart; i <= chunk.length - valueSize; i += alignStep) {
             const addr = chunkAddr + BigInt(i);
-            const currentBuf = chunk.subarray(i, i + valueSize);
             addresses.push(addr);
-            values.set(addr, Buffer.from(currentBuf));
+            values.set(addr, Buffer.from(chunk.subarray(i, i + valueSize)));
 
             if (addresses.length >= maxAddresses) break;
           }
@@ -467,8 +481,9 @@ export class MemoryScanner {
             break;
           }
 
-          const alignStep = alignment > 0 ? alignment : 1;
-          for (let i = 0; i <= chunk.length - maxOffset; i += alignStep) {
+          const alignStep = this.getAlignStep(alignment);
+          const chunkStart = this.getAlignedChunkStart(chunkAddr, alignStep);
+          for (let i = chunkStart; i <= chunk.length - maxOffset; i += alignStep) {
             let match = true;
             for (let j = 0; j < maxOffset; j++) {
               if (compositeMask[j] === 1 && chunk[i + j] !== compositePattern[j]) {
@@ -503,6 +518,20 @@ export class MemoryScanner {
   }
 
   // ── Private Helpers ──
+
+  private getAlignStep(alignment: number): number {
+    return alignment > 0 ? alignment : 1;
+  }
+
+  private getAlignedChunkStart(chunkAddr: bigint, alignStep: number): number {
+    const align = BigInt(alignStep);
+    const remainder = chunkAddr % align;
+    return remainder === 0n ? 0 : Number(align - remainder);
+  }
+
+  private isAlignedAddress(address: bigint, alignStep: number): boolean {
+    return address % BigInt(alignStep) === 0n;
+  }
 
   /**
    * Pattern-based first scan for variable-length types (hex/string).

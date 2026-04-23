@@ -5,6 +5,10 @@
  * exact, unknown_initial, changed, unchanged, increased, decreased,
  * greater_than, less_than, between, not_equal.
  *
+ * Monomorphic specialization: instead of a single polymorphic compareScanValues
+ * that switches on valueType every call, we pre-build a typed comparator for
+ * each valueType so V8 TurboFan sees monomorphic (single-shape) hot paths.
+ *
  * @module ScanComparators
  */
 
@@ -66,77 +70,164 @@ export function getDefaultAlignment(type: ScanValueType): number {
   }
 }
 
+// ── Monomorphic typed readers ──────────────────────────────────────────
+
+type NumberReader = (buf: Buffer) => number;
+type BigIntReader = (buf: Buffer) => bigint;
+type TypedReader = NumberReader | BigIntReader;
+
+function makeReader(type: ScanValueType): TypedReader {
+  switch (type) {
+    case 'byte':
+      return (buf: Buffer) => buf.readUInt8(0);
+    case 'int8':
+      return (buf: Buffer) => buf.readInt8(0);
+    case 'int16':
+      return (buf: Buffer) => buf.readInt16LE(0);
+    case 'uint16':
+      return (buf: Buffer) => buf.readUInt16LE(0);
+    case 'int32':
+      return (buf: Buffer) => buf.readInt32LE(0);
+    case 'uint32':
+      return (buf: Buffer) => buf.readUInt32LE(0);
+    case 'int64':
+      return (buf: Buffer) => buf.readBigInt64LE(0);
+    case 'uint64':
+    case 'pointer':
+      return (buf: Buffer) => buf.readBigUInt64LE(0);
+    case 'float':
+      return (buf: Buffer) => buf.readFloatLE(0);
+    case 'double':
+      return (buf: Buffer) => buf.readDoubleLE(0);
+    default:
+      return (buf: Buffer) => buf.readInt32LE(0);
+  }
+}
+
+// ── Monomorphic approximate equality ───────────────────────────────────
+
+function makeApproxEqual(type: ScanValueType): (a: number | bigint, b: number | bigint) => boolean {
+  if (type === 'float') {
+    return (a: number | bigint, b: number | bigint) =>
+      Math.abs(Number(a) - Number(b)) < FLOAT_EPSILON;
+  }
+  if (type === 'double') {
+    return (a: number | bigint, b: number | bigint) =>
+      Math.abs(Number(a) - Number(b)) < DOUBLE_EPSILON;
+  }
+  // Integer types — bigint comparison when both are bigint, else numeric
+  const isBigIntType = type === 'int64' || type === 'uint64' || type === 'pointer';
+  if (isBigIntType) {
+    return (a: number | bigint, b: number | bigint) => a === b;
+  }
+  return (a: number | bigint, b: number | bigint) => Number(a) === Number(b);
+}
+
+// ── Monomorphic comparator factory ─────────────────────────────────────
+
+type ScanComparator = (
+  current: Buffer,
+  previous: Buffer | null,
+  target: Buffer | null,
+  target2: Buffer | null,
+) => boolean;
+
+function makeComparator(mode: ScanCompareMode, type: ScanValueType): ScanComparator {
+  const read = makeReader(type);
+  const approxEq = makeApproxEqual(type);
+  const isBigIntType = type === 'int64' || type === 'uint64' || type === 'pointer';
+
+  const compare = isBigIntType
+    ? (a: number | bigint, b: number | bigint): number => {
+        const ba = BigInt(a as bigint);
+        const bb = BigInt(b as bigint);
+        return ba < bb ? -1 : ba > bb ? 1 : 0;
+      }
+    : (a: number | bigint, b: number | bigint): number => Number(a) - Number(b);
+
+  switch (mode) {
+    case 'exact':
+      return (cur, _prev, tgt, _tgt2) => {
+        if (!tgt) return false;
+        return approxEq(read(cur), read(tgt));
+      };
+    case 'unknown_initial':
+      return () => true;
+    case 'changed':
+      return (cur, prev, _tgt, _tgt2) => {
+        if (!prev) return false;
+        return !approxEq(read(cur), read(prev));
+      };
+    case 'unchanged':
+      return (cur, prev, _tgt, _tgt2) => {
+        if (!prev) return true;
+        return approxEq(read(cur), read(prev));
+      };
+    case 'increased':
+      return (cur, prev, _tgt, _tgt2) => {
+        if (!prev) return false;
+        return compare(read(cur), read(prev)) > 0;
+      };
+    case 'decreased':
+      return (cur, prev, _tgt, _tgt2) => {
+        if (!prev) return false;
+        return compare(read(cur), read(prev)) < 0;
+      };
+    case 'greater_than':
+      return (cur, _prev, tgt, _tgt2) => {
+        if (!tgt) return false;
+        return compare(read(cur), read(tgt)) > 0;
+      };
+    case 'less_than':
+      return (cur, _prev, tgt, _tgt2) => {
+        if (!tgt) return false;
+        return compare(read(cur), read(tgt)) < 0;
+      };
+    case 'between':
+      return (cur, _prev, tgt, tgt2) => {
+        if (!tgt || !tgt2) return false;
+        return compare(read(cur), read(tgt)) >= 0 && compare(read(cur), read(tgt2)) <= 0;
+      };
+    case 'not_equal':
+      return (cur, _prev, tgt, _tgt2) => {
+        if (!tgt) return false;
+        return !approxEq(read(cur), read(tgt));
+      };
+    default:
+      return () => false;
+  }
+}
+
+// ── Comparator cache ───────────────────────────────────────────────────
+
+const comparatorCache = new Map<string, ScanComparator>();
+
+function getComparator(mode: ScanCompareMode, valueType: ScanValueType): ScanComparator {
+  const key = `${mode}:${valueType}`;
+  let comp = comparatorCache.get(key);
+  if (!comp) {
+    comp = makeComparator(mode, valueType);
+    comparatorCache.set(key, comp);
+  }
+  return comp;
+}
+
+// ── Public API (backward compatible) ───────────────────────────────────
+
 /**
  * Read a typed numeric value from a buffer at offset 0.
  */
 export function readTypedValue(buf: Buffer, type: ScanValueType): number | bigint {
-  switch (type) {
-    case 'byte':
-      return buf.readUInt8(0);
-    case 'int8':
-      return buf.readInt8(0);
-    case 'int16':
-      return buf.readInt16LE(0);
-    case 'uint16':
-      return buf.readUInt16LE(0);
-    case 'int32':
-      return buf.readInt32LE(0);
-    case 'uint32':
-      return buf.readUInt32LE(0);
-    case 'int64':
-      return buf.readBigInt64LE(0);
-    case 'uint64':
-    case 'pointer':
-      return buf.readBigUInt64LE(0);
-    case 'float':
-      return buf.readFloatLE(0);
-    case 'double':
-      return buf.readDoubleLE(0);
-    default:
-      return buf.readInt32LE(0);
-  }
-}
-
-/**
- * Check if two numeric values are approximately equal, using epsilon for floats.
- */
-function approxEqual(a: number | bigint, b: number | bigint, type: ScanValueType): boolean {
-  if (typeof a === 'bigint' && typeof b === 'bigint') {
-    return a === b;
-  }
-  const na = Number(a);
-  const nb = Number(b);
-  if (type === 'float') {
-    return Math.abs(na - nb) < FLOAT_EPSILON;
-  }
-  if (type === 'double') {
-    return Math.abs(na - nb) < DOUBLE_EPSILON;
-  }
-  return na === nb;
-}
-
-/**
- * Compare a numeric value against another for ordering.
- * Returns negative if a < b, 0 if equal, positive if a > b.
- */
-function compareValues(a: number | bigint, b: number | bigint): number {
-  if (typeof a === 'bigint' && typeof b === 'bigint') {
-    if (a < b) return -1;
-    if (a > b) return 1;
-    return 0;
-  }
-  return Number(a) - Number(b);
+  return makeReader(type)(buf);
 }
 
 /**
  * Compare scan values according to the specified mode.
  *
- * @param current  - Current value buffer read from memory
- * @param previous - Previous value buffer from last scan (null on first scan)
- * @param target   - Target value buffer for exact/greater/less/not_equal comparisons
- * @param target2  - Second target value buffer for 'between' mode (upper bound)
- * @param mode     - Comparison mode
- * @param valueType - Value type for proper reading
+ * Dispatches to a monomorphic specialist comparator that is cached per
+ * (mode, valueType) pair. This avoids per-call switch dispatch on valueType
+ * in the hot scan loop, allowing V8 TurboFan to inline and optimize the
+ * typed read + compare path.
  */
 export function compareScanValues(
   current: Buffer,
@@ -146,68 +237,5 @@ export function compareScanValues(
   mode: ScanCompareMode,
   valueType: ScanValueType,
 ): boolean {
-  const cur = readTypedValue(current, valueType);
-
-  switch (mode) {
-    case 'exact': {
-      if (!target) return false;
-      const tgt = readTypedValue(target, valueType);
-      return approxEqual(cur, tgt, valueType);
-    }
-
-    case 'unknown_initial':
-      return true; // always matches on first scan
-
-    case 'changed': {
-      if (!previous) return false;
-      const prev = readTypedValue(previous, valueType);
-      return !approxEqual(cur, prev, valueType);
-    }
-
-    case 'unchanged': {
-      if (!previous) return true;
-      const prev = readTypedValue(previous, valueType);
-      return approxEqual(cur, prev, valueType);
-    }
-
-    case 'increased': {
-      if (!previous) return false;
-      const prev = readTypedValue(previous, valueType);
-      return compareValues(cur, prev) > 0;
-    }
-
-    case 'decreased': {
-      if (!previous) return false;
-      const prev = readTypedValue(previous, valueType);
-      return compareValues(cur, prev) < 0;
-    }
-
-    case 'greater_than': {
-      if (!target) return false;
-      const tgt = readTypedValue(target, valueType);
-      return compareValues(cur, tgt) > 0;
-    }
-
-    case 'less_than': {
-      if (!target) return false;
-      const tgt = readTypedValue(target, valueType);
-      return compareValues(cur, tgt) < 0;
-    }
-
-    case 'between': {
-      if (!target || !target2) return false;
-      const lo = readTypedValue(target, valueType);
-      const hi = readTypedValue(target2, valueType);
-      return compareValues(cur, lo) >= 0 && compareValues(cur, hi) <= 0;
-    }
-
-    case 'not_equal': {
-      if (!target) return false;
-      const tgt = readTypedValue(target, valueType);
-      return !approxEqual(cur, tgt, valueType);
-    }
-
-    default:
-      return false;
-  }
+  return getComparator(mode, valueType)(current, previous, target, target2);
 }

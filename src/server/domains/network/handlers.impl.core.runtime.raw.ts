@@ -8,6 +8,7 @@ import {
   isLikelyTextHttpBody,
 } from '@server/domains/network/http-raw';
 import { buildHttp2Frame } from '@server/domains/network/http2-raw';
+import { BufferChain } from '@utils/BufferChain';
 import type { Http2FrameBuildInput, Http2SettingsEntry } from '@server/domains/network/http2-raw';
 import { AdvancedToolHandlersRuntime as AdvancedToolHandlersReplay } from '@server/domains/network/handlers.impl.core.runtime.replay';
 import { R } from '@server/domains/shared/ResponseBuilder';
@@ -362,7 +363,7 @@ async function exchangePlainHttp(
     const socket = net.createConnection({ host, port });
     let settled = false;
     let sawData = false;
-    let responseBuffer = Buffer.alloc(0);
+    const responseChain = new BufferChain();
 
     const cleanup = () => {
       socket.removeAllListeners();
@@ -375,7 +376,7 @@ async function exchangePlainHttp(
       }
       settled = true;
       cleanup();
-      resolve({ rawResponse: responseBuffer, endedBy });
+      resolve({ rawResponse: responseChain.toBuffer(), endedBy });
     };
 
     const fail = (error: Error) => {
@@ -395,42 +396,30 @@ async function exchangePlainHttp(
 
     socket.on('data', (chunk: Buffer) => {
       sawData = true;
-      responseBuffer = Buffer.concat([responseBuffer, chunk], responseBuffer.length + chunk.length);
+      responseChain.append(chunk);
 
-      if (responseBuffer.length > maxResponseBytes) {
-        responseBuffer = responseBuffer.subarray(0, maxResponseBytes);
+      if (responseChain.length > maxResponseBytes) {
         finalize('max-bytes');
         return;
       }
 
-      const analysis = analyzeHttpResponse(responseBuffer, requestMethod);
+      const currentBuffer = responseChain.toBuffer();
+      const analysis = analyzeHttpResponse(currentBuffer, requestMethod);
       if (!analysis || !analysis.complete) {
         return;
       }
 
       if (analysis.bodyMode === 'none') {
-        responseBuffer = responseBuffer.subarray(
-          0,
-          analysis.expectedRawBytes ?? responseBuffer.length,
-        );
         finalize('no-body');
         return;
       }
 
       if (analysis.bodyMode === 'content-length') {
-        responseBuffer = responseBuffer.subarray(
-          0,
-          analysis.expectedRawBytes ?? responseBuffer.length,
-        );
         finalize('content-length');
         return;
       }
 
       if (analysis.bodyMode === 'chunked') {
-        responseBuffer = responseBuffer.subarray(
-          0,
-          analysis.expectedRawBytes ?? responseBuffer.length,
-        );
         finalize('chunked');
       }
     });
@@ -760,7 +749,7 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
     return new Promise((resolve, reject) => {
       let settled = false;
       let responseHeaders: http2.IncomingHttpHeaders | undefined;
-      let capturedBody = Buffer.alloc(0);
+      const bodyChain = new BufferChain();
       let truncated = false;
       let request: http2.ClientHttp2Stream | null = null;
       let connectedSocket: net.Socket | tls.TLSSocket | null = null;
@@ -809,7 +798,7 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
         session.close();
         resolve({
           responseHeaders: responseHeaders ?? {},
-          bodyBuffer: capturedBody,
+          bodyBuffer: bodyChain.toBuffer(),
           truncated,
           alpnProtocol: observedAlpnProtocol,
         });
@@ -847,12 +836,9 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
         });
         request.on('data', (chunk: string | Buffer) => {
           const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
-          const remaining = maxBodyBytes - capturedBody.length;
+          const remaining = maxBodyBytes - bodyChain.length;
           if (remaining > 0) {
-            capturedBody = Buffer.concat(
-              [capturedBody, buffer.subarray(0, remaining)],
-              capturedBody.length + Math.min(buffer.length, remaining),
-            );
+            bodyChain.append(buffer.subarray(0, remaining));
           }
 
           if (buffer.length > remaining && !truncated) {

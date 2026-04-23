@@ -33,7 +33,7 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { AIHookToolHandlers, HookPresetToolHandlers } =
     await import('@server/domains/hooks/index');
-  ensureBrowserCore(ctx);
+  await ensureBrowserCore(ctx);
   if (!ctx.aiHookHandlers || !ctx.hookPresetHandlers) {
     if (!ctx.aiHookHandlers) {
       ctx.aiHookHandlers = new AIHookToolHandlers(ctx.pageController!);

@@ -58,7 +58,7 @@ describe('registry/ensure-browser-core', () => {
       registerCaches: vi.fn(async () => undefined),
     };
 
-    ensureBrowserCore(ctx as never);
+    await ensureBrowserCore(ctx as never);
 
     expect(state.CodeCollector).toHaveBeenCalledWith({ headless: true });
     expect(state.PageController).toHaveBeenCalledTimes(1);
@@ -85,7 +85,7 @@ describe('registry/ensure-browser-core', () => {
       registerCaches: vi.fn(),
     };
 
-    ensureBrowserCore(ctx as never);
+    await ensureBrowserCore(ctx as never);
 
     expect(state.CodeCollector).not.toHaveBeenCalled();
     expect(state.PageController).not.toHaveBeenCalled();

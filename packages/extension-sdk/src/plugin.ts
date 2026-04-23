@@ -140,16 +140,20 @@ export class ExtensionBuilder {
   get configDefaults(): Record<string, unknown> {
     return this._configDefaults;
   }
-  get onLoadHandler() {
+  get onLoadHandler(): ((ctx: PluginLifecycleContext) => Promise<void> | void) | undefined {
     return this._onLoadHandler;
   }
-  get onValidateHandler() {
+  get onValidateHandler():
+    | ((
+        ctx: PluginLifecycleContext,
+      ) => Promise<{ valid: boolean; errors: string[] }> | { valid: boolean; errors: string[] })
+    | undefined {
     return this._onValidateHandler;
   }
-  get onActivateHandler() {
+  get onActivateHandler(): ((ctx: PluginLifecycleContext) => Promise<void> | void) | undefined {
     return this._onActivateHandler;
   }
-  get onDeactivateHandler() {
+  get onDeactivateHandler(): ((ctx: PluginLifecycleContext) => Promise<void> | void) | undefined {
     return this._onDeactivateHandler;
   }
 

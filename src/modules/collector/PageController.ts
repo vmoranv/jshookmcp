@@ -121,15 +121,15 @@ export class PageController {
     logger.info('Page reloaded');
   }
 
-  async goBack(): Promise<void> {
+  async goBack(timeout = 10_000): Promise<void> {
     const page = await this.collector.getActivePage();
-    await page.goBack();
+    await page.goBack({ waitUntil: 'domcontentloaded', timeout });
     logger.info('Navigated back');
   }
 
-  async goForward(): Promise<void> {
+  async goForward(timeout = 10_000): Promise<void> {
     const page = await this.collector.getActivePage();
-    await page.goForward();
+    await page.goForward({ waitUntil: 'domcontentloaded', timeout });
     logger.info('Navigated forward');
   }
 

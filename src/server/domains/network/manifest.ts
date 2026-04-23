@@ -12,7 +12,7 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { AdvancedToolHandlers } = await import('@server/domains/network/index');
-  ensureBrowserCore(ctx);
+  await ensureBrowserCore(ctx);
 
   if (!ctx.advancedHandlers) {
     ctx.advancedHandlers = new AdvancedToolHandlers(

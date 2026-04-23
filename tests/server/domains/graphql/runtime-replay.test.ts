@@ -124,6 +124,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query GetUser { user { name } }',
+          useBrowser: true,
         }),
       );
 
@@ -150,6 +151,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         endpoint: 'https://example.com/graphql',
         query: 'query GetUser($id: ID!) { user(id: $id) { name } }',
         variables: { id: '123' },
+        useBrowser: true,
       });
 
       expect(page.evaluate).toHaveBeenCalledWith(
@@ -174,6 +176,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query { ok }',
+        useBrowser: true,
       });
 
       expect(page.evaluate).toHaveBeenCalledWith(
@@ -200,6 +203,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
           endpoint: 'https://example.com/graphql',
           query: 'query GetUser { user { name } }',
           operationName: 'GetUser',
+          useBrowser: true,
         }),
       );
 
@@ -228,6 +232,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
           operationName: '   ',
+          useBrowser: true,
         }),
       );
 
@@ -249,6 +254,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         endpoint: 'https://example.com/graphql',
         query: 'query { ok }',
         headers: { Authorization: 'Bearer xyz' },
+        useBrowser: true,
       });
 
       expect(page.evaluate).toHaveBeenCalledWith(
@@ -278,6 +284,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
+          useBrowser: true,
         }),
       );
 
@@ -306,6 +313,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
+          useBrowser: true,
         }),
       );
 
@@ -329,6 +337,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
+          useBrowser: true,
         }),
       );
 
@@ -355,6 +364,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
+          useBrowser: true,
         }),
       );
 
@@ -368,6 +378,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       const response = await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query { ok }',
+        useBrowser: true,
       });
       const body = parseJson<any>(response);
       expect((response as any).isError).toBe(true);
@@ -388,6 +399,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
+          useBrowser: true,
         }),
       );
 
@@ -413,6 +425,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
+          useBrowser: true,
         }),
       );
 
@@ -436,6 +449,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
         await handlers.handleGraphqlReplay({
           endpoint: 'https://example.com/graphql',
           query: 'query { ok }',
+          useBrowser: true,
         }),
       );
 

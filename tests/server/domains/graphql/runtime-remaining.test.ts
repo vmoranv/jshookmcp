@@ -70,6 +70,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
+        useBrowser: true,
       }),
     );
     expect(body.success).toBe(true);
@@ -102,6 +103,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
+        useBrowser: true,
       }),
     );
     expect(body.success).toBe(true);
@@ -124,6 +126,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
+        useBrowser: true,
       }),
     );
     expect(body.success).toBe(false);
@@ -144,6 +147,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
+        useBrowser: true,
       }),
     );
     expect(body.success).toBe(false);
@@ -186,6 +190,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
         headers: { 'x-custom': 'test' },
+        useBrowser: true,
       }),
     );
     expect(body.success).toBe(true);
@@ -244,6 +249,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
+        useBrowser: true,
       }),
     );
     expect(body.success).toBe(true);
@@ -276,6 +282,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
+        useBrowser: true,
       }),
     );
     expect(body.success).toBe(true);
@@ -297,6 +304,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
+        useBrowser: true,
       }),
     );
     expect(body.success).toBe(false);
@@ -338,6 +346,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
       query: 'query GetUser($id: ID!) { user(id: $id) { name } }',
       variables: { id: '42' },
       operationName: 'GetUser',
+      useBrowser: true,
     });
   });
 
@@ -356,6 +365,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
       await handlers.handleGraphqlReplay({
         endpoint: 'https://example.com/graphql',
         query: 'query Test { test }',
+        useBrowser: true,
       }),
     );
     expect(body.success).toBe(false);

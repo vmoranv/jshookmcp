@@ -103,6 +103,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const response = await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
+        useBrowser: true,
       });
       const body = parseJson<any>(response);
 
@@ -132,6 +133,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
       expect(body.schema).toEqual({ __schema: { queryType: { name: 'Query' } } });
@@ -153,6 +155,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
         headers: { Authorization: 'Bearer token123' },
+        useBrowser: true,
       });
 
       expect(page.evaluate).toHaveBeenCalledWith(
@@ -181,6 +184,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
       expect(body.responseHeaders).toEqual({ 'x-custom': 'value' });
@@ -206,6 +210,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
 
@@ -230,6 +235,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
       expect(body.error).toBe('Introspection request failed');
@@ -254,6 +260,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
       expect(body.errors).toEqual([{ message: 'Not authorized' }]);
@@ -276,6 +283,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
       expect(body.error).toBe('CORS issue');
@@ -303,6 +311,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
       expect(body.schemaTruncated).toBe(true);
@@ -332,6 +341,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
 
@@ -349,6 +359,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       collector.getActivePage.mockRejectedValueOnce(new Error('No browser'));
       const response = await handlers.handleGraphqlIntrospect({
         endpoint: 'https://example.com/graphql',
+        useBrowser: true,
       });
       const body = parseJson<any>(response);
       expect((response as any).isError).toBe(true);
@@ -371,6 +382,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
       expect(body.success).toBe(true);
@@ -392,6 +404,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
           endpoint: 'https://example.com/graphql',
+          useBrowser: true,
         }),
       );
       expect(body.responsePreview).toBeDefined();

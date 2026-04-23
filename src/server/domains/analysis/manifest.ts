@@ -45,7 +45,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   } = await import('@server/domains/shared/modules');
   const { CoreAnalysisHandlers } = await import('@server/domains/analysis/index');
   globalContext = ctx;
-  ensureBrowserCore(ctx);
+  await ensureBrowserCore(ctx);
 
   // Dynamic import: load shared modules and analysis handler lazily
   const needsShared =

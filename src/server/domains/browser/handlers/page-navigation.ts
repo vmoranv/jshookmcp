@@ -114,15 +114,17 @@ export class PageNavigationHandlers {
     }
   }
 
-  async handlePageBack(_args: Record<string, unknown>): Promise<ToolResponse> {
+  async handlePageBack(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
+      const timeout = argNumber(args, 'timeout', 10_000);
+
       if (this.deps.getActiveDriver() === 'camoufox') {
         const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
         await page.goBack();
         return R.ok().build({ url: page.url(), driver: 'camoufox' });
       }
 
-      await this.deps.pageController.goBack();
+      await this.deps.pageController.goBack(timeout);
       const url = await this.deps.pageController.getURL();
 
       return R.ok().build({
@@ -133,15 +135,17 @@ export class PageNavigationHandlers {
     }
   }
 
-  async handlePageForward(_args: Record<string, unknown>): Promise<ToolResponse> {
+  async handlePageForward(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
+      const timeout = argNumber(args, 'timeout', 10_000);
+
       if (this.deps.getActiveDriver() === 'camoufox') {
         const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
         await page.goForward();
         return R.ok().build({ url: page.url(), driver: 'camoufox' });
       }
 
-      await this.deps.pageController.goForward();
+      await this.deps.pageController.goForward(timeout);
       const url = await this.deps.pageController.getURL();
 
       return R.ok().build({

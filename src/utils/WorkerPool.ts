@@ -141,6 +141,21 @@ export class WorkerPool<TPayload extends Record<string, unknown>, TResult> {
     await Promise.all(workerIds.map((workerId) => this.terminateWorker(workerId)));
   }
 
+  /**
+   * Terminate all idle workers beyond minWorkers, freeing memory immediately
+   * instead of waiting for the idle timeout.
+   */
+  async drainIdle(): Promise<void> {
+    if (this.closed) return;
+    const toTerminate: number[] = [];
+    for (const [id, worker] of this.workers) {
+      if (!worker.busy && this.workers.size - toTerminate.length > this.minWorkers) {
+        toTerminate.push(id);
+      }
+    }
+    await Promise.all(toTerminate.map((id) => this.terminateWorker(id)));
+  }
+
   private ensureMinWorkers(): void {
     /* v8 ignore next */
     if (this.closed) return;

@@ -28,6 +28,11 @@ export const graphqlTools: Tool[] = [
         description: 'Custom request headers',
         additionalProperties: { type: 'string' },
       })
+      .boolean(
+        'useBrowser',
+        'Use the active browser session for fetch so cookies and CSRF/app-injected headers are preserved. Set false to force a Node-side fetch.',
+        { default: true },
+      )
       .requiredOpenWorld('endpoint'),
   ),
   tool('graphql_extract_queries', (t) =>
@@ -52,6 +57,11 @@ export const graphqlTools: Tool[] = [
         description: 'Custom request headers',
         additionalProperties: { type: 'string' },
       })
+      .boolean(
+        'useBrowser',
+        'Use the active browser session for fetch so cookies and CSRF/app-injected headers are preserved. Set false to force a Node-side fetch.',
+        { default: true },
+      )
       .requiredOpenWorld('endpoint', 'query'),
   ),
 ];

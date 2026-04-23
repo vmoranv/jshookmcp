@@ -6,6 +6,7 @@ import { GHIDRA_BRIDGE_ENDPOINT, IDA_BRIDGE_ENDPOINT } from '@src/constants';
 import { getProjectRoot } from '@utils/outputPaths';
 import { getArtifactRetentionConfig } from '@utils/artifactRetention';
 import { probeBetterSqlite3 } from '@utils/betterSqlite3';
+import { ioLimit } from '@utils/concurrency';
 
 const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);
@@ -55,17 +56,23 @@ export async function runEnvironmentDoctor(options?: {
   const includeBridgeHealth = options?.includeBridgeHealth ?? true;
   const registry = getSharedRegistry();
   const externalResultsPromise = registry.probeAll(true);
-  const gitCommandPromise = checkCommand('git', ['--version']);
-  const pythonCommandPromise = checkCommand('python', ['--version']);
-  const pnpmCommandPromise = checkPnpmCommand();
-  const corepackCheckPromise = checkCommand('corepack', ['--version']);
+  const gitCommandPromise = ioLimit(() => checkCommand('git', ['--version']));
+  const pythonCommandPromise = ioLimit(() => checkCommand('python', ['--version']));
+  const pnpmCommandPromise = ioLimit(() => checkPnpmCommand());
+  const corepackCheckPromise = ioLimit(() => checkCommand('corepack', ['--version']));
   const bridgesPromise = includeBridgeHealth
     ? Promise.all([
-        checkHttpEndpoint('ghidra-bridge', `${GHIDRA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
-        checkHttpEndpoint('ida-bridge', `${IDA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
-        checkHttpEndpoint(
-          'burp-mcp-sse',
-          process.env.BURP_MCP_SSE_URL?.trim() || 'http://127.0.0.1:9876',
+        ioLimit(() =>
+          checkHttpEndpoint('ghidra-bridge', `${GHIDRA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
+        ),
+        ioLimit(() =>
+          checkHttpEndpoint('ida-bridge', `${IDA_BRIDGE_ENDPOINT.replace(/\/$/, '')}/health`),
+        ),
+        ioLimit(() =>
+          checkHttpEndpoint(
+            'burp-mcp-sse',
+            process.env.BURP_MCP_SSE_URL?.trim() || 'http://127.0.0.1:9876',
+          ),
         ),
       ])
     : Promise.resolve([] as DoctorCheck[]);
@@ -217,8 +224,6 @@ async function checkPnpmCommand(): Promise<DoctorCheck> {
     return direct;
   }
 
-  // `npx pnpm --version` is noticeably slower on some Windows/npm setups,
-  // especially when pnpm is only reachable through the npm shim layer.
   const npxFallback = await checkCommand('npx', ['pnpm', '--version'], 10_000);
   if (npxFallback.status === 'ok') {
     return {
@@ -270,10 +275,10 @@ function checkNativeMemory(): DoctorCheck {
 
     if (process.platform === 'darwin') {
       try {
-        // Attempt to load libSystem.B.dylib without calling functions (safe under SIP)
         const koffi = require('koffi') as { load: (path: string) => { unload: () => void } };
         const lib = koffi.load('/usr/lib/libSystem.B.dylib');
         lib.unload();
+        delete (require.cache as Record<string, unknown>)[require.resolve('koffi')];
         return {
           name: 'native-memory',
           status: 'ok',
@@ -288,7 +293,6 @@ function checkNativeMemory(): DoctorCheck {
       }
     }
 
-    // Linux or other platforms
     return {
       name: 'native-memory',
       status: 'warn',
@@ -312,7 +316,6 @@ async function checkCommand(command: string, args: string[], timeout = 4000): Pr
     const detail = `${stdout || stderr}`.trim().split(/\r?\n/)[0] || 'available';
     return { name: command, status: 'ok', detail };
   } catch (error) {
-    let finalError: unknown = error;
     if (process.platform === 'win32') {
       try {
         const { stdout, stderr } = await execFileAsync('cmd', ['/c', command, ...args], {
@@ -322,18 +325,22 @@ async function checkCommand(command: string, args: string[], timeout = 4000): Pr
         const detail = `${stdout || stderr}`.trim().split(/\r?\n/)[0] || 'available';
         return { name: command, status: 'ok', detail: `${detail} (via cmd)` };
       } catch (cmdError) {
-        finalError = cmdError;
+        return formatCommandError(command, cmdError);
       }
     }
 
-    const detail = finalError instanceof Error ? finalError.message : String(finalError);
-    const missing = /ENOENT|not recognized|not found/i.test(detail);
-    return {
-      name: command,
-      status: missing ? 'missing' : 'warn',
-      detail,
-    };
+    return formatCommandError(command, error);
   }
+}
+
+function formatCommandError(command: string, error: unknown): DoctorCheck {
+  const detail = error instanceof Error ? error.message : String(error);
+  const missing = /ENOENT|not recognized|not found/i.test(detail);
+  return {
+    name: command,
+    status: missing ? 'missing' : 'warn',
+    detail,
+  };
 }
 
 async function checkHttpEndpoint(name: string, url: string): Promise<DoctorCheck> {

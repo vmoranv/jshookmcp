@@ -13,7 +13,7 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { StreamingToolHandlers } = await import('@server/domains/streaming/index');
 
-  ensureBrowserCore(ctx);
+  await ensureBrowserCore(ctx);
   if (!ctx.streamingHandlers) ctx.streamingHandlers = new StreamingToolHandlers(ctx.collector!);
   return ctx.streamingHandlers;
 }

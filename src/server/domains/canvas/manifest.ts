@@ -18,7 +18,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   const { ReverseEvidenceGraph } = await import('@server/evidence/ReverseEvidenceGraph');
   const { CanvasToolHandlers } = await import('@server/domains/canvas/handlers');
 
-  ensureBrowserCore(ctx);
+  await ensureBrowserCore(ctx);
   if (!ctx.debuggerManager) ctx.debuggerManager = new DebuggerManager(ctx.collector!);
   if (!ctx.traceRecorder) ctx.traceRecorder = new TraceRecorder();
   let graph = ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');

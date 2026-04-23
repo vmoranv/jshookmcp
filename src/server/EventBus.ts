@@ -209,7 +209,11 @@ export class EventBus<TMap extends Record<string, unknown> = ServerEventMap> {
 
   /**
    * Emit an event to all registered listeners.
-   * Listeners run in registration order. Errors in one listener don't prevent others.
+   *
+   * Named listeners run sequentially (preserving ordering semantics).
+   * Wildcard listeners run in parallel via Promise.allSettled since they
+   * are observability/telemetry side-effects whose ordering does not matter.
+   * Errors in one listener never prevent others from running.
    */
   async emit<K extends keyof TMap>(event: K, payload: TMap[K]): Promise<void> {
     const subs = this.listeners.get(event);
@@ -231,13 +235,18 @@ export class EventBus<TMap extends Record<string, unknown> = ServerEventMap> {
       }
     }
 
-    // Wildcard listeners
-    for (const sub of this.wildcardListeners) {
-      try {
-        await sub.handler({ event, payload });
-      } catch {
-        // Swallow
-      }
+    // Wildcard listeners run in parallel — they are telemetry/observability
+    // side-effects whose completion order is irrelevant.
+    if (this.wildcardListeners.length > 0) {
+      const wildPayload = { event, payload };
+      const promises = this.wildcardListeners.map((sub) => {
+        try {
+          return Promise.resolve(sub.handler(wildPayload));
+        } catch {
+          return Promise.resolve();
+        }
+      });
+      await Promise.allSettled(promises);
     }
   }
 
