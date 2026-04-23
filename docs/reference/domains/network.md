@@ -27,10 +27,10 @@
 - `network_disable` — 禁用网络请求监控。
 - `network_get_status` — 获取网络监控状态，包括是否启用、请求数和响应数。
 - `network_monitor` — 管理网络请求监控。启用/禁用监控或查看状态，需在 page_navigate 前启用以捕获请求。
-- `network_get_requests` — 查看已捕获的网络请求列表。
-- `network_get_response_body` — 查看某个请求的响应内容。
-- `network_get_stats` — 查看网络流量统计。
-- `performance_get_metrics` — 查看页面性能指标（加载速度、卡顿等）。
+- `network_get_requests` — 查看已捕获的网络请求。数据量大时仅返回摘要，可通过 get_detailed_data 获取完整内容。
+- `network_get_response_body` — 查看某个请求的响应内容；大响应会自动截断或摘要化。
+- `network_get_stats` — 查看网络流量统计，包括请求量、响应量、错误率与时序信息。
+- `performance_get_metrics` — 查看页面性能指标，如 FCP、LCP、FID、CLS。
 - `performance_coverage` — 开始或停止 JavaScript 与 CSS 代码覆盖率录制。
 - `performance_take_heap_snapshot` — 采集一份 V8 堆内存快照。
 
@@ -42,10 +42,10 @@
 | `network_disable` | 禁用网络请求监控。 |
 | `network_get_status` | 获取网络监控状态，包括是否启用、请求数和响应数。 |
 | `network_monitor` | 管理网络请求监控。启用/禁用监控或查看状态，需在 page_navigate 前启用以捕获请求。 |
-| `network_get_requests` | 查看已捕获的网络请求列表。 |
-| `network_get_response_body` | 查看某个请求的响应内容。 |
-| `network_get_stats` | 查看网络流量统计。 |
-| `performance_get_metrics` | 查看页面性能指标（加载速度、卡顿等）。 |
+| `network_get_requests` | 查看已捕获的网络请求。数据量大时仅返回摘要，可通过 get_detailed_data 获取完整内容。 |
+| `network_get_response_body` | 查看某个请求的响应内容；大响应会自动截断或摘要化。 |
+| `network_get_stats` | 查看网络流量统计，包括请求量、响应量、错误率与时序信息。 |
+| `performance_get_metrics` | 查看页面性能指标，如 FCP、LCP、FID、CLS。 |
 | `performance_coverage` | 开始或停止 JavaScript 与 CSS 代码覆盖率录制。 |
 | `performance_take_heap_snapshot` | 采集一份 V8 堆内存快照。 |
 | `performance_trace` | Chrome Performance Trace 录制。start 开始捕获，stop 结束并保存跟踪文件。 |
@@ -61,7 +61,7 @@
 | `network_rtt_measure` | 测量到目标主机的网络往返时间（RTT），支持 TCP、TLS 和 HTTP 三种探测模式。多次迭代平滑抖动，返回 min/max/avg/p50/p95 统计数据。非回环目标需要显式授权。 |
 | `network_traceroute` | 基于 ICMP 的路由追踪，逐跳返回 RTT 与错误分类。Windows 无需管理员权限；Linux/macOS 需要 root 或 CAP_NET_RAW。 |
 | `network_icmp_probe` | ICMP 探测，支持 TTL 控制与错误分类。Windows 无需管理员权限；Linux/macOS 需要 root 或 CAP_NET_RAW。 |
-| `network_extract_auth` | 从网络请求中提取登录凭据（Token、Cookie 等）。 |
+| `network_extract_auth` | 从网络请求中提取认证凭据（Token、Cookie、API Key、签名等）。 |
 | `network_export_har` | 将网络请求记录导出为 HAR 文件。 |
-| `network_replay_request` | 重新发送某个已捕获的网络请求。 |
+| `network_replay_request` | 重新发送某个已捕获的网络请求，支持按需修改请求内容。 |
 | `network_intercept` | 管理基于 CDP Fetch 域的响应拦截规则。操作：add（创建规则）、list（显示活跃规则）、disable（移除规则）。 |

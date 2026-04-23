@@ -32,7 +32,6 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "isolatedDeclarations": true,
     "verbatimModuleSyntax": true,
 
     /* Type Checking */

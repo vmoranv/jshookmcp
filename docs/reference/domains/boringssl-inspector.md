@@ -48,15 +48,15 @@ BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。
 | `tls_cipher_suites` | 列出 IANA TLS 密码套件，支持按关键词过滤。 |
 | `tls_parse_certificate` | 从原始十六进制解析 TLS Certificate 消息并提取指纹。 |
 | `tls_probe_endpoint` | 连接 TLS 端点并报告证书链基本信息、信任验证结果、ALPN 协商、协议版本、密码套件及 SNI/主机名校验详情，用于授权目标测试。 |
-| `tcp_open` | 打开有状态 TCP 会话并返回 sessionId，供后续读写调用使用。 |
+| `tcp_open` | 建立 TCP 连接，用于后续读写操作。 |
 | `tcp_write` | 向已打开的 TCP 会话写入原始字节，支持十六进制或 UTF-8 文本输入。 |
 | `tcp_read_until` | 从已打开的 TCP 会话读取数据，直到遇到分隔符或达到字节上限。 |
 | `tcp_close` | 关闭已打开的 TCP 会话并释放其缓冲状态。 |
-| `tls_open` | 打开有状态 TLS 会话，支持显式信任策略与主机名控制，返回 sessionId。 |
+| `tls_open` | 建立加密的 TLS 连接，用于后续读写操作。 |
 | `tls_write` | 向已打开的 TLS 会话写入原始字节，支持十六进制或 UTF-8 文本输入。 |
 | `tls_read_until` | 从已打开的 TLS 会话读取数据，直到遇到分隔符或达到字节上限。 |
 | `tls_close` | 关闭已打开的 TLS 会话并释放其缓冲状态。 |
-| `websocket_open` | 通过 ws 或 wss 打开有状态 WebSocket 会话，完成客户端握手并返回 sessionId。 |
+| `websocket_open` | 建立 WebSocket 连接，用于后续收发消息。 |
 | `websocket_send_frame` | 在已打开的 WebSocket 会话上发送单帧数据，支持 text、binary、ping、pong、close 操作码。 |
 | `websocket_read_frame` | 从已打开的 WebSocket 会话中读取下一个排队的帧。 |
 | `websocket_close` | 关闭已打开的 WebSocket 会话并释放其排队帧状态。 |

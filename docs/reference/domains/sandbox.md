@@ -20,10 +20,10 @@
 
 ## 代表工具
 
-- `execute_sandbox_script` — 在 WASM 隔离的 QuickJS 沙箱中执行自定义脚本，支持内存限额和超时控制。
+- `execute_sandbox_script` — 在隔离沙箱中安全执行自定义 JavaScript 脚本。
 
 ## 工具清单（1）
 
 | 工具 | 说明 |
 | --- | --- |
-| `execute_sandbox_script` | 在 WASM 隔离的 QuickJS 沙箱中执行自定义脚本，支持内存限额和超时控制。 |
+| `execute_sandbox_script` | 在隔离沙箱中安全执行自定义 JavaScript 脚本。 |

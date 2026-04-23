@@ -25,8 +25,8 @@
 - `page_script_run` — 在当前页面上下文中执行脚本库里的命名脚本。
 - `api_probe_batch` — 在浏览器上下文中批量探测多个 API 端点。
 - `js_bundle_search` — 抓取远程 JavaScript Bundle，并在一次调用中按多个命名正则模式搜索。
-- `list_extension_workflows` — 列出运行时已加载的扩展工作流及其执行所需元数据。
-- `run_extension_workflow` — 按 workflowId 执行运行时扩展工作流，并支持配置覆盖、节点输入覆盖与超时控制。
+- `list_extension_workflows` — 列出已安装的扩展工作流。
+- `run_extension_workflow` — 执行指定的扩展工作流。
 
 ## 工具清单（6）
 
@@ -36,5 +36,5 @@
 | `page_script_run` | 在当前页面上下文中执行脚本库里的命名脚本。 |
 | `api_probe_batch` | 在浏览器上下文中批量探测多个 API 端点。 |
 | `js_bundle_search` | 抓取远程 JavaScript Bundle，并在一次调用中按多个命名正则模式搜索。 |
-| `list_extension_workflows` | 列出运行时已加载的扩展工作流及其执行所需元数据。 |
-| `run_extension_workflow` | 按 workflowId 执行运行时扩展工作流，并支持配置覆盖、节点输入覆盖与超时控制。 |
+| `list_extension_workflows` | 列出已安装的扩展工作流。 |
+| `run_extension_workflow` | 执行指定的扩展工作流。 |

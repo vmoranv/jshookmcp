@@ -45,6 +45,6 @@
 | `electron_check_fuses` | 检测 Electron 应用二进制的 Fuse 配置，识别哪些安全保护（如 ASAR 完整性、Node.js 开关）已启用或禁用。 |
 | `electron_patch_fuses` | 修补 Electron 二进制 Fuse 开关，启用或禁用调试相关保险丝（如 RunAsNode、InspectArguments）。修补前自动创建备份。 |
 | `v8_bytecode_decompile` | 反编译 V8 字节码（.jsc / bytenode）文件。优先使用 view8 Python 库进行完整反编译，备选内置常量池提取器提取字符串和标识符。 |
-| `electron_launch_debug` | 以双轨 CDP 调试模式启动 Electron 应用：--inspect 用于主进程（Node.js），--remote-debugging-port 用于渲染进程（Chromium）。自动检测 Fuse 状态。 |
+| `electron_launch_debug` | 以调试模式启动 Electron 应用，同时支持主进程和渲染进程的调试。 |
 | `electron_debug_status` | 检查由 electron_launch_debug 启动的双轨 CDP 调试会话状态。 |
-| `electron_ipc_sniff` | 通过 CDP 向 `ipcRenderer` 注入 Hook 来嗅探 Electron IPC 消息，捕获 `invoke/send/sendSync` 的 channel 名称和参数。支持 `start`、`dump`、`stop`、`list`、`guide`。 |
+| `electron_ipc_sniff` | 嗅探 Electron 应用的 IPC 通信，捕获 channel 名称和参数。 |
