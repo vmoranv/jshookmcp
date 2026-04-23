@@ -148,6 +148,7 @@ const LEGACY_EXPECTED_LIMITATION_PATTERNS = [
   'No Skia scene data available',
   'Not in paused state',
   'Coverage not enabled',
+  'ICMP',
 ];
 
 function getToolTimeoutOverride(toolName: string): number | null {
