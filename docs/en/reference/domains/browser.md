@@ -34,7 +34,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 - `browser_launch` — Launch or connect to a browser. Drivers: chrome (full CDP) or camoufox (anti-detect Firefox).
 - `browser_close` — Close browser instance
 
-## Full tool list (57)
+## Full tool list (58)
 
 | Tool | Description |
 | --- | --- |
@@ -78,8 +78,9 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `stealth_inject` | Inject stealth scripts: webdriver, chrome, plugins, canvas, WebGL, permissions patches. |
 | `stealth_set_user_agent` | Set realistic User-Agent and fingerprint for target platform. |
 | `stealth_configure_jitter` | Configure CDP command timing jitter to mimic natural network latency. |
-| `stealth_generate_fingerprint` | Generate realistic browser fingerprint. Cached per session, auto-applied on stealth_inject. |
+| `stealth_generate_fingerprint` | Generate browser fingerprint. Chrome: fingerprint-generator. Camoufox: native C++ engine. |
 | `stealth_verify` | Run anti-detection checks. Returns pass/fail per check + overall score (0-100). |
+| `camoufox_geolocation` | Get geolocation data for a locale using camoufox IP database. Requires camoufox-js. |
 | `camoufox_server` | Manage Camoufox WebSocket server. Launch server, then connect via browser_launch. |
 | `framework_state_extract` | Extract component state from the live page (React, Vue, Svelte, Solid, Preact). |
 | `indexeddb_dump` | Dump IndexedDB databases and their contents. |
