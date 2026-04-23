@@ -12,14 +12,12 @@ import {
   argString,
 } from '@server/domains/shared/parse-args';
 
-type MockttpModule = typeof import('mockttp');
-
 export class ProxyHandlers {
-  private server: InstanceType<MockttpModule['Mockttp']> | null = null;
+  private server: any = null;
   private caPathDir: string;
   private currentPort: number | null = null;
   private captureBuffer: any[] = [];
-  private mockttpModule: MockttpModule | null = null;
+  private mockttpModule: any = null;
 
   constructor() {
     // Store CA in OS tmp dir or user dir
@@ -60,7 +58,7 @@ export class ProxyHandlers {
         this.server = mockttp.getLocal();
       }
 
-      this.server.on('request', (req) => {
+      this.server.on('request', (req: any) => {
         this.captureBuffer.push({
           type: 'request',
           id: req.id,
@@ -73,7 +71,7 @@ export class ProxyHandlers {
         if (this.captureBuffer.length > 5000) this.captureBuffer.shift();
       });
 
-      this.server.on('response', (res) => {
+      this.server.on('response', (res: any) => {
         this.captureBuffer.push({
           type: 'response',
           id: res.id,
