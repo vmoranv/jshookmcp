@@ -163,4 +163,39 @@ export const browserPhases: Phase[] = [
     setup: [],
     tools: ['captcha_vision_solve', 'widget_challenge_solve'],
   },
+  {
+    name: 'CDP Target Management',
+    setup: [],
+    tools: [
+      'browser_list_cdp_targets',
+      'browser_attach_cdp_target',
+      'browser_detach_cdp_target',
+      'browser_evaluate_cdp_target',
+    ],
+  },
+  {
+    name: 'JSDOM',
+    concurrent: true,
+    group: 'compute-core',
+    setup: [],
+    tools: [
+      'browser_jsdom_parse',
+      'browser_jsdom_query',
+      'browser_jsdom_execute',
+      'browser_jsdom_serialize',
+      'browser_jsdom_cookies',
+    ],
+  },
+  {
+    name: 'Page Storage (short-name aliases)',
+    setup: [],
+    tools: ['page_cookies', 'page_local_storage'],
+  },
+  {
+    name: 'Camoufox Server',
+    concurrent: true,
+    group: 'compute-core',
+    setup: [],
+    tools: ['camoufox_server', 'camoufox_geolocation'],
+  },
 ];

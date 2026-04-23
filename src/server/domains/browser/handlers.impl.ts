@@ -470,6 +470,10 @@ export class BrowserToolHandlers {
     return this.stealthInjection.handleStealthVerify(args);
   }
 
+  async handleCamoufoxGeolocation(args: Record<string, unknown>) {
+    return this.stealthInjection.handleCamoufoxGeolocation(args);
+  }
+
   // ── Framework State ──
   async handleFrameworkStateExtract(args: Record<string, unknown>) {
     return this.frameworkState.handleFrameworkStateExtract(args);

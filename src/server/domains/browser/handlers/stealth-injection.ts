@@ -126,6 +126,25 @@ export class StealthInjectionHandlers {
 
   async handleStealthGenerateFingerprint(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
+      // Route to camoufox-native fingerprint generation when driver=camoufox
+      if (this.deps.getActiveDriver() === 'camoufox') {
+        try {
+          const fingerprints = await import('camoufox-js/fingerprints');
+          const os = argString(args, 'os', 'windows');
+          const fp = await fingerprints.generateFingerprint(os);
+          return R.ok().build({
+            fingerprint: fp,
+            driver: 'camoufox',
+            message:
+              'Fingerprint generated using camoufox native engine. Apply via browser_launch(fingerprint=...) before launching.',
+          });
+        } catch (err) {
+          return R.fail(
+            `Camoufox fingerprint generation failed: ${err instanceof Error ? err.message : String(err)}`,
+          ).build();
+        }
+      }
+
       const fm = await getFingerprintManager();
 
       if (!fm?.isAvailable()) {
@@ -164,6 +183,40 @@ export class StealthInjectionHandlers {
       return R.fail(
         `Stealth verification failed: ${err instanceof Error ? err.message : String(err)}`,
       ).build();
+    }
+  }
+
+  async handleCamoufoxGeolocation(args: Record<string, unknown>): Promise<ToolResponse> {
+    try {
+      const locale = argString(args, 'locale');
+      if (!locale) {
+        return R.fail('locale is required (e.g. "en-US", "zh-CN")').build();
+      }
+
+      let geo: { latitude: number; longitude: number; accuracy: number };
+      try {
+        const localeMod = await import('camoufox-js/locale');
+        geo = await localeMod.getGeolocation(locale);
+      } catch (err) {
+        return R.fail(
+          `Camoufox locale module unavailable: ${err instanceof Error ? err.message : String(err)}. Ensure camoufox-js is installed.`,
+        ).build();
+      }
+
+      let publicIp: string | null = null;
+      const proxy = argString(args, 'proxy');
+      if (proxy) {
+        try {
+          const ipMod = await import('camoufox-js/ip');
+          publicIp = await ipMod.publicIP(proxy);
+        } catch {
+          // Optional — IP lookup failure is non-critical
+        }
+      }
+
+      return R.ok().build({ locale, geolocation: geo, publicIp });
+    } catch (e) {
+      return R.fail(e).build();
     }
   }
 }

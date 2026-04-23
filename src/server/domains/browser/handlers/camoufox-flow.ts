@@ -1,6 +1,41 @@
 import { CamoufoxBrowserManager } from '@server/domains/shared/modules';
-import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
+import type { CamoufoxBrowserConfig } from '@modules/browser/CamoufoxBrowserManager';
+import {
+  argString,
+  argNumber,
+  argBool,
+  argStringArray,
+  argObject,
+} from '@server/domains/shared/parse-args';
 import { R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
+
+function extractCamoufoxConfig(args: Record<string, unknown>): CamoufoxBrowserConfig {
+  const addons = argStringArray(args, 'addons');
+  const excludeAddons = argStringArray(args, 'excludeAddons');
+  const fonts = argStringArray(args, 'fonts');
+  return {
+    headless: argBool(args, 'headless', true),
+    os: argString(args, 'os', 'windows') as 'windows' | 'macos' | 'linux',
+    geoip: argBool(args, 'geoip', false),
+    humanize: argBool(args, 'humanize', false),
+    proxy: argString(args, 'proxy') || undefined,
+    blockImages: argBool(args, 'blockImages', false),
+    blockWebrtc: argBool(args, 'blockWebrtc', false),
+    blockWebgl: argBool(args, 'blockWebgl', false),
+    locale: argString(args, 'locale') || undefined,
+    addons: addons.length > 0 ? addons : undefined,
+    fonts: fonts.length > 0 ? fonts : undefined,
+    excludeAddons: excludeAddons.length > 0 ? excludeAddons : undefined,
+    customFontsOnly: argBool(args, 'customFontsOnly', false),
+    screen: args.screen as { width: number; height: number } | undefined,
+    window: args.window as { width: number; height: number } | undefined,
+    fingerprint: argObject(args, 'fingerprint'),
+    webglConfig: argObject(args, 'webglConfig'),
+    firefoxUserPrefs: argObject(args, 'firefoxUserPrefs'),
+    mainWorldEval: argBool(args, 'mainWorldEval', false),
+    enableCache: argBool(args, 'enableCache', false),
+  };
+}
 
 export type CamoufoxWaitUntil = 'load' | 'domcontentloaded' | 'networkidle' | 'commit';
 
@@ -24,8 +59,7 @@ export async function handleCamoufoxLaunchFlow(
   args: Record<string, unknown>,
 ): Promise<ToolResponse> {
   try {
-    const headless = argBool(args, 'headless', true);
-    const os = argString(args, 'os', 'windows') as 'windows' | 'macos' | 'linux';
+    const config = extractCamoufoxConfig(args);
     const mode = argString(args, 'mode', 'launch');
 
     if (mode === 'connect') {
@@ -34,7 +68,7 @@ export async function handleCamoufoxLaunchFlow(
         return R.fail('wsEndpoint is required for connect mode.').build();
       }
 
-      const manager = new CamoufoxBrowserManager({ headless, os });
+      const manager = new CamoufoxBrowserManager(config);
       await manager.connectToServer(wsEndpoint);
       context.setCamoufoxManager(manager);
       context.setActiveDriver('camoufox');
@@ -48,7 +82,7 @@ export async function handleCamoufoxLaunchFlow(
       });
     }
 
-    const manager = new CamoufoxBrowserManager({ headless, os });
+    const manager = new CamoufoxBrowserManager(config);
     await manager.launch();
     context.setCamoufoxManager(manager);
     context.setActiveDriver('camoufox');
@@ -57,6 +91,16 @@ export async function handleCamoufoxLaunchFlow(
     return R.ok().build({
       driver: 'camoufox',
       mode: 'launch',
+      config: {
+        os: config.os,
+        headless: config.headless,
+        geoip: config.geoip,
+        humanize: config.humanize,
+        locale: config.locale,
+        blockWebgl: config.blockWebgl,
+        blockImages: config.blockImages,
+        blockWebrtc: config.blockWebrtc,
+      },
       message: 'Camoufox (Firefox) browser launched',
     });
   } catch (e) {

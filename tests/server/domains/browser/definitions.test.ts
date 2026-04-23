@@ -188,6 +188,17 @@ describe('browser tool definitions', () => {
       expect(driverProp.enum).toEqual(['chrome', 'camoufox']);
     });
 
+    it('browser_launch exposes advanced camoufox fingerprint fields', async () => {
+      const tool = getToolByName(browserRuntimeTools, 'browser_launch');
+      const schema = getInputSchema(tool);
+      expect(schema.properties).toHaveProperty('fingerprint');
+      expect(schema.properties).toHaveProperty('webglConfig');
+      expect(schema.properties).toHaveProperty('firefoxUserPrefs');
+      expect(schema.properties).toHaveProperty('excludeAddons');
+      expect(schema.properties).toHaveProperty('customFontsOnly');
+      expect(schema.properties).toHaveProperty('mainWorldEval');
+    });
+
     it('browser_attach has browserURL and wsEndpoint properties', async () => {
       const tool = getToolByName(browserRuntimeTools, 'browser_attach');
       const schema = getInputSchema(tool);

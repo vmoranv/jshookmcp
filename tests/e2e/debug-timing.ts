@@ -63,6 +63,7 @@ const TOOLS = [
   ['captcha_detect', {}],
   ['captcha_config', { provider: '2captcha', apiKey: 'test' }],
   ['camoufox_server_status', {}],
+  ['camoufox_geolocation', { locale: 'en-US' }],
   ['human_mouse', { selector: 'body' }],
   ['human_scroll', { direction: 'down', amount: 200 }],
   ['human_typing', { selector: 'body', text: 'e2e' }],

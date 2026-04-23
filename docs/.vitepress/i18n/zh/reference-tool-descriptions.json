@@ -216,7 +216,7 @@
   "memory_guard_pages": "查找进程中所有带有 PAGE_GUARD 保护属性的内存区域。Guard page 常用于防篡改机制或栈溢出检测。",
   "memory_integrity_check": "通过比较磁盘字节与内存字节的 SHA-256 哈希，检查代码节完整性。可用于发现补丁、Hook 以及其他对可执行节的运行时修改。",
   "stealth_configure_jitter": "配置 CDP 命令时序抖动，在每个 CDP send() 调用间注入随机延迟以防止基于时序的自动化检测。",
-  "stealth_generate_fingerprint": "生成真实的浏览器指纹配置文件，使用 fingerprint-generator 创建一致的浏览器特征集，自动缓存到当前会话。",
+  "stealth_generate_fingerprint": "生成浏览器指纹。Chrome 使用 fingerprint-generator，Camoufox 使用原生 C++ 引擎。",
   "stealth_verify": "运行离线反检测审计，检查 10 项隐身指标并返回 0-100 分的评分与修复建议。",
   "run_macro": "按 macroId 执行宏（多步工具链），支持输入覆盖和超时控制。",
   "list_macros": "列出所有可用宏（内置和用户自定义），包含名称、描述、标签和步骤数。",
@@ -436,5 +436,6 @@
   "performance_take_heap_snapshot": "采集一份 V8 堆内存快照。",
   "console_get_exceptions": "获取页面中已捕获的未处理异常。",
   "process_check_debug_port": "检查目标进程是否已开启可用于 CDP 附加的调试端口。",
-  "state_board": "统一的共享状态板，用于跨 Agent 的键值协调。"
+  "state_board": "统一的共享状态板，用于跨 Agent 的键值协调。",
+  "camoufox_geolocation": "根据 locale 获取地理定位数据（经纬度、精度），可选通过代理查询公网 IP。需要 camoufox-js。"
 }

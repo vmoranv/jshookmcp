@@ -12,7 +12,7 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { BrowserToolHandlers } = await import('@server/domains/browser/index');
-  ensureBrowserCore(ctx);
+  await ensureBrowserCore(ctx);
 
   if (!ctx.browserHandlers) {
     ctx.browserHandlers = new BrowserToolHandlers(
@@ -176,6 +176,11 @@ const manifest = {
       tool: t('stealth_verify'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleStealthVerify(a)),
+    },
+    {
+      tool: t('camoufox_geolocation'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleCamoufoxGeolocation(a)),
     },
     {
       tool: t('camoufox_server'),

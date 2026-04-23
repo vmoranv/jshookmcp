@@ -50,7 +50,7 @@ export const browserSecurityStateTools: Tool[] = [
   tool('stealth_generate_fingerprint', (t) =>
     t
       .desc(
-        `Generate realistic browser fingerprint. Cached per session, auto-applied on stealth_inject.`,
+        `Generate browser fingerprint. Chrome: fingerprint-generator. Camoufox: native C++ engine.`,
       )
       .enum('os', ['windows', 'macos', 'linux'], 'Target OS for fingerprint')
       .enum('browser', ['chrome', 'firefox'], 'Target browser', { default: 'chrome' })
@@ -118,6 +118,14 @@ export const browserSecurityStateTools: Tool[] = [
       .string('database', 'Specific database name to dump (default: all databases)')
       .string('store', 'Specific object store to dump (default: all stores)')
       .number('maxRecords', 'Maximum records per store to return', { default: 100 })
+      .query(),
+  ),
+  tool('camoufox_geolocation', (t) =>
+    t
+      .desc(`Get geolocation data for a locale using camoufox IP database. Requires camoufox-js.`)
+      .string('locale', 'Locale string, e.g. "en-US" or "zh-CN"')
+      .string('proxy', 'Optional proxy URL for IP-based geolocation')
+      .required('locale')
       .query(),
   ),
 ];

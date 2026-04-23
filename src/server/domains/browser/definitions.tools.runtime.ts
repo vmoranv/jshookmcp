@@ -58,6 +58,55 @@ export const browserRuntimeTools: Tool[] = [
         'userDataDir',
         'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
       )
+      // Camoufox-specific params (ignored for chrome driver)
+      .boolean('geoip', 'Auto-resolve GeoIP for locale/timezone (camoufox)', { default: false })
+      .boolean('humanize', 'Humanize cursor movements (camoufox)', { default: false })
+      .string(
+        'proxy',
+        'Proxy URL, e.g. "http://user:pass@host:port" or "socks5://host:port" (camoufox)',
+      )
+      .boolean('blockImages', 'Block image loading for performance (camoufox)', { default: false })
+      .boolean('blockWebrtc', 'Block WebRTC to prevent IP leaks (camoufox)', { default: false })
+      .boolean('blockWebgl', 'Block WebGL entirely (camoufox)', { default: false })
+      .string('locale', 'Firefox locale string, e.g. "en-US" or "zh-CN" (camoufox)')
+      .array('addons', { type: 'string' }, 'Firefox addons to include (camoufox)')
+      .array('fonts', { type: 'string' }, 'Custom fonts to load (camoufox)')
+      .array('excludeAddons', { type: 'string' }, 'Default addons to exclude (camoufox)')
+      .boolean('customFontsOnly', 'Use only the provided custom fonts (camoufox)', {
+        default: false,
+      })
+      .object(
+        'screen',
+        { width: { type: 'number' }, height: { type: 'number' } },
+        'Screen resolution override (camoufox)',
+      )
+      .object(
+        'window',
+        { width: { type: 'number' }, height: { type: 'number' } },
+        'Window size override (camoufox)',
+      )
+      .prop('fingerprint', {
+        type: 'object',
+        description:
+          'Pre-generated Camoufox fingerprint from stealth_generate_fingerprint(driver="camoufox").',
+        additionalProperties: true,
+      })
+      .prop('webglConfig', {
+        type: 'object',
+        description: 'Camoufox WebGL configuration override.',
+        additionalProperties: true,
+      })
+      .prop('firefoxUserPrefs', {
+        type: 'object',
+        description: 'Firefox about:config overrides for Camoufox.',
+        additionalProperties: true,
+      })
+      .boolean('mainWorldEval', 'Evaluate scripts in the main world (camoufox)', {
+        default: false,
+      })
+      .boolean('enableCache', 'Enable browser cache (camoufox, default: false)', {
+        default: false,
+      })
       .openWorld(),
   ),
   tool('camoufox_server', (t) =>
@@ -77,6 +126,48 @@ Actions:
         default: 'windows',
       })
       .boolean('headless', 'Run headless (action=launch, default: true)', { default: true })
+      .boolean('geoip', 'Auto-resolve GeoIP (action=launch)', { default: false })
+      .boolean('humanize', 'Humanize cursor movements (action=launch)', { default: false })
+      .string('proxy', 'Proxy URL, e.g. "http://user:pass@host:port" (action=launch)')
+      .boolean('blockImages', 'Block image loading (action=launch)', { default: false })
+      .boolean('blockWebrtc', 'Block WebRTC (action=launch)', { default: false })
+      .boolean('blockWebgl', 'Block WebGL (action=launch)', { default: false })
+      .string('locale', 'Firefox locale, e.g. "en-US" (action=launch)')
+      .array('addons', { type: 'string' }, 'Firefox addons (action=launch)')
+      .array('fonts', { type: 'string' }, 'Custom fonts (action=launch)')
+      .array('excludeAddons', { type: 'string' }, 'Default addons to exclude (action=launch)')
+      .boolean('customFontsOnly', 'Use only the provided custom fonts (action=launch)', {
+        default: false,
+      })
+      .object(
+        'screen',
+        { width: { type: 'number' }, height: { type: 'number' } },
+        'Screen resolution override (action=launch)',
+      )
+      .object(
+        'window',
+        { width: { type: 'number' }, height: { type: 'number' } },
+        'Window size override (action=launch)',
+      )
+      .prop('fingerprint', {
+        type: 'object',
+        description: 'Pre-generated Camoufox fingerprint (action=launch).',
+        additionalProperties: true,
+      })
+      .prop('webglConfig', {
+        type: 'object',
+        description: 'Camoufox WebGL configuration override (action=launch).',
+        additionalProperties: true,
+      })
+      .prop('firefoxUserPrefs', {
+        type: 'object',
+        description: 'Firefox about:config overrides (action=launch).',
+        additionalProperties: true,
+      })
+      .boolean('mainWorldEval', 'Evaluate scripts in the main world (action=launch)', {
+        default: false,
+      })
+      .boolean('enableCache', 'Enable browser cache (action=launch)', { default: false })
       .required('action')
       .destructive(),
   ),

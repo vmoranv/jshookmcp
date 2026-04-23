@@ -36,16 +36,63 @@ export interface CamoufoxBrowserConfig {
   geoip?: boolean;
   /** Humanize cursor movements */
   humanize?: boolean | number;
-  /** HTTP/SOCKS proxy */
-  proxy?: {
-    server: string;
-    username?: string;
-    password?: string;
-  };
+  /** HTTP/SOCKS proxy (object or string format) */
+  proxy?: { server: string; username?: string; password?: string } | string;
   /** Block image loading for performance */
   blockImages?: boolean;
   /** Block WebRTC to prevent IP leaks */
   blockWebrtc?: boolean;
+  /** Block WebGL entirely */
+  blockWebgl?: boolean;
+  /** Firefox locale string (e.g. "en-US") */
+  locale?: string;
+  /** Firefox addons to include */
+  addons?: string[];
+  /** Custom fonts to load */
+  fonts?: string[];
+  /** Addons to exclude from defaults */
+  excludeAddons?: string[];
+  /** Only use custom fonts, skip defaults */
+  customFontsOnly?: boolean;
+  /** Screen resolution override */
+  screen?: { width: number; height: number };
+  /** Window size override */
+  window?: { width: number; height: number };
+  /** Pre-generated fingerprint dict */
+  fingerprint?: Record<string, unknown>;
+  /** WebGL configuration (vendor, renderer, etc.) */
+  webglConfig?: Record<string, unknown>;
+  /** Firefox about:config overrides */
+  firefoxUserPrefs?: Record<string, unknown>;
+  /** Evaluate in main world (bypass content script isolation) */
+  mainWorldEval?: boolean;
+  /** Enable browser cache (default: disabled) */
+  enableCache?: boolean;
+}
+
+function toLaunchOptions(config: CamoufoxBrowserConfig): Record<string, unknown> {
+  return {
+    os: config.os,
+    headless: config.headless,
+    geoip: config.geoip,
+    humanize: config.humanize,
+    proxy: config.proxy,
+    block_images: config.blockImages,
+    block_webrtc: config.blockWebrtc,
+    block_webgl: config.blockWebgl,
+    locale: config.locale,
+    addons: config.addons,
+    fonts: config.fonts,
+    exclude_addons: config.excludeAddons,
+    custom_fonts_only: config.customFontsOnly,
+    screen: config.screen,
+    window: config.window,
+    fingerprint: config.fingerprint,
+    webgl_config: config.webglConfig,
+    firefox_user_prefs: config.firefoxUserPrefs,
+    main_world_eval: config.mainWorldEval,
+    enable_cache: config.enableCache,
+  };
 }
 
 export class CamoufoxBrowserManager {
@@ -64,11 +111,23 @@ export class CamoufoxBrowserManager {
       blockImages: config.blockImages ?? false,
       blockWebrtc: config.blockWebrtc ?? false,
       proxy: config.proxy,
+      blockWebgl: config.blockWebgl,
+      locale: config.locale,
+      addons: config.addons,
+      fonts: config.fonts,
+      excludeAddons: config.excludeAddons,
+      customFontsOnly: config.customFontsOnly,
+      screen: config.screen,
+      window: config.window,
+      fingerprint: config.fingerprint,
+      webglConfig: config.webglConfig,
+      firefoxUserPrefs: config.firefoxUserPrefs,
+      mainWorldEval: config.mainWorldEval,
+      enableCache: config.enableCache,
     };
   }
 
   async launch(): Promise<CamoufoxBrowserLike> {
-    // Early return if browser already connected
     if (this.browser?.isConnected()) {
       return this.browser;
     }
@@ -77,7 +136,6 @@ export class CamoufoxBrowserManager {
       throw new Error('Cannot launch browser while closing');
     }
 
-    // Prevent concurrent launch race condition with promise lock
     if (this.launchPromise) {
       return this.launchPromise;
     }
@@ -91,7 +149,6 @@ export class CamoufoxBrowserManager {
   }
 
   private async doLaunch(): Promise<CamoufoxBrowserLike> {
-    // Close existing browser before relaunch to prevent multiple instances
     if (this.browser) {
       logger.info('Closing existing Camoufox browser before relaunch');
       await this.browser
@@ -113,15 +170,7 @@ export class CamoufoxBrowserManager {
       );
     }
 
-    this.browser = (await Camoufox({
-      os: this.config.os,
-      headless: this.config.headless,
-      geoip: this.config.geoip,
-      humanize: this.config.humanize,
-      proxy: this.config.proxy,
-      block_images: this.config.blockImages,
-      block_webrtc: this.config.blockWebrtc,
-    })) as CamoufoxBrowserLike;
+    this.browser = (await Camoufox(toLaunchOptions(this.config))) as CamoufoxBrowserLike;
 
     const browserAny = this.browser as unknown as Record<string, unknown>;
     if (typeof browserAny.process === 'function') {
@@ -204,10 +253,6 @@ export class CamoufoxBrowserManager {
   /**
    * Launch a Camoufox WebSocket server that remote clients can connect to.
    * Returns the WebSocket endpoint URL (e.g. ws://127.0.0.1:8888/<path>).
-   *
-   * Usage:
-   *   const endpoint = await manager.launchAsServer(8888, '/camoufox');
-   *   // In another process: firefox.connect(endpoint)
    */
   async launchAsServer(port?: number, ws_path?: string): Promise<string> {
     logger.info(`Launching Camoufox server [os=${this.config.os}, port=${port ?? 'auto'}]...`);
@@ -222,18 +267,11 @@ export class CamoufoxBrowserManager {
     }
 
     const serverOptions = {
-      os: this.config.os,
-      headless: this.config.headless,
-      geoip: this.config.geoip,
-      humanize: this.config.humanize,
-      proxy: this.config.proxy,
-      block_images: this.config.blockImages,
-      block_webrtc: this.config.blockWebrtc,
+      ...toLaunchOptions(this.config),
       port,
       ws_path,
-    } as unknown as Parameters<typeof launchServer>[0];
+    } as Parameters<typeof launchServer>[0];
 
-    // Close existing server before relaunch to prevent multiple instances
     if (this.browserServer) {
       logger.info('Closing existing Camoufox server before relaunch');
       await this.browserServer
@@ -260,12 +298,10 @@ export class CamoufoxBrowserManager {
 
   /**
    * Connect to an existing Camoufox WebSocket server.
-   * The returned browser/pages operate identically to a locally launched browser.
    */
   async connectToServer(wsEndpoint: string): Promise<CamoufoxBrowserLike> {
     logger.info(`Connecting to Camoufox server: ${wsEndpoint}`);
 
-    // Close existing browser before connecting to new server
     if (this.browser) {
       logger.info('Disconnecting existing browser before new connection');
       await this.browser
@@ -305,7 +341,6 @@ export class CamoufoxBrowserManager {
   /**
    * Get the Playwright CDPSession for a page.
    * Note: camoufox uses Firefox (Juggler protocol), CDP may be limited.
-   * Use this only for Chrome-compatible operations.
    */
   async getCDPSession(page: CamoufoxPageLike) {
     logger.warn(
