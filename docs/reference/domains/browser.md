@@ -78,7 +78,7 @@
 | `stealth_inject` | 注入现代化 stealth 脚本，以降低被反爬或反自动化检测的概率。 |
 | `stealth_set_user_agent` | 为目标平台设置更真实的 User-Agent 与浏览器指纹。 |
 | `stealth_configure_jitter` | 配置 CDP 命令时序抖动，在每个 CDP send() 调用间注入随机延迟以防止基于时序的自动化检测。 |
-| `stealth_generate_fingerprint` | 生成浏览器指纹。Chrome 使用 fingerprint-generator，Camoufox 使用原生 C++ 引擎。 |
+| `stealth_generate_fingerprint` | 生成逼真的浏览器指纹（屏幕、WebGL、navigator、字体等）。 |
 | `stealth_verify` | 运行离线反检测审计，检查 10 项隐身指标并返回 0-100 分的评分与修复建议。 |
 | `camoufox_geolocation` | 根据 locale 获取地理定位数据（经纬度、精度），可选通过代理查询公网 IP。需要 camoufox-js。 |
 | `camoufox_server` | 管理 Camoufox WebSocket 服务器。先启动服务器，再通过 browser_launch 连接。 |
