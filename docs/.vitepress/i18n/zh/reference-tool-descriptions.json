@@ -216,7 +216,7 @@
   "memory_guard_pages": "查找进程中所有带有 PAGE_GUARD 保护属性的内存区域。Guard page 常用于防篡改机制或栈溢出检测。",
   "memory_integrity_check": "通过比较磁盘字节与内存字节的 SHA-256 哈希，检查代码节完整性。可用于发现补丁、Hook 以及其他对可执行节的运行时修改。",
   "stealth_configure_jitter": "配置 CDP 命令时序抖动，在每个 CDP send() 调用间注入随机延迟以防止基于时序的自动化检测。",
-  "stealth_generate_fingerprint": "生成浏览器指纹。Chrome 使用 fingerprint-generator，Camoufox 使用原生 C++ 引擎。",
+  "stealth_generate_fingerprint": "生成逼真的浏览器指纹（屏幕、WebGL、navigator、字体等）。",
   "stealth_verify": "运行离线反检测审计，检查 10 项隐身指标并返回 0-100 分的评分与修复建议。",
   "run_macro": "按 macroId 执行宏（多步工具链），支持输入覆盖和超时控制。",
   "list_macros": "列出所有可用宏（内置和用户自定义），包含名称、描述、标签和步骤数。",

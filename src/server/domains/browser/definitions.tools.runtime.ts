@@ -4,286 +4,174 @@ import { tool } from '@server/registry/tool-builder';
 export const browserRuntimeTools: Tool[] = [
   tool('get_detailed_data', (t) =>
     t
-      .desc(`Retrieve large data using detailId token from previous tool response.`)
-      .string('detailId', 'Detail ID token from previous tool response')
-      .string('path', 'Optional: Path to specific data (e.g., "frontierSign" or "methods.0")')
+      .desc('Retrieve large data by detailId.')
+      .string('detailId', 'Detail ID from previous response')
+      .string('path', 'Path to specific nested data')
       .required('detailId')
       .query(),
   ),
   tool('browser_launch', (t) =>
     t
-      .desc(
-        `Launch or connect to a browser. Drivers: chrome (full CDP) or camoufox (anti-detect Firefox).`,
-      )
-      .enum(
-        'driver',
-        ['chrome', 'camoufox'],
-        'Browser driver. chrome = rebrowser-puppeteer-core (full CDP support). camoufox = Firefox anti-detect (requires: npx camoufox-js fetch).',
-        { default: 'chrome' },
-      )
-      .boolean(
-        'headless',
-        'Run headless (default follows PUPPETEER_HEADLESS env; set false to show browser window for manual login)',
-        { default: false },
-      )
-      .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint to spoof (camoufox only)', {
+      .desc('Launch or connect to a browser.')
+      .enum('driver', ['chrome', 'camoufox'], 'Browser driver', { default: 'chrome' })
+      .boolean('headless', 'Run headless', { default: false })
+      .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint (camoufox)', {
         default: 'windows',
       })
-      .enum(
-        'mode',
-        ['launch', 'connect'],
-        'Launch mode. launch = start local browser. connect = reuse existing browser (chrome: browserURL/wsEndpoint/autoConnect, camoufox: wsEndpoint).',
-        { default: 'launch' },
-      )
-      .string(
-        'browserURL',
-        'HTTP URL of existing browser debug endpoint (chrome connect mode). Example: http://127.0.0.1:9222',
-      )
-      .string(
-        'wsEndpoint',
-        'WebSocket endpoint to connect to (chrome or camoufox connect mode). For camoufox, get this from camoufox_server_launch.',
-      )
-      .boolean(
-        'autoConnect',
-        'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.',
-        { default: false },
-      )
-      .enum(
-        'channel',
-        ['stable', 'beta', 'dev', 'canary'],
-        'Chrome channel used for autoConnect when userDataDir is not provided.',
-        { default: 'stable' },
-      )
-      .string(
-        'userDataDir',
-        'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
-      )
-      // Camoufox-specific params (ignored for chrome driver)
-      .boolean('geoip', 'Auto-resolve GeoIP for locale/timezone (camoufox)', { default: false })
-      .boolean('humanize', 'Humanize cursor movements (camoufox)', { default: false })
-      .string(
-        'proxy',
-        'Proxy URL, e.g. "http://user:pass@host:port" or "socks5://host:port" (camoufox)',
-      )
-      .boolean('blockImages', 'Block image loading for performance (camoufox)', { default: false })
-      .boolean('blockWebrtc', 'Block WebRTC to prevent IP leaks (camoufox)', { default: false })
-      .boolean('blockWebgl', 'Block WebGL entirely (camoufox)', { default: false })
-      .string('locale', 'Firefox locale string, e.g. "en-US" or "zh-CN" (camoufox)')
-      .array('addons', { type: 'string' }, 'Firefox addons to include (camoufox)')
-      .array('fonts', { type: 'string' }, 'Custom fonts to load (camoufox)')
-      .array('excludeAddons', { type: 'string' }, 'Default addons to exclude (camoufox)')
-      .boolean('customFontsOnly', 'Use only the provided custom fonts (camoufox)', {
-        default: false,
+      .enum('mode', ['launch', 'connect'], 'Launch or connect', { default: 'launch' })
+      .string('browserURL', 'Browser debug endpoint URL')
+      .string('wsEndpoint', 'WebSocket endpoint')
+      .boolean('autoConnect', 'Auto-detect local Chrome debug WebSocket', { default: false })
+      .enum('channel', ['stable', 'beta', 'dev', 'canary'], 'Chrome channel', {
+        default: 'stable',
       })
+      .string('userDataDir', 'Chrome profile directory')
+      .boolean('geoip', 'Auto-resolve GeoIP (camoufox)', { default: false })
+      .boolean('humanize', 'Humanize cursor (camoufox)', { default: false })
+      .string('proxy', 'Proxy URL (camoufox)')
+      .boolean('blockImages', 'Block images (camoufox)', { default: false })
+      .boolean('blockWebrtc', 'Block WebRTC (camoufox)', { default: false })
+      .boolean('blockWebgl', 'Block WebGL (camoufox)', { default: false })
+      .string('locale', 'Firefox locale (camoufox)')
+      .array('addons', { type: 'string' }, 'Firefox addons (camoufox)')
+      .array('fonts', { type: 'string' }, 'Custom fonts (camoufox)')
+      .array('excludeAddons', { type: 'string' }, 'Addons to exclude (camoufox)')
+      .boolean('customFontsOnly', 'Only use custom fonts (camoufox)', { default: false })
       .object(
         'screen',
         { width: { type: 'number' }, height: { type: 'number' } },
-        'Screen resolution override (camoufox)',
+        'Screen resolution (camoufox)',
       )
       .object(
         'window',
         { width: { type: 'number' }, height: { type: 'number' } },
-        'Window size override (camoufox)',
+        'Window size (camoufox)',
       )
       .prop('fingerprint', {
         type: 'object',
-        description:
-          'Pre-generated Camoufox fingerprint from stealth_generate_fingerprint(driver="camoufox").',
+        description: 'Pre-generated fingerprint (camoufox)',
         additionalProperties: true,
       })
       .prop('webglConfig', {
         type: 'object',
-        description: 'Camoufox WebGL configuration override.',
+        description: 'WebGL config (camoufox)',
         additionalProperties: true,
       })
       .prop('firefoxUserPrefs', {
         type: 'object',
-        description: 'Firefox about:config overrides for Camoufox.',
+        description: 'Firefox about:config overrides (camoufox)',
         additionalProperties: true,
       })
-      .boolean('mainWorldEval', 'Evaluate scripts in the main world (camoufox)', {
-        default: false,
-      })
-      .boolean('enableCache', 'Enable browser cache (camoufox, default: false)', {
-        default: false,
-      })
+      .boolean('mainWorldEval', 'Main world eval (camoufox)', { default: false })
+      .boolean('enableCache', 'Enable cache (camoufox)', { default: false })
       .openWorld(),
   ),
   tool('camoufox_server', (t) =>
     t
-      .desc(
-        `Manage Camoufox WebSocket server. Launch server, then connect via browser_launch.
-
-Actions:
-- launch: Start server (returns wsEndpoint)
-- close: Stop server, disconnect clients
-- status: Check server status`,
-      )
-      .enum('action', ['launch', 'close', 'status'], 'Server action')
-      .number('port', 'Port to listen on (action=launch, default: auto-assigned)')
-      .string('ws_path', 'WebSocket path (action=launch, default: auto-generated)')
-      .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint (action=launch)', {
+      .desc('Manage Camoufox WebSocket server.')
+      .enum('action', ['launch', 'close', 'status'], 'Action')
+      .number('port', 'Listen port (launch)')
+      .string('ws_path', 'WebSocket path (launch)')
+      .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint (launch)', {
         default: 'windows',
       })
-      .boolean('headless', 'Run headless (action=launch, default: true)', { default: true })
-      .boolean('geoip', 'Auto-resolve GeoIP (action=launch)', { default: false })
-      .boolean('humanize', 'Humanize cursor movements (action=launch)', { default: false })
-      .string('proxy', 'Proxy URL, e.g. "http://user:pass@host:port" (action=launch)')
-      .boolean('blockImages', 'Block image loading (action=launch)', { default: false })
-      .boolean('blockWebrtc', 'Block WebRTC (action=launch)', { default: false })
-      .boolean('blockWebgl', 'Block WebGL (action=launch)', { default: false })
-      .string('locale', 'Firefox locale, e.g. "en-US" (action=launch)')
-      .array('addons', { type: 'string' }, 'Firefox addons (action=launch)')
-      .array('fonts', { type: 'string' }, 'Custom fonts (action=launch)')
-      .array('excludeAddons', { type: 'string' }, 'Default addons to exclude (action=launch)')
-      .boolean('customFontsOnly', 'Use only the provided custom fonts (action=launch)', {
-        default: false,
-      })
+      .boolean('headless', 'Headless (launch)', { default: true })
+      .boolean('geoip', 'GeoIP (launch)', { default: false })
+      .boolean('humanize', 'Humanize cursor (launch)', { default: false })
+      .string('proxy', 'Proxy URL (launch)')
+      .boolean('blockImages', 'Block images (launch)', { default: false })
+      .boolean('blockWebrtc', 'Block WebRTC (launch)', { default: false })
+      .boolean('blockWebgl', 'Block WebGL (launch)', { default: false })
+      .string('locale', 'Firefox locale (launch)')
+      .array('addons', { type: 'string' }, 'Addons (launch)')
+      .array('fonts', { type: 'string' }, 'Fonts (launch)')
+      .array('excludeAddons', { type: 'string' }, 'Excluded addons (launch)')
+      .boolean('customFontsOnly', 'Only custom fonts (launch)', { default: false })
       .object(
         'screen',
         { width: { type: 'number' }, height: { type: 'number' } },
-        'Screen resolution override (action=launch)',
+        'Screen resolution (launch)',
       )
       .object(
         'window',
         { width: { type: 'number' }, height: { type: 'number' } },
-        'Window size override (action=launch)',
+        'Window size (launch)',
       )
       .prop('fingerprint', {
         type: 'object',
-        description: 'Pre-generated Camoufox fingerprint (action=launch).',
+        description: 'Pre-generated fingerprint (launch)',
         additionalProperties: true,
       })
       .prop('webglConfig', {
         type: 'object',
-        description: 'Camoufox WebGL configuration override (action=launch).',
+        description: 'WebGL config (launch)',
         additionalProperties: true,
       })
       .prop('firefoxUserPrefs', {
         type: 'object',
-        description: 'Firefox about:config overrides (action=launch).',
+        description: 'Firefox about:config overrides (launch)',
         additionalProperties: true,
       })
-      .boolean('mainWorldEval', 'Evaluate scripts in the main world (action=launch)', {
-        default: false,
-      })
-      .boolean('enableCache', 'Enable browser cache (action=launch)', { default: false })
+      .boolean('mainWorldEval', 'Main world eval (launch)', { default: false })
+      .boolean('enableCache', 'Enable cache (launch)', { default: false })
       .required('action')
       .destructive(),
   ),
   tool('browser_attach', (t) =>
     t
-      .desc(
-        `Attach to a running browser via CDP. Supports browserURL, wsEndpoint, and autoConnect.`,
-      )
-      .string(
-        'browserURL',
-        'HTTP URL of the remote debugging endpoint (e.g., http://127.0.0.1:9222)',
-      )
-      .string(
-        'wsEndpoint',
-        'WebSocket URL from /json/version (e.g., ws://127.0.0.1:9222/devtools/browser/xxx)',
-      )
-      .boolean(
-        'autoConnect',
-        'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort. Requires remote debugging to be enabled at chrome://inspect/#remote-debugging, and Chrome may prompt you to manually approve this client.',
-        { default: false },
-      )
-      .enum(
-        'channel',
-        ['stable', 'beta', 'dev', 'canary'],
-        'Chrome channel used for autoConnect when userDataDir is not provided.',
-        { default: 'stable' },
-      )
-      .string(
-        'userDataDir',
-        'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
-      )
-      .number('pageIndex', 'Index of the page/tab to activate (default: 0)', { default: 0 })
+      .desc('Attach to a running browser via CDP.')
+      .string('browserURL', 'Debug endpoint URL')
+      .string('wsEndpoint', 'WebSocket URL')
+      .boolean('autoConnect', 'Auto-detect local Chrome debug WebSocket', { default: false })
+      .enum('channel', ['stable', 'beta', 'dev', 'canary'], 'Chrome channel', {
+        default: 'stable',
+      })
+      .string('userDataDir', 'Chrome profile directory')
+      .number('pageIndex', 'Tab index to activate', { default: 0 })
       .openWorld(),
   ),
   tool('browser_list_cdp_targets', (t) =>
     t
-      .desc(`List all CDP targets (pages, workers, iframes). Can auto-connect first.`)
-      .string('browserURL', 'Optional: connect to this browser URL before listing targets.')
-      .string(
-        'wsEndpoint',
-        'Optional: connect to this browser WebSocket endpoint before listing targets.',
-      )
-      .boolean(
-        'autoConnect',
-        'Chrome 144+ only. Auto-detect the local Chrome debugging WebSocket from DevToolsActivePort.',
-        { default: false },
-      )
-      .enum(
-        'channel',
-        ['stable', 'beta', 'dev', 'canary'],
-        'Chrome channel used for autoConnect when userDataDir is not provided.',
-        { default: 'stable' },
-      )
-      .string(
-        'userDataDir',
-        'Optional Chrome profile directory for autoConnect. If omitted, the default profile path for the selected channel is used.',
-      )
-      .string(
-        'type',
-        'Optional single target type filter, for example iframe, page, service_worker.',
-      )
-      .array('types', { type: 'string' }, 'Optional list of target types to include.')
-      .string('targetId', 'Optional exact targetId filter.')
-      .string('urlPattern', 'Optional substring filter for target URL.')
-      .string('titlePattern', 'Optional substring filter for target title.')
-      .boolean('attachedOnly', 'Only include targets already marked attached by CDP.', {
-        default: false,
+      .desc('List CDP targets.')
+      .string('browserURL', 'Browser URL')
+      .string('wsEndpoint', 'WebSocket endpoint')
+      .boolean('autoConnect', 'Auto-detect local Chrome debug WebSocket', { default: false })
+      .enum('channel', ['stable', 'beta', 'dev', 'canary'], 'Chrome channel', {
+        default: 'stable',
       })
-      .boolean(
-        'discoverOOPIF',
-        'Enable auto-discovery of cross-origin iframes (OOPIFs) via Target.setAutoAttach. When true (default), OOPIFs will appear in results.',
-        { default: true },
-      )
+      .string('userDataDir', 'Chrome profile directory')
+      .string('type', 'Target type filter')
+      .array('types', { type: 'string' }, 'Target types to include')
+      .string('targetId', 'Exact targetId filter')
+      .string('urlPattern', 'URL substring filter')
+      .string('titlePattern', 'Title substring filter')
+      .boolean('attachedOnly', 'Only attached targets', { default: false })
+      .boolean('discoverOOPIF', 'Auto-discover cross-origin iframes', { default: true })
       .query()
       .openWorld(),
   ),
   tool('browser_attach_cdp_target', (t) =>
     t
-      .desc(`Attach to a specific CDP target by targetId. Network/hooks bind to this target.`)
-      .string('targetId', 'Target ID returned by browser_list_cdp_targets.')
+      .desc('Attach to a CDP target by targetId.')
+      .string('targetId', 'Target ID')
       .required('targetId'),
   ),
   tool('browser_detach_cdp_target', (t) =>
-    t
-      .desc(
-        'Detach the currently attached low-level CDP target session and return network/hooks to normal page-based binding.',
-      )
-      .destructive(),
+    t.desc('Detach the current CDP target session.').destructive(),
   ),
   tool('browser_evaluate_cdp_target', (t) =>
     t
-      .desc(`Evaluate JS in the currently attached CDP target session (OOPIF/iframe/worker).`)
-      .string('code', 'JavaScript expression or IIFE string to evaluate in the attached target.')
-      .string('script', 'Alias of code.')
-      .boolean('returnByValue', 'Return primitive/JSON-serializable result by value.', {
-        default: true,
-      })
-      .boolean('awaitPromise', 'Await promise results before returning.', {
-        default: true,
-      })
-      .boolean('autoSummarize', 'Summarize oversized results using detailed data manager.', {
-        default: true,
-      })
-      .number('maxSize', 'Approximate max JSON payload before summarization.', { default: 51200 })
-      .array(
-        'fieldFilter',
-        { type: 'string' },
-        'Remove these field names recursively from the result.',
-      )
-      .boolean('stripBase64', 'Replace base64-like payloads with short placeholders.', {
-        default: false,
-      })
+      .desc('Evaluate JS in the attached CDP target.')
+      .string('code', 'JavaScript code')
+      .string('script', 'Alias of code')
+      .boolean('returnByValue', 'Return by value', { default: true })
+      .boolean('awaitPromise', 'Await promises', { default: true })
+      .boolean('autoSummarize', 'Summarize large results', { default: true })
+      .number('maxSize', 'Max size before summarizing', { default: 51200 })
+      .array('fieldFilter', { type: 'string' }, 'Field names to strip')
+      .boolean('stripBase64', 'Strip base64 payloads', { default: false })
       .required('code'),
   ),
-  tool('browser_close', (t) => t.desc('Close browser instance').destructive()),
-  tool('browser_status', (t) =>
-    t.desc('Get browser status (running, pages count, version)').query(),
-  ),
+  tool('browser_close', (t) => t.desc('Close browser.').destructive()),
+  tool('browser_status', (t) => t.desc('Browser status.').query()),
 ];
