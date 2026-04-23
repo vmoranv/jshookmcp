@@ -75,6 +75,7 @@ vi.mock('@src/constants', () => ({
   SEARCH_COVERAGE_PRECISION_FACTOR: 0.5,
   SEARCH_PREFIX_MATCH_MULTIPLIER: 0.5,
   SEARCH_VECTOR_ENABLED: false,
+  SEARCH_VECTOR_BM25_SKIP_THRESHOLD: 12,
   SEARCH_VECTOR_MODEL_ID: 'Xenova/bge-micro-v2',
   SEARCH_VECTOR_COSINE_WEIGHT: 0.4,
   SEARCH_VECTOR_DYNAMIC_WEIGHT: false,
@@ -573,6 +574,41 @@ describe('Hybrid Vector Search', () => {
 
     // Should not throw even without a prior search
     expect(() => engine.recordToolCallFeedback('page_navigate', '')).not.toThrow();
+  });
+
+  it('clears stale vector feedback state when BM25 skips vector scoring', async () => {
+    const constants = await import('@src/constants');
+    const previousThreshold = constants.SEARCH_VECTOR_BM25_SKIP_THRESHOLD;
+    // @ts-expect-error test mutates mocked constant
+    constants.SEARCH_VECTOR_BM25_SKIP_THRESHOLD = 0.0001;
+
+    try {
+      const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
+      const engine = new ToolSearchEngine(
+        [
+          makeTool('page_navigate', 'Navigate a page'),
+          makeTool('page_click', 'Click a page element'),
+        ],
+        undefined,
+        undefined,
+        undefined,
+        {
+          queryCategoryProfiles: [],
+          cjkQueryAliases: [],
+          intentToolBoostRules: [],
+          vectorEnabled: true,
+          vectorCosineWeight: 0.4,
+        } satisfies SearchConfig,
+      );
+
+      (engine as any).feedbackTracker.recordVectorRanking(new Map([['stale_tool', 0]]));
+      await engine.search('navigate', 5);
+
+      expect((engine as any).feedbackTracker.lastVectorRanking).toEqual(new Map());
+    } finally {
+      // @ts-expect-error test mutates mocked constant
+      constants.SEARCH_VECTOR_BM25_SKIP_THRESHOLD = previousThreshold;
+    }
   });
 
   it('search returns Promise<ToolSearchResult[]>', async () => {

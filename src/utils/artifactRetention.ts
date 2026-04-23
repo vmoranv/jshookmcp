@@ -75,52 +75,50 @@ export async function cleanupArtifacts(options?: {
   const now = options?.now ?? Date.now();
   const dryRun = options?.dryRun ?? false;
   const directories = options?.directories ?? getManagedArtifactDirectories();
-  const entries = await collectArtifactFiles(directories);
-  let remaining = [...entries];
-  const removedSample: string[] = [];
+
+  const cutoff = config.retentionDays > 0 ? now - config.retentionDays * DAY_MS : 0;
+  let scannedFiles = 0;
   let removedFiles = 0;
   let removedBytes = 0;
   let removedByAge = 0;
   let removedBySize = 0;
+  const remaining: ArtifactFileEntry[] = [];
+  const removedSample: string[] = [];
+  const root = getProjectRoot();
 
-  const cutoff = config.retentionDays > 0 ? now - config.retentionDays * DAY_MS : 0;
-  if (cutoff > 0) {
-    const agedOut = remaining
-      .filter((entry) => entry.mtimeMs < cutoff)
-      .toSorted((a, b) => a.mtimeMs - b.mtimeMs);
-    if (agedOut.length > 0) {
-      const agedOutPaths = new Set(agedOut.map((entry) => entry.path));
-      remaining = remaining.filter((entry) => !agedOutPaths.has(entry.path));
-      removedFiles += agedOut.length;
-      removedBytes += agedOut.reduce((sum, entry) => sum + entry.size, 0);
-      removedByAge += agedOut.reduce((sum, entry) => sum + entry.size, 0);
-      removedSample.push(
-        ...agedOut.slice(0, 20 - removedSample.length).map((entry) => entry.relativePath),
-      );
-      if (!dryRun) {
-        await Promise.all(agedOut.map((entry) => rm(entry.path, { force: true })));
+  // Stream-based: process each file as it's discovered instead of collecting all first
+  for (const directory of directories) {
+    await walkAndProcess(directory, root, cutoff, dryRun, (entry) => {
+      scannedFiles++;
+      if (cutoff > 0 && entry.mtimeMs < cutoff) {
+        removedFiles++;
+        removedBytes += entry.size;
+        removedByAge += entry.size;
+        if (removedSample.length < 20) removedSample.push(entry.relativePath);
+        if (!dryRun) void rm(entry.path, { force: true });
+      } else {
+        remaining.push(entry);
       }
-    }
+    });
   }
 
+  // Size-based cleanup on remaining
   if (config.maxTotalBytes > 0) {
     let totalBytes = remaining.reduce((sum, entry) => sum + entry.size, 0);
     if (totalBytes > config.maxTotalBytes) {
-      const sizeCandidates = [...remaining].toSorted((a, b) => a.mtimeMs - b.mtimeMs);
-      const removedPaths = new Set<string>();
-      for (const entry of sizeCandidates) {
-        if (totalBytes <= config.maxTotalBytes) break;
+      remaining.sort((a, b) => a.mtimeMs - b.mtimeMs);
+      let i = 0;
+      while (i < remaining.length && totalBytes > config.maxTotalBytes) {
+        const entry = remaining[i]!;
         totalBytes -= entry.size;
-        removedPaths.add(entry.path);
-        removedFiles += 1;
+        removedFiles++;
         removedBytes += entry.size;
         removedBySize += entry.size;
         if (removedSample.length < 20) removedSample.push(entry.relativePath);
-        if (!dryRun) {
-          await rm(entry.path, { force: true });
-        }
+        if (!dryRun) void rm(entry.path, { force: true });
+        i++;
       }
-      remaining = remaining.filter((entry) => !removedPaths.has(entry.path));
+      remaining.splice(0, i);
     }
   }
 
@@ -130,7 +128,7 @@ export async function cleanupArtifacts(options?: {
 
   return {
     success: true,
-    scannedFiles: entries.length,
+    scannedFiles,
     removedFiles,
     removedBytes,
     removedByAge,
@@ -201,27 +199,13 @@ function getManagedArtifactDirectories(): string[] {
   return [...directories];
 }
 
-async function collectArtifactFiles(directories: string[]): Promise<ArtifactFileEntry[]> {
-  const root = getProjectRoot();
-  const files: ArtifactFileEntry[] = [];
-
-  for (const directory of directories) {
-    await walk(directory, async (path) => {
-      const info = await stat(path);
-      if (!info.isFile()) return;
-      files.push({
-        path,
-        relativePath: relativePathFromRoot(root, path),
-        size: info.size,
-        mtimeMs: info.mtimeMs,
-      });
-    });
-  }
-
-  return dedupeFiles(files);
-}
-
-async function walk(directory: string, onFile: (path: string) => Promise<void>): Promise<void> {
+async function walkAndProcess(
+  directory: string,
+  root: string,
+  cutoff: number,
+  dryRun: boolean,
+  onFile: (entry: ArtifactFileEntry) => void,
+): Promise<void> {
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
@@ -230,11 +214,22 @@ async function walk(directory: string, onFile: (path: string) => Promise<void>):
   }
 
   for (const entry of entries) {
-    const path = join(directory, entry.name);
+    const entryPath = join(directory, entry.name);
     if (entry.isDirectory()) {
-      await walk(path, onFile);
+      await walkAndProcess(entryPath, root, cutoff, dryRun, onFile);
     } else if (entry.isFile()) {
-      await onFile(path);
+      let info;
+      try {
+        info = await stat(entryPath);
+      } catch {
+        continue;
+      }
+      onFile({
+        path: entryPath,
+        relativePath: relativePathFromRoot(root, entryPath),
+        size: info.size,
+        mtimeMs: info.mtimeMs,
+      });
     }
   }
 }
@@ -261,14 +256,6 @@ async function pruneEmptyDirectories(directory: string): Promise<void> {
   } catch {
     // Non-critical cleanup — directory may already be gone
   }
-}
-
-function dedupeFiles(files: ArtifactFileEntry[]): ArtifactFileEntry[] {
-  const byPath = new Map<string, ArtifactFileEntry>();
-  for (const file of files) {
-    byPath.set(file.path, file);
-  }
-  return [...byPath.values()];
 }
 
 function relativePathFromRoot(root: string, path: string): string {

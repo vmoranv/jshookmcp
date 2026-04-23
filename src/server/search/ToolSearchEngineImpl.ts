@@ -56,6 +56,7 @@ import {
   SEARCH_TRIGRAM_THRESHOLD,
   SEARCH_TRIGRAM_WEIGHT,
   SEARCH_VECTOR_ENABLED,
+  SEARCH_VECTOR_BM25_SKIP_THRESHOLD,
 } from '@src/constants';
 import { BM25ScorerImpl } from './BM25Scorer';
 import { EmbeddingEngine } from './EmbeddingEngine';
@@ -673,17 +674,32 @@ export class ToolSearchEngine {
     const trigramRanked = this.rankByMap(trigramScores);
 
     // ── Signal 3: Dense vector cosine similarity ──
-    const vectorScores = await this.computeVectorCosineScores(query);
-    const vectorRanked = this.rankByMap(vectorScores);
-
-    // Store last vector ranking for feedback tracking (Plan 08-04)
-    if (vectorRanked.size > 0) {
-      const ranking = new Map<string, number>();
-      for (const [docIdx, rank] of vectorRanked) {
-        ranking.set(this.docs[docIdx]!.name, rank);
+    // Two-stage retrieval: skip vector scoring when BM25 top result is
+    // already strong enough that embeddings rarely change the ranking.
+    let vectorScores: Map<number, number>;
+    let vectorRanked: Map<number, number>;
+    if (SEARCH_VECTOR_BM25_SKIP_THRESHOLD > 0 && bm25Ranked.size > 0) {
+      const topBm25Idx = [...bm25Ranked.entries()].find(([, r]) => r === 0)?.[0];
+      const topBm25Score = topBm25Idx !== undefined ? scores[topBm25Idx]! : 0;
+      if (topBm25Score >= SEARCH_VECTOR_BM25_SKIP_THRESHOLD) {
+        vectorScores = new Map();
+        vectorRanked = new Map();
+      } else {
+        vectorScores = await this.computeVectorCosineScores(query);
+        vectorRanked = this.rankByMap(vectorScores);
       }
-      this.feedbackTracker.recordVectorRanking(ranking);
+    } else {
+      vectorScores = await this.computeVectorCosineScores(query);
+      vectorRanked = this.rankByMap(vectorScores);
     }
+
+    // Store the latest vector ranking for feedback tracking. Even when vector
+    // scoring is skipped we must clear any stale ranking from a prior query.
+    const ranking = new Map<string, number>();
+    for (const [docIdx, rank] of vectorRanked) {
+      ranking.set(this.docs[docIdx]!.name, rank);
+    }
+    this.feedbackTracker.recordVectorRanking(ranking);
 
     // ── Fuse via RRF ──
     for (let i = 0; i < this.docCount; i++) {

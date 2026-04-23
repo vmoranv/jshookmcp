@@ -13,7 +13,7 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { DebuggerManager, RuntimeInspector } = await import('@server/domains/shared/modules');
   const { DebuggerToolHandlers } = await import('@server/domains/debugger/index');
-  ensureBrowserCore(ctx);
+  await ensureBrowserCore(ctx);
   if (!ctx.debuggerManager || !ctx.runtimeInspector || !ctx.debuggerHandlers) {
     if (!ctx.debuggerManager) ctx.debuggerManager = new DebuggerManager(ctx.collector!);
     if (!ctx.runtimeInspector)

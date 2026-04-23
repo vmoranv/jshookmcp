@@ -69,7 +69,7 @@ function formatUnknownError(input: unknown): string {
   }
 }
 
-export async function main() {
+export async function main(): Promise<void> {
   try {
     const cliFastPath = resolveCliFastPath(process.argv.slice(2), import.meta.url);
     if (cliFastPath.handled) {

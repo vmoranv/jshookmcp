@@ -78,6 +78,29 @@ describe('GraphQLToolHandlers', () => {
     expect(body.error).toContain('Blocked');
   });
 
+  it('runs introspection through the active browser session by default', async () => {
+    page.evaluate.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      responseHeaders: { 'content-type': 'application/json' },
+      totalLength: 32,
+      preview: '',
+      truncated: false,
+      json: { data: { __schema: { queryType: { name: 'Query' } } } },
+    });
+
+    const body = parseJson<any>(
+      await handlers.handleGraphqlIntrospect({
+        endpoint: 'https://vmoranv.github.io/jshookmcp/api/graphql',
+      }),
+    );
+
+    expect(body.success).toBe(true);
+    expect(body.status).toBe(200);
+    expect(body.schema).toEqual({ __schema: { queryType: { name: 'Query' } } });
+  });
+
   it('replays graphql query and returns response metadata', async () => {
     page.evaluate.mockResolvedValueOnce({
       ok: true,

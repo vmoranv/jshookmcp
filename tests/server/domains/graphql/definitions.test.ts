@@ -108,6 +108,13 @@ describe('graphql definitions', () => {
       expect(headers.type).toBe('object');
       expect(headers.additionalProperties.type).toBe('string');
     });
+
+    it('documents browser-session execution as the default', async () => {
+      const useBrowser = (tool.inputSchema.properties as any).useBrowser;
+      expect(useBrowser).toBeDefined();
+      expect(useBrowser.type).toBe('boolean');
+      expect(useBrowser.default).toBe(true);
+    });
   });
 
   describe('graphql_extract_queries tool', () => {
@@ -157,6 +164,13 @@ describe('graphql definitions', () => {
       const headers = (tool.inputSchema.properties as any).headers;
       expect(headers).toBeDefined();
       expect(headers.type).toBe('object');
+    });
+
+    it('documents browser-session execution as the default', async () => {
+      const useBrowser = (tool.inputSchema.properties as any).useBrowser;
+      expect(useBrowser).toBeDefined();
+      expect(useBrowser.type).toBe('boolean');
+      expect(useBrowser.default).toBe(true);
     });
   });
 });

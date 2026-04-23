@@ -4,6 +4,7 @@ import type { ToolPerformanceMetrics, ToolResult, ToolStatus } from '@tests/e2e/
 
 const KNOWN_EXPECTED_LIMITATION_PATTERNS = [
   'GRACEFUL:',
+  '[PREREQUISITE]',
   'timed out',
   'Timeout',
   'Protocol error',

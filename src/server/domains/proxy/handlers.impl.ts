@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as mockttp from 'mockttp';
 import { R } from '@server/domains/shared/ResponseBuilder';
 const ResponseBuilder = {
   success: (data: any) => R.ok().merge(data).json(),
@@ -13,11 +12,14 @@ import {
   argString,
 } from '@server/domains/shared/parse-args';
 
+type MockttpModule = typeof import('mockttp');
+
 export class ProxyHandlers {
-  private server: mockttp.Mockttp | null = null;
+  private server: InstanceType<MockttpModule['Mockttp']> | null = null;
   private caPathDir: string;
   private currentPort: number | null = null;
   private captureBuffer: any[] = [];
+  private mockttpModule: MockttpModule | null = null;
 
   constructor() {
     // Store CA in OS tmp dir or user dir
@@ -36,11 +38,13 @@ export class ProxyHandlers {
     }
 
     try {
+      const mockttp = this.mockttpModule ?? (await import('mockttp'));
+      this.mockttpModule = mockttp;
+
       if (useHttps) {
         const keyPath = path.join(this.caPathDir, 'ca.key');
         const certPath = path.join(this.caPathDir, 'ca.pem');
 
-        // Check if certificates exist, if not generate them using mockttp API
         if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
           console.log('[Proxy] generating new CA certificates...');
           const ca = await mockttp.generateCACertificate();

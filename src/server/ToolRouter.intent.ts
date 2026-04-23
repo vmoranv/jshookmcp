@@ -39,6 +39,10 @@ export const MAINTENANCE_TASK_PATTERN =
 
 let _cachedWorkflowRules: WorkflowRule[] | null = null;
 
+// LRU cache for detectWorkflowIntent results (queries repeat frequently)
+const _intentCache = new Map<string, WorkflowRule | null>();
+const INTENT_CACHE_MAX = 64;
+
 /**
  * Aggregate workflow rules declared by domain manifests.
  * All routing metadata is now declared in each domain's manifest.ts,
@@ -63,12 +67,17 @@ export function getEffectiveWorkflowRules(): WorkflowRule[] {
   _cachedWorkflowRules = [...rules].toSorted(
     (a: WorkflowRule, b: WorkflowRule) => b.priority - a.priority,
   );
+  // Invalidate intent cache when rules are recomputed
+  _intentCache.clear();
   return _cachedWorkflowRules;
 }
 
 // ── Intent Detection Functions ──
 
 export function detectWorkflowIntent(query: string): WorkflowRule | null {
+  const cached = _intentCache.get(query);
+  if (cached !== undefined) return cached;
+
   const matches: WorkflowRule[] = [];
   for (const rule of getEffectiveWorkflowRules()) {
     for (const pattern of rule.patterns) {
@@ -78,9 +87,16 @@ export function detectWorkflowIntent(query: string): WorkflowRule | null {
       }
     }
   }
-  if (matches.length === 0) return null;
-  matches.sort((a, b) => b.priority - a.priority);
-  return matches[0]!;
+  const result =
+    matches.length === 0 ? null : matches.toSorted((a, b) => b.priority - a.priority)[0]!;
+
+  // Evict oldest entry when cache is full
+  if (_intentCache.size >= INTENT_CACHE_MAX) {
+    const firstKey = _intentCache.keys().next().value;
+    if (firstKey !== undefined) _intentCache.delete(firstKey);
+  }
+  _intentCache.set(query, result);
+  return result;
 }
 
 export function matchWorkflowRoute(

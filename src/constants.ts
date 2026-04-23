@@ -149,13 +149,10 @@ export const TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS = int(
   'TRANSFORM_CRYPTO_POOL_IDLE_TIMEOUT_MS',
   30_000,
 );
-export const TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB = int(
-  'TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB',
-  128,
-);
+export const TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB = int('TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB', 64);
 export const TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB = int(
   'TRANSFORM_CRYPTO_POOL_MAX_YOUNG_GEN_MB',
-  32,
+  16,
 );
 
 export const EMULATOR_FETCH_GOTO_TIMEOUT_MS = int('EMULATOR_FETCH_GOTO_TIMEOUT_MS', 30_000);
@@ -389,6 +386,13 @@ export const SEARCH_VECTOR_DYNAMIC_WEIGHT = bool('SEARCH_VECTOR_DYNAMIC_WEIGHT',
 export const SEARCH_VECTOR_LEARN_UP = float('SEARCH_VECTOR_LEARN_UP', 0.05);
 export const SEARCH_VECTOR_LEARN_DOWN = float('SEARCH_VECTOR_LEARN_DOWN', 0.03);
 export const SEARCH_VECTOR_LEARN_TOP_N = int('SEARCH_VECTOR_LEARN_TOP_N', 5);
+/**
+ * SEARCH_VECTOR_BM25_SKIP_THRESHOLD: when the top BM25 score meets or exceeds
+ * this value, dense vector scoring is skipped — the text signal is already
+ * strong enough that embeddings rarely change the ranking.
+ * Set to 0 to always run vector scoring (original behavior).
+ */
+export const SEARCH_VECTOR_BM25_SKIP_THRESHOLD = float('SEARCH_VECTOR_BM25_SKIP_THRESHOLD', 12);
 
 /**
  * Profile tier-aware ranking: tools whose domain is not visible under the

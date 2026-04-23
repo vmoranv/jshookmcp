@@ -241,22 +241,26 @@ export class CryptoHandlers {
 
       await ensureCryptoPoolWarmed(this.state.cryptoHarnessPool);
 
-      const harness = await runCryptoHarness(
-        this.state.cryptoHarnessPool,
-        code,
-        functionName,
-        testInputs,
-      );
+      try {
+        const harness = await runCryptoHarness(
+          this.state.cryptoHarnessPool,
+          code,
+          functionName,
+          testInputs,
+        );
 
-      return toTextResponse({
-        results: harness.results.map((row) => ({
-          input: row.input,
-          output: row.output,
-          duration: row.duration,
-          ...(row.error ? { error: row.error } : {}),
-        })),
-        allPassed: harness.allPassed,
-      });
+        return toTextResponse({
+          results: harness.results.map((row) => ({
+            input: row.input,
+            output: row.output,
+            duration: row.duration,
+            ...(row.error ? { error: row.error } : {}),
+          })),
+          allPassed: harness.allPassed,
+        });
+      } finally {
+        void this.state.cryptoHarnessPool.drainIdle?.();
+      }
     } catch (error) {
       return fail('crypto_test_harness', error);
     }
@@ -271,42 +275,46 @@ export class CryptoHandlers {
 
       await ensureCryptoPoolWarmed(this.state.cryptoHarnessPool);
 
-      const [run1, run2] = await Promise.all([
-        runCryptoHarness(this.state.cryptoHarnessPool, code1, functionName, testInputs),
-        runCryptoHarness(this.state.cryptoHarnessPool, code2, functionName, testInputs),
-      ]);
+      try {
+        const [run1, run2] = await Promise.all([
+          runCryptoHarness(this.state.cryptoHarnessPool, code1, functionName, testInputs),
+          runCryptoHarness(this.state.cryptoHarnessPool, code2, functionName, testInputs),
+        ]);
 
-      const rows = testInputs.map((input, index) => {
-        const left = run1.results[index] ?? {
-          input,
-          output: '',
-          duration: 0,
-          error: 'missing result from implementation #1',
-        };
-        const right = run2.results[index] ?? {
-          input,
-          output: '',
-          duration: 0,
-          error: 'missing result from implementation #2',
-        };
-        const sameOutput = left.output === right.output;
-        const noError = !left.error && !right.error;
-        return {
-          input,
-          output1: left.output,
-          output2: right.output,
-          duration1: left.duration,
-          duration2: right.duration,
-          match: sameOutput && noError,
-          ...(left.error ? { error1: left.error } : {}),
-          ...(right.error ? { error2: right.error } : {}),
-        };
-      });
+        const rows = testInputs.map((input, index) => {
+          const left = run1.results[index] ?? {
+            input,
+            output: '',
+            duration: 0,
+            error: 'missing result from implementation #1',
+          };
+          const right = run2.results[index] ?? {
+            input,
+            output: '',
+            duration: 0,
+            error: 'missing result from implementation #2',
+          };
+          const sameOutput = left.output === right.output;
+          const noError = !left.error && !right.error;
+          return {
+            input,
+            output1: left.output,
+            output2: right.output,
+            duration1: left.duration,
+            duration2: right.duration,
+            match: sameOutput && noError,
+            ...(left.error ? { error1: left.error } : {}),
+            ...(right.error ? { error2: right.error } : {}),
+          };
+        });
 
-      const matches = rows.filter((row) => row.match).length;
-      const mismatches = rows.length - matches;
+        const matches = rows.filter((row) => row.match).length;
+        const mismatches = rows.length - matches;
 
-      return toTextResponse({ matches, mismatches, results: rows });
+        return toTextResponse({ matches, mismatches, results: rows });
+      } finally {
+        void this.state.cryptoHarnessPool.drainIdle?.();
+      }
     } catch (error) {
       return fail('crypto_compare', error);
     }

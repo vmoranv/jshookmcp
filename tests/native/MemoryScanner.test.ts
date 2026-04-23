@@ -390,6 +390,45 @@ describe('MemoryScanner', () => {
       expect(result.matchCount).toBeGreaterThanOrEqual(0);
     });
 
+    it('realigns custom alignment scans at chunk boundaries', async () => {
+      const chunkSize = 16 * 1024 * 1024;
+      const regionBase = 0x10000n;
+      const expectedAddress = regionBase + BigInt(chunkSize + 4);
+
+      mockProvider.queryRegion.mockImplementation((_h, addr) => {
+        if (addr <= regionBase) {
+          return {
+            baseAddress: regionBase,
+            size: chunkSize * 2,
+            protection: 0x04,
+            state: 'committed',
+            type: 'private',
+            isReadable: true,
+            isWritable: true,
+            isExecutable: false,
+          } as any;
+        }
+        return null;
+      });
+
+      mockProvider.readMemory.mockImplementation(
+        (_handle: ProcessHandle, addr: bigint, size: number) => {
+          const buf = Buffer.alloc(size);
+          if (addr === regionBase + BigInt(chunkSize)) {
+            buf.writeInt32LE(42, 4);
+          }
+          return { data: buf, bytesRead: size };
+        },
+      );
+
+      const result = await scanner.firstScan(1234, '42', {
+        valueType: 'int32',
+        alignment: 6,
+      });
+
+      expect(result.addresses).toContain(`0x${expectedAddress.toString(16).toUpperCase()}`);
+    });
+
     it('should handle alignment <= 0 in firstScan (line 113)', async () => {
       const result = await scanner.firstScan(1234, '42', { valueType: 'int32', alignment: 0 });
       expect(result.scanNumber).toBe(1);

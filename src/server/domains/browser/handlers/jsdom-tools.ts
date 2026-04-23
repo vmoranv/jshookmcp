@@ -32,6 +32,9 @@ const RUN_SCRIPTS_MODES: ReadonlySet<RunScriptsMode> = new Set([
 ]);
 const COOKIE_ACTIONS: ReadonlySet<CookieAction> = new Set(['get', 'set', 'clear']);
 
+/** Maximum HTML input size to prevent unbounded memory allocation. */
+const MAX_HTML_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
 /** Session lifetime in milliseconds. Configurable via env in future. */
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
@@ -100,13 +103,18 @@ export class JsdomHandlers {
   async handleJsdomParse(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       const html = argStringRequired(args, 'html');
+      if (Buffer.byteLength(html, 'utf8') > MAX_HTML_SIZE_BYTES) {
+        return R.fail(
+          `HTML input exceeds ${MAX_HTML_SIZE_BYTES / 1024 / 1024}MB limit. Provide smaller HTML or use a URL.`,
+        ).build();
+      }
       const url = argString(args, 'url', 'about:blank');
       const contentType = argString(args, 'contentType', 'text/html');
       const runScripts = argEnum(args, 'runScripts', RUN_SCRIPTS_MODES, 'none');
       const includeNodeLocations = argBool(args, 'includeNodeLocations', false);
       const pretendToBeVisual = argBool(args, 'pretendToBeVisual', false);
       const referrer = argString(args, 'referrer', '');
-      const storageQuotaBytes = argNumber(args, 'storageQuotaBytes', 5_000_000);
+      const storageQuotaBytes = argNumber(args, 'storageQuotaBytes', 1_000_000);
 
       const options: ConstructorParameters<typeof JSDOMType>[1] = {
         url,
