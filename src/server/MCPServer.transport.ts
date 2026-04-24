@@ -90,7 +90,7 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
 
     // Health check endpoint — no auth, no rate limit
     if (url.pathname === '/health' && req.method === 'GET') {
-      handleHealthCheck(ctx, res);
+      handleHealthCheck(ctx, req, res);
       return;
     }
 
@@ -152,13 +152,29 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
 
 // ── Health check ──
 
-import type { ServerResponse as HttpServerResponse } from 'node:http';
+import type { IncomingMessage, ServerResponse as HttpServerResponse } from 'node:http';
 
-function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void {
+function handleHealthCheck(
+  ctx: MCPServerContext,
+  req: IncomingMessage,
+  res: HttpServerResponse,
+): void {
   // Minimal output by default to avoid exposing internal state (domains, tool
-  // counts, token budget). Full details are gated behind MCP_AUTH_TOKEN or
+  // counts, token budget). Verbose details require authentication or
   // MCP_HEALTH_VERBOSE=true for trusted environments.
-  const verbose = ['1', 'true'].includes((process.env.MCP_HEALTH_VERBOSE ?? '').toLowerCase());
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  const verboseRequested = url.searchParams.get('verbose') === 'true';
+  const envVerboseAllowed = ['1', 'true'].includes(
+    (process.env.MCP_HEALTH_VERBOSE ?? '').toLowerCase(),
+  );
+
+  let authenticated = true;
+  if (verboseRequested && !envVerboseAllowed) {
+    authenticated = checkAuth(req, res);
+    if (!authenticated) return; // checkAuth has already responded with 401
+  }
+
+  const verbose = verboseRequested && (authenticated || envVerboseAllowed);
 
   const body: Record<string, unknown> = {
     status: 'ok',
@@ -166,17 +182,12 @@ function handleHealthCheck(ctx: MCPServerContext, res: HttpServerResponse): void
   };
 
   if (verbose) {
-    const budgetStats = ctx.tokenBudget.getStats();
     body.tier = ctx.baseTier;
     body.baseTier = ctx.baseTier;
     body.enabledDomains = [...ctx.enabledDomains];
     body.registeredTools = ctx.selectedTools.length;
     body.activatedTools = ctx.activatedToolNames.size;
-    body.tokenBudget = {
-      usagePercentage: budgetStats.usagePercentage,
-      currentUsage: budgetStats.currentUsage,
-      maxTokens: budgetStats.maxTokens,
-    };
+    // Removed sensitive token budget details from responses
   }
 
   res.writeHead(200, { 'Content-Type': 'application/json' });

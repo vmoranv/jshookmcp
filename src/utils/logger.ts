@@ -1,22 +1,14 @@
-const ANSI = {
-  gray: '\x1b[90m',
-  blue: '\x1b[34m',
-  yellow: '\x1b[33m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  reset: '\x1b[0m',
-} as const;
-
-const colorize = (color: string, text: string) => `${color}${text}${ANSI.reset}`;
+import chalk from 'chalk';
+import { createWriteStream, mkdir } from 'node:fs';
+import { dirname } from 'node:path';
+import { chmod } from 'node:fs/promises';
 
 const SENSITIVE_KEYS =
   /^(auth(orization)?|cookie|set[_-]?cookie|x[_-]?api[_-]?key|token|access[_-]?token|refresh[_-]?token|id[_-]?token|secret|client[_-]?secret|password|passwd|api[_-]?key|private[_-]?key|credentials?|session[_-]?id|csrf[_-]?token)$/i;
 
-/** Patterns that look like secrets in values (Bearer tokens, JWTs, long hex strings). */
 const SENSITIVE_VALUE_PATTERNS =
   /^(Bearer\s+\S|eyJ[A-Za-z0-9_-]{10,}|[A-Fa-f0-9]{32,}|sk[_-][A-Za-z0-9]{20,})/;
 
-/** JSON.stringify replacer that redacts sensitive fields. */
 function sensitiveReplacer(key: string, value: unknown): unknown {
   if (key && SENSITIVE_KEYS.test(key) && typeof value === 'string') {
     return '[REDACTED]';
@@ -29,14 +21,44 @@ function sensitiveReplacer(key: string, value: unknown): unknown {
 }
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-export type LogListener = (level: LogLevel, message: string, args: unknown[]) => void;
+
+export interface LoggerOptions {
+  level?: LogLevel;
+  filePath?: string;
+}
 
 class Logger {
   private level: LogLevel;
-  private listeners: LogListener[] = [];
+  private fileStream?: ReturnType<typeof createWriteStream>;
 
-  constructor(level: LogLevel = 'info') {
-    this.level = level;
+  constructor(options: LoggerOptions = {}) {
+    this.level = options.level || 'info';
+    if (options.filePath) {
+      this.initializeFileLogging(options.filePath);
+    }
+  }
+
+  private async initializeFileLogging(filePath: string): Promise<void> {
+    try {
+      // Ensure directory exists with secure permissions (0755)
+      const dir = dirname(filePath);
+      await mkdir(dir, { recursive: true, mode: 0o755 });
+
+      // Create write stream for log file
+      this.fileStream = createWriteStream(filePath, { flags: 'a' });
+
+      // Set restrictive permissions on log file (0600) after creation
+      this.fileStream.on('open', async (fd) => {
+        try {
+          await chmod(filePath, 0o600);
+        } catch (error) {
+          // Log to console if file permission setting fails
+          console.error(`Failed to set secure permissions on log file ${filePath}:`, error);
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to initialize file logging to ${filePath}:`, error);
+    }
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -55,65 +77,70 @@ class Logger {
         formattedArgs = ' [unserializable]';
       }
     }
-    return `${prefix} ${message}${formattedArgs}`;
+    return `${prefix} ${message}${formattedArgs}\n`;
   }
 
-  private emit(level: LogLevel, message: string, args: unknown[]): void {
-    for (const listener of this.listeners) {
-      try {
-        listener(level, message, args);
-      } catch {
-        // Suppress listener errors to prevent crashing the main log flow
-      }
+  private writeToFile(message: string): void {
+    if (this.fileStream) {
+      this.fileStream.write(message);
     }
-  }
-
-  onLog(listener: LogListener): () => void {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== listener);
-    };
   }
 
   debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog('debug')) {
-      console.error(colorize(ANSI.gray, this.formatMessage('debug', message, ...args)));
-      this.emit('debug', message, args);
+      const formatted = this.formatMessage('debug', message, ...args);
+      // stderr only \u2014 stdout reserved for MCP frames
+      console.error(chalk.gray(formatted.trimEnd()));
+      this.writeToFile(formatted);
     }
   }
 
   info(message: string, ...args: unknown[]): void {
     if (this.shouldLog('info')) {
-      console.error(colorize(ANSI.blue, this.formatMessage('info', message, ...args)));
-      this.emit('info', message, args);
+      const formatted = this.formatMessage('info', message, ...args);
+      console.error(chalk.blue(formatted.trimEnd()));
+      this.writeToFile(formatted);
     }
   }
 
   warn(message: string, ...args: unknown[]): void {
     if (this.shouldLog('warn')) {
-      console.error(colorize(ANSI.yellow, this.formatMessage('warn', message, ...args)));
-      this.emit('warn', message, args);
+      const formatted = this.formatMessage('warn', message, ...args);
+      console.error(chalk.yellow(formatted.trimEnd()));
+      this.writeToFile(formatted);
     }
   }
 
   error(message: string, ...args: unknown[]): void {
-    /* v8 ignore next 4 */
+    /* v8 ignore next 3 */
     if (this.shouldLog('error')) {
-      console.error(colorize(ANSI.red, this.formatMessage('error', message, ...args)));
-      this.emit('error', message, args);
+      const formatted = this.formatMessage('error', message, ...args);
+      console.error(chalk.red(formatted.trimEnd()));
+      this.writeToFile(formatted);
     }
   }
 
   success(message: string, ...args: unknown[]): void {
     if (this.shouldLog('info')) {
-      console.error(colorize(ANSI.green, this.formatMessage('info', message, ...args)));
-      this.emit('info', message, args); // success maps to info for MCP
+      const formatted = this.formatMessage('info', message, ...args);
+      console.error(chalk.green(formatted.trimEnd()));
+      this.writeToFile(formatted);
     }
   }
 
   setLevel(level: LogLevel): void {
     this.level = level;
   }
+
+  close(): void {
+    if (this.fileStream) {
+      this.fileStream.end();
+      this.fileStream = undefined;
+    }
+  }
 }
 
-export const logger = new Logger((process.env.LOG_LEVEL as LogLevel) || 'info');
+export const logger = new Logger({
+  level: (process.env.LOG_LEVEL as LogLevel) || 'info',
+  filePath: process.env.LOG_FILE,
+});

@@ -69,8 +69,32 @@ function formatUnknownError(input: unknown): string {
   }
 }
 
-export async function main(): Promise<void> {
+/**
+ * Parse CLI arguments to extract Pro API configuration flags.
+ * Sets process environment variables for proApiToken and proApiVersion.
+ */
+function parseProApiFlags(args: string[]): void {
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--pro-api-token' && args[i + 1]) {
+      const token = args[i + 1]!;
+      if (token.length < 10) {
+        console.error('[ERROR] --pro-api-token must be at least 10 characters');
+        process.exit(1);
+      }
+      process.env.OBFUSCATOR_IO_API_TOKEN = token;
+      i++; // Skip the value argument
+    } else if (args[i] === '--pro-api-version' && args[i + 1]) {
+      process.env.OBFUSCATOR_IO_VERSION = args[i + 1];
+      i++; // Skip the value argument
+    }
+  }
+}
+
+export async function main() {
   try {
+    // Parse Pro API flags before fast path to set environment variables
+    parseProApiFlags(process.argv.slice(2));
+
     const cliFastPath = resolveCliFastPath(process.argv.slice(2), import.meta.url);
     if (cliFastPath.handled) {
       if (cliFastPath.output) {
@@ -102,16 +126,7 @@ export async function main(): Promise<void> {
     }
 
     logger.info('Creating MCP server instance...');
-    const explicitProfile = (process.env.MCP_TOOL_PROFILE ?? '').trim().toLowerCase() as
-      | 'search'
-      | 'workflow'
-      | 'full'
-      | undefined;
-    const profile =
-      explicitProfile === 'full' || explicitProfile === 'workflow' || explicitProfile === 'search'
-        ? explicitProfile
-        : 'search';
-    await initRegistry(profile);
+    await initRegistry();
     const server = new MCPServer(config);
     const stopArtifactRetentionScheduler = startArtifactRetentionScheduler();
     const recoveryWindowMs = Math.max(1000, RUNTIME_ERROR_WINDOW_MS);

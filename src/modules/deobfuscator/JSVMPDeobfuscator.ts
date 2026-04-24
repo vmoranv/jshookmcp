@@ -93,13 +93,17 @@ export class JSVMPDeobfuscator {
 
       return result;
     } catch (error) {
-      logger.error('JSVMP', error);
-      return {
-        isJSVMP: false,
-        deobfuscatedCode: code,
-        confidence: 0,
-        warnings: [`: ${error}`],
+      const errorDetails = {
+        error: 'JSVMPDeobfuscationFailed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+        context: {
+          codePreview: code.substring(0, 500),
+          options,
+        },
       };
+      logger.error(`JSVMP deobfuscation failed: ${JSON.stringify(errorDetails)}`);
+      throw new Error(JSON.stringify(errorDetails));
     }
   }
 

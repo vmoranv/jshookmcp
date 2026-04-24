@@ -87,6 +87,64 @@ The built-in surface below is generated from the runtime registry and checked in
 <!-- metadata-sync:end -->
 
 > **[View the complete Tool Reference ↗](https://vmoranv.github.io/jshookmcp/reference/)**
+> **[🔧 Configuration](https://vmoranv.github.io/jshookmcp/guide/configuration.html)**
+
+## CLI Flags and Environment Variables
+
+### Pro API Configuration
+
+The jshook CLI supports the following flags for configuring the Obfuscator.io Pro API:
+
+#### CLI Flags
+
+```bash
+# With API token
+jshook --pro-api-token <your-token>
+
+# With API token and version
+jshook --pro-api-token <your-token> --pro-api-version <version>
+```
+
+**Requirements:**
+- `--pro-api-token`: Must be at least 10 characters
+- `--pro-api-version`: Optional (defaults to latest)
+
+#### Environment Variables
+
+Alternatively, configure using environment variables:
+
+```bash
+export OBFUSCATOR_IO_API_TOKEN=<your-token>
+export OBFUSCATOR_IO_VERSION=<version>  # optional
+
+jshook
+```
+
+**Available environment variables:**
+- `OBFUSCATOR_IO_API_TOKEN`: Your Obfuscator.io Pro API token (required for Pro features)
+- `OBFUSCATOR_IO_VERSION`: API version to use (optional)
+
+### Usage Examples
+
+#### Start MCP server with Pro API token
+
+```bash
+jshook --pro-api-token abcdefghij1234567890
+```
+
+#### Start with specific API version
+
+```bash
+jshook --pro-api-token abcdefghij1234567890 --pro-api-version 1.0.0
+```
+
+#### Using environment variables
+
+```bash
+export OBFUSCATOR_IO_API_TOKEN="abcdefghij1234567890"
+export OBFUSCATOR_IO_VERSION="1.0.0"
+jshook
+```
 
 ## Project Stats
 

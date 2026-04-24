@@ -3,6 +3,7 @@ import { join } from 'path';
 import { createHash } from 'crypto';
 import type { CacheConfig } from '@internal-types/index';
 import { logger } from '@utils/logger';
+import { writeFileSecure, mkdirSecure } from '@utils/secure-files';
 
 export class CacheManager {
   private config: CacheConfig;
@@ -17,7 +18,7 @@ export class CacheManager {
     }
 
     try {
-      await fs.mkdir(this.config.dir, { recursive: true });
+      await mkdirSecure(this.config.dir);
       logger.debug(`Cache directory initialized: ${this.config.dir}`);
     } catch (error) {
       logger.error('Failed to initialize cache directory', error);
@@ -67,7 +68,7 @@ export class CacheManager {
         timestamp: Date.now(),
         value,
       };
-      await fs.writeFile(cachePath, JSON.stringify(data), 'utf-8');
+      await writeFileSecure(cachePath, JSON.stringify(data), { encoding: 'utf-8' });
       logger.debug(`Cache set: ${key}`);
     } catch (error) {
       logger.error('Failed to set cache', error);

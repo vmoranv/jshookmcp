@@ -4,6 +4,73 @@ import traverse, { type NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 import { logger } from '@utils/logger';
 
+export function decodeEscapeSequences(code: string): string {
+  logger.info('Decoding escape sequences (hex/unicode)...');
+
+  let result = code;
+  let changed = false;
+
+  const hexDecoded = result.replace(/\\x([0-9a-fA-F]{2})/g, (_m, hex) => {
+    changed = true;
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+  if (hexDecoded !== result) result = hexDecoded;
+
+  const unicodeDecoded = result.replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex) => {
+    changed = true;
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+  if (unicodeDecoded !== result) result = unicodeDecoded;
+
+  if (changed) {
+    logger.info('Escape sequences decoded');
+  }
+  return result;
+}
+
+export function normalizeInvisibleUnicode(code: string): string {
+  const INVISIBLE_RE = /[\u200b-\u200f\u202a-\u202e\ufeff\u2060-\u2064\u00ad]/g;
+  if (!INVISIBLE_RE.test(code)) return code;
+  logger.info('Stripping invisible Unicode characters...');
+  const cleaned = code.replace(INVISIBLE_RE, '');
+  logger.info('Invisible Unicode removed');
+  return cleaned;
+}
+
+export function inlineUnescapeAtob(code: string): string {
+  logger.info('Decoding inline unescape/atob calls...');
+
+  let result = code;
+  let changed = false;
+
+  result = result.replace(
+    /unescape\s*\(\s*["'`]((?:%[0-9a-fA-F]{2})+)["'`]\s*\)/g,
+    (_m, encoded) => {
+      try {
+        changed = true;
+        return JSON.stringify(decodeURIComponent(encoded));
+      } catch {
+        return _m;
+      }
+    },
+  );
+
+  result = result.replace(/atob\s*\(\s*["'`]([A-Za-z0-9+/\s]+=*)["'`]\s*\)/g, (_m, b64) => {
+    try {
+      const decoded = Buffer.from(b64.replace(/\s/g, ''), 'base64').toString('utf8');
+      changed = true;
+      return JSON.stringify(decoded);
+    } catch {
+      return _m;
+    }
+  });
+
+  if (changed) {
+    logger.info('Inline unescape/atob decoded');
+  }
+  return result;
+}
+
 export function derotateStringArray(code: string): string {
   logger.info('Derotating string array...');
 
@@ -12,6 +79,9 @@ export function derotateStringArray(code: string): string {
       sourceType: 'module',
       plugins: ['jsx', 'typescript'],
     });
+    if (!ast) {
+      throw new Error('Failed to parse code into AST');
+    }
 
     let derotated = 0;
 
@@ -49,8 +119,16 @@ export function derotateStringArray(code: string): string {
 
     return code;
   } catch (error) {
-    logger.error('Failed to derotate string array:', error);
-    return code;
+    const errorDetails = {
+      error: 'StringArrayDerotationFailed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+      context: {
+        codePreview: code.substring(0, 500),
+      },
+    };
+    logger.error(`String array derotation failed: ${JSON.stringify(errorDetails)}`);
+    throw new Error(JSON.stringify(errorDetails));
   }
 }
 

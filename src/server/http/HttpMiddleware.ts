@@ -1,6 +1,7 @@
 /**
  * HTTP middleware for MCP Streamable HTTP transport.
  *
+ * - Security headers (X-Content-Type-Options, X-Frame-Options, etc.) except on health checks
  * - Bearer token authentication (opt-in via MCP_AUTH_TOKEN env)
  * - Origin validation to prevent CSRF on localhost
  * - Request body size limiting (default 10 MB)
@@ -268,4 +269,26 @@ export function checkRateLimit(
 
   entry.timestamps.push(now);
   return true;
+}
+
+// ── Security headers ──
+
+/**
+ * Applies comprehensive security headers to HTTP responses.
+ * Excludes health check endpoints to avoid interfering with monitoring.
+ */
+export function applySecurityHeaders(req: IncomingMessage, res: ServerResponse): void {
+  // Skip security headers for health checks
+  if (req.url?.startsWith('/health')) {
+    return;
+  }
+
+  // Set security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Content-Security-Policy', "default-src 'self'");
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
 }

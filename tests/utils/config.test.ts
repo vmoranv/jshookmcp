@@ -35,6 +35,9 @@ describe('config utilities', () => {
     delete process.env.SEARCH_QUERY_CATEGORY_PROFILES_JSON;
     delete process.env.SEARCH_CJK_QUERY_ALIASES_JSON;
     delete process.env.SEARCH_INTENT_TOOL_BOOST_RULES_JSON;
+    delete process.env.MCP_PORT;
+    delete process.env.CAPTCHA_API_KEY;
+    delete process.env.CAPTCHA_SOLVER_BASE_URL;
     mockMissingEnvFile();
   });
 
@@ -131,6 +134,39 @@ describe('config utilities', () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('maxConcurrentAnalysis must be at least 1');
     expect(result.errors).toContain('maxCodeSizeMB must be at least 1');
+  });
+
+  it('fails startup on invalid environment variables', async () => {
+    process.env.MCP_PORT = '99999'; // Invalid port > 65535
+
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const processExit = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit called');
+    });
+
+    await expect(async () => {
+      const { getConfig } = await import('@utils/config');
+      getConfig();
+    }).rejects.toThrow('process.exit called');
+
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Validation errors'));
+    expect(processExit).toHaveBeenCalledWith(1);
+
+    consoleError.mockRestore();
+    processExit.mockRestore();
+  });
+
+  it('accepts valid environment variables', async () => {
+    process.env.MCP_PORT = '3000';
+    process.env.CAPTCHA_API_KEY = 'validapikey123456789';
+    process.env.CAPTCHA_SOLVER_BASE_URL = 'https://api.example.com';
+
+    const { getConfig } = await import('@utils/config');
+    const config = getConfig();
+
+    expect(config.validation.mcpPort).toBe(3000);
+    expect(config.validation.captchaApiKey).toBe('validapikey123456789');
+    expect(config.validation.captchaSolverBaseUrl).toBe('https://api.example.com');
   });
 
   it('reads search rule overrides from environment json', async () => {

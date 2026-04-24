@@ -656,7 +656,7 @@ describe('webcrack helpers (coverage)', () => {
         })),
       }));
 
-      const result = await runWebcrack('code', { outputDir: './tests/tmp/webcrack-out' });
+      const result = await runWebcrack('code', { outputDir: 'tmp/out' });
       expect(result.applied).toBe(true);
       expect(result.bundle).toBeUndefined();
     });
@@ -705,7 +705,7 @@ describe('webcrack helpers (coverage)', () => {
         rm: vi.fn(async () => {}),
       }));
 
-      await runWebcrack('code', { outputDir: '/tmp/out', forceOutput: false });
+      await runWebcrack('code', { outputDir: 'tmp/out', forceOutput: false });
       expect(rmState.calls).toEqual([]);
     });
 
@@ -726,7 +726,7 @@ describe('webcrack helpers (coverage)', () => {
         })),
       }));
 
-      await runWebcrack('code', { outputDir: '/tmp/force', forceOutput: true });
+      await runWebcrack('code', { outputDir: 'tmp/force', forceOutput: true });
       // rm is called with force:true from node:fs/promises mock in module scope
       // Since the mock may not be picked up, we verify by checking it doesn't throw
       // The important thing is runWebcrack completes without error when forceOutput=true
@@ -792,7 +792,7 @@ describe('webcrack helpers (coverage)', () => {
       }));
 
       const result = await runWebcrack('obfuscated', {
-        outputDir: './tests/tmp/webcrack-out',
+        outputDir: 'tmp/webcrack-out',
         forceOutput: true,
         includeModuleCode: false,
         maxBundleModules: 10,

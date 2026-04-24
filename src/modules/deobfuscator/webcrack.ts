@@ -1,4 +1,4 @@
-import { readdir, rm, stat } from 'node:fs/promises';
+import { readdir, realpath, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type {
   DeobfuscateBundleModuleSummary,
@@ -17,7 +17,7 @@ type WebcrackModuleLike = {
 };
 
 type WebcrackBundleLike = {
-  type: 'webpack' | 'browserify';
+  type: 'webpack' | 'browserify' | 'vite' | 'rollup' | 'parcel' | (string & {});
   entryId: string;
   modules: Map<string, WebcrackModuleLike>;
 };
@@ -107,7 +107,11 @@ function isSupportedNodeVersion(): boolean {
     return minor >= 12;
   }
 
-  return major > 22;
+  if (major === 23) {
+    return true;
+  }
+
+  return major >= 24;
 }
 
 function matchesRule(module: WebcrackModuleLike, rule: DeobfuscateMappingRule): boolean {
@@ -237,18 +241,21 @@ export async function runWebcrack(
     };
   }
 
-  const sandboxOption: unknown = undefined;
+  let hasIsolatedVm = false;
   try {
     // @ts-expect-error -- optional dependency that may fail to compile on Node 24+
     await import('isolated-vm');
-  } catch {
-    // SECURITY: Do NOT fall back to node:vm — it is not a security boundary.
-    // Without isolated-vm, webcrack runs without a custom sandbox.
-    // Deobfuscation of untrusted code is not recommended in this mode.
+    hasIsolatedVm = true;
+    logger.debug('isolated-vm available, webcrack sandbox enabled');
+  } catch (err) {
+    // Do NOT fall back to node:vm — it is not a security boundary and allows
+    // host escape via `this.constructor.constructor('return process')()`.
+    // webcrack will run without a sandbox when isolated-vm is unavailable.
     logger.warn(
-      'isolated-vm is unavailable (likely Node 24 incompatibility). ' +
-        'Deobfuscation sandbox is disabled — do not process untrusted code.',
+      'isolated-vm is unavailable or failed to load. webcrack will run without a sandbox — ' +
+        'do not process untrusted samples in this configuration.',
     );
+    logger.debug('isolated-vm load error:', err);
   }
 
   try {
@@ -259,7 +266,7 @@ export async function runWebcrack(
       deobfuscate: true,
       unminify: optionsUsed.unminify,
       mangle: optionsUsed.mangle,
-      ...(sandboxOption ? { sandbox: sandboxOption } : {}),
+      ...(hasIsolatedVm ? { sandbox: 'isolated-vm' } : { sandbox: false }),
     });
 
     const remapped = result.bundle
@@ -269,23 +276,36 @@ export async function runWebcrack(
     let savedTo: string | undefined;
     let savedArtifacts: DeobfuscateSavedArtifact[] | undefined;
     if (typeof options.outputDir === 'string' && options.outputDir.trim().length > 0) {
-      savedTo = path.resolve(options.outputDir);
-
-      // SECURITY: Ensure outputDir stays within cwd or a safe parent.
-      // Reject absolute paths outside the project and any path traversal.
-      const cwd = process.cwd();
-      const relFromCwd = path.relative(cwd, savedTo);
-      if (
-        path.isAbsolute(relFromCwd) ||
-        relFromCwd.startsWith('..') ||
-        savedTo === '/' ||
-        savedTo === path.parse(savedTo).root
-      ) {
-        throw new Error(
-          `outputDir must resolve to a path within the project root. Got: ${savedTo}`,
-        );
+      const baseDir = path.normalize(process.cwd());
+      const resolved = path.resolve(baseDir, options.outputDir);
+      // Guard against path traversal: outputDir must be within the current working directory.
+      if (!resolved.startsWith(baseDir + path.sep) && resolved !== baseDir) {
+        const reason = `outputDir escapes the working directory: ${options.outputDir}`;
+        logger.warn(reason);
+        return {
+          applied: false,
+          code,
+          optionsUsed,
+          reason,
+        };
       }
-
+      // Guard against symlink escape: resolve the real path and verify it's still within baseDir.
+      try {
+        const real = await realpath(resolved);
+        if (!real.startsWith(baseDir + path.sep) && real !== baseDir) {
+          const reason = `outputDir resolves via symlink outside working directory: ${options.outputDir}`;
+          logger.warn(reason);
+          return {
+            applied: false,
+            code,
+            optionsUsed,
+            reason,
+          };
+        }
+      } catch {
+        // Path doesn't exist yet — symlink check only applies post-creation, acceptable.
+      }
+      savedTo = resolved;
       if (options.forceOutput) {
         await rm(savedTo, { recursive: true, force: true });
       }

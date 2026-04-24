@@ -1,7 +1,7 @@
 {
   "name": "@jshookmcp/jshook",
-  "version": "0.2.9",
-  "description": "MCP server with built-in tools across multiple domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
+  "version": "0.2.6",
+  "description": "MCP server with 424 built-in tools across 35 domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
   "keywords": [
     "ai",
     "anti-detection",
@@ -40,8 +40,8 @@
     "url": "https://github.com/vmoranv/jshookmcp.git"
   },
   "bin": {
-    "jshook": "dist/index.mjs",
-    "jshookmcp": "dist/index.mjs"
+    "jshook": "dist/src/index.js",
+    "jshookmcp": "dist/src/index.js"
   },
   "files": [
     "dist",
@@ -50,16 +50,16 @@
     "scripts/postinstall.cjs"
   ],
   "type": "module",
-  "main": "dist/index.mjs",
-  "types": "dist/index.d.mts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.mts"
+      "import": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
     },
     "./plugin-api": {
-      "import": "./dist/server/plugin-api.mjs",
-      "types": "./dist/server/plugin-api.d.mts"
+      "import": "./dist/src/server/plugin-api.js",
+      "types": "./dist/src/server/plugin-api.d.ts"
     }
   },
   "publishConfig": {
@@ -67,14 +67,11 @@
     "registry": "https://registry.npmjs.org"
   },
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && node scripts/generate-domains-index.mjs && tsdown",
-    "build:sdk": "corepack pnpm -C packages/extension-sdk build",
-    "build:all": "corepack pnpm run build && corepack pnpm run build:sdk",
-    "build:analyze": "cross-env BUNDLE_ANALYZE=1 corepack pnpm run build && echo 'Open stats.html in browser to view bundle analysis'",
-    "typecheck": "tsc --noEmit -p tsconfig.json && corepack pnpm -C packages/extension-sdk typecheck",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths && corepack pnpm -C packages/extension-sdk build && node scripts/copy-native-scripts.mjs && node scripts/generate-entry-reexport.mjs && node scripts/fix-bin-permissions.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json && corepack pnpm -C packages/extension-sdk typecheck",
     "deps:update": "corepack pnpm update -r",
     "dev": "tsx --conditions=development watch src/index.ts",
-    "start": "node dist/index.mjs",
+    "start": "node dist/src/index.js",
     "doctor": "tsx src/cli/doctor.ts",
     "docs:generate": "node scripts/generate-vitepress-reference.mjs",
     "docs:dev": "vitepress dev docs --host 127.0.0.1 --port 5173",
@@ -87,9 +84,8 @@
     "format:check": "oxfmt \"src/**\" \"tests/**\" \"!tests/tmp/**\" --check --no-error-on-unmatched-pattern",
     "test": "node scripts/run-vitest-smart.mjs run",
     "test:e2e": "cross-env E2E_TARGET_URL=https://vmoranv.github.io/jshookmcp/ vitest run --config tests/e2e/vitest.e2e.config.ts",
-    "test:e2e:perf": "cross-env E2E_TARGET_URL=https://vmoranv.github.io/jshookmcp/ E2E_COLLECT_PERFORMANCE=1 vitest run --config tests/e2e/vitest.e2e.config.ts",
     "test:coverage": "node -e \"require('fs').mkdirSync('coverage/.tmp', { recursive: true })\" && cross-env ENABLE_INJECTION_TOOLS=true COVERAGE_FULL=true node scripts/run-vitest-smart.mjs run --coverage",
-    "prepack": "corepack pnpm run metadata:check && corepack pnpm run build:all",
+    "prepack": "corepack pnpm run metadata:check && corepack pnpm run build",
     "package:verify-bin": "node scripts/verify-packed-bin.mjs",
     "package:verify-install": "node scripts/verify-packed-install.mjs",
     "package:verify-release": "node scripts/verify-release-artifact.mjs",
@@ -102,22 +98,35 @@
     "install:full": "corepack pnpm install && corepack pnpm exec camoufox-js fetch",
     "metadata:sync": "node scripts/generate-metadata.mjs --write",
     "metadata:check": "node scripts/generate-metadata.mjs --check",
-    "check:docs-format": "corepack pnpm run lint:md",
-    "search:tune": "tsx scripts/search-tune/optimize.ts",
-    "search:tune:report": "tsx scripts/search-tune/report.ts"
+    "check:docs-format": "corepack pnpm run lint:md"
   },
   "dependencies": {
     "@babel/generator": "^7.29.1",
     "@babel/parser": "^7.29.2",
     "@babel/traverse": "^7.29.0",
     "@babel/types": "^7.29.0",
+    "@huggingface/transformers": "^4.0.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@types/escodegen": "^0.0.10",
+    "ajv": "^8.18.0",
+    "ajv-formats": "^3.0.1",
+    "axios": "^1.15.0",
+    "better-sqlite3": "12.8.0",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
     "dotenv": "^17.4.1",
-    "jsdom": "^29.0.2",
+    "escodegen": "^2.1.0",
+    "groq-sdk": "^1.1.2",
+    "jscodeshift": "^17.3.0",
     "koffi": "^2.15.6",
-    "mockttp": "^4.3.1",
+    "limiter": "^3.0.0",
+    "openai": "^6.34.0",
+    "ora": "^9.3.0",
     "quickjs-emscripten": "^0.32.0",
     "rebrowser-puppeteer-core": "^24.8.1",
+    "recast": "^0.23.11",
+    "shift-parser": "^8.0.0",
+    "shift-refactor": "^2.0.0",
     "tinyglobby": "^0.2.16",
     "zod": "^4.3.6"
   },
@@ -125,17 +134,17 @@
     "@types/babel__generator": "^7.27.0",
     "@types/babel__traverse": "^7.28.0",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/jsdom": "^28.0.1",
     "@types/node": "^25.5.2",
     "@vitest/coverage-v8": "^4.1.4",
     "cross-env": "^10.1.0",
+    "estree-walker": "^3.0.3",
     "lefthook": "^2.1.5",
     "medium-zoom": "^1.1.0",
-    "oxfmt": "^0.46.0",
+    "nodemon": "^3.1.14",
+    "oxfmt": "^0.44.0",
     "oxlint": "^1.59.0",
-    "rollup-plugin-visualizer": "^7.0.1",
-    "tsdown": "^0.21.7",
-    "tsx": "^4.21.0",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.16.1",
     "typescript": "^6.0.2",
     "vite": "^8.0.8",
     "vitepress": "1.6.4",
@@ -144,9 +153,7 @@
   },
   "optionalDependencies": {
     "@devicefarmer/adbkit": "^3.3.8",
-    "@huggingface/transformers": "^4.0.1",
-    "better-sqlite3": "12.9.0",
-    "camoufox-js": "^0.10.2",
+    "camoufox-js": "^0.9.3",
     "playwright-core": "^1.59.1",
     "webcrack": "^2.15.1"
   },
@@ -156,29 +163,25 @@
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "overrides": {
-      "hono": ">=4.12.14",
-      "@hono/node-server": "1.19.13",
+      "hono": "4.12.7",
+      "@hono/node-server": "1.19.11",
       "express-rate-limit": "8.3.0",
-      "basic-ftp": ">=5.3.0",
+      "basic-ftp": "5.2.1",
       "brace-expansion": "5.0.5",
       "minimatch": "10.2.4",
       "esbuild": "0.27.3",
       "isolated-vm": "6.1.2",
       "flatted": ">=3.4.2",
       "path-to-regexp": "8.4.0",
-      "protobufjs": ">=7.5.5",
       "picomatch@^2.0.0": "2.3.2",
-      "picomatch@^4.0.0": "4.0.4",
-      "vitepress>vite": "$vite"
+      "picomatch@^4.0.0": "4.0.4"
     },
     "onlyBuiltDependencies": [
       "better-sqlite3",
       "esbuild",
       "isolated-vm",
       "koffi",
-      "lefthook",
-      "onnxruntime-node",
-      "protobufjs"
+      "lefthook"
     ]
   },
   "mcpName": "io.github.vmoranv/jshookmcp"

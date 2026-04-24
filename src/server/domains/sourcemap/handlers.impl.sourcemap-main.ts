@@ -1,5 +1,6 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { writeFileSecure } from '@utils/secure-files';
 import type {
   CdpSessionLike,
   DiscoverItem,
@@ -168,8 +169,7 @@ export class SourcemapToolHandlersMain extends SourcemapToolHandlersExtension {
             : `/* source content missing in source map: ${sourcePath} */\n`;
 
         try {
-          await mkdir(dirname(absolutePath), { recursive: true });
-          await writeFile(absolutePath, fileContent, 'utf-8');
+          await writeFileSecure(absolutePath, fileContent, { encoding: 'utf-8' });
           writtenFiles.push(relativePath);
         } catch {
           skippedFiles += 1;

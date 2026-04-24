@@ -50,7 +50,7 @@ export async function resolveArtifactPath(options: {
     );
   }
 
-  await mkdir(dir, { recursive: true });
+  await mkdir(dir, { recursive: true, mode: 0o755 });
 
   const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
   const shortId = Math.random().toString(36).substring(2, 8);

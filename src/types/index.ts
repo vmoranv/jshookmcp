@@ -9,6 +9,7 @@ export type {
   SearchQueryCategoryProfileConfig,
   SearchCjkQueryAliasConfig,
   SearchIntentToolBoostRuleConfig,
+  ValidationConfig,
 } from '@internal-types/config';
 export type { BrowserContext } from '@internal-types/browser';
 export type {

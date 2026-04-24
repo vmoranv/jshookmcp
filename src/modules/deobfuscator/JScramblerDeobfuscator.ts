@@ -43,6 +43,9 @@ export class JScramberDeobfuscator {
         plugins: ['jsx', 'typescript'],
         errorRecovery: true,
       });
+      if (!ast) {
+        throw new Error('Failed to parse code into AST');
+      }
 
       if (this.detectSelfDefending(ast)) {
         this.removeSelfDefending(ast);
@@ -98,14 +101,17 @@ export class JScramberDeobfuscator {
         confidence,
       };
     } catch (error) {
-      logger.error('JScrambler', error);
-      return {
-        code: currentCode,
-        success: false,
-        transformations,
-        warnings: [...warnings, String(error)],
-        confidence: 0,
+      const errorDetails = {
+        error: 'JScramblerDeobfuscationFailed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+        context: {
+          codePreview: code.substring(0, 500),
+          options,
+        },
       };
+      logger.error(`JScrambler deobfuscation failed: ${JSON.stringify(errorDetails)}`);
+      throw new Error(JSON.stringify(errorDetails));
     }
   }
 

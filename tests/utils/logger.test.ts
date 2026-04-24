@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { logger } from '@utils/logger';
+import { logger, Logger } from '@utils/logger';
+import { promises as fs } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 describe('logger', () => {
   beforeEach(() => {
@@ -99,5 +102,65 @@ describe('logger', () => {
     logger.setLevel('warn');
     logger.success('this should be hidden');
     expect(console.error).toHaveBeenCalledTimes(0);
+  });
+
+  describe('file logging', () => {
+    let tempLogFile: string;
+
+    beforeEach(async () => {
+      tempLogFile = join(tmpdir(), `test-log-${Date.now()}.log`);
+      vi.restoreAllMocks();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(async () => {
+      try {
+        await fs.unlink(tempLogFile);
+      } catch {
+        // Ignore if file doesn't exist
+      }
+    });
+
+    it('creates log file with secure permissions when filePath is provided', async () => {
+      const fileLogger = new Logger({ level: 'info', filePath: tempLogFile });
+
+      // Wait for file initialization
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      fileLogger.info('test message');
+
+      // Check file was created
+      const stats = await fs.stat(tempLogFile);
+      expect(stats.isFile()).toBe(true);
+
+      // Check permissions (0600)
+      const mode = stats.mode & 0o777;
+      expect(mode).toBe(0o600);
+
+      // Check content
+      const content = await fs.readFile(tempLogFile, 'utf-8');
+      expect(content).toContain('test message');
+      expect(content).toContain('[INFO]');
+
+      fileLogger.close();
+    });
+
+    it('logs to both console and file', async () => {
+      const fileLogger = new Logger({ level: 'info', filePath: tempLogFile });
+
+      // Wait for file initialization
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      fileLogger.info('dual output test');
+
+      expect(console.error).toHaveBeenCalledTimes(1);
+      const consoleOutput = String((console.error as any).mock.calls[0]![0]);
+      expect(consoleOutput).toContain('dual output test');
+
+      const fileContent = await fs.readFile(tempLogFile, 'utf-8');
+      expect(fileContent).toContain('dual output test');
+
+      fileLogger.close();
+    });
   });
 });
