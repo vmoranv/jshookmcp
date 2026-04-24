@@ -1,4 +1,6 @@
+import * as http from 'node:http';
 import * as http2 from 'node:http2';
+import * as https from 'node:https';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 
@@ -1031,13 +1033,21 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
     const hostname = target.hostname;
     const port = Number(url.port) || (url.protocol === 'https:' ? 443 : 80);
     const resolvedIp = target.resolvedAddress ?? hostname;
+    const useHttps = url.protocol === 'https:';
 
     const samples: number[] = [];
     const errors: string[] = [];
 
     for (let i = 0; i < iterations; i++) {
       try {
-        const rtt = await this.measureSingleRtt(resolvedIp, port, probeType, timeoutMs);
+        const rtt = await this.measureSingleRtt(
+          hostname,
+          resolvedIp,
+          port,
+          probeType,
+          timeoutMs,
+          useHttps,
+        );
         samples.push(rtt);
       } catch (err) {
         errors.push(err instanceof Error ? err.message : String(err));
@@ -1068,19 +1078,38 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
   }
 
   private measureSingleRtt(
-    host: string,
+    hostname: string,
+    address: string,
     port: number,
     probeType: 'tcp' | 'tls' | 'http',
     timeoutMs: number,
+    useHttps: boolean,
   ): Promise<number> {
     switch (probeType) {
       case 'tcp':
-        return this.probeTcp(host, port, timeoutMs);
+        return this.probeTcp(address, port, timeoutMs);
       case 'tls':
-        return this.probeTls(host, port, timeoutMs);
+        return this.probeTls(hostname, address, port, timeoutMs);
       case 'http':
-        return this.probeHttp(host, port, timeoutMs);
+        return this.probeHttp(hostname, address, port, timeoutMs, useHttps);
     }
+  }
+
+  private createPinnedLookup(address: string) {
+    const family = net.isIP(address) === 6 ? 6 : 4;
+
+    return (
+      _hostname: string,
+      optionsOrCallback: unknown,
+      maybeCallback?: (
+        error: NodeJS.ErrnoException | null,
+        resolvedAddress: string,
+        resolvedFamily: number,
+      ) => void,
+    ): void => {
+      const callback = typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback;
+      callback?.(null, address, family);
+    };
   }
 
   private probeTcp(host: string, port: number, timeoutMs: number): Promise<number> {
@@ -1103,50 +1132,87 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
     });
   }
 
-  private probeTls(host: string, port: number, timeoutMs: number): Promise<number> {
+  private probeTls(
+    hostname: string,
+    address: string,
+    port: number,
+    timeoutMs: number,
+  ): Promise<number> {
     return new Promise((resolve, reject) => {
       const start = performance.now();
-      const timer = setTimeout(
-        () => reject(new Error(`TLS probe timed out after ${timeoutMs}ms`)),
-        timeoutMs,
-      );
-      const socket = tls.connect(
+      let settled = false;
+      let socket: tls.TLSSocket | null = null;
+      const finish = (callback: () => void): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        socket?.destroy();
+        callback();
+      };
+      const timer = setTimeout(() => {
+        finish(() => reject(new Error(`TLS probe timed out after ${timeoutMs}ms`)));
+      }, timeoutMs);
+      socket = tls.connect(
         {
-          host,
+          host: hostname,
           port,
-          rejectUnauthorized: false /* lgtm [js/disabling-certificate-validation] */,
+          lookup: this.createPinnedLookup(address),
+          ...(net.isIP(hostname) === 0 ? { servername: hostname } : {}),
         },
         () => {
-          clearTimeout(timer);
-          socket.destroy();
-          resolve(roundMs(performance.now() - start));
+          finish(() => resolve(roundMs(performance.now() - start)));
         },
       );
       socket.on('error', (err) => {
-        clearTimeout(timer);
-        socket.destroy();
-        reject(err);
+        finish(() => reject(err));
       });
     });
   }
 
-  private async probeHttp(host: string, port: number, timeoutMs: number): Promise<number> {
-    const protocol = port === 443 ? 'https:' : 'http:';
-    const probeUrl = `${protocol}//${host}:${port}/`;
-    const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), timeoutMs);
-    const start = performance.now();
-    try {
-      await fetch(probeUrl, {
-        method: 'HEAD',
-        signal: ac.signal,
-        redirect: 'manual',
-        // @ts-expect-error -- Node.js fetch option
-        rejectUnauthorized: false, // lgtm [js/disabling-certificate-validation]
+  private probeHttp(
+    hostname: string,
+    address: string,
+    port: number,
+    timeoutMs: number,
+    useHttps: boolean,
+  ): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const start = performance.now();
+      let settled = false;
+      let request: http.ClientRequest | null = null;
+      const finish = (callback: () => void): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        request?.destroy();
+        callback();
+      };
+      const timer = setTimeout(() => {
+        finish(() => reject(new Error(`HTTP probe timed out after ${timeoutMs}ms`)));
+      }, timeoutMs);
+      const requestFactory = useHttps ? https.request : http.request;
+      request = requestFactory(
+        {
+          host: hostname,
+          port,
+          path: '/',
+          method: 'HEAD',
+          lookup: this.createPinnedLookup(address),
+          ...(useHttps && net.isIP(hostname) === 0 ? { servername: hostname } : {}),
+        },
+        (response) => {
+          response.resume();
+          finish(() => resolve(roundMs(performance.now() - start)));
+        },
+      );
+      request.on('error', (error) => {
+        finish(() => reject(error));
       });
-      return roundMs(performance.now() - start);
-    } finally {
-      clearTimeout(timer);
-    }
+      request.end();
+    });
   }
 }

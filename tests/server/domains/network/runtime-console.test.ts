@@ -133,11 +133,8 @@ describe('AdvancedHandlersBase (console)', () => {
 
       expect(parsed.total).toBe(2);
       expect(
-        parsed.exceptions.every(
-          (exception) =>
-            exception.url?.includes(
-              'a.com',
-            ) /* lgtm [js/incomplete-url-substring-sanitization] */ === true,
+        parsed.exceptions.every((exception) =>
+          exception.url ? new URL(exception.url).hostname === 'a.com' : false,
         ),
       ).toBe(true);
     });

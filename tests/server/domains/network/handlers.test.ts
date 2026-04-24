@@ -354,4 +354,24 @@ describe('AdvancedToolHandlers (network)', () => {
     expect(body.success).toBe(false);
     expect(body.error).toContain('insecure HTTP is only allowed');
   });
+
+  it('measures RTT over HTTP without opting out of transport validation', async () => {
+    const body = parseJson<any>(
+      await handlers.handleNetworkRttMeasure({
+        url: `http://127.0.0.1:${httpPort}/`,
+        probeType: 'http',
+        iterations: 1,
+        timeoutMs: 2000,
+      }),
+    );
+
+    expect(body.success).toBe(true);
+    expect(body.target.resolvedIp).toBe('127.0.0.1');
+    expect(body.samples).toHaveLength(1);
+    expect(body.stats.count).toBe(1);
+    expect(eventBus.emit).toHaveBeenCalledWith(
+      'network:rtt_measured',
+      expect.objectContaining({ probeType: 'http', successCount: 1 }),
+    );
+  });
 });

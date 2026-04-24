@@ -247,6 +247,30 @@ describe('AdvancedToolHandlers raw DNS/HTTP handlers', () => {
     expect(body.response.bodyText).toBe('ok');
   });
 
+  it('network_rtt_measure issues HEAD probes without disabling TLS validation defaults', async () => {
+    const server = await listenRawHttpServer(
+      'HTTP/1.1 204 No Content\r\nContent-Length: 0\r\nConnection: close\r\n\r\n',
+    );
+
+    try {
+      const body = parseJson<any>(
+        await handler.handleNetworkRttMeasure({
+          url: `http://127.0.0.1:${server.port}/`,
+          probeType: 'http',
+          iterations: 1,
+          timeoutMs: 2000,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.target.resolvedIp).toBe('127.0.0.1');
+      expect(body.samples).toHaveLength(1);
+      expect(body.stats.count).toBe(1);
+    } finally {
+      await server.close();
+    }
+  });
+
   it('http2_frame_build delegates to buildHttp2Frame and returns result', async () => {
     const body = parseJson<any>(
       await handler.handleHttp2FrameBuild({

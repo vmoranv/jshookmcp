@@ -12,6 +12,8 @@ const state = vi.hoisted(() => ({
   isIcmpAvailable: vi.fn(() => true),
   netCreateConnection: vi.fn(),
   tlsConnect: vi.fn(),
+  httpRequest: vi.fn(),
+  httpsRequest: vi.fn(),
 }));
 
 vi.mock('node:dns/promises', () => ({
@@ -32,6 +34,22 @@ vi.mock('node:tls', async () => {
   return {
     ...actual,
     connect: (...args: unknown[]) => state.tlsConnect(...args),
+  };
+});
+
+vi.mock('node:http', async () => {
+  const actual = await vi.importActual<typeof import('node:http')>('node:http');
+  return {
+    ...actual,
+    request: (...args: unknown[]) => state.httpRequest(...args),
+  };
+});
+
+vi.mock('node:https', async () => {
+  const actual = await vi.importActual<typeof import('node:https')>('node:https');
+  return {
+    ...actual,
+    request: (...args: unknown[]) => state.httpsRequest(...args),
   };
 });
 
@@ -89,6 +107,21 @@ class MockSocket extends EventEmitter {
     this.written = Buffer.isBuffer(data) ? data : Buffer.from(data ?? '', 'utf8');
     queueMicrotask(() => {
       this.onWrite?.(this);
+    });
+    return this;
+  });
+}
+
+class MockClientRequest extends EventEmitter {
+  public readonly destroy = vi.fn(() => this);
+
+  constructor(private readonly onEnd?: () => void) {
+    super();
+  }
+
+  public readonly end = vi.fn(() => {
+    queueMicrotask(() => {
+      this.onEnd?.();
     });
     return this;
   });
@@ -418,20 +451,37 @@ describe('RawHandlers', () => {
     it('dispatches measureSingleRtt to probeTcp, probeTls, and probeHttp', async () => {
       const typedHandler = handler as unknown as {
         probeTcp: (host: string, port: number, timeoutMs: number) => Promise<number>;
-        probeTls: (host: string, port: number, timeoutMs: number) => Promise<number>;
-        probeHttp: (host: string, port: number, timeoutMs: number) => Promise<number>;
+        probeTls: (
+          hostname: string,
+          address: string,
+          port: number,
+          timeoutMs: number,
+        ) => Promise<number>;
+        probeHttp: (
+          hostname: string,
+          address: string,
+          port: number,
+          timeoutMs: number,
+          useHttps: boolean,
+        ) => Promise<number>;
       };
       const tcpSpy = vi.spyOn(typedHandler, 'probeTcp').mockResolvedValue(1.1);
       const tlsSpy = vi.spyOn(typedHandler, 'probeTls').mockResolvedValue(2.2);
       const httpSpy = vi.spyOn(typedHandler, 'probeHttp').mockResolvedValue(3.3);
 
-      await expect((handler as any).measureSingleRtt('host', 80, 'tcp', 1000)).resolves.toBe(1.1);
-      await expect((handler as any).measureSingleRtt('host', 443, 'tls', 1000)).resolves.toBe(2.2);
-      await expect((handler as any).measureSingleRtt('host', 443, 'http', 1000)).resolves.toBe(3.3);
+      await expect(
+        (handler as any).measureSingleRtt('host', '93.184.216.34', 80, 'tcp', 1000, false),
+      ).resolves.toBe(1.1);
+      await expect(
+        (handler as any).measureSingleRtt('host', '93.184.216.34', 443, 'tls', 1000, true),
+      ).resolves.toBe(2.2);
+      await expect(
+        (handler as any).measureSingleRtt('host', '93.184.216.34', 443, 'http', 1000, true),
+      ).resolves.toBe(3.3);
 
-      expect(tcpSpy).toHaveBeenCalledWith('host', 80, 1000);
-      expect(tlsSpy).toHaveBeenCalledWith('host', 443, 1000);
-      expect(httpSpy).toHaveBeenCalledWith('host', 443, 1000);
+      expect(tcpSpy).toHaveBeenCalledWith('93.184.216.34', 80, 1000);
+      expect(tlsSpy).toHaveBeenCalledWith('host', '93.184.216.34', 443, 1000);
+      expect(httpSpy).toHaveBeenCalledWith('host', '93.184.216.34', 443, 1000, true);
     });
 
     it('probes TCP successfully and reports TCP errors/timeouts', async () => {
@@ -467,35 +517,54 @@ describe('RawHandlers', () => {
         queueMicrotask(() => onConnect());
         return socket;
       });
-      await expect((handler as any).probeTls('host', 443, 1000)).resolves.toBeTypeOf('number');
+      await expect(
+        (handler as any).probeTls('host', '93.184.216.34', 443, 1000),
+      ).resolves.toBeTypeOf('number');
 
       state.tlsConnect.mockImplementationOnce(() => {
         const socket = new MockSocket();
         queueMicrotask(() => socket.emit('error', new Error('tls failed')));
         return socket;
       });
-      await expect((handler as any).probeTls('host', 443, 1000)).rejects.toThrow('tls failed');
+      await expect((handler as any).probeTls('host', '93.184.216.34', 443, 1000)).rejects.toThrow(
+        'tls failed',
+      );
 
       state.tlsConnect.mockImplementationOnce(() => {
         const socket = new MockSocket();
         queueMicrotask(() => socket.emit('timeout'));
         return socket;
       });
-      await expect((handler as any).probeTls('host', 443, 1000)).rejects.toThrow(
+      await expect((handler as any).probeTls('host', '93.184.216.34', 443, 1000)).rejects.toThrow(
         'TLS probe timed out after 1000ms',
       );
     });
 
-    it('probes HTTP using a HEAD request and respects the inferred protocol', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      vi.stubGlobal('fetch', fetchMock);
-
-      const result = await (handler as any).probeHttp('example.com', 443, 1000);
-      expect(typeof result).toBe('number');
-      expect(fetchMock).toHaveBeenCalledWith(
-        'https://example.com:443/',
-        expect.objectContaining({ method: 'HEAD', redirect: 'manual' }),
+    it('probes HTTP using a HEAD request and chooses the correct transport', async () => {
+      state.httpsRequest.mockImplementationOnce(
+        (_options: unknown, onResponse?: (response: { resume: () => void }) => void) =>
+          new MockClientRequest(() => onResponse?.({ resume: vi.fn() })),
       );
+
+      const result = await (handler as any).probeHttp(
+        'example.com',
+        '93.184.216.34',
+        443,
+        1000,
+        true,
+      );
+      expect(typeof result).toBe('number');
+      expect(state.httpsRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          host: 'example.com',
+          port: 443,
+          path: '/',
+          method: 'HEAD',
+          servername: 'example.com',
+        }),
+        expect.any(Function),
+      );
+      expect(state.httpRequest).not.toHaveBeenCalled();
     });
   });
 

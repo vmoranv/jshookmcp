@@ -69,6 +69,7 @@ import {
   normalizeAlpnProtocol,
   buildPeerCertificateChain,
   hasPeerCertificate,
+  applyTlsValidationPolicy,
 } from './shared';
 
 export class BoringsslInspectorHandlers {
@@ -1173,16 +1174,20 @@ export class BoringsslInspectorHandlers {
 
     return new Promise<unknown>((resolve) => {
       let settled = false;
-      const socket = createTlsConnection({
-        host,
-        port,
-        servername: requestedServername,
-        rejectUnauthorized: false, // lgtm [js/disabling-certificate-validation]
-        ...(minVersion ? { minVersion } : {}),
-        ...(maxVersion ? { maxVersion } : {}),
-        ...(alpnProtocols.length > 0 ? { ALPNProtocols: alpnProtocols } : {}),
-        ...(caBundle.ca ? { ca: caBundle.ca } : {}),
-      });
+      const socket = createTlsConnection(
+        applyTlsValidationPolicy(
+          {
+            host,
+            port,
+            servername: requestedServername,
+            ...(minVersion ? { minVersion } : {}),
+            ...(maxVersion ? { maxVersion } : {}),
+            ...(alpnProtocols.length > 0 ? { ALPNProtocols: alpnProtocols } : {}),
+            ...(caBundle.ca ? { ca: caBundle.ca } : {}),
+          },
+          allowInvalidCertificates,
+        ),
+      );
 
       const finish = (payload: unknown): void => {
         if (settled) {
@@ -1560,16 +1565,20 @@ export class BoringsslInspectorHandlers {
 
     return new Promise<unknown>((resolve) => {
       let settled = false;
-      const socket = createTlsConnection({
-        host,
-        port,
-        servername: target.requestedServername ?? undefined,
-        rejectUnauthorized: false, // lgtm [js/disabling-certificate-validation]
-        ...(minVersion ? { minVersion } : {}),
-        ...(maxVersion ? { maxVersion } : {}),
-        ...(alpnProtocols.length > 0 ? { ALPNProtocols: alpnProtocols } : {}),
-        ...(caBundle.ca ? { ca: caBundle.ca } : {}),
-      });
+      const socket = createTlsConnection(
+        applyTlsValidationPolicy(
+          {
+            host,
+            port,
+            servername: target.requestedServername ?? undefined,
+            ...(minVersion ? { minVersion } : {}),
+            ...(maxVersion ? { maxVersion } : {}),
+            ...(alpnProtocols.length > 0 ? { ALPNProtocols: alpnProtocols } : {}),
+            ...(caBundle.ca ? { ca: caBundle.ca } : {}),
+          },
+          allowInvalidCertificates,
+        ),
+      );
 
       const finish = (payload: unknown): void => {
         if (settled) {
@@ -1913,16 +1922,20 @@ export class BoringsslInspectorHandlers {
       let certificates: WebSocketSession['metadata']['certificates'] = null;
       const socket: SessionSocket =
         scheme === 'wss'
-          ? createTlsConnection({
-              host,
-              port,
-              servername: target.requestedServername ?? undefined,
-              rejectUnauthorized: false, // lgtm [js/disabling-certificate-validation]
-              ...(minVersion ? { minVersion } : {}),
-              ...(maxVersion ? { maxVersion } : {}),
-              ...(alpnProtocols.length > 0 ? { ALPNProtocols: alpnProtocols } : {}),
-              ...(caBundle.ca ? { ca: caBundle.ca } : {}),
-            })
+          ? createTlsConnection(
+              applyTlsValidationPolicy(
+                {
+                  host,
+                  port,
+                  servername: target.requestedServername ?? undefined,
+                  ...(minVersion ? { minVersion } : {}),
+                  ...(maxVersion ? { maxVersion } : {}),
+                  ...(alpnProtocols.length > 0 ? { ALPNProtocols: alpnProtocols } : {}),
+                  ...(caBundle.ca ? { ca: caBundle.ca } : {}),
+                },
+                allowInvalidCertificates,
+              ),
+            )
           : new NetSocket();
 
       const finish = (payload: unknown): void => {

@@ -158,14 +158,7 @@ describe('PatternDetector additional coverage', () => {
         makeRequest({ url: 'https://example.com/api/login' }),
       ];
       const filtered = filterCriticalRequests(requests);
-      expect(
-        filtered.some(
-          (r) =>
-            r.url.includes(
-              'google-analytics.com',
-            ) /* lgtm [js/incomplete-url-substring-sanitization] */,
-        ),
-      ).toBe(false);
+      expect(filtered.some((r) => new URL(r.url).hostname === 'google-analytics.com')).toBe(false);
     });
 
     it('filters out static resources', () => {

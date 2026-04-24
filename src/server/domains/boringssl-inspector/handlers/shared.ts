@@ -1,7 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { Socket as NetSocket } from 'node:net';
 import { createHash, randomBytes, randomUUID, X509Certificate } from 'node:crypto';
-import { type DetailedPeerCertificate, type PeerCertificate, type TLSSocket } from 'node:tls';
+import {
+  type ConnectionOptions as TlsConnectionOptions,
+  type DetailedPeerCertificate,
+  type PeerCertificate,
+  type TLSSocket,
+} from 'node:tls';
 import { argString } from '@server/domains/shared/parse-args';
 import { isLoopbackHost, isPrivateHost } from '@server/domains/network/ssrf-policy';
 
@@ -187,6 +192,17 @@ export function normalizeSocketServername(
 
 export function normalizeAlpnProtocol(protocol: string | false | null | undefined): string | null {
   return typeof protocol === 'string' && protocol.length > 0 ? protocol : null;
+}
+
+export function applyTlsValidationPolicy(
+  options: TlsConnectionOptions,
+  allowInvalidCertificates: boolean,
+): TlsConnectionOptions {
+  const next = { ...options } as TlsConnectionOptions & Record<string, unknown>;
+  // Boringssl inspector is a research tool: keep strict validation by default and
+  // only relax trust checks for explicit opt-in sessions probing intercepted/self-signed targets.
+  Reflect.set(next, 'rejectUnauthorized', !allowInvalidCertificates);
+  return next;
 }
 
 export function isNonEmptyObject(value: unknown): value is Record<string, unknown> {
