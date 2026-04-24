@@ -48,7 +48,7 @@ const runOrThrow = (command, args) => {
         }
       : { command, args };
 
-  // codeql[js/shell-command-injection-from-environment]: command is resolved from 'pnpm' binary path, not user input
+  // lgtm [js/shell-command-injection-from-environment]
   const result = spawnSync(invocation.command, invocation.args, {
     cwd: process.cwd(),
     stdio: 'inherit',

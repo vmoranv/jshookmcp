@@ -137,8 +137,7 @@ describe('AdvancedHandlersBase (console)', () => {
           (exception) =>
             exception.url?.includes(
               'a.com',
-            ) /* codeql[js/incomplete-url-substring-sanitization]: test assertion on hardcoded test data */ ===
-            true,
+            ) /* lgtm [js/incomplete-url-substring-sanitization] */ === true,
         ),
       ).toBe(true);
     });

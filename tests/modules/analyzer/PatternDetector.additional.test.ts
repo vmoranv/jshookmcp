@@ -163,7 +163,7 @@ describe('PatternDetector additional coverage', () => {
           (r) =>
             r.url.includes(
               'google-analytics.com',
-            ) /* codeql[js/incomplete-url-substring-sanitization]: test assertion on hardcoded test data */,
+            ) /* lgtm [js/incomplete-url-substring-sanitization] */,
         ),
       ).toBe(false);
     });

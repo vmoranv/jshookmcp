@@ -623,7 +623,7 @@ export class RawHandlers {
         {
           host,
           port,
-          rejectUnauthorized: false /* codeql[js/disabling-certificate-validation]: intentional — security research tool */,
+          rejectUnauthorized: false /* lgtm [js/disabling-certificate-validation] */,
         },
         () => {
           clearTimeout(timer);
@@ -651,7 +651,7 @@ export class RawHandlers {
         signal: ac.signal,
         redirect: 'manual',
         // @ts-expect-error -- Node.js fetch option
-        rejectUnauthorized: false, // codeql[js/disabling-certificate-validation]: intentional — security research tool
+        rejectUnauthorized: false, // lgtm [js/disabling-certificate-validation]
       });
       return roundMs(performance.now() - start);
     } finally {
