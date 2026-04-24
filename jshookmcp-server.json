@@ -1,0 +1,248 @@
+{
+  "$schema": "https://modelcontextprotocol.github.io/schemas/v1/mcp-server.json",
+  "name": "jshookmcp",
+  "version": "0.2.6",
+  "description": "A modular MCP server for JavaScript deobfuscation and security analysis. Provides 424+ tools across 35 domains, including AST transformations, control flow analysis, string decoding, and browser automation for AI-assisted JavaScript analysis.",
+  "keywords": [
+    "ai",
+    "ast",
+    "browser-automation",
+    "chrome-devtools",
+    "claude",
+    "code-analysis",
+    "cryptography-detection",
+    "debugger",
+    "deobfuscation",
+    "hook",
+    "hooking",
+    "javascript",
+    "javascript-analysis",
+    "mcp",
+    "model-context-protocol",
+    "network-monitoring",
+    "obfuscation",
+    "puppeteer",
+    "security-analysis",
+    "web-scraping"
+  ],
+  "homepage": "https://github.com/vmoranv/jshookmcp#readme",
+  "license": "AGPL-3.0-only",
+  "author": {
+    "name": "vmoranv",
+    "url": "https://github.com/vmoranv"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vmoranv/jshookmcp.git"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "mcp": {
+    "entrypoint": "dist/src/index.js",
+    "transport": [
+      {
+        "type": "http",
+        "port": "${PORT:-3000}",
+        "host": "0.0.0.0"
+      },
+      {
+        "type": "stdio"
+      }
+    ],
+    "domains": [
+      {
+        "name": "deobfuscation",
+        "description": "JavaScript deobfuscation tools, including AST transformations, string decoding, control flow normalization, and specialized deobfuscators for JScrambler, JSVMP, and packed code.",
+        "tools": [
+          {
+            "name": "deobfuscateCode",
+            "description": "🔍 Deobfuscate JavaScript code with precision using the powerful `webcrack` engine. This tool is your go-to solution for reversing obfuscation, including:
+- **Unminification**: Restore original variable names and code structure.
+- **Unpacking**: Extract hidden code from bundled or packed JavaScript.
+- **Control Flow Normalization**: Simplify complex, flattened control flow.
+- **String Decoding**: Decode obfuscated strings (Base64, hex, custom schemes).
+
+Perfect for security researchers, malware analysts, and developers working with obfuscated scripts. Maximize readability and uncover hidden logic with confidence!",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "The obfuscated JavaScript code to deobfuscate."
+                },
+                "options": {
+                  "type": "object",
+                  "properties": {
+                    "unpack": {
+                      "type": "boolean",
+                      "description": "Unpack bundled modules.",
+                      "default": true
+                    },
+                    "unminify": {
+                      "type": "boolean",
+                      "description": "Unminify the code for improved readability.",
+                      "default": true
+                    },
+                    "jsx": {
+                      "type": "boolean",
+                      "description": "Support JSX syntax in the deobfuscated code.",
+                      "default": false
+                    },
+                    "mangle": {
+                      "type": "boolean",
+                      "description": "Mangle variable names to reduce code size (not recommended for readability).",
+                      "default": false
+                    },
+                    "includeModuleCode": {
+                      "type": "boolean",
+                      "description": "Include module code in the output.",
+                      "default": false
+                    },
+                    "maxBundleModules": {
+                      "type": "number",
+                      "description": "Maximum number of bundled modules to unpack.",
+                      "default": 100
+                    },
+                    "outputDir": {
+                      "type": "string",
+                      "description": "Directory to save artifacts (e.g., unpacked modules or transformed code)."
+                    },
+                    "forceOutput": {
+                      "type": "boolean",
+                      "description": "Force output even if deobfuscation fails partially.",
+                      "default": false
+                    }
+                  },
+                  "default": {}
+                }
+              },
+              "required": ["code"]
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "The deobfuscated JavaScript code."
+                },
+                "readabilityScore": {
+                  "type": "number",
+                  "description": "Readability score of the deobfuscated code (0-100)."
+                },
+                "confidence": {
+                  "type": "number",
+                  "description": "Confidence level of the deobfuscation result (0-1)."
+                },
+                "obfuscationType": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Detected obfuscation types (e.g., 'packer', 'minifier', 'vm')."
+                },
+                "transformations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "description": "Type of transformation applied (e.g., 'webcrack', 'unpack')."
+                      },
+                      "description": {
+                        "type": "string",
+                        "description": "Description of the transformation."
+                      },
+                      "success": {
+                        "type": "boolean",
+                        "description": "Whether the transformation succeeded."
+                      }
+                    }
+                  },
+                  "description": "List of transformations applied during deobfuscation."
+                },
+                "analysis": {
+                  "type": "string",
+                  "description": "Analysis of the deobfuscation process and results."
+                },
+                "warnings": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Warnings encountered during deobfuscation."
+                }
+              }
+            }
+          },
+          {
+            "name": "derotateStringArray",
+            "description": "🔄 Eliminate string array rotations—one of the most common obfuscation techniques. This tool:
+- **Detects IIFE-based rotations**: Identifies and neutralizes self-executing functions used to hide strings.
+- **Restores original strings**: Reconstructs the original string array for full readability.
+- **Works with nested obfuscation**: Handles multi-layered string rotation schemes.
+
+A must-use tool for breaking string obfuscation in malware, ads, and DRM-protected scripts!",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "The obfuscated JavaScript code containing string array rotations."
+                }
+              },
+              "required": ["code"]
+            },
+            "outputSchema": {
+              "type": "string",
+              "description": "The transformed JavaScript code with string array rotations removed."
+            }
+          },
+          {
+            "name": "optimizeAST",
+            "description": "✨ Supercharge your deobfuscation with AST-level optimizations! This tool applies advanced transformations to simplify and enhance code readability:
+- **Constant Folding**: Evaluate constant expressions at compile time (e.g., `2 + 3` → `5`).
+- **Dead Code Elimination**: Remove unreachable or redundant code paths.
+- **Variable Inlining**: Replace single-use variables with their values.
+- **Expression Simplification**: Flatten complex expressions for clarity.
+- **Object Property Unfolding**: Expand nested properties for better visibility.
+
+Ideal for post-deobfuscation cleanup or pre-analysis optimization. Works seamlessly with other tools!",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "The JavaScript code to optimize."
+                }
+              },
+              "required": ["code"]
+            },
+            "outputSchema": {
+              "type": "string",
+              "description": "The optimized JavaScript code."
+            }
+          }
+        ]
+      },
+      {
+        "name": "browser",
+        "description": "Browser automation and debugging tools, including CDP (Chrome DevTools Protocol) integration, DOM manipulation, and network monitoring for dynamic analysis.",
+        "tools": []
+      },
+      {
+        "name": "debugger",
+        "description": "Advanced debugging tools for JavaScript, including breakpoint management, scope inspection, and event listener debugging.",
+        "tools": []
+      },
+      {
+        "name": "network",
+        "description": "Network monitoring and analysis tools, including request/response interception, HAR (HTTP Archive) generation, and protocol analysis.",
+        "tools": []
+      }
+    ],
+    "resources": [],
+    "prompts": []
+  }
+}
