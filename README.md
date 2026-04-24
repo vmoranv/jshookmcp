@@ -80,7 +80,7 @@ JSHookMCP exposes **360+ atomic tools** across 36 domains, empowering AI orchest
 The built-in surface below is generated from the runtime registry and checked in CI.
 
 <!-- metadata-sync:start -->
-- Package version: `0.2.8`
+- Package version: `0.2.9`
 - Built-in Tools: `364`
 - Domains: `adb-bridge`, `antidebug`, `binary-instrument`, `boringssl-inspector`, `browser`, `canvas`, `coordination`, `core`, `cross-domain`, `debugger`, `encoding`, `evidence`, `extension-registry`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `mojo-ipc`, `network`, `platform`, `process`, `protocol-analysis`, `proxy`, `sandbox`, `shared-state-board`, `skia-capture`, `sourcemap`, `streaming`, `syscall-hook`, `trace`, `transform`, `v8-inspector`, `wasm`, `workflow`
 - Note: this snapshot is generated from the runtime registry; do not edit the counts by hand.
