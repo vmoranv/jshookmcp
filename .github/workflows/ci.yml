@@ -6,7 +6,34 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
+  prune-caches:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune stale caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh extension install actions/gh-actions-cache 2>/dev/null || true
+          # Delete all CodeQL caches — they are recreated per run and bloat storage
+          for key in $(gh cache list --limit 100 --json key --jq '.[].key' | grep '^codeql'); do
+            gh cache delete "$key" --confirm || true
+          done
+          # Keep only the latest pnpm store cache per OS
+          for key in $(gh cache list --limit 100 --json key --jq '.[].key' | grep '^Linux-pnpm-store' | sort -u); do
+            count=$(gh cache list --limit 100 --json key --jq ".[] | select(.key==\"$key\") | .key" | wc -l)
+            if [ "$count" -gt 1 ]; then
+              gh cache list --limit 100 --json id,key,createdAt --jq "
+                .[] | select(.key==\"$key\") | .id
+              " | tail -n +2 | xargs -I{} gh cache delete {} --confirm || true
+            fi
+          done
+
   build-and-test:
     runs-on: ubuntu-latest
     strategy:

@@ -29,8 +29,7 @@ const resolveWindowsCommand = (commandName) => {
   return resolvedPath;
 };
 
-const pnpmCommand =
-  process.platform === 'win32' ? resolveWindowsCommand('pnpm.cmd') : 'pnpm';
+const pnpmCommand = process.platform === 'win32' ? resolveWindowsCommand('pnpm.cmd') : 'pnpm';
 
 const quoteWindowsArg = (value) => {
   if (!/[\s"]/u.test(value)) {
@@ -49,6 +48,7 @@ const runOrThrow = (command, args) => {
         }
       : { command, args };
 
+  // codeql[js/shell-command-injection-from-environment]: command is resolved from 'pnpm' binary path, not user input
   const result = spawnSync(invocation.command, invocation.args, {
     cwd: process.cwd(),
     stdio: 'inherit',

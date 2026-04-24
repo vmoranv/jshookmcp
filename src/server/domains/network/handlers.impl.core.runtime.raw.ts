@@ -1110,11 +1110,18 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
         () => reject(new Error(`TLS probe timed out after ${timeoutMs}ms`)),
         timeoutMs,
       );
-      const socket = tls.connect({ host, port, rejectUnauthorized: false }, () => {
-        clearTimeout(timer);
-        socket.destroy();
-        resolve(roundMs(performance.now() - start));
-      });
+      const socket = tls.connect(
+        {
+          host,
+          port,
+          rejectUnauthorized: false /* codeql[js/disabling-certificate-validation]: intentional — security research tool */,
+        },
+        () => {
+          clearTimeout(timer);
+          socket.destroy();
+          resolve(roundMs(performance.now() - start));
+        },
+      );
       socket.on('error', (err) => {
         clearTimeout(timer);
         socket.destroy();
@@ -1135,7 +1142,7 @@ export class AdvancedToolHandlersRaw extends AdvancedToolHandlersReplay {
         signal: ac.signal,
         redirect: 'manual',
         // @ts-expect-error -- Node.js fetch option
-        rejectUnauthorized: false,
+        rejectUnauthorized: false, // codeql[js/disabling-certificate-validation]: intentional — security research tool
       });
       return roundMs(performance.now() - start);
     } finally {

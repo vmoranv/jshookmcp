@@ -1177,7 +1177,7 @@ export class BoringsslInspectorHandlers {
         host,
         port,
         servername: requestedServername,
-        rejectUnauthorized: false,
+        rejectUnauthorized: false, // codeql[js/disabling-certificate-validation]: intentional — security research tool
         ...(minVersion ? { minVersion } : {}),
         ...(maxVersion ? { maxVersion } : {}),
         ...(alpnProtocols.length > 0 ? { ALPNProtocols: alpnProtocols } : {}),
@@ -1564,7 +1564,7 @@ export class BoringsslInspectorHandlers {
         host,
         port,
         servername: target.requestedServername ?? undefined,
-        rejectUnauthorized: false,
+        rejectUnauthorized: false, // codeql[js/disabling-certificate-validation]: intentional — security research tool
         ...(minVersion ? { minVersion } : {}),
         ...(maxVersion ? { maxVersion } : {}),
         ...(alpnProtocols.length > 0 ? { ALPNProtocols: alpnProtocols } : {}),
@@ -1917,7 +1917,7 @@ export class BoringsslInspectorHandlers {
               host,
               port,
               servername: target.requestedServername ?? undefined,
-              rejectUnauthorized: false,
+              rejectUnauthorized: false, // codeql[js/disabling-certificate-validation]: intentional — security research tool
               ...(minVersion ? { minVersion } : {}),
               ...(maxVersion ? { maxVersion } : {}),
               ...(alpnProtocols.length > 0 ? { ALPNProtocols: alpnProtocols } : {}),

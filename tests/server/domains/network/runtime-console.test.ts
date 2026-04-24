@@ -133,7 +133,13 @@ describe('AdvancedHandlersBase (console)', () => {
 
       expect(parsed.total).toBe(2);
       expect(
-        parsed.exceptions.every((exception) => exception.url?.includes('a.com') === true),
+        parsed.exceptions.every(
+          (exception) =>
+            exception.url?.includes(
+              'a.com',
+            ) /* codeql[js/incomplete-url-substring-sanitization]: test assertion on hardcoded test data */ ===
+            true,
+        ),
       ).toBe(true);
     });
 
