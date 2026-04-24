@@ -96,12 +96,55 @@ describe('VMDeobfuscator', () => {
       function runVm(a){ return a; }
       runVm(vmIns);
     `;
-    const out = new VMDeobfuscator().simplifyVMCode(code, {
-      interpreterFunction: 'runVm',
-      instructionArray: 'vmIns',
-    });
+    const out = new VMDeobfuscator().simplifyVMCode(
+      code,
+      {
+        interpreterFunction: 'runVm',
+        instructionArray: 'vmIns',
+      },
+      [],
+    );
 
     expect(out).toContain('vm interpreter removed');
     expect(out).toContain('vm instruction array removed');
+  });
+
+  it('extracts VM instructions from switch statement cases', () => {
+    const code = `
+      switch(pc) {
+        case 0: stack.push(x); break;
+        case 1: return String.fromCharCode(y); break;
+        case 2: mem[addr] = val; break;
+        case 3: console.log(result); break;
+      }
+    `;
+    const instructions = new VMDeobfuscator().extractVMInstructions(code);
+    expect(instructions.length).toBeGreaterThan(0);
+    expect(instructions[0]).toMatchObject({
+      opCode: '0',
+      handler: 'stack',
+    });
+  });
+
+  it('analyzes VM structure with all components', () => {
+    const code = `
+      var pc = 0;
+      var stack = [];
+      var state = {};
+      while(true) { switch(pc++) { case 0: break; } }
+    `;
+    const structure = new VMDeobfuscator().analyzeVMStructure(code);
+    expect(structure.hasInterpreter).toBe(true);
+    expect(structure.hasStack).toBe(true);
+    expect(structure.hasStateVariable).toBe(true);
+  });
+
+  it('removes VM guard patterns', () => {
+    const code = `
+      if ("debug"==="debug") { debugger; }
+      try { } catch(e) { }
+    `;
+    const out = new VMDeobfuscator().simplifyVMCode(code, {}, []);
+    expect(out).not.toContain('debugger');
   });
 });

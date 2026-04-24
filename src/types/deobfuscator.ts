@@ -24,7 +24,12 @@ export type ObfuscationType =
   | 'unminify'
   | 'jsx-decompile'
   | 'mangle'
-  | 'webcrack';
+  | 'webcrack'
+  | 'jsdecode'
+  | 'hidden-properties'
+  | 'encoded-calls'
+  | 'proxy-obfuscation'
+  | 'with-obfuscation';
 
 export interface Transformation {
   type: string;
@@ -47,6 +52,10 @@ export interface DeobfuscateOptions {
   includeModuleCode?: boolean;
   maxBundleModules?: number;
   mappings?: DeobfuscateMappingRule[];
+  proApiToken?: string;
+  proApiVersion?: string;
+  vmObfuscation?: boolean;
+  parseHtml?: boolean;
 }
 
 export interface DeobfuscateMappingRule {
@@ -72,7 +81,7 @@ export interface DeobfuscateBundleModuleSummary {
 }
 
 export interface DeobfuscateBundleSummary {
-  type: 'webpack' | 'browserify';
+  type: 'webpack' | 'browserify' | 'vite' | 'rollup' | 'parcel' | (string & {});
   entryId: string;
   moduleCount: number;
   truncated: boolean;
@@ -91,7 +100,8 @@ export interface DeobfuscateResult {
   savedTo?: string;
   savedArtifacts?: DeobfuscateSavedArtifact[];
   warnings?: string[];
-  engine?: 'legacy' | 'webcrack' | 'hybrid';
+  engine?: 'legacy' | 'webcrack' | 'pro-api' | 'hybrid';
   webcrackApplied?: boolean;
+  proApiUsed?: boolean;
   cached?: boolean;
 }

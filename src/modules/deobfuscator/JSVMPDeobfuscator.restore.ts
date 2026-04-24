@@ -46,16 +46,16 @@ async function restoreObfuscatorIO(
   let confidence = 0.5;
 
   try {
-    const stringArrayMatch = code.match(/var\s+(_0x[a-f0-9]+)\s*=\s*(\[.*?\]);/s);
+    const stringArrayMatch = code.match(/var\s+(_0x[a-f0-9]+)\s*=\s*(\[[\s\S]*?\]);/);
     if (stringArrayMatch) {
-      const arrayName = stringArrayMatch[1];
-      const arrayContent = stringArrayMatch[2];
+      const arrayName = stringArrayMatch[1] ?? '';
+      const arrayContent = stringArrayMatch[2] ?? '[]';
 
-      logger.info(` : ${arrayName}`);
+      logger.info(`Found string array: ${arrayName}`);
 
       try {
         const sandboxResult = await context.sandbox.execute({
-          code: `return ${arrayContent || '[]'};`,
+          code: `return ${arrayContent};`,
           timeoutMs: 3000,
         });
         const stringArray = sandboxResult.ok ? sandboxResult.output : undefined;
@@ -63,7 +63,7 @@ async function restoreObfuscatorIO(
         if (Array.isArray(stringArray)) {
           logger.info(`String array detected, ${stringArray.length} strings found`);
 
-          const refPattern = new RegExp(`${arrayName}\\[(\\d+)\\]`, 'g');
+          const refPattern = new RegExp(String.raw`${arrayName}\[(\d+)\]`, 'g');
           restored = restored.replace(refPattern, (_match, index) => {
             const idx = parseInt(index, 10);
             if (idx < stringArray.length) {
@@ -75,11 +75,11 @@ async function restoreObfuscatorIO(
           confidence += 0.2;
         }
       } catch (e) {
-        warnings.push(`: ${e}`);
+        warnings.push(`String array eval failed: ${e}`);
         unresolvedParts.push({
           location: 'String Array',
-          reason: '',
-          suggestion: '',
+          reason: 'Sandbox execution failed',
+          suggestion: 'Try running with a broader sandbox timeout',
         });
       }
     }
@@ -89,19 +89,21 @@ async function restoreObfuscatorIO(
       '',
     );
 
-    if (aggressive) {
-      restored = restored.replace(/\(function\s*\(\)\s*\{([\s\S]*)\}\(\)\);?/g, '$1');
-      confidence += 0.1;
-    }
-
-    restored = restored.replace(/0x([0-9a-f]+)/gi, (_match, hex) => {
-      return String(parseInt(hex, 16));
+    restored = restored.replace(/0x([0-9a-fA-F]+)/g, (_match, hex) => {
+      const val = parseInt(hex, 16);
+      return Number.isFinite(val) ? String(val) : _match;
     });
+
+    if (aggressive) {
+      restored = restored.replace(/\(function\s*\(\)\s*\{([\s\S]*?)\}\(\)\);?/g, '$1');
+      restored = restored.replace(/debugger;?/g, '');
+      confidence += 0.15;
+    }
 
     restored = restored.replace(/;\s*;/g, ';');
     restored = restored.replace(/\{\s*\}/g, '{}');
 
-    warnings.push('obfuscator.io detected, may need special handling');
+    warnings.push('obfuscator.io detected; string array replacement may be partial');
 
     return {
       code: restored,
@@ -110,7 +112,7 @@ async function restoreObfuscatorIO(
       unresolvedParts: unresolvedParts.length > 0 ? unresolvedParts : undefined,
     };
   } catch (error) {
-    warnings.push(`obfuscator.io: ${error}`);
+    warnings.push(`obfuscator.io restore error: ${error}`);
     return {
       code,
       confidence: 0.2,
