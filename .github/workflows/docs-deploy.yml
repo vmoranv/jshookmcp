@@ -38,7 +38,7 @@ jobs:
           corepack prepare pnpm@10.33.0 --activate
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
 
