@@ -102,7 +102,9 @@
     "install:full": "corepack pnpm install && corepack pnpm exec camoufox-js fetch",
     "metadata:sync": "node scripts/generate-metadata.mjs --write",
     "metadata:check": "node scripts/generate-metadata.mjs --check",
-    "check:docs-format": "corepack pnpm run lint:md"
+    "check:docs-format": "corepack pnpm run lint:md",
+    "search:tune": "tsx scripts/search-tune/optimize.ts",
+    "search:tune:report": "tsx scripts/search-tune/report.ts"
   },
   "dependencies": {
     "@babel/generator": "^7.29.1",

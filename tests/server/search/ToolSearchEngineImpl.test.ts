@@ -51,7 +51,6 @@ vi.mock('@server/search/EmbeddingEngine', () => ({
 }));
 
 vi.mock('@src/constants', () => ({
-  SEARCH_TFIDF_COSINE_WEIGHT: 0.3,
   SEARCH_AFFINITY_BOOST_FACTOR: 0.2,
   SEARCH_AFFINITY_TOP_N: 3,
   SEARCH_DOMAIN_HUB_THRESHOLD: 2,

@@ -303,9 +303,6 @@ export const COMPOUND_LONG_WINDOW_MS = int('COMPOUND_LONG_WINDOW_MS', 300_000);
 /**
  * GraphBoost-inspired search enhancements (see GraphBoost paper §4).
  *
- * SEARCH_TFIDF_COSINE_WEIGHT: weight of TF-IDF cosine similarity in hybrid
- * scoring (0 = BM25 only, 1 = cosine only). Mirrors §4.1.3 hybrid retrieval.
- *
  * SEARCH_AFFINITY_BOOST_FACTOR: bonus applied to prefix-group neighbors of
  * top search results. Mirrors §4.1.4 dependency hull expansion.
  *
@@ -318,10 +315,9 @@ export const COMPOUND_LONG_WINDOW_MS = int('COMPOUND_LONG_WINDOW_MS', 300_000);
  * Mirrors §4.3 CSAPC cross-session caching. Raised to 500 to match the
  * 431+ tool catalog size and reduce warm-cache miss rate.
  */
-export const SEARCH_TFIDF_COSINE_WEIGHT = float('SEARCH_TFIDF_COSINE_WEIGHT', 0.3);
-export const SEARCH_AFFINITY_BOOST_FACTOR = float('SEARCH_AFFINITY_BOOST_FACTOR', 0.15);
-export const SEARCH_AFFINITY_TOP_N = int('SEARCH_AFFINITY_TOP_N', 5);
-export const SEARCH_DOMAIN_HUB_THRESHOLD = int('SEARCH_DOMAIN_HUB_THRESHOLD', 3);
+export const SEARCH_AFFINITY_BOOST_FACTOR = float('SEARCH_AFFINITY_BOOST_FACTOR', 0.36);
+export const SEARCH_AFFINITY_TOP_N = int('SEARCH_AFFINITY_TOP_N', 7);
+export const SEARCH_DOMAIN_HUB_THRESHOLD = int('SEARCH_DOMAIN_HUB_THRESHOLD', 6);
 export const SEARCH_QUERY_CACHE_CAPACITY = int('SEARCH_QUERY_CACHE_CAPACITY', 500);
 
 /**
@@ -348,13 +344,13 @@ export const SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE = float(
  * SEARCH_SYNONYM_EXPANSION_LIMIT: max synonym tokens added per original query term.
  * SEARCH_PARAM_TOKEN_WEIGHT: weight for tool parameter name tokens in the index.
  */
-export const SEARCH_TRIGRAM_WEIGHT = float('SEARCH_TRIGRAM_WEIGHT', 0.12);
-export const SEARCH_TRIGRAM_THRESHOLD = float('SEARCH_TRIGRAM_THRESHOLD', 0.35);
-export const SEARCH_RRF_K = int('SEARCH_RRF_K', 60);
-export const SEARCH_RRF_RESCALE_FACTOR = float('SEARCH_RRF_RESCALE_FACTOR', 1000);
-export const SEARCH_RRF_BM25_BLEND = float('SEARCH_RRF_BM25_BLEND', 0.5);
-export const SEARCH_SYNONYM_EXPANSION_LIMIT = int('SEARCH_SYNONYM_EXPANSION_LIMIT', 3);
-export const SEARCH_PARAM_TOKEN_WEIGHT = float('SEARCH_PARAM_TOKEN_WEIGHT', 1.5);
+export const SEARCH_TRIGRAM_WEIGHT = float('SEARCH_TRIGRAM_WEIGHT', 0.03);
+export const SEARCH_TRIGRAM_THRESHOLD = float('SEARCH_TRIGRAM_THRESHOLD', 0.15);
+export const SEARCH_RRF_K = int('SEARCH_RRF_K', 102);
+export const SEARCH_RRF_RESCALE_FACTOR = float('SEARCH_RRF_RESCALE_FACTOR', 2200);
+export const SEARCH_RRF_BM25_BLEND = float('SEARCH_RRF_BM25_BLEND', 0.76);
+export const SEARCH_SYNONYM_EXPANSION_LIMIT = int('SEARCH_SYNONYM_EXPANSION_LIMIT', 1);
+export const SEARCH_PARAM_TOKEN_WEIGHT = float('SEARCH_PARAM_TOKEN_WEIGHT', 3.4);
 
 /**
  * BM25 scoring parameters.
@@ -364,8 +360,8 @@ export const SEARCH_PARAM_TOKEN_WEIGHT = float('SEARCH_PARAM_TOKEN_WEIGHT', 1.5)
  *   The previous hardcoded value of 0.3 under-penalized long descriptions,
  *   allowing verbose tools to crowd the top results.
  */
-export const SEARCH_BM25_K1 = float('SEARCH_BM25_K1', 1.5);
-export const SEARCH_BM25_B = float('SEARCH_BM25_B', 0.75);
+export const SEARCH_BM25_K1 = float('SEARCH_BM25_K1', 0.8);
+export const SEARCH_BM25_B = float('SEARCH_BM25_B', 0.65);
 
 /**
  * Dense vector search (Phase 8 — Hybrid Semantic Routing).
@@ -381,30 +377,30 @@ export const SEARCH_BM25_B = float('SEARCH_BM25_B', 0.75);
  */
 export const SEARCH_VECTOR_ENABLED = bool('SEARCH_VECTOR_ENABLED', true);
 export const SEARCH_VECTOR_MODEL_ID = str('SEARCH_VECTOR_MODEL_ID', 'Xenova/bge-micro-v2');
-export const SEARCH_VECTOR_COSINE_WEIGHT = float('SEARCH_VECTOR_COSINE_WEIGHT', 0.4);
+export const SEARCH_VECTOR_COSINE_WEIGHT = float('SEARCH_VECTOR_COSINE_WEIGHT', 0.69);
 export const SEARCH_VECTOR_DYNAMIC_WEIGHT = bool('SEARCH_VECTOR_DYNAMIC_WEIGHT', true);
-export const SEARCH_VECTOR_LEARN_UP = float('SEARCH_VECTOR_LEARN_UP', 0.05);
-export const SEARCH_VECTOR_LEARN_DOWN = float('SEARCH_VECTOR_LEARN_DOWN', 0.03);
-export const SEARCH_VECTOR_LEARN_TOP_N = int('SEARCH_VECTOR_LEARN_TOP_N', 5);
+export const SEARCH_VECTOR_LEARN_UP = float('SEARCH_VECTOR_LEARN_UP', 0.07);
+export const SEARCH_VECTOR_LEARN_DOWN = float('SEARCH_VECTOR_LEARN_DOWN', 0.02);
+export const SEARCH_VECTOR_LEARN_TOP_N = int('SEARCH_VECTOR_LEARN_TOP_N', 6);
 /**
  * SEARCH_VECTOR_BM25_SKIP_THRESHOLD: when the top BM25 score meets or exceeds
  * this value, dense vector scoring is skipped — the text signal is already
  * strong enough that embeddings rarely change the ranking.
  * Set to 0 to always run vector scoring (original behavior).
  */
-export const SEARCH_VECTOR_BM25_SKIP_THRESHOLD = float('SEARCH_VECTOR_BM25_SKIP_THRESHOLD', 12);
+export const SEARCH_VECTOR_BM25_SKIP_THRESHOLD = float('SEARCH_VECTOR_BM25_SKIP_THRESHOLD', 5);
 
 /**
  * Profile tier-aware ranking: tools whose domain is not visible under the
  * caller's active tier (search ⊂ workflow ⊂ full) are not filtered out but
  * downweighted by this multiplier (0..1). Setting to 1 disables the penalty.
  */
-export const SEARCH_TIER_PENALTY = float('SEARCH_TIER_PENALTY', 0.7);
+export const SEARCH_TIER_PENALTY = float('SEARCH_TIER_PENALTY', 0.35);
 
 /** Per-profile tier penalty overrides. When set, these take precedence over SEARCH_TIER_PENALTY. */
-export const SEARCH_TIER_PENALTY_SEARCH = float('SEARCH_TIER_PENALTY_SEARCH', 0.4);
-export const SEARCH_TIER_PENALTY_WORKFLOW = float('SEARCH_TIER_PENALTY_WORKFLOW', 0.7);
-export const SEARCH_TIER_PENALTY_FULL = float('SEARCH_TIER_PENALTY_FULL', 1.0);
+export const SEARCH_TIER_PENALTY_SEARCH = float('SEARCH_TIER_PENALTY_SEARCH', 0.88);
+export const SEARCH_TIER_PENALTY_WORKFLOW = float('SEARCH_TIER_PENALTY_WORKFLOW', 0.52);
+export const SEARCH_TIER_PENALTY_FULL = float('SEARCH_TIER_PENALTY_FULL', 0.64);
 
 /**
  * Recency / frequency boost: tools invoked within SEARCH_RECENCY_WINDOW_MS
@@ -415,7 +411,7 @@ export const SEARCH_TIER_PENALTY_FULL = float('SEARCH_TIER_PENALTY_FULL', 1.0);
  * long sessions; evicted entries are the oldest insertions (LRU).
  */
 export const SEARCH_RECENCY_WINDOW_MS = int('SEARCH_RECENCY_WINDOW_MS', 30 * 60_000);
-export const SEARCH_RECENCY_MAX_BOOST = float('SEARCH_RECENCY_MAX_BOOST', 0.4);
+export const SEARCH_RECENCY_MAX_BOOST = float('SEARCH_RECENCY_MAX_BOOST', 0.75);
 export const SEARCH_RECENCY_TRACKER_MAX = int('SEARCH_RECENCY_TRACKER_MAX', 200);
 
 /**
@@ -437,11 +433,11 @@ export const SEARCH_RECENCY_TRACKER_MAX = int('SEARCH_RECENCY_TRACKER_MAX', 200)
  *   PREDICTIVE_MAX_SECOND_ORDER_KEYS — upper bound on the second-order
  *       Markov table to keep memory usage predictable.
  */
-export const SEARCH_EXACT_NAME_MATCH_MULTIPLIER = float('SEARCH_EXACT_NAME_MATCH_MULTIPLIER', 2.5);
-export const SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER = float('SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER', 1.08);
-export const SEARCH_AFFINITY_BASE_WEIGHT = float('SEARCH_AFFINITY_BASE_WEIGHT', 0.3);
+export const SEARCH_EXACT_NAME_MATCH_MULTIPLIER = float('SEARCH_EXACT_NAME_MATCH_MULTIPLIER', 5.8);
+export const SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER = float('SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER', 1.11);
+export const SEARCH_AFFINITY_BASE_WEIGHT = float('SEARCH_AFFINITY_BASE_WEIGHT', 0.1);
 export const SEARCH_COVERAGE_PRECISION_FACTOR = float('SEARCH_COVERAGE_PRECISION_FACTOR', 0.5);
-export const SEARCH_PREFIX_MATCH_MULTIPLIER = float('SEARCH_PREFIX_MATCH_MULTIPLIER', 0.5);
+export const SEARCH_PREFIX_MATCH_MULTIPLIER = float('SEARCH_PREFIX_MATCH_MULTIPLIER', 0.32);
 export const PREDICTIVE_MAX_SECOND_ORDER_KEYS = int('PREDICTIVE_MAX_SECOND_ORDER_KEYS', 1000);
 
 export const EXTENSION_GIT_CLONE_TIMEOUT_MS = int('EXTENSION_GIT_CLONE_TIMEOUT_MS', 60_000);

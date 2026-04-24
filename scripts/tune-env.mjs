@@ -13,15 +13,16 @@
  */
 import { promises as fs } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { createInterface } from 'readline';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const CONSTANTS_PATH = path.join(ROOT, 'src/constants.ts');
+export const CONSTANTS_PATH = path.join(ROOT, 'src/constants.ts');
 const ENV_PATH = path.join(ROOT, '.env');
 
 // ── Parse constants.ts ──
 
-async function parseConstants() {
+export async function parseConstants(_constantsPath = CONSTANTS_PATH) {
   const source = await fs.readFile(CONSTANTS_PATH, 'utf-8');
   const entries = [];
   // Match: export const NAME = type('ENV_KEY', default)
@@ -245,7 +246,10 @@ async function main() {
   rl.close();
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
