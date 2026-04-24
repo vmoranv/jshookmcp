@@ -74,6 +74,9 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate registry index
+        run: node scripts/generate-domains-index.mjs
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
