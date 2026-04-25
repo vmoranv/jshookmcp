@@ -14,23 +14,6 @@ import {
   evaluateOnNewDocumentWithTimeout,
 } from '@modules/collector/PageController';
 
-function toDataString(value: unknown): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (value === null || value === undefined) {
-    return '';
-  }
-  if (typeof value === 'object') {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return '[unserializable]';
-    }
-  }
-  return String(value);
-}
-
 type InternalSseEvent = {
   sourceUrl: string;
   eventType: string;
@@ -93,6 +76,24 @@ function sseInjectionFn(config: { maxEvents: number; urlFilterRaw?: string }) {
     } catch {
       return true;
     }
+  };
+
+  // eslint-disable-next-line unicorn/consistent-function-scoping -- runs in browser context via evaluateWithTimeout/evaluateOnNewDocument
+  const toDataString = (value: unknown): string => {
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return '[unserializable]';
+      }
+    }
+    return String(value);
   };
 
   const pushEvent = (

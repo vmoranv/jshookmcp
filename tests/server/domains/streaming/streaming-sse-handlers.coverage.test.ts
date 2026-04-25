@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { runInNewContext } from 'node:vm';
 import { RingBuffer } from '@utils/RingBuffer';
 import type { StreamingSharedState } from '@server/domains/streaming/handlers/shared';
 import { SseHandlers } from '@server/domains/streaming/handlers/sse-handlers';
@@ -283,6 +284,70 @@ describe('SseHandlers', () => {
         expect.any(Function),
         expect.objectContaining({ urlFilterRaw: undefined }),
       );
+    });
+
+    it('captures SSE events when the injected function is serialized into page context', async () => {
+      class MockEventSource {
+        static CONNECTING = 0;
+        static OPEN = 1;
+        static CLOSED = 2;
+
+        readonly listeners = new Map<string, EventListener[]>();
+
+        constructor(
+          readonly sourceUrl: string | URL,
+          readonly _eventSourceInitDict?: EventSourceInit,
+        ) {}
+
+        addEventListener(type: string, listener: EventListener) {
+          const existing = this.listeners.get(type) ?? [];
+          existing.push(listener);
+          this.listeners.set(type, existing);
+        }
+
+        dispatch(type: string, event: Event) {
+          for (const listener of this.listeners.get(type) ?? []) {
+            listener.call(this, event);
+          }
+        }
+      }
+
+      const browserWindow = { EventSource: MockEventSource } as {
+        EventSource: typeof MockEventSource;
+        __jshookSSEMonitor?: Record<string, unknown>;
+      };
+
+      mockPage.evaluate.mockImplementation(async (pageFunction: unknown, arg: unknown) => {
+        const serialized = `(${String(pageFunction)})`;
+        const fn = runInNewContext(serialized, { window: browserWindow }) as (
+          input: unknown,
+        ) => unknown;
+        return fn(arg);
+      });
+
+      const enableResult = await handlers.handleSseMonitorEnable({});
+      const enableBody = parseBody(enableResult);
+      expect(enableBody.success).toBe(true);
+
+      const wrappedSource = new browserWindow.EventSource('http://api.test/stream');
+      wrappedSource.dispatch('message', {
+        type: 'message',
+        data: { marker: 'serialized-sse' },
+        lastEventId: 'evt-1',
+      } as unknown as Event);
+
+      const result = await handlers.handleSseGetEvents({});
+      const body = parseBody(result);
+
+      expect(body.success).toBe(true);
+      expect(body.events).toHaveLength(1);
+      expect(body.events[0]).toMatchObject({
+        sourceUrl: 'http://api.test/stream',
+        eventType: 'message',
+        dataPreview: '{"marker":"serialized-sse"}',
+        dataLength: 27,
+        lastEventId: 'evt-1',
+      });
     });
   });
 
