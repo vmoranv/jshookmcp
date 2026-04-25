@@ -601,7 +601,7 @@ export class LayaCanvasAdapter implements CanvasEngineAdapter {
     });
 
     try {
-      traceRecorder.stop();
+      await traceRecorder.stop();
     } catch {
       /* not recording */
     }
