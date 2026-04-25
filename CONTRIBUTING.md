@@ -58,6 +58,14 @@ pnpm run doctor
 pnpm run format:docs
 ```
 
+### PR 质量门禁
+
+- 仓库会对新 PR 运行自动质量门禁，明显的低质量、灌水或批量化 AI slop PR 会被直接关闭。
+- PR 标题请尽量使用 conventional 风格，例如 `fix(server): ...`、`docs: ...`。
+- 不要删除 PR 模板章节；请按模板补全 `Summary`、`What changed`、`Validation` 和 `Related issues`。
+- 尽量保持 PR 小而聚焦。大范围无背景改动、空泛描述、缺失验证步骤的 PR 更容易被拦截。
+- 如果被误判，补全模板、说明本地验证，并在收窄改动范围后重新打开 PR；必要时先开 issue 说明背景。
+
 ### 扩展开发建议
 
 - **只是固化工具链路**：优先做 workflow
@@ -143,6 +151,14 @@ If you are working on dependency or bridge issues, also consider:
 pnpm run doctor
 pnpm run format:docs
 ```
+
+### PR quality gate
+
+- The repository runs an automated quality gate on new PRs and may immediately close low-quality, spammy, or obviously mass-generated AI slop submissions.
+- Prefer conventional PR titles such as `fix(server): ...` or `docs: ...`.
+- Do not remove sections from the PR template; fill in `Summary`, `What changed`, `Validation`, and `Related issues`.
+- Keep PRs small and well-scoped. Broad drive-by changes, vague descriptions, and missing validation details are much more likely to be flagged.
+- If a legitimate PR is flagged, restore the template, explain the local checks you ran, narrow the scope if needed, and reopen it. Open an issue first if extra context is required.
 
 ### Extension development guidance
 

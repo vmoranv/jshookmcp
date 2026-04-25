@@ -1,0 +1,55 @@
+name: PR Quality Gate
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write
+
+jobs:
+  anti-slop:
+    name: Detect low-quality PRs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run anti-slop checks
+        uses: peakoss/anti-slop@v0.3.0
+        with:
+          max-failures: 4
+
+          max-changed-files: 35
+          max-changed-lines: 5000
+
+          require-maintainer-can-modify: true
+          require-conventional-title: true
+          require-description: true
+          max-description-length: 2000
+          max-code-references: 8
+          blocked-terms: |
+            JSHOOKMCP_HONEYPOT_9F3C
+
+          require-pr-template: true
+          strict-pr-template-sections: 'Checklist'
+          max-additional-pr-template-sections: 2
+
+          max-added-comments: 20
+          blocked-paths: ''
+
+          min-account-age: 30
+          max-daily-forks: 6
+          require-public-profile: true
+          min-profile-completeness: 4
+          min-global-merge-ratio: 25
+          global-merge-ratio-exclude-own: true
+
+          exempt-draft-prs: true
+
+          failure-pr-message: >-
+            This PR was automatically closed because it matched multiple
+            low-quality or spam signals. If this looks like a false positive,
+            reopen it after restoring the PR template, tightening the scope,
+            and explaining the validation you ran. 这个 PR 因命中多个低质量 /
+            灌水信号被自动关闭；如果是误判，请按模板补全说明、收窄改动范围并写清验证步骤后再重新打开。
+          close-pr: true
