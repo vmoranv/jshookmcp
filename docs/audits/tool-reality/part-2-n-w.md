@@ -12,14 +12,14 @@ Evidence: src/server/domains/mojo-ipc/handlers.impl.ts; src/modules/mojo-ipc/Moj
 | mojo_messages_get | fallback | On this machine it still returned `_simulation: true` and empty messages after monitor start. |
 
 ## native-bridge
-Evidence: src/server/domains/native-bridge/definitions.ts; no active manifest registration
+Evidence: src/server/domains/native-bridge/definitions.ts; tests/server/ToolCatalog.test.ts
 
 | tool | status | note |
 | --- | --- | --- |
-| native_bridge_status | unregistered | Defined in source but not mounted by the current manifest registry. |
-| ghidra_bridge | unregistered | Defined in source but not mounted by the current manifest registry. |
-| ida_bridge | unregistered | Defined in source but not mounted by the current manifest registry. |
-| native_symbol_sync | unregistered | Defined in source but not mounted by the current manifest registry. |
+| native_bridge_status | unregistered | Compatibility module is intentionally externalized from the built-in manifest registry and ToolCatalog. |
+| ghidra_bridge | unregistered | Compatibility module is intentionally externalized from the built-in manifest registry and ToolCatalog. |
+| ida_bridge | unregistered | Compatibility module is intentionally externalized from the built-in manifest registry and ToolCatalog. |
+| native_symbol_sync | unregistered | Compatibility module is intentionally externalized from the built-in manifest registry and ToolCatalog. |
 
 ## network
 Evidence: src/server/domains/network/handlers/raw-handlers.ts:734-762; src/server/domains/network/handlers/intercept-handlers.ts; src/modules/monitor/NetworkMonitor.impl.ts:303
@@ -225,7 +225,7 @@ Evidence: src/server/domains/transform/handlers.impl.core.ts
 Evidence: src/server/domains/v8-inspector/handlers/impl.ts; src/server/domains/v8-inspector/handlers/heap-snapshot.ts; src/server/domains/v8-inspector/handlers/bytecode-extract.ts; src/server/domains/v8-inspector/handlers/jit-inspect.ts
 
 Compatibility note: `src/server/domains/v8-inspector/handlers.impl.ts` is a legacy direct-import adapter. The current manifest/runtime chain goes through `manifest.ts -> handlers.ts -> handlers/impl.ts`.
-Focused runtime note: on this machine the live heap capture path returned `simulated: false`, produced a multi-megabyte snapshot, and `v8_heap_snapshot_analyze` returned structured output over that real snapshot. `v8_heap_stats` still surfaced only partial or zero-heavy heap usage data.
+Focused runtime note: on this machine the live heap capture path returned `simulated: false`, produced a multi-megabyte snapshot, and `v8_heap_snapshot_analyze` returned structured output over that real snapshot. `v8_heap_stats` also returned non-zero live usage (`jsHeapSizeUsed=895253`). `get_all_scripts` returned live script metadata, `v8_bytecode_extract` now executes against a non-internal script, but its payload is explicitly `mode: source-derived` / `format: pseudo-bytecode`, and `v8_jit_inspect` returned `inspectionMode: heuristic` because `v8_version_detect.features.nativesSyntax` was `false` on this machine.
 
 | tool | status | note |
 | --- | --- | --- |
@@ -233,10 +233,10 @@ Focused runtime note: on this machine the live heap capture path returned `simul
 | v8_heap_snapshot_analyze | conditional | Needs active page/CDP or previously captured heap data; structured analysis over a real captured snapshot was verified on this machine. |
 | v8_heap_diff | conditional | Needs active page/CDP or previously captured heap data. |
 | v8_object_inspect | conditional | Needs active page/CDP or previously captured heap data. |
-| v8_heap_stats | fallback | On this machine it still returned only partial or zero-heavy heap usage data even after a real snapshot capture. |
-| v8_bytecode_extract | conditional | Needs active page/CDP or previously captured heap data. |
-| v8_version_detect | conditional | Needs active page/CDP or previously captured heap data. |
-| v8_jit_inspect | conditional | Needs active page/CDP or previously captured heap data. |
+| v8_heap_stats | conditional | Needs active page/CDP; non-zero live heap usage was verified on this machine. |
+| v8_bytecode_extract | fallback | Current implementation derives pseudo-bytecode from script source; it does not expose raw Ignition bytecode. |
+| v8_version_detect | conditional | Needs active page/CDP; now also reports `features.nativesSyntax` so callers can detect whether deeper JIT status is available. |
+| v8_jit_inspect | conditional | Needs active page/CDP; returns native optimization status only when V8 natives syntax is available, and stayed in explicit `inspectionMode: heuristic` on this machine. |
 
 ## wasm
 Evidence: src/server/domains/wasm/handlers.impl.ts:114-651
@@ -261,5 +261,5 @@ Evidence: src/server/domains/workflow/handlers/script-handlers.ts:96-156
 | page_script_register | conditional | Depends on extension workflow runtime or page/script context. |
 | page_script_run | conditional | Depends on extension workflow runtime or page/script context. |
 | api_probe_batch | conditional | Depends on extension workflow runtime or page/script context. |
-| list_extension_workflows | real | Local workflow listing. |
-| run_extension_workflow | fallback | Fails/degrades when extension workflow runtime is unavailable in handler context. |
+| list_extension_workflows | real | Local workflow listing was verified on this machine and returned `count=0`. |
+| run_extension_workflow | conditional | Real execution path exists, but it depends on installed workflows; runtime verification skipped execution on this machine because listing returned `count=0`. |
