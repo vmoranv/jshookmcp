@@ -18,11 +18,13 @@ export async function handleJitInspect(
   }
 
   const inspector = new JITInspector(runtime?.getPage);
-  const functions = await inspector.inspectJIT(scriptId);
+  const inspection = await inspector.inspectJIT(scriptId);
 
   return {
     success: true,
     scriptId,
-    functions,
+    inspectionMode: inspection.inspectionMode,
+    supportsNativesSyntax: inspection.supportsNativesSyntax,
+    functions: inspection.functions,
   };
 }

@@ -34,8 +34,12 @@ function requirePageController(
 }
 
 function createV8InspectorClient(ctx: MCPServerContext): V8InspectorClient {
+  return new V8InspectorClient(createPageGetter(ctx));
+}
+
+function createPageGetter(ctx: MCPServerContext): () => Promise<unknown> {
   const pageController = requirePageController(ctx);
-  return new V8InspectorClient(async () => await pageController.getPage());
+  return async () => await pageController.getPage();
 }
 
 export class V8InspectorHandlers {
@@ -71,10 +75,10 @@ export class V8InspectorHandlers {
     simulated: boolean;
   }> {
     requirePageController(this.deps.ctx);
-    const pageController = this.deps.ctx.pageController!;
+    const getPage = createPageGetter(this.deps.ctx);
 
     const result = await handleHeapSnapshotCapture(args, {
-      getPage: () => Promise.resolve(pageController),
+      getPage,
       getSnapshot: () => this.currentSnapshotId,
       setSnapshot: (id: string | null) => {
         this.currentSnapshotId = id;
@@ -188,27 +192,27 @@ export class V8InspectorHandlers {
   }
 
   async v8_bytecode_extract(args: ToolArgs): Promise<unknown> {
-    const pageController = this.deps.ctx.pageController;
+    const getPage = this.deps.ctx.pageController ? createPageGetter(this.deps.ctx) : undefined;
     return handleBytecodeExtract(args, {
-      getPage: pageController ? () => Promise.resolve(pageController) : undefined,
+      getPage,
     });
   }
 
   async v8_version_detect(_args: ToolArgs): Promise<unknown> {
-    const pageController = this.deps.ctx.pageController;
-    if (!pageController) {
+    if (!this.deps.ctx.pageController) {
       return { success: false, error: 'PageController not available' };
     }
     const { VersionDetector } = await import('@modules/v8-inspector/VersionDetector');
-    const detector = new VersionDetector(() => Promise.resolve(pageController));
+    const detector = new VersionDetector(createPageGetter(this.deps.ctx));
     const version = await detector.detectV8Version();
-    return { success: true, version, features: {} };
+    const supportsNativesSyntax = await detector.supportsNativesSyntax();
+    return { success: true, version, features: { nativesSyntax: supportsNativesSyntax } };
   }
 
   async v8_jit_inspect(args: ToolArgs): Promise<unknown> {
-    const pageController = this.deps.ctx.pageController;
+    const getPage = this.deps.ctx.pageController ? createPageGetter(this.deps.ctx) : undefined;
     return handleJitInspect(args, {
-      getPage: pageController ? () => Promise.resolve(pageController) : undefined,
+      getPage,
     });
   }
 }

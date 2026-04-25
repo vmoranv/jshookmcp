@@ -21,6 +21,12 @@ export interface JITInfo {
   address?: string;
 }
 
+export interface JITInspectionResult {
+  functions: JITInfo[];
+  supportsNativesSyntax: boolean;
+  inspectionMode: 'native-status' | 'heuristic';
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -66,7 +72,7 @@ export class JITInspector {
     this.versionDetector = new VersionDetector(getPage);
   }
 
-  async inspectJIT(scriptId: string): Promise<JITInfo[]> {
+  async inspectJIT(scriptId: string): Promise<JITInspectionResult> {
     const hiddenClasses = await this.bytecodeExtractor.findHiddenClasses(scriptId);
     const extraction = await this.bytecodeExtractor.extractBytecode(scriptId);
     const functionNames = new Set<string>();
@@ -101,7 +107,11 @@ export class JITInspector {
     }
 
     this.optimizedFunctionsCache = results;
-    return results;
+    return {
+      functions: results,
+      supportsNativesSyntax,
+      inspectionMode: supportsNativesSyntax ? 'native-status' : 'heuristic',
+    };
   }
 
   async forceDeoptimization(functionRef: string): Promise<void> {

@@ -13,15 +13,20 @@ const mockTakeHeapSnapshot = vi.fn();
 const mockGetObjectByObjectId = vi.fn();
 const mockGetHeapUsage = vi.fn();
 const mockDetectV8Version = vi.fn();
+const bytecodeExtractorGetPages: Array<(() => Promise<unknown>) | undefined> = [];
+const jitInspectorGetPages: Array<(() => Promise<unknown>) | undefined> = [];
+const versionDetectorGetPages: Array<(() => Promise<unknown>) | undefined> = [];
 
 vi.mock('@modules/v8-inspector', () => {
   return {
-    BytecodeExtractor: vi.fn(function (this: any) {
+    BytecodeExtractor: vi.fn(function (this: any, getPage?: () => Promise<unknown>) {
+      bytecodeExtractorGetPages.push(getPage);
       this.extractBytecode = mockExtractBytecode;
       this.disassembleBytecode = mockDisassembleBytecode;
       this.findHiddenClasses = mockFindHiddenClasses;
     }),
-    JITInspector: vi.fn(function (this: any) {
+    JITInspector: vi.fn(function (this: any, getPage?: () => Promise<unknown>) {
+      jitInspectorGetPages.push(getPage);
       this.inspectJIT = mockInspectJIT;
     }),
   };
@@ -40,7 +45,8 @@ vi.mock('@modules/v8-inspector/V8InspectorClient', () => {
 
 vi.mock('@modules/v8-inspector/VersionDetector', () => {
   return {
-    VersionDetector: vi.fn(function (this: any) {
+    VersionDetector: vi.fn(function (this: any, getPage?: () => Promise<unknown>) {
+      versionDetectorGetPages.push(getPage);
       this.detectV8Version = mockDetectV8Version;
       this.supportsNativesSyntax = vi.fn().mockResolvedValue(false);
     }),
@@ -76,8 +82,11 @@ function createMockDeps(
   const eventBus = {
     emit: vi.fn().mockResolvedValue(undefined),
   };
+  const pageController = {
+    getPage: vi.fn().mockResolvedValue({}),
+  };
   const ctx = {
-    pageController: {},
+    pageController,
     eventBus,
   } as unknown as import('@server/MCPServer.context').MCPServerContext;
   const client = {
@@ -113,6 +122,9 @@ describe('v8-inspector handler coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearSnapshotCache();
+    bytecodeExtractorGetPages.length = 0;
+    jitInspectorGetPages.length = 0;
+    versionDetectorGetPages.length = 0;
   });
 
   afterEach(() => {
@@ -172,6 +184,8 @@ describe('v8-inspector handler coverage', () => {
         success: true,
         scriptId: 'script-99',
         functionOffset: null,
+        mode: 'source-derived',
+        format: 'pseudo-bytecode',
         extraction,
         disassembly: [
           { offset: 0, opcode: 'LdaConstant', operands: [] },
@@ -243,7 +257,11 @@ describe('v8-inspector handler coverage', () => {
         { functionName: 'foo', optimized: true, tier: 'turbofan' },
         { functionName: 'bar', optimized: false, tier: 'interpreted' },
       ];
-      mockInspectJIT.mockResolvedValueOnce(functions);
+      mockInspectJIT.mockResolvedValueOnce({
+        functions,
+        supportsNativesSyntax: true,
+        inspectionMode: 'native-status',
+      });
 
       const result = await handleJitInspect(
         { scriptId: 'script-7' },
@@ -253,14 +271,25 @@ describe('v8-inspector handler coverage', () => {
       expect(result).toEqual({
         success: true,
         scriptId: 'script-7',
+        inspectionMode: 'native-status',
+        supportsNativesSyntax: true,
         functions,
       });
     });
 
     it('should work without runtime', async () => {
-      mockInspectJIT.mockResolvedValueOnce([]);
+      mockInspectJIT.mockResolvedValueOnce({
+        functions: [],
+        supportsNativesSyntax: false,
+        inspectionMode: 'heuristic',
+      });
       const result = await handleJitInspect({ scriptId: 'abc' });
-      expect(result).toMatchObject({ success: true, scriptId: 'abc' });
+      expect(result).toMatchObject({
+        success: true,
+        scriptId: 'abc',
+        inspectionMode: 'heuristic',
+        supportsNativesSyntax: false,
+      });
     });
   });
 
@@ -574,6 +603,49 @@ describe('v8-inspector handler coverage', () => {
           }),
         );
       });
+
+      it('should use pageController.getPage() for fallback capture paths', async () => {
+        mockTakeHeapSnapshot.mockRejectedValueOnce(new Error('primary capture failed'));
+        const mockSession = {
+          send: vi
+            .fn()
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce({
+              result: {
+                value: {
+                  jsHeapSizeUsed: 512,
+                },
+              },
+            }),
+          detach: vi.fn().mockResolvedValue(undefined),
+        };
+        const mockPage = {
+          createCDPSession: vi.fn().mockResolvedValue(mockSession),
+        };
+        const pageController = {
+          getPage: vi.fn().mockResolvedValue(mockPage),
+        };
+        const handlers = new V8InspectorHandlers(
+          createMockDeps({
+            ctx: {
+              pageController,
+              eventBus: {
+                emit: vi.fn().mockResolvedValue(undefined),
+              },
+            } as unknown as import('@server/MCPServer.context').MCPServerContext,
+          }),
+        );
+
+        const result = await handlers.v8_heap_snapshot_capture({});
+
+        expect(result).toMatchObject({
+          success: true,
+          simulated: true,
+          sizeBytes: 512,
+        });
+        expect(pageController.getPage).toHaveBeenCalledOnce();
+        expect(mockPage.createCDPSession).toHaveBeenCalledOnce();
+      });
     });
 
     describe('v8_heap_snapshot_analyze', () => {
@@ -781,16 +853,21 @@ describe('v8-inspector handler coverage', () => {
         expect(result).toEqual({ success: false, error: 'scriptId is required' });
       });
 
-      it('should call handleBytecodeExtract with pageController', async () => {
+      it('should pass an active page getter into BytecodeExtractor', async () => {
         const extraction = { functionName: 'test', bytecode: '0 Return' };
         mockExtractBytecode.mockResolvedValueOnce(extraction);
         mockDisassembleBytecode.mockReturnValueOnce([]);
         mockFindHiddenClasses.mockResolvedValueOnce([]);
 
-        const handlers = new V8InspectorHandlers(createMockDeps());
+        const deps = createMockDeps();
+        const handlers = new V8InspectorHandlers(deps);
         const result = await handlers.v8_bytecode_extract({ scriptId: 's1' });
+        const getPage = bytecodeExtractorGetPages.at(-1);
 
         expect(result).toMatchObject({ success: true, scriptId: 's1' });
+        expect(typeof getPage).toBe('function');
+        await expect(getPage?.()).resolves.toEqual({});
+        expect((deps.ctx.pageController as any).getPage).toHaveBeenCalledOnce();
       });
 
       it('should work without pageController', async () => {
@@ -821,15 +898,20 @@ describe('v8-inspector handler coverage', () => {
           patch: 100,
           commit: 'abc',
         });
-        const handlers = new V8InspectorHandlers(createMockDeps());
+        const deps = createMockDeps();
+        const handlers = new V8InspectorHandlers(deps);
 
         const result = await handlers.v8_version_detect({});
+        const getPage = versionDetectorGetPages.at(-1);
 
         expect(result).toMatchObject({
           success: true,
           version: { major: 12, minor: 4, patch: 100, commit: 'abc' },
-          features: {},
+          features: { nativesSyntax: false },
         });
+        expect(typeof getPage).toBe('function');
+        await expect(getPage?.()).resolves.toEqual({});
+        expect((deps.ctx.pageController as any).getPage).toHaveBeenCalledOnce();
       });
     });
 
@@ -842,16 +924,27 @@ describe('v8-inspector handler coverage', () => {
 
       it('should return functions on success', async () => {
         const functions = [{ functionName: 'fn1', optimized: true, tier: 'turbofan' }];
-        mockInspectJIT.mockResolvedValueOnce(functions);
-        const handlers = new V8InspectorHandlers(createMockDeps());
+        mockInspectJIT.mockResolvedValueOnce({
+          functions,
+          supportsNativesSyntax: true,
+          inspectionMode: 'native-status',
+        });
+        const deps = createMockDeps();
+        const handlers = new V8InspectorHandlers(deps);
 
         const result = await handlers.v8_jit_inspect({ scriptId: 'jit-1' });
+        const getPage = jitInspectorGetPages.at(-1);
 
         expect(result).toEqual({
           success: true,
           scriptId: 'jit-1',
+          inspectionMode: 'native-status',
+          supportsNativesSyntax: true,
           functions,
         });
+        expect(typeof getPage).toBe('function');
+        await expect(getPage?.()).resolves.toEqual({});
+        expect((deps.ctx.pageController as any).getPage).toHaveBeenCalledOnce();
       });
     });
   });
