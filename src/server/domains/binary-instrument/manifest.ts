@@ -32,6 +32,11 @@ const manifest = {
   ensure,
   registrations: [
     {
+      tool: toolByName('binary_instrument_capabilities'),
+      domain: DOMAIN,
+      bind: bind((handlers) => handlers.handleBinaryInstrumentCapabilities()),
+    },
+    {
       tool: toolByName('frida_attach'),
       domain: DOMAIN,
       bind: bind((handlers, args) => handlers.handleFridaAttach(args)),

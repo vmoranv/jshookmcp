@@ -12,14 +12,12 @@ export const TRACE_TOOLS: Tool[] = [
         'CDP domains to record (default: Debugger, Runtime, Network, Page)',
       )
       .boolean('recordMemoryDeltas', 'Record memory write deltas', { default: true })
-      .boolean('recordResponseBodies', 'Persist response bodies on Network.loadingFinished', {
+      .boolean('recordResponseBodies', 'Persist response bodies when available.', {
         default: true,
       })
-      .boolean(
-        'streamResponseChunks',
-        'Attempt chunk-level response streaming with Network.streamResourceContent',
-        { default: true },
-      )
+      .boolean('streamResponseChunks', 'Capture response chunks when the browser supports it.', {
+        default: true,
+      })
       .number('networkBodyMaxBytes', 'Maximum response body bytes to persist per request', {
         default: 10485760,
         minimum: 1024,
@@ -46,14 +44,12 @@ export const TRACE_TOOLS: Tool[] = [
         'CDP domains to record (default: Debugger, Runtime, Network, Page)',
       )
       .boolean('recordMemoryDeltas', 'Record memory write deltas', { default: true })
-      .boolean('recordResponseBodies', 'Persist response bodies on Network.loadingFinished', {
+      .boolean('recordResponseBodies', 'Persist response bodies when available.', {
         default: true,
       })
-      .boolean(
-        'streamResponseChunks',
-        'Attempt chunk-level response streaming with Network.streamResourceContent',
-        { default: true },
-      )
+      .boolean('streamResponseChunks', 'Capture response chunks when the browser supports it.', {
+        default: true,
+      })
       .number('networkBodyMaxBytes', 'Maximum response body bytes to persist per request', {
         default: 10485760,
         minimum: 1024,

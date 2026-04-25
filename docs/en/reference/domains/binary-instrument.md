@@ -21,35 +21,36 @@ Binary instrumentation domain providing binary analysis and runtime instrumentat
 
 ## Representative tools
 
-- `frida_attach` — Attach Frida to a local process, PID, or binary path and create a binary inst...
+- `binary_instrument_capabilities` — Report binary instrumentation backend availability.
+- `frida_attach` — Attach Frida to a local target and open a session.
 - `frida_enumerate_modules` — Enumerate modules for an attached Frida session.
-- `ghidra_analyze` — Run binary metadata analysis with Ghidra headless when available, with struct...
+- `ghidra_analyze` — Analyze a binary and return metadata.
 - `generate_hooks` — Generate a Frida interceptor script for a list of symbols.
-- `unidbg_emulate` — Attempt to emulate a native function with unidbg, or return structured mock o...
+- `unidbg_emulate` — Emulate a native function with Unidbg when available.
 - `frida_run_script` — Execute a Frida JavaScript snippet inside an attached Frida session.
 - `frida_detach` — Detach from a Frida session and clean up resources.
 - `frida_list_sessions` — List all active Frida sessions.
-- `frida_generate_script` — Generate a Frida interceptor script from templates (trace, intercept, replace, log).
-- `get_available_plugins` — List all available binary analysis plugins (frida, ghidra, ida, jadx).
+- `frida_generate_script` — Generate a Frida hook script from a template.
 
-## Full tool list (19)
+## Full tool list (20)
 
 | Tool | Description |
 | --- | --- |
-| `frida_attach` | Attach Frida to a local process, PID, or binary path and create a binary inst... |
+| `binary_instrument_capabilities` | Report binary instrumentation backend availability. |
+| `frida_attach` | Attach Frida to a local target and open a session. |
 | `frida_enumerate_modules` | Enumerate modules for an attached Frida session. |
-| `ghidra_analyze` | Run binary metadata analysis with Ghidra headless when available, with struct... |
+| `ghidra_analyze` | Analyze a binary and return metadata. |
 | `generate_hooks` | Generate a Frida interceptor script for a list of symbols. |
-| `unidbg_emulate` | Attempt to emulate a native function with unidbg, or return structured mock o... |
+| `unidbg_emulate` | Emulate a native function with Unidbg when available. |
 | `frida_run_script` | Execute a Frida JavaScript snippet inside an attached Frida session. |
 | `frida_detach` | Detach from a Frida session and clean up resources. |
 | `frida_list_sessions` | List all active Frida sessions. |
-| `frida_generate_script` | Generate a Frida interceptor script from templates (trace, intercept, replace, log). |
-| `get_available_plugins` | List all available binary analysis plugins (frida, ghidra, ida, jadx). |
+| `frida_generate_script` | Generate a Frida hook script from a template. |
+| `get_available_plugins` | List installed binary analysis plugins. |
 | `ghidra_decompile` | Decompile a specific function using Ghidra headless analysis. |
 | `ida_decompile` | Decompile a function using IDA Pro via plugin bridge. |
 | `jadx_decompile` | Decompile an APK class or method using JADX via plugin bridge. |
-| `unidbg_launch` | Launch an ARM/ARM64 .so library in the Unidbg emulator. First call ~3-5s warmup. |
+| `unidbg_launch` | Launch a shared library in Unidbg. |
 | `unidbg_call` | Call a JNI function in a running Unidbg emulator session. |
 | `unidbg_trace` | Get an execution trace from an Unidbg session (full/basic/instruction modes). |
 | `export_hook_script` | Export generated hook templates as a complete, runnable Frida script. |

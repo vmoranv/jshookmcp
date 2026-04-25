@@ -31,6 +31,11 @@ const manifest: DomainManifest<typeof DEP_KEY, MojoIPCHandlers, typeof DOMAIN> =
   profiles: ['full'],
   registrations: [
     {
+      tool: toolByName('mojo_ipc_capabilities'),
+      domain: DOMAIN,
+      bind: bind((handlers) => handlers.handleMojoIpcCapabilities()),
+    },
+    {
       tool: toolByName('mojo_monitor'),
       domain: DOMAIN,
       bind: bind((handlers, args) => handlers.handleMojoMonitorDispatch(args)),

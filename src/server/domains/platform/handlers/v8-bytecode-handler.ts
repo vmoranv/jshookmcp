@@ -40,6 +40,12 @@ interface DecompileResult {
   note?: string;
 }
 
+export interface View8Availability {
+  available: boolean;
+  interpreter?: string;
+  reason?: string;
+}
+
 /**
  * Detect if a buffer contains V8 bytecode.
  */
@@ -108,6 +114,46 @@ async function tryView8(
       return { ok: false, error: 'view8 not available. Install with: pip install view8' };
     }
   }
+}
+
+async function tryView8Interpreter(interpreter: string): Promise<View8Availability> {
+  try {
+    await execFileAsync(
+      interpreter,
+      ['-c', 'import view8; print(getattr(view8, "__file__", "view8"))'],
+      {
+        timeout: V8_BYTECODE_SUBPROC_TIMEOUT_MS,
+        maxBuffer: 1024 * 1024,
+      },
+    );
+    return { available: true, interpreter };
+  } catch (error) {
+    return {
+      available: false,
+      interpreter,
+      reason: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+export async function probeView8Availability(): Promise<View8Availability> {
+  const python = await tryView8Interpreter('python');
+  if (python.available) {
+    return python;
+  }
+
+  const python3 = await tryView8Interpreter('python3');
+  if (python3.available) {
+    return python3;
+  }
+
+  return {
+    available: false,
+    reason:
+      python.reason && python3.reason
+        ? `${python.reason}; ${python3.reason}`
+        : (python.reason ?? python3.reason ?? 'view8 is not available'),
+  };
 }
 
 /**

@@ -12,7 +12,7 @@ import {
   makeMockId,
   jsonResponse,
   textResponse,
-  hasInstalledLegacyPlugin,
+  getLegacyPluginStatus,
   invokeLegacyPlugin,
 } from './shared';
 
@@ -38,6 +38,8 @@ export class FridaHandlers {
       const sessionId = `mock-frida-${makeMockId(target)}`;
       return jsonResponse({
         available: false,
+        capability: 'frida_cli',
+        fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
         target,
         sessionId,
         reason: availability.reason ?? 'Frida CLI is not available',
@@ -67,6 +69,8 @@ export class FridaHandlers {
     if (!availability.available) {
       return jsonResponse({
         available: false,
+        capability: 'frida_cli',
+        fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
         sessionId,
         reason: availability.reason ?? 'Frida CLI is not available',
         modules: [{ name: 'mock-module', base: '0x0', size: 0, path: '<unavailable>' }],
@@ -76,6 +80,8 @@ export class FridaHandlers {
     if (!frida.useSession(sessionId)) {
       return jsonResponse({
         available: false,
+        capability: 'frida_session',
+        fix: 'Call frida_attach first and reuse the returned sessionId.',
         sessionId,
         reason: `Unknown Frida session: ${sessionId}`,
         modules: [],
@@ -96,6 +102,8 @@ export class FridaHandlers {
     if (!availability.available) {
       return {
         available: false,
+        capability: 'frida_cli',
+        fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
         sessionId,
         reason: availability.reason ?? 'Frida CLI is not available',
         execution: { output: '', error: 'Frida unavailable' },
@@ -105,6 +113,8 @@ export class FridaHandlers {
     if (!frida.useSession(sessionId)) {
       return {
         available: false,
+        capability: 'frida_session',
+        fix: 'Call frida_attach first and reuse the returned sessionId.',
         sessionId,
         reason: `Unknown Frida session: ${sessionId}`,
         execution: { output: '', error: 'Unknown session' },
@@ -131,8 +141,17 @@ export class FridaHandlers {
   }
 
   async handleFridaListSessions(_args: Record<string, unknown>): Promise<unknown> {
-    if (hasInstalledLegacyPlugin(this.state.context, 'plugin_frida_bridge') === false) {
-      return textResponse('Plugin plugin-frida-bridge is not installed');
+    const pluginStatus = getLegacyPluginStatus(this.state.context, 'plugin_frida_bridge');
+    if (pluginStatus.status === 'unavailable') {
+      return jsonResponse({
+        success: false,
+        available: false,
+        capability: 'plugin_frida_bridge',
+        status: pluginStatus.status,
+        reason: pluginStatus.reason,
+        fix: pluginStatus.fix,
+        sessions: [],
+      });
     }
 
     const frida = this.getFridaSession();
@@ -151,8 +170,16 @@ export class FridaHandlers {
   }
 
   async handleFridaGenerateScript(args: Record<string, unknown>): Promise<unknown> {
-    if (hasInstalledLegacyPlugin(this.state.context, 'plugin_frida_bridge') === false) {
-      return textResponse('Plugin plugin-frida-bridge is not installed');
+    const pluginStatus = getLegacyPluginStatus(this.state.context, 'plugin_frida_bridge');
+    if (pluginStatus.status === 'unavailable') {
+      return jsonResponse({
+        success: false,
+        available: false,
+        capability: 'plugin_frida_bridge',
+        status: pluginStatus.status,
+        reason: pluginStatus.reason,
+        fix: pluginStatus.fix,
+      });
     }
 
     const target = readOptionalString(args, 'target') ?? 'unknown';
@@ -181,6 +208,8 @@ export class FridaHandlers {
     if (!availability.available) {
       return {
         available: false,
+        capability: 'frida_cli',
+        fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
         sessionId,
         moduleName,
         reason: availability.reason ?? 'Frida CLI is not available',
@@ -191,6 +220,8 @@ export class FridaHandlers {
     if (!frida.useSession(sessionId)) {
       return {
         available: false,
+        capability: 'frida_session',
+        fix: 'Call frida_attach first and reuse the returned sessionId.',
         sessionId,
         reason: `Unknown Frida session: ${sessionId}`,
         functions: [],
@@ -210,6 +241,8 @@ export class FridaHandlers {
     if (!availability.available) {
       return {
         available: false,
+        capability: 'frida_cli',
+        fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
         sessionId,
         pattern,
         reason: availability.reason ?? 'Frida CLI is not available',
@@ -220,6 +253,8 @@ export class FridaHandlers {
     if (!frida.useSession(sessionId)) {
       return {
         available: false,
+        capability: 'frida_session',
+        fix: 'Call frida_attach first and reuse the returned sessionId.',
         sessionId,
         reason: `Unknown Frida session: ${sessionId}`,
         symbols: [],

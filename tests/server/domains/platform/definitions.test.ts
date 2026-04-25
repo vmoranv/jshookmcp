@@ -26,7 +26,7 @@ describe('platform tool definitions', () => {
     });
 
     it('tool count matches snapshot (run with --update to sync)', async () => {
-      expect(platformTools.length).toMatchInlineSnapshot(`13`);
+      expect(platformTools.length).toMatchInlineSnapshot(`14`);
     });
 
     it('has unique tool names', async () => {
@@ -67,6 +67,7 @@ describe('platform tool definitions', () => {
 
   describe('expected tool names', () => {
     const expectedNames = [
+      'platform_capabilities',
       'miniapp_pkg_scan',
       'miniapp_pkg_unpack',
       'miniapp_pkg_analyze',

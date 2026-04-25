@@ -2,9 +2,12 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const binaryInstrumentTools: Tool[] = [
+  tool('binary_instrument_capabilities', (t) =>
+    t.desc('Report binary instrumentation backend availability.').query(),
+  ),
   tool('frida_attach', (t) =>
     t
-      .desc('Attach Frida to a local process, PID, or binary path and create a binary inst...')
+      .desc('Attach Frida to a local target and open a session.')
       .string('target', 'Process name, PID, or binary path to attach to')
       .required('target'),
   ),
@@ -17,7 +20,8 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('ghidra_analyze', (t) =>
     t
-      .desc('Run binary metadata analysis with Ghidra headless when available, with struct...')
+      .desc('Analyze a binary and return metadata.')
+      .string('binaryPath', 'Path to the binary file')
       .number('timeout', 'Optional timeout in milliseconds for headless analysis')
       .required('binaryPath'),
   ),
@@ -40,7 +44,8 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('unidbg_emulate', (t) =>
     t
-      .desc('Attempt to emulate a native function with unidbg, or return structured mock o...')
+      .desc('Emulate a native function with Unidbg when available.')
+      .string('binaryPath', 'Path to the binary file')
       .string('functionName', 'Function name to emulate')
       .array('args', { type: 'string' }, 'Optional string arguments forwarded to emulation')
       .required('binaryPath', 'functionName'),
@@ -61,15 +66,13 @@ export const binaryInstrumentTools: Tool[] = [
   tool('frida_list_sessions', (t) => t.desc('List all active Frida sessions.').query()),
   tool('frida_generate_script', (t) =>
     t
-      .desc('Generate a Frida interceptor script from templates (trace, intercept, replace, log).')
+      .desc('Generate a Frida hook script from a template.')
       .string('target', 'Target binary or module name')
       .string('template', 'Hook template type: trace, intercept, replace, log')
       .string('functionName', 'Function name to generate hook for')
       .required('target', 'template'),
   ),
-  tool('get_available_plugins', (t) =>
-    t.desc('List all available binary analysis plugins (frida, ghidra, ida, jadx).').query(),
-  ),
+  tool('get_available_plugins', (t) => t.desc('List installed binary analysis plugins.').query()),
   tool('ghidra_decompile', (t) =>
     t
       .desc('Decompile a specific function using Ghidra headless analysis.')
@@ -94,7 +97,7 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('unidbg_launch', (t) =>
     t
-      .desc('Launch an ARM/ARM64 .so library in the Unidbg emulator. First call ~3-5s warmup.')
+      .desc('Launch a shared library in Unidbg.')
       .string('soPath', 'Path to the .so library file')
       .string('arch', 'Architecture: arm or arm64')
       .required('soPath'),

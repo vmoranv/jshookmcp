@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   },
 
   topLevel: {
+    handlePlatformCapabilities: vi.fn(async () => ({ kind: 'platform_capabilities' })),
     handleElectronScanUserdata: vi.fn(async (args) => ({ kind: 'scan_userdata', args })),
     handleElectronCheckFuses: vi.fn(async (args) => ({ kind: 'check_fuses', args })),
     handleElectronPatchFuses: vi.fn(async (args) => ({ kind: 'patch_fuses', args })),
@@ -72,6 +73,10 @@ vi.mock('@server/domains/platform/handlers/electron-ipc-sniffer', () => ({
   handleElectronIPCSniff: mocks.topLevel.handleElectronIPCSniff,
 }));
 
+vi.mock('@server/domains/platform/handlers/capabilities', () => ({
+  handlePlatformCapabilities: mocks.topLevel.handlePlatformCapabilities,
+}));
+
 import { PlatformToolHandlers } from '@server/domains/platform/handlers';
 
 describe('PlatformToolHandlers', () => {
@@ -118,6 +123,9 @@ describe('PlatformToolHandlers', () => {
 
   it('delegates electron handlers and top-level helpers', async () => {
     const handlers = new PlatformToolHandlers(collector);
+    await expect(handlers.handlePlatformCapabilities()).resolves.toEqual({
+      kind: 'platform_capabilities',
+    });
     const asarArgs = { input: 'app.asar' };
     const inspectArgs = { exePath: 'app.exe' };
     const userdataArgs = { path: 'userdata' };
@@ -165,6 +173,7 @@ describe('PlatformToolHandlers', () => {
       args: sniffArgs,
     });
 
+    expect(mocks.topLevel.handlePlatformCapabilities).toHaveBeenCalledOnce();
     expect(mocks.topLevel.handleElectronScanUserdata).toHaveBeenCalledWith(userdataArgs);
     expect(mocks.topLevel.handleElectronCheckFuses).toHaveBeenCalledWith(fuseArgs);
     expect(mocks.topLevel.handleElectronPatchFuses).toHaveBeenCalledWith(patchArgs);

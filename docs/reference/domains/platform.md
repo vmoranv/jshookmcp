@@ -20,6 +20,7 @@
 
 ## 代表工具
 
+- `platform_capabilities` — 待补充中文：Report platform tool backend availability.
 - `miniapp_pkg_scan` — 扫描本地小程序缓存目录并列出所有包文件。
 - `miniapp_pkg_unpack` — 解包小程序包文件，优先使用外部工具，失败时自动降级为 Node.js 解析。
 - `miniapp_pkg_analyze` — 分析解包后的小程序结构，提取页面、分包、组件和体积等信息。
@@ -29,12 +30,12 @@
 - `asar_search` — 在 Electron ASAR 归档中搜索指定关键词或正则模式，返回匹配的文件和行。
 - `electron_check_fuses` — 检测 Electron 应用二进制的 Fuse 配置，识别哪些安全保护（如 ASAR 完整性、Node.js 开关）已启用或禁用。
 - `electron_patch_fuses` — 修补 Electron 二进制 Fuse 开关，启用或禁用调试相关保险丝（如 RunAsNode、InspectArguments）。修补前自动创建备份。
-- `v8_bytecode_decompile` — 反编译 V8 字节码（.jsc / bytenode）文件。优先使用 view8 Python 库进行完整反编译，备选内置常量池提取器提取字符串和标识符。
 
-## 工具清单（13）
+## 工具清单（14）
 
 | 工具 | 说明 |
 | --- | --- |
+| `platform_capabilities` | 待补充中文：Report platform tool backend availability. |
 | `miniapp_pkg_scan` | 扫描本地小程序缓存目录并列出所有包文件。 |
 | `miniapp_pkg_unpack` | 解包小程序包文件，优先使用外部工具，失败时自动降级为 Node.js 解析。 |
 | `miniapp_pkg_analyze` | 分析解包后的小程序结构，提取页面、分包、组件和体积等信息。 |

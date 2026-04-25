@@ -23,7 +23,7 @@ interface MojoInterfaceState {
   pendingMessages: number;
 }
 
-interface AvailabilityState {
+export interface MojoMonitorAvailability {
   available: boolean;
   reason?: string;
   fridaAvailable: boolean;
@@ -74,7 +74,7 @@ async function probeFridaCli(): Promise<string | null> {
   });
 }
 
-async function detectAvailability(): Promise<AvailabilityState> {
+async function detectAvailability(): Promise<MojoMonitorAvailability> {
   const flag = process.env['JSHOOK_ENABLE_MOJO_IPC'];
   const fridaNpm = detectFridaNpmPackage();
   const fridaCli = await probeFridaCli();
@@ -137,7 +137,7 @@ export class MojoMonitor {
   private deviceId?: string;
   private readonly messages: MojoMessage[] = [];
   private readonly interfaces = new Map<string, MojoInterfaceState>();
-  private availability: AvailabilityState = {
+  private availability: MojoMonitorAvailability = {
     available: false,
     fridaAvailable: false,
     fridaCliAvailable: false,
@@ -156,6 +156,15 @@ export class MojoMonitor {
 
   getUnavailableReason(): string | undefined {
     return this.availability.reason;
+  }
+
+  getAvailabilitySnapshot(): MojoMonitorAvailability {
+    return { ...this.availability };
+  }
+
+  async probeAvailability(): Promise<MojoMonitorAvailability> {
+    this.availability = await detectAvailability();
+    return this.getAvailabilitySnapshot();
   }
 
   isSimulationMode(): boolean {
