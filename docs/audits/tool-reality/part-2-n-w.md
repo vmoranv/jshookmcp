@@ -24,6 +24,8 @@ Evidence: src/server/domains/native-bridge/definitions.ts; tests/server/ToolCata
 ## network
 Evidence: src/server/domains/network/handlers/raw-handlers.ts:734-762; src/server/domains/network/handlers/intercept-handlers.ts; src/modules/monitor/NetworkMonitor.impl.ts:303
 
+Focused runtime note: loopback probes on `2026-04-25` verified `http_plain_request` returning the expected body marker, `http2_probe` returning a real `200` body from a local h2c server, and `network_rtt_measure` resolving `127.0.0.1` with one recorded sample on this machine.
+
 | tool | status | note |
 | --- | --- | --- |
 | network_enable | conditional | Many tools need active browser/network monitor state or reachable targets. |
@@ -121,16 +123,18 @@ Evidence: src/server/domains/protocol-analysis/handlers.impl.core.ts
 ## proxy
 Evidence: src/server/domains/proxy/manifest.ts:29-45; src/server/domains/proxy/handlers.impl.ts:30-231
 
+Focused runtime note: loopback probes on `2026-04-25` verified real `proxy_start`, `proxy_status`, `proxy_export_ca`, `proxy_add_rule`, `proxy_get_requests`, `proxy_clear_logs`, and `proxy_stop` behavior. A forward rule returned an upstream `HTTP/1.1 200 OK` response body through the running proxy, and request logs captured the proxied URL on this machine. `proxy_setup_adb_device` remains environment-gated by local `adb` and device availability.
+
 | tool | status | note |
 | --- | --- | --- |
-| proxy_start | conditional | Depends on mockttp, free ports, and optional adb for device setup. |
-| proxy_stop | conditional | Depends on mockttp, free ports, and optional adb for device setup. |
-| proxy_status | conditional | Depends on mockttp, free ports, and optional adb for device setup. |
-| proxy_export_ca | conditional | Depends on mockttp, free ports, and optional adb for device setup. |
-| proxy_add_rule | conditional | Depends on mockttp, free ports, and optional adb for device setup. |
-| proxy_get_requests | conditional | Depends on mockttp, free ports, and optional adb for device setup. |
-| proxy_clear_logs | conditional | Depends on mockttp, free ports, and optional adb for device setup. |
-| proxy_setup_adb_device | conditional | Depends on mockttp, free ports, and optional adb for device setup. |
+| proxy_start | conditional | Real Mockttp start path; verified listening port plus generated CA path on this machine. |
+| proxy_stop | conditional | Real Mockttp stop path; verified on this machine. |
+| proxy_status | conditional | Real live proxy status read; verified on this machine. |
+| proxy_export_ca | conditional | Real CA export path; verified returning PEM content on this machine. |
+| proxy_add_rule | conditional | Real Mockttp rule registration; verified forwarding a live upstream response body on this machine. |
+| proxy_get_requests | conditional | Real in-memory proxy request capture; verified returning the proxied URL on this machine. |
+| proxy_clear_logs | conditional | Real capture-buffer reset; verified returning zero logs after clear on this machine. |
+| proxy_setup_adb_device | conditional | Requires local `adb`, device connectivity, and certificate install workflow. |
 
 ## sandbox
 Evidence: src/server/domains/sandbox/handlers.ts
@@ -160,11 +164,13 @@ Evidence: src/server/domains/skia-capture/handlers/impl.ts:26-64
 ## sourcemap
 Evidence: src/server/domains/sourcemap/handlers.impl.sourcemap-main.ts:14-188; src/server/domains/sourcemap/handlers.impl.sourcemap-parse-base.ts:111-331
 
+Focused runtime note: loopback probes on `2026-04-25` verified `sourcemap_discover` on a live page plus real `data:` sourcemap parsing and tree reconstruction, including recovered `sourcesContent` and written file contents containing the expected marker, without weakening loopback SSRF protections.
+
 | tool | status | note |
 | --- | --- | --- |
-| sourcemap_discover | conditional | Discover needs active page/CDP; fetch/parse/reconstruct need reachable sourcemap inputs. |
-| sourcemap_fetch_and_parse | conditional | Discover needs active page/CDP; fetch/parse/reconstruct need reachable sourcemap inputs. |
-| sourcemap_reconstruct_tree | conditional | Discover needs active page/CDP; fetch/parse/reconstruct need reachable sourcemap inputs. |
+| sourcemap_discover | conditional | Needs an active page/CDP session; live inline sourcemap discovery was verified on this machine. |
+| sourcemap_fetch_and_parse | conditional | Needs a reachable or `data:` sourcemap input; verified returning real `sourcesContent` on this machine. |
+| sourcemap_reconstruct_tree | conditional | Needs a reachable or `data:` sourcemap input and project-root output dir; verified writing recovered source files on this machine. |
 
 ## streaming
 Evidence: src/server/domains/streaming/manifest.ts; src/server/domains/streaming/handlers.impl.core.ts; src/server/domains/streaming/handlers/ws-handlers.ts; src/server/domains/streaming/handlers/sse-handlers.ts
