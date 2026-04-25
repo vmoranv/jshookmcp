@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as child_process from 'child_process';
+import * as http from 'node:http';
+import * as net from 'node:net';
+import { once } from 'node:events';
 import { ProxyHandlers } from '@server/domains/proxy/index';
 
 vi.mock('child_process', () => {
@@ -14,6 +17,28 @@ vi.mock('child_process', () => {
 function parseResponse(res: any) {
   if (res.isError) throw new Error('Response is an error: ' + JSON.stringify(res, null, 2));
   return JSON.parse(res.content[0].text);
+}
+
+async function listen(server: http.Server): Promise<number> {
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('Failed to resolve server address');
+  }
+  return address.port;
+}
+
+async function sendRawHttpRequest(port: number, requestText: string): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host: '127.0.0.1', port }, () => {
+      socket.write(requestText);
+    });
+    const chunks: Buffer[] = [];
+    socket.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    socket.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    socket.on('error', reject);
+  });
 }
 
 describe('ProxyHandlers (Integration)', () => {
@@ -101,6 +126,44 @@ describe('ProxyHandlers (Integration)', () => {
 
     const logsRes: any = await handlers.handleProxyGetRequests({});
     expect(Array.isArray(parseResponse(logsRes).logs)).toBe(true);
+  });
+
+  it('forwards proxied requests with the upstream response body', async () => {
+    const upstreamBody = 'proxy-forward-marker-20260425';
+    const upstream = http.createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
+      res.end(upstreamBody);
+    });
+    const upstreamPort = await listen(upstream);
+
+    try {
+      await handlers.handleProxyStart({ port: testPort + 6, useHttps: false });
+      const ruleRes = await handlers.handleProxyAddRule({
+        action: 'forward',
+        method: 'GET',
+        urlPattern: '/forward-test/',
+      });
+      const ruleData = parseResponse(ruleRes);
+      expect(ruleData.success).toBe(true);
+
+      const response = await sendRawHttpRequest(
+        testPort + 6,
+        [
+          `GET http://127.0.0.1:${upstreamPort}/forward-test HTTP/1.1`,
+          `Host: 127.0.0.1:${upstreamPort}`,
+          'Connection: close',
+          '',
+          '',
+        ].join('\r\n'),
+      );
+
+      expect(response).toContain('200 OK');
+      expect(response).toContain(upstreamBody);
+    } finally {
+      await new Promise((resolve, reject) => {
+        upstream.close((error) => (error ? reject(error) : resolve(undefined)));
+      });
+    }
   });
 
   it('should clear cached request logs', async () => {

@@ -594,7 +594,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     proxy_stop: {},
     proxy_status: {},
     proxy_export_ca: {},
-    proxy_add_rule: { pattern: '/api/', action: 'pass' },
+    proxy_add_rule: { action: 'forward', method: 'GET', urlPattern: '/api/' },
     proxy_get_requests: {},
     proxy_clear_logs: {},
     proxy_setup_adb_device: { deviceId: '__placeholder__' },
