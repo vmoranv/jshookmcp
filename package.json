@@ -94,6 +94,7 @@
     "package:verify-install": "node scripts/verify-packed-install.mjs",
     "package:verify-release": "node scripts/verify-release-artifact.mjs",
     "audit:tools": "tsx scripts/audit-tools.mjs",
+    "audit:runtime": "node scripts/audit-runtime-probes.mjs",
     "git:refresh-noise": "node scripts/refresh-git-noise.mjs",
     "check": "corepack pnpm run metadata:check && corepack pnpm run lint && corepack pnpm run format:check && corepack pnpm run typecheck && corepack pnpm run test",
     "package": "corepack pnpm pack",
