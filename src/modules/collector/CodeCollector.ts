@@ -33,6 +33,15 @@ import {
   getFilesByPatternImpl,
   getTopPriorityFilesImpl,
 } from '@modules/collector/CodeCollectorFileQueryInternal';
+import {
+  resolveChromeLaunchOptions,
+  sameChromeLaunchOptions,
+} from '@modules/collector/CodeCollectorLaunchOptions';
+import type {
+  ChromeLaunchOverrides,
+  CodeCollectorLaunchResult,
+  ResolvedChromeLaunchOptions,
+} from '@modules/collector/CodeCollectorLaunchOptions';
 
 interface ChromeLike {
   runtime: Record<string, unknown>;
@@ -86,6 +95,7 @@ export class CodeCollector {
   } = {};
   private activePageIndex: number | null = null;
   private currentHeadless: boolean | null = null;
+  private currentLaunchOptions: ResolvedChromeLaunchOptions | null = null;
   private explicitlyClosed: boolean = false;
   private connectedToExistingBrowser: boolean = false;
   /** PID of the Chrome child process launched by puppeteer, used for force-kill fallback. */
@@ -163,65 +173,81 @@ export class CodeCollector {
     }
   }
   async init(headless?: boolean): Promise<void> {
-    if (this.browser) {
-      return;
-    }
-    this.explicitlyClosed = false;
-    // Deduplicate concurrent init calls
+    await this.launch(headless === undefined ? undefined : { headless });
+  }
+
+  async launch(overrides?: ChromeLaunchOverrides): Promise<CodeCollectorLaunchResult> {
     if (this.initPromise) {
-      return this.initPromise;
+      await this.initPromise;
     }
-    this.initPromise = this.initInner(headless);
+
+    const executablePath = this.resolveExecutablePath();
+    const launchOptions = resolveChromeLaunchOptions(
+      this.config,
+      overrides,
+      executablePath,
+      this.viewport,
+    );
+
+    if (
+      this.browser &&
+      !this.connectedToExistingBrowser &&
+      sameChromeLaunchOptions(this.currentLaunchOptions, launchOptions)
+    ) {
+      this.explicitlyClosed = false;
+      return {
+        action: 'reused',
+        launchOptions,
+      };
+    }
+
+    const action: CodeCollectorLaunchResult['action'] = this.browser ? 'relaunched' : 'launched';
+    const reason = this.browser
+      ? this.connectedToExistingBrowser
+        ? 'replacing-existing-browser-connection'
+        : 'launch-options-changed'
+      : undefined;
+
+    this.explicitlyClosed = false;
+    this.initPromise = this.launchInner(launchOptions);
     try {
       await this.initPromise;
     } finally {
       this.initPromise = null;
     }
+
+    return {
+      action,
+      launchOptions,
+      ...(reason ? { reason } : {}),
+    };
   }
-  private async initInner(headless?: boolean): Promise<void> {
-    const useHeadless = headless ?? this.config.headless;
-    const executablePath = this.resolveExecutablePath();
-    const launchOptions: Parameters<typeof launch>[0] = {
-      headless: useHeadless,
-      args: [
-        ...(this.config.args || []),
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-extensions',
-        '--disable-component-extensions-with-background-pages',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
-        `--window-size=${this.viewport.width},${this.viewport.height}`,
-        '--ignore-certificate-errors',
-      ],
+
+  private async launchInner(launchOptions: ResolvedChromeLaunchOptions): Promise<void> {
+    if (this.browser) {
+      await this.disposeCurrentBrowser(false);
+    }
+
+    const browserLaunchOptions: Parameters<typeof launch>[0] = {
+      headless: launchOptions.headless,
+      args: launchOptions.args,
       defaultViewport: this.viewport,
       protocolTimeout: 60000,
     };
-    if (executablePath) {
-      launchOptions.executablePath = executablePath;
+    if (launchOptions.executablePath) {
+      browserLaunchOptions.executablePath = launchOptions.executablePath;
     }
     logger.info('Initializing browser with anti-detection...');
-    this.browser = await launch(launchOptions);
+    this.browser = await launch(browserLaunchOptions);
     this.connectedToExistingBrowser = false;
     this.chromePid = this.browser.process()?.pid ?? null;
     if (this.chromePid) {
       logger.debug(`Chrome child process PID: ${this.chromePid}`);
     }
-    this.currentHeadless = useHeadless === undefined ? true : useHeadless !== false;
+    this.currentHeadless = launchOptions.headless;
+    this.currentLaunchOptions = launchOptions;
     this.browser.on('disconnected', () => {
-      logger.warn('Browser disconnected');
-      this.browser = null;
-      this.currentHeadless = null;
-      this.connectedToExistingBrowser = false;
-      this.chromePid = null;
-      void this.browserTargetSessionManager?.dispose();
-      this.browserTargetSessionManager = null;
-      if (this.cdpSession) {
-        this.cdpSession = null;
-        this.cdpListeners = {};
-      }
+      this.handleBrowserDisconnected();
     });
     logger.success('Browser initialized with enhanced anti-detection');
   }
@@ -245,9 +271,25 @@ export class CodeCollector {
     );
     return undefined;
   }
-  async close(): Promise<void> {
+
+  private handleBrowserDisconnected(): void {
+    logger.warn('Browser disconnected');
+    this.browser = null;
+    this.currentHeadless = null;
+    this.currentLaunchOptions = null;
+    this.connectedToExistingBrowser = false;
+    this.chromePid = null;
+    void this.browserTargetSessionManager?.dispose();
+    this.browserTargetSessionManager = null;
+    if (this.cdpSession) {
+      this.cdpSession = null;
+      this.cdpListeners = {};
+    }
+  }
+
+  private async disposeCurrentBrowser(markExplicitlyClosed: boolean): Promise<void> {
     await this.clearAllData();
-    this.explicitlyClosed = true;
+    this.explicitlyClosed = markExplicitlyClosed;
     this.activePageIndex = null;
 
     const browser = this.browser;
@@ -255,6 +297,7 @@ export class CodeCollector {
     const pid = this.chromePid;
     this.browser = null;
     this.currentHeadless = null;
+    this.currentLaunchOptions = null;
     this.connectedToExistingBrowser = false;
     this.chromePid = null;
     await this.browserTargetSessionManager?.dispose();
@@ -271,7 +314,10 @@ export class CodeCollector {
         await this.closeBrowserWithForceKill(browser, pid);
       }
     }
+  }
 
+  async close(): Promise<void> {
+    await this.disposeCurrentBrowser(true);
     logger.info('Browser closed and all data cleared');
   }
 
@@ -481,6 +527,9 @@ export class CodeCollector {
     pagesCount: number;
     version?: string;
     effectiveHeadless?: boolean;
+    launchSource?: 'launched' | 'attached';
+    v8NativeSyntaxEnabled?: boolean;
+    launchArgs?: string[];
   }> {
     if (!this.browser) {
       return {
@@ -496,6 +545,9 @@ export class CodeCollector {
         pagesCount: pages.length,
         version,
         effectiveHeadless: this.currentHeadless ?? undefined,
+        launchSource: this.connectedToExistingBrowser ? 'attached' : 'launched',
+        v8NativeSyntaxEnabled: this.currentLaunchOptions?.v8NativeSyntaxEnabled,
+        launchArgs: this.currentLaunchOptions?.args ? [...this.currentLaunchOptions.args] : [],
       };
     } catch (error) {
       logger.debug('Browser not running or disconnected:', error);
@@ -573,18 +625,9 @@ export class CodeCollector {
 
   async connect(endpointOrOptions: string | ChromeConnectOptions): Promise<void> {
     this.explicitlyClosed = false;
-    await this.browserTargetSessionManager?.dispose();
-    this.browserTargetSessionManager = null;
-    if (this.browser) {
-      try {
-        await this.browser.disconnect();
-      } catch {
-        /* best-effort cleanup */
-      }
-      this.browser = null;
-      this.currentHeadless = null;
+    if (this.browser || this.browserTargetSessionManager || this.cdpSession) {
+      await this.disposeCurrentBrowser(false);
     }
-    this.activePageIndex = null;
     const connectOptions = await this.resolveConnectOptions(endpointOrOptions);
     const target =
       connectOptions.browserWSEndpoint ??
@@ -593,17 +636,9 @@ export class CodeCollector {
     logger.info(`Connecting to existing browser: ${target}`);
     this.browser = await this.connectWithTimeout(connectOptions, target, endpointOrOptions);
     this.connectedToExistingBrowser = true;
+    this.currentLaunchOptions = null;
     this.browser.on('disconnected', () => {
-      logger.warn('Browser disconnected');
-      this.browser = null;
-      this.currentHeadless = null;
-      this.connectedToExistingBrowser = false;
-      void this.browserTargetSessionManager?.dispose();
-      this.browserTargetSessionManager = null;
-      if (this.cdpSession) {
-        this.cdpSession = null;
-        this.cdpListeners = {};
-      }
+      this.handleBrowserDisconnected();
     });
     logger.success('Connected to existing browser successfully');
   }

@@ -3,7 +3,7 @@ import type { PageController } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import type { CamoufoxBrowserManager } from '@server/domains/shared/modules';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
-import { argBool, argString, argNumber } from '@server/domains/shared/parse-args';
+import { argBool, argNumber, argString, argStringArray } from '@server/domains/shared/parse-args';
 import { R } from '@server/domains/shared/ResponseBuilder';
 import type { ToolResponse } from '@server/types';
 import { logger } from '@utils/logger';
@@ -22,6 +22,12 @@ type ChromeConnectRequest = {
   autoConnect?: boolean;
   channel?: ChromeChannel;
   userDataDir?: string;
+};
+
+type ChromeLaunchRequest = {
+  headless?: boolean;
+  args?: string[];
+  enableV8NativesSyntax?: boolean;
 };
 
 interface BrowserControlHandlersDeps {
@@ -105,6 +111,14 @@ export class BrowserControlHandlers {
       autoConnect: argBool(args, 'autoConnect'),
       userDataDir: argString(args, 'userDataDir'),
       channel: channelValue as ChromeChannel | undefined,
+    };
+  }
+
+  private parseChromeLaunchRequest(args: Record<string, unknown>): ChromeLaunchRequest {
+    return {
+      headless: this.parseHeadlessArg(args.headless),
+      args: argStringArray(args, 'args'),
+      enableV8NativesSyntax: argBool(args, 'enableV8NativesSyntax'),
     };
   }
 
@@ -247,11 +261,27 @@ export class BrowserControlHandlers {
           .json();
       }
 
-      const chromeHeadless = this.parseHeadlessArg(args.headless);
+      const launchRequest = this.parseChromeLaunchRequest(args);
       try {
-        await this.deps.collector.init(chromeHeadless);
+        const launch = await this.deps.collector.launch(launchRequest);
+        const status = await this.deps.collector.getStatus();
+
+        return R.ok()
+          .merge({
+            driver: 'chrome',
+            message:
+              launch.action === 'relaunched'
+                ? 'Browser relaunched successfully'
+                : 'Browser launched successfully',
+            launchAction: launch.action,
+            relaunchReason: launch.reason ?? null,
+            v8NativeSyntaxEnabled: launch.launchOptions.v8NativeSyntaxEnabled,
+            launchArgs: launch.launchOptions.args,
+            status,
+          })
+          .json();
       } catch (error) {
-        if (!this.shouldAttemptLinuxHeadfulFallback(chromeHeadless, error)) {
+        if (!this.shouldAttemptLinuxHeadfulFallback(launchRequest.headless, error)) {
           throw error;
         }
 
@@ -259,13 +289,20 @@ export class BrowserControlHandlers {
         logger.warn(`Headful launch failed on Linux, fallback to headless=true: ${reason}`);
         process.env.PUPPETEER_HEADLESS = 'true';
         await this.persistHeadlessEnv('true');
-        await this.deps.collector.init(true);
+        const launch = await this.deps.collector.launch({
+          ...launchRequest,
+          headless: true,
+        });
         const fallbackStatus = await this.deps.collector.getStatus();
 
         return R.ok()
           .merge({
             driver: 'chrome',
             message: 'Browser launched with Linux fallback (headless=true)',
+            launchAction: launch.action,
+            relaunchReason: launch.reason ?? null,
+            v8NativeSyntaxEnabled: launch.launchOptions.v8NativeSyntaxEnabled,
+            launchArgs: launch.launchOptions.args,
             status: fallbackStatus,
             fallback: {
               applied: true,
@@ -276,15 +313,6 @@ export class BrowserControlHandlers {
           })
           .json();
       }
-      const status = await this.deps.collector.getStatus();
-
-      return R.ok()
-        .merge({
-          driver: 'chrome',
-          message: 'Browser launched successfully',
-          status,
-        })
-        .json();
     } catch (error) {
       return R.fail(error).json();
     }

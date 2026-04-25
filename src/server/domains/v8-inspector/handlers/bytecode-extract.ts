@@ -35,6 +35,7 @@ export async function handleBytecodeExtract(
     functionOffset: functionOffset ?? null,
     mode: 'source-derived',
     format: 'pseudo-bytecode',
+    rawIgnitionBytecodeAvailable: false,
     extraction,
     disassembly: extractor.disassembleBytecode(extraction.bytecode),
     hiddenClasses: await extractor.findHiddenClasses(scriptId),

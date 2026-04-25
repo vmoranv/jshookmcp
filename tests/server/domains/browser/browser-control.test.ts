@@ -32,7 +32,7 @@ import { BrowserControlHandlers } from '@server/domains/browser/handlers/browser
 
 interface CollectorMock {
   connect: Mock<(args: any) => Promise<void>>;
-  init: Mock<(args: any) => Promise<void>>;
+  launch: Mock<(args: any) => Promise<any>>;
   close: Mock<() => Promise<void>>;
   listPages: Mock<() => Promise<Array<{ index: number; url: string; title: string }>>>;
   listResolvedPages: Mock<() => Promise<Array<{ index: number; url: string; title: string }>>>;
@@ -56,7 +56,14 @@ interface TabRegistryMock {
 function createMocks() {
   const collector: CollectorMock = {
     connect: vi.fn(async () => {}),
-    init: vi.fn(async () => {}),
+    launch: vi.fn(async () => ({
+      action: 'launched',
+      launchOptions: {
+        headless: true,
+        args: [],
+        v8NativeSyntaxEnabled: false,
+      },
+    })),
     close: vi.fn(async () => {}),
     listPages: vi.fn(async () => []),
     listResolvedPages: vi.fn(async () => []),
@@ -119,7 +126,11 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
   it('launches chrome in default mode and returns status', async () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true, pages: 1 });
     const body = parseJson<BrowserLaunchResponse>(await handlers.handleBrowserLaunch({}));
-    expect(collector.init).toHaveBeenCalledWith(undefined);
+    expect(collector.launch).toHaveBeenCalledWith({
+      args: [],
+      enableV8NativesSyntax: undefined,
+      headless: undefined,
+    });
     expect(body.success).toBe(true);
     expect(body.driver).toBe('chrome');
     expect(body.status.connected).toBe(true);
@@ -245,56 +256,88 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
     expect(body.error).toContain('wsEndpoint is required');
   });
 
-  it('passes headless boolean true to collector.init', async () => {
+  it('passes headless boolean true to collector.launch', async () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: true });
-    expect(collector.init).toHaveBeenCalledWith(true);
+    expect(collector.launch).toHaveBeenCalledWith({
+      args: [],
+      enableV8NativesSyntax: undefined,
+      headless: true,
+    });
   });
 
-  it('passes headless boolean false to collector.init', async () => {
+  it('passes headless boolean false to collector.launch', async () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: false });
-    expect(collector.init).toHaveBeenCalledWith(false);
+    expect(collector.launch).toHaveBeenCalledWith({
+      args: [],
+      enableV8NativesSyntax: undefined,
+      headless: false,
+    });
   });
 
   it('parses headless string "true" correctly', async () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 'true' });
-    expect(collector.init).toHaveBeenCalledWith(true);
+    expect(collector.launch).toHaveBeenCalledWith({
+      args: [],
+      enableV8NativesSyntax: undefined,
+      headless: true,
+    });
   });
 
   it('parses headless string "false" correctly', async () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 'false' });
-    expect(collector.init).toHaveBeenCalledWith(false);
+    expect(collector.launch).toHaveBeenCalledWith({
+      args: [],
+      enableV8NativesSyntax: undefined,
+      headless: false,
+    });
   });
 
   it('parses headless string "yes"/"no" correctly', async () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 'yes' });
-    expect(collector.init).toHaveBeenCalledWith(true);
+    expect(collector.launch).toHaveBeenCalledWith({
+      args: [],
+      enableV8NativesSyntax: undefined,
+      headless: true,
+    });
   });
 
   it('parses headless number 1 as true', async () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 1 });
-    expect(collector.init).toHaveBeenCalledWith(true);
+    expect(collector.launch).toHaveBeenCalledWith({
+      args: [],
+      enableV8NativesSyntax: undefined,
+      headless: true,
+    });
   });
 
   it('parses headless number 0 as false', async () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 0 });
-    expect(collector.init).toHaveBeenCalledWith(false);
+    expect(collector.launch).toHaveBeenCalledWith({
+      args: [],
+      enableV8NativesSyntax: undefined,
+      headless: false,
+    });
   });
 
   it('treats unrecognized headless values as undefined', async () => {
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     await handlers.handleBrowserLaunch({ headless: 'maybe' });
-    expect(collector.init).toHaveBeenCalledWith(undefined);
+    expect(collector.launch).toHaveBeenCalledWith({
+      args: [],
+      enableV8NativesSyntax: undefined,
+      headless: undefined,
+    });
   });
 
   it('returns failure response for non-linux-display errors from init', async () => {
-    collector.init.mockRejectedValueOnce(new Error('some other error'));
+    collector.launch.mockRejectedValueOnce(new Error('some other error'));
     const response = await handlers.handleBrowserLaunch({});
     const body = parseJson<BrowserLaunchResponse>(response);
     expect(body.success).toBe(false);
@@ -306,8 +349,16 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
     process.env.JSHOOK_FORCE_LINUX_FALLBACK = 'true';
 
     try {
-      collector.init.mockRejectedValueOnce(new Error('Missing X server or $DISPLAY'));
-      collector.init.mockResolvedValueOnce(undefined);
+      collector.launch
+        .mockRejectedValueOnce(new Error('Missing X server or $DISPLAY'))
+        .mockResolvedValueOnce({
+          action: 'launched',
+          launchOptions: {
+            headless: true,
+            args: [],
+            v8NativeSyntaxEnabled: false,
+          },
+        });
       collector.getStatus.mockResolvedValueOnce({ connected: true, pages: 1 });
       vi.mocked(readFile).mockResolvedValueOnce('APP_NAME=jshook\nPUPPETEER_HEADLESS=false\n');
       vi.mocked(writeFile).mockResolvedValueOnce(undefined);
@@ -318,8 +369,16 @@ describe('BrowserControlHandlers – handleBrowserLaunch', () => {
         }),
       );
 
-      expect(collector.init).toHaveBeenNthCalledWith(1, false);
-      expect(collector.init).toHaveBeenNthCalledWith(2, true);
+      expect(collector.launch).toHaveBeenNthCalledWith(1, {
+        args: [],
+        enableV8NativesSyntax: undefined,
+        headless: false,
+      });
+      expect(collector.launch).toHaveBeenNthCalledWith(2, {
+        args: [],
+        enableV8NativesSyntax: undefined,
+        headless: true,
+      });
       expect(writeFile).toHaveBeenCalledWith(
         expect.stringContaining('project'),
         expect.stringContaining('PUPPETEER_HEADLESS=true'),

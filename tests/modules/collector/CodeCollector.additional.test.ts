@@ -441,7 +441,7 @@ describe('CodeCollector – additional coverage', () => {
       });
     });
 
-    it('disconnects existing browser before connecting', async () => {
+    it('closes a locally launched browser before connecting elsewhere', async () => {
       const oldBrowser = createBrowserMock();
       const newBrowser = createBrowserMock();
       mocks.launch.mockResolvedValue(oldBrowser);
@@ -451,7 +451,8 @@ describe('CodeCollector – additional coverage', () => {
       await collector.init();
       await collector.connect('ws://127.0.0.1:9222');
 
-      expect(oldBrowser.disconnect).toHaveBeenCalled();
+      expect(oldBrowser.close).toHaveBeenCalled();
+      expect(oldBrowser.disconnect).not.toHaveBeenCalled();
     });
 
     it('fails fast when connect handshake never completes', async () => {
