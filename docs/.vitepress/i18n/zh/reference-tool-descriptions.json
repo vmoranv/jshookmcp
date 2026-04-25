@@ -437,5 +437,6 @@
   "console_get_exceptions": "获取页面中已捕获的未处理异常。",
   "process_check_debug_port": "检查目标进程是否已开启可用于 CDP 附加的调试端口。",
   "state_board": "统一的共享状态板，用于跨 Agent 的键值协调。",
-  "camoufox_geolocation": "根据 locale 获取地理定位数据（经纬度、精度），可选通过代理查询公网 IP。需要 camoufox-js。"
+  "camoufox_geolocation": "根据 locale 获取地理定位数据（经纬度、精度），可选通过代理查询公网 IP。需要 camoufox-js。",
+  "trace_get_network_flow": "待补充中文：Get a recorded request-scoped network flow from a trace."
 }
