@@ -80,8 +80,6 @@ export class ScriptManager {
     const page = await this.collector.getActivePage();
     this.cdpSession = await page.createCDPSession();
 
-    await this.cdpSession.send('Debugger.enable');
-
     this.cdpSession.on('Debugger.scriptParsed', (params: DebuggerScriptParsedEvent) => {
       const scriptInfo: ScriptInfo = {
         scriptId: params.scriptId,
@@ -104,6 +102,8 @@ export class ScriptManager {
 
       logger.debug(`Script parsed: ${params.url || 'inline'} (${params.scriptId})`);
     });
+
+    await this.cdpSession.send('Debugger.enable');
 
     this.initialized = true;
     logger.info('ScriptManager initialized');
