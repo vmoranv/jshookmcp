@@ -49,7 +49,7 @@ describe('v8-inspector manifest', () => {
   it('should have ensure function that returns handler instance', async () => {
     const mockCtx = {
       pageController: {
-        sendCDPCommand: vi.fn().mockResolvedValue({}),
+        getPage: vi.fn().mockResolvedValue({ createCDPSession: vi.fn() }),
       },
       workerPool: null,
     } as unknown as import('@server/MCPServer.context').MCPServerContext;
@@ -66,6 +66,51 @@ describe('v8-inspector manifest', () => {
 
     // Clean up
     expect(mockCtx.v8InspectorHandlers).toBe(handler);
+  });
+
+  it('should wire heap capture through pageController.getPage()', async () => {
+    const chunk = '{"snapshot":true}';
+    let chunkListener: ((payload: { chunk: string }) => void) | undefined;
+    const session = {
+      send: vi.fn(async (method: string) => {
+        if (method === 'HeapProfiler.enable') return {};
+        if (method === 'HeapProfiler.takeHeapSnapshot') {
+          chunkListener?.({ chunk });
+          return {};
+        }
+        return {};
+      }),
+      on: vi.fn((event: string, listener: (payload: { chunk: string }) => void) => {
+        if (event === 'HeapProfiler.addHeapSnapshotChunk') {
+          chunkListener = listener;
+        }
+      }),
+      off: vi.fn(),
+      detach: vi.fn().mockResolvedValue(undefined),
+    };
+    const page = {
+      createCDPSession: vi.fn().mockResolvedValue(session),
+    };
+    const pageController = {
+      getPage: vi.fn().mockResolvedValue(page),
+    };
+    const mockCtx = {
+      pageController,
+      eventBus: {
+        emit: vi.fn().mockResolvedValue(undefined),
+      },
+    } as unknown as import('@server/MCPServer.context').MCPServerContext;
+
+    const handler = await manifest.ensure(mockCtx);
+    const result = await handler.v8_heap_snapshot_capture({});
+
+    expect(pageController.getPage).toHaveBeenCalledOnce();
+    expect(page.createCDPSession).toHaveBeenCalledOnce();
+    expect(result).toMatchObject({
+      success: true,
+      simulated: false,
+      sizeBytes: Buffer.byteLength(chunk, 'utf8'),
+    });
   });
 
   it('should throw if pageController is missing', async () => {

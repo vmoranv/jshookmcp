@@ -33,6 +33,11 @@ function requirePageController(
   return pageController;
 }
 
+function createV8InspectorClient(ctx: MCPServerContext): V8InspectorClient {
+  const pageController = requirePageController(ctx);
+  return new V8InspectorClient(async () => await pageController.getPage());
+}
+
 export class V8InspectorHandlers {
   private currentSnapshotId: string | null = null;
 
@@ -221,7 +226,7 @@ async function ensure(ctx: MCPServerContext): Promise<V8InspectorHandlers> {
     throw new Error('v8-inspector: PageController not available');
   }
 
-  const client = new V8InspectorClient(() => Promise.resolve(ctx.pageController));
+  const client = createV8InspectorClient(ctx);
   const handlers = new V8InspectorHandlers({ ctx, client });
   ctx.v8InspectorHandlers = handlers;
   return handlers;
