@@ -61,6 +61,7 @@ pnpm run format:docs
 ### PR 质量门禁
 
 - 仓库会对新 PR 运行自动质量门禁，明显的低质量、灌水或批量化 AI slop PR 会被直接关闭。
+- 当前质量门禁使用零容忍模式：只要命中一条失败规则，就可能被自动关闭。
 - PR 标题请尽量使用 conventional 风格，例如 `fix(server): ...`、`docs: ...`。
 - 不要删除 PR 模板章节；请按模板补全 `Summary`、`What changed`、`Validation` 和 `Related issues`。
 - 尽量保持 PR 小而聚焦。大范围无背景改动、空泛描述、缺失验证步骤的 PR 更容易被拦截。
@@ -155,6 +156,7 @@ pnpm run format:docs
 ### PR quality gate
 
 - The repository runs an automated quality gate on new PRs and may immediately close low-quality, spammy, or obviously mass-generated AI slop submissions.
+- The current gate runs in zero-tolerance mode: a single failed rule may be enough to auto-close the PR.
 - Prefer conventional PR titles such as `fix(server): ...` or `docs: ...`.
 - Do not remove sections from the PR template; fill in `Summary`, `What changed`, `Validation`, and `Related issues`.
 - Keep PRs small and well-scoped. Broad drive-by changes, vague descriptions, and missing validation details are much more likely to be flagged.

@@ -17,10 +17,10 @@ jobs:
       - name: Run anti-slop checks
         uses: peakoss/anti-slop@v0.3.0
         with:
-          max-failures: 4
+          max-failures: 1
 
           max-changed-files: 35
-          max-changed-lines: 5000
+          max-changed-lines: 2000
 
           require-maintainer-can-modify: true
           require-conventional-title: true
