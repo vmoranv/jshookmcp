@@ -13,6 +13,8 @@ describe('MojoIPCHandlers', () => {
     listInterfaces: ReturnType<typeof vi.fn>;
     getMessages: ReturnType<typeof vi.fn>;
     isSimulationMode: ReturnType<typeof vi.fn>;
+    getInterfaceCatalogSource: ReturnType<typeof vi.fn>;
+    getObservedInterfaceCount: ReturnType<typeof vi.fn>;
   };
   let decoder: {
     decodePayload: ReturnType<typeof vi.fn>;
@@ -45,6 +47,8 @@ describe('MojoIPCHandlers', () => {
         _simulation: false,
       }),
       isSimulationMode: vi.fn().mockReturnValue(false),
+      getInterfaceCatalogSource: vi.fn().mockReturnValue('seeded-defaults'),
+      getObservedInterfaceCount: vi.fn().mockReturnValue(0),
     };
     decoder = {
       decodePayload: vi
@@ -57,7 +61,14 @@ describe('MojoIPCHandlers', () => {
   it('starts monitoring with the current API', async () => {
     const result = await handlers.handleMojoMonitorStart({ deviceId: 'chrome' });
     expect(monitor.start).toHaveBeenCalledWith('chrome');
-    expect(result).toMatchObject({ success: true, available: true, started: true });
+    expect(result).toMatchObject({
+      success: true,
+      available: true,
+      started: true,
+      _simulation: false,
+      interfaceCatalogSource: 'seeded-defaults',
+      observedInterfaceCount: 0,
+    });
   });
 
   it('reports mojo capability state', async () => {
@@ -81,7 +92,13 @@ describe('MojoIPCHandlers', () => {
   it('lists interfaces with the current API', async () => {
     const result = await handlers.handleMojoListInterfaces();
     expect(monitor.listInterfaces).toHaveBeenCalledOnce();
-    expect(result).toMatchObject({ success: true, available: true });
+    expect(result).toMatchObject({
+      success: true,
+      available: true,
+      _simulation: false,
+      interfaceCatalogSource: 'seeded-defaults',
+      observedInterfaceCount: 0,
+    });
   });
 
   it('gets buffered messages with the current API', async () => {
@@ -93,7 +110,12 @@ describe('MojoIPCHandlers', () => {
       limit: 10,
       interfaceName: 'network.mojom.NetworkService',
     });
-    expect(result).toMatchObject({ success: true, available: true });
+    expect(result).toMatchObject({
+      success: true,
+      available: true,
+      interfaceCatalogSource: 'seeded-defaults',
+      observedInterfaceCount: 0,
+    });
   });
 
   it('returns unavailable payloads when the monitor is disabled', async () => {

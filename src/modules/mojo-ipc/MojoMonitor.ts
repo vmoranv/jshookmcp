@@ -23,6 +23,8 @@ interface MojoInterfaceState {
   pendingMessages: number;
 }
 
+export type MojoInterfaceCatalogSource = 'seeded-defaults' | 'observed' | 'mixed';
+
 export interface MojoMonitorAvailability {
   available: boolean;
   reason?: string;
@@ -137,6 +139,7 @@ export class MojoMonitor {
   private deviceId?: string;
   private readonly messages: MojoMessage[] = [];
   private readonly interfaces = new Map<string, MojoInterfaceState>();
+  private readonly observedInterfaceNames = new Set<string>();
   private availability: MojoMonitorAvailability = {
     available: false,
     fridaAvailable: false,
@@ -145,9 +148,7 @@ export class MojoMonitor {
   };
 
   constructor() {
-    for (const item of getDefaultInterfaces()) {
-      this.interfaces.set(item.name, { ...item });
-    }
+    this.resetInterfaces();
   }
 
   isAvailable(): boolean {
@@ -186,6 +187,8 @@ export class MojoMonitor {
   async start(deviceId?: string): Promise<void> {
     this.deviceId = deviceId;
     this.availability = await detectAvailability();
+    this.resetInterfaces();
+    this.simulationMode = false;
 
     if (!this.availability.available) {
       this.active = false;
@@ -193,7 +196,6 @@ export class MojoMonitor {
     }
 
     this.active = true;
-    this.resetPendingCounts();
 
     if (this.availability.fridaCliAvailable) {
       await this.captureWithFrida(deviceId);
@@ -205,8 +207,7 @@ export class MojoMonitor {
   async stop(): Promise<void> {
     this.active = false;
     this.deviceId = undefined;
-    this.messages.length = 0;
-    this.resetPendingCounts();
+    this.resetInterfaces();
   }
 
   async captureMessages(filter: MojoMessageFilter = {}): Promise<MojoMessage[]> {
@@ -241,6 +242,26 @@ export class MojoMonitor {
         pendingMessages: item.pendingMessages,
       }))
       .toSorted((left, right) => left.name.localeCompare(right.name));
+  }
+
+  hasObservedInterfaces(): boolean {
+    return this.observedInterfaceNames.size > 0;
+  }
+
+  getObservedInterfaceCount(): number {
+    return this.observedInterfaceNames.size;
+  }
+
+  getInterfaceCatalogSource(): MojoInterfaceCatalogSource {
+    if (this.observedInterfaceNames.size === 0) {
+      return 'seeded-defaults';
+    }
+
+    if (this.observedInterfaceNames.size >= this.interfaces.size) {
+      return 'observed';
+    }
+
+    return 'mixed';
   }
 
   async getMessages(options?: { limit?: number; interfaceName?: string }): Promise<{
@@ -280,6 +301,7 @@ export class MojoMonitor {
     }
 
     this.messages.push({ ...message });
+    this.observedInterfaceNames.add(message.interfaceName);
     const existing = this.interfaces.get(message.interfaceName);
     if (existing) {
       existing.pendingMessages += 1;
@@ -322,6 +344,7 @@ export class MojoMonitor {
     this.resetPendingCounts();
 
     for (const message of this.messages) {
+      this.observedInterfaceNames.add(message.interfaceName);
       const item = this.interfaces.get(message.interfaceName);
       if (item) {
         item.pendingMessages += 1;
@@ -338,6 +361,15 @@ export class MojoMonitor {
   private resetPendingCounts(): void {
     for (const item of this.interfaces.values()) {
       item.pendingMessages = 0;
+    }
+  }
+
+  private resetInterfaces(): void {
+    this.messages.length = 0;
+    this.interfaces.clear();
+    this.observedInterfaceNames.clear();
+    for (const item of getDefaultInterfaces()) {
+      this.interfaces.set(item.name, { ...item });
     }
   }
 }
