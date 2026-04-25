@@ -203,8 +203,8 @@ const TOOLS: readonly Tool[] = [
   // v8-inspector
   makeTool('v8_heap_snapshot_capture', 'Capture V8 heap snapshot via CDP'),
   makeTool('v8_heap_snapshot_analyze', 'Analyze V8 heap snapshot for leaks'),
-  makeTool('v8_bytecode_extract', 'Extract V8 Ignition bytecode for a function'),
-  makeTool('v8_jit_inspect', 'Inspect JIT-compiled assembly and optimization'),
+  makeTool('v8_bytecode_extract', 'Derive pseudo bytecode from a V8 script'),
+  makeTool('v8_jit_inspect', 'Inspect JIT status and optimization'),
   // boringssl-inspector
   makeTool('tls_keylog_enable', 'Enable TLS key logging via BoringSSL'),
   makeTool('tls_cert_extract', 'Extract TLS certificates from connections'),

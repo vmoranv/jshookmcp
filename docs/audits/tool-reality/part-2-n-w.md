@@ -225,7 +225,7 @@ Evidence: src/server/domains/transform/handlers.impl.core.ts
 Evidence: src/server/domains/v8-inspector/handlers/impl.ts; src/server/domains/v8-inspector/handlers/heap-snapshot.ts; src/server/domains/v8-inspector/handlers/bytecode-extract.ts; src/server/domains/v8-inspector/handlers/jit-inspect.ts
 
 Compatibility note: `src/server/domains/v8-inspector/handlers.impl.ts` is a legacy direct-import adapter. The current manifest/runtime chain goes through `manifest.ts -> handlers.ts -> handlers/impl.ts`.
-Focused runtime note: on this machine the live heap capture path returned `simulated: false`, produced a multi-megabyte snapshot, and `v8_heap_snapshot_analyze` returned structured output over that real snapshot. `v8_heap_stats` also returned non-zero live usage (`jsHeapSizeUsed=895253`). `get_all_scripts` returned live script metadata, `v8_bytecode_extract` now executes against a non-internal script, but its payload is explicitly `mode: source-derived` / `format: pseudo-bytecode`, and `v8_jit_inspect` returned `inspectionMode: heuristic` because `v8_version_detect.features.nativesSyntax` was `false` on this machine.
+Focused runtime note: on this machine the live heap capture path returned `simulated: false`, produced a multi-megabyte snapshot, and `v8_heap_snapshot_analyze` returned structured output over that real snapshot. `v8_heap_stats` also returned non-zero live usage (`jsHeapSizeUsed=895234`). `get_all_scripts` returned live script metadata. After launching Chrome with `browser_launch(enableV8NativesSyntax=true)`, `v8_version_detect.features.nativesSyntax` became `true` and `v8_jit_inspect` returned `inspectionMode: native-status`. `v8_bytecode_extract` still executed only in explicit `mode: source-derived` / `format: pseudo-bytecode`, so raw Ignition bytecode is still not exposed by this browser/CDP path.
 
 | tool | status | note |
 | --- | --- | --- |
@@ -236,7 +236,7 @@ Focused runtime note: on this machine the live heap capture path returned `simul
 | v8_heap_stats | conditional | Needs active page/CDP; non-zero live heap usage was verified on this machine. |
 | v8_bytecode_extract | fallback | Current implementation derives pseudo-bytecode from script source; it does not expose raw Ignition bytecode. |
 | v8_version_detect | conditional | Needs active page/CDP; now also reports `features.nativesSyntax` so callers can detect whether deeper JIT status is available. |
-| v8_jit_inspect | conditional | Needs active page/CDP; returns native optimization status only when V8 natives syntax is available, and stayed in explicit `inspectionMode: heuristic` on this machine. |
+| v8_jit_inspect | conditional | Needs active page/CDP; returns native optimization status when the launched browser enables V8 natives syntax, otherwise it degrades to explicit `inspectionMode: heuristic`. |
 
 ## wasm
 Evidence: src/server/domains/wasm/handlers.impl.ts:114-651
