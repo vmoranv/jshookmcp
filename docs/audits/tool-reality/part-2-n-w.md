@@ -1,14 +1,14 @@
 # Tool Reality Matrix Part 2 (N-W)
 
 ## mojo-ipc
-Evidence: src/server/domains/mojo-ipc/handlers.impl.ts:35-160; src/modules/mojo-ipc/MojoMonitor.ts:136-308
+Evidence: src/server/domains/mojo-ipc/handlers.impl.ts; src/modules/mojo-ipc/MojoMonitor.ts
 
 | tool | status | note |
 | --- | --- | --- |
 | mojo_ipc_capabilities | real | Explicit capability probe; it reported available on this machine. |
-| mojo_monitor | conditional | Monitor start path was verified on this machine, but live capture can still degrade to simulation mode. |
+| mojo_monitor | conditional | Monitor start path was verified on this machine, but it still returned `_simulation: true` here instead of live Frida-backed message capture. |
 | mojo_decode_message | real | Local payload decoder does not require live monitoring; sample decode was verified. |
-| mojo_list_interfaces | conditional | Returned live interface names on this machine, but still depends on a usable monitor/session. |
+| mojo_list_interfaces | conditional | Interface listing now exposes whether data is `seeded-defaults`, `observed`, or `mixed`; this machine only surfaced the seeded default catalog, not live discovery. |
 | mojo_messages_get | fallback | On this machine it still returned `_simulation: true` and empty messages after monitor start. |
 
 ## native-bridge
@@ -225,15 +225,15 @@ Evidence: src/server/domains/transform/handlers.impl.core.ts
 Evidence: src/server/domains/v8-inspector/handlers/impl.ts; src/server/domains/v8-inspector/handlers/heap-snapshot.ts; src/server/domains/v8-inspector/handlers/bytecode-extract.ts; src/server/domains/v8-inspector/handlers/jit-inspect.ts
 
 Compatibility note: `src/server/domains/v8-inspector/handlers.impl.ts` is a legacy direct-import adapter. The current manifest/runtime chain goes through `manifest.ts -> handlers.ts -> handlers/impl.ts`.
-Focused runtime note: on this machine the live heap capture path still returned `simulated: true`, and heap stats only surfaced minimal snapshot metadata.
+Focused runtime note: on this machine the live heap capture path returned `simulated: false`, produced a multi-megabyte snapshot, and `v8_heap_snapshot_analyze` returned structured output over that real snapshot. `v8_heap_stats` still surfaced only partial or zero-heavy heap usage data.
 
 | tool | status | note |
 | --- | --- | --- |
-| v8_heap_snapshot_capture | fallback | On this machine the live capture path still returned `simulated: true` with empty snapshot chunks. |
-| v8_heap_snapshot_analyze | conditional | Needs active page/CDP or previously captured heap data; analysis still returned structured output over simulated data in this audit. |
+| v8_heap_snapshot_capture | conditional | Needs active page/CDP; the real capture path was verified on this machine and returned `simulated: false`. |
+| v8_heap_snapshot_analyze | conditional | Needs active page/CDP or previously captured heap data; structured analysis over a real captured snapshot was verified on this machine. |
 | v8_heap_diff | conditional | Needs active page/CDP or previously captured heap data. |
 | v8_object_inspect | conditional | Needs active page/CDP or previously captured heap data. |
-| v8_heap_stats | fallback | On this machine it only returned minimal snapshot metadata against simulated captures. |
+| v8_heap_stats | fallback | On this machine it still returned only partial or zero-heavy heap usage data even after a real snapshot capture. |
 | v8_bytecode_extract | conditional | Needs active page/CDP or previously captured heap data. |
 | v8_version_detect | conditional | Needs active page/CDP or previously captured heap data. |
 | v8_jit_inspect | conditional | Needs active page/CDP or previously captured heap data. |
