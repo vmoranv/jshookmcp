@@ -100,6 +100,36 @@ function findRequestByUrl(requests, needle) {
   return null;
 }
 
+function pickScriptForV8Inspection(scripts) {
+  if (!Array.isArray(scripts)) {
+    return null;
+  }
+
+  const candidates = scripts.filter(
+    (script) =>
+      isRecord(script) && typeof script.scriptId === 'string' && script.scriptId.length > 0,
+  );
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const preferred = candidates.find((script) => {
+    const url = typeof script.url === 'string' ? script.url : '';
+    return (
+      url.length > 0 &&
+      !url.startsWith('pptr:') &&
+      !url.startsWith('extensions::') &&
+      !url.startsWith('node:')
+    );
+  });
+
+  const withUrl = candidates.find(
+    (script) => typeof script.url === 'string' && script.url.length > 0,
+  );
+
+  return preferred ?? withUrl ?? candidates[0] ?? null;
+}
+
 function parseWsFrames(buffer) {
   if (buffer.length < 2) {
     return null;
@@ -306,7 +336,8 @@ function summarize(report) {
     `trace: status=${report.trace.stop?.status ?? 'n/a'} bodies=${report.trace.stop?.networkBodyCount ?? 0} chunks=${report.trace.stop?.networkChunkCount ?? 0} bodyState=${report.trace.flow?.request?.bodyCaptureState ?? 'n/a'}`,
     `binary: fridaAvailable=${report.binary.capabilitiesAvailable} modules=${report.binary.moduleSample.join(', ') || 'n/a'}`,
     `mojo: available=${report.mojo.capabilitiesAvailable} simulation=${report.mojo.monitorSimulation} catalog=${report.mojo.interfaceCatalogSource} messages=${report.mojo.messageCount}`,
-    `v8: simulated=${report.v8.capture?.simulated ?? 'n/a'} sizeBytes=${report.v8.capture?.sizeBytes ?? 0}`,
+    `workflow: count=${report.workflow.count ?? 0} run=${report.workflow.run?.success ?? 'skipped'}`,
+    `v8: simulated=${report.v8.capture?.simulated ?? 'n/a'} sizeBytes=${report.v8.capture?.sizeBytes ?? 0} statsUsed=${report.v8.stats?.heapUsage?.jsHeapSizeUsed ?? 'n/a'} script=${report.v8.firstScriptUrl ?? report.v8.firstScriptId ?? 'n/a'} bytecode=${report.v8.bytecode?.success ?? 'skipped'} bytecodeMode=${report.v8.bytecode?.mode ?? 'n/a'} jit=${Array.isArray(report.v8.jit?.functions) ? report.v8.jit.functions.length : 'skipped'} jitMode=${report.v8.jit?.inspectionMode ?? 'n/a'} natives=${report.v8.version?.features?.nativesSyntax ?? 'n/a'}`,
     '',
     'Use --json for the full machine-readable report.',
   ];
@@ -343,6 +374,7 @@ async function main() {
     trace: {},
     binary: {},
     mojo: {},
+    workflow: {},
     v8: {},
   };
   let failure = null;
@@ -368,6 +400,25 @@ async function main() {
       report.mojo.capabilities,
       'mojo_ipc_monitoring',
     );
+    report.workflow.list = await callTool(client, 'list_extension_workflows', {}, 15000);
+    report.workflow.count = Array.isArray(report.workflow.list?.workflows)
+      ? report.workflow.list.workflows.length
+      : 0;
+    const runnableWorkflow = Array.isArray(report.workflow.list?.workflows)
+      ? report.workflow.list.workflows.find((workflow) => isRecord(workflow) && workflow.id)
+      : null;
+    report.workflow.firstWorkflowId =
+      isRecord(runnableWorkflow) && typeof runnableWorkflow.id === 'string'
+        ? runnableWorkflow.id
+        : null;
+    if (report.workflow.firstWorkflowId) {
+      report.workflow.run = await callTool(
+        client,
+        'run_extension_workflow',
+        { workflowId: report.workflow.firstWorkflowId, timeoutMs: 15000 },
+        30000,
+      );
+    }
 
     report.browser.launch = await callTool(client, 'browser_launch', { headless: true }, 60000);
     report.browser.navigate = await callTool(
@@ -463,6 +514,32 @@ async function main() {
       },
       45000,
     );
+    report.v8.debugger = await callTool(client, 'debugger_lifecycle', { action: 'enable' }, 30000);
+    report.v8.version = await callTool(client, 'v8_version_detect', {}, 30000);
+    report.v8.scripts = await callTool(client, 'get_all_scripts', { maxScripts: 20 }, 30000);
+    const firstScript = pickScriptForV8Inspection(report.v8.scripts?.scripts);
+    report.v8.firstScriptId =
+      isRecord(firstScript) && typeof firstScript.scriptId === 'string'
+        ? firstScript.scriptId
+        : null;
+    report.v8.firstScriptUrl =
+      isRecord(firstScript) && typeof firstScript.url === 'string' && firstScript.url.length > 0
+        ? firstScript.url
+        : null;
+    if (report.v8.firstScriptId) {
+      report.v8.bytecode = await callTool(
+        client,
+        'v8_bytecode_extract',
+        { scriptId: report.v8.firstScriptId },
+        30000,
+      );
+      report.v8.jit = await callTool(
+        client,
+        'v8_jit_inspect',
+        { scriptId: report.v8.firstScriptId },
+        30000,
+      );
+    }
 
     report.network.requests = await callTool(client, 'network_get_requests', {}, 15000);
     const requestRecord = findRequestByUrl(report.network.requests.requests, '/body?via=eval');
