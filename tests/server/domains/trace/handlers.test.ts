@@ -298,6 +298,101 @@ describe('TraceToolHandlers', () => {
     });
   });
 
+  describe('handleGetTraceNetworkFlow', () => {
+    it('returns request metadata, chunks, events, and summarized body content', async () => {
+      // @ts-expect-error
+      db.upsertNetworkResource({
+        requestId: 'req-trace',
+        url: 'https://example.com/api',
+        method: 'GET',
+        resourceType: 'XHR',
+        requestHeaders: '{"accept":"application/json"}',
+        requestPostData: null,
+        status: 200,
+        statusText: 'OK',
+        responseHeaders: '{"content-type":"application/json"}',
+        mimeType: 'application/json',
+        protocol: 'h2',
+        remoteAddress: '127.0.0.1:443',
+        fromDiskCache: false,
+        fromServiceWorker: false,
+        startedWallTime: 1000,
+        responseWallTime: 1100,
+        finishedWallTime: 1200,
+        startedMonotonicTime: 10,
+        responseMonotonicTime: 20,
+        finishedMonotonicTime: 30,
+        encodedDataLength: 4096,
+        receivedDataLength: 4096,
+        receivedEncodedDataLength: 4096,
+        chunkCount: 1,
+        streamingEnabled: true,
+        streamingSupported: true,
+        streamingError: null,
+        bodyCaptureState: 'inline',
+        bodyInline: 'x'.repeat(2048),
+        bodyArtifactPath: null,
+        bodyBase64Encoded: false,
+        bodySize: 2048,
+        bodyTruncated: false,
+        bodyError: null,
+        failed: false,
+        errorText: null,
+      });
+      // @ts-expect-error
+      db.insertNetworkChunk({
+        requestId: 'req-trace',
+        sequence: 1,
+        timestamp: 1150,
+        monotonicTime: 25,
+        dataLength: 2048,
+        encodedDataLength: 2048,
+        chunkData: Buffer.from('x'.repeat(32)).toString('base64'),
+        chunkIsBase64: true,
+      });
+      // @ts-expect-error
+      db.insertEvent({
+        timestamp: 1100,
+        category: 'network',
+        eventType: 'Network.responseReceived',
+        data: '{"requestId":"req-trace"}',
+        scriptId: null,
+        lineNumber: null,
+        requestId: 'req-trace',
+        wallTime: 1100,
+        monotonicTime: 20,
+        sequence: 1,
+      });
+      // @ts-expect-error
+      db.flush();
+      // @ts-expect-error
+      db.close();
+
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = (await handler.handleGetTraceNetworkFlow({
+        requestId: 'req-trace',
+        dbPath,
+        maxBodyBytes: 1024,
+      })) as {
+        requestId: string;
+        request: { protocol: string };
+        body: { summary: { truncated: boolean } };
+        chunks: { total: number; returned: number };
+        events: Array<{ eventType: string }>;
+      };
+
+      expect(result.requestId).toBe('req-trace');
+      expect(result.request.protocol).toBe('h2');
+      expect(result.body.summary.truncated).toBe(true);
+      expect(result.chunks.total).toBe(1);
+      expect(result.chunks.returned).toBe(1);
+      expect(result.events[0]?.eventType).toBe('Network.responseReceived');
+    });
+  });
+
   describe('handleDiffHeapSnapshots', () => {
     it('computes differences between two snapshots', async () => {
       // Insert two snapshots with different summaries
@@ -661,7 +756,7 @@ describe('TraceToolHandlers', () => {
         memoryDeltaCount: 2,
         heapSnapshotCount: 1,
       } as any;
-      vi.spyOn(recorder, 'stop').mockReturnValue(mockStopStats);
+      vi.spyOn(recorder, 'stop').mockResolvedValue(mockStopStats);
       const ctx = createMockContext() as MCPServerContext;
       const handler = new TraceToolHandlers(recorder, ctx);
 
@@ -791,7 +886,7 @@ describe('TraceToolHandlers', () => {
   describe('handleStopTraceRecording — stoppedAt branch', () => {
     it('uses 0 duration when stoppedAt is undefined (line 73)', async () => {
       const recorder = new TraceRecorder();
-      vi.spyOn(recorder, 'stop').mockReturnValue({
+      vi.spyOn(recorder, 'stop').mockResolvedValue({
         sessionId: 'sess-1',
         dbPath: 'path.db',
         startedAt: 1000,
@@ -806,6 +901,26 @@ describe('TraceToolHandlers', () => {
       const result = (await handler.handleStopTraceRecording()) as any;
       expect(result.status).toBe('stopped');
       expect(result.durationMs).toBe(0);
+    });
+
+    it('returns cleanup errors when stop finishes with partial cleanup failure', async () => {
+      const recorder = new TraceRecorder();
+      vi.spyOn(recorder, 'stop').mockResolvedValue({
+        sessionId: 'sess-1',
+        dbPath: 'path.db',
+        startedAt: 1000,
+        stoppedAt: 2000,
+        eventCount: 5,
+        memoryDeltaCount: 2,
+        heapSnapshotCount: 1,
+        cleanupErrors: ['Runtime.disable failed: disable failed'],
+      } as any);
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = (await handler.handleStopTraceRecording()) as any;
+      expect(result.status).toBe('stopped_with_errors');
+      expect(result.cleanupErrors).toEqual(['Runtime.disable failed: disable failed']);
     });
   });
 
