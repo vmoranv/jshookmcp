@@ -59,17 +59,19 @@ Focused runtime note: loopback probes on `2026-04-25` verified `http_plain_reque
 ## platform
 Evidence: src/server/domains/platform/manifest.ts; src/server/domains/platform/handlers/capabilities.ts; src/server/domains/platform/handlers/v8-bytecode-handler.ts; src/server/domains/platform/handlers/miniapp-handlers.ts; src/server/domains/platform/handlers/electron-ipc-sniffer.ts
 
+Focused runtime note: local fixture probes on `2026-04-25` verified `miniapp_pkg_scan` finding a real `.pkg` candidate, `electron_check_fuses` decoding a mock Electron fuse wire, `electron_scan_userdata` returning parsed JSON content, and both `asar_extract(listOnly=true)` and `asar_search` returning real file metadata and match lines on this machine. `platform_capabilities` also truthfully reported `miniapp_unpacker` and `view8` unavailable here while keeping their explicit fallback notes.
+
 | tool | status | note |
 | --- | --- | --- |
 | platform_capabilities | real | Explicit capability probe for miniapp unpacker, view8, and Electron IPC sniff runtime. |
-| miniapp_pkg_scan | real | Local package/signature scan. |
+| miniapp_pkg_scan | real | Local package/signature scan; verified finding a real `.pkg` candidate on this machine. |
 | miniapp_pkg_unpack | fallback | Falls back when the preferred unpack helper is missing. |
 | miniapp_pkg_analyze | conditional | Depends on local app/package files, Electron targets, or optional tooling. |
-| asar_extract | real | Local ASAR extraction. |
+| asar_extract | real | Local ASAR extraction; verified returning file metadata on this machine. |
 | electron_inspect_app | conditional | Depends on local app/package files, Electron targets, or optional tooling. |
-| electron_scan_userdata | real | Local Electron userdata inspection. |
-| asar_search | real | Local ASAR search. |
-| electron_check_fuses | real | Local Electron fuse inspection. |
+| electron_scan_userdata | real | Local Electron userdata inspection; verified returning parsed JSON payloads on this machine. |
+| asar_search | real | Local ASAR search; verified returning real match lines on this machine. |
+| electron_check_fuses | real | Local Electron fuse inspection; verified decoding a mock fuse wire on this machine. |
 | electron_patch_fuses | conditional | Depends on local app/package files, Electron targets, or optional tooling. |
 | v8_bytecode_decompile | fallback | Falls back/degrades when view8 is unavailable. |
 | electron_launch_debug | conditional | Depends on local app/package files, Electron targets, or optional tooling. |

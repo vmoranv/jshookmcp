@@ -3,10 +3,11 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
-import { readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import http2 from 'node:http2';
 import net from 'node:net';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -238,6 +239,54 @@ async function sendRawHttpRequest(port, requestText) {
   });
 }
 
+function buildMockElectronExe(fuseBytes) {
+  const sentinel = Buffer.from('dL7pKGdnNz796PbbjQWNKmHXBZIA', 'ascii');
+  return Buffer.concat([Buffer.alloc(256, 0x90), sentinel, Buffer.from(fuseBytes)]);
+}
+
+function buildMockAsar(entries) {
+  const dataBuffers = [];
+  const headerFiles = {};
+  let dataOffset = 0;
+
+  for (const entry of entries) {
+    const contentBuf = Buffer.from(entry.content, 'utf8');
+    const parts = entry.path.split('/');
+    let current = headerFiles;
+
+    for (let index = 0; index < parts.length - 1; index += 1) {
+      const dir = parts[index];
+      if (!current[dir]) current[dir] = { files: {} };
+      current = current[dir].files;
+    }
+
+    const fileName = parts[parts.length - 1];
+    current[fileName] = { size: contentBuf.length, offset: String(dataOffset) };
+    dataBuffers.push(contentBuf);
+    dataOffset += contentBuf.length;
+  }
+
+  const headerBuf = Buffer.from(JSON.stringify({ files: headerFiles }), 'utf8');
+  const headerPrefix = Buffer.alloc(16);
+  headerPrefix.writeUInt32LE(headerBuf.length + 8, 0);
+  headerPrefix.writeUInt32LE(headerBuf.length + 4, 4);
+  headerPrefix.writeUInt32LE(headerBuf.length, 8);
+  headerPrefix.writeUInt32LE(0, 12);
+
+  return Buffer.concat([headerPrefix, headerBuf, ...dataBuffers]);
+}
+
+function buildMinimalMiniappPkg() {
+  const header = Buffer.alloc(18);
+  header.writeUInt8(0xbe, 0);
+  header.writeUInt32BE(0, 1);
+  header.writeUInt32BE(4, 5);
+  header.writeUInt32BE(0, 9);
+  header.writeUInt8(0, 13);
+  header.writeUInt32BE(0, 14);
+  return header;
+}
+
 async function createProbeServer() {
   const bodyPayload = `${BODY_MARKER}\n${'x'.repeat(12361 - BODY_MARKER.length - 1)}`;
   const sourceMapPayload = JSON.stringify({
@@ -439,6 +488,7 @@ function summarize(report) {
     `network-raw: http=${report.network.rawHttp?.response?.statusCode ?? 'n/a'} h2=${report.network.http2?.statusCode ?? 'n/a'} rtt=${report.network.rtt?.stats?.count ?? 0}`,
     `proxy: running=${report.proxy.status?.running ?? false} logs=${report.proxy.requestLogs?.count ?? 0} bodyMarker=${report.proxy.bodyHasMarker ?? false}`,
     `sourcemap: discovered=${report.sourcemap.discoveredCount ?? 0} parsed=${report.sourcemap.parsed?.mappingsCount ?? 'n/a'} reconstructed=${report.sourcemap.reconstructed?.writtenFiles ?? 'n/a'} reconstructedMarker=${report.sourcemap.reconstructedContainsMarker ?? false}`,
+    `platform: miniapps=${report.platform?.miniappScan?.count ?? 'n/a'} fuseWire=${report.platform?.electronFuses?.fuseWireFound ?? 'n/a'} userdata=${report.platform?.electronUserdata?.totalScanned ?? 'n/a'} asarFiles=${report.platform?.asarExtract?.totalFiles ?? 'n/a'} asarMatches=${report.platform?.asarSearch?.totalMatches ?? 'n/a'}`,
     `streaming: wsFrames=${report.streaming.wsFrameCount} sseEvents=${report.streaming.sseEventCount}`,
     `trace: status=${report.trace.stop?.status ?? 'n/a'} bodies=${report.trace.stop?.networkBodyCount ?? 0} chunks=${report.trace.stop?.networkChunkCount ?? 0} bodyState=${report.trace.flow?.request?.bodyCaptureState ?? 'n/a'}`,
     `binary: fridaAvailable=${report.binary.capabilitiesAvailable} modules=${report.binary.moduleSample.join(', ') || 'n/a'}`,
@@ -475,7 +525,7 @@ async function main() {
     wsUrl: server.wsUrl,
     http2Url: server.http2Url,
     tools: [],
-    platform: null,
+    platform: {},
     browser: {},
     network: {},
     proxy: {},
@@ -488,13 +538,68 @@ async function main() {
     v8: {},
   };
   let failure = null;
+  let platformProbeDir = null;
 
   try {
     await withTimeout(client.connect(transport), 'connect', 30000);
     const listed = await withTimeout(client.listTools(), 'listTools', 15000);
     report.tools = (listed.tools ?? []).map((tool) => tool.name).toSorted();
 
-    report.platform = await callTool(client, 'platform_capabilities', {}, 15000);
+    report.platform.capabilities = await callTool(client, 'platform_capabilities', {}, 15000);
+    platformProbeDir = await mkdtemp(join(tmpdir(), 'jshook-platform-audit-'));
+    const electronExePath = join(platformProbeDir, 'mock-electron.exe');
+    const electronUserdataDir = join(platformProbeDir, 'userdata');
+    const asarPath = join(platformProbeDir, 'mock-app.asar');
+    const miniappDir = join(platformProbeDir, 'miniapp');
+    const miniappPkgPath = join(miniappDir, 'app.pkg');
+
+    await mkdir(electronUserdataDir, { recursive: true });
+    await mkdir(miniappDir, { recursive: true });
+    await writeFile(
+      electronExePath,
+      buildMockElectronExe([0x31, 0x30, 0x31, 0x30, 0x72, 0x31, 0x30, 0x31]),
+    );
+    await writeFile(join(electronUserdataDir, 'config.json'), JSON.stringify({ key: 'value' }));
+    await writeFile(join(electronUserdataDir, 'settings.json'), JSON.stringify({ theme: 'dark' }));
+    await writeFile(
+      asarPath,
+      buildMockAsar([
+        { path: 'src/main.js', content: 'const isPro = true;\nconst marker = "asar-marker";\n' },
+        { path: 'src/utils.js', content: 'export function helper() { return 1; }\n' },
+      ]),
+    );
+    await writeFile(miniappPkgPath, buildMinimalMiniappPkg());
+
+    report.platform.electronFuses = await callTool(
+      client,
+      'electron_check_fuses',
+      { exePath: electronExePath },
+      15000,
+    );
+    report.platform.electronUserdata = await callTool(
+      client,
+      'electron_scan_userdata',
+      { dirPath: electronUserdataDir, maxFiles: 10, maxFileSizeKB: 32 },
+      15000,
+    );
+    report.platform.asarExtract = await callTool(
+      client,
+      'asar_extract',
+      { inputPath: asarPath, listOnly: true },
+      15000,
+    );
+    report.platform.asarSearch = await callTool(
+      client,
+      'asar_search',
+      { inputPath: asarPath, pattern: 'isPro|marker', fileGlob: '*.js', maxResults: 10 },
+      15000,
+    );
+    report.platform.miniappScan = await callTool(
+      client,
+      'miniapp_pkg_scan',
+      { searchPath: miniappDir },
+      15000,
+    );
     report.binary.capabilities = await callTool(
       client,
       'binary_instrument_capabilities',
@@ -962,6 +1067,11 @@ async function main() {
       await client.close();
     } catch {}
     await server.close();
+    if (platformProbeDir) {
+      try {
+        await rm(platformProbeDir, { recursive: true, force: true });
+      } catch {}
+    }
   }
 
   if (jsonOnly) {
