@@ -39,8 +39,11 @@ const manifest = {
     priority: 70,
     tools: [
       'trace_recording',
+      'start_trace_recording',
+      'stop_trace_recording',
       'query_trace_sql',
       'seek_to_timestamp',
+      'trace_get_network_flow',
       'diff_heap_snapshots',
       'export_trace',
       'summarize_trace',
@@ -54,8 +57,23 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleTraceRecording(a)),
     },
+    {
+      tool: t('start_trace_recording'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleStartTraceRecording(a)),
+    },
+    {
+      tool: t('stop_trace_recording'),
+      domain: DOMAIN,
+      bind: b((h, _a) => h.handleStopTraceRecording()),
+    },
     { tool: t('query_trace_sql'), domain: DOMAIN, bind: b((h, a) => h.handleQueryTraceSql(a)) },
     { tool: t('seek_to_timestamp'), domain: DOMAIN, bind: b((h, a) => h.handleSeekToTimestamp(a)) },
+    {
+      tool: t('trace_get_network_flow'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleGetTraceNetworkFlow(a)),
+    },
     {
       tool: t('diff_heap_snapshots'),
       domain: DOMAIN,
