@@ -1,17 +1,26 @@
 /**
  * TraceDB — SQLite storage engine for time-travel trace recording.
  *
- * Stores CDP events, memory deltas, and heap snapshots in a queryable
- * SQLite database using better-sqlite3's synchronous API.
+ * Stores CDP/EventBus events, memory deltas, heap snapshots, and
+ * request-scoped network flow data in a queryable SQLite database.
  */
 
 import type {
+  HeapSnapshotRecord,
+  MemoryDelta,
+  NetworkTraceChunk,
+  NetworkTraceResource,
   TraceDBOptions,
   TraceEvent,
   TraceQueryResult,
-  MemoryDelta,
-  HeapSnapshotRecord,
 } from '@modules/trace/TraceDB.types';
+import {
+  initializeTraceSchema,
+  mapEventRow,
+  mapNetworkChunkRow,
+  mapNetworkResourceRow,
+  prepareTraceStatements,
+} from '@modules/trace/TraceDB.internal';
 import { formatBetterSqlite3Error } from '@utils/betterSqlite3';
 
 // better-sqlite3 is an optional dependency — lazy-load to fail gracefully
@@ -31,13 +40,15 @@ export class TraceDB {
   private readonly batchSize: number;
   private eventBuffer: TraceEvent[] = [];
   private memoryBuffer: MemoryDelta[] = [];
+  private networkChunkBuffer: NetworkTraceChunk[] = [];
   private closed = false;
 
-  // Cached prepared statements
   private insertEventStmt!: import('better-sqlite3').Statement;
   private insertDeltaStmt!: import('better-sqlite3').Statement;
   private insertSnapshotStmt!: import('better-sqlite3').Statement;
   private upsertMetadataStmt!: import('better-sqlite3').Statement;
+  private upsertNetworkResourceStmt!: import('better-sqlite3').Statement;
+  private insertNetworkChunkStmt!: import('better-sqlite3').Statement;
 
   constructor(private readonly options: TraceDBOptions) {
     if (!Database) {
@@ -51,12 +62,17 @@ export class TraceDB {
     }
     this.batchSize = options.batchSize ?? 200;
 
-    // Performance pragmas
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('synchronous = NORMAL');
 
-    this.createSchema();
-    this.prepareStatements();
+    initializeTraceSchema(this.db);
+    const statements = prepareTraceStatements(this.db);
+    this.insertEventStmt = statements.insertEventStmt;
+    this.insertDeltaStmt = statements.insertDeltaStmt;
+    this.insertSnapshotStmt = statements.insertSnapshotStmt;
+    this.upsertMetadataStmt = statements.upsertMetadataStmt;
+    this.upsertNetworkResourceStmt = statements.upsertNetworkResourceStmt;
+    this.insertNetworkChunkStmt = statements.insertNetworkChunkStmt;
   }
 
   /** Database file path. */
@@ -64,74 +80,8 @@ export class TraceDB {
     return this.options.dbPath;
   }
 
-  // ── Schema ──
-
-  private createSchema(): void {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp REAL NOT NULL,
-        category TEXT NOT NULL,
-        event_type TEXT NOT NULL,
-        data TEXT NOT NULL DEFAULT '{}',
-        script_id TEXT,
-        line_number INTEGER
-      );
-      CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
-      CREATE INDEX IF NOT EXISTS idx_events_category_type ON events(category, event_type);
-      CREATE INDEX IF NOT EXISTS idx_events_script_id ON events(script_id);
-
-      CREATE TABLE IF NOT EXISTS memory_deltas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp REAL NOT NULL,
-        address TEXT NOT NULL,
-        old_value TEXT NOT NULL,
-        new_value TEXT NOT NULL,
-        size INTEGER NOT NULL,
-        value_type TEXT NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_memory_timestamp ON memory_deltas(timestamp);
-      CREATE INDEX IF NOT EXISTS idx_memory_address ON memory_deltas(address);
-
-      CREATE TABLE IF NOT EXISTS heap_snapshots (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp REAL NOT NULL,
-        snapshot_data BLOB,
-        summary TEXT NOT NULL DEFAULT '{}'
-      );
-
-      CREATE TABLE IF NOT EXISTS metadata (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      );
-    `);
-  }
-
-  private prepareStatements(): void {
-    this.insertEventStmt = this.db.prepare(`
-      INSERT INTO events (timestamp, category, event_type, data, script_id, line_number)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    this.insertDeltaStmt = this.db.prepare(`
-      INSERT INTO memory_deltas (timestamp, address, old_value, new_value, size, value_type)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    this.insertSnapshotStmt = this.db.prepare(`
-      INSERT INTO heap_snapshots (timestamp, snapshot_data, summary)
-      VALUES (?, ?, ?)
-    `);
-
-    this.upsertMetadataStmt = this.db.prepare(`
-      INSERT INTO metadata (key, value) VALUES (?, ?)
-      ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `);
-  }
-
   // ── Write operations ──
 
-  /** Buffer an event for batched insertion. */
   insertEvent(event: TraceEvent): void {
     this.ensureOpen();
     this.eventBuffer.push(event);
@@ -140,7 +90,6 @@ export class TraceDB {
     }
   }
 
-  /** Buffer a memory delta for batched insertion. */
   insertMemoryDelta(delta: MemoryDelta): void {
     this.ensureOpen();
     this.memoryBuffer.push(delta);
@@ -149,41 +98,106 @@ export class TraceDB {
     }
   }
 
-  /** Insert a heap snapshot immediately (infrequent, large). */
+  insertNetworkChunk(chunk: NetworkTraceChunk): void {
+    this.ensureOpen();
+    this.networkChunkBuffer.push(chunk);
+    if (this.networkChunkBuffer.length >= this.batchSize) {
+      this.flush();
+    }
+  }
+
+  upsertNetworkResource(resource: NetworkTraceResource): void {
+    this.ensureOpen();
+    this.upsertNetworkResourceStmt.run(
+      resource.requestId,
+      resource.url,
+      resource.method,
+      resource.resourceType,
+      resource.requestHeaders,
+      resource.requestPostData,
+      resource.status,
+      resource.statusText,
+      resource.responseHeaders,
+      resource.mimeType,
+      resource.protocol,
+      resource.remoteAddress,
+      resource.fromDiskCache ? 1 : 0,
+      resource.fromServiceWorker ? 1 : 0,
+      resource.startedWallTime,
+      resource.responseWallTime,
+      resource.finishedWallTime,
+      resource.startedMonotonicTime,
+      resource.responseMonotonicTime,
+      resource.finishedMonotonicTime,
+      resource.encodedDataLength,
+      resource.receivedDataLength,
+      resource.receivedEncodedDataLength,
+      resource.chunkCount,
+      resource.streamingEnabled ? 1 : 0,
+      resource.streamingSupported === null ? null : resource.streamingSupported ? 1 : 0,
+      resource.streamingError,
+      resource.bodyCaptureState,
+      resource.bodyInline,
+      resource.bodyArtifactPath,
+      resource.bodyBase64Encoded ? 1 : 0,
+      resource.bodySize,
+      resource.bodyTruncated ? 1 : 0,
+      resource.bodyError,
+      resource.failed ? 1 : 0,
+      resource.errorText,
+    );
+  }
+
   insertHeapSnapshot(snapshot: HeapSnapshotRecord): void {
     this.ensureOpen();
     this.insertSnapshotStmt.run(snapshot.timestamp, snapshot.snapshotData, snapshot.summary);
   }
 
-  /** Set or update a metadata key-value pair. */
   setMetadata(key: string, value: string): void {
     this.ensureOpen();
     this.upsertMetadataStmt.run(key, value);
   }
 
-  /** Flush all buffered events and memory deltas to disk in a single transaction. */
   flush(): void {
     if (this.closed) return;
 
     const flushTransaction = this.db.transaction(() => {
-      for (const e of this.eventBuffer) {
+      for (const event of this.eventBuffer) {
         this.insertEventStmt.run(
-          e.timestamp,
-          e.category,
-          e.eventType,
-          e.data,
-          e.scriptId,
-          e.lineNumber,
+          event.timestamp,
+          event.category,
+          event.eventType,
+          event.data,
+          event.scriptId,
+          event.lineNumber,
+          event.wallTime ?? null,
+          event.monotonicTime ?? null,
+          event.requestId ?? null,
+          event.sequence ?? null,
         );
       }
-      for (const d of this.memoryBuffer) {
+
+      for (const delta of this.memoryBuffer) {
         this.insertDeltaStmt.run(
-          d.timestamp,
-          d.address,
-          d.oldValue,
-          d.newValue,
-          d.size,
-          d.valueType,
+          delta.timestamp,
+          delta.address,
+          delta.oldValue,
+          delta.newValue,
+          delta.size,
+          delta.valueType,
+        );
+      }
+
+      for (const chunk of this.networkChunkBuffer) {
+        this.insertNetworkChunkStmt.run(
+          chunk.requestId,
+          chunk.sequence,
+          chunk.timestamp,
+          chunk.monotonicTime,
+          chunk.dataLength,
+          chunk.encodedDataLength,
+          chunk.chunkData,
+          chunk.chunkIsBase64 ? 1 : 0,
         );
       }
     });
@@ -191,18 +205,14 @@ export class TraceDB {
     flushTransaction();
     this.eventBuffer = [];
     this.memoryBuffer = [];
+    this.networkChunkBuffer = [];
   }
 
   // ── Read operations ──
 
-  /**
-   * Execute a read-only SQL query against the trace database.
-   * Write statements are rejected for safety.
-   */
   query(sql: string): TraceQueryResult {
     this.ensureOpen();
 
-    // Defense-in-depth: reject write statements before execution
     if (WRITE_SQL_PATTERN.test(sql)) {
       throw new Error(
         `Write operations are not allowed in trace queries. Rejected SQL: ${sql.slice(0, 100)}`,
@@ -213,41 +223,113 @@ export class TraceDB {
     const rows = stmt.all() as Record<string, unknown>[];
 
     if (rows.length === 0) {
-      // Try to get column names from the statement
-      const columns = stmt.columns().map((c: { name: string }) => c.name);
+      const columns = stmt.columns().map((column: { name: string }) => column.name);
       return { columns, rows: [], rowCount: 0 };
     }
 
     const columns = Object.keys(rows[0]!);
-    const rowArrays = rows.map((row) => columns.map((col) => row[col]));
-
-    return { columns, rows: rowArrays, rowCount: rows.length };
+    return {
+      columns,
+      rows: rows.map((row) => columns.map((column) => row[column])),
+      rowCount: rows.length,
+    };
   }
 
-  /** Get events within a time range. */
   getEventsByTimeRange(start: number, end: number): TraceEvent[] {
     this.ensureOpen();
-    this.flush(); // Ensure buffered events are queryable
+    this.flush();
 
     const stmt = this.db.prepare(`
-      SELECT id, timestamp, category, event_type, data, script_id, line_number
+      SELECT
+        id,
+        timestamp,
+        category,
+        event_type,
+        data,
+        script_id,
+        line_number,
+        wall_time,
+        monotonic_time,
+        request_id,
+        sequence
       FROM events
       WHERE timestamp >= ? AND timestamp <= ?
-      ORDER BY timestamp ASC
+      ORDER BY timestamp ASC, sequence ASC, id ASC
     `);
 
-    return (stmt.all(start, end) as Array<Record<string, unknown>>).map((row) => ({
-      id: row['id'] as number,
-      timestamp: row['timestamp'] as number,
-      category: row['category'] as string,
-      eventType: row['event_type'] as string,
-      data: row['data'] as string,
-      scriptId: (row['script_id'] as string) ?? null,
-      lineNumber: (row['line_number'] as number) ?? null,
-    }));
+    return (stmt.all(start, end) as Array<Record<string, unknown>>).map(mapEventRow);
   }
 
-  /** Get memory deltas for a specific address. */
+  getEventsByRequestId(requestId: string): TraceEvent[] {
+    this.ensureOpen();
+    this.flush();
+
+    const stmt = this.db.prepare(`
+      SELECT
+        id,
+        timestamp,
+        category,
+        event_type,
+        data,
+        script_id,
+        line_number,
+        wall_time,
+        monotonic_time,
+        request_id,
+        sequence
+      FROM events
+      WHERE request_id = ?
+      ORDER BY COALESCE(monotonic_time, timestamp) ASC, sequence ASC, id ASC
+    `);
+
+    return (stmt.all(requestId) as Array<Record<string, unknown>>).map(mapEventRow);
+  }
+
+  getNetworkResource(requestId: string): NetworkTraceResource | null {
+    this.ensureOpen();
+    this.flush();
+
+    const stmt = this.db.prepare(`
+      SELECT *
+      FROM network_resources
+      WHERE request_id = ?
+      LIMIT 1
+    `);
+
+    const row = stmt.get(requestId) as Record<string, unknown> | undefined;
+    return row ? mapNetworkResourceRow(row, this.fromSqliteBoolean) : null;
+  }
+
+  getNetworkChunks(requestId: string, limit?: number): NetworkTraceChunk[] {
+    this.ensureOpen();
+    this.flush();
+
+    const sql = `
+      SELECT
+        id,
+        request_id,
+        sequence,
+        timestamp,
+        monotonic_time,
+        data_length,
+        encoded_data_length,
+        chunk_data,
+        chunk_is_base64
+      FROM network_chunks
+      WHERE request_id = ?
+      ORDER BY sequence ASC
+      ${typeof limit === 'number' ? 'LIMIT ?' : ''}
+    `;
+
+    const stmt = this.db.prepare(sql);
+    const rows =
+      typeof limit === 'number'
+        ? (stmt.all(requestId, limit) as Array<Record<string, unknown>>)
+        : (stmt.all(requestId) as Array<Record<string, unknown>>);
+
+    return rows.map((row) => mapNetworkChunkRow(row, this.fromSqliteBoolean));
+  }
+
   getMemoryDeltasByAddress(address: string): MemoryDelta[] {
     this.ensureOpen();
     this.flush();
@@ -270,7 +352,6 @@ export class TraceDB {
     }));
   }
 
-  /** Get all heap snapshots ordered by timestamp. */
   getHeapSnapshots(): HeapSnapshotRecord[] {
     this.ensureOpen();
 
@@ -288,7 +369,6 @@ export class TraceDB {
     }));
   }
 
-  /** Get all metadata as a key-value record. */
   getMetadata(): Record<string, string> {
     this.ensureOpen();
 
@@ -304,7 +384,6 @@ export class TraceDB {
 
   // ── Lifecycle ──
 
-  /** Flush buffers and close the database connection. */
   close(): void {
     if (this.closed) return;
     this.flush();
@@ -312,9 +391,12 @@ export class TraceDB {
     this.closed = true;
   }
 
-  /** Check if the database is closed. */
   get isClosed(): boolean {
     return this.closed;
+  }
+
+  private fromSqliteBoolean(value: unknown): boolean {
+    return value === 1 || value === true;
   }
 
   private ensureOpen(): void {

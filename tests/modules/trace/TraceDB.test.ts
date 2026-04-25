@@ -53,12 +53,14 @@ describe('TraceDB', () => {
     await rm(testDir, { recursive: true, force: true });
   });
 
-  it('creates database with correct schema — 4 tables', () => {
+  it('creates database with correct schema — trace and network tables', () => {
     const result = db.query(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     );
     const tableNames = result.rows.map((r) => r[0]);
     expect(tableNames).toContain('events');
+    expect(tableNames).toContain('network_resources');
+    expect(tableNames).toContain('network_chunks');
     expect(tableNames).toContain('memory_deltas');
     expect(tableNames).toContain('heap_snapshots');
     expect(tableNames).toContain('metadata');
@@ -344,5 +346,67 @@ describe('TraceDB', () => {
   it('getHeapSnapshots() returns empty array when no snapshots exist', () => {
     const snapshots = db.getHeapSnapshots();
     expect(snapshots).toEqual([]);
+  });
+
+  it('stores and retrieves network flow state and chunks', () => {
+    db.upsertNetworkResource({
+      requestId: 'req-1',
+      url: 'https://example.com/api',
+      method: 'GET',
+      resourceType: 'XHR',
+      requestHeaders: '{"accept":"application/json"}',
+      requestPostData: null,
+      status: 200,
+      statusText: 'OK',
+      responseHeaders: '{"content-type":"application/json"}',
+      mimeType: 'application/json',
+      protocol: 'h2',
+      remoteAddress: '127.0.0.1:443',
+      fromDiskCache: false,
+      fromServiceWorker: false,
+      startedWallTime: 1000,
+      responseWallTime: 1100,
+      finishedWallTime: 1200,
+      startedMonotonicTime: 10,
+      responseMonotonicTime: 20,
+      finishedMonotonicTime: 30,
+      encodedDataLength: 12,
+      receivedDataLength: 12,
+      receivedEncodedDataLength: 12,
+      chunkCount: 1,
+      streamingEnabled: true,
+      streamingSupported: true,
+      streamingError: null,
+      bodyCaptureState: 'inline',
+      bodyInline: '{"ok":true}',
+      bodyArtifactPath: null,
+      bodyBase64Encoded: false,
+      bodySize: 11,
+      bodyTruncated: false,
+      bodyError: null,
+      failed: false,
+      errorText: null,
+    });
+    db.insertNetworkChunk({
+      requestId: 'req-1',
+      sequence: 1,
+      timestamp: 1150,
+      monotonicTime: 25,
+      dataLength: 12,
+      encodedDataLength: 12,
+      chunkData: Buffer.from('{"ok":true}').toString('base64'),
+      chunkIsBase64: true,
+    });
+    db.flush();
+
+    const resource = db.getNetworkResource('req-1');
+    const chunks = db.getNetworkChunks('req-1');
+
+    expect(resource).not.toBeNull();
+    expect(resource?.protocol).toBe('h2');
+    expect(resource?.bodyCaptureState).toBe('inline');
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]?.sequence).toBe(1);
+    expect(chunks[0]?.chunkIsBase64).toBe(true);
   });
 });

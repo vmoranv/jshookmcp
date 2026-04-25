@@ -61,7 +61,7 @@ describe('TraceRecorder', () => {
   afterEach(async () => {
     if (recorder.getState() === 'recording') {
       try {
-        recorder.stop();
+        await recorder.stop();
       } catch {
         /* ok */
       }
@@ -157,7 +157,7 @@ describe('TraceRecorder', () => {
   it('stop unsubscribes from EventBus', async () => {
     await recorder.start(eventBus, null);
 
-    recorder.stop();
+    await recorder.stop();
 
     // Events after stop should not be recorded — DB is closed
     expect(recorder.getState()).toBe('stopped');
@@ -177,13 +177,13 @@ describe('TraceRecorder', () => {
       valueType: 'int32',
     });
 
-    const finalSession = recorder.stop();
+    const finalSession = await recorder.stop();
     expect(finalSession.stoppedAt).toBeGreaterThan(0);
     expect(finalSession.memoryDeltaCount).toBe(1);
   });
 
-  it('rejects stop when not recording', () => {
-    expect(() => recorder.stop()).toThrow(/Cannot stop: not currently recording/);
+  it('rejects stop when not recording', async () => {
+    await expect(recorder.stop()).rejects.toThrow(/Cannot stop: not currently recording/);
   });
 
   it('getState returns correct state transitions', async () => {
@@ -198,13 +198,18 @@ describe('TraceRecorder', () => {
     expect(sessionSnap).not.toBeNull();
     expect(sessionSnap!.sessionId).toBeDefined();
 
-    recorder.stop();
+    await recorder.stop();
     expect(recorder.getState()).toBe('stopped');
   });
 
   it('subscribes to CDP events and records them when emitted', async () => {
     const mockCdp = createMockCDPSession();
     await recorder.start(eventBus, mockCdp);
+
+    expect(mockCdp.send).toHaveBeenCalledWith('Debugger.enable');
+    expect(mockCdp.send).toHaveBeenCalledWith('Runtime.enable');
+    expect(mockCdp.send).toHaveBeenCalledWith('Network.enable');
+    expect(mockCdp.send).toHaveBeenCalledWith('Page.enable');
 
     // Verify CDP event listeners were registered
     expect(mockCdp._listeners.has('Debugger.paused')).toBe(true);
@@ -233,7 +238,12 @@ describe('TraceRecorder', () => {
       networkHandler(null);
     }
 
-    recorder.stop();
+    await recorder.stop();
+
+    expect(mockCdp.send).toHaveBeenCalledWith('Debugger.disable');
+    expect(mockCdp.send).toHaveBeenCalledWith('Runtime.disable');
+    expect(mockCdp.send).toHaveBeenCalledWith('Network.disable');
+    expect(mockCdp.send).toHaveBeenCalledWith('Page.disable');
 
     // Verify listeners were cleaned up
     for (const [, handlers] of mockCdp._listeners) {
@@ -255,6 +265,107 @@ describe('TraceRecorder', () => {
       const pausedRow = result.rows.find((r: unknown[]) => r[0] === '22');
       expect(pausedRow).toBeDefined();
       expect(pausedRow![1]).toBe(42);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('stop surfaces CDP cleanup failures in the returned session', async () => {
+    const mockCdp = createMockCDPSession();
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'Runtime.disable') {
+        throw new Error('disable failed');
+      }
+      return {};
+    });
+
+    await recorder.start(eventBus, mockCdp);
+
+    const finalSession = await recorder.stop();
+    expect(finalSession.cleanupErrors).toEqual(['Runtime.disable failed: disable failed']);
+  });
+
+  it('captures request-scoped network flow metadata, chunks, and body state', async () => {
+    const mockCdp = createMockCDPSession();
+    mockCdp.send = vi.fn().mockImplementation(async (method, params) => {
+      if (method === 'Network.streamResourceContent') {
+        expect(params).toEqual({ requestId: 'req-flow' });
+        return {
+          bufferedData: Buffer.from('hello').toString('base64'),
+        };
+      }
+      if (method === 'Network.getResponseBody') {
+        expect(params).toEqual({ requestId: 'req-flow' });
+        return {
+          body: '{"ok":true}',
+          base64Encoded: false,
+        };
+      }
+      return {};
+    });
+
+    await recorder.start(eventBus, mockCdp);
+
+    const requestHandler = Array.from(mockCdp._listeners.get('Network.requestWillBeSent') || [])[0];
+    const responseHandler = Array.from(mockCdp._listeners.get('Network.responseReceived') || [])[0];
+    const dataHandler = Array.from(mockCdp._listeners.get('Network.dataReceived') || [])[0];
+    const finishedHandler = Array.from(mockCdp._listeners.get('Network.loadingFinished') || [])[0];
+
+    requestHandler?.({
+      requestId: 'req-flow',
+      timestamp: 1,
+      wallTime: 100,
+      type: 'XHR',
+      request: {
+        url: 'https://example.com/api',
+        method: 'GET',
+        headers: { accept: 'application/json' },
+      },
+    });
+    responseHandler?.({
+      requestId: 'req-flow',
+      timestamp: 1.5,
+      response: {
+        url: 'https://example.com/api',
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' },
+        mimeType: 'application/json',
+        protocol: 'h2',
+        remoteIPAddress: '127.0.0.1',
+        remotePort: 443,
+      },
+    });
+    dataHandler?.({
+      requestId: 'req-flow',
+      timestamp: 1.6,
+      dataLength: 5,
+      encodedDataLength: 5,
+      data: Buffer.from('world').toString('base64'),
+    });
+    finishedHandler?.({
+      requestId: 'req-flow',
+      timestamp: 2,
+      encodedDataLength: 10,
+    });
+
+    await recorder.stop();
+
+    const db = new TraceDB({ dbPath: recorder.getSession()!.dbPath });
+    try {
+      const resource = db.getNetworkResource('req-flow');
+      const chunks = db.getNetworkChunks('req-flow');
+      const events = db.getEventsByRequestId('req-flow');
+
+      expect(resource).not.toBeNull();
+      expect(resource?.url).toBe('https://example.com/api');
+      expect(resource?.protocol).toBe('h2');
+      expect(resource?.bodyCaptureState).toBe('inline');
+      expect(resource?.bodyInline).toBe('{"ok":true}');
+      expect(resource?.chunkCount).toBeGreaterThanOrEqual(2);
+      expect(chunks.length).toBeGreaterThanOrEqual(2);
+      expect(events.some((event) => event.monotonicTime !== null)).toBe(true);
+      expect(events.every((event) => typeof event.sequence === 'number')).toBe(true);
     } finally {
       db.close();
     }
@@ -425,7 +536,7 @@ describe('TraceRecorder', () => {
 
     // Restore and stop
     db.insertEvent = origInsert;
-    recorder.stop();
+    await recorder.stop();
   });
 
   it('CDP handler swallows errors silently when emitting', async () => {
@@ -448,7 +559,7 @@ describe('TraceRecorder', () => {
     });
 
     db.insertEvent = origInsert;
-    recorder.stop();
+    await recorder.stop();
   });
 
   it('CDP handler handles null params gracefully', async () => {
@@ -460,7 +571,7 @@ describe('TraceRecorder', () => {
 
     // Pass null — CDP handler checks `typeof params === 'object' && params !== null`
     expect(() => networkHandler!(null)).not.toThrow();
-    recorder.stop();
+    await recorder.stop();
   });
 
   it('CDP handler handles non-object params gracefully', async () => {
@@ -469,7 +580,7 @@ describe('TraceRecorder', () => {
 
     const networkHandler = Array.from(mockCdp._listeners.get('Network.requestWillBeSent') || [])[0];
     expect(() => networkHandler!(42 as any)).not.toThrow();
-    recorder.stop();
+    await recorder.stop();
   });
 
   it('start() skips unknown CDP domains gracefully', async () => {
@@ -479,7 +590,7 @@ describe('TraceRecorder', () => {
 
     // No listeners should be registered for unknown domain
     expect(recorder.getState()).toBe('recording');
-    recorder.stop();
+    await recorder.stop();
   });
 
   it('CDP handler extracts scriptId and lineNumber from non-Debugger.paused events', async () => {
@@ -496,7 +607,7 @@ describe('TraceRecorder', () => {
       exceptionDetails: { text: 'oops' },
     });
 
-    recorder.stop();
+    await recorder.stop();
 
     const db = new TraceDB({ dbPath: recorder.getSession()!.dbPath });
     try {
@@ -680,7 +791,7 @@ describe('TraceRecorder', () => {
 
     // callFrames present but location is undefined
     handler!({ callFrames: [{ location: undefined }] });
-    recorder.stop();
+    await recorder.stop();
 
     // Should not throw; event should be recorded with null scriptId/lineNumber
     const db = new TraceDB({ dbPath: recorder.getSession()!.dbPath });
@@ -705,7 +816,7 @@ describe('TraceRecorder', () => {
 
     // Empty callFrames array
     handler!({ callFrames: [] });
-    recorder.stop();
+    await recorder.stop();
 
     const db = new TraceDB({ dbPath: recorder.getSession()!.dbPath });
     try {

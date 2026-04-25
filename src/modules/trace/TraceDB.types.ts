@@ -7,6 +7,10 @@ export interface TraceEvent {
   id?: number;
   /** Timestamp in milliseconds (Date.now()) */
   timestamp: number;
+  /** Wall-clock timestamp in milliseconds when available. */
+  wallTime?: number | null;
+  /** High-precision monotonic timestamp in milliseconds when available. */
+  monotonicTime?: number | null;
   /** Event category: 'debugger', 'network', 'runtime', 'page', 'tool', 'memory', 'browser', 'session', 'other' */
   category: string;
   /** Specific event type: 'breakpoint_hit', 'requestWillBeSent', etc. */
@@ -17,6 +21,63 @@ export interface TraceEvent {
   scriptId: string | null;
   /** Line number when relevant */
   lineNumber: number | null;
+  /** Optional request identifier for network-correlated events. */
+  requestId?: string | null;
+  /** Monotonic insert sequence for stable ordering when timestamps collide. */
+  sequence?: number | null;
+}
+
+/** Per-request network flow state reconstructed during recording. */
+export interface NetworkTraceResource {
+  requestId: string;
+  url: string | null;
+  method: string | null;
+  resourceType: string | null;
+  requestHeaders: string;
+  requestPostData: string | null;
+  status: number | null;
+  statusText: string | null;
+  responseHeaders: string;
+  mimeType: string | null;
+  protocol: string | null;
+  remoteAddress: string | null;
+  fromDiskCache: boolean;
+  fromServiceWorker: boolean;
+  startedWallTime: number | null;
+  responseWallTime: number | null;
+  finishedWallTime: number | null;
+  startedMonotonicTime: number | null;
+  responseMonotonicTime: number | null;
+  finishedMonotonicTime: number | null;
+  encodedDataLength: number | null;
+  receivedDataLength: number;
+  receivedEncodedDataLength: number;
+  chunkCount: number;
+  streamingEnabled: boolean;
+  streamingSupported: boolean | null;
+  streamingError: string | null;
+  bodyCaptureState: 'none' | 'inline' | 'artifact' | 'truncated' | 'error';
+  bodyInline: string | null;
+  bodyArtifactPath: string | null;
+  bodyBase64Encoded: boolean;
+  bodySize: number | null;
+  bodyTruncated: boolean;
+  bodyError: string | null;
+  failed: boolean;
+  errorText: string | null;
+}
+
+/** A single received response chunk for a request. */
+export interface NetworkTraceChunk {
+  id?: number;
+  requestId: string;
+  sequence: number;
+  timestamp: number;
+  monotonicTime: number | null;
+  dataLength: number;
+  encodedDataLength: number;
+  chunkData: string | null;
+  chunkIsBase64: boolean;
 }
 
 /** A single memory write delta for differential tracing. */
