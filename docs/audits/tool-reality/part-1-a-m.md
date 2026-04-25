@@ -37,23 +37,24 @@ Evidence: src/server/domains/antidebug/handlers.ts
 | antidebug_detect_protections | conditional | Needs an active browser page. |
 
 ## binary-instrument
-Evidence: src/server/domains/binary-instrument/manifest.ts:142-172; src/server/domains/binary-instrument/handlers/frida-handlers.ts:38-215
+Evidence: src/server/domains/binary-instrument/manifest.ts; src/server/domains/binary-instrument/handlers/capability-handlers.ts; src/server/domains/binary-instrument/handlers/frida-handlers.ts; src/server/domains/binary-instrument/handlers/analysis-handlers.ts
 
 | tool | status | note |
 | --- | --- | --- |
+| binary_instrument_capabilities | real | Explicit capability probe for Frida CLI, legacy bridge plugins, Ghidra headless, and Unidbg. |
 | frida_attach | fallback | Returns degraded/mock-unavailable payloads when Frida CLI is missing. |
 | frida_enumerate_modules | fallback | Degrades without live Frida session/CLI. |
 | ghidra_analyze | fallback | Has explicit analyze fallback when Ghidra tooling is unavailable. |
 | generate_hooks | real | Local hook-script generation. |
 | unidbg_emulate | fallback | Depends on live Unidbg session; otherwise stubs. |
 | frida_run_script | fallback | Degrades without live Frida session/CLI. |
-| frida_detach | conditional | Needs external bridges/tooling (Frida/Ghidra/IDA/JADX/Unidbg). |
-| frida_list_sessions | conditional | Needs external bridges/tooling (Frida/Ghidra/IDA/JADX/Unidbg). |
+| frida_detach | conditional | Uses live Frida session when present, otherwise depends on the legacy Frida bridge plugin. |
+| frida_list_sessions | conditional | Uses live Frida session when available; otherwise depends on the legacy Frida bridge plugin. |
 | frida_generate_script | real | Local script generation. |
 | get_available_plugins | real | Local plugin capability listing. |
-| ghidra_decompile | conditional | Needs external bridges/tooling (Frida/Ghidra/IDA/JADX/Unidbg). |
-| ida_decompile | conditional | Needs external bridges/tooling (Frida/Ghidra/IDA/JADX/Unidbg). |
-| jadx_decompile | conditional | Needs external bridges/tooling (Frida/Ghidra/IDA/JADX/Unidbg). |
+| ghidra_decompile | conditional | Routed through the legacy Ghidra bridge plugin; check binary_instrument_capabilities first. |
+| ida_decompile | conditional | Routed through the legacy IDA bridge plugin; check binary_instrument_capabilities first. |
+| jadx_decompile | conditional | Routed through the legacy JADX bridge plugin; check binary_instrument_capabilities first. |
 | unidbg_launch | fallback | Registers stub/mock session when Unidbg launch fails. |
 | unidbg_call | fallback | Depends on live Unidbg session; otherwise stubs. |
 | unidbg_trace | fallback | Depends on live Unidbg session; otherwise stubs. |

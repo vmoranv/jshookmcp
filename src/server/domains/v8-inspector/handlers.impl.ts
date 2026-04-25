@@ -1,3 +1,14 @@
+/**
+ * Legacy compatibility facade for historical direct imports.
+ *
+ * Current manifest/runtime wiring goes through:
+ * - src/server/domains/v8-inspector/manifest.ts
+ * - src/server/domains/v8-inspector/handlers.ts
+ * - src/server/domains/v8-inspector/handlers/impl.ts
+ *
+ * This file is intentionally kept as a lightweight adapter around the shared
+ * sub-handlers so older import paths do not carry a forked implementation.
+ */
 import {
   handleHeapSnapshotCapture,
   handleHeapSearch,

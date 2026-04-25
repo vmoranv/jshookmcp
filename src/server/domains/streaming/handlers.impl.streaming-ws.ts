@@ -1,3 +1,8 @@
+/**
+ * Legacy compatibility WebSocket handler retained for direct imports/tests.
+ *
+ * Current runtime wiring uses handlers.impl.core.ts + handlers/ws-handlers.ts.
+ */
 import { logger } from '@utils/logger';
 import { RingBuffer } from '@utils/RingBuffer';
 import type {
