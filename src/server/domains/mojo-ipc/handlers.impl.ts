@@ -53,6 +53,8 @@ export class MojoIPCHandlers {
           fridaCliAvailable: availability.fridaCliAvailable,
           active: monitor.isActive(),
           simulationMode: monitor.isSimulationMode(),
+          interfaceCatalogSource: monitor.getInterfaceCatalogSource(),
+          observedInterfaceCount: monitor.getObservedInterfaceCount(),
         },
       },
       {
@@ -77,12 +79,22 @@ export class MojoIPCHandlers {
       );
     }
 
-    return {
+    const response: Record<string, unknown> = {
       success: true,
       available: true,
       started: monitor.isActive(),
       deviceId: monitor.getDeviceId() ?? null,
+      _simulation: monitor.isSimulationMode(),
+      interfaceCatalogSource: monitor.getInterfaceCatalogSource(),
+      observedInterfaceCount: monitor.getObservedInterfaceCount(),
     };
+
+    if (monitor.isSimulationMode()) {
+      response._warning =
+        'Mojo IPC monitor is running in simulation mode. Real Frida-backed message capture is not active.';
+    }
+
+    return response;
   }
 
   async handleMojoMonitorStop(): Promise<unknown> {
@@ -100,6 +112,7 @@ export class MojoIPCHandlers {
       success: true,
       available: true,
       started: false,
+      _simulation: monitor.isSimulationMode(),
     };
   }
 
@@ -131,13 +144,25 @@ export class MojoIPCHandlers {
       };
     }
 
-    const interfaces = await monitor.listInterfaces();
-    return {
+    const response: Record<string, unknown> = {
       success: true,
       available: true,
       active: monitor.isActive(),
-      interfaces,
+      interfaces: await monitor.listInterfaces(),
+      _simulation: monitor.isSimulationMode(),
+      interfaceCatalogSource: monitor.getInterfaceCatalogSource(),
+      observedInterfaceCount: monitor.getObservedInterfaceCount(),
     };
+
+    if (monitor.getInterfaceCatalogSource() === 'seeded-defaults') {
+      response._warning =
+        'Interface list currently comes from the seeded default catalog; no live observed Mojo interfaces have been captured yet.';
+    } else if (monitor.isSimulationMode()) {
+      response._warning =
+        'Mojo IPC monitor is running in simulation mode. Interface counts may not reflect live traffic.';
+    }
+
+    return response;
   }
 
   async handleMojoMessagesGet(args: Record<string, unknown>): Promise<unknown> {
@@ -176,6 +201,8 @@ export class MojoIPCHandlers {
       totalAvailable: result.totalAvailable,
       filtered: result.filtered,
       _simulation: result._simulation,
+      interfaceCatalogSource: monitor.getInterfaceCatalogSource(),
+      observedInterfaceCount: monitor.getObservedInterfaceCount(),
     };
 
     if (result.messages && Array.isArray(result.messages) && result.messages.length > 0) {
