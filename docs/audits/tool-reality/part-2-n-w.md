@@ -5,10 +5,11 @@ Evidence: src/server/domains/mojo-ipc/handlers.impl.ts:35-160; src/modules/mojo-
 
 | tool | status | note |
 | --- | --- | --- |
-| mojo_monitor | fallback | Live monitoring often degrades to unavailable/simulation mode. |
-| mojo_decode_message | real | Local payload decoder does not require live monitoring. |
-| mojo_list_interfaces | fallback | Live monitoring often degrades to unavailable/simulation mode. |
-| mojo_messages_get | fallback | Live monitoring often degrades to unavailable/simulation mode. |
+| mojo_ipc_capabilities | real | Explicit capability probe; it reported available on this machine. |
+| mojo_monitor | conditional | Monitor start path was verified on this machine, but live capture can still degrade to simulation mode. |
+| mojo_decode_message | real | Local payload decoder does not require live monitoring; sample decode was verified. |
+| mojo_list_interfaces | conditional | Returned live interface names on this machine, but still depends on a usable monitor/session. |
+| mojo_messages_get | fallback | On this machine it still returned `_simulation: true` and empty messages after monitor start. |
 
 ## native-bridge
 Evidence: src/server/domains/native-bridge/definitions.ts; no active manifest registration
@@ -169,14 +170,15 @@ Evidence: src/server/domains/sourcemap/handlers.impl.sourcemap-main.ts:14-188; s
 Evidence: src/server/domains/streaming/manifest.ts; src/server/domains/streaming/handlers.impl.core.ts; src/server/domains/streaming/handlers/ws-handlers.ts; src/server/domains/streaming/handlers/sse-handlers.ts
 
 Compatibility note: `src/server/domains/streaming/handlers.impl.streaming-base.ts` and `handlers.impl.streaming-{ws,sse}.ts` are retained for legacy direct imports/tests. Current mounted runtime goes through `handlers.impl.core.ts` plus `handlers/`.
+Focused runtime note: live local probes on `2026-04-25` captured real WebSocket frames plus real SSE `open` and `message` events.
 
 | tool | status | note |
 | --- | --- | --- |
-| ws_monitor | conditional | Real CDP-backed WebSocket monitoring, but it needs an active browser/page context. |
-| ws_get_frames | conditional | Reads captured WebSocket frames from the active monitor state, so browser/page context still gates it. |
-| ws_get_connections | conditional | Reads tracked WebSocket connection state from the active monitor session. |
-| sse_monitor_enable | conditional | Real page-side EventSource interception, but it needs an active browser/page context. |
-| sse_get_events | conditional | Reads captured SSE events from the injected page monitor state. |
+| ws_monitor | conditional | Real CDP-backed WebSocket monitoring; live page-side traffic was verified on this machine. |
+| ws_get_frames | conditional | Reads captured WebSocket frames from the active monitor state; live sent/received payloads were verified on this machine. |
+| ws_get_connections | conditional | Reads tracked WebSocket connection state from the active monitor session; live connection state was verified on this machine. |
+| sse_monitor_enable | conditional | Real page-side EventSource interception; live SSE payload capture was verified on this machine. |
+| sse_get_events | conditional | Reads captured SSE events from the injected page monitor state; live `open` and `message` events were verified on this machine. |
 
 ## syscall-hook
 Evidence: src/server/domains/syscall-hook/manifest.ts; src/modules/syscall-hook/SyscallMonitor.ts:274-307
@@ -193,16 +195,16 @@ Evidence: src/server/domains/syscall-hook/manifest.ts; src/modules/syscall-hook/
 ## trace
 Evidence: src/modules/trace/TraceRecorder.ts; src/modules/trace/TraceRecorder.network.ts; src/server/domains/trace/handlers.ts
 
-Boundary note: `trace` records timeline metadata unconditionally, and can also persist `Network.dataReceived` chunks plus `Network.getResponseBody` output when browser support and tool options allow it. It does not try to mirror every response body/chunk without limits: chunk/body capture is optional, browsers may reject streaming/body APIs for some requests, and large bodies are bounded by `networkBodyMaxBytes` with inline/artifact/truncated states to avoid unbounded SQLite growth.
+Boundary note: `trace` records timeline metadata unconditionally, and can also persist `Network.dataReceived` chunks plus `Network.getResponseBody` output when browser support and tool options allow it. Focused runtime probes on this machine verified persisted `Network.dataReceived` rows, `network_resources.body_capture_state`, and `trace_get_network_flow` body/chunk output. It still does not try to mirror every response body/chunk without limits: chunk/body capture is optional, browsers may reject streaming/body APIs for some requests, and large bodies are bounded by `networkBodyMaxBytes` with inline/artifact/truncated states to avoid unbounded SQLite growth.
 
 | tool | status | note |
 | --- | --- | --- |
-| trace_recording | real | Real SQLite-backed trace/timeline recording with optional chunk/body capture policy. |
+| trace_recording | real | Real SQLite-backed trace/timeline recording with optional chunk/body capture policy; live network and debugger event rows were verified on this machine. |
 | start_trace_recording | real | Real SQLite-backed trace/timeline recording with optional chunk/body capture policy. |
-| stop_trace_recording | real | Real SQLite-backed trace/timeline recording with optional chunk/body capture policy. |
-| query_trace_sql | real | Real SQL access to recorded trace tables, including persisted network metadata. |
+| stop_trace_recording | real | Real SQLite-backed trace/timeline recording with optional chunk/body capture policy and persisted network summary counts. |
+| query_trace_sql | real | Real SQL access to recorded trace tables; verified against persisted `events` and `network_resources` rows on this machine. |
 | seek_to_timestamp | real | Real timeline/state reconstruction over recorded events, memory deltas, and network rows. |
-| trace_get_network_flow | real | Real request-scoped trace flow reader for persisted metadata plus optional chunks/body. |
+| trace_get_network_flow | real | Real request-scoped trace flow reader for persisted metadata plus optional chunks/body; verified returning stored body and chunk previews on this machine. |
 | diff_heap_snapshots | real | Real heap snapshot diff over trace-stored snapshot summaries. |
 | export_trace | real | Real trace export to Chrome Trace Event JSON. |
 | summarize_trace | real | Real trace summarization over recorded events, memory deltas, and network tables. |
@@ -223,14 +225,15 @@ Evidence: src/server/domains/transform/handlers.impl.core.ts
 Evidence: src/server/domains/v8-inspector/handlers/impl.ts; src/server/domains/v8-inspector/handlers/heap-snapshot.ts; src/server/domains/v8-inspector/handlers/bytecode-extract.ts; src/server/domains/v8-inspector/handlers/jit-inspect.ts
 
 Compatibility note: `src/server/domains/v8-inspector/handlers.impl.ts` is a legacy direct-import adapter. The current manifest/runtime chain goes through `manifest.ts -> handlers.ts -> handlers/impl.ts`.
+Focused runtime note: on this machine the live heap capture path still returned `simulated: true`, and heap stats only surfaced minimal snapshot metadata.
 
 | tool | status | note |
 | --- | --- | --- |
-| v8_heap_snapshot_capture | fallback | Can gracefully degrade to minimal/stub snapshot output. |
-| v8_heap_snapshot_analyze | conditional | Needs active page/CDP or previously captured heap data. |
+| v8_heap_snapshot_capture | fallback | On this machine the live capture path still returned `simulated: true` with empty snapshot chunks. |
+| v8_heap_snapshot_analyze | conditional | Needs active page/CDP or previously captured heap data; analysis still returned structured output over simulated data in this audit. |
 | v8_heap_diff | conditional | Needs active page/CDP or previously captured heap data. |
 | v8_object_inspect | conditional | Needs active page/CDP or previously captured heap data. |
-| v8_heap_stats | conditional | Needs active page/CDP or previously captured heap data. |
+| v8_heap_stats | fallback | On this machine it only returned minimal snapshot metadata against simulated captures. |
 | v8_bytecode_extract | conditional | Needs active page/CDP or previously captured heap data. |
 | v8_version_detect | conditional | Needs active page/CDP or previously captured heap data. |
 | v8_jit_inspect | conditional | Needs active page/CDP or previously captured heap data. |
