@@ -1,3 +1,8 @@
+/**
+ * Legacy compatibility SSE handler retained for direct imports/tests.
+ *
+ * Current runtime wiring uses handlers.impl.core.ts + handlers/sse-handlers.ts.
+ */
 import type {
   SseEnableResult,
   SseEventRecord,

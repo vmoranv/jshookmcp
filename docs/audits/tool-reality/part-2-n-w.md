@@ -54,10 +54,11 @@ Evidence: src/server/domains/network/handlers/raw-handlers.ts:734-762; src/serve
 | network_intercept | conditional | Many tools need active browser/network monitor state or reachable targets. |
 
 ## platform
-Evidence: src/server/domains/platform/handlers/v8-bytecode-handler.ts:108,279-281; src/server/domains/platform/handlers/miniapp-handlers.ts:100-137,327
+Evidence: src/server/domains/platform/manifest.ts; src/server/domains/platform/handlers/capabilities.ts; src/server/domains/platform/handlers/v8-bytecode-handler.ts; src/server/domains/platform/handlers/miniapp-handlers.ts; src/server/domains/platform/handlers/electron-ipc-sniffer.ts
 
 | tool | status | note |
 | --- | --- | --- |
+| platform_capabilities | real | Explicit capability probe for miniapp unpacker, view8, and Electron IPC sniff runtime. |
 | miniapp_pkg_scan | real | Local package/signature scan. |
 | miniapp_pkg_unpack | fallback | Falls back when the preferred unpack helper is missing. |
 | miniapp_pkg_analyze | conditional | Depends on local app/package files, Electron targets, or optional tooling. |
@@ -165,15 +166,17 @@ Evidence: src/server/domains/sourcemap/handlers.impl.sourcemap-main.ts:14-188; s
 | sourcemap_reconstruct_tree | conditional | Discover needs active page/CDP; fetch/parse/reconstruct need reachable sourcemap inputs. |
 
 ## streaming
-Evidence: src/server/domains/streaming/handlers.impl.streaming-ws.ts:174-266; src/server/domains/streaming/handlers.impl.streaming-sse.ts:133-313
+Evidence: src/server/domains/streaming/manifest.ts; src/server/domains/streaming/handlers.impl.core.ts; src/server/domains/streaming/handlers/ws-handlers.ts; src/server/domains/streaming/handlers/sse-handlers.ts
+
+Compatibility note: `src/server/domains/streaming/handlers.impl.streaming-base.ts` and `handlers.impl.streaming-{ws,sse}.ts` are retained for legacy direct imports/tests. Current mounted runtime goes through `handlers.impl.core.ts` plus `handlers/`.
 
 | tool | status | note |
 | --- | --- | --- |
-| ws_monitor | conditional | Real CDP/EventSource monitoring, but needs active browser/page context. |
-| ws_get_frames | conditional | Real CDP/EventSource monitoring, but needs active browser/page context. |
-| ws_get_connections | conditional | Real CDP/EventSource monitoring, but needs active browser/page context. |
-| sse_monitor_enable | conditional | Real CDP/EventSource monitoring, but needs active browser/page context. |
-| sse_get_events | conditional | Real CDP/EventSource monitoring, but needs active browser/page context. |
+| ws_monitor | conditional | Real CDP-backed WebSocket monitoring, but it needs an active browser/page context. |
+| ws_get_frames | conditional | Reads captured WebSocket frames from the active monitor state, so browser/page context still gates it. |
+| ws_get_connections | conditional | Reads tracked WebSocket connection state from the active monitor session. |
+| sse_monitor_enable | conditional | Real page-side EventSource interception, but it needs an active browser/page context. |
+| sse_get_events | conditional | Reads captured SSE events from the injected page monitor state. |
 
 ## syscall-hook
 Evidence: src/server/domains/syscall-hook/manifest.ts; src/modules/syscall-hook/SyscallMonitor.ts:274-307
@@ -188,19 +191,21 @@ Evidence: src/server/domains/syscall-hook/manifest.ts; src/modules/syscall-hook/
 | syscall_get_stats | conditional | Needs platform-specific backends/privileges and may fall back to simulation. |
 
 ## trace
-Evidence: src/modules/trace/TraceRecorder.ts:30,66,109; src/server/domains/trace/handlers.ts:146
+Evidence: src/modules/trace/TraceRecorder.ts; src/modules/trace/TraceRecorder.network.ts; src/server/domains/trace/handlers.ts
+
+Boundary note: `trace` records timeline metadata unconditionally, and can also persist `Network.dataReceived` chunks plus `Network.getResponseBody` output when browser support and tool options allow it. It does not try to mirror every response body/chunk without limits: chunk/body capture is optional, browsers may reject streaming/body APIs for some requests, and large bodies are bounded by `networkBodyMaxBytes` with inline/artifact/truncated states to avoid unbounded SQLite growth.
 
 | tool | status | note |
 | --- | --- | --- |
-| trace_recording | real | Real SQLite-backed trace/timeline analysis, not full response-body/chunk capture. |
-| start_trace_recording | real | Real SQLite-backed trace/timeline analysis, not full response-body/chunk capture. |
-| stop_trace_recording | real | Real SQLite-backed trace/timeline analysis, not full response-body/chunk capture. |
-| query_trace_sql | real | Real SQLite-backed trace/timeline analysis, not full response-body/chunk capture. |
-| seek_to_timestamp | real | Real SQLite-backed trace/timeline analysis, not full response-body/chunk capture. |
-| trace_get_network_flow | real | Real SQLite-backed trace/timeline analysis, not full response-body/chunk capture. |
-| diff_heap_snapshots | real | Real SQLite-backed trace/timeline analysis, not full response-body/chunk capture. |
-| export_trace | real | Real SQLite-backed trace/timeline analysis, not full response-body/chunk capture. |
-| summarize_trace | real | Real SQLite-backed trace/timeline analysis, not full response-body/chunk capture. |
+| trace_recording | real | Real SQLite-backed trace/timeline recording with optional chunk/body capture policy. |
+| start_trace_recording | real | Real SQLite-backed trace/timeline recording with optional chunk/body capture policy. |
+| stop_trace_recording | real | Real SQLite-backed trace/timeline recording with optional chunk/body capture policy. |
+| query_trace_sql | real | Real SQL access to recorded trace tables, including persisted network metadata. |
+| seek_to_timestamp | real | Real timeline/state reconstruction over recorded events, memory deltas, and network rows. |
+| trace_get_network_flow | real | Real request-scoped trace flow reader for persisted metadata plus optional chunks/body. |
+| diff_heap_snapshots | real | Real heap snapshot diff over trace-stored snapshot summaries. |
+| export_trace | real | Real trace export to Chrome Trace Event JSON. |
+| summarize_trace | real | Real trace summarization over recorded events, memory deltas, and network tables. |
 
 ## transform
 Evidence: src/server/domains/transform/handlers.impl.core.ts
@@ -215,7 +220,9 @@ Evidence: src/server/domains/transform/handlers.impl.core.ts
 | crypto_compare | real | Real local AST/crypto transform helpers. |
 
 ## v8-inspector
-Evidence: src/server/domains/v8-inspector/handlers/heap-snapshot.ts:81-155; src/server/domains/v8-inspector/handlers/impl.ts:31-221
+Evidence: src/server/domains/v8-inspector/handlers/impl.ts; src/server/domains/v8-inspector/handlers/heap-snapshot.ts; src/server/domains/v8-inspector/handlers/bytecode-extract.ts; src/server/domains/v8-inspector/handlers/jit-inspect.ts
+
+Compatibility note: `src/server/domains/v8-inspector/handlers.impl.ts` is a legacy direct-import adapter. The current manifest/runtime chain goes through `manifest.ts -> handlers.ts -> handlers/impl.ts`.
 
 | tool | status | note |
 | --- | --- | --- |
