@@ -42,9 +42,11 @@ describe('JITInspector', () => {
     });
 
     const result = await inspector.inspectJIT('1');
-    expect(result).toHaveLength(1);
-    expect(result[0]?.optimized).toBe(true);
-    expect(result[0]?.tier).toBe('turbofan');
+    expect(result.supportsNativesSyntax).toBe(true);
+    expect(result.inspectionMode).toBe('native-status');
+    expect(result.functions).toHaveLength(1);
+    expect(result.functions[0]?.optimized).toBe(true);
+    expect(result.functions[0]?.tier).toBe('turbofan');
   });
 
   it('returns a cached list of optimized functions', async () => {

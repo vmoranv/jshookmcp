@@ -41,6 +41,22 @@ function isCDPPageLike(v: unknown): v is { createCDPSession: () => Promise<unkno
   return isRecord(v) && typeof v['createCDPSession'] === 'function';
 }
 
+function unwrapRuntimeValue(value: unknown): unknown {
+  if (!isRecord(value)) {
+    return value;
+  }
+
+  if ('value' in value) {
+    return unwrapRuntimeValue(value['value']);
+  }
+
+  if ('result' in value) {
+    return unwrapRuntimeValue(value['result']);
+  }
+
+  return value;
+}
+
 export async function handleHeapSnapshotCapture(
   _args: Record<string, unknown>,
   options: HeapSnapshotHandlerOptions,
@@ -100,22 +116,33 @@ export async function handleHeapSnapshotCapture(
         expression: `
           (() => {
             const m = performance.memory;
-            return m ? JSON.stringify({
-              jsHeapSizeUsed: m.usedJSHeapSize,
-              jsHeapSizeTotal: m.totalJSHeapSize,
-              jsHeapSizeLimit: m.jsHeapSizeLimit
-            }) : null;
+            return m
+              ? {
+                  jsHeapSizeUsed: m.usedJSHeapSize,
+                  jsHeapSizeTotal: m.totalJSHeapSize,
+                  jsHeapSizeLimit: m.jsHeapSizeLimit
+                }
+              : null;
           })()
         `,
         returnByValue: true,
       });
       await sessionDetach().catch(() => undefined);
 
-      const result = isRecord(response) ? response['result'] : undefined;
+      const result = unwrapRuntimeValue(response);
+      const parsedResult =
+        typeof result === 'string'
+          ? (() => {
+              try {
+                return JSON.parse(result) as unknown;
+              } catch {
+                return null;
+              }
+            })()
+          : result;
       let sizeBytes = 0;
-      if (typeof result === 'string' && result !== 'null') {
-        const parsed = JSON.parse(result) as Record<string, number>;
-        sizeBytes = parsed.jsHeapSizeUsed ?? 0;
+      if (isRecord(parsedResult) && typeof parsedResult['jsHeapSizeUsed'] === 'number') {
+        sizeBytes = parsedResult['jsHeapSizeUsed'];
       }
 
       const stored = storeSnapshot({
