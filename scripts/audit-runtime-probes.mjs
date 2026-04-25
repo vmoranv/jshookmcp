@@ -3,7 +3,11 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
+import { readFile } from 'node:fs/promises';
 import http from 'node:http';
+import http2 from 'node:http2';
+import net from 'node:net';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -12,6 +16,8 @@ const execFileAsync = promisify(execFile);
 const WS_MAGIC_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const BODY_MARKER = 'payload-marker-20260425';
 const SSE_MARKER = 'payload-marker-sse-20260425';
+const HTTP2_MARKER = 'payload-marker-h2-20260425';
+const SOURCEMAP_MARKER = 'payload-marker-sourcemap-20260425';
 const SCRIPT_TIMEOUT_MS = 6 * 60 * 1000;
 
 function isRecord(value) {
@@ -204,8 +210,53 @@ async function getNewestChromePid() {
   }
 }
 
+async function getFreePort() {
+  const server = net.createServer();
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  await new Promise((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve(undefined)));
+  });
+
+  if (!address || typeof address === 'string') {
+    throw new Error('Failed to allocate free port');
+  }
+
+  return address.port;
+}
+
+async function sendRawHttpRequest(port, requestText) {
+  return await new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host: '127.0.0.1', port }, () => {
+      socket.write(requestText);
+    });
+    const chunks = [];
+    socket.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    socket.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    socket.on('error', reject);
+  });
+}
+
 async function createProbeServer() {
   const bodyPayload = `${BODY_MARKER}\n${'x'.repeat(12361 - BODY_MARKER.length - 1)}`;
+  const sourceMapPayload = JSON.stringify({
+    version: 3,
+    file: 'app.min.js',
+    sources: ['src/main.ts'],
+    sourcesContent: [`export const marker = '${SOURCEMAP_MARKER}';\nconsole.log(marker);\n`],
+    names: [],
+    mappings: 'AAAA',
+  });
+  const sourceMapDataUri = `data:application/json;base64,${Buffer.from(
+    sourceMapPayload,
+    'utf8',
+  ).toString('base64')}`;
+  const sourceMapScript = [
+    `window.__SOURCE_MAP_MARKER__ = ${JSON.stringify(SOURCEMAP_MARKER)};`,
+    "console.log('sourcemap script loaded');",
+    `//# sourceMappingURL=${sourceMapDataUri}`,
+  ].join('\n');
   const sockets = new Set();
   const httpServer = http.createServer((req, res) => {
     if (!req.url) {
@@ -216,6 +267,32 @@ async function createProbeServer() {
     if (req.url === '/') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end('<!doctype html><html><body><h1>runtime probe</h1></body></html>');
+      return;
+    }
+
+    if (req.url === '/sourcemap/' || req.url === '/sourcemap/index.html') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(
+        '<!doctype html><html><body><h1>sourcemap probe</h1><script src="/sourcemap/app.min.js"></script></body></html>',
+      );
+      return;
+    }
+
+    if (req.url === '/sourcemap/app.min.js') {
+      res.writeHead(200, {
+        'content-type': 'application/javascript; charset=utf-8',
+        'cache-control': 'no-store',
+      });
+      res.end(sourceMapScript);
+      return;
+    }
+
+    if (req.url === '/sourcemap/app.min.js.map') {
+      res.writeHead(200, {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+      });
+      res.end(sourceMapPayload);
       return;
     }
 
@@ -255,6 +332,23 @@ async function createProbeServer() {
   httpServer.on('connection', (socket) => {
     sockets.add(socket);
     socket.on('close', () => sockets.delete(socket));
+  });
+
+  const http2Server = http2.createServer();
+  http2Server.on('stream', (stream, headers) => {
+    const streamPath = typeof headers[':path'] === 'string' ? headers[':path'] : '/';
+    if (streamPath !== '/h2') {
+      stream.respond({ ':status': 404, 'content-type': 'text/plain; charset=utf-8' });
+      stream.end('not found');
+      return;
+    }
+
+    stream.respond({
+      ':status': 200,
+      'content-type': 'text/plain; charset=utf-8',
+      'cache-control': 'no-store',
+    });
+    stream.end(HTTP2_MARKER);
   });
 
   httpServer.on('upgrade', (req, socket) => {
@@ -308,20 +402,30 @@ async function createProbeServer() {
 
   httpServer.listen(0, '127.0.0.1');
   await once(httpServer, 'listening');
+  http2Server.listen(0, '127.0.0.1');
+  await once(http2Server, 'listening');
   const address = httpServer.address();
+  const http2Address = http2Server.address();
   if (!address || typeof address === 'string') {
     throw new Error('Failed to resolve probe server address');
+  }
+  if (!http2Address || typeof http2Address === 'string') {
+    throw new Error('Failed to resolve HTTP/2 probe server address');
   }
 
   const baseUrl = `http://127.0.0.1:${address.port}`;
   return {
     baseUrl,
     wsUrl: `ws://127.0.0.1:${address.port}/ws`,
+    http2Url: `http://127.0.0.1:${http2Address.port}/h2`,
+    sourceMapPageUrl: `${baseUrl}/sourcemap/`,
+    sourceMapUrl: sourceMapDataUri,
     async close() {
       for (const socket of sockets) {
         socket.destroy();
       }
       await new Promise((resolve) => httpServer.close(resolve));
+      await new Promise((resolve) => http2Server.close(resolve));
     },
   };
 }
@@ -332,6 +436,9 @@ function summarize(report) {
     `baseUrl: ${report.baseUrl}`,
     '',
     `network: requestId=${report.network.requestId ?? 'n/a'} bodyMarker=${report.network.bodyHasMarker}`,
+    `network-raw: http=${report.network.rawHttp?.response?.statusCode ?? 'n/a'} h2=${report.network.http2?.statusCode ?? 'n/a'} rtt=${report.network.rtt?.stats?.count ?? 0}`,
+    `proxy: running=${report.proxy.status?.running ?? false} logs=${report.proxy.requestLogs?.count ?? 0} bodyMarker=${report.proxy.bodyHasMarker ?? false}`,
+    `sourcemap: discovered=${report.sourcemap.discoveredCount ?? 0} parsed=${report.sourcemap.parsed?.mappingsCount ?? 'n/a'} reconstructed=${report.sourcemap.reconstructed?.writtenFiles ?? 'n/a'} reconstructedMarker=${report.sourcemap.reconstructedContainsMarker ?? false}`,
     `streaming: wsFrames=${report.streaming.wsFrameCount} sseEvents=${report.streaming.sseEventCount}`,
     `trace: status=${report.trace.stop?.status ?? 'n/a'} bodies=${report.trace.stop?.networkBodyCount ?? 0} chunks=${report.trace.stop?.networkChunkCount ?? 0} bodyState=${report.trace.flow?.request?.bodyCaptureState ?? 'n/a'}`,
     `binary: fridaAvailable=${report.binary.capabilitiesAvailable} modules=${report.binary.moduleSample.join(', ') || 'n/a'}`,
@@ -366,10 +473,13 @@ async function main() {
     generatedAt: new Date().toISOString(),
     baseUrl: server.baseUrl,
     wsUrl: server.wsUrl,
+    http2Url: server.http2Url,
     tools: [],
     platform: null,
     browser: {},
     network: {},
+    proxy: {},
+    sourcemap: {},
     streaming: {},
     trace: {},
     binary: {},
@@ -432,6 +542,93 @@ async function main() {
       { url: server.baseUrl, waitUntil: 'load', timeout: 15000 },
       60000,
     );
+    report.network.rawHttp = await callTool(
+      client,
+      'http_plain_request',
+      {
+        host: '127.0.0.1',
+        port: Number(new URL(server.baseUrl).port),
+        requestText:
+          'GET /body?via=raw-http HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n',
+      },
+      30000,
+    );
+    report.network.rawBodyHasMarker = flattenStrings(report.network.rawHttp).some((entry) =>
+      entry.includes(BODY_MARKER),
+    );
+    report.network.http2 = await callTool(
+      client,
+      'http2_probe',
+      {
+        url: server.http2Url,
+        timeoutMs: 15000,
+        maxBodyBytes: 16384,
+      },
+      30000,
+    );
+    report.network.http2BodyHasMarker = flattenStrings(report.network.http2).some((entry) =>
+      entry.includes(HTTP2_MARKER),
+    );
+    report.network.rtt = await callTool(
+      client,
+      'network_rtt_measure',
+      {
+        url: server.baseUrl,
+        probeType: 'http',
+        iterations: 1,
+        timeoutMs: 5000,
+      },
+      30000,
+    );
+
+    const proxyPort = await getFreePort();
+    report.proxy.start = await callTool(
+      client,
+      'proxy_start',
+      { port: proxyPort, useHttps: true },
+      30000,
+    );
+    report.proxy.status = await callTool(client, 'proxy_status', {}, 15000);
+    report.proxy.ca = await callTool(client, 'proxy_export_ca', {}, 15000);
+    report.proxy.caHasPem = flattenStrings(report.proxy.ca).some((entry) =>
+      entry.includes('BEGIN CERTIFICATE'),
+    );
+    report.proxy.rule = await callTool(
+      client,
+      'proxy_add_rule',
+      {
+        action: 'forward',
+        method: 'GET',
+        urlPattern: '/^\\/body$/',
+      },
+      30000,
+    );
+    const forwardedRawResponse = await sendRawHttpRequest(
+      proxyPort,
+      `GET ${server.baseUrl}/body?via=proxy HTTP/1.1\r\nHost: 127.0.0.1:${new URL(server.baseUrl).port}\r\nConnection: close\r\n\r\n`,
+    );
+    const headerSeparator = forwardedRawResponse.indexOf('\r\n\r\n');
+    const statusLine =
+      headerSeparator === -1
+        ? (forwardedRawResponse.split('\r\n', 1)[0] ?? '')
+        : (forwardedRawResponse.slice(0, headerSeparator).split('\r\n', 1)[0] ?? '');
+    const bodyText =
+      headerSeparator === -1 ? '' : forwardedRawResponse.slice(headerSeparator + '\r\n\r\n'.length);
+    report.proxy.forwarded = {
+      success: statusLine.length > 0,
+      statusLine,
+      responseBytes: Buffer.byteLength(forwardedRawResponse),
+      bodyPreview: bodyText.slice(0, 256),
+    };
+    report.proxy.bodyHasMarker = bodyText.includes(BODY_MARKER);
+    report.proxy.requestLogs = await callTool(
+      client,
+      'proxy_get_requests',
+      { urlFilter: '/body?via=proxy' },
+      15000,
+    );
+    report.proxy.clearLogs = await callTool(client, 'proxy_clear_logs', {}, 15000);
+    report.proxy.logsAfterClear = await callTool(client, 'proxy_get_requests', {}, 15000);
 
     report.network.enable = await callTool(client, 'network_enable', {}, 15000);
     report.streaming.wsMonitor = await callTool(
@@ -678,10 +875,81 @@ async function main() {
         30000,
       );
     }
+
+    report.browser.sourceMapNavigate = await callTool(
+      client,
+      'page_navigate',
+      { url: server.sourceMapPageUrl, waitUntil: 'load', timeout: 15000 },
+      60000,
+    );
+    report.sourcemap.discover = await callTool(
+      client,
+      'sourcemap_discover',
+      { includeInline: true },
+      30000,
+    );
+    report.sourcemap.discoveredCount = Array.isArray(report.sourcemap.discover)
+      ? report.sourcemap.discover.length
+      : 0;
+    const discoveredMap = Array.isArray(report.sourcemap.discover)
+      ? report.sourcemap.discover.find(
+          (item) =>
+            isRecord(item) &&
+            typeof item.scriptUrl === 'string' &&
+            item.scriptUrl.includes('/sourcemap/app.min.js'),
+        )
+      : null;
+    report.sourcemap.discoveredMapUrl =
+      isRecord(discoveredMap) && typeof discoveredMap.sourceMapUrl === 'string'
+        ? discoveredMap.sourceMapUrl
+        : server.sourceMapUrl;
+    report.sourcemap.parsed = await callTool(
+      client,
+      'sourcemap_fetch_and_parse',
+      { sourceMapUrl: report.sourcemap.discoveredMapUrl },
+      30000,
+    );
+    report.sourcemap.containsMarker = flattenStrings(report.sourcemap.parsed).some((entry) =>
+      entry.includes(SOURCEMAP_MARKER),
+    );
+    report.sourcemap.reconstructed = await callTool(
+      client,
+      'sourcemap_reconstruct_tree',
+      {
+        sourceMapUrl: report.sourcemap.discoveredMapUrl,
+        outputDir: join('.tmp_mcp_artifacts', `jshook-sourcemap-audit-${Date.now()}`),
+      },
+      30000,
+    );
+    report.sourcemap.reconstructedContainsMarker = false;
+    if (
+      isRecord(report.sourcemap.reconstructed) &&
+      typeof report.sourcemap.reconstructed.outputDir === 'string' &&
+      Array.isArray(report.sourcemap.reconstructed.files)
+    ) {
+      for (const relativePath of report.sourcemap.reconstructed.files) {
+        if (typeof relativePath !== 'string') continue;
+        try {
+          const content = await readFile(
+            join(process.cwd(), report.sourcemap.reconstructed.outputDir, relativePath),
+            'utf8',
+          );
+          if (content.includes(SOURCEMAP_MARKER)) {
+            report.sourcemap.reconstructedContainsMarker = true;
+            break;
+          }
+        } catch {}
+      }
+    }
   } catch (error) {
     report.error = error instanceof Error ? error.message : String(error);
     failure = error;
   } finally {
+    try {
+      report.proxy.stop = await callTool(client, 'proxy_stop', {}, 15000);
+    } catch (error) {
+      report.proxy.stopError = error instanceof Error ? error.message : String(error);
+    }
     try {
       report.browser.close = await callTool(client, 'browser_close', {}, 15000);
     } catch (error) {

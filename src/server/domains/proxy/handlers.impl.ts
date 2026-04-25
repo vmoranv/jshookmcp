@@ -12,6 +12,17 @@ import {
   argString,
 } from '@server/domains/shared/parse-args';
 
+function compileUrlPattern(urlPattern: string): RegExp {
+  const trimmed = urlPattern.trim();
+  const regexLiteral = /^\/(.+)\/([a-z]*)$/.exec(trimmed);
+  if (regexLiteral && regexLiteral[1] !== undefined) {
+    const source = regexLiteral[1];
+    const flags = regexLiteral[2] ?? '';
+    return new RegExp(source, flags);
+  }
+  return new RegExp(trimmed);
+}
+
 export class ProxyHandlers {
   private server: any = null;
   private caPathDir: string;
@@ -138,17 +149,17 @@ export class ProxyHandlers {
     const urlPattern = argString(args, 'urlPattern') || '.*';
 
     try {
+      const matcher = compileUrlPattern(urlPattern);
       let builder: any;
-      if (method === 'GET') builder = this.server.forGet(new RegExp(urlPattern));
-      else if (method === 'POST') builder = this.server.forPost(new RegExp(urlPattern));
-      else if (method === 'PUT') builder = this.server.forPut(new RegExp(urlPattern));
-      else if (method === 'DELETE') builder = this.server.forDelete(new RegExp(urlPattern));
+      if (method === 'GET') builder = this.server.forGet(matcher);
+      else if (method === 'POST') builder = this.server.forPost(matcher);
+      else if (method === 'PUT') builder = this.server.forPut(matcher);
+      else if (method === 'DELETE') builder = this.server.forDelete(matcher);
       else builder = this.server.forAnyRequest();
 
-      // mockttp builders are immutable-ish, we chain depending on action
       let endpoint;
       if (action === 'forward') {
-        endpoint = await builder.thenForward();
+        endpoint = await builder.thenPassThrough();
       } else if (action === 'block') {
         endpoint = await builder.thenCloseConnection();
       } else if (action === 'mock_response') {

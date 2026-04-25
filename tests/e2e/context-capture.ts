@@ -264,12 +264,20 @@ export function applyContextCapture(
   }
 
   // ── Sourcemap URL from sourcemap_discover ──
-  if (toolName === 'sourcemap_discover' && isRecord(parsed)) {
-    const maps = parsed.sourceMaps ?? parsed.maps ?? parsed.discovered;
+  if (toolName === 'sourcemap_discover') {
+    const maps = Array.isArray(parsed)
+      ? parsed
+      : isRecord(parsed)
+        ? (parsed.sourceMaps ?? parsed.maps ?? parsed.discovered)
+        : null;
     if (Array.isArray(maps) && maps.length > 0) {
-      const first = maps[0] as Record<string, unknown>;
-      const url = first.sourceMapUrl ?? first.url ?? first.mapUrl;
-      if (typeof url === 'string' && url.endsWith('.map')) {
+      const first = maps.find((item) => {
+        if (!isRecord(item)) return false;
+        const candidate = item.sourceMapUrl ?? item.url ?? item.mapUrl;
+        return typeof candidate === 'string' && candidate.length > 0;
+      }) as Record<string, unknown> | undefined;
+      const url = first?.sourceMapUrl ?? first?.url ?? first?.mapUrl;
+      if (typeof url === 'string' && url.length > 0) {
         ctx.sourceMapUrl = url;
         overrides.sourcemap_fetch_and_parse = { sourceMapUrl: ctx.sourceMapUrl };
         overrides.sourcemap_reconstruct_tree = { sourceMapUrl: ctx.sourceMapUrl };
