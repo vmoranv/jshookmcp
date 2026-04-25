@@ -47,6 +47,8 @@ export class AnalysisHandlers {
     if (!availability.available) {
       return {
         available: false,
+        capability: 'ghidra_headless',
+        fix: 'Install Ghidra and ensure analyzeHeadless is on PATH.',
         binaryPath,
         reason: availability.reason ?? 'Ghidra analyzeHeadless is not available',
         analysis,
@@ -116,6 +118,8 @@ export class AnalysisHandlers {
     if (!availability.available) {
       return {
         available: false,
+        capability: 'unidbg_jar',
+        fix: 'Set UNIDBG_JAR to a reachable Unidbg JAR path.',
         binaryPath,
         functionName,
         args: invokeArgs,
@@ -161,6 +165,8 @@ export class AnalysisHandlers {
     } catch (error) {
       return {
         available: false,
+        capability: 'unidbg_jar',
+        fix: 'Set UNIDBG_JAR to a reachable Unidbg JAR path and retry.',
         soPath,
         arch,
         reason: error instanceof Error ? error.message : String(error),

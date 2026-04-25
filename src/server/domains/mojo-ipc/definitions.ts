@@ -2,6 +2,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const mojoIpcTools: Tool[] = [
+  tool('mojo_ipc_capabilities', (t) => t.desc('Report Mojo IPC monitoring availability.').query()),
   tool('mojo_monitor', (t) =>
     t
       .desc('Start or stop Mojo IPC monitoring for the active Chromium-based target.')

@@ -14,17 +14,23 @@ import {
   handleElectronDebugStatus,
 } from '@server/domains/platform/handlers/electron-dual-cdp';
 import { handleElectronIPCSniff } from '@server/domains/platform/handlers/electron-ipc-sniffer';
+import { handlePlatformCapabilities } from '@server/domains/platform/handlers/capabilities';
 
 export class PlatformToolHandlers {
   private miniapp: MiniappHandlers;
   private electron: ElectronHandlers;
+  private runner: ExternalToolRunner;
 
   constructor(collector: CodeCollector) {
     const registry = new ToolRegistry();
-    const runner = new ExternalToolRunner(registry);
+    this.runner = new ExternalToolRunner(registry);
 
-    this.miniapp = new MiniappHandlers(runner, collector);
+    this.miniapp = new MiniappHandlers(this.runner, collector);
     this.electron = new ElectronHandlers(collector);
+  }
+
+  handlePlatformCapabilities() {
+    return handlePlatformCapabilities(this.runner);
   }
 
   handleMiniappPkgScan(args: Record<string, unknown>) {

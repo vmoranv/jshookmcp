@@ -21,6 +21,7 @@
 
 ## 代表工具
 
+- `binary_instrument_capabilities` — 待补充中文：Report binary instrumentation backend availability.
 - `frida_attach` — 附加 Frida 到本地进程、PID 或二进制路径，并创建二进制插桩会话。
 - `frida_enumerate_modules` — 枚举已附加 Frida 会话中的模块。
 - `ghidra_analyze` — 在 Ghidra headless 可用时运行二进制元数据分析，不可用时返回结构化降级输出。
@@ -30,12 +31,12 @@
 - `frida_detach` — 从 Frida 会话分离并清理资源。
 - `frida_list_sessions` — 列出所有活跃的 Frida 会话。
 - `frida_generate_script` — 从模板（trace、intercept、replace、log）生成 Frida 拦截脚本。
-- `get_available_plugins` — 列出所有可用的二进制分析插件（frida、ghidra、ida、jadx）。
 
-## 工具清单（19）
+## 工具清单（20）
 
 | 工具 | 说明 |
 | --- | --- |
+| `binary_instrument_capabilities` | 待补充中文：Report binary instrumentation backend availability. |
 | `frida_attach` | 附加 Frida 到本地进程、PID 或二进制路径，并创建二进制插桩会话。 |
 | `frida_enumerate_modules` | 枚举已附加 Frida 会话中的模块。 |
 | `ghidra_analyze` | 在 Ghidra headless 可用时运行二进制元数据分析，不可用时返回结构化降级输出。 |

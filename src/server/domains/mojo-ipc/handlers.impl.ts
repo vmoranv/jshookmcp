@@ -1,20 +1,17 @@
 import { MojoDecoder, MojoMonitor } from '@modules/mojo-ipc';
+import { capabilityFailure, capabilityReport } from '@server/domains/shared/capabilities';
 import { argNumber, argString } from '@server/domains/shared/parse-args';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 
-function unavailablePayload(
-  reason: string,
-  action: string,
-): {
-  success: false;
-  available: false;
-  action: string;
-  error: string;
-} {
+function getMojoFix(reason: string): string {
+  return reason.includes('JSHOOK_ENABLE_MOJO_IPC')
+    ? 'Unset JSHOOK_ENABLE_MOJO_IPC or set it to 1, then retry.'
+    : 'Install Frida and ensure the Chromium target is running.';
+}
+
+function unavailablePayload(reason: string, tool: string): Record<string, unknown> {
   return {
-    success: false,
-    available: false,
-    action,
+    ...capabilityFailure(tool, 'mojo_ipc_monitoring', reason, getMojoFix(reason)),
     error: reason,
   };
 }
@@ -32,17 +29,53 @@ export class MojoIPCHandlers {
       : this.handleMojoMonitorStart(args);
   }
 
+  async handleMojoIpcCapabilities(): Promise<unknown> {
+    const monitor = this.getMonitor();
+    const availability =
+      typeof monitor.probeAvailability === 'function'
+        ? await monitor.probeAvailability()
+        : {
+            available: monitor.isAvailable(),
+            reason: monitor.getUnavailableReason(),
+            fridaAvailable: monitor.isAvailable(),
+            fridaCliAvailable: false,
+          };
+
+    return capabilityReport('mojo_ipc_capabilities', [
+      {
+        capability: 'mojo_ipc_monitoring',
+        status: availability.available ? 'available' : 'unavailable',
+        reason: availability.reason,
+        fix: availability.available ? undefined : getMojoFix(availability.reason ?? ''),
+        details: {
+          tools: ['mojo_monitor', 'mojo_list_interfaces', 'mojo_messages_get'],
+          fridaAvailable: availability.fridaAvailable,
+          fridaCliAvailable: availability.fridaCliAvailable,
+          active: monitor.isActive(),
+          simulationMode: monitor.isSimulationMode(),
+        },
+      },
+      {
+        capability: 'mojo_payload_decode',
+        status: 'available',
+        details: {
+          tools: ['mojo_decode_message'],
+        },
+      },
+    ]);
+  }
+
   async handleMojoMonitorStart(args: Record<string, unknown>): Promise<unknown> {
     const monitor = this.getMonitor();
+    const deviceId = argString(args, 'deviceId');
+    await monitor.start(deviceId);
+
     if (!monitor.isAvailable()) {
       return unavailablePayload(
         monitor.getUnavailableReason() ?? 'Mojo IPC monitoring is not available',
         'mojo_monitor',
       );
     }
-
-    const deviceId = argString(args, 'deviceId');
-    await monitor.start(deviceId);
 
     return {
       success: true,

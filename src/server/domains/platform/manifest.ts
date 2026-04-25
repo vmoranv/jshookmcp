@@ -29,6 +29,11 @@ const manifest = {
   profiles: ['full'],
   ensure,
   registrations: [
+    {
+      tool: t('platform_capabilities'),
+      domain: DOMAIN,
+      bind: b((h) => h.handlePlatformCapabilities()),
+    },
     { tool: t('miniapp_pkg_scan'), domain: DOMAIN, bind: b((h, a) => h.handleMiniappPkgScan(a)) },
     {
       tool: t('miniapp_pkg_unpack'),

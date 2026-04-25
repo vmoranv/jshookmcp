@@ -17,8 +17,17 @@ import {
   type HookTemplate,
 } from '@modules/binary-instrument';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import type { CapabilityStatus } from '@server/domains/shared/capabilities';
+import { capabilityFailure } from '@server/domains/shared/capabilities';
 
 const UNIDBG_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
+
+const LEGACY_PLUGIN_FIXES: Record<string, string> = {
+  plugin_frida_bridge: 'Install @jshookmcpextension/plugin-frida-bridge and reload extensions.',
+  plugin_ghidra_bridge: 'Install @jshookmcpextension/plugin-ghidra-bridge and reload extensions.',
+  plugin_ida_bridge: 'Install @jshookmcpextension/plugin-ida-bridge and reload extensions.',
+  plugin_jadx_bridge: 'Install @jshookmcpextension/plugin-jadx-bridge and reload extensions.',
+};
 
 export interface CommandResult {
   stdout: string;
@@ -88,19 +97,68 @@ export function hasInstalledLegacyPlugin(
   return installed.has(pluginId);
 }
 
+export function getLegacyPluginFix(pluginId: string): string | undefined {
+  return LEGACY_PLUGIN_FIXES[pluginId];
+}
+
+export function getLegacyPluginStatus(
+  context: MCPServerContext | undefined,
+  pluginId: string,
+): {
+  status: CapabilityStatus;
+  reason?: string;
+  fix?: string;
+} {
+  const installed = hasInstalledLegacyPlugin(context, pluginId);
+  if (installed === true) {
+    return {
+      status: 'available',
+      fix: getLegacyPluginFix(pluginId),
+    };
+  }
+  if (installed === false) {
+    return {
+      status: 'unavailable',
+      reason: `Plugin ${pluginId.replaceAll('_', '-')} is not installed`,
+      fix: getLegacyPluginFix(pluginId),
+    };
+  }
+  return {
+    status: 'unknown',
+    reason: 'Extension plugin registry is not available in the current server context',
+    fix: 'Run inside the full MCP server with extension support enabled.',
+  };
+}
+
 export async function invokeLegacyPlugin(
   context: MCPServerContext | undefined,
   pluginId: string,
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<unknown> {
-  if (!context || hasInstalledLegacyPlugin(context, pluginId) === false) {
-    return textResponse(`Plugin ${pluginId.replaceAll('_', '-')} is not installed`);
+  const pluginStatus = getLegacyPluginStatus(context, pluginId);
+  if (!context || pluginStatus.status !== 'available') {
+    return jsonResponse({
+      ...capabilityFailure(
+        toolName,
+        pluginId,
+        pluginStatus.reason ?? `Plugin ${pluginId.replaceAll('_', '-')} is not available`,
+        pluginStatus.fix,
+      ),
+      status: pluginStatus.status,
+    });
   }
 
   const result = await invokePlugin(context, { pluginId, toolName, args });
   if (result.success) return jsonResponse(result);
-  return textResponse(result.error ?? 'Plugin invocation failed');
+  return jsonResponse({
+    ...capabilityFailure(
+      toolName,
+      pluginId,
+      result.error ?? 'Plugin invocation failed',
+      pluginStatus.fix,
+    ),
+  });
 }
 
 export function readHookOptions(

@@ -34,6 +34,22 @@ interface IPCSniffSession {
 
 const ipcSessions = new Map<string, IPCSniffSession>();
 
+export function getElectronIPCSniffRuntimeCapability(): {
+  available: boolean;
+  reason?: string;
+  fix?: string;
+} {
+  if (typeof globalThis.WebSocket === 'function') {
+    return { available: true };
+  }
+
+  return {
+    available: false,
+    reason: 'Global WebSocket is not available in this Node runtime.',
+    fix: 'Use Node.js 21+ or provide a WebSocket-compatible runtime.',
+  };
+}
+
 /**
  * The JS payload injected into the renderer to hook ipcRenderer methods.
  * Uses CDP Runtime.evaluate to execute in the page context.
@@ -195,16 +211,15 @@ function cdpEvalViaWs(
   // Dynamic import WebSocket to avoid hard dependency
   return new Promise((resolve) => {
     try {
-      // Use Node.js built-in WebSocket (available since Node 21+)
-      // Fallback: try global WebSocket
-      const WS = globalThis.WebSocket;
-      if (!WS) {
+      const runtimeCapability = getElectronIPCSniffRuntimeCapability();
+      if (!runtimeCapability.available) {
         resolve({
           ok: false,
-          error: 'WebSocket not available. Requires Node.js 21+ or ws package.',
+          error: `${runtimeCapability.reason} ${runtimeCapability.fix ?? ''}`.trim(),
         });
         return;
       }
+      const WS = globalThis.WebSocket!;
 
       const ws = new WS(wsUrl);
       const timeout = setTimeout(() => {

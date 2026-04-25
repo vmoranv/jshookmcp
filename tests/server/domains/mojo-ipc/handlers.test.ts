@@ -5,6 +5,7 @@ describe('MojoIPCHandlers', () => {
   let monitor: {
     isAvailable: ReturnType<typeof vi.fn>;
     getUnavailableReason: ReturnType<typeof vi.fn>;
+    probeAvailability: ReturnType<typeof vi.fn>;
     start: ReturnType<typeof vi.fn>;
     stop: ReturnType<typeof vi.fn>;
     isActive: ReturnType<typeof vi.fn>;
@@ -22,6 +23,12 @@ describe('MojoIPCHandlers', () => {
     monitor = {
       isAvailable: vi.fn().mockReturnValue(true),
       getUnavailableReason: vi.fn().mockReturnValue(undefined),
+      probeAvailability: vi.fn().mockResolvedValue({
+        available: true,
+        fridaAvailable: true,
+        fridaCliAvailable: true,
+        reason: undefined,
+      }),
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
       isActive: vi.fn().mockReturnValue(true),
@@ -51,6 +58,12 @@ describe('MojoIPCHandlers', () => {
     const result = await handlers.handleMojoMonitorStart({ deviceId: 'chrome' });
     expect(monitor.start).toHaveBeenCalledWith('chrome');
     expect(result).toMatchObject({ success: true, available: true, started: true });
+  });
+
+  it('reports mojo capability state', async () => {
+    const result = await handlers.handleMojoIpcCapabilities();
+    expect(result).toMatchObject({ success: true, tool: 'mojo_ipc_capabilities' });
+    expect(result).toHaveProperty('capabilities');
   });
 
   it('stops monitoring with the current API', async () => {
@@ -87,6 +100,11 @@ describe('MojoIPCHandlers', () => {
     monitor.isAvailable.mockReturnValueOnce(false);
     monitor.getUnavailableReason.mockReturnValueOnce('not available');
     const result = await handlers.handleMojoMonitorStart({});
-    expect(result).toMatchObject({ success: false, available: false });
+    expect(monitor.start).toHaveBeenCalledOnce();
+    expect(result).toMatchObject({
+      success: false,
+      available: false,
+      capability: 'mojo_ipc_monitoring',
+    });
   });
 });

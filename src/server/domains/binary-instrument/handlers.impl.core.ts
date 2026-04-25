@@ -17,11 +17,13 @@ import type { BinaryInstrumentState } from './handlers/shared';
 import { isServerContext } from './handlers/shared';
 import { FridaHandlers } from './handlers/frida-handlers';
 import { AnalysisHandlers } from './handlers/analysis-handlers';
+import { CapabilityHandlers } from './handlers/capability-handlers';
 
 export class BinaryInstrumentHandlers {
   private state: BinaryInstrumentState;
   private frida: FridaHandlers;
   private analysis: AnalysisHandlers;
+  private capabilities: CapabilityHandlers;
 
   constructor(
     first?: FridaSession | MCPServerContext,
@@ -44,8 +46,12 @@ export class BinaryInstrumentHandlers {
 
     this.frida = new FridaHandlers(this.state);
     this.analysis = new AnalysisHandlers(this.state);
+    this.capabilities = new CapabilityHandlers(this.state);
   }
 
+  handleBinaryInstrumentCapabilities() {
+    return this.capabilities.handleBinaryInstrumentCapabilities();
+  }
   handleFridaAttach(args: Record<string, unknown>) {
     return this.frida.handleFridaAttach(args);
   }

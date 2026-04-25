@@ -15,6 +15,26 @@ describe('BinaryInstrumentHandlers', () => {
   }
 
   describe('Frida proxy handlers', () => {
+    it('handleBinaryInstrumentCapabilities reports backend states', async () => {
+      const handlers = createHandlers();
+      const result = await handlers.handleBinaryInstrumentCapabilities();
+
+      const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
+      const parsed = JSON.parse(text);
+      expect(parsed.tool).toBe('binary_instrument_capabilities');
+      expect(Array.isArray(parsed.capabilities)).toBe(true);
+      expect(
+        parsed.capabilities.some(
+          (entry: { capability: string }) => entry.capability === 'frida_cli',
+        ),
+      ).toBe(true);
+      expect(
+        parsed.capabilities.some(
+          (entry: { capability: string }) => entry.capability === 'plugin_ghidra_bridge',
+        ),
+      ).toBe(true);
+    });
+
     it('handleFridaAttach returns error when plugin not installed', async () => {
       const handlers = createHandlers();
       const result = await handlers.handleFridaAttach({ pid: '1234' });
