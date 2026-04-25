@@ -97,6 +97,45 @@ describe('ScriptManager core class internals', () => {
     expect(cdp.session.send).toHaveBeenCalledTimes(1);
   });
 
+  it('captures scriptParsed events emitted during Debugger.enable', async () => {
+    const cdp = createSession();
+    cdp.session.send.mockImplementation(async (method: string) => {
+      if (method === 'Debugger.enable') {
+        cdp.session.emit('Debugger.scriptParsed', {
+          scriptId: 'script-enable',
+          url: 'https://site/enable.js',
+          startLine: 0,
+          startColumn: 0,
+          endLine: 1,
+          endColumn: 0,
+          length: 42,
+        });
+        return {};
+      }
+      if (method === 'Debugger.disable') {
+        return {};
+      }
+      if (method === 'Debugger.getScriptSource') {
+        return { scriptSource: 'const enabled = true;' };
+      }
+      return {};
+    });
+    const manager = new ScriptManager({
+      getActivePage: vi.fn().mockResolvedValue({
+        createCDPSession: vi.fn().mockResolvedValue(cdp.session),
+      }),
+    } as never);
+
+    await manager.init();
+    const scripts = await manager.getAllScripts();
+
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]).toMatchObject({
+      scriptId: 'script-enable',
+      url: 'https://site/enable.js',
+    });
+  });
+
   it('supports wildcard URL lookup and validates missing identifiers', async () => {
     const cdp = createSession();
     const manager = new ScriptManager({
