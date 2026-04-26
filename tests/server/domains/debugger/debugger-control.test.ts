@@ -4,7 +4,14 @@ import type { DebuggerManager, RuntimeInspector } from '@server/domains/shared/m
 
 type ControlDebuggerManager = Pick<
   DebuggerManager,
-  'init' | 'initAdvancedFeatures' | 'isEnabled' | 'disable' | 'pause' | 'resume'
+  | 'init'
+  | 'initAdvancedFeatures'
+  | 'isEnabled'
+  | 'disable'
+  | 'pause'
+  | 'resume'
+  | 'waitForPaused'
+  | 'getPausedState'
 >;
 
 type ControlRuntimeInspector = Pick<RuntimeInspector, 'init' | 'disable'>;
@@ -23,6 +30,8 @@ describe('DebuggerControlHandlers', () => {
     disable: vi.fn<ControlDebuggerManager['disable']>(),
     pause: vi.fn<ControlDebuggerManager['pause']>(),
     resume: vi.fn<ControlDebuggerManager['resume']>(),
+    waitForPaused: vi.fn<ControlDebuggerManager['waitForPaused']>(),
+    getPausedState: vi.fn<ControlDebuggerManager['getPausedState']>(),
   } satisfies ControlDebuggerManager;
 
   const runtimeInspector = {
@@ -70,16 +79,40 @@ describe('DebuggerControlHandlers', () => {
     });
   });
 
-  it('pauses execution', async () => {
+  it('reports when execution actually pauses', async () => {
+    debuggerManager.waitForPaused.mockResolvedValueOnce({
+      reason: 'other',
+      callFrames: [{ location: { scriptId: '1', lineNumber: 2, columnNumber: 3 } }],
+    } as Awaited<ReturnType<ControlDebuggerManager['waitForPaused']>>);
     const handlers = createHandlers();
 
     // @ts-expect-error — auto-suppressed [TS2558]
     const body = parseJson<any>(await handlers.handleDebuggerPause({}));
 
     expect(debuggerManager.pause).toHaveBeenCalledOnce();
+    expect(debuggerManager.waitForPaused).toHaveBeenCalledWith(500);
     expect(body).toEqual({
       success: true,
+      paused: true,
       message: 'Execution paused',
+      reason: 'other',
+      location: { scriptId: '1', lineNumber: 2, columnNumber: 3 },
+    });
+  });
+
+  it('reports a pending pause when no paused event arrives yet', async () => {
+    debuggerManager.waitForPaused.mockRejectedValueOnce(new Error('timed out'));
+    const handlers = createHandlers();
+
+    // @ts-expect-error — auto-suppressed [TS2558]
+    const body = parseJson<any>(await handlers.handleDebuggerPause({}));
+
+    expect(debuggerManager.pause).toHaveBeenCalledOnce();
+    expect(debuggerManager.waitForPaused).toHaveBeenCalledWith(500);
+    expect(body).toEqual({
+      success: true,
+      paused: false,
+      message: 'Pause requested; no paused event observed yet',
     });
   });
 
@@ -88,5 +121,20 @@ describe('DebuggerControlHandlers', () => {
     const handlers = createHandlers();
 
     await expect(handlers.handleDebuggerResume({})).rejects.toThrow('resume failed');
+  });
+
+  it('reports resume as a no-op when the debugger was not paused', async () => {
+    debuggerManager.getPausedState.mockReturnValueOnce(null);
+    const handlers = createHandlers();
+
+    // @ts-expect-error — auto-suppressed [TS2558]
+    const body = parseJson<any>(await handlers.handleDebuggerResume({}));
+
+    expect(debuggerManager.resume).toHaveBeenCalledOnce();
+    expect(body).toEqual({
+      success: true,
+      resumed: false,
+      message: 'Resume requested; debugger was not paused',
+    });
   });
 });
