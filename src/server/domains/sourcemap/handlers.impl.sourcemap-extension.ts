@@ -6,6 +6,7 @@ import type {
 import { SourcemapToolHandlersCommon } from '@server/domains/sourcemap/handlers.impl.sourcemap-common';
 import {
   attachToFlatTarget,
+  detachFromFlatTarget,
   type FlatSessionParentLike,
 } from '@modules/browser/flat-target-session';
 
@@ -67,7 +68,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
       return this.fail('extension_execute_in_context', error);
     } finally {
       if (attachedSession) {
-        await attachedSession.detach?.().catch(() => undefined);
+        await detachFromFlatTarget(session, attachedSession).catch(() => undefined);
       }
       await this.safeDetach(session);
     }

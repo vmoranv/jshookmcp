@@ -2,6 +2,7 @@ import type { Browser, CDPSession } from 'rebrowser-puppeteer-core';
 import type { CDPSessionLike } from '@modules/browser/CDPSessionLike';
 import {
   attachToFlatTarget,
+  detachFromFlatTarget,
   type FlatSessionParentLike,
 } from '@modules/browser/flat-target-session';
 
@@ -100,10 +101,14 @@ export class BrowserTargetSessionManager {
       return false;
     }
 
+    if (!this.browserSession) {
+      throw new Error('Browser CDP session unavailable for target detach');
+    }
+
     const session = this.attachedTargetSession;
+    await detachFromFlatTarget(this.browserSession, session);
     this.attachedTargetSession = null;
     this.attachedTargetInfo = null;
-    await session.detach();
     return true;
   }
 
