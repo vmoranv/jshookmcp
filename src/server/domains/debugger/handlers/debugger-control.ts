@@ -57,25 +57,49 @@ export class DebuggerControlHandlers {
 
   async handleDebuggerPause(_args: Record<string, unknown>) {
     await this.deps.debuggerManager.pause();
+    try {
+      const pausedState = await this.deps.debuggerManager.waitForPaused(500);
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              message: 'Execution paused',
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                paused: true,
+                message: 'Execution paused',
+                reason: pausedState.reason,
+                location: pausedState.callFrames[0]?.location,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                paused: false,
+                message: 'Pause requested; no paused event observed yet',
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
   }
 
   async handleDebuggerResume(_args: Record<string, unknown>) {
+    const wasPaused = this.deps.debuggerManager.getPausedState() !== null;
     await this.deps.debuggerManager.resume();
 
     return {
@@ -85,7 +109,10 @@ export class DebuggerControlHandlers {
           text: JSON.stringify(
             {
               success: true,
-              message: 'Execution resumed',
+              resumed: wasPaused,
+              message: wasPaused
+                ? 'Execution resumed'
+                : 'Resume requested; debugger was not paused',
             },
             null,
             2,
