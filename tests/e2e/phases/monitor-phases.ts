@@ -53,43 +53,16 @@ export const monitorPhases: Phase[] = [
   },
   {
     name: 'Streaming (WS/SSE)',
-    setup: ['page_navigate'],
-    tools: [
-      'ws_monitor_enable',
-      'ws_get_frames',
-      'ws_get_connections',
-      'sse_monitor_enable',
-      'sse_get_events',
-      'ws_monitor_disable',
-    ],
-  },
-  {
-    name: 'Performance Start',
-    setup: ['page_navigate'],
-    tools: ['performance_get_metrics', 'performance_start_coverage', 'performance_trace_start'],
-  },
-  { name: 'JS Heap', setup: [], tools: ['js_heap_search'] },
-  {
-    name: 'Performance Stop',
-    setup: [],
-    tools: ['performance_stop_coverage', 'performance_take_heap_snapshot'],
-  },
-  {
-    name: 'CPU Profiler (after coverage)',
     setup: async (call) => {
-      await call('profiler_cpu_start', {});
-      await new Promise((r) => setTimeout(r, 100));
+      await call('page_navigate', {});
+      await call('ws_monitor', { action: 'enable' });
     },
-    tools: ['profiler_cpu_start', 'profiler_cpu_stop'],
+    tools: ['ws_get_frames', 'ws_get_connections', 'sse_monitor_enable', 'sse_get_events'],
   },
   {
-    name: 'Heap Profiler Stop',
-    setup: [],
-    tools: [
-      'profiler_heap_sampling_start',
-      'profiler_heap_sampling_stop',
-      'performance_trace_stop',
-    ],
+    name: 'Performance',
+    setup: ['page_navigate'],
+    tools: ['performance_get_metrics', 'js_heap_search', 'performance_take_heap_snapshot'],
   },
   { name: 'Network Teardown', setup: [], tools: ['network_export_har', 'network_disable'] },
   { name: 'Debugger Teardown', setup: [], tools: ['debugger_lifecycle'] },

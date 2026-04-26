@@ -124,6 +124,19 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'process_check_debug_port',
   'process_windows',
   'run_extension_workflow',
+  'tcp_open',
+  'tcp_write',
+  'tcp_read_until',
+  'tcp_close',
+  'tls_open',
+  'tls_write',
+  'tls_read_until',
+  'tls_close',
+  'tls_probe_endpoint',
+  'websocket_open',
+  'websocket_send_frame',
+  'websocket_read_frame',
+  'websocket_close',
   'watch_remove',
   'wasm_decompile',
   'wasm_disassemble',
@@ -218,7 +231,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
   const wasmInputPath = WASM_FIXTURE_PATH;
   const {
     targetUrl,
-    targetDomain,
     artifactDir,
     browserPath,
     asarPath,
@@ -247,8 +259,8 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     page_inject_script: { script: 'window.__e2e_injected = true;' },
     page_set_viewport: { width: 1280, height: 720 },
     page_emulate_device: { device: 'iPhone 14' },
-    page_set_cookies: { cookies: [{ name: 'e2e', value: '1', domain: targetDomain }] },
-    page_set_local_storage: { key: 'e2e_test', value: 'hello' },
+    page_cookies: { action: 'get' },
+    page_local_storage: { action: 'get' },
     page_back: {},
     page_forward: {},
     page_reload: {},
@@ -309,16 +321,11 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     network_get_stats: {},
     network_get_status: {},
     network_extract_auth: {},
-    network_export_har: { path: `${artifactDir}/network.har` },
+    network_export_har: { outputPath: `${artifactDir}/network.har` },
     network_traceroute: { target: '1.1.1.1', maxHops: 5, timeout: 2000 },
     network_icmp_probe: { target: '1.1.1.1', ttl: 5, timeout: 2000 },
     performance_get_metrics: {},
-    performance_trace_stop: {},
-    profiler_cpu_stop: {},
-    profiler_heap_sampling_stop: {},
-    performance_stop_coverage: {},
     performance_take_heap_snapshot: {},
-    ws_monitor_enable: {},
     sse_monitor_enable: {},
     ws_get_frames: {},
     ws_get_connections: {},
@@ -556,20 +563,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     // ── Network tools ──
     network_monitor: { action: 'status' },
     network_rtt_measure: { url: targetUrl, probeType: 'http', iterations: 1 },
-    // ── TCP/TLS Raw ──
-    tcp_open: { host: '127.0.0.1', port: 80 },
-    tcp_write: { connectionId: '__placeholder__', data: 'dGVzdA==' },
-    tcp_read_until: { connectionId: '__placeholder__', delimiter: '\r\n' },
-    tcp_close: { connectionId: '__placeholder__' },
-    tls_open: { host: '127.0.0.1', port: 443 },
-    tls_write: { connectionId: '__placeholder__', data: 'dGVzdA==' },
-    tls_read_until: { connectionId: '__placeholder__', delimiter: '\r\n' },
-    tls_close: { connectionId: '__placeholder__' },
-    tls_probe_endpoint: { host: '127.0.0.1', port: 443 },
-    websocket_open: { url: 'ws://127.0.0.1:8080' },
-    websocket_send_frame: { connectionId: '__placeholder__', data: 'dGVzdA==' },
-    websocket_read_frame: { connectionId: '__placeholder__' },
-    websocket_close: { connectionId: '__placeholder__' },
     // ── HTTP builders ──
     http_request_build: { method: 'GET', url: 'http://example.com' },
     http_plain_request: {
@@ -640,7 +633,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     activate_domain: { domain: 'maintenance' },
     call_tool: { name: 'get_cache_stats', arguments: {} },
     // ── WS monitor alias ──
-    ws_monitor: { action: 'status' },
+    ws_monitor: { action: 'enable' },
     // ── Extension ──
     install_extension: { source: '__placeholder__' },
     // ── LLM ──
@@ -656,9 +649,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     browser_jsdom_execute: { code: 'document.title' },
     browser_jsdom_serialize: {},
     browser_jsdom_cookies: {},
-    // ── Page storage aliases ──
-    page_cookies: {},
-    page_local_storage: {},
     // ── Camoufox server alias ──
     camoufox_server: { action: 'status' },
   };
@@ -818,7 +808,7 @@ function createLaneRuntime(laneKey: string, options: LaneRuntimeOptions = {}): L
               'sse_monitor_enable',
               'sse_get_events',
               'performance_get_metrics',
-              'performance_start_coverage',
+              'performance_coverage',
             ].includes(toolName);
             const timeout =
               getToolTimeoutOverride(toolName) ??

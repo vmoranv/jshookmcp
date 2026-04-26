@@ -15,7 +15,7 @@ const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
 
 export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
   /**
-   * network_intercept_response — Add response interception rules using CDP Fetch domain.
+   * network_intercept(action="add") — Add response interception rules using CDP Fetch domain.
    */
   async handleNetworkInterceptResponse(args: Record<string, unknown>) {
     try {
@@ -104,7 +104,7 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
             responseCode: r.responseCode,
           })),
           totalActiveRules: status.rules.length,
-          hint: 'Use network_intercept_list to see all rules and hit counts. Use network_intercept_disable to remove rules.',
+          hint: 'Use network_intercept(action: "list") to see all rules and hit counts. Use network_intercept(action: "disable") to remove rules.',
         })
         .json();
     } catch (error) {
@@ -117,7 +117,7 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
   }
 
   /**
-   * network_intercept_list — List active interception rules with hit statistics.
+   * network_intercept(action="list") — List active interception rules with hit statistics.
    */
   async handleNetworkInterceptList(_args: Record<string, unknown>) {
     const status = this.consoleMonitor.getFetchInterceptStatus();
@@ -134,7 +134,7 @@ export class AdvancedToolHandlersIntercept extends AdvancedToolHandlersReplay {
   }
 
   /**
-   * network_intercept_disable — Remove specific rules or disable all interception.
+   * network_intercept(action="disable") — Remove specific rules or disable all interception.
    */
   async handleNetworkInterceptDisable(args: Record<string, unknown>) {
     const ruleId = typeof args.ruleId === 'string' ? args.ruleId : undefined;

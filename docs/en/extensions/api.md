@@ -230,7 +230,7 @@ await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
 ```ts
 sequenceNode('capture_chain', [
   toolNode('nav_trigger', 'page_navigate', { input: { url: 'https://example.com' } }),
-  toolNode('dump_trigger', 'page_get_local_storage'),
+  toolNode('dump_trigger', 'page_local_storage', { input: { action: 'get' } }),
 ]);
 ```
 

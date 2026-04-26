@@ -153,7 +153,7 @@ describe.skipIf(!TARGET_URL)(
       }
 
       const harPath = `${ARTIFACT_DIR}/e2e-network.har`;
-      const har = await client.call('network_export_har', { path: harPath }, 30_000);
+      const har = await client.call('network_export_har', { outputPath: harPath }, 30_000);
       expect(har.result.status).not.toBe('FAIL');
     });
 

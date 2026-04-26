@@ -145,8 +145,8 @@ Telemetric observation channels for distributed trace tracking and metric analys
 
 ### Safe Parallel Matrix (Non-Mutating)
 
-- `page_get_local_storage`
-- `page_get_cookies`
+- `page_local_storage` with `action: 'get'`
+- `page_cookies` with `action: 'get'`
 - `network_get_requests`
 - `page_get_all_links`
 - `console_get_logs`

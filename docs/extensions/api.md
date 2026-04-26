@@ -86,7 +86,7 @@ await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
 ```ts
 sequenceNode('main', [
   toolNode('nav', 'page_navigate', { input: { url: 'https://example.com' } }),
-  toolNode('dump', 'page_get_local_storage'),
+  toolNode('dump', 'page_local_storage', { input: { action: 'get' } }),
 ]);
 ```
 

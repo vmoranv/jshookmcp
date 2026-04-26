@@ -35,7 +35,7 @@ Args: { task: '劫持并拦截当前页面 /api/login 的 POST 口令' }
 
 调度多工具执行时，必须遵守浏览器的状态一致性抽象边界：
 
-- **并发读取准入**：状态无关探针（如 `page_get_local_storage`, `page_get_cookies`, `network_get_requests`）支持安全的大规模并行调用。
+- **并发读取准入**：状态无关探针（如 `page_local_storage(action=get)`, `page_cookies(action=get)`, `network_get_requests`）支持安全的大规模并行调用。
 - **副作用硬互斥**：DOM 突变（`page_click`, `page_type`）、认证状态转移（例如验证码滑动、SSO 重定向）具备强副作用，并发下发会导致竞争冒险与幽灵触发，必须同步阻塞调用。
 - **持久化上下文隔离**：推荐优先使用外部 workflow `workflow.web-api-capture-session.v1`。它会协调 HAR 导出与抓包步骤，断开连接后可通过归档文件做 Context 重建，无需维持 Headless 长连接。
 

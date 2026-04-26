@@ -76,14 +76,15 @@ export const browserPhases: Phase[] = [
   },
   {
     name: 'Cookies & Storage',
-    setup: ['page_navigate'],
-    tools: [
-      'page_get_cookies',
-      'page_set_cookies',
-      'page_clear_cookies',
-      'page_get_local_storage',
-      'page_set_local_storage',
-    ],
+    setup: async (call) => {
+      await call('page_navigate', {});
+      await call('page_cookies', {
+        action: 'set',
+        cookies: [{ name: 'e2e', value: '1' }],
+      });
+      await call('page_local_storage', { action: 'set', key: 'e2e_test', value: 'hello' });
+    },
+    tools: ['page_cookies', 'page_local_storage'],
   },
   { name: 'IndexedDB', setup: [], tools: ['indexeddb_dump'] },
   {
