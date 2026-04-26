@@ -28,7 +28,7 @@ export const browserRuntimeTools: Tool[] = [
       .string('userDataDir', 'Chrome profile directory')
       .array('args', { type: 'string' }, 'Extra Chrome launch args')
       .boolean('enableV8NativesSyntax', 'Enable V8 native syntax for launched Chrome', {
-        default: false,
+        default: true,
       })
       .boolean('geoip', 'Auto-resolve GeoIP (camoufox)', { default: false })
       .boolean('humanize', 'Humanize cursor (camoufox)', { default: false })

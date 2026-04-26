@@ -770,12 +770,7 @@ async function main() {
       );
     }
 
-    report.browser.launch = await callTool(
-      client,
-      'browser_launch',
-      { headless: true, enableV8NativesSyntax: true },
-      60000,
-    );
+    report.browser.launch = await callTool(client, 'browser_launch', { headless: true }, 60000);
     report.browser.navigate = await callTool(
       client,
       'page_navigate',

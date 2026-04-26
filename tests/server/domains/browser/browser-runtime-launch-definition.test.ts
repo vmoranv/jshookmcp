@@ -27,6 +27,7 @@ describe('browser_launch runtime schema', () => {
     expect(schema.properties['enableV8NativesSyntax']).toEqual(
       expect.objectContaining({
         type: 'boolean',
+        default: true,
       }),
     );
   });

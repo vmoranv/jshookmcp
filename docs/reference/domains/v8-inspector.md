@@ -27,9 +27,9 @@ V8 检查器域，提供堆快照分析、CPU 分析和内存检查。
 - `v8_heap_diff` — 对比两个已捕获的 V8 堆快照。
 - `v8_object_inspect` — 按地址检查 V8 堆对象。
 - `v8_heap_stats` — 返回 V8 堆快照统计。
-- `v8_bytecode_extract` — 提取函数的 V8 Ignition 字节码。
+- `v8_bytecode_extract` — 从 V8 脚本派生伪字节码。
 - `v8_version_detect` — 检测 V8 引擎版本和功能支持。
-- `v8_jit_inspect` — 检查函数的 JIT 编译代码。
+- `v8_jit_inspect` — 检查 V8 脚本的 JIT 优化状态。
 
 ## 工具清单（8）
 
@@ -40,6 +40,6 @@ V8 检查器域，提供堆快照分析、CPU 分析和内存检查。
 | `v8_heap_diff` | 对比两个已捕获的 V8 堆快照。 |
 | `v8_object_inspect` | 按地址检查 V8 堆对象。 |
 | `v8_heap_stats` | 返回 V8 堆快照统计。 |
-| `v8_bytecode_extract` | 提取函数的 V8 Ignition 字节码。 |
+| `v8_bytecode_extract` | 从 V8 脚本派生伪字节码。 |
 | `v8_version_detect` | 检测 V8 引擎版本和功能支持。 |
-| `v8_jit_inspect` | 检查函数的 JIT 编译代码。 |
+| `v8_jit_inspect` | 检查 V8 脚本的 JIT 优化状态。 |
