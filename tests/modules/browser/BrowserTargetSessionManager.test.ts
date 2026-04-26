@@ -1,11 +1,37 @@
 import { describe, expect, it, vi } from 'vitest';
-import { EventEmitter } from 'node:events';
 import { BrowserTargetSessionManager } from '@modules/browser/BrowserTargetSessionManager';
 
-class FakeParentSession {
-  private readonly emitter = new EventEmitter();
+class FakeAttachedSession {
+  send = vi.fn(async (method: string) => {
+    if (method === 'Runtime.evaluate') {
+      return { result: { value: 'attached-result' } };
+    }
+    if (method === 'Page.addScriptToEvaluateOnNewDocument') {
+      return { identifier: 'script-1' };
+    }
+    return {};
+  });
 
-  send = vi.fn(async (method: string, params: Record<string, unknown> = {}) => {
+  on() {
+    return this;
+  }
+
+  off() {
+    return this;
+  }
+
+  detach = vi.fn(async () => {});
+}
+
+class FakeParentSession {
+  private readonly attachedSession = new FakeAttachedSession();
+  private readonly connectionState = {
+    session: vi.fn((sessionId: string) =>
+      sessionId === 'session-1' ? this.attachedSession : null,
+    ),
+  };
+
+  send = vi.fn(async (method: string) => {
     if (method === 'Target.getTargets') {
       return {
         targetInfos: [
@@ -31,46 +57,20 @@ class FakeParentSession {
       return { sessionId: 'session-1' };
     }
 
-    if (method === 'Target.sendMessageToTarget') {
-      const message = JSON.parse(String(params.message));
-      queueMicrotask(() => {
-        this.emitter.emit('Target.receivedMessageFromTarget', {
-          sessionId: params.sessionId,
-          message: JSON.stringify({
-            id: message.id,
-            result:
-              message.method === 'Runtime.evaluate'
-                ? { result: { value: 'attached-result' } }
-                : { identifier: 'script-1' },
-          }),
-        });
-      });
-      return {};
-    }
-
-    if (method === 'Target.detachFromTarget') {
-      queueMicrotask(() => {
-        this.emitter.emit('Target.detachedFromTarget', {
-          sessionId: params.sessionId,
-        });
-      });
-      return {};
-    }
-
     return {};
   });
 
-  on(event: string, listener: (payload: unknown) => void) {
-    this.emitter.on(event, listener);
+  on() {
     return this;
   }
 
-  off(event: string, listener: (payload: unknown) => void) {
-    this.emitter.off(event, listener);
+  off() {
     return this;
   }
 
   detach = vi.fn(async () => {});
+
+  connection = vi.fn(() => this.connectionState);
 }
 
 describe('BrowserTargetSessionManager', () => {
@@ -147,11 +147,13 @@ describe('BrowserTargetSessionManager', () => {
       targetId: 'frame-1',
       flatten: true,
     });
-    expect(parentSession.send).toHaveBeenCalledWith(
-      'Target.sendMessageToTarget',
-      expect.objectContaining({
-        sessionId: 'session-1',
-      }),
-    );
+    expect(parentSession.connection).toHaveBeenCalled();
+    expect((parentSession as any).connectionState.session).toHaveBeenCalledWith('session-1');
+    expect((parentSession as any).attachedSession.send).toHaveBeenCalledWith('Runtime.evaluate', {
+      expression: '1 + 1',
+      returnByValue: true,
+      awaitPromise: true,
+    });
+    expect((parentSession as any).attachedSession.detach).toHaveBeenCalledOnce();
   });
 });

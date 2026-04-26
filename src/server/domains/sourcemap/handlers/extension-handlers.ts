@@ -2,21 +2,22 @@
  * Extension-related sub-handler for sourcemap domain.
  */
 
-import { SOURCEMAP_EXT_TIMEOUT_MS } from '@src/constants';
 import type {
   CdpSessionLike,
   ExtensionTarget,
-  JsonRecord,
   TextToolResponse,
   SourcemapSharedState,
 } from './shared';
+import {
+  attachToFlatTarget,
+  type FlatSessionParentLike,
+} from '@modules/browser/flat-target-session';
 import {
   asRecord,
   asString,
   requiredStringArg,
   parseBooleanArg,
   safeDetach,
-  trySend,
   json,
   fail,
 } from './shared';
@@ -53,8 +54,8 @@ export class ExtensionHandlers {
     const returnByValue = parseBooleanArg(args.returnByValue, true);
 
     const page = await this.state.collector.getActivePage();
-    const session = (await page.createCDPSession()) as unknown as CdpSessionLike;
-    let attachedSessionId = '';
+    const session = (await page.createCDPSession()) as unknown as FlatSessionParentLike;
+    let attachedSession: CdpSessionLike | null = null;
 
     try {
       const targets = await this.getExtensionTargets(session, extensionId);
@@ -62,20 +63,12 @@ export class ExtensionHandlers {
         throw new Error(`No background target found for extension: ${extensionId}`);
 
       const preferred = this.pickPreferredExtensionTarget(targets);
-      const attachResult = asRecord(
-        await session.send('Target.attachToTarget', {
-          targetId: preferred.targetId,
-          flatten: true,
-        }),
-      );
-      attachedSessionId = requiredStringArg(attachResult.sessionId, 'sessionId');
-
-      const evaluation = await this.evaluateInAttachedTarget(
+      attachedSession = (await attachToFlatTarget(
         session,
-        attachedSessionId,
-        code,
-        returnByValue,
-      );
+        preferred.targetId,
+      )) as unknown as CdpSessionLike;
+
+      const evaluation = await this.evaluateInAttachedTarget(attachedSession, code, returnByValue);
 
       return json({
         extensionId,
@@ -86,8 +79,8 @@ export class ExtensionHandlers {
     } catch (error) {
       return fail('extension_execute_in_context', error);
     } finally {
-      if (attachedSessionId) {
-        await trySend(session, 'Target.detachFromTarget', { sessionId: attachedSessionId });
+      if (attachedSession) {
+        await attachedSession.detach?.().catch(() => undefined);
       }
       await safeDetach(session);
     }
@@ -143,63 +136,26 @@ export class ExtensionHandlers {
 
   private async evaluateInAttachedTarget(
     session: CdpSessionLike,
-    sessionId: string,
     code: string,
     returnByValue: boolean,
   ): Promise<{ result: unknown; exceptionDetails: unknown }> {
-    if (!session.on) throw new Error('CDP session does not support event listeners');
-    const commandId = Date.now() % 1_000_000_000;
-    const commandMessage = JSON.stringify({
-      id: commandId,
-      method: 'Runtime.evaluate',
-      params: { expression: code, returnByValue, awaitPromise: true },
-    });
+    const response = asRecord(
+      await session.send('Runtime.evaluate', {
+        expression: code,
+        returnByValue,
+        awaitPromise: true,
+      }),
+    );
+    const resultEnvelope = asRecord(response.result);
 
-    const responseMessage = await new Promise<JsonRecord>((resolvePromise, rejectPromise) => {
-      const timeout = setTimeout(() => {
-        cleanup();
-        rejectPromise(new Error('Runtime.evaluate timed out'));
-      }, SOURCEMAP_EXT_TIMEOUT_MS);
-      const onMessage = (payload: unknown): void => {
-        const record = asRecord(payload);
-        if (asString(record.sessionId) !== sessionId) return;
-        const rawMessage = asString(record.message);
-        if (!rawMessage) return;
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(rawMessage);
-        } catch {
-          return;
-        }
-        const parsedRecord = asRecord(parsed);
-        if (parsedRecord.id !== commandId) return;
-        cleanup();
-        resolvePromise(parsedRecord);
-      };
-      const cleanup = (): void => {
-        clearTimeout(timeout);
-        session.off?.('Target.receivedMessageFromTarget', onMessage);
-      };
-      session.on?.('Target.receivedMessageFromTarget', onMessage);
-      session
-        .send('Target.sendMessageToTarget', { sessionId, message: commandMessage })
-        .catch((error: unknown) => {
-          cleanup();
-          rejectPromise(error);
-        });
-    });
-
-    const errorRecord = asRecord(responseMessage.error);
-    if (Object.keys(errorRecord).length > 0) {
-      throw new Error(
-        asString(errorRecord.message) ?? asString(errorRecord.data) ?? 'Runtime.evaluate failed',
-      );
-    }
-    const resultEnvelope = asRecord(responseMessage.result);
     return {
-      result: resultEnvelope.result !== undefined ? resultEnvelope.result : null,
-      exceptionDetails:
-        resultEnvelope.exceptionDetails !== undefined ? resultEnvelope.exceptionDetails : null,
+      result:
+        returnByValue && resultEnvelope.value !== undefined
+          ? resultEnvelope.value
+          : Object.keys(resultEnvelope).length > 0
+            ? resultEnvelope
+            : null,
+      exceptionDetails: response.exceptionDetails !== undefined ? response.exceptionDetails : null,
     };
   }
 }
