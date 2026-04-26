@@ -69,7 +69,7 @@ export class JSHeapSearchHandlers {
   }
 
   async handleJSHeapSearch(args: Record<string, unknown>): Promise<ToolResponse> {
-    const pattern = argString(args, 'pattern', '');
+    const pattern = argString(args, 'pattern', '') || argString(args, 'query', '');
     const maxResults = argNumber(args, 'maxResults', 50);
     const caseSensitive = argBool(args, 'caseSensitive', false);
 

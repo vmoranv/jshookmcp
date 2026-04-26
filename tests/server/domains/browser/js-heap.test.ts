@@ -131,6 +131,56 @@ describe('JSHeapSearchHandlers', () => {
     expect(cdpSession.detach).toHaveBeenCalledOnce();
   });
 
+  it('accepts legacy query as an alias for pattern', async () => {
+    let chunkListener = noopChunkListener;
+    const snapshot = JSON.stringify({
+      snapshot: {
+        meta: {
+          node_fields: ['type', 'name', 'id'],
+          node_types: [['hidden', 'array', 'string', 'object']],
+        },
+      },
+      strings: ['unused', 'legacy secret', 'other value'],
+      nodes: [2, 1, 201, 2, 2, 202],
+    });
+
+    const cdpSession = {
+      send: vi.fn(async (method: string) => {
+        if (method === 'HeapProfiler.takeHeapSnapshot') {
+          chunkListener({ chunk: snapshot });
+        }
+      }),
+      on: vi.fn((event: string, listener: (params: any) => void) => {
+        if (event === 'HeapProfiler.addHeapSnapshotChunk') {
+          chunkListener = listener;
+        }
+      }),
+      detach: vi.fn(async () => {}),
+    };
+
+    const page = {
+      createCDPSession: vi.fn(async () => cdpSession),
+    };
+
+    const handlers = new JSHeapSearchHandlers({
+      getActivePage: vi.fn(async () => page),
+      getActiveDriver: () => 'chrome',
+    });
+
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handleJSHeapSearch({ query: 'legacy secret' }),
+    );
+
+    expect(body.success).toBe(true);
+    expect(body.pattern).toBe('legacy secret');
+    expect(body.matchCount).toBe(1);
+    expect(body.matches[0]).toMatchObject({
+      nodeId: 201,
+      value: 'legacy secret',
+    });
+    expect(cdpSession.detach).toHaveBeenCalledOnce();
+  });
+
   it('returns an error payload and detaches the CDP session when snapshot capture fails', async () => {
     const cdpSession = {
       send: vi.fn(async (method: string) => {
