@@ -104,6 +104,7 @@ describe('server/domains/browser/manifest', () => {
 
     const toolNames = manifest.registrations.map((r) => (r.tool as { name: string }).name);
 
+    expect(toolNames).toContain('captcha_solver_capabilities');
     expect(toolNames).toContain('captcha_vision_solve');
     expect(toolNames).toContain('widget_challenge_solve');
   });

@@ -29,6 +29,11 @@ const manifest = {
   profiles: ['full'],
   ensure,
   registrations: [
+    {
+      tool: t('wasm_capabilities'),
+      domain: DOMAIN,
+      bind: b((h, _args) => h.handleWasmCapabilities()),
+    },
     { tool: t('wasm_dump'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDump(a)) },
     { tool: t('wasm_disassemble'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDisassemble(a)) },
     { tool: t('wasm_decompile'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDecompile(a)) },

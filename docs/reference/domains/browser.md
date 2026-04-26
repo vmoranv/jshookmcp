@@ -34,7 +34,7 @@
 - `browser_launch` — 启动浏览器。
 - `browser_close` — 关闭浏览器。
 
-## 工具清单（58）
+## 工具清单（59）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -89,8 +89,9 @@
 | `human_mouse` | 模拟真人移动鼠标，带随机轨迹和抖动。 |
 | `human_scroll` | 模拟真人滚动页面，带变速和停顿。 |
 | `human_typing` | 模拟真人打字，带变速和偶尔打错再修正。 |
-| `captcha_vision_solve` | 自动解决验证码（支持第三方服务或 AI 识别）。 |
-| `widget_challenge_solve` | 自动完成嵌入式人机验证。 |
+| `captcha_solver_capabilities` | 查看当前 CAPTCHA 求解方式是否可用。 |
+| `captcha_vision_solve` | 用手动流程或已配置的外部服务处理验证码。 |
+| `widget_challenge_solve` | 用 hook、手动或已配置的外部服务处理部件验证。 |
 | `browser_jsdom_parse` | 在内存中解析 HTML（无需启动浏览器），供其他 JSDOM 工具使用。 |
 | `browser_jsdom_query` | 在 JSDOM 会话中执行 CSS 选择器查询，返回匹配元素的属性、文本及可选的 HTML 或源码位置信息。 |
 | `browser_jsdom_execute` | 在 JSDOM 会话中执行 JavaScript，控制台输出会被捕获并返回。 |

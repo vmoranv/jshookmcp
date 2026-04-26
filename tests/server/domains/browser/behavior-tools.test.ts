@@ -8,14 +8,25 @@ function getTool(name: string) {
 }
 
 describe('behaviorTools', () => {
+  it('describes captcha_solver_capabilities as an availability probe', async () => {
+    const tool = getTool('captcha_solver_capabilities');
+
+    expect(tool.description).toContain('availability');
+    expect(tool.description).not.toContain('AntiCaptcha');
+    expect(tool.description).not.toContain('CapSolver');
+  });
+
   it('describes captcha_vision_solve with challenge type fields', async () => {
     const tool = getTool('captcha_vision_solve');
     const props = tool.inputSchema.properties as Record<string, { description?: string }>;
 
     expect(tool.description).toContain('CAPTCHA');
+    expect(tool.description).toContain('manual');
+    expect(tool.description).toContain('external service');
     expect(tool.description).not.toContain('2captcha');
     expect(tool.description).not.toContain('reCAPTCHA');
     expect(tool.description).not.toContain('hCaptcha');
+    expect(tool.description).not.toContain('AI');
     expect(props.mode).toBeDefined();
     expect(props.challengeType).toBeDefined();
   });
@@ -25,6 +36,8 @@ describe('behaviorTools', () => {
     const props = tool.inputSchema.properties as Record<string, { description?: string }>;
 
     expect(tool.description).toContain('widget');
+    expect(tool.description).toContain('manual');
+    expect(tool.description).toContain('hook');
     expect(tool.description).not.toContain('Turnstile');
     expect(tool.description).not.toContain('Cloudflare');
     expect(tool.description).not.toContain('capsolver');

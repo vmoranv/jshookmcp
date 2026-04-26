@@ -21,24 +21,26 @@ WebAssembly dump, disassembly, decompilation, optimization, and offline executio
 
 ## Representative tools
 
-- `wasm_dump` — Dump a WebAssembly module from the current browser page.
-- `wasm_disassemble` — Disassemble a .wasm file to WebAssembly Text Format (WAT) using wasm2wat.
-- `wasm_decompile` — Decompile a .wasm file to C-like pseudo-code using wasm-decompile.
-- `wasm_inspect_sections` — Inspect sections and metadata of a .wasm file using wasm-objdump.
-- `wasm_offline_run` — Execute a specific exported function from a .wasm file offline using wasmtime or wasmer.
-- `wasm_optimize` — Optimize a .wasm file using binaryen wasm-opt.
-- `wasm_vmp_trace` — Trace WASM VMP (Virtual Machine Protection) opcode execution.
-- `wasm_memory_inspect` — Inspect WebAssembly.Memory contents from the browser.
+- `wasm_capabilities` — Report WASM capture and tool availability.
+- `wasm_dump` — Dump a captured WebAssembly module from the current page.
+- `wasm_disassemble` — Disassemble a .wasm file to WAT with wasm2wat.
+- `wasm_decompile` — Decompile a .wasm file to C-like pseudo-code with wasm-decompile.
+- `wasm_inspect_sections` — Inspect sections and metadata of a .wasm file with wasm-objdump.
+- `wasm_offline_run` — Run an exported .wasm function with wasmtime or wasmer.
+- `wasm_optimize` — Optimize a .wasm file with wasm-opt.
+- `wasm_vmp_trace` — Read captured WASM VMP import-call traces from the current page.
+- `wasm_memory_inspect` — Inspect exported WebAssembly.Memory from the current page.
 
-## Full tool list (8)
+## Full tool list (9)
 
 | Tool | Description |
 | --- | --- |
-| `wasm_dump` | Dump a WebAssembly module from the current browser page. |
-| `wasm_disassemble` | Disassemble a .wasm file to WebAssembly Text Format (WAT) using wasm2wat. |
-| `wasm_decompile` | Decompile a .wasm file to C-like pseudo-code using wasm-decompile. |
-| `wasm_inspect_sections` | Inspect sections and metadata of a .wasm file using wasm-objdump. |
-| `wasm_offline_run` | Execute a specific exported function from a .wasm file offline using wasmtime or wasmer. |
-| `wasm_optimize` | Optimize a .wasm file using binaryen wasm-opt. |
-| `wasm_vmp_trace` | Trace WASM VMP (Virtual Machine Protection) opcode execution. |
-| `wasm_memory_inspect` | Inspect WebAssembly.Memory contents from the browser. |
+| `wasm_capabilities` | Report WASM capture and tool availability. |
+| `wasm_dump` | Dump a captured WebAssembly module from the current page. |
+| `wasm_disassemble` | Disassemble a .wasm file to WAT with wasm2wat. |
+| `wasm_decompile` | Decompile a .wasm file to C-like pseudo-code with wasm-decompile. |
+| `wasm_inspect_sections` | Inspect sections and metadata of a .wasm file with wasm-objdump. |
+| `wasm_offline_run` | Run an exported .wasm function with wasmtime or wasmer. |
+| `wasm_optimize` | Optimize a .wasm file with wasm-opt. |
+| `wasm_vmp_trace` | Read captured WASM VMP import-call traces from the current page. |
+| `wasm_memory_inspect` | Inspect exported WebAssembly.Memory from the current page. |

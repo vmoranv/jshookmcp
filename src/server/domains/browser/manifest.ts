@@ -201,6 +201,11 @@ const manifest = {
     { tool: t('human_typing'), domain: DOMAIN, bind: b((h, a) => h.handleHumanTyping(a)) },
     // CAPTCHA solving
     {
+      tool: t('captcha_solver_capabilities'),
+      domain: DOMAIN,
+      bind: b((h, _args) => h.handleCaptchaSolverCapabilities()),
+    },
+    {
       tool: t('captcha_vision_solve'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleCaptchaVisionSolve(a)),

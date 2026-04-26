@@ -10,6 +10,7 @@ import type { CodeCollector } from '@server/domains/shared/modules';
 import type { WasmSharedState } from './handlers/shared';
 import { ExternalToolHandlers } from './handlers/external-tool-handlers';
 import { BrowserHandlers } from './handlers/browser-handlers';
+import { CapabilityHandlers } from './handlers/capability-handlers';
 
 export type {
   EvalErrorResult,
@@ -23,6 +24,7 @@ export class WasmToolHandlers {
   private state: WasmSharedState;
   private externalTools: ExternalToolHandlers;
   private browser: BrowserHandlers;
+  private capabilities: CapabilityHandlers;
 
   constructor(collector: CodeCollector) {
     const registry = new ToolRegistry();
@@ -30,8 +32,12 @@ export class WasmToolHandlers {
     this.state = { collector, runner };
     this.externalTools = new ExternalToolHandlers(this.state);
     this.browser = new BrowserHandlers(this.state);
+    this.capabilities = new CapabilityHandlers(this.state);
   }
 
+  handleWasmCapabilities() {
+    return this.capabilities.handleWasmCapabilities();
+  }
   handleWasmDump(args: Record<string, unknown>) {
     return this.browser.handleWasmDump(args);
   }

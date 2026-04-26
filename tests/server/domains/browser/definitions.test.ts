@@ -376,11 +376,12 @@ describe('browser tool definitions', () => {
   // ── Behavior tools ──────────────────────────────────────────
 
   describe('behaviorTools', () => {
-    it('has exactly 5 behavior tools', async () => {
-      expect(behaviorTools).toHaveLength(5);
+    it('has exactly 6 behavior tools', async () => {
+      expect(behaviorTools).toHaveLength(6);
     });
 
     const expectedBehaviorNames = [
+      'captcha_solver_capabilities',
       'human_mouse',
       'human_scroll',
       'human_typing',
@@ -406,6 +407,11 @@ describe('browser tool definitions', () => {
 
     it('human_scroll has no required properties', async () => {
       const tool = getToolByName(behaviorTools, 'human_scroll');
+      expect(getInputSchema(tool).required).toBeUndefined();
+    });
+
+    it('captcha_solver_capabilities has no required properties', async () => {
+      const tool = getToolByName(behaviorTools, 'captcha_solver_capabilities');
       expect(getInputSchema(tool).required).toBeUndefined();
     });
 

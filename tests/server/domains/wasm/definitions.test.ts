@@ -35,12 +35,13 @@ describe('wasm/definitions', () => {
     expect(wasmTools.length).toBeGreaterThan(0);
   });
 
-  it('exports exactly 8 tools', async () => {
-    expect(wasmTools).toHaveLength(8);
+  it('exports exactly 9 tools', async () => {
+    expect(wasmTools).toHaveLength(9);
   });
 
   it('contains all expected tool names', async () => {
     const names = wasmTools.map((t) => t.name);
+    expect(names).toContain('wasm_capabilities');
     expect(names).toContain('wasm_dump');
     expect(names).toContain('wasm_disassemble');
     expect(names).toContain('wasm_decompile');
@@ -74,6 +75,20 @@ describe('wasm/definitions', () => {
     }
   });
 
+  /* ---------- wasm_capabilities ---------- */
+
+  describe('wasm_capabilities', () => {
+    const tool = getTool('wasm_capabilities');
+
+    it('has no required fields', async () => {
+      expect(tool.inputSchema.required).toBeUndefined();
+    });
+
+    it('description mentions availability', async () => {
+      expect(getDescription(tool).toLowerCase()).toContain('availability');
+    });
+  });
+
   /* ---------- wasm_dump ---------- */
 
   describe('wasm_dump', () => {
@@ -91,8 +106,9 @@ describe('wasm/definitions', () => {
       expect(tool.inputSchema.required).toBeUndefined();
     });
 
-    it('description mentions WASM', async () => {
-      expect(getDescription(tool).toLowerCase()).toContain('wasm');
+    it('description mentions WASM or WebAssembly', async () => {
+      const desc = getDescription(tool).toLowerCase();
+      expect(desc.includes('wasm') || desc.includes('webassembly')).toBe(true);
     });
   });
 
@@ -188,8 +204,9 @@ describe('wasm/definitions', () => {
       expect(timeoutMs.default).toBe(10000);
     });
 
-    it('description mentions sandbox or security', async () => {
-      expect(getDescription(tool).toLowerCase()).toContain('sandbox');
+    it('description mentions the runtime backend', async () => {
+      const desc = getDescription(tool).toLowerCase();
+      expect(desc.includes('wasmtime') || desc.includes('wasmer')).toBe(true);
     });
   });
 
