@@ -158,14 +158,14 @@ describe.skipIf(!TARGET_URL)(
     });
 
     test('NETWORK-03: WebSocket monitoring', async () => {
-      const requiredTools = ['ws_monitor_enable', 'ws_get_connections'];
+      const requiredTools = ['ws_monitor', 'ws_get_connections'];
       const missing = requiredTools.filter((t) => !client.getToolMap().has(t));
       if (missing.length > 0) {
         client.recordSynthetic('ws-monitoring', 'SKIP', `Missing: ${missing.join(', ')}`);
         return;
       }
 
-      const enable = await client.call('ws_monitor_enable', {}, 15_000);
+      const enable = await client.call('ws_monitor', { action: 'enable' }, 15_000);
       expect(enable.result.status).not.toBe('FAIL');
 
       const connections = await client.call('ws_get_connections', {}, 15_000);

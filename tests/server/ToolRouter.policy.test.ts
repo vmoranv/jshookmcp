@@ -38,7 +38,10 @@ vi.mock('@server/registry/index', () => ({
         ],
         test_page_tool: [{ condition: 'Page must be navigated', fix: 'Call page_navigate' }],
         test_ws_tool: [
-          { condition: 'WebSocket monitoring must be active', fix: 'Call ws_monitor_enable' },
+          {
+            condition: 'WebSocket monitoring must be active',
+            fix: 'Call ws_monitor with action="enable"',
+          },
         ],
         test_unknown_tool: [{ condition: 'Some future condition', fix: 'Unknown' }],
       },

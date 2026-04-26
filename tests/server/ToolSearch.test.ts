@@ -23,7 +23,7 @@ describe('ToolSearchEngine', () => {
     makeTool('debugger_pause', 'Pause JavaScript execution at the current point'),
     makeTool('breakpoint', 'Set, remove, or list breakpoints'),
     makeTool('network_get_requests', 'Get captured network requests with filtering options'),
-    makeTool('ws_monitor_enable', 'Enable WebSocket frame monitoring'),
+    makeTool('ws_monitor', 'Enable or disable WebSocket frame monitoring'),
     makeTool('wasm_dump', 'Dump WebAssembly module binary from page memory'),
     makeTool('binary_decode', 'Decode binary data from various formats (base64, hex, etc.)'),
     makeTool('captcha_detect', 'Detect CAPTCHA challenges on the current page'),
@@ -68,7 +68,7 @@ describe('ToolSearchEngine', () => {
     const engine = new ToolSearchEngine(testTools);
     const results = await engine.search('websocket monitor');
     expect(results.length).toBeGreaterThan(0);
-    expect(results[0]!.name).toBe('ws_monitor_enable');
+    expect(results[0]!.name).toBe('ws_monitor');
   });
 
   it('marks active tools correctly', async () => {

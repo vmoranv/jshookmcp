@@ -164,7 +164,7 @@ const TOOLS: readonly Tool[] = [
   makeTool('network_extract_auth', 'Extract authentication tokens from network traffic'),
   makeTool('network_export_har', 'Export network capture as HAR file'),
   makeTool('network_replay_request', 'Replay a previously captured network request'),
-  makeTool('ws_monitor_enable', 'Enable WebSocket frame monitoring'),
+  makeTool('ws_monitor', 'Enable or disable WebSocket frame monitoring'),
   makeTool('ws_get_frames', 'Get captured WebSocket frames'),
   makeTool('sse_monitor_enable', 'Enable Server-Sent Events monitoring'),
   // debugger
