@@ -73,4 +73,23 @@ describe('Built-in macros', () => {
     expect(optionalSteps).toHaveLength(1);
     expect(optionalSteps[0]!.id).toBe('deep_deobfuscate');
   });
+
+  it('built-in macros only reference registered tool names', () => {
+    expect(deobfuscateAstFlow.steps.map((step) => step.toolName)).toEqual([
+      'deobfuscate',
+      'webcrack_unpack',
+      'understand_code',
+    ]);
+    expect(unpackerFlow.steps.map((step) => step.toolName)).toEqual([
+      'deobfuscate',
+      'webcrack_unpack',
+      'ast_transform_apply',
+    ]);
+  });
+
+  it('built-in macros do not reference removed tool ids', () => {
+    const toolNames = BUILTIN_MACROS.flatMap((macro) => macro.steps.map((step) => step.toolName));
+    expect(toolNames).not.toContain('extract_function_tree');
+    expect(toolNames).not.toContain('ast_transform_beautify');
+  });
 });

@@ -15,7 +15,7 @@ import { MACRO_BUILTIN_TIMEOUT_MS } from '@src/constants';
 export const deobfuscateAstFlow: MacroDefinition = {
   id: 'deobfuscate_ast_flow',
   displayName: 'Deobfuscate AST Flow',
-  description: 'Chain: deobfuscate → advanced deobfuscation → extract function tree',
+  description: 'Chain: deobfuscate → optional webcrack unpack → semantic analysis',
   tags: ['analysis', 'deobfuscation', 'ast'],
   timeoutMs: MACRO_BUILTIN_TIMEOUT_MS,
   steps: [
@@ -26,14 +26,14 @@ export const deobfuscateAstFlow: MacroDefinition = {
     },
     {
       id: 'advanced_deobfuscate',
-      toolName: 'deobfuscate',
-      input: { engine: 'webcrack' },
+      toolName: 'webcrack_unpack',
+      input: { unpack: true, unminify: true },
       inputFrom: { code: 'deobfuscate.code' },
       optional: true,
     },
     {
-      id: 'extract_functions',
-      toolName: 'extract_function_tree',
+      id: 'analyze_deobfuscated',
+      toolName: 'understand_code',
       inputFrom: { code: 'deobfuscate.code' },
     },
   ],
@@ -42,7 +42,7 @@ export const deobfuscateAstFlow: MacroDefinition = {
 export const unpackerFlow: MacroDefinition = {
   id: 'unpacker_flow',
   displayName: 'Unpacker Flow',
-  description: 'Detect packer type → extract inner code → deobfuscate → beautify output',
+  description: 'Detect packer type → extract inner code → optional deep unpack → normalize output',
   tags: ['analysis', 'unpacking', 'deobfuscation'],
   timeoutMs: 90_000,
   steps: [
@@ -53,14 +53,15 @@ export const unpackerFlow: MacroDefinition = {
     },
     {
       id: 'deep_deobfuscate',
-      toolName: 'deobfuscate',
-      input: { engine: 'webcrack' },
+      toolName: 'webcrack_unpack',
+      input: { unpack: true, unminify: true },
       inputFrom: { code: 'detect_and_unpack.code' },
       optional: true,
     },
     {
-      id: 'beautify',
-      toolName: 'ast_transform_beautify',
+      id: 'normalize_output',
+      toolName: 'ast_transform_apply',
+      input: { transforms: ['dead_code_remove', 'rename_vars'] },
       inputFrom: { code: 'detect_and_unpack.code' },
     },
   ],
