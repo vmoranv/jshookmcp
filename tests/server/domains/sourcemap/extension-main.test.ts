@@ -47,6 +47,7 @@ describe('SourcemapToolHandlersExtension', () => {
     vi.clearAllMocks();
     attachedSession = {
       send: vi.fn(),
+      id: vi.fn(() => 'attached-sid'),
       detach: vi.fn(async () => undefined),
     };
     session = {
@@ -425,7 +426,10 @@ describe('SourcemapToolHandlersExtension', () => {
         returnByValue: true,
         awaitPromise: true,
       });
-      expect(attachedSession.detach).toHaveBeenCalledOnce();
+      expect(session.send).toHaveBeenCalledWith('Target.detachFromTarget', {
+        sessionId: 'attached-sid',
+      });
+      expect(attachedSession.detach).not.toHaveBeenCalled();
     });
   });
 });

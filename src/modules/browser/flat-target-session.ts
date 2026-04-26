@@ -20,6 +20,11 @@ function readSessionId(response: unknown): string | null {
   return typeof sessionId === 'string' && sessionId.length > 0 ? sessionId : null;
 }
 
+function readAttachedSessionId(session: CDPSessionLike): string | null {
+  const sessionId = session.id?.();
+  return typeof sessionId === 'string' && sessionId.length > 0 ? sessionId : null;
+}
+
 export async function attachToFlatTarget(
   parentSession: FlatSessionParentLike,
   targetId: string,
@@ -45,4 +50,18 @@ export async function attachToFlatTarget(
   }
 
   return attachedSession;
+}
+
+export async function detachFromFlatTarget(
+  parentSession: CDPSessionLike,
+  attachedSession: CDPSessionLike,
+): Promise<void> {
+  const sessionId = readAttachedSessionId(attachedSession);
+  if (!sessionId) {
+    throw new Error('CDP attached target session id unavailable for detach');
+  }
+
+  await parentSession.send('Target.detachFromTarget', {
+    sessionId,
+  });
 }

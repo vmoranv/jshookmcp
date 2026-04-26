@@ -10,6 +10,7 @@ import type {
 } from './shared';
 import {
   attachToFlatTarget,
+  detachFromFlatTarget,
   type FlatSessionParentLike,
 } from '@modules/browser/flat-target-session';
 import {
@@ -80,7 +81,7 @@ export class ExtensionHandlers {
       return fail('extension_execute_in_context', error);
     } finally {
       if (attachedSession) {
-        await attachedSession.detach?.().catch(() => undefined);
+        await detachFromFlatTarget(session, attachedSession).catch(() => undefined);
       }
       await safeDetach(session);
     }

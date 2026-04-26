@@ -20,6 +20,7 @@ class FakeAttachedSession {
     return this;
   }
 
+  id = vi.fn(() => 'session-1');
   detach = vi.fn(async () => {});
 }
 
@@ -154,6 +155,36 @@ describe('BrowserTargetSessionManager', () => {
       returnByValue: true,
       awaitPromise: true,
     });
-    expect((parentSession as any).attachedSession.detach).toHaveBeenCalledOnce();
+    expect(parentSession.send).toHaveBeenCalledWith('Target.detachFromTarget', {
+      sessionId: 'session-1',
+    });
+    expect((parentSession as any).attachedSession.detach).not.toHaveBeenCalled();
+  });
+
+  it('keeps attachment state when flat target detach fails', async () => {
+    const parentSession = new FakeParentSession();
+    const defaultSend = parentSession.send.getMockImplementation();
+    parentSession.send.mockImplementation(async (method: string) => {
+      if (method === 'Target.detachFromTarget') {
+        throw new Error('detach failed');
+      }
+      return await defaultSend?.(method);
+    });
+    const browser = {
+      target: () => ({
+        createCDPSession: vi.fn(async () => parentSession),
+      }),
+    };
+    const manager = new BrowserTargetSessionManager(() => browser as never);
+
+    await manager.attach('frame-1');
+
+    await expect(manager.detach()).rejects.toThrow('detach failed');
+    expect(manager.getAttachedTargetInfo()).toEqual(
+      expect.objectContaining({
+        targetId: 'frame-1',
+      }),
+    );
+    expect(manager.getAttachedTargetSession()).not.toBeNull();
   });
 });
