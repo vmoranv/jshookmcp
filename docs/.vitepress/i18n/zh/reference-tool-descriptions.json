@@ -443,5 +443,7 @@
   "trace_get_network_flow": "读取 trace 中按请求聚合的网络流。",
   "binary_instrument_capabilities": "报告二进制插桩后端可用性。",
   "mojo_ipc_capabilities": "报告 Mojo IPC 监控可用性。",
-  "platform_capabilities": "报告平台工具后端可用性。"
+  "platform_capabilities": "报告平台工具后端可用性。",
+  "console_inject_fetch_interceptor": "待补充中文：Inject the fetch() interceptor directly",
+  "console_inject_xhr_interceptor": "待补充中文：Inject the XMLHttpRequest interceptor directly"
 }

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
+import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import http2 from 'node:http2';
@@ -28,9 +29,20 @@ const AUTH_SIGNATURE_MARKER = 'sig-audit-20260426';
 const INTERCEPT_MARKER = 'intercepted-body-20260426';
 const HEAP_MARKER = 'heap-marker-20260426';
 const HOOK_PRESET_MARKER = 'hook-preset-marker-20260426';
+const GRAPHQL_MARKER = 'graphql-marker-20260426';
+const WEBPACK_MARKER = 'webpack-marker-20260426';
+const WASM_MARKER = 'wasm-marker-20260426';
 const ROOT_RELOAD_KEY = '__audit_reload_count';
 const SCRIPT_TIMEOUT_MS = 9 * 60 * 1000;
 const DIRECT_RUNTIME_PROBED_TOOLS = new Set();
+const GRAPHQL_BUFFER_PROBE_CODE = `(() => ({
+  fetchArrayLength: Array.isArray(window.__fetchRequests) ? window.__fetchRequests.length : null,
+  xhrArrayLength: Array.isArray(window.__xhrRequests) ? window.__xhrRequests.length : null,
+  hasFetchGetter: typeof window.__getFetchRequests === "function",
+  hasXhrGetter: typeof window.__getXHRRequests === "function",
+  fetchInterceptorInstalled: window.__fetchInterceptorInstalled ?? null,
+  fetchInterceptorInjected: window.__fetchInterceptorInjected ?? null,
+}))()`;
 
 const TEST_KEY_PEM = `-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAw5ph3jyxq4RKueHGkMvnKpysHDHd+UipLwLFT5j2tlaa6YFY
@@ -405,6 +417,91 @@ function buildMinimalMiniappPkg() {
   return header;
 }
 
+async function readRequestBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+async function delay(ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForBrowserEndpoint(browserURL, timeoutMs = 20000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${browserURL}/json/version`);
+      if (response.ok) {
+        return await response.json();
+      }
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(250);
+  }
+
+  throw new Error(
+    `Timed out waiting for browser endpoint ${browserURL}: ${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }`,
+  );
+}
+
+function getPreferredBrowserExecutable() {
+  const envCandidates = [process.env.CHROME_PATH, process.env.PUPPETEER_EXECUTABLE_PATH].filter(
+    (value) => typeof value === 'string' && value.length > 0,
+  );
+  const platformCandidates =
+    process.platform === 'win32'
+      ? [
+          'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+          'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+          'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+          'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+        ]
+      : process.platform === 'darwin'
+        ? [
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+          ]
+        : ['google-chrome', 'chromium', 'chromium-browser', 'microsoft-edge'];
+
+  for (const candidate of [...envCandidates, ...platformCandidates]) {
+    if (!candidate) continue;
+    if (candidate.includes('/') || candidate.includes('\\')) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+      continue;
+    }
+    return candidate;
+  }
+
+  throw new Error('No Chrome-compatible executable found for browser_attach runtime probe');
+}
+
+async function terminateProcessTree(childProcess) {
+  if (!childProcess?.pid) {
+    return;
+  }
+
+  try {
+    if (process.platform === 'win32') {
+      await execFileAsync('taskkill', ['/PID', String(childProcess.pid), '/T', '/F']);
+      return;
+    }
+  } catch {}
+
+  try {
+    childProcess.kill('SIGTERM');
+  } catch {}
+}
+
 async function createProbeServer() {
   const bodyPayload = `${BODY_MARKER}\n${'x'.repeat(12361 - BODY_MARKER.length - 1)}`;
   const pluginRegistryPayload = {
@@ -451,6 +548,115 @@ async function createProbeServer() {
       },
     ],
   };
+  const graphqlSchemaPayload = {
+    data: {
+      __schema: {
+        queryType: { name: 'Query' },
+        mutationType: null,
+        subscriptionType: null,
+        types: [
+          {
+            kind: 'OBJECT',
+            name: 'Query',
+            fields: [
+              {
+                name: 'auditGreeting',
+                args: [{ name: 'name', type: { kind: 'SCALAR', name: 'String' } }],
+                type: { kind: 'SCALAR', name: 'String' },
+              },
+            ],
+          },
+          { kind: 'SCALAR', name: 'String' },
+          { kind: 'SCALAR', name: 'Boolean' },
+        ],
+        directives: [],
+      },
+    },
+  };
+  const graphqlPageScript = [
+    'window.runGraphqlAudit = async function(name) {',
+    '  const response = await fetch("/graphql", {',
+    '    method: "POST",',
+    '    headers: { "content-type": "application/json", "x-runtime-audit": "graphql" },',
+    '    body: JSON.stringify({',
+    '      query: "query AuditGreeting($name: String!) { auditGreeting(name: $name) __typename marker }",',
+    '      operationName: "AuditGreeting",',
+    '      variables: { name }',
+    '    })',
+    '  });',
+    '  const payload = await response.json();',
+    '  window.__graphqlAuditPayload = payload;',
+    '  return payload;',
+    '};',
+  ].join('\n');
+  const webpackPageScript = [
+    'window.__webpack_module_cache__ = {};',
+    'window.__webpack_modules__ = {',
+    '  "1": function(module) { module.exports = { marker: ' +
+      JSON.stringify(WEBPACK_MARKER) +
+      ', value: 42 }; },',
+    '  "2": function(module) { module.exports = { nested: { marker: ' +
+      JSON.stringify(WEBPACK_MARKER) +
+      ' }, label: "runtime-audit" }; }',
+    '};',
+    'window.__webpack_require__ = function(id) {',
+    '  if (window.__webpack_module_cache__[id]) return window.__webpack_module_cache__[id].exports;',
+    '  const module = { exports: {} };',
+    '  window.__webpack_module_cache__[id] = module;',
+    '  window.__webpack_modules__[id](module, module.exports, window.__webpack_require__);',
+    '  return module.exports;',
+    '};',
+    'window.webpackChunkruntimeAudit = Object.assign([], {',
+    '  m: window.__webpack_modules__',
+    '});',
+    'window.webpackChunkruntimeAudit.push([[0], window.__webpack_modules__]);',
+  ].join('\n');
+  const wasmProbeBytes = Buffer.from(
+    'AGFzbQEAAAABCQJgAX8AYAABfwIRAQNlbnYJYXVkaXRfbG9nAAADAgEBBQMBAAEHEQIGbWVtb3J5AgAEbWFpbgABCgoBCABBABAAQQcLCxABAEEACwpXQVNNLUFVRElU',
+    'base64',
+  );
+  const wasmPageScript = [
+    'window.__wasmModuleStorage = [];',
+    'window.__wasmInstances = [];',
+    'window.__wasmRuntimeAudit = { marker: ' + JSON.stringify(WASM_MARKER) + ' };',
+    'window.runWasmAudit = async function() {',
+    '  const response = await fetch("/wasm/runtime-audit.wasm", { cache: "no-store" });',
+    '  const bytes = await response.arrayBuffer();',
+    '  window.__wasmModuleStorage = [bytes.slice(0)];',
+    '  let instanceRef = null;',
+    '  const imports = {',
+    '    env: {',
+    '      audit_log: function(offset) {',
+    '        const memory = instanceRef && instanceRef.exports && instanceRef.exports.memory;',
+    '        if (memory && memory.buffer) {',
+    '          const view = new Uint8Array(memory.buffer);',
+    '          const length = Math.min(10, view.length - offset);',
+    '          window.__wasmLastImportText = new TextDecoder().decode(view.slice(offset, offset + length));',
+    '        }',
+    '        window.__wasmLastImportOffset = offset;',
+    '        return offset;',
+    '      }',
+    '    }',
+    '  };',
+    '  const result = await WebAssembly.instantiate(bytes, imports);',
+    '  instanceRef = result.instance;',
+    '  window.__wasmInstances = [result.instance];',
+    '  const mainResult = typeof result.instance.exports.main === "function" ? result.instance.exports.main() : null;',
+    '  window.__wasmRuntimeAudit = {',
+    '    marker: ' + JSON.stringify(WASM_MARKER) + ',',
+    '    mainResult,',
+    '    importText: window.__wasmLastImportText || null,',
+    '    importOffset: window.__wasmLastImportOffset ?? null,',
+    '    exportedKeys: Object.keys(result.instance.exports || {})',
+    '  };',
+    '  return window.__wasmRuntimeAudit;',
+    '};',
+    'window.runWasmAudit().catch((error) => {',
+    '  window.__wasmRuntimeAudit = { marker: ' +
+      JSON.stringify(WASM_MARKER) +
+      ', error: String(error) };',
+    '});',
+  ].join('\n');
   const rootAppScript = [
     `window.__auditRuntimeProbeMarker__ = ${JSON.stringify(BODY_MARKER)};`,
     'window.__auditRuntimeProbeExternalLoaded = true;',
@@ -506,7 +712,7 @@ async function createProbeServer() {
   ].join('\n');
   const sockets = new Set();
   const tlsSockets = new Set();
-  const httpServer = http.createServer((req, res) => {
+  const httpServer = http.createServer(async (req, res) => {
     if (!req.url) {
       res.writeHead(400).end('missing url');
       return;
@@ -597,6 +803,62 @@ async function createProbeServer() {
       return;
     }
 
+    if (req.url === '/graphql-page/' || req.url === '/graphql-page/index.html') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>graphql probe</title>
+    <script>${graphqlPageScript}</script>
+  </head>
+  <body>
+    <main>
+      <h1>${GRAPHQL_MARKER}</h1>
+      <button id="run-graphql" onclick="window.runGraphqlAudit('GraphQLButton')">Run GraphQL</button>
+      <pre id="graphql-output"></pre>
+    </main>
+  </body>
+</html>`);
+      return;
+    }
+
+    if (req.url === '/webpack-page/' || req.url === '/webpack-page/index.html') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>webpack probe</title>
+    <script>${webpackPageScript}</script>
+  </head>
+  <body>
+    <main>
+      <h1>${WEBPACK_MARKER}</h1>
+    </main>
+  </body>
+</html>`);
+      return;
+    }
+
+    if (req.url === '/wasm-page/' || req.url === '/wasm-page/index.html') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>wasm probe</title>
+    <script>${wasmPageScript}</script>
+  </head>
+  <body>
+    <main>
+      <h1>${WASM_MARKER}</h1>
+    </main>
+  </body>
+</html>`);
+      return;
+    }
+
     if (req.url === '/history/one') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end(
@@ -636,6 +898,71 @@ async function createProbeServer() {
         'cache-control': 'no-store',
       });
       res.end(sourceMapPayload);
+      return;
+    }
+
+    if (req.url === '/graphql') {
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, {
+          'access-control-allow-origin': '*',
+          'access-control-allow-headers': 'content-type, x-runtime-audit',
+          'access-control-allow-methods': 'POST, OPTIONS',
+        });
+        res.end();
+        return;
+      }
+
+      const bodyText = await readRequestBody(req);
+      let payload = null;
+      try {
+        payload = bodyText ? JSON.parse(bodyText) : null;
+      } catch {
+        payload = null;
+      }
+
+      const query = typeof payload?.query === 'string' ? payload.query : '';
+      const operationName =
+        typeof payload?.operationName === 'string' ? payload.operationName : null;
+      const variables =
+        payload && typeof payload === 'object' && !Array.isArray(payload)
+          ? payload.variables
+          : null;
+      const requestedName =
+        variables && typeof variables === 'object' && !Array.isArray(variables)
+          ? variables.name
+          : null;
+
+      let responsePayload;
+      if (query.includes('__schema') || operationName === 'IntrospectionQuery') {
+        responsePayload = graphqlSchemaPayload;
+      } else {
+        responsePayload = {
+          data: {
+            auditGreeting:
+              typeof requestedName === 'string'
+                ? `${GRAPHQL_MARKER}:${requestedName}`
+                : `${GRAPHQL_MARKER}:anonymous`,
+            marker: GRAPHQL_MARKER,
+            __typename: 'Query',
+          },
+        };
+      }
+
+      res.writeHead(200, {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'access-control-allow-origin': '*',
+      });
+      res.end(JSON.stringify(responsePayload));
+      return;
+    }
+
+    if (req.url === '/wasm/runtime-audit.wasm') {
+      res.writeHead(200, {
+        'content-type': 'application/wasm',
+        'cache-control': 'no-store',
+      });
+      res.end(wasmProbeBytes);
       return;
     }
 
@@ -802,6 +1129,10 @@ async function createProbeServer() {
     wsUrl: `ws://127.0.0.1:${address.port}/ws`,
     http2Url: `http://127.0.0.1:${http2Address.port}/h2`,
     tlsPort: tlsAddress.port,
+    graphqlEndpointUrl: `${baseUrl}/graphql`,
+    graphqlPageUrl: `${baseUrl}/graphql-page/`,
+    webpackPageUrl: `${baseUrl}/webpack-page/`,
+    wasmPageUrl: `${baseUrl}/wasm-page/`,
     sourceMapPageUrl: `${baseUrl}/sourcemap/`,
     sourceMapUrl: sourceMapDataUri,
     async close() {
@@ -866,7 +1197,10 @@ function summarize(report) {
     `sandbox: success=${report.sandbox.ok ?? 'n/a'} persisted=${report.sandbox.persisted ?? 'n/a'}`,
     `maintenance: tokenUsage=${report.maintenance.tokenStats?.currentUsage ?? 'n/a'} cacheEntries=${report.maintenance.cacheStats?.totalEntries ?? 'n/a'} doctor=${report.maintenance.doctor?.ok ?? report.maintenance.doctor?.success ?? 'n/a'}`,
     `workflow: count=${report.workflow.count ?? 0} run=${report.workflow.run?.success ?? 'skipped'}`,
-    `v8: launchFlag=${report.browser.launch?.v8NativeSyntaxEnabled ?? 'n/a'} simulated=${report.v8.capture?.simulated ?? 'n/a'} sizeBytes=${report.v8.capture?.sizeBytes ?? 0} statsUsed=${report.v8.stats?.heapUsage?.jsHeapSizeUsed ?? 'n/a'} script=${report.v8.firstScriptUrl ?? report.v8.firstScriptId ?? 'n/a'} bytecode=${report.v8.bytecode?.success ?? 'skipped'} bytecodeMode=${report.v8.bytecode?.mode ?? 'n/a'} jit=${Array.isArray(report.v8.jit?.functions) ? report.v8.jit.functions.length : 'skipped'} jitMode=${report.v8.jit?.inspectionMode ?? 'n/a'} natives=${report.v8.version?.features?.nativesSyntax ?? 'n/a'}`,
+    `graphql: introspect=${report.graphql.introspect?.success ?? 'n/a'} replay=${report.graphql.replay?.success ?? 'n/a'} extracted=${Array.isArray(report.graphql.extract?.queries) ? report.graphql.extract.queries.length : 'n/a'}`,
+    `extension-registry: installed=${Array.isArray(report.extensionRegistry.listInstalled?.plugins) ? report.extensionRegistry.listInstalled.plugins.length : 'n/a'} execute=${report.extensionRegistry.execute?.success ?? 'n/a'} reload=${report.extensionRegistry.reload?.success ?? 'n/a'}`,
+    `attach: external=${report.browser.attachExternal?.success ?? 'n/a'} eval=${report.browser.attachExternalEval?.success ?? 'n/a'}`,
+    `v8: launchFlag=${report.browser.launch?.v8NativeSyntaxEnabled ?? 'n/a'} simulated=${report.v8.capture?.simulated ?? 'n/a'} sizeBytes=${report.v8.capture?.sizeBytes ?? 0} statsUsed=${report.v8.stats?.heapUsage?.jsHeapSizeUsed ?? 'n/a'} script=${report.v8.firstScriptUrl ?? report.v8.firstScriptId ?? 'n/a'} inspect=${Boolean(report.v8.objectInspect?.objectData)} bytecode=${report.v8.bytecode?.success ?? 'skipped'} bytecodeMode=${report.v8.bytecode?.mode ?? 'n/a'} jit=${Array.isArray(report.v8.jit?.functions) ? report.v8.jit.functions.length : 'skipped'} jitMode=${report.v8.jit?.inspectionMode ?? 'n/a'} natives=${report.v8.version?.features?.nativesSyntax ?? 'n/a'}`,
     '',
     'Use --json for the full machine-readable report.',
   ];
@@ -880,9 +1214,12 @@ async function main() {
   const runtimeMacroDir = join(process.cwd(), 'macros');
   const runtimeMacroPath = join(runtimeMacroDir, 'runtime-audit-macro.json');
   const runtimeMacroId = 'runtime_audit_macro';
+  const runtimeExtensionId = 'runtime-audit-extension';
+  const extensionRegistryRoot = join(runtimeArtifactDir, 'runtime-extension-registry');
   const client = new Client({ name: 'runtime-tool-probe', version: '1.0.0' }, { capabilities: {} });
   const sharedEnv = {
     EXTENSION_REGISTRY_BASE_URL: server.baseUrl,
+    MCP_EXTENSION_REGISTRY_DIR: extensionRegistryRoot,
   };
   const transport = createClientTransport('full', sharedEnv);
   const metaClient = new Client(
@@ -901,6 +1238,7 @@ async function main() {
     encoding: {},
     protocol: {},
     browser: {},
+    graphql: {},
     meta: {},
     analysis: {},
     network: {},
@@ -921,9 +1259,18 @@ async function main() {
     maintenance: {},
     workflow: {},
     v8: {},
+    extensionRegistry: {},
   };
   let failure = null;
   let platformProbeDir = null;
+  let extensionRegistryBackup = null;
+  let extensionRegistryExisted = false;
+  let runtimeExtensionPath = null;
+  let extensionRegistryFile = null;
+  let attachClient = null;
+  let attachTransport = null;
+  let externalBrowserProc = null;
+  let externalBrowserUserDataDir = null;
 
   try {
     await withTimeout(client.connect(transport), 'connect', 30000);
@@ -951,6 +1298,51 @@ async function main() {
       )}\n`,
       'utf8',
     );
+    runtimeExtensionPath = join(runtimeArtifactDir, 'runtime-audit-extension.mjs');
+    extensionRegistryFile = join(extensionRegistryRoot, 'plugins.json');
+    await mkdir(extensionRegistryRoot, { recursive: true });
+    try {
+      extensionRegistryBackup = await readFile(extensionRegistryFile, 'utf8');
+      extensionRegistryExisted = true;
+    } catch {}
+    await writeFile(
+      runtimeExtensionPath,
+      [
+        'export default function runtimeAuditDefault(input = {}) {',
+        `  return { ok: true, marker: ${JSON.stringify(BODY_MARKER)}, input };`,
+        '}',
+        'export function namedContext(input = {}) {',
+        `  return { named: true, marker: ${JSON.stringify(BODY_MARKER)}, input };`,
+        '}',
+        `export const marker = ${JSON.stringify(BODY_MARKER)};`,
+        '',
+      ].join('\n'),
+      'utf8',
+    );
+    const existingRegistry = (() => {
+      if (!extensionRegistryBackup) {
+        return [];
+      }
+      try {
+        const parsed = JSON.parse(extensionRegistryBackup);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+    const runtimeExtensionManifest = {
+      id: runtimeExtensionId,
+      name: 'Runtime Audit Extension',
+      version: '1.0.0',
+      entry: runtimeExtensionPath,
+      permissions: [],
+      status: 'unloaded',
+    };
+    const nextRegistry = existingRegistry.filter(
+      (entry) => !isRecord(entry) || entry.id !== runtimeExtensionId,
+    );
+    nextRegistry.push(runtimeExtensionManifest);
+    await writeFile(extensionRegistryFile, `${JSON.stringify(nextRegistry, null, 2)}\n`, 'utf8');
     const listed = await withTimeout(client.listTools(), 'listTools', 15000);
     report.tools = (listed.tools ?? []).map((tool) => tool.name).toSorted();
     const metaListed = await withTimeout(metaClient.listTools(), 'meta-listTools', 15000);
@@ -1283,6 +1675,33 @@ async function main() {
       client,
       'extension_list_installed',
       {},
+      15000,
+    );
+    report.extensionRegistry.listInstalled = report.workflow.extensionListInstalled;
+    report.extensionRegistry.execute = await callTool(
+      client,
+      'extension_execute_in_context',
+      {
+        pluginId: runtimeExtensionId,
+        contextName: 'default',
+        args: { marker: BODY_MARKER, count: 2 },
+      },
+      15000,
+    );
+    report.extensionRegistry.executeNamed = await callTool(
+      client,
+      'extension_execute_in_context',
+      {
+        pluginId: runtimeExtensionId,
+        contextName: 'namedContext',
+        args: { marker: BODY_MARKER, count: 3 },
+      },
+      15000,
+    );
+    report.extensionRegistry.reload = await callTool(
+      client,
+      'extension_reload',
+      { pluginId: runtimeExtensionId },
       15000,
     );
     report.macro.list = await callTool(client, 'list_macros', {}, 15000);
@@ -2519,6 +2938,141 @@ async function main() {
       },
       15000,
     );
+    report.graphql.fetchInterceptor = await callTool(
+      client,
+      'console_inject_fetch_interceptor',
+      { persistent: true },
+      15000,
+    );
+    report.graphql.navigate = await callTool(
+      client,
+      'page_navigate',
+      { url: server.graphqlPageUrl, waitUntil: 'load', timeout: 15000 },
+      30000,
+    );
+    report.graphql.pageFetchInterceptor = await callTool(
+      client,
+      'console_inject_fetch_interceptor',
+      { persistent: false },
+      15000,
+    );
+    report.graphql.bufferStateBeforeSeed = await callTool(
+      client,
+      'page_evaluate',
+      { code: GRAPHQL_BUFFER_PROBE_CODE },
+      15000,
+    );
+    report.graphql.introspect = await callTool(
+      client,
+      'graphql_introspect',
+      { endpoint: server.graphqlEndpointUrl },
+      30000,
+    );
+    report.graphql.replay = await callTool(
+      client,
+      'graphql_replay',
+      {
+        endpoint: server.graphqlEndpointUrl,
+        query:
+          'query AuditGreeting($name: String!) { auditGreeting(name: $name) __typename marker }',
+        operationName: 'AuditGreeting',
+        variables: { name: 'RuntimeAuditReplay' },
+      },
+      30000,
+    );
+    report.graphql.seedRequests = await callTool(
+      client,
+      'page_evaluate',
+      { code: `window.runGraphqlAudit(${JSON.stringify('RuntimeAuditExtract')})` },
+      30000,
+    );
+    report.graphql.bufferStateAfterSeed = await callTool(
+      client,
+      'page_evaluate',
+      { code: GRAPHQL_BUFFER_PROBE_CODE },
+      15000,
+    );
+    report.graphql.extract = await callTool(
+      client,
+      'graphql_extract_queries',
+      { limit: 10 },
+      30000,
+    );
+    report.wasm.hookPreset = await callTool(
+      client,
+      'hook_preset',
+      {
+        preset: 'webassembly-full',
+        method: 'evaluateOnNewDocument',
+        captureStack: false,
+        logToConsole: false,
+      },
+      30000,
+    );
+    report.wasm.navigate = await callTool(
+      client,
+      'page_navigate',
+      { url: server.wasmPageUrl, waitUntil: 'load', timeout: 15000 },
+      30000,
+    );
+    report.wasm.pageState = await callTool(
+      client,
+      'page_evaluate',
+      { code: '(() => window.__wasmRuntimeAudit ?? null)()' },
+      15000,
+    );
+    report.wasm.capabilitiesAfterPage = await callTool(client, 'wasm_capabilities', {}, 15000);
+    report.wasm.dump = await callTool(client, 'wasm_dump', {}, 30000);
+    report.wasm.vmpTrace = await callTool(client, 'wasm_vmp_trace', { maxEvents: 20 }, 30000);
+    report.wasm.memoryInspect = await callTool(
+      client,
+      'wasm_memory_inspect',
+      { offset: 0, length: 32, searchPattern: 'WASM-AUDIT' },
+      30000,
+    );
+    const wasmFixturePath = join(process.cwd(), 'tests', 'e2e', 'fixtures', 'wasm', 'sample.wasm');
+    report.wasm.disassemble = await callTool(
+      client,
+      'wasm_disassemble',
+      { inputPath: wasmFixturePath },
+      30000,
+    );
+    report.wasm.decompile = await callTool(
+      client,
+      'wasm_decompile',
+      { inputPath: wasmFixturePath },
+      30000,
+    );
+    report.wasm.inspectSections = await callTool(
+      client,
+      'wasm_inspect_sections',
+      { inputPath: wasmFixturePath },
+      30000,
+    );
+    report.wasm.offlineRun = await callTool(
+      client,
+      'wasm_offline_run',
+      { inputPath: wasmFixturePath, functionName: 'main', runtime: 'wasmtime' },
+      30000,
+    );
+    report.wasm.optimize = await callTool(
+      client,
+      'wasm_optimize',
+      { inputPath: wasmFixturePath, level: 'O2' },
+      45000,
+    );
+    report.analysis.webpackNavigate = await callTool(
+      client,
+      'page_navigate',
+      { url: server.webpackPageUrl, waitUntil: 'load', timeout: 15000 },
+      30000,
+    );
+    report.analysis.webpackEnumerate = await callTool(
+      client,
+      'webpack_enumerate',
+      { searchKeyword: WEBPACK_MARKER, forceRequireAll: true, maxResults: 10 },
+      30000,
+    );
     report.network.interceptAdd = await callTool(
       client,
       'network_intercept',
@@ -3062,6 +3616,14 @@ async function main() {
           : null;
       report.v8.scopeObjectName =
         isRecord(scopedObject) && typeof scopedObject.name === 'string' ? scopedObject.name : null;
+    }
+    if (report.v8.scopeObjectId) {
+      report.v8.objectInspect = await callTool(
+        client,
+        'v8_object_inspect',
+        { address: report.v8.scopeObjectId },
+        15000,
+      );
     }
     const pausedCallFrameId = extractString(report.v8.callStack, [
       'callStack',
@@ -3730,11 +4292,83 @@ async function main() {
       { dryRun: true, retentionDays: 0, maxTotalBytes: 1024 * 1024 },
       30000,
     );
+    {
+      const externalBrowserPort = await getFreePort();
+      const externalBrowserURL = `http://127.0.0.1:${externalBrowserPort}`;
+      const browserExecutable = getPreferredBrowserExecutable();
+      externalBrowserUserDataDir = await mkdtemp(join(tmpdir(), 'jshook-browser-attach-'));
+      externalBrowserProc = spawn(
+        browserExecutable,
+        [
+          `--remote-debugging-port=${externalBrowserPort}`,
+          '--remote-debugging-address=127.0.0.1',
+          `--user-data-dir=${externalBrowserUserDataDir}`,
+          '--headless=new',
+          '--no-first-run',
+          '--no-default-browser-check',
+          '--disable-extensions',
+          '--disable-gpu',
+          '--no-sandbox',
+          server.baseUrl,
+        ],
+        {
+          stdio: 'ignore',
+          windowsHide: true,
+        },
+      );
+      report.browser.attachExternalVersion = await waitForBrowserEndpoint(
+        externalBrowserURL,
+        20000,
+      );
+      attachClient = new Client(
+        { name: 'runtime-tool-probe-browser-attach', version: '1.0.0' },
+        { capabilities: {} },
+      );
+      attachTransport = createClientTransport('full', sharedEnv);
+      await withTimeout(attachClient.connect(attachTransport), 'connect-browser-attach', 30000);
+      report.browser.attachExternal = await callTool(
+        attachClient,
+        'browser_attach',
+        { browserURL: externalBrowserURL, pageIndex: 0 },
+        30000,
+      );
+      report.browser.attachExternalEval = await callTool(
+        attachClient,
+        'page_evaluate',
+        { code: '(() => ({ href: location.href, title: document.title }))()' },
+        15000,
+      );
+    }
     report.network.disable = await callTool(client, 'network_disable', {}, 15000);
   } catch (error) {
     report.error = error instanceof Error ? error.message : String(error);
     failure = error;
   } finally {
+    if (attachClient && attachTransport) {
+      try {
+        report.browser.attachExternalClose = await callTool(
+          attachClient,
+          'browser_close',
+          {},
+          15000,
+        );
+      } catch (error) {
+        report.browser.attachExternalCloseError =
+          error instanceof Error ? error.message : String(error);
+      }
+    }
+    try {
+      await attachTransport?.close();
+    } catch {}
+    try {
+      await attachClient?.close();
+    } catch {}
+    await terminateProcessTree(externalBrowserProc);
+    if (externalBrowserUserDataDir) {
+      try {
+        await rm(externalBrowserUserDataDir, { recursive: true, force: true });
+      } catch {}
+    }
     try {
       report.proxy.stop = await callTool(client, 'proxy_stop', {}, 15000);
     } catch (error) {
@@ -3760,6 +4394,23 @@ async function main() {
     await server.close();
     try {
       await rm(runtimeMacroPath, { force: true });
+    } catch {}
+    if (runtimeExtensionPath) {
+      try {
+        await rm(runtimeExtensionPath, { force: true });
+      } catch {}
+    }
+    if (extensionRegistryFile) {
+      try {
+        if (extensionRegistryExisted) {
+          await writeFile(extensionRegistryFile, extensionRegistryBackup ?? '', 'utf8');
+        } else {
+          await rm(extensionRegistryFile, { force: true });
+        }
+      } catch {}
+    }
+    try {
+      await rm(extensionRegistryRoot, { recursive: true, force: true });
     } catch {}
     if (platformProbeDir) {
       try {

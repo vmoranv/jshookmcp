@@ -11,6 +11,7 @@ import {
   toResponse,
   toError,
   normalizeHeaders,
+  validateBrowserEndpoint,
   validateExternalEndpoint,
   serializeForPreview,
 } from '@server/domains/graphql/handlers/shared';
@@ -35,11 +36,6 @@ export class ReplayHandlers {
         return toError('Missing required argument: query');
       }
 
-      const endpointValidationError = await validateExternalEndpoint(endpoint);
-      if (endpointValidationError) {
-        return toError(endpointValidationError);
-      }
-
       const variables = argObject(args, 'variables') ?? {};
       const operationNameRaw = argString(args, 'operationName');
       const operationName =
@@ -47,11 +43,30 @@ export class ReplayHandlers {
       const headers = normalizeHeaders(args.headers);
       const useBrowser = argBool(args, 'useBrowser', true);
 
-      if (!useBrowser) {
-        return await this.replayViaNode(endpoint, query, variables, operationName, headers);
+      if (useBrowser) {
+        const page = await this.collector.getActivePage();
+        const currentPageUrl = typeof page.url === 'function' ? page.url() : null;
+        const endpointValidationError = await validateBrowserEndpoint(endpoint, currentPageUrl);
+        if (endpointValidationError) {
+          return toError(endpointValidationError);
+        }
+
+        return await this.replayViaBrowser(
+          page,
+          endpoint,
+          query,
+          variables,
+          operationName,
+          headers,
+        );
       }
 
-      return await this.replayViaBrowser(endpoint, query, variables, operationName, headers);
+      const endpointValidationError = await validateExternalEndpoint(endpoint);
+      if (endpointValidationError) {
+        return toError(endpointValidationError);
+      }
+
+      return await this.replayViaNode(endpoint, query, variables, operationName, headers);
     } catch (error) {
       return toError(error);
     }
@@ -125,14 +140,13 @@ export class ReplayHandlers {
   }
 
   private async replayViaBrowser(
+    page: Awaited<ReturnType<CodeCollector['getActivePage']>>,
     endpoint: string,
     query: string,
     variables: Record<string, unknown>,
     operationName: string | null,
     headers: Record<string, string>,
   ) {
-    const page = await this.collector.getActivePage();
-
     const browserResult = (await evaluateWithTimeout(
       page,
       async (input: {

@@ -227,6 +227,26 @@ Captures timeline events (JS execution, layout, paint, rendering) loadable in Ch
       .required('type')
       .openWorld(),
   ),
+  tool('console_inject_fetch_interceptor', (t) =>
+    t
+      .desc('Inject the fetch() interceptor directly')
+      .boolean(
+        'persistent',
+        'Survive page navigations via evaluateOnNewDocument (default: false)',
+        { default: false },
+      )
+      .openWorld(),
+  ),
+  tool('console_inject_xhr_interceptor', (t) =>
+    t
+      .desc('Inject the XMLHttpRequest interceptor directly')
+      .boolean(
+        'persistent',
+        'Survive page navigations via evaluateOnNewDocument (default: false)',
+        { default: false },
+      )
+      .openWorld(),
+  ),
   tool('console_buffers', (t) =>
     t
       .desc('Manage injected interceptor state.')

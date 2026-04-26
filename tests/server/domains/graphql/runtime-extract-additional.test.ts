@@ -84,6 +84,47 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
       expect(body.queries[0].operationName).toBe('GetUser');
     });
 
+    it('extracts queries from __getFetchRequests when only the getter is exposed', async () => {
+      (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
+        const fakeWindow: Record<string, unknown> = {
+          __getFetchRequests: () => [
+            {
+              url: 'https://api.example.com/graphql',
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                query: 'query GetterQuery { viewer { id } }',
+                operationName: 'GetterQuery',
+              }),
+              timestamp: 1700000000001,
+            },
+          ],
+        };
+        const origWindow = globalThis.window;
+        try {
+          Object.defineProperty(globalThis, 'window', {
+            value: fakeWindow,
+            writable: true,
+            configurable: true,
+          });
+          return fn(maxItems);
+        } finally {
+          Object.defineProperty(globalThis, 'window', {
+            value: origWindow,
+            writable: true,
+            configurable: true,
+          });
+        }
+      });
+
+      const body = parseJson<ExtractQueriesResponse>(
+        await handlers.handleGraphqlExtractQueries({}),
+      );
+      expect(body.success).toBe(true);
+      expect(body.stats.totalExtracted).toBe(1);
+      expect(body.queries[0].operationName).toBe('GetterQuery');
+    });
+
     it('extracts queries from __xhrRequests', async () => {
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const fakeWindow: Record<string, unknown> = {
@@ -1132,6 +1173,48 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
       await handlers.handleGraphqlExtractQueries({ limit: -10 });
 
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function), 1);
+    });
+  });
+
+  describe('console monitor fallback', () => {
+    it('falls back to console monitor requests when page buffers are empty', async () => {
+      (page.evaluate as Mock).mockResolvedValueOnce({
+        scannedRecords: 0,
+        totalExtracted: 0,
+        extracted: [],
+      });
+
+      const fallbackHandlers = new GraphQLToolHandlersExtract({
+        collector: collector as any,
+        consoleMonitor: {
+          getFetchRequests: vi.fn().mockResolvedValue([]),
+          getXHRRequests: vi.fn().mockResolvedValue([]),
+          getNetworkRequests: vi.fn().mockReturnValue([
+            {
+              url: 'https://api.example.com/graphql',
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              request: {
+                postData: JSON.stringify({
+                  query: 'query NetworkFallback { node(id: "1") { id } }',
+                  operationName: 'NetworkFallback',
+                }),
+              },
+              timestamp: 1700000005000,
+            },
+          ]),
+        },
+      } as any);
+
+      const body = parseJson<ExtractQueriesResponse>(
+        await fallbackHandlers.handleGraphqlExtractQueries({}),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.stats.scannedRecords).toBe(1);
+      expect(body.stats.totalExtracted).toBe(1);
+      expect(body.queries[0].operationName).toBe('NetworkFallback');
+      expect(body.queries[0].source).toBe('consoleMonitor.networkRequests');
     });
   });
 });

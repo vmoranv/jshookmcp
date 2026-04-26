@@ -141,3 +141,55 @@ describe('V8InspectorClient.getHeapUsage', () => {
     );
   });
 });
+
+describe('V8InspectorClient.getObjectByObjectId', () => {
+  it('inspects runtime object ids via Runtime.getProperties', async () => {
+    const { client, session } = createClient(async (method) => {
+      if (method === 'Runtime.getProperties') {
+        return {
+          result: [
+            { name: 'marker', value: { type: 'string', value: 'runtime-audit' } },
+            { name: 'count', value: { type: 'number', value: 2 } },
+          ],
+          internalProperties: [{ name: '[[Prototype]]', value: { type: 'object' } }],
+        };
+      }
+      throw new Error(`Unexpected method ${method}`);
+    });
+
+    await expect(client.getObjectByObjectId('runtime-object-id')).resolves.toEqual({
+      kind: 'runtime-object',
+      properties: [
+        { name: 'marker', value: { type: 'string', value: 'runtime-audit' } },
+        { name: 'count', value: { type: 'number', value: 2 } },
+      ],
+      internalProperties: [{ name: '[[Prototype]]', value: { type: 'object' } }],
+      privateProperties: [],
+    });
+    expect(session.send).toHaveBeenCalledWith('Runtime.getProperties', {
+      objectId: 'runtime-object-id',
+      ownProperties: true,
+      accessorPropertiesOnly: false,
+      generatePreview: true,
+    });
+  });
+
+  it('falls back to HeapProfiler.getObjectByHeapObjectId when runtime inspection fails', async () => {
+    const { client, session } = createClient(async (method) => {
+      if (method === 'Runtime.getProperties') {
+        throw new Error('not a runtime object id');
+      }
+      if (method === 'HeapProfiler.getObjectByHeapObjectId') {
+        return { result: { type: 'object', description: 'HeapObject' } };
+      }
+      throw new Error(`Unexpected method ${method}`);
+    });
+
+    await expect(client.getObjectByObjectId('1:42')).resolves.toEqual({
+      result: { type: 'object', description: 'HeapObject' },
+    });
+    expect(session.send).toHaveBeenCalledWith('HeapProfiler.getObjectByHeapObjectId', {
+      objectId: '1:42',
+    });
+  });
+});
