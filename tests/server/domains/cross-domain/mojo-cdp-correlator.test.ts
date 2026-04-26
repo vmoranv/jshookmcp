@@ -76,6 +76,18 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
     const result = correlateMojoToCDP(bridge, mojoMessages, [], networkRequests);
 
     expect(result.matchedPairs.some((p) => p.matchType === 'urlloader')).toBe(true);
+    const snapshot = bridge.exportGraph();
+    expect(
+      snapshot.nodes.some(
+        (node) =>
+          node.type === 'network-request' && node.metadata.url === 'https://api.game.com/v1/check',
+      ),
+    ).toBe(true);
+    expect(
+      snapshot.edges.some(
+        (edge) => edge.type === 'mojo-routed-to' && edge.metadata?.matchType === 'urlloader',
+      ),
+    ).toBe(true);
   });
 
   it('should match by timestamp proximity when interface pattern does not apply', async () => {
@@ -114,5 +126,25 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
     expect(result.mojoMessages).toBe(0);
     expect(result.confidence).toBe(0);
     expect(result.matchedPairs).toHaveLength(0);
+  });
+
+  it('should still persist provided network requests when no mojo messages are present', async () => {
+    const result = correlateMojoToCDP(
+      bridge,
+      [],
+      [],
+      [{ requestId: 'req-alone', url: 'https://evidence.example/path', timestamp: 1 }],
+    );
+
+    expect(result.graphNodeIds.length).toBe(1);
+    const snapshot = bridge.exportGraph();
+    expect(
+      snapshot.nodes.some(
+        (node) =>
+          node.type === 'network-request' &&
+          node.metadata.requestId === 'req-alone' &&
+          node.metadata.url === 'https://evidence.example/path',
+      ),
+    ).toBe(true);
   });
 });

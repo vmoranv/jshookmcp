@@ -42,9 +42,13 @@ describe('CrossDomainEvidenceBridge', () => {
 
   describe('addNetworkRequest', () => {
     it('should add a network request node', async () => {
-      const { node } = bridge.addNetworkRequest({ url: 'https://api.example.com/data' });
+      const { node } = bridge.addNetworkRequest({
+        requestId: 'req-1',
+        url: 'https://api.example.com/data',
+      });
       expect(node.id).toMatch(/^network-request-/);
       expect(node.type).toBe('network-request');
+      expect(node.metadata.requestId).toBe('req-1');
       expect(node.metadata.url).toBe('https://api.example.com/data');
     });
 

@@ -1,5 +1,5 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
-import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
+import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
 import { encodingTools } from '@server/domains/encoding/definitions';
 import type { EncodingToolHandlers } from '@server/domains/encoding/index';
 
@@ -11,14 +11,13 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
-  const { CodeCollector } = await import('@server/domains/shared/modules');
   const { EncodingToolHandlers } = await import('@server/domains/encoding/index');
-  if (!ctx.collector) {
-    ctx.collector = new CodeCollector(ctx.config.puppeteer);
-    void ctx.registerCaches();
-  }
+  await ensureBrowserCore(ctx);
   if (!ctx.encodingHandlers) {
-    ctx.encodingHandlers = new EncodingToolHandlers(ctx.collector);
+    ctx.encodingHandlers = new EncodingToolHandlers(
+      ctx.collector!,
+      async (requestId) => ctx.consoleMonitor?.getResponseBody(requestId) ?? null,
+    );
   }
   return ctx.encodingHandlers;
 }

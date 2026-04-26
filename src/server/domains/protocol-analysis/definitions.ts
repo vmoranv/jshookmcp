@@ -3,36 +3,80 @@ import { tool } from '@server/registry/tool-builder';
 
 export const protocolAnalysisTools: Tool[] = [
   tool('payload_template_build', (t) =>
-    t.desc('Build a binary payload from declarative field definitions.').idempotent(),
+    t
+      .desc('Build a deterministic payload from field definitions.')
+      .array(
+        'fields',
+        {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Field name' },
+            type: {
+              type: 'string',
+              enum: ['u8', 'u16', 'u32', 'i8', 'i16', 'i32', 'string', 'bytes'],
+              description: 'Field type',
+            },
+            value: { description: 'Numeric or string field value' },
+            encoding: {
+              type: 'string',
+              enum: ['utf8', 'ascii', 'hex', 'base64'],
+              description: 'String/bytes encoding override',
+            },
+            length: { type: 'number', description: 'Optional fixed length' },
+            padByte: { type: 'number', description: 'Optional pad byte' },
+          },
+          required: ['name', 'type', 'value'],
+        },
+        'Field definitions in output order',
+      )
+      .enum('endian', ['big', 'little'], 'Integer byte order', { default: 'big' })
+      .required('fields')
+      .idempotent(),
   ),
   tool('payload_mutate', (t) =>
     t
-      .desc(
-        'Apply deterministic byte-level mutations to a hex payload. Useful for protocol probing, boundary testing, and replay preparation.',
-      )
+      .desc('Apply deterministic byte-level mutations to a hex payload.')
       .string('hexPayload', 'Source payload as a hex string')
       .array(
         'mutations',
         {
           type: 'object',
           properties: {
-            offset: { type: 'number', description: 'Zero-based byte offset' },
-            length: {
-              type: 'number',
-              description:
-                'Mutation length in bytes (default: 1, ignored for replace_hex when valueHex is longer)',
-            },
-            mode: {
+            strategy: {
               type: 'string',
-              enum: ['zero', 'ff', 'flip_bits', 'increment_u8', 'decrement_u8', 'replace_hex'],
+              enum: [
+                'set_byte',
+                'flip_bit',
+                'overwrite_bytes',
+                'append_bytes',
+                'truncate',
+                'increment_integer',
+              ],
               description: 'Mutation strategy',
             },
-            valueHex: {
+            offset: { type: 'number', description: 'Zero-based byte offset' },
+            value: { type: 'number', description: 'Byte value for set_byte' },
+            bit: { type: 'number', description: 'Bit index for flip_bit' },
+            data: { type: 'string', description: 'Mutation data for overwrite/append' },
+            encoding: {
               type: 'string',
-              description: 'Replacement hex bytes for replace_hex mode',
+              enum: ['utf8', 'ascii', 'hex', 'base64'],
+              description: 'Data encoding for overwrite/append',
             },
+            length: {
+              type: 'number',
+              description: 'Target length for truncate',
+            },
+            width: { type: 'number', enum: [1, 2, 4], description: 'Integer width in bytes' },
+            delta: { type: 'number', description: 'Increment/decrement delta' },
+            endian: {
+              type: 'string',
+              enum: ['big', 'little'],
+              description: 'Integer byte order',
+            },
+            signed: { type: 'boolean', description: 'Treat increment target as signed' },
           },
-          required: ['offset', 'mode'],
+          required: ['strategy'],
         },
         'Byte-level mutations to apply in order',
       )
@@ -76,7 +120,9 @@ export const protocolAnalysisTools: Tool[] = [
   ),
   tool('raw_ip_packet_build', (t) =>
     t
-      .desc('Build a deterministic raw IPv4 or IPv6 packet header around an existing payload.')
+      .desc('Build a deterministic IPv4 or IPv6 packet.')
+      .enum('version', ['ipv4', 'ipv6'], 'IP version', { default: 'ipv4' })
+      .string('sourceIp', 'Source IPv4/IPv6 address')
       .string('destinationIp', 'Destination IPv4/IPv6 address')
       .string(
         'protocol',
@@ -202,7 +248,7 @@ export const protocolAnalysisTools: Tool[] = [
         description: 'Pattern specification object',
         additionalProperties: true,
       })
-      .required('name', 'spec')
+      .required('spec')
       .idempotent(),
   ),
   tool('proto_auto_detect', (t) =>

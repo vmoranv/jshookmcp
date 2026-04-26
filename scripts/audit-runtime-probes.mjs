@@ -489,10 +489,16 @@ function summarize(report) {
     `proxy: running=${report.proxy.status?.running ?? false} logs=${report.proxy.requestLogs?.count ?? 0} bodyMarker=${report.proxy.bodyHasMarker ?? false}`,
     `sourcemap: discovered=${report.sourcemap.discoveredCount ?? 0} parsed=${report.sourcemap.parsed?.mappingsCount ?? 'n/a'} reconstructed=${report.sourcemap.reconstructed?.writtenFiles ?? 'n/a'} reconstructedMarker=${report.sourcemap.reconstructedContainsMarker ?? false}`,
     `platform: miniapps=${report.platform?.miniappScan?.count ?? 'n/a'} fuseWire=${report.platform?.electronFuses?.fuseWireFound ?? 'n/a'} userdata=${report.platform?.electronUserdata?.totalScanned ?? 'n/a'} asarFiles=${report.platform?.asarExtract?.totalFiles ?? 'n/a'} asarMatches=${report.platform?.asarSearch?.totalMatches ?? 'n/a'}`,
+    `encoding: detect=${report.encoding.detect?.success ?? 'n/a'} requestIdPath=${report.encoding.detectRequestId?.success ?? 'n/a'} decodeMarker=${report.encoding.decodeMarker ?? false} encodeMarker=${report.encoding.encodeMarker ?? false} protoFields=${Array.isArray(report.encoding.protobuf?.fields) ? report.encoding.protobuf.fields.length : 'n/a'}`,
+    `protocol: template=${report.protocol.payloadTemplate?.hexPayload ?? 'n/a'} mutate=${report.protocol.payloadMutate?.mutatedHex ?? 'n/a'} ipv4=${report.protocol.rawIp?.checksumHex ?? 'n/a'} pcapPackets=${Array.isArray(report.protocol.pcapRead?.packets) ? report.protocol.pcapRead.packets.length : 'n/a'}`,
+    `coordination: handoff=${report.coordination.create?.taskId ?? 'n/a'} insights=${report.coordination.appendInsight?.totalInsights ?? 'n/a'} snapshots=${report.coordination.snapshotList?.total ?? 'n/a'} restoredCookie=${report.coordination.restoreState?.result?.hasCookie ?? 'n/a'}`,
     `streaming: wsFrames=${report.streaming.wsFrameCount} sseEvents=${report.streaming.sseEventCount}`,
     `trace: status=${report.trace.stop?.status ?? 'n/a'} bodies=${report.trace.stop?.networkBodyCount ?? 0} chunks=${report.trace.stop?.networkChunkCount ?? 0} bodyState=${report.trace.flow?.request?.bodyCaptureState ?? 'n/a'}`,
+    `cross-domain: workflows=${report.crossDomain.capabilities?.workflows?.length ?? 'n/a'} suggestion=${report.crossDomain.suggest?.workflowKey ?? 'n/a'} nodes=${report.crossDomain.stats?.nodeCount ?? 'n/a'} evidenceHits=${report.evidence.query?.resultCount ?? 'n/a'} chain=${report.evidence.chain?.chainLength ?? 'n/a'}`,
     `binary: fridaAvailable=${report.binary.capabilitiesAvailable} modules=${report.binary.moduleSample.join(', ') || 'n/a'}`,
     `mojo: available=${report.mojo.capabilitiesAvailable} simulation=${report.mojo.monitorSimulation} catalog=${report.mojo.interfaceCatalogSource} messages=${report.mojo.messageCount}`,
+    `sandbox: success=${report.sandbox.ok ?? 'n/a'} persisted=${report.sandbox.persisted ?? 'n/a'}`,
+    `maintenance: tokenUsage=${report.maintenance.tokenStats?.currentUsage ?? 'n/a'} cacheEntries=${report.maintenance.cacheStats?.totalEntries ?? 'n/a'} doctor=${report.maintenance.doctor?.ok ?? report.maintenance.doctor?.success ?? 'n/a'}`,
     `workflow: count=${report.workflow.count ?? 0} run=${report.workflow.run?.success ?? 'skipped'}`,
     `v8: launchFlag=${report.browser.launch?.v8NativeSyntaxEnabled ?? 'n/a'} simulated=${report.v8.capture?.simulated ?? 'n/a'} sizeBytes=${report.v8.capture?.sizeBytes ?? 0} statsUsed=${report.v8.stats?.heapUsage?.jsHeapSizeUsed ?? 'n/a'} script=${report.v8.firstScriptUrl ?? report.v8.firstScriptId ?? 'n/a'} bytecode=${report.v8.bytecode?.success ?? 'skipped'} bytecodeMode=${report.v8.bytecode?.mode ?? 'n/a'} jit=${Array.isArray(report.v8.jit?.functions) ? report.v8.jit.functions.length : 'skipped'} jitMode=${report.v8.jit?.inspectionMode ?? 'n/a'} natives=${report.v8.version?.features?.nativesSyntax ?? 'n/a'}`,
     '',
@@ -526,14 +532,21 @@ async function main() {
     http2Url: server.http2Url,
     tools: [],
     platform: {},
+    encoding: {},
+    protocol: {},
     browser: {},
     network: {},
     proxy: {},
+    coordination: {},
     sourcemap: {},
     streaming: {},
     trace: {},
+    crossDomain: {},
+    evidence: {},
     binary: {},
     mojo: {},
+    sandbox: {},
+    maintenance: {},
     workflow: {},
     v8: {},
   };
@@ -600,6 +613,128 @@ async function main() {
       { searchPath: miniappDir },
       15000,
     );
+    const pcapPath = join(platformProbeDir, 'runtime-audit.pcap');
+    report.protocol.payloadTemplate = await callTool(
+      client,
+      'payload_template_build',
+      {
+        fields: [
+          { name: 'magic', type: 'u16', value: 0x1234 },
+          { name: 'tag', type: 'string', value: 'OK', encoding: 'ascii', length: 4, padByte: 0x20 },
+          { name: 'tail', type: 'bytes', value: 'aabb', encoding: 'hex' },
+        ],
+        endian: 'big',
+      },
+      15000,
+    );
+    report.protocol.payloadMutate = await callTool(
+      client,
+      'payload_mutate',
+      {
+        hexPayload: '001020',
+        mutations: [
+          { strategy: 'set_byte', offset: 1, value: 255 },
+          { strategy: 'flip_bit', offset: 2, bit: 0 },
+          { strategy: 'append_bytes', data: 'aa', encoding: 'hex' },
+        ],
+      },
+      15000,
+    );
+    report.protocol.ethernet = await callTool(
+      client,
+      'ethernet_frame_build',
+      {
+        destinationMac: 'aa:bb:cc:dd:ee:ff',
+        sourceMac: '11:22:33:44:55:66',
+        etherType: 'ipv4',
+        payloadHex: '4500',
+      },
+      15000,
+    );
+    report.protocol.arp = await callTool(
+      client,
+      'arp_build',
+      {
+        operation: 'request',
+        senderMac: '11:22:33:44:55:66',
+        senderIp: '192.0.2.10',
+        targetIp: '192.0.2.1',
+      },
+      15000,
+    );
+    report.protocol.rawIp = await callTool(
+      client,
+      'raw_ip_packet_build',
+      {
+        version: 'ipv4',
+        sourceIp: '192.0.2.1',
+        destinationIp: '198.51.100.2',
+        protocol: 'icmp',
+        identification: 1,
+        dontFragment: true,
+        ttl: 64,
+        payloadHex: '08000000',
+      },
+      15000,
+    );
+    report.protocol.icmpEcho = await callTool(
+      client,
+      'icmp_echo_build',
+      {
+        operation: 'request',
+        identifier: 1,
+        sequenceNumber: 2,
+        payloadHex: 'aabb',
+      },
+      15000,
+    );
+    report.protocol.checksum = await callTool(
+      client,
+      'checksum_apply',
+      {
+        hexPayload: '0800000000010002aabb',
+        zeroOffset: 2,
+        zeroLength: 2,
+        writeOffset: 2,
+      },
+      15000,
+    );
+    report.protocol.pcapWrite = await callTool(
+      client,
+      'pcap_write',
+      {
+        path: pcapPath,
+        packets: [
+          {
+            dataHex: '001122334455aabbccddeeff08000102',
+            timestampSeconds: 1700000000,
+            timestampFraction: 1234,
+          },
+          {
+            dataHex: '08004d4100010002aabb',
+            timestampSeconds: 1700000001,
+            timestampFraction: 5678,
+            originalLength: 10,
+          },
+        ],
+        linkType: 'ethernet',
+      },
+      15000,
+    );
+    report.protocol.pcapRead = await callTool(
+      client,
+      'pcap_read',
+      { path: pcapPath, maxPackets: 2 },
+      15000,
+    );
+    report.maintenance.tokenStats = await callTool(client, 'get_token_budget_stats', {}, 15000);
+    report.maintenance.cacheStats = await callTool(client, 'get_cache_stats', {}, 15000);
+    report.maintenance.doctor = await callTool(
+      client,
+      'doctor_environment',
+      { includeBridgeHealth: false },
+      45000,
+    );
     report.binary.capabilities = await callTool(
       client,
       'binary_instrument_capabilities',
@@ -647,6 +782,106 @@ async function main() {
       { url: server.baseUrl, waitUntil: 'load', timeout: 15000 },
       60000,
     );
+    report.coordination.create = await callTool(
+      client,
+      'create_task_handoff',
+      {
+        description: 'Runtime audit coordination probe',
+        constraints: ['runtime-audit'],
+        targetDomain: 'network',
+      },
+      15000,
+    );
+    report.coordination.appendInsight = await callTool(
+      client,
+      'append_session_insight',
+      {
+        category: 'audit',
+        content: 'Captured runtime coordination fixture state',
+        confidence: 1,
+      },
+      15000,
+    );
+    report.coordination.context = await callTool(
+      client,
+      'get_task_context',
+      { taskId: report.coordination.create?.taskId },
+      15000,
+    );
+    report.coordination.seedState = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          document.cookie = 'audit_cookie=initial; path=/';
+          localStorage.setItem('audit-key', 'snapshot-value');
+          sessionStorage.setItem('audit-session', 'snapshot-session');
+          return {
+            url: location.href,
+            cookie: document.cookie,
+            localStorage: localStorage.getItem('audit-key'),
+            sessionStorage: sessionStorage.getItem('audit-session'),
+          };
+        })()`,
+      },
+      15000,
+    );
+    report.coordination.saveSnapshot = await callTool(
+      client,
+      'save_page_snapshot',
+      { label: 'runtime-audit' },
+      15000,
+    );
+    report.coordination.snapshotList = await callTool(client, 'list_page_snapshots', {}, 15000);
+    if (report.coordination.saveSnapshot?.snapshotId) {
+      report.coordination.mutateState = await callTool(
+        client,
+        'page_evaluate',
+        {
+          code: `(() => {
+            document.cookie = 'audit_cookie=mutated; path=/';
+            localStorage.setItem('audit-key', 'mutated-value');
+            sessionStorage.setItem('audit-session', 'mutated-session');
+            return {
+              cookie: document.cookie,
+              localStorage: localStorage.getItem('audit-key'),
+              sessionStorage: sessionStorage.getItem('audit-session'),
+            };
+          })()`,
+        },
+        15000,
+      );
+      report.coordination.restore = await callTool(
+        client,
+        'restore_page_snapshot',
+        { snapshotId: report.coordination.saveSnapshot.snapshotId },
+        30000,
+      );
+      report.coordination.restoreState = await callTool(
+        client,
+        'page_evaluate',
+        {
+          code: `(() => ({
+            hasCookie: document.cookie.includes('audit_cookie=initial'),
+            localStorage: localStorage.getItem('audit-key'),
+            sessionStorage: sessionStorage.getItem('audit-session')
+          }))()`,
+        },
+        15000,
+      );
+    }
+    if (report.coordination.create?.taskId) {
+      report.coordination.complete = await callTool(
+        client,
+        'complete_task_handoff',
+        {
+          taskId: report.coordination.create.taskId,
+          summary: 'Runtime audit coordination probe complete',
+          keyFindings: ['snapshot saved', 'snapshot restored'],
+        },
+        15000,
+      );
+    }
     report.network.rawHttp = await callTool(
       client,
       'http_plain_request',
@@ -861,9 +1096,88 @@ async function main() {
       );
       const responseStrings = flattenStrings(report.network.responseBody);
       report.network.bodyHasMarker = responseStrings.some((entry) => entry.includes(BODY_MARKER));
+      report.encoding.detectRequestId = await callTool(
+        client,
+        'binary_detect_format',
+        { source: 'raw', requestId: report.network.requestId },
+        15000,
+      );
+
+      const responseBodyText =
+        typeof report.network.responseBody?.body === 'string'
+          ? report.network.responseBody.body
+          : '';
+      const responseBodyBase64 =
+        report.network.responseBody?.base64Encoded === true
+          ? responseBodyText
+          : Buffer.from(responseBodyText, 'utf8').toString('base64');
+      report.encoding.detect = await callTool(
+        client,
+        'binary_detect_format',
+        { source: 'base64', data: responseBodyBase64 },
+        15000,
+      );
+      report.encoding.entropy = await callTool(
+        client,
+        'binary_entropy_analysis',
+        {
+          source: 'base64',
+          data: responseBodyBase64,
+          blockSize: 256,
+        },
+        15000,
+      );
     } else {
       report.network.bodyHasMarker = false;
+      report.encoding.detect = await callTool(
+        client,
+        'binary_detect_format',
+        { source: 'base64', data: Buffer.from(BODY_MARKER, 'utf8').toString('base64') },
+        15000,
+      );
+      report.encoding.entropy = await callTool(
+        client,
+        'binary_entropy_analysis',
+        {
+          source: 'base64',
+          data: Buffer.from(`${BODY_MARKER}:${HTTP2_MARKER}`, 'utf8').toString('base64'),
+          blockSize: 32,
+        },
+        15000,
+      );
     }
+    report.encoding.decode = await callTool(
+      client,
+      'binary_decode',
+      {
+        data: Buffer.from(BODY_MARKER, 'utf8').toString('base64'),
+        encoding: 'base64',
+        outputFormat: 'utf8',
+      },
+      15000,
+    );
+    report.encoding.decodeMarker = flattenStrings(report.encoding.decode).some((entry) =>
+      entry.includes(BODY_MARKER),
+    );
+    report.encoding.encode = await callTool(
+      client,
+      'binary_encode',
+      {
+        data: JSON.stringify({ marker: BODY_MARKER }),
+        inputFormat: 'json',
+        outputEncoding: 'base64',
+      },
+      15000,
+    );
+    report.encoding.encodeMarker =
+      typeof report.encoding.encode?.output === 'string' &&
+      Buffer.from(report.encoding.encode.output, 'base64').toString('utf8').includes(BODY_MARKER);
+    report.encoding.protobuf = await callTool(
+      client,
+      'protobuf_decode_raw',
+      { data: Buffer.from([0x08, 0x96, 0x01]).toString('base64') },
+      15000,
+    );
 
     report.streaming.wsFrames = await callTool(client, 'ws_get_frames', { limit: 20 }, 15000);
     report.streaming.wsConnections = await callTool(client, 'ws_get_connections', {}, 15000);
@@ -921,6 +1235,126 @@ async function main() {
         );
       }
     }
+    const crossDomainUrl = `${server.baseUrl}/body?via=cross-domain`;
+    report.crossDomain.capabilities = await callTool(
+      client,
+      'cross_domain_capabilities',
+      {},
+      15000,
+    );
+    report.crossDomain.suggest = await callTool(
+      client,
+      'cross_domain_suggest_workflow',
+      {
+        goal: 'binary frida hook and network correlation',
+        preferAvailableOnly: false,
+      },
+      15000,
+    );
+    report.crossDomain.health = await callTool(client, 'cross_domain_health', {}, 15000);
+    report.crossDomain.correlate = await callTool(
+      client,
+      'cross_domain_correlate_all',
+      {
+        sceneTree: {
+          layers: [
+            { id: 'layer-1', label: 'readFileBuffer', type: 'picture', heapObjectId: '0x1' },
+          ],
+          drawCommands: [{ id: 'draw-1', type: 'text', label: 'readFileBuffer' }],
+        },
+        jsObjects: [
+          {
+            objectId: '0x1',
+            className: 'Function',
+            name: 'readFileBuffer',
+            stringProps: ['readFileBuffer'],
+            numericProps: {},
+            colorProps: [],
+            urlProps: [],
+          },
+        ],
+        mojoMessages: [
+          {
+            interface: 'network.mojom.URLLoader',
+            method: 'FollowRedirect',
+            timestamp: 1000,
+            messageId: 'mojo-1',
+          },
+        ],
+        cdpEvents: [
+          { eventType: 'Network.requestWillBeSent', timestamp: 1010, url: crossDomainUrl },
+        ],
+        networkRequests: [{ requestId: 'req-cross-1', url: crossDomainUrl, timestamp: 1005 }],
+        syscallEvents: [{ pid: 1, tid: 42, syscallName: 'NtReadFile', timestamp: 2000 }],
+        jsStacks: [{ threadId: 42, timestamp: 2000, frames: [{ functionName: 'readFileBuffer' }] }],
+        ghidraOutput: {
+          moduleName: 'audit.dll',
+          functions: [{ name: 'JS_readFileBuffer', moduleName: 'audit.dll', address: '0x1000' }],
+        },
+      },
+      30000,
+    );
+    report.crossDomain.export = await callTool(client, 'cross_domain_evidence_export', {}, 15000);
+    report.crossDomain.stats = await callTool(client, 'cross_domain_evidence_stats', {}, 15000);
+    report.evidence.query = await callTool(
+      client,
+      'evidence_query',
+      { by: 'url', value: crossDomainUrl },
+      15000,
+    );
+    const firstEvidenceNodeId =
+      Array.isArray(report.evidence.query?.nodes) &&
+      isRecord(report.evidence.query.nodes[0]) &&
+      typeof report.evidence.query.nodes[0].id === 'string'
+        ? report.evidence.query.nodes[0].id
+        : null;
+    if (firstEvidenceNodeId) {
+      report.evidence.chain = await callTool(
+        client,
+        'evidence_chain',
+        { nodeId: firstEvidenceNodeId, direction: 'forward' },
+        15000,
+      );
+    }
+    report.evidence.exportJson = await callTool(
+      client,
+      'evidence_export',
+      { format: 'json' },
+      15000,
+    );
+    report.evidence.exportMarkdown = await callTool(
+      client,
+      'evidence_export',
+      { format: 'markdown' },
+      15000,
+    );
+    const sandboxSessionId = `runtime-audit-${Date.now()}`;
+    report.sandbox.run = await callTool(
+      client,
+      'execute_sandbox_script',
+      {
+        code: `(() => ({ ok: true, marker: ${JSON.stringify(BODY_MARKER)}, __scratchpad: { marker: ${JSON.stringify(BODY_MARKER)} } }))()`,
+        sessionId: sandboxSessionId,
+        timeoutMs: 2000,
+      },
+      30000,
+    );
+    report.sandbox.ok = flattenStrings(report.sandbox.run).some((entry) =>
+      entry.includes('Success'),
+    );
+    report.sandbox.read = await callTool(
+      client,
+      'execute_sandbox_script',
+      {
+        code: '__scratchpad.marker',
+        sessionId: sandboxSessionId,
+        timeoutMs: 2000,
+      },
+      30000,
+    );
+    report.sandbox.persisted = flattenStrings(report.sandbox.read).some((entry) =>
+      entry.includes(BODY_MARKER),
+    );
 
     const chromePid = await getNewestChromePid();
     report.binary.chromePid = chromePid;

@@ -29,6 +29,47 @@ describe('EvidenceHandlers', () => {
     });
   });
 
+  describe('handleQueryDispatch', () => {
+    it('should map by=url value into url queries', async () => {
+      mockGraph.queryByUrl.mockReturnValue([
+        { id: 'n-url', type: 'request', label: 'https://example.test', metadata: {} },
+      ]);
+      const result = handlers.handleQueryDispatch({
+        by: 'url',
+        value: 'https://example.test',
+      }) as any;
+      const data = JSON.parse(result.content[0].text);
+      expect(mockGraph.queryByUrl).toHaveBeenCalledWith('https://example.test');
+      expect(data.resultCount).toBe(1);
+    });
+
+    it('should map by=function value into function queries', async () => {
+      mockGraph.queryByFunction.mockReturnValue([
+        { id: 'n-fn', type: 'function', label: 'readFileBuffer', metadata: {} },
+      ]);
+      const result = handlers.handleQueryDispatch({
+        by: 'function',
+        value: 'readFileBuffer',
+      }) as any;
+      const data = JSON.parse(result.content[0].text);
+      expect(mockGraph.queryByFunction).toHaveBeenCalledWith('readFileBuffer');
+      expect(data.resultCount).toBe(1);
+    });
+
+    it('should map by=script value into script queries', async () => {
+      mockGraph.queryByScriptId.mockReturnValue([
+        { id: 'n-script', type: 'script', label: 'bundle.js', metadata: {} },
+      ]);
+      const result = handlers.handleQueryDispatch({
+        by: 'script',
+        value: 'script-7',
+      }) as any;
+      const data = JSON.parse(result.content[0].text);
+      expect(mockGraph.queryByScriptId).toHaveBeenCalledWith('script-7');
+      expect(data.resultCount).toBe(1);
+    });
+  });
+
   describe('handleQueryFunction', () => {
     it('should query nodes by function and return JSON', async () => {
       mockGraph.queryByFunction.mockReturnValue([

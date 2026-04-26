@@ -21,6 +21,7 @@ import {
   decodeHexString,
   decodeBase64String,
   decodeBinaryAuto,
+  looksLikeBase64,
   decodeUrl,
   encodeUrlBytes,
   previewHex,
@@ -60,11 +61,44 @@ export {
   OUTPUT_ENCODING_SET,
 } from './handlers/shared';
 
+type ResponseBodyPayload = {
+  body: string;
+  base64Encoded: boolean;
+};
+
+type ResponseBodyResolver = (requestId: string) => Promise<ResponseBodyPayload | null>;
+
 export class EncodingToolHandlers {
   protected collector: CodeCollector;
+  protected responseBodyResolver?: ResponseBodyResolver;
 
-  constructor(collector: CodeCollector) {
+  constructor(collector: CodeCollector, responseBodyResolver?: ResponseBodyResolver) {
     this.collector = collector;
+    this.responseBodyResolver = responseBodyResolver;
+  }
+
+  private async resolveCapturedRequestBody(requestId: string): Promise<Buffer | null> {
+    if (this.responseBodyResolver) {
+      try {
+        const payload = await this.responseBodyResolver(requestId);
+        if (payload && typeof payload.body === 'string') {
+          if (payload.base64Encoded) {
+            return Buffer.from(payload.body, 'base64');
+          }
+
+          const maybeBase64 = payload.body.trim();
+          if (looksLikeBase64(maybeBase64)) {
+            return Buffer.from(maybeBase64, 'base64');
+          }
+
+          return Buffer.from(payload.body, 'utf8');
+        }
+      } catch {
+        // Fall through to page-captured body resolution.
+      }
+    }
+
+    return resolveRequestBodyFromActivePage(this.collector, requestId);
   }
 
   async handleBinaryDetectFormat(args: Record<string, unknown>) {
@@ -78,7 +112,7 @@ export class EncodingToolHandlers {
       let requestBodyUsed = false;
 
       if (source === 'raw' && requestId) {
-        buffer = await resolveRequestBodyFromActivePage(this.collector, requestId);
+        buffer = await this.resolveCapturedRequestBody(requestId);
         requestBodyUsed = buffer !== null;
       }
 

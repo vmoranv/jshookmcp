@@ -9,6 +9,7 @@ export interface V8ObjectInput {
 }
 
 export interface NetworkRequestInput {
+  requestId?: string;
   url: string;
   method?: string;
 }
@@ -74,6 +75,7 @@ export class CrossDomainEvidenceBridge {
     const label = input.method ? `${input.method} ${input.url}` : input.url;
     const node = this.graph.addNode('network-request', label, {
       domain: 'network',
+      requestId: input.requestId,
       url: input.url,
       method: input.method ?? 'GET',
     });

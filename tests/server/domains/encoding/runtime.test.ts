@@ -90,6 +90,25 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       expect(body.requestBodyUsed).toBe(false);
       expect(body.requestId).toBeNull();
     });
+
+    it('uses the response body resolver before page-captured fallbacks', async () => {
+      const resolveResponseBody = vi.fn(async () => ({
+        body: Buffer.from('GIF89a', 'utf8').toString('base64'),
+        base64Encoded: true,
+      }));
+      handlers = new EncodingToolHandlers(collector, resolveResponseBody);
+
+      const body = parseJson<any>(
+        await handlers.handleBinaryDetectFormat({ source: 'raw', requestId: 'req-body-1' }),
+      );
+
+      expect(resolveResponseBody).toHaveBeenCalledWith('req-body-1');
+      expect(body.success).toBe(true);
+      expect(body.requestId).toBe('req-body-1');
+      expect(body.requestBodyUsed).toBe(true);
+      expect(body.magicFormats).toContain('gif');
+      expect(collector.getActivePage).not.toHaveBeenCalled();
+    });
   });
 
   /* ---------- handleBinaryDecode ---------- */
