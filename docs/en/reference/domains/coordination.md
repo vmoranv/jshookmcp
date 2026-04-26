@@ -20,22 +20,22 @@ Coordination domain for session insights and MCP Task Handoff, bridging the plan
 
 ## Representative tools
 
-- `create_task_handoff` — Create a sub-task handoff for specialist agent delegation.
-- `complete_task_handoff` — Complete a task handoff with results. Transitions status to completed.
+- `create_task_handoff` — Create an in-session task handoff.
+- `complete_task_handoff` — Complete a task handoff.
 - `get_task_context` — Read task handoff context.
-- `append_session_insight` — Append a discovery to the session-level knowledge accumulator shared across handoffs
-- `save_page_snapshot` — Save current page state (URL, cookies, storage) for checkpoint/restore workflows
-- `restore_page_snapshot` — Restore a saved page snapshot — navigates to URL and reinjects cookies and storage
-- `list_page_snapshots` — List all saved page snapshots in the current session
+- `append_session_insight` — Append a session insight.
+- `save_page_snapshot` — Save current page state.
+- `restore_page_snapshot` — Restore a saved page snapshot.
+- `list_page_snapshots` — List saved page snapshots.
 
 ## Full tool list (7)
 
 | Tool | Description |
 | --- | --- |
-| `create_task_handoff` | Create a sub-task handoff for specialist agent delegation. |
-| `complete_task_handoff` | Complete a task handoff with results. Transitions status to completed. |
+| `create_task_handoff` | Create an in-session task handoff. |
+| `complete_task_handoff` | Complete a task handoff. |
 | `get_task_context` | Read task handoff context. |
-| `append_session_insight` | Append a discovery to the session-level knowledge accumulator shared across handoffs |
-| `save_page_snapshot` | Save current page state (URL, cookies, storage) for checkpoint/restore workflows |
-| `restore_page_snapshot` | Restore a saved page snapshot — navigates to URL and reinjects cookies and storage |
-| `list_page_snapshots` | List all saved page snapshots in the current session |
+| `append_session_insight` | Append a session insight. |
+| `save_page_snapshot` | Save current page state. |
+| `restore_page_snapshot` | Restore a saved page snapshot. |
+| `list_page_snapshots` | List saved page snapshots. |

@@ -28,8 +28,8 @@ Custom protocol analysis domain supporting protocol pattern definition, automati
 - `proto_infer_state_machine` — Infer a protocol state machine from captured message sequences
 - `proto_export_schema` — Export a protocol pattern to a .proto-like schema definition
 - `proto_visualize_state` — Generate a Mermaid state diagram from a protocol state machine definition
-- `payload_template_build` — Build a binary payload from declarative field definitions.
-- `payload_mutate` — Apply deterministic byte-level mutations to a hex payload. Useful for protocol probing, boundary testing, and replay preparation.
+- `payload_template_build` — Build a deterministic payload from field definitions.
+- `payload_mutate` — Apply deterministic byte-level mutations to a hex payload.
 - `ethernet_frame_build` — Build a deterministic Ethernet II frame from source/destination MAC addresses, EtherType, and payload bytes.
 - `arp_build` — Build a deterministic ARP payload for Ethernet/IPv4 style address resolution packets.
 
@@ -43,11 +43,11 @@ Custom protocol analysis domain supporting protocol pattern definition, automati
 | `proto_infer_state_machine` | Infer a protocol state machine from captured message sequences |
 | `proto_export_schema` | Export a protocol pattern to a .proto-like schema definition |
 | `proto_visualize_state` | Generate a Mermaid state diagram from a protocol state machine definition |
-| `payload_template_build` | Build a binary payload from declarative field definitions. |
-| `payload_mutate` | Apply deterministic byte-level mutations to a hex payload. Useful for protocol probing, boundary testing, and replay preparation. |
+| `payload_template_build` | Build a deterministic payload from field definitions. |
+| `payload_mutate` | Apply deterministic byte-level mutations to a hex payload. |
 | `ethernet_frame_build` | Build a deterministic Ethernet II frame from source/destination MAC addresses, EtherType, and payload bytes. |
 | `arp_build` | Build a deterministic ARP payload for Ethernet/IPv4 style address resolution packets. |
-| `raw_ip_packet_build` | Build a deterministic raw IPv4 or IPv6 packet header around an existing payload. |
+| `raw_ip_packet_build` | Build a deterministic IPv4 or IPv6 packet. |
 | `icmp_echo_build` | Build a deterministic ICMPv4 echo request or reply payload with an automatically computed checksum. |
 | `checksum_apply` | Apply a deterministic 16-bit Internet checksum across a payload slice, optionally zeroing and writing the checksum field back into the packet. |
 | `pcap_write` | Write a compact classic PCAP file from deterministic packet byte records. |

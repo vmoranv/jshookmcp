@@ -1,11 +1,11 @@
 # Tool Reality Audit
 
-- Audit date: `2026-04-25`.
+- Audit date: `2026-04-26`.
 - Default platform assumption: current `win32` runtime unless a manifest explicitly filters by platform.
 - Legend: `real` = real implementation path exists; `conditional` = real path but gated by runtime/page/device/tooling/privileges; `fallback` = stub/manual/simulated/degraded path exists; `unregistered` = defined but not mounted.
 - Scope note: this matrix separates mounted/runtime paths from degraded or compatibility-only paths. It does not prove every tool succeeds in every environment; `pnpm run audit:tools` only proves registration/bind integrity plus metadata freshness.
 - Verification commands: targeted Vitest suites for audited domains, `pnpm exec tsc -p tsconfig.json --noEmit`, `pnpm build`, and `pnpm run audit:runtime -- --json`.
-- Focused runtime probes on this machine confirmed real payloads for Frida attach/module/script execution, raw HTTP/HTTP2 probes, proxy forwarding plus request capture, sourcemap discovery/parse/reconstruction, platform local-file tooling (`miniapp_pkg_scan`, `electron_check_fuses`, `electron_scan_userdata`, `asar_extract`, `asar_search`), network response bodies, WebSocket frames, SSE events, trace body/chunk capture, and V8 heap snapshot capture/analyze plus non-zero `v8_heap_stats`. With `browser_launch(enableV8NativesSyntax=true)`, `v8_version_detect.features.nativesSyntax` flipped to `true` and `v8_jit_inspect` returned explicit `inspectionMode: native-status`; `v8_bytecode_extract` still remained source-derived pseudo-bytecode rather than raw Ignition output. Mojo monitoring still degraded to simulation mode with a seeded default interface catalog.
+- Focused runtime probes on this machine confirmed real payloads for Frida attach/module/script execution, raw HTTP/HTTP2 probes, proxy forwarding plus request capture, sourcemap discovery/parse/reconstruction, platform local-file tooling (`miniapp_pkg_scan`, `electron_check_fuses`, `electron_scan_userdata`, `asar_extract`, `asar_search`), network response bodies, `binary_detect_format(requestId)` against captured response bodies, WebSocket frames, SSE events, trace body/chunk capture, and V8 heap snapshot capture/analyze plus non-zero `v8_heap_stats`. With `browser_launch(enableV8NativesSyntax=true)`, `v8_version_detect.features.nativesSyntax` flipped to `true` and `v8_jit_inspect` returned explicit `inspectionMode: native-status`; `v8_bytecode_extract` still remained source-derived pseudo-bytecode rather than raw Ignition output. Mojo monitoring still degraded to simulation mode with a seeded default interface catalog.
 
 High-risk mismatches:
 - `native-bridge` is intentionally externalized from the built-in manifest/ToolCatalog set.

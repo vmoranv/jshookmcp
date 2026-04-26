@@ -222,7 +222,7 @@ Evidence: src/server/domains/encoding/handlers.impl.core.runtime.ts
 
 | tool | status | note |
 | --- | --- | --- |
-| binary_detect_format | real | Deterministic local codecs/parsers. |
+| binary_detect_format | real | Direct payload analysis is local; `requestId` reuse was runtime-verified against captured network response bodies on this machine. |
 | binary_decode | real | Deterministic local codecs/parsers. |
 | binary_encode | real | Deterministic local codecs/parsers. |
 | binary_entropy_analysis | real | Deterministic local codecs/parsers. |
