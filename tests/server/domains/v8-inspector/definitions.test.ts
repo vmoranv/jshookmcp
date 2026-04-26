@@ -12,6 +12,7 @@ describe('v8-inspector definitions', () => {
     expect(bytecodeTool?.inputSchema.properties).toHaveProperty('scriptId');
     expect(bytecodeTool?.inputSchema.required).toContain('scriptId');
     expect(bytecodeTool?.inputSchema.properties).toHaveProperty('functionOffset');
+    expect(bytecodeTool?.inputSchema.properties).toHaveProperty('includeSourceFallback');
     expect(bytecodeTool?.inputSchema.properties).not.toHaveProperty('functionId');
 
     expect(jitTool?.inputSchema.properties).toHaveProperty('scriptId');
