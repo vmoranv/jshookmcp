@@ -25,6 +25,7 @@ export const advancedBrowserToolDefinitions: Tool[] = [
           'context_set',
           'context_get',
           'transfer',
+          'clear',
         ],
         'Action',
       )

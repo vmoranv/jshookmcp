@@ -470,6 +470,7 @@ describe('browser tool definitions', () => {
         'context_set',
         'context_get',
         'transfer',
+        'clear',
       ]);
     });
 
