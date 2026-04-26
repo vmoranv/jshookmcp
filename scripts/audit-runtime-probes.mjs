@@ -349,6 +349,11 @@ function buildMinimalMiniappPkg() {
 
 async function createProbeServer() {
   const bodyPayload = `${BODY_MARKER}\n${'x'.repeat(12361 - BODY_MARKER.length - 1)}`;
+  const rootAppScript = [
+    `window.__auditRuntimeProbeMarker__ = ${JSON.stringify(BODY_MARKER)};`,
+    'window.__auditRuntimeProbeExternalLoaded = true;',
+    "console.log('runtime probe external script loaded');",
+  ].join('\n');
   const sourceMapPayload = JSON.stringify({
     version: 3,
     file: 'app.min.js',
@@ -375,7 +380,27 @@ async function createProbeServer() {
 
     if (req.url === '/') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end('<!doctype html><html><body><h1>runtime probe</h1></body></html>');
+      res.end(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>runtime probe</title>
+    <script>window.__auditRuntimeProbeInlineLoaded = true;</script>
+    <script src="/app.js"></script>
+  </head>
+  <body>
+    <h1>runtime probe</h1>
+  </body>
+</html>`);
+      return;
+    }
+
+    if (req.url === '/app.js') {
+      res.writeHead(200, {
+        'content-type': 'application/javascript; charset=utf-8',
+        'cache-control': 'no-store',
+      });
+      res.end(rootAppScript);
       return;
     }
 
@@ -552,6 +577,7 @@ function summarize(report) {
     `encoding: detect=${report.encoding.detect?.success ?? 'n/a'} requestIdPath=${report.encoding.detectRequestId?.success ?? 'n/a'} decodeMarker=${report.encoding.decodeMarker ?? false} encodeMarker=${report.encoding.encodeMarker ?? false} protoFields=${Array.isArray(report.encoding.protobuf?.fields) ? report.encoding.protobuf.fields.length : 'n/a'}`,
     `protocol: template=${report.protocol.payloadTemplate?.hexPayload ?? 'n/a'} mutate=${report.protocol.payloadMutate?.mutatedHex ?? 'n/a'} ipv4=${report.protocol.rawIp?.checksumHex ?? 'n/a'} pcapPackets=${Array.isArray(report.protocol.pcapRead?.packets) ? report.protocol.pcapRead.packets.length : 'n/a'}`,
     `coordination: handoff=${report.coordination.create?.taskId ?? 'n/a'} insights=${report.coordination.appendInsight?.totalInsights ?? 'n/a'} snapshots=${report.coordination.snapshotList?.total ?? 'n/a'} restoredCookie=${report.coordination.restoreState?.result?.hasCookie ?? 'n/a'}`,
+    `analysis: collectFiles=${report.analysis.collectCode?.filesCount ?? 'n/a'} collectSize=${report.analysis.collectCode?.totalSize ?? 'n/a'} treeFunctions=${Array.isArray(report.analysis.extractFunctionTree?.functions) ? report.analysis.extractFunctionTree.functions.length : 'n/a'}`,
     `streaming: wsFrames=${report.streaming.wsFrameCount} sseEvents=${report.streaming.sseEventCount}`,
     `trace: status=${report.trace.stop?.status ?? 'n/a'} bodies=${report.trace.stop?.networkBodyCount ?? 0} chunks=${report.trace.stop?.networkChunkCount ?? 0} bodyState=${report.trace.flow?.request?.bodyCaptureState ?? 'n/a'}`,
     `captcha: manual=${report.captcha.manualAvailable ?? 'n/a'} ext2captcha=${report.captcha.external2captchaAvailable ?? 'n/a'} hook=${report.captcha.widgetHookAvailable ?? 'n/a'} provider=${report.captcha.configuredProvider ?? 'n/a'}`,
@@ -597,6 +623,7 @@ async function main() {
     encoding: {},
     protocol: {},
     browser: {},
+    analysis: {},
     network: {},
     proxy: {},
     coordination: {},
@@ -844,6 +871,19 @@ async function main() {
       client,
       'page_navigate',
       { url: server.baseUrl, waitUntil: 'load', timeout: 15000 },
+      60000,
+    );
+    report.analysis.collectCode = await callTool(
+      client,
+      'collect_code',
+      {
+        url: server.baseUrl,
+        returnSummaryOnly: true,
+        includeInline: true,
+        includeExternal: true,
+        includeDynamic: true,
+        smartMode: 'summary',
+      },
       60000,
     );
     report.browser.listTabs = await callTool(client, 'browser_list_tabs', {}, 30000);
@@ -1101,6 +1141,24 @@ async function main() {
       { action: 'enable' },
       15000,
     );
+    report.network.consoleInjectScript = await callTool(
+      client,
+      'console_inject',
+      { type: 'script' },
+      15000,
+    );
+    report.network.consoleInjectFetch = await callTool(
+      client,
+      'console_inject',
+      { type: 'fetch' },
+      15000,
+    );
+    report.network.consoleInjectXhr = await callTool(
+      client,
+      'console_inject',
+      { type: 'xhr' },
+      15000,
+    );
     report.streaming.wsMonitor = await callTool(
       client,
       'ws_monitor',
@@ -1124,7 +1182,47 @@ async function main() {
       15000,
     );
     report.mojo.monitorStart = await callTool(client, 'mojo_monitor', { action: 'start' }, 30000);
-
+    report.browser.seedAuditProbeScript = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          const script = document.createElement('script');
+          script.dataset.auditProbe = 'true';
+          script.textContent = 'function auditProbeFn(){ return 7; } window.auditProbeFn = auditProbeFn;\\n//# sourceURL=audit-probe.js';
+          document.documentElement.appendChild(script);
+          return { inserted: true, scriptCount: document.scripts.length };
+        })()`,
+      },
+      15000,
+    );
+    report.browser.consoleExecute = await callTool(
+      client,
+      'console_execute',
+      { expression: 'window.auditProbeFn()' },
+      15000,
+    );
+    {
+      const largeScriptPayload = `window.__auditLargeText = ${JSON.stringify('L'.repeat(70000))};`;
+      report.browser.seedLargeAuditScript = await callTool(
+        client,
+        'page_evaluate',
+        {
+          code: `(() => {
+            const script = document.createElement('script');
+            script.dataset.auditLargeProbe = 'true';
+            script.textContent = ${JSON.stringify(`${largeScriptPayload}\n//# sourceURL=audit-large.js`)};
+            document.documentElement.appendChild(script);
+            return {
+              inserted: true,
+              textLength: script.textContent.length,
+              largeTextLength: window.__auditLargeText.length,
+            };
+          })()`,
+        },
+        15000,
+      );
+    }
     report.browser.pageEval = await callTool(
       client,
       'page_evaluate',
@@ -1194,26 +1292,6 @@ async function main() {
       },
       45000,
     );
-    report.browser.seedAuditProbeScript = await callTool(
-      client,
-      'page_evaluate',
-      {
-        code: `(() => {
-          const script = document.createElement('script');
-          script.dataset.auditProbe = 'true';
-          script.textContent = 'function auditProbeFn(){ return 7; } window.auditProbeFn = auditProbeFn;\\n//# sourceURL=audit-probe.js';
-          document.documentElement.appendChild(script);
-          return { inserted: true, scriptCount: document.scripts.length };
-        })()`,
-      },
-      15000,
-    );
-    report.browser.consoleExecute = await callTool(
-      client,
-      'console_execute',
-      { expression: 'window.auditProbeFn()' },
-      15000,
-    );
     report.browser.consoleLogs = await callTool(client, 'console_get_logs', { limit: 20 }, 15000);
     {
       const consoleLogStrings = flattenStrings(report.browser.consoleLogs);
@@ -1239,9 +1317,127 @@ async function main() {
         entry.includes(CONSOLE_EXCEPTION_MARKER),
       );
     }
+    report.browser.interceptorExercise = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => new Promise(async (resolve, reject) => {
+          try {
+            const dynamic = document.createElement('script');
+            dynamic.textContent = 'window.__auditDynamicScriptSeen = true;';
+            document.documentElement.appendChild(dynamic);
+
+            const fetchText = await fetch(${JSON.stringify(`${server.baseUrl}/body?via=inject-fetch`)}).then((resp) => resp.text());
+
+            const xhrText = await new Promise((resolveXhr, rejectXhr) => {
+              const xhr = new XMLHttpRequest();
+              xhr.open('GET', ${JSON.stringify(`${server.baseUrl}/body?via=inject-xhr`)}, true);
+              xhr.onload = () => resolveXhr(xhr.responseText || '');
+              xhr.onerror = () => rejectXhr(new Error('xhr error'));
+              xhr.send();
+            });
+
+            resolve({
+              dynamicScriptSeen: window.__auditDynamicScriptSeen === true,
+              fetchHasMarker: fetchText.includes(${JSON.stringify(BODY_MARKER)}),
+              xhrHasMarker: xhrText.includes(${JSON.stringify(BODY_MARKER)}),
+            });
+          } catch (error) {
+            reject(error);
+          }
+        }))()`,
+      },
+      30000,
+    );
+    report.network.consoleBuffersClear = await callTool(
+      client,
+      'console_buffers',
+      { action: 'clear' },
+      15000,
+    );
+    report.network.consoleBuffersReset = await callTool(
+      client,
+      'console_buffers',
+      { action: 'reset' },
+      15000,
+    );
+    report.browser.jsdomParse = await callTool(
+      client,
+      'browser_jsdom_parse',
+      {
+        html: '<!doctype html><html><head><title>JSDOM Probe</title></head><body><main id="app"><a class="item" href="/docs">Docs</a><div id="output"></div></main></body></html>',
+        url: `${server.baseUrl}/jsdom-probe`,
+        runScripts: 'outside-only',
+      },
+      15000,
+    );
+    report.browser.jsdomSessionId =
+      typeof report.browser.jsdomParse?.sessionId === 'string'
+        ? report.browser.jsdomParse.sessionId
+        : null;
+    if (report.browser.jsdomSessionId) {
+      report.browser.jsdomQuery = await callTool(
+        client,
+        'browser_jsdom_query',
+        {
+          sessionId: report.browser.jsdomSessionId,
+          selector: '#app .item',
+          includeHtml: true,
+          attributes: ['href', 'class'],
+        },
+        15000,
+      );
+      report.browser.jsdomExecute = await callTool(
+        client,
+        'browser_jsdom_execute',
+        {
+          sessionId: report.browser.jsdomSessionId,
+          code: `document.querySelector('#output').textContent = String(3 + 4); console.log('jsdom-probe-log'); ({ output: document.querySelector('#output').textContent, title: document.title });`,
+        },
+        15000,
+      );
+      report.browser.jsdomSerialize = await callTool(
+        client,
+        'browser_jsdom_serialize',
+        {
+          sessionId: report.browser.jsdomSessionId,
+          selector: '#app',
+          pretty: true,
+        },
+        15000,
+      );
+      report.browser.jsdomCookieSet = await callTool(
+        client,
+        'browser_jsdom_cookies',
+        {
+          sessionId: report.browser.jsdomSessionId,
+          action: 'set',
+          cookie: { name: 'probe', value: 'cookie-ok', path: '/' },
+        },
+        15000,
+      );
+      report.browser.jsdomCookieGet = await callTool(
+        client,
+        'browser_jsdom_cookies',
+        {
+          sessionId: report.browser.jsdomSessionId,
+          action: 'get',
+        },
+        15000,
+      );
+      report.browser.jsdomCookieClear = await callTool(
+        client,
+        'browser_jsdom_cookies',
+        {
+          sessionId: report.browser.jsdomSessionId,
+          action: 'clear',
+        },
+        15000,
+      );
+    }
     report.v8.debugger = await callTool(client, 'debugger_lifecycle', { action: 'enable' }, 30000);
     report.v8.version = await callTool(client, 'v8_version_detect', {}, 30000);
-    report.v8.scripts = await callTool(client, 'get_all_scripts', { maxScripts: 20 }, 30000);
+    report.v8.scripts = await callTool(client, 'get_all_scripts', { maxScripts: 200 }, 30000);
     const firstScript = pickScriptForV8Inspection(report.v8.scripts?.scripts);
     report.v8.firstScriptId =
       isRecord(firstScript) && typeof firstScript.scriptId === 'string'
@@ -1251,24 +1447,28 @@ async function main() {
       isRecord(firstScript) && typeof firstScript.url === 'string' && firstScript.url.length > 0
         ? firstScript.url
         : null;
-    if (report.v8.firstScriptId) {
-      report.browser.scriptSource = await callTool(
-        client,
-        'get_script_source',
-        { scriptId: report.v8.firstScriptId, preview: true, maxLines: 20 },
-        30000,
-      );
+    report.browser.scriptSource = await callTool(
+      client,
+      'get_script_source',
+      { url: '*audit-probe.js', preview: true, maxLines: 20 },
+      30000,
+    );
+    report.v8.auditProbeScriptId =
+      typeof report.browser.scriptSource?.scriptId === 'string'
+        ? report.browser.scriptSource.scriptId
+        : null;
+    if (report.v8.auditProbeScriptId) {
       report.v8.bytecode = await callTool(
         client,
         'v8_bytecode_extract',
-        { scriptId: report.v8.firstScriptId },
+        { scriptId: report.v8.auditProbeScriptId },
         30000,
       );
       report.v8.bytecodeSourceFallback = await callTool(
         client,
         'v8_bytecode_extract',
         {
-          scriptId: report.v8.firstScriptId,
+          scriptId: report.v8.auditProbeScriptId,
           includeSourceFallback: true,
         },
         30000,
@@ -1276,9 +1476,56 @@ async function main() {
       report.v8.jit = await callTool(
         client,
         'v8_jit_inspect',
-        { scriptId: report.v8.firstScriptId },
+        { scriptId: report.v8.auditProbeScriptId },
         30000,
       );
+      report.analysis.extractFunctionTree = await callTool(
+        client,
+        'extract_function_tree',
+        {
+          scriptId: report.v8.auditProbeScriptId,
+          functionName: 'auditProbeFn',
+          maxDepth: 3,
+        },
+        30000,
+      );
+    }
+    report.browser.largeScriptPreview = await callTool(
+      client,
+      'get_script_source',
+      { url: '*audit-large.js', preview: true, maxLines: 5 },
+      30000,
+    );
+    report.browser.largeScriptId =
+      typeof report.browser.largeScriptPreview?.scriptId === 'string'
+        ? report.browser.largeScriptPreview.scriptId
+        : null;
+    if (report.browser.largeScriptId) {
+      report.browser.largeScriptSource = await callTool(
+        client,
+        'get_script_source',
+        { scriptId: report.browser.largeScriptId, preview: false },
+        30000,
+      );
+      if (typeof report.browser.largeScriptSource?.detailId === 'string') {
+        const largeScriptSource = await callTool(
+          client,
+          'get_detailed_data',
+          { detailId: report.browser.largeScriptSource.detailId, path: 'source' },
+          30000,
+        );
+        const detailedSource =
+          isRecord(largeScriptSource) && largeScriptSource.success === true
+            ? largeScriptSource.data
+            : largeScriptSource;
+        report.browser.largeScriptDetailedData = {
+          detailId: report.browser.largeScriptSource.detailId,
+          sourceLength: typeof detailedSource === 'string' ? detailedSource.length : null,
+          hasMarker:
+            typeof detailedSource === 'string' &&
+            detailedSource.includes('window.__auditLargeText'),
+        };
+      }
     }
     report.v8.seedPauseTimer = await callTool(
       client,
