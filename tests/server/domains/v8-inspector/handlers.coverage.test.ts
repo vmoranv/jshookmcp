@@ -97,7 +97,10 @@ function createMockDeps(
     getHeapUsage: mockGetHeapUsage,
     dispose: vi.fn(),
   } as unknown as import('@modules/v8-inspector/V8InspectorClient').V8InspectorClient;
-  return { ctx, client, ...overrides };
+  return {
+    ctx: overrides?.ctx ?? ctx,
+    client: overrides?.client ?? client,
+  };
 }
 
 function createMockDepsWithoutPage(): V8InspectorDomainDependencies {
@@ -813,6 +816,52 @@ describe('v8-inspector handler coverage', () => {
         await expect(handlers.v8_object_inspect({})).rejects.toThrow('address is required');
       });
 
+      it('should prefer debugger manager object inspection when available', async () => {
+        const debuggerManager = {
+          getObjectPropertiesById: vi.fn().mockResolvedValue([
+            {
+              name: 'tag',
+              value: 'runtime-audit',
+              type: 'string',
+            },
+          ]),
+        };
+        const handlers = new V8InspectorHandlers(
+          createMockDeps({
+            ctx: {
+              pageController: {
+                getPage: vi.fn().mockResolvedValue({}),
+              },
+              eventBus: {
+                emit: vi.fn().mockResolvedValue(undefined),
+              },
+              debuggerManager,
+            } as unknown as import('@server/MCPServer.context').MCPServerContext,
+          }),
+        );
+
+        const result = await handlers.v8_object_inspect({ address: 'debugger-object-id' });
+
+        expect(debuggerManager.getObjectPropertiesById).toHaveBeenCalledWith('debugger-object-id');
+        expect(mockGetObjectByObjectId).not.toHaveBeenCalled();
+        expect(result).toEqual({
+          success: true,
+          address: 'debugger-object-id',
+          objectData: {
+            kind: 'runtime-object',
+            source: 'debugger-session',
+            propertyCount: 1,
+            properties: [
+              {
+                name: 'tag',
+                value: 'runtime-audit',
+                type: 'string',
+              },
+            ],
+          },
+        });
+      });
+
       it('should return object data when client succeeds', async () => {
         mockGetObjectByObjectId.mockResolvedValueOnce({ type: 'object', className: 'Object' });
         const handlers = new V8InspectorHandlers(createMockDeps());
@@ -823,6 +872,36 @@ describe('v8-inspector handler coverage', () => {
           success: true,
           address: '1:42',
           objectData: { type: 'object', className: 'Object' },
+        });
+      });
+
+      it('should fall back to client when debugger manager cannot inspect the object', async () => {
+        const debuggerManager = {
+          getObjectPropertiesById: vi.fn().mockRejectedValue(new Error('Invalid remote object id')),
+        };
+        mockGetObjectByObjectId.mockResolvedValueOnce({ type: 'object', className: 'Fallback' });
+        const handlers = new V8InspectorHandlers(
+          createMockDeps({
+            ctx: {
+              pageController: {
+                getPage: vi.fn().mockResolvedValue({}),
+              },
+              eventBus: {
+                emit: vi.fn().mockResolvedValue(undefined),
+              },
+              debuggerManager,
+            } as unknown as import('@server/MCPServer.context').MCPServerContext,
+          }),
+        );
+
+        const result = await handlers.v8_object_inspect({ address: '1:77' });
+
+        expect(debuggerManager.getObjectPropertiesById).toHaveBeenCalledWith('1:77');
+        expect(mockGetObjectByObjectId).toHaveBeenCalledWith('1:77');
+        expect(result).toEqual({
+          success: true,
+          address: '1:77',
+          objectData: { type: 'object', className: 'Fallback' },
         });
       });
 

@@ -107,23 +107,61 @@ export function normalizeHeaders(value: unknown): Record<string, string> {
 
 // ── Endpoint validation ──
 
-export async function validateExternalEndpoint(endpoint: string): Promise<string | null> {
+function parseEndpoint(endpoint: string): { parsedEndpoint: URL } | { error: string } {
   let parsedEndpoint: URL;
   try {
     parsedEndpoint = new URL(endpoint);
   } catch {
-    return `Invalid endpoint URL: ${endpoint}`;
+    return { error: `Invalid endpoint URL: ${endpoint}` };
   }
 
   if (parsedEndpoint.protocol !== 'http:' && parsedEndpoint.protocol !== 'https:') {
-    return `Unsupported endpoint protocol: ${parsedEndpoint.protocol} — only http/https allowed`;
+    return {
+      error: `Unsupported endpoint protocol: ${parsedEndpoint.protocol} — only http/https allowed`,
+    };
   }
 
-  if (await isSsrfTarget(parsedEndpoint.toString())) {
+  return { parsedEndpoint };
+}
+
+export async function validateExternalEndpoint(endpoint: string): Promise<string | null> {
+  const parsed = parseEndpoint(endpoint);
+  if ('error' in parsed) {
+    return parsed.error;
+  }
+
+  if (await isSsrfTarget(parsed.parsedEndpoint.toString())) {
     return `Blocked: endpoint "${endpoint}" resolves to a private/reserved address`;
   }
 
   return null;
+}
+
+export async function validateBrowserEndpoint(
+  endpoint: string,
+  currentPageUrl: string | null,
+): Promise<string | null> {
+  const parsed = parseEndpoint(endpoint);
+  if ('error' in parsed) {
+    return parsed.error;
+  }
+
+  if (!(await isSsrfTarget(parsed.parsedEndpoint.toString()))) {
+    return null;
+  }
+
+  if (typeof currentPageUrl === 'string' && currentPageUrl.length > 0) {
+    try {
+      const currentPageOrigin = new URL(currentPageUrl).origin;
+      if (currentPageOrigin === parsed.parsedEndpoint.origin) {
+        return null;
+      }
+    } catch {
+      // Fall through to the blocked response below.
+    }
+  }
+
+  return `Blocked: endpoint "${endpoint}" resolves to a private/reserved address`;
 }
 
 // ── Preview helpers ──

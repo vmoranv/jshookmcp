@@ -157,6 +157,8 @@ describe('PlaywrightNetworkMonitor', () => {
     const reset = await monitor.resetInjectedInterceptors();
 
     expect(page.evaluate).toHaveBeenCalledTimes(6);
+    expect(page.evaluate).toHaveBeenNthCalledWith(2, expect.stringContaining('body'));
+    expect(page.evaluate).toHaveBeenNthCalledWith(2, expect.stringContaining('response'));
     expect(xhr).toEqual([{ id: 'xhr-1' }]);
     expect(fetch).toEqual([{ id: 'fetch-1' }]);
     expect(cleared).toEqual({ xhrCleared: 2, fetchCleared: 3 });

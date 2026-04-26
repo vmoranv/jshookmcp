@@ -34,7 +34,7 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 - `performance_coverage` — Start or stop JavaScript and CSS code coverage recording
 - `performance_take_heap_snapshot` — Take a V8 heap memory snapshot
 
-## Full tool list (27)
+## Full tool list (29)
 
 | Tool | Description |
 | --- | --- |
@@ -53,6 +53,8 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 | `profiler_heap_sampling` | V8 heap allocation sampling. Action 'start' begins tracking; 'stop' ends and returns top allocators. |
 | `console_get_exceptions` | Get captured uncaught exceptions from the page |
 | `console_inject` | Inject an in-page monitor/interceptor. Types: |
+| `console_inject_fetch_interceptor` | Inject the fetch() interceptor directly |
+| `console_inject_xhr_interceptor` | Inject the XMLHttpRequest interceptor directly |
 | `console_buffers` | Manage injected interceptor state. |
 | `http_request_build` | Build a raw HTTP/1.x request payload with CRLF line endings. Useful for preparing deterministic request text for http_plain_request or other raw socket tools. |
 | `http_plain_request` | Send a raw HTTP request over plain TCP using deterministic server-side logic with DNS pinning, response parsing, and bounded capture. Non-loopback HTTP targets require explicit request-scoped authorization. |

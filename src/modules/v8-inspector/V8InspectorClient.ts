@@ -19,6 +19,13 @@ interface HeapSnapshotChunkEvent {
   chunk: string;
 }
 
+interface RuntimeGetPropertiesResponse {
+  result?: unknown[];
+  internalProperties?: unknown[];
+  privateProperties?: unknown[];
+  exceptionDetails?: unknown;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -222,23 +229,43 @@ export class V8InspectorClient {
    * @returns The object's properties and metadata.
    */
   async getObjectByObjectId(_objectId: string): Promise<Record<string, unknown> | null> {
-    if (!this.session) {
-      await this.enableHeapProfiler();
-    }
-    const session = this.session;
+    const session = await this.createSession();
     if (!session) {
       return null;
     }
 
     try {
-      // Use HeapProfiler.getObjectByObjectId to retrieve the remote object
-      const response = await session.send<Record<string, unknown>>(
-        'HeapProfiler.getObjectByObjectId',
+      const response = await session.send<RuntimeGetPropertiesResponse>('Runtime.getProperties', {
+        objectId: _objectId,
+        ownProperties: true,
+        accessorPropertiesOnly: false,
+        generatePreview: true,
+      });
+      if (Array.isArray(response.result)) {
+        return {
+          kind: 'runtime-object',
+          properties: response.result,
+          internalProperties: Array.isArray(response.internalProperties)
+            ? response.internalProperties
+            : [],
+          privateProperties: Array.isArray(response.privateProperties)
+            ? response.privateProperties
+            : [],
+          ...(response.exceptionDetails ? { exceptionDetails: response.exceptionDetails } : {}),
+        };
+      }
+    } catch {
+      // Fall through to graceful null below.
+    }
+
+    try {
+      const heapResponse = await session.send<Record<string, unknown>>(
+        'HeapProfiler.getObjectByHeapObjectId',
         {
           objectId: _objectId,
         },
       );
-      return response;
+      return heapResponse;
     } catch {
       return null;
     }
@@ -337,6 +364,7 @@ export class V8InspectorClient {
       if (!isCDPSessionLike(session)) {
         return null;
       }
+      this.session = session;
       return session;
     } catch {
       return null;

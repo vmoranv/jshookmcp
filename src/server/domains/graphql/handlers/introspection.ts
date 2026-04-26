@@ -12,6 +12,7 @@ import {
   toResponse,
   toError,
   normalizeHeaders,
+  validateBrowserEndpoint,
   validateExternalEndpoint,
   createPreview,
   serializeForPreview,
@@ -35,19 +36,26 @@ export class IntrospectionHandlers {
         return toError('Missing required argument: endpoint');
       }
 
+      const headers = normalizeHeaders(args.headers);
+      const useBrowser = argBool(args, 'useBrowser', true);
+
+      if (useBrowser) {
+        const page = await this.collector.getActivePage();
+        const currentPageUrl = typeof page.url === 'function' ? page.url() : null;
+        const endpointValidationError = await validateBrowserEndpoint(endpoint, currentPageUrl);
+        if (endpointValidationError) {
+          return toError(endpointValidationError);
+        }
+
+        return await this.introspectViaBrowser(page, endpoint, headers);
+      }
+
       const endpointValidationError = await validateExternalEndpoint(endpoint);
       if (endpointValidationError) {
         return toError(endpointValidationError);
       }
 
-      const headers = normalizeHeaders(args.headers);
-      const useBrowser = argBool(args, 'useBrowser', true);
-
-      if (!useBrowser) {
-        return await this.introspectViaNode(endpoint, headers);
-      }
-
-      return await this.introspectViaBrowser(endpoint, headers);
+      return await this.introspectViaNode(endpoint, headers);
     } catch (error) {
       return toError(error);
     }
@@ -143,9 +151,11 @@ export class IntrospectionHandlers {
     return toResponse(payload);
   }
 
-  private async introspectViaBrowser(endpoint: string, headers: Record<string, string>) {
-    const page = await this.collector.getActivePage();
-
+  private async introspectViaBrowser(
+    page: Awaited<ReturnType<CodeCollector['getActivePage']>>,
+    endpoint: string,
+    headers: Record<string, string>,
+  ) {
     const browserResult = (await evaluateWithTimeout(
       page,
       async (input: {

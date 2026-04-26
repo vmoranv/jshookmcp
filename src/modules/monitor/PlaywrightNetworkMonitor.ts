@@ -444,24 +444,73 @@ export class PlaywrightNetworkMonitor {
         const origFetch = window.__pwOriginalFetch || window.fetch;
         window.__pwOriginalFetch = origFetch;
         if (!window.__fetchRequests) window.__fetchRequests = [];
+        const normalizeHeaders = (value) => {
+          if (!value) return {};
+          try {
+            if (typeof Headers !== 'undefined' && value instanceof Headers) {
+              return Object.fromEntries(value.entries());
+            }
+          } catch {}
+          if (Array.isArray(value)) {
+            try {
+              return Object.fromEntries(value);
+            } catch {
+              return {};
+            }
+          }
+          return typeof value === 'object' ? value : {};
+        };
         window.fetch = function(...args) {
-          const [url, opts] = args;
-          const entry = { url: String(url), method: opts?.method || 'GET', timestamp: Date.now() };
+          const [resource, opts = {}] = args;
+          const requestLike = resource && typeof resource === 'object' ? resource : null;
+          const url =
+            typeof resource === 'string'
+              ? resource
+              : typeof resource?.url === 'string'
+                ? resource.url
+                : String(resource);
+          const method = opts?.method || requestLike?.method || 'GET';
+          const headers = normalizeHeaders(opts?.headers || requestLike?.headers);
+          const bodySource = opts?.body;
+          const body =
+            bodySource === undefined || bodySource === null
+              ? null
+              : String(bodySource).slice(0, 2048);
+          const entry = {
+            url,
+            method,
+            headers,
+            body,
+            timestamp: Date.now(),
+            response: null,
+            status: 0,
+          };
           return origFetch.apply(this, args).then(res => {
             entry.status = res.status;
-            window.__fetchRequests.push(entry);
-            if (window.__fetchRequests.length > maxRecords) {
-              window.__fetchRequests.splice(0, window.__fetchRequests.length - maxRecords);
-            }
-            // Auto-persist compact summary so data survives context compression
-            try {
-              const s = { url: entry.url, method: entry.method, status: entry.status, ts: entry.timestamp };
-              const prev = JSON.parse(localStorage.getItem('__capturedAPIs') || '[]');
-              prev.push(s);
-              if (prev.length > 500) prev.splice(0, prev.length - 500);
-              localStorage.setItem('__capturedAPIs', JSON.stringify(prev));
-            } catch(e) {}
-            return res;
+            return res.clone().text().then(
+              (text) => {
+                entry.response = text.slice(0, 2048);
+                return res;
+              },
+              () => {
+                entry.response = '[Unable to read response]';
+                return res;
+              },
+            ).then((response) => {
+              window.__fetchRequests.push(entry);
+              if (window.__fetchRequests.length > maxRecords) {
+                window.__fetchRequests.splice(0, window.__fetchRequests.length - maxRecords);
+              }
+              // Auto-persist compact summary so data survives context compression
+              try {
+                const s = { url: entry.url, method: entry.method, status: entry.status, ts: entry.timestamp };
+                const prev = JSON.parse(localStorage.getItem('__capturedAPIs') || '[]');
+                prev.push(s);
+                if (prev.length > 500) prev.splice(0, prev.length - 500);
+                localStorage.setItem('__capturedAPIs', JSON.stringify(prev));
+              } catch(e) {}
+              return response;
+            });
           });
         };
         console.log('[PlaywrightFetch] Fetch interceptor injected');
