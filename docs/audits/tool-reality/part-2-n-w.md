@@ -247,18 +247,19 @@ Focused runtime note: on this machine the live heap capture path returned `simul
 | v8_jit_inspect | conditional | Needs active page/CDP; default Chrome launches now return native optimization status, while explicit `enableV8NativesSyntax=false` still degrades to `inspectionMode: heuristic`. |
 
 ## wasm
-Evidence: src/server/domains/wasm/handlers.impl.ts:114-651
+Evidence: src/server/domains/wasm/handlers.impl.core.ts; src/server/domains/wasm/handlers/capability-handlers.ts; src/server/domains/wasm/handlers/browser-handlers.ts; src/server/domains/wasm/handlers/external-tool-handlers.ts
 
 | tool | status | note |
 | --- | --- | --- |
-| wasm_dump | conditional | Needs browser hook/page state for live dumping. |
-| wasm_disassemble | conditional | Mix of browser-backed capture and external runner/tool dependencies. |
-| wasm_decompile | conditional | Mix of browser-backed capture and external runner/tool dependencies. |
-| wasm_inspect_sections | real | Section parsing/inspection is local once bytes/module input exists. |
-| wasm_offline_run | conditional | Mix of browser-backed capture and external runner/tool dependencies. |
-| wasm_optimize | conditional | Mix of browser-backed capture and external runner/tool dependencies. |
-| wasm_vmp_trace | conditional | Mix of browser-backed capture and external runner/tool dependencies. |
-| wasm_memory_inspect | conditional | Mix of browser-backed capture and external runner/tool dependencies. |
+| wasm_capabilities | real | Explicit capability probe; on this machine a blank page reported browser capture unavailable while `wasm2wat`, `wasm-decompile`, `wasm-objdump`, `wasm-opt`, `wasmtime`, and `wasmer` were all available on PATH. |
+| wasm_dump | conditional | Needs current page capture state; it does not auto-inject hooks and only reads already exposed/stored module bytes. |
+| wasm_disassemble | conditional | Needs a local `.wasm` input plus `wasm2wat` on PATH. |
+| wasm_decompile | conditional | Needs a local `.wasm` input plus `wasm-decompile` on PATH. |
+| wasm_inspect_sections | conditional | Needs a local `.wasm` input plus `wasm-objdump` on PATH. |
+| wasm_offline_run | conditional | Needs a local `.wasm` input plus `wasmtime` or `wasmer`. |
+| wasm_optimize | conditional | Needs a local `.wasm` input plus `wasm-opt` on PATH. |
+| wasm_vmp_trace | conditional | Needs current page state populated by the WebAssembly hook preset/import trace path. |
+| wasm_memory_inspect | conditional | Needs current page state exposing exported `WebAssembly.Memory`. |
 
 ## workflow
 Evidence: src/server/domains/workflow/handlers/script-handlers.ts:96-156

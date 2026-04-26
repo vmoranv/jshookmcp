@@ -44,6 +44,7 @@ import {
   handleCaptchaVisionSolve,
   handleWidgetChallengeSolve,
 } from '@server/domains/browser/handlers/captcha-solver';
+import { handleCaptchaSolverCapabilities } from '@server/domains/browser/handlers/captcha-capabilities';
 import {
   type CamoufoxPage,
   handleCamoufoxLaunchFlow,
@@ -574,6 +575,10 @@ export class BrowserToolHandlers {
 
   async handleWidgetChallengeSolve(args: Record<string, unknown>) {
     return handleWidgetChallengeSolve(args, this.collector);
+  }
+
+  async handleCaptchaSolverCapabilities() {
+    return handleCaptchaSolverCapabilities(this.collector);
   }
 
   // ── JSDOM (headless DOM, no browser) ──

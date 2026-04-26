@@ -2,6 +2,9 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 
 export const behaviorTools: Tool[] = [
+  tool('captcha_solver_capabilities', (t) =>
+    t.desc('Report CAPTCHA solving mode availability.').query(),
+  ),
   tool('human_mouse', (t) =>
     t
       .desc('Move mouse along a Bezier curve with jitter.')
@@ -52,7 +55,7 @@ export const behaviorTools: Tool[] = [
   ),
   tool('captcha_vision_solve', (t) =>
     t
-      .desc('Solve CAPTCHA via external service or AI vision.')
+      .desc('Solve a CAPTCHA with manual flow or a configured external service.')
       .enum('mode', ['external_service', 'manual'], 'Solver mode')
       .string('provider', 'External solver provider')
       .string('apiKey', 'API key')
@@ -68,7 +71,7 @@ export const behaviorTools: Tool[] = [
   ),
   tool('widget_challenge_solve', (t) =>
     t
-      .desc('Solve embedded widget challenge.')
+      .desc('Solve a widget challenge with hook, manual, or configured external service.')
       .string('siteKey', 'Widget site key')
       .string('pageUrl', 'Page URL')
       .enum('mode', ['external_service', 'hook', 'manual'], 'Solving mode')

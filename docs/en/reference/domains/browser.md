@@ -34,7 +34,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 - `browser_launch` — Launch or connect to a browser.
 - `browser_close` — Close browser.
 
-## Full tool list (58)
+## Full tool list (59)
 
 | Tool | Description |
 | --- | --- |
@@ -89,8 +89,9 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `human_mouse` | Move mouse along a Bezier curve with jitter. |
 | `human_scroll` | Scroll with human-like speed variation. |
 | `human_typing` | Type text with human-like speed and occasional typos. |
-| `captcha_vision_solve` | Solve CAPTCHA via external service or AI vision. |
-| `widget_challenge_solve` | Solve embedded widget challenge. |
+| `captcha_solver_capabilities` | Report CAPTCHA solving mode availability. |
+| `captcha_vision_solve` | Solve a CAPTCHA with manual flow or a configured external service. |
+| `widget_challenge_solve` | Solve a widget challenge with hook, manual, or configured external service. |
 | `browser_jsdom_parse` | Parse HTML into an in-memory JSDOM session. No browser needed. |
 | `browser_jsdom_query` | Query a JSDOM session with a CSS selector. |
 | `browser_jsdom_execute` | Evaluate JS inside a JSDOM session. |

@@ -97,7 +97,7 @@ Evidence: src/server/domains/boringssl-inspector/manifest.ts:110-242; src/server
 | net_raw_udp_listen | conditional | Needs free local port and incoming datagram. |
 
 ## browser
-Evidence: src/server/domains/browser/handlers/camoufox-browser.ts:53-98; src/server/domains/browser/handlers/captcha-solver.ts:272-442
+Evidence: src/server/domains/browser/handlers/camoufox-browser.ts:53-98; src/server/domains/browser/handlers/captcha-solver.ts; src/server/domains/browser/handlers/captcha-capabilities.ts
 
 | tool | status | note |
 | --- | --- | --- |
@@ -106,8 +106,9 @@ Evidence: src/server/domains/browser/handlers/camoufox-browser.ts:53-98; src/ser
 | human_mouse | conditional | Usually needs browser/page/CDP state or optional browser binaries. |
 | human_scroll | conditional | Usually needs browser/page/CDP state or optional browser binaries. |
 | human_typing | conditional | Usually needs browser/page/CDP state or optional browser binaries. |
-| captcha_vision_solve | fallback | Solver support is partial; several provider paths are not fully implemented. |
-| widget_challenge_solve | fallback | Solver support is partial; several provider paths are not fully implemented. |
+| captcha_solver_capabilities | real | Explicit capability probe; on this machine it reported manual mode available, 2captcha-compatible external mode unconfigured, hook mode unavailable on a blank page, and AntiCaptcha/CapSolver unimplemented. |
+| captcha_vision_solve | fallback | Manual mode is real, but `external_service` only supports the 2captcha-compatible path; AntiCaptcha and CapSolver remain unimplemented. |
+| widget_challenge_solve | fallback | Manual mode is real, hook mode only works when the current page exposes `window.__turnstile_callbacks`, and external service support is limited to the 2captcha-compatible widget flow. |
 | browser_jsdom_parse | conditional | Usually needs browser/page/CDP state or optional browser binaries. |
 | browser_jsdom_query | conditional | Usually needs browser/page/CDP state or optional browser binaries. |
 | browser_jsdom_execute | conditional | Usually needs browser/page/CDP state or optional browser binaries. |

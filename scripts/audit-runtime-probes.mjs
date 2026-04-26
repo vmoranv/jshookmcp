@@ -494,6 +494,8 @@ function summarize(report) {
     `coordination: handoff=${report.coordination.create?.taskId ?? 'n/a'} insights=${report.coordination.appendInsight?.totalInsights ?? 'n/a'} snapshots=${report.coordination.snapshotList?.total ?? 'n/a'} restoredCookie=${report.coordination.restoreState?.result?.hasCookie ?? 'n/a'}`,
     `streaming: wsFrames=${report.streaming.wsFrameCount} sseEvents=${report.streaming.sseEventCount}`,
     `trace: status=${report.trace.stop?.status ?? 'n/a'} bodies=${report.trace.stop?.networkBodyCount ?? 0} chunks=${report.trace.stop?.networkChunkCount ?? 0} bodyState=${report.trace.flow?.request?.bodyCaptureState ?? 'n/a'}`,
+    `captcha: manual=${report.captcha.manualAvailable ?? 'n/a'} ext2captcha=${report.captcha.external2captchaAvailable ?? 'n/a'} hook=${report.captcha.widgetHookAvailable ?? 'n/a'} provider=${report.captcha.configuredProvider ?? 'n/a'}`,
+    `wasm: page=${report.wasm.pageCaptureAvailable ?? 'n/a'} wasm2wat=${report.wasm.wasm2watAvailable ?? 'n/a'} runtime=${report.wasm.offlineRuntimeAvailable ?? 'n/a'}`,
     `cross-domain: workflows=${report.crossDomain.capabilities?.workflows?.length ?? 'n/a'} suggestion=${report.crossDomain.suggest?.workflowKey ?? 'n/a'} nodes=${report.crossDomain.stats?.nodeCount ?? 'n/a'} evidenceHits=${report.evidence.query?.resultCount ?? 'n/a'} chain=${report.evidence.chain?.chainLength ?? 'n/a'}`,
     `binary: fridaAvailable=${report.binary.capabilitiesAvailable} modules=${report.binary.moduleSample.join(', ') || 'n/a'}`,
     `mojo: backend=${report.mojo.capabilitiesAvailable} live=${report.mojo.liveCaptureAvailable} simulation=${report.mojo.monitorSimulation} catalog=${report.mojo.interfaceCatalogSource} messages=${report.mojo.messageCount}`,
@@ -541,6 +543,8 @@ async function main() {
     sourcemap: {},
     streaming: {},
     trace: {},
+    captcha: {},
+    wasm: {},
     crossDomain: {},
     evidence: {},
     binary: {},
@@ -780,6 +784,39 @@ async function main() {
       'page_navigate',
       { url: server.baseUrl, waitUntil: 'load', timeout: 15000 },
       60000,
+    );
+    report.captcha.capabilities = await callTool(client, 'captcha_solver_capabilities', {}, 15000);
+    report.captcha.manualAvailable = isCapabilityAvailable(
+      report.captcha.capabilities,
+      'captcha_manual',
+    );
+    report.captcha.external2captchaAvailable = isCapabilityAvailable(
+      report.captcha.capabilities,
+      'captcha_external_service_2captcha',
+    );
+    report.captcha.widgetHookAvailable = isCapabilityAvailable(
+      report.captcha.capabilities,
+      'captcha_widget_hook_current_page',
+    );
+    report.captcha.configuredProvider =
+      extractString(report.captcha.capabilities, ['configuredProvider']) ??
+      extractString(
+        getCapability(report.captcha.capabilities, 'captcha_external_service_2captcha'),
+        ['configuredProvider'],
+      ) ??
+      null;
+    report.wasm.capabilities = await callTool(client, 'wasm_capabilities', {}, 15000);
+    report.wasm.pageCaptureAvailable = isCapabilityAvailable(
+      report.wasm.capabilities,
+      'wasm_browser_capture_current_page',
+    );
+    report.wasm.wasm2watAvailable = isCapabilityAvailable(
+      report.wasm.capabilities,
+      'wabt_wasm2wat',
+    );
+    report.wasm.offlineRuntimeAvailable = isCapabilityAvailable(
+      report.wasm.capabilities,
+      'wasm_offline_runtime',
     );
     report.coordination.create = await callTool(
       client,
