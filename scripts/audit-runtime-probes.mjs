@@ -850,7 +850,7 @@ function summarize(report) {
     `encoding: detect=${report.encoding.detect?.success ?? 'n/a'} requestIdPath=${report.encoding.detectRequestId?.success ?? 'n/a'} decodeMarker=${report.encoding.decodeMarker ?? false} encodeMarker=${report.encoding.encodeMarker ?? false} protoFields=${Array.isArray(report.encoding.protobuf?.fields) ? report.encoding.protobuf.fields.length : 'n/a'}`,
     `protocol: template=${report.protocol.payloadTemplate?.hexPayload ?? 'n/a'} mutate=${report.protocol.payloadMutate?.mutatedHex ?? 'n/a'} ipv4=${report.protocol.rawIp?.checksumHex ?? 'n/a'} pcapPackets=${Array.isArray(report.protocol.pcapRead?.packets) ? report.protocol.pcapRead.packets.length : 'n/a'}`,
     `coordination: handoff=${report.coordination.create?.taskId ?? 'n/a'} insights=${report.coordination.appendInsight?.totalInsights ?? 'n/a'} snapshots=${report.coordination.snapshotList?.total ?? 'n/a'} restoredCookie=${report.coordination.restoreState?.result?.hasCookie ?? 'n/a'}`,
-    `analysis: collectFiles=${report.analysis.collectCode?.filesCount ?? 'n/a'} collectSize=${report.analysis.collectCode?.totalSize ?? 'n/a'} searchMatches=${report.analysis.searchInScripts?.totalMatches ?? 'n/a'} deobf=${typeof report.analysis.deobfuscate?.code === 'string'} treeFunctions=${Array.isArray(report.analysis.extractFunctionTree?.functions) ? report.analysis.extractFunctionTree.functions.length : 'n/a'}`,
+    `analysis: collectFiles=${report.analysis.collectCode?.filesCount ?? 'n/a'} collectSize=${report.analysis.collectCode?.totalSize ?? 'n/a'} searchMatches=${report.analysis.searchInScripts?.totalMatches ?? 'n/a'} deobf=${typeof report.analysis.deobfuscate?.code === 'string'} webcrack=${report.analysis.webcrackUnpack?.success ?? 'n/a'} treeFunctions=${Array.isArray(report.analysis.extractFunctionTree?.functions) ? report.analysis.extractFunctionTree.functions.length : 'n/a'}`,
     `browser-page: typed=${report.browser.interactionState?.result?.typedValue ?? 'n/a'} key=${report.browser.interactionState?.result?.lastKey ?? 'n/a'} select=${report.browser.interactionState?.result?.selectedValue ?? 'n/a'} hover=${report.browser.interactionState?.result?.hoverCount ?? 'n/a'} click=${report.browser.interactionState?.result?.clickCount ?? 'n/a'} reload=${report.browser.reloadState?.result?.reloadCount ?? 'n/a'}`,
     `browser-history: back=${report.browser.historyBackState?.result?.title ?? 'n/a'} forward=${report.browser.historyForwardState?.result?.title ?? 'n/a'} framework=${report.browser.frameworkState?.detected ?? 'n/a'} screenshotBytes=${report.browser.screenshotBytes ?? 'n/a'} mobileWidth=${report.browser.emulatedState?.result?.width ?? 'n/a'}`,
     `performance: metrics=${report.performance.metrics?.success ?? 'n/a'} coverage=${report.performance.coverageStop?.totalScripts ?? 'n/a'} traceEvents=${report.performance.traceStop?.eventCount ?? 'n/a'} cpuSamples=${report.performance.cpuStop?.totalSamples ?? 'n/a'} heapSamples=${report.performance.heapSamplingStop?.sampleCount ?? 'n/a'}`,
@@ -877,6 +877,9 @@ async function main() {
   const jsonOnly = process.argv.includes('--json');
   const server = await createProbeServer();
   const runtimeArtifactDir = join(process.cwd(), '.tmp_mcp_artifacts');
+  const runtimeMacroDir = join(process.cwd(), 'macros');
+  const runtimeMacroPath = join(runtimeMacroDir, 'runtime-audit-macro.json');
+  const runtimeMacroId = 'runtime_audit_macro';
   const client = new Client({ name: 'runtime-tool-probe', version: '1.0.0' }, { capabilities: {} });
   const sharedEnv = {
     EXTENSION_REGISTRY_BASE_URL: server.baseUrl,
@@ -913,6 +916,7 @@ async function main() {
     evidence: {},
     binary: {},
     mojo: {},
+    macro: {},
     sandbox: {},
     maintenance: {},
     workflow: {},
@@ -925,6 +929,28 @@ async function main() {
     await withTimeout(client.connect(transport), 'connect', 30000);
     await withTimeout(metaClient.connect(metaTransport), 'connect-meta', 30000);
     await mkdir(runtimeArtifactDir, { recursive: true });
+    await mkdir(runtimeMacroDir, { recursive: true });
+    await writeFile(
+      runtimeMacroPath,
+      `${JSON.stringify(
+        {
+          id: runtimeMacroId,
+          displayName: 'Runtime Audit Macro',
+          description: 'Single-step custom macro used by the runtime audit.',
+          tags: ['runtime', 'audit'],
+          steps: [
+            {
+              id: 'detect',
+              toolName: 'detect_crypto',
+              input: { code: 'crypto.subtle.digest("SHA-256", data)' },
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+      'utf8',
+    );
     const listed = await withTimeout(client.listTools(), 'listTools', 15000);
     report.tools = (listed.tools ?? []).map((tool) => tool.name).toSorted();
     const metaListed = await withTimeout(metaClient.listTools(), 'meta-listTools', 15000);
@@ -1259,6 +1285,35 @@ async function main() {
       {},
       15000,
     );
+    report.macro.list = await callTool(client, 'list_macros', {}, 15000);
+    report.macro.customListed = Array.isArray(report.macro.list?.macros)
+      ? report.macro.list.macros.some((entry) => isRecord(entry) && entry.id === runtimeMacroId)
+      : false;
+    report.macro.runCustom = await callTool(
+      client,
+      'run_macro',
+      { macroId: runtimeMacroId },
+      45000,
+    );
+    report.macro.customCompleted =
+      typeof report.macro.runCustom === 'string' &&
+      report.macro.runCustom.includes('Macro complete');
+    report.macro.runBuiltin = await callTool(
+      client,
+      'run_macro',
+      {
+        macroId: 'deobfuscate_ast_flow',
+        inputOverrides: {
+          deobfuscate: {
+            code: 'eval(atob("Y29uc3QgYSA9IDE7"))',
+          },
+        },
+      },
+      90000,
+    );
+    report.macro.builtinCompleted =
+      typeof report.macro.runBuiltin === 'string' &&
+      report.macro.runBuiltin.includes('Macro complete');
     const stateBoardNamespace = `runtime-audit-${Date.now()}`;
     report.coordination.stateBoardSet = await callTool(
       client,
@@ -1400,6 +1455,16 @@ async function main() {
       client,
       'deobfuscate',
       { code: 'var a = 1;' },
+      30000,
+    );
+    report.analysis.webcrackUnpack = await callTool(
+      client,
+      'webcrack_unpack',
+      {
+        code: 'eval(atob("Y29uc3QgYSA9IDE7"))',
+        unpack: true,
+        unminify: true,
+      },
       30000,
     );
     report.analysis.understandCode = await callTool(
@@ -2798,6 +2863,81 @@ async function main() {
       typeof report.browser.scriptSource?.scriptId === 'string'
         ? report.browser.scriptSource.scriptId
         : null;
+    if (report.v8.firstScriptUrl) {
+      report.v8.breakpointSet = await callTool(
+        client,
+        'breakpoint',
+        {
+          action: 'set',
+          type: 'code',
+          url: report.v8.firstScriptUrl,
+          lineNumber: 0,
+        },
+        30000,
+      );
+      report.v8.breakpointList = await callTool(
+        client,
+        'breakpoint',
+        { action: 'list', type: 'code' },
+        15000,
+      );
+      report.v8.sessionExport = await callTool(
+        client,
+        'debugger_session',
+        { action: 'export', metadata: { source: 'runtime-audit' } },
+        15000,
+      );
+      report.v8.sessionSave = await callTool(
+        client,
+        'debugger_session',
+        { action: 'save', metadata: { source: 'runtime-audit' } },
+        15000,
+      );
+      report.v8.sessionList = await callTool(client, 'debugger_session', { action: 'list' }, 15000);
+      const debuggerBreakpointId =
+        typeof report.v8.breakpointSet?.breakpoint?.breakpointId === 'string'
+          ? report.v8.breakpointSet.breakpoint.breakpointId
+          : null;
+      if (debuggerBreakpointId) {
+        report.v8.breakpointRemove = await callTool(
+          client,
+          'breakpoint',
+          { action: 'remove', type: 'code', breakpointId: debuggerBreakpointId },
+          15000,
+        );
+        report.v8.breakpointListAfterRemove = await callTool(
+          client,
+          'breakpoint',
+          { action: 'list', type: 'code' },
+          15000,
+        );
+      }
+      if (isRecord(report.v8.sessionExport?.session)) {
+        report.v8.sessionLoad = await callTool(
+          client,
+          'debugger_session',
+          {
+            action: 'load',
+            sessionData: JSON.stringify(report.v8.sessionExport.session),
+          },
+          30000,
+        );
+        report.v8.breakpointListAfterLoad = await callTool(
+          client,
+          'breakpoint',
+          { action: 'list', type: 'code' },
+          15000,
+        );
+      }
+      report.v8.blackboxAdd = await callTool(
+        client,
+        'blackbox_add',
+        { urlPattern: '*audit-probe.js' },
+        30000,
+      );
+      report.v8.blackboxAddCommon = await callTool(client, 'blackbox_add_common', {}, 30000);
+      report.v8.blackboxList = await callTool(client, 'blackbox_list', {}, 15000);
+    }
     if (report.v8.auditProbeScriptId) {
       report.v8.bytecode = await callTool(
         client,
@@ -2923,6 +3063,27 @@ async function main() {
       report.v8.scopeObjectName =
         isRecord(scopedObject) && typeof scopedObject.name === 'string' ? scopedObject.name : null;
     }
+    const pausedCallFrameId = extractString(report.v8.callStack, [
+      'callStack',
+      'frames',
+      0,
+      'callFrameId',
+    ]);
+    report.v8.watchAdd = await callTool(
+      client,
+      'watch',
+      { action: 'add', expression: 'window.__auditPauseCounter ?? null', name: 'pauseCounter' },
+      15000,
+    );
+    report.v8.watchList = await callTool(client, 'watch', { action: 'list' }, 15000);
+    report.v8.watchEvaluateAll = await callTool(
+      client,
+      'watch',
+      pausedCallFrameId
+        ? { action: 'evaluate_all', callFrameId: pausedCallFrameId }
+        : { action: 'evaluate_all' },
+      15000,
+    );
     if (report.v8.scopeObjectId) {
       report.v8.objectProperties = await callTool(
         client,
@@ -2955,6 +3116,7 @@ async function main() {
       },
       15000,
     );
+    report.v8.watchClearAll = await callTool(client, 'watch', { action: 'clear_all' }, 15000);
 
     report.network.requests = await callTool(client, 'network_get_requests', {}, 15000);
     report.network.status = await callTool(client, 'network_get_status', {}, 15000);
@@ -3387,12 +3549,47 @@ async function main() {
     report.binary.attach = await callTool(client, 'frida_attach', { target: fridaTarget }, 30000);
     const sessionId = extractString(report.binary.attach, ['sessionId']);
     report.binary.sessionId = sessionId;
+    report.binary.listSessions = await callTool(client, 'frida_list_sessions', {}, 15000);
+    report.binary.generateScript = await callTool(
+      client,
+      'frida_generate_script',
+      {
+        target: fridaTarget,
+        template: 'trace',
+        functionName: 'CreateFileW',
+      },
+      15000,
+    );
 
     if (sessionId) {
       report.binary.modules = await callTool(
         client,
         'frida_enumerate_modules',
         { sessionId },
+        30000,
+      );
+      const fridaPreferredModule = Array.isArray(report.binary.modules?.modules)
+        ? report.binary.modules.modules.find(
+            (entry) =>
+              isRecord(entry) &&
+              typeof entry.name === 'string' &&
+              /^(kernel32\.dll|kernelbase\.dll)$/i.test(entry.name),
+          )
+        : null;
+      const fridaModuleName =
+        isRecord(fridaPreferredModule) && typeof fridaPreferredModule.name === 'string'
+          ? fridaPreferredModule.name
+          : 'KERNEL32.DLL';
+      report.binary.enumerateFunctions = await callTool(
+        client,
+        'frida_enumerate_functions',
+        { sessionId, moduleName: fridaModuleName },
+        30000,
+      );
+      report.binary.findSymbols = await callTool(
+        client,
+        'frida_find_symbols',
+        { sessionId, pattern: 'CreateFileW' },
         30000,
       );
       report.binary.runScript = await callTool(
@@ -3561,6 +3758,9 @@ async function main() {
       await metaClient.close();
     } catch {}
     await server.close();
+    try {
+      await rm(runtimeMacroPath, { force: true });
+    } catch {}
     if (platformProbeDir) {
       try {
         await rm(platformProbeDir, { recursive: true, force: true });
