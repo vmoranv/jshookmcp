@@ -26,6 +26,8 @@ const AUTH_BEARER_MARKER = 'bearer-audit-20260426';
 const AUTH_API_KEY_MARKER = 'api-key-audit-20260426';
 const AUTH_SIGNATURE_MARKER = 'sig-audit-20260426';
 const INTERCEPT_MARKER = 'intercepted-body-20260426';
+const HEAP_MARKER = 'heap-marker-20260426';
+const HOOK_PRESET_MARKER = 'hook-preset-marker-20260426';
 const ROOT_RELOAD_KEY = '__audit_reload_count';
 const SCRIPT_TIMEOUT_MS = 9 * 60 * 1000;
 const DIRECT_RUNTIME_PROBED_TOOLS = new Set();
@@ -405,6 +407,50 @@ function buildMinimalMiniappPkg() {
 
 async function createProbeServer() {
   const bodyPayload = `${BODY_MARKER}\n${'x'.repeat(12361 - BODY_MARKER.length - 1)}`;
+  const pluginRegistryPayload = {
+    plugins: [
+      {
+        slug: 'runtime-audit-plugin',
+        id: 'runtime-audit-plugin',
+        source: {
+          type: 'git',
+          repo: 'https://example.invalid/runtime-audit-plugin.git',
+          ref: 'main',
+          commit: 'runtime-audit-plugin-commit',
+          subpath: '.',
+          entry: 'dist/index.js',
+        },
+        meta: {
+          name: 'Runtime Audit Plugin',
+          description: 'Local registry fixture for runtime audit coverage.',
+          author: 'jshookmcp-runtime-audit',
+          source_repo: 'https://example.invalid/runtime-audit-plugin.git',
+        },
+      },
+    ],
+  };
+  const workflowRegistryPayload = {
+    workflows: [
+      {
+        slug: 'runtime-audit-workflow',
+        id: 'runtime-audit-workflow',
+        source: {
+          type: 'git',
+          repo: 'https://example.invalid/runtime-audit-workflow.git',
+          ref: 'main',
+          commit: 'runtime-audit-workflow-commit',
+          subpath: '.',
+          entry: 'dist/index.js',
+        },
+        meta: {
+          name: 'Runtime Audit Workflow',
+          description: 'Local registry fixture for workflow registry coverage.',
+          author: 'jshookmcp-runtime-audit',
+          source_repo: 'https://example.invalid/runtime-audit-workflow.git',
+        },
+      },
+    ],
+  };
   const rootAppScript = [
     `window.__auditRuntimeProbeMarker__ = ${JSON.stringify(BODY_MARKER)};`,
     'window.__auditRuntimeProbeExternalLoaded = true;',
@@ -530,6 +576,24 @@ async function createProbeServer() {
         'cache-control': 'no-store',
       });
       res.end(rootAppScript);
+      return;
+    }
+
+    if (req.url === '/plugins.index.json') {
+      res.writeHead(200, {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+      });
+      res.end(JSON.stringify(pluginRegistryPayload));
+      return;
+    }
+
+    if (req.url === '/workflows.index.json') {
+      res.writeHead(200, {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+      });
+      res.end(JSON.stringify(workflowRegistryPayload));
       return;
     }
 
@@ -754,7 +818,7 @@ async function createProbeServer() {
   };
 }
 
-function createClientTransport(toolProfile) {
+function createClientTransport(toolProfile, extraEnv = {}) {
   return new StdioClientTransport({
     command: 'node',
     args: ['dist/index.mjs'],
@@ -765,6 +829,7 @@ function createClientTransport(toolProfile) {
       MCP_TOOL_PROFILE: toolProfile,
       LOG_LEVEL: 'error',
       PUPPETEER_HEADLESS: 'true',
+      ...extraEnv,
     },
     stderr: 'pipe',
   });
@@ -813,12 +878,15 @@ async function main() {
   const server = await createProbeServer();
   const runtimeArtifactDir = join(process.cwd(), '.tmp_mcp_artifacts');
   const client = new Client({ name: 'runtime-tool-probe', version: '1.0.0' }, { capabilities: {} });
-  const transport = createClientTransport('full');
+  const sharedEnv = {
+    EXTENSION_REGISTRY_BASE_URL: server.baseUrl,
+  };
+  const transport = createClientTransport('full', sharedEnv);
   const metaClient = new Client(
     { name: 'runtime-tool-probe-search-profile', version: '1.0.0' },
     { capabilities: {} },
   );
-  const metaTransport = createClientTransport('search');
+  const metaTransport = createClientTransport('search', sharedEnv);
 
   const report = {
     generatedAt: new Date().toISOString(),
@@ -1096,16 +1164,61 @@ async function main() {
     );
     report.maintenance.tokenStats = await callTool(client, 'get_token_budget_stats', {}, 15000);
     report.maintenance.cacheStats = await callTool(client, 'get_cache_stats', {}, 15000);
+    report.maintenance.smartCacheCleanup = await callTool(
+      client,
+      'smart_cache_cleanup',
+      { targetSize: 1024 * 1024 },
+      30000,
+    );
     report.maintenance.doctor = await callTool(
       client,
       'doctor_environment',
       { includeBridgeHealth: false },
       45000,
     );
+    report.maintenance.listExtensions = await callTool(client, 'list_extensions', {}, 30000);
+    report.maintenance.reloadExtensions = await callTool(client, 'reload_extensions', {}, 30000);
+    report.maintenance.browseExtensionRegistry = await callTool(
+      client,
+      'browse_extension_registry',
+      { kind: 'all' },
+      30000,
+    );
     report.binary.capabilities = await callTool(
       client,
       'binary_instrument_capabilities',
       {},
+      15000,
+    );
+    report.binary.availablePlugins = await callTool(client, 'get_available_plugins', {}, 15000);
+    report.binary.generateHooks = await callTool(
+      client,
+      'generate_hooks',
+      {
+        symbols: ['SSL_read', 'SSL_write'],
+        options: { includeArgs: true, includeRetAddr: true },
+      },
+      30000,
+    );
+    report.binary.exportHookScript = await callTool(
+      client,
+      'export_hook_script',
+      {
+        hookTemplates: JSON.stringify([
+          {
+            functionName: 'SSL_read',
+            hookCode: 'Interceptor.attach(ptr("0x1"), { onEnter() {} });',
+            description: 'Runtime audit hook template',
+            parameters: [
+              {
+                name: 'arg0',
+                type: 'pointer',
+                description: 'First pointer argument',
+              },
+            ],
+          },
+        ]),
+      },
       15000,
     );
     report.mojo.capabilities = await callTool(client, 'mojo_ipc_capabilities', {}, 15000);
@@ -1144,6 +1257,110 @@ async function main() {
       client,
       'extension_list_installed',
       {},
+      15000,
+    );
+    const stateBoardNamespace = `runtime-audit-${Date.now()}`;
+    report.coordination.stateBoardSet = await callTool(
+      client,
+      'state_board',
+      {
+        action: 'set',
+        namespace: stateBoardNamespace,
+        key: 'primary',
+        value: { marker: BODY_MARKER, count: 1 },
+      },
+      15000,
+    );
+    report.coordination.stateBoardGet = await callTool(
+      client,
+      'state_board',
+      { action: 'get', namespace: stateBoardNamespace, key: 'primary' },
+      15000,
+    );
+    report.coordination.stateBoardHistory = await callTool(
+      client,
+      'state_board',
+      { action: 'history', namespace: stateBoardNamespace, key: 'primary', limit: 10 },
+      15000,
+    );
+    report.coordination.stateBoardWatchStart = await callTool(
+      client,
+      'state_board_watch',
+      {
+        action: 'start',
+        namespace: stateBoardNamespace,
+        key: 'watch-*',
+        pollIntervalMs: 100,
+      },
+      15000,
+    );
+    report.coordination.stateBoardWatchSeed = await callTool(
+      client,
+      'state_board',
+      {
+        action: 'set',
+        namespace: stateBoardNamespace,
+        key: 'watch-key',
+        value: { marker: BODY_MARKER, updated: true },
+      },
+      15000,
+    );
+    report.coordination.stateBoardList = await callTool(
+      client,
+      'state_board',
+      { action: 'list', namespace: stateBoardNamespace, includeValues: true },
+      15000,
+    );
+    report.coordination.stateBoardExport = await callTool(
+      client,
+      'state_board_io',
+      { action: 'export', namespace: stateBoardNamespace },
+      15000,
+    );
+    const stateBoardWatchId =
+      typeof report.coordination.stateBoardWatchStart?.watchId === 'string'
+        ? report.coordination.stateBoardWatchStart.watchId
+        : null;
+    if (stateBoardWatchId) {
+      report.coordination.stateBoardWatchPoll = await callTool(
+        client,
+        'state_board_watch',
+        { action: 'poll', watchId: stateBoardWatchId },
+        15000,
+      );
+      report.coordination.stateBoardWatchStop = await callTool(
+        client,
+        'state_board_watch',
+        { action: 'stop', watchId: stateBoardWatchId },
+        15000,
+      );
+    }
+    report.coordination.stateBoardClear = await callTool(
+      client,
+      'state_board',
+      { action: 'clear', namespace: stateBoardNamespace },
+      15000,
+    );
+    report.coordination.stateBoardImport = await callTool(
+      client,
+      'state_board_io',
+      {
+        action: 'import',
+        namespace: stateBoardNamespace,
+        overwrite: true,
+        data: {
+          imported: {
+            marker: BODY_MARKER,
+            source: 'runtime-audit',
+          },
+        },
+      },
+      15000,
+    );
+    report.coordination.stateBoardImportedGet = await callTool(
+      client,
+      'state_board',
+      { action: 'get', namespace: stateBoardNamespace, key: 'imported' },
       15000,
     );
 
@@ -1464,6 +1681,194 @@ async function main() {
         }))()`,
       },
       15000,
+    );
+    report.browser.resetHumanViewport = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          window.scrollTo(0, 0);
+          return { scrollY: window.scrollY };
+        })()`,
+      },
+      15000,
+    );
+    report.browser.humanMouse = await callTool(
+      client,
+      'human_mouse',
+      { selector: '#click-target', steps: 6, durationMs: 180, click: true },
+      30000,
+    );
+    report.browser.afterHumanMouse = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => ({
+          clickCount: window.__auditClickCount ?? 0
+        }))()`,
+      },
+      15000,
+    );
+    report.browser.humanScroll = await callTool(
+      client,
+      'human_scroll',
+      { distance: 240, direction: 'down', durationMs: 180, segments: 3, jitter: 0 },
+      30000,
+    );
+    report.browser.afterHumanScroll = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => ({
+          scrollY: window.scrollY
+        }))()`,
+      },
+      15000,
+    );
+    report.browser.humanTyping = await callTool(
+      client,
+      'human_typing',
+      {
+        selector: '#name-input',
+        text: 'HumanAudit',
+        clearFirst: true,
+        errorRate: 0,
+        wpm: 120,
+      },
+      30000,
+    );
+    report.browser.afterHumanTyping = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => ({
+          typedValue: window.__auditTypedValue ?? null
+        }))()`,
+      },
+      15000,
+    );
+    report.browser.hookPresetList = await callTool(
+      client,
+      'hook_preset',
+      { listPresets: true },
+      15000,
+    );
+    report.browser.hookPresetInject = await callTool(
+      client,
+      'hook_preset',
+      {
+        preset: 'runtime-audit-custom',
+        customTemplate: {
+          id: 'runtime-audit-custom',
+          description: 'Set a runtime audit marker on window.',
+          body: `window.__auditHookPresetMarker = ${JSON.stringify(HOOK_PRESET_MARKER)};`,
+        },
+        method: 'evaluate',
+        logToConsole: false,
+      },
+      30000,
+    );
+    report.browser.hookPresetState = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => ({
+          marker: window.__auditHookPresetMarker ?? null,
+          presets: Object.keys(window.__hookPresets || {})
+        }))()`,
+      },
+      15000,
+    );
+    report.analysis.manageHooksCreate = await callTool(
+      client,
+      'manage_hooks',
+      { action: 'create', target: 'fetch', type: 'function', hookAction: 'log' },
+      15000,
+    );
+    report.analysis.manageHooksList = await callTool(
+      client,
+      'manage_hooks',
+      { action: 'list' },
+      15000,
+    );
+    const managedHookId =
+      typeof report.analysis.manageHooksCreate?.hookId === 'string'
+        ? report.analysis.manageHooksCreate.hookId
+        : null;
+    if (managedHookId) {
+      report.analysis.manageHooksRecords = await callTool(
+        client,
+        'manage_hooks',
+        { action: 'records', hookId: managedHookId },
+        15000,
+      );
+      report.analysis.manageHooksClear = await callTool(
+        client,
+        'manage_hooks',
+        { action: 'clear', hookId: managedHookId },
+        15000,
+      );
+    }
+    report.browser.seedHeapMarker = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          window.__auditHeapMarker = ${JSON.stringify(HEAP_MARKER)};
+          window.__auditHeapStore = {
+            marker: window.__auditHeapMarker,
+            nested: [window.__auditHeapMarker, 'secondary']
+          };
+          return {
+            marker: window.__auditHeapMarker,
+            nestedCount: window.__auditHeapStore.nested.length
+          };
+        })()`,
+      },
+      15000,
+    );
+    report.browser.jsHeapSearch = await callTool(
+      client,
+      'js_heap_search',
+      { pattern: HEAP_MARKER, maxResults: 5 },
+      90000,
+    );
+    report.workflow.jsBundleSearch = await callTool(
+      client,
+      'js_bundle_search',
+      {
+        url: `${server.baseUrl}/app.js`,
+        patterns: [
+          { name: 'marker', regex: '__auditRuntimeProbeMarker__' },
+          { name: 'typing', regex: '__auditTypedValue' },
+        ],
+        networkPolicy: {
+          allowedHosts: ['127.0.0.1'],
+          allowPrivateNetwork: true,
+          allowInsecureHttp: true,
+        },
+      },
+      30000,
+    );
+    report.analysis.seedCallGraph = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          window.__functionTraceRecords = [
+            { caller: 'auditCaller', callee: 'auditCallee' },
+            { caller: 'auditCallee', callee: 'auditLeaf' }
+          ];
+          return { seeded: true, count: window.__functionTraceRecords.length };
+        })()`,
+      },
+      15000,
+    );
+    report.analysis.callGraph = await callTool(
+      client,
+      'call_graph_analyze',
+      { filterPattern: 'audit', maxDepth: 3 },
+      30000,
     );
     report.performance.metrics = await callTool(client, 'performance_get_metrics', {}, 30000);
     report.performance.coverageStart = await callTool(
@@ -2002,6 +2407,7 @@ async function main() {
     report.proxy.logsAfterClear = await callTool(client, 'proxy_get_requests', {}, 15000);
 
     report.network.enable = await callTool(client, 'network_enable', {}, 15000);
+    report.network.monitor = await callTool(client, 'network_monitor', { action: 'status' }, 15000);
     report.browser.consoleMonitor = await callTool(
       client,
       'console_monitor',
@@ -3113,6 +3519,13 @@ async function main() {
     );
     report.analysis.clearCollectedData = await callTool(client, 'clear_collected_data', {}, 15000);
     report.maintenance.manualCleanup = await callTool(client, 'manual_token_cleanup', {}, 15000);
+    report.maintenance.resetTokenBudget = await callTool(client, 'reset_token_budget', {}, 15000);
+    report.maintenance.tokenStatsAfterReset = await callTool(
+      client,
+      'get_token_budget_stats',
+      {},
+      15000,
+    );
     report.maintenance.clearAllCaches = await callTool(client, 'clear_all_caches', {}, 15000);
     report.maintenance.cleanupArtifacts = await callTool(
       client,
