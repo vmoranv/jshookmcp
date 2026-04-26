@@ -126,6 +126,19 @@ describe('CodeCollector launch options', () => {
     );
   });
 
+  it('reuses an existing browser for internal init calls without overrides', async () => {
+    const browser = createBrowserMock();
+    mocks.launch.mockResolvedValue(browser);
+
+    const collector = new CodeCollector({ ...baseConfig, headless: false });
+    await collector.launch({ headless: true });
+    const reused = await collector.launch();
+
+    expect(reused.action).toBe('reused');
+    expect(reused.launchOptions.headless).toBe(true);
+    expect(mocks.launch).toHaveBeenCalledTimes(1);
+  });
+
   it('removes allow-natives-syntax when explicitly disabled', async () => {
     const browser = createBrowserMock();
     mocks.launch.mockResolvedValue(browser);
