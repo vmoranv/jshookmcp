@@ -25,7 +25,7 @@ V8 inspector domain providing heap snapshot analysis, CPU profiling, and memory 
 - `v8_heap_snapshot_capture` — Capture a V8 heap snapshot
 - `v8_heap_snapshot_analyze` — Analyze a captured V8 heap snapshot
 - `v8_heap_diff` — Diff two V8 heap snapshots
-- `v8_object_inspect` — Inspect a V8 heap object
+- `v8_object_inspect` — Inspect a live JS object by object identifier
 - `v8_heap_stats` — Read V8 heap usage
 - `v8_bytecode_extract` — Attempt V8 bytecode extraction for a script
 - `v8_version_detect` — Detect V8 version and capabilities
@@ -38,7 +38,7 @@ V8 inspector domain providing heap snapshot analysis, CPU profiling, and memory 
 | `v8_heap_snapshot_capture` | Capture a V8 heap snapshot |
 | `v8_heap_snapshot_analyze` | Analyze a captured V8 heap snapshot |
 | `v8_heap_diff` | Diff two V8 heap snapshots |
-| `v8_object_inspect` | Inspect a V8 heap object |
+| `v8_object_inspect` | Inspect a live JS object by object identifier |
 | `v8_heap_stats` | Read V8 heap usage |
 | `v8_bytecode_extract` | Attempt V8 bytecode extraction for a script |
 | `v8_version_detect` | Detect V8 version and capabilities |

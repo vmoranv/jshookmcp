@@ -15,8 +15,19 @@ import type { CodeCollector } from '@server/domains/shared/modules';
 import { CallGraphHandlers } from '@server/domains/graphql/handlers/callgraph';
 import { ScriptReplaceHandlers } from '@server/domains/graphql/handlers/script-replace';
 import { IntrospectionHandlers } from '@server/domains/graphql/handlers/introspection';
-import { ExtractHandlers } from '@server/domains/graphql/handlers/extract';
+import {
+  ExtractHandlers,
+  type GraphQLExtractDependencies,
+} from '@server/domains/graphql/handlers/extract';
 import { ReplayHandlers } from '@server/domains/graphql/handlers/replay';
+
+export type GraphQLToolHandlerDependencies = GraphQLExtractDependencies;
+
+function normalizeDependencies(
+  deps: CodeCollector | GraphQLToolHandlerDependencies,
+): GraphQLToolHandlerDependencies {
+  return 'collector' in deps ? deps : { collector: deps };
+}
 
 export class GraphQLToolHandlers {
   private callGraph: CallGraphHandlers;
@@ -25,12 +36,13 @@ export class GraphQLToolHandlers {
   private extract: ExtractHandlers;
   private replay: ReplayHandlers;
 
-  constructor(collector: CodeCollector) {
-    this.callGraph = new CallGraphHandlers(collector);
-    this.scriptReplace = new ScriptReplaceHandlers(collector);
-    this.introspection = new IntrospectionHandlers(collector);
-    this.extract = new ExtractHandlers(collector);
-    this.replay = new ReplayHandlers(collector);
+  constructor(deps: CodeCollector | GraphQLToolHandlerDependencies) {
+    const normalized = normalizeDependencies(deps);
+    this.callGraph = new CallGraphHandlers(normalized.collector);
+    this.scriptReplace = new ScriptReplaceHandlers(normalized.collector);
+    this.introspection = new IntrospectionHandlers(normalized.collector);
+    this.extract = new ExtractHandlers(normalized);
+    this.replay = new ReplayHandlers(normalized.collector);
   }
 
   // ── Call Graph ──

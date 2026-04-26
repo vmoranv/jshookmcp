@@ -1,4 +1,4 @@
-; WebAssembly text format - minimal module with add function
+;; WebAssembly text format - minimal module with add function
 (module
   (func $add (param i32 i32) (result i32)
     local.get 0

@@ -135,6 +135,16 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       bind: b((h, a) => h.handleConsoleInjectDispatch(a)),
     },
     {
+      tool: t('console_inject_fetch_interceptor'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleConsoleInjectFetchInterceptor(a)),
+    },
+    {
+      tool: t('console_inject_xhr_interceptor'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleConsoleInjectXhrInterceptor(a)),
+    },
+    {
       tool: t('console_buffers'),
       domain: DOMAIN,
       bind: b((h, a) => h.handleConsoleBuffersDispatch(a)),

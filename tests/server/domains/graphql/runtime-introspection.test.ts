@@ -16,6 +16,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
     evaluateOnNewDocument: vi.fn(),
     setRequestInterception: vi.fn(),
     on: vi.fn(),
+    url: vi.fn(() => 'https://example.com/app'),
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
@@ -72,6 +73,30 @@ describe('GraphQLToolHandlersIntrospection', () => {
       const body = parseJson<any>(response);
       expect((response as any).isError).toBe(true);
       expect(body.error).toContain('Blocked');
+    });
+
+    it('allows same-origin private endpoints in browser mode', async () => {
+      isSsrfTargetMock.mockResolvedValueOnce(true);
+      page.url.mockReturnValueOnce('http://127.0.0.1/app');
+      page.evaluate.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        totalLength: 20,
+        preview: '',
+        truncated: false,
+        json: { data: { __schema: { types: [] } } },
+        responseHeaders: { 'content-type': 'application/json' },
+      });
+
+      const response = await handlers.handleGraphqlIntrospect({
+        endpoint: 'http://127.0.0.1/graphql',
+        useBrowser: true,
+      });
+      const body = parseJson<any>(response);
+
+      expect((response as any).isError).toBeUndefined();
+      expect(body.success).toBe(true);
     });
 
     it('returns error for unsupported protocol', async () => {

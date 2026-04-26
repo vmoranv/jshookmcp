@@ -12,6 +12,7 @@ import {
   toError,
   getErrorMessage,
   normalizeHeaders,
+  validateBrowserEndpoint,
   validateExternalEndpoint,
   createPreview,
   serializeForPreview,
@@ -191,6 +192,26 @@ describe('GraphQL shared utilities (from handlers/shared.ts)', () => {
       const result = await validateExternalEndpoint('http://127.0.0.1/graphql');
       expect(result).toContain('Blocked');
       expect(result).toContain('private/reserved');
+    });
+  });
+
+  describe('validateBrowserEndpoint', () => {
+    it('allows same-origin private endpoints in browser mode', async () => {
+      isSsrfTargetMock.mockResolvedValueOnce(true);
+      const result = await validateBrowserEndpoint(
+        'http://127.0.0.1/graphql',
+        'http://127.0.0.1/app',
+      );
+      expect(result).toBeNull();
+    });
+
+    it('keeps blocking private endpoints when origins do not match', async () => {
+      isSsrfTargetMock.mockResolvedValueOnce(true);
+      const result = await validateBrowserEndpoint(
+        'http://127.0.0.1/graphql',
+        'https://example.com/app',
+      );
+      expect(result).toContain('Blocked');
     });
   });
 

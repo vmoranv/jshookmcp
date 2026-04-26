@@ -20,8 +20,8 @@ export const v8InspectorTools: Tool[] = [
   ),
   tool('v8_object_inspect', (t) =>
     t
-      .desc('Inspect a V8 heap object')
-      .string('address', 'Heap object address')
+      .desc('Inspect a live JS object by object identifier')
+      .string('address', 'Runtime objectId or compatible heap object id')
       .required('address')
       .query(),
   ),

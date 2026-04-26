@@ -11,14 +11,20 @@ const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
   bindByDepKey<H>(DEP_KEY, invoke);
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
-  const { CodeCollector } = await import('@server/domains/shared/modules');
+  const { CodeCollector, ConsoleMonitor } = await import('@server/domains/shared/modules');
   const { GraphQLToolHandlers } = await import('@server/domains/graphql/index');
   if (!ctx.collector) {
     ctx.collector = new CodeCollector(ctx.config.puppeteer);
     void ctx.registerCaches();
   }
+  if (!ctx.consoleMonitor) {
+    ctx.consoleMonitor = new ConsoleMonitor(ctx.collector);
+  }
   if (!ctx.graphqlHandlers) {
-    ctx.graphqlHandlers = new GraphQLToolHandlers(ctx.collector);
+    ctx.graphqlHandlers = new GraphQLToolHandlers({
+      collector: ctx.collector,
+      consoleMonitor: ctx.consoleMonitor,
+    });
   }
   return ctx.graphqlHandlers;
 }

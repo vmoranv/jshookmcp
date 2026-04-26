@@ -16,6 +16,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
     evaluateOnNewDocument: vi.fn(),
     setRequestInterception: vi.fn(),
     on: vi.fn(),
+    url: vi.fn(() => 'https://example.com/app'),
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
@@ -103,6 +104,29 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       const body = parseJson<any>(response);
       expect((response as any).isError).toBe(true);
       expect(body.error).toContain('Blocked');
+    });
+
+    it('allows same-origin private endpoints in browser mode', async () => {
+      isSsrfTargetMock.mockResolvedValueOnce(true);
+      page.url.mockReturnValueOnce('http://127.0.0.1/app');
+      page.evaluate.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        responseText: '',
+        responseJson: { data: { ok: true } },
+        responseHeaders: { 'content-type': 'application/json' },
+      });
+
+      const response = await handlers.handleGraphqlReplay({
+        endpoint: 'http://127.0.0.1/graphql',
+        query: 'query { ok }',
+        useBrowser: true,
+      });
+      const body = parseJson<any>(response);
+
+      expect((response as any).isError).toBeUndefined();
+      expect(body.success).toBe(true);
     });
   });
 

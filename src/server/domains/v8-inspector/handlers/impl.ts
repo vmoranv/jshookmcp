@@ -2,6 +2,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { DomainManifest, ToolRegistration } from '@server/registry/contracts';
 import type { ToolArgs } from '@server/types';
+import type { ObjectPropertyInfo } from '@modules/debugger/DebuggerManager.impl.core.class';
 import { V8InspectorClient } from '@modules/v8-inspector/V8InspectorClient';
 import { bindByDepKey } from '@server/registry/bind-helpers';
 import { v8InspectorTools } from '../definitions';
@@ -13,6 +14,15 @@ import { getSnapshot } from './heap-snapshot';
 export interface V8InspectorDomainDependencies {
   ctx: MCPServerContext;
   client: V8InspectorClient;
+}
+
+function createDebuggerObjectData(properties: ObjectPropertyInfo[]): Record<string, unknown> {
+  return {
+    kind: 'runtime-object',
+    source: 'debugger-session',
+    propertyCount: properties.length,
+    properties,
+  };
 }
 
 function requireStringArg(args: ToolArgs, key: string): string {
@@ -157,12 +167,14 @@ export class V8InspectorHandlers {
     args: ToolArgs,
   ): Promise<{ success: boolean; address: string; objectData?: Record<string, unknown> }> {
     const address = requireStringArg(args, 'address');
-    let objectData: Record<string, unknown> | undefined;
+    let objectData = await this.inspectObjectViaDebugger(address);
 
-    try {
-      objectData = (await this.deps.client.getObjectByObjectId(address)) ?? undefined;
-    } catch {
-      // objectData remains undefined — graceful degradation
+    if (!objectData) {
+      try {
+        objectData = (await this.deps.client.getObjectByObjectId(address)) ?? undefined;
+      } catch {
+        // objectData remains undefined — graceful degradation
+      }
     }
 
     return { success: true, address, ...(objectData ? { objectData } : {}) };
@@ -214,6 +226,25 @@ export class V8InspectorHandlers {
     return handleJitInspect(args, {
       getPage,
     });
+  }
+
+  private async inspectObjectViaDebugger(
+    address: string,
+  ): Promise<Record<string, unknown> | undefined> {
+    const debuggerManager = this.deps.ctx.debuggerManager;
+    if (!debuggerManager || typeof debuggerManager.getObjectPropertiesById !== 'function') {
+      return undefined;
+    }
+
+    try {
+      const properties = await debuggerManager.getObjectPropertiesById(address);
+      if (!Array.isArray(properties)) {
+        return undefined;
+      }
+      return createDebuggerObjectData(properties);
+    } catch {
+      return undefined;
+    }
   }
 }
 
