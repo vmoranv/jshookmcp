@@ -136,6 +136,7 @@ rpc.exports = {
 export class MojoMonitor {
   private active = false;
   private simulationMode = false;
+  private fridaProbeSucceeded = false;
   private deviceId?: string;
   private readonly messages: MojoMessage[] = [];
   private readonly interfaces = new Map<string, MojoInterfaceState>();
@@ -172,6 +173,10 @@ export class MojoMonitor {
     return this.simulationMode;
   }
 
+  didFridaProbeSucceed(): boolean {
+    return this.fridaProbeSucceeded;
+  }
+
   setSimulationMode(enabled: boolean): void {
     this.simulationMode = enabled;
   }
@@ -189,6 +194,7 @@ export class MojoMonitor {
     this.availability = await detectAvailability();
     this.resetInterfaces();
     this.simulationMode = false;
+    this.fridaProbeSucceeded = false;
 
     if (!this.availability.available) {
       this.active = false;
@@ -207,6 +213,7 @@ export class MojoMonitor {
   async stop(): Promise<void> {
     this.active = false;
     this.deviceId = undefined;
+    this.fridaProbeSucceeded = false;
     this.resetInterfaces();
   }
 
@@ -326,18 +333,24 @@ export class MojoMonitor {
         { timeout: MOJO_MONITOR_TIMEOUT_MS, windowsHide: true },
         (error) => {
           if (error) {
-            this.simulationMode = true;
             reject(error);
             return;
           }
 
-          this.simulationMode = false;
           resolve();
         },
       ).stdin?.end(script);
-    }).catch(() => {
-      this.simulationMode = true;
-    });
+    })
+      .then(() => {
+        this.fridaProbeSucceeded = true;
+      })
+      .catch(() => {
+        this.fridaProbeSucceeded = false;
+      });
+
+    // The current Frida path only proves that a script can be loaded; it does not
+    // install real Mojo message hooks yet, so runtime capture remains simulated.
+    this.simulationMode = true;
   }
 
   private recomputePendingCounts(): void {

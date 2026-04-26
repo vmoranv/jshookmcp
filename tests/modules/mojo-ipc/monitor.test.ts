@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { MojoMonitor } from '@modules/mojo-ipc/MojoMonitor';
 
 vi.mock('node:child_process', () => ({
@@ -9,9 +9,12 @@ vi.mock('node:child_process', () => ({
       if (event === 'close') cb(1);
     }),
   })),
-  execFile: vi.fn(),
+  execFile: vi.fn(() => ({
+    stdin: { end: vi.fn() },
+  })),
 }));
 
+const mockExecFile = vi.mocked(execFile);
 const mockSpawn = vi.mocked(spawn);
 
 describe('MojoMonitor', () => {
@@ -84,7 +87,20 @@ describe('MojoMonitor', () => {
           }),
         }) as any,
     );
+    mockExecFile.mockImplementationOnce(((
+      _file: string,
+      _args: readonly string[] | undefined,
+      _options: { timeout?: number; windowsHide?: boolean } | undefined,
+      callback?: (error: Error | null) => void,
+    ) => {
+      callback?.(null);
+      return {
+        stdin: { end: vi.fn() },
+      } as any;
+    }) as typeof execFile);
     await monitor.start('chrome');
     expect(mockSpawn).toHaveBeenCalled();
+    expect(monitor.didFridaProbeSucceed()).toBe(true);
+    expect(monitor.isSimulationMode()).toBe(true);
   });
 });

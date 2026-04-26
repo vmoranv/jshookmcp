@@ -16,6 +16,18 @@ function unavailablePayload(reason: string, tool: string): Record<string, unknow
   };
 }
 
+const LIVE_CAPTURE_REASON =
+  'Current Mojo IPC backend only exposes a seeded interface catalog and simulated capture. Live Chromium Mojo hooks are not implemented in this build.';
+const LIVE_CAPTURE_FIX =
+  'No user-side fix is available in this build. Treat mojo_monitor/mojo_list_interfaces/mojo_messages_get as simulation-only until real Frida hooks are implemented.';
+
+function getFridaProbeSucceeded(monitor: MojoMonitor): boolean {
+  const maybeMonitor = monitor as MojoMonitor & { didFridaProbeSucceed?: () => boolean };
+  return typeof maybeMonitor.didFridaProbeSucceed === 'function'
+    ? maybeMonitor.didFridaProbeSucceed()
+    : false;
+}
+
 export class MojoIPCHandlers {
   constructor(
     private monitor?: MojoMonitor,
@@ -31,6 +43,7 @@ export class MojoIPCHandlers {
 
   async handleMojoIpcCapabilities(): Promise<unknown> {
     const monitor = this.getMonitor();
+    const fridaProbeSucceeded = getFridaProbeSucceeded(monitor);
     const availability =
       typeof monitor.probeAvailability === 'function'
         ? await monitor.probeAvailability()
@@ -51,10 +64,30 @@ export class MojoIPCHandlers {
           tools: ['mojo_monitor', 'mojo_list_interfaces', 'mojo_messages_get'],
           fridaAvailable: availability.fridaAvailable,
           fridaCliAvailable: availability.fridaCliAvailable,
+          fridaProbeSucceeded,
           active: monitor.isActive(),
           simulationMode: monitor.isSimulationMode(),
           interfaceCatalogSource: monitor.getInterfaceCatalogSource(),
           observedInterfaceCount: monitor.getObservedInterfaceCount(),
+          liveCaptureImplemented: false,
+        },
+      },
+      {
+        capability: 'mojo_live_capture',
+        status: 'unavailable',
+        reason: LIVE_CAPTURE_REASON,
+        fix: LIVE_CAPTURE_FIX,
+        details: {
+          tools: ['mojo_monitor', 'mojo_list_interfaces', 'mojo_messages_get'],
+          fridaAvailable: availability.fridaAvailable,
+          fridaCliAvailable: availability.fridaCliAvailable,
+          fridaProbeSucceeded,
+          active: monitor.isActive(),
+          simulationMode: monitor.isSimulationMode(),
+          interfaceCatalogSource: monitor.getInterfaceCatalogSource(),
+          observedInterfaceCount: monitor.getObservedInterfaceCount(),
+          fallbackMode: availability.available ? 'simulation' : 'none',
+          liveCaptureImplemented: false,
         },
       },
       {

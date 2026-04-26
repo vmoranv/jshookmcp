@@ -29,6 +29,7 @@ function createMockMonitor(overrides: Record<string, unknown> = {}) {
       _simulation: false,
     }),
     isSimulationMode: vi.fn().mockReturnValue(false),
+    didFridaProbeSucceed: vi.fn().mockReturnValue(false),
     getInterfaceCatalogSource: vi.fn().mockReturnValue('seeded-defaults'),
     getObservedInterfaceCount: vi.fn().mockReturnValue(0),
     ...overrides,

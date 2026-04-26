@@ -10,7 +10,7 @@
 High-risk mismatches:
 - `native-bridge` is intentionally externalized from the built-in manifest/ToolCatalog set.
 - `trace` is real SQLite-backed timeline capture with optional chunk/body persistence, but it is still policy-bound rather than an unbounded full response mirror.
-- `mojo-ipc`, `v8_bytecode_extract`, `wasm`, CAPTCHA solving, and some platform helpers still have explicit fallback/simulation or partial-output paths even when capability probes succeed. `v8_jit_inspect` now returns native optimization status on the default Chrome launch path, but `v8_bytecode_extract` still does not expose raw Ignition bytecode.
+- `mojo-ipc`, `v8_bytecode_extract`, `wasm`, CAPTCHA solving, and some platform helpers still have explicit fallback/simulation or partial-output paths even when capability probes succeed. `mojo_ipc_capabilities` now separates backend probe availability from still-unavailable live Mojo capture. `v8_jit_inspect` now returns native optimization status on the default Chrome launch path, but `v8_bytecode_extract` still does not expose raw Ignition bytecode.
 - Compatibility-only suspects still exist: `src/server/domains/v8-inspector/handlers.impl.ts` and `src/server/domains/streaming/handlers.impl.streaming-*` are retained for legacy direct imports/tests while current runtime goes through newer handler chains.
 
 Parts:

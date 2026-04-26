@@ -13,6 +13,7 @@ describe('MojoIPCHandlers', () => {
     listInterfaces: ReturnType<typeof vi.fn>;
     getMessages: ReturnType<typeof vi.fn>;
     isSimulationMode: ReturnType<typeof vi.fn>;
+    didFridaProbeSucceed: ReturnType<typeof vi.fn>;
     getInterfaceCatalogSource: ReturnType<typeof vi.fn>;
     getObservedInterfaceCount: ReturnType<typeof vi.fn>;
   };
@@ -47,6 +48,7 @@ describe('MojoIPCHandlers', () => {
         _simulation: false,
       }),
       isSimulationMode: vi.fn().mockReturnValue(false),
+      didFridaProbeSucceed: vi.fn().mockReturnValue(false),
       getInterfaceCatalogSource: vi.fn().mockReturnValue('seeded-defaults'),
       getObservedInterfaceCount: vi.fn().mockReturnValue(0),
     };
@@ -75,6 +77,14 @@ describe('MojoIPCHandlers', () => {
     const result = await handlers.handleMojoIpcCapabilities();
     expect(result).toMatchObject({ success: true, tool: 'mojo_ipc_capabilities' });
     expect(result).toHaveProperty('capabilities');
+    expect(result).toMatchObject({
+      capabilities: expect.arrayContaining([
+        expect.objectContaining({
+          capability: 'mojo_live_capture',
+          available: false,
+        }),
+      ]),
+    });
   });
 
   it('stops monitoring with the current API', async () => {

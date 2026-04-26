@@ -5,7 +5,7 @@ Evidence: src/server/domains/mojo-ipc/handlers.impl.ts; src/modules/mojo-ipc/Moj
 
 | tool | status | note |
 | --- | --- | --- |
-| mojo_ipc_capabilities | real | Explicit capability probe; it reported available on this machine. |
+| mojo_ipc_capabilities | real | Explicit capability probe; it now separates backend probe availability from still-unavailable live Mojo capture. |
 | mojo_monitor | conditional | Monitor start path was verified on this machine, but it still returned `_simulation: true` here instead of live Frida-backed message capture. |
 | mojo_decode_message | real | Local payload decoder does not require live monitoring; sample decode was verified. |
 | mojo_list_interfaces | conditional | Interface listing now exposes whether data is `seeded-defaults`, `observed`, or `mixed`; this machine only surfaced the seeded default catalog, not live discovery. |
