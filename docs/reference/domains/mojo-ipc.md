@@ -21,7 +21,7 @@ Mojo IPC 监控域，用于 Chromium 内部进程间通信分析。
 
 ## 代表工具
 
-- `mojo_ipc_capabilities` — 待补充中文：Report Mojo IPC monitoring availability.
+- `mojo_ipc_capabilities` — 报告 Mojo IPC 监控可用性。
 - `mojo_monitor` — 启动或停止当前 Chromium 内核目标的 Mojo IPC 监控。
 - `mojo_decode_message` — 将 Mojo IPC 十六进制负载解码为结构化字段映射。
 - `mojo_list_interfaces` — 列出已发现的 Mojo IPC 接口及其待处理消息计数。
@@ -31,7 +31,7 @@ Mojo IPC 监控域，用于 Chromium 内部进程间通信分析。
 
 | 工具 | 说明 |
 | --- | --- |
-| `mojo_ipc_capabilities` | 待补充中文：Report Mojo IPC monitoring availability. |
+| `mojo_ipc_capabilities` | 报告 Mojo IPC 监控可用性。 |
 | `mojo_monitor` | 启动或停止当前 Chromium 内核目标的 Mojo IPC 监控。 |
 | `mojo_decode_message` | 将 Mojo IPC 十六进制负载解码为结构化字段映射。 |
 | `mojo_list_interfaces` | 列出已发现的 Mojo IPC 接口及其待处理消息计数。 |

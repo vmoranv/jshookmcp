@@ -21,7 +21,7 @@
 
 ## 代表工具
 
-- `binary_instrument_capabilities` — 待补充中文：Report binary instrumentation backend availability.
+- `binary_instrument_capabilities` — 报告二进制插桩后端可用性。
 - `frida_attach` — 附加 Frida 到本地进程、PID 或二进制路径，并创建二进制插桩会话。
 - `frida_enumerate_modules` — 枚举已附加 Frida 会话中的模块。
 - `ghidra_analyze` — 在 Ghidra headless 可用时运行二进制元数据分析，不可用时返回结构化降级输出。
@@ -36,7 +36,7 @@
 
 | 工具 | 说明 |
 | --- | --- |
-| `binary_instrument_capabilities` | 待补充中文：Report binary instrumentation backend availability. |
+| `binary_instrument_capabilities` | 报告二进制插桩后端可用性。 |
 | `frida_attach` | 附加 Frida 到本地进程、PID 或二进制路径，并创建二进制插桩会话。 |
 | `frida_enumerate_modules` | 枚举已附加 Frida 会话中的模块。 |
 | `ghidra_analyze` | 在 Ghidra headless 可用时运行二进制元数据分析，不可用时返回结构化降级输出。 |

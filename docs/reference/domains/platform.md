@@ -20,7 +20,7 @@
 
 ## 代表工具
 
-- `platform_capabilities` — 待补充中文：Report platform tool backend availability.
+- `platform_capabilities` — 报告平台工具后端可用性。
 - `miniapp_pkg_scan` — 扫描本地小程序缓存目录并列出所有包文件。
 - `miniapp_pkg_unpack` — 解包小程序包文件，优先使用外部工具，失败时自动降级为 Node.js 解析。
 - `miniapp_pkg_analyze` — 分析解包后的小程序结构，提取页面、分包、组件和体积等信息。
@@ -35,7 +35,7 @@
 
 | 工具 | 说明 |
 | --- | --- |
-| `platform_capabilities` | 待补充中文：Report platform tool backend availability. |
+| `platform_capabilities` | 报告平台工具后端可用性。 |
 | `miniapp_pkg_scan` | 扫描本地小程序缓存目录并列出所有包文件。 |
 | `miniapp_pkg_unpack` | 解包小程序包文件，优先使用外部工具，失败时自动降级为 Node.js 解析。 |
 | `miniapp_pkg_analyze` | 分析解包后的小程序结构，提取页面、分包、组件和体积等信息。 |

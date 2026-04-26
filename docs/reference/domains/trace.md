@@ -25,7 +25,7 @@
 - `stop_trace_recording` — 停止跟踪录制，将捕获的事件写入 SQLite 数据库以供查询和回放。
 - `query_trace_sql` — 对跟踪数据库执行 SQL 查询，可按时间戳、类别或内容搜索录制事件。
 - `seek_to_timestamp` — 将跟踪回放跳转到指定时间戳，返回该时刻的快照上下文。
-- `trace_get_network_flow` — 待补充中文：Get a recorded request-scoped network flow from a trace.
+- `trace_get_network_flow` — 读取 trace 中按请求聚合的网络流。
 - `diff_heap_snapshots` — 对比两个堆快照的差异，找出新增、删除和大小变化的对象。
 - `export_trace` — 将跟踪数据导出为标准格式文件，便于外部工具分析或团队共享。
 - `summarize_trace` — 为跟踪数据库生成紧凑的、适用于大语言模型的摘要报告。
@@ -39,7 +39,7 @@
 | `stop_trace_recording` | 停止跟踪录制，将捕获的事件写入 SQLite 数据库以供查询和回放。 |
 | `query_trace_sql` | 对跟踪数据库执行 SQL 查询，可按时间戳、类别或内容搜索录制事件。 |
 | `seek_to_timestamp` | 将跟踪回放跳转到指定时间戳，返回该时刻的快照上下文。 |
-| `trace_get_network_flow` | 待补充中文：Get a recorded request-scoped network flow from a trace. |
+| `trace_get_network_flow` | 读取 trace 中按请求聚合的网络流。 |
 | `diff_heap_snapshots` | 对比两个堆快照的差异，找出新增、删除和大小变化的对象。 |
 | `export_trace` | 将跟踪数据导出为标准格式文件，便于外部工具分析或团队共享。 |
 | `summarize_trace` | 为跟踪数据库生成紧凑的、适用于大语言模型的摘要报告。 |
