@@ -60,6 +60,7 @@ screenshots/
 # Session data
 sessions/
 *.session
+.jshookmcp/
 
 # Generated artifacts (HAR exports, screenshots, debug sessions)
 # HAR files from network_export_har / web_api_capture_session auto-export
