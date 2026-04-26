@@ -7,6 +7,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import http2 from 'node:http2';
 import net from 'node:net';
+import tls from 'node:tls';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -21,9 +22,63 @@ const HTTP2_MARKER = 'payload-marker-h2-20260425';
 const SOURCEMAP_MARKER = 'payload-marker-sourcemap-20260425';
 const CONSOLE_LOG_MARKER = 'payload-marker-console-20260426';
 const CONSOLE_EXCEPTION_MARKER = 'payload-marker-console-exception-20260426';
+const AUTH_BEARER_MARKER = 'bearer-audit-20260426';
+const AUTH_API_KEY_MARKER = 'api-key-audit-20260426';
+const AUTH_SIGNATURE_MARKER = 'sig-audit-20260426';
+const INTERCEPT_MARKER = 'intercepted-body-20260426';
 const ROOT_RELOAD_KEY = '__audit_reload_count';
 const SCRIPT_TIMEOUT_MS = 6 * 60 * 1000;
 const DIRECT_RUNTIME_PROBED_TOOLS = new Set();
+
+const TEST_KEY_PEM = `-----BEGIN RSA PRIVATE KEY-----
+MIIEogIBAAKCAQEAw5ph3jyxq4RKueHGkMvnKpysHDHd+UipLwLFT5j2tlaa6YFY
+hxhYfQalHf8AtGTW74czhlX9R365GwlBHhE7fR4vcGsxWbnpd/re8AEmLiW9YLrY
+C7Ecw/uBpWOEf7EbYp3mh0anTfU9Zbec5CXH1IYl+tFk5luwc0mW7IL/1uZVStBC
++ttSju0bsuFGduGlCpoQwgXAoMWgPkpFIAQJ8N4nOKoe1LlAYT3/s0uqX07C9x+b
+BpxdSOu9GhVSAzZ3qq9zlXyzn4XanHEBow4JmyrD8yiEF4qj1GaZnoSASOp3duhg
+bH4BCUBPEjpA95OsgUzHptDRKeK+GUfyRhVgFQIDAQABAoIBAA8qZNynfYoEFYwg
+dHYNDSUJZTHBbwmxJ8boktZHUJeWEug4Wl4NFe1JqtsuxoX2DJEhPS409BCLQ3xU
+ZRtY8DEU+k4fzYF8r9yY05itqiFpVSvPCMmtR4LteOGTG/aPi4VDo1hJMtcRRNui
+VxR8VmhEp2SxP/65TK6/nadER+RIMEzk18BdLGerYMS5RfcPcDtU2zDm997niwh6
+cOfUk7UqyrOZ7blO+7ZX2b8MYn20aMfTqW/w764tbbnA9CUK5tA4uRvPU9vW7Abm
+ZyzGdOX53EIefWFdREXI1x0lCbgkZ3NtxTTDLww8XzBGzPgtahNhiXUmQA20z5fX
+YAtQ+uECgYEA5rz4Y4D2zMIqVXyn8AjBBy/neEP3B9rHinWpFhkxvBSOLzmxfkgu
+0ZQpjYw0WGb6pTVlfZLFKSKBAdZeFhIkM6ZptF19Y5YgjasEjl7ey5Z4GKZY8S7L
+HlEWa3/JL8Wmi7n/Kt794atQm8GDki5EsmvXPlJ98hqoYjlYagwUr7UCgYEA2QSp
+DH538zK7HpNTluBSTZVRcmDnZePVzvJPEWn5CGkHArhRRO5lYFZ6pwhwqCfEgUxd
+3b16spBJqTs+H2NllBQ3XyPSpCCVB+39F1lp49OdDm0haxcQ+zBBAgZKA4ics1tp
+eSM6BsjwC1lhNgk8UrPG1bXtUU0g018cvhZOauECgYAXpvtXR9sEtkqcpMCaTGtt
+Dy4NF/p0paqauODyUPbWLs08bg+RwFh8R1HTHrIm9bdvw/95Vdg8FTtgMtdGL+ni
+GYbwZDz8PmFr5EH9TiBMgkohTLwFTSSpIOrJbjnzWbFu1Uwg2ubvgR4sOTQBghis
+qX1Q+CfM74qfNv2nMUHVmQKBgD7WOpyDgffJGKUhw3JMQYh1U7/qjxXRgncJcht4
+s8LbpkwDUoTDAleCssDqkLQfz6Yglo097+kEHlAB91rfTOozcFT76mHbjUtefYnl
+OePdwfwLXUHEzAXvUuNjLssXI0hLj56jtImCZP7kQmGDCxRnOYtnwe9ohbiuMYRY
+sRwBAoGARZcKdUUPs5X+Q7DxMRg7f5Yv3i7aqiAi/dZysb5W5On+xFXIJx/OPdQC
+WKWO8S/U+5KFZQkJ5yxUcJXezd+HguoB5CL6BEQbfxTvDQW+AesXtmiIpoWqIKx4
+cDY9yGCvWTzQwOVjlsEOsOpdZPvxPdZ4pG0tR5aF8BkHf0fKa2g=
+-----END RSA PRIVATE KEY-----
+`;
+
+const TEST_CERT_PEM = `-----BEGIN CERTIFICATE-----
+MIIDGjCCAgKgAwIBAgIBATANBgkqhkiG9w0BAQsFADAtMRIwEAYDVQQDEwlsb2Nh
+bGhvc3QxFzAVBgNVBAoTDmpzaG9va21jcC10ZXN0MB4XDTI0MDEwMTAwMDAwMFoX
+DTM0MDEwMTAwMDAwMFowLTESMBAGA1UEAxMJbG9jYWxob3N0MRcwFQYDVQQKEw5q
+c2hvb2ttY3AtdGVzdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMOa
+Yd48sauESrnhxpDL5yqcrBwx3flIqS8CxU+Y9rZWmumBWIcYWH0GpR3/ALRk1u+H
+M4ZV/Ud+uRsJQR4RO30eL3BrMVm56Xf63vABJi4lvWC62AuxHMP7gaVjhH+xG2Kd
+5odGp031PWW3nOQlx9SGJfrRZOZbsHNJluyC/9bmVUrQQvrbUo7tG7LhRnbhpQqa
+EMIFwKDFoD5KRSAECfDeJziqHtS5QGE9/7NLql9OwvcfmwacXUjrvRoVUgM2d6qv
+c5V8s5+F2pxxAaMOCZsqw/MohBeKo9RmmZ6EgEjqd3boYGx+AQlATxI6QPeTrIFM
+x6bQ0SnivhlH8kYVYBUCAwEAAaNFMEMwCQYDVR0TBAIwADALBgNVHQ8EBAMCBaAw
+EwYDVR0lBAwwCgYIKwYBBQUHAwEwFAYDVR0RBA0wC4IJbG9jYWxob3N0MA0GCSqG
+SIb3DQEBCwUAA4IBAQAImU5ZLT6Rqhd3rWfsipnplqg1SJ8HiS6zKXMYqZ6sh90s
+0l3ycj/EM+YnStK+pgHT1g9IRJ+Js8SBqsbhdXHh80cyw82qN1gE8aaLWrcQJBRk
+38Cad5dmX/K6r5XmzJ9sAmbumm/YD72HnKOmjRqGu077sgUxFRBKOVS9gkFtSHIW
+5BQFM7EF8xLRpGo5ObdBYt2NZyLVyxxbggj3x3II+wCvAQgi8NXOGbL8FOgGWWDH
+hYl+QoIs6H1FE3av1uQdZn9ILfBfiq8jj2j85p/WwizYvSDGa78bcuwh8u/T2KIr
+2Sn1Vm9W0vOLfa5gF6/w138SPqk5/LSzYSgnNR9q
+-----END CERTIFICATE-----
+`;
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null;
@@ -404,6 +459,7 @@ async function createProbeServer() {
     `//# sourceMappingURL=${sourceMapDataUri}`,
   ].join('\n');
   const sockets = new Set();
+  const tlsSockets = new Set();
   const httpServer = http.createServer((req, res) => {
     if (!req.url) {
       res.writeHead(400).end('missing url');
@@ -529,6 +585,15 @@ async function createProbeServer() {
       return;
     }
 
+    if (req.url.startsWith('/intercept-target')) {
+      res.writeHead(200, {
+        'content-type': 'text/plain; charset=utf-8',
+        'cache-control': 'no-store',
+      });
+      res.end('original-intercept-body');
+      return;
+    }
+
     if (req.url.startsWith('/sse')) {
       res.writeHead(200, {
         'content-type': 'text/event-stream',
@@ -572,6 +637,31 @@ async function createProbeServer() {
       'cache-control': 'no-store',
     });
     stream.end(HTTP2_MARKER);
+  });
+
+  const tlsServer = tls.createServer({ key: TEST_KEY_PEM, cert: TEST_CERT_PEM }, (socket) => {
+    tlsSockets.add(socket);
+    socket.on('close', () => tlsSockets.delete(socket));
+    socket.on('error', () => {});
+    socket.on('data', (chunk) => {
+      const requestText = chunk.toString('utf8');
+      if (!requestText.includes('\r\n\r\n')) {
+        return;
+      }
+
+      socket.write(
+        [
+          'HTTP/1.1 200 OK',
+          'Content-Type: text/plain; charset=utf-8',
+          'Cache-Control: no-store',
+          `Content-Length: ${Buffer.byteLength(BODY_MARKER, 'utf8')}`,
+          'Connection: close',
+          '',
+          BODY_MARKER,
+        ].join('\r\n'),
+      );
+      socket.end();
+    });
   });
 
   httpServer.on('upgrade', (req, socket) => {
@@ -627,13 +717,19 @@ async function createProbeServer() {
   await once(httpServer, 'listening');
   http2Server.listen(0, '127.0.0.1');
   await once(http2Server, 'listening');
+  tlsServer.listen(0, '127.0.0.1');
+  await once(tlsServer, 'listening');
   const address = httpServer.address();
   const http2Address = http2Server.address();
+  const tlsAddress = tlsServer.address();
   if (!address || typeof address === 'string') {
     throw new Error('Failed to resolve probe server address');
   }
   if (!http2Address || typeof http2Address === 'string') {
     throw new Error('Failed to resolve HTTP/2 probe server address');
+  }
+  if (!tlsAddress || typeof tlsAddress === 'string') {
+    throw new Error('Failed to resolve TLS probe server address');
   }
 
   const baseUrl = `http://127.0.0.1:${address.port}`;
@@ -641,14 +737,19 @@ async function createProbeServer() {
     baseUrl,
     wsUrl: `ws://127.0.0.1:${address.port}/ws`,
     http2Url: `http://127.0.0.1:${http2Address.port}/h2`,
+    tlsPort: tlsAddress.port,
     sourceMapPageUrl: `${baseUrl}/sourcemap/`,
     sourceMapUrl: sourceMapDataUri,
     async close() {
       for (const socket of sockets) {
         socket.destroy();
       }
+      for (const socket of tlsSockets) {
+        socket.destroy();
+      }
       await new Promise((resolve) => httpServer.close(resolve));
       await new Promise((resolve) => http2Server.close(resolve));
+      await new Promise((resolve) => tlsServer.close(resolve));
     },
   };
 }
@@ -660,6 +761,7 @@ function summarize(report) {
     '',
     `network: requestId=${report.network.requestId ?? 'n/a'} bodyMarker=${report.network.bodyHasMarker}`,
     `network-raw: http=${report.network.rawHttp?.response?.statusCode ?? 'n/a'} h2=${report.network.http2?.statusCode ?? 'n/a'} rtt=${report.network.rtt?.stats?.count ?? 0}`,
+    `network-extra: auth=${report.network.extractAuth?.found ?? 'n/a'} har=${report.network.harEntryCount ?? 'n/a'} replay=${report.network.replayLive?.status ?? 'n/a'} interceptHits=${report.network.interceptList?.totalHits ?? 'n/a'} tcp=${report.network.tcpRead?.matchedDelimiter ?? 'n/a'} tls=${report.network.tlsRead?.matchedDelimiter ?? 'n/a'} wsRaw=${report.network.rawWebSocketReply?.dataText ?? 'n/a'}`,
     `proxy: running=${report.proxy.status?.running ?? false} logs=${report.proxy.requestLogs?.count ?? 0} bodyMarker=${report.proxy.bodyHasMarker ?? false}`,
     `sourcemap: discovered=${report.sourcemap.discoveredCount ?? 0} parsed=${report.sourcemap.parsed?.mappingsCount ?? 'n/a'} reconstructed=${report.sourcemap.reconstructed?.writtenFiles ?? 'n/a'} reconstructedMarker=${report.sourcemap.reconstructedContainsMarker ?? false}`,
     `platform: miniapps=${report.platform?.miniappScan?.count ?? 'n/a'} fuseWire=${report.platform?.electronFuses?.fuseWireFound ?? 'n/a'} userdata=${report.platform?.electronUserdata?.totalScanned ?? 'n/a'} asarFiles=${report.platform?.asarExtract?.totalFiles ?? 'n/a'} asarMatches=${report.platform?.asarSearch?.totalMatches ?? 'n/a'}`,
@@ -1417,6 +1519,142 @@ async function main() {
       },
       30000,
     );
+    report.network.tcpOpen = await callTool(
+      client,
+      'tcp_open',
+      {
+        host: '127.0.0.1',
+        port: Number(new URL(server.baseUrl).port),
+        timeoutMs: 5000,
+      },
+      30000,
+    );
+    const tcpSessionId =
+      typeof report.network.tcpOpen?.sessionId === 'string'
+        ? report.network.tcpOpen.sessionId
+        : null;
+    if (tcpSessionId) {
+      report.network.tcpWrite = await callTool(
+        client,
+        'tcp_write',
+        {
+          sessionId: tcpSessionId,
+          dataText:
+            'GET /body?via=tcp-session HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n',
+        },
+        30000,
+      );
+      report.network.tcpRead = await callTool(
+        client,
+        'tcp_read_until',
+        {
+          sessionId: tcpSessionId,
+          delimiterText: BODY_MARKER,
+          includeDelimiter: true,
+          timeoutMs: 5000,
+        },
+        30000,
+      );
+      report.network.tcpClose = await callTool(
+        client,
+        'tcp_close',
+        { sessionId: tcpSessionId },
+        15000,
+      );
+    }
+
+    report.network.tlsOpen = await callTool(
+      client,
+      'tls_open',
+      {
+        host: '127.0.0.1',
+        port: server.tlsPort,
+        servername: 'localhost',
+        caPem: TEST_CERT_PEM,
+        alpnProtocols: ['http/1.1'],
+        timeoutMs: 5000,
+      },
+      30000,
+    );
+    const tlsSessionId =
+      typeof report.network.tlsOpen?.sessionId === 'string'
+        ? report.network.tlsOpen.sessionId
+        : null;
+    if (tlsSessionId) {
+      report.network.tlsWrite = await callTool(
+        client,
+        'tls_write',
+        {
+          sessionId: tlsSessionId,
+          dataText: 'GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n',
+        },
+        30000,
+      );
+      report.network.tlsRead = await callTool(
+        client,
+        'tls_read_until',
+        {
+          sessionId: tlsSessionId,
+          delimiterText: BODY_MARKER,
+          includeDelimiter: true,
+          timeoutMs: 5000,
+        },
+        30000,
+      );
+      report.network.tlsClose = await callTool(
+        client,
+        'tls_close',
+        { sessionId: tlsSessionId },
+        15000,
+      );
+    }
+
+    report.network.rawWebSocketOpen = await callTool(
+      client,
+      'websocket_open',
+      { url: server.wsUrl, timeoutMs: 5000 },
+      30000,
+    );
+    const rawWebSocketSessionId =
+      typeof report.network.rawWebSocketOpen?.sessionId === 'string'
+        ? report.network.rawWebSocketOpen.sessionId
+        : null;
+    if (rawWebSocketSessionId) {
+      report.network.rawWebSocketHello = await callTool(
+        client,
+        'websocket_read_frame',
+        { sessionId: rawWebSocketSessionId, timeoutMs: 5000 },
+        30000,
+      );
+      report.network.rawWebSocketSend = await callTool(
+        client,
+        'websocket_send_frame',
+        {
+          sessionId: rawWebSocketSessionId,
+          frameType: 'text',
+          dataText: 'hello',
+          timeoutMs: 5000,
+        },
+        30000,
+      );
+      report.network.rawWebSocketReply = await callTool(
+        client,
+        'websocket_read_frame',
+        { sessionId: rawWebSocketSessionId, timeoutMs: 5000 },
+        30000,
+      );
+      report.network.rawWebSocketClose = await callTool(
+        client,
+        'websocket_close',
+        {
+          sessionId: rawWebSocketSessionId,
+          closeCode: 1000,
+          closeReason: 'done',
+          timeoutMs: 1000,
+        },
+        15000,
+      );
+    }
 
     const proxyPort = await getFreePort();
     report.proxy.start = await callTool(
@@ -1513,6 +1751,19 @@ async function main() {
         networkBodyMaxBytes: 1024 * 1024,
       },
       15000,
+    );
+    report.network.interceptAdd = await callTool(
+      client,
+      'network_intercept',
+      {
+        action: 'add',
+        urlPattern: `${server.baseUrl}/intercept-target*`,
+        urlPatternType: 'glob',
+        responseCode: 200,
+        responseHeaders: { 'content-type': 'text/plain; charset=utf-8', 'x-audit-intercept': '1' },
+        responseBody: INTERCEPT_MARKER,
+      },
+      30000,
     );
     report.mojo.monitorStart = await callTool(client, 'mojo_monitor', { action: 'start' }, 30000);
     report.browser.seedAuditProbeScript = await callTool(
@@ -1675,6 +1926,61 @@ async function main() {
               fetchHasMarker: fetchText.includes(${JSON.stringify(BODY_MARKER)}),
               xhrHasMarker: xhrText.includes(${JSON.stringify(BODY_MARKER)}),
             });
+          } catch (error) {
+            reject(error);
+          }
+        }))()`,
+      },
+      30000,
+    );
+    report.network.interceptFetch = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => new Promise(async (resolve, reject) => {
+          try {
+            const response = await fetch(${JSON.stringify(`${server.baseUrl}/intercept-target?via=intercept`)});
+            resolve({
+              status: response.status,
+              header: response.headers.get('x-audit-intercept'),
+              body: await response.text(),
+            });
+          } catch (error) {
+            reject(error);
+          }
+        }))()`,
+      },
+      30000,
+    );
+    report.network.interceptList = await callTool(
+      client,
+      'network_intercept',
+      { action: 'list' },
+      15000,
+    );
+    report.network.interceptDisable = await callTool(
+      client,
+      'network_intercept',
+      { action: 'disable', all: true },
+      15000,
+    );
+    report.network.authExercise = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => new Promise(async (resolve, reject) => {
+          try {
+            const response = await fetch(${JSON.stringify(`${server.baseUrl}/body?via=auth`)}, {
+              method: 'POST',
+              headers: {
+                Authorization: ${JSON.stringify(`Bearer ${AUTH_BEARER_MARKER}`)},
+                'X-Api-Key': ${JSON.stringify(AUTH_API_KEY_MARKER)},
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ signature: ${JSON.stringify(AUTH_SIGNATURE_MARKER)} }),
+            });
+            const body = await response.text();
+            resolve({ status: response.status, bodyHasMarker: body.includes(${JSON.stringify(BODY_MARKER)}) });
           } catch (error) {
             reject(error);
           }
@@ -1953,6 +2259,42 @@ async function main() {
     report.network.stats = await callTool(client, 'network_get_stats', {}, 15000);
     const requestRecord = findRequestByUrl(report.network.requests.requests, '/body?via=eval');
     report.network.requestId = extractString(requestRecord, ['requestId', 'id']);
+    const authRequestRecord = findRequestByUrl(report.network.requests.requests, '/body?via=auth');
+    report.network.authRequestId = extractString(authRequestRecord, ['requestId', 'id']);
+    report.network.extractAuth = await callTool(
+      client,
+      'network_extract_auth',
+      { minConfidence: 0.3 },
+      30000,
+    );
+    {
+      const authStrings = flattenStrings(report.network.extractAuth);
+      report.network.authHasBearerMarker = authStrings.some((entry) =>
+        entry.toLowerCase().includes('bearer'),
+      );
+      report.network.authHasApiKeyMarker = authStrings.some((entry) =>
+        entry.includes(AUTH_API_KEY_MARKER.slice(0, 6)),
+      );
+      report.network.authHasSignatureMarker = authStrings.some((entry) =>
+        entry.includes(AUTH_SIGNATURE_MARKER.slice(0, 6)),
+      );
+    }
+    const harPath = join(runtimeArtifactDir, 'runtime-network.har');
+    report.network.exportHar = await callTool(
+      client,
+      'network_export_har',
+      { outputPath: harPath },
+      30000,
+    );
+    try {
+      const harText = await readFile(harPath, 'utf8');
+      const harJson = JSON.parse(harText);
+      report.network.harEntryCount = Array.isArray(harJson?.log?.entries)
+        ? harJson.log.entries.length
+        : null;
+    } catch {
+      report.network.harEntryCount = null;
+    }
 
     if (report.network.requestId) {
       report.network.responseBody = await callTool(
@@ -1993,6 +2335,38 @@ async function main() {
           blockSize: 256,
         },
         15000,
+      );
+      report.network.replayPreview = await callTool(
+        client,
+        'network_replay_request',
+        {
+          requestId: report.network.requestId,
+          dryRun: true,
+          timeoutMs: 15000,
+          authorization: {
+            allowedHosts: ['127.0.0.1'],
+            allowPrivateNetwork: true,
+            allowInsecureHttp: true,
+            reason: 'runtime audit loopback replay',
+          },
+        },
+        30000,
+      );
+      report.network.replayLive = await callTool(
+        client,
+        'network_replay_request',
+        {
+          requestId: report.network.requestId,
+          dryRun: false,
+          timeoutMs: 15000,
+          authorization: {
+            allowedHosts: ['127.0.0.1'],
+            allowPrivateNetwork: true,
+            allowInsecureHttp: true,
+            reason: 'runtime audit loopback replay',
+          },
+        },
+        30000,
       );
     } else {
       report.network.bodyHasMarker = false;
