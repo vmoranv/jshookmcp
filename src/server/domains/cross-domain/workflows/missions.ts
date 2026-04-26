@@ -15,7 +15,7 @@ export const WORKFLOWS: Record<string, CrossDomainWorkflowDefinition> = {
     displayName: 'Reverse Obfuscated API',
     steps: [
       { tool: 'deobfuscate', args: { targetUrl: '${input.targetUrl}' } },
-      { tool: 'js_heap_search', args: { query: '${previous.cryptoKeys}' } },
+      { tool: 'js_heap_search', args: { pattern: '${previous.cryptoKeys}' } },
       { tool: 'network_enable', args: {} },
       { tool: 'tls_cert_pin_bypass', args: { target: '${input.target}' } },
       { tool: 'console_inject_fetch_interceptor', args: { urls: ['${input.apiEndpoint}'] } },
@@ -29,7 +29,7 @@ export const WORKFLOWS: Record<string, CrossDomainWorkflowDefinition> = {
       { tool: 'canvas_scene_dump', args: { canvasId: '${input.canvasId}' } },
       { tool: 'skia_correlate_objects', args: { skiaNodeIds: '${previous.nodeIds}' } },
       { tool: 'performance_take_heap_snapshot', args: {} },
-      { tool: 'js_heap_search', args: { query: '${input.searchTerm}' } },
+      { tool: 'js_heap_search', args: { pattern: '${input.searchTerm}' } },
     ],
   },
   WORKFLOW_BINARY_NATIVE_HOOK: {

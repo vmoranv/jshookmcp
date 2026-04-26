@@ -160,8 +160,12 @@ export async function handleHumanScroll(
 
     const distance = Math.max(1, Math.min(argNumber(args, 'distance', 500), 10000));
     const direction = argString(args, 'direction', 'down');
+    const durationMs = Math.max(10, Math.min(argNumber(args, 'durationMs', 1500), 30000));
     const segments = Math.max(1, Math.min(argNumber(args, 'segments', 8), 200));
-    const pauseMs = Math.max(0, Math.min(argNumber(args, 'pauseMs', 80), 5000));
+    const pauseMs =
+      typeof args['pauseMs'] === 'number' && Number.isFinite(args['pauseMs'])
+        ? Math.max(0, Math.min(argNumber(args, 'pauseMs', 80), 5000))
+        : Math.max(0, Math.min(Math.round(durationMs / segments), 5000));
     const jitter = Math.max(0, Math.min(argNumber(args, 'jitter', 0.3), 1));
     const selector = argString(args, 'selector');
 
@@ -211,6 +215,8 @@ export async function handleHumanScroll(
       direction,
       requestedDistance: distance,
       actualScrolled: Math.round(scrolled),
+      durationMs,
+      pauseMs,
       segments,
     });
   } catch (e) {

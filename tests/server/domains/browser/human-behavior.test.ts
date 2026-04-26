@@ -194,6 +194,19 @@ describe('handleHumanScroll', () => {
     });
   }, 30_000);
 
+  it('derives pauseMs from durationMs when pauseMs is omitted', async () => {
+    const { collector } = createMockCollector(true);
+    const result = await runWithFakeTimers(() =>
+      handleHumanScroll({ distance: 200, durationMs: 900, segments: 3 }, collector),
+    );
+    expect(parseJson<BrowserStatusResponse>(result)).toMatchObject({
+      success: true,
+      durationMs: 900,
+      pauseMs: 300,
+      segments: 3,
+    });
+  });
+
   it('scrolls and reports success', async () => {
     const { collector } = createMockCollector(true);
     const result = await runWithFakeTimers(() =>
