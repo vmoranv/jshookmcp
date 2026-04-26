@@ -555,7 +555,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     profiler_heap_sampling: { action: 'start' },
     // ── Network tools ──
     network_monitor: { action: 'status' },
-    network_rtt_measure: { target: '1.1.1.1', count: 3 },
+    network_rtt_measure: { url: targetUrl, probeType: 'http', iterations: 1 },
     // ── TCP/TLS Raw ──
     tcp_open: { host: '127.0.0.1', port: 80 },
     tcp_write: { connectionId: '__placeholder__', data: 'dGVzdA==' },
@@ -572,22 +572,42 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     websocket_close: { connectionId: '__placeholder__' },
     // ── HTTP builders ──
     http_request_build: { method: 'GET', url: 'http://example.com' },
-    http_plain_request: { url: 'http://example.com', method: 'GET' },
-    http2_probe: { host: '127.0.0.1', port: 443 },
+    http_plain_request: {
+      host: 'example.com',
+      port: 80,
+      requestText: 'GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n',
+    },
+    http2_probe: { url: 'https://example.com/' },
     http2_frame_build: { type: 'HEADERS' },
     // ── Packet builders ──
-    payload_template_build: { template: 'http_get', variables: { host: 'example.com' } },
-    payload_mutate: { payload: 'AAAA', mutations: ['bit_flip'] },
-    ethernet_frame_build: {
-      dstMac: '00:00:00:00:00:00',
-      srcMac: '00:00:00:00:00:00',
-      ethertype: '0x0800',
+    payload_template_build: {
+      fields: [{ name: 'tag', type: 'string', value: 'OK', encoding: 'ascii', length: 2 }],
     },
-    arp_build: { operation: 'request', srcIp: '192.168.1.1', dstIp: '192.168.1.2' },
-    raw_ip_packet_build: { srcIp: '192.168.1.1', dstIp: '192.168.1.2', protocol: 'tcp' },
-    icmp_echo_build: { type: 8, code: 0 },
-    checksum_apply: { data: 'AAAA', algorithm: 'crc32' },
-    pcap_write: { path: `${artifactDir}/e2e-test.pcap` },
+    payload_mutate: {
+      hexPayload: '001020',
+      mutations: [{ strategy: 'set_byte', offset: 1, value: 255 }],
+    },
+    ethernet_frame_build: {
+      destinationMac: '00:00:00:00:00:01',
+      sourceMac: '00:00:00:00:00:02',
+      etherType: 'ipv4',
+      payloadHex: '4500',
+    },
+    arp_build: {
+      operation: 'request',
+      senderMac: '00:00:00:00:00:02',
+      senderIp: '192.168.1.1',
+      targetIp: '192.168.1.2',
+    },
+    raw_ip_packet_build: {
+      version: 'ipv4',
+      sourceIp: '192.168.1.1',
+      destinationIp: '192.168.1.2',
+      protocol: 'tcp',
+    },
+    icmp_echo_build: { operation: 'request', identifier: 1, sequenceNumber: 1 },
+    checksum_apply: { hexPayload: '0800000000010002aabb', zeroOffset: 2, writeOffset: 2 },
+    pcap_write: { path: `${artifactDir}/e2e-test.pcap`, packets: [{ dataHex: 'aabbccdd' }] },
     pcap_read: { path: `${artifactDir}/e2e-test.pcap` },
     // ── Proxy ──
     proxy_start: { port: 0 },
@@ -601,7 +621,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     // ── Mojo/Network ──
     mojo_monitor: { action: 'list' },
     // ── Evidence aliases ──
-    evidence_query: { query: '*' },
+    evidence_query: { by: 'url', value: targetUrl },
     evidence_export: { format: 'json' },
     // ── Console aliases ──
     console_inject: { type: 'fetch' },

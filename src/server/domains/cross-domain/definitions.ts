@@ -3,15 +3,11 @@ import { tool } from '@server/registry/tool-builder';
 
 export const crossDomainToolDefinitions: Tool[] = [
   tool('cross_domain_capabilities', (t) =>
-    t
-      .desc(
-        'List cross-domain capabilities, supported v5.0 domains, and available mission workflows.',
-      )
-      .query(),
+    t.desc('List cross-domain capabilities and workflows.').query(),
   ),
   tool('cross_domain_suggest_workflow', (t) =>
     t
-      .desc('Suggest the best cross-domain workflow for a reverse-engineering goal.')
+      .desc('Suggest a cross-domain workflow for a goal.')
       .string('goal', 'High-level task goal or problem statement to classify')
       .boolean(
         'preferAvailableOnly',
@@ -23,99 +19,106 @@ export const crossDomainToolDefinitions: Tool[] = [
       .required('goal')
       .query(),
   ),
-  tool('cross_domain_health', (t) =>
-    t
-      .desc('Report cross-domain health, enabled v5.0 domains, and evidence-graph availability.')
-      .query(),
-  ),
+  tool('cross_domain_health', (t) => t.desc('Report cross-domain health.').query()),
   tool('cross_domain_correlate_all', (t) =>
     t
       .desc(
-        'Ingest artifacts from V8, network, canvas, syscall, mojo, and binary domains into one shared evidence graph with optional cross-links.',
+        'Run the built-in skia, mojo, syscall, and binary correlators and merge the results into the shared evidence graph.',
       )
+      .prop('sceneTree', {
+        type: 'object',
+        description: 'Skia scene tree with layers and drawCommands',
+        additionalProperties: true,
+      })
       .array(
-        'v8Objects',
+        'jsObjects',
         {
           type: 'object',
-          properties: {
-            address: { type: 'string' },
-            size: { type: 'number' },
-            type: { type: 'string' },
-            name: { type: 'string' },
-          },
-          required: ['address', 'size', 'type', 'name'],
+          additionalProperties: true,
         },
-        'Optional V8 heap objects to import first',
-      )
-      .array(
-        'networkRequests',
-        {
-          type: 'object',
-          properties: {
-            url: { type: 'string' },
-            method: { type: 'string' },
-            headers: { type: 'object', additionalProperties: { type: 'string' } },
-            initiatorHeapIndex: { type: 'number' },
-          },
-          required: ['url', 'method'],
-        },
-        'Optional network requests. Use initiatorHeapIndex to link a request to v8Objects[index].',
-      )
-      .array(
-        'canvasNodes',
-        {
-          type: 'object',
-          properties: {
-            nodeId: { type: 'string' },
-            type: { type: 'string' },
-            label: { type: 'string' },
-            creatorHeapIndex: { type: 'number' },
-          },
-          required: ['nodeId', 'type', 'label'],
-        },
-        'Optional canvas nodes. Use creatorHeapIndex to link to v8Objects[index].',
-      )
-      .array(
-        'binarySymbols',
-        {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            address: { type: 'string' },
-            module: { type: 'string' },
-          },
-          required: ['name', 'address', 'module'],
-        },
-        'Optional binary symbols to import before syscall correlation.',
-      )
-      .array(
-        'syscallEvents',
-        {
-          type: 'object',
-          properties: {
-            syscall: { type: 'string' },
-            pid: { type: 'number' },
-            timestamp: { type: 'number' },
-            jsFunctionSymbolIndex: { type: 'number' },
-          },
-          required: ['syscall', 'pid', 'timestamp'],
-        },
-        'Optional syscall events. Use jsFunctionSymbolIndex to link to binarySymbols[index].',
+        'JS object descriptors for Skia correlation',
       )
       .array(
         'mojoMessages',
         {
           type: 'object',
           properties: {
-            interfaceName: { type: 'string' },
-            messageType: { type: 'string' },
-            payload: { description: 'Any JSON-serializable payload object' },
-            sourceRequestIndex: { type: 'number' },
+            interface: { type: 'string' },
+            method: { type: 'string' },
+            timestamp: { type: 'number' },
+            messageId: { type: 'string' },
           },
-          required: ['interfaceName', 'messageType', 'payload'],
+          required: ['interface', 'method', 'timestamp', 'messageId'],
         },
-        'Optional Mojo IPC messages. Use sourceRequestIndex to link to networkRequests[index].',
-      ),
+        'Mojo messages for MOJO-03 correlation',
+      )
+      .array(
+        'cdpEvents',
+        {
+          type: 'object',
+          properties: {
+            eventType: { type: 'string' },
+            timestamp: { type: 'number' },
+            url: { type: 'string' },
+          },
+          required: ['eventType', 'timestamp'],
+        },
+        'CDP events for MOJO-03 correlation',
+      )
+      .array(
+        'networkRequests',
+        {
+          type: 'object',
+          properties: {
+            requestId: { type: 'string' },
+            url: { type: 'string' },
+            timestamp: { type: 'number' },
+          },
+          required: ['requestId', 'url', 'timestamp'],
+        },
+        'Network requests for MOJO-03 correlation',
+      )
+      .array(
+        'syscallEvents',
+        {
+          type: 'object',
+          properties: {
+            pid: { type: 'number' },
+            tid: { type: 'number' },
+            syscallName: { type: 'string' },
+            timestamp: { type: 'number' },
+          },
+          required: ['pid', 'tid', 'syscallName', 'timestamp'],
+        },
+        'Syscall events for SYSCALL-02 correlation',
+      )
+      .array(
+        'jsStacks',
+        {
+          type: 'object',
+          properties: {
+            threadId: { type: 'number' },
+            timestamp: { type: 'number' },
+            frames: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  functionName: { type: 'string' },
+                },
+                required: ['functionName'],
+              },
+            },
+          },
+          required: ['threadId', 'timestamp', 'frames'],
+        },
+        'JS stacks for SYSCALL-02 correlation',
+      )
+      .prop('ghidraOutput', {
+        type: 'object',
+        description: 'Binary analysis output with moduleName and functions',
+        additionalProperties: true,
+      }),
   ),
   tool('cross_domain_evidence_export', (t) =>
     t.desc('Export the shared cross-domain evidence graph as JSON.').query(),

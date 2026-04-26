@@ -53,6 +53,16 @@ export function correlateMojoToCDP(
   const graphNodeIds: string[] = [];
   const matchedPairs: MatchedPair[] = [];
   const matchedMojoIds = new Set<string>();
+  const requestNodeIds = new Map<string, string>();
+
+  for (const request of networkRequests) {
+    const { node } = bridge.addNetworkRequest({
+      requestId: request.requestId,
+      url: request.url,
+    });
+    requestNodeIds.set(request.requestId, node.id);
+    graphNodeIds.push(node.id);
+  }
 
   if (mojoMessages.length === 0) {
     return {
@@ -60,7 +70,7 @@ export function correlateMojoToCDP(
       matchedPairs: [],
       unmatchedMojo: [],
       confidence: 0,
-      graphNodeIds: [],
+      graphNodeIds,
     };
   }
 
@@ -113,6 +123,16 @@ export function correlateMojoToCDP(
         (req) => Math.abs(req.timestamp - msg.timestamp) <= TIMESTAMP_PROXIMITY_MS,
       );
       if (matchingReq) {
+        const requestNodeId = requestNodeIds.get(matchingReq.requestId);
+        const mojoNodeId = mojoNodeMap.get(msg.messageId);
+        if (requestNodeId && mojoNodeId) {
+          bridge.getGraph().addEdge(requestNodeId, mojoNodeId, 'mojo-routed-to', {
+            domain: 'cross-domain',
+            relation: 'network-request-correlates-to-mojo',
+            matchType: 'urlloader',
+            timestampDelta: Math.abs(matchingReq.timestamp - msg.timestamp),
+          });
+        }
         matchedPairs.push({
           mojoMessageId: msg.messageId,
           matchType: 'urlloader',

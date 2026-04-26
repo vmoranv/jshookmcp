@@ -7,6 +7,16 @@ import { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 export class EvidenceHandlers {
   constructor(private readonly graph: ReverseEvidenceGraph) {}
 
+  private pickStringArg(args: Record<string, unknown>, keys: string[]): string | undefined {
+    for (const key of keys) {
+      const value = args[key];
+      if (typeof value === 'string' && value.length > 0) {
+        return value;
+      }
+    }
+    return undefined;
+  }
+
   private serializeNodes(nodes: ReturnType<ReverseEvidenceGraph['queryByUrl']>) {
     return nodes.map((node) => ({
       id: node.id,
@@ -20,11 +30,20 @@ export class EvidenceHandlers {
     const by = args['by'] as string;
     switch (by) {
       case 'function':
-        return this.handleQueryFunction(args);
+        return this.handleQueryFunction({
+          ...args,
+          name: this.pickStringArg(args, ['name', 'value', 'query']),
+        });
       case 'script':
-        return this.handleQueryScript(args);
+        return this.handleQueryScript({
+          ...args,
+          scriptId: this.pickStringArg(args, ['scriptId', 'value', 'query']),
+        });
       default:
-        return this.handleQueryUrl(args);
+        return this.handleQueryUrl({
+          ...args,
+          url: this.pickStringArg(args, ['url', 'value', 'query']),
+        });
     }
   }
   handleExportDispatch(args: Record<string, unknown>) {

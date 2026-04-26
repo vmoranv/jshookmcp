@@ -4,10 +4,11 @@ import { tool } from '@server/registry/tool-builder';
 export const encodingTools: Tool[] = [
   tool('binary_detect_format', (t) =>
     t
-      .desc('Detect binary payload format/encoding via magic bytes, encoding heuristics, a...')
+      .desc('Detect binary payload format and encoding signals.')
       .enum('source', ['base64', 'hex', 'file', 'raw'], 'How to interpret input payload')
+      .string('data', 'Input payload for base64/hex/raw sources')
       .string('filePath', 'File path when source=file')
-      .string('requestId', 'Captured network requestId to resolve response body')
+      .string('requestId', 'Captured requestId when a response body is available')
       .required('source')
       .query(),
   ),
@@ -29,8 +30,9 @@ export const encodingTools: Tool[] = [
   ),
   tool('binary_entropy_analysis', (t) =>
     t
-      .desc('Compute Shannon entropy + byte frequency to assess plaintext/encoded/compress...')
+      .desc('Compute entropy and byte frequency for a payload.')
       .enum('source', ['base64', 'hex', 'raw', 'file'], 'How to interpret input payload')
+      .string('data', 'Input payload for base64/hex/raw sources')
       .string('filePath', 'File path when source=file')
       .number('blockSize', 'Block size for per-block entropy', {
         default: 256,
