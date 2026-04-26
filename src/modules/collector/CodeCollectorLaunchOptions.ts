@@ -90,8 +90,9 @@ function mergeJsFlags(args: string[], enableV8NativesSyntax: boolean | undefined
 
   const normalizedJsFlags = dedupeArgs(jsFlags);
   const allowNativesSyntax = '--allow-natives-syntax';
+  const shouldEnableNativesSyntax = enableV8NativesSyntax !== false;
 
-  if (enableV8NativesSyntax === true && !normalizedJsFlags.includes(allowNativesSyntax)) {
+  if (shouldEnableNativesSyntax && !normalizedJsFlags.includes(allowNativesSyntax)) {
     normalizedJsFlags.push(allowNativesSyntax);
   }
 

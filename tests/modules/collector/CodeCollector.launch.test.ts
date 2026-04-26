@@ -60,6 +60,21 @@ describe('CodeCollector launch options', () => {
     mocks.connectPlaywrightCdpFallback.mockRejectedValue(new Error('fallback unavailable'));
   });
 
+  it('enables allow-natives-syntax by default when not explicitly disabled', async () => {
+    const browser = createBrowserMock();
+    mocks.launch.mockResolvedValue(browser);
+
+    const collector = new CodeCollector(baseConfig);
+    const result = await collector.launch({ headless: true });
+
+    expect(result.launchOptions.v8NativeSyntaxEnabled).toBe(true);
+    expect(mocks.launch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        args: expect.arrayContaining(['--js-flags=--allow-natives-syntax']),
+      }),
+    );
+  });
+
   it('merges custom args with js-flags and reuses identical launch options', async () => {
     const browser = createBrowserMock();
     mocks.launch.mockResolvedValue(browser);
