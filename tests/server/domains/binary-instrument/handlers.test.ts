@@ -59,20 +59,28 @@ describe('BinaryInstrumentHandlers', () => {
       expect(text).toContain('Missing required string argument');
     });
 
-    it('handleFridaListSessions returns error when plugin not installed', async () => {
+    it('handleFridaListSessions returns an empty local session list when no plugin is installed', async () => {
       const handlers = createHandlers();
       const result = await handlers.handleFridaListSessions({});
 
       const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
-      expect(text).toContain('not installed');
+      const parsed = JSON.parse(text);
+      expect(parsed.success).toBe(true);
+      expect(parsed.sessions).toEqual([]);
+      expect(parsed.count).toBe(0);
     });
 
-    it('handleFridaGenerateScript returns error when plugin not installed', async () => {
+    it('handleFridaGenerateScript generates a script without requiring the legacy plugin', async () => {
       const handlers = createHandlers();
-      const result = await handlers.handleFridaGenerateScript({ template: 'trace' });
+      const result = await handlers.handleFridaGenerateScript({
+        template: 'trace',
+        functionName: 'CreateFileW',
+      });
 
       const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
-      expect(text).toContain('not installed');
+      const parsed = JSON.parse(text);
+      expect(parsed.success).toBe(true);
+      expect(parsed.script).toContain('CreateFileW');
     });
 
     it('handleGetAvailablePlugins returns empty list when no plugins', async () => {

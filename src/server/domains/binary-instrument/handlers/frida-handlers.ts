@@ -141,24 +141,25 @@ export class FridaHandlers {
   }
 
   async handleFridaListSessions(_args: Record<string, unknown>): Promise<unknown> {
-    const pluginStatus = getLegacyPluginStatus(this.state.context, 'plugin_frida_bridge');
-    if (pluginStatus.status === 'unavailable') {
-      return jsonResponse({
-        success: false,
-        available: false,
-        capability: 'plugin_frida_bridge',
-        status: pluginStatus.status,
-        reason: pluginStatus.reason,
-        fix: pluginStatus.fix,
-        sessions: [],
-      });
-    }
-
     const frida = this.getFridaSession();
     const availability = await frida.getAvailability();
+    const sessions = frida.listSessions();
+
     if (availability.available) {
-      const sessions = frida.listSessions();
-      return jsonResponse({ success: true, sessions, count: sessions.length });
+      return jsonResponse({ success: true, available: true, sessions, count: sessions.length });
+    }
+
+    const pluginStatus = getLegacyPluginStatus(this.state.context, 'plugin_frida_bridge');
+    if (sessions.length > 0 || pluginStatus.status === 'unavailable') {
+      return jsonResponse({
+        success: true,
+        available: false,
+        capability: 'frida_cli',
+        reason: availability.reason ?? 'Frida CLI is not available',
+        fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
+        sessions,
+        count: sessions.length,
+      });
     }
 
     return invokeLegacyPlugin(
@@ -170,18 +171,6 @@ export class FridaHandlers {
   }
 
   async handleFridaGenerateScript(args: Record<string, unknown>): Promise<unknown> {
-    const pluginStatus = getLegacyPluginStatus(this.state.context, 'plugin_frida_bridge');
-    if (pluginStatus.status === 'unavailable') {
-      return jsonResponse({
-        success: false,
-        available: false,
-        capability: 'plugin_frida_bridge',
-        status: pluginStatus.status,
-        reason: pluginStatus.reason,
-        fix: pluginStatus.fix,
-      });
-    }
-
     const target = readOptionalString(args, 'target') ?? 'unknown';
     const template = readOptionalString(args, 'template') ?? 'trace';
     const functionName = readOptionalString(args, 'functionName') ?? 'target_function';

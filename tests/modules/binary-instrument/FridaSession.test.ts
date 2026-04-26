@@ -103,6 +103,10 @@ describe('FridaSession', () => {
       address: '0x2000',
       size: 0,
     });
+    expect(execFile.mock.calls[0]?.[1]?.at(-1)).toContain(
+      'Process.getModuleByName("libc.so").enumerateExports()',
+    );
+    expect(execFile.mock.calls[0]?.[1]?.at(-1)).not.toContain('Module.enumerateExportsSync');
   });
 
   it('finds symbols', async () => {
@@ -119,6 +123,19 @@ describe('FridaSession', () => {
       address: '0x3000',
       demangled: 'free',
     });
+    expect(execFile.mock.calls[0]?.[1]?.at(-1)).toContain('exports:*!free*');
+  });
+
+  it('preserves explicit symbol queries', async () => {
+    const execFile = await import('node:child_process').then((m) => m.execFile as any);
+    execFile.mockImplementation((_file: any, _args: any, _options: any, cb: any) => {
+      cb(null, '[{"name": "CreateFileW", "address": "0x4000"}]', '');
+    });
+
+    await session.attach('1234');
+    await session.findSymbols('exports:KERNEL32.DLL!CreateFileW');
+
+    expect(execFile.mock.calls[0]?.[1]?.at(-1)).toContain('exports:KERNEL32.DLL!CreateFileW');
   });
 
   it('switches sessions', async () => {

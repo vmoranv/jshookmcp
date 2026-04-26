@@ -121,7 +121,7 @@ export class FridaSession {
     const result = await this.runFridaCommand(
       session.target,
       [
-        `const entries = Module.enumerateExportsSync(${safeModuleName})`,
+        `const entries = Process.getModuleByName(${safeModuleName}).enumerateExports()`,
         '.filter(function (entry) { return entry.type === "function"; })',
         '.map(function (entry) {',
         '  return { name: entry.name, address: String(entry.address), size: 0 };',
@@ -151,7 +151,13 @@ export class FridaSession {
 
   async findSymbols(pattern: string): Promise<FridaSymbolInfo[]> {
     const session = this.requireActiveSession();
-    const matchPattern = JSON.stringify(`exports:!*${pattern}*`);
+    const trimmedPattern = pattern.trim();
+    const resolvedPattern = trimmedPattern.includes(':')
+      ? trimmedPattern
+      : trimmedPattern.includes('!')
+        ? `exports:${trimmedPattern}`
+        : `exports:*!${trimmedPattern}*`;
+    const matchPattern = JSON.stringify(resolvedPattern);
     const result = await this.runFridaCommand(
       session.target,
       [
