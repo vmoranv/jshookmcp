@@ -27,7 +27,7 @@ const AUTH_API_KEY_MARKER = 'api-key-audit-20260426';
 const AUTH_SIGNATURE_MARKER = 'sig-audit-20260426';
 const INTERCEPT_MARKER = 'intercepted-body-20260426';
 const ROOT_RELOAD_KEY = '__audit_reload_count';
-const SCRIPT_TIMEOUT_MS = 6 * 60 * 1000;
+const SCRIPT_TIMEOUT_MS = 9 * 60 * 1000;
 const DIRECT_RUNTIME_PROBED_TOOLS = new Set();
 
 const TEST_KEY_PEM = `-----BEGIN RSA PRIVATE KEY-----
@@ -754,6 +754,22 @@ async function createProbeServer() {
   };
 }
 
+function createClientTransport(toolProfile) {
+  return new StdioClientTransport({
+    command: 'node',
+    args: ['dist/index.mjs'],
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      MCP_TRANSPORT: 'stdio',
+      MCP_TOOL_PROFILE: toolProfile,
+      LOG_LEVEL: 'error',
+      PUPPETEER_HEADLESS: 'true',
+    },
+    stderr: 'pipe',
+  });
+}
+
 function summarize(report) {
   const lines = [
     `Runtime Probe ${report.generatedAt}`,
@@ -765,13 +781,15 @@ function summarize(report) {
     `proxy: running=${report.proxy.status?.running ?? false} logs=${report.proxy.requestLogs?.count ?? 0} bodyMarker=${report.proxy.bodyHasMarker ?? false}`,
     `sourcemap: discovered=${report.sourcemap.discoveredCount ?? 0} parsed=${report.sourcemap.parsed?.mappingsCount ?? 'n/a'} reconstructed=${report.sourcemap.reconstructed?.writtenFiles ?? 'n/a'} reconstructedMarker=${report.sourcemap.reconstructedContainsMarker ?? false}`,
     `platform: miniapps=${report.platform?.miniappScan?.count ?? 'n/a'} fuseWire=${report.platform?.electronFuses?.fuseWireFound ?? 'n/a'} userdata=${report.platform?.electronUserdata?.totalScanned ?? 'n/a'} asarFiles=${report.platform?.asarExtract?.totalFiles ?? 'n/a'} asarMatches=${report.platform?.asarSearch?.totalMatches ?? 'n/a'}`,
+    `meta: searchTop=${report.meta.searchTools?.results?.[0]?.name ?? 'n/a'} callInactive=${report.meta.callInactive?.success ?? 'n/a'} callActive=${report.meta.callTool?.success ?? 'n/a'} domainActivated=${report.meta.activateDomain?.activated ?? 'n/a'}`,
     `encoding: detect=${report.encoding.detect?.success ?? 'n/a'} requestIdPath=${report.encoding.detectRequestId?.success ?? 'n/a'} decodeMarker=${report.encoding.decodeMarker ?? false} encodeMarker=${report.encoding.encodeMarker ?? false} protoFields=${Array.isArray(report.encoding.protobuf?.fields) ? report.encoding.protobuf.fields.length : 'n/a'}`,
     `protocol: template=${report.protocol.payloadTemplate?.hexPayload ?? 'n/a'} mutate=${report.protocol.payloadMutate?.mutatedHex ?? 'n/a'} ipv4=${report.protocol.rawIp?.checksumHex ?? 'n/a'} pcapPackets=${Array.isArray(report.protocol.pcapRead?.packets) ? report.protocol.pcapRead.packets.length : 'n/a'}`,
     `coordination: handoff=${report.coordination.create?.taskId ?? 'n/a'} insights=${report.coordination.appendInsight?.totalInsights ?? 'n/a'} snapshots=${report.coordination.snapshotList?.total ?? 'n/a'} restoredCookie=${report.coordination.restoreState?.result?.hasCookie ?? 'n/a'}`,
-    `analysis: collectFiles=${report.analysis.collectCode?.filesCount ?? 'n/a'} collectSize=${report.analysis.collectCode?.totalSize ?? 'n/a'} treeFunctions=${Array.isArray(report.analysis.extractFunctionTree?.functions) ? report.analysis.extractFunctionTree.functions.length : 'n/a'}`,
+    `analysis: collectFiles=${report.analysis.collectCode?.filesCount ?? 'n/a'} collectSize=${report.analysis.collectCode?.totalSize ?? 'n/a'} searchMatches=${report.analysis.searchInScripts?.totalMatches ?? 'n/a'} deobf=${typeof report.analysis.deobfuscate?.code === 'string'} treeFunctions=${Array.isArray(report.analysis.extractFunctionTree?.functions) ? report.analysis.extractFunctionTree.functions.length : 'n/a'}`,
     `browser-page: typed=${report.browser.interactionState?.result?.typedValue ?? 'n/a'} key=${report.browser.interactionState?.result?.lastKey ?? 'n/a'} select=${report.browser.interactionState?.result?.selectedValue ?? 'n/a'} hover=${report.browser.interactionState?.result?.hoverCount ?? 'n/a'} click=${report.browser.interactionState?.result?.clickCount ?? 'n/a'} reload=${report.browser.reloadState?.result?.reloadCount ?? 'n/a'}`,
-    `browser-history: back=${report.browser.historyBackState?.result?.title ?? 'n/a'} forward=${report.browser.historyForwardState?.result?.title ?? 'n/a'} screenshotBytes=${report.browser.screenshotBytes ?? 'n/a'} mobileWidth=${report.browser.emulatedState?.result?.width ?? 'n/a'}`,
+    `browser-history: back=${report.browser.historyBackState?.result?.title ?? 'n/a'} forward=${report.browser.historyForwardState?.result?.title ?? 'n/a'} framework=${report.browser.frameworkState?.detected ?? 'n/a'} screenshotBytes=${report.browser.screenshotBytes ?? 'n/a'} mobileWidth=${report.browser.emulatedState?.result?.width ?? 'n/a'}`,
     `performance: metrics=${report.performance.metrics?.success ?? 'n/a'} coverage=${report.performance.coverageStop?.totalScripts ?? 'n/a'} traceEvents=${report.performance.traceStop?.eventCount ?? 'n/a'} cpuSamples=${report.performance.cpuStop?.totalSamples ?? 'n/a'} heapSamples=${report.performance.heapSamplingStop?.sampleCount ?? 'n/a'}`,
+    `builders: httpReq=${report.network.httpRequestBuild?.requestBytes ?? 'n/a'} h2Frame=${report.network.http2FrameBuild?.frameType ?? 'n/a'} indexeddb=${Object.keys(report.browser.indexedDbDump ?? {}).length || 0} tabs=${report.browser.tabWorkflowList?.aliases?.length ?? 'n/a'}`,
     `streaming: wsFrames=${report.streaming.wsFrameCount} sseEvents=${report.streaming.sseEventCount}`,
     `trace: status=${report.trace.stop?.status ?? 'n/a'} bodies=${report.trace.stop?.networkBodyCount ?? 0} chunks=${report.trace.stop?.networkChunkCount ?? 0} bodyState=${report.trace.flow?.request?.bodyCaptureState ?? 'n/a'}`,
     `trace-extra: seekEvents=${Array.isArray(report.trace.seek?.events) ? report.trace.seek.events.length : 'n/a'} summarizedReq=${report.trace.summary?.network?.requestCount ?? 'n/a'} exported=${report.trace.export?.eventCount ?? 'n/a'} alias=${report.trace.aliasStop?.status ?? 'n/a'}`,
@@ -795,19 +813,12 @@ async function main() {
   const server = await createProbeServer();
   const runtimeArtifactDir = join(process.cwd(), '.tmp_mcp_artifacts');
   const client = new Client({ name: 'runtime-tool-probe', version: '1.0.0' }, { capabilities: {} });
-  const transport = new StdioClientTransport({
-    command: 'node',
-    args: ['dist/index.mjs'],
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      MCP_TRANSPORT: 'stdio',
-      MCP_TOOL_PROFILE: 'full',
-      LOG_LEVEL: 'error',
-      PUPPETEER_HEADLESS: 'true',
-    },
-    stderr: 'pipe',
-  });
+  const transport = createClientTransport('full');
+  const metaClient = new Client(
+    { name: 'runtime-tool-probe-search-profile', version: '1.0.0' },
+    { capabilities: {} },
+  );
+  const metaTransport = createClientTransport('search');
 
   const report = {
     generatedAt: new Date().toISOString(),
@@ -819,6 +830,7 @@ async function main() {
     encoding: {},
     protocol: {},
     browser: {},
+    meta: {},
     analysis: {},
     network: {},
     performance: {},
@@ -843,9 +855,75 @@ async function main() {
 
   try {
     await withTimeout(client.connect(transport), 'connect', 30000);
+    await withTimeout(metaClient.connect(metaTransport), 'connect-meta', 30000);
     await mkdir(runtimeArtifactDir, { recursive: true });
     const listed = await withTimeout(client.listTools(), 'listTools', 15000);
     report.tools = (listed.tools ?? []).map((tool) => tool.name).toSorted();
+    const metaListed = await withTimeout(metaClient.listTools(), 'meta-listTools', 15000);
+    report.meta.searchProfileTools = (metaListed.tools ?? []).map((tool) => tool.name).toSorted();
+    report.meta.searchTools = await callTool(
+      metaClient,
+      'search_tools',
+      { query: 'cache stats', top_k: 5 },
+      15000,
+    );
+    report.meta.routeTool = await callTool(
+      metaClient,
+      'route_tool',
+      {
+        task: 'inspect cache statistics',
+        context: { preferredDomain: 'maintenance', autoActivate: false, maxRecommendations: 3 },
+      },
+      15000,
+    );
+    report.meta.describeTool = await callTool(
+      metaClient,
+      'describe_tool',
+      { name: 'get_cache_stats' },
+      15000,
+    );
+    report.meta.callInactive = await callTool(
+      metaClient,
+      'call_tool',
+      { name: 'get_cache_stats', args: {} },
+      15000,
+    );
+    report.meta.activateTools = await callTool(
+      metaClient,
+      'activate_tools',
+      { names: ['get_cache_stats'] },
+      15000,
+    );
+    report.meta.callTool = await callTool(
+      metaClient,
+      'call_tool',
+      { name: 'get_cache_stats', args: {} },
+      15000,
+    );
+    report.meta.deactivateTools = await callTool(
+      metaClient,
+      'deactivate_tools',
+      { names: ['get_cache_stats'] },
+      15000,
+    );
+    report.meta.callAfterDeactivate = await callTool(
+      metaClient,
+      'call_tool',
+      { name: 'get_cache_stats', args: {} },
+      15000,
+    );
+    report.meta.activateDomain = await callTool(
+      metaClient,
+      'activate_domain',
+      { domain: 'maintenance', ttlMinutes: 5 },
+      15000,
+    );
+    report.meta.callActivatedDomainTool = await callTool(
+      metaClient,
+      'call_tool',
+      { name: 'get_cache_stats', args: {} },
+      15000,
+    );
 
     report.platform.capabilities = await callTool(client, 'platform_capabilities', {}, 15000);
     platformProbeDir = await mkdtemp(join(tmpdir(), 'jshook-platform-audit-'));
@@ -1062,6 +1140,12 @@ async function main() {
         30000,
       );
     }
+    report.workflow.extensionListInstalled = await callTool(
+      client,
+      'extension_list_installed',
+      {},
+      15000,
+    );
 
     report.browser.launch = await callTool(client, 'browser_launch', { headless: true }, 60000);
     report.browser.status = await callTool(client, 'browser_status', {}, 15000);
@@ -1083,6 +1167,84 @@ async function main() {
         smartMode: 'summary',
       },
       60000,
+    );
+    report.analysis.searchInScripts = await callTool(
+      client,
+      'search_in_scripts',
+      {
+        keyword: '__auditRuntimeProbeMarker__',
+        returnSummary: true,
+        maxMatches: 20,
+      },
+      30000,
+    );
+    report.analysis.collectionStats = await callTool(client, 'get_collection_stats', {}, 15000);
+    report.analysis.deobfuscate = await callTool(
+      client,
+      'deobfuscate',
+      { code: 'var a = 1;' },
+      30000,
+    );
+    report.analysis.understandCode = await callTool(
+      client,
+      'understand_code',
+      { code: 'function add(a, b) { return a + b; }', focus: 'all' },
+      30000,
+    );
+    report.analysis.detectCrypto = await callTool(
+      client,
+      'detect_crypto',
+      { code: 'crypto.subtle.digest("SHA-256", data)' },
+      30000,
+    );
+    report.analysis.detectObfuscation = await callTool(
+      client,
+      'detect_obfuscation',
+      { code: 'eval(atob("YWxlcnQoMSk="))', generateReport: false },
+      30000,
+    );
+    report.analysis.astTransformPreview = await callTool(
+      client,
+      'ast_transform_preview',
+      { code: 'var a = 1;', transforms: ['rename_vars'] },
+      15000,
+    );
+    report.analysis.astTransformChain = await callTool(
+      client,
+      'ast_transform_chain',
+      {
+        name: 'runtime_audit_chain',
+        transforms: ['rename_vars'],
+        description: 'rename vars',
+      },
+      15000,
+    );
+    report.analysis.astTransformApply = await callTool(
+      client,
+      'ast_transform_apply',
+      { code: 'var a = 1;', chainName: 'runtime_audit_chain' },
+      15000,
+    );
+    report.analysis.cryptoHarness = await callTool(
+      client,
+      'crypto_test_harness',
+      {
+        code: 'globalThis.encrypt = (d) => String(d).toUpperCase()',
+        functionName: 'encrypt',
+        testInputs: ['audit', 'probe'],
+      },
+      30000,
+    );
+    report.analysis.cryptoCompare = await callTool(
+      client,
+      'crypto_compare',
+      {
+        code1: 'globalThis.encrypt = (d) => String(d).toUpperCase()',
+        code2: 'globalThis.encrypt = (d) => d.toString().toUpperCase()',
+        functionName: 'encrypt',
+        testInputs: ['audit', 'probe'],
+      },
+      30000,
     );
     const auditHost = new URL(server.baseUrl).hostname;
     const screenshotPath = join(runtimeArtifactDir, 'runtime-audit-element.png');
@@ -1191,6 +1353,73 @@ async function main() {
       'page_local_storage',
       { action: 'get' },
       15000,
+    );
+    report.browser.seedFrameworkState = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          let root = document.getElementById('framework-probe-root');
+          if (!root) {
+            root = document.createElement('div');
+            root.id = 'framework-probe-root';
+            document.body.appendChild(root);
+          }
+          const hookTwo = { memoizedState: ['beta', 'gamma'], next: null };
+          const hookOne = { memoizedState: { marker: ${JSON.stringify(BODY_MARKER)}, count: 2 }, next: hookTwo };
+          const fiber = { memoizedState: hookOne, type: { name: 'AuditComponent' }, child: null, sibling: null };
+          Object.defineProperty(root, '__reactFiber$audit', {
+            value: fiber,
+            configurable: true,
+            enumerable: true
+          });
+          return { seeded: true, marker: ${JSON.stringify(BODY_MARKER)} };
+        })()`,
+      },
+      15000,
+    );
+    report.browser.frameworkState = await callTool(
+      client,
+      'framework_state_extract',
+      { framework: 'react', selector: '#framework-probe-root', maxDepth: 2 },
+      30000,
+    );
+    report.browser.seedIndexedDb = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(async () => {
+          await new Promise((resolve, reject) => {
+            const req = indexedDB.open('audit-db', 1);
+            req.onupgradeneeded = () => {
+              const db = req.result;
+              if (!db.objectStoreNames.contains('items')) {
+                db.createObjectStore('items', { keyPath: 'id' });
+              }
+            };
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => {
+              const db = req.result;
+              const tx = db.transaction('items', 'readwrite');
+              tx.objectStore('items').put({ id: 1, marker: ${JSON.stringify(BODY_MARKER)} });
+              tx.objectStore('items').put({ id: 2, marker: 'secondary-record' });
+              tx.oncomplete = () => {
+                db.close();
+                resolve({ seeded: true });
+              };
+              tx.onerror = () => reject(tx.error);
+            };
+          });
+          return { seeded: true, database: 'audit-db' };
+        })()`,
+      },
+      30000,
+    );
+    report.browser.indexedDbDump = await callTool(
+      client,
+      'indexeddb_dump',
+      { database: 'audit-db', store: 'items', maxRecords: 10 },
+      30000,
     );
     report.workflow.pageScriptRegister = await callTool(
       client,
@@ -1348,6 +1577,54 @@ async function main() {
       );
       report.browser.cdpDetach = await callTool(client, 'browser_detach_cdp_target', {}, 15000);
     }
+    report.browser.tabWorkflowBind = await callTool(
+      client,
+      'tab_workflow',
+      { action: 'alias_bind', alias: 'main', index: 0 },
+      15000,
+    );
+    report.browser.tabWorkflowContextSet = await callTool(
+      client,
+      'tab_workflow',
+      { action: 'context_set', key: 'auditKey', value: BODY_MARKER },
+      15000,
+    );
+    report.browser.tabWorkflowContextGet = await callTool(
+      client,
+      'tab_workflow',
+      { action: 'context_get', key: 'auditKey' },
+      15000,
+    );
+    report.browser.tabWorkflowTransfer = await callTool(
+      client,
+      'tab_workflow',
+      { action: 'transfer', fromAlias: 'main', key: 'mainTitle', expression: 'document.title' },
+      15000,
+    );
+    report.browser.tabWorkflowOpen = await callTool(
+      client,
+      'tab_workflow',
+      { action: 'alias_open', alias: 'history', url: `${server.baseUrl}/history/one` },
+      30000,
+    );
+    report.browser.tabWorkflowWait = await callTool(
+      client,
+      'tab_workflow',
+      { action: 'wait_for', alias: 'history', selector: '[data-page="one"]', timeoutMs: 10000 },
+      15000,
+    );
+    report.browser.tabWorkflowList = await callTool(
+      client,
+      'tab_workflow',
+      { action: 'list' },
+      15000,
+    );
+    report.browser.tabWorkflowClear = await callTool(
+      client,
+      'tab_workflow',
+      { action: 'clear' },
+      15000,
+    );
     report.captcha.capabilities = await callTool(client, 'captcha_solver_capabilities', {}, 15000);
     report.captcha.manualAvailable = isCapabilityAvailable(
       report.captcha.capabilities,
@@ -1481,6 +1758,17 @@ async function main() {
         15000,
       );
     }
+    report.network.httpRequestBuild = await callTool(
+      client,
+      'http_request_build',
+      {
+        method: 'GET',
+        target: '/body?via=raw-http',
+        host: '127.0.0.1',
+        headers: { 'X-Audit-Probe': '1' },
+      },
+      15000,
+    );
     report.network.rawHttp = await callTool(
       client,
       'http_plain_request',
@@ -1488,12 +1776,20 @@ async function main() {
         host: '127.0.0.1',
         port: Number(new URL(server.baseUrl).port),
         requestText:
-          'GET /body?via=raw-http HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n',
+          typeof report.network.httpRequestBuild?.requestText === 'string'
+            ? report.network.httpRequestBuild.requestText
+            : 'GET /body?via=raw-http HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n',
       },
       30000,
     );
     report.network.rawBodyHasMarker = flattenStrings(report.network.rawHttp).some((entry) =>
       entry.includes(BODY_MARKER),
+    );
+    report.network.http2FrameBuild = await callTool(
+      client,
+      'http2_frame_build',
+      { frameType: 'PING', pingOpaqueDataHex: '0011223344556677' },
+      15000,
     );
     report.network.http2 = await callTool(
       client,
@@ -2815,6 +3111,15 @@ async function main() {
       { code: '(() => ({ width: window.innerWidth, ua: navigator.userAgent }))()' },
       15000,
     );
+    report.analysis.clearCollectedData = await callTool(client, 'clear_collected_data', {}, 15000);
+    report.maintenance.manualCleanup = await callTool(client, 'manual_token_cleanup', {}, 15000);
+    report.maintenance.clearAllCaches = await callTool(client, 'clear_all_caches', {}, 15000);
+    report.maintenance.cleanupArtifacts = await callTool(
+      client,
+      'cleanup_artifacts',
+      { dryRun: true, retentionDays: 0, maxTotalBytes: 1024 * 1024 },
+      30000,
+    );
     report.network.disable = await callTool(client, 'network_disable', {}, 15000);
   } catch (error) {
     report.error = error instanceof Error ? error.message : String(error);
@@ -2835,6 +3140,12 @@ async function main() {
     } catch {}
     try {
       await client.close();
+    } catch {}
+    try {
+      await metaTransport.close();
+    } catch {}
+    try {
+      await metaClient.close();
     } catch {}
     await server.close();
     if (platformProbeDir) {
