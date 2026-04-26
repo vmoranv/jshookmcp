@@ -89,7 +89,7 @@ export class NetworkHandlersPerformance extends NetworkHandlersCore {
       return R.ok()
         .set(
           'message',
-          'Performance tracing started. Call performance_trace_stop to save the trace.',
+          'Performance tracing started. Call performance_trace with action="stop" to save the trace.',
         )
         .json();
     } catch (error) {
@@ -121,7 +121,10 @@ export class NetworkHandlersPerformance extends NetworkHandlersCore {
       const monitor = this.getPerformanceMonitor();
       await monitor.startCPUProfiling();
       return R.ok()
-        .set('message', 'CPU profiling started. Call profiler_cpu_stop to save the profile.')
+        .set(
+          'message',
+          'CPU profiling started. Call profiler_cpu with action="stop" to save the profile.',
+        )
         .json();
     } catch (error) {
       return R.fail(error).json();
@@ -189,7 +192,7 @@ export class NetworkHandlersPerformance extends NetworkHandlersCore {
       return R.ok()
         .set(
           'message',
-          'Heap sampling started. Call profiler_heap_sampling_stop to save the report.',
+          'Heap sampling started. Call profiler_heap_sampling with action="stop" to save the report.',
         )
         .json();
     } catch (error) {
