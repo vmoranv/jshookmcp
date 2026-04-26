@@ -17,10 +17,32 @@ interface CoverageResponse {
   result?: unknown;
 }
 
+interface RuntimeEvaluateResponse {
+  result?: unknown;
+  exceptionDetails?: unknown;
+}
+
+interface ScriptFunctionContext {
+  functionName: string;
+  sourcePosition?: number;
+  sourceSlice: string;
+}
+
 export interface ExtractedBytecode {
   functionName: string;
   bytecode: string;
   sourcePosition?: number;
+}
+
+export interface NativeBytecodeAttempt {
+  available: boolean;
+  bytecode: string | null;
+  format: 'v8-disassembly' | 'ignition-bytecode' | null;
+  functionName: string;
+  reason: string;
+  rawIgnitionBytecodeAvailable: boolean;
+  sourcePosition?: number;
+  supportsNativesSyntax: boolean;
 }
 
 export interface DisassembledInstruction {
@@ -68,8 +90,9 @@ function splitOperands(raw: string): string[] {
 function inferOpcode(line: string): { opcode: string; operands: string[] } {
   const trimmed = line.trim();
   if (trimmed.startsWith('function ')) return { opcode: 'FunctionDeclaration', operands: [] };
-  if (trimmed.startsWith('return '))
+  if (trimmed.startsWith('return ')) {
     return { opcode: 'Return', operands: [trimmed.slice('return '.length)] };
+  }
   if (trimmed.includes('=>')) return { opcode: 'CreateClosure', operands: [] };
   if (trimmed.includes('(') && trimmed.includes(')')) {
     const nameMatch = /^([A-Za-z_$][\w$]*)\(/u.exec(trimmed);
@@ -82,8 +105,9 @@ function inferOpcode(line: string): { opcode: string; operands: string[] } {
     if (left && right) return { opcode: 'Store', operands: [left.trim(), right.trim()] };
   }
   if (trimmed.startsWith('if ')) return { opcode: 'JumpIfTrue', operands: [trimmed] };
-  if (trimmed.startsWith('for ') || trimmed.startsWith('while '))
+  if (trimmed.startsWith('for ') || trimmed.startsWith('while ')) {
     return { opcode: 'Loop', operands: [trimmed] };
+  }
   if (trimmed.startsWith('{') || trimmed.startsWith('const ') || trimmed.startsWith('let ')) {
     return { opcode: 'LoadLiteral', operands: [trimmed] };
   }
@@ -145,6 +169,30 @@ function findObjectLiteralProperties(source: string): HiddenClassInfo[] {
   return results;
 }
 
+function unwrapRuntimeValue(response: Record<string, unknown>): unknown {
+  const result = response['result'];
+  if (isRecord(result) && result['value'] !== undefined) {
+    return result['value'];
+  }
+  return result;
+}
+
+function formatUnavailableReason(result: Record<string, unknown>): string {
+  const explicitReason = toStringValue(result['reason']);
+  if (explicitReason) {
+    return explicitReason;
+  }
+  const disassemblyError = toStringValue(result['disassemblyError']);
+  if (disassemblyError) {
+    return disassemblyError;
+  }
+  const disassemblyType = toStringValue(result['disassemblyType']);
+  if (disassemblyType) {
+    return `Native disassembly returned ${disassemblyType} instead of text`;
+  }
+  return 'Runtime disassembly output is not exposed through the current browser/CDP path';
+}
+
 export class BytecodeExtractor {
   private readonly versionDetector: VersionDetector;
 
@@ -156,43 +204,130 @@ export class BytecodeExtractor {
     scriptId: string,
     functionOffset?: number,
   ): Promise<ExtractedBytecode | null> {
-    const scriptSource = await this.getScriptSource(scriptId);
-    if (!scriptSource) {
+    const context = await this.resolveScriptFunctionContext(scriptId, functionOffset);
+    if (!context) {
       return null;
     }
 
-    const functions = await this.getCoverageFunctions(scriptId);
-    const functionByOffset =
-      typeof functionOffset === 'number'
-        ? functions.find(
-            (candidate) =>
-              functionOffset >= candidate.startOffset && functionOffset <= candidate.endOffset,
-          )
-        : undefined;
-
-    const functionName =
-      functionByOffset?.functionName && functionByOffset.functionName.length > 0
-        ? functionByOffset.functionName
-        : inferFunctionName(scriptSource, functionOffset);
-
-    const sourceSlice =
-      functionByOffset && functionByOffset.endOffset > functionByOffset.startOffset
-        ? scriptSource.slice(functionByOffset.startOffset, functionByOffset.endOffset)
-        : scriptSource;
-
-    void (await this.versionDetector.supportsNativesSyntax());
-    const bytecode = buildPseudoBytecode(sourceSlice);
-
     return {
-      functionName,
-      bytecode,
-      sourcePosition:
-        typeof functionOffset === 'number'
-          ? functionOffset
-          : functionByOffset
-            ? functionByOffset.startOffset
-            : undefined,
+      functionName: context.functionName,
+      bytecode: buildPseudoBytecode(context.sourceSlice),
+      sourcePosition: context.sourcePosition,
     };
+  }
+
+  async attemptNativeBytecodeExtraction(
+    scriptId: string,
+    functionOffset?: number,
+  ): Promise<NativeBytecodeAttempt | null> {
+    const context = await this.resolveScriptFunctionContext(scriptId, functionOffset);
+    if (!context) {
+      return null;
+    }
+
+    const supportsNativesSyntax = await this.versionDetector.supportsNativesSyntax();
+    if (!supportsNativesSyntax) {
+      return {
+        available: false,
+        bytecode: null,
+        format: null,
+        functionName: context.functionName,
+        rawIgnitionBytecodeAvailable: false,
+        reason: 'V8 natives syntax is unavailable in the current browser target',
+        sourcePosition: context.sourcePosition,
+        supportsNativesSyntax: false,
+      };
+    }
+
+    const session = await this.createSession();
+    if (!session) {
+      return {
+        available: false,
+        bytecode: null,
+        format: null,
+        functionName: context.functionName,
+        rawIgnitionBytecodeAvailable: false,
+        reason: 'Browser/page CDP session is unavailable for native bytecode inspection',
+        sourcePosition: context.sourcePosition,
+        supportsNativesSyntax: true,
+      };
+    }
+
+    try {
+      const response = await session.send<RuntimeEvaluateResponse>('Runtime.evaluate', {
+        expression: this.buildNativeExtractionExpression(context.functionName),
+        returnByValue: true,
+        awaitPromise: false,
+      });
+
+      if (!isRecord(response)) {
+        return {
+          available: false,
+          bytecode: null,
+          format: null,
+          functionName: context.functionName,
+          rawIgnitionBytecodeAvailable: false,
+          reason: 'Runtime.evaluate did not return structured data',
+          sourcePosition: context.sourcePosition,
+          supportsNativesSyntax: true,
+        };
+      }
+
+      if (response['exceptionDetails']) {
+        return {
+          available: false,
+          bytecode: null,
+          format: null,
+          functionName: context.functionName,
+          rawIgnitionBytecodeAvailable: false,
+          reason: 'Runtime.evaluate raised an exception while probing native bytecode',
+          sourcePosition: context.sourcePosition,
+          supportsNativesSyntax: true,
+        };
+      }
+
+      const value = unwrapRuntimeValue(response);
+      const result = isRecord(value) ? value : {};
+      const bytecode = toStringValue(result['disassembly']);
+      const nativeSourcePosition = toNumber(result['nativeSourcePosition']);
+
+      if (bytecode && bytecode.length > 0) {
+        return {
+          available: true,
+          bytecode,
+          format: 'v8-disassembly',
+          functionName: context.functionName,
+          rawIgnitionBytecodeAvailable: false,
+          reason: 'Native V8 disassembly text returned via %DisassembleFunction',
+          sourcePosition: nativeSourcePosition ?? context.sourcePosition,
+          supportsNativesSyntax: true,
+        };
+      }
+
+      return {
+        available: false,
+        bytecode: null,
+        format: null,
+        functionName: context.functionName,
+        rawIgnitionBytecodeAvailable: false,
+        reason: formatUnavailableReason(result),
+        sourcePosition: nativeSourcePosition ?? context.sourcePosition,
+        supportsNativesSyntax: true,
+      };
+    } catch (error) {
+      return {
+        available: false,
+        bytecode: null,
+        format: null,
+        functionName: context.functionName,
+        rawIgnitionBytecodeAvailable: false,
+        reason: error instanceof Error ? error.message : String(error),
+        sourcePosition: context.sourcePosition,
+        supportsNativesSyntax: true,
+      };
+    } finally {
+      await session.detach().catch(() => undefined);
+    }
   }
 
   disassembleBytecode(bytecode: string): DisassembledInstruction[] {
@@ -220,6 +355,94 @@ export class BytecodeExtractor {
     const scriptSource = await this.getScriptSource(scriptId);
     if (!scriptSource) return [];
     return findObjectLiteralProperties(scriptSource);
+  }
+
+  private buildNativeExtractionExpression(functionName: string): string {
+    return `
+      (() => {
+        const functionName = ${JSON.stringify(functionName)};
+        try {
+          const candidate = globalThis[functionName];
+          if (typeof candidate !== 'function') {
+            return {
+              functionName,
+              reason: 'Resolved function is not reachable via globalThis in the current target',
+            };
+          }
+
+          const nativeSourcePosition = (() => {
+            try {
+              return %FunctionGetScriptSourcePosition(candidate);
+            } catch (error) {
+              return null;
+            }
+          })();
+
+          try {
+            const disassembly = %DisassembleFunction(candidate);
+            return {
+              functionName,
+              disassembly: typeof disassembly === 'string' ? disassembly : null,
+              disassemblyType: typeof disassembly,
+              nativeSourcePosition:
+                typeof nativeSourcePosition === 'number' ? nativeSourcePosition : null,
+            };
+          } catch (error) {
+            return {
+              functionName,
+              disassemblyError: String(error),
+              nativeSourcePosition:
+                typeof nativeSourcePosition === 'number' ? nativeSourcePosition : null,
+            };
+          }
+        } catch (error) {
+          return {
+            functionName,
+            reason: String(error),
+          };
+        }
+      })()
+    `;
+  }
+
+  private async resolveScriptFunctionContext(
+    scriptId: string,
+    functionOffset?: number,
+  ): Promise<ScriptFunctionContext | null> {
+    const scriptSource = await this.getScriptSource(scriptId);
+    if (!scriptSource) {
+      return null;
+    }
+
+    const functions = await this.getCoverageFunctions(scriptId);
+    const functionByOffset =
+      typeof functionOffset === 'number'
+        ? functions.find(
+            (candidate) =>
+              functionOffset >= candidate.startOffset && functionOffset <= candidate.endOffset,
+          )
+        : undefined;
+
+    const functionName =
+      functionByOffset?.functionName && functionByOffset.functionName.length > 0
+        ? functionByOffset.functionName
+        : inferFunctionName(scriptSource, functionOffset);
+
+    const sourceSlice =
+      functionByOffset && functionByOffset.endOffset > functionByOffset.startOffset
+        ? scriptSource.slice(functionByOffset.startOffset, functionByOffset.endOffset)
+        : scriptSource;
+
+    return {
+      functionName,
+      sourcePosition:
+        typeof functionOffset === 'number'
+          ? functionOffset
+          : functionByOffset
+            ? functionByOffset.startOffset
+            : undefined,
+      sourceSlice,
+    };
   }
 
   private async getCoverageFunctions(

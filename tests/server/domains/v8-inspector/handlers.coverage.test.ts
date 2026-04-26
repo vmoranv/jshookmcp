@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ---------------------------------------------------------------------------
 
 const mockExtractBytecode = vi.fn();
+const mockAttemptNativeBytecodeExtraction = vi.fn();
 const mockDisassembleBytecode = vi.fn();
 const mockFindHiddenClasses = vi.fn();
 const mockInspectJIT = vi.fn();
@@ -21,6 +22,7 @@ vi.mock('@modules/v8-inspector', () => {
   return {
     BytecodeExtractor: vi.fn(function (this: any, getPage?: () => Promise<unknown>) {
       bytecodeExtractorGetPages.push(getPage);
+      this.attemptNativeBytecodeExtraction = mockAttemptNativeBytecodeExtraction;
       this.extractBytecode = mockExtractBytecode;
       this.disassembleBytecode = mockDisassembleBytecode;
       this.findHiddenClasses = mockFindHiddenClasses;
@@ -152,21 +154,26 @@ describe('v8-inspector handler coverage', () => {
     });
 
     it('should return error when extractBytecode returns null', async () => {
-      mockExtractBytecode.mockResolvedValueOnce(null);
+      mockAttemptNativeBytecodeExtraction.mockResolvedValueOnce(null);
       const result = await handleBytecodeExtract({ scriptId: 'script-42' });
       expect(result).toEqual({
         success: false,
-        error: 'Unable to extract bytecode for scriptId "script-42"',
+        error: 'Unable to inspect bytecode for scriptId "script-42"',
       });
     });
 
-    it('should return extraction result on success', async () => {
-      const extraction = {
-        functionName: 'myFunc',
+    it('should return native extraction result on success', async () => {
+      const nativeAttempt = {
+        available: true,
         bytecode: '0 LdaConstant\n1 Return',
+        format: 'v8-disassembly',
+        functionName: 'myFunc',
+        reason: 'Native V8 disassembly text returned via %DisassembleFunction',
+        rawIgnitionBytecodeAvailable: false,
         sourcePosition: 10,
+        supportsNativesSyntax: true,
       };
-      mockExtractBytecode.mockResolvedValueOnce(extraction);
+      mockAttemptNativeBytecodeExtraction.mockResolvedValueOnce(nativeAttempt);
       mockDisassembleBytecode.mockReturnValueOnce([
         { offset: 0, opcode: 'LdaConstant', operands: [] },
         { offset: 1, opcode: 'Return', operands: [] },
@@ -184,23 +191,34 @@ describe('v8-inspector handler coverage', () => {
         success: true,
         scriptId: 'script-99',
         functionOffset: null,
-        mode: 'source-derived',
-        format: 'pseudo-bytecode',
-        extraction,
+        mode: 'native',
+        bytecodeAvailable: true,
+        format: 'v8-disassembly',
+        extraction: {
+          functionName: 'myFunc',
+          bytecode: '0 LdaConstant\n1 Return',
+          sourcePosition: 10,
+        },
         disassembly: [
           { offset: 0, opcode: 'LdaConstant', operands: [] },
           { offset: 1, opcode: 'Return', operands: [] },
         ],
         hiddenClasses: [{ address: 'hidden-class-0', properties: ['x', 'y'] }],
+        sourceFallback: null,
       });
     });
 
     it('should pass functionOffset when provided', async () => {
-      const extraction = {
+      mockAttemptNativeBytecodeExtraction.mockResolvedValueOnce({
+        available: false,
+        bytecode: null,
+        format: null,
         functionName: 'inner',
-        bytecode: '0 LoadLiteral a\n1 Return',
-      };
-      mockExtractBytecode.mockResolvedValueOnce(extraction);
+        reason: 'unavailable',
+        rawIgnitionBytecodeAvailable: false,
+        sourcePosition: 42,
+        supportsNativesSyntax: true,
+      });
       mockDisassembleBytecode.mockReturnValueOnce([]);
       mockFindHiddenClasses.mockResolvedValueOnce([]);
 
@@ -209,7 +227,7 @@ describe('v8-inspector handler coverage', () => {
         { getPage: vi.fn().mockResolvedValue({}) },
       );
 
-      expect(mockExtractBytecode).toHaveBeenCalledWith('script-1', 42);
+      expect(mockAttemptNativeBytecodeExtraction).toHaveBeenCalledWith('script-1', 42);
       expect(result).toMatchObject({
         success: true,
         scriptId: 'script-1',
@@ -217,18 +235,47 @@ describe('v8-inspector handler coverage', () => {
       });
     });
 
-    it('should work without runtime (undefined getPage)', async () => {
-      const extraction = {
+    it('should expose explicit source fallback when requested', async () => {
+      mockAttemptNativeBytecodeExtraction.mockResolvedValueOnce({
+        available: false,
+        bytecode: null,
+        format: null,
+        functionName: 'anon',
+        reason: 'Runtime disassembly output is not exposed through the current browser/CDP path',
+        rawIgnitionBytecodeAvailable: false,
+        sourcePosition: 3,
+        supportsNativesSyntax: true,
+      });
+      mockExtractBytecode.mockResolvedValueOnce({
         functionName: 'anon',
         bytecode: '0 Evaluate x',
-      };
-      mockExtractBytecode.mockResolvedValueOnce(extraction);
-      mockDisassembleBytecode.mockReturnValueOnce([]);
+        sourcePosition: 3,
+      });
+      mockDisassembleBytecode.mockReturnValueOnce([
+        { offset: 0, opcode: 'Evaluate', operands: ['x'] },
+      ]);
       mockFindHiddenClasses.mockResolvedValueOnce([]);
 
-      const result = await handleBytecodeExtract({ scriptId: 'script-x' });
+      const result = await handleBytecodeExtract({
+        scriptId: 'script-x',
+        includeSourceFallback: true,
+      });
 
-      expect(result).toMatchObject({ success: true, scriptId: 'script-x' });
+      expect(result).toMatchObject({
+        success: true,
+        scriptId: 'script-x',
+        mode: 'source-fallback',
+        bytecodeAvailable: false,
+        sourceFallback: {
+          format: 'pseudo-bytecode',
+          extraction: {
+            functionName: 'anon',
+            bytecode: '0 Evaluate x',
+            sourcePosition: 3,
+          },
+          disassembly: [{ offset: 0, opcode: 'Evaluate', operands: ['x'] }],
+        },
+      });
     });
   });
 
@@ -854,8 +901,15 @@ describe('v8-inspector handler coverage', () => {
       });
 
       it('should pass an active page getter into BytecodeExtractor', async () => {
-        const extraction = { functionName: 'test', bytecode: '0 Return' };
-        mockExtractBytecode.mockResolvedValueOnce(extraction);
+        mockAttemptNativeBytecodeExtraction.mockResolvedValueOnce({
+          available: false,
+          bytecode: null,
+          format: null,
+          functionName: 'test',
+          reason: 'unavailable',
+          rawIgnitionBytecodeAvailable: false,
+          supportsNativesSyntax: true,
+        });
         mockDisassembleBytecode.mockReturnValueOnce([]);
         mockFindHiddenClasses.mockResolvedValueOnce([]);
 
@@ -871,7 +925,7 @@ describe('v8-inspector handler coverage', () => {
       });
 
       it('should work without pageController', async () => {
-        mockExtractBytecode.mockResolvedValueOnce(null);
+        mockAttemptNativeBytecodeExtraction.mockResolvedValueOnce(null);
         const deps = createMockDepsWithoutPage();
         const handlers = new V8InspectorHandlers(deps);
 
