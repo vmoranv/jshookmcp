@@ -96,7 +96,7 @@ function buildMetaToolDefinitions(ctx: MCPServerContext): MetaToolDef[] {
               },
               autoActivate: {
                 type: 'boolean',
-                description: 'Whether to auto-activate recommended tools (default: true)',
+                description: 'Whether to auto-activate recommended tools (default: false)',
               },
               maxRecommendations: {
                 type: 'number',
@@ -167,7 +167,7 @@ function buildMetaToolDefinitions(ctx: MCPServerContext): MetaToolDef[] {
       description:
         `Activate all tools in a domain at once. ` +
         `Domains: ${[...getAllDomains()].join(', ')}. ` +
-        `Use extensions_reload first to include external plugin/workflow domains.`,
+        `Use reload_extensions first to include external plugin/workflow domains.`,
       inputSchema: {
         type: 'object',
         properties: {
@@ -187,10 +187,9 @@ function buildMetaToolDefinitions(ctx: MCPServerContext): MetaToolDef[] {
     {
       name: 'call_tool',
       description:
-        'Execute any tool by name with auto-activation. ' +
-        'Use this when activate_tools/activate_domain registered a tool but it does not appear in your tool list ' +
-        '(common for clients that do not support tools/list_changed notifications). ' +
-        "Accepts the tool name and its arguments object; returns the tool's native response.",
+        'Execute an already-active tool by name. ' +
+        'Use this when activate_tools/activate_domain registered a tool but your client did not refresh its tool list. ' +
+        'Does not auto-activate inactive tools.',
       inputSchema: {
         type: 'object',
         properties: {
