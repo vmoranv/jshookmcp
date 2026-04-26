@@ -39,6 +39,11 @@ type CompressionResultItem = {
   compressionRatio: number;
 };
 
+interface TemporaryBrowserContext {
+  newPage(): Promise<Page>;
+  close(): Promise<void>;
+}
+
 interface CollectorInternals {
   cacheEnabled: boolean;
   cache: {
@@ -46,8 +51,11 @@ interface CollectorInternals {
     set(url: string, result: CollectCodeResult, options?: Record<string, unknown>): Promise<void>;
   };
   init: () => Promise<void>;
+  getActivePageIndex?: () => Promise<number | null>;
+  selectPage?: (index: number) => Promise<void>;
   browser: {
     newPage(): Promise<Page>;
+    createBrowserContext?: () => Promise<TemporaryBrowserContext>;
   } | null;
   config: {
     timeout?: number;
@@ -172,7 +180,21 @@ export async function collectInnerImpl(
     throw new Error('Browser not initialized');
   }
 
-  const page = await self.browser.newPage();
+  const temporaryContext =
+    typeof self.browser.createBrowserContext === 'function'
+      ? await self.browser.createBrowserContext()
+      : null;
+
+  let previousActivePageIndex: number | null = null;
+  if (!temporaryContext && typeof self.getActivePageIndex === 'function') {
+    try {
+      previousActivePageIndex = await self.getActivePageIndex();
+    } catch (error) {
+      logger.debug('Failed to capture active page index before code collection:', error);
+    }
+  }
+
+  const page = temporaryContext ? await temporaryContext.newPage() : await self.browser.newPage();
 
   try {
     const timeoutMs = options.timeout ?? self.config.timeout ?? 30000;
@@ -491,6 +513,21 @@ export async function collectInnerImpl(
       self.cdpSession = null;
       self.cdpListeners = {};
     }
-    await page.close();
+    if (temporaryContext) {
+      try {
+        await temporaryContext.close();
+      } catch (error) {
+        logger.debug('Failed to close temporary browser context after code collection:', error);
+      }
+    } else {
+      await page.close();
+      if (previousActivePageIndex !== null && typeof self.selectPage === 'function') {
+        try {
+          await self.selectPage(previousActivePageIndex);
+        } catch (error) {
+          logger.debug('Failed to restore active page after code collection:', error);
+        }
+      }
+    }
   }
 }

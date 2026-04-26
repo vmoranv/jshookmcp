@@ -100,6 +100,7 @@ interface HarnessOptions {
   responseBodyDelayMs?: number;
   cacheEnabled?: boolean;
   cachedResult?: any;
+  useBrowserContext?: boolean;
 }
 
 function createHarness(options: HarnessOptions = {}) {
@@ -164,6 +165,10 @@ function createHarness(options: HarnessOptions = {}) {
     }),
     close: vi.fn().mockResolvedValue(undefined),
   };
+  const browserContext = {
+    newPage: vi.fn().mockResolvedValue(page),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
 
   const self = {
     cacheEnabled: options.cacheEnabled ?? false,
@@ -172,8 +177,12 @@ function createHarness(options: HarnessOptions = {}) {
       set: vi.fn().mockResolvedValue(undefined),
     },
     init: vi.fn().mockResolvedValue(undefined),
+    getActivePageIndex: vi.fn().mockResolvedValue(0),
+    selectPage: vi.fn().mockResolvedValue(undefined),
     browser: {
       newPage: vi.fn().mockResolvedValue(page),
+      createBrowserContext:
+        options.useBrowserContext === false ? undefined : vi.fn().mockResolvedValue(browserContext),
     },
     config: {
       timeout: 1000,
@@ -209,7 +218,7 @@ function createHarness(options: HarnessOptions = {}) {
     },
   };
 
-  return { cdpSession, page, self };
+  return { browserContext, cdpSession, page, self };
 }
 
 describe('CodeCollector collect internals', () => {
@@ -677,6 +686,38 @@ describe('CodeCollector collect internals', () => {
     expect(result.dependencies).toEqual({ nodes: [], edges: [] });
     expect(result.totalSize).toBe(0);
     expect(self.cache.set).not.toHaveBeenCalled();
+  });
+
+  it('uses an isolated browser context when available', async () => {
+    const { browserContext, page, self } = createHarness();
+
+    await collectInnerImpl(self, {
+      url: 'https://site',
+      includeInline: false,
+      includeServiceWorker: false,
+      includeWebWorker: false,
+    });
+
+    expect(self.browser.createBrowserContext).toHaveBeenCalledOnce();
+    expect(browserContext.newPage).toHaveBeenCalledOnce();
+    expect(browserContext.close).toHaveBeenCalledOnce();
+    expect(page.close).not.toHaveBeenCalled();
+    expect(self.selectPage).not.toHaveBeenCalled();
+  });
+
+  it('restores the previously active page after closing the temporary collection page', async () => {
+    const { self, page } = createHarness({ useBrowserContext: false });
+
+    await collectInnerImpl(self, {
+      url: 'https://site',
+      includeInline: false,
+      includeServiceWorker: false,
+      includeWebWorker: false,
+    });
+
+    expect(page.close).toHaveBeenCalledOnce();
+    expect(self.getActivePageIndex).toHaveBeenCalledOnce();
+    expect(self.selectPage).toHaveBeenCalledWith(0);
   });
 
   it('rejects invalid collector contexts that do not provide shouldCollectUrl', async () => {

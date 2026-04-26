@@ -189,6 +189,16 @@ export class CodeCollector {
       this.viewport,
     );
 
+    // Internal callers such as collector.init() only need "a browser".
+    // If one already exists, do not silently relaunch it with default config.
+    if (this.browser && overrides === undefined) {
+      this.explicitlyClosed = false;
+      return {
+        action: 'reused',
+        launchOptions: this.currentLaunchOptions ?? launchOptions,
+      };
+    }
+
     if (
       this.browser &&
       !this.connectedToExistingBrowser &&
@@ -418,6 +428,18 @@ export class CodeCollector {
       throw new Error('Failed to get active page');
     }
     return await this.resolvePageTargetHandle(lastTarget);
+  }
+  async getActivePageIndex(): Promise<number | null> {
+    const activePage = await this.getActivePage();
+    const resolvedPages = await this.listResolvedPages();
+    const exactMatch = resolvedPages.find((entry) => entry.page === activePage);
+    if (exactMatch) {
+      return exactMatch.index;
+    }
+
+    const activeUrl = activePage.url();
+    const urlMatch = resolvedPages.find((entry) => entry.url === activeUrl);
+    return urlMatch?.index ?? null;
   }
   async listPages(): Promise<Array<{ index: number; url: string; title: string }>> {
     if (!this.browser) {
