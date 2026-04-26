@@ -27,7 +27,7 @@ V8 inspector domain providing heap snapshot analysis, CPU profiling, and memory 
 - `v8_heap_diff` — Diff two V8 heap snapshots
 - `v8_object_inspect` — Inspect a V8 heap object
 - `v8_heap_stats` — Read V8 heap usage
-- `v8_bytecode_extract` — Derive pseudo bytecode from a V8 script
+- `v8_bytecode_extract` — Attempt V8 bytecode extraction for a script
 - `v8_version_detect` — Detect V8 version and capabilities
 - `v8_jit_inspect` — Inspect JIT status for a V8 script
 
@@ -40,6 +40,6 @@ V8 inspector domain providing heap snapshot analysis, CPU profiling, and memory 
 | `v8_heap_diff` | Diff two V8 heap snapshots |
 | `v8_object_inspect` | Inspect a V8 heap object |
 | `v8_heap_stats` | Read V8 heap usage |
-| `v8_bytecode_extract` | Derive pseudo bytecode from a V8 script |
+| `v8_bytecode_extract` | Attempt V8 bytecode extraction for a script |
 | `v8_version_detect` | Detect V8 version and capabilities |
 | `v8_jit_inspect` | Inspect JIT status for a V8 script |

@@ -28,9 +28,10 @@ export const v8InspectorTools: Tool[] = [
   tool('v8_heap_stats', (t) => t.desc('Read V8 heap usage').query()),
   tool('v8_bytecode_extract', (t) =>
     t
-      .desc('Derive pseudo bytecode from a V8 script')
+      .desc('Attempt V8 bytecode extraction for a script')
       .string('scriptId', 'CDP scriptId')
       .number('functionOffset', 'Optional function byte offset')
+      .boolean('includeSourceFallback', 'Include source-derived fallback output')
       .required('scriptId')
       .query(),
   ),
