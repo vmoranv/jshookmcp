@@ -136,6 +136,46 @@ export class CoreAnalysisHandlers {
         preview: `${file.content.substring(0, 200)}...`,
       }));
 
+    const summarizeResult = (
+      result: Awaited<ReturnType<CoreAnalysisHandlerDeps['collector']['collect']>>,
+    ) => {
+      const rawEntries =
+        Array.isArray(result.summaries) && result.summaries.length > 0
+          ? result.summaries
+          : summarizeFiles(
+              result.files as Array<{
+                url: string;
+                type: string;
+                size: number;
+                content: string;
+                metadata?: { truncated?: boolean };
+              }>,
+            );
+      const entries = rawEntries.slice(0, maxSummaryFiles);
+      const filesCount = Array.isArray(result.summaries)
+        ? result.summaries.length
+        : result.files.length;
+      const totalSize =
+        result.totalSize > 0
+          ? result.totalSize
+          : Array.isArray(result.summaries)
+            ? result.summaries.reduce(
+                (sum, entry) => sum + (typeof entry.size === 'number' ? entry.size : 0),
+                0,
+              )
+            : result.files.reduce((sum, file) => sum + file.size, 0);
+
+      return {
+        totalSize,
+        totalSizeKB: (totalSize / 1024).toFixed(2),
+        filesCount,
+        summarizedFiles: entries.length,
+        omittedFiles: Math.max(0, filesCount - entries.length),
+        collectTime: result.collectTime,
+        summary: entries,
+      };
+    };
+
     // Default to 'summary' mode to prevent full-collection payload bloat
     if (!smartMode) {
       smartMode = returnSummaryOnly ? 'summary' : 'summary';
@@ -154,23 +194,10 @@ export class CoreAnalysisHandlers {
     });
 
     if (returnSummaryOnly) {
+      const summaryResult = summarizeResult(result);
       return asJsonResponse({
         mode: 'summary',
-        totalSize: result.totalSize,
-        totalSizeKB: (result.totalSize / 1024).toFixed(2),
-        filesCount: result.files.length,
-        summarizedFiles: Math.min(result.files.length, maxSummaryFiles),
-        omittedFiles: Math.max(0, result.files.length - maxSummaryFiles),
-        collectTime: result.collectTime,
-        summary: summarizeFiles(
-          result.files as Array<{
-            url: string;
-            type: string;
-            size: number;
-            content: string;
-            metadata?: { truncated?: boolean };
-          }>,
-        ),
+        ...summaryResult,
         hint: 'Use get_script_source for specific files.',
       });
     }
@@ -184,25 +211,12 @@ export class CoreAnalysisHandlers {
         `Collected code is too large (collected=${(result.totalSize / 1024).toFixed(2)}KB, response=${(estimatedResponseSize / 1024).toFixed(2)}KB), returning summary mode.`,
       );
 
+      const summaryResult = summarizeResult(result);
       return asJsonResponse({
         warning: 'Code size exceeds safe response threshold; summary returned.',
-        totalSize: result.totalSize,
-        totalSizeKB: (result.totalSize / 1024).toFixed(2),
+        ...summaryResult,
         estimatedResponseSize,
         estimatedResponseSizeKB: (estimatedResponseSize / 1024).toFixed(2),
-        filesCount: result.files.length,
-        summarizedFiles: Math.min(result.files.length, maxSummaryFiles),
-        omittedFiles: Math.max(0, result.files.length - maxSummaryFiles),
-        collectTime: result.collectTime,
-        summary: summarizeFiles(
-          result.files as Array<{
-            url: string;
-            type: string;
-            size: number;
-            content: string;
-            metadata?: { truncated?: boolean };
-          }>,
-        ),
         recommendations: [
           'Use get_script_source for targeted files.',
           'Use more specific priority filters.',

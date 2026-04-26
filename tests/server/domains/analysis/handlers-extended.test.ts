@@ -227,6 +227,38 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       );
     });
 
+    it('preserves smart collector summaries when no files are returned', async () => {
+      deps.collector.collect.mockResolvedValue({
+        totalSize: 0,
+        files: [],
+        collectTime: 12,
+        summaries: [
+          {
+            url: 'audit-probe.js',
+            size: 1536,
+            type: 'dynamic',
+            hasEncryption: false,
+            hasAPI: true,
+            hasObfuscation: false,
+            functions: ['auditProbeFn'],
+            imports: [],
+            preview: 'function auditProbeFn(){ return 7; }',
+          },
+        ],
+      });
+
+      const body = parseJson<CollectCodeResponse>(
+        await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true }),
+      );
+
+      expect(body.mode).toBe('summary');
+      expect(body.totalSize).toBe(1536);
+      expect(body.filesCount).toBe(1);
+      expect(body.summary).toHaveLength(1);
+      expect(body.summary?.[0].url).toBe('audit-probe.js');
+      expect(body.summary?.[0].preview).toContain('auditProbeFn');
+    });
+
     it('returns summary with warning when result is too large', async () => {
       const bigContent = 'x'.repeat(300 * 1024);
       deps.collector.collect.mockResolvedValue({
