@@ -125,12 +125,14 @@ const __bootstrap = async () => {
       sandbox.globalThis = sandbox; Object.freeze(sandbox);
       const context = vm.createContext(sandbox);
       const isValidIdentifier = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(functionName);
-      const bindCode = isValidIdentifier
-        ? "\\n;globalThis.__targetFn = (typeof " + functionName + " !== 'undefined' ? " + functionName + " : globalThis[" + JSON.stringify(functionName) + "]);"
-        : "\\n;globalThis.__targetFn = globalThis[" + JSON.stringify(functionName) + "];";
-      const script = new vm.Script(code + bindCode, { timeout: 5000 });
-      script.runInContext(context, { timeout: 5000 });
-      const targetFn = context.__targetFn;
+      const targetExpression = isValidIdentifier
+        ? "(typeof " + functionName + " !== 'undefined' ? " + functionName + " : globalThis[" + JSON.stringify(functionName) + "])"
+        : "globalThis[" + JSON.stringify(functionName) + "]";
+      const script = new vm.Script(
+        "(() => {\\n" + code + "\\n;return " + targetExpression + ";\\n})()",
+        { timeout: 5000 },
+      );
+      const targetFn = script.runInContext(context, { timeout: 5000 });
       if (typeof targetFn !== 'function') throw new Error("Function not found or not callable: " + functionName);
       const rows = [];
       for (const input of testInputs) {
