@@ -70,6 +70,7 @@ describe('debugger tool definitions', () => {
       expect(tool.inputSchema.required).toContain('action');
       expect(tool.inputSchema.properties).toHaveProperty('action');
       expect(tool.inputSchema.properties).toHaveProperty('type');
+      expect(tool.inputSchema.properties).toHaveProperty('url');
       expect(tool.inputSchema.properties).toHaveProperty('lineNumber');
       expect(tool.inputSchema.properties).toHaveProperty('scriptId');
       expect(tool.inputSchema.properties).toHaveProperty('columnNumber');

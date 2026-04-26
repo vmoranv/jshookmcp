@@ -43,6 +43,7 @@ Types & params:
         'Breakpoint type (default: code)',
         { default: 'code' },
       )
+      .string('url', 'Script URL (type=code, alternative to scriptId)')
       .string('scriptId', 'Script ID (type=code)')
       .number('lineNumber', 'Line number 0-based (type=code, action=set)')
       .number('columnNumber', 'Column number 0-based (type=code)')
