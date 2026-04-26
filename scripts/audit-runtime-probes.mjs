@@ -19,7 +19,10 @@ const BODY_MARKER = 'payload-marker-20260425';
 const SSE_MARKER = 'payload-marker-sse-20260425';
 const HTTP2_MARKER = 'payload-marker-h2-20260425';
 const SOURCEMAP_MARKER = 'payload-marker-sourcemap-20260425';
+const CONSOLE_LOG_MARKER = 'payload-marker-console-20260426';
+const CONSOLE_EXCEPTION_MARKER = 'payload-marker-console-exception-20260426';
 const SCRIPT_TIMEOUT_MS = 6 * 60 * 1000;
+const DIRECT_RUNTIME_PROBED_TOOLS = new Set();
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null;
@@ -64,6 +67,7 @@ async function withTimeout(promise, label, timeoutMs = 30000) {
 }
 
 async function callTool(client, name, args = {}, timeoutMs = 30000) {
+  DIRECT_RUNTIME_PROBED_TOOLS.add(name);
   return parseContent(
     await withTimeout(client.callTool({ name, arguments: args }), name, timeoutMs),
   );
@@ -120,6 +124,14 @@ function pickScriptForV8Inspection(scripts) {
     return null;
   }
 
+  const explicitAuditProbe = candidates.find((script) => {
+    const url = typeof script.url === 'string' ? script.url : '';
+    return url === 'audit-probe.js' || url.endsWith('/audit-probe.js');
+  });
+  if (explicitAuditProbe) {
+    return explicitAuditProbe;
+  }
+
   const preferred = candidates.find((script) => {
     const url = typeof script.url === 'string' ? script.url : '';
     return (
@@ -135,6 +147,54 @@ function pickScriptForV8Inspection(scripts) {
   );
 
   return preferred ?? withUrl ?? candidates[0] ?? null;
+}
+
+function pickBrowserCdpTarget(targets, urlNeedle) {
+  if (!Array.isArray(targets)) {
+    return null;
+  }
+
+  const candidates = targets.filter(
+    (target) =>
+      isRecord(target) && typeof target.targetId === 'string' && target.targetId.length > 0,
+  );
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const exactPage = candidates.find((target) => {
+    const type = typeof target.type === 'string' ? target.type : '';
+    const url = typeof target.url === 'string' ? target.url : '';
+    return type === 'page' && url.includes(urlNeedle);
+  });
+  if (exactPage) {
+    return exactPage;
+  }
+
+  const pageTarget = candidates.find((target) => target.type === 'page');
+  return pageTarget ?? candidates[0] ?? null;
+}
+
+function buildRuntimeCoverage(registeredTools) {
+  const totalRegistered = Array.isArray(registeredTools)
+    ? registeredTools.filter((name) => typeof name === 'string').length
+    : 0;
+  const probedTools = [...DIRECT_RUNTIME_PROBED_TOOLS].toSorted();
+  const registeredSet = new Set(
+    Array.isArray(registeredTools)
+      ? registeredTools.filter((name) => typeof name === 'string')
+      : [],
+  );
+  const unprobedTools = [...registeredSet].filter((name) => !DIRECT_RUNTIME_PROBED_TOOLS.has(name));
+
+  return {
+    totalRegistered,
+    directRuntimeProbed: probedTools.length,
+    coveragePercent:
+      totalRegistered === 0 ? 0 : Number(((probedTools.length / totalRegistered) * 100).toFixed(1)),
+    probedTools,
+    unprobedTools,
+  };
 }
 
 function parseWsFrames(buffer) {
@@ -779,12 +839,40 @@ async function main() {
     }
 
     report.browser.launch = await callTool(client, 'browser_launch', { headless: true }, 60000);
+    report.browser.status = await callTool(client, 'browser_status', {}, 15000);
     report.browser.navigate = await callTool(
       client,
       'page_navigate',
       { url: server.baseUrl, waitUntil: 'load', timeout: 15000 },
       60000,
     );
+    report.browser.listTabs = await callTool(client, 'browser_list_tabs', {}, 30000);
+    report.browser.selectTab = await callTool(client, 'browser_select_tab', { index: 0 }, 15000);
+    report.browser.cdpTargets = await callTool(client, 'browser_list_cdp_targets', {}, 30000);
+    const cdpTarget = pickBrowserCdpTarget(report.browser.cdpTargets?.targets, server.baseUrl);
+    report.browser.cdpTargetId =
+      isRecord(cdpTarget) && typeof cdpTarget.targetId === 'string' ? cdpTarget.targetId : null;
+    if (report.browser.cdpTargetId) {
+      report.browser.cdpAttach = await callTool(
+        client,
+        'browser_attach_cdp_target',
+        { targetId: report.browser.cdpTargetId },
+        30000,
+      );
+      report.browser.cdpEvaluate = await callTool(
+        client,
+        'browser_evaluate_cdp_target',
+        {
+          code: `(() => ({
+            href: location.href,
+            title: document.title,
+            bodyLength: document.body?.textContent?.length ?? 0
+          }))()`,
+        },
+        30000,
+      );
+      report.browser.cdpDetach = await callTool(client, 'browser_detach_cdp_target', {}, 15000);
+    }
     report.captcha.capabilities = await callTool(client, 'captcha_solver_capabilities', {}, 15000);
     report.captcha.manualAvailable = isCapabilityAvailable(
       report.captcha.capabilities,
@@ -1007,6 +1095,12 @@ async function main() {
     report.proxy.logsAfterClear = await callTool(client, 'proxy_get_requests', {}, 15000);
 
     report.network.enable = await callTool(client, 'network_enable', {}, 15000);
+    report.browser.consoleMonitor = await callTool(
+      client,
+      'console_monitor',
+      { action: 'enable' },
+      15000,
+    );
     report.streaming.wsMonitor = await callTool(
       client,
       'ws_monitor',
@@ -1038,6 +1132,13 @@ async function main() {
         code: `(() => new Promise(async (resolve, reject) => {
           const result = {};
           try {
+            console.log(${JSON.stringify(CONSOLE_LOG_MARKER)});
+            console.warn(${JSON.stringify(`${CONSOLE_LOG_MARKER}-warn`)});
+            console.error(${JSON.stringify(`${CONSOLE_LOG_MARKER}-error`)});
+            setTimeout(() => {
+              throw new Error(${JSON.stringify(CONSOLE_EXCEPTION_MARKER)});
+            }, 0);
+
             const bodyText = await fetch(${JSON.stringify(`${server.baseUrl}/body?via=eval`)}).then((resp) => resp.text());
             result.fetchContainsMarker = bodyText.includes(${JSON.stringify(BODY_MARKER)});
             result.fetchLength = bodyText.length;
@@ -1084,6 +1185,7 @@ async function main() {
               };
             });
 
+            await new Promise((resume) => setTimeout(resume, 50));
             resolve(result);
           } catch (error) {
             reject(error);
@@ -1092,6 +1194,51 @@ async function main() {
       },
       45000,
     );
+    report.browser.seedAuditProbeScript = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          const script = document.createElement('script');
+          script.dataset.auditProbe = 'true';
+          script.textContent = 'function auditProbeFn(){ return 7; } window.auditProbeFn = auditProbeFn;\\n//# sourceURL=audit-probe.js';
+          document.documentElement.appendChild(script);
+          return { inserted: true, scriptCount: document.scripts.length };
+        })()`,
+      },
+      15000,
+    );
+    report.browser.consoleExecute = await callTool(
+      client,
+      'console_execute',
+      { expression: 'window.auditProbeFn()' },
+      15000,
+    );
+    report.browser.consoleLogs = await callTool(client, 'console_get_logs', { limit: 20 }, 15000);
+    {
+      const consoleLogStrings = flattenStrings(report.browser.consoleLogs);
+      report.browser.consoleHasLogMarker = consoleLogStrings.some((entry) =>
+        entry.includes(CONSOLE_LOG_MARKER),
+      );
+      report.browser.consoleHasWarnMarker = consoleLogStrings.some((entry) =>
+        entry.includes(`${CONSOLE_LOG_MARKER}-warn`),
+      );
+      report.browser.consoleHasErrorMarker = consoleLogStrings.some((entry) =>
+        entry.includes(`${CONSOLE_LOG_MARKER}-error`),
+      );
+    }
+    report.network.consoleExceptions = await callTool(
+      client,
+      'console_get_exceptions',
+      { limit: 20 },
+      15000,
+    );
+    {
+      const consoleExceptionStrings = flattenStrings(report.network.consoleExceptions);
+      report.network.consoleExceptionHasMarker = consoleExceptionStrings.some((entry) =>
+        entry.includes(CONSOLE_EXCEPTION_MARKER),
+      );
+    }
     report.v8.debugger = await callTool(client, 'debugger_lifecycle', { action: 'enable' }, 30000);
     report.v8.version = await callTool(client, 'v8_version_detect', {}, 30000);
     report.v8.scripts = await callTool(client, 'get_all_scripts', { maxScripts: 20 }, 30000);
@@ -1105,10 +1252,25 @@ async function main() {
         ? firstScript.url
         : null;
     if (report.v8.firstScriptId) {
+      report.browser.scriptSource = await callTool(
+        client,
+        'get_script_source',
+        { scriptId: report.v8.firstScriptId, preview: true, maxLines: 20 },
+        30000,
+      );
       report.v8.bytecode = await callTool(
         client,
         'v8_bytecode_extract',
         { scriptId: report.v8.firstScriptId },
+        30000,
+      );
+      report.v8.bytecodeSourceFallback = await callTool(
+        client,
+        'v8_bytecode_extract',
+        {
+          scriptId: report.v8.firstScriptId,
+          includeSourceFallback: true,
+        },
         30000,
       );
       report.v8.jit = await callTool(
@@ -1118,6 +1280,93 @@ async function main() {
         30000,
       );
     }
+    report.v8.seedPauseTimer = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          if (window.__auditPauseTimer) {
+            clearInterval(window.__auditPauseTimer);
+          }
+          window.__auditPauseCounter = 0;
+          window.__auditPauseTimer = setInterval(() => {
+            window.__auditPauseCounter = (window.__auditPauseCounter ?? 0) + 1;
+          }, 25);
+          return { intervalMs: 25, started: true };
+        })()`,
+      },
+      15000,
+    );
+    report.v8.pause = await callTool(client, 'debugger_pause', {}, 15000);
+    report.v8.waitForPaused = await callTool(
+      client,
+      'debugger_wait_for_paused',
+      { timeout: 5000 },
+      10000,
+    );
+    report.v8.pausedState = await callTool(client, 'debugger_get_paused_state', {}, 15000);
+    report.v8.callStack = await callTool(client, 'get_call_stack', {}, 15000);
+    report.v8.frameEvaluate = await callTool(
+      client,
+      'debugger_evaluate',
+      { expression: '1 + 2 + 4' },
+      15000,
+    );
+    report.v8.scopeEnhanced = await callTool(
+      client,
+      'get_scope_variables_enhanced',
+      {
+        includeObjectProperties: false,
+        maxDepth: 1,
+      },
+      30000,
+    );
+    {
+      const scopedObject =
+        Array.isArray(report.v8.scopeEnhanced?.variables) &&
+        report.v8.scopeEnhanced.variables.find(
+          (entry) =>
+            isRecord(entry) && typeof entry.objectId === 'string' && entry.objectId.length > 0,
+        );
+      report.v8.scopeObjectId =
+        isRecord(scopedObject) && typeof scopedObject.objectId === 'string'
+          ? scopedObject.objectId
+          : null;
+      report.v8.scopeObjectName =
+        isRecord(scopedObject) && typeof scopedObject.name === 'string' ? scopedObject.name : null;
+    }
+    if (report.v8.scopeObjectId) {
+      report.v8.objectProperties = await callTool(
+        client,
+        'get_object_properties',
+        { objectId: report.v8.scopeObjectId },
+        30000,
+      );
+    }
+    report.v8.stepOver = await callTool(client, 'debugger_step', { direction: 'over' }, 15000);
+    report.v8.waitAfterStep = await callTool(
+      client,
+      'debugger_wait_for_paused',
+      { timeout: 5000 },
+      10000,
+    );
+    report.v8.resume = await callTool(client, 'debugger_resume', {}, 15000);
+    report.v8.pausedAfterResume = await callTool(client, 'debugger_get_paused_state', {}, 15000);
+    report.v8.clearPauseTimer = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          const counter = window.__auditPauseCounter ?? 0;
+          if (window.__auditPauseTimer) {
+            clearInterval(window.__auditPauseTimer);
+          }
+          delete window.__auditPauseTimer;
+          return { counter, cleared: true };
+        })()`,
+      },
+      15000,
+    );
 
     report.network.requests = await callTool(client, 'network_get_requests', {}, 15000);
     const requestRecord = findRequestByUrl(report.network.requests.requests, '/body?via=eval');
@@ -1543,6 +1792,8 @@ async function main() {
       } catch {}
     }
   }
+
+  report.runtimeCoverage = buildRuntimeCoverage(report.tools);
 
   if (jsonOnly) {
     console.log(JSON.stringify(report, null, 2));
