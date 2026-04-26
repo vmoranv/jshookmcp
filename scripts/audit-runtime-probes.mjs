@@ -21,6 +21,7 @@ const HTTP2_MARKER = 'payload-marker-h2-20260425';
 const SOURCEMAP_MARKER = 'payload-marker-sourcemap-20260425';
 const CONSOLE_LOG_MARKER = 'payload-marker-console-20260426';
 const CONSOLE_EXCEPTION_MARKER = 'payload-marker-console-exception-20260426';
+const ROOT_RELOAD_KEY = '__audit_reload_count';
 const SCRIPT_TIMEOUT_MS = 6 * 60 * 1000;
 const DIRECT_RUNTIME_PROBED_TOOLS = new Set();
 
@@ -352,7 +353,38 @@ async function createProbeServer() {
   const rootAppScript = [
     `window.__auditRuntimeProbeMarker__ = ${JSON.stringify(BODY_MARKER)};`,
     'window.__auditRuntimeProbeExternalLoaded = true;',
-    "console.log('runtime probe external script loaded');",
+    'document.addEventListener("DOMContentLoaded", () => {',
+    '  const input = document.getElementById("name-input");',
+    '  if (input) {',
+    '    input.addEventListener("input", () => {',
+    '      window.__auditTypedValue = input.value;',
+    '      const output = document.getElementById("typed-output");',
+    '      if (output) output.textContent = input.value;',
+    '    });',
+    '  }',
+    '  const select = document.getElementById("color-select");',
+    '  if (select) {',
+    '    select.addEventListener("change", () => {',
+    '      window.__auditSelectedValue = select.value;',
+    '      const output = document.getElementById("select-output");',
+    '      if (output) output.textContent = select.value;',
+    '    });',
+    '  }',
+    '  const hover = document.getElementById("hover-target");',
+    '  if (hover) {',
+    '    hover.addEventListener("mouseenter", () => {',
+    '      window.__auditHoverCount = (window.__auditHoverCount || 0) + 1;',
+    '      const output = document.getElementById("hover-output");',
+    '      if (output) output.textContent = String(window.__auditHoverCount);',
+    '    });',
+    '  }',
+    '  document.addEventListener("keydown", (event) => {',
+    '    window.__auditLastKey = event.key;',
+    '    const output = document.getElementById("key-output");',
+    '    if (output) output.textContent = event.key;',
+    '  });',
+    "  console.log('runtime probe external script loaded');",
+    '});',
   ].join('\n');
   const sourceMapPayload = JSON.stringify({
     version: 3,
@@ -385,11 +417,52 @@ async function createProbeServer() {
   <head>
     <meta charset="utf-8" />
     <title>runtime probe</title>
-    <script>window.__auditRuntimeProbeInlineLoaded = true;</script>
-    <script src="/app.js"></script>
+    <style>
+      body { font-family: sans-serif; margin: 0; padding: 24px; }
+      main { max-width: 960px; display: grid; gap: 12px; }
+      nav { display: flex; gap: 12px; }
+      input, select, button { padding: 8px; font-size: 14px; }
+      #hover-target { width: 160px; padding: 12px; border: 1px solid #999; }
+      .spacer { height: 1400px; background: linear-gradient(180deg, #f3f3f3 0%, #d9ecff 100%); }
+    </style>
+    <script>
+      const key = ${JSON.stringify(ROOT_RELOAD_KEY)};
+      const current = Number(localStorage.getItem(key) || '0');
+      localStorage.setItem(key, String(current + 1));
+      window.__auditRuntimeProbeInlineLoaded = true;
+    </script>
+    <script src="/app.js" defer></script>
   </head>
   <body>
-    <h1>runtime probe</h1>
+    <main>
+      <h1>runtime probe</h1>
+      <nav>
+        <a id="history-link-one" href="/history/one">History One</a>
+        <a id="history-link-two" href="/history/two">History Two</a>
+      </nav>
+      <label for="name-input">Name</label>
+      <input id="name-input" name="name" />
+      <div id="typed-output"></div>
+      <label for="color-select">Color</label>
+      <select id="color-select">
+        <option value="red">red</option>
+        <option value="blue">blue</option>
+      </select>
+      <div id="select-output"></div>
+      <button
+        id="click-target"
+        onclick="window.__auditClickCount=(window.__auditClickCount||0)+1; document.getElementById('click-output').textContent=String(window.__auditClickCount);"
+      >
+        Click probe
+      </button>
+      <div id="click-output">0</div>
+      <div id="hover-target">Hover probe</div>
+      <div id="hover-output">0</div>
+      <div id="key-output"></div>
+      <div id="inject-output"></div>
+      <div class="spacer"></div>
+      <div id="scroll-marker">scroll-target</div>
+    </main>
   </body>
 </html>`);
       return;
@@ -401,6 +474,22 @@ async function createProbeServer() {
         'cache-control': 'no-store',
       });
       res.end(rootAppScript);
+      return;
+    }
+
+    if (req.url === '/history/one') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(
+        '<!doctype html><html><head><title>history-one</title></head><body><h1 data-page="one">history one</h1></body></html>',
+      );
+      return;
+    }
+
+    if (req.url === '/history/two') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(
+        '<!doctype html><html><head><title>history-two</title></head><body><h1 data-page="two">history two</h1></body></html>',
+      );
       return;
     }
 
@@ -578,8 +667,12 @@ function summarize(report) {
     `protocol: template=${report.protocol.payloadTemplate?.hexPayload ?? 'n/a'} mutate=${report.protocol.payloadMutate?.mutatedHex ?? 'n/a'} ipv4=${report.protocol.rawIp?.checksumHex ?? 'n/a'} pcapPackets=${Array.isArray(report.protocol.pcapRead?.packets) ? report.protocol.pcapRead.packets.length : 'n/a'}`,
     `coordination: handoff=${report.coordination.create?.taskId ?? 'n/a'} insights=${report.coordination.appendInsight?.totalInsights ?? 'n/a'} snapshots=${report.coordination.snapshotList?.total ?? 'n/a'} restoredCookie=${report.coordination.restoreState?.result?.hasCookie ?? 'n/a'}`,
     `analysis: collectFiles=${report.analysis.collectCode?.filesCount ?? 'n/a'} collectSize=${report.analysis.collectCode?.totalSize ?? 'n/a'} treeFunctions=${Array.isArray(report.analysis.extractFunctionTree?.functions) ? report.analysis.extractFunctionTree.functions.length : 'n/a'}`,
+    `browser-page: typed=${report.browser.interactionState?.result?.typedValue ?? 'n/a'} key=${report.browser.interactionState?.result?.lastKey ?? 'n/a'} select=${report.browser.interactionState?.result?.selectedValue ?? 'n/a'} hover=${report.browser.interactionState?.result?.hoverCount ?? 'n/a'} click=${report.browser.interactionState?.result?.clickCount ?? 'n/a'} reload=${report.browser.reloadState?.result?.reloadCount ?? 'n/a'}`,
+    `browser-history: back=${report.browser.historyBackState?.result?.title ?? 'n/a'} forward=${report.browser.historyForwardState?.result?.title ?? 'n/a'} screenshotBytes=${report.browser.screenshotBytes ?? 'n/a'} mobileWidth=${report.browser.emulatedState?.result?.width ?? 'n/a'}`,
+    `performance: metrics=${report.performance.metrics?.success ?? 'n/a'} coverage=${report.performance.coverageStop?.totalScripts ?? 'n/a'} traceEvents=${report.performance.traceStop?.eventCount ?? 'n/a'} cpuSamples=${report.performance.cpuStop?.totalSamples ?? 'n/a'} heapSamples=${report.performance.heapSamplingStop?.sampleCount ?? 'n/a'}`,
     `streaming: wsFrames=${report.streaming.wsFrameCount} sseEvents=${report.streaming.sseEventCount}`,
     `trace: status=${report.trace.stop?.status ?? 'n/a'} bodies=${report.trace.stop?.networkBodyCount ?? 0} chunks=${report.trace.stop?.networkChunkCount ?? 0} bodyState=${report.trace.flow?.request?.bodyCaptureState ?? 'n/a'}`,
+    `trace-extra: seekEvents=${Array.isArray(report.trace.seek?.events) ? report.trace.seek.events.length : 'n/a'} summarizedReq=${report.trace.summary?.network?.requestCount ?? 'n/a'} exported=${report.trace.export?.eventCount ?? 'n/a'} alias=${report.trace.aliasStop?.status ?? 'n/a'}`,
     `captcha: manual=${report.captcha.manualAvailable ?? 'n/a'} ext2captcha=${report.captcha.external2captchaAvailable ?? 'n/a'} hook=${report.captcha.widgetHookAvailable ?? 'n/a'} provider=${report.captcha.configuredProvider ?? 'n/a'}`,
     `wasm: page=${report.wasm.pageCaptureAvailable ?? 'n/a'} wasm2wat=${report.wasm.wasm2watAvailable ?? 'n/a'} runtime=${report.wasm.offlineRuntimeAvailable ?? 'n/a'}`,
     `cross-domain: workflows=${report.crossDomain.capabilities?.workflows?.length ?? 'n/a'} suggestion=${report.crossDomain.suggest?.workflowKey ?? 'n/a'} nodes=${report.crossDomain.stats?.nodeCount ?? 'n/a'} evidenceHits=${report.evidence.query?.resultCount ?? 'n/a'} chain=${report.evidence.chain?.chainLength ?? 'n/a'}`,
@@ -598,6 +691,7 @@ function summarize(report) {
 async function main() {
   const jsonOnly = process.argv.includes('--json');
   const server = await createProbeServer();
+  const runtimeArtifactDir = join(process.cwd(), '.tmp_mcp_artifacts');
   const client = new Client({ name: 'runtime-tool-probe', version: '1.0.0' }, { capabilities: {} });
   const transport = new StdioClientTransport({
     command: 'node',
@@ -625,6 +719,7 @@ async function main() {
     browser: {},
     analysis: {},
     network: {},
+    performance: {},
     proxy: {},
     coordination: {},
     sourcemap: {},
@@ -646,6 +741,7 @@ async function main() {
 
   try {
     await withTimeout(client.connect(transport), 'connect', 30000);
+    await mkdir(runtimeArtifactDir, { recursive: true });
     const listed = await withTimeout(client.listTools(), 'listTools', 15000);
     report.tools = (listed.tools ?? []).map((tool) => tool.name).toSorted();
 
@@ -884,6 +980,243 @@ async function main() {
         includeDynamic: true,
         smartMode: 'summary',
       },
+      60000,
+    );
+    const auditHost = new URL(server.baseUrl).hostname;
+    const screenshotPath = join(runtimeArtifactDir, 'runtime-audit-element.png');
+    const performanceTracePath = join(runtimeArtifactDir, 'runtime-performance-trace.json');
+    const cpuProfilePath = join(runtimeArtifactDir, 'runtime-audit.cpuprofile');
+    const heapSamplingPath = join(runtimeArtifactDir, 'runtime-heap-sampling.json');
+    report.browser.waitForSelector = await callTool(
+      client,
+      'page_wait_for_selector',
+      { selector: '#click-target', timeout: 5000 },
+      15000,
+    );
+    report.browser.setViewport = await callTool(
+      client,
+      'page_set_viewport',
+      { width: 1024, height: 768 },
+      15000,
+    );
+    report.browser.injectScript = await callTool(
+      client,
+      'page_inject_script',
+      {
+        script:
+          "window.__auditInjectedScript = 'injected'; const output = document.getElementById('inject-output'); if (output) output.textContent = window.__auditInjectedScript;",
+      },
+      15000,
+    );
+    report.browser.type = await callTool(
+      client,
+      'page_type',
+      { selector: '#name-input', text: 'AuditName' },
+      15000,
+    );
+    report.browser.pressKey = await callTool(client, 'page_press_key', { key: 'Enter' }, 15000);
+    report.browser.select = await callTool(
+      client,
+      'page_select',
+      { selector: '#color-select', values: ['blue'] },
+      15000,
+    );
+    report.browser.hover = await callTool(
+      client,
+      'page_hover',
+      { selector: '#hover-target' },
+      15000,
+    );
+    report.browser.click = await callTool(
+      client,
+      'page_click',
+      { selector: '#click-target' },
+      15000,
+    );
+    report.browser.screenshot = await callTool(
+      client,
+      'page_screenshot',
+      { selector: '#click-target', path: screenshotPath, type: 'png' },
+      30000,
+    );
+    try {
+      report.browser.screenshotBytes = (await readFile(screenshotPath)).length;
+    } catch {}
+    report.browser.scroll = await callTool(client, 'page_scroll', { x: 0, y: 1200 }, 15000);
+    report.browser.interactionState = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => ({
+          typedValue: window.__auditTypedValue ?? null,
+          lastKey: window.__auditLastKey ?? null,
+          selectedValue: window.__auditSelectedValue ?? null,
+          hoverCount: window.__auditHoverCount ?? 0,
+          clickCount: window.__auditClickCount ?? 0,
+          injected: window.__auditInjectedScript ?? null,
+          scrollY: window.scrollY,
+          innerWidth: window.innerWidth
+        }))()`,
+      },
+      15000,
+    );
+    report.browser.cookiesSet = await callTool(
+      client,
+      'page_cookies',
+      {
+        action: 'set',
+        cookies: [{ name: 'page_probe', value: '1', domain: auditHost, path: '/' }],
+      },
+      15000,
+    );
+    report.browser.cookiesGet = await callTool(client, 'page_cookies', { action: 'get' }, 15000);
+    if (typeof report.browser.cookiesGet?.count === 'number') {
+      report.browser.cookiesClear = await callTool(
+        client,
+        'page_cookies',
+        { action: 'clear', expectedCount: report.browser.cookiesGet.count },
+        15000,
+      );
+    }
+    report.browser.localStorageSet = await callTool(
+      client,
+      'page_local_storage',
+      { action: 'set', key: 'page-probe', value: 'storage-ok' },
+      15000,
+    );
+    report.browser.localStorageGet = await callTool(
+      client,
+      'page_local_storage',
+      { action: 'get' },
+      15000,
+    );
+    report.workflow.pageScriptRegister = await callTool(
+      client,
+      'page_script_register',
+      {
+        name: 'runtime_probe',
+        description: 'Return a doubled runtime probe value.',
+        code: '(() => ({ value: __params__.value, doubled: __params__.value * 2 }))()',
+      },
+      15000,
+    );
+    report.workflow.pageScriptRun = await callTool(
+      client,
+      'page_script_run',
+      { name: 'runtime_probe', params: { value: 21 } },
+      15000,
+    );
+    report.performance.traceStart = await callTool(
+      client,
+      'performance_trace',
+      { action: 'start', categories: ['devtools.timeline', 'v8.execute'] },
+      30000,
+    );
+    report.browser.reload = await callTool(client, 'page_reload', {}, 30000);
+    report.performance.traceStop = await callTool(
+      client,
+      'performance_trace',
+      { action: 'stop', artifactPath: performanceTracePath },
+      60000,
+    );
+    try {
+      report.performance.traceBytes = (await readFile(performanceTracePath)).length;
+    } catch {}
+    report.browser.reloadState = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => ({
+          reloadCount: Number(localStorage.getItem(${JSON.stringify(ROOT_RELOAD_KEY)}) || '0'),
+          externalLoaded: window.__auditRuntimeProbeExternalLoaded === true,
+          inlineLoaded: window.__auditRuntimeProbeInlineLoaded === true
+        }))()`,
+      },
+      15000,
+    );
+    report.performance.metrics = await callTool(client, 'performance_get_metrics', {}, 30000);
+    report.performance.coverageStart = await callTool(
+      client,
+      'performance_coverage',
+      { action: 'start' },
+      30000,
+    );
+    report.performance.coverageExercise = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          const values = [];
+          for (let i = 0; i < 250; i += 1) values.push(i * 2);
+          window.__coverageProbe = values.length;
+          return { count: values.length };
+        })()`,
+      },
+      15000,
+    );
+    report.performance.coverageStop = await callTool(
+      client,
+      'performance_coverage',
+      { action: 'stop' },
+      30000,
+    );
+    report.performance.heapSnapshot = await callTool(
+      client,
+      'performance_take_heap_snapshot',
+      {},
+      90000,
+    );
+    report.performance.cpuStart = await callTool(
+      client,
+      'profiler_cpu',
+      { action: 'start' },
+      30000,
+    );
+    report.performance.cpuExercise = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          let acc = 0;
+          for (let i = 0; i < 200000; i += 1) {
+            acc += Math.sqrt(i);
+          }
+          window.__cpuProbe = acc;
+          return { acc };
+        })()`,
+      },
+      30000,
+    );
+    report.performance.cpuStop = await callTool(
+      client,
+      'profiler_cpu',
+      { action: 'stop', artifactPath: cpuProfilePath },
+      60000,
+    );
+    report.performance.heapSamplingStart = await callTool(
+      client,
+      'profiler_heap_sampling',
+      { action: 'start' },
+      30000,
+    );
+    report.performance.heapSamplingExercise = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          window.__heapProbe = Array.from({ length: 5000 }, (_, i) => ({
+            i,
+            text: 'x'.repeat(32),
+          }));
+          return { allocated: window.__heapProbe.length };
+        })()`,
+      },
+      30000,
+    );
+    report.performance.heapSamplingStop = await callTool(
+      client,
+      'profiler_heap_sampling',
+      { action: 'stop', artifactPath: heapSamplingPath, topN: 10 },
       60000,
     );
     report.browser.listTabs = await callTool(client, 'browser_list_tabs', {}, 30000);
@@ -1616,6 +1949,8 @@ async function main() {
     );
 
     report.network.requests = await callTool(client, 'network_get_requests', {}, 15000);
+    report.network.status = await callTool(client, 'network_get_status', {}, 15000);
+    report.network.stats = await callTool(client, 'network_get_stats', {}, 15000);
     const requestRecord = findRequestByUrl(report.network.requests.requests, '/body?via=eval');
     report.network.requestId = extractString(requestRecord, ['requestId', 'id']);
 
@@ -1723,6 +2058,7 @@ async function main() {
 
     report.trace.stop = await callTool(client, 'stop_trace_recording', {}, 15000);
     if (report.trace.stop?.dbPath) {
+      const traceExportPath = join(runtimeArtifactDir, 'runtime-trace-export.json');
       report.trace.networkRows = await callTool(
         client,
         'query_trace_sql',
@@ -1766,7 +2102,88 @@ async function main() {
           30000,
         );
       }
+      report.trace.summary = await callTool(
+        client,
+        'summarize_trace',
+        { dbPath: report.trace.stop.dbPath, detail: 'compact' },
+        30000,
+      );
+      report.trace.export = await callTool(
+        client,
+        'export_trace',
+        { dbPath: report.trace.stop.dbPath, outputPath: traceExportPath },
+        30000,
+      );
+      try {
+        report.trace.exportBytes = (await readFile(traceExportPath)).length;
+      } catch {}
+      const seekTimestamp =
+        typeof report.trace.flow?.request?.responseWallTime === 'number'
+          ? report.trace.flow.request.responseWallTime
+          : typeof report.trace.flow?.request?.startedWallTime === 'number'
+            ? report.trace.flow.request.startedWallTime
+            : null;
+      if (seekTimestamp !== null) {
+        report.trace.seek = await callTool(
+          client,
+          'seek_to_timestamp',
+          { dbPath: report.trace.stop.dbPath, timestamp: seekTimestamp, windowMs: 2000 },
+          30000,
+        );
+      }
     }
+    report.trace.aliasStart = await callTool(
+      client,
+      'trace_recording',
+      {
+        action: 'start',
+        recordResponseBodies: true,
+        streamResponseChunks: true,
+      },
+      15000,
+    );
+    report.trace.aliasExercise = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => fetch(${JSON.stringify(`${server.baseUrl}/body?via=trace-alias`)})
+          .then((resp) => resp.text())
+          .then((text) => ({ hasMarker: text.includes(${JSON.stringify(BODY_MARKER)}) })))()`,
+      },
+      30000,
+    );
+    report.trace.aliasStop = await callTool(client, 'trace_recording', { action: 'stop' }, 15000);
+    report.browser.historyNavigateOne = await callTool(
+      client,
+      'page_navigate',
+      { url: `${server.baseUrl}/history/one`, waitUntil: 'load', timeout: 15000 },
+      30000,
+    );
+    report.browser.historyNavigateTwo = await callTool(
+      client,
+      'page_navigate',
+      { url: `${server.baseUrl}/history/two`, waitUntil: 'load', timeout: 15000 },
+      30000,
+    );
+    report.browser.historyBack = await callTool(client, 'page_back', { timeout: 5000 }, 15000);
+    report.browser.historyBackState = await callTool(
+      client,
+      'page_evaluate',
+      { code: '(() => ({ href: location.href, title: document.title }))()' },
+      15000,
+    );
+    report.browser.historyForward = await callTool(
+      client,
+      'page_forward',
+      { timeout: 5000 },
+      15000,
+    );
+    report.browser.historyForwardState = await callTool(
+      client,
+      'page_evaluate',
+      { code: '(() => ({ href: location.href, title: document.title }))()' },
+      15000,
+    );
     const crossDomainUrl = `${server.baseUrl}/body?via=cross-domain`;
     report.crossDomain.capabilities = await callTool(
       client,
@@ -2012,6 +2429,19 @@ async function main() {
         } catch {}
       }
     }
+    report.browser.emulateDevice = await callTool(
+      client,
+      'page_emulate_device',
+      { device: 'iPhone' },
+      15000,
+    );
+    report.browser.emulatedState = await callTool(
+      client,
+      'page_evaluate',
+      { code: '(() => ({ width: window.innerWidth, ua: navigator.userAgent }))()' },
+      15000,
+    );
+    report.network.disable = await callTool(client, 'network_disable', {}, 15000);
   } catch (error) {
     report.error = error instanceof Error ? error.message : String(error);
     failure = error;
