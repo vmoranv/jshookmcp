@@ -27,6 +27,7 @@ describe('SourcemapToolHandlers', () => {
   let collectorMock: vi.Mocked<CodeCollector>;
   let pageMock: any;
   let sessionMock: any;
+  let attachedSessionMock: any;
   let handlers: SourcemapToolHandlers;
 
   beforeEach(() => {
@@ -36,7 +37,15 @@ describe('SourcemapToolHandlers', () => {
       on: vi.fn(),
       off: vi.fn(),
       detach: vi.fn().mockResolvedValue(undefined),
+      connection: vi.fn(),
     };
+    attachedSessionMock = {
+      send: vi.fn().mockResolvedValue({}),
+      detach: vi.fn().mockResolvedValue(undefined),
+    };
+    sessionMock.connection.mockReturnValue({
+      session: vi.fn((sessionId: string) => (sessionId === 'sess1' ? attachedSessionMock : null)),
+    });
     pageMock = {
       createCDPSession: vi.fn().mockResolvedValue(sessionMock),
     };
@@ -296,7 +305,7 @@ describe('SourcemapToolHandlers', () => {
 
   describe('handleExtensionExecuteInContext', () => {
     it('wires code through target execution correctly mapped to sessions', async () => {
-      sessionMock.send.mockImplementation(async (method: string, params: any) => {
+      sessionMock.send.mockImplementation(async (method: string) => {
         if (method === 'Target.getTargets') {
           return {
             targetInfos: [
@@ -309,22 +318,10 @@ describe('SourcemapToolHandlers', () => {
           };
         }
         if (method === 'Target.attachToTarget') return { sessionId: 'sess1' };
-        if (method === 'Target.sendMessageToTarget') {
-          setTimeout(() => {
-            const onMsg = sessionMock.on.mock.calls.find(
-              (c: any) => c[0] === 'Target.receivedMessageFromTarget',
-            )[1];
-            onMsg({
-              sessionId: 'sess1',
-              message: JSON.stringify({
-                id: JSON.parse(params.message).id,
-                result: { result: 'execution_result' },
-              }),
-            });
-          }, 10);
-          return {};
-        }
         return {};
+      });
+      attachedSessionMock.send.mockResolvedValue({
+        result: { value: 'execution_result' },
       });
 
       const res = await handlers.handleExtensionExecuteInContext({
@@ -333,6 +330,12 @@ describe('SourcemapToolHandlers', () => {
       });
       // @ts-expect-error
       expect(res.content[0].text).toContain('execution_result');
+      expect(attachedSessionMock.send).toHaveBeenCalledWith('Runtime.evaluate', {
+        expression: '1+1',
+        returnByValue: true,
+        awaitPromise: true,
+      });
+      expect(attachedSessionMock.detach).toHaveBeenCalledOnce();
     });
 
     it('rejects without available targets quickly', async () => {

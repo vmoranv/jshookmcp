@@ -1,6 +1,9 @@
 import type { Browser, CDPSession } from 'rebrowser-puppeteer-core';
-import { AttachedTargetSession } from '@modules/browser/AttachedTargetSession';
 import type { CDPSessionLike } from '@modules/browser/CDPSessionLike';
+import {
+  attachToFlatTarget,
+  type FlatSessionParentLike,
+} from '@modules/browser/flat-target-session';
 
 export interface BrowserTargetInfo {
   targetId: string;
@@ -28,7 +31,7 @@ interface TargetFilters {
 
 export class BrowserTargetSessionManager {
   private browserSession: CDPSession | null = null;
-  private attachedTargetSession: AttachedTargetSession | null = null;
+  private attachedTargetSession: CDPSessionLike | null = null;
   private attachedTargetInfo: BrowserTargetInfo | null = null;
   private autoAttachEnabled = false;
 
@@ -83,18 +86,9 @@ export class BrowserTargetSessionManager {
     await this.detach();
 
     const session = await this.ensureBrowserSession();
-    const response = (await session.send('Target.attachToTarget', {
+    this.attachedTargetSession = await attachToFlatTarget(
+      session as unknown as FlatSessionParentLike,
       targetId,
-      flatten: true,
-    })) as { sessionId?: string };
-
-    if (!response.sessionId) {
-      throw new Error(`Target.attachToTarget did not return sessionId for ${targetId}`);
-    }
-
-    this.attachedTargetSession = new AttachedTargetSession(
-      session as unknown as CDPSessionLike,
-      response.sessionId,
     );
     this.attachedTargetInfo = target;
     return target;

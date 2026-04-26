@@ -29,33 +29,45 @@ class TestSourcemapToolHandlersExtension extends SourcemapToolHandlersExtension 
   }
   public override async evaluateInAttachedTarget(
     session: any,
-    sessionId: string,
     code: string,
-    awaitPromise: boolean,
+    returnByValue: boolean,
   ) {
-    return super.evaluateInAttachedTarget(session, sessionId, code, awaitPromise);
+    return super.evaluateInAttachedTarget(session, code, returnByValue);
   }
 }
 
 describe('SourcemapToolHandlersExtension', () => {
-  const session = {
-    send: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    detach: vi.fn(),
-  };
-  const page = createPageMock({
-    // @ts-expect-error — auto-suppressed [TS2353]
-    createCDPSession: vi.fn(async () => session),
-  });
-  const collector = {
-    getActivePage: vi.fn(async () => page),
-  };
-
   let handlers: TestSourcemapToolHandlersExtension;
+  let session: any;
+  let attachedSession: any;
+  let page: any;
+  let collector: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    attachedSession = {
+      send: vi.fn(),
+      detach: vi.fn(async () => undefined),
+    };
+    session = {
+      send: vi.fn(),
+      on: vi.fn(),
+      off: vi.fn(),
+      detach: vi.fn(),
+      connection: vi.fn(),
+    };
+    session.connection.mockReturnValue({
+      session: vi.fn((sessionId: string) =>
+        sessionId === 'attached-sid' ? attachedSession : null,
+      ),
+    });
+    page = createPageMock({
+      // @ts-expect-error — auto-suppressed [TS2353]
+      createCDPSession: vi.fn(async () => session),
+    });
+    collector = {
+      getActivePage: vi.fn(async () => page),
+    };
     handlers = new TestSourcemapToolHandlersExtension(collector as any);
   });
 
@@ -291,30 +303,27 @@ describe('SourcemapToolHandlersExtension', () => {
   // ── evaluateInAttachedTarget ───────────────────────────────────────
 
   describe('evaluateInAttachedTarget', () => {
-    it('throws when session does not support event listeners', async () => {
-      const sessionNoEvents = {
-        send: vi.fn(),
+    it('returns by-value results directly', async () => {
+      const evalSession = {
+        send: vi.fn(async () => ({ result: { value: 3 } })),
       };
 
-      await expect(
-        handlers.evaluateInAttachedTarget(sessionNoEvents, 'sid', 'code', true),
-      ).rejects.toThrow('CDP session does not support event listeners');
+      await expect(handlers.evaluateInAttachedTarget(evalSession, '1+2', true)).resolves.toEqual({
+        result: 3,
+        exceptionDetails: null,
+      });
     });
 
-    it('throws when Target.sendMessageToTarget fails', async () => {
-      const sessionWithEvents = {
-        send: vi.fn(async (method: string) => {
-          if (method === 'Target.sendMessageToTarget') {
-            throw new Error('Send failed: session closed');
-          }
+    it('throws when Runtime.evaluate fails', async () => {
+      const evalSession = {
+        send: vi.fn(async () => {
+          throw new Error('Send failed: session closed');
         }),
-        on: vi.fn(),
-        off: vi.fn(),
       };
 
-      await expect(
-        handlers.evaluateInAttachedTarget(sessionWithEvents, 'sid', '1+1', true),
-      ).rejects.toThrow('Send failed: session closed');
+      await expect(handlers.evaluateInAttachedTarget(evalSession, '1+1', true)).rejects.toThrow(
+        'Send failed: session closed',
+      );
     });
   });
 
@@ -398,11 +407,8 @@ describe('SourcemapToolHandlersExtension', () => {
       vi.spyOn(handlers, 'getExtensionTargets').mockResolvedValue([
         { extensionId: 'ext1', name: 'A', type: 'service_worker', url: 'sw.js', targetId: 'tid' },
       ]);
-      vi.spyOn(handlers, 'evaluateInAttachedTarget').mockResolvedValue({
-        result: { type: 'number', value: 42 },
-        exceptionDetails: null,
-      });
       session.send.mockResolvedValue({ sessionId: 'attached-sid' });
+      attachedSession.send.mockResolvedValue({ result: { value: 42 } });
 
       const body = parseJson<any>(
         await handlers.handleExtensionExecuteInContext({
@@ -412,8 +418,14 @@ describe('SourcemapToolHandlersExtension', () => {
       );
 
       expect(body.extensionId).toBe('ext1');
-      expect(body.result).toEqual({ type: 'number', value: 42 });
+      expect(body.result).toBe(42);
       expect(body.target.type).toBe('service_worker');
+      expect(attachedSession.send).toHaveBeenCalledWith('Runtime.evaluate', {
+        expression: '21 * 2',
+        returnByValue: true,
+        awaitPromise: true,
+      });
+      expect(attachedSession.detach).toHaveBeenCalledOnce();
     });
   });
 });

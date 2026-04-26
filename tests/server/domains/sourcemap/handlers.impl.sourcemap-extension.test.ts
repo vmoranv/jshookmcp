@@ -6,6 +6,7 @@ describe('SourcemapToolHandlersExtension', () => {
   let handlers: SourcemapToolHandlersExtension;
   let mockcollector: any;
   let mockSession: any;
+  let mockAttachedSession: any;
   let mockPage: any;
 
   beforeEach(() => {
@@ -19,7 +20,15 @@ describe('SourcemapToolHandlersExtension', () => {
       on: vi.fn(),
       off: vi.fn(),
       detach: vi.fn(),
+      connection: vi.fn(),
     };
+    mockAttachedSession = {
+      send: vi.fn(),
+      detach: vi.fn().mockResolvedValue(undefined),
+    };
+    mockSession.connection.mockReturnValue({
+      session: vi.fn((sessionId: string) => (sessionId === 'ses2' ? mockAttachedSession : null)),
+    });
 
     mockPage = {
       createCDPSession: vi.fn().mockResolvedValue(mockSession),
@@ -132,67 +141,33 @@ describe('SourcemapToolHandlersExtension', () => {
 
   describe('evaluateInAttachedTarget', () => {
     it('evaluates and captures response', async () => {
-      let capturedId: number = 0;
-      mockSession.send.mockImplementation(async (method: string, params: any) => {
-        if (method === 'Target.sendMessageToTarget') {
-          const msg = JSON.parse(params.message);
-          capturedId = msg.id;
-
-          setImmediate(() => {
-            const onCall = mockSession.on.mock.calls.find(
-              (c: any) => c[0] === 'Target.receivedMessageFromTarget',
-            );
-            if (onCall)
-              onCall[1]({
-                sessionId: params.sessionId,
-                message: JSON.stringify({ id: capturedId, result: { result: { value: 42 } } }),
-              });
-          });
-        }
-        return {};
+      mockSession.send.mockResolvedValue({
+        result: { value: 42 },
       });
 
-      const res = await (handlers as any).evaluateInAttachedTarget(
-        mockSession,
-        'ses1',
-        '1+1',
-        true,
-      );
-      expect(res.result.value).toBe(42);
+      const res = await (handlers as any).evaluateInAttachedTarget(mockSession, '1+1', true);
+      expect(res.result).toBe(42);
       expect(res.exceptionDetails).toBeNull();
     });
 
-    it('rejects on runtime evaluate error', async () => {
-      mockSession.send.mockImplementation(async (method: string, params: any) => {
-        if (method === 'Target.sendMessageToTarget') {
-          const msg = JSON.parse(params.message);
-          setImmediate(() => {
-            const onCall = mockSession.on.mock.calls.find(
-              (c: any) => c[0] === 'Target.receivedMessageFromTarget',
-            );
-            if (onCall)
-              onCall[1]({
-                sessionId: params.sessionId,
-                message: JSON.stringify({
-                  id: msg.id,
-                  error: { message: 'SyntaxError', data: 'data' },
-                }),
-              });
-          });
-        }
-        return {};
+    it('returns remote object when returnByValue is false', async () => {
+      mockSession.send.mockResolvedValue({
+        result: { type: 'function', objectId: 'remote-1', description: 'f()' },
       });
 
-      await expect(
-        (handlers as any).evaluateInAttachedTarget(mockSession, 's', '', true),
-      ).rejects.toThrow('SyntaxError');
+      const res = await (handlers as any).evaluateInAttachedTarget(mockSession, 'f', false);
+      expect(res.result).toEqual({
+        type: 'function',
+        objectId: 'remote-1',
+        description: 'f()',
+      });
     });
 
-    it('rejects if no on property', async () => {
-      delete mockSession.on;
+    it('rejects on runtime evaluate transport error', async () => {
+      mockSession.send.mockRejectedValue(new Error('Session closed'));
       await expect(
-        (handlers as any).evaluateInAttachedTarget(mockSession, 's', '', true),
-      ).rejects.toThrow('CDP session does not support event listeners');
+        (handlers as any).evaluateInAttachedTarget(mockSession, '', true),
+      ).rejects.toThrow('Session closed');
     });
   });
 
@@ -221,7 +196,7 @@ describe('SourcemapToolHandlersExtension', () => {
 
   describe('handleExtensionExecuteInContext', () => {
     it('executes in context', async () => {
-      mockSession.send.mockImplementation(async (method: string, params: any) => {
+      mockSession.send.mockImplementation(async (method: string) => {
         if (method === 'Target.getTargets') {
           return {
             targetInfos: [
@@ -234,25 +209,21 @@ describe('SourcemapToolHandlersExtension', () => {
           };
         }
         if (method === 'Target.attachToTarget') return { sessionId: 'ses2' };
-        if (method === 'Target.sendMessageToTarget') {
-          const msg = JSON.parse(params.message);
-          setImmediate(() => {
-            const onCall = mockSession.on.mock.calls.find(
-              (c: any) => c[0] === 'Target.receivedMessageFromTarget',
-            );
-            if (onCall)
-              onCall[1]({
-                sessionId: 'ses2',
-                message: JSON.stringify({ id: msg.id, result: { result: { value: 'works' } } }),
-              });
-          });
-        }
         return {};
+      });
+      mockAttachedSession.send.mockResolvedValue({
+        result: { value: 'works' },
       });
 
       const res = await handlers.handleExtensionExecuteInContext(dummyArgs);
       const parsed = JSON.parse((res.content[0] as any).text);
-      expect(parsed.result.value).toBe('works');
+      expect(parsed.result).toBe('works');
+      expect(mockAttachedSession.send).toHaveBeenCalledWith('Runtime.evaluate', {
+        expression: 'console.log("test")',
+        returnByValue: true,
+        awaitPromise: true,
+      });
+      expect(mockAttachedSession.detach).toHaveBeenCalledOnce();
     });
 
     it('throws if no target found', async () => {
