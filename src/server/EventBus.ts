@@ -105,7 +105,7 @@ export interface ServerEventMap {
   'frida:attached': { target: string; sessionId: string; timestamp: string };
   'adb:device_connected': { serial: string; model: string; timestamp: string };
   'mojo:message_captured': { messageCount: number; timestamp: string };
-  'syscall:trace_started': { backend: string; pid?: number; timestamp: string };
+  'syscall:trace_started': { backend: string; pid?: number; simulate?: boolean; timestamp: string };
   'protocol:pattern_detected': { patternName: string; confidence: number; timestamp: string };
   'protocol:payload_built': { byteLength: number; fieldCount: number; timestamp: string };
   'protocol:payload_mutated': { byteLength: number; mutationCount: number; timestamp: string };
