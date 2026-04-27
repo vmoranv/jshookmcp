@@ -457,6 +457,37 @@ describe('TraceRecorder', () => {
     expect(summary.nodeCount).toBe(2);
   });
 
+  it('captures an active heap snapshot via the recorder-owned CDP session', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    const snapshotContent = JSON.stringify({
+      snapshot: {
+        meta: {
+          node_fields: ['type', 'name', 'id', 'self_size', 'edge_count', 'trace_node_id'],
+          node_types: [['hidden', 'object']],
+        },
+      },
+      nodes: [1, 0, 1, 64, 0, 0],
+      strings: [''],
+    });
+
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        const handler = Array.from(
+          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+        )[0];
+        handler?.({ chunk: snapshotContent });
+      }
+      return {};
+    });
+
+    const snapshotSize = await recorder.captureActiveHeapSnapshot();
+
+    expect(snapshotSize).toBe(Buffer.byteLength(snapshotContent, 'utf-8'));
+    expect(recorder.getDB()?.getHeapSnapshots()).toHaveLength(1);
+  });
+
   it('handles captureHeapSnapshot with invalid JSON chunks safely', async () => {
     const mockCdp = createMockCDPSession();
     await recorder.start(eventBus, mockCdp);
@@ -516,6 +547,21 @@ describe('TraceRecorder', () => {
     await expect(recorder.captureHeapSnapshot(mockCdp)).rejects.toThrow(
       /Cannot capture heap snapshot: not recording/,
     );
+  });
+
+  it('removes heap snapshot listeners when snapshot capture fails', async () => {
+    const mockCdp = createMockCDPSession();
+    await recorder.start(eventBus, mockCdp);
+
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'HeapProfiler.takeHeapSnapshot') {
+        throw new Error('boom');
+      }
+      return {};
+    });
+
+    await expect(recorder.captureHeapSnapshot(mockCdp)).rejects.toThrow(/boom/);
+    expect(mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk')?.size ?? 0).toBe(0);
   });
 
   // ── Error-path coverage ────────────────────────────────────────────────────

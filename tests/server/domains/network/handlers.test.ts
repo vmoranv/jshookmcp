@@ -139,6 +139,35 @@ describe('AdvancedToolHandlers (network)', () => {
     expect(body.message).toContain('not enabled');
   });
 
+  it('persists heap snapshots into an active trace recording', async () => {
+    const traceRecorder = {
+      getState: vi.fn().mockReturnValue('recording'),
+      captureActiveHeapSnapshot: vi.fn().mockResolvedValue(4096),
+    };
+
+    handlers = new AdvancedToolHandlers(
+      collector,
+      consoleMonitor,
+      eventBus,
+      () => traceRecorder as any,
+    );
+    (handlers as any).performanceMonitor = {
+      takeHeapSnapshot: vi.fn(),
+    };
+
+    const body = parseJson<NetworkRequestsResponse>(
+      await handlers.handlePerformanceTakeHeapSnapshot({}),
+    );
+
+    expect(body.success).toBe(true);
+    // @ts-expect-error — auto-suppressed [TS2339]
+    expect(body.snapshotSize).toBe(4096);
+    // @ts-expect-error — auto-suppressed [TS2339]
+    expect(body.persistedToTrace).toBe(true);
+    expect(traceRecorder.captureActiveHeapSnapshot).toHaveBeenCalledOnce();
+    expect((handlers as any).performanceMonitor.takeHeapSnapshot).not.toHaveBeenCalled();
+  });
+
   it('auto-enables and reports empty capture set', async () => {
     consoleMonitor.isNetworkEnabled.mockReturnValueOnce(false).mockReturnValueOnce(true);
     consoleMonitor.getNetworkRequests.mockReturnValue([]);

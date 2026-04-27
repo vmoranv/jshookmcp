@@ -203,12 +203,21 @@ export class TraceRecorder {
    * Capture a heap snapshot via CDP HeapProfiler.
    * Requires an active CDP session and recording in progress.
    */
-  async captureHeapSnapshot(cdpSession: CDPSessionLike): Promise<void> {
+  async captureActiveHeapSnapshot(): Promise<number> {
+    if (!this.cdpSession) {
+      throw new Error('Cannot capture heap snapshot: no active CDP session');
+    }
+
+    return await this.captureHeapSnapshot(this.cdpSession);
+  }
+
+  async captureHeapSnapshot(cdpSession: CDPSessionLike): Promise<number> {
     if (this.state !== 'recording' || !this.db) {
       throw new Error('Cannot capture heap snapshot: not recording');
     }
 
     const chunks: string[] = [];
+    let chunkListenerAttached = false;
     const chunkHandler = (params: unknown) => {
       if (typeof params === 'object' && params !== null) {
         const chunk = (params as Record<string, unknown>)['chunk'];
@@ -219,12 +228,11 @@ export class TraceRecorder {
     try {
       await cdpSession.send('HeapProfiler.enable');
       cdpSession.on('HeapProfiler.addHeapSnapshotChunk', chunkHandler);
+      chunkListenerAttached = true;
 
       await cdpSession.send('HeapProfiler.takeHeapSnapshot', {
         reportProgress: false,
       });
-
-      cdpSession.off('HeapProfiler.addHeapSnapshotChunk', chunkHandler);
 
       const snapshotStr = chunks.join('');
       const snapshotBuffer = Buffer.from(snapshotStr, 'utf-8');
@@ -236,7 +244,11 @@ export class TraceRecorder {
         summary: JSON.stringify(summary),
       });
       this.heapSnapshotCount++;
+      return snapshotBuffer.byteLength;
     } finally {
+      if (chunkListenerAttached) {
+        cdpSession.off('HeapProfiler.addHeapSnapshotChunk', chunkHandler);
+      }
       await cdpSession.send('HeapProfiler.disable').catch(() => {});
     }
   }
