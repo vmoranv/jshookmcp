@@ -21,7 +21,7 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 
 ## Representative tools
 
-- `electron_attach` — Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect...
+- `electron_attach` — Attach to an Electron CDP port and optionally evaluate in a matching page.
 - `process_windows` — Get all window handles for a process.
 - `process_check_debug_port` — Check if a process has a debug port enabled for CDP attachment.
 - `process_launch_debug` — Launch an executable with remote debugging port enabled.
@@ -36,7 +36,7 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 
 | Tool | Description |
 | --- | --- |
-| `electron_attach` | Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect... |
+| `electron_attach` | Attach to an Electron CDP port and optionally evaluate in a matching page. |
 | `process_windows` | Get all window handles for a process. |
 | `process_check_debug_port` | Check if a process has a debug port enabled for CDP attachment. |
 | `process_launch_debug` | Launch an executable with remote debugging port enabled. |

@@ -32,6 +32,7 @@ export const processToolDefinitions: Tool[] = [
   tool('memory_read', (t) =>
     t
       .desc('Read memory from a process at a specific address. Requires elevated privileges.')
+      .number('pid', 'Target process ID')
       .string('address', 'Memory address to read (hex string like "0x12345678")')
       .number('size', 'Number of bytes to read')
       .required('pid', 'address', 'size'),
@@ -39,6 +40,7 @@ export const processToolDefinitions: Tool[] = [
   tool('memory_write', (t) =>
     t
       .desc('Write data to process memory at a specific address. Requires elevated privileges.')
+      .number('pid', 'Target process ID')
       .string('address', 'Memory address to write to (hex string like "0x12345678")')
       .string('data', 'Data to write (hex string or base64)')
       .enum('encoding', ['hex', 'base64'], 'Encoding of the data parameter', { default: 'hex' })
@@ -47,6 +49,7 @@ export const processToolDefinitions: Tool[] = [
   tool('memory_scan', (t) =>
     t
       .desc('Scan process memory for a pattern or value. Requires elevated privileges.')
+      .number('pid', 'Target process ID')
       .string('pattern', 'Pattern to search for (hex bytes like "48 8B 05" or value)')
       .enum(
         'patternType',
@@ -64,12 +67,14 @@ export const processToolDefinitions: Tool[] = [
   tool('memory_check_protection', (t) =>
     t
       .desc('Check memory protection flags at a specific address.')
+      .number('pid', 'Target process ID')
       .string('address', 'Memory address to check (hex string like "0x12345678")')
       .required('pid', 'address'),
   ),
   tool('memory_scan_filtered', (t) =>
     t
       .desc('Scan memory within a filtered set of addresses (secondary scan).')
+      .number('pid', 'Target process ID')
       .string('pattern', 'Pattern to search for')
       .array(
         'addresses',
@@ -126,12 +131,14 @@ export const processToolDefinitions: Tool[] = [
   tool('inject_dll', (t) =>
     t
       .desc('Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA (W...')
+      .number('pid', 'Target process ID')
       .string('dllPath', 'Full path to the DLL file to inject')
       .required('pid', 'dllPath'),
   ),
   tool('inject_shellcode', (t) =>
     t
       .desc('Inject and execute shellcode in a target process.')
+      .number('pid', 'Target process ID')
       .string('shellcode', 'Shellcode bytes (hex string or base64)')
       .enum('encoding', ['hex', 'base64'], 'Encoding of shellcode', { default: 'hex' })
       .required('pid', 'shellcode'),
@@ -155,11 +162,11 @@ export const processToolDefinitions: Tool[] = [
 
   tool('electron_attach', (t) =>
     t
-      .desc('Connect to a running Electron app (VS Code, Cursor, etc.) via CDP and inspect...')
-      .string(
-        'pageUrl',
-        'Filter pages by URL substring (e.g. "extension-host" to target VS Code extension host)',
-      ),
+      .desc('Attach to an Electron CDP port and optionally evaluate in a matching page.')
+      .number('port', 'CDP port to connect to', { minimum: 1, maximum: 65535 })
+      .string('pageUrl', 'Optional URL substring used to pick the target page')
+      .string('evaluate', 'Optional JavaScript expression to evaluate in the selected page')
+      .string('wsEndpoint', 'Optional browser WebSocket endpoint override'),
   ),
 ];
 
