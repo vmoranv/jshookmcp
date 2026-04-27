@@ -203,11 +203,17 @@ export async function printNativeIgnitionBytecode(
   const bootstrapScript = buildBootstrapScript(context);
 
   for (const filterName of candidateNames) {
-    const { stdout, stderr, error } = await runBytecodePrinter(bootstrapScript, filterName, timeoutMs);
+    const { stdout, stderr, error } = await runBytecodePrinter(
+      bootstrapScript,
+      filterName,
+      timeoutMs,
+    );
     const extracted = parsePrintedBytecode(stdout, candidateNames);
     if (extracted.bytecode) {
       const resolvedFunctionName =
-        extracted.matchedFunctionName === TARGET_NAME ? requestedName : extracted.matchedFunctionName;
+        extracted.matchedFunctionName === TARGET_NAME
+          ? requestedName
+          : extracted.matchedFunctionName;
       return {
         available: true,
         bytecode: extracted.bytecode,
