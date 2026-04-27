@@ -96,7 +96,7 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
         body: Buffer.from('GIF89a', 'utf8').toString('base64'),
         base64Encoded: true,
       }));
-      handlers = new EncodingToolHandlers(collector, resolveResponseBody);
+      handlers = new EncodingToolHandlers(collector as any, resolveResponseBody);
 
       const body = parseJson<any>(
         await handlers.handleBinaryDetectFormat({ source: 'raw', requestId: 'req-body-1' }),

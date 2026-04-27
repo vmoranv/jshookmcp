@@ -191,10 +191,9 @@ describe('AdvancedHandlersBase (performance)', () => {
         captureActiveHeapSnapshot: vi.fn().mockResolvedValue(2048),
       };
 
-      // @ts-expect-error — auto-suppressed [TS2554]
       handler = new AdvancedHandlersBase(
-        collector,
-        consoleMonitor,
+        collector as any,
+        consoleMonitor as any,
         undefined,
         () => traceRecorder as any,
       );
