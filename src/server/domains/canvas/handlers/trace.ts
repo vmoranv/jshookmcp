@@ -29,17 +29,7 @@ interface EventBreakpointManagerLike {
   removeEventListenerBreakpoint?(breakpointId: string): Promise<boolean>;
 }
 
-interface ClickCapablePageController extends PageController {
-  click?(
-    selector: string,
-    options?: {
-      button?: 'left' | 'right' | 'middle';
-      clickCount?: number;
-      delay?: number;
-      offset?: { x: number; y: number };
-    },
-  ): Promise<void>;
-}
+type ClickCapablePageController = Partial<Pick<PageController, 'click'>>;
 
 export async function handleTraceClick(
   pageController: PageController,
