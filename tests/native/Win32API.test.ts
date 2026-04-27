@@ -46,6 +46,11 @@ const { mockFuncs, mockKoffi } = vi.hoisted(() => {
   return {
     mockFuncs: funcs,
     mockKoffi: {
+      address: vi.fn((value) => {
+        if (typeof value === 'bigint') return value;
+        if (typeof value === 'number') return BigInt(value);
+        return 0n;
+      }),
       load: vi.fn((name) => {
         if (name === 'error.dll') throw new Error('Load failed');
         return {
@@ -114,6 +119,21 @@ describe('Win32API', () => {
 
     expect(OpenProcess(1, true, 321)).toBe(5678n);
     expect(mockFuncs.OpenProcess).toHaveBeenCalledWith(1, 1, 321);
+  });
+
+  it('normalizes pointer-like return values through koffi.address', () => {
+    const pointerLike = {};
+    mockFuncs.VirtualAllocEx.mockReturnValue(pointerLike);
+    mockFuncs.GetModuleHandleA.mockReturnValue(pointerLike);
+    mockFuncs.GetProcAddress.mockReturnValue(pointerLike);
+    mockKoffi.address
+      .mockReturnValueOnce(0x1234n)
+      .mockReturnValueOnce(0x5678n)
+      .mockReturnValueOnce(0x9abcn);
+
+    expect(VirtualAllocEx(1n, 0n, 64, 0x1000, 0x40)).toBe(0x1234n);
+    expect(GetModuleHandle('kernel32.dll')).toBe(0x5678n);
+    expect(GetProcAddress(0x5678n, 'GetTickCount64')).toBe(0x9abcn);
   });
 
   it('handles ReadProcessMemory success and failure', () => {

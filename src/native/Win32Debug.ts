@@ -298,7 +298,7 @@ export interface DebugEventInfo {
 }
 
 export function WaitForDebugEvent(timeoutMs: number): DebugEventInfo | null {
-  const fn = getKernel32().func('int WaitForDebugEvent(_Out_ uint8_t[176], uint32)');
+  const fn = getKernel32().func('int WaitForDebugEvent(_Out_ uint8_t *, uint32)');
   const buf = Buffer.alloc(DEBUG_EVENT_SIZE);
 
   const result = fn(buf, timeoutMs);

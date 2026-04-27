@@ -280,6 +280,20 @@ describe('AntiCheatDetector', () => {
       const pages = await detector.findGuardPages(1234);
       expect(pages).toEqual([]);
     });
+
+    it('returns partial results when the configured region cap is hit', async () => {
+      const cappedDetector = new AntiCheatDetector({
+        guardPageMaxRegions: 1,
+        guardPageTimeoutMs: 10_000,
+      });
+
+      const result = await cappedDetector.scanGuardPages(1234);
+
+      expect(result.guardPages).toHaveLength(1);
+      expect(result.stats.scannedRegions).toBe(1);
+      expect(result.stats.truncated).toBe(true);
+      expect(result.stats.timedOut).toBe(false);
+    });
   });
 
   describe('checkIntegrity', () => {
@@ -362,6 +376,49 @@ describe('AntiCheatDetector', () => {
 
       expect(results).toEqual([]);
       expect(ReadProcessMemory).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns partial integrity results when the byte budget is exhausted', async () => {
+      const budgetedDetector = new AntiCheatDetector({
+        integrityMaxBytes: 12,
+        integrityTimeoutMs: 10_000,
+      });
+      state.readFile.mockResolvedValue(buildPeImage(Buffer.alloc(32, 0x41)));
+      (budgetedDetector as any).peAnalyzer.listSections = vi.fn().mockResolvedValue([
+        {
+          name: '.text',
+          virtualAddress: '0x1000',
+          virtualSize: 8,
+          rawSize: 8,
+          characteristics: 0x60000020,
+          isExecutable: true,
+          isWritable: false,
+          isReadable: true,
+        },
+        {
+          name: '.text2',
+          virtualAddress: '0x1010',
+          virtualSize: 8,
+          rawSize: 8,
+          characteristics: 0x60000020,
+          isExecutable: true,
+          isWritable: false,
+          isReadable: true,
+        },
+      ]);
+
+      const { ReadProcessMemory } = await import('@native/Win32API');
+      (ReadProcessMemory as ReturnType<typeof vi.fn>).mockImplementation(
+        (_h: bigint, _a: bigint, size: number) => Buffer.alloc(size, 0x41),
+      );
+
+      const result = await budgetedDetector.scanIntegrity(1234);
+
+      expect(result.sections).toHaveLength(1);
+      expect(result.stats.scannedSections).toBe(1);
+      expect(result.stats.hashedBytes).toBe(8);
+      expect(result.stats.truncated).toBe(true);
+      expect(result.stats.timedOut).toBe(false);
     });
   });
 

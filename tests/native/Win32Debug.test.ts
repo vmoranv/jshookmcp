@@ -40,6 +40,11 @@ const mockNext = vi.fn();
 
 vi.mock('koffi', () => ({
   default: {
+    address: vi.fn((value) => {
+      if (typeof value === 'bigint') return value;
+      if (typeof value === 'number') return BigInt(value);
+      return 0n;
+    }),
     load: vi.fn(() => ({
       func: vi.fn((sig: string) => {
         if (sig.includes('CreateToolhelp32Snapshot')) return mockSnapshot;

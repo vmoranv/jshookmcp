@@ -44,6 +44,32 @@ export interface GuardPageInfo {
   nearbySymbol: string | null;
 }
 
+/** Guard page scan statistics */
+export interface GuardPageScanStats {
+  /** Total memory regions queried successfully */
+  scannedRegions: number;
+  /** Number of transient VirtualQueryEx failures */
+  queryFailures: number;
+  /** Total wall time */
+  durationMs: number;
+  /** Whether the scan hit its time budget */
+  timedOut: boolean;
+  /** Whether the scan stopped early due to safety limits */
+  truncated: boolean;
+  /** Configured region ceiling */
+  maxRegions: number;
+  /** Configured time budget */
+  timeoutMs: number;
+}
+
+/** Guard page scan result */
+export interface GuardPageScanResult {
+  /** Guard page regions found so far */
+  guardPages: GuardPageInfo[];
+  /** Scan execution statistics */
+  stats: GuardPageScanStats;
+}
+
 /** Code integrity check result */
 export interface IntegrityCheckInfo {
   /** Section name */
@@ -56,4 +82,51 @@ export interface IntegrityCheckInfo {
   memoryHash: string;
   /** Whether the section has been modified */
   isModified: boolean;
+}
+
+/** Integrity scan statistics */
+export interface IntegrityCheckStats {
+  /** Modules considered for scanning */
+  scannedModules: number;
+  /** Executable sections hashed and compared */
+  scannedSections: number;
+  /** Bytes hashed across all checked sections */
+  hashedBytes: number;
+  /** Modules skipped because they could not be read or parsed */
+  skippedModules: number;
+  /** Sections skipped because they exceeded the per-section byte cap */
+  skippedSections: number;
+  /** Total wall time */
+  durationMs: number;
+  /** Whether the scan hit its time budget */
+  timedOut: boolean;
+  /** Whether the scan stopped early due to safety limits */
+  truncated: boolean;
+  /** Configured module ceiling */
+  maxModules: number;
+  /** Configured section ceiling */
+  maxSections: number;
+  /** Configured total-byte ceiling */
+  maxBytes: number;
+  /** Configured time budget */
+  timeoutMs: number;
+}
+
+/** Integrity scan result */
+export interface IntegrityScanResult {
+  /** Executable sections that were hashed and compared */
+  sections: IntegrityCheckInfo[];
+  /** Scan execution statistics */
+  stats: IntegrityCheckStats;
+}
+
+/** Runtime safety limits for native anti-cheat scans */
+export interface AntiCheatDetectorOptions {
+  guardPageMaxRegions?: number;
+  guardPageTimeoutMs?: number;
+  integrityMaxModules?: number;
+  integrityMaxSections?: number;
+  integrityMaxBytes?: number;
+  integrityMaxSectionBytes?: number;
+  integrityTimeoutMs?: number;
 }
