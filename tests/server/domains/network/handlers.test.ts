@@ -146,8 +146,8 @@ describe('AdvancedToolHandlers (network)', () => {
     };
 
     handlers = new AdvancedToolHandlers(
-      collector,
-      consoleMonitor,
+      collector as any,
+      consoleMonitor as any,
       eventBus,
       () => traceRecorder as any,
     );

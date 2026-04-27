@@ -255,8 +255,10 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.totalSize).toBe(1536);
       expect(body.filesCount).toBe(1);
       expect(body.summary).toHaveLength(1);
-      expect(body.summary?.[0].url).toBe('audit-probe.js');
-      expect(body.summary?.[0].preview).toContain('auditProbeFn');
+      const firstSummary = body.summary?.[0];
+      expect(firstSummary).toBeDefined();
+      expect(firstSummary?.url).toBe('audit-probe.js');
+      expect(firstSummary?.preview).toContain('auditProbeFn');
     });
 
     it('returns summary with warning when result is too large', async () => {

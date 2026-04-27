@@ -168,7 +168,7 @@ describe('BrowserTargetSessionManager', () => {
       if (method === 'Target.detachFromTarget') {
         throw new Error('detach failed');
       }
-      return await defaultSend?.(method);
+      return defaultSend ? await defaultSend(method) : {};
     });
     const browser = {
       target: () => ({

@@ -19,9 +19,10 @@ describe('protocol-analysis definitions', () => {
 
   it('should expose strategy-based mutations for payload_mutate', async () => {
     const tool = getTool('payload_mutate');
-    const mutationItems = tool?.inputSchema.properties?.mutations?.items as
-      | { properties?: Record<string, unknown> }
+    const mutationsProperty = tool?.inputSchema.properties?.['mutations'] as
+      | { items?: { properties?: Record<string, unknown> } }
       | undefined;
+    const mutationItems = mutationsProperty?.items;
     expect(mutationItems?.properties).toHaveProperty('strategy');
     expect(mutationItems?.properties).toHaveProperty('data');
   });
