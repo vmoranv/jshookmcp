@@ -77,112 +77,120 @@ export class TraceRecorder {
           (domain) => CDP_EVENTS_BY_DOMAIN[domain],
         )
       : [];
-
-    if (cdpSession && selectedDomains.length > 0) {
-      await Promise.all(selectedDomains.map((domain) => cdpSession.send(`${domain}.enable`)));
-    }
-
     this.db = new TraceDB({ dbPath: absolutePath });
     this.eventCount = 0;
     this.memoryDeltaCount = 0;
     this.heapSnapshotCount = 0;
     this.eventSequence = 0;
     this.pendingOperations.clear();
-    const networkOptions = this.networkCapture.configure(options?.network);
-
-    const startedAt = Date.now();
-    this.db.setMetadata('sessionId', sessionId);
-    this.db.setMetadata('platform', process.platform);
-    this.db.setMetadata('startedAt', String(startedAt));
-    this.db.setMetadata('nodeVersion', process.version);
-    this.db.setMetadata(
-      'network.recordResponseBodies',
-      String(networkOptions.recordResponseBodies),
-    );
-    this.db.setMetadata(
-      'network.streamResponseChunks',
-      String(networkOptions.streamResponseChunks),
-    );
-    this.db.setMetadata('network.maxBodyBytes', String(networkOptions.maxBodyBytes));
-    this.db.setMetadata('network.inlineBodyBytes', String(networkOptions.inlineBodyBytes));
-
-    this.eventBusUnsub = eventBus.onAny((wrapped: { event: string; payload: unknown }) => {
-      if (this.state !== 'recording') return;
-      try {
-        const now = Date.now();
-        this.db?.insertEvent({
-          timestamp: now,
-          wallTime: now,
-          monotonicTime: null,
-          category: this.mapEventCategory(String(wrapped.event)),
-          eventType: String(wrapped.event),
-          data: JSON.stringify(wrapped.payload ?? {}),
-          scriptId: null,
-          lineNumber: null,
-          requestId: null,
-          sequence: this.nextSequence(),
-        });
-        this.eventCount++;
-      } catch {
-        // Swallow recording errors to avoid disrupting the host
-      }
-    });
-
+    this.cdpListeners.clear();
+    this.enabledCdpDomains.clear();
     this.cdpSession = cdpSession;
-    if (cdpSession) {
-      this.enabledCdpDomains.clear();
-      for (const domain of selectedDomains) {
-        const events = CDP_EVENTS_BY_DOMAIN[domain] ?? [];
-        for (const eventName of events) {
-          const handler: CDPEventHandler = (params) => {
-            if (this.state !== 'recording' || !this.db) return;
-            try {
-              const timing = extractEventTiming(params);
-              const requestId = extractRequestId(params);
-              const { scriptId, lineNumber } = extractScriptLocation(eventName, params);
-              const data = JSON.stringify(sanitizeTracePayload(eventName, params));
 
-              this.db.insertEvent({
-                timestamp: timing.timestamp,
-                wallTime: timing.wallTime,
-                monotonicTime: timing.monotonicTime,
-                category: domain.toLowerCase(),
-                eventType: eventName,
-                data,
-                scriptId,
-                lineNumber,
-                requestId,
-                sequence: this.nextSequence(),
-              });
-              this.eventCount++;
+    try {
+      const networkOptions = this.networkCapture.configure(options?.network);
 
-              if (domain === 'Network') {
-                this.networkCapture.handleEvent(eventName, params, timing);
-              }
-            } catch {
-              // Swallow recording errors
-            }
-          };
-
-          cdpSession.on(eventName, handler);
-          this.cdpListeners.set(eventName, handler);
+      if (cdpSession) {
+        for (const domain of selectedDomains) {
+          await cdpSession.send(`${domain}.enable`);
+          this.enabledCdpDomains.add(domain);
         }
-        this.enabledCdpDomains.add(domain);
       }
+
+      const startedAt = Date.now();
+      this.db.setMetadata('sessionId', sessionId);
+      this.db.setMetadata('platform', process.platform);
+      this.db.setMetadata('startedAt', String(startedAt));
+      this.db.setMetadata('nodeVersion', process.version);
+      this.db.setMetadata(
+        'network.recordResponseBodies',
+        String(networkOptions.recordResponseBodies),
+      );
+      this.db.setMetadata(
+        'network.streamResponseChunks',
+        String(networkOptions.streamResponseChunks),
+      );
+      this.db.setMetadata('network.maxBodyBytes', String(networkOptions.maxBodyBytes));
+      this.db.setMetadata('network.inlineBodyBytes', String(networkOptions.inlineBodyBytes));
+
+      this.eventBusUnsub = eventBus.onAny((wrapped: { event: string; payload: unknown }) => {
+        if (this.state !== 'recording') return;
+        try {
+          const now = Date.now();
+          this.db?.insertEvent({
+            timestamp: now,
+            wallTime: now,
+            monotonicTime: null,
+            category: this.mapEventCategory(String(wrapped.event)),
+            eventType: String(wrapped.event),
+            data: JSON.stringify(wrapped.payload ?? {}),
+            scriptId: null,
+            lineNumber: null,
+            requestId: null,
+            sequence: this.nextSequence(),
+          });
+          this.eventCount++;
+        } catch {
+          // Swallow recording errors to avoid disrupting the host
+        }
+      });
+
+      if (cdpSession) {
+        for (const domain of selectedDomains) {
+          const events = CDP_EVENTS_BY_DOMAIN[domain] ?? [];
+          for (const eventName of events) {
+            const handler: CDPEventHandler = (params) => {
+              if (this.state !== 'recording' || !this.db) return;
+              try {
+                const timing = extractEventTiming(params);
+                const requestId = extractRequestId(params);
+                const { scriptId, lineNumber } = extractScriptLocation(eventName, params);
+                const data = JSON.stringify(sanitizeTracePayload(eventName, params));
+
+                this.db.insertEvent({
+                  timestamp: timing.timestamp,
+                  wallTime: timing.wallTime,
+                  monotonicTime: timing.monotonicTime,
+                  category: domain.toLowerCase(),
+                  eventType: eventName,
+                  data,
+                  scriptId,
+                  lineNumber,
+                  requestId,
+                  sequence: this.nextSequence(),
+                });
+                this.eventCount++;
+
+                if (domain === 'Network') {
+                  this.networkCapture.handleEvent(eventName, params, timing);
+                }
+              } catch {
+                // Swallow recording errors
+              }
+            };
+
+            cdpSession.on(eventName, handler);
+            this.cdpListeners.set(eventName, handler);
+          }
+        }
+      }
+
+      this.session = {
+        sessionId,
+        dbPath: absolutePath,
+        startedAt,
+        eventCount: 0,
+        memoryDeltaCount: 0,
+        heapSnapshotCount: 0,
+        ...this.networkCapture.getCounts(),
+      };
+
+      this.state = 'recording';
+      return { ...this.session };
+    } catch (error) {
+      await this.cleanupFailedStart();
+      throw error;
     }
-
-    this.session = {
-      sessionId,
-      dbPath: absolutePath,
-      startedAt,
-      eventCount: 0,
-      memoryDeltaCount: 0,
-      heapSnapshotCount: 0,
-      ...this.networkCapture.getCounts(),
-    };
-
-    this.state = 'recording';
-    return { ...this.session };
   }
 
   /**
@@ -356,6 +364,48 @@ export class TraceRecorder {
     while (this.pendingOperations.size > 0) {
       await Promise.allSettled(Array.from(this.pendingOperations));
     }
+  }
+
+  private async cleanupFailedStart(): Promise<void> {
+    if (this.eventBusUnsub) {
+      this.eventBusUnsub();
+      this.eventBusUnsub = null;
+    }
+
+    if (this.cdpSession) {
+      for (const [event, handler] of this.cdpListeners) {
+        this.cdpSession.off(event, handler);
+      }
+    }
+    this.cdpListeners.clear();
+
+    if (this.cdpSession && this.enabledCdpDomains.size > 0) {
+      await Promise.allSettled(
+        Array.from(this.enabledCdpDomains).map((domain) =>
+          this.cdpSession!.send(`${domain}.disable`),
+        ),
+      );
+    }
+    this.enabledCdpDomains.clear();
+    this.cdpSession = null;
+
+    if (this.db) {
+      try {
+        this.db.close();
+      } catch {
+        // Best-effort cleanup after failed start
+      }
+      this.db = null;
+    }
+
+    this.session = null;
+    this.state = 'idle';
+    this.eventCount = 0;
+    this.memoryDeltaCount = 0;
+    this.heapSnapshotCount = 0;
+    this.eventSequence = 0;
+    this.pendingOperations.clear();
+    this.networkCapture.clear();
   }
 
   private nextSequence(): number {

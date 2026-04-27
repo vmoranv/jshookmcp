@@ -194,12 +194,15 @@ export class TraceToolHandlers {
         `SELECT * FROM events WHERE category = 'debugger' AND ${eventTimeExpr} <= ${timestamp} ORDER BY ${eventTimeExpr} DESC, sequence DESC LIMIT 5`,
       );
 
-      const memoryStateResult = db.query(
-        `SELECT m1.* FROM memory_deltas m1
-         INNER JOIN (SELECT address, MAX(timestamp) as max_ts FROM memory_deltas WHERE timestamp <= ${timestamp} GROUP BY address) m2
-         ON m1.address = m2.address AND m1.timestamp = m2.max_ts
-         ORDER BY m1.address`,
-      );
+      const memoryStateResult =
+        timeDomain === 'wall'
+          ? db.query(
+              `SELECT m1.* FROM memory_deltas m1
+               INNER JOIN (SELECT address, MAX(timestamp) as max_ts FROM memory_deltas WHERE timestamp <= ${timestamp} GROUP BY address) m2
+               ON m1.address = m2.address AND m1.timestamp = m2.max_ts
+               ORDER BY m1.address`,
+            )
+          : null;
 
       let networkResult = db.query(
         `SELECT * FROM network_resources
@@ -218,9 +221,12 @@ export class TraceToolHandlers {
         );
       }
 
-      const snapshotResult = db.query(
-        `SELECT id, timestamp, summary FROM heap_snapshots WHERE timestamp <= ${timestamp} ORDER BY timestamp DESC LIMIT 1`,
-      );
+      const snapshotResult =
+        timeDomain === 'wall'
+          ? db.query(
+              `SELECT id, timestamp, summary FROM heap_snapshots WHERE timestamp <= ${timestamp} ORDER BY timestamp DESC LIMIT 1`,
+            )
+          : null;
 
       return {
         seekTimestamp: timestamp,
@@ -233,9 +239,14 @@ export class TraceToolHandlers {
           ),
         },
         memoryState: {
-          addressValues: memoryStateResult.rows.map((row) =>
-            rowToObject(memoryStateResult.columns, row),
-          ),
+          addressValues:
+            memoryStateResult?.rows.map((row) => rowToObject(memoryStateResult.columns, row)) ?? [],
+          ...(timeDomain === 'monotonic'
+            ? {
+                omittedReason:
+                  'Memory state is only indexed by wall-clock timestamps and is omitted for monotonic seeks.',
+              }
+            : {}),
         },
         networkState: {
           completedRequests: networkResult.rows.map((row) =>
@@ -243,9 +254,15 @@ export class TraceToolHandlers {
           ),
         },
         nearestHeapSnapshot:
-          snapshotResult.rows.length > 0
+          snapshotResult && snapshotResult.rows.length > 0
             ? rowToObject(snapshotResult.columns, snapshotResult.rows[0]!)
             : null,
+        ...(timeDomain === 'monotonic'
+          ? {
+              nearestHeapSnapshotOmittedReason:
+                'Heap snapshots are only indexed by wall-clock timestamps and are omitted for monotonic seeks.',
+            }
+          : {}),
       };
     } finally {
       if (tempDb) tempDb.close();

@@ -213,6 +213,61 @@ describe('TraceToolHandlers', () => {
       expect(result.networkState.completedRequests.length).toBeGreaterThanOrEqual(1);
     });
 
+    it('omits wall-clock-only state for monotonic seeks', async () => {
+      // @ts-expect-error
+      db.insertEvent({
+        timestamp: 2000,
+        wallTime: 2000,
+        monotonicTime: 20,
+        category: 'runtime',
+        eventType: 'Runtime.consoleAPICalled',
+        data: '{"type":"log"}',
+        scriptId: null,
+        lineNumber: null,
+      });
+      // @ts-expect-error
+      db.insertMemoryDelta({
+        timestamp: 1950,
+        address: '0x1000',
+        oldValue: '0x00',
+        newValue: '0xFF',
+        size: 4,
+        valueType: 'int32',
+      });
+      // @ts-expect-error
+      db.insertHeapSnapshot({
+        timestamp: 1980,
+        snapshotData: Buffer.from('{}'),
+        summary: JSON.stringify({ nodeCount: 1 }),
+      });
+      // @ts-expect-error
+      db.flush();
+      // @ts-expect-error
+      db.close();
+
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = (await handler.handleSeekToTimestamp({
+        timestamp: 20,
+        dbPath,
+        windowMs: 10,
+        timeDomain: 'monotonic',
+      })) as {
+        events: any[];
+        memoryState: { addressValues: any[]; omittedReason?: string };
+        nearestHeapSnapshot: Record<string, unknown> | null;
+        nearestHeapSnapshotOmittedReason?: string;
+      };
+
+      expect(result.events.length).toBe(1);
+      expect(result.memoryState.addressValues).toEqual([]);
+      expect(result.memoryState.omittedReason).toMatch(/wall-clock timestamps/);
+      expect(result.nearestHeapSnapshot).toBeNull();
+      expect(result.nearestHeapSnapshotOmittedReason).toMatch(/wall-clock timestamps/);
+    });
+
     it('handles invalid JSON in event data safely', async () => {
       // @ts-expect-error
       db.insertEvent({

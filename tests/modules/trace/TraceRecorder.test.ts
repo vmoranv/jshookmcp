@@ -88,6 +88,36 @@ describe('TraceRecorder', () => {
     await expect(recorder.start(eventBus, null)).rejects.toThrow(/Recording already in progress/);
   });
 
+  it('does not enable CDP domains when trace storage initialization fails', async () => {
+    const mockCdp = createMockCDPSession();
+    currentTestDir = join(currentTestDir, 'missing-parent');
+
+    await expect(recorder.start(eventBus, mockCdp)).rejects.toThrow();
+
+    expect(mockCdp.send).not.toHaveBeenCalled();
+    expect(recorder.getState()).toBe('idle');
+    expect(recorder.getDB()).toBeNull();
+  });
+
+  it('disables already-enabled domains when startup fails after partial enablement', async () => {
+    const mockCdp = createMockCDPSession();
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'Runtime.enable') {
+        throw new Error('enable failed');
+      }
+      return {};
+    });
+
+    await expect(recorder.start(eventBus, mockCdp)).rejects.toThrow(/enable failed/);
+
+    expect(mockCdp.send).toHaveBeenCalledWith('Debugger.enable');
+    expect(mockCdp.send).toHaveBeenCalledWith('Runtime.enable');
+    expect(mockCdp.send).toHaveBeenCalledWith('Debugger.disable');
+    expect(mockCdp._listeners.size).toBe(0);
+    expect(recorder.getState()).toBe('idle');
+    expect(recorder.getDB()).toBeNull();
+  });
+
   it('records EventBus events', async () => {
     // @ts-expect-error
     const _session = await recorder.start(eventBus, null);
