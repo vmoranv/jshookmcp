@@ -26,6 +26,9 @@ export const syscallHookToolDefinitions: Tool[] = [
       .desc('Start syscall monitoring using ETW, strace, or dtrace.')
       .enum('backend', BACKEND_OPTIONS, 'Syscall capture backend')
       .number('pid', 'Optional PID to scope monitoring to a single process')
+      .boolean('simulate', 'Use synthetic events instead of a real system tracer', {
+        default: false,
+      })
       .required('backend'),
   ),
   tool('syscall_stop_monitor', (t) => t.desc('Stop syscall monitoring.').idempotent()),

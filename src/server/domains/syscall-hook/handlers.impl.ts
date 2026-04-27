@@ -23,6 +23,13 @@ function readNumber(value: unknown): number | undefined {
   return undefined;
 }
 
+function readBoolean(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  return undefined;
+}
+
 function readString(value: unknown): string | undefined {
   if (typeof value === 'string') {
     return value;
@@ -131,6 +138,7 @@ export class SyscallHookHandlers {
     }
 
     const pid = readNumber(args['pid']);
+    const simulate = readBoolean(args['simulate']) ?? false;
     if (args['pid'] !== undefined && pid === undefined) {
       return {
         ok: false,
@@ -143,10 +151,12 @@ export class SyscallHookHandlers {
       await monitor.start({
         backend,
         pid,
+        simulate,
       });
       void this.eventBus?.emit('syscall:trace_started', {
         backend,
         pid,
+        simulate,
         timestamp: new Date().toISOString(),
       });
       return {
@@ -154,6 +164,7 @@ export class SyscallHookHandlers {
         started: true,
         backend,
         pid,
+        simulate,
         stats: monitor.getStats(),
       };
     } catch (error) {

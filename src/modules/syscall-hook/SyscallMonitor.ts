@@ -38,6 +38,7 @@ interface SyntheticEventSeed {
 }
 
 const SUPPORTED_BACKENDS: ReadonlyArray<SyscallBackend> = ['etw', 'strace', 'dtrace'];
+const TRACE_SPAWN_TIMEOUT_MS = 3000;
 
 const SYNTHETIC_EVENT_SEEDS: Readonly<Record<SyscallBackend, ReadonlyArray<SyntheticEventSeed>>> = {
   etw: [
@@ -154,6 +155,44 @@ function cloneEvent(event: SyscallEvent): SyscallEvent {
     args: [...event.args],
     returnValue: event.returnValue,
     duration: event.duration,
+  };
+}
+
+function createSpawnReadyGuard<TProcess extends ChildProcess>(
+  label: string,
+  resolve: (value: TProcess | PromiseLike<TProcess>) => void,
+  reject: (reason?: unknown) => void,
+  terminate?: () => void,
+) {
+  let settled = false;
+  const timer = setTimeout(() => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    try {
+      terminate?.();
+    } catch {}
+    reject(new Error(`${label} did not signal readiness within ${TRACE_SPAWN_TIMEOUT_MS}ms`));
+  }, TRACE_SPAWN_TIMEOUT_MS);
+
+  return {
+    resolveReady(process: TProcess) {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      resolve(process);
+    },
+    rejectReady(error: Error) {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    },
   };
 }
 
@@ -382,6 +421,9 @@ export class SyscallMonitor {
       const subprocess = spawn('strace', ['-p', String(pid), '-f', '-e', 'trace=all', '-t'], {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
+      const ready = createSpawnReadyGuard('strace process', resolve, reject, () =>
+        subprocess.kill('SIGTERM'),
+      );
 
       let stderrBuffer = '';
       let lineAccumulator = '';
@@ -407,11 +449,13 @@ export class SyscallMonitor {
       });
 
       subprocess.on('error', (error: Error) => {
-        reject(new Error(`strace process error: ${error.message}. Is strace installed?`));
+        ready.rejectReady(
+          new Error(`strace process error: ${error.message}. Is strace installed?`),
+        );
       });
 
       subprocess.on('spawn', () => {
-        resolve(subprocess);
+        ready.resolveReady(subprocess);
       });
     });
   }
@@ -445,6 +489,9 @@ export class SyscallMonitor {
           windowsHide: true,
         },
       );
+      const ready = createSpawnReadyGuard('ETW trace session', resolve, reject, () =>
+        logman.kill('SIGTERM'),
+      );
 
       let outputBuffer = '';
 
@@ -469,18 +516,20 @@ export class SyscallMonitor {
       });
 
       logman.on('error', (error: Error) => {
-        reject(new Error(`ETW trace error: ${error.message}. Run as Administrator.`));
+        ready.rejectReady(new Error(`ETW trace error: ${error.message}. Run as Administrator.`));
       });
 
       logman.on('exit', (code) => {
         if (code !== 0 && code !== undefined) {
           // logman exits after trace is stopped; non-zero is expected
-          reject(new Error(`ETW trace session ended (code ${code}). Check permissions.`));
+          ready.rejectReady(
+            new Error(`ETW trace session ended (code ${code}). Check permissions.`),
+          );
         }
       });
 
       logman.on('spawn', () => {
-        resolve(logman);
+        ready.resolveReady(logman);
       });
     });
   }
@@ -504,6 +553,9 @@ export class SyscallMonitor {
       const dtrace = spawn('dtrace', ['-n', script], {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
+      const ready = createSpawnReadyGuard('dtrace process', resolve, reject, () =>
+        dtrace.kill('SIGTERM'),
+      );
 
       let outputBuffer = '';
 
@@ -524,11 +576,11 @@ export class SyscallMonitor {
       });
 
       dtrace.on('error', (error: Error) => {
-        reject(new Error(`dtrace error: ${error.message}. Run with sudo.`));
+        ready.rejectReady(new Error(`dtrace error: ${error.message}. Run with sudo.`));
       });
 
       dtrace.on('spawn', () => {
-        resolve(dtrace);
+        ready.resolveReady(dtrace);
       });
     });
   }

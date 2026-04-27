@@ -132,18 +132,41 @@ describe('SyscallHookHandlers — coverage expansion', () => {
     it('accepts strace backend with pid', async () => {
       const result = await handlers.handleSyscallStartMonitor({ backend: 'strace', pid: 1234 });
       expect(result).toMatchObject({ ok: true, started: true, backend: 'strace', pid: 1234 });
-      expect(monitor.start).toHaveBeenCalledWith({ backend: 'strace', pid: 1234 });
+      expect(monitor.start).toHaveBeenCalledWith({ backend: 'strace', pid: 1234, simulate: false });
     });
 
     it('accepts dtrace backend without pid', async () => {
       const result = await handlers.handleSyscallStartMonitor({ backend: 'dtrace' });
       expect(result).toMatchObject({ ok: true, started: true, backend: 'dtrace' });
-      expect(monitor.start).toHaveBeenCalledWith({ backend: 'dtrace', pid: undefined });
+      expect(monitor.start).toHaveBeenCalledWith({
+        backend: 'dtrace',
+        pid: undefined,
+        simulate: false,
+      });
     });
 
     it('omits pid from start call when not provided', async () => {
       await handlers.handleSyscallStartMonitor({ backend: 'etw' });
-      expect(monitor.start).toHaveBeenCalledWith({ backend: 'etw', pid: undefined });
+      expect(monitor.start).toHaveBeenCalledWith({
+        backend: 'etw',
+        pid: undefined,
+        simulate: false,
+      });
+    });
+
+    it('passes through simulate mode when requested', async () => {
+      const result = await handlers.handleSyscallStartMonitor({
+        backend: 'etw',
+        pid: 321,
+        simulate: true,
+      });
+      expect(monitor.start).toHaveBeenCalledWith({ backend: 'etw', pid: 321, simulate: true });
+      expect(result).toMatchObject({
+        ok: true,
+        backend: 'etw',
+        pid: 321,
+        simulate: true,
+      });
     });
 
     it('emits syscall:trace_started event on success', async () => {

@@ -21,18 +21,18 @@ Unified instrumentation-session domain that groups hooks, intercepts, traces, an
 
 ## Representative tools
 
-- `instrumentation_session` — Manage instrumentation sessions that group hooks, intercepts, and traces.
-- `instrumentation_operation` — Manage operations within an instrumentation session.
-- `instrumentation_artifact` — Manage captured artifacts for instrumentation operations.
-- `instrumentation_hook_preset` — Apply hooks domain preset hooks within an instrumentation session and persist...
-- `instrumentation_network_replay` — Replay a previously captured network request inside an instrumentation sessio...
+- `instrumentation_session` — Manage instrumentation sessions.
+- `instrumentation_operation` — Manage operations inside an instrumentation session.
+- `instrumentation_artifact` — Manage artifacts captured by instrumentation operations.
+- `instrumentation_hook_preset` — Apply hook presets inside an instrumentation session.
+- `instrumentation_network_replay` — Replay a captured network request inside an instrumentation session.
 
 ## Full tool list (5)
 
 | Tool | Description |
 | --- | --- |
-| `instrumentation_session` | Manage instrumentation sessions that group hooks, intercepts, and traces. |
-| `instrumentation_operation` | Manage operations within an instrumentation session. |
-| `instrumentation_artifact` | Manage captured artifacts for instrumentation operations. |
-| `instrumentation_hook_preset` | Apply hooks domain preset hooks within an instrumentation session and persist... |
-| `instrumentation_network_replay` | Replay a previously captured network request inside an instrumentation sessio... |
+| `instrumentation_session` | Manage instrumentation sessions. |
+| `instrumentation_operation` | Manage operations inside an instrumentation session. |
+| `instrumentation_artifact` | Manage artifacts captured by instrumentation operations. |
+| `instrumentation_hook_preset` | Apply hook presets inside an instrumentation session. |
+| `instrumentation_network_replay` | Replay a captured network request inside an instrumentation session. |

@@ -32,8 +32,14 @@ describe('SyscallHookHandlers', () => {
 
   it('starts monitoring with a supported backend', async () => {
     const result = await handlers.handleSyscallStartMonitor({ backend: 'strace', pid: 1234 });
-    expect(monitor.start).toHaveBeenCalledWith({ backend: 'strace', pid: 1234 });
-    expect(result).toMatchObject({ ok: true, started: true, backend: 'strace', pid: 1234 });
+    expect(monitor.start).toHaveBeenCalledWith({ backend: 'strace', pid: 1234, simulate: false });
+    expect(result).toMatchObject({
+      ok: true,
+      started: true,
+      backend: 'strace',
+      pid: 1234,
+      simulate: false,
+    });
   });
 
   it('returns validation error for unsupported backend', async () => {
