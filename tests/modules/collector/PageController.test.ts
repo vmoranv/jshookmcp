@@ -117,6 +117,17 @@ describe('PageController', () => {
     });
   });
 
+  it('click forwards offset when provided', async () => {
+    await controller.click('#submit', { offset: { x: 12, y: 18 } });
+
+    expect(page.click).toHaveBeenCalledWith('#submit', {
+      button: 'left',
+      clickCount: 1,
+      delay: undefined,
+      offset: { x: 12, y: 18 },
+    });
+  });
+
   it('waitForSelector returns success payload when element appears', async () => {
     page.evaluate.mockResolvedValue({ tagName: 'button', id: 'submit' });
 

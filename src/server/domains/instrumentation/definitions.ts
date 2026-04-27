@@ -1,4 +1,5 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { networkAuthorizationSchema } from '@server/domains/network/authorization-schema';
 import { tool } from '@server/registry/tool-builder';
 
 const queryTypes = [
@@ -11,29 +12,17 @@ const queryTypes = [
 export const instrumentationTools: Tool[] = [
   tool('instrumentation_session', (t) =>
     t
-      .desc(
-        `Manage instrumentation sessions that group hooks, intercepts, and traces.
-
-Actions:
-- create: Create a new session
-- list: List all active sessions
-- destroy: Destroy a session (requires sessionId)
-- status: Get detailed session status (requires sessionId)`,
-      )
+      .desc('Manage instrumentation sessions.')
       .enum('action', ['create', 'list', 'destroy', 'status'], 'Session operation')
+      .string('name', 'Optional session name for create')
       .string('sessionId', 'Session ID (required for destroy/status)')
       .required('action'),
   ),
   tool('instrumentation_operation', (t) =>
     t
-      .desc(
-        `Manage operations within an instrumentation session.
-
-Actions:
-- register: Register a new operation (requires sessionId, type, target)
-- list: List operations in a session (requires sessionId)`,
-      )
+      .desc('Manage operations inside an instrumentation session.')
       .enum('action', ['register', 'list'], 'Operation')
+      .string('sessionId', 'Session ID')
       .enum('type', queryTypes, 'Instrumentation type (action=register)')
       .string('target', 'Function name, URL pattern, or script target (action=register)')
       .object('config', {}, 'Operation-specific config (action=register)')
@@ -41,14 +30,9 @@ Actions:
   ),
   tool('instrumentation_artifact', (t) =>
     t
-      .desc(
-        `Manage captured artifacts for instrumentation operations.
-
-Actions:
-- record: Record a captured artifact (requires operationId, data)
-- query: Query captured artifacts (requires sessionId)`,
-      )
+      .desc('Manage artifacts captured by instrumentation operations.')
       .enum('action', ['record', 'query'], 'Artifact operation')
+      .string('sessionId', 'Session ID')
       .string('operationId', 'Operation ID (action=record)')
       .object('data', {}, 'Captured artifact payload (action=record)')
       .enum('type', queryTypes, 'Optional artifact type filter (action=query)')
@@ -57,7 +41,8 @@ Actions:
   ),
   tool('instrumentation_hook_preset', (t) =>
     t
-      .desc('Apply hooks domain preset hooks within an instrumentation session and persist...')
+      .desc('Apply hook presets inside an instrumentation session.')
+      .string('sessionId', 'Session ID')
       .string('preset', 'Single preset id to inject')
       .array('presets', { type: 'string' }, 'Multiple preset ids to inject in one call')
       .boolean('captureStack', 'Whether injected presets should capture stack traces', {
@@ -84,7 +69,8 @@ Actions:
   ),
   tool('instrumentation_network_replay', (t) =>
     t
-      .desc('Replay a previously captured network request inside an instrumentation sessio...')
+      .desc('Replay a captured network request inside an instrumentation session.')
+      .string('sessionId', 'Session ID')
       .string('requestId', 'Captured request ID returned by network_get_requests')
       .object(
         'headerPatch',
@@ -94,6 +80,15 @@ Actions:
       .string('bodyPatch', 'Optional raw request body override')
       .string('methodOverride', 'Optional HTTP method override')
       .string('urlOverride', 'Optional destination URL override')
+      .object(
+        'authorization',
+        networkAuthorizationSchema,
+        'Optional request-scoped authorization for private-network or insecure-HTTP replay.',
+      )
+      .string(
+        'authorizationCapability',
+        'Optional base64url-encoded request-scoped authorization capability.',
+      )
       .number('timeoutMs', 'Optional replay timeout in milliseconds')
       .boolean('dryRun', 'Preview the replay without sending the request', { default: true })
       .requiredOpenWorld('sessionId', 'requestId'),

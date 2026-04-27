@@ -58,9 +58,13 @@ describe('FridaSession', () => {
 
   it('handles execution error', async () => {
     const execFile = await import('node:child_process').then((m) => m.execFile as any);
-    execFile.mockImplementation((_file: any, _args: any, _options: any, cb: any) => {
-      cb(new Error('frida crash'));
-    });
+    execFile
+      .mockImplementationOnce((_file: any, _args: any, _options: any, cb: any) => {
+        cb(null, '__frida_attach_ok__', '');
+      })
+      .mockImplementationOnce((_file: any, _args: any, _options: any, cb: any) => {
+        cb(new Error('frida crash'));
+      });
 
     await session.attach('1234');
     const result = await session.executeScript('bad_script()');
@@ -103,10 +107,10 @@ describe('FridaSession', () => {
       address: '0x2000',
       size: 0,
     });
-    expect(execFile.mock.calls[0]?.[1]?.at(-1)).toContain(
+    expect(execFile.mock.calls.at(-1)?.[1]?.at(-1)).toContain(
       'Process.getModuleByName("libc.so").enumerateExports()',
     );
-    expect(execFile.mock.calls[0]?.[1]?.at(-1)).not.toContain('Module.enumerateExportsSync');
+    expect(execFile.mock.calls.at(-1)?.[1]?.at(-1)).not.toContain('Module.enumerateExportsSync');
   });
 
   it('finds symbols', async () => {
@@ -123,7 +127,7 @@ describe('FridaSession', () => {
       address: '0x3000',
       demangled: 'free',
     });
-    expect(execFile.mock.calls[0]?.[1]?.at(-1)).toContain('exports:*!free*');
+    expect(execFile.mock.calls.at(-1)?.[1]?.at(-1)).toContain('exports:*!free*');
   });
 
   it('preserves explicit symbol queries', async () => {
@@ -135,7 +139,7 @@ describe('FridaSession', () => {
     await session.attach('1234');
     await session.findSymbols('exports:KERNEL32.DLL!CreateFileW');
 
-    expect(execFile.mock.calls[0]?.[1]?.at(-1)).toContain('exports:KERNEL32.DLL!CreateFileW');
+    expect(execFile.mock.calls.at(-1)?.[1]?.at(-1)).toContain('exports:KERNEL32.DLL!CreateFileW');
   });
 
   it('switches sessions', async () => {
@@ -154,16 +158,29 @@ describe('FridaSession', () => {
     expect(execFile.mock.calls[execFile.mock.calls.length - 1]?.[1]).toContain('1111');
   });
 
-  it('parses fallback modules when execution fails', async () => {
+  it('returns no modules and marks the session as error when execution fails', async () => {
     const execFile = await import('node:child_process').then((m) => m.execFile as any);
     execFile.mockImplementation((_file: any, _args: any, _options: any, cb: any) => {
       cb(new Error('crash'));
     });
 
+    await expect(session.attach('/bin/ls')).rejects.toThrow('crash');
+  });
+
+  it('returns no modules when enumeration fails after a successful attach probe', async () => {
+    const execFile = await import('node:child_process').then((m) => m.execFile as any);
+    execFile
+      .mockImplementationOnce((_file: any, _args: any, _options: any, cb: any) => {
+        cb(null, '__frida_attach_ok__', '');
+      })
+      .mockImplementationOnce((_file: any, _args: any, _options: any, cb: any) => {
+        cb(new Error('crash'));
+      });
+
     await session.attach('/bin/ls');
     const modules = await session.enumerateModules();
-    expect(modules).toHaveLength(1);
-    expect(modules[0]?.name).toBe('ls');
+    expect(modules).toEqual([]);
+    expect(session.listSessions()[0]?.status).toBe('error');
   });
 
   it('builds target args correctly', async () => {

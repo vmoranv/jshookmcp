@@ -150,7 +150,14 @@ export class StealthInjectionHandlers {
       if (!fm?.isAvailable()) {
         return R.fail(
           'fingerprint-generator/fingerprint-injector packages are not installed. Install them with: pnpm add fingerprint-generator fingerprint-injector',
-        ).build();
+        )
+          .merge({
+            available: false,
+            capability: 'fingerprint_generator',
+            status: 'unavailable',
+            fix: 'Install fingerprint-generator and fingerprint-injector: pnpm add fingerprint-generator fingerprint-injector',
+          })
+          .build();
       }
 
       const profile = await fm.generateFingerprint({
@@ -200,7 +207,14 @@ export class StealthInjectionHandlers {
       } catch (err) {
         return R.fail(
           `Camoufox locale module unavailable: ${err instanceof Error ? err.message : String(err)}. Ensure camoufox-js is installed.`,
-        ).build();
+        )
+          .merge({
+            available: false,
+            capability: 'camoufox_locale',
+            status: 'unavailable',
+            fix: 'Install camoufox-js and fetch its browser assets: pnpm add camoufox-js && npx camoufox-js fetch',
+          })
+          .build();
       }
 
       let publicIp: string | null = null;

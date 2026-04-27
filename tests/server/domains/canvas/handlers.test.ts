@@ -428,6 +428,94 @@ describe('CanvasToolHandlers', () => {
       expect(parsed.handlerFrames).toHaveLength(2);
     });
 
+    it('uses a real page click with offset when click support is available', async () => {
+      const pageController = {
+        evaluate: vi
+          .fn()
+          .mockResolvedValueOnce({
+            domEventChain: ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'],
+            pickedNode: { id: 'game-canvas' },
+            engine: 'LayaAir',
+            engineChain: [],
+            cleanupToken: 'jshook-trace-test',
+            selector: 'canvas[data-jshook-trace-token="jshook-trace-test"]',
+            offset: { x: 24, y: 12 },
+          })
+          .mockResolvedValueOnce(true),
+        click: vi.fn().mockResolvedValue(undefined),
+      };
+      const debuggerManager = createMockDebuggerManager();
+      debuggerManager.waitForPaused.mockResolvedValue({ callFrames: [] });
+      const handlers = createHandlers({ pageController, debuggerManager });
+
+      const result = await handlers.handleTraceClick({ x: 24, y: 12, canvasId: 'game-canvas' });
+      const parsed = JSON.parse(
+        ((result as unknown as { content: Array<{ text: string }> }).content[0]?.text ?? '') ||
+          '{}',
+      );
+
+      expect(pageController.click).toHaveBeenCalledWith(
+        'canvas[data-jshook-trace-token="jshook-trace-test"]',
+        {
+          button: 'left',
+          clickCount: 1,
+          offset: { x: 24, y: 12 },
+        },
+      );
+      expect(pageController.evaluate).toHaveBeenCalledTimes(2);
+      expect(parsed.inputFlow).toEqual([
+        'pointerdown',
+        'mousedown',
+        'pointerup',
+        'mouseup',
+        'click',
+      ]);
+    });
+
+    it('waits for the pause before requiring real click completion', async () => {
+      const callOrder: string[] = [];
+      let resolveClick: (() => void) | undefined;
+      const clickCompletion = new Promise<void>((resolve) => {
+        resolveClick = () => {
+          callOrder.push('click-resolved');
+          resolve();
+        };
+      });
+      const pageController = {
+        evaluate: vi
+          .fn()
+          .mockResolvedValueOnce({
+            domEventChain: ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'],
+            pickedNode: { id: 'game-canvas' },
+            engine: 'LayaAir',
+            engineChain: [],
+            cleanupToken: 'jshook-trace-test',
+            selector: 'canvas[data-jshook-trace-token="jshook-trace-test"]',
+            offset: { x: 24, y: 12 },
+          })
+          .mockResolvedValueOnce(true),
+        click: vi.fn().mockImplementation(() => {
+          callOrder.push('click-start');
+          return clickCompletion;
+        }),
+      };
+      const debuggerManager = createMockDebuggerManager();
+      debuggerManager.waitForPaused.mockImplementation(async () => {
+        callOrder.push('waitForPaused');
+        resolveClick?.();
+        return { callFrames: [] };
+      });
+      debuggerManager.resume.mockImplementation(async () => {
+        callOrder.push('resume');
+        return undefined;
+      });
+      const handlers = createHandlers({ pageController, debuggerManager });
+
+      await handlers.handleTraceClick({ x: 24, y: 12, canvasId: 'game-canvas' });
+
+      expect(callOrder).toEqual(['click-start', 'waitForPaused', 'click-resolved', 'resume']);
+    });
+
     it('uses default breakpointType "click" when not specified', async () => {
       const pageController = createSequentialMockPageController({
         domEventChain: ['click'],

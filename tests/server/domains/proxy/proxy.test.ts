@@ -189,7 +189,7 @@ describe('ProxyHandlers (Integration)', () => {
     await handlers.handleProxyStop({});
   });
 
-  it('should correctly handle adb device configuration failures', async () => {
+  it('returns explicit capability details when adb is unavailable', async () => {
     vi.mocked(child_process.exec as any).mockImplementationOnce((_cmd: any, cb: any) => {
       if (typeof cb === 'function') {
         cb(new Error('adb command failed'), { stdout: '', stderr: 'error' });
@@ -199,9 +199,38 @@ describe('ProxyHandlers (Integration)', () => {
 
     await handlers.handleProxyStart({ port: testPort + 4, useHttps: true });
 
+    const res = await handlers.handleProxySetupAdbDevice({ deviceSerial: 'test-device' });
+    const data = parseResponse(res);
+    expect(data.success).toBe(false);
+    expect(data.available).toBe(false);
+    expect(data.capability).toBe('adb_binary');
+    expect(data.status).toBe('unavailable');
+    expect(data.error).toContain('ADB binary not available:');
+    expect(data.fix).toContain('Android Platform Tools');
+
+    await handlers.handleProxyStop({});
+  });
+
+  it('preserves runtime execution failures after adb preflight passes', async () => {
+    vi.mocked(child_process.exec as any)
+      .mockImplementationOnce((_cmd: any, cb: any) => {
+        if (typeof cb === 'function') {
+          cb(null, { stdout: 'Android Debug Bridge version 1.0.41', stderr: '' });
+        }
+        return {} as any;
+      })
+      .mockImplementationOnce((_cmd: any, cb: any) => {
+        if (typeof cb === 'function') {
+          cb(new Error('adb get-state failed'), { stdout: '', stderr: 'error' });
+        }
+        return {} as any;
+      });
+
+    await handlers.handleProxyStart({ port: testPort + 7, useHttps: true });
+
     const res: any = await handlers.handleProxySetupAdbDevice({ deviceSerial: 'test-device' });
     expect(res.isError).toBe(true);
-    expect(res.content[0].text).toContain('Failed to configure ADB device:');
+    expect(res.content[0].text).toContain('Failed to configure ADB device: adb get-state failed');
 
     await handlers.handleProxyStop({});
   });

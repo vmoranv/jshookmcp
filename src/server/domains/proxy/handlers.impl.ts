@@ -218,6 +218,20 @@ export class ProxyHandlers {
     const deviceFlag = deviceSerial ? `-s ${deviceSerial}` : '';
 
     try {
+      try {
+        await execAsync('adb version');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return R.fail(`ADB binary not available: ${message}`)
+          .merge({
+            available: false,
+            capability: 'adb_binary',
+            status: 'unavailable',
+            fix: 'Install Android Platform Tools and ensure `adb` is available on PATH.',
+          })
+          .json();
+      }
+
       // 1. Verify adb is available
       await execAsync(`adb ${deviceFlag} get-state`);
 

@@ -59,6 +59,11 @@ export class FridaSession {
       throw new Error(availability.reason ?? 'Frida CLI is not available');
     }
 
+    const probe = await this.runFridaCommand(target, 'console.log("__frida_attach_ok__");');
+    if (probe.error) {
+      throw new Error(probe.error);
+    }
+
     const sessionId = randomUUID();
     const record: FridaSessionRecord = {
       id: sessionId,
@@ -112,7 +117,7 @@ export class FridaSession {
       session.lastError = result.error;
     }
 
-    return [this.createFallbackModule(session.target)];
+    return [];
   }
 
   async enumerateFunctions(moduleName: string): Promise<FridaFunctionInfo[]> {
@@ -140,13 +145,7 @@ export class FridaSession {
       session.lastError = result.error;
     }
 
-    return [
-      {
-        name: `${moduleName}!<unknown>`,
-        address: '0x0',
-        size: 0,
-      },
-    ];
+    return [];
   }
 
   async findSymbols(pattern: string): Promise<FridaSymbolInfo[]> {
@@ -182,13 +181,7 @@ export class FridaSession {
       session.lastError = result.error;
     }
 
-    return [
-      {
-        name: pattern,
-        address: '0x0',
-        demangled: pattern,
-      },
-    ];
+    return [];
   }
 
   listSessions(): FridaSessionInfo[] {
@@ -231,6 +224,20 @@ export class FridaSession {
 
   hasSession(sessionId: string): boolean {
     return this.sessions.has(sessionId);
+  }
+
+  getSessionDiagnostics(
+    sessionId: string,
+  ): { status: FridaSessionInfo['status']; lastError?: string } | undefined {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return undefined;
+    }
+
+    return {
+      status: session.status,
+      lastError: session.lastError,
+    };
   }
 
   private getActiveSessionRecord(): FridaSessionRecord | undefined {
@@ -296,22 +303,6 @@ export class FridaSession {
     }
 
     return ['-n', target];
-  }
-
-  private createFallbackModule(target: string): FridaModuleInfo {
-    const simpleName = this.extractSimpleName(target);
-    return {
-      name: simpleName,
-      base: '0x0',
-      size: 0,
-      path: target,
-    };
-  }
-
-  private extractSimpleName(target: string): string {
-    const parts = target.split(/[\\/]/).filter((part) => part.length > 0);
-    const lastPart = parts.at(-1);
-    return lastPart && lastPart.length > 0 ? lastPart : target;
   }
 
   private parseModuleList(output: string): FridaModuleInfo[] {

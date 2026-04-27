@@ -33,9 +33,11 @@ const HOOK_PRESET_MARKER = 'hook-preset-marker-20260426';
 const GRAPHQL_MARKER = 'graphql-marker-20260426';
 const WEBPACK_MARKER = 'webpack-marker-20260426';
 const WASM_MARKER = 'wasm-marker-20260426';
+const MEMORY_MARKER = 'memory-marker-20260427';
 const ROOT_RELOAD_KEY = '__audit_reload_count';
-const SCRIPT_TIMEOUT_MS = 9 * 60 * 1000;
+const SCRIPT_TIMEOUT_MS = 14 * 60 * 1000;
 const DIRECT_RUNTIME_PROBED_TOOLS = new Set();
+const AUDIT_DEBUG = process.env.RUNTIME_AUDIT_DEBUG === '1';
 const GRAPHQL_BUFFER_PROBE_CODE = `(() => ({
   fetchArrayLength: Array.isArray(window.__fetchRequests) ? window.__fetchRequests.length : null,
   xhrArrayLength: Array.isArray(window.__xhrRequests) ? window.__xhrRequests.length : null,
@@ -149,9 +151,24 @@ async function withTimeout(promise, label, timeoutMs = 30000) {
 
 async function callTool(client, name, args = {}, timeoutMs = 30000) {
   DIRECT_RUNTIME_PROBED_TOOLS.add(name);
-  return parseContent(
-    await withTimeout(client.callTool({ name, arguments: args }), name, timeoutMs),
-  );
+  if (AUDIT_DEBUG) {
+    console.error(`[runtime-audit] calling ${name}`);
+  }
+  try {
+    const result = parseContent(
+      await withTimeout(client.callTool({ name, arguments: args }), name, timeoutMs),
+    );
+    if (AUDIT_DEBUG) {
+      console.error(`[runtime-audit] completed ${name}`);
+    }
+    return result;
+  } catch (error) {
+    if (AUDIT_DEBUG) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[runtime-audit] failed ${name}: ${message}`);
+    }
+    throw error;
+  }
 }
 
 async function callToolCaptureError(client, name, args = {}, timeoutMs = 30000) {
@@ -192,6 +209,38 @@ function extractString(value, keys) {
     }
   }
   return null;
+}
+
+function getArrayFromRecord(value, key) {
+  return isRecord(value) && Array.isArray(value[key]) ? value[key] : [];
+}
+
+function findFirstModule(value) {
+  return getArrayFromRecord(value, 'modules').find(
+    (entry) => isRecord(entry) && typeof entry.baseAddress === 'string',
+  );
+}
+
+function findRegion(value, predicate = () => true) {
+  return getArrayFromRecord(value, 'regions').find(
+    (entry) =>
+      isRecord(entry) &&
+      typeof entry.baseAddress === 'string' &&
+      typeof entry.size === 'number' &&
+      predicate(entry),
+  );
+}
+
+function normalizeHex(value) {
+  return typeof value === 'string' ? value.replace(/\s+/g, '').toUpperCase() : '';
+}
+
+function takeHexBytes(value, byteCount) {
+  const normalized = normalizeHex(value);
+  if (normalized.length < byteCount * 2) {
+    return normalized;
+  }
+  return normalized.slice(0, byteCount * 2);
 }
 
 function getTabularRowValue(row, columns, columnName) {
@@ -1559,6 +1608,11 @@ async function main() {
     maintenance: {},
     workflow: {},
     process: {},
+    instrumentation: {},
+    adb: {},
+    memory: {},
+    electron: {},
+    syscall: {},
     tls: {},
     v8: {},
     extensionRegistry: {},
@@ -1571,10 +1625,17 @@ async function main() {
   let extensionRegistryFile = null;
   let attachClient = null;
   let attachTransport = null;
+  let isolatedBinaryClient = null;
+  let isolatedBinaryTransport = null;
   let externalBrowserProc = null;
   let externalBrowserUserDataDir = null;
   let processLaunchUserDataDir = null;
   let processLaunchPid = null;
+  let memoryProbeProc = null;
+  let memoryProbePid = null;
+  let electronDebugPid = null;
+  let electronDebugUserDataDir = null;
+  let instrumentationSessionId = null;
 
   try {
     await withTimeout(client.connect(transport), 'connect', 30000);
@@ -1731,11 +1792,17 @@ async function main() {
     platformProbeDir = await mkdtemp(join(tmpdir(), 'jshook-platform-audit-'));
     const electronExePath = join(platformProbeDir, 'mock-electron.exe');
     const electronUserdataDir = join(platformProbeDir, 'userdata');
-    const asarPath = join(platformProbeDir, 'mock-app.asar');
+    const mockElectronAppDir = join(platformProbeDir, 'mock-electron-app');
+    const mockElectronResourcesDir = join(mockElectronAppDir, 'resources');
+    const asarPath = join(mockElectronResourcesDir, 'app.asar');
     const miniappDir = join(platformProbeDir, 'miniapp');
     const miniappPkgPath = join(miniappDir, 'app.pkg');
+    const dummyApkPath = join(platformProbeDir, 'runtime-audit.apk');
+    const dummySoPath = join(platformProbeDir, 'libaudit.so');
+    const v8BytecodeFixturePath = join(platformProbeDir, 'runtime-audit-bytecode.jsc');
 
     await mkdir(electronUserdataDir, { recursive: true });
+    await mkdir(mockElectronResourcesDir, { recursive: true });
     await mkdir(miniappDir, { recursive: true });
     await writeFile(
       electronExePath,
@@ -1746,7 +1813,42 @@ async function main() {
     await writeFile(
       asarPath,
       buildMockAsar([
-        { path: 'src/main.js', content: 'const isPro = true;\nconst marker = "asar-marker";\n' },
+        {
+          path: 'package.json',
+          content: JSON.stringify(
+            {
+              name: 'runtime-audit-electron-app',
+              version: '1.0.0',
+              main: 'src/main.js',
+              dependencies: { electron: '^30.0.0' },
+            },
+            null,
+            2,
+          ),
+        },
+        {
+          path: 'src/main.js',
+          content: [
+            "const path = require('node:path');",
+            "const { BrowserWindow } = require('electron');",
+            'function createWindow() {',
+            '  return new BrowserWindow({',
+            '    width: 800,',
+            '    height: 600,',
+            '    webPreferences: {',
+            "      preload: path.join(__dirname, 'preload.js'),",
+            '    },',
+            '    devTools: true,',
+            '  });',
+            '}',
+            'module.exports = { createWindow };',
+            '',
+          ].join('\n'),
+        },
+        {
+          path: 'src/preload.js',
+          content: "window.__runtimeAuditElectronPreload = 'ready';\n",
+        },
         { path: 'src/utils.js', content: 'export function helper() { return 1; }\n' },
       ]),
     );
@@ -1782,6 +1884,20 @@ async function main() {
         },
       ]),
     );
+    await writeFile(dummyApkPath, Buffer.from('PK\x03\x04runtime-audit-apk-fixture', 'binary'));
+    await writeFile(dummySoPath, Buffer.from('\x7fELFruntime-audit-so-fixture', 'binary'));
+    await writeFile(
+      v8BytecodeFixturePath,
+      [
+        `const auditBytecodeMarker = ${JSON.stringify(MEMORY_MARKER)};`,
+        'function runtimeAuditBytecodeProbe(input) {',
+        "  const value = String(input || 'fallback');",
+        "  return value + ':' + auditBytecodeMarker;",
+        '}',
+        '',
+      ].join('\n'),
+      'utf8',
+    );
 
     report.platform.electronFuses = await callTool(
       client,
@@ -1794,6 +1910,18 @@ async function main() {
       'electron_scan_userdata',
       { dirPath: electronUserdataDir, maxFiles: 10, maxFileSizeKB: 32 },
       15000,
+    );
+    report.electron.inspectApp = await callToolCaptureError(
+      client,
+      'electron_inspect_app',
+      { appPath: mockElectronAppDir },
+      30000,
+    );
+    report.electron.patchFuses = await callToolCaptureError(
+      client,
+      'electron_patch_fuses',
+      { exePath: electronExePath, profile: 'debug', createBackup: false },
+      30000,
     );
     report.platform.asarExtract = await callTool(
       client,
@@ -1948,12 +2076,12 @@ async function main() {
         name: 'runtime_audit_proto',
         spec: {
           fields: [
-            { name: 'magic', offset: 0, length: 2 },
-            { name: 'opcode', offset: 2, length: 1 },
-            { name: 'sequence', offset: 3, length: 1 },
-            { name: 'payload', offset: 4, length: 2 },
+            { name: 'magic', offset: 0, length: 2, type: 'int' },
+            { name: 'opcode', offset: 2, length: 1, type: 'int' },
+            { name: 'sequence', offset: 3, length: 1, type: 'int' },
+            { name: 'payload', offset: 4, length: 2, type: 'bytes' },
           ],
-          byteOrder: 'big',
+          byteOrder: 'be',
         },
       },
       15000,
@@ -2368,6 +2496,15 @@ async function main() {
       { code: 'var a = 1;' },
       30000,
     );
+    report.analysis.llmSuggestNames = await callToolCaptureError(
+      client,
+      'llm_suggest_names',
+      {
+        code: 'function a(_0x1,_0x2){const _0x3=_0x1+_0x2;return _0x3;}',
+        identifiers: ['_0x1', '_0x2', '_0x3'],
+      },
+      30000,
+    );
     report.analysis.webcrackUnpack = await callTool(
       client,
       'webcrack_unpack',
@@ -2518,6 +2655,47 @@ async function main() {
             });
             canvas.__auditCanvasBound = true;
           }
+          if (!window.Laya || !window.Laya.__auditFixture) {
+            class AuditStage {}
+            const stage = {
+              __proto__: AuditStage.prototype,
+              id: 'audit-stage',
+              name: 'AuditStage',
+              visible: true,
+              mouseEnabled: true,
+              alpha: 1,
+              x: 0,
+              y: 0,
+              width: canvas.width,
+              height: canvas.height,
+              parent: null,
+              children: [],
+              numChildren: 0,
+              clientScaleX: 1,
+              clientScaleY: 1,
+              localToGlobal(point) {
+                const rect = canvas.getBoundingClientRect();
+                return { x: rect.left + point.x, y: rect.top + point.y };
+              },
+              globalToLocal(point) {
+                const rect = canvas.getBoundingClientRect();
+                return { x: point.x - rect.left, y: point.y - rect.top };
+              }
+            };
+            window.Laya = {
+              __auditFixture: true,
+              version: '2.x-audit',
+              MouseManager: {},
+              Browser: { canvas },
+              stage
+            };
+          } else if (window.Laya.Browser) {
+            window.Laya.Browser.canvas = canvas;
+          }
+          if (window.Laya && window.Laya.stage) {
+            window.Laya.stage.width = canvas.width;
+            window.Laya.stage.height = canvas.height;
+          }
           const rect = canvas.getBoundingClientRect();
           return {
             id: canvas.id,
@@ -2532,7 +2710,7 @@ async function main() {
       },
       15000,
     );
-    const canvasRect = report.canvas.seed?.rect ?? {};
+    const canvasRect = report.canvas.seed?.result?.rect ?? report.canvas.seed?.rect ?? {};
     const canvasClickX =
       typeof canvasRect.left === 'number' ? Math.round(canvasRect.left + 32) : 32;
     const canvasClickY = typeof canvasRect.top === 'number' ? Math.round(canvasRect.top + 32) : 32;
@@ -2554,12 +2732,36 @@ async function main() {
       { x: canvasClickX, y: canvasClickY, canvasId: 'audit-canvas', highlight: false },
       30000,
     );
+    report.canvas.skiaDetect = await callToolCaptureError(
+      client,
+      'skia_detect_renderer',
+      { canvasId: 'audit-canvas' },
+      30000,
+    );
+    report.canvas.skiaExtract = await callToolCaptureError(
+      client,
+      'skia_extract_scene',
+      { canvasId: 'audit-canvas' },
+      30000,
+    );
+    report.canvas.skiaCorrelate = await callToolCaptureError(
+      client,
+      'skia_correlate_objects',
+      { canvasId: 'audit-canvas' },
+      30000,
+    );
     report.canvas.traceClickInput = {
       x: canvasClickX,
       y: canvasClickY,
       canvasId: 'audit-canvas',
       breakpointType: 'click',
     };
+    report.canvas.traceClick = await callToolCaptureError(
+      client,
+      'canvas_trace_click_handler',
+      report.canvas.traceClickInput,
+      10000,
+    );
     report.browser.type = await callTool(
       client,
       'page_type',
@@ -2866,6 +3068,152 @@ async function main() {
       },
       15000,
     );
+    report.analysis.antidebugBypass = await callToolCaptureError(
+      client,
+      'antidebug_bypass',
+      { types: ['timing', 'console_detect'], persistent: true },
+      30000,
+    );
+    report.analysis.antidebugDetect = await callToolCaptureError(
+      client,
+      'antidebug_detect_protections',
+      {},
+      30000,
+    );
+    report.browser.aiHookInject = await callToolCaptureError(
+      client,
+      'ai_hook',
+      {
+        action: 'inject',
+        hookId: 'runtime-audit-ai-hook',
+        code: `(() => {
+          window.__aiHooks = window.__aiHooks || {};
+          window.__aiHookMetadata = window.__aiHookMetadata || {};
+          window.__aiHooks['runtime-audit-ai-hook'] = window.__aiHooks['runtime-audit-ai-hook'] || [];
+          window.__aiHookMetadata['runtime-audit-ai-hook'] = { enabled: true, source: 'runtime-audit' };
+          window.__aiHooks['runtime-audit-ai-hook'].push({ marker: ${JSON.stringify(BODY_MARKER)}, ts: Date.now() });
+          return true;
+        })()`,
+      },
+      30000,
+    );
+    report.browser.aiHookData = await callToolCaptureError(
+      client,
+      'ai_hook',
+      { action: 'get_data', hookId: 'runtime-audit-ai-hook' },
+      30000,
+    );
+    report.browser.aiHookList = await callToolCaptureError(
+      client,
+      'ai_hook',
+      { action: 'list' },
+      30000,
+    );
+    report.browser.camoufoxGeolocation = await callToolCaptureError(
+      client,
+      'camoufox_geolocation',
+      { locale: 'en-US' },
+      30000,
+    );
+    report.browser.camoufoxServer = await callToolCaptureError(
+      client,
+      'camoufox_server',
+      { action: 'launch', port: await getFreePort(), headless: true },
+      30000,
+    );
+    report.captcha.visionManual = await callToolCaptureError(
+      client,
+      'captcha_vision_solve',
+      { mode: 'manual', challengeType: 'auto' },
+      30000,
+    );
+    report.captcha.widgetManual = await callToolCaptureError(
+      client,
+      'widget_challenge_solve',
+      { mode: 'manual' },
+      30000,
+    );
+    report.instrumentation.sessionCreate = await callToolCaptureError(
+      client,
+      'instrumentation_session',
+      { action: 'create', name: 'runtime-audit-session' },
+      30000,
+    );
+    report.instrumentation.sessionList = await callToolCaptureError(
+      client,
+      'instrumentation_session',
+      { action: 'list' },
+      30000,
+    );
+    instrumentationSessionId =
+      typeof report.instrumentation.sessionCreate?.session?.id === 'string'
+        ? report.instrumentation.sessionCreate.session.id
+        : null;
+    if (instrumentationSessionId) {
+      report.instrumentation.sessionStatus = await callToolCaptureError(
+        client,
+        'instrumentation_session',
+        { action: 'status', sessionId: instrumentationSessionId },
+        30000,
+      );
+      report.instrumentation.operationRegister = await callToolCaptureError(
+        client,
+        'instrumentation_operation',
+        {
+          action: 'register',
+          sessionId: instrumentationSessionId,
+          type: 'runtime-hook',
+          target: 'runtime-audit-operation',
+          config: { marker: BODY_MARKER },
+        },
+        30000,
+      );
+      report.instrumentation.operationList = await callToolCaptureError(
+        client,
+        'instrumentation_operation',
+        { action: 'list', sessionId: instrumentationSessionId },
+        30000,
+      );
+      const instrumentationOperationId =
+        typeof report.instrumentation.operationRegister?.operation?.id === 'string'
+          ? report.instrumentation.operationRegister.operation.id
+          : null;
+      if (instrumentationOperationId) {
+        report.instrumentation.artifactRecord = await callToolCaptureError(
+          client,
+          'instrumentation_artifact',
+          {
+            action: 'record',
+            sessionId: instrumentationSessionId,
+            operationId: instrumentationOperationId,
+            data: { marker: BODY_MARKER, phase: 'manual-record' },
+          },
+          30000,
+        );
+      }
+      report.instrumentation.artifactQuery = await callToolCaptureError(
+        client,
+        'instrumentation_artifact',
+        { action: 'query', sessionId: instrumentationSessionId, limit: 10 },
+        30000,
+      );
+      report.instrumentation.hookPreset = await callToolCaptureError(
+        client,
+        'instrumentation_hook_preset',
+        {
+          sessionId: instrumentationSessionId,
+          preset: 'runtime-audit-instrumentation',
+          customTemplate: {
+            id: 'runtime-audit-instrumentation',
+            description: 'Sets an instrumentation marker on window.',
+            body: `window.__instrumentationHookMarker = ${JSON.stringify(HOOK_PRESET_MARKER)};`,
+          },
+          method: 'evaluate',
+          logToConsole: false,
+        },
+        30000,
+      );
+    }
     report.analysis.manageHooksCreate = await callTool(
       client,
       'manage_hooks',
@@ -3639,6 +3987,22 @@ async function main() {
     }, 150);
     report.tls.rawUdpListen = await rawUdpListenPromise;
     const processDebugPort = await getFreePort();
+    memoryProbeProc = spawn(
+      process.execPath,
+      [
+        '-e',
+        [
+          'global.__runtimeAuditMemoryProbe = Buffer.alloc(1024 * 1024, 0);',
+          `global.__runtimeAuditMemoryProbe.write(${JSON.stringify(`${MEMORY_MARKER}:${BODY_MARKER}`)});`,
+          'setInterval(() => {}, 1000);',
+        ].join(' '),
+      ],
+      {
+        stdio: 'ignore',
+        windowsHide: true,
+      },
+    );
+    memoryProbePid = Number(memoryProbeProc.pid ?? 0);
     processLaunchUserDataDir = await mkdtemp(join(tmpdir(), 'jshook-process-debug-'));
     report.process.launchDebug = await callTool(
       client,
@@ -3679,6 +4043,472 @@ async function main() {
         15000,
       );
     }
+    if (Number.isFinite(processLaunchPid) && processLaunchPid > 0) {
+      electronDebugUserDataDir = await mkdtemp(join(tmpdir(), 'jshook-electron-debug-'));
+      const electronMainPort = await getFreePort();
+      const electronRendererPort = await getFreePort();
+      report.electron.launchDebug = await callToolCaptureError(
+        client,
+        'electron_launch_debug',
+        {
+          exePath: getPreferredBrowserExecutable(),
+          mainPort: electronMainPort,
+          rendererPort: electronRendererPort,
+          waitMs: 10000,
+          args: [
+            '--headless=new',
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-gpu',
+            '--no-sandbox',
+            `--user-data-dir=${electronDebugUserDataDir}`,
+            server.baseUrl,
+          ],
+        },
+        45000,
+      );
+      electronDebugPid = Number(report.electron.launchDebug?.pid ?? 0);
+      report.electron.debugStatus = await callToolCaptureError(
+        client,
+        'electron_debug_status',
+        {},
+        15000,
+      );
+      const electronSessionId =
+        typeof report.electron.launchDebug?.sessionId === 'string'
+          ? report.electron.launchDebug.sessionId
+          : null;
+      if (electronSessionId) {
+        report.electron.debugStatusSession = await callToolCaptureError(
+          client,
+          'electron_debug_status',
+          { sessionId: electronSessionId },
+          15000,
+        );
+      }
+      report.electron.attach = await callToolCaptureError(
+        client,
+        'electron_attach',
+        { port: electronRendererPort, evaluate: 'location.href' },
+        30000,
+      );
+      report.electron.ipcSniffStart = await callToolCaptureError(
+        client,
+        'electron_ipc_sniff',
+        { action: 'start', port: electronRendererPort },
+        30000,
+      );
+      if (typeof report.electron.ipcSniffStart?.sessionId === 'string') {
+        report.electron.ipcSniffDump = await callToolCaptureError(
+          client,
+          'electron_ipc_sniff',
+          { action: 'dump', sessionId: report.electron.ipcSniffStart.sessionId },
+          30000,
+        );
+        report.electron.ipcSniffStop = await callToolCaptureError(
+          client,
+          'electron_ipc_sniff',
+          { action: 'stop', sessionId: report.electron.ipcSniffStart.sessionId },
+          30000,
+        );
+      }
+    }
+    if (Number.isFinite(memoryProbePid) && memoryProbePid > 0) {
+      report.process.enumerateModules = await callToolCaptureError(
+        client,
+        'enumerate_modules',
+        { pid: memoryProbePid },
+        30000,
+      );
+      report.process.memoryListRegions = await callToolCaptureError(
+        client,
+        'memory_list_regions',
+        { pid: memoryProbePid },
+        30000,
+      );
+      const firstModule = findFirstModule(report.process.enumerateModules);
+      const moduleBase =
+        typeof firstModule?.baseAddress === 'string' ? firstModule.baseAddress : '0x0';
+      const secondModule = getArrayFromRecord(report.process.enumerateModules, 'modules').find(
+        (entry) =>
+          isRecord(entry) &&
+          typeof entry.baseAddress === 'string' &&
+          entry.baseAddress !== moduleBase,
+      );
+      const secondModuleBase =
+        typeof secondModule?.baseAddress === 'string' ? secondModule.baseAddress : moduleBase;
+      const firstWritableRegion = findRegion(report.process.memoryListRegions, (entry) =>
+        typeof entry.protection === 'string' ? /w/i.test(entry.protection) : false,
+      );
+      const writableRegionBase =
+        typeof firstWritableRegion?.baseAddress === 'string'
+          ? firstWritableRegion.baseAddress
+          : moduleBase;
+
+      report.process.memoryRead = await callToolCaptureError(
+        client,
+        'memory_read',
+        { pid: memoryProbePid, address: moduleBase, size: 16 },
+        30000,
+      );
+      const firstByteHex = takeHexBytes(report.process.memoryRead?.data, 1) || '4D';
+      const firstByteValue = Number.parseInt(firstByteHex, 16);
+      report.process.memoryCheckProtection = await callToolCaptureError(
+        client,
+        'memory_check_protection',
+        { pid: memoryProbePid, address: writableRegionBase },
+        30000,
+      );
+      report.process.memoryWrite = await callToolCaptureError(
+        client,
+        'memory_write',
+        { pid: memoryProbePid, address: writableRegionBase, data: firstByteHex, encoding: 'hex' },
+        30000,
+      );
+      report.process.memoryBatchWrite = await callToolCaptureError(
+        client,
+        'memory_batch_write',
+        {
+          pid: memoryProbePid,
+          patches: [{ address: writableRegionBase, data: firstByteHex, encoding: 'hex' }],
+        },
+        30000,
+      );
+      report.process.memoryScan = await callToolCaptureError(
+        client,
+        'memory_scan',
+        { pid: memoryProbePid, pattern: MEMORY_MARKER, patternType: 'string' },
+        45000,
+      );
+      const filteredAddresses = Array.isArray(report.process.memoryScan?.addresses)
+        ? report.process.memoryScan.addresses.slice(0, 16)
+        : [moduleBase];
+      report.process.memoryScanFiltered = await callToolCaptureError(
+        client,
+        'memory_scan_filtered',
+        {
+          pid: memoryProbePid,
+          pattern: MEMORY_MARKER,
+          patternType: 'string',
+          addresses: filteredAddresses,
+        },
+        30000,
+      );
+      report.process.memoryDumpRegion = await callToolCaptureError(
+        client,
+        'memory_dump_region',
+        {
+          pid: memoryProbePid,
+          address: moduleBase,
+          size: 64,
+          outputPath: '.tmp_mcp_artifacts/runtime-memory-region.bin',
+        },
+        30000,
+      );
+      report.memory.firstScan = await callToolCaptureError(
+        client,
+        'memory_first_scan',
+        {
+          pid: memoryProbePid,
+          value: Number.isFinite(firstByteValue) ? String(firstByteValue) : '77',
+          valueType: 'byte',
+          maxResults: 32,
+        },
+        45000,
+      );
+      const memoryScanSessionId =
+        extractString(report.memory.firstScan, ['sessionId']) ?? 'missing-session';
+      report.memory.nextScan = await callToolCaptureError(
+        client,
+        'memory_next_scan',
+        { sessionId: memoryScanSessionId, mode: 'exact', value: MEMORY_MARKER },
+        30000,
+      );
+      report.memory.unknownScan = await callToolCaptureError(
+        client,
+        'memory_unknown_scan',
+        { pid: memoryProbePid, valueType: 'byte', maxResults: 64 },
+        45000,
+      );
+      report.memory.pointerScan = await callToolCaptureError(
+        client,
+        'memory_pointer_scan',
+        { pid: memoryProbePid, targetAddress: moduleBase, maxResults: 16, moduleOnly: true },
+        30000,
+      );
+      report.memory.groupScan = await callToolCaptureError(
+        client,
+        'memory_group_scan',
+        {
+          pid: memoryProbePid,
+          pattern: [{ offset: 0, value: '4D 5A', type: 'hex' }],
+          maxResults: 16,
+        },
+        30000,
+      );
+      report.memory.scanSession = await callToolCaptureError(
+        client,
+        'memory_scan_session',
+        { action: 'list' },
+        15000,
+      );
+      report.memory.pointerChain = await callToolCaptureError(
+        client,
+        'memory_pointer_chain',
+        {
+          action: 'scan',
+          pid: memoryProbePid,
+          targetAddress: moduleBase,
+          maxDepth: 2,
+          maxResults: 16,
+        },
+        30000,
+      );
+      report.memory.structureAnalyze = await callToolCaptureError(
+        client,
+        'memory_structure_analyze',
+        { pid: memoryProbePid, address: moduleBase, size: 64 },
+        30000,
+      );
+      report.memory.vtableParse = await callToolCaptureError(
+        client,
+        'memory_vtable_parse',
+        { pid: memoryProbePid, vtableAddress: moduleBase },
+        30000,
+      );
+      report.memory.structureExportC = await callToolCaptureError(
+        client,
+        'memory_structure_export_c',
+        {
+          structure: JSON.stringify({
+            name: 'RuntimeAuditStruct',
+            size: 8,
+            fields: [{ name: 'flag', offset: 0, size: 4, type: 'uint32_t' }],
+          }),
+          name: 'RuntimeAuditStruct',
+        },
+        15000,
+      );
+      report.memory.structureCompare = await callToolCaptureError(
+        client,
+        'memory_structure_compare',
+        { pid: memoryProbePid, address1: moduleBase, address2: secondModuleBase, size: 64 },
+        30000,
+      );
+      report.memory.breakpoint = await callToolCaptureError(
+        client,
+        'memory_breakpoint',
+        { action: 'list' },
+        15000,
+      );
+      report.memory.patchBytes = await callToolCaptureError(
+        client,
+        'memory_patch_bytes',
+        { pid: memoryProbePid, address: '0x1', bytes: [0x90] },
+        30000,
+      );
+      report.memory.patchNop = await callToolCaptureError(
+        client,
+        'memory_patch_nop',
+        { pid: memoryProbePid, address: '0x1', count: 1 },
+        30000,
+      );
+      report.memory.patchUndo = await callToolCaptureError(
+        client,
+        'memory_patch_undo',
+        { patchId: 'missing-patch' },
+        15000,
+      );
+      report.memory.codeCaves = await callToolCaptureError(
+        client,
+        'memory_code_caves',
+        { pid: memoryProbePid, minSize: 16 },
+        30000,
+      );
+      report.memory.writeValue = await callToolCaptureError(
+        client,
+        'memory_write_value',
+        {
+          pid: memoryProbePid,
+          address: writableRegionBase,
+          value: Number.isFinite(firstByteValue) ? String(firstByteValue) : '0',
+          valueType: 'byte',
+        },
+        30000,
+      );
+      report.memory.freeze = await callToolCaptureError(
+        client,
+        'memory_freeze',
+        { action: 'unfreeze', freezeId: 'missing-freeze' },
+        15000,
+      );
+      report.memory.dump = await callToolCaptureError(
+        client,
+        'memory_dump',
+        { pid: memoryProbePid, address: moduleBase, size: 64 },
+        30000,
+      );
+      const speedhackProbeProc = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000);'], {
+        stdio: 'ignore',
+        windowsHide: true,
+      });
+      const speedhackProbePid = Number(speedhackProbeProc.pid ?? 0);
+      try {
+        report.memory.speedhack = await callToolCaptureError(
+          client,
+          'memory_speedhack',
+          { action: 'apply', pid: speedhackProbePid, speed: 1 },
+          30000,
+        );
+      } finally {
+        await terminateProcessTree(speedhackProbeProc);
+      }
+      report.memory.writeHistory = await callToolCaptureError(
+        client,
+        'memory_write_history',
+        { action: 'undo' },
+        15000,
+      );
+      report.memory.heapEnumerate = await callToolCaptureError(
+        client,
+        'memory_heap_enumerate',
+        { pid: memoryProbePid, maxBlocks: 128 },
+        30000,
+      );
+      report.memory.heapStats = await callToolCaptureError(
+        client,
+        'memory_heap_stats',
+        { pid: memoryProbePid },
+        30000,
+      );
+      report.memory.heapAnomalies = await callToolCaptureError(
+        client,
+        'memory_heap_anomalies',
+        { pid: memoryProbePid },
+        30000,
+      );
+      report.memory.peHeaders = await callToolCaptureError(
+        client,
+        'memory_pe_headers',
+        { pid: memoryProbePid, moduleBase },
+        30000,
+      );
+      report.memory.peImportsExports = await callToolCaptureError(
+        client,
+        'memory_pe_imports_exports',
+        { pid: memoryProbePid, moduleBase, table: 'both' },
+        30000,
+      );
+      report.memory.inlineHookDetect = await callToolCaptureError(
+        client,
+        'memory_inline_hook_detect',
+        { pid: memoryProbePid },
+        30000,
+      );
+      report.memory.anticheatDetect = await callToolCaptureError(
+        client,
+        'memory_anticheat_detect',
+        { pid: memoryProbePid },
+        30000,
+      );
+      report.memory.guardPages = await callToolCaptureError(
+        client,
+        'memory_guard_pages',
+        { pid: memoryProbePid },
+        30000,
+      );
+      report.memory.integrityCheck = await callToolCaptureError(
+        client,
+        'memory_integrity_check',
+        { pid: memoryProbePid },
+        30000,
+      );
+      const injectionProbeProc = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000);'], {
+        stdio: 'ignore',
+        windowsHide: true,
+      });
+      const injectionProbePid = Number(injectionProbeProc.pid ?? 0);
+      try {
+        report.process.injectDll = await callToolCaptureError(
+          client,
+          'inject_dll',
+          { pid: injectionProbePid, dllPath: join(platformProbeDir, 'missing.dll') },
+          30000,
+        );
+        report.process.injectShellcode = await callToolCaptureError(
+          client,
+          'inject_shellcode',
+          { pid: injectionProbePid, shellcode: '90', encoding: 'hex' },
+          30000,
+        );
+      } finally {
+        injectionProbeProc.kill();
+      }
+      report.process.memoryAuditExport = await callToolCaptureError(
+        client,
+        'memory_audit_export',
+        {},
+        30000,
+      );
+      isolatedBinaryClient = new Client(
+        { name: 'runtime-tool-probe-binary-isolated', version: '1.0.0' },
+        { capabilities: {} },
+      );
+      isolatedBinaryTransport = createClientTransport('full', sharedEnv);
+      await withTimeout(
+        isolatedBinaryClient.connect(isolatedBinaryTransport),
+        'connect-binary-isolated',
+        30000,
+      );
+      report.binary.ghidraAnalyze = await callToolCaptureError(
+        isolatedBinaryClient,
+        'ghidra_analyze',
+        { binaryPath: electronExePath, timeout: 5000 },
+        30000,
+      );
+      report.binary.ghidraDecompile = await callToolCaptureError(
+        isolatedBinaryClient,
+        'ghidra_decompile',
+        { binaryPath: electronExePath, functionName: 'createWindow' },
+        30000,
+      );
+      report.binary.idaDecompile = await callToolCaptureError(
+        isolatedBinaryClient,
+        'ida_decompile',
+        { binaryPath: electronExePath, functionName: 'createWindow' },
+        30000,
+      );
+      report.binary.jadxDecompile = await callToolCaptureError(
+        isolatedBinaryClient,
+        'jadx_decompile',
+        { apkPath: dummyApkPath, className: 'com.runtime.AuditActivity', methodName: 'onCreate' },
+        30000,
+      );
+      report.binary.unidbgEmulate = await callToolCaptureError(
+        isolatedBinaryClient,
+        'unidbg_emulate',
+        { binaryPath: dummySoPath, functionName: 'JNI_OnLoad', args: ['1'] },
+        30000,
+      );
+      report.binary.unidbgLaunch = await callToolCaptureError(
+        isolatedBinaryClient,
+        'unidbg_launch',
+        { soPath: dummySoPath, arch: 'arm64' },
+        30000,
+      );
+      report.binary.unidbgCall = await callToolCaptureError(
+        isolatedBinaryClient,
+        'unidbg_call',
+        { sessionId: 'missing-session', functionName: 'JNI_OnLoad' },
+        15000,
+      );
+      report.binary.unidbgTrace = await callToolCaptureError(
+        isolatedBinaryClient,
+        'unidbg_trace',
+        { sessionId: 'missing-session' },
+        15000,
+      );
+    }
 
     const proxyPort = await getFreePort();
     report.proxy.start = await callTool(
@@ -3691,6 +4521,30 @@ async function main() {
     report.proxy.ca = await callTool(client, 'proxy_export_ca', {}, 15000);
     report.proxy.caHasPem = flattenStrings(report.proxy.ca).some((entry) =>
       entry.includes('BEGIN CERTIFICATE'),
+    );
+    report.proxy.setupAdbDevice = await callToolCaptureError(
+      client,
+      'proxy_setup_adb_device',
+      { deviceSerial: 'runtime-audit-device' },
+      30000,
+    );
+    report.adb.analyzeApk = await callToolCaptureError(
+      client,
+      'adb_apk_analyze',
+      { serial: 'runtime-audit-device', packageName: 'com.runtime.audit' },
+      30000,
+    );
+    report.adb.webviewList = await callToolCaptureError(
+      client,
+      'adb_webview_list',
+      { serial: 'runtime-audit-device', hostPort: 9222 },
+      30000,
+    );
+    report.adb.webviewAttach = await callToolCaptureError(
+      client,
+      'adb_webview_attach',
+      { serial: 'runtime-audit-device', targetId: 'runtime-audit-target', hostPort: 9222 },
+      30000,
     );
     report.proxy.rule = await callTool(
       client,
@@ -4416,6 +5270,12 @@ async function main() {
         { scriptId: report.v8.auditProbeScriptId },
         30000,
       );
+      report.v8.bytecodeDecompile = await callToolCaptureError(
+        client,
+        'v8_bytecode_decompile',
+        { filePath: v8BytecodeFixturePath },
+        30000,
+      );
       report.analysis.extractFunctionTree = await callTool(
         client,
         'extract_function_tree',
@@ -4696,6 +5556,25 @@ async function main() {
         },
         30000,
       );
+      if (instrumentationSessionId) {
+        report.instrumentation.networkReplay = await callToolCaptureError(
+          client,
+          'instrumentation_network_replay',
+          {
+            sessionId: instrumentationSessionId,
+            requestId: report.network.requestId,
+            dryRun: true,
+            timeoutMs: 15000,
+            authorization: {
+              allowedHosts: ['127.0.0.1'],
+              allowPrivateNetwork: true,
+              allowInsecureHttp: true,
+              reason: 'runtime audit loopback replay',
+            },
+          },
+          30000,
+        );
+      }
     } else {
       report.network.bodyHasMarker = false;
       report.encoding.detect = await callTool(
@@ -5327,7 +6206,7 @@ async function main() {
         15000,
       );
     }
-    if (isRecord(report.canvas.traceClickInput)) {
+    if (!report.canvas.traceClick && isRecord(report.canvas.traceClickInput)) {
       report.canvas.traceClick = await callToolCaptureError(
         client,
         'canvas_trace_click_handler',
@@ -5336,6 +6215,57 @@ async function main() {
       );
     }
     report.network.disable = await callTool(client, 'network_disable', {}, 15000);
+    if (Number.isFinite(memoryProbePid) && memoryProbePid > 0) {
+      report.syscall.start = await callToolCaptureError(
+        client,
+        'syscall_start_monitor',
+        { backend: 'etw', pid: memoryProbePid, simulate: true },
+        15000,
+      );
+      report.syscall.capture = await callToolCaptureError(
+        client,
+        'syscall_capture_events',
+        { filter: { pid: memoryProbePid } },
+        15000,
+      );
+      report.syscall.filter = await callToolCaptureError(
+        client,
+        'syscall_filter',
+        { names: ['NtCreateFile'] },
+        15000,
+      );
+      report.syscall.correlate = await callToolCaptureError(
+        client,
+        'syscall_correlate_js',
+        {
+          syscallEvents: [
+            {
+              timestamp: Date.now(),
+              pid: memoryProbePid,
+              syscall: 'NtCreateFile',
+              args: ['0x1', '0x2'],
+              returnValue: 0,
+              duration: 1,
+            },
+          ],
+        },
+        15000,
+      );
+      report.syscall.stats = await callToolCaptureError(client, 'syscall_get_stats', {}, 15000);
+      report.syscall.stop = await callToolCaptureError(client, 'syscall_stop_monitor', {}, 15000);
+      report.tls.certPinBypass = await callToolCaptureError(
+        client,
+        'tls_cert_pin_bypass',
+        { target: 'desktop' },
+        15000,
+      );
+      report.tls.certPinBypassFrida = await callToolCaptureError(
+        client,
+        'tls_cert_pin_bypass_frida',
+        {},
+        15000,
+      );
+    }
   } catch (error) {
     report.error = error instanceof Error ? error.message : String(error);
     failure = error;
@@ -5359,7 +6289,14 @@ async function main() {
     try {
       await attachClient?.close();
     } catch {}
+    try {
+      await isolatedBinaryTransport?.close();
+    } catch {}
+    try {
+      await isolatedBinaryClient?.close();
+    } catch {}
     await terminateProcessTree(externalBrowserProc);
+    await terminateProcessTree(memoryProbeProc);
     if (externalBrowserUserDataDir) {
       try {
         await rm(externalBrowserUserDataDir, { recursive: true, force: true });
@@ -5372,9 +6309,21 @@ async function main() {
         });
       } catch {}
     }
+    if (Number.isFinite(electronDebugPid) && electronDebugPid > 0) {
+      try {
+        await execFileAsync('taskkill', ['/PID', String(electronDebugPid), '/T', '/F'], {
+          timeout: 15000,
+        });
+      } catch {}
+    }
     if (processLaunchUserDataDir) {
       try {
         await rm(processLaunchUserDataDir, { recursive: true, force: true });
+      } catch {}
+    }
+    if (electronDebugUserDataDir) {
+      try {
+        await rm(electronDebugUserDataDir, { recursive: true, force: true });
       } catch {}
     }
     try {

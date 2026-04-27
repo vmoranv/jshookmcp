@@ -21,6 +21,7 @@ export interface ClickOptions {
   button?: 'left' | 'right' | 'middle';
   clickCount?: number;
   delay?: number;
+  offset?: { x: number; y: number };
 }
 
 export interface TypeOptions {
@@ -144,11 +145,15 @@ export class PageController {
   ): Promise<void> {
     const page = await this.collector.getActivePage();
     const context = await this.resolveFrame(page, frameOptions);
-    await context.click(selector, {
+    const clickOptions: ClickOptions = {
       button: options?.button || 'left',
       clickCount: options?.clickCount || 1,
       delay: options?.delay,
-    });
+    };
+    if (options?.offset) {
+      clickOptions.offset = options.offset;
+    }
+    await context.click(selector, clickOptions);
     logger.info(
       `Clicked: ${selector}${frameOptions?.frameUrl || frameOptions?.frameSelector ? ' (in frame)' : ''}`,
     );

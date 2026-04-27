@@ -34,6 +34,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_first_scan', (t) =>
     t
       .desc('Start a new memory scan session.')
+      .number('pid', 'Target process ID')
       .string('value', 'Value to search for (as string, e.g. "100", "3.14", "48 65 6C 6C 6F")')
       .enum('valueType', [...ScanValueTypeOptions], 'Data type of the value')
       .number(
@@ -55,6 +56,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_next_scan', (t) =>
     t
       .desc('Narrow an existing scan session.')
+      .string('sessionId', 'Scan session ID')
       .enum('mode', [...ScanCompareModeOptions], 'Comparison mode')
       .string('value', 'Target value for exact/greater_than/less_than/between/not_equal modes')
       .string('value2', 'Upper bound value for "between" mode')
@@ -63,6 +65,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_unknown_scan', (t) =>
     t
       .desc('Start an unknown initial value scan.')
+      .number('pid', 'Target process ID')
       .enum('valueType', [...ScanValueTypeOptions], 'Data type to capture')
       .number('alignment', 'Alignment in bytes (default: natural for type)')
       .number('maxResults', 'Maximum addresses to capture (default: 5,000,000)')
@@ -79,6 +82,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_pointer_scan', (t) =>
     t
       .desc('Find pointers to a target address.')
+      .number('pid', 'Target process ID')
       .string('targetAddress', 'Target address to find pointers to (hex, e.g. "0x7FF612340000")')
       .number('maxResults', 'Maximum results (default: 10,000)')
       .boolean('moduleOnly', 'Only scan module-backed regions')
@@ -89,6 +93,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_group_scan', (t) =>
     t
       .desc('Search for multiple values at known offsets simultaneously.')
+      .number('pid', 'Target process ID')
       .array(
         'pattern',
         {
@@ -150,6 +155,7 @@ Actions:
   tool('memory_structure_analyze', (t) =>
     t
       .desc('Analyze memory at an address to infer data structure layout.')
+      .number('pid', 'Target process ID')
       .string('address', 'Base address of the structure (hex)')
       .number('size', 'Size to analyze in bytes (default: 256)')
       .array(

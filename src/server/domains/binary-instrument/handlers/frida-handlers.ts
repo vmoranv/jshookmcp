@@ -37,6 +37,7 @@ export class FridaHandlers {
     if (!availability.available) {
       const sessionId = `mock-frida-${makeMockId(target)}`;
       return jsonResponse({
+        success: false,
         available: false,
         capability: 'frida_cli',
         fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
@@ -47,13 +48,28 @@ export class FridaHandlers {
       });
     }
 
-    const sessionId = await frida.attach(target);
+    let sessionId: string;
+    try {
+      sessionId = await frida.attach(target);
+    } catch (error) {
+      return jsonResponse({
+        success: false,
+        available: true,
+        capability: 'frida_attach',
+        fix: 'Run the server elevated or choose a target process that allows Frida injection.',
+        target,
+        reason: error instanceof Error ? error.message : String(error),
+        sessions: frida.listSessions(),
+      });
+    }
+
     void this.state.context?.eventBus.emit('frida:attached', {
       target,
       sessionId,
       timestamp: new Date().toISOString(),
     });
     return jsonResponse({
+      success: true,
       available: true,
       target,
       sessionId,
@@ -89,7 +105,18 @@ export class FridaHandlers {
     }
 
     const modules = await frida.enumerateModules();
-    return jsonResponse({ available: true, sessionId, modules });
+    const diagnostics = frida.getSessionDiagnostics(sessionId);
+    if (diagnostics?.status === 'error' && diagnostics.lastError) {
+      return jsonResponse({
+        success: false,
+        available: true,
+        sessionId,
+        reason: diagnostics.lastError,
+        modules,
+      });
+    }
+
+    return jsonResponse({ success: true, available: true, sessionId, modules });
   }
 
   async handleFridaRunScript(args: Record<string, unknown>): Promise<unknown> {
@@ -122,7 +149,17 @@ export class FridaHandlers {
     }
 
     const execution = await frida.executeScript(script);
-    return { available: true, sessionId, execution };
+    if (execution.error) {
+      return jsonResponse({
+        success: false,
+        available: true,
+        sessionId,
+        reason: execution.error,
+        execution,
+      });
+    }
+
+    return jsonResponse({ success: true, available: true, sessionId, execution });
   }
 
   async handleFridaDetach(args: Record<string, unknown>): Promise<unknown> {
@@ -218,7 +255,27 @@ export class FridaHandlers {
     }
 
     const functions = await frida.enumerateFunctions(moduleName);
-    return { available: true, sessionId, moduleName, functions, count: functions.length };
+    const diagnostics = frida.getSessionDiagnostics(sessionId);
+    if (diagnostics?.status === 'error' && diagnostics.lastError) {
+      return jsonResponse({
+        success: false,
+        available: true,
+        sessionId,
+        moduleName,
+        reason: diagnostics.lastError,
+        functions,
+        count: functions.length,
+      });
+    }
+
+    return jsonResponse({
+      success: true,
+      available: true,
+      sessionId,
+      moduleName,
+      functions,
+      count: functions.length,
+    });
   }
 
   async handleFridaFindSymbols(args: Record<string, unknown>): Promise<unknown> {
@@ -251,7 +308,27 @@ export class FridaHandlers {
     }
 
     const symbols = await frida.findSymbols(pattern);
-    return { available: true, sessionId, pattern, symbols, count: symbols.length };
+    const diagnostics = frida.getSessionDiagnostics(sessionId);
+    if (diagnostics?.status === 'error' && diagnostics.lastError) {
+      return jsonResponse({
+        success: false,
+        available: true,
+        sessionId,
+        pattern,
+        reason: diagnostics.lastError,
+        symbols,
+        count: symbols.length,
+      });
+    }
+
+    return jsonResponse({
+      success: true,
+      available: true,
+      sessionId,
+      pattern,
+      symbols,
+      count: symbols.length,
+    });
   }
 
   private getFridaSession(): FridaSession {
