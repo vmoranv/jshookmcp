@@ -53,8 +53,8 @@
 | `profiler_heap_sampling` | V8 堆分配采样。start 开始追踪，stop 结束并返回主要分配热点。 |
 | `console_get_exceptions` | 获取页面中已捕获的未处理异常。 |
 | `console_inject` | 注入页面内监控器/拦截器，支持 script_monitor、xhr_interceptor、fetch_interceptor、function_tracer 等类型。 |
-| `console_inject_fetch_interceptor` | 待补充中文：Inject the fetch() interceptor directly |
-| `console_inject_xhr_interceptor` | 待补充中文：Inject the XMLHttpRequest interceptor directly |
+| `console_inject_fetch_interceptor` | 直接注入 fetch() 拦截器。 |
+| `console_inject_xhr_interceptor` | 直接注入 XMLHttpRequest 拦截器。 |
 | `console_buffers` | 管理已注入拦截器的状态，支持清空缓冲区或重置拦截器。 |
 | `http_request_build` | 构建原始 HTTP/1.x 请求载荷（CRLF 行尾）。用于为 http_plain_request 或其他原始套接字工具准备确定性请求文本。 |
 | `http_plain_request` | 通过原始 TCP 发送 HTTP 请求，使用确定性服务端逻辑，包含 DNS 固定、响应解析和有界捕获。非回环 HTTP 目标需要显式请求级授权。 |

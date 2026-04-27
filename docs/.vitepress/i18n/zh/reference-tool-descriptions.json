@@ -444,6 +444,6 @@
   "binary_instrument_capabilities": "报告二进制插桩后端可用性。",
   "mojo_ipc_capabilities": "报告 Mojo IPC 监控可用性。",
   "platform_capabilities": "报告平台工具后端可用性。",
-  "console_inject_fetch_interceptor": "待补充中文：Inject the fetch() interceptor directly",
-  "console_inject_xhr_interceptor": "待补充中文：Inject the XMLHttpRequest interceptor directly"
+  "console_inject_fetch_interceptor": "直接注入 fetch() 拦截器。",
+  "console_inject_xhr_interceptor": "直接注入 XMLHttpRequest 拦截器。"
 }
