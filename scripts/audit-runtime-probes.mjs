@@ -69,12 +69,12 @@ import {
   buildMinimalTlsClientHelloRecordHex,
   createClientTransport,
   createTlsDecryptFixture,
-  execFileAsync,
   getCliValue,
   getFreePort,
   getNewestChromePid,
   getPreferredBrowserExecutable,
   sendRawHttpRequest,
+  terminateProcessId,
   terminateProcessTree,
   waitForBrowserEndpoint,
 } from './runtime-probes/helpers/runtime.mjs';
@@ -142,6 +142,7 @@ const phaseHelpers = {
   waitForBrowserEndpoint,
   getPreferredBrowserExecutable,
   terminateProcessTree,
+  terminateProcessId,
   getNewestChromePid,
   getTabularRowValue,
 };
@@ -296,20 +297,8 @@ async function main() {
         await rm(externalBrowserUserDataDir, { recursive: true, force: true });
       } catch {}
     }
-    if (Number.isFinite(processLaunchPid) && processLaunchPid > 0) {
-      try {
-        await execFileAsync('taskkill', ['/PID', String(processLaunchPid), '/T', '/F'], {
-          timeout: 15000,
-        });
-      } catch {}
-    }
-    if (Number.isFinite(electronDebugPid) && electronDebugPid > 0) {
-      try {
-        await execFileAsync('taskkill', ['/PID', String(electronDebugPid), '/T', '/F'], {
-          timeout: 15000,
-        });
-      } catch {}
-    }
+    await terminateProcessId(processLaunchPid);
+    await terminateProcessId(electronDebugPid);
     if (processLaunchUserDataDir) {
       try {
         await rm(processLaunchUserDataDir, { recursive: true, force: true });

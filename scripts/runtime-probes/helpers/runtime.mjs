@@ -8,19 +8,66 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 export const execFileAsync = promisify(execFile);
 
+function parsePid(stdout) {
+  const normalized = stdout.trim();
+  return /^\d+$/.test(normalized) ? normalized : null;
+}
+
+function matchesBrowserCommand(command) {
+  return /(chrome|chromium|msedge|edge)/i.test(command);
+}
+
 export async function getNewestChromePid() {
+  if (process.platform === 'win32') {
+    try {
+      const { stdout } = await execFileAsync(
+        'powershell',
+        [
+          '-NoProfile',
+          '-Command',
+          'Get-Process chrome,msedge -ErrorAction SilentlyContinue | Sort-Object StartTime | Select-Object -Last 1 -ExpandProperty Id',
+        ],
+        { windowsHide: true, timeout: 10000 },
+      );
+      return parsePid(stdout);
+    } catch {
+      return null;
+    }
+  }
+
   try {
     const { stdout } = await execFileAsync(
-      'powershell',
-      [
-        '-NoProfile',
-        '-Command',
-        'Get-Process chrome -ErrorAction Stop | Sort-Object StartTime | Select-Object -Last 1 -ExpandProperty Id',
-      ],
-      { windowsHide: true, timeout: 10000 },
+      'pgrep',
+      ['-n', '-f', 'Google Chrome|Chromium|chrome|msedge|Microsoft Edge'],
+      { timeout: 10000 },
     );
-    const normalized = stdout.trim();
-    return /^\d+$/.test(normalized) ? normalized : null;
+    const pid = parsePid(stdout);
+    if (pid) {
+      return pid;
+    }
+  } catch {}
+
+  try {
+    const { stdout } = await execFileAsync('ps', ['-axo', 'pid=,comm='], { timeout: 10000 });
+    const newestPid = stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const match = line.match(/^(\d+)\s+(.+)$/);
+        if (!match) {
+          return null;
+        }
+        const pid = Number.parseInt(match[1], 10);
+        const command = match[2];
+        if (!Number.isInteger(pid) || !matchesBrowserCommand(command)) {
+          return null;
+        }
+        return { pid, command };
+      })
+      .filter((entry) => entry !== null)
+      .toSorted((a, b) => b.pid - a.pid)[0];
+    return newestPid ? String(newestPid.pid) : null;
   } catch {
     return null;
   }
@@ -141,9 +188,11 @@ export async function waitForBrowserEndpoint(browserURL, timeoutMs = 20000) {
 }
 
 export function getPreferredBrowserExecutable() {
-  const envCandidates = [process.env.CHROME_PATH, process.env.PUPPETEER_EXECUTABLE_PATH].filter(
-    (value) => typeof value === 'string' && value.length > 0,
-  );
+  const envCandidates = [
+    process.env.BROWSER_EXECUTABLE_PATH,
+    process.env.CHROME_PATH,
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+  ].filter((value) => typeof value === 'string' && value.length > 0);
   const platformCandidates =
     process.platform === 'win32'
       ? [
@@ -184,6 +233,38 @@ export async function terminateProcessTree(childProcess) {
   } catch {}
   try {
     childProcess.kill('SIGTERM');
+  } catch {}
+}
+
+function isPidAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function terminateProcessId(pid) {
+  if (!Number.isFinite(pid) || pid <= 0) {
+    return;
+  }
+  try {
+    if (process.platform === 'win32') {
+      await execFileAsync('taskkill', ['/PID', String(pid), '/T', '/F'], { timeout: 15000 });
+      return;
+    }
+  } catch {}
+
+  try {
+    process.kill(pid, 'SIGTERM');
+  } catch {}
+  await delay(500);
+  if (!isPidAlive(pid)) {
+    return;
+  }
+  try {
+    process.kill(pid, 'SIGKILL');
   } catch {}
 }
 
