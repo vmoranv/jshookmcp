@@ -1,4 +1,5 @@
 import { VersionDetector } from '@modules/v8-inspector/VersionDetector';
+import { printNativeIgnitionBytecode } from '@modules/v8-inspector/NativeBytecodePrinter';
 
 interface CDPSessionLike {
   send<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T>;
@@ -304,13 +305,27 @@ export class BytecodeExtractor {
         };
       }
 
+      const isolatedAttempt = await printNativeIgnitionBytecode(context);
+      if (isolatedAttempt.available && isolatedAttempt.bytecode) {
+        return {
+          available: true,
+          bytecode: isolatedAttempt.bytecode,
+          format: isolatedAttempt.format,
+          functionName: isolatedAttempt.functionName,
+          rawIgnitionBytecodeAvailable: isolatedAttempt.rawIgnitionBytecodeAvailable,
+          reason: isolatedAttempt.reason,
+          sourcePosition: nativeSourcePosition ?? context.sourcePosition,
+          supportsNativesSyntax: true,
+        };
+      }
+
       return {
         available: false,
         bytecode: null,
         format: null,
         functionName: context.functionName,
         rawIgnitionBytecodeAvailable: false,
-        reason: formatUnavailableReason(result),
+        reason: `${formatUnavailableReason(result)}; isolated printer: ${isolatedAttempt.reason}`,
         sourcePosition: nativeSourcePosition ?? context.sourcePosition,
         supportsNativesSyntax: true,
       };
@@ -336,6 +351,9 @@ export class BytecodeExtractor {
       const trimmed = line.trim();
       if (trimmed.length === 0 || trimmed.startsWith(';')) continue;
       const match =
+        /^\d+\s+\w+>\s+[0-9A-Fa-f]+\s+@\s*(\d+)\s*:\s*(?:[0-9A-Fa-f]{2}(?:\s+[0-9A-Fa-f]{2})*\s+)?([A-Za-z_][\w.]*)\s*(.*)$/u.exec(
+          trimmed,
+        ) ??
         /^(\d+)\s*@\s*([A-Za-z_][\w.]*)\s*(.*)$/u.exec(trimmed) ??
         /^(?:0x[0-9a-fA-F]+\s+@)?\s*(\d+)\s*[: ]\s*([A-Za-z_][\w.]*)\s*(.*)$/u.exec(trimmed) ??
         /^(\d+)\s+([A-Za-z_][\w.]*)\s*(.*)$/u.exec(trimmed);
@@ -422,15 +440,23 @@ export class BytecodeExtractor {
               functionOffset >= candidate.startOffset && functionOffset <= candidate.endOffset,
           )
         : undefined;
+    const defaultFunction =
+      functionByOffset ??
+      functions.find(
+        (candidate) => candidate.functionName.length > 0 && candidate.functionName !== 'anonymous',
+      ) ??
+      functions[0];
 
     const functionName =
-      functionByOffset?.functionName && functionByOffset.functionName.length > 0
-        ? functionByOffset.functionName
+      defaultFunction?.functionName &&
+      defaultFunction.functionName.length > 0 &&
+      defaultFunction.functionName !== 'anonymous'
+        ? defaultFunction.functionName
         : inferFunctionName(scriptSource, functionOffset);
 
     const sourceSlice =
-      functionByOffset && functionByOffset.endOffset > functionByOffset.startOffset
-        ? scriptSource.slice(functionByOffset.startOffset, functionByOffset.endOffset)
+      defaultFunction && defaultFunction.endOffset > defaultFunction.startOffset
+        ? scriptSource.slice(defaultFunction.startOffset, defaultFunction.endOffset)
         : scriptSource;
 
     return {
@@ -438,8 +464,8 @@ export class BytecodeExtractor {
       sourcePosition:
         typeof functionOffset === 'number'
           ? functionOffset
-          : functionByOffset
-            ? functionByOffset.startOffset
+          : defaultFunction
+            ? defaultFunction.startOffset
             : undefined,
       sourceSlice,
     };

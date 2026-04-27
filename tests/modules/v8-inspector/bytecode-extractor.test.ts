@@ -136,4 +136,60 @@ describe('BytecodeExtractor', () => {
       supportsNativesSyntax: true,
     });
   });
+
+  it('falls back to isolated ignition bytecode when native disassembly text is unavailable', async () => {
+    let runtimeEvaluateCount = 0;
+    const scriptSource = [
+      'function myFunc() { return document.title; }',
+      'window.myFunc = myFunc;',
+      'myFunc();',
+    ].join('\n');
+    const extractor = createExtractor(async (method) => {
+      if (method === 'Debugger.getScriptSource') {
+        return { scriptSource };
+      }
+      if (method === 'Profiler.takePreciseCoverage') {
+        return {
+          result: [
+            {
+              scriptId: '1',
+              functions: [
+                {
+                  functionName: 'myFunc',
+                  ranges: [{ startOffset: 0, endOffset: 'function myFunc() { return document.title; }'.length }],
+                },
+              ],
+            },
+          ],
+        };
+      }
+      if (method === 'Runtime.evaluate') {
+        runtimeEvaluateCount += 1;
+        if (runtimeEvaluateCount === 1) {
+          return { result: { value: true } };
+        }
+        return {
+          result: {
+            value: {
+              disassembly: null,
+              disassemblyType: 'undefined',
+              nativeSourcePosition: 0,
+            },
+          },
+        };
+      }
+      return {};
+    });
+
+    const result = await extractor.attemptNativeBytecodeExtraction('1');
+    expect(result).not.toBeNull();
+    expect(result?.available).toBe(true);
+    expect(result?.format).toBe('ignition-bytecode');
+    expect(result?.functionName).toBe('myFunc');
+    expect(result?.rawIgnitionBytecodeAvailable).toBe(true);
+    expect(result?.supportsNativesSyntax).toBe(true);
+    expect(result?.reason).toContain('--print-bytecode');
+    expect(result?.bytecode).toContain('Bytecode length:');
+    expect(result?.bytecode).toContain('Return');
+  });
 });
