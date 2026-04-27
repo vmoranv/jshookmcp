@@ -42,6 +42,7 @@ describe('SourcemapToolHandlers', () => {
     attachedSessionMock = {
       send: vi.fn().mockResolvedValue({}),
       detach: vi.fn().mockResolvedValue(undefined),
+      id: vi.fn(() => 'sess1'),
     };
     sessionMock.connection.mockReturnValue({
       session: vi.fn((sessionId: string) => (sessionId === 'sess1' ? attachedSessionMock : null)),
@@ -335,7 +336,10 @@ describe('SourcemapToolHandlers', () => {
         returnByValue: true,
         awaitPromise: true,
       });
-      expect(attachedSessionMock.detach).toHaveBeenCalledOnce();
+      expect(sessionMock.send).toHaveBeenCalledWith('Target.detachFromTarget', {
+        sessionId: 'sess1',
+      });
+      expect(attachedSessionMock.detach).not.toHaveBeenCalled();
     });
 
     it('rejects without available targets quickly', async () => {
