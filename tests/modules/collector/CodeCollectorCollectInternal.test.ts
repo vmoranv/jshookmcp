@@ -169,6 +169,9 @@ function createHarness(options: HarnessOptions = {}) {
     newPage: vi.fn().mockResolvedValue(page),
     close: vi.fn().mockResolvedValue(undefined),
   };
+  const activePage = {
+    browserContext: vi.fn().mockReturnValue(browserContext),
+  };
 
   const self = {
     cacheEnabled: options.cacheEnabled ?? false,
@@ -177,7 +180,9 @@ function createHarness(options: HarnessOptions = {}) {
       set: vi.fn().mockResolvedValue(undefined),
     },
     init: vi.fn().mockResolvedValue(undefined),
+    getActivePage: vi.fn().mockResolvedValue(activePage),
     getActivePageIndex: vi.fn().mockResolvedValue(0),
+    listPages: vi.fn().mockResolvedValue([{ index: 0, url: 'https://site', title: 'Site' }]),
     selectPage: vi.fn().mockResolvedValue(undefined),
     browser: {
       newPage: vi.fn().mockResolvedValue(page),
@@ -218,7 +223,7 @@ function createHarness(options: HarnessOptions = {}) {
     },
   };
 
-  return { browserContext, cdpSession, page, self };
+  return { activePage, browserContext, cdpSession, page, self };
 }
 
 describe('CodeCollector collect internals', () => {
@@ -688,8 +693,8 @@ describe('CodeCollector collect internals', () => {
     expect(self.cache.set).not.toHaveBeenCalled();
   });
 
-  it('uses an isolated browser context when available', async () => {
-    const { browserContext, page, self } = createHarness();
+  it('reuses the active page browser context when available', async () => {
+    const { activePage, browserContext, page, self } = createHarness();
 
     await collectInnerImpl(self, {
       url: 'https://site',
@@ -698,6 +703,28 @@ describe('CodeCollector collect internals', () => {
       includeWebWorker: false,
     });
 
+    expect(self.listPages).toHaveBeenCalledOnce();
+    expect(self.getActivePage).toHaveBeenCalledOnce();
+    expect(activePage.browserContext).toHaveBeenCalledOnce();
+    expect(self.browser.createBrowserContext).not.toHaveBeenCalled();
+    expect(browserContext.newPage).toHaveBeenCalledOnce();
+    expect(browserContext.close).not.toHaveBeenCalled();
+    expect(page.close).toHaveBeenCalledOnce();
+    expect(self.selectPage).toHaveBeenCalledWith(0);
+  });
+
+  it('falls back to an isolated browser context when no active page exists', async () => {
+    const { browserContext, page, self } = createHarness();
+    self.listPages.mockResolvedValue([]);
+
+    await collectInnerImpl(self, {
+      url: 'https://site',
+      includeInline: false,
+      includeServiceWorker: false,
+      includeWebWorker: false,
+    });
+
+    expect(self.getActivePage).not.toHaveBeenCalled();
     expect(self.browser.createBrowserContext).toHaveBeenCalledOnce();
     expect(browserContext.newPage).toHaveBeenCalledOnce();
     expect(browserContext.close).toHaveBeenCalledOnce();
