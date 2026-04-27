@@ -99,6 +99,14 @@ describe('PageController', () => {
     expect(result.title).toBe('Demo');
   });
 
+  it('exposes the underlying browser instance when available', async () => {
+    const browser = { newPage: vi.fn() };
+    collector.getBrowser = vi.fn(() => browser);
+
+    await expect(controller.getBrowser()).resolves.toBe(browser);
+    expect(collector.getBrowser).toHaveBeenCalledOnce();
+  });
+
   it('click uses default click options', async () => {
     await controller.click('#submit');
 

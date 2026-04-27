@@ -62,6 +62,10 @@ interface UploadableElementHandle {
 export class PageController {
   constructor(private collector: CodeCollector) {}
 
+  async getBrowser(): Promise<ReturnType<CodeCollector['getBrowser']>> {
+    return this.collector.getBrowser();
+  }
+
   hasAttachedTargetSession(): boolean {
     return this.collector.getAttachedTargetSession() !== null;
   }
