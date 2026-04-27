@@ -150,7 +150,7 @@ jobs:
       - name: Export Playwright executable path
         shell: bash
         run: |
-          BROWSER_PATH="$(node --input-type=module -e 'const { chromium } = await import(\"playwright-core\"); process.stdout.write(chromium.executablePath())')"
+          BROWSER_PATH="$(node --input-type=module -e 'const { chromium } = await import("playwright-core"); process.stdout.write(chromium.executablePath())')"
           echo "PUPPETEER_EXECUTABLE_PATH=$BROWSER_PATH" >> "$GITHUB_ENV"
           echo "PUPPETEER_HEADLESS=true" >> "$GITHUB_ENV"
 
