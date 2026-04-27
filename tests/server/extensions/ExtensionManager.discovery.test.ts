@@ -126,6 +126,42 @@ describe('ExtensionManager.discovery', () => {
     ]);
   });
 
+  it('scans dotfile install metadata so installed entries are discoverable after registry install', async () => {
+    state.glob.mockImplementation(
+      async (_pattern: string, options: { cwd: string; dot?: boolean }) => {
+        if (options.cwd === workflowRoot && options.dot) {
+          return [workflowAlphaMetadata, workflowAlphaEntry];
+        }
+        return [];
+      },
+    );
+    state.readFile.mockImplementation(async (path: string | PathLike) => {
+      if (normalizePath(path) === normalizePath(workflowAlphaMetadata)) {
+        return JSON.stringify({
+          version: 1,
+          kind: 'workflow',
+          slug: 'alpha',
+          id: 'workflow.alpha.v1',
+          source: {
+            type: 'git',
+            repo: 'https://example.com/alpha.git',
+            ref: 'main',
+            commit: 'abc123',
+            subpath: '.',
+            entry: 'dist/index.js',
+          },
+        });
+      }
+      throw new Error(`Unexpected read: ${String(path)}`);
+    });
+    state.existsSync.mockImplementation(
+      (path: string | PathLike) => normalizePath(path) === normalizePath(workflowAlphaEntry),
+    );
+    const { discoverWorkflowFiles } = await import('@server/extensions/ExtensionManager.discovery');
+
+    await expect(discoverWorkflowFiles([workflowRoot])).resolves.toEqual([workflowAlphaEntry]);
+  });
+
   it('falls back to legacy scans when installed metadata is invalid or missing output', async () => {
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === pluginRoot) {
@@ -146,16 +182,23 @@ describe('ExtensionManager.discovery', () => {
     const workflowA = resolve(workflowRoot, 'a', 'workflow.ts');
     const workflowB = resolve(workflowRoot, 'b', 'build.workflow.js');
     const workflowC = resolve(workflowRoot, 'c', 'workflow.md');
+    const workflowD = resolve(workflowRoot, 'd', 'workflow.mjs');
+    const workflowE = resolve(workflowRoot, 'e', 'build.workflow.mts');
 
     state.glob.mockImplementation(async (_pattern: string, options: { cwd: string }) => {
       if (options.cwd === workflowRoot) {
-        return [workflowA, workflowB, workflowC];
+        return [workflowA, workflowB, workflowC, workflowD, workflowE];
       }
       return [];
     });
     const { discoverWorkflowFiles } = await import('@server/extensions/ExtensionManager.discovery');
 
-    await expect(discoverWorkflowFiles([workflowRoot])).resolves.toEqual([workflowA, workflowB]);
+    await expect(discoverWorkflowFiles([workflowRoot])).resolves.toEqual([
+      workflowA,
+      workflowB,
+      workflowD,
+      workflowE,
+    ]);
   });
 
   it('skips roots whose glob scan fails', async () => {

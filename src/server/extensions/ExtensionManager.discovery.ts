@@ -20,6 +20,14 @@ type Candidate = {
   priority: number;
 };
 
+function isJavaScriptLikeFile(file: string): boolean {
+  return file.endsWith('.js') || file.endsWith('.mjs') || file.endsWith('.cjs');
+}
+
+function isTypeScriptLikeFile(file: string): boolean {
+  return file.endsWith('.ts') || file.endsWith('.mts') || file.endsWith('.cts');
+}
+
 async function collectMatchingFiles(
   roots: string[],
   matcher: (filename: string) => boolean,
@@ -32,6 +40,7 @@ async function collectMatchingFiles(
         cwd: root,
         absolute: true,
         onlyFiles: true,
+        dot: true,
         ignore: ['**/node_modules/**', '**/.git/**', '**/.pnpm/**'],
       });
     } catch {
@@ -131,8 +140,8 @@ async function collectInstalledEntryCandidates(
       candidates.push({
         file,
         key: normalizeExtensionCandidateKey(root, file),
-        isJs: file.endsWith('.js'),
-        isTs: file.endsWith('.ts'),
+        isJs: isJavaScriptLikeFile(file),
+        isTs: isTypeScriptLikeFile(file),
         rootIndex,
         priority: 0,
       });
@@ -189,8 +198,8 @@ export async function discoverPluginFiles(pluginRoots: string[]): Promise<string
       candidates.push({
         file,
         key: normalizeExtensionCandidateKey(root, file),
-        isJs: file.endsWith('.js'),
-        isTs: file.endsWith('.ts'),
+        isJs: isJavaScriptLikeFile(file),
+        isTs: isTypeScriptLikeFile(file),
         rootIndex,
         priority: 1,
       });
@@ -208,17 +217,25 @@ export async function discoverWorkflowFiles(workflowRoots: string[]): Promise<st
       [root],
       (filename) =>
         filename.endsWith('.workflow.js') ||
+        filename.endsWith('.workflow.mjs') ||
+        filename.endsWith('.workflow.cjs') ||
         filename.endsWith('.workflow.ts') ||
+        filename.endsWith('.workflow.mts') ||
+        filename.endsWith('.workflow.cts') ||
         filename === 'workflow.js' ||
-        filename === 'workflow.ts',
+        filename === 'workflow.mjs' ||
+        filename === 'workflow.cjs' ||
+        filename === 'workflow.ts' ||
+        filename === 'workflow.mts' ||
+        filename === 'workflow.cts',
     );
 
     for (const file of files) {
       candidates.push({
         file,
         key: normalizeExtensionCandidateKey(root, file),
-        isJs: file.endsWith('.js'),
-        isTs: file.endsWith('.ts'),
+        isJs: isJavaScriptLikeFile(file),
+        isTs: isTypeScriptLikeFile(file),
         rootIndex,
         priority: 1,
       });
