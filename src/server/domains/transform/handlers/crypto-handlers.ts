@@ -211,11 +211,14 @@ export class CryptoHandlers {
         extracted.targetPath ?? '',
         extracted.targetSource,
       );
+      const dependencySnippets = extracted.dependencySnippets.filter(
+        (snippet) => !snippet.startsWith(`const ${functionName} = `),
+      );
+      const dependencies = extracted.dependencies.filter((name) => name !== functionName);
       const sections: string[] = [`'use strict';`];
 
       if (includePolyfills) sections.push(buildCryptoPolyfills());
-      if (extracted.dependencySnippets.length > 0)
-        sections.push(extracted.dependencySnippets.join('\n'));
+      if (dependencySnippets.length > 0) sections.push(dependencySnippets.join('\n'));
       sections.push(`const ${functionName} = ${extracted.targetSource.trim()};`);
       sections.push(
         `if (typeof globalThis !== 'undefined') { globalThis.${functionName} = ${functionName}; }`,
@@ -225,7 +228,7 @@ export class CryptoHandlers {
 
       return toTextResponse({
         extractedCode,
-        dependencies: extracted.dependencies,
+        dependencies,
         size: extractedCode.length,
       });
     } catch (error) {

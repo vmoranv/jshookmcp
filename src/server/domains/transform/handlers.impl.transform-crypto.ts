@@ -198,14 +198,18 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
         extracted.targetPath ?? '',
         extracted.targetSource,
       );
+      const dependencySnippets = extracted.dependencySnippets.filter(
+        (snippet) => !snippet.startsWith(`const ${functionName} = `),
+      );
+      const dependencies = extracted.dependencies.filter((name) => name !== functionName);
       const sections: string[] = [`'use strict';`];
 
       if (includePolyfills) {
         sections.push(this.buildCryptoPolyfills());
       }
 
-      if (extracted.dependencySnippets.length > 0) {
-        sections.push(extracted.dependencySnippets.join('\n'));
+      if (dependencySnippets.length > 0) {
+        sections.push(dependencySnippets.join('\n'));
       }
 
       sections.push(`const ${functionName} = ${extracted.targetSource.trim()};`);
@@ -217,7 +221,7 @@ export class TransformToolHandlersCrypto extends TransformToolHandlersOps {
 
       return this.toTextResponse({
         extractedCode,
-        dependencies: extracted.dependencies,
+        dependencies,
         size: extractedCode.length,
       });
     } catch (error) {

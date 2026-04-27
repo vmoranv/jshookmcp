@@ -180,6 +180,34 @@ describe('TransformToolHandlersCrypto', () => {
       const body = parseJson<any>(result);
       expect(body.extractedCode).not.toContain('const dep');
     });
+
+    it('does not duplicate the extracted function in dependency snippets', async () => {
+      const { handler } = createHandler({
+        evaluate: vi.fn().mockResolvedValue({
+          targetPath: 'window.auditCryptoSign',
+          targetSource: 'function auditCryptoSign(input){return input}',
+          candidates: [
+            {
+              path: 'window.auditCryptoSign',
+              source: 'function auditCryptoSign(input){return input}',
+              score: 10,
+            },
+          ],
+          dependencies: ['auditCryptoSign', 'dep1'],
+          dependencySnippets: [
+            'const auditCryptoSign = function auditCryptoSign(input){return input};',
+            'const dep1 = 42;',
+          ],
+        }),
+      });
+      const result = await handler.handleCryptoExtractStandalone({
+        targetFunction: 'window.auditCryptoSign',
+      });
+      const body = parseJson<any>(result);
+      expect(body.dependencies).toEqual(['dep1']);
+      expect(body.extractedCode).toContain('const dep1 = 42;');
+      expect(body.extractedCode.match(/const auditCryptoSign =/g)).toHaveLength(1);
+    });
   });
 
   describe('handleCryptoTestHarness', () => {
