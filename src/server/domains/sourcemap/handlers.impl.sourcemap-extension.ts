@@ -9,6 +9,7 @@ import {
   detachFromFlatTarget,
   type FlatSessionParentLike,
 } from '@modules/browser/flat-target-session';
+import type { CDPSessionLike as BrowserCDPSessionLike } from '@modules/browser/CDPSessionLike';
 
 export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon {
   async handleExtensionListInstalled(_args: Record<string, unknown>): Promise<TextToolResponse> {
@@ -38,7 +39,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
 
     const page = await this.collector.getActivePage();
     const session = (await page.createCDPSession()) as unknown as FlatSessionParentLike;
-    let attachedSession: CdpSessionLike | null = null;
+    let attachedSession: BrowserCDPSessionLike | null = null;
 
     try {
       const targets = await this.getExtensionTargets(session, extensionId);
@@ -47,10 +48,7 @@ export class SourcemapToolHandlersExtension extends SourcemapToolHandlersCommon 
       }
 
       const preferred = this.pickPreferredExtensionTarget(targets);
-      attachedSession = (await attachToFlatTarget(
-        session,
-        preferred.targetId,
-      )) as unknown as CdpSessionLike;
+      attachedSession = await attachToFlatTarget(session, preferred.targetId);
 
       const evaluation = await this.evaluateInAttachedTarget(attachedSession, code, returnByValue);
 

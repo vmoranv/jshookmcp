@@ -13,6 +13,7 @@ import {
   detachFromFlatTarget,
   type FlatSessionParentLike,
 } from '@modules/browser/flat-target-session';
+import type { CDPSessionLike as BrowserCDPSessionLike } from '@modules/browser/CDPSessionLike';
 import {
   asRecord,
   asString,
@@ -56,7 +57,7 @@ export class ExtensionHandlers {
 
     const page = await this.state.collector.getActivePage();
     const session = (await page.createCDPSession()) as unknown as FlatSessionParentLike;
-    let attachedSession: CdpSessionLike | null = null;
+    let attachedSession: BrowserCDPSessionLike | null = null;
 
     try {
       const targets = await this.getExtensionTargets(session, extensionId);
@@ -64,10 +65,7 @@ export class ExtensionHandlers {
         throw new Error(`No background target found for extension: ${extensionId}`);
 
       const preferred = this.pickPreferredExtensionTarget(targets);
-      attachedSession = (await attachToFlatTarget(
-        session,
-        preferred.targetId,
-      )) as unknown as CdpSessionLike;
+      attachedSession = await attachToFlatTarget(session, preferred.targetId);
 
       const evaluation = await this.evaluateInAttachedTarget(attachedSession, code, returnByValue);
 
