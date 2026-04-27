@@ -396,21 +396,17 @@ describe('IntegrityHandlers', () => {
 
   describe('handleGuardPages', () => {
     it('returns success response on happy path', async () => {
-      mockantiCheatDetector.findGuardPages = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
+      mockantiCheatDetector.scanGuardPages = vi.fn().mockReturnValue({
+        guardPages: [{ address: '0x123', size: 4096, moduleName: 'test.exe', nearbySymbol: null }],
+        stats: {
+          scannedRegions: 1,
+          queryFailures: 0,
+          durationMs: 1,
+          timedOut: false,
+          truncated: false,
+          maxRegions: 100,
+          timeoutMs: 1000,
+        },
       });
 
       const response = await handlers.handleGuardPages(dummyArgs);
@@ -419,10 +415,11 @@ describe('IntegrityHandlers', () => {
       });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.scan.truncated).toBe(false);
     });
 
     it('returns error response on failure', async () => {
-      mockantiCheatDetector.findGuardPages = vi.fn().mockImplementation(() => {
+      mockantiCheatDetector.scanGuardPages = vi.fn().mockImplementation(() => {
         throw new Error('Native error');
       });
 
@@ -438,7 +435,23 @@ describe('IntegrityHandlers', () => {
 
   describe('handleIntegrityCheck', () => {
     it('returns success response on happy path', async () => {
-      mockantiCheatDetector.checkIntegrity = vi.fn().mockReturnValue([{ isModified: true }]);
+      mockantiCheatDetector.scanIntegrity = vi.fn().mockReturnValue({
+        sections: [{ isModified: true }],
+        stats: {
+          scannedModules: 1,
+          scannedSections: 1,
+          hashedBytes: 32,
+          skippedModules: 0,
+          skippedSections: 0,
+          durationMs: 1,
+          timedOut: false,
+          truncated: false,
+          maxModules: 10,
+          maxSections: 10,
+          maxBytes: 1024,
+          timeoutMs: 1000,
+        },
+      });
 
       const response = await handlers.handleIntegrityCheck(dummyArgs);
       expect(response).toEqual({
@@ -446,10 +459,11 @@ describe('IntegrityHandlers', () => {
       });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.scan.truncated).toBe(false);
     });
 
     it('returns error response on failure', async () => {
-      mockantiCheatDetector.checkIntegrity = vi.fn().mockImplementation(() => {
+      mockantiCheatDetector.scanIntegrity = vi.fn().mockImplementation(() => {
         throw new Error('Native error');
       });
 

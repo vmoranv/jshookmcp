@@ -169,14 +169,17 @@ export class IntegrityHandlers {
 
   async handleGuardPages(args: Record<string, unknown>) {
     try {
-      const pages = await this.antiCheatDetector!.findGuardPages(args.pid as number);
+      const result = await this.antiCheatDetector!.scanGuardPages(args.pid as number);
+      const { guardPages, stats } = result;
       return toTextResponse({
         success: true,
-        guardPages: pages,
-        count: pages.length,
-        hint:
-          pages.length > 0
-            ? `Found ${pages.length} guard page regions — these may indicate anti-tampering.`
+        guardPages,
+        count: guardPages.length,
+        scan: stats,
+        hint: stats.truncated
+          ? `Scan stopped after ${stats.scannedRegions} regions in ${stats.durationMs}ms to avoid hanging. Results may be partial.`
+          : guardPages.length > 0
+            ? `Found ${guardPages.length} guard page regions — these may indicate anti-tampering.`
             : 'No guard pages found.',
       });
     } catch (error) {
@@ -186,18 +189,21 @@ export class IntegrityHandlers {
 
   async handleIntegrityCheck(args: Record<string, unknown>) {
     try {
-      const results = await this.antiCheatDetector!.checkIntegrity(
+      const result = await this.antiCheatDetector!.scanIntegrity(
         args.pid as number,
         args.moduleName as string | undefined,
       );
-      const modified = results.filter((r) => r.isModified);
+      const { sections, stats } = result;
+      const modified = sections.filter((r) => r.isModified);
       return toTextResponse({
         success: true,
-        sections: results,
-        totalChecked: results.length,
+        sections,
+        totalChecked: sections.length,
         modifiedCount: modified.length,
-        hint:
-          modified.length > 0
+        scan: stats,
+        hint: stats.truncated
+          ? `Checked ${stats.scannedSections} executable section(s) across ${stats.scannedModules} module(s) before hitting safety limits. Results may be partial.`
+          : modified.length > 0
             ? `${modified.length} section(s) modified — code may have been patched or hooked.`
             : 'All checked sections match disk — no runtime modifications detected.',
       });

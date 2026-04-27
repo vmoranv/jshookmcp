@@ -139,6 +139,41 @@ describe('StructureHandlers', () => {
       expect(parsed.success).toBe(true);
     });
 
+    it('normalizes legacy export payloads before delegating to the analyzer', async () => {
+      mockstructAnalyzer.exportToCStruct = vi.fn().mockReturnValue({
+        name: 'RuntimeAuditStruct',
+        definition: 'struct RuntimeAuditStruct {};',
+        size: 8,
+        fieldCount: 1,
+      });
+
+      const response = await handlers.handleStructureExportC({
+        structure: JSON.stringify({
+          name: 'RuntimeAuditStruct',
+          size: 8,
+          fields: [{ name: 'flag', offset: 0, size: 4, type: 'uint32_t' }],
+        }),
+        name: 'RuntimeAuditStruct',
+      });
+
+      expect(mockstructAnalyzer.exportToCStruct).toHaveBeenCalledWith(
+        expect.objectContaining({
+          totalSize: 8,
+          fields: [
+            expect.objectContaining({
+              name: 'flag',
+              offset: 0,
+              size: 4,
+              type: 'uint32',
+            }),
+          ],
+        }),
+        'RuntimeAuditStruct',
+      );
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(true);
+    });
+
     it('returns error response on failure', async () => {
       mockstructAnalyzer.exportToCStruct = vi.fn().mockImplementation(() => {
         throw new Error('Native error');
