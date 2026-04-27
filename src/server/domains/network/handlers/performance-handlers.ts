@@ -6,6 +6,7 @@
 
 import { PerformanceMonitor } from '@server/domains/shared/modules';
 import type { CodeCollector } from '@server/domains/shared/modules';
+import type { TraceRecorder } from '@modules/trace/TraceRecorder';
 import { argEnum } from '@server/domains/shared/parse-args';
 import {
   asOptionalBoolean,
@@ -22,6 +23,7 @@ export interface PerformanceHandlerDeps {
   collector: CodeCollector;
   /** Lazy factory for PerformanceMonitor — avoids creating until first use. */
   getPerformanceMonitor: () => PerformanceMonitor;
+  getTraceRecorder?: () => TraceRecorder | null;
 }
 
 export class PerformanceHandlers {
@@ -75,11 +77,40 @@ export class PerformanceHandlers {
 
   async handlePerformanceTakeHeapSnapshot(_args: Record<string, unknown>): Promise<ToolResponse> {
     try {
+      const traceRecorder = this.deps.getTraceRecorder?.() ?? null;
+      if (traceRecorder?.getState() === 'recording') {
+        try {
+          const snapshotSize = await traceRecorder.captureActiveHeapSnapshot();
+          return R.ok()
+            .merge({
+              snapshotSize,
+              persistedToTrace: true,
+              message:
+                'Heap snapshot taken and persisted to the active trace recording (data too large to return)',
+            })
+            .json();
+        } catch (traceError) {
+          const monitor = this.deps.getPerformanceMonitor();
+          const snapshotSize = await monitor.takeHeapSnapshot();
+          return R.ok()
+            .merge({
+              snapshotSize,
+              persistedToTrace: false,
+              tracePersistenceError:
+                traceError instanceof Error ? traceError.message : String(traceError),
+              message:
+                'Heap snapshot taken, but the active trace recording could not persist it (data too large to return)',
+            })
+            .json();
+        }
+      }
+
       const monitor = this.deps.getPerformanceMonitor();
       const snapshotSize = await monitor.takeHeapSnapshot();
       return R.ok()
         .merge({
           snapshotSize,
+          persistedToTrace: false,
           message: 'Heap snapshot taken (data too large to return, saved internally)',
         })
         .json();

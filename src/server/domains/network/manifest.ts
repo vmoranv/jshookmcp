@@ -19,6 +19,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
       ctx.collector!,
       ctx.consoleMonitor!,
       ctx.eventBus,
+      () => ctx.traceRecorder ?? null,
     );
   }
 

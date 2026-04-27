@@ -14,6 +14,7 @@ import type { CodeCollector } from '@server/domains/shared/modules';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import { PerformanceMonitor } from '@server/domains/shared/modules';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
+import type { TraceRecorder } from '@modules/trace/TraceRecorder';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 
 import { CoreHandlers } from './handlers/core-handlers';
@@ -42,6 +43,7 @@ export class AdvancedToolHandlers {
     collector: CodeCollector,
     consoleMonitor: ConsoleMonitor,
     eventBus?: EventBus<ServerEventMap>,
+    getTraceRecorder?: () => TraceRecorder | null,
   ) {
     this.collector = collector;
     this.consoleMonitor = consoleMonitor;
@@ -51,6 +53,7 @@ export class AdvancedToolHandlers {
     this.perf = new PerformanceHandlers({
       collector,
       getPerformanceMonitor: () => this.getPerformanceMonitor(),
+      getTraceRecorder,
     });
     this.console_ = new ConsoleHandlers({ consoleMonitor });
     this.replay = new ReplayHandlers({ consoleMonitor });

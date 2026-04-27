@@ -180,7 +180,37 @@ describe('AdvancedHandlersBase (performance)', () => {
       expect(body.success).toBe(true);
       // @ts-expect-error — auto-suppressed [TS2339]
       expect(body.snapshotSize).toBe(1024);
+      // @ts-expect-error — auto-suppressed [TS2339]
+      expect(body.persistedToTrace).toBe(false);
       expect(body.message).toContain('Heap snapshot taken');
+    });
+
+    it('persists heap snapshots into an active trace recording when available', async () => {
+      const traceRecorder = {
+        getState: vi.fn().mockReturnValue('recording'),
+        captureActiveHeapSnapshot: vi.fn().mockResolvedValue(2048),
+      };
+
+      // @ts-expect-error — auto-suppressed [TS2554]
+      handler = new AdvancedHandlersBase(
+        collector,
+        consoleMonitor,
+        undefined,
+        () => traceRecorder as any,
+      );
+      (handler as any).performanceMonitor = performanceMonitorMethods;
+
+      const body = parseJson<NetworkRequestsResponse>(
+        await handler.handlePerformanceTakeHeapSnapshot({}),
+      );
+
+      expect(body.success).toBe(true);
+      // @ts-expect-error — auto-suppressed [TS2339]
+      expect(body.snapshotSize).toBe(2048);
+      // @ts-expect-error — auto-suppressed [TS2339]
+      expect(body.persistedToTrace).toBe(true);
+      expect(traceRecorder.captureActiveHeapSnapshot).toHaveBeenCalledOnce();
+      expect(performanceMonitorMethods.takeHeapSnapshot).not.toHaveBeenCalled();
     });
   });
 
