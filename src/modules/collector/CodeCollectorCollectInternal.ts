@@ -51,7 +51,9 @@ interface CollectorInternals {
     set(url: string, result: CollectCodeResult, options?: Record<string, unknown>): Promise<void>;
   };
   init: () => Promise<void>;
+  getActivePage?: () => Promise<Page>;
   getActivePageIndex?: () => Promise<number | null>;
+  listPages?: () => Promise<Array<{ index: number; url: string; title: string }>>;
   selectPage?: (index: number) => Promise<void>;
   browser: {
     newPage(): Promise<Page>;
@@ -180,13 +182,33 @@ export async function collectInnerImpl(
     throw new Error('Browser not initialized');
   }
 
+  let previousActivePageIndex: number | null = null;
+  const activePages =
+    typeof self.listPages === 'function'
+      ? await self
+          .listPages()
+          .catch(() => [] as Array<{ index: number; url: string; title: string }>)
+      : [];
+  const activePageContext =
+    activePages.length > 0 && typeof self.getActivePage === 'function'
+      ? await self
+          .getActivePage()
+          .then((page) => page.browserContext())
+          .catch((error) => {
+            logger.debug('Failed to resolve active browser context before code collection:', error);
+            return null;
+          })
+      : null;
+
   const temporaryContext =
-    typeof self.browser.createBrowserContext === 'function'
+    activePageContext === null && typeof self.browser.createBrowserContext === 'function'
       ? await self.browser.createBrowserContext()
       : null;
 
-  let previousActivePageIndex: number | null = null;
-  if (!temporaryContext && typeof self.getActivePageIndex === 'function') {
+  if (
+    (activePageContext !== null || !temporaryContext) &&
+    typeof self.getActivePageIndex === 'function'
+  ) {
     try {
       previousActivePageIndex = await self.getActivePageIndex();
     } catch (error) {
@@ -194,7 +216,12 @@ export async function collectInnerImpl(
     }
   }
 
-  const page = temporaryContext ? await temporaryContext.newPage() : await self.browser.newPage();
+  const page =
+    activePageContext !== null
+      ? await activePageContext.newPage()
+      : temporaryContext
+        ? await temporaryContext.newPage()
+        : await self.browser.newPage();
 
   try {
     const timeoutMs = options.timeout ?? self.config.timeout ?? 30000;
