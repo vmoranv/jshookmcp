@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import { execFile, spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createCipheriv, createHash, randomBytes } from 'node:crypto';
 import { once } from 'node:events';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import dgram from 'node:dgram';
 import http from 'node:http';
 import http2 from 'node:http2';
 import net from 'node:net';
@@ -153,6 +154,20 @@ async function callTool(client, name, args = {}, timeoutMs = 30000) {
   );
 }
 
+async function callToolCaptureError(client, name, args = {}, timeoutMs = 30000) {
+  try {
+    return await callTool(client, name, args, timeoutMs);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      success: false,
+      error: message,
+      tool: name,
+      timedOut: message.includes('Timeout after'),
+    };
+  }
+}
+
 function flattenStrings(value, output = []) {
   if (typeof value === 'string') {
     output.push(value);
@@ -177,6 +192,17 @@ function extractString(value, keys) {
     }
   }
   return null;
+}
+
+function getTabularRowValue(row, columns, columnName) {
+  if (!Array.isArray(row) || !Array.isArray(columns)) {
+    return isRecord(row) ? row[columnName] : undefined;
+  }
+  const columnIndex = columns.indexOf(columnName);
+  if (columnIndex === -1) {
+    return undefined;
+  }
+  return row[columnIndex];
 }
 
 function findRequestByUrl(requests, needle) {
@@ -365,6 +391,50 @@ async function getFreePort() {
   }
 
   return address.port;
+}
+
+function buildMinimalTlsClientHelloRecordHex() {
+  const version = Buffer.from([0x03, 0x03]);
+  const random = Buffer.alloc(32, 0xab);
+  const sessionId = Buffer.from([0x00]);
+  const cipherSuites = Buffer.from([0x00, 0x04, 0x13, 0x01, 0x13, 0x02]);
+  const compression = Buffer.from([0x01, 0x00]);
+  const extensions = Buffer.from([0x00, 0x00]);
+  const body = Buffer.concat([version, random, sessionId, cipherSuites, compression, extensions]);
+
+  const handshakeHeader = Buffer.alloc(4);
+  handshakeHeader[0] = 0x01;
+  handshakeHeader[1] = (body.length >> 16) & 0xff;
+  handshakeHeader[2] = (body.length >> 8) & 0xff;
+  handshakeHeader[3] = body.length & 0xff;
+  const handshake = Buffer.concat([handshakeHeader, body]);
+
+  const recordHeader = Buffer.from([
+    0x16,
+    0x03,
+    0x03,
+    (handshake.length >> 8) & 0xff,
+    handshake.length & 0xff,
+  ]);
+  return Buffer.concat([recordHeader, handshake]).toString('hex');
+}
+
+function createTlsDecryptFixture() {
+  const key = randomBytes(32);
+  const nonce = randomBytes(12);
+  const plaintext = 'Hello, TLS!';
+  const cipher = createCipheriv('aes-256-gcm', key, nonce);
+  let encrypted = cipher.update(Buffer.from(plaintext, 'utf8'));
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  const authTag = cipher.getAuthTag();
+
+  return {
+    plaintext,
+    encryptedHex: encrypted.toString('hex'),
+    keyHex: key.toString('hex'),
+    nonceHex: nonce.toString('hex'),
+    authTagHex: authTag.toString('hex'),
+  };
 }
 
 async function createGitFixtureRepo(repoDir, entryFile, sourceText) {
@@ -1398,18 +1468,20 @@ function summarize(report) {
     `builders: httpReq=${report.network.httpRequestBuild?.requestBytes ?? 'n/a'} h2Frame=${report.network.http2FrameBuild?.frameType ?? 'n/a'} indexeddb=${Object.keys(report.browser.indexedDbDump ?? {}).length || 0} tabs=${report.browser.tabWorkflowList?.aliases?.length ?? 'n/a'}`,
     `streaming: wsFrames=${report.streaming.wsFrameCount} sseEvents=${report.streaming.sseEventCount}`,
     `trace: status=${report.trace.stop?.status ?? 'n/a'} bodies=${report.trace.stop?.networkBodyCount ?? 0} chunks=${report.trace.stop?.networkChunkCount ?? 0} bodyState=${report.trace.flow?.request?.bodyCaptureState ?? 'n/a'}`,
-    `trace-extra: seekEvents=${Array.isArray(report.trace.seek?.events) ? report.trace.seek.events.length : 'n/a'} summarizedReq=${report.trace.summary?.network?.requestCount ?? 'n/a'} exported=${report.trace.export?.eventCount ?? 'n/a'} alias=${report.trace.aliasStop?.status ?? 'n/a'}`,
+    `trace-extra: seekEvents=${Array.isArray(report.trace.seek?.events) ? report.trace.seek.events.length : 'n/a'} summarizedReq=${report.trace.summary?.network?.requestCount ?? 'n/a'} exported=${report.trace.export?.eventCount ?? 'n/a'} alias=${report.trace.aliasStop?.status ?? 'n/a'} heapDiff=${report.trace.heapDiff?.diff?.totalSizeDelta ?? 'n/a'}`,
     `captcha: manual=${report.captcha.manualAvailable ?? 'n/a'} ext2captcha=${report.captcha.external2captchaAvailable ?? 'n/a'} hook=${report.captcha.widgetHookAvailable ?? 'n/a'} provider=${report.captcha.configuredProvider ?? 'n/a'}`,
+    `stealth: inject=${report.stealth.inject?.success ?? 'n/a'} verify=${report.stealth.verify?.success ?? 'n/a'} fingerprint=${report.stealth.fingerprint?.success ?? 'n/a'} ua=${report.stealth.userAgent?.success ?? 'n/a'}`,
+    `canvas: canvases=${report.canvas.fingerprint?.canvasCount ?? 'n/a'} scene=${report.canvas.sceneDump?.completeness ?? 'n/a'} pick=${report.canvas.pick?.success ?? 'n/a'} traceFrames=${Array.isArray(report.canvas.traceClick?.handlerFrames) ? report.canvas.traceClick.handlerFrames.length : 'n/a'}`,
     `wasm: page=${report.wasm.pageCaptureAvailable ?? 'n/a'} wasm2wat=${report.wasm.wasm2watAvailable ?? 'n/a'} runtime=${report.wasm.offlineRuntimeAvailable ?? 'n/a'}`,
     `cross-domain: workflows=${report.crossDomain.capabilities?.workflows?.length ?? 'n/a'} suggestion=${report.crossDomain.suggest?.workflowKey ?? 'n/a'} nodes=${report.crossDomain.stats?.nodeCount ?? 'n/a'} evidenceHits=${report.evidence.query?.resultCount ?? 'n/a'} chain=${report.evidence.chain?.chainLength ?? 'n/a'}`,
-    `binary: fridaAvailable=${report.binary.capabilitiesAvailable} modules=${report.binary.moduleSample.join(', ') || 'n/a'}`,
+    `binary: fridaAvailable=${report.binary.capabilitiesAvailable} modules=${Array.isArray(report.binary.moduleSample) ? report.binary.moduleSample.join(', ') || 'n/a' : (report.binary.moduleSample ?? 'n/a')}`,
     `mojo: backend=${report.mojo.capabilitiesAvailable} live=${report.mojo.liveCaptureAvailable} simulation=${report.mojo.monitorSimulation} catalog=${report.mojo.interfaceCatalogSource} messages=${report.mojo.messageCount}`,
     `sandbox: success=${report.sandbox.ok ?? 'n/a'} persisted=${report.sandbox.persisted ?? 'n/a'}`,
     `maintenance: tokenUsage=${report.maintenance.tokenStats?.currentUsage ?? 'n/a'} cacheEntries=${report.maintenance.cacheStats?.totalEntries ?? 'n/a'} doctor=${report.maintenance.doctor?.ok ?? report.maintenance.doctor?.success ?? 'n/a'} install=${report.maintenance.installExtension?.success ?? 'n/a'}`,
     `workflow: count=${report.workflow.count ?? 0} run=${report.workflow.run?.success ?? 'n/a'}`,
     `graphql: introspect=${report.graphql.introspect?.success ?? 'n/a'} replay=${report.graphql.replay?.success ?? 'n/a'} extracted=${Array.isArray(report.graphql.extract?.queries) ? report.graphql.extract.queries.length : 'n/a'} replace=${report.graphql.scriptReplaceState?.result?.replaced ?? report.graphql.scriptReplaceState?.replaced ?? 'n/a'}`,
     `extension-registry: installed=${Array.isArray(report.extensionRegistry.listInstalled?.plugins) ? report.extensionRegistry.listInstalled.plugins.length : 'n/a'} execute=${report.extensionRegistry.execute?.success ?? 'n/a'} reload=${report.extensionRegistry.reload?.success ?? 'n/a'} uninstall=${report.extensionRegistry.uninstall?.success ?? 'n/a'}`,
-    `process-tls: launch=${report.process.launchDebug?.success ?? 'n/a'} debugPort=${report.process.checkDebugPort?.debugPort ?? 'n/a'} nativeDebug=${report.process.nativeCheckDebugPort?.success ?? 'n/a'} tlsProbe=${report.tls.probeEndpoint?.ok ?? 'n/a'}`,
+    `process-tls: launch=${report.process.launchDebug?.success ?? 'n/a'} debugPort=${report.process.checkDebugPort?.debugPort ?? 'n/a'} nativeDebug=${report.process.nativeCheckDebugPort?.success ?? 'n/a'} tlsProbe=${report.tls.probeEndpoint?.ok ?? 'n/a'} keylog=${report.tls.keylogParse?.summary?.totalEntries ?? 'n/a'} rawTcp=${report.tls.rawTcpSend?.ok ?? 'n/a'} rawUdp=${report.tls.rawUdpSend?.ok ?? 'n/a'}`,
     `attach: external=${report.browser.attachExternal?.success ?? 'n/a'} eval=${report.browser.attachExternalEval?.success ?? 'n/a'}`,
     `v8: launchFlag=${report.browser.launch?.v8NativeSyntaxEnabled ?? 'n/a'} simulated=${report.v8.capture?.simulated ?? 'n/a'} sizeBytes=${report.v8.capture?.sizeBytes ?? 0} statsUsed=${report.v8.stats?.heapUsage?.jsHeapSizeUsed ?? 'n/a'} script=${report.v8.firstScriptUrl ?? report.v8.firstScriptId ?? 'n/a'} inspect=${Boolean(report.v8.objectInspect?.objectData)} bytecode=${report.v8.bytecode?.success ?? 'skipped'} bytecodeMode=${report.v8.bytecode?.mode ?? 'n/a'} jit=${Array.isArray(report.v8.jit?.functions) ? report.v8.jit.functions.length : 'skipped'} jitMode=${report.v8.jit?.inspectionMode ?? 'n/a'} diff=${report.v8.diff?.sizeDeltaBytes ?? 'n/a'} natives=${report.v8.version?.features?.nativesSyntax ?? 'n/a'}`,
     '',
@@ -1475,6 +1547,8 @@ async function main() {
     streaming: {},
     trace: {},
     captcha: {},
+    stealth: {},
+    canvas: {},
     wasm: {},
     crossDomain: {},
     evidence: {},
@@ -2411,6 +2485,81 @@ async function main() {
       },
       15000,
     );
+    report.canvas.seed = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          let canvas = document.getElementById('audit-canvas');
+          if (!canvas) {
+            canvas = document.createElement('canvas');
+            canvas.id = 'audit-canvas';
+            canvas.width = 220;
+            canvas.height = 120;
+            canvas.style.display = 'block';
+            canvas.style.border = '1px solid #222';
+            canvas.style.marginTop = '16px';
+            const host = document.querySelector('main') || document.body;
+            host.appendChild(canvas);
+          }
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#f97316';
+            ctx.fillRect(20, 20, 120, 60);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px sans-serif';
+            ctx.fillText('canvas-probe', 28, 58);
+          }
+          if (!canvas.__auditCanvasBound) {
+            canvas.addEventListener('click', () => {
+              window.__auditCanvasClicks = (window.__auditCanvasClicks || 0) + 1;
+            });
+            canvas.__auditCanvasBound = true;
+          }
+          const rect = canvas.getBoundingClientRect();
+          return {
+            id: canvas.id,
+            rect: {
+              left: rect.left,
+              top: rect.top,
+              width: rect.width,
+              height: rect.height
+            }
+          };
+        })()`,
+      },
+      15000,
+    );
+    const canvasRect = report.canvas.seed?.rect ?? {};
+    const canvasClickX =
+      typeof canvasRect.left === 'number' ? Math.round(canvasRect.left + 32) : 32;
+    const canvasClickY = typeof canvasRect.top === 'number' ? Math.round(canvasRect.top + 32) : 32;
+    report.canvas.fingerprint = await callTool(
+      client,
+      'canvas_engine_fingerprint',
+      { canvasId: 'audit-canvas' },
+      30000,
+    );
+    report.canvas.sceneDump = await callTool(
+      client,
+      'canvas_scene_dump',
+      { canvasId: 'audit-canvas', maxDepth: 4 },
+      30000,
+    );
+    report.canvas.pick = await callTool(
+      client,
+      'canvas_pick_object_at_point',
+      { x: canvasClickX, y: canvasClickY, canvasId: 'audit-canvas', highlight: false },
+      30000,
+    );
+    report.canvas.traceClickInput = {
+      x: canvasClickX,
+      y: canvasClickY,
+      canvasId: 'audit-canvas',
+      breakpointType: 'click',
+    };
     report.browser.type = await callTool(
       client,
       'page_type',
@@ -2988,6 +3137,38 @@ async function main() {
         ['configuredProvider'],
       ) ??
       null;
+    report.captcha.config = await callTool(
+      client,
+      'captcha_config',
+      {
+        autoDetectCaptcha: true,
+        autoSwitchHeadless: false,
+        captchaTimeout: 1500,
+      },
+      15000,
+    );
+    report.captcha.detect = await callTool(client, 'captcha_detect', {}, 30000);
+    report.captcha.wait = await callTool(client, 'captcha_wait', { timeout: 1500 }, 30000);
+    report.stealth.fingerprint = await callTool(
+      client,
+      'stealth_generate_fingerprint',
+      { os: 'windows', browser: 'chrome', locale: 'en-US' },
+      30000,
+    );
+    report.stealth.userAgent = await callTool(
+      client,
+      'stealth_set_user_agent',
+      { platform: 'windows' },
+      30000,
+    );
+    report.stealth.jitter = await callTool(
+      client,
+      'stealth_configure_jitter',
+      { enabled: true, minDelayMs: 1, maxDelayMs: 2, burstMode: false },
+      15000,
+    );
+    report.stealth.inject = await callTool(client, 'stealth_inject', {}, 30000);
+    report.stealth.verify = await callTool(client, 'stealth_verify', {}, 30000);
     report.wasm.capabilities = await callTool(client, 'wasm_capabilities', {}, 15000);
     report.wasm.pageCaptureAvailable = isCapabilityAvailable(
       report.wasm.capabilities,
@@ -3325,6 +3506,138 @@ async function main() {
       },
       30000,
     );
+    report.tls.keylogEnable = await callTool(client, 'tls_keylog_enable', {}, 15000);
+    const tlsKeylogPath =
+      typeof report.tls.keylogEnable?.keyLogPath === 'string'
+        ? report.tls.keylogEnable.keyLogPath
+        : join(runtimeArtifactDir, 'runtime-audit.sslkeylog');
+    const tlsKeylogContent = [
+      'CLIENT_RANDOM aabb0011 11112222',
+      'SERVER_HANDSHAKE_TRAFFIC_SECRET aabb0011 33334444',
+    ].join('\n');
+    await writeFile(tlsKeylogPath, `${tlsKeylogContent}\n`, 'utf8');
+    report.tls.keylogParse = await callTool(
+      client,
+      'tls_keylog_parse',
+      { path: tlsKeylogPath },
+      15000,
+    );
+    report.tls.keylogSummarize = await callTool(
+      client,
+      'tls_keylog_summarize',
+      { content: tlsKeylogContent },
+      15000,
+    );
+    report.tls.keylogLookup = await callTool(
+      client,
+      'tls_keylog_lookup_secret',
+      { clientRandom: 'aabb0011', label: 'CLIENT_RANDOM' },
+      15000,
+    );
+    report.tls.keylogDisable = await callTool(
+      client,
+      'tls_keylog_disable',
+      { path: tlsKeylogPath },
+      15000,
+    );
+    const tlsDecryptFixture = createTlsDecryptFixture();
+    report.tls.decryptPayload = await callTool(
+      client,
+      'tls_decrypt_payload',
+      {
+        encryptedHex: tlsDecryptFixture.encryptedHex,
+        keyHex: tlsDecryptFixture.keyHex,
+        nonceHex: tlsDecryptFixture.nonceHex,
+        algorithm: 'aes-256-gcm',
+        authTagHex: tlsDecryptFixture.authTagHex,
+      },
+      15000,
+    );
+    report.tls.parseHandshake = await callTool(
+      client,
+      'tls_parse_handshake',
+      { rawHex: buildMinimalTlsClientHelloRecordHex() },
+      15000,
+    );
+    report.tls.cipherSuites = await callTool(client, 'tls_cipher_suites', { filter: 'AES' }, 15000);
+    const rawTcpSendServer = net.createServer((socket) => {
+      const chunks = [];
+      socket.on('data', (chunk) => chunks.push(chunk));
+      socket.on('end', () => {
+        socket.end(`ACK:${Buffer.concat(chunks).toString('utf8')}`);
+      });
+    });
+    rawTcpSendServer.listen(0, '127.0.0.1');
+    await once(rawTcpSendServer, 'listening');
+    const rawTcpSendAddress = rawTcpSendServer.address();
+    if (!rawTcpSendAddress || typeof rawTcpSendAddress === 'string') {
+      throw new Error('Failed to resolve raw TCP send fixture address');
+    }
+    report.tls.rawTcpSend = await callTool(
+      client,
+      'net_raw_tcp_send',
+      {
+        host: '127.0.0.1',
+        port: rawTcpSendAddress.port,
+        dataText: 'raw-tcp-audit',
+        timeout: 5000,
+      },
+      15000,
+    );
+    await new Promise((resolve) => rawTcpSendServer.close(resolve));
+    const rawTcpListenPort = await getFreePort();
+    const rawTcpListenPromise = callTool(
+      client,
+      'net_raw_tcp_listen',
+      { port: rawTcpListenPort, timeout: 5000 },
+      15000,
+    );
+    setTimeout(() => {
+      const socket = net.createConnection({ host: '127.0.0.1', port: rawTcpListenPort }, () => {
+        socket.end('raw-tcp-listen-audit');
+      });
+      socket.on('error', () => {});
+    }, 150);
+    report.tls.rawTcpListen = await rawTcpListenPromise;
+    const rawUdpEchoServer = dgram.createSocket('udp4');
+    rawUdpEchoServer.on('message', (msg, rinfo) => {
+      rawUdpEchoServer.send(Buffer.from(`echo:${msg.toString('utf8')}`), rinfo.port, rinfo.address);
+    });
+    await new Promise((resolve, reject) => {
+      rawUdpEchoServer.once('error', reject);
+      rawUdpEchoServer.bind(0, '127.0.0.1', resolve);
+    });
+    const rawUdpEchoAddress = rawUdpEchoServer.address();
+    if (!rawUdpEchoAddress || typeof rawUdpEchoAddress === 'string') {
+      throw new Error('Failed to resolve raw UDP send fixture address');
+    }
+    report.tls.rawUdpSend = await callTool(
+      client,
+      'net_raw_udp_send',
+      {
+        host: '127.0.0.1',
+        port: rawUdpEchoAddress.port,
+        dataText: 'raw-udp-audit',
+        timeout: 5000,
+      },
+      15000,
+    );
+    await new Promise((resolve) => rawUdpEchoServer.close(resolve));
+    const rawUdpListenPort = await getFreePort();
+    const rawUdpListenPromise = callTool(
+      client,
+      'net_raw_udp_listen',
+      { port: rawUdpListenPort, timeout: 5000 },
+      15000,
+    );
+    setTimeout(() => {
+      const socket = dgram.createSocket('udp4');
+      socket.on('error', () => socket.close());
+      socket.send(Buffer.from('raw-udp-listen-audit'), rawUdpListenPort, '127.0.0.1', () =>
+        socket.close(),
+      );
+    }, 150);
+    report.tls.rawUdpListen = await rawUdpListenPromise;
     const processDebugPort = await getFreePort();
     processLaunchUserDataDir = await mkdtemp(join(tmpdir(), 'jshook-process-debug-'));
     report.process.launchDebug = await callTool(
@@ -3464,6 +3777,27 @@ async function main() {
       },
       15000,
     );
+    report.trace.heapSeedBefore = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          window.__traceAuditHeap = Array.from({ length: 4096 }, (_, index) => ({
+            index,
+            marker: 'trace-before',
+            payload: 'a'.repeat(32),
+          }));
+          return { seeded: window.__traceAuditHeap.length };
+        })()`,
+      },
+      15000,
+    );
+    report.trace.heapSnapshotBefore = await callTool(
+      client,
+      'performance_take_heap_snapshot',
+      {},
+      90000,
+    );
     report.graphql.fetchInterceptor = await callTool(
       client,
       'console_inject_fetch_interceptor',
@@ -3517,6 +3851,27 @@ async function main() {
       'page_evaluate',
       { code: GRAPHQL_BUFFER_PROBE_CODE },
       15000,
+    );
+    report.trace.heapSeedAfter = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => {
+          window.__traceAuditHeap = Array.from({ length: 8192 }, (_, index) => ({
+            index,
+            marker: 'trace-after',
+            payload: 'b'.repeat(64),
+          }));
+          return { seeded: window.__traceAuditHeap.length };
+        })()`,
+      },
+      15000,
+    );
+    report.trace.heapSnapshotAfter = await callTool(
+      client,
+      'performance_take_heap_snapshot',
+      {},
+      90000,
     );
     report.graphql.extract = await callTool(
       client,
@@ -4435,6 +4790,37 @@ async function main() {
         },
         15000,
       );
+      report.trace.heapRows = await callTool(
+        client,
+        'query_trace_sql',
+        {
+          dbPath: report.trace.stop.dbPath,
+          sql: `SELECT id, timestamp, summary
+                FROM heap_snapshots
+                ORDER BY id ASC`,
+        },
+        15000,
+      );
+      const heapRows = Array.isArray(report.trace.heapRows?.rows) ? report.trace.heapRows.rows : [];
+      const heapColumns = Array.isArray(report.trace.heapRows?.columns)
+        ? report.trace.heapRows.columns
+        : [];
+      if (heapRows.length >= 2) {
+        const snapshotId1 = getTabularRowValue(heapRows[heapRows.length - 2], heapColumns, 'id');
+        const snapshotId2 = getTabularRowValue(heapRows[heapRows.length - 1], heapColumns, 'id');
+        if (typeof snapshotId1 === 'number' && typeof snapshotId2 === 'number') {
+          report.trace.heapDiff = await callTool(
+            client,
+            'diff_heap_snapshots',
+            {
+              dbPath: report.trace.stop.dbPath,
+              snapshotId1,
+              snapshotId2,
+            },
+            30000,
+          );
+        }
+      }
       if (report.network.requestId) {
         report.trace.flow = await callTool(
           client,
@@ -4939,6 +5325,14 @@ async function main() {
         'page_evaluate',
         { code: '(() => ({ href: location.href, title: document.title }))()' },
         15000,
+      );
+    }
+    if (isRecord(report.canvas.traceClickInput)) {
+      report.canvas.traceClick = await callToolCaptureError(
+        client,
+        'canvas_trace_click_handler',
+        report.canvas.traceClickInput,
+        10000,
       );
     }
     report.network.disable = await callTool(client, 'network_disable', {}, 15000);
