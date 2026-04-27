@@ -10,7 +10,7 @@ import http2 from 'node:http2';
 import net from 'node:net';
 import tls from 'node:tls';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve as pathResolve } from 'node:path';
 import { promisify } from 'node:util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -93,6 +93,16 @@ hYl+QoIs6H1FE3av1uQdZn9ILfBfiq8jj2j85p/WwizYvSDGa78bcuwh8u/T2KIr
 2Sn1Vm9W0vOLfa5gF6/w138SPqk5/LSzYSgnNR9q
 -----END CERTIFICATE-----
 `;
+
+function pemToDerHex(pem) {
+  return Buffer.from(
+    pem
+      .replace(/-----BEGIN CERTIFICATE-----/g, '')
+      .replace(/-----END CERTIFICATE-----/g, '')
+      .replace(/\s+/g, ''),
+    'base64',
+  ).toString('hex');
+}
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null;
@@ -357,6 +367,143 @@ async function getFreePort() {
   return address.port;
 }
 
+async function createGitFixtureRepo(repoDir, entryFile, sourceText) {
+  await rm(repoDir, { recursive: true, force: true }).catch(() => {});
+  await mkdir(repoDir, { recursive: true });
+  await writeFile(join(repoDir, entryFile), sourceText, 'utf8');
+  await execFileAsync('git', ['init'], { cwd: repoDir, timeout: 15000 });
+  await execFileAsync('git', ['config', 'user.email', 'runtime-audit@example.invalid'], {
+    cwd: repoDir,
+    timeout: 15000,
+  });
+  await execFileAsync('git', ['config', 'user.name', 'Runtime Audit'], {
+    cwd: repoDir,
+    timeout: 15000,
+  });
+  await execFileAsync('git', ['add', entryFile], { cwd: repoDir, timeout: 15000 });
+  await execFileAsync('git', ['commit', '-m', 'runtime audit fixture'], {
+    cwd: repoDir,
+    timeout: 15000,
+  });
+  const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], {
+    cwd: repoDir,
+    timeout: 15000,
+  });
+
+  return {
+    repo: repoDir.replace(/\\/g, '/'),
+    entry: entryFile,
+    commit: stdout.trim(),
+  };
+}
+
+async function createRegistryFixtures(rootDir) {
+  const pluginFixture = await createGitFixtureRepo(
+    join(rootDir, 'plugin-repo'),
+    'index.mjs',
+    [
+      'export default {',
+      "  id: 'runtime-audit-plugin',",
+      "  version: '1.0.0',",
+      "  pluginName: 'Runtime Audit Plugin',",
+      "  compatibleCoreRange: '*',",
+      '  allowedTools: [],',
+      '  tools: [],',
+      '  workflows: [],',
+      '  mergeMetadata() {',
+      '    return this;',
+      '  },',
+      '};',
+      '',
+    ].join('\n'),
+  );
+  const workflowFixture = await createGitFixtureRepo(
+    join(rootDir, 'workflow-repo'),
+    'index.mjs',
+    [
+      'export default {',
+      "  kind: 'workflow-contract',",
+      '  version: 1,',
+      "  id: 'runtime-audit-installed-workflow',",
+      "  displayName: 'Runtime Audit Installed Workflow',",
+      "  description: 'Installed workflow fixture for runtime audit.',",
+      "  tags: ['runtime', 'audit'],",
+      '  route: {',
+      "    kind: 'workflow',",
+      '    triggerPatterns: [/runtime audit installed workflow/i],',
+      "    requiredDomains: ['workflow'],",
+      '    priority: 90,',
+      '    steps: [',
+      '      {',
+      "        id: 'cache-stats',",
+      "        toolName: 'get_cache_stats',",
+      "        description: 'Read cache stats',",
+      '        prerequisites: [],',
+      '      },',
+      '    ],',
+      '  },',
+      '  build() {',
+      '    return {',
+      "      kind: 'sequence',",
+      "      id: 'root',",
+      '      steps: [',
+      '        {',
+      "          kind: 'tool',",
+      "          id: 'cache-stats',",
+      "          toolName: 'get_cache_stats',",
+      '        },',
+      '      ],',
+      '    };',
+      '  },',
+      '};',
+      '',
+    ].join('\n'),
+  );
+
+  return {
+    plugins: [
+      {
+        slug: 'runtime-audit-plugin',
+        id: 'runtime-audit-plugin',
+        source: {
+          type: 'git',
+          repo: pluginFixture.repo,
+          ref: 'HEAD',
+          commit: pluginFixture.commit,
+          subpath: '.',
+          entry: pluginFixture.entry,
+        },
+        meta: {
+          name: 'Runtime Audit Plugin',
+          description: 'Local registry fixture for runtime audit coverage.',
+          author: 'jshookmcp-runtime-audit',
+          source_repo: pluginFixture.repo,
+        },
+      },
+    ],
+    workflows: [
+      {
+        slug: 'runtime-audit-workflow',
+        id: 'runtime-audit-workflow',
+        source: {
+          type: 'git',
+          repo: workflowFixture.repo,
+          ref: 'HEAD',
+          commit: workflowFixture.commit,
+          subpath: '.',
+          entry: workflowFixture.entry,
+        },
+        meta: {
+          name: 'Runtime Audit Workflow',
+          description: 'Local registry fixture for workflow registry coverage.',
+          author: 'jshookmcp-runtime-audit',
+          source_repo: workflowFixture.repo,
+        },
+      },
+    ],
+  };
+}
+
 async function sendRawHttpRequest(port, requestText) {
   return await new Promise((resolve, reject) => {
     const socket = net.createConnection({ host: '127.0.0.1', port }, () => {
@@ -372,6 +519,25 @@ async function sendRawHttpRequest(port, requestText) {
 function buildMockElectronExe(fuseBytes) {
   const sentinel = Buffer.from('dL7pKGdnNz796PbbjQWNKmHXBZIA', 'ascii');
   return Buffer.concat([Buffer.alloc(256, 0x90), sentinel, Buffer.from(fuseBytes)]);
+}
+
+function getCliValue(flagName) {
+  const inlinePrefix = `${flagName}=`;
+  for (let index = 0; index < process.argv.length; index += 1) {
+    const arg = process.argv[index];
+    if (arg === flagName) {
+      const next = process.argv[index + 1];
+      if (typeof next === 'string' && next.length > 0) {
+        return next;
+      }
+      return undefined;
+    }
+    if (arg.startsWith(inlinePrefix)) {
+      const value = arg.slice(inlinePrefix.length).trim();
+      return value.length > 0 ? value : undefined;
+    }
+  }
+  return undefined;
 }
 
 function buildMockAsar(entries) {
@@ -406,15 +572,51 @@ function buildMockAsar(entries) {
   return Buffer.concat([headerPrefix, headerBuf, ...dataBuffers]);
 }
 
-function buildMinimalMiniappPkg() {
-  const header = Buffer.alloc(18);
+function buildMiniappPkg(entries = []) {
+  const dataBuffers = [];
+  const normalizedEntries = entries.map((entry) => {
+    const nameBuffer = Buffer.from(entry.path, 'utf8');
+    const contentBuffer = Buffer.isBuffer(entry.content)
+      ? entry.content
+      : Buffer.from(entry.content, 'utf8');
+    dataBuffers.push(contentBuffer);
+    return { nameBuffer, contentBuffer };
+  });
+  const headerLength = 14;
+  const indexLength =
+    4 + normalizedEntries.reduce((sum, entry) => sum + 12 + entry.nameBuffer.length, 0);
+  const dataSectionStart = headerLength + indexLength;
+  const entryBuffers = [];
+  let dataOffset = 0;
+
+  for (const entry of normalizedEntries) {
+    const entryBuffer = Buffer.alloc(12 + entry.nameBuffer.length);
+    entryBuffer.writeUInt32BE(entry.nameBuffer.length, 0);
+    entry.nameBuffer.copy(entryBuffer, 4);
+    entryBuffer.writeUInt32BE(dataSectionStart + dataOffset, 4 + entry.nameBuffer.length);
+    entryBuffer.writeUInt32BE(entry.contentBuffer.length, 8 + entry.nameBuffer.length);
+    entryBuffers.push(entryBuffer);
+    dataOffset += entry.contentBuffer.length;
+  }
+
+  const indexBuffer = Buffer.concat([
+    Buffer.from([
+      (entries.length >>> 24) & 0xff,
+      (entries.length >>> 16) & 0xff,
+      (entries.length >>> 8) & 0xff,
+      entries.length & 0xff,
+    ]),
+    ...entryBuffers,
+  ]);
+  const dataBuffer = Buffer.concat(dataBuffers);
+  const header = Buffer.alloc(14);
   header.writeUInt8(0xbe, 0);
   header.writeUInt32BE(0, 1);
-  header.writeUInt32BE(4, 5);
-  header.writeUInt32BE(0, 9);
+  header.writeUInt32BE(indexBuffer.length, 5);
+  header.writeUInt32BE(dataBuffer.length, 9);
   header.writeUInt8(0, 13);
-  header.writeUInt32BE(0, 14);
-  return header;
+
+  return Buffer.concat([header, indexBuffer, dataBuffer]);
 }
 
 async function readRequestBody(req) {
@@ -504,7 +706,7 @@ async function terminateProcessTree(childProcess) {
 
 async function createProbeServer() {
   const bodyPayload = `${BODY_MARKER}\n${'x'.repeat(12361 - BODY_MARKER.length - 1)}`;
-  const pluginRegistryPayload = {
+  let pluginRegistryPayload = {
     plugins: [
       {
         slug: 'runtime-audit-plugin',
@@ -526,7 +728,7 @@ async function createProbeServer() {
       },
     ],
   };
-  const workflowRegistryPayload = {
+  let workflowRegistryPayload = {
     workflows: [
       {
         slug: 'runtime-audit-workflow',
@@ -1135,6 +1337,14 @@ async function createProbeServer() {
     wasmPageUrl: `${baseUrl}/wasm-page/`,
     sourceMapPageUrl: `${baseUrl}/sourcemap/`,
     sourceMapUrl: sourceMapDataUri,
+    setRegistryFixtures({ plugins, workflows }) {
+      if (Array.isArray(plugins)) {
+        pluginRegistryPayload = { plugins };
+      }
+      if (Array.isArray(workflows)) {
+        workflowRegistryPayload = { workflows };
+      }
+    },
     async close() {
       for (const socket of sockets) {
         socket.destroy();
@@ -1179,7 +1389,7 @@ function summarize(report) {
     `platform: miniapps=${report.platform?.miniappScan?.count ?? 'n/a'} fuseWire=${report.platform?.electronFuses?.fuseWireFound ?? 'n/a'} userdata=${report.platform?.electronUserdata?.totalScanned ?? 'n/a'} asarFiles=${report.platform?.asarExtract?.totalFiles ?? 'n/a'} asarMatches=${report.platform?.asarSearch?.totalMatches ?? 'n/a'}`,
     `meta: searchTop=${report.meta.searchTools?.results?.[0]?.name ?? 'n/a'} callInactive=${report.meta.callInactive?.success ?? 'n/a'} callActive=${report.meta.callTool?.success ?? 'n/a'} domainActivated=${report.meta.activateDomain?.activated ?? 'n/a'}`,
     `encoding: detect=${report.encoding.detect?.success ?? 'n/a'} requestIdPath=${report.encoding.detectRequestId?.success ?? 'n/a'} decodeMarker=${report.encoding.decodeMarker ?? false} encodeMarker=${report.encoding.encodeMarker ?? false} protoFields=${Array.isArray(report.encoding.protobuf?.fields) ? report.encoding.protobuf.fields.length : 'n/a'}`,
-    `protocol: template=${report.protocol.payloadTemplate?.hexPayload ?? 'n/a'} mutate=${report.protocol.payloadMutate?.mutatedHex ?? 'n/a'} ipv4=${report.protocol.rawIp?.checksumHex ?? 'n/a'} pcapPackets=${Array.isArray(report.protocol.pcapRead?.packets) ? report.protocol.pcapRead.packets.length : 'n/a'}`,
+    `protocol: template=${report.protocol.payloadTemplate?.hexPayload ?? 'n/a'} mutate=${report.protocol.payloadMutate?.mutatedHex ?? 'n/a'} ipv4=${report.protocol.rawIp?.checksumHex ?? 'n/a'} pcapPackets=${Array.isArray(report.protocol.pcapRead?.packets) ? report.protocol.pcapRead.packets.length : 'n/a'} auto=${report.protocol.autoDetect?.success ?? 'n/a'}`,
     `coordination: handoff=${report.coordination.create?.taskId ?? 'n/a'} insights=${report.coordination.appendInsight?.totalInsights ?? 'n/a'} snapshots=${report.coordination.snapshotList?.total ?? 'n/a'} restoredCookie=${report.coordination.restoreState?.result?.hasCookie ?? 'n/a'}`,
     `analysis: collectFiles=${report.analysis.collectCode?.filesCount ?? 'n/a'} collectSize=${report.analysis.collectCode?.totalSize ?? 'n/a'} searchMatches=${report.analysis.searchInScripts?.totalMatches ?? 'n/a'} deobf=${typeof report.analysis.deobfuscate?.code === 'string'} webcrack=${report.analysis.webcrackUnpack?.success ?? 'n/a'} treeFunctions=${Array.isArray(report.analysis.extractFunctionTree?.functions) ? report.analysis.extractFunctionTree.functions.length : 'n/a'}`,
     `browser-page: typed=${report.browser.interactionState?.result?.typedValue ?? 'n/a'} key=${report.browser.interactionState?.result?.lastKey ?? 'n/a'} select=${report.browser.interactionState?.result?.selectedValue ?? 'n/a'} hover=${report.browser.interactionState?.result?.hoverCount ?? 'n/a'} click=${report.browser.interactionState?.result?.clickCount ?? 'n/a'} reload=${report.browser.reloadState?.result?.reloadCount ?? 'n/a'}`,
@@ -1195,12 +1405,13 @@ function summarize(report) {
     `binary: fridaAvailable=${report.binary.capabilitiesAvailable} modules=${report.binary.moduleSample.join(', ') || 'n/a'}`,
     `mojo: backend=${report.mojo.capabilitiesAvailable} live=${report.mojo.liveCaptureAvailable} simulation=${report.mojo.monitorSimulation} catalog=${report.mojo.interfaceCatalogSource} messages=${report.mojo.messageCount}`,
     `sandbox: success=${report.sandbox.ok ?? 'n/a'} persisted=${report.sandbox.persisted ?? 'n/a'}`,
-    `maintenance: tokenUsage=${report.maintenance.tokenStats?.currentUsage ?? 'n/a'} cacheEntries=${report.maintenance.cacheStats?.totalEntries ?? 'n/a'} doctor=${report.maintenance.doctor?.ok ?? report.maintenance.doctor?.success ?? 'n/a'}`,
-    `workflow: count=${report.workflow.count ?? 0} run=${report.workflow.run?.success ?? 'skipped'}`,
-    `graphql: introspect=${report.graphql.introspect?.success ?? 'n/a'} replay=${report.graphql.replay?.success ?? 'n/a'} extracted=${Array.isArray(report.graphql.extract?.queries) ? report.graphql.extract.queries.length : 'n/a'}`,
-    `extension-registry: installed=${Array.isArray(report.extensionRegistry.listInstalled?.plugins) ? report.extensionRegistry.listInstalled.plugins.length : 'n/a'} execute=${report.extensionRegistry.execute?.success ?? 'n/a'} reload=${report.extensionRegistry.reload?.success ?? 'n/a'}`,
+    `maintenance: tokenUsage=${report.maintenance.tokenStats?.currentUsage ?? 'n/a'} cacheEntries=${report.maintenance.cacheStats?.totalEntries ?? 'n/a'} doctor=${report.maintenance.doctor?.ok ?? report.maintenance.doctor?.success ?? 'n/a'} install=${report.maintenance.installExtension?.success ?? 'n/a'}`,
+    `workflow: count=${report.workflow.count ?? 0} run=${report.workflow.run?.success ?? 'n/a'}`,
+    `graphql: introspect=${report.graphql.introspect?.success ?? 'n/a'} replay=${report.graphql.replay?.success ?? 'n/a'} extracted=${Array.isArray(report.graphql.extract?.queries) ? report.graphql.extract.queries.length : 'n/a'} replace=${report.graphql.scriptReplaceState?.result?.replaced ?? report.graphql.scriptReplaceState?.replaced ?? 'n/a'}`,
+    `extension-registry: installed=${Array.isArray(report.extensionRegistry.listInstalled?.plugins) ? report.extensionRegistry.listInstalled.plugins.length : 'n/a'} execute=${report.extensionRegistry.execute?.success ?? 'n/a'} reload=${report.extensionRegistry.reload?.success ?? 'n/a'} uninstall=${report.extensionRegistry.uninstall?.success ?? 'n/a'}`,
+    `process-tls: launch=${report.process.launchDebug?.success ?? 'n/a'} debugPort=${report.process.checkDebugPort?.debugPort ?? 'n/a'} nativeDebug=${report.process.nativeCheckDebugPort?.success ?? 'n/a'} tlsProbe=${report.tls.probeEndpoint?.ok ?? 'n/a'}`,
     `attach: external=${report.browser.attachExternal?.success ?? 'n/a'} eval=${report.browser.attachExternalEval?.success ?? 'n/a'}`,
-    `v8: launchFlag=${report.browser.launch?.v8NativeSyntaxEnabled ?? 'n/a'} simulated=${report.v8.capture?.simulated ?? 'n/a'} sizeBytes=${report.v8.capture?.sizeBytes ?? 0} statsUsed=${report.v8.stats?.heapUsage?.jsHeapSizeUsed ?? 'n/a'} script=${report.v8.firstScriptUrl ?? report.v8.firstScriptId ?? 'n/a'} inspect=${Boolean(report.v8.objectInspect?.objectData)} bytecode=${report.v8.bytecode?.success ?? 'skipped'} bytecodeMode=${report.v8.bytecode?.mode ?? 'n/a'} jit=${Array.isArray(report.v8.jit?.functions) ? report.v8.jit.functions.length : 'skipped'} jitMode=${report.v8.jit?.inspectionMode ?? 'n/a'} natives=${report.v8.version?.features?.nativesSyntax ?? 'n/a'}`,
+    `v8: launchFlag=${report.browser.launch?.v8NativeSyntaxEnabled ?? 'n/a'} simulated=${report.v8.capture?.simulated ?? 'n/a'} sizeBytes=${report.v8.capture?.sizeBytes ?? 0} statsUsed=${report.v8.stats?.heapUsage?.jsHeapSizeUsed ?? 'n/a'} script=${report.v8.firstScriptUrl ?? report.v8.firstScriptId ?? 'n/a'} inspect=${Boolean(report.v8.objectInspect?.objectData)} bytecode=${report.v8.bytecode?.success ?? 'skipped'} bytecodeMode=${report.v8.bytecode?.mode ?? 'n/a'} jit=${Array.isArray(report.v8.jit?.functions) ? report.v8.jit.functions.length : 'skipped'} jitMode=${report.v8.jit?.inspectionMode ?? 'n/a'} diff=${report.v8.diff?.sizeDeltaBytes ?? 'n/a'} natives=${report.v8.version?.features?.nativesSyntax ?? 'n/a'}`,
     '',
     'Use --json for the full machine-readable report.',
   ];
@@ -1209,6 +1420,17 @@ function summarize(report) {
 
 async function main() {
   const jsonOnly = process.argv.includes('--json');
+  const jsonOutputPath = (() => {
+    const cliValue = getCliValue('--json-out');
+    if (typeof cliValue === 'string' && cliValue.trim().length > 0) {
+      return pathResolve(cliValue.trim());
+    }
+    const envValue = process.env.RUNTIME_AUDIT_JSON_PATH?.trim();
+    if (typeof envValue === 'string' && envValue.length > 0) {
+      return pathResolve(envValue);
+    }
+    return null;
+  })();
   const server = await createProbeServer();
   const runtimeArtifactDir = join(process.cwd(), '.tmp_mcp_artifacts');
   const runtimeMacroDir = join(process.cwd(), 'macros');
@@ -1216,10 +1438,14 @@ async function main() {
   const runtimeMacroId = 'runtime_audit_macro';
   const runtimeExtensionId = 'runtime-audit-extension';
   const extensionRegistryRoot = join(runtimeArtifactDir, 'runtime-extension-registry');
+  const runtimeWorkflowRoot = join(runtimeArtifactDir, 'runtime-workflows');
+  const runtimePluginRoot = join(runtimeArtifactDir, 'runtime-plugins');
   const client = new Client({ name: 'runtime-tool-probe', version: '1.0.0' }, { capabilities: {} });
   const sharedEnv = {
     EXTENSION_REGISTRY_BASE_URL: server.baseUrl,
     MCP_EXTENSION_REGISTRY_DIR: extensionRegistryRoot,
+    MCP_WORKFLOW_ROOTS: runtimeWorkflowRoot,
+    MCP_PLUGIN_ROOTS: runtimePluginRoot,
   };
   const transport = createClientTransport('full', sharedEnv);
   const metaClient = new Client(
@@ -1258,6 +1484,8 @@ async function main() {
     sandbox: {},
     maintenance: {},
     workflow: {},
+    process: {},
+    tls: {},
     v8: {},
     extensionRegistry: {},
   };
@@ -1271,12 +1499,26 @@ async function main() {
   let attachTransport = null;
   let externalBrowserProc = null;
   let externalBrowserUserDataDir = null;
+  let processLaunchUserDataDir = null;
+  let processLaunchPid = null;
 
   try {
     await withTimeout(client.connect(transport), 'connect', 30000);
     await withTimeout(metaClient.connect(metaTransport), 'connect-meta', 30000);
     await mkdir(runtimeArtifactDir, { recursive: true });
     await mkdir(runtimeMacroDir, { recursive: true });
+    await rm(runtimeWorkflowRoot, { recursive: true, force: true });
+    await rm(runtimePluginRoot, { recursive: true, force: true });
+    await mkdir(runtimeWorkflowRoot, { recursive: true });
+    await mkdir(runtimePluginRoot, { recursive: true });
+    const registryFixtures = await createRegistryFixtures(
+      join(runtimeArtifactDir, 'registry-fixtures'),
+    );
+    server.setRegistryFixtures(registryFixtures);
+    report.maintenance.registryFixtures = {
+      pluginRepo: registryFixtures.plugins[0]?.source?.repo ?? null,
+      workflowRepo: registryFixtures.workflows[0]?.source?.repo ?? null,
+    };
     await writeFile(
       runtimeMacroPath,
       `${JSON.stringify(
@@ -1434,7 +1676,38 @@ async function main() {
         { path: 'src/utils.js', content: 'export function helper() { return 1; }\n' },
       ]),
     );
-    await writeFile(miniappPkgPath, buildMinimalMiniappPkg());
+    await writeFile(
+      miniappPkgPath,
+      buildMiniappPkg([
+        {
+          path: 'app.json',
+          content: JSON.stringify({
+            appId: 'wx-runtime-audit',
+            pages: ['pages/home/index'],
+            usingComponents: { auditCard: '/components/card/index' },
+          }),
+        },
+        {
+          path: 'app-config.json',
+          content: JSON.stringify({
+            appid: 'wx-runtime-audit',
+            pages: ['pages/home/index'],
+          }),
+        },
+        {
+          path: 'pages/home/index.js',
+          content: `module.exports = { marker: ${JSON.stringify(BODY_MARKER)} };\n`,
+        },
+        {
+          path: 'components/card/index.js',
+          content: 'Component({ properties: { title: String } });\n',
+        },
+        {
+          path: 'page-frame.html',
+          content: '<div id="runtime-miniapp-frame"></div>\n',
+        },
+      ]),
+    );
 
     report.platform.electronFuses = await callTool(
       client,
@@ -1465,6 +1738,19 @@ async function main() {
       'miniapp_pkg_scan',
       { searchPath: miniappDir },
       15000,
+    );
+    const miniappUnpackDir = join(platformProbeDir, 'miniapp-unpacked');
+    report.platform.miniappUnpack = await callTool(
+      client,
+      'miniapp_pkg_unpack',
+      { inputPath: miniappPkgPath, outputDir: miniappUnpackDir },
+      30000,
+    );
+    report.platform.miniappAnalyze = await callTool(
+      client,
+      'miniapp_pkg_analyze',
+      { unpackedDir: miniappUnpackDir },
+      30000,
     );
     const pcapPath = join(platformProbeDir, 'runtime-audit.pcap');
     report.protocol.payloadTemplate = await callTool(
@@ -1580,6 +1866,69 @@ async function main() {
       { path: pcapPath, maxPackets: 2 },
       15000,
     );
+    const protocolSamples = ['aa550110beef', 'aa550111be00', 'aa550112be01'];
+    report.protocol.definePattern = await callTool(
+      client,
+      'proto_define_pattern',
+      {
+        name: 'runtime_audit_proto',
+        spec: {
+          fields: [
+            { name: 'magic', offset: 0, length: 2 },
+            { name: 'opcode', offset: 2, length: 1 },
+            { name: 'sequence', offset: 3, length: 1 },
+            { name: 'payload', offset: 4, length: 2 },
+          ],
+          byteOrder: 'big',
+        },
+      },
+      15000,
+    );
+    report.protocol.autoDetect = await callTool(
+      client,
+      'proto_auto_detect',
+      { hexPayloads: protocolSamples, name: 'runtime_audit_auto' },
+      15000,
+    );
+    report.protocol.inferFields = await callTool(
+      client,
+      'proto_infer_fields',
+      { hexPayloads: protocolSamples },
+      15000,
+    );
+    report.protocol.exportSchema = await callTool(
+      client,
+      'proto_export_schema',
+      { patternId: 'runtime_audit_proto' },
+      15000,
+    );
+    report.protocol.inferStateMachine = await callTool(
+      client,
+      'proto_infer_state_machine',
+      {
+        messages: [
+          {
+            direction: 'req',
+            timestamp: 1,
+            fields: { opcode: 'hello', sequence: 1 },
+            raw: 'HELLO',
+          },
+          {
+            direction: 'res',
+            timestamp: 2,
+            fields: { opcode: 'ack', sequence: 1 },
+            raw: 'ACK',
+          },
+        ],
+      },
+      15000,
+    );
+    report.protocol.visualizeState = await callTool(
+      client,
+      'proto_visualize_state',
+      { stateMachine: report.protocol.inferStateMachine?.stateMachine ?? null },
+      15000,
+    );
     report.maintenance.tokenStats = await callTool(client, 'get_token_budget_stats', {}, 15000);
     report.maintenance.cacheStats = await callTool(client, 'get_cache_stats', {}, 15000);
     report.maintenance.smartCacheCleanup = await callTool(
@@ -1652,6 +2001,19 @@ async function main() {
       report.mojo.capabilities,
       'mojo_live_capture',
     );
+    const installedWorkflowTarget = join(
+      runtimeWorkflowRoot,
+      `runtime-audit-workflow-${Date.now()}`,
+    );
+    report.maintenance.installExtension = await callTool(
+      client,
+      'install_extension',
+      {
+        slug: 'runtime-audit-workflow',
+        targetDir: installedWorkflowTarget,
+      },
+      60000,
+    );
     report.workflow.list = await callTool(client, 'list_extension_workflows', {}, 15000);
     report.workflow.count = Array.isArray(report.workflow.list?.workflows)
       ? report.workflow.list.workflows.length
@@ -1662,15 +2024,13 @@ async function main() {
     report.workflow.firstWorkflowId =
       isRecord(runnableWorkflow) && typeof runnableWorkflow.id === 'string'
         ? runnableWorkflow.id
-        : null;
-    if (report.workflow.firstWorkflowId) {
-      report.workflow.run = await callTool(
-        client,
-        'run_extension_workflow',
-        { workflowId: report.workflow.firstWorkflowId, timeoutMs: 15000 },
-        30000,
-      );
-    }
+        : 'runtime-audit-installed-workflow';
+    report.workflow.run = await callTool(
+      client,
+      'run_extension_workflow',
+      { workflowId: report.workflow.firstWorkflowId, timeoutMs: 15000 },
+      30000,
+    );
     report.workflow.extensionListInstalled = await callTool(
       client,
       'extension_list_installed',
@@ -1704,6 +2064,64 @@ async function main() {
       { pluginId: runtimeExtensionId },
       15000,
     );
+    report.extensionRegistry.uninstall = await callTool(
+      client,
+      'extension_uninstall',
+      { pluginId: runtimeExtensionId },
+      15000,
+    );
+    report.extensionRegistry.listAfterUninstall = await callTool(
+      client,
+      'extension_list_installed',
+      {},
+      15000,
+    );
+    const webhookPath = `/runtime-audit-webhook-${Date.now()}`;
+    report.extensionRegistry.webhookCreate = await callTool(
+      client,
+      'webhook',
+      {
+        action: 'create',
+        name: 'runtime-audit-webhook',
+        path: webhookPath,
+        events: ['extension.executed', 'extension.reloaded'],
+      },
+      15000,
+    );
+    report.extensionRegistry.webhookList = await callTool(
+      client,
+      'webhook',
+      { action: 'list' },
+      15000,
+    );
+    const webhookEndpointId =
+      typeof report.extensionRegistry.webhookCreate?.endpointId === 'string'
+        ? report.extensionRegistry.webhookCreate.endpointId
+        : null;
+    if (webhookEndpointId) {
+      report.extensionRegistry.webhookCommandsEnqueue = await callTool(
+        client,
+        'webhook',
+        {
+          action: 'commands',
+          endpointId: webhookEndpointId,
+          command: { kind: 'runtime-audit', marker: BODY_MARKER, count: 1 },
+        },
+        15000,
+      );
+      report.extensionRegistry.webhookCommandsPoll = await callTool(
+        client,
+        'webhook',
+        { action: 'commands', endpointId: webhookEndpointId },
+        15000,
+      );
+      report.extensionRegistry.webhookDelete = await callTool(
+        client,
+        'webhook',
+        { action: 'delete', endpointId: webhookEndpointId },
+        15000,
+      );
+    }
     report.macro.list = await callTool(client, 'list_macros', {}, 15000);
     report.macro.customListed = Array.isArray(report.macro.list?.macros)
       ? report.macro.list.macros.some((entry) => isRecord(entry) && entry.id === runtimeMacroId)
@@ -1947,7 +2365,27 @@ async function main() {
       },
       30000,
     );
+    report.analysis.seedCryptoStandalone = await callTool(
+      client,
+      'page_inject_script',
+      {
+        script: [
+          "window.auditCryptoSalt = 'runtime-audit-salt';",
+          'window.auditCryptoSign = function auditCryptoSign(input) {',
+          "  return ['sig', window.auditCryptoSalt, String(input)].join(':');",
+          '};',
+        ].join('\n'),
+      },
+      15000,
+    );
+    report.analysis.cryptoExtractStandalone = await callTool(
+      client,
+      'crypto_extract_standalone',
+      { targetFunction: 'window.auditCryptoSign', includePolyfills: true },
+      30000,
+    );
     const auditHost = new URL(server.baseUrl).hostname;
+    const auditPort = Number(new URL(server.baseUrl).port);
     const screenshotPath = join(runtimeArtifactDir, 'runtime-audit-element.png');
     const performanceTracePath = join(runtimeArtifactDir, 'runtime-performance-trace.json');
     const cpuProfilePath = join(runtimeArtifactDir, 'runtime-audit.cpuprofile');
@@ -2054,6 +2492,22 @@ async function main() {
       'page_local_storage',
       { action: 'get' },
       15000,
+    );
+    report.workflow.apiProbeBatch = await callTool(
+      client,
+      'api_probe_batch',
+      {
+        baseUrl: server.baseUrl,
+        paths: ['/body?via=api-probe-batch'],
+        includeBodyStatuses: [200],
+        maxBodySnippetLength: 64,
+        networkPolicy: {
+          allowPrivateNetwork: true,
+          allowInsecureHttp: true,
+          allowedHosts: [auditHost, `${auditHost}:${auditPort}`],
+        },
+      },
+      30000,
     );
     report.browser.seedFrameworkState = await callTool(
       client,
@@ -2840,6 +3294,78 @@ async function main() {
         15000,
       );
     }
+    report.network.traceroute = await callTool(
+      client,
+      'network_traceroute',
+      { target: '127.0.0.1', maxHops: 2, timeout: 1000 },
+      15000,
+    );
+    report.network.icmpProbe = await callTool(
+      client,
+      'network_icmp_probe',
+      { target: '127.0.0.1', ttl: 8, timeout: 1000 },
+      15000,
+    );
+    report.tls.parseCertificate = await callTool(
+      client,
+      'tls_parse_certificate',
+      { rawHex: pemToDerHex(TEST_CERT_PEM) },
+      15000,
+    );
+    report.tls.probeEndpoint = await callTool(
+      client,
+      'tls_probe_endpoint',
+      {
+        host: 'localhost',
+        port: server.tlsPort,
+        servername: 'localhost',
+        caPem: TEST_CERT_PEM,
+        alpnProtocols: ['http/1.1'],
+        timeoutMs: 5000,
+      },
+      30000,
+    );
+    const processDebugPort = await getFreePort();
+    processLaunchUserDataDir = await mkdtemp(join(tmpdir(), 'jshook-process-debug-'));
+    report.process.launchDebug = await callTool(
+      client,
+      'process_launch_debug',
+      {
+        executablePath: getPreferredBrowserExecutable(),
+        debugPort: processDebugPort,
+        args: [
+          '--headless=new',
+          '--no-first-run',
+          '--no-default-browser-check',
+          '--disable-gpu',
+          '--no-sandbox',
+          `--user-data-dir=${processLaunchUserDataDir}`,
+          server.baseUrl,
+        ],
+      },
+      60000,
+    );
+    processLaunchPid = Number(report.process.launchDebug?.process?.pid ?? 0);
+    if (Number.isFinite(processLaunchPid) && processLaunchPid > 0) {
+      report.process.windows = await callTool(
+        client,
+        'process_windows',
+        { pid: processLaunchPid },
+        15000,
+      );
+      report.process.checkDebugPort = await callTool(
+        client,
+        'process_check_debug_port',
+        { pid: processLaunchPid },
+        15000,
+      );
+      report.process.nativeCheckDebugPort = await callTool(
+        client,
+        'check_debug_port',
+        { pid: processLaunchPid },
+        15000,
+      );
+    }
 
     const proxyPort = await getFreePort();
     report.proxy.start = await callTool(
@@ -2912,8 +3438,8 @@ async function main() {
     );
     report.network.consoleInjectXhr = await callTool(
       client,
-      'console_inject',
-      { type: 'xhr' },
+      'console_inject_xhr_interceptor',
+      { persistent: true },
       15000,
     );
     report.streaming.wsMonitor = await callTool(
@@ -2925,7 +3451,7 @@ async function main() {
     report.streaming.sseMonitor = await callTool(
       client,
       'sse_monitor_enable',
-      { maxEvents: 100 },
+      { maxEvents: 100, persistent: true },
       15000,
     );
     report.trace.start = await callTool(
@@ -3222,6 +3748,12 @@ async function main() {
         entry.includes(CONSOLE_EXCEPTION_MARKER),
       );
     }
+    report.network.consoleInjectXhrActive = await callTool(
+      client,
+      'console_inject_xhr_interceptor',
+      { persistent: false },
+      15000,
+    );
     report.browser.interceptorExercise = await callTool(
       client,
       'page_evaluate',
@@ -3253,6 +3785,21 @@ async function main() {
         }))()`,
       },
       30000,
+    );
+    report.network.xhrInterceptorState = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => ({
+          injected: window.__xhrInterceptorInjected ?? null,
+          installed: window.__xhrInterceptorInstalled ?? null,
+          recordCount: Array.isArray(window.__xhrRequests) ? window.__xhrRequests.length : null,
+          firstUrl: Array.isArray(window.__xhrRequests) && window.__xhrRequests[0]
+            ? window.__xhrRequests[0].url ?? null
+            : null,
+        }))()`,
+      },
+      15000,
     );
     report.network.interceptFetch = await callTool(
       client,
@@ -4197,6 +4744,35 @@ async function main() {
         { snapshotId: report.v8.capture.snapshotId },
         30000,
       );
+      report.v8.heapDiffSeed = await callTool(
+        client,
+        'page_evaluate',
+        {
+          code: `(() => {
+            window.__heapAuditBuffer = Array.from(
+              { length: 8192 },
+              (_, index) => ${JSON.stringify(HEAP_MARKER)} + ':' + index,
+            );
+            return {
+              length: window.__heapAuditBuffer.length,
+              tail: window.__heapAuditBuffer[window.__heapAuditBuffer.length - 1],
+            };
+          })()`,
+        },
+        30000,
+      );
+      report.v8.captureAfter = await callTool(client, 'v8_heap_snapshot_capture', {}, 90000);
+      if (report.v8.captureAfter?.snapshotId) {
+        report.v8.diff = await callTool(
+          client,
+          'v8_heap_diff',
+          {
+            beforeSnapshotId: report.v8.capture.snapshotId,
+            afterSnapshotId: report.v8.captureAfter.snapshotId,
+          },
+          30000,
+        );
+      }
     }
 
     report.browser.sourceMapNavigate = await callTool(
@@ -4264,6 +4840,32 @@ async function main() {
         } catch {}
       }
     }
+    report.graphql.scriptReplacePersist = await callTool(
+      client,
+      'script_replace_persist',
+      {
+        url: `${server.baseUrl}/sourcemap/app.min.js`,
+        replacement: `window.__scriptReplacePersistAudit = ${JSON.stringify(BODY_MARKER)};`,
+      },
+      30000,
+    );
+    report.graphql.scriptReplaceNavigate = await callTool(
+      client,
+      'page_navigate',
+      { url: server.sourceMapPageUrl, waitUntil: 'load', timeout: 15000 },
+      30000,
+    );
+    report.graphql.scriptReplaceState = await callTool(
+      client,
+      'page_evaluate',
+      {
+        code: `(() => ({
+          replaced: window.__scriptReplacePersistAudit ?? null,
+          originalSeen: window.__sourceMapAudit ?? null,
+        }))()`,
+      },
+      15000,
+    );
     report.browser.emulateDevice = await callTool(
       client,
       'page_emulate_device',
@@ -4369,6 +4971,18 @@ async function main() {
         await rm(externalBrowserUserDataDir, { recursive: true, force: true });
       } catch {}
     }
+    if (Number.isFinite(processLaunchPid) && processLaunchPid > 0) {
+      try {
+        await execFileAsync('taskkill', ['/PID', String(processLaunchPid), '/T', '/F'], {
+          timeout: 15000,
+        });
+      } catch {}
+    }
+    if (processLaunchUserDataDir) {
+      try {
+        await rm(processLaunchUserDataDir, { recursive: true, force: true });
+      } catch {}
+    }
     try {
       report.proxy.stop = await callTool(client, 'proxy_stop', {}, 15000);
     } catch (error) {
@@ -4421,7 +5035,12 @@ async function main() {
 
   report.runtimeCoverage = buildRuntimeCoverage(report.tools);
 
-  if (jsonOnly) {
+  if (jsonOutputPath) {
+    await mkdir(dirname(jsonOutputPath), { recursive: true });
+    await writeFile(jsonOutputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  }
+
+  if (jsonOnly && !jsonOutputPath) {
     console.log(JSON.stringify(report, null, 2));
   } else {
     console.log(summarize(report));
