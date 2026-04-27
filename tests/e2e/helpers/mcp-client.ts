@@ -215,9 +215,9 @@ export class MCPTestClient {
       if (typeof v === 'string') env[k] = v;
     }
     env.MCP_TRANSPORT = 'stdio';
-    env.MCP_TOOL_PROFILE = 'full';
+    env.MCP_TOOL_PROFILE = process.env.MCP_TOOL_PROFILE ?? 'full';
     env.LOG_LEVEL = 'error';
-    env.PUPPETEER_HEADLESS = 'false';
+    env.PUPPETEER_HEADLESS = process.env.PUPPETEER_HEADLESS ?? 'false';
 
     const transport = new StdioClientTransport({
       command: 'node',

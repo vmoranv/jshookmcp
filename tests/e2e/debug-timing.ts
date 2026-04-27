@@ -3,8 +3,10 @@
  */
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { findBrowserExecutable } from '@utils/browserExecutable';
 
 const TARGET = 'https://vmoranv.github.io/jshookmcp/';
+const DEFAULT_BROWSER_EXECUTABLE = findBrowserExecutable() ?? '';
 
 // All 210 E2E tools in order
 const TOOLS = [
@@ -207,7 +209,7 @@ const TOOLS = [
   [
     'process_launch_debug',
     {
-      executablePath: 'C:/Program Files/Browser/Application/browser.exe',
+      executablePath: DEFAULT_BROWSER_EXECUTABLE,
       debugPort: 19222,
       args: ['--headless'],
     },

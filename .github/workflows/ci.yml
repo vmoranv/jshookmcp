@@ -34,7 +34,7 @@ jobs:
             fi
           done
 
-  build-and-test:
+  linux-full:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -94,3 +94,68 @@ jobs:
 
       - name: Run E2E Tests
         run: pnpm run test:e2e
+
+  cross-platform-smoke:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [22]
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          package-manager-cache: false
+
+      - name: Enable Corepack pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.0 --activate
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(corepack pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate registry index
+        run: node scripts/generate-domains-index.mjs
+
+      - name: Install Playwright Browsers (Linux)
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright Browsers (Non-Linux)
+        if: runner.os != 'Linux'
+        run: npx playwright install chromium
+
+      - name: Export Playwright executable path
+        shell: bash
+        run: |
+          BROWSER_PATH="$(node --input-type=module -e 'const { chromium } = await import(\"playwright-core\"); process.stdout.write(chromium.executablePath())')"
+          echo "PUPPETEER_EXECUTABLE_PATH=$BROWSER_PATH" >> "$GITHUB_ENV"
+          echo "PUPPETEER_HEADLESS=true" >> "$GITHUB_ENV"
+
+      - name: Build project
+        run: pnpm run build
+
+      - name: Run portable E2E smoke tests
+        run: pnpm run test:e2e:portable

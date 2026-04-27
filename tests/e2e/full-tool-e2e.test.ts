@@ -7,6 +7,7 @@ import { ALL_PHASES } from '@tests/e2e/phases/index';
 import { applyContextCapture } from '@tests/e2e/context-capture';
 import { analyzeCoverage, formatCoverageReport } from '@tests/e2e/helpers/coverage-analyzer';
 import { buildPerformanceSummary } from '@tests/e2e/helpers/perf-metrics';
+import { findBrowserExecutable } from '@utils/browserExecutable';
 import type {
   CallFn,
   E2EConfig,
@@ -56,6 +57,7 @@ const WASM_FIXTURE_PATH = join(process.cwd(), 'tests', 'e2e', 'fixtures', 'wasm'
 const FIXTURE_URL =
   'data:text/html,<html><body><h1>jshook e2e</h1><script>window.__e2e=true;</script></body></html>';
 const COLLECT_PERFORMANCE = process.env.E2E_COLLECT_PERFORMANCE === '1';
+const DEFAULT_BROWSER_PATH = findBrowserExecutable() ?? '';
 
 const config: E2EConfig = {
   targetUrl: TARGET_URL,
@@ -66,7 +68,7 @@ const config: E2EConfig = {
   electronUserdataDir: ELECTRON_USERDATA_DIR,
   miniappPath: flag('--miniapp-path', ''),
   asarPath: flag('--asar-path', ''),
-  browserPath: flag('--browser-path', 'C:/Program Files/Browser/Application/browser.exe'),
+  browserPath: flag('--browser-path', DEFAULT_BROWSER_PATH),
   perToolTimeout: Number(flag('--timeout', '60000')),
   artifactDir: ARTIFACT_DIR,
 };
@@ -380,7 +382,15 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
       testInputs: ['test'],
     },
     blackbox_add: { urlPattern: '/node_modules/' },
-    process_launch_debug: { executablePath: browserPath, debugPort: 19222, args: ['--headless'] },
+    ...(browserPath
+      ? {
+          process_launch_debug: {
+            executablePath: browserPath,
+            debugPort: 19222,
+            args: ['--headless'],
+          },
+        }
+      : {}),
     ...(browserPid
       ? {
           process_windows: { pid: browserPid },
