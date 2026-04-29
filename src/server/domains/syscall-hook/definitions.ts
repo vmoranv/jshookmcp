@@ -6,7 +6,10 @@ const BACKEND_OPTIONS = ['etw', 'strace', 'dtrace'];
 const SYSCALL_EVENT_SCHEMA = {
   type: 'object',
   properties: {
-    timestamp: { type: 'number', description: 'Unix timestamp in milliseconds' },
+    timestamp: {
+      type: 'number',
+      description: 'Relative elapsed time in milliseconds since bpftrace start',
+    },
     pid: { type: 'number', description: 'Process identifier' },
     syscall: { type: 'string', description: 'Observed syscall name' },
     args: {
@@ -66,4 +69,13 @@ export const syscallHookToolDefinitions: Tool[] = [
       .query(),
   ),
   tool('syscall_get_stats', (t) => t.desc('Get syscall monitoring statistics.').query()),
+  tool('syscall_ebpf_trace', (t) =>
+    t
+      .desc('Trace syscalls via Linux eBPF/bpftrace. Requires root or CAP_BPF.')
+      .number('pid', 'Process ID to trace. 0 = trace all.', { default: 0 })
+      .array('syscalls', { type: 'string' }, 'Specific syscall names to trace (empty = all)')
+      .number('durationSec', 'Trace duration in seconds', { default: 10, minimum: 1, maximum: 300 })
+      .boolean('simulate', 'Use synthetic events when bpftrace is unavailable', { default: false })
+      .query(),
+  ),
 ];

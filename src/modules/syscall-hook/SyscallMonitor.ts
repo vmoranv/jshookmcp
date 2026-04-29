@@ -218,7 +218,7 @@ function matchesFilter(event: SyscallEvent, filter?: CaptureFilter): boolean {
  * Example strace line:
  *   12345 14:30:00.123456 openat(AT_FDCWD, "/tmp/foo", O_RDONLY) = 3 <0.000123>
  */
-function parseStraceLine(line: string, targetPid: number): SyscallEvent | null {
+function parseStraceLine(line: string, targetPid: number, startedAt: number): SyscallEvent | null {
   // Match pattern: pid timestamp syscall(args) = return <duration>
   const match = /^(\d+)\s+([\d:.]+)\s+(\w+)\(([^)]*)\)\s*=\s*(-?\d+)(?:\s+<([\d.]+)>)?$/u.exec(
     line.trim(),
@@ -238,7 +238,7 @@ function parseStraceLine(line: string, targetPid: number): SyscallEvent | null {
     .filter((a) => a.length > 0);
 
   return {
-    timestamp: Date.now(),
+    timestamp: Date.now() - startedAt,
     pid: targetPid,
     syscall,
     args,
@@ -253,7 +253,7 @@ function parseStraceLine(line: string, targetPid: number): SyscallEvent | null {
  * Example ETW line:
  *   [2024-01-15 14:30:00.123] PID=1234 NtCreateFile Handle=0x90 Status=0x00000000
  */
-function parseETWLine(line: string, targetPid: number): SyscallEvent | null {
+function parseETWLine(line: string, targetPid: number, startedAt: number): SyscallEvent | null {
   const match = /^\[([^\]]+)\]\s+PID=(\d+)\s+(\w+)\s+(.*)$/u.exec(line.trim());
   if (!match) {
     return null;
@@ -266,7 +266,7 @@ function parseETWLine(line: string, targetPid: number): SyscallEvent | null {
   const args = rawArgs.split(/\s+/u).filter((a) => a.length > 0);
 
   return {
-    timestamp: Date.now(),
+    timestamp: Date.now() - startedAt,
     pid: Number.isFinite(pid) ? pid : targetPid,
     syscall,
     args,
@@ -279,7 +279,7 @@ function parseETWLine(line: string, targetPid: number): SyscallEvent | null {
  * Example dtrace line:
  *   1234   0  12345  open_nocancel:entry  /private/tmp/foo O_RDONLY
  */
-function parseDTraceLine(line: string, targetPid: number): SyscallEvent | null {
+function parseDTraceLine(line: string, targetPid: number, startedAt: number): SyscallEvent | null {
   const match = /^\s*(\d+)\s+\d+\s+(\d+)\s+(\w+):\w+\s+(.*)$/u.exec(line.trim());
   if (!match) {
     return null;
@@ -292,7 +292,7 @@ function parseDTraceLine(line: string, targetPid: number): SyscallEvent | null {
   const args = rawArgs.split(/\s+/u).filter((a) => a.length > 0);
 
   return {
-    timestamp: Date.now(),
+    timestamp: Date.now() - startedAt,
     pid: Number.isFinite(pid) ? pid : targetPid,
     syscall,
     args,
@@ -307,6 +307,7 @@ export class SyscallMonitor {
 
   async start(options?: StartOptions): Promise<void> {
     const requestedBackend = options?.backend ?? chooseDefaultBackend();
+    const startedAt = Date.now();
 
     if (!isBackendSupportedOnCurrentPlatform(requestedBackend)) {
       throw new Error(
@@ -320,7 +321,7 @@ export class SyscallMonitor {
       this.activeState = {
         backend: requestedBackend,
         pid: options?.pid,
-        startedAt: Date.now(),
+        startedAt,
         generatedEvents: 0,
       };
       this.lastBackend = requestedBackend;
@@ -335,11 +336,11 @@ export class SyscallMonitor {
 
     try {
       if (requestedBackend === 'strace') {
-        subprocess = await this.captureWithStrace(pid);
+        subprocess = await this.captureWithStrace(pid, startedAt);
       } else if (requestedBackend === 'etw') {
-        subprocess = await this.captureWithETW(pid);
+        subprocess = await this.captureWithETW(pid, startedAt);
       } else if (requestedBackend === 'dtrace') {
-        subprocess = await this.captureWithDTrace(pid);
+        subprocess = await this.captureWithDTrace(pid, startedAt);
       }
     } catch (error) {
       this.subprocessError = error instanceof Error ? error.message : String(error);
@@ -347,7 +348,7 @@ export class SyscallMonitor {
       this.activeState = {
         backend: requestedBackend,
         pid: options?.pid,
-        startedAt: Date.now(),
+        startedAt,
         generatedEvents: 0,
       };
       this.lastBackend = requestedBackend;
@@ -359,7 +360,7 @@ export class SyscallMonitor {
     this.activeState = {
       backend: requestedBackend,
       pid: options?.pid,
-      startedAt: Date.now(),
+      startedAt,
       generatedEvents: 0,
       subprocess,
     };
@@ -414,7 +415,10 @@ export class SyscallMonitor {
    * Spawn strace for syscall tracing on Linux.
    * Parses stdout into SyscallEvent objects.
    */
-  async captureWithStrace(pid: number): Promise<ChildProcess> {
+  async captureWithStrace(
+    pid: number,
+    startedAt = this.activeState?.startedAt ?? Date.now(),
+  ): Promise<ChildProcess> {
     const { spawn } = await import('node:child_process');
 
     return new Promise<ChildProcess>((resolve, reject) => {
@@ -440,7 +444,7 @@ export class SyscallMonitor {
         stderrBuffer = lines.pop() ?? '';
         for (const line of lines) {
           if (line.length > 0) {
-            const event = parseStraceLine(line, pid);
+            const event = parseStraceLine(line, pid, startedAt);
             if (event) {
               this.capturedEvents.push(event);
             }
@@ -464,7 +468,10 @@ export class SyscallMonitor {
    * Spawn ETW tracing on Windows using logman.
    * Parses ETW trace output into SyscallEvent objects.
    */
-  async captureWithETW(pid: number): Promise<ChildProcess> {
+  async captureWithETW(
+    pid: number,
+    startedAt = this.activeState?.startedAt ?? Date.now(),
+  ): Promise<ChildProcess> {
     const { spawn } = await import('node:child_process');
 
     return new Promise<ChildProcess>((resolve, reject) => {
@@ -500,7 +507,7 @@ export class SyscallMonitor {
         const lines = outputBuffer.split(/\r?\n/u);
         outputBuffer = lines.pop() ?? '';
         for (const line of lines) {
-          const event = parseETWLine(line, pid);
+          const event = parseETWLine(line, pid, startedAt);
           if (event) {
             this.capturedEvents.push(event);
           }
@@ -538,7 +545,10 @@ export class SyscallMonitor {
    * Spawn dtrace for syscall tracing on macOS.
    * Parses dtrace output into SyscallEvent objects.
    */
-  async captureWithDTrace(pid: number): Promise<ChildProcess> {
+  async captureWithDTrace(
+    pid: number,
+    startedAt = this.activeState?.startedAt ?? Date.now(),
+  ): Promise<ChildProcess> {
     const { spawn } = await import('node:child_process');
 
     return new Promise<ChildProcess>((resolve, reject) => {
@@ -564,7 +574,7 @@ export class SyscallMonitor {
         const lines = outputBuffer.split(/\r?\n/u);
         outputBuffer = lines.pop() ?? '';
         for (const line of lines) {
-          const event = parseDTraceLine(line, pid);
+          const event = parseDTraceLine(line, pid, startedAt);
           if (event) {
             this.capturedEvents.push(event);
           }
@@ -605,7 +615,7 @@ export class SyscallMonitor {
       if (!seed) {
         break;
       }
-      const timestamp = this.activeState.startedAt + this.activeState.generatedEvents * 75;
+      const timestamp = this.activeState.generatedEvents * 75;
 
       this.capturedEvents.push({
         timestamp,

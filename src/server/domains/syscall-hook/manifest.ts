@@ -63,6 +63,11 @@ const manifest = {
       domain: DOMAIN,
       bind: bindTool((handlers) => handlers.handleSyscallGetStats()),
     },
+    {
+      tool: lookupTool('syscall_ebpf_trace'),
+      domain: DOMAIN,
+      bind: bindTool((handlers, args) => handlers.handleSyscallEbpfTrace(args)),
+    },
   ],
   workflowRule: {
     patterns: [
