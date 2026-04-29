@@ -30,8 +30,9 @@ WebAssembly dump, disassembly, decompilation, optimization, and offline executio
 - `wasm_optimize` — Optimize a .wasm file with wasm-opt.
 - `wasm_vmp_trace` — Read captured WASM VMP import-call traces from the current page.
 - `wasm_memory_inspect` — Inspect exported WebAssembly.Memory from the current page.
+- `wasm_to_c` — Convert a .wasm file to C source and header with wasm2c (WABT).
 
-## Full tool list (9)
+## Full tool list (12)
 
 | Tool | Description |
 | --- | --- |
@@ -44,3 +45,6 @@ WebAssembly dump, disassembly, decompilation, optimization, and offline executio
 | `wasm_optimize` | Optimize a .wasm file with wasm-opt. |
 | `wasm_vmp_trace` | Read captured WASM VMP import-call traces from the current page. |
 | `wasm_memory_inspect` | Inspect exported WebAssembly.Memory from the current page. |
+| `wasm_to_c` | Convert a .wasm file to C source and header with wasm2c (WABT). |
+| `wasm_detect_obfuscation` | Detect obfuscation patterns in a .wasm file (CFG flattening, dead code, opaque predicates, constant encoding). |
+| `wasm_instrument_trace` | Generate JS instrumentation wrapper for a .wasm module to trace calls, memory, and control flow. |

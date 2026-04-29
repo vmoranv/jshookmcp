@@ -30,8 +30,9 @@ WebAssembly dump、反汇编、反编译、优化与离线执行域。
 - `wasm_optimize` — 用 wasm-opt 优化 .wasm 文件。
 - `wasm_vmp_trace` — 读取当前页面已捕获的 WASM 导入调用轨迹。
 - `wasm_memory_inspect` — 检查当前页面导出的 WebAssembly.Memory。
+- `wasm_to_c` — 将 .wasm 文件转换为 C 源码和头文件（wasm2c/WABT）。
 
-## 工具清单（9）
+## 工具清单（12）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -44,3 +45,6 @@ WebAssembly dump、反汇编、反编译、优化与离线执行域。
 | `wasm_optimize` | 用 wasm-opt 优化 .wasm 文件。 |
 | `wasm_vmp_trace` | 读取当前页面已捕获的 WASM 导入调用轨迹。 |
 | `wasm_memory_inspect` | 检查当前页面导出的 WebAssembly.Memory。 |
+| `wasm_to_c` | 将 .wasm 文件转换为 C 源码和头文件（wasm2c/WABT）。 |
+| `wasm_detect_obfuscation` | 检测 .wasm 文件中的混淆模式（控制流平坦、死代码、不透明谓词、常量编码）。 |
+| `wasm_instrument_trace` | 为 .wasm 模块生成 JS 插桩包装，追踪调用、内存和控制流。 |
