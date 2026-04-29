@@ -48,7 +48,7 @@ const DEAD_CODE_IF_FALSE = /if\s*\(\s*false\s*\)\s*\{[^}]*\}\s*/g;
 const DEAD_CODE_IF_FALSE_WITH_ELSE = /if\s*\(\s*false\s*\)\s*\{[^}]*\}\s*else\s*\{([^}]*)\}/g;
 const DEAD_CODE_IF_TRUE = /if\s*\(\s*true\s*\)\s*\{([^}]*)\}\s*(?:else\s*\{[^}]*\}\s*)?/g;
 const CFF_PATTERN =
-  /var\s+([A-Za-z_$]\w*)\s*=\s*['"][^'"]+['"]\.split\(['"]\|['"]\)\s*;\s*var\s+(\w+)\s*=\s*0\s*;\s*while\s*\(\s*!!\[\]\s*\)\s*\{\s*switch\s*\(\s*\1\[\s*\2\+\+\s*\]\s*\)\s*\{([\s\S]*?)\}\s*break;\s*\}/g;
+  /var\s+([A-Za-z_$]\w*)\s*=\s*['"]([^'"]+)['"]\.split\(['"]\|['"]\)\s*;\s*var\s+(\w+)\s*=\s*0\s*;\s*while\s*\(\s*!!\[\]\s*\)\s*\{\s*switch\s*\(\s*\1\[\s*\3\+\+\s*\]\s*\)\s*\{([\s\S]*?)\}\s*break;\s*\}/g;
 const CFF_PATTERN_VAR2 =
   /var\s+([A-Za-z_$]\w*)\s*=\s*\[(['"][^'"]*['"]\s*(?:,\s*['"][^'"]*['"]\s*)*)\];\s*var\s+(\w+)\s*=\s*(\d+);\s*while\s*\(\s*!!\[\]\s*\)\s*\{\s*switch\s*\(\s*\1\[\s*\3\+\+\]\s*\)\s*\{([\s\S]*?)\}\s*break;\s*\}/g;
 const STRING_CONCAT = /['"]([^'"]*)['"]\s*\+\s*['"]([^'"]*)['"]/g;
@@ -394,7 +394,7 @@ function applyControlFlowFlatten(code: string): string {
   result = replaceOutsideProtectedRanges(
     result,
     CFF_PATTERN,
-    (_full, _dispatcher: string, orderRaw: string, switchBody: string) => {
+    (_full, _dispatcher: string, orderRaw: string, _cursor: string, switchBody: string) => {
       const caseRegex = /case\s*['"]([^'"]+)['"]\s*:\s*([\s\S]*?)(?=case\s*['"]|default\s*:|$)/g;
       const caseMap = new Map<string, string>();
       let m: RegExpExecArray | null;
@@ -533,20 +533,24 @@ function applyRenameVarsWithAst(code: string, renameMap: Map<string, string>): s
         const valuePath = path.get('value');
         if (!valuePath.isIdentifier()) return;
         const replacement = getBindingReplacement(valuePath, renameMap);
-        if (!replacement || path.node.start === null || path.node.end === null) return;
-        replacements.set(`${path.node.start}:${path.node.end}`, {
-          start: path.node.start,
-          end: path.node.end,
+        const { start, end } = path.node;
+        if (!replacement || start === null || start === undefined) return;
+        if (end === null || end === undefined) return;
+        replacements.set(`${start}:${end}`, {
+          start,
+          end,
           text: `${path.node.key.name}: ${replacement}`,
         });
         path.skip();
       },
       Identifier(path) {
         const replacement = getBindingReplacement(path, renameMap);
-        if (!replacement || path.node.start === null || path.node.end === null) return;
-        replacements.set(`${path.node.start}:${path.node.end}`, {
-          start: path.node.start,
-          end: path.node.end,
+        const { start, end } = path.node;
+        if (!replacement || start === null || start === undefined) return;
+        if (end === null || end === undefined) return;
+        replacements.set(`${start}:${end}`, {
+          start,
+          end,
           text: replacement,
         });
       },
