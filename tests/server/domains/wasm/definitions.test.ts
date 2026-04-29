@@ -35,8 +35,8 @@ describe('wasm/definitions', () => {
     expect(wasmTools.length).toBeGreaterThan(0);
   });
 
-  it('exports exactly 9 tools', async () => {
-    expect(wasmTools).toHaveLength(9);
+  it('exports exactly 12 tools', async () => {
+    expect(wasmTools).toHaveLength(12);
   });
 
   it('contains all expected tool names', async () => {
@@ -50,6 +50,8 @@ describe('wasm/definitions', () => {
     expect(names).toContain('wasm_optimize');
     expect(names).toContain('wasm_vmp_trace');
     expect(names).toContain('wasm_memory_inspect');
+    expect(names).toContain('wasm_to_c');
+    expect(names).toContain('wasm_detect_obfuscation');
   });
 
   it('has unique tool names', async () => {
@@ -292,6 +294,51 @@ describe('wasm/definitions', () => {
     it('description mentions memory or linear memory', async () => {
       const desc = getDescription(tool).toLowerCase();
       expect(desc.includes('memory')).toBe(true);
+    });
+  });
+
+  /* ---------- wasm_to_c ---------- */
+
+  describe('wasm_to_c', () => {
+    const tool = getTool('wasm_to_c');
+
+    it('requires inputPath', async () => {
+      expect(tool.inputSchema.required).toContain('inputPath');
+    });
+
+    it('has inputPath and outputDir properties', async () => {
+      const inputPath = getProperty(tool, 'inputPath');
+      const outputDir = getProperty(tool, 'outputDir');
+      expect(inputPath.type).toBe('string');
+      expect(outputDir.type).toBe('string');
+    });
+
+    it('description mentions wasm2c or C source', async () => {
+      const desc = getDescription(tool);
+      expect(desc.includes('wasm2c') || desc.includes('C source')).toBe(true);
+    });
+  });
+
+  /* ---------- wasm_detect_obfuscation ---------- */
+
+  describe('wasm_detect_obfuscation', () => {
+    const tool = getTool('wasm_detect_obfuscation');
+
+    it('requires inputPath', async () => {
+      expect(tool.inputSchema.required).toContain('inputPath');
+    });
+
+    it('has inputPath and verbose properties', async () => {
+      const inputPath = getProperty(tool, 'inputPath');
+      const verbose = getProperty(tool, 'verbose');
+      expect(inputPath.type).toBe('string');
+      expect(verbose.type).toBe('boolean');
+      expect(verbose.default).toBe(false);
+    });
+
+    it('description mentions obfuscation patterns', async () => {
+      const desc = getDescription(tool).toLowerCase();
+      expect(desc.includes('obfuscation') || desc.includes('pattern')).toBe(true);
     });
   });
 

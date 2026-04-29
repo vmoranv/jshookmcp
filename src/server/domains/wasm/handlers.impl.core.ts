@@ -62,4 +62,13 @@ export class WasmToolHandlers {
   handleWasmMemoryInspect(args: Record<string, unknown>) {
     return this.browser.handleWasmMemoryInspect(args);
   }
+  handleWasmToC(args: Record<string, unknown>) {
+    return this.externalTools.handleWasmToC(args);
+  }
+  handleWasmDetectObfuscation(args: Record<string, unknown>) {
+    return this.externalTools.handleWasmDetectObfuscation(args);
+  }
+  handleWasmInstrumentTrace(args: Record<string, unknown>) {
+    return this.externalTools.handleWasmInstrumentTrace(args);
+  }
 }
