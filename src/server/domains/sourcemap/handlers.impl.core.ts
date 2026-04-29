@@ -37,4 +37,7 @@ export class SourcemapToolHandlers {
   handleSourcemapReconstructTree(args: Record<string, unknown>) {
     return this.sourcemap.handleSourcemapReconstructTree(args);
   }
+  handleSourcemapParseV4(args: Record<string, unknown>) {
+    return this.sourcemap.handleSourcemapParseV4(args);
+  }
 }

@@ -81,7 +81,10 @@ function normalizeSourceMap(value: unknown): SourceMapV3 {
   return { version: 3, sources, sourcesContent, mappings, names, sourceRoot };
 }
 
-async function fetchSourceMapText(resolvedUrl: string, collector: CodeCollector): Promise<string> {
+export async function fetchSourceMapText(
+  resolvedUrl: string,
+  collector: CodeCollector,
+): Promise<string> {
   validateFetchUrl(resolvedUrl);
   {
     const ac = new AbortController();
