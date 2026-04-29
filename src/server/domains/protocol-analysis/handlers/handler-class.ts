@@ -12,6 +12,13 @@ import { ProtocolPatternEngine, StateMachineInferrer } from '@modules/protocol-a
 import { argObject, argStringArray, argStringRequired } from '@server/domains/shared/parse-args';
 import type { ToolArgs } from '@server/types';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
+import {
+  PROTO_TLS_MIN_RECORD_LEN,
+  PROTO_TLS_CONFIDENCE,
+  PROTO_WS_CONFIDENCE,
+  PROTO_HTTP_CONFIDENCE,
+  PROTO_SSH_CONFIDENCE,
+} from '@src/constants';
 import type {
   PayloadFieldSegment,
   PayloadMutationSummary,
@@ -59,6 +66,19 @@ import {
   buildClassicPcap,
   readClassicPcap,
 } from './shared';
+
+function readU8(hex: string, offset: number): number {
+  return Number.parseInt(hex.substring(offset * 2, offset * 2 + 2), 16);
+}
+function readU16(hex: string, offset: number): number {
+  return Number.parseInt(hex.substring(offset * 2, offset * 2 + 4), 16);
+}
+function hexSlice(hex: string, offset: number, len: number): string {
+  return hex.substring(offset * 2, (offset + len) * 2);
+}
+function isZeroedDnsHeader(hex: string): boolean {
+  return hex.length >= 24 && /^0{24}$/i.test(hex.slice(0, 24));
+}
 
 export class ProtocolAnalysisHandlers {
   private engine?: ProtocolPatternEngine;
@@ -942,5 +962,387 @@ export class ProtocolAnalysisHandlers {
     }
 
     return this.inferrer;
+  }
+
+  async handleProtoFingerprint(
+    args: ToolArgs,
+  ): Promise<{ content: Array<{ type: string; text: string }> }> {
+    const hexPayloads = argStringArray(args, 'hexPayloads');
+    const includeKnown = args.includeKnownProtocols !== false;
+    const includeHints = args.includeFieldHints !== false;
+
+    if (!hexPayloads || hexPayloads.length === 0) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ success: false, error: 'hexPayloads is required' }),
+          },
+        ],
+      };
+    }
+
+    const TLS_RECORD_TYPES: Record<number, string> = {
+      20: 'ChangeCipherSpec',
+      21: 'Alert',
+      22: 'Handshake',
+      23: 'ApplicationData',
+    };
+    const TLS_VERSIONS: Record<string, string> = {
+      '0300': 'SSL 3.0',
+      '0301': 'TLS 1.0',
+      '0302': 'TLS 1.1',
+      '0303': 'TLS 1.2',
+      '0304': 'TLS 1.3',
+    };
+    const TLS_CIPHER_NAMES: Record<string, string> = {
+      '1301': 'TLS_AES_128_GCM_SHA256',
+      '1302': 'TLS_AES_256_GCM_SHA384',
+      '1303': 'TLS_CHACHA20_POLY1305_SHA256',
+      c02b: 'TLS_ECDHE_ECDSA_AES_128_GCM_SHA256',
+      c02f: 'TLS_ECDHE_RSA_AES_128_GCM_SHA256',
+      c02c: 'TLS_ECDHE_ECDSA_AES_256_GCM_SHA384',
+      c030: 'TLS_ECDHE_RSA_AES_256_GCM_SHA384',
+      cca9: 'TLS_ECDHE_ECDSA_CHACHA20_POLY1305',
+      cca8: 'TLS_ECDHE_RSA_CHACHA20_POLY1305',
+      '009c': 'TLS_RSA_AES_128_GCM_SHA256',
+      '009d': 'TLS_RSA_AES_256_GCM_SHA384',
+      '002f': 'TLS_RSA_AES_128_CBC_SHA',
+      '0035': 'TLS_RSA_AES_256_CBC_SHA',
+      c013: 'TLS_ECDHE_RSA_AES_128_CBC_SHA',
+      c014: 'TLS_ECDHE_RSA_AES_256_CBC_SHA',
+      '00ff': 'TLS_EMPTY_RENEGOTIATION_INFO_SCSV',
+      '5600': 'TLS_FALLBACK_SCSV',
+    };
+    const DNS_RCODES: Record<number, string> = {
+      0: 'NOERROR',
+      1: 'FORMERR',
+      2: 'SERVFAIL',
+      3: 'NXDOMAIN',
+      4: 'NOTIMP',
+      5: 'REFUSED',
+    };
+    const DNS_OPTYPES: Record<number, string> = {
+      0: 'QUERY',
+      1: 'IQUERY',
+      2: 'STATUS',
+      3: 'UNASSIGNED',
+      4: 'NOTIFY',
+      5: 'UPDATE',
+    };
+    const HTTP_METHODS: Record<string, string> = {
+      '474554': 'GET',
+      '504f5354': 'POST',
+      '505554': 'PUT',
+      '44454c45': 'DELETE',
+      '48454144': 'HEAD',
+      '50415443': 'PATCH',
+      '4f505449': 'OPTIONS',
+      '434f4e4e': 'CONNECT',
+    };
+
+    function parseTlsClientHello(hex: string): Record<string, unknown> | null {
+      if (hex.length < 44) return null;
+      const recordType = readU8(hex, 0);
+      if (recordType !== 0x16) return null;
+      const recordVersion = hexSlice(hex, 1, 2);
+      const recordLen = readU16(hex, 3);
+      if (hex.length / 2 < 5 + recordLen) return null;
+      const hsType = readU8(hex, 5);
+      if (hsType !== 0x01) return null;
+
+      const result: Record<string, unknown> = {
+        recordType: TLS_RECORD_TYPES[recordType] ?? `0x${recordType.toString(16)}`,
+        recordVersion: TLS_VERSIONS[recordVersion] ?? recordVersion,
+        recordLength: recordLen,
+        handshakeType: 'ClientHello',
+      };
+
+      // ClientHello body starts at offset 9 (5 TLS record + 4 handshake header)
+      let pos = 9;
+      if (pos + 2 > hex.length / 2) return result;
+      const clientVersion = hexSlice(hex, pos, 2);
+      result.clientVersion = TLS_VERSIONS[clientVersion] ?? clientVersion;
+      pos += 2;
+
+      // Skip 32-byte random
+      pos += 32;
+
+      // Session ID length + data
+      if (pos >= hex.length / 2) return result;
+      const sessionIdLen = readU8(hex, pos);
+      pos += 1 + sessionIdLen;
+
+      // Cipher suites
+      if (pos + 2 > hex.length / 2) return result;
+      const cipherLen = readU16(hex, pos);
+      pos += 2;
+      const cipherCount = cipherLen / 2;
+      const ciphers: Array<{ hex: string; name: string }> = [];
+      for (let i = 0; i < cipherCount && pos + 2 <= hex.length / 2; i++) {
+        const cHex = hexSlice(hex, pos, 2).toLowerCase();
+        ciphers.push({ hex: cHex, name: TLS_CIPHER_NAMES[cHex] ?? `Unknown(0x${cHex})` });
+        pos += 2;
+      }
+      result.cipherSuites = ciphers;
+      result.cipherSuiteCount = ciphers.length;
+
+      // Compression methods
+      if (pos >= hex.length / 2) return result;
+      const compLen = readU8(hex, pos);
+      pos += 1 + compLen;
+
+      // Extensions
+      if (pos + 2 > hex.length / 2) return result;
+      const extTotalLen = readU16(hex, pos);
+      pos += 2;
+      const extEnd = pos + extTotalLen;
+      const extensions: Array<{ type: string; length: number; name?: string }> = [];
+      while (pos + 4 <= extEnd && pos + 4 <= hex.length / 2) {
+        const extType = hexSlice(hex, pos, 2).toLowerCase();
+        const extLen = readU16(hex, pos + 2);
+        const extNames: Record<string, string> = {
+          '0000': 'server_name',
+          '000a': 'supported_groups',
+          '000b': 'ec_point_formats',
+          '000d': 'signature_algorithms',
+          '0010': 'application_layer_protocol_negotiation',
+          '0015': 'padding',
+          '0017': 'extended_master_secret',
+          '001b': 'compress_certificate',
+          '0023': 'session_ticket',
+          '0029': 'pre_shared_key',
+          '002b': 'supported_versions',
+          '002d': 'psk_key_exchange_modes',
+          '0033': 'key_share',
+          '0039': 'quic_transport_parameters',
+          '4469': 'next_protocol_negotiation',
+          fe0d: 'encrypted_client_hello',
+          ff01: 'renegotiation_info',
+        };
+        extensions.push({ type: extType, length: extLen, name: extNames[extType] });
+        pos += 4 + extLen;
+      }
+      result.extensions = extensions;
+      result.extensionCount = extensions.length;
+
+      return result;
+    }
+
+    function parseDnsHeader(hex: string): Record<string, unknown> | null {
+      if (hex.length < 24) return null;
+      const txId = readU16(hex, 0);
+      const flags1 = readU8(hex, 2);
+      const flags2 = readU8(hex, 3);
+      const qr = (flags1 >> 7) & 1;
+      const opcode = (flags1 >> 3) & 0xf;
+      const aa = (flags1 >> 2) & 1;
+      const tc = (flags1 >> 1) & 1;
+      const rd = flags1 & 1;
+      const ra = (flags2 >> 7) & 1;
+      const z = (flags2 >> 4) & 7;
+      const rcode = flags2 & 0xf;
+      const qdcount = readU16(hex, 4);
+      const ancount = readU16(hex, 6);
+      const nscount = readU16(hex, 8);
+      const arcount = readU16(hex, 10);
+
+      return {
+        transactionId: `0x${txId.toString(16).padStart(4, '0')}`,
+        flags: {
+          qr: qr === 1 ? 'Response' : 'Query',
+          opcode: DNS_OPTYPES[opcode] ?? opcode,
+          authoritativeAnswer: !!aa,
+          truncation: !!tc,
+          recursionDesired: !!rd,
+          recursionAvailable: !!ra,
+          reserved: z,
+          responseCode: DNS_RCODES[rcode] ?? rcode,
+        },
+        questionCount: qdcount,
+        answerCount: ancount,
+        authorityCount: nscount,
+        additionalCount: arcount,
+      };
+    }
+
+    function isLikelyDnsHeader(hex: string): boolean {
+      if (hex.length < 24 || isZeroedDnsHeader(hex)) return false;
+
+      const flags1 = readU8(hex, 2);
+      const flags2 = readU8(hex, 3);
+      const qr = (flags1 >> 7) & 1;
+      const opcode = (flags1 >> 3) & 0x0f;
+      const rcode = flags2 & 0x0f;
+      const qdcount = readU16(hex, 4);
+      const ancount = readU16(hex, 6);
+
+      if (opcode > 2) return false;
+      if (qdcount + ancount === 0) return false;
+      if (qr === 0 && rcode !== 0) return false;
+      if (qr === 1 && rcode > 5) return false;
+
+      return true;
+    }
+
+    const results = hexPayloads.map((hex, idx) => {
+      const clean = hex.replace(/\s/g, '');
+      const matches: Array<{ protocol: string; layer: string; confidence: number }> = [];
+      const actualBytes = clean.length / 2;
+
+      const tlsRecordLen = actualBytes >= 5 ? readU16(clean, 3) : -1;
+      const hasCompleteTlsRecord =
+        Number.isFinite(tlsRecordLen) && tlsRecordLen >= 0 && actualBytes >= 5 + tlsRecordLen;
+      const isTlsCh =
+        hasCompleteTlsRecord &&
+        tlsRecordLen >= PROTO_TLS_MIN_RECORD_LEN &&
+        readU8(clean, 0) === 0x16 &&
+        readU8(clean, 5) === 0x01;
+      const isDns = isLikelyDnsHeader(clean);
+      const isHttp = Object.keys(HTTP_METHODS).some((m) => clean.toUpperCase().startsWith(m));
+      const isSsh = clean.toUpperCase().startsWith('5353482D');
+      const isWs =
+        clean.length >= 4 &&
+        (() => {
+          const b0 = readU8(clean, 0);
+          const b1 = readU8(clean, 1);
+          const opcode = b0 & 0x0f;
+          // Continuation frames require prior fragmented-frame context, which
+          // proto_fingerprint does not have when analyzing isolated samples.
+          if (opcode === 0) return false;
+          const validOpcode = opcode <= 10 && !(opcode >= 3 && opcode <= 7);
+          const masked = ((b1 >> 7) & 1) === 1;
+          const wsByteCount = clean.length / 2;
+          let payloadLen = b1 & 0x7f;
+          let headerBytes = 2;
+
+          if (payloadLen === 126) {
+            if (wsByteCount < 4) return false;
+            payloadLen = readU16(clean, 2);
+            headerBytes = 4;
+          } else if (payloadLen === 127) {
+            if (wsByteCount < 10) return false;
+            const hi32 = (readU16(clean, 2) << 16) | readU16(clean, 4);
+            const lo32 = (readU16(clean, 6) << 16) | readU16(clean, 8);
+            payloadLen = hi32 > 0 ? 0xffffffff : lo32;
+            headerBytes = 10;
+          }
+
+          const maskBytes = masked ? 4 : 0;
+          const expectedBytes = headerBytes + maskBytes + payloadLen;
+          return validOpcode && wsByteCount >= expectedBytes;
+        })();
+
+      let deepParse: Record<string, unknown> | null = null;
+
+      if (isTlsCh) {
+        matches.push({
+          protocol: 'TLS ClientHello',
+          layer: 'L6-TLS',
+          confidence: PROTO_TLS_CONFIDENCE,
+        });
+        if (includeHints) deepParse = parseTlsClientHello(clean);
+      } else if (isHttp) {
+        matches.push({ protocol: 'HTTP/1.x', layer: 'L7-HTTP', confidence: PROTO_HTTP_CONFIDENCE });
+        if (includeHints) {
+          const method =
+            Object.entries(HTTP_METHODS).find(([k]) => clean.toUpperCase().startsWith(k))?.[1] ??
+            'UNKNOWN';
+          const pathEnd = clean.indexOf('2048545450'); // " HTTP"
+          deepParse = { method, httpVersion: pathEnd > 0 ? '1.x' : 'unknown' };
+        }
+      } else if (isSsh) {
+        matches.push({ protocol: 'SSH', layer: 'L7-SSH', confidence: PROTO_SSH_CONFIDENCE });
+        if (includeHints && clean.length >= 20) {
+          const sshVersion = Buffer.from(
+            clean.substring(0, Math.min(clean.length, 80)),
+            'hex',
+          ).toString('ascii');
+          deepParse = { banner: sshVersion };
+        }
+      } else if (isWs) {
+        matches.push({ protocol: 'WebSocket', layer: 'L7-WS', confidence: PROTO_WS_CONFIDENCE });
+        if (includeHints && clean.length >= 4) {
+          const WS_OPCODES: Record<number, string> = {
+            0: 'continuation',
+            1: 'text',
+            2: 'binary',
+            8: 'close',
+            9: 'ping',
+            10: 'pong',
+          };
+          const b0 = readU8(clean, 0);
+          const b1 = readU8(clean, 1);
+          const opcode = b0 & 0xf;
+          const masked = (b1 >> 7) & 1;
+          let payloadLen = b1 & 0x7f;
+          let headerSize = 2;
+          if (payloadLen === 126) {
+            payloadLen = clean.length >= 4 ? readU16(clean, 2) : 0;
+            headerSize = 4;
+          } else if (payloadLen === 127) {
+            // 64-bit length: bytes 2-9; read as hi32 (bytes 2-5) + lo32 (bytes 6-9)
+            if (clean.length >= 20) {
+              const hi32 = (readU16(clean, 2) << 16) | readU16(clean, 4);
+              const lo32 = (readU16(clean, 6) << 16) | readU16(clean, 8);
+              payloadLen = hi32 > 0 ? 0xffffffff : lo32;
+            } else {
+              payloadLen = 0;
+            }
+            headerSize = 10;
+          }
+          if (masked) headerSize += 4;
+          deepParse = {
+            fin: (b0 >> 7) & 1,
+            rsv1: (b0 >> 6) & 1,
+            opcode,
+            opcodeName: WS_OPCODES[opcode] ?? `reserved(${opcode})`,
+            masked: !!masked,
+            payloadLength: payloadLen,
+            headerSize,
+          };
+        }
+      } else if (isDns) {
+        matches.push({ protocol: 'DNS', layer: 'L7-DNS', confidence: 0.85 });
+        if (includeHints) deepParse = parseDnsHeader(clean);
+      }
+
+      if (includeKnown && matches.length === 0) {
+        if (hasCompleteTlsRecord && /^160301|^160302|^160303/i.test(clean.substring(0, 8))) {
+          matches.push({ protocol: 'TLS Record', layer: 'L6-TLS', confidence: 0.9 });
+        }
+        if (clean.substring(0, 8).startsWith('50524920')) {
+          matches.push({ protocol: 'HTTP/2 PRI', layer: 'L7-HTTP2', confidence: 0.9 });
+        }
+      }
+
+      const fieldHints: Array<{ offset: number; hint: string }> = [];
+      if (includeHints && !deepParse && clean.length >= 8) {
+        const first2 = readU16(clean, 0);
+        if (first2 > 0 && first2 < clean.length / 2) {
+          fieldHints.push({ offset: 0, hint: `possible length field (${first2} bytes)` });
+        }
+      }
+
+      const entry: Record<string, unknown> = {
+        index: idx,
+        size: clean.length / 2,
+        protocolMatches:
+          matches.length > 0 ? matches : [{ protocol: 'unknown', layer: 'unknown', confidence: 0 }],
+      };
+      if (deepParse) entry.parsedFields = deepParse;
+      if (fieldHints.length > 0) entry.fieldHints = fieldHints;
+
+      return entry;
+    });
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ success: true, fingerprints: results }, null, 2),
+        },
+      ],
+    };
   }
 }
