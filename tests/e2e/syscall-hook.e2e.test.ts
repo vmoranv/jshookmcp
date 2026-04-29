@@ -3,15 +3,16 @@ import { MCPTestClient } from '@tests/e2e/helpers/mcp-client';
 
 const TARGET_URL = process.env.E2E_TARGET_URL;
 const SUPPORTED_PLATFORM = process.platform === 'win32' || process.platform === 'linux';
+const DEFAULT_BACKEND = process.platform === 'win32' ? 'etw' : 'strace';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function getString(value: unknown, key: string): string | null {
+function getArray(value: unknown, key: string): unknown[] | null {
   if (!isRecord(value)) return null;
   const candidate = value[key];
-  return typeof candidate === 'string' && candidate.length > 0 ? candidate : null;
+  return Array.isArray(candidate) ? candidate : null;
 }
 
 describe.skipIf(!TARGET_URL || !SUPPORTED_PLATFORM)(
@@ -28,13 +29,15 @@ describe.skipIf(!TARGET_URL || !SUPPORTED_PLATFORM)(
       await client.cleanup();
     });
 
-    test('start ETW/strace monitor, capture syscalls, correlate with JS', async () => {
+    test('start syscall monitor, capture syscalls, correlate with the current API', async () => {
       const requiredTools = [
         'browser_launch',
         'page_navigate',
         'page_evaluate',
-        'syscall_monitor_start',
-        'syscall_events_get',
+        'syscall_start_monitor',
+        'syscall_capture_events',
+        'syscall_correlate_js',
+        'syscall_stop_monitor',
       ];
       const missingTools = requiredTools.filter((name) => !client.getToolMap().has(name));
       if (missingTools.length > 0) {
@@ -49,15 +52,17 @@ describe.skipIf(!TARGET_URL || !SUPPORTED_PLATFORM)(
       const launch = await client.call('browser_launch', { headless: true }, 60_000);
       expect(launch.result.status).not.toBe('FAIL');
 
-      const start = await client.call('syscall_monitor_start', { pid: 0, maxEvents: 256 }, 30_000);
+      const start = await client.call(
+        'syscall_start_monitor',
+        { backend: DEFAULT_BACKEND, simulate: true },
+        30_000,
+      );
       expect(start.result.status).not.toBe('FAIL');
-
-      const sessionId = getString(start.parsed, 'sessionId');
-      if (!sessionId) {
+      if (!isRecord(start.parsed) || start.parsed.ok !== true) {
         client.recordSynthetic(
-          'syscall_monitor_start',
+          'syscall_start_monitor',
           'EXPECTED_LIMITATION',
-          'Monitor start did not return a sessionId',
+          'Monitor start did not return ok=true',
         );
         return;
       }
@@ -80,24 +85,31 @@ describe.skipIf(!TARGET_URL || !SUPPORTED_PLATFORM)(
       );
       expect(trigger.result.status).not.toBe('FAIL');
 
-      const events = await client.call('syscall_events_get', { sessionId }, 30_000);
+      const events = await client.call('syscall_capture_events', {}, 30_000);
       expect(events.result.status).not.toBe('FAIL');
-
-      if (!client.getToolMap().has('syscall_map_to_js')) {
-        client.recordSynthetic('syscall_map_to_js', 'SKIP', 'Correlation tool not registered');
+      const syscallEvents = getArray(events.parsed, 'events');
+      if (!syscallEvents || syscallEvents.length === 0) {
+        client.recordSynthetic(
+          'syscall_capture_events',
+          'EXPECTED_LIMITATION',
+          'Monitor returned no syscall events',
+        );
         return;
       }
 
       const correlate = await client.call(
-        'syscall_map_to_js',
+        'syscall_correlate_js',
         {
-          sessionId,
-          eventIndex: 0,
-          jsStack: ['at fetch (native)', 'at e2eTrigger (syscall-hook.e2e.test.ts:1:1)'],
+          syscallEvents,
         },
         30_000,
       );
       expect(correlate.result.status).not.toBe('FAIL');
+      const correlations = getArray(correlate.parsed, 'correlations');
+      expect(correlations?.length ?? 0).toBeGreaterThan(0);
+
+      const stop = await client.call('syscall_stop_monitor', {}, 15_000);
+      expect(stop.result.status).not.toBe('FAIL');
     });
   },
 );
