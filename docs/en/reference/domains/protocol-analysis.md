@@ -33,7 +33,7 @@ Custom protocol analysis domain supporting protocol pattern definition, automati
 - `ethernet_frame_build` — Build a deterministic Ethernet II frame from source/destination MAC addresses, EtherType, and payload bytes.
 - `arp_build` — Build a deterministic ARP payload for Ethernet/IPv4 style address resolution packets.
 
-## Full tool list (15)
+## Full tool list (16)
 
 | Tool | Description |
 | --- | --- |
@@ -52,3 +52,4 @@ Custom protocol analysis domain supporting protocol pattern definition, automati
 | `checksum_apply` | Apply a deterministic 16-bit Internet checksum across a payload slice, optionally zeroing and writing the checksum field back into the packet. |
 | `pcap_write` | Write a compact classic PCAP file from deterministic packet byte records. |
 | `pcap_read` | Read a classic PCAP file and return compact deterministic packet summaries. PCAPNG is intentionally not supported. |
+| `proto_fingerprint` | Identify protocol type from hex payload samples (TLS, HTTP, DNS, WebSocket, SSH). |

@@ -27,8 +27,9 @@ System call hooking domain providing system call monitoring and mapping capabili
 - `syscall_correlate_js` — Correlate captured syscalls with likely JavaScript functions.
 - `syscall_filter` — Filter captured syscall events by syscall name.
 - `syscall_get_stats` — Get syscall monitoring statistics.
+- `syscall_ebpf_trace` — Trace syscalls via Linux eBPF/bpftrace. Requires root or CAP_BPF.
 
-## Full tool list (6)
+## Full tool list (7)
 
 | Tool | Description |
 | --- | --- |
@@ -38,3 +39,4 @@ System call hooking domain providing system call monitoring and mapping capabili
 | `syscall_correlate_js` | Correlate captured syscalls with likely JavaScript functions. |
 | `syscall_filter` | Filter captured syscall events by syscall name. |
 | `syscall_get_stats` | Get syscall monitoring statistics. |
+| `syscall_ebpf_trace` | Trace syscalls via Linux eBPF/bpftrace. Requires root or CAP_BPF. |

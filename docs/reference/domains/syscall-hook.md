@@ -27,8 +27,9 @@
 - `syscall_correlate_js` — 将捕获的系统调用与可能的 JavaScript 函数关联。
 - `syscall_filter` — 按系统调用名称过滤已捕获的系统调用事件。
 - `syscall_get_stats` — 获取系统调用监控统计。
+- `syscall_ebpf_trace` — 通过 Linux eBPF/bpftrace 追踪系统调用。需要 root 或 CAP_BPF。
 
-## 工具清单（6）
+## 工具清单（7）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -38,3 +39,4 @@
 | `syscall_correlate_js` | 将捕获的系统调用与可能的 JavaScript 函数关联。 |
 | `syscall_filter` | 按系统调用名称过滤已捕获的系统调用事件。 |
 | `syscall_get_stats` | 获取系统调用监控统计。 |
+| `syscall_ebpf_trace` | 通过 Linux eBPF/bpftrace 追踪系统调用。需要 root 或 CAP_BPF。 |

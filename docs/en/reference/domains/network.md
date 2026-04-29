@@ -34,7 +34,7 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 - `performance_coverage` — Start or stop JavaScript and CSS code coverage recording
 - `performance_take_heap_snapshot` — Take a V8 heap memory snapshot
 
-## Full tool list (29)
+## Full tool list (31)
 
 | Tool | Description |
 | --- | --- |
@@ -67,3 +67,5 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 | `network_export_har` | Export all captured network traffic as a standard HAR 1.2 file. |
 | `network_replay_request` | Replay a previously captured network request with optional modifications. |
 | `network_intercept` | Manage response interception rules using CDP Fetch domain. Actions: add (create rule), list (show active rules), disable (remove rules). |
+| `network_tls_fingerprint` | Compute TLS/HTTP fingerprint hashes for bot detection. |
+| `network_bot_detect_analyze` | Analyze captured requests for bot detection signals (TLS fingerprint, header ordering, timing). |

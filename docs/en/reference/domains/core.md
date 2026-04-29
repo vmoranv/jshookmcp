@@ -33,7 +33,7 @@ Core static and semi-static analysis domain for script collection, deobfuscation
 - `webcrack_unpack` — Run webcrack bundle unpacking and return extracted module graph
 - `clear_collected_data` — Clear collected script data, caches, and in-memory indexes
 
-## Full tool list (13)
+## Full tool list (17)
 
 | Tool | Description |
 | --- | --- |
@@ -50,3 +50,7 @@ Core static and semi-static analysis domain for script collection, deobfuscation
 | `get_collection_stats` | Get collection, cache, and compression statistics |
 | `webpack_enumerate` | Enumerate webpack modules in current page and search for keywords |
 | `llm_suggest_names` | Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated ... |
+| `js_deobfuscate_jsvmp` | Deobfuscate JSVMP/VM-protected JavaScript: extract VM bytecode and restore original logic. |
+| `js_deobfuscate_pipeline` | Three-stage deobfuscation pipeline: preprocess → deobfuscate → humanize. |
+| `js_analyze_vm` | Analyze JSVMP/VM interpreter structure: dispatch type, handler table, opcode map. |
+| `js_solve_constraints` | Solve opaque predicates and constant expressions in obfuscated code. |

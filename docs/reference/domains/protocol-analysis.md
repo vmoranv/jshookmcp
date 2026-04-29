@@ -33,7 +33,7 @@
 - `ethernet_frame_build` — 从源/目标 MAC 地址、EtherType 和载荷字节构建确定性 Ethernet II 帧。
 - `arp_build` — 构建用于 Ethernet/IPv4 地址解析的确定性 ARP 载荷。
 
-## 工具清单（15）
+## 工具清单（16）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -52,3 +52,4 @@
 | `checksum_apply` | 对载荷切片应用确定性 16 位互联网校验和，可选清零并将校验和字段写回数据包。 |
 | `pcap_write` | 从确定性数据包字节记录写入紧凑的经典 PCAP 文件。 |
 | `pcap_read` | 读取经典 PCAP 文件并返回紧凑的确定性数据包摘要。不支持 PCAPNG 格式。 |
+| `proto_fingerprint` | 从 hex 载荷样本识别协议类型（TLS、HTTP、DNS、WebSocket、SSH）。 |

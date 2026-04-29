@@ -34,7 +34,7 @@
 - `performance_coverage` — 开始或停止 JavaScript 与 CSS 代码覆盖率录制。
 - `performance_take_heap_snapshot` — 采集一份 V8 堆内存快照。
 
-## 工具清单（29）
+## 工具清单（31）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -67,3 +67,5 @@
 | `network_export_har` | 将网络请求记录导出为 HAR 文件。 |
 | `network_replay_request` | 重新发送某个已捕获的网络请求，支持按需修改请求内容。 |
 | `network_intercept` | 管理基于 CDP Fetch 域的响应拦截规则。操作：add（创建规则）、list（显示活跃规则）、disable（移除规则）。 |
+| `network_tls_fingerprint` | 计算 TLS/HTTP 指纹哈希，用于机器人检测。 |
+| `network_bot_detect_analyze` | 分析已捕获请求的机器人检测信号（TLS 指纹、Header 顺序、时序模式）。 |

@@ -33,7 +33,7 @@
 - `webcrack_unpack` — 直接调用 webcrack 解包，返回模块图详情。
 - `clear_collected_data` — 清理已采集的脚本数据、缓存和内存索引。
 
-## 工具清单（13）
+## 工具清单（17）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -50,3 +50,7 @@
 | `get_collection_stats` | 获取采集、缓存和压缩相关统计信息。 |
 | `webpack_enumerate` | 枚举当前页面中的全部 Webpack 模块，并可按关键词搜索。 |
 | `llm_suggest_names` | 利用 AI 为混淆的变量名和函数名建议有意义的名称。 |
+| `js_deobfuscate_jsvmp` | 反混淆 JSVMP/VM 保护的 JavaScript：提取 VM 字节码并还原原始逻辑。 |
+| `js_deobfuscate_pipeline` | 三阶段反混淆管线：预处理 → 去混淆 → 可读化。 |
+| `js_analyze_vm` | 分析 JSVMP/VM 解释器结构：调度类型、handler 表、操作码映射。 |
+| `js_solve_constraints` | 求解混淆代码中的不透明谓词和常量表达式。 |
