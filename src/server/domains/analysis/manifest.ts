@@ -202,6 +202,26 @@ const manifest = {
         };
       }),
     },
+    {
+      tool: t('js_deobfuscate_jsvmp'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleJsDeobfuscateJsvmp(a)),
+    },
+    {
+      tool: t('js_deobfuscate_pipeline'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleJsDeobfuscatePipeline(a)),
+    },
+    {
+      tool: t('js_analyze_vm'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleJsAnalyzeVm(a)),
+    },
+    {
+      tool: t('js_solve_constraints'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleJsSolveConstraints(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

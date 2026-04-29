@@ -1,3 +1,6 @@
+import * as parser from '@babel/parser';
+import traverse, { type NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 import { logger } from '@utils/logger';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import { asJsonResponse, asTextResponse, serializeError } from '@server/domains/shared/response';
@@ -36,7 +39,574 @@ import { type CryptoDetector } from '@server/domains/shared/modules';
 import { type HookManager } from '@server/domains/shared/modules';
 import { runWebpackEnumerate } from '@server/domains/analysis/handlers.web-tools';
 import { runWebcrack } from '@modules/deobfuscator/webcrack';
+import { JSVMPDeobfuscator } from '@modules/deobfuscator/JSVMPDeobfuscator';
 import type { DeobfuscateMappingRule } from '@internal-types/deobfuscator';
+
+// Lightweight inline transforms for the pipeline (avoiding circular import from transform domain)
+const NUMERIC_BINARY_EXPR = /\b(-?\d+(?:\.\d+)?)\s*([+\-%*/])\s*(-?\d+(?:\.\d+)?)\b/g;
+const DEAD_CODE_IF_FALSE = /if\s*\(\s*false\s*\)\s*\{[^}]*\}\s*/g;
+const DEAD_CODE_IF_FALSE_WITH_ELSE = /if\s*\(\s*false\s*\)\s*\{[^}]*\}\s*else\s*\{([^}]*)\}/g;
+const DEAD_CODE_IF_TRUE = /if\s*\(\s*true\s*\)\s*\{([^}]*)\}\s*(?:else\s*\{[^}]*\}\s*)?/g;
+const CFF_PATTERN =
+  /var\s+([A-Za-z_$]\w*)\s*=\s*['"][^'"]+['"]\.split\(['"]\|['"]\)\s*;\s*var\s+(\w+)\s*=\s*0\s*;\s*while\s*\(\s*!!\[\]\s*\)\s*\{\s*switch\s*\(\s*\1\[\s*\2\+\+\s*\]\s*\)\s*\{([\s\S]*?)\}\s*break;\s*\}/g;
+const CFF_PATTERN_VAR2 =
+  /var\s+([A-Za-z_$]\w*)\s*=\s*\[(['"][^'"]*['"]\s*(?:,\s*['"][^'"]*['"]\s*)*)\];\s*var\s+(\w+)\s*=\s*(\d+);\s*while\s*\(\s*!!\[\]\s*\)\s*\{\s*switch\s*\(\s*\1\[\s*\3\+\+\]\s*\)\s*\{([\s\S]*?)\}\s*break;\s*\}/g;
+const STRING_CONCAT = /['"]([^'"]*)['"]\s*\+\s*['"]([^'"]*)['"]/g;
+
+interface ProtectedRange {
+  start: number;
+  end: number;
+}
+
+type SafeReplaceCallback = (match: string, ...args: any[]) => string;
+
+function cloneRegex(pattern: RegExp): RegExp {
+  return new RegExp(pattern.source, pattern.flags);
+}
+
+function mergeProtectedRanges(ranges: ProtectedRange[]): ProtectedRange[] {
+  if (ranges.length === 0) return [];
+  const merged: ProtectedRange[] = [];
+  const sorted = ranges.toSorted((a, b) => a.start - b.start || a.end - b.end);
+  for (const range of sorted) {
+    const last = merged[merged.length - 1];
+    if (!last || range.start > last.end) {
+      merged.push({ ...range });
+      continue;
+    }
+    last.end = Math.max(last.end, range.end);
+  }
+  return merged;
+}
+
+function collectProtectedRangesWithAst(code: string): ProtectedRange[] | null {
+  try {
+    const ast = parser.parse(code, {
+      sourceType: 'unambiguous',
+      plugins: ['jsx', 'typescript'],
+      errorRecovery: true,
+    });
+    const ranges: ProtectedRange[] = [];
+    const pushRange = (start: number | null | undefined, end: number | null | undefined) => {
+      if (typeof start === 'number' && typeof end === 'number' && end > start) {
+        ranges.push({ start, end });
+      }
+    };
+
+    const comments = Array.isArray(
+      (ast as { comments?: Array<{ start?: number; end?: number }> }).comments,
+    )
+      ? (ast as { comments: Array<{ start?: number; end?: number }> }).comments
+      : [];
+    for (const comment of comments) {
+      pushRange(comment.start, comment.end);
+    }
+
+    traverse(ast, {
+      StringLiteral(path) {
+        pushRange(path.node.start, path.node.end);
+        path.skip();
+      },
+      TemplateElement(path) {
+        pushRange(path.node.start, path.node.end);
+        path.skip();
+      },
+      RegExpLiteral(path) {
+        pushRange(path.node.start, path.node.end);
+        path.skip();
+      },
+    });
+
+    return mergeProtectedRanges(ranges);
+  } catch {
+    return null;
+  }
+}
+
+function getReplaceCallbackOffset(args: unknown[]): number | null {
+  const maybeOffset = args[args.length - 2];
+  if (typeof maybeOffset === 'number') return maybeOffset;
+  const fallbackOffset = args[args.length - 3];
+  return typeof fallbackOffset === 'number' ? fallbackOffset : null;
+}
+
+function replaceOutsideProtectedRanges(
+  code: string,
+  pattern: RegExp,
+  replacement: string | SafeReplaceCallback,
+): string {
+  const applyReplacement = (input: string): string =>
+    typeof replacement === 'string'
+      ? input.replace(cloneRegex(pattern), replacement)
+      : input.replace(cloneRegex(pattern), replacement);
+  const protectedRanges = collectProtectedRangesWithAst(code);
+
+  if (protectedRanges === null) {
+    const regex = cloneRegex(pattern);
+    return code.replace(regex, (...args: unknown[]) => {
+      const fullMatch = typeof args[0] === 'string' ? args[0] : '';
+      const offset = getReplaceCallbackOffset(args);
+      if (offset !== null && insideStringLiteralOrComment(code, offset)) {
+        return fullMatch;
+      }
+      return typeof replacement === 'string'
+        ? replacement
+        : replacement(fullMatch, ...args.slice(1));
+    });
+  }
+
+  if (protectedRanges.length === 0) {
+    return applyReplacement(code);
+  }
+
+  let rewritten = '';
+  let cursor = 0;
+  for (const range of protectedRanges) {
+    if (cursor < range.start) {
+      rewritten += applyReplacement(code.slice(cursor, range.start));
+    }
+    rewritten += code.slice(range.start, range.end);
+    cursor = range.end;
+  }
+  if (cursor < code.length) {
+    rewritten += applyReplacement(code.slice(cursor));
+  }
+  return rewritten;
+}
+
+function insideStringLiteralOrComment(code: string, offset: number): boolean {
+  let inStr: "'" | '"' | '`' | null = null;
+  let inBlockComment = false;
+  let inLineComment = false;
+  let inRegex = false;
+  for (let i = 0; i < offset; i++) {
+    const ch = code[i]!;
+    if (inBlockComment) {
+      if (ch === '*' && code[i + 1] === '/') {
+        inBlockComment = false;
+        i++;
+      }
+      continue;
+    }
+    if (inLineComment) {
+      if (ch === '\n') inLineComment = false;
+      continue;
+    }
+    if (inRegex) {
+      if (ch === '\\') {
+        i++;
+        continue;
+      }
+      if (ch === '/') {
+        inRegex = false;
+        i++;
+        while (i < offset && /[gimsuy]/.test(code[i]!)) i++;
+        continue;
+      }
+      if (ch === '[') {
+        i++;
+        while (i < offset && code[i] !== ']') {
+          if (code[i] === '\\') i++;
+          i++;
+        }
+        continue;
+      }
+      continue;
+    }
+    if (inStr) {
+      if (ch === '\\' && inStr) {
+        i++;
+        continue;
+      }
+      if (ch === inStr) inStr = null;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '/') {
+      inLineComment = true;
+      i++;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '*') {
+      inBlockComment = true;
+      i++;
+      continue;
+    }
+    if (ch === '/' && isRegexOpener(code, i)) {
+      inRegex = true;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || ch === '`') {
+      inStr = ch;
+      continue;
+    }
+  }
+  return inStr !== null || inBlockComment || inLineComment || inRegex;
+}
+
+const REGEX_OPENER_PREV = new Set([
+  '=',
+  '(',
+  '[',
+  ',',
+  ';',
+  '{',
+  '!',
+  '&',
+  '|',
+  '?',
+  ':',
+  '~',
+  '^',
+  '+',
+  '-',
+  '*',
+  '%',
+  '<',
+  '>',
+  '\n',
+]);
+function isRegexOpener(code: string, pos: number): boolean {
+  let j = pos - 1;
+  while (j >= 0 && (code[j] === ' ' || code[j] === '\t' || code[j] === '\r')) j--;
+  if (j < 0) return true;
+  const prev = code[j]!;
+  if (REGEX_OPENER_PREV.has(prev)) return true;
+  if (prev === ')') {
+    let depth = 1;
+    let k = j - 1;
+    while (k >= 0 && depth > 0) {
+      if (code[k] === ')') depth++;
+      if (code[k] === '(') depth--;
+      k--;
+    }
+    k--;
+    while (k >= 0 && (code[k] === ' ' || code[k] === '\t')) k--;
+    let kw = '';
+    while (k >= 0 && /[a-z]/.test(code[k]!)) {
+      kw = code[k]! + kw;
+      k--;
+    }
+    return [
+      'if',
+      'while',
+      'for',
+      'switch',
+      'return',
+      'typeof',
+      'void',
+      'in',
+      'of',
+      'case',
+    ].includes(kw);
+  }
+  return false;
+}
+
+function applyConstantFold(code: string): string {
+  let result = code;
+
+  // Numeric binary expressions: 3 + 4 → 7 (skip inside string literals)
+  result = replaceOutsideProtectedRanges(
+    result,
+    NUMERIC_BINARY_EXPR,
+    (_full, leftRaw: string, op: string, rightRaw: string) => {
+      const left = Number(leftRaw);
+      const right = Number(rightRaw);
+      if (!Number.isFinite(left) || !Number.isFinite(right)) return _full;
+      let value: number | null = null;
+      if (op === '+') value = left + right;
+      else if (op === '-') value = left - right;
+      else if (op === '*') value = left * right;
+      else if (op === '/' && right !== 0) value = left / right;
+      else if (op === '%' && right !== 0) value = left % right;
+      if (value === null || !Number.isFinite(value)) return _full;
+      return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(12)));
+    },
+  );
+
+  // String concatenation: "a" + "b" → "ab"
+  result = replaceOutsideProtectedRanges(
+    result,
+    STRING_CONCAT,
+    (_full, left: string, right: string) => JSON.stringify(`${left}${right}`),
+  );
+
+  // Unary minus double negative: --5 → 5
+  const UNARY_NEG_DOUBLE = /--(\d)/g;
+  result = replaceOutsideProtectedRanges(result, UNARY_NEG_DOUBLE, (_full, digit: string) => digit);
+
+  // Unary plus: +42 → 42
+  const UNARY_PLUS_NUMBER = /\+\s*(\d+(?:\.\d+)?)/g;
+  result = replaceOutsideProtectedRanges(result, UNARY_PLUS_NUMBER, (_full, num: string) => num);
+
+  // Hex to decimal: 0xFF → 255
+  const hexPattern = /\b0x([0-9a-fA-F]{2,8})\b/g;
+  result = replaceOutsideProtectedRanges(result, hexPattern, (_full, hex: string) => {
+    const val = Number.parseInt(hex, 16);
+    return Number.isFinite(val) ? String(val) : _full;
+  });
+
+  return result;
+}
+
+function applyDeadCodeRemove(code: string): string {
+  let result = code;
+
+  // if (false) { ... } else { X } → X
+  result = replaceOutsideProtectedRanges(
+    result,
+    DEAD_CODE_IF_FALSE_WITH_ELSE,
+    (_full, elseBody: string) => elseBody,
+  );
+
+  // if (false) { ... }
+  result = replaceOutsideProtectedRanges(result, DEAD_CODE_IF_FALSE, '');
+
+  // if (true) { X } else { ... } → X
+  result = replaceOutsideProtectedRanges(
+    result,
+    DEAD_CODE_IF_TRUE,
+    (_full, trueBody: string) => trueBody,
+  );
+
+  // Ternary with constant condition: false ? a : b → b, true ? a : b → a
+  result = replaceOutsideProtectedRanges(
+    result,
+    /\btrue\s*\?\s*([^:]+)\s*:\s*([^,;)\]}]+)/g,
+    (_full, ifVal: string) => ifVal,
+  );
+  result = replaceOutsideProtectedRanges(
+    result,
+    /\bfalse\s*\?\s*[^:]+\s*:\s*([^,;)}\]]+)/g,
+    (_full, elseVal: string) => elseVal,
+  );
+
+  // Empty if bodies: if (cond) {} → (nothing)
+  result = replaceOutsideProtectedRanges(result, /if\s*\([^)]*\)\s*\{\s*\}\s*/g, '');
+
+  return result;
+}
+
+function applyControlFlowFlatten(code: string): string {
+  let result = code;
+
+  // Pattern 1: String-split dispatcher (var a = "1|2|3".split('|'); while(true) { switch(a[b++]) { ... } })
+  result = replaceOutsideProtectedRanges(
+    result,
+    CFF_PATTERN,
+    (_full, _dispatcher: string, orderRaw: string, switchBody: string) => {
+      const caseRegex = /case\s*['"]([^'"]+)['"]\s*:\s*([\s\S]*?)(?=case\s*['"]|default\s*:|$)/g;
+      const caseMap = new Map<string, string>();
+      let m: RegExpExecArray | null;
+      while ((m = caseRegex.exec(switchBody)) !== null) {
+        const key = m[1];
+        const body = (m[2] ?? '')
+          .replace(/\bcontinue\s*;?/g, '')
+          .replace(/\bbreak\s*;?/g, '')
+          .trim();
+        if (key && body.length > 0) caseMap.set(key, body);
+      }
+      const order = orderRaw.split('|').map((s) => s.trim());
+      const rebuilt = order
+        .map((tok) => caseMap.get(tok))
+        .filter((s): s is string => !!s)
+        .join('\n');
+      return rebuilt.length > 0 ? rebuilt : _full;
+    },
+  );
+
+  // Pattern 2: Array literal dispatcher (var a = ["1","2","3"]; var b = 0; while(true) { switch(a[b++]) { ... } })
+  result = replaceOutsideProtectedRanges(
+    result,
+    CFF_PATTERN_VAR2,
+    (
+      _full,
+      _dispatcher: string,
+      arrContent: string,
+      _cursor: string,
+      _startIdx: string,
+      switchBody: string,
+    ) => {
+      const caseRegex = /case\s*['"]([^'"]+)['"]\s*:\s*([\s\S]*?)(?=case\s*['"]|default\s*:|$)/g;
+      const caseMap = new Map<string, string>();
+      let m: RegExpExecArray | null;
+      while ((m = caseRegex.exec(switchBody)) !== null) {
+        const key = m[1];
+        const body = (m[2] ?? '')
+          .replace(/\bcontinue\s*;?/g, '')
+          .replace(/\bbreak\s*;?/g, '')
+          .trim();
+        if (key && body.length > 0) caseMap.set(key, body);
+      }
+      const order = arrContent.split(/,\s*/).map((s) => s.replace(/^['"]|['"]$/g, '').trim());
+      const rebuilt = order
+        .map((tok) => caseMap.get(tok))
+        .filter((s): s is string => !!s)
+        .join('\n');
+      return rebuilt.length > 0 ? rebuilt : _full;
+    },
+  );
+
+  return result;
+}
+
+function applyRenameVars(code: string): { code: string; count: number } {
+  const declared = new Set<string>();
+  // Match single-letter and short obfuscated variable names (1-2 chars, _ prefixed, or hex-like)
+  const re = /\b(?:var|let|const)\s+([A-Za-z_$]\w{0,3})\b/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(code)) !== null) {
+    const name = match[1];
+    if (name && (name.length <= 2 || name.startsWith('_0x') || name.startsWith('_'))) {
+      declared.add(name);
+    }
+  }
+  if (declared.size === 0) return { code, count: 0 };
+
+  const renameMap = new Map<string, string>();
+  let counter = 1;
+  for (const name of declared) {
+    renameMap.set(name, `var_${counter}`);
+    counter++;
+  }
+
+  const astRenamed = applyRenameVarsWithAst(code, renameMap);
+  if (astRenamed !== null) {
+    return {
+      code: astRenamed,
+      count: astRenamed === code ? 0 : renameMap.size,
+    };
+  }
+
+  // Use word-boundary replacement to avoid replacing substrings in longer identifiers
+  const newCode = code.replace(
+    new RegExp(
+      `\\b(${[...declared].map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
+      'g',
+    ),
+    (token, id, offset, full) => {
+      const replacement = renameMap.get(id);
+      if (!replacement) return token;
+      const prev = offset > 0 ? full[offset - 1] : '';
+      const prevNonWhitespace = findNonWhitespace(full, offset - 1, -1);
+      const nextNonWhitespace = findNonWhitespace(full, offset + token.length, 1);
+      // Don't rename inside strings, property access, or template literals
+      if (prev === '.' || prev === "'" || prev === '"' || prev === '`' || prev === '$')
+        return token;
+      // Preserve object literal keys in fallback mode.
+      if (
+        (prevNonWhitespace === '{' || prevNonWhitespace === ',') &&
+        (nextNonWhitespace === ':' || nextNonWhitespace === '(')
+      ) {
+        return token;
+      }
+      return replacement;
+    },
+  );
+
+  return { code: newCode, count: newCode === code ? 0 : renameMap.size };
+}
+
+interface TextReplacement {
+  start: number;
+  end: number;
+  text: string;
+}
+
+function applyRenameVarsWithAst(code: string, renameMap: Map<string, string>): string | null {
+  try {
+    const ast = parser.parse(code, {
+      sourceType: 'unambiguous',
+      plugins: ['jsx', 'typescript'],
+    });
+    const replacements = new Map<string, TextReplacement>();
+
+    traverse(ast, {
+      ObjectProperty(path) {
+        if (
+          !path.node.shorthand ||
+          !t.isIdentifier(path.node.key) ||
+          !t.isIdentifier(path.node.value)
+        ) {
+          return;
+        }
+        const valuePath = path.get('value');
+        if (!valuePath.isIdentifier()) return;
+        const replacement = getBindingReplacement(valuePath, renameMap);
+        if (!replacement || path.node.start === null || path.node.end === null) return;
+        replacements.set(`${path.node.start}:${path.node.end}`, {
+          start: path.node.start,
+          end: path.node.end,
+          text: `${path.node.key.name}: ${replacement}`,
+        });
+        path.skip();
+      },
+      Identifier(path) {
+        const replacement = getBindingReplacement(path, renameMap);
+        if (!replacement || path.node.start === null || path.node.end === null) return;
+        replacements.set(`${path.node.start}:${path.node.end}`, {
+          start: path.node.start,
+          end: path.node.end,
+          text: replacement,
+        });
+      },
+    });
+
+    if (replacements.size === 0) return code;
+    return applyTextReplacements(code, [...replacements.values()]);
+  } catch {
+    return null;
+  }
+}
+
+function getBindingReplacement(
+  path: NodePath<t.Identifier>,
+  renameMap: Map<string, string>,
+): string | null {
+  const replacement = renameMap.get(path.node.name);
+  if (!replacement) return null;
+
+  const binding = path.scope.getBinding(path.node.name);
+  if (
+    !binding ||
+    !t.isVariableDeclarator(binding.path.node) ||
+    !t.isIdentifier(binding.path.node.id) ||
+    !renameMap.has(binding.path.node.id.name)
+  ) {
+    return null;
+  }
+
+  const isBindingId = binding.identifier === path.node;
+  const isReference = path.isReferencedIdentifier();
+  const isAssignmentTarget = path.key === 'left' && path.parentPath.isAssignmentExpression();
+  const isForLoopTarget =
+    path.key === 'left' &&
+    (path.parentPath.isForInStatement() || path.parentPath.isForOfStatement());
+  const isUpdateTarget = path.key === 'argument' && path.parentPath.isUpdateExpression();
+
+  if (!isBindingId && !isReference && !isAssignmentTarget && !isForLoopTarget && !isUpdateTarget) {
+    return null;
+  }
+
+  return replacement;
+}
+
+function applyTextReplacements(code: string, replacements: TextReplacement[]): string {
+  const sorted = replacements.toSorted((a, b) => b.start - a.start || b.end - a.end);
+  let next = code;
+  for (const replacement of sorted) {
+    next = `${next.slice(0, replacement.start)}${replacement.text}${next.slice(replacement.end)}`;
+  }
+  return next;
+}
+
+function findNonWhitespace(input: string, start: number, step: -1 | 1): string {
+  for (let idx = start; idx >= 0 && idx < input.length; idx += step) {
+    const char = input[idx];
+    if (char && !/\s/.test(char)) return char;
+  }
+  return '';
+}
 
 interface CoreAnalysisHandlerDeps {
   collector: CodeCollector;
@@ -58,6 +628,7 @@ export class CoreAnalysisHandlers {
   private readonly analyzer: CodeAnalyzer;
   private readonly cryptoDetector: CryptoDetector;
   private readonly hookManager: HookManager;
+  private readonly jsvmpDeobfuscator: JSVMPDeobfuscator;
 
   constructor(deps: CoreAnalysisHandlerDeps) {
     this.collector = deps.collector;
@@ -68,6 +639,7 @@ export class CoreAnalysisHandlers {
     this.analyzer = deps.analyzer;
     this.cryptoDetector = deps.cryptoDetector;
     this.hookManager = deps.hookManager;
+    this.jsvmpDeobfuscator = new JSVMPDeobfuscator();
   }
 
   private requireCodeArg(args: ToolArgs, toolName: string): string | null {
@@ -568,5 +1140,385 @@ export class CoreAnalysisHandlers {
       logger.error('Failed to get collection stats:', error);
       return asJsonResponse(serializeError(error));
     }
+  }
+
+  async handleJsDeobfuscateJsvmp(args: ToolArgs): Promise<ToolResponse> {
+    const code = this.requireCodeArg(args, 'js_deobfuscate_jsvmp');
+    if (!code) {
+      return asJsonResponse({
+        success: false,
+        error: 'code is required and must be a non-empty string',
+      });
+    }
+
+    const detectOnly = argBool(args, 'detectOnly', false);
+    const result = await this.jsvmpDeobfuscator.deobfuscate({
+      code,
+      aggressive: argBool(args, 'aggressive', false),
+      extractInstructions: argBool(args, 'extractInstructions', true),
+      timeout: argNumber(args, 'timeout', 30000),
+    });
+
+    if (detectOnly) {
+      return asJsonResponse({
+        success: true,
+        isJSVMP: result.isJSVMP,
+        vmType: result.vmType,
+        vmFeatures: result.vmFeatures,
+        confidence: result.confidence,
+        instructionCount: result.instructions?.length,
+      });
+    }
+
+    return asJsonResponse({
+      success: result.isJSVMP,
+      isJSVMP: result.isJSVMP,
+      vmType: result.vmType,
+      vmFeatures: result.vmFeatures,
+      instructions: result.instructions,
+      deobfuscatedCode: result.deobfuscatedCode,
+      confidence: result.confidence,
+      warnings: result.warnings,
+      unresolvedParts: result.unresolvedParts,
+      stats: result.stats,
+    });
+  }
+
+  async handleJsDeobfuscatePipeline(args: ToolArgs): Promise<ToolResponse> {
+    const code = this.requireCodeArg(args, 'js_deobfuscate_pipeline');
+    if (!code) {
+      return asJsonResponse({ success: false, error: 'code is required' });
+    }
+
+    const useWebcrack = argBool(args, 'useWebcrack', true);
+    const aggressive = argBool(args, 'aggressive', false);
+    const humanize = argBool(args, 'humanize', true);
+    const returnStageDetails = argBool(args, 'returnStageDetails', false);
+    const startTime = Date.now();
+
+    // Stage 1: Preprocessor — constant folding, dead code removal
+    let preprocessed = code;
+    const ppTransforms: string[] = [];
+
+    const afterFold = applyConstantFold(preprocessed);
+    if (afterFold !== preprocessed) {
+      preprocessed = afterFold;
+      ppTransforms.push('constant_fold');
+    }
+
+    const afterDeadCode = applyDeadCodeRemove(preprocessed);
+    if (afterDeadCode !== preprocessed) {
+      preprocessed = afterDeadCode;
+      ppTransforms.push('dead_code_remove');
+    }
+
+    // Stage 2: Deobfuscator — webcrack
+    let deobfuscated = preprocessed;
+    let webcrackApplied = false;
+    let webcrackWarning: string | undefined;
+    let webcrackError: string | undefined;
+    if (useWebcrack) {
+      try {
+        const result = await runWebcrack(preprocessed, { unminify: true, unpack: true });
+        if (result.applied) {
+          deobfuscated = result.code;
+          webcrackApplied = true;
+        } else {
+          webcrackWarning = result.reason
+            ? `webcrack stage did not apply: ${result.reason}`
+            : 'webcrack stage did not apply any transformation.';
+        }
+      } catch (error) {
+        webcrackError = error instanceof Error ? error.message : String(error);
+      }
+    }
+
+    if (aggressive) {
+      const afterCFF = applyControlFlowFlatten(deobfuscated);
+      if (afterCFF !== deobfuscated) {
+        deobfuscated = afterCFF;
+      }
+    }
+
+    // Stage 3: Humanizer — variable renaming
+    let humanized = deobfuscated;
+    let renameCount = 0;
+    if (humanize) {
+      const result = applyRenameVars(humanized);
+      if (result.code !== humanized) {
+        humanized = result.code;
+        renameCount = result.count;
+      }
+    }
+
+    const totalMs = Date.now() - startTime;
+    const reductionRate = code.length > 0 ? 1 - humanized.length / code.length : 0;
+    const pipelineSuccess = !webcrackWarning && !webcrackError;
+
+    const response: Record<string, unknown> = {
+      success: pipelineSuccess,
+      deobfuscatedCode: humanized,
+      ...(webcrackWarning ? { warning: webcrackWarning } : {}),
+      ...(webcrackError ? { error: `webcrack stage failed: ${webcrackError}` } : {}),
+      stats: {
+        originalSize: code.length,
+        finalSize: humanized.length,
+        reductionRate: Math.round(reductionRate * 1000) / 10,
+        processingTimeMs: totalMs,
+        stages: {
+          preprocessor: { transforms: ppTransforms, sizeAfter: preprocessed.length },
+          deobfuscator: {
+            webcrackApplied,
+            sizeAfter: deobfuscated.length,
+            ...(webcrackWarning ? { warning: webcrackWarning } : {}),
+            ...(webcrackError ? { error: webcrackError } : {}),
+          },
+          humanizer: { renameCount, sizeAfter: humanized.length },
+        },
+      },
+    };
+
+    if (returnStageDetails) {
+      response.stageDetails = {
+        preprocessed: preprocessed.substring(0, 5000),
+        deobfuscated: deobfuscated.substring(0, 5000),
+      };
+    }
+
+    return asJsonResponse(response);
+  }
+
+  async handleJsAnalyzeVm(args: ToolArgs): Promise<ToolResponse> {
+    const code = this.requireCodeArg(args, 'js_analyze_vm');
+    if (!code) {
+      return asJsonResponse({ success: false, error: 'code is required' });
+    }
+
+    const extractBytecode = argBool(args, 'extractBytecode', true);
+    const mapOpcodes = argBool(args, 'mapOpcodes', true);
+
+    const vmResult = await this.jsvmpDeobfuscator.deobfuscate({
+      code,
+      aggressive: false,
+      extractInstructions: extractBytecode,
+      timeout: 15000,
+    });
+
+    if (!vmResult.isJSVMP) {
+      return asJsonResponse({
+        success: true,
+        isVM: false,
+        message: 'No VM/JSVMP patterns detected.',
+      });
+    }
+
+    let dispatchType = 'switch';
+    if (/if\s*\(\s*\w+\s*===?\s*\w+/.test(code)) dispatchType = 'if-else-chain';
+    if (/while.*switch/s.test(code)) dispatchType = 'while-switch';
+    if (/for.*switch/s.test(code)) dispatchType = 'for-switch';
+
+    const analysis: Record<string, unknown> = {
+      isVM: true,
+      vmType: vmResult.vmType,
+      dispatchType,
+      complexity: vmResult.vmFeatures?.complexity,
+      instructionCount: vmResult.vmFeatures?.instructionCount,
+      interpreterLocation: vmResult.vmFeatures?.interpreterLocation,
+    };
+
+    if (extractBytecode && vmResult.instructions) {
+      analysis.bytecode = vmResult.instructions;
+    }
+
+    if (mapOpcodes && vmResult.instructions) {
+      const opcodeMap = new Map<string, number>();
+      for (const inst of vmResult.instructions) {
+        const type = inst.type || 'unknown';
+        opcodeMap.set(type, (opcodeMap.get(type) || 0) + 1);
+      }
+      analysis.opcodeDistribution = Object.fromEntries(opcodeMap);
+      analysis.suggestedStrategy =
+        vmResult.vmFeatures?.complexity === 'high'
+          ? 'Use symbolic execution (js_deobfuscate_jsvmp with aggressive=true) for high-complexity VMs'
+          : 'Use standard deobfuscation pipeline (js_deobfuscate_pipeline)';
+    }
+
+    return asJsonResponse({ success: true, analysis });
+  }
+
+  async handleJsSolveConstraints(args: ToolArgs): Promise<ToolResponse> {
+    const code = this.requireCodeArg(args, 'js_solve_constraints');
+    if (!code) {
+      return asJsonResponse({ success: false, error: 'code is required' });
+    }
+
+    const replaceInPlace = argBool(args, 'replaceInPlace', true);
+    const maxIterations = argNumber(args, 'maxIterations', 100);
+
+    const solved: Array<{ pattern: string; original: string; result: string }> = [];
+    let output = code;
+
+    // --- Stage 1: Constant comparison: if (5 > 3) → always true ---
+    const constCmpPattern = /if\s*\(\s*(-?\d+(?:\.\d+)?)\s*([<>!=]+)\s*(-?\d+(?:\.\d+)?)\s*\)/g;
+    let iterations = 0;
+    output = replaceOutsideProtectedRanges(
+      output,
+      constCmpPattern,
+      (fullMatch, leftRaw: string, op: string, rightRaw: string) => {
+        if (iterations >= maxIterations) {
+          return fullMatch;
+        }
+        iterations++;
+
+        const left = Number(leftRaw);
+        const right = Number(rightRaw);
+        let result: boolean | undefined;
+        if (op === '<') result = left < right;
+        else if (op === '>') result = left > right;
+        else if (op === '<=' || op === '<==') result = left <= right;
+        else if (op === '>=' || op === '>==') result = left >= right;
+        else if (op === '==' || op === '===') result = left === right;
+        else if (op === '!=' || op === '!==') result = left !== right;
+
+        if (result === undefined) {
+          return fullMatch;
+        }
+
+        solved.push({
+          pattern: 'constant-comparison',
+          original: fullMatch,
+          result: String(result),
+        });
+        return replaceInPlace ? `/* ${fullMatch} → ${result} */ if (${result})` : `if (${result})`;
+      },
+    );
+
+    // --- Stage 2: JSFuck-style patterns ---
+    // More-specific patterns must run before atomic +[] / ![] rewrites.
+    const jsFuckMap: Array<[RegExp, string]> = [
+      [
+        /\[!\[\]\]\[\(['"]\)constructor['"]\)\]\(!!\[\]\+\[\]\)\(\)/g,
+        '"function Boolean() { [native code] }"',
+      ],
+      [/!!\[\]\+\[\]/g, '"true"'],
+      [/!\[\]\+\[\]/g, '"false"'],
+      [/\+!!\[\]/g, '1'],
+      [/\[\]\+\[\]/g, '""'],
+      [/\+\[\]/g, '0'],
+    ];
+    for (const [re, replacement] of jsFuckMap) {
+      output = replaceOutsideProtectedRanges(output, re, (fullMatch) => {
+        solved.push({ pattern: 'jsfuck', original: fullMatch, result: replacement });
+        return replacement;
+      });
+    }
+
+    // --- Stage 3: Boolean literal patterns ---
+    // !![] → true, ![] → false
+    const boolPatterns: Array<[RegExp, string, string]> = [
+      [/!!\[\]/g, 'true', 'boolean-literal'],
+      [/!\[\]/g, 'false', 'boolean-literal'],
+    ];
+    for (const [re, replacement, patternName] of boolPatterns) {
+      output = replaceOutsideProtectedRanges(output, re, (fullMatch) => {
+        solved.push({ pattern: patternName, original: fullMatch, result: replacement });
+        return replacement;
+      });
+    }
+
+    // void 0 → undefined
+    output = replaceOutsideProtectedRanges(output, /void\s+0/g, (fullMatch) => {
+      solved.push({ pattern: 'undefined-literal', original: fullMatch, result: 'undefined' });
+      return 'undefined';
+    });
+
+    // --- Stage 4: Opaque predicates (always-true / always-false expressions) ---
+    // Pattern: !0 → true, !1 → false, !0x0 → true
+    output = replaceOutsideProtectedRanges(output, /!0x0\b|!\b0(?![.\d])/g, (fullMatch) => {
+      solved.push({ pattern: 'opaque-truthy', original: fullMatch, result: 'true' });
+      return 'true';
+    });
+
+    // Pattern: !-1 → false (since -1 is truthy, !(-1) = false)
+    // But !0x1 → false, !(1) → false — any !<non-zero-number>
+    const opaqueFalsy = /!\s*(-?\d+(?:\.\d+)?)(?![.\d\s\w])/g;
+    output = replaceOutsideProtectedRanges(output, opaqueFalsy, (fullMatch, numericRaw: string) => {
+      const numVal = Number(numericRaw);
+      if (numVal === 0 || !Number.isFinite(numVal)) {
+        return fullMatch;
+      }
+      solved.push({ pattern: 'opaque-falsy', original: fullMatch, result: 'false' });
+      return 'false';
+    });
+
+    // --- Stage 5: String array access via computed indices ---
+    // Pattern: _0x1234('0x1') where _0x1234 is a string array decoder
+    // Solve inline: _0x1234 = ['a','b','c']; _0x1234('0x1') → _0x1234[1]
+    const stringArrayDecl =
+      /(?:var|let|const)\s+(\w+)\s*=\s*\[(['"][^'"]*['"]\s*(?:,\s*['"][^'"]*['"]\s*)*)\]/g;
+    const stringArrays = new Map<string, string[]>();
+    replaceOutsideProtectedRanges(
+      output,
+      stringArrayDecl,
+      (fullMatch, name: string, arrContent: string) => {
+        const items = arrContent.split(/,\s*/).map((s) => s.replace(/^['"]|['"]$/g, ''));
+        stringArrays.set(name, items);
+        return fullMatch;
+      },
+    );
+    if (stringArrays.size > 0) {
+      for (const [name, items] of stringArrays) {
+        const accessRe = new RegExp(
+          `${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\(['"]?(0x[0-9a-fA-F]+|\\d+)['"]?\\)`,
+          'g',
+        );
+        output = replaceOutsideProtectedRanges(output, accessRe, (fullMatch, rawIndex: string) => {
+          if (iterations >= maxIterations) {
+            return fullMatch;
+          }
+          iterations++;
+
+          const idx = rawIndex.startsWith('0x') ? Number.parseInt(rawIndex, 16) : Number(rawIndex);
+          if (idx < 0 || idx >= items.length) {
+            return fullMatch;
+          }
+
+          const resolved = JSON.stringify(items[idx]!);
+          solved.push({
+            pattern: 'string-array-access',
+            original: fullMatch,
+            result: resolved,
+          });
+          return resolved;
+        });
+      }
+    }
+
+    // --- Stage 6: Type coercion truths ---
+    // typeof undefined === "undefined" → true
+    // typeof null === "object" → true
+    // null == undefined → true
+    // NaN === NaN → false
+    const coercionPatterns: Array<[RegExp, string]> = [
+      [/typeof\s+undefined\s*===?\s*["']undefined["']/g, 'true'],
+      [/typeof\s+null\s*===?\s*["']object["']/g, 'true'],
+      [/typeof\s+NaN\s*===?\s*["']number["']/g, 'true'],
+      [/null\s*==\s*undefined/g, 'true'],
+      [/null\s*===\s*undefined/g, 'false'],
+      [/NaN\s*===?\s*NaN/g, 'false'],
+    ];
+    for (const [re, replacement] of coercionPatterns) {
+      output = replaceOutsideProtectedRanges(output, re, (fullMatch) => {
+        solved.push({ pattern: 'type-coercion', original: fullMatch, result: replacement });
+        return replacement;
+      });
+    }
+
+    return asJsonResponse({
+      success: true,
+      solvedCount: solved.length,
+      solved,
+      transformedCode: replaceInPlace ? output : undefined,
+    });
   }
 }

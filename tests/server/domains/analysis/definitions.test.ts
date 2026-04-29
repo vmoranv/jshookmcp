@@ -111,6 +111,12 @@ describe('server/domains/analysis/definitions', () => {
     expect(tool.inputSchema.properties).toHaveProperty('mappings');
   });
 
+  it('js_deobfuscate_pipeline does not expose an unused timeout parameter', async () => {
+    const tool = coreTools.find((t) => t.name === 'js_deobfuscate_pipeline')!;
+    expect(tool.inputSchema.required).toContain('code');
+    expect(tool.inputSchema.properties).not.toHaveProperty('timeout');
+  });
+
   it('clear_collected_data and get_collection_stats have no required params', async () => {
     const clearTool = coreTools.find((t) => t.name === 'clear_collected_data')!;
     const statsTool = coreTools.find((t) => t.name === 'get_collection_stats')!;

@@ -813,6 +813,179 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       );
     });
   });
+
+  describe('handleJsDeobfuscatePipeline', () => {
+    it('returns failed response when the webcrack stage throws', async () => {
+      webcrackState.runWebcrack.mockRejectedValueOnce(new Error('webcrack boom'));
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code: 'const answer = 1;',
+          returnStageDetails: true,
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('webcrack stage failed: webcrack boom');
+      expect(body.deobfuscatedCode).toBe('const answer = 1;');
+      expect(body.stats.stages.deobfuscator.webcrackApplied).toBe(false);
+      expect(body.stats.stages.deobfuscator.error).toBe('webcrack boom');
+      expect(body.stageDetails.deobfuscated).toBe('const answer = 1;');
+    });
+
+    it('returns a warning when the webcrack stage does not apply', async () => {
+      webcrackState.runWebcrack.mockResolvedValueOnce({
+        applied: false,
+        code: 'const answer = 1;',
+        optionsUsed: { jsx: true, mangle: false, unminify: true, unpack: true },
+        reason: 'parser could not decode bundle',
+      });
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({ code: 'const answer = 1;' }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.warning).toBe('webcrack stage did not apply: parser could not decode bundle');
+      expect(body.deobfuscatedCode).toBe('const answer = 1;');
+      expect(body.stats.stages.deobfuscator.webcrackApplied).toBe(false);
+      expect(body.stats.stages.deobfuscator.warning).toBe(
+        'webcrack stage did not apply: parser could not decode bundle',
+      );
+    });
+
+    it('preserves object literal keys while humanizing bound identifiers', async () => {
+      const code = 'const a = 1; const b = () => a; const obj = { a: a, b() { return b(); } };';
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code,
+          useWebcrack: false,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('a: var_1');
+      expect(body.deobfuscatedCode).toContain('b()');
+      expect(body.deobfuscatedCode).toContain('return var_2()');
+      expect(body.deobfuscatedCode).not.toContain('{ var_1: var_1');
+      expect(body.deobfuscatedCode).not.toContain('var_2() {');
+    });
+
+    it('does not fold numeric expressions inside string literals', async () => {
+      const code = 'console.log("3 + 4 equals 7"); const x = 3 + 4;';
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code,
+          useWebcrack: false,
+          humanize: false,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('"3 + 4 equals 7"');
+      expect(body.deobfuscatedCode).toContain('7');
+    });
+
+    it('does not fold numeric expressions inside multiline template literals', async () => {
+      const code = 'const s = `line1\n3 + 4\nline3`; const x = 3 + 4;';
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code,
+          useWebcrack: false,
+          humanize: false,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('3 + 4');
+      expect(body.deobfuscatedCode).toContain('const x = 7');
+    });
+
+    it('does not fold numeric expressions inside single-line comments', async () => {
+      const code = '// result is 3 + 4\nconst x = 3 + 4;';
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code,
+          useWebcrack: false,
+          humanize: false,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('// result is 3 + 4');
+      expect(body.deobfuscatedCode).toContain('const x = 7');
+    });
+
+    it('does not fold numeric expressions inside block comments', async () => {
+      const code = '/* 3 + 4 should not fold */ const x = 3 + 4;';
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code,
+          useWebcrack: false,
+          humanize: false,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('/* 3 + 4 should not fold */');
+      expect(body.deobfuscatedCode).toContain('const x = 7');
+    });
+
+    it('does not fold numeric expressions inside regex literals', async () => {
+      const code = 'const r = /3 \\+ 4/; const x = 3 + 4;';
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code,
+          useWebcrack: false,
+          humanize: false,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('/3 \\+ 4/');
+      expect(body.deobfuscatedCode).toContain('const x = 7');
+    });
+
+    it('does not remove dead-code patterns that only appear inside quoted text', async () => {
+      const code =
+        'const s = "if (false) { drop } else { keep }"; if (false) { drop(); } else { keep(); }';
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code,
+          useWebcrack: false,
+          humanize: false,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('"if (false) { drop } else { keep }"');
+      expect(body.deobfuscatedCode).toContain('keep();');
+      expect(body.deobfuscatedCode).not.toContain('drop();');
+    });
+  });
+
+  describe('handleJsSolveConstraints', () => {
+    it('preserves quoted JSFuck-like text while solving live expressions', async () => {
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsSolveConstraints({
+          code: 'const x = "![]+[]"; const y = ![]+[];',
+          replaceInPlace: true,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.transformedCode).toContain('const x = "![]+[]";');
+      expect(body.transformedCode).toContain('const y = "false";');
+    });
+  });
+
   describe('web tools coverage', () => {
     const page = {
       evaluate: vi.fn(async (fn: (...args: unknown[]) => unknown, ...args: unknown[]) =>
