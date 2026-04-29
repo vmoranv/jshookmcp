@@ -13,7 +13,12 @@ export const systemPhases: Phase[] = [
     name: 'Sourcemap',
     concurrent: true,
     setup: [],
-    tools: ['sourcemap_discover', 'sourcemap_fetch_and_parse', 'sourcemap_reconstruct_tree'],
+    tools: [
+      'sourcemap_discover',
+      'sourcemap_fetch_and_parse',
+      'sourcemap_reconstruct_tree',
+      'sourcemap_parse_v4',
+    ],
   },
   {
     name: 'Workflow',
@@ -85,7 +90,24 @@ export const systemPhases: Phase[] = [
       'wasm_memory_inspect',
       'wasm_vmp_trace',
       'wasm_offline_run',
+      'wasm_to_c',
+      'wasm_detect_obfuscation',
+      'wasm_instrument_trace',
     ],
+  },
+  {
+    name: 'Protocol Fingerprinting',
+    concurrent: true,
+    group: 'compute-core',
+    setup: [],
+    tools: ['proto_fingerprint'],
+  },
+  {
+    name: 'Syscall Hook',
+    concurrent: true,
+    group: 'compute-core',
+    setup: [],
+    tools: ['syscall_ebpf_trace'],
   },
   {
     name: 'Platform',

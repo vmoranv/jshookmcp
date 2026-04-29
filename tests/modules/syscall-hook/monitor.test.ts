@@ -151,6 +151,7 @@ describe('SyscallMonitor', () => {
       return child as any;
     });
 
+    (monitor as any).activeState = { startedAt: Date.now() };
     await (monitor as any).captureWithStrace(4321);
     child.emitStderr(
       '4321 14:30:00.123456 openat(AT_FDCWD, "/tmp/foo", O_RDONLY) = 3 <0.000123>\n',
@@ -176,6 +177,7 @@ describe('SyscallMonitor', () => {
       return child as any;
     });
 
+    (monitor as any).activeState = { startedAt: Date.now() };
     await (monitor as any).captureWithETW(9876);
     child.emitStdout(
       '[2024-01-15 14:30:00.123] PID=9999 NtCreateFile Handle=0x90 Status=0x00000000\n',
@@ -198,6 +200,7 @@ describe('SyscallMonitor', () => {
       return child as any;
     });
 
+    (monitor as any).activeState = { startedAt: Date.now() };
     await (monitor as any).captureWithDTrace(2468);
     child.emitStdout('1234   0  5678  open_nocancel:entry  /private/tmp/foo O_RDONLY\n');
 

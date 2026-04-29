@@ -104,7 +104,7 @@ describe('SyscallHookHandlers — coverage expansion', () => {
       const result = await handlers.handleSyscallStartMonitor({ backend: 'etw', pid: Infinity });
       expect(result).toEqual({
         ok: false,
-        error: 'pid must be a finite number when provided',
+        error: 'pid must be a non-negative integer when provided',
       });
     });
 
@@ -112,7 +112,7 @@ describe('SyscallHookHandlers — coverage expansion', () => {
       const result = await handlers.handleSyscallStartMonitor({ backend: 'etw', pid: NaN });
       expect(result).toEqual({
         ok: false,
-        error: 'pid must be a finite number when provided',
+        error: 'pid must be a non-negative integer when provided',
       });
     });
 
@@ -120,7 +120,7 @@ describe('SyscallHookHandlers — coverage expansion', () => {
       const result = await handlers.handleSyscallStartMonitor({ backend: 'strace', pid: 'abc' });
       expect(result).toEqual({
         ok: false,
-        error: 'pid must be a finite number when provided',
+        error: 'pid must be a non-negative integer when provided',
       });
     });
 
@@ -740,10 +740,12 @@ describe('SyscallHookHandlers — coverage expansion', () => {
       expect(result).toMatchObject({ ok: false });
     });
 
-    it('accepts negative but finite pid', async () => {
-      // Negative numbers are technically finite — behavior depends on implementation
+    it('rejects negative pid', async () => {
       const result = await handlers.handleSyscallStartMonitor({ backend: 'etw', pid: -1 });
-      expect(result).toMatchObject({ ok: true, pid: -1 });
+      expect(result).toEqual({
+        ok: false,
+        error: 'pid must be a non-negative integer when provided',
+      });
     });
 
     it('accepts zero pid', async () => {
