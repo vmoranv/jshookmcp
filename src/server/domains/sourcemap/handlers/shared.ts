@@ -108,6 +108,30 @@ export function decodeVlqSegment(segment: string): number[] {
   return values;
 }
 
+export function decodeVlqSegmentUnsigned(segment: string): number[] {
+  const values: number[] = [];
+  let index = 0;
+  while (index < segment.length) {
+    let result = 0;
+    let shift = 0;
+    let continuation = true;
+    while (continuation) {
+      const char = segment.charAt(index);
+      if (!char) throw new Error(`Unexpected end of VLQ segment: "${segment}"`);
+      index += 1;
+      const digit = BASE64_DECODE_MAP.get(char);
+      if (digit === undefined)
+        throw new Error(`Invalid VLQ base64 char "${char}" in segment "${segment}"`);
+      continuation = (digit & VlqConstant.CONTINUATION_BIT) !== 0;
+      const digitValue = digit & VlqConstant.BASE_MASK;
+      result += digitValue << shift;
+      shift += VlqConstant.BASE_SHIFT;
+    }
+    values.push(result);
+  }
+  return values;
+}
+
 export function decodeMappings(mappings: string): DecodedMapping[] {
   if (!mappings) return [];
   const decoded: DecodedMapping[] = [];

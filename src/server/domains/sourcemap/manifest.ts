@@ -44,6 +44,11 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleSourcemapReconstructTree(a)),
     },
+    {
+      tool: t('sourcemap_parse_v4'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleSourcemapParseV4(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
