@@ -15,6 +15,18 @@ export const analysisPhases: Phase[] = [
     ],
   },
   {
+    name: 'JSVMP & Pipeline Deobfuscation',
+    concurrent: true,
+    group: 'compute-core',
+    setup: [],
+    tools: [
+      'js_deobfuscate_jsvmp',
+      'js_deobfuscate_pipeline',
+      'js_analyze_vm',
+      'js_solve_constraints',
+    ],
+  },
+  {
     name: 'Analysis & Deobfuscation',
     concurrent: true,
     group: 'compute-core',

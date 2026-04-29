@@ -204,4 +204,54 @@ export const coreTools: Tool[] = [
       .required('code', 'identifiers')
       .readOnly(),
   ),
+  tool('js_deobfuscate_jsvmp', (t) =>
+    t
+      .desc(
+        'Deobfuscate JSVMP/VM-protected JavaScript: extract VM bytecode and restore original logic.',
+      )
+      .string('code', 'Obfuscated JavaScript source containing VM/JSVMP patterns')
+      .boolean('aggressive', 'Use aggressive deobfuscation strategy', { default: false })
+      .boolean('extractInstructions', 'Extract and list VM instructions', { default: true })
+      .number('timeout', 'Deobfuscation timeout in ms', {
+        default: 30000,
+        minimum: 5000,
+        maximum: 120000,
+      })
+      .boolean('detectOnly', 'Only detect JSVMP without deobfuscating', { default: false })
+      .required('code'),
+  ),
+  tool('js_deobfuscate_pipeline', (t) =>
+    t
+      .desc('Three-stage deobfuscation pipeline: preprocess → deobfuscate → humanize.')
+      .string('code', 'Obfuscated JavaScript source')
+      .boolean('useWebcrack', 'Apply webcrack after preprocessor stage', { default: true })
+      .boolean('aggressive', 'Enable aggressive transforms in deobfuscator stage', {
+        default: false,
+      })
+      .boolean('humanize', 'Run humanizer stage (variable renaming)', { default: true })
+      .boolean('returnStageDetails', 'Include per-stage results in output', { default: false })
+      .required('code'),
+  ),
+  tool('js_analyze_vm', (t) =>
+    t
+      .desc('Analyze JSVMP/VM interpreter structure: dispatch type, handler table, opcode map.')
+      .string('code', 'JavaScript source containing VM interpreter')
+      .boolean('extractBytecode', 'Attempt to extract VM bytecode', { default: true })
+      .boolean('mapOpcodes', 'Map opcodes to inferred operations', { default: true })
+      .required('code'),
+  ),
+  tool('js_solve_constraints', (t) =>
+    t
+      .desc('Solve opaque predicates and constant expressions in obfuscated code.')
+      .string('code', 'JavaScript source with opaque predicates or constant conditions')
+      .boolean('replaceInPlace', 'Replace solved conditions with their constant values', {
+        default: true,
+      })
+      .number('maxIterations', 'Maximum solving iterations', {
+        default: 100,
+        minimum: 1,
+        maximum: 10000,
+      })
+      .required('code'),
+  ),
 ];
