@@ -7,11 +7,18 @@ export type ExternalToolName =
   | 'wabt.wasm2wat'
   | 'wabt.wasm-objdump'
   | 'wabt.wasm-decompile'
+  | 'wabt.wasm2c'
   | 'binaryen.wasm-opt'
   | 'runtime.wasmtime'
   | 'runtime.wasmer'
   | 'miniapp.unpacker'
-  | 'platform.jadx';
+  | 'platform.jadx'
+  | 'analysis.ast-grep'
+  | 'analysis.wakaru'
+  | 'analysis.restringer'
+  | 'analysis.z3'
+  | 'syscall.strace'
+  | 'syscall.bpftrace';
 
 export interface ExternalToolSpec {
   /** Unique tool identifier */
