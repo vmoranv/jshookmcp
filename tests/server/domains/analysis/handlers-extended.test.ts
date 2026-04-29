@@ -291,6 +291,29 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.summary?.[0]?.url).toBe('mystery.js');
     });
 
+    it('falls back to file sizes when smart summaries are unavailable', async () => {
+      deps.collector.collect.mockResolvedValue({
+        totalSize: 0,
+        collectTime: 8,
+        files: [
+          {
+            url: 'fallback.js',
+            type: 'external',
+            size: 24,
+            content: 'const fallback = true;',
+          },
+        ],
+      });
+
+      const body = parseJson<CollectCodeResponse>(
+        await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true }),
+      );
+
+      expect(body.totalSize).toBe(24);
+      expect(body.filesCount).toBe(1);
+      expect(body.summary?.[0]?.url).toBe('fallback.js');
+    });
+
     it('returns summary with warning when result is too large', async () => {
       const bigContent = 'x'.repeat(300 * 1024);
       deps.collector.collect.mockResolvedValue({
@@ -362,6 +385,38 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.totalMatches).toBe(2);
       expect(body.matchesSummary).toBeDefined();
       expect(body.matchesSummary?.length).toBeLessThanOrEqual(10);
+    });
+
+    it('summarizes empty search results when matches are omitted', async () => {
+      deps.scriptManager.searchInScripts.mockResolvedValue({});
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleSearchInScripts({
+          keyword: 'missing',
+          returnSummary: true,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.totalMatches).toBe(0);
+      expect(body.matchesSummary).toEqual([]);
+    });
+
+    it('uses an empty preview when summarized matches have no context', async () => {
+      deps.scriptManager.searchInScripts.mockResolvedValue({
+        matches: [{ scriptId: '1', url: 'a.js', line: 7 }],
+      });
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleSearchInScripts({
+          keyword: 'alpha',
+          returnSummary: true,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.matchesSummary).toHaveLength(1);
+      expect(body.matchesSummary[0].preview).toBe('...');
     });
 
     it('auto-summarizes when result exceeds maxContextSize', async () => {
@@ -962,6 +1017,42 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.stats.stages.deobfuscator.error).toBe('raw boom');
     });
 
+    it('leaves split dispatchers intact when aggressive flattening only finds empty case bodies', async () => {
+      const code =
+        "var seq='1|2'.split('|');var idx=0;while(!![]){switch(seq[idx++]){case '1':continue;case '2':break;}break;}";
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code,
+          useWebcrack: false,
+          aggressive: true,
+          humanize: false,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('seq[idx++]');
+      expect(body.deobfuscatedCode).toContain("case '1'");
+    });
+
+    it('leaves array dispatchers intact when aggressive flattening cannot rebuild execution order', async () => {
+      const code =
+        "var list=['A','B'];var cursor=0;while(!![]){switch(list[cursor++]){case 'A':continue;case 'B':break;}break;}";
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code,
+          useWebcrack: false,
+          aggressive: true,
+          humanize: false,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('list[cursor++]');
+      expect(body.deobfuscatedCode).toContain("case 'A'");
+    });
+
     it('preserves object literal keys while humanizing bound identifiers', async () => {
       const code = 'const a = 1; const b = () => a; const obj = { a: a, b() { return b(); } };';
 
@@ -1116,6 +1207,20 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.deobfuscatedCode).toContain('return obj._x + var_1;');
       expect(body.deobfuscatedCode).toContain('keep();');
       expect(body.deobfuscatedCode).not.toContain('drop();');
+    });
+
+    it('skips humanization when no short bindings qualify for renaming', async () => {
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsDeobfuscatePipeline({
+          code: 'const answerValue = call();',
+          useWebcrack: false,
+          humanize: true,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.deobfuscatedCode).toContain('const answerValue = call();');
+      expect(body.deobfuscatedCode).not.toContain('var_1');
     });
 
     it('flattens string-split and array-based dispatch loops in aggressive mode', async () => {
@@ -1325,6 +1430,20 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.transformedCode).toBeUndefined();
       expect(body.solved).toHaveLength(1);
     });
+
+    it('leaves string-array accesses unchanged when maxIterations is already exhausted', async () => {
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsSolveConstraints({
+          code: "var arr = ['x', 'y']; const first = arr('0x0');",
+          maxIterations: 0,
+          replaceInPlace: true,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.solvedCount).toBe(0);
+      expect(body.transformedCode).toContain("arr('0x0')");
+    });
   });
 
   describe('handleJsDeobfuscateJsvmp', () => {
@@ -1443,6 +1562,30 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       expect(body.analysis.bytecode).toHaveLength(3);
       expect(body.analysis.opcodeDistribution).toEqual({ load: 2, jump: 1 });
       expect(body.analysis.suggestedStrategy).toContain('symbolic execution');
+    });
+
+    it('maps missing opcode types to unknown when building the distribution', async () => {
+      setJsvmpDeobfuscatorResult({
+        isJSVMP: true,
+        vmType: 'custom-vm',
+        vmFeatures: {
+          complexity: 'medium',
+          instructionCount: 2,
+          interpreterLocation: 'vmLoop',
+        },
+        instructions: [{}, { type: 'jump' }],
+      });
+
+      const body = parseJson<Record<string, any>>(
+        await handlers.handleJsAnalyzeVm({
+          code: 'while(flag){switch(op){case 1: break;}}',
+          extractBytecode: true,
+          mapOpcodes: true,
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.analysis.opcodeDistribution).toEqual({ unknown: 1, jump: 1 });
     });
 
     it('reports if-else dispatch without bytecode details when optional flags are disabled', async () => {
