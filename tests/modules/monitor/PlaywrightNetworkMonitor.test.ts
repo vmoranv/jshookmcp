@@ -53,6 +53,19 @@ function makeResponse(req: any, url: string, status = 200, contentType = 'applic
   };
 }
 
+function makeProtocolResponse(
+  req: any,
+  url: string,
+  protocol: string,
+  status = 200,
+  contentType = 'application/json',
+) {
+  return {
+    ...makeResponse(req, url, status, contentType),
+    protocol: () => protocol,
+  };
+}
+
 function makeBinaryResponse(req: any, url: string, status = 200) {
   return {
     request: () => req,
@@ -86,6 +99,32 @@ describe('PlaywrightNetworkMonitor', () => {
     expect(requests).toHaveLength(1);
     expect(responses).toHaveLength(1);
     expect(responses[0]!.requestId).toBe(requests[0]!.requestId);
+  });
+
+  it('does not stamp Playwright requests as HTTP/1.1 when the runtime does not expose a protocol', async () => {
+    const page = createPage();
+    const monitor = new PlaywrightNetworkMonitor(page as any);
+
+    await monitor.enable();
+    const req = makeRequest('https://api.test/no-version');
+    page.handlers['request']!(req);
+
+    const requests = monitor.getRequests();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]!.httpVersion).toBeUndefined();
+  });
+
+  it('propagates an observed h2/h3-style protocol when the response exposes it', async () => {
+    const page = createPage();
+    const monitor = new PlaywrightNetworkMonitor(page as any);
+
+    await monitor.enable();
+    const req = makeRequest('https://api.test/h2');
+    page.handlers['request']!(req);
+    page.handlers['response']!(makeProtocolResponse(req, 'https://api.test/h2', 'h2'));
+
+    const requests = monitor.getRequests();
+    expect(requests[0]!.httpVersion).toBe('h2');
   });
 
   it('supports request/response filtering and activity lookup', async () => {

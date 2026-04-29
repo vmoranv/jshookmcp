@@ -19,6 +19,7 @@ interface CDPRequestWillBeSentPayload {
     method: string;
     headers?: UnknownRecord;
     postData?: string;
+    httpVersion?: string;
   };
   timestamp: number;
   type?: string;
@@ -174,6 +175,7 @@ export class NetworkMonitor {
           postData: params.request.postData,
           timestamp: params.timestamp,
           type: params.type,
+          httpVersion: params.request.httpVersion,
           initiator: params.initiator,
         };
 
