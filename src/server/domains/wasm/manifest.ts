@@ -50,6 +50,17 @@ const manifest = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleWasmMemoryInspect(a)),
     },
+    { tool: t('wasm_to_c'), domain: DOMAIN, bind: b((h, a) => h.handleWasmToC(a)) },
+    {
+      tool: t('wasm_detect_obfuscation'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleWasmDetectObfuscation(a)),
+    },
+    {
+      tool: t('wasm_instrument_trace'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleWasmInstrumentTrace(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

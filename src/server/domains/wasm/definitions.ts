@@ -88,4 +88,38 @@ export const wasmTools: Tool[] = [
       .enum('format', ['hex', 'ascii', 'both'], 'Output format', { default: 'both' })
       .string('searchPattern', 'Search for this hex pattern or ASCII string in the memory range'),
   ),
+  tool('wasm_to_c', (t) =>
+    t
+      .desc('Convert a .wasm file to C source and header with wasm2c (WABT).')
+      .string('inputPath', 'Path to the .wasm file to convert')
+      .string(
+        'outputDir',
+        'Directory for generated .c and .h files. If omitted, uses artifacts/wasm/',
+      )
+      .required('inputPath'),
+  ),
+  tool('wasm_detect_obfuscation', (t) =>
+    t
+      .desc(
+        'Detect obfuscation patterns in a .wasm file (CFG flattening, dead code, opaque predicates, constant encoding).',
+      )
+      .string('inputPath', 'Path to the .wasm file to analyze')
+      .boolean('verbose', 'Include detailed pattern evidence in output', { default: false })
+      .required('inputPath'),
+  ),
+  tool('wasm_instrument_trace', (t) =>
+    t
+      .desc(
+        'Generate JS instrumentation wrapper for a .wasm module to trace calls, memory, and control flow.',
+      )
+      .string('inputPath', 'Path to the .wasm file to instrument')
+      .array(
+        'hooks',
+        { type: 'string', enum: ['call', 'memory', 'branch', 'loop', 'local'] },
+        'Hook types to inject (empty = all)',
+      )
+      .boolean('allHooks', 'Inject all available hook types', { default: true })
+      .string('outputPath', 'Output JS file path. If omitted, auto-generates in artifacts/wasm/')
+      .required('inputPath'),
+  ),
 ];

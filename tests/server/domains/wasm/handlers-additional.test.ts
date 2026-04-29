@@ -11,11 +11,13 @@ const runMock = vi.fn();
 const probeAllMock = vi.fn();
 const writeFileMock = vi.fn();
 const statMock = vi.fn();
+const mkdirMock = vi.fn();
 const resolveArtifactPathMock = vi.fn();
 
 vi.mock('node:fs/promises', () => ({
   writeFile: (...args: any[]) => writeFileMock(...args),
   stat: (...args: any[]) => statMock(...args),
+  mkdir: (...args: any[]) => mkdirMock(...args),
 }));
 
 vi.mock('@src/utils/artifacts', () => ({
@@ -127,6 +129,41 @@ describe('WasmToolHandlers – additional coverage', () => {
       expect(body.success).toBe(true);
       expect(body.hint).toContain('Binary not captured');
       expect(body.hash).toBeUndefined();
+    });
+  });
+
+  describe('handleWasmToC', () => {
+    it('uses the unique artifact directory directly in auto output mode', async () => {
+      const uniqueDir = path.resolve('/tmp/artifacts/wasm/wasm2c-2026-04-29_12-00-00-ab12cd.dir');
+      resolveArtifactPathMock.mockResolvedValue({
+        absolutePath: uniqueDir,
+        displayPath: 'artifacts/wasm/wasm2c-2026-04-29_12-00-00-ab12cd.dir',
+      });
+      mkdirMock.mockResolvedValue(undefined);
+      runMock.mockResolvedValue({
+        ok: true,
+        stdout: '',
+        stderr: '',
+        exitCode: 0,
+        durationMs: 12,
+      });
+      statMock.mockResolvedValueOnce({ size: 120 }).mockResolvedValueOnce({ size: 48 });
+
+      const body = parseJson<any>(await handlers.handleWasmToC({ inputPath: 'nested/test.wasm' }));
+
+      expect(mkdirMock).toHaveBeenCalledWith(uniqueDir, { recursive: true });
+      expect(runMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tool: 'wabt.wasm2c',
+          args: ['nested/test.wasm', '-o', path.join(uniqueDir, 'test.c')],
+        }),
+      );
+      expect(body.success).toBe(true);
+      expect(body.outputDir).toBe(uniqueDir);
+      expect(body.cFile).toBe(path.join(uniqueDir, 'test.c'));
+      expect(body.hFile).toBe(path.join(uniqueDir, 'test.h'));
+      expect(body.cSizeBytes).toBe(120);
+      expect(body.hSizeBytes).toBe(48);
     });
   });
 
