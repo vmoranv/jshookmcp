@@ -21,4 +21,19 @@ export const sourcemapTools: Tool[] = [
       .string('outputDir', 'Output directory under the project root.')
       .required('sourceMapUrl'),
   ),
+  tool('sourcemap_parse_v4', (t) =>
+    t
+      .desc('Parse source map with ECMA-426 v4 scope/debug-id support; falls back to v3.')
+      .string('sourceMapUrl', 'Source map URL to parse.')
+      .boolean('extractScopes', 'Extract and decode scope information from v4 x_scopes field', {
+        default: true,
+      })
+      .boolean('extractDebugIds', 'Extract debug-id mappings for source correlation', {
+        default: true,
+      })
+      .boolean('compareV3', 'Compare v4 fields against v3 baseline and report differences', {
+        default: false,
+      })
+      .required('sourceMapUrl'),
+  ),
 ];
