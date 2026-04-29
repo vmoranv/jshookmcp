@@ -9,6 +9,7 @@ export interface NetworkRequest {
   postData?: string;
   timestamp: number;
   type?: string;
+  httpVersion?: string;
   initiator?: NetworkInitiator;
 }
 

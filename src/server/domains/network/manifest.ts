@@ -202,6 +202,16 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
       domain: DOMAIN,
       bind: b((h, a) => h.handleNetworkInterceptDispatch(a)),
     },
+    {
+      tool: t('network_tls_fingerprint'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleNetworkTlsFingerprint(a)),
+    },
+    {
+      tool: t('network_bot_detect_analyze'),
+      domain: DOMAIN,
+      bind: b((h, a) => h.handleNetworkBotDetectAnalyze(a)),
+    },
   ],
 };
 

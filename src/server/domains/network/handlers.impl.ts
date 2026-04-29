@@ -23,6 +23,7 @@ import { ConsoleHandlers } from './handlers/console-handlers';
 import { ReplayHandlers } from './handlers/replay-handlers';
 import { InterceptHandlers } from './handlers/intercept-handlers';
 import { RawHandlers } from './handlers/raw-handlers';
+import { TlsBotHandlers } from './handlers/tls-bot-handlers';
 
 export class AdvancedToolHandlers {
   protected collector: CodeCollector;
@@ -38,6 +39,7 @@ export class AdvancedToolHandlers {
   private replay: ReplayHandlers;
   private intercept: InterceptHandlers;
   private raw: RawHandlers;
+  private tlsBot: TlsBotHandlers;
 
   constructor(
     collector: CodeCollector,
@@ -59,6 +61,7 @@ export class AdvancedToolHandlers {
     this.replay = new ReplayHandlers({ consoleMonitor });
     this.intercept = new InterceptHandlers({ consoleMonitor, eventBus });
     this.raw = new RawHandlers(eventBus);
+    this.tlsBot = new TlsBotHandlers({ consoleMonitor });
   }
 
   protected getPerformanceMonitor(): PerformanceMonitor {
@@ -202,4 +205,11 @@ export class AdvancedToolHandlers {
   handleHttp2FrameBuild = (args: Record<string, unknown>) => this.raw.handleHttp2FrameBuild(args);
   handleNetworkRttMeasure = (args: Record<string, unknown>) =>
     this.raw.handleNetworkRttMeasure(args);
+
+  // ── TLS Fingerprint & Bot Detection ──
+
+  handleNetworkTlsFingerprint = (args: Record<string, unknown>) =>
+    this.tlsBot.handleNetworkTlsFingerprint(args);
+  handleNetworkBotDetectAnalyze = (args: Record<string, unknown>) =>
+    this.tlsBot.handleNetworkBotDetectAnalyze(args);
 }
