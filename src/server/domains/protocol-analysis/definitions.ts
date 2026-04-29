@@ -306,4 +306,15 @@ export const protocolAnalysisTools: Tool[] = [
       })
       .query(),
   ),
+  tool('proto_fingerprint', (t) =>
+    t
+      .desc('Identify protocol type from hex payload samples (TLS, HTTP, DNS, WebSocket, SSH).')
+      .array('hexPayloads', { type: 'string' }, 'Hex payload samples to fingerprint')
+      .boolean('includeKnownProtocols', 'Match against known protocol signatures', {
+        default: true,
+      })
+      .boolean('includeFieldHints', 'Suggest likely field boundaries', { default: true })
+      .required('hexPayloads')
+      .query(),
+  ),
 ];

@@ -105,6 +105,11 @@ const manifest = {
       domain: DOMAIN,
       bind: b((handlers, args) => handlers.handlePcapRead(args)),
     },
+    {
+      tool: t('proto_fingerprint'),
+      domain: DOMAIN,
+      bind: b((handlers, args) => handlers.handleProtoFingerprint(args)),
+    },
   ],
   prerequisites: {
     proto_auto_detect: [
