@@ -16,6 +16,8 @@ interface PlaywrightLikeResponse {
   statusText(): string;
   headers(): Record<string, string>;
   body?(): Promise<Buffer>;
+  httpVersion?(): string;
+  protocol?(): string;
 }
 
 interface PlaywrightLikePage {
@@ -170,6 +172,41 @@ export class PlaywrightNetworkMonitor {
     );
   }
 
+  private normalizeHttpVersion(value: unknown): string | undefined {
+    if (typeof value !== 'string') return undefined;
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'http/1.0' || normalized === '1.0') return '1.0';
+    if (normalized === 'http/1.1' || normalized === '1.1') return '1.1';
+    if (
+      normalized === 'http/2' ||
+      normalized === '2' ||
+      normalized === '2.0' ||
+      normalized === 'h2'
+    ) {
+      return 'h2';
+    }
+    if (
+      normalized === 'http/3' ||
+      normalized === '3' ||
+      normalized === '3.0' ||
+      normalized === 'h3'
+    ) {
+      return 'h3';
+    }
+    return undefined;
+  }
+
+  private detectHttpVersion(res: PlaywrightLikeResponse): string | undefined {
+    const fromHttpVersion = typeof res.httpVersion === 'function' ? res.httpVersion() : undefined;
+    const normalizedHttpVersion = this.normalizeHttpVersion(fromHttpVersion);
+    if (normalizedHttpVersion) {
+      return normalizedHttpVersion;
+    }
+
+    const fromProtocol = typeof res.protocol === 'function' ? res.protocol() : undefined;
+    return this.normalizeHttpVersion(fromProtocol);
+  }
+
   async enable(): Promise<void> {
     if (this.networkEnabled) {
       logger.warn('PlaywrightNetworkMonitor already enabled');
@@ -210,6 +247,11 @@ export class PlaywrightNetworkMonitor {
       const requestId = this.isPlaywrightLikeRequest(req)
         ? (this.requestIdMap.get(req) ?? fallbackRequestId)
         : fallbackRequestId;
+      const observedHttpVersion = this.detectHttpVersion(res);
+      const request = this.requests.get(requestId);
+      if (request && observedHttpVersion) {
+        request.httpVersion = observedHttpVersion;
+      }
 
       const response: NetworkResponse = {
         requestId,

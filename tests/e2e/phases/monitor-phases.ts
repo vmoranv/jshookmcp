@@ -65,5 +65,12 @@ export const monitorPhases: Phase[] = [
     tools: ['performance_get_metrics', 'js_heap_search', 'performance_take_heap_snapshot'],
   },
   { name: 'Network Teardown', setup: [], tools: ['network_export_har', 'network_disable'] },
+  {
+    name: 'TLS & Bot Detection',
+    concurrent: true,
+    group: 'compute-browser',
+    setup: [],
+    tools: ['network_tls_fingerprint', 'network_bot_detect_analyze'],
+  },
   { name: 'Debugger Teardown', setup: [], tools: ['debugger_lifecycle'] },
 ];

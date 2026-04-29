@@ -211,6 +211,14 @@ describe('network tool definitions', () => {
     expect(props.addConnectionClose).toBeDefined();
   });
 
+  it('network_tls_fingerprint accepts custom httpMethod values at the schema layer', async () => {
+    const tool = findTool('network_tls_fingerprint');
+    const props = getProperties(tool) as Record<string, ToolProperty & { enum?: string[] }>;
+    expect(props.httpMethod).toBeDefined();
+    expect(props.httpMethod?.type).toBe('string');
+    expect(props.httpMethod?.enum).toBeUndefined();
+  });
+
   it('all inputSchema.properties entries have a type field', async () => {
     for (const tool of advancedTools) {
       const props = getProperties(tool);

@@ -550,4 +550,62 @@ When all rules are removed, the CDP Fetch domain is automatically disabled.`,
       })
       .required('action'),
   ),
+  tool('network_tls_fingerprint', (t) =>
+    t
+      .desc('Compute TLS/HTTP fingerprint hashes for bot detection.')
+      .enum('mode', ['analyze_request', 'compute_tls', 'compute_http'], 'Fingerprint mode')
+      .string('requestId', 'Request ID to analyze (mode=analyze_request)')
+      .array(
+        'tlsVersions',
+        { type: 'string' },
+        'Supported TLS version hex codes in order, e.g. ["0x0303","0x0304"] (mode=compute_tls)',
+      )
+      .array(
+        'ciphers',
+        { type: 'string' },
+        'Cipher suite hex codes in original order, e.g. ["1301","1302","c02b"] (mode=compute_tls)',
+      )
+      .array(
+        'extensions',
+        { type: 'string' },
+        'Extension type hex codes in original order (mode=compute_tls)',
+      )
+      .array(
+        'signatureAlgorithms',
+        { type: 'string' },
+        'Signature algorithm hex codes in original order, e.g. ["0403","0804"] (mode=compute_tls)',
+      )
+      .enum('protocol', ['tls', 'quic', 'dtls'], 'Transport protocol type', { default: 'tls' })
+      .boolean('sni', 'Whether SNI (Server Name Indication) extension is present', {
+        default: true,
+      })
+      .string('alpn', 'First ALPN value string, e.g. "h2" or "http/1.1" (mode=compute_tls)')
+      .array(
+        'httpHeaders',
+        { type: 'string' },
+        'HTTP header names in original order (mode=compute_http)',
+      )
+      .string('userAgent', 'User-Agent string (mode=compute_http)')
+      .string(
+        'httpMethod',
+        'HTTP method (mode=compute_http). Common values include GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, but custom methods are also accepted.',
+        { default: 'GET' },
+      )
+      .string('httpVersion', 'HTTP version: "1.0", "1.1", "2", "3" (mode=compute_http)', {
+        default: '1.1',
+      })
+      .string('cookieHeader', 'Raw Cookie header value (mode=compute_http)')
+      .string('acceptLanguage', 'Accept-Language header value (mode=compute_http)')
+      .boolean('includeAnalysis', 'Include detailed fingerprint breakdown', { default: true })
+      .required('mode'),
+  ),
+  tool('network_bot_detect_analyze', (t) =>
+    t
+      .desc(
+        'Analyze captured requests for bot detection signals (TLS fingerprint, header ordering, timing).',
+      )
+      .number('limit', 'Maximum requests to analyze', { default: 50, minimum: 1, maximum: 500 })
+      .boolean('includeDetails', 'Include per-request analysis details', { default: false })
+      .query(),
+  ),
 ];
