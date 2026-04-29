@@ -698,7 +698,40 @@ export const SOURCEMAP_EXT_TIMEOUT_MS = int('SOURCEMAP_EXT_TIMEOUT_MS', 15_000);
 export const V8_BYTECODE_SUBPROC_TIMEOUT_MS = int('V8_BYTECODE_SUBPROC_TIMEOUT_MS', 60_000);
 
 /* ================================================================== */
-/*  Webhook / cross-domain orchestrator / macros                       */
+/*  Syscall hook (eBPF / bpftrace)                                     */
+
+export const SYSCALL_TRACE_DURATION_DEFAULT_SEC = int('SYSCALL_TRACE_DURATION_DEFAULT_SEC', 10);
+export const SYSCALL_TRACE_DURATION_MIN_SEC = int('SYSCALL_TRACE_DURATION_MIN_SEC', 1);
+export const SYSCALL_TRACE_DURATION_MAX_SEC = int('SYSCALL_TRACE_DURATION_MAX_SEC', 300);
+
+/* ================================================================== */
+/*  Sourcemap v4 parsing                                               */
+
+export const SOURCEMAP_V4_RAW_FIELD_MAX_LEN = int('SOURCEMAP_V4_RAW_FIELD_MAX_LEN', 200);
+export const SOURCEMAP_V4_RETRY_DELAY_MS = int('SOURCEMAP_V4_RETRY_DELAY_MS', 250);
+
+/* ================================================================== */
+/*  WASM obfuscation detection thresholds                              */
+
+export const WASM_DEAD_CODE_MIN_MATCHES = int('WASM_DEAD_CODE_MIN_MATCHES', 10);
+export const WASM_BITWISE_OPS_THRESHOLD = int('WASM_BITWISE_OPS_THRESHOLD', 20);
+export const WASM_VM_DISPATCH_MIN_LOOPS = int('WASM_VM_DISPATCH_MIN_LOOPS', 3);
+
+/* ================================================================== */
+/*  Protocol fingerprint detection                                      */
+
+export const PROTO_TLS_MIN_RECORD_LEN = int('PROTO_TLS_MIN_RECORD_LEN', 4);
+export const PROTO_TLS_CONFIDENCE = float('PROTO_TLS_CONFIDENCE', 0.95);
+export const PROTO_WS_CONFIDENCE = float('PROTO_WS_CONFIDENCE', 0.85);
+export const PROTO_HTTP_CONFIDENCE = float('PROTO_HTTP_CONFIDENCE', 0.95);
+export const PROTO_SSH_CONFIDENCE = float('PROTO_SSH_CONFIDENCE', 0.95);
+
+/* ================================================================== */
+/*  Network bot detection                                               */
+
+export const BOT_DETECT_LIMIT_DEFAULT = int('BOT_DETECT_LIMIT_DEFAULT', 50);
+export const BOT_DETECT_LIMIT_MIN = int('BOT_DETECT_LIMIT_MIN', 1);
+export const BOT_DETECT_LIMIT_MAX = int('BOT_DETECT_LIMIT_MAX', 500);
 /* ================================================================== */
 
 /** Default per-command processing timeout inside the webhook command queue. */

@@ -33,6 +33,13 @@ const DEFAULT_SPECS = [
     required: false,
     envAllowlist: [],
   },
+  {
+    name: 'wabt.wasm2c',
+    command: 'wasm2c',
+    versionArgs: ['--version'],
+    required: false,
+    envAllowlist: [],
+  },
 
   // binaryen
   {
@@ -72,6 +79,54 @@ const DEFAULT_SPECS = [
   {
     name: 'platform.jadx',
     command: 'jadx',
+    versionArgs: ['--version'],
+    required: false,
+    envAllowlist: [],
+  },
+
+  // JS analysis tools
+  {
+    name: 'analysis.ast-grep',
+    command: 'ast-grep',
+    versionArgs: ['--version'],
+    required: false,
+    envAllowlist: [],
+  },
+  {
+    name: 'analysis.wakaru',
+    command: 'wakaru',
+    versionArgs: ['--version'],
+    required: false,
+    envAllowlist: [],
+  },
+  {
+    name: 'analysis.restringer',
+    command: 'restringer',
+    versionArgs: ['--version'],
+    required: false,
+    envAllowlist: [],
+  },
+
+  // SMT solver
+  {
+    name: 'analysis.z3',
+    command: 'z3',
+    versionArgs: ['--version'],
+    required: false,
+    envAllowlist: [],
+  },
+
+  // Linux syscall tracing
+  {
+    name: 'syscall.strace',
+    command: 'strace',
+    versionArgs: ['--version'],
+    required: false,
+    envAllowlist: [],
+  },
+  {
+    name: 'syscall.bpftrace',
+    command: 'bpftrace',
     versionArgs: ['--version'],
     required: false,
     envAllowlist: [],

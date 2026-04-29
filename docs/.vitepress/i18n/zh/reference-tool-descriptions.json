@@ -445,5 +445,17 @@
   "mojo_ipc_capabilities": "报告 Mojo IPC 监控可用性。",
   "platform_capabilities": "报告平台工具后端可用性。",
   "console_inject_fetch_interceptor": "直接注入 fetch() 拦截器。",
-  "console_inject_xhr_interceptor": "直接注入 XMLHttpRequest 拦截器。"
+  "console_inject_xhr_interceptor": "直接注入 XMLHttpRequest 拦截器。",
+  "js_deobfuscate_jsvmp": "反混淆 JSVMP/VM 保护的 JavaScript：提取 VM 字节码并还原原始逻辑。",
+  "js_deobfuscate_pipeline": "三阶段反混淆管线：预处理 → 去混淆 → 可读化。",
+  "js_analyze_vm": "分析 JSVMP/VM 解释器结构：调度类型、handler 表、操作码映射。",
+  "js_solve_constraints": "求解混淆代码中的不透明谓词和常量表达式。",
+  "wasm_to_c": "将 .wasm 文件转换为 C 源码和头文件（wasm2c/WABT）。",
+  "wasm_detect_obfuscation": "检测 .wasm 文件中的混淆模式（控制流平坦、死代码、不透明谓词、常量编码）。",
+  "wasm_instrument_trace": "为 .wasm 模块生成 JS 插桩包装，追踪调用、内存和控制流。",
+  "syscall_ebpf_trace": "通过 Linux eBPF/bpftrace 追踪系统调用。需要 root 或 CAP_BPF。",
+  "network_tls_fingerprint": "计算 TLS/HTTP 指纹哈希，用于机器人检测。",
+  "network_bot_detect_analyze": "分析已捕获请求的机器人检测信号（TLS 指纹、Header 顺序、时序模式）。",
+  "proto_fingerprint": "从 hex 载荷样本识别协议类型（TLS、HTTP、DNS、WebSocket、SSH）。",
+  "sourcemap_parse_v4": "解析 Source Map，支持 ECMA-426 v4 scope/debug-id；无 v4 字段时回退 v3。"
 }

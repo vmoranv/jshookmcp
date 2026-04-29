@@ -85,6 +85,15 @@ export async function cleanupArtifacts(options?: {
   const remaining: ArtifactFileEntry[] = [];
   const removedSample: string[] = [];
   const root = getProjectRoot();
+  const pendingRemovals: Promise<void>[] = [];
+
+  function scheduleRemoval(path: string): void {
+    pendingRemovals.push(
+      rm(path, { force: true })
+        .then(() => undefined)
+        .catch(() => undefined),
+    );
+  }
 
   // Stream-based: process each file as it's discovered instead of collecting all first
   for (const directory of directories) {
@@ -95,7 +104,7 @@ export async function cleanupArtifacts(options?: {
         removedBytes += entry.size;
         removedByAge += entry.size;
         if (removedSample.length < 20) removedSample.push(entry.relativePath);
-        if (!dryRun) void rm(entry.path, { force: true });
+        if (!dryRun) scheduleRemoval(entry.path);
       } else {
         remaining.push(entry);
       }
@@ -115,7 +124,7 @@ export async function cleanupArtifacts(options?: {
         removedBytes += entry.size;
         removedBySize += entry.size;
         if (removedSample.length < 20) removedSample.push(entry.relativePath);
-        if (!dryRun) void rm(entry.path, { force: true });
+        if (!dryRun) scheduleRemoval(entry.path);
         i++;
       }
       remaining.splice(0, i);
@@ -123,6 +132,7 @@ export async function cleanupArtifacts(options?: {
   }
 
   if (!dryRun) {
+    await Promise.all(pendingRemovals);
     await Promise.all(directories.map((dir) => pruneEmptyDirectories(dir)));
   }
 

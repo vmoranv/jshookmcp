@@ -1,8 +1,12 @@
+import { serializeForInlineScript } from '../../helpers/inline-script.mjs';
+
 export async function runCrossDomainBinaryPhase(ctx) {
   const { report, server, clients, helpers, constants } = ctx;
   const { client } = clients;
   const { callTool, extractString, flattenStrings, getNewestChromePid, isRecord } = helpers;
   const { BODY_MARKER, HEAP_MARKER } = constants;
+  const bodyMarkerLiteral = serializeForInlineScript(BODY_MARKER);
+  const heapMarkerLiteral = serializeForInlineScript(HEAP_MARKER);
 
   const crossDomainUrl = `${server.baseUrl}/body?via=cross-domain`;
   report.crossDomain.capabilities = await callTool(client, 'cross_domain_capabilities', {}, 15000);
@@ -89,7 +93,7 @@ export async function runCrossDomainBinaryPhase(ctx) {
     client,
     'execute_sandbox_script',
     {
-      code: `(() => ({ ok: true, marker: ${JSON.stringify(BODY_MARKER)}, __scratchpad: { marker: ${JSON.stringify(BODY_MARKER)} } }))()`,
+      code: `(() => ({ ok: true, marker: ${bodyMarkerLiteral}, __scratchpad: { marker: ${bodyMarkerLiteral} } }))()`,
       sessionId: sandboxSessionId,
       timeoutMs: 2000,
     },
@@ -204,7 +208,7 @@ export async function runCrossDomainBinaryPhase(ctx) {
         code: `(() => {
           window.__heapAuditBuffer = Array.from(
             { length: 8192 },
-            (_, index) => ${JSON.stringify(HEAP_MARKER)} + ':' + index,
+            (_, index) => ${heapMarkerLiteral} + ':' + index,
           );
           return {
             length: window.__heapAuditBuffer.length,
