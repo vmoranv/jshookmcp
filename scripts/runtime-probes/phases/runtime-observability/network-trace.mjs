@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { serializeForInlineScript } from '../../helpers/inline-script.mjs';
+import { serializeToCodePointArrayLiteral } from '../../helpers/inline-script.mjs';
 
 export async function runNetworkTracePhase(ctx) {
   const { report, server, clients, state, paths, helpers, constants } = ctx;
@@ -15,8 +15,10 @@ export async function runNetworkTracePhase(ctx) {
   } = helpers;
   const { runtimeArtifactDir } = paths;
   const { BODY_MARKER, HTTP2_MARKER, AUTH_API_KEY_MARKER, AUTH_SIGNATURE_MARKER } = constants;
-  const bodyMarkerLiteral = serializeForInlineScript(BODY_MARKER);
-  const traceAliasUrlLiteral = serializeForInlineScript(`${server.baseUrl}/body?via=trace-alias`);
+  const bodyMarkerCodePoints = serializeToCodePointArrayLiteral(BODY_MARKER);
+  const traceAliasUrlCodePoints = serializeToCodePointArrayLiteral(
+    `${server.baseUrl}/body?via=trace-alias`,
+  );
 
   report.network.requests = await callTool(client, 'network_get_requests', {}, 15000);
   report.network.status = await callTool(client, 'network_get_status', {}, 15000);
@@ -332,9 +334,14 @@ export async function runNetworkTracePhase(ctx) {
     client,
     'page_evaluate',
     {
-      code: `(() => fetch(${traceAliasUrlLiteral})
-        .then((resp) => resp.text())
-        .then((text) => ({ hasMarker: text.includes(${bodyMarkerLiteral}) })))()`,
+      code: `(() => {
+        const fromCodePoints = (values) => String.fromCodePoint(...values);
+        const traceAliasUrl = fromCodePoints(${traceAliasUrlCodePoints});
+        const bodyMarker = fromCodePoints(${bodyMarkerCodePoints});
+        return fetch(traceAliasUrl)
+          .then((resp) => resp.text())
+          .then((text) => ({ hasMarker: text.includes(bodyMarker) }));
+      })()`,
     },
     30000,
   );

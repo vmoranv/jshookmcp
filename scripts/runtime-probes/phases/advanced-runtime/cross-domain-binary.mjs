@@ -1,12 +1,12 @@
-import { serializeForInlineScript } from '../../helpers/inline-script.mjs';
+import { serializeToCodePointArrayLiteral } from '../../helpers/inline-script.mjs';
 
 export async function runCrossDomainBinaryPhase(ctx) {
   const { report, server, clients, helpers, constants } = ctx;
   const { client } = clients;
   const { callTool, extractString, flattenStrings, getNewestChromePid, isRecord } = helpers;
   const { BODY_MARKER, HEAP_MARKER } = constants;
-  const bodyMarkerLiteral = serializeForInlineScript(BODY_MARKER);
-  const heapMarkerLiteral = serializeForInlineScript(HEAP_MARKER);
+  const bodyMarkerCodePoints = serializeToCodePointArrayLiteral(BODY_MARKER);
+  const heapMarkerCodePoints = serializeToCodePointArrayLiteral(HEAP_MARKER);
 
   const crossDomainUrl = `${server.baseUrl}/body?via=cross-domain`;
   report.crossDomain.capabilities = await callTool(client, 'cross_domain_capabilities', {}, 15000);
@@ -93,7 +93,11 @@ export async function runCrossDomainBinaryPhase(ctx) {
     client,
     'execute_sandbox_script',
     {
-      code: `(() => ({ ok: true, marker: ${bodyMarkerLiteral}, __scratchpad: { marker: ${bodyMarkerLiteral} } }))()`,
+      code: `(() => {
+        const fromCodePoints = (values) => String.fromCodePoint(...values);
+        const bodyMarker = fromCodePoints(${bodyMarkerCodePoints});
+        return { ok: true, marker: bodyMarker, __scratchpad: { marker: bodyMarker } };
+      })()`,
       sessionId: sandboxSessionId,
       timeoutMs: 2000,
     },
@@ -206,9 +210,11 @@ export async function runCrossDomainBinaryPhase(ctx) {
       'page_evaluate',
       {
         code: `(() => {
+          const fromCodePoints = (values) => String.fromCodePoint(...values);
+          const heapMarker = fromCodePoints(${heapMarkerCodePoints});
           window.__heapAuditBuffer = Array.from(
             { length: 8192 },
-            (_, index) => ${heapMarkerLiteral} + ':' + index,
+            (_, index) => heapMarker + ':' + index,
           );
           return {
             length: window.__heapAuditBuffer.length,

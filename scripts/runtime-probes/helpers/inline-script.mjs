@@ -27,3 +27,7 @@ export function serializeForInlineScript(value) {
     ? serialized.replace(INLINE_SCRIPT_ESCAPE_PATTERN, escapeInlineScriptCharacter)
     : String(serialized);
 }
+
+export function serializeToCodePointArrayLiteral(value) {
+  return JSON.stringify(Array.from(value, (char) => char.codePointAt(0)));
+}

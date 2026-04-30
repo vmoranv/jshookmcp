@@ -31,4 +31,19 @@ describe('runtime probe inline script serialization', () => {
     expect(serialized).toContain('\\u2029');
     expect(roundTripped).toEqual(input);
   });
+
+  it('serializes strings to code-point arrays that round-trip safely', async () => {
+    const { serializeToCodePointArrayLiteral } = await loadInlineScriptHelpers();
+    const input = '</script>emoji:😀separator:\u2028tail';
+
+    const serialized = serializeToCodePointArrayLiteral(input);
+    const roundTripped = Function(
+      `return String.fromCodePoint(...${serialized});`,
+    )() as typeof input;
+
+    expect(serialized).toMatch(/^\[(\d+,)*\d+\]$/);
+    expect(serialized).not.toContain('</script>');
+    expect(serialized.includes(String.fromCharCode(0x2028))).toBe(false);
+    expect(roundTripped).toBe(input);
+  });
 });
