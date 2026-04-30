@@ -360,7 +360,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     ...(ctx.scriptId
       ? { extract_function_tree: { scriptId: ctx.scriptId, functionName: 'fetch' } }
       : {}),
-    collect_code: { url: targetUrl, returnSummaryOnly: true },
+    collect_code: { url: FIXTURE_URL, returnSummaryOnly: true },
     graphql_introspect: { endpoint: targetUrl },
     graphql_extract_queries: {},
     graphql_replay: { endpoint: targetUrl, query: '{ __typename }' },

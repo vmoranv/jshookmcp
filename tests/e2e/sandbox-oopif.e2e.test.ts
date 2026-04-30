@@ -22,15 +22,41 @@ describe.skipIf(!TARGET_URL)('CTF Sandbox OOPIF Integration via MCP', { timeout:
     const nav = await client.call('page_navigate', { url: sandboxUrl }, 30_000);
     expect(nav.result.status).not.toBe('FAIL');
 
-    // 1.5 Inject mock iframe since remote sandbox might be 404
-    await client.call('page_evaluate', {
-      code: `
-        const iframe = document.createElement('iframe');
-        iframe.id = 'frame-layer1';
-        document.body.appendChild(iframe);
+    // 1.5 The hosted docs URL may 404 or continue loading after navigation times out.
+    // Wait for a usable DOM, then inject a local iframe fixture for deterministic coverage.
+    const bodyReady = await client.call('page_wait_for_selector', { selector: 'body' }, 30_000);
+    expect(bodyReady.result.status).not.toBe('FAIL');
+
+    const injectRes = await client.call('page_evaluate', {
+      code: `(() => {
+        const root = document.documentElement;
+        const body = document.body ?? (() => {
+          const created = document.createElement('body');
+          root.appendChild(created);
+          return created;
+        })();
+
+        let iframe = document.querySelector('iframe#frame-layer1');
+        if (!(iframe instanceof HTMLIFrameElement)) {
+          iframe = document.createElement('iframe');
+          iframe.id = 'frame-layer1';
+          iframe.src = 'about:blank';
+          body.appendChild(iframe);
+        }
+
+        if (!iframe.contentWindow) {
+          throw new Error('Injected iframe has no contentWindow');
+        }
+
         iframe.contentWindow.__flagPart2 = 'a1b2c3d4e5f6';
-      `,
+        return {
+          injected: true,
+          hasBody: Boolean(document.body),
+          frameCount: document.querySelectorAll('iframe').length
+        };
+      })()`,
     });
+    expect(injectRes.result.status).not.toBe('FAIL');
 
     // 2. Discover OOPIF targets (autoAttach enabled)
     const targetsRes = await client.call(
