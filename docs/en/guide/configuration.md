@@ -26,7 +26,12 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 | `CAPTCHA_PROVIDER`           | Default CAPTCHA solving provider.                   | `manual`                                          |
 | `CAPTCHA_API_KEY`            | API key for automatic CAPTCHA solving providers.    | no default                                        |
 | `CAPTCHA_SOLVER_BASE_URL`    | Base URL for the external CAPTCHA solver service.   | no default                                        |
+| `CAPTCHA_2CAPTCHA_BASE_URL`  | Alternate base URL for 2Captcha-compatible solvers. | no default                                        |
 | `CAPTCHA_DEFAULT_TIMEOUT_MS` | Default CAPTCHA wait timeout.                       | `180000`                                          |
+| `CAPTCHA_MIN_TIMEOUT_MS`     | Minimum CAPTCHA timeout.                            | `5000`                                            |
+| `CAPTCHA_MAX_TIMEOUT_MS`     | Maximum CAPTCHA timeout.                            | `600000`                                          |
+| `CAPTCHA_MAX_RETRIES`        | Maximum CAPTCHA solve retries.                      | `5`                                               |
+| `CAPTCHA_DEFAULT_RETRIES`    | Default CAPTCHA solve retries.                      | `2`                                               |
 
 ### 2. Server identity and logging
 
@@ -36,7 +41,8 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 | `MCP_SERVER_VERSION`      | Public server version announced by the process.              | `0.1.8` (example value) |
 | `LOG_LEVEL`               | Logging verbosity.                                           | `info`                  |
 | `RUNTIME_ERROR_WINDOW_MS` | Recovery window length for runtime error counting.           | `60000`                 |
-| `RUNTIME_ERROR_THRESHOLD` | Recoverable error threshold inside the runtime error window. | `5`                     |
+| `RUNTIME_ERROR_THRESHOLD` | Recoverable error threshold inside the runtime error window. | `8`                     |
+| `SHUTDOWN_TIMEOUT_MS`     | Graceful shutdown timeout in milliseconds.                    | `20000`                 |
 
 ### 3. Profiles, search, and tool selection
 
@@ -46,6 +52,14 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 | `MCP_TOOL_DOMAINS`                        | Explicit domain allowlist; overrides `MCP_TOOL_PROFILE` when set. | no default                       |
 | `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | JSON override for explicit intent-to-tool ranking boosts.         | no default                       |
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | Default tier for plugin auto-registration during boost.           | `full`                           |
+| `SEARCH_AUTO_ACTIVATE_DOMAINS`            | Auto-activate a domain when its tool is searched.                 | `true`                           |
+| `SEARCH_VECTOR_ENABLED`                   | Master switch for embedding-based search signal (BGE-micro-v2).   | `true`                           |
+| `SEARCH_VECTOR_MODEL_ID`                  | HuggingFace model ID for embedding inference.                     | `Xenova/bge-micro-v2`            |
+| `SEARCH_VECTOR_COSINE_WEIGHT`             | Initial weight of the vector cosine signal in RRF fusion.         | `0.69`                           |
+| `SEARCH_VECTOR_DYNAMIC_WEIGHT`            | Self-tune vector weight based on tool-call feedback.              | `true`                           |
+| `SEARCH_VECTOR_LEARN_UP`                  | Weight step-up when selected tool is in vector top-N.             | `0.07`                           |
+| `SEARCH_VECTOR_LEARN_DOWN`                | Weight step-down when selected tool is outside vector top-N.      | `0.02`                           |
+| `SEARCH_VECTOR_LEARN_TOP_N`               | Rank threshold separating "hit" from "miss" for learning.         | `6`                              |
 
 ### 4. Transport, HTTP, and security
 
@@ -63,6 +77,9 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 | `MCP_HTTP_HEADERS_TIMEOUT_MS`     | HTTP headers timeout.                                   | `10000`                 |
 | `MCP_HTTP_KEEPALIVE_TIMEOUT_MS`   | HTTP keep-alive timeout.                                | `60000`                 |
 | `MCP_HTTP_FORCE_CLOSE_TIMEOUT_MS` | Force-close grace timeout.                              | `5000`                  |
+| `MCP_RATE_LIMIT_ENABLED`          | Set to `false` / `0` to disable HTTP rate limiting.    | enabled by default      |
+| `MCP_TRUST_PROXY`                 | Set to `true` / `1` to trust `X-Forwarded-For` header. | disabled by default     |
+| `MCP_HEALTH_VERBOSE`              | Set to `true` / `1` for verbose health-check output.   | disabled by default     |
 
 ### 5. Extension roots, signatures, and registry
 
@@ -80,8 +97,10 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 
 | Variable                | Purpose                                                               | Default / Typical value                    |
 | ----------------------- | --------------------------------------------------------------------- | ------------------------------------------ |
-| `BURP_MCP_SSE_URL`      | Burp official MCP SSE bridge URL.                                     | typical value: `http://127.0.0.1:9876/sse` |
-| `DEFAULT_DEBUG_PORT`    | Default debug port used for remote-debugging launches.                | `9222`                                     |
+| `BURP_MCP_SSE_URL`      | Burp official MCP SSE bridge URL.                                     | `http://127.0.0.1:9876/sse` |
+| `GHIDRA_BRIDGE_URL`     | Ghidra REST bridge endpoint.                                          | `http://127.0.0.1:18080`   |
+| `IDA_BRIDGE_URL`        | IDA Pro bridge endpoint.                                              | `http://127.0.0.1:18081`   |
+| `DEFAULT_DEBUG_PORT`    | Default debug port used for remote-debugging launches.                | `9222`                     |
 
 ### 7. Cache, token budget, and performance
 
@@ -175,3 +194,50 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 | `PROCESS_LAUNCH_WAIT_MS`             | Wait after launching a debug process.       | `2000`                  |
 | `WIN_DEBUG_PORT_POLL_ATTEMPTS`       | Windows debug-port poll attempts.           | `20`                    |
 | `WIN_DEBUG_PORT_POLL_INTERVAL_MS`    | Windows debug-port poll interval.           | `500`                   |
+| `ENABLE_INJECTION_TOOLS`             | Enable memory injection tools.              | `true`                  |
+
+### 13. ADB bridge and binary instrumentation
+
+| Variable                       | Purpose                                        | Default / Typical value |
+| ------------------------------ | ---------------------------------------------- | ----------------------- |
+| `ADB_PATH`                     | Path to `adb` binary.                          | `adb` (from PATH)       |
+| `ADB_DEFAULT_TIMEOUT_MS`       | Default ADB command timeout.                   | `30000`                 |
+| `ADB_SHELL_TIMEOUT_MS`         | ADB shell command timeout.                     | `60000`                 |
+| `ADB_WEBVIEW_HTTP_TIMEOUT_MS`  | ADB WebView HTTP timeout.                      | `5000`                  |
+| `ADB_WEBVIEW_WS_TIMEOUT_MS`    | ADB WebSocket timeout.                         | `10000`                 |
+| `ADB_VERSION_CHECK_TIMEOUT_MS` | ADB version check timeout.                     | `5000`                  |
+| `UNIDBG_JAR`                   | Path to Unidbg JAR file for emulation.         | no default              |
+| `JAVA_HOME`                    | Java runtime path (used by Unidbg/Ghidra).     | no default              |
+| `FRIDA_TIMEOUT_MS`             | Frida instrumentation timeout.                 | `15000`                 |
+| `GHIDRA_TIMEOUT_MS`            | Ghidra analysis timeout.                       | `120000`                |
+| `UNIDBG_TIMEOUT_MS`            | Unidbg emulation timeout.                      | `60000`                 |
+
+### 14. Domain-specific tuning
+
+| Variable                              | Purpose                                    | Default / Typical value |
+| ------------------------------------- | ------------------------------------------ | ----------------------- |
+| `GRAPHQL_MAX_PREVIEW_CHARS`           | Max preview chars for GraphQL responses.   | `4000`                  |
+| `GRAPHQL_MAX_SCHEMA_CHARS`            | Max schema size for introspection.         | `120000`                |
+| `GRAPHQL_MAX_QUERY_CHARS`             | Max query length.                          | `12000`                 |
+| `NETWORK_REPLAY_TIMEOUT_MS`           | Network request replay timeout.            | `30000`                 |
+| `NETWORK_REPLAY_MAX_BODY_BYTES`       | Max body size for replayed requests.       | `512000`                |
+| `NETWORK_REPLAY_MAX_REDIRECTS`        | Max redirects for replayed requests.       | `5`                     |
+| `WASM_TOOL_TIMEOUT_MS`                | WASM tool general timeout.                 | `60000`                 |
+| `WASM_OFFLINE_RUN_TIMEOUT_MS`         | WASM offline run timeout.                  | `10000`                 |
+| `WASM_OPTIMIZE_TIMEOUT_MS`            | WASM optimization timeout.                 | `120000`                |
+| `EMULATOR_FETCH_GOTO_TIMEOUT_MS`      | Emulator page navigation timeout.          | `30000`                 |
+| `DEBUGGER_WAIT_FOR_PAUSED_TIMEOUT_MS` | Timeout waiting for debugger paused state. | `30000`                 |
+| `WATCH_EVAL_TIMEOUT_MS`               | Watch expression evaluation timeout.       | `5000`                  |
+
+### 15. Platform, security, and schema
+
+| Variable                       | Purpose                                              | Default / Typical value |
+| ------------------------------ | ---------------------------------------------------- | ----------------------- |
+| `JSHOOK_REGISTRY_PLATFORM`     | Override platform detection (`win32`/`linux`/`darwin`). | auto-detected        |
+| `JSHOOK_REDACTION_LEVEL`       | Output redaction level (`none`/`standard`/`strict`). | `standard`              |
+| `JSHOOK_ENABLE_MOJO_IPC`       | Enable Chromium Mojo IPC monitoring.                 | disabled by default     |
+| `JSHOOK_FORCE_LINUX_FALLBACK`  | Force Linux browser fallback behavior.               | disabled by default     |
+| `ALLOW_LOCAL_SSRF`             | Allow local-network SSRF targets.                    | disabled by default     |
+| `MCP_COMPACT_SCHEMA`           | Use compact tool schema output.                      | `true`                  |
+| `DISCOVERY_STRICT`             | Strict mode for domain manifest discovery.            | disabled by default     |
+| `JSHOOK_CONNECT_TIMEOUT_MS`    | Browser connection timeout.                          | `60000`                 |

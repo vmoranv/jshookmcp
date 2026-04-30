@@ -26,7 +26,12 @@
 | `CAPTCHA_PROVIDER`           | 自动验证码求解的默认 provider。            | `manual`                                       |
 | `CAPTCHA_API_KEY`            | 自动验证码求解 provider 的 API Key。       | 无默认值                                       |
 | `CAPTCHA_SOLVER_BASE_URL`    | 外部验证码求解服务基址。                   | 无默认值                                       |
+| `CAPTCHA_2CAPTCHA_BASE_URL`  | 2Captcha 兼容求解服务备用基址。            | 无默认值                                       |
 | `CAPTCHA_DEFAULT_TIMEOUT_MS` | CAPTCHA 默认等待超时。                     | `180000`                                       |
+| `CAPTCHA_MIN_TIMEOUT_MS`     | CAPTCHA 最小等待超时。                     | `5000`                                         |
+| `CAPTCHA_MAX_TIMEOUT_MS`     | CAPTCHA 最大等待超时。                     | `600000`                                       |
+| `CAPTCHA_MAX_RETRIES`        | CAPTCHA 最大求解重试次数。                 | `5`                                            |
+| `CAPTCHA_DEFAULT_RETRIES`    | CAPTCHA 默认求解重试次数。                 | `2`                                            |
 
 ### 2. 主程序身份与日志
 
@@ -36,7 +41,8 @@
 | `MCP_SERVER_VERSION`      | 进程对外公布的服务版本。         | `0.1.8`（示例值） |
 | `LOG_LEVEL`               | 日志级别。                       | `info`            |
 | `RUNTIME_ERROR_WINDOW_MS` | 运行时错误恢复窗口长度（毫秒）。 | `60000`           |
-| `RUNTIME_ERROR_THRESHOLD` | 恢复窗口内允许的可恢复错误阈值。 | `5`               |
+| `RUNTIME_ERROR_THRESHOLD` | 恢复窗口内允许的可恢复错误阈值。 | `8`               |
+| `SHUTDOWN_TIMEOUT_MS`     | 优雅关闭超时（毫秒）。           | `20000`           |
 
 ### 3. 档位、搜索与工具选择
 
@@ -46,6 +52,14 @@
 | `MCP_TOOL_DOMAINS`                        | 手动指定启用域；设置后优先级高于 `MCP_TOOL_PROFILE`。 | 无默认值                  |
 | `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | 用 JSON 自定义”意图 -> 工具”加权规则。                | 无默认值                  |
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | plugin 在 boost 时自动注册的默认档位。                | `full`                    |
+| `SEARCH_AUTO_ACTIVATE_DOMAINS`            | 搜索到某域的工具时自动激活该域。                      | `true`                    |
+| `SEARCH_VECTOR_ENABLED`                   | 向量搜索信号总开关（BGE-micro-v2 嵌入模型）。         | `true`                    |
+| `SEARCH_VECTOR_MODEL_ID`                  | HuggingFace 嵌入推理模型 ID。                         | `Xenova/bge-micro-v2`     |
+| `SEARCH_VECTOR_COSINE_WEIGHT`             | 向量余弦信号在 RRF 融合中的初始权重。                 | `0.69`                    |
+| `SEARCH_VECTOR_DYNAMIC_WEIGHT`            | 根据工具调用反馈自动调节向量权重。                    | `true`                    |
+| `SEARCH_VECTOR_LEARN_UP`                  | 选中工具在向量 top-N 内时的权重上调步长。             | `0.07`                    |
+| `SEARCH_VECTOR_LEARN_DOWN`                | 选中工具在向量 top-N 外时的权重下调步长。             | `0.02`                    |
+| `SEARCH_VECTOR_LEARN_TOP_N`               | 区分向量"命中"与"未命中"的排名阈值。                  | `6`                       |
 
 ### 4. 传输、HTTP 与安全
 
@@ -63,6 +77,9 @@
 | `MCP_HTTP_HEADERS_TIMEOUT_MS`     | HTTP headers 超时。                                    | `10000`            |
 | `MCP_HTTP_KEEPALIVE_TIMEOUT_MS`   | HTTP keep-alive 超时。                                 | `60000`            |
 | `MCP_HTTP_FORCE_CLOSE_TIMEOUT_MS` | 连接强制关闭前的等待时间。                             | `5000`             |
+| `MCP_RATE_LIMIT_ENABLED`          | 设为 `false` / `0` 可关闭 HTTP 限流。                  | 默认开启           |
+| `MCP_TRUST_PROXY`                 | 设为 `true` / `1` 信任 `X-Forwarded-For` 头。          | 默认关闭           |
+| `MCP_HEALTH_VERBOSE`              | 设为 `true` / `1` 启用详细 health-check 输出。         | 默认关闭           |
 
 ### 5. 扩展目录、签名与 registry
 
@@ -80,7 +97,9 @@
 
 | 变量                    | 作用                                   | 默认值 / 典型值                     |
 | ----------------------- | -------------------------------------- | ----------------------------------- |
-| `BURP_MCP_SSE_URL`      | Burp 官方 MCP SSE bridge 地址。        | 典型值：`http://127.0.0.1:9876/sse` |
+| `BURP_MCP_SSE_URL`      | Burp 官方 MCP SSE bridge 地址。        | `http://127.0.0.1:9876/sse`         |
+| `GHIDRA_BRIDGE_URL`     | Ghidra REST bridge 端点。              | `http://127.0.0.1:18080`            |
+| `IDA_BRIDGE_URL`        | IDA Pro bridge 端点。                  | `http://127.0.0.1:18081`            |
 | `DEFAULT_DEBUG_PORT`    | 默认调试端口。                         | `9222`                              |
 
 ### 7. 缓存、Token 预算与性能
@@ -173,5 +192,52 @@
 | `NATIVE_ADMIN_CHECK_TIMEOUT_MS`      | 管理员权限检查超时。          | `5000`          |
 | `NATIVE_SCAN_MAX_RESULTS`            | Native 扫描最大结果数。       | `10000`         |
 | `PROCESS_LAUNCH_WAIT_MS`             | 启动调试进程后的等待时间。    | `2000`          |
-| `WIN_DEBUG_PORT_POLL_ATTEMPTS`       | Windows 调试端口轮询次数。    | `20`            |
-| `WIN_DEBUG_PORT_POLL_INTERVAL_MS`    | Windows 调试端口轮询间隔。    | `500`           |
+| `WIN_DEBUG_PORT_POLL_ATTEMPTS`       | Windows 调试端口轮询次数。                | `20`            |
+| `WIN_DEBUG_PORT_POLL_INTERVAL_MS`    | Windows 调试端口轮询间隔。                | `500`           |
+| `ENABLE_INJECTION_TOOLS`             | 是否启用内存注入工具。                    | `true`          |
+
+### 13. ADB 桥接与二进制插桩
+
+| 变量                            | 作用                                      | 默认值 / 典型值  |
+| ------------------------------- | ----------------------------------------- | ---------------- |
+| `ADB_PATH`                      | `adb` 可执行文件路径。                    | `adb`（从 PATH） |
+| `ADB_DEFAULT_TIMEOUT_MS`        | ADB 命令默认超时。                        | `30000`          |
+| `ADB_SHELL_TIMEOUT_MS`          | ADB shell 命令超时。                      | `60000`          |
+| `ADB_WEBVIEW_HTTP_TIMEOUT_MS`   | ADB WebView HTTP 超时。                   | `5000`           |
+| `ADB_WEBVIEW_WS_TIMEOUT_MS`     | ADB WebSocket 超时。                      | `10000`          |
+| `ADB_VERSION_CHECK_TIMEOUT_MS`  | ADB 版本检查超时。                        | `5000`           |
+| `UNIDBG_JAR`                    | Unidbg JAR 文件路径。                     | 无默认值         |
+| `JAVA_HOME`                     | Java 运行时路径（Unidbg/Ghidra 使用）。   | 无默认值         |
+| `FRIDA_TIMEOUT_MS`              | Frida 插桩超时。                          | `15000`          |
+| `GHIDRA_TIMEOUT_MS`             | Ghidra 分析超时。                         | `120000`         |
+| `UNIDBG_TIMEOUT_MS`             | Unidbg 模拟超时。                         | `60000`          |
+
+### 14. 域专用调优
+
+| 变量                                 | 作用                                  | 默认值 / 典型值 |
+| ------------------------------------ | ------------------------------------- | --------------- |
+| `GRAPHQL_MAX_PREVIEW_CHARS`          | GraphQL 响应最大预览字符数。          | `4000`          |
+| `GRAPHQL_MAX_SCHEMA_CHARS`           | GraphQL introspection 最大 schema。   | `120000`        |
+| `GRAPHQL_MAX_QUERY_CHARS`            | GraphQL 最大查询长度。                | `12000`         |
+| `NETWORK_REPLAY_TIMEOUT_MS`          | 网络请求重放超时。                    | `30000`         |
+| `NETWORK_REPLAY_MAX_BODY_BYTES`      | 重放请求最大 body 大小。              | `512000`        |
+| `NETWORK_REPLAY_MAX_REDIRECTS`       | 重放请求最大重定向次数。              | `5`             |
+| `WASM_TOOL_TIMEOUT_MS`               | WASM 工具通用超时。                   | `60000`         |
+| `WASM_OFFLINE_RUN_TIMEOUT_MS`        | WASM 离线运行超时。                   | `10000`         |
+| `WASM_OPTIMIZE_TIMEOUT_MS`           | WASM 优化超时。                       | `120000`        |
+| `EMULATOR_FETCH_GOTO_TIMEOUT_MS`     | 模拟器页面导航超时。                  | `30000`         |
+| `DEBUGGER_WAIT_FOR_PAUSED_TIMEOUT_MS`| 等待调试器暂停状态的超时。            | `30000`         |
+| `WATCH_EVAL_TIMEOUT_MS`              | Watch 表达式求值超时。                | `5000`          |
+
+### 15. 平台、安全与 Schema
+
+| 变量                       | 作用                                              | 默认值 / 典型值       |
+| -------------------------- | ------------------------------------------------- | --------------------- |
+| `JSHOOK_REGISTRY_PLATFORM` | 覆盖平台检测（`win32`/`linux`/`darwin`）。        | 自动检测              |
+| `JSHOOK_REDACTION_LEVEL`   | 输出脱敏级别（`none`/`standard`/`strict`）。      | `standard`            |
+| `JSHOOK_ENABLE_MOJO_IPC`   | 启用 Chromium Mojo IPC 监控。                     | 默认关闭              |
+| `JSHOOK_FORCE_LINUX_FALLBACK` | 强制 Linux 浏览器回退行为。                     | 默认关闭              |
+| `ALLOW_LOCAL_SSRF`         | 允许本地网络 SSRF 目标。                          | 默认关闭              |
+| `MCP_COMPACT_SCHEMA`       | 使用紧凑工具 schema 输出。                        | `true`                |
+| `DISCOVERY_STRICT`         | 域 manifest 发现的严格模式。                      | 默认关闭              |
+| `JSHOOK_CONNECT_TIMEOUT_MS`| 浏览器连接超时。                                  | `60000`               |
