@@ -49,7 +49,9 @@ function createExecutionContext(
     invokeTool: vi.fn(),
     emitSpan: vi.fn(),
     emitMetric: vi.fn(),
-    getConfig: vi.fn((_path: string, fallback?: unknown) => fallback),
+    getConfig<T = unknown>(_path: string, fallback?: T): T {
+      return fallback as T;
+    },
   };
 
   return {
@@ -506,11 +508,14 @@ describe('workflows helpers coverage', () => {
       ]);
 
       expect(
-        collectUnsatisfiedPrerequisites({ kind: 'mystery', id: 'unknown' } as WorkflowNode, {
-          hasActivePage: false,
-          networkEnabled: false,
-          capturedRequestCount: 0,
-        }),
+        collectUnsatisfiedPrerequisites(
+          { kind: 'mystery', id: 'unknown' } as unknown as WorkflowNode,
+          {
+            hasActivePage: false,
+            networkEnabled: false,
+            capturedRequestCount: 0,
+          },
+        ),
       ).toEqual([]);
     });
 
