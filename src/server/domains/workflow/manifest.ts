@@ -1,5 +1,9 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
-import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
+import {
+  defineMethodRegistrations,
+  ensureBrowserCore,
+  toolLookup,
+} from '@server/domains/shared/registry';
 import { workflowToolDefinitions } from '@server/domains/workflow/definitions';
 import type { WorkflowHandlers } from '@server/domains/workflow/index';
 
@@ -7,8 +11,22 @@ const DOMAIN = 'workflow' as const;
 const DEP_KEY = 'workflowHandlers' as const;
 type H = WorkflowHandlers;
 const t = toolLookup(workflowToolDefinitions);
-const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
-  bindByDepKey<H>(DEP_KEY, invoke);
+const registrations = defineMethodRegistrations<
+  H,
+  (typeof workflowToolDefinitions)[number]['name']
+>({
+  domain: DOMAIN,
+  depKey: DEP_KEY,
+  lookup: t,
+  entries: [
+    { tool: 'page_script_register', method: 'handlePageScriptRegister' },
+    { tool: 'page_script_run', method: 'handlePageScriptRun' },
+    { tool: 'api_probe_batch', method: 'handleApiProbeBatch' },
+    { tool: 'js_bundle_search', method: 'handleJsBundleSearch' },
+    { tool: 'list_extension_workflows', method: 'handleListExtensionWorkflows' },
+    { tool: 'run_extension_workflow', method: 'handleRunExtensionWorkflow' },
+  ],
+});
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { WorkflowHandlers } = await import('@server/domains/workflow/index');
@@ -42,27 +60,7 @@ const manifest = {
     tools: ['run_extension_workflow', 'list_extension_workflows'],
     hint: 'Extension workflow: list available workflows -> run the best matching workflow',
   },
-
-  registrations: [
-    {
-      tool: t('page_script_register'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePageScriptRegister(a)),
-    },
-    { tool: t('page_script_run'), domain: DOMAIN, bind: b((h, a) => h.handlePageScriptRun(a)) },
-    { tool: t('api_probe_batch'), domain: DOMAIN, bind: b((h, a) => h.handleApiProbeBatch(a)) },
-    { tool: t('js_bundle_search'), domain: DOMAIN, bind: b((h, a) => h.handleJsBundleSearch(a)) },
-    {
-      tool: t('list_extension_workflows'),
-      domain: DOMAIN,
-      bind: b((h) => h.handleListExtensionWorkflows()),
-    },
-    {
-      tool: t('run_extension_workflow'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleRunExtensionWorkflow(a)),
-    },
-  ],
+  registrations,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;

@@ -1,44 +1,12 @@
-/**
- * Hybrid BM25 + RRF multi-signal tool search engine for progressive tool discovery.
- *
- * Enhancements:
- * - BM25 keyword scoring with synonym-expanded queries and field weights
- * - Trigram fuzzy matching for typo tolerance
- * - RRF (Reciprocal Rank Fusion) combining all signals
- * - Dense vector similarity (384-dim embeddings) as semantic signal
- * - Tool affinity graph with prefix-group expansion (§4.1.4 dependency hull)
- * - Query category adaptive domain weights (§4.1.3 task-type encoding)
- * - Parameter name indexing for schema-aware search
- * - LRU query result cache (§4.3 CSAPC cross-session caching)
- */
-function findDelimitedIndex(haystack: string, needle: string, wordChar: RegExp): number {
-  if (!needle) return -1;
-  let idx = haystack.indexOf(needle);
-  while (idx >= 0) {
-    const before = idx > 0 ? haystack[idx - 1]! : null;
-    const after = idx + needle.length < haystack.length ? haystack[idx + needle.length]! : null;
-    const beforeOk = before === null || !wordChar.test(before);
-    const afterOk = after === null || !wordChar.test(after);
-    if (beforeOk && afterOk) return idx;
-    idx = haystack.indexOf(needle, idx + 1);
-  }
-  return -1;
-}
-
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
 import type { ToolProfile } from '@server/ToolCatalog';
 import type { SearchConfig } from '@internal-types/config';
 import {
-  SEARCH_AFFINITY_BASE_WEIGHT,
-  SEARCH_AFFINITY_BOOST_FACTOR,
-  SEARCH_AFFINITY_TOP_N,
   SEARCH_BM25_B,
   SEARCH_BM25_K1,
   SEARCH_CACHE_VECTOR_WEIGHT_TOLERANCE,
   SEARCH_COVERAGE_PRECISION_FACTOR,
-  SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER,
-  SEARCH_DOMAIN_HUB_THRESHOLD,
   SEARCH_EXACT_NAME_MATCH_MULTIPLIER,
   SEARCH_PARAM_TOKEN_WEIGHT,
   SEARCH_PREFIX_MATCH_MULTIPLIER,
@@ -46,9 +14,7 @@ import {
   SEARCH_RECENCY_MAX_BOOST,
   SEARCH_RECENCY_TRACKER_MAX,
   SEARCH_RECENCY_WINDOW_MS,
-  SEARCH_RRF_BM25_BLEND,
   SEARCH_RRF_K,
-  SEARCH_RRF_RESCALE_FACTOR,
   SEARCH_TIER_PENALTY,
   SEARCH_TIER_PENALTY_SEARCH,
   SEARCH_TIER_PENALTY_WORKFLOW,
@@ -64,6 +30,15 @@ import { IntentBoostImpl } from './IntentBoost';
 import { TrigramIndex } from './TrigramIndex';
 import { FeedbackTracker } from './FeedbackTracker';
 import { QueryNormalizer } from './QueryNormalizer';
+import {
+  applyGraphExpansionToScores,
+  buildAffinityGraph,
+  blendRrfIntoScores,
+  findDelimitedIndex,
+  type AffinityEdge,
+  rankByMap,
+  rankByScores,
+} from './ToolSearchEngine.helpers';
 
 // ── public types ──
 
@@ -90,11 +65,6 @@ interface ToolDocument {
   nameTokenSet: ReadonlySet<string>;
   /** nameTokenSet.size cached for quick access. */
   nameTokenCount: number;
-}
-
-interface AffinityEdge {
-  docIndex: number;
-  weight: number;
 }
 
 /**
@@ -288,7 +258,7 @@ export class ToolSearchEngine {
     this.sortedKeys = [...this.invertedIndex.keys()].toSorted();
 
     // ── Tool affinity graph (§4.1.4 dependency hull expansion) ──
-    this.affinityGraph = this.buildAffinityGraph();
+    this.affinityGraph = buildAffinityGraph(this.docs);
 
     // ── Trigram fuzzy index over tool names ──
     this.trigramIndex = new TrigramIndex(this.docs.map((d) => d.name));
@@ -667,11 +637,11 @@ export class ToolSearchEngine {
     const trigramWeight = SEARCH_TRIGRAM_WEIGHT;
 
     // ── Signal 1: BM25 ranking (already in scores) ──
-    const bm25Ranked = this.rankByScores(scores);
+    const bm25Ranked = rankByScores(scores);
 
     // ── Signal 2: Trigram fuzzy matching ──
     const trigramScores = this.trigramIndex.search(query, SEARCH_TRIGRAM_THRESHOLD);
-    const trigramRanked = this.rankByMap(trigramScores);
+    const trigramRanked = rankByMap(trigramScores);
 
     // ── Signal 3: Dense vector cosine similarity ──
     // Two-stage retrieval: skip vector scoring when BM25 top result is
@@ -686,11 +656,11 @@ export class ToolSearchEngine {
         vectorRanked = new Map();
       } else {
         vectorScores = await this.computeVectorCosineScores(query);
-        vectorRanked = this.rankByMap(vectorScores);
+        vectorRanked = rankByMap(vectorScores);
       }
     } else {
       vectorScores = await this.computeVectorCosineScores(query);
-      vectorRanked = this.rankByMap(vectorScores);
+      vectorRanked = rankByMap(vectorScores);
     }
 
     // Store the latest vector ranking for feedback tracking. Even when vector
@@ -702,6 +672,7 @@ export class ToolSearchEngine {
     this.feedbackTracker.recordVectorRanking(ranking);
 
     // ── Fuse via RRF ──
+    const fusedRrfScores = new Float64Array(this.docCount);
     for (let i = 0; i < this.docCount; i++) {
       let rrfScore = 0;
 
@@ -723,45 +694,9 @@ export class ToolSearchEngine {
       // Scale RRF score up to be comparable with original BM25 magnitude
       // while preserving original BM25 so downstream boosts (affinity, domain
       // hub, intent bonus) keep their absolute ordering meaning.
-      if (rrfScore > 0) {
-        const bm25Original = scores[i]!;
-        const rrfRescaled = rrfScore * SEARCH_RRF_RESCALE_FACTOR;
-        const blend = SEARCH_RRF_BM25_BLEND;
-        scores[i] = Math.max(bm25Original, rrfRescaled * blend) + rrfRescaled * blend;
-      }
+      fusedRrfScores[i] = rrfScore;
     }
-  }
-
-  /**
-   * Rank documents by Float64Array scores.
-   * Returns Map<docIndex, rank> (0-based, lower = better).
-   */
-  private rankByScores(scores: Float64Array): Map<number, number> {
-    const entries: Array<{ idx: number; score: number }> = [];
-    for (let i = 0; i < scores.length; i++) {
-      if (scores[i]! > 0) {
-        entries.push({ idx: i, score: scores[i]! });
-      }
-    }
-    entries.sort((a, b) => b.score - a.score);
-    const ranked = new Map<number, number>();
-    for (let rank = 0; rank < entries.length; rank++) {
-      ranked.set(entries[rank]!.idx, rank);
-    }
-    return ranked;
-  }
-
-  /**
-   * Rank documents by a score map.
-   * Returns Map<docIndex, rank> (0-based, lower = better).
-   */
-  private rankByMap(scoreMap: Map<number, number>): Map<number, number> {
-    const entries = [...scoreMap.entries()].toSorted((a, b) => b[1] - a[1]);
-    const ranked = new Map<number, number>();
-    for (let rank = 0; rank < entries.length; rank++) {
-      ranked.set(entries[rank]![0], rank);
-    }
-    return ranked;
+    blendRrfIntoScores(scores, fusedRrfScores);
   }
 
   // ── Dense vector search methods (Phase 8) ──
@@ -900,96 +835,11 @@ export class ToolSearchEngine {
    * Tools sharing a name prefix (e.g. "breakpoint_set", "breakpoint_list")
    * form an affinity group with mutual edges.
    */
-  private buildAffinityGraph(): ReadonlyMap<number, ReadonlyArray<AffinityEdge>> {
-    const graph = new Map<number, AffinityEdge[]>();
-    const prefixGroups = new Map<string, number[]>();
-
-    for (let i = 0; i < this.docCount; i++) {
-      const name = this.docs[i]!.name;
-      const underscoreIdx = name.indexOf('_');
-      if (underscoreIdx <= 0) continue;
-      const prefix = name.slice(0, underscoreIdx);
-      const group = prefixGroups.get(prefix) ?? [];
-      group.push(i);
-      prefixGroups.set(prefix, group);
-    }
-
-    for (const [, members] of prefixGroups) {
-      // Skip trivial groups (single member) or overly large ones
-      if (members.length < 2 || members.length > 15) continue;
-      const affinityWeight = SEARCH_AFFINITY_BASE_WEIGHT / Math.sqrt(members.length); // Decay for larger groups
-      for (const src of members) {
-        const edges: AffinityEdge[] = graph.get(src) ?? [];
-        for (const dst of members) {
-          if (dst !== src) {
-            edges.push({ docIndex: dst, weight: affinityWeight });
-          }
-        }
-        graph.set(src, edges);
-      }
-    }
-
-    return graph;
-  }
-
-  /**
-   * Combined graph-based expansion: affinity (prefix-group co-retrieval) +
-   * domain hub (coherence boost for well-represented domains).
-   * Single sort of scored documents feeds both expansion strategies.
-   */
   private applyGraphExpansion(scores: Float64Array): void {
-    // ── Find top scored indices (shared by both strategies) ──
-    const scored: Array<{ idx: number; score: number }> = [];
-    for (let i = 0; i < this.docCount; i++) {
-      if (scores[i]! > 0) {
-        scored.push({ idx: i, score: scores[i]! });
-      }
-    }
-    if (scored.length === 0) return;
-    scored.sort((a, b) => b.score - a.score);
-
-    // ── Affinity expansion: boost prefix-group neighbors of top-N ──
-    if (this.affinityGraph.size > 0) {
-      const topN = SEARCH_AFFINITY_TOP_N;
-      const boostFactor = SEARCH_AFFINITY_BOOST_FACTOR;
-      const limit = Math.min(topN, scored.length);
-
-      for (let rank = 0; rank < limit; rank++) {
-        const { idx, score } = scored[rank]!;
-        const neighbors = this.affinityGraph.get(idx);
-        if (!neighbors) continue;
-
-        const rankDecay = 1 / (1 + rank);
-        for (const { docIndex, weight } of neighbors) {
-          if (scores[docIndex]! > 0) {
-            scores[docIndex]! += score * weight * rankDecay * boostFactor;
-          }
-        }
-      }
-    }
-
-    // ── Domain hub expansion: coherence boost for well-represented domains ──
-    const threshold = SEARCH_DOMAIN_HUB_THRESHOLD;
-    if (threshold > 0 && scored.length >= threshold) {
-      const top10 = scored.slice(0, 10);
-
-      const domainCounts = new Map<string, number>();
-      for (const { idx } of top10) {
-        const domain = this.docs[idx]!.domain;
-        if (domain) {
-          domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
-        }
-      }
-
-      for (const [domain, count] of domainCounts) {
-        if (count >= threshold) {
-          for (let i = 0; i < this.docCount; i++) {
-            if (scores[i]! > 0 && this.docs[i]!.domain === domain) {
-              scores[i]! *= SEARCH_DOMAIN_HUB_BOOST_MULTIPLIER;
-            }
-          }
-        }
-      }
-    }
+    applyGraphExpansionToScores({
+      scores,
+      docs: this.docs,
+      affinityGraph: this.affinityGraph,
+    });
   }
 }

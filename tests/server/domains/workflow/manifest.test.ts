@@ -74,8 +74,6 @@ describe('Workflow Domain Manifest', () => {
         const def = workflowToolDefinitions.find((d) => d.name === reg.tool.name);
         expect(def).toBeDefined();
 
-        // Execute the bound function and verify it calls the right handler method
-        // Extract the method name from the reg array by mapping tool names to method names
         const methodNameMap: Record<string, string> = {
           page_script_register: 'handlePageScriptRegister',
           page_script_run: 'handlePageScriptRun',
@@ -89,8 +87,7 @@ describe('Workflow Domain Manifest', () => {
         expect(methodName).toBeDefined();
 
         const args = { anyArg: 'value' };
-        // @ts-ignore
-        await reg.bind(handlers, args);
+        await reg.bind({ workflowHandlers: handlers as any })(args as any);
 
         // @ts-ignore - indexing mock object
         expect(handlers[methodName]).toHaveBeenCalled();

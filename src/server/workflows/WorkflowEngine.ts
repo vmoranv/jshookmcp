@@ -1,9 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
-import { getEffectivePrerequisites } from '@server/ToolRouter.policy';
 import { getRoutingState } from '@server/ToolRouter.probe';
-import type { ToolArgs, ToolResponse } from '@server/types';
+import type { ToolArgs } from '@server/types';
+import {
+  resolveInputFrom,
+  resolveInputValues,
+  responseIndicatesFailure,
+  WorkflowDataBus,
+} from '@server/workflows/WorkflowDataBus';
+import { evaluatePredicate } from '@server/workflows/WorkflowPredicates';
+import {
+  collectUnsatisfiedPrerequisites,
+  getEvidenceState,
+} from '@server/workflows/WorkflowPreflight';
 import { WorkflowRunStore } from '@server/workflows/WorkflowRunStore';
 import type {
   BranchNode,
@@ -11,138 +21,22 @@ import type {
   ParallelNode,
   SequenceNode,
   ToolNode,
-  ToolNodeInput,
   WorkflowContract,
-  WorkflowExecutionContext,
   WorkflowNode,
 } from '@server/workflows/WorkflowContract';
+import {
+  type ExecuteWorkflowOptions,
+  type ExecuteWorkflowResult,
+  type InternalExecutionContext,
+  type JsonRecord,
+  type ParallelResult,
+  type PreflightWarning,
+  type WorkflowMetric,
+  type WorkflowSpan,
+  PreflightError,
+} from '@server/workflows/WorkflowEngine.types';
 
-type JsonRecord = Record<string, unknown>;
-
-interface WorkflowMetric {
-  name: string;
-  value: number;
-  type: 'counter' | 'gauge' | 'histogram';
-  attrs?: Record<string, unknown>;
-  at: string;
-}
-
-interface WorkflowSpan {
-  name: string;
-  attrs?: Record<string, unknown>;
-  at: string;
-}
-
-/**
- * WorkflowDataBus — cross-node data bus for dynamic parameter passing.
- *
- * Supports expression templates like "${get-requests.scriptId}" to reference
- * outputs from previous steps.
- */
-class WorkflowDataBus {
-  private store: Map<string, unknown> = new Map();
-
-  set(key: string, value: unknown): void {
-    this.store.set(key, value);
-  }
-
-  get<T>(key: string): T | undefined {
-    return this.store.get(key) as T;
-  }
-
-  /**
-   * Get a value at a specific path within a stored object.
-   * @param key - The key in the store
-   * @param path - Dot-separated path (e.g., "content.0.text")
-   */
-  getValueAtPath(key: string, path: string): unknown {
-    const value = this.store.get(key);
-    if (!value || typeof value !== 'object') {
-      return value;
-    }
-
-    // Parse tool response payload first if it's a ToolResponse
-    const payload = parseToolPayload(value as ToolResponse);
-    const obj = payload || (value as Record<string, unknown>);
-
-    return path.split('.').reduce<unknown>((current, segment) => {
-      if (current && typeof current === 'object') {
-        // Handle array index access
-        const arrayMatch = segment.match(/^(\d+)$/);
-        if (arrayMatch && Array.isArray(current)) {
-          return current[Number(arrayMatch[1])];
-        }
-        return (current as Record<string, unknown>)[segment];
-      }
-      return undefined;
-    }, obj);
-  }
-
-  /**
-   * Resolve expression templates like "${stepId.fieldPath}".
-   * If the value is not an expression, returns it as-is.
-   */
-  resolve(template: string): unknown {
-    const match = template.match(/^\$\{(.+)\}$/);
-    if (!match || !match[1]) {
-      return template;
-    }
-
-    const ref = match[1];
-    const dotIndex = ref.indexOf('.');
-    if (dotIndex === -1) {
-      // Simple key reference
-      return this.store.get(ref);
-    }
-
-    // Nested property access: stepId.fieldPath
-    const stepId = ref.slice(0, dotIndex);
-    const fieldPath = ref.slice(dotIndex + 1);
-    return this.getValueAtPath(stepId, fieldPath);
-  }
-}
-
-interface InternalExecutionContext extends WorkflowExecutionContext {
-  readonly stepResults: Map<string, unknown>;
-  readonly dataBus: WorkflowDataBus;
-}
-
-export interface ExecuteWorkflowOptions {
-  profile?: string;
-  config?: JsonRecord;
-  /** Preflight mode: 'warn' (default) logs warnings, 'strict' throws, 'skip' bypasses. */
-  preflightMode?: 'warn' | 'strict' | 'skip';
-  nodeInputOverrides?: Record<string, Record<string, unknown>>;
-  timeoutMs?: number;
-}
-
-interface PreflightWarning {
-  nodeId: string;
-  toolName: string;
-  condition: string;
-  fix: string;
-}
-
-class PreflightError extends Error {
-  constructor(readonly warnings: PreflightWarning[]) {
-    super(`Workflow preflight failed with ${warnings.length} unsatisfied prerequisite(s)`);
-    this.name = 'PreflightError';
-  }
-}
-
-export interface ExecuteWorkflowResult {
-  workflowId: string;
-  displayName: string;
-  runId: string;
-  profile: string;
-  startedAt: string;
-  finishedAt: string;
-  durationMs: number;
-  result: unknown;
-  stepResults: Record<string, unknown>;
-  metrics: WorkflowMetric[];
-  spans: WorkflowSpan[];
-}
+type WorkflowEngineExecutionContext = InternalExecutionContext<WorkflowDataBus>;
 
 const globalRunStore = new WorkflowRunStore();
 
@@ -187,130 +81,11 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   });
 }
 
-function parseToolPayload(response: unknown): JsonRecord | undefined {
-  if (!response || typeof response !== 'object') return undefined;
-  const toolResponse = response as ToolResponse & {
-    content?: Array<{ type?: string; text?: string }>;
-  };
-  const text = toolResponse.content?.find((item) => item.type === 'text')?.text;
-  if (typeof text !== 'string') return undefined;
-  try {
-    const parsed = JSON.parse(text) as unknown;
-    return parsed && typeof parsed === 'object' ? (parsed as JsonRecord) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function responseIndicatesFailure(response: unknown): string | undefined {
-  if (!response || typeof response !== 'object') return undefined;
-  const toolResponse = response as ToolResponse & { isError?: boolean };
-  if (toolResponse.isError) {
-    return 'Tool returned MCP error response';
-  }
-
-  const payload = parseToolPayload(response);
-  if (payload?.success === false) {
-    return typeof payload.error === 'string' ? payload.error : 'Tool reported success=false';
-  }
-  return undefined;
-}
-
-function collectSuccessStats(value: unknown): { success: number; failure: number } {
-  if (Array.isArray(value)) {
-    return value.reduce(
-      (acc, item) => {
-        const next = collectSuccessStats(item);
-        acc.success += next.success;
-        acc.failure += next.failure;
-        return acc;
-      },
-      { success: 0, failure: 0 },
-    );
-  }
-
-  if (!value || typeof value !== 'object') {
-    return { success: 0, failure: 0 };
-  }
-
-  const obj = value as Record<string, unknown>;
-
-  // Handle keyed parallel results with __order
-  if (Array.isArray(obj['__order'])) {
-    return (obj['__order'] as string[]).reduce(
-      (acc, key) => {
-        const next = collectSuccessStats(obj[key]);
-        acc.success += next.success;
-        acc.failure += next.failure;
-        return acc;
-      },
-      { success: 0, failure: 0 },
-    );
-  }
-
-  const payload = parseToolPayload(value);
-  if (payload?.success === true) return { success: 1, failure: 0 };
-  /* istanbul ignore next */
-  if (payload?.success === false) return { success: 0, failure: 1 };
-
-  if ('error' in (value as Record<string, unknown>)) {
-    return { success: 0, failure: 1 };
-  }
-
-  return { success: 0, failure: 0 };
-}
-
-function resolveInputFrom(
-  mapping: Record<string, string>,
-  dataBus: WorkflowDataBus,
-): Record<string, unknown> {
-  const resolved: Record<string, unknown> = {};
-  for (const [targetKey, sourceRef] of Object.entries(mapping)) {
-    const template = sourceRef.startsWith('${') ? sourceRef : `\${${sourceRef}}`;
-    resolved[targetKey] = dataBus.resolve(template);
-  }
-  return resolved;
-}
-
-/**
- * Recursively resolve expression templates in input values.
- * Handles nested objects and arrays.
- */
-function resolveInputValues(
-  input: Record<string, ToolNodeInput> | undefined,
-  dataBus: WorkflowDataBus,
-): Record<string, unknown> {
-  if (!input) return {};
-
-  const resolved: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(input)) {
-    resolved[key] = resolveValue(value, dataBus);
-  }
-  return resolved;
-}
-
-function resolveValue(value: ToolNodeInput, dataBus: WorkflowDataBus): unknown {
-  if (typeof value === 'string') {
-    return dataBus.resolve(value);
-  }
-  if (Array.isArray(value)) {
-    return value.map((item) => resolveValue(item as ToolNodeInput, dataBus));
-  }
-  if (value && typeof value === 'object') {
-    const resolved: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      resolved[k] = resolveValue(v as ToolNodeInput, dataBus);
-    }
-    return resolved;
-  }
-  return value;
-}
-
 async function runToolNode(
   ctx: MCPServerContext,
   node: ToolNode,
   overrides: ExecuteWorkflowOptions['nodeInputOverrides'],
-  executionContext: InternalExecutionContext,
+  executionContext: WorkflowEngineExecutionContext,
 ): Promise<unknown> {
   const fromResolved = node.inputFrom
     ? resolveInputFrom(node.inputFrom, executionContext.dataBus)
@@ -362,15 +137,10 @@ async function runToolNode(
   throw new Error(`Workflow tool node "${node.id}" exhausted retries`);
 }
 
-export interface ParallelResult {
-  [stepId: string]: unknown;
-  __order: string[];
-}
-
 async function runParallelNode(
   ctx: MCPServerContext,
   node: ParallelNode,
-  executionContext: InternalExecutionContext,
+  executionContext: WorkflowEngineExecutionContext,
   options: ExecuteWorkflowOptions,
 ): Promise<ParallelResult> {
   const concurrency = Math.max(1, node.maxConcurrency ?? 4);
@@ -412,164 +182,10 @@ async function runParallelNode(
   return keyedResults;
 }
 
-/**
- * Get a variable value from workflow context by key path.
- * Supports dot notation for nested access within step results.
- */
-function getWorkflowVariable(stepResults: Map<string, unknown>, keyPath: string): unknown {
-  // First try direct key lookup (stepId)
-  if (stepResults.has(keyPath)) {
-    return stepResults.get(keyPath);
-  }
-
-  // Then try dot-notation path traversal: stepId.field.subfield
-  const segments = keyPath.split('.');
-  const stepId = segments[0];
-  const fieldSegments = segments.slice(1);
-
-  if (!stepId || !stepResults.has(stepId)) {
-    return undefined;
-  }
-
-  let current: unknown = stepResults.get(stepId);
-
-  // Parse tool response payload if needed
-  if (current && typeof current === 'object') {
-    const payload = parseToolPayload(current as ToolResponse);
-    if (payload) {
-      current = payload;
-    }
-  }
-
-  for (const segment of fieldSegments) {
-    if (current && typeof current === 'object') {
-      // Handle array index access
-      const arrayMatch = segment.match(/^(\d+)$/);
-      if (arrayMatch && Array.isArray(current)) {
-        current = current[Number(arrayMatch[1])];
-        continue;
-      }
-      current = (current as Record<string, unknown>)[segment];
-    } else {
-      return undefined;
-    }
-  }
-
-  return current;
-}
-
-async function evaluatePredicate(
-  node: BranchNode,
-  ctx: InternalExecutionContext,
-): Promise<boolean> {
-  if (node.predicateFn) {
-    return await node.predicateFn(ctx);
-  }
-
-  if (node.predicateId === 'always_true') return true;
-  if (node.predicateId === 'always_false') return false;
-  if (node.predicateId === 'any_step_failed') {
-    return [...ctx.stepResults.values()].some((value) => collectSuccessStats(value).failure > 0);
-  }
-
-  const successRateMatch = node.predicateId.match(/success_rate_gte_(\d+)/i);
-  if (successRateMatch) {
-    const threshold = Number(successRateMatch[1]);
-    const aggregate = [...ctx.stepResults.values()].reduce<{ success: number; failure: number }>(
-      (acc, value) => {
-        const next = collectSuccessStats(value);
-        acc.success += next.success;
-        acc.failure += next.failure;
-        return acc;
-      },
-      { success: 0, failure: 0 },
-    );
-    const total = aggregate.success + aggregate.failure;
-    if (total === 0) return false;
-    return aggregate.success / total >= threshold / 100;
-  }
-
-  // Variable-based predicates: variable_equals_KEY_VALUE, variable_contains_KEY_SUBSTRING, variable_matches_KEY_PATTERN
-  const equalsMatch = node.predicateId.match(/^variable_equals_(.+?)_(.+)$/);
-  if (equalsMatch && equalsMatch[1] && equalsMatch[2]) {
-    const keyPath = equalsMatch[1];
-    const expectedValue = equalsMatch[2];
-    const actualValue = getWorkflowVariable(ctx.stepResults, keyPath);
-    return deepEquals(actualValue, expectedValue);
-  }
-
-  const containsMatch = node.predicateId.match(/^variable_contains_(.+?)_(.+)$/);
-  if (containsMatch && containsMatch[1] && containsMatch[2]) {
-    const keyPath = containsMatch[1];
-    const substring = containsMatch[2];
-    const value = getWorkflowVariable(ctx.stepResults, keyPath);
-    if (typeof value !== 'string' && !Array.isArray(value)) {
-      return false;
-    }
-    return String(value).includes(substring);
-  }
-
-  const matchesMatch = node.predicateId.match(/^variable_matches_(.+?)_(.+)$/);
-  if (matchesMatch && matchesMatch[1] && matchesMatch[2]) {
-    const keyPath = matchesMatch[1];
-    const pattern = matchesMatch[2];
-    const value = getWorkflowVariable(ctx.stepResults, keyPath);
-    if (typeof value !== 'string') {
-      return false;
-    }
-    try {
-      const regex = new RegExp(pattern);
-      return regex.test(value);
-    } catch {
-      return false;
-    }
-  }
-
-  throw new Error(`Unknown workflow predicateId "${node.predicateId}"`);
-}
-
-/**
- * Deep equality check for two values.
- */
-function deepEquals(a: unknown, b: unknown): boolean {
-  if (a === b) {
-    return true;
-  }
-
-  if (typeof a !== typeof b) {
-    return false;
-  }
-
-  if (a && b && typeof a === 'object' && typeof b === 'object') {
-    if (Array.isArray(a) !== Array.isArray(b)) {
-      return false;
-    }
-
-    if (Array.isArray(a)) {
-      const arrA = a as unknown[];
-      const arrB = b as unknown[];
-      return arrA.length === arrB.length && arrA.every((v, i) => deepEquals(v, arrB[i]));
-    }
-
-    const keysA = Object.keys(a as object);
-    const keysB = Object.keys(b as object);
-
-    if (keysA.length !== keysB.length) {
-      return false;
-    }
-
-    return keysA.every((key) =>
-      deepEquals((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
-    );
-  }
-
-  return false;
-}
-
 async function executeNode(
   ctx: MCPServerContext,
   node: WorkflowNode,
-  executionContext: InternalExecutionContext,
+  executionContext: WorkflowEngineExecutionContext,
   options: ExecuteWorkflowOptions,
 ): Promise<unknown> {
   executionContext.emitSpan('workflow.node.start', { nodeId: node.id, kind: node.kind });
@@ -626,77 +242,6 @@ async function executeNode(
   return result;
 }
 
-/** Recursively collect all ToolNode instances from a workflow graph. */
-function collectToolNodes(node: WorkflowNode): ToolNode[] {
-  switch (node.kind) {
-    case 'tool':
-      return [node];
-    case 'sequence':
-    case 'parallel':
-      return node.steps.flatMap((step) => collectToolNodes(step));
-    case 'branch':
-      return [
-        ...collectToolNodes(node.whenTrue),
-        ...(node.whenFalse ? collectToolNodes(node.whenFalse) : []),
-      ];
-    case 'fallback': {
-      const fallbackNode = node as FallbackNode;
-      return [
-        ...collectToolNodes(fallbackNode.primary),
-        ...collectToolNodes(fallbackNode.fallback),
-      ];
-    }
-    default:
-      return [];
-  }
-}
-
-/**
- * Collect unsatisfied prerequisites for all tool nodes in the workflow graph.
- * Returns an array of warnings (not errors — preflight is warn-only mode).
- */
-function getEvidenceState(ctx: MCPServerContext): {
-  hasGraph: boolean;
-  nodeCount: number;
-  edgeCount: number;
-} {
-  try {
-    const evidenceGraph = ctx.getDomainInstance<ReverseEvidenceGraph>('evidenceGraph');
-    return evidenceGraph
-      ? { hasGraph: true, nodeCount: evidenceGraph.nodeCount, edgeCount: evidenceGraph.edgeCount }
-      : { hasGraph: false, nodeCount: 0, edgeCount: 0 };
-  } catch {
-    return { hasGraph: false, nodeCount: 0, edgeCount: 0 };
-  }
-}
-
-function collectUnsatisfiedPrerequisites(
-  graph: WorkflowNode,
-  routingState: Awaited<ReturnType<typeof getRoutingState>>,
-): PreflightWarning[] {
-  const prerequisites = getEffectivePrerequisites();
-  const warnings: PreflightWarning[] = [];
-
-  for (const toolNode of collectToolNodes(graph)) {
-    const toolPrerequisites = prerequisites[toolNode.toolName] ?? [];
-    for (const prerequisite of toolPrerequisites) {
-      // check() returns true when SATISFIED, false when not
-      if (prerequisite.check(routingState)) {
-        continue;
-      }
-
-      warnings.push({
-        nodeId: toolNode.id,
-        toolName: toolNode.toolName,
-        condition: prerequisite.condition,
-        fix: prerequisite.fix,
-      });
-    }
-  }
-
-  return warnings;
-}
-
 export async function executeExtensionWorkflow(
   ctx: MCPServerContext,
   workflow: WorkflowContract,
@@ -714,7 +259,7 @@ export async function executeExtensionWorkflow(
     ? { ...(ctx.config as unknown as JsonRecord), ...options.config }
     : ctx.config;
 
-  const executionContext: InternalExecutionContext = {
+  const executionContext: WorkflowEngineExecutionContext = {
     workflowRunId: runId,
     profile,
     stepResults,

@@ -1,4 +1,4 @@
-import type { ExecuteWorkflowResult } from '@server/workflows/WorkflowEngine';
+import type { ExecuteWorkflowResult } from '@server/workflows/WorkflowEngine.types';
 import { logger } from '@utils/logger';
 
 export interface WorkflowRunEntry {
