@@ -1,5 +1,5 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
-import { bindByDepKey, toolLookup } from '@server/domains/shared/registry';
+import { defineMethodRegistrations, toolLookup } from '@server/domains/shared/registry';
 import { wasmTools } from '@server/domains/wasm/definitions';
 import type { WasmToolHandlers } from '@server/domains/wasm/index';
 
@@ -7,8 +7,25 @@ const DOMAIN = 'wasm' as const;
 const DEP_KEY = 'wasmHandlers' as const;
 type H = WasmToolHandlers;
 const t = toolLookup(wasmTools);
-const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
-  bindByDepKey<H>(DEP_KEY, invoke);
+const registrations = defineMethodRegistrations<H, (typeof wasmTools)[number]['name']>({
+  domain: DOMAIN,
+  depKey: DEP_KEY,
+  lookup: t,
+  entries: [
+    { tool: 'wasm_capabilities', method: 'handleWasmCapabilities' },
+    { tool: 'wasm_dump', method: 'handleWasmDump' },
+    { tool: 'wasm_disassemble', method: 'handleWasmDisassemble' },
+    { tool: 'wasm_decompile', method: 'handleWasmDecompile' },
+    { tool: 'wasm_inspect_sections', method: 'handleWasmInspectSections' },
+    { tool: 'wasm_offline_run', method: 'handleWasmOfflineRun' },
+    { tool: 'wasm_optimize', method: 'handleWasmOptimize' },
+    { tool: 'wasm_vmp_trace', method: 'handleWasmVmpTrace' },
+    { tool: 'wasm_memory_inspect', method: 'handleWasmMemoryInspect' },
+    { tool: 'wasm_to_c', method: 'handleWasmToC' },
+    { tool: 'wasm_detect_obfuscation', method: 'handleWasmDetectObfuscation' },
+    { tool: 'wasm_instrument_trace', method: 'handleWasmInstrumentTrace' },
+  ],
+});
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { CodeCollector } = await import('@server/domains/shared/modules');
@@ -28,40 +45,7 @@ const manifest = {
   depKey: DEP_KEY,
   profiles: ['full'],
   ensure,
-  registrations: [
-    {
-      tool: t('wasm_capabilities'),
-      domain: DOMAIN,
-      bind: b((h, _args) => h.handleWasmCapabilities()),
-    },
-    { tool: t('wasm_dump'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDump(a)) },
-    { tool: t('wasm_disassemble'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDisassemble(a)) },
-    { tool: t('wasm_decompile'), domain: DOMAIN, bind: b((h, a) => h.handleWasmDecompile(a)) },
-    {
-      tool: t('wasm_inspect_sections'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleWasmInspectSections(a)),
-    },
-    { tool: t('wasm_offline_run'), domain: DOMAIN, bind: b((h, a) => h.handleWasmOfflineRun(a)) },
-    { tool: t('wasm_optimize'), domain: DOMAIN, bind: b((h, a) => h.handleWasmOptimize(a)) },
-    { tool: t('wasm_vmp_trace'), domain: DOMAIN, bind: b((h, a) => h.handleWasmVmpTrace(a)) },
-    {
-      tool: t('wasm_memory_inspect'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleWasmMemoryInspect(a)),
-    },
-    { tool: t('wasm_to_c'), domain: DOMAIN, bind: b((h, a) => h.handleWasmToC(a)) },
-    {
-      tool: t('wasm_detect_obfuscation'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleWasmDetectObfuscation(a)),
-    },
-    {
-      tool: t('wasm_instrument_trace'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleWasmInstrumentTrace(a)),
-    },
-  ],
+  registrations,
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 
 export default manifest;
