@@ -1,5 +1,9 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
-import { bindByDepKey, ensureBrowserCore, toolLookup } from '@server/domains/shared/registry';
+import {
+  defineMethodRegistrations,
+  ensureBrowserCore,
+  toolLookup,
+} from '@server/domains/shared/registry';
 import { advancedTools } from '@server/domains/network/definitions';
 import type { AdvancedToolHandlers } from '@server/domains/network/index';
 
@@ -7,8 +11,50 @@ const DOMAIN = 'network' as const;
 const DEP_KEY = 'advancedHandlers' as const;
 type H = AdvancedToolHandlers;
 const t = toolLookup(advancedTools);
-const b = (invoke: (h: H, a: Record<string, unknown>) => Promise<unknown>) =>
-  bindByDepKey<H>(DEP_KEY, invoke);
+const registrations = defineMethodRegistrations<H, (typeof advancedTools)[number]['name']>({
+  domain: DOMAIN,
+  depKey: DEP_KEY,
+  lookup: t,
+  entries: [
+    { tool: 'network_enable', method: 'handleNetworkEnable' },
+    { tool: 'network_disable', method: 'handleNetworkDisable' },
+    { tool: 'network_get_status', method: 'handleNetworkGetStatus' },
+    { tool: 'network_monitor', method: 'handleNetworkMonitor' },
+    { tool: 'network_get_requests', method: 'handleNetworkGetRequests' },
+    { tool: 'network_get_response_body', method: 'handleNetworkGetResponseBody' },
+    { tool: 'network_get_stats', method: 'handleNetworkGetStats' },
+    { tool: 'performance_get_metrics', method: 'handlePerformanceGetMetrics' },
+    { tool: 'performance_coverage', method: 'handlePerformanceCoverage' },
+    { tool: 'performance_take_heap_snapshot', method: 'handlePerformanceTakeHeapSnapshot' },
+    { tool: 'performance_trace', method: 'handlePerformanceTraceDispatch' },
+    { tool: 'profiler_cpu', method: 'handleProfilerCpuDispatch' },
+    { tool: 'profiler_heap_sampling', method: 'handleProfilerHeapSamplingDispatch' },
+    { tool: 'console_get_exceptions', method: 'handleConsoleGetExceptions' },
+    { tool: 'console_inject', method: 'handleConsoleInjectDispatch' },
+    {
+      tool: 'console_inject_fetch_interceptor',
+      method: 'handleConsoleInjectFetchInterceptor',
+    },
+    {
+      tool: 'console_inject_xhr_interceptor',
+      method: 'handleConsoleInjectXhrInterceptor',
+    },
+    { tool: 'console_buffers', method: 'handleConsoleBuffersDispatch' },
+    { tool: 'http_request_build', method: 'handleHttpRequestBuild' },
+    { tool: 'http_plain_request', method: 'handleHttpPlainRequest' },
+    { tool: 'http2_probe', method: 'handleHttp2Probe' },
+    { tool: 'http2_frame_build', method: 'handleHttp2FrameBuild' },
+    { tool: 'network_rtt_measure', method: 'handleNetworkRttMeasure' },
+    { tool: 'network_traceroute', method: 'handleNetworkTraceroute' },
+    { tool: 'network_icmp_probe', method: 'handleNetworkIcmpProbe' },
+    { tool: 'network_extract_auth', method: 'handleNetworkExtractAuth' },
+    { tool: 'network_export_har', method: 'handleNetworkExportHar' },
+    { tool: 'network_replay_request', method: 'handleNetworkReplayRequest' },
+    { tool: 'network_intercept', method: 'handleNetworkInterceptDispatch' },
+    { tool: 'network_tls_fingerprint', method: 'handleNetworkTlsFingerprint' },
+    { tool: 'network_bot_detect_analyze', method: 'handleNetworkBotDetectAnalyze' },
+  ],
+});
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
   const { AdvancedToolHandlers } = await import('@server/domains/network/index');
@@ -75,144 +121,7 @@ const manifest: DomainManifest<typeof DEP_KEY, H, typeof DOMAIN> = {
     ],
   },
 
-  registrations: [
-    { tool: t('network_enable'), domain: DOMAIN, bind: b((h, a) => h.handleNetworkEnable(a)) },
-    { tool: t('network_disable'), domain: DOMAIN, bind: b((h, a) => h.handleNetworkDisable(a)) },
-    {
-      tool: t('network_get_status'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkGetStatus(a)),
-    },
-    { tool: t('network_monitor'), domain: DOMAIN, bind: b((h, a) => h.handleNetworkMonitor(a)) },
-    {
-      tool: t('network_get_requests'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkGetRequests(a)),
-    },
-    {
-      tool: t('network_get_response_body'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkGetResponseBody(a)),
-    },
-    { tool: t('network_get_stats'), domain: DOMAIN, bind: b((h, a) => h.handleNetworkGetStats(a)) },
-    {
-      tool: t('performance_get_metrics'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePerformanceGetMetrics(a)),
-    },
-    {
-      tool: t('performance_coverage'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePerformanceCoverage(a)),
-    },
-    {
-      tool: t('performance_take_heap_snapshot'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePerformanceTakeHeapSnapshot(a)),
-    },
-    {
-      tool: t('performance_trace'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handlePerformanceTraceDispatch(a)),
-    },
-    {
-      tool: t('profiler_cpu'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleProfilerCpuDispatch(a)),
-    },
-    {
-      tool: t('profiler_heap_sampling'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleProfilerHeapSamplingDispatch(a)),
-    },
-    {
-      tool: t('console_get_exceptions'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleGetExceptions(a)),
-    },
-    {
-      tool: t('console_inject'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleInjectDispatch(a)),
-    },
-    {
-      tool: t('console_inject_fetch_interceptor'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleInjectFetchInterceptor(a)),
-    },
-    {
-      tool: t('console_inject_xhr_interceptor'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleInjectXhrInterceptor(a)),
-    },
-    {
-      tool: t('console_buffers'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleConsoleBuffersDispatch(a)),
-    },
-    {
-      tool: t('http_request_build'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleHttpRequestBuild(a)),
-    },
-    {
-      tool: t('http_plain_request'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleHttpPlainRequest(a)),
-    },
-    { tool: t('http2_probe'), domain: DOMAIN, bind: b((h, a) => h.handleHttp2Probe(a)) },
-    {
-      tool: t('http2_frame_build'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleHttp2FrameBuild(a)),
-    },
-    {
-      tool: t('network_rtt_measure'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkRttMeasure(a)),
-    },
-
-    {
-      tool: t('network_traceroute'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkTraceroute(a)),
-    },
-    {
-      tool: t('network_icmp_probe'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkIcmpProbe(a)),
-    },
-    {
-      tool: t('network_extract_auth'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkExtractAuth(a)),
-    },
-    {
-      tool: t('network_export_har'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkExportHar(a)),
-    },
-    {
-      tool: t('network_replay_request'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkReplayRequest(a)),
-    },
-    {
-      tool: t('network_intercept'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkInterceptDispatch(a)),
-    },
-    {
-      tool: t('network_tls_fingerprint'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkTlsFingerprint(a)),
-    },
-    {
-      tool: t('network_bot_detect_analyze'),
-      domain: DOMAIN,
-      bind: b((h, a) => h.handleNetworkBotDetectAnalyze(a)),
-    },
-  ],
+  registrations,
 };
 
 export default manifest;
