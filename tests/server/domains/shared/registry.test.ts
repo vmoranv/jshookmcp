@@ -5,6 +5,8 @@ describe('shared/registry', () => {
   it('should export registry items', async () => {
     expect(Registry.toolLookup).toBeDefined();
     expect(Registry.bindByDepKey).toBeDefined();
+    expect(Registry.bindMethodByDepKey).toBeDefined();
+    expect(Registry.defineMethodRegistrations).toBeDefined();
     expect(Registry.getDep).toBeDefined();
     expect(Registry.ensureBrowserCore).toBeDefined();
   });

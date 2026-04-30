@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   asErrorResponse,
   asJsonResponse,
+  asToolResponse,
   asTextResponse,
+  isToolResponse,
   serializeError,
 } from '@server/domains/shared/response';
 
@@ -23,6 +25,21 @@ describe('shared response helpers', () => {
   it('asJsonResponse formats JSON content', async () => {
     const res = asJsonResponse({ a: 1, b: 'x' });
     expect((res.content[0] as any)?.text).toBe('{\n  "a": 1,\n  "b": "x"\n}');
+  });
+
+  it('isToolResponse detects MCP envelopes', async () => {
+    expect(isToolResponse({ content: [{ type: 'text', text: 'ok' }] })).toBe(true);
+    expect(isToolResponse({ text: 'nope' })).toBe(false);
+  });
+
+  it('asToolResponse preserves existing MCP envelopes', async () => {
+    const existing = { content: [{ type: 'text' as const, text: 'ok' }] };
+    expect(asToolResponse(existing)).toBe(existing);
+  });
+
+  it('asToolResponse wraps plain payloads once', async () => {
+    const res = asToolResponse({ success: true });
+    expect((res.content[0] as any)?.text).toBe('{\n  "success": true\n}');
   });
 
   it('asErrorResponse uses message from Error instances', async () => {

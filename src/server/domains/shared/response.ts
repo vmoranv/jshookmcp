@@ -19,6 +19,18 @@ export function asJsonResponse(payload: unknown): ToolResponse {
   return asTextResponse(JSON.stringify(payload, null, 2));
 }
 
+export function isToolResponse(value: unknown): value is ToolResponse {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    Array.isArray((value as { content?: unknown }).content)
+  );
+}
+
+export function asToolResponse(payload: unknown): ToolResponse {
+  return isToolResponse(payload) ? payload : asJsonResponse(payload);
+}
+
 export function asErrorResponse(error: unknown): ToolResponse {
   return asTextResponse(`Error: ${toErrorMessage(error)}`, true);
 }

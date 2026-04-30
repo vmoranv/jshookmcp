@@ -7,6 +7,23 @@ const manifestTestMocks = vi.hoisted(() => ({
     const bindFn = vi.fn();
     return bindFn;
   }),
+  defineMethodRegistrations: vi.fn(
+    ({
+      domain,
+      lookup,
+      entries,
+    }: {
+      domain: string;
+      lookup: (name: string) => unknown;
+      entries: Array<{ tool: string; profiles?: string[] }>;
+    }) =>
+      entries.map((entry) => ({
+        tool: lookup(entry.tool),
+        domain,
+        ...(entry.profiles ? { profiles: entry.profiles } : {}),
+        bind: vi.fn(),
+      })),
+  ),
   ensureBrowserCore: vi.fn(),
   toolLookup: vi.fn((tools: Array<{ name: string }>) => {
     const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
@@ -24,6 +41,7 @@ const manifestTestMocks = vi.hoisted(() => ({
 
 vi.mock('@server/domains/shared/registry', () => ({
   bindByDepKey: manifestTestMocks.bindByDepKey,
+  defineMethodRegistrations: manifestTestMocks.defineMethodRegistrations,
   ensureBrowserCore: manifestTestMocks.ensureBrowserCore,
   toolLookup: manifestTestMocks.toolLookup,
 }));
