@@ -2,6 +2,8 @@
 
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve as pathResolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import {
   AUTH_API_KEY_MARKER,
@@ -113,6 +115,29 @@ const serverConstants = {
   WS_MAGIC_GUID,
 };
 
+async function resolveTlsFixtureConstants() {
+  try {
+    const require = createRequire(import.meta.url);
+    const playwrightPackageJson = require.resolve('playwright-core/package.json');
+    const cryptoModuleUrl = pathToFileURL(
+      join(dirname(playwrightPackageJson), 'lib', 'server', 'utils', 'crypto.js'),
+    ).href;
+    const module = await import(cryptoModuleUrl);
+    const generated = module.generateSelfSignedCertificate?.('localhost');
+    if (generated?.cert && generated?.key) {
+      return {
+        certPem: generated.cert,
+        keyPem: generated.key,
+      };
+    }
+  } catch {}
+
+  return {
+    certPem: TEST_CERT_PEM,
+    keyPem: TEST_KEY_PEM,
+  };
+}
+
 const phaseHelpers = {
   withTimeout,
   callTool,
@@ -148,6 +173,11 @@ const phaseHelpers = {
 };
 
 async function main() {
+  const tlsFixture = await resolveTlsFixtureConstants();
+  phaseConstants.TEST_CERT_PEM = tlsFixture.certPem;
+  serverConstants.TEST_CERT_PEM = tlsFixture.certPem;
+  serverConstants.TEST_KEY_PEM = tlsFixture.keyPem;
+
   const jsonOnly = process.argv.includes('--json');
   const jsonOutputPath = (() => {
     const cliValue = getCliValue('--json-out');

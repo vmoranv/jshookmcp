@@ -18,7 +18,8 @@ export const encodingTools: Tool[] = [
       .string('data', 'Input encoded payload')
       .enum('encoding', ['base64', 'hex', 'url', 'protobuf', 'msgpack'], 'Declared input encoding')
       .enum('outputFormat', ['hex', 'utf8', 'json'], 'Target output format', { default: 'hex' })
-      .required('data', 'encoding'),
+      .required('data', 'encoding')
+      .query(),
   ),
   tool('binary_encode', (t) =>
     t
@@ -26,7 +27,8 @@ export const encodingTools: Tool[] = [
       .string('data', 'Input payload')
       .enum('inputFormat', ['utf8', 'hex', 'json'], 'How to parse input')
       .enum('outputEncoding', ['base64', 'hex', 'url'], 'Desired output encoding')
-      .required('data', 'inputFormat', 'outputEncoding'),
+      .required('data', 'inputFormat', 'outputEncoding')
+      .query(),
   ),
   tool('binary_entropy_analysis', (t) =>
     t

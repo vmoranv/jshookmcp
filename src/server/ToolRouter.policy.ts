@@ -10,7 +10,11 @@ import type { RoutingState } from '@server/ToolRouter.probe';
 import type { RouterResponse } from '@server/ToolRouter';
 import { getToolDomain } from '@server/ToolCatalog';
 import { getAllManifests } from '@server/registry/index';
-import { isBrowserOrNetworkTask, isMaintenanceTask } from '@server/ToolRouter.intent';
+import {
+  isBrowserOrNetworkTask,
+  isMaintenanceTask,
+  isStatelessComputeTask,
+} from '@server/ToolRouter.intent';
 import { isToolActive, getToolDomainFromContext } from '@server/ToolRouter.probe';
 
 // ── Prerequisite Types ──
@@ -26,6 +30,54 @@ export interface PrerequisiteEntry {
 interface PlannedTool {
   name: string;
   description: string;
+}
+
+function buildStatelessComputeSequence(
+  task: string,
+  availableToolNames: Set<string>,
+): PlannedTool[] {
+  if (!isStatelessComputeTask(task)) {
+    return [];
+  }
+
+  const candidates: PlannedTool[] = [];
+  const pushIfAvailable = (name: string, description: string) => {
+    if (availableToolNames.has(name) && !candidates.some((item) => item.name === name)) {
+      candidates.push({ name, description });
+    }
+  };
+
+  pushIfAvailable(
+    'binary_detect_format',
+    'Detect the payload encoding or container before decoding',
+  );
+  pushIfAvailable(
+    'binary_decode',
+    'Decode the payload into deterministic offline bytes or structured output',
+  );
+  pushIfAvailable(
+    'proto_auto_detect',
+    'Infer a likely protocol layout from repeated payload samples',
+  );
+  pushIfAvailable('proto_infer_fields', 'Derive stable field boundaries and candidate semantics');
+  pushIfAvailable(
+    'proto_infer_state_machine',
+    'Infer request/response state transitions from repeated samples',
+  );
+  pushIfAvailable(
+    'crypto_test_harness',
+    'Validate extracted signing or crypto logic with deterministic test vectors',
+  );
+  pushIfAvailable(
+    'crypto_compare',
+    'Compare competing crypto implementations against the same vectors',
+  );
+  pushIfAvailable(
+    'network_get_requests',
+    'Collect request or response samples only if payload bytes still need to be extracted',
+  );
+
+  return candidates;
 }
 
 // ── Prerequisite Check Builders ──
@@ -177,6 +229,20 @@ export function buildPresetRecommendations(
   }));
 }
 
+export function buildStatelessComputeRecommendations(
+  task: string,
+  ctx: MCPServerContext,
+  availableToolNames: Set<string>,
+): ToolSearchResult[] {
+  return buildStatelessComputeSequence(task, availableToolNames).map((plannedTool, index) => ({
+    name: plannedTool.name,
+    domain: getToolDomainFromContext(plannedTool.name, ctx),
+    shortDescription: plannedTool.description,
+    score: 90 - index * 0.01,
+    isActive: isToolActive(plannedTool.name, ctx),
+  }));
+}
+
 export function buildWorkflowRouteRecommendation(
   match: RoutedWorkflowMatch,
   ctx: MCPServerContext,
@@ -225,12 +291,56 @@ export function rerankResultsForContext(
 ): ToolSearchResult[] {
   const browserOrNetworkTask = isBrowserOrNetworkTask(task, workflow);
   const maintenanceTask = isMaintenanceTask(task);
+  const statelessComputeTask = isStatelessComputeTask(task);
 
   const reranked = results.map((result) => {
     let score = result.score;
 
     if (browserOrNetworkTask && !maintenanceTask && result.domain === 'maintenance') {
       score *= 0.1;
+    }
+
+    if (statelessComputeTask) {
+      if (
+        result.domain === 'browser' ||
+        result.domain === 'network' ||
+        result.domain === 'debugger' ||
+        result.domain === 'hooks' ||
+        result.domain === 'maintenance'
+      ) {
+        score *= 0.35;
+      }
+
+      if (
+        result.domain === 'core' ||
+        result.domain === 'streaming' ||
+        result.domain === 'workflow'
+      ) {
+        score *= 0.2;
+      }
+
+      if (
+        result.domain === 'encoding' ||
+        result.domain === 'transform' ||
+        result.domain === 'protocol-analysis' ||
+        result.domain === 'sourcemap' ||
+        result.domain === 'core'
+      ) {
+        score *= 1.6;
+      }
+
+      if (
+        result.name === 'binary_detect_format' ||
+        result.name === 'binary_decode' ||
+        result.name === 'crypto_test_harness' ||
+        result.name === 'ast_transform_apply' ||
+        result.name === 'proto_auto_detect' ||
+        result.name === 'proto_infer_fields' ||
+        result.name === 'proto_infer_state_machine' ||
+        result.name === 'proto_fingerprint'
+      ) {
+        score *= 1.25;
+      }
     }
 
     if (browserOrNetworkTask) {

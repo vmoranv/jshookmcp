@@ -113,6 +113,7 @@ import {
   matchWorkflowRoute,
   isBrowserOrNetworkTask,
   isMaintenanceTask,
+  isStatelessComputeTask,
 } from '@server/ToolRouter.intent';
 
 import {
@@ -127,6 +128,7 @@ import {
   getEffectivePrerequisites,
   buildWorkflowToolSequence,
   buildPresetRecommendations,
+  buildStatelessComputeRecommendations,
   buildWorkflowRouteRecommendation,
   buildRouteMatchMetadata,
   rerankResultsForContext,
@@ -180,6 +182,7 @@ export async function routeToolRequest(
     const otherResults = searchResults.filter((result) => result.name !== workflowResult.name);
     finalResults = [workflowResult, ...otherResults];
   } else if (workflow) {
+    const statelessWorkflow = isStatelessComputeTask(task);
     const workflowSequence = buildWorkflowToolSequence(workflow, routingState, availableToolNames);
     const workflowTools = workflowSequence.map((name, index) => ({
       name,
@@ -188,13 +191,26 @@ export async function routeToolRequest(
         searchResults.find((r) => r.name === name)?.shortDescription ??
         ctx.extensionToolsByName.get(name)?.tool.description ??
         '',
-      score: workflow.priority - index * 0.01,
+      score: (statelessWorkflow ? 90 : workflow.priority) - index * 0.01,
       isActive: isToolActive(name, ctx),
     }));
 
     const workflowNames = new Set(workflowSequence);
     const otherResults = searchResults.filter((result) => !workflowNames.has(result.name));
     finalResults = [...workflowTools, ...otherResults];
+  } else if (task && !isBrowserOrNetworkTask(task, workflow) && !isMaintenanceTask(task)) {
+    const statelessRecommendations = buildStatelessComputeRecommendations(
+      task,
+      ctx,
+      availableToolNames,
+    );
+    if (statelessRecommendations.length > 0) {
+      const statelessNames = new Set(statelessRecommendations.map((tool) => tool.name));
+      const otherResults = searchResults.filter((result) => !statelessNames.has(result.name));
+      finalResults = [...statelessRecommendations, ...otherResults];
+    } else {
+      finalResults = [...searchResults];
+    }
   } else {
     finalResults = [...searchResults];
   }

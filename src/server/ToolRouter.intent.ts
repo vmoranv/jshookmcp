@@ -35,6 +35,9 @@ export const BROWSER_OR_NETWORK_TASK_PATTERN =
 export const MAINTENANCE_TASK_PATTERN =
   /(token budget|cache|artifact|extension|plugin|reload|doctor|cleanup|memory|profile|tool list|令牌预算|缓存|工件|扩展|插件|重载|环境诊断|清理|内存|配置)/i;
 
+export const STATELESS_COMPUTE_TASK_PATTERN =
+  /(stateless|deterministic|pure compute|offline|decode|encode|hex|base64|protobuf|msgpack|checksum|hash|payload|frame|packet|bytes?|bytecode|pcap|protocol|state machine|field inference|ast transform|crypto harness|无状态|确定性|纯算|离线|解码|编码|十六进制|校验和|载荷|字节|协议|报文|帧|字段推断|状态机|构包)/i;
+
 // ── Workflow Rules Cache ──
 
 let cachedWorkflowRules: WorkflowRule[] | null = null;
@@ -144,6 +147,14 @@ export function matchWorkflowRoute(
 // ── Task Classification Helpers ──
 
 export function isBrowserOrNetworkTask(task: string, workflow: WorkflowRule | null): boolean {
+  if (
+    workflow?.domain !== 'browser' &&
+    workflow?.domain !== 'network' &&
+    isStatelessComputeTask(task)
+  ) {
+    return false;
+  }
+
   return (
     workflow?.domain === 'browser' ||
     workflow?.domain === 'network' ||
@@ -153,4 +164,8 @@ export function isBrowserOrNetworkTask(task: string, workflow: WorkflowRule | nu
 
 export function isMaintenanceTask(task: string): boolean {
   return MAINTENANCE_TASK_PATTERN.test(task);
+}
+
+export function isStatelessComputeTask(task: string): boolean {
+  return STATELESS_COMPUTE_TASK_PATTERN.test(task);
 }

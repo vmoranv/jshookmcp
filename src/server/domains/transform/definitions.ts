@@ -18,7 +18,8 @@ export const transformTools: Tool[] = [
       .string('code', 'Source code to transform.')
       .array('transforms', { type: 'string', enum: transformsEnum }, 'Ordered transform list.')
       .boolean('preview', 'Whether to generate line diff output.', { default: true })
-      .required('code', 'transforms'),
+      .required('code', 'transforms')
+      .query(),
   ),
   tool('ast_transform_chain', (t) =>
     t
@@ -57,7 +58,8 @@ export const transformTools: Tool[] = [
       .string('code', 'Standalone function code.')
       .string('functionName', 'Exported function name to execute.')
       .array('testInputs', { type: 'string' }, 'Input list for test execution.')
-      .required('code', 'functionName', 'testInputs'),
+      .required('code', 'functionName', 'testInputs')
+      .query(),
   ),
   tool('crypto_compare', (t) =>
     t
@@ -66,6 +68,7 @@ export const transformTools: Tool[] = [
       .string('code2', 'Implementation B code.')
       .string('functionName', 'Function name shared by both implementations.')
       .array('testInputs', { type: 'string' }, 'Input list for comparison.')
-      .required('code1', 'code2', 'functionName', 'testInputs'),
+      .required('code1', 'code2', 'functionName', 'testInputs')
+      .query(),
   ),
 ];

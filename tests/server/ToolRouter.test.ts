@@ -33,7 +33,10 @@ const mocks = vi.hoisted(() => {
     tool('debugger_lifecycle', 'Enable the debugger'),
     tool('detect_crypto', 'Detect cryptographic code'),
     tool('ai_hook_inject', 'Inject a runtime hook'),
+    tool('binary_detect_format', 'Detect binary format'),
     tool('binary_decode', 'Decode binary data'),
+    tool('proto_auto_detect', 'Auto-detect a protocol pattern'),
+    tool('crypto_test_harness', 'Run extracted crypto code deterministically'),
     tool('js_bundle_search', 'Search a JavaScript bundle'),
     tool('sourcemap_discover', 'Discover a source map'),
     tool('sourcemap_fetch_and_parse', 'Fetch and parse a source map'),
@@ -62,7 +65,10 @@ const mocks = vi.hoisted(() => {
     ['debugger_lifecycle', 'debugger'],
     ['detect_crypto', 'core'],
     ['ai_hook_inject', 'hooks'],
+    ['binary_detect_format', 'encoding'],
     ['binary_decode', 'encoding'],
+    ['proto_auto_detect', 'protocol-analysis'],
+    ['crypto_test_harness', 'transform'],
     ['js_bundle_search', 'workflow'],
     ['sourcemap_discover', 'sourcemap'],
     ['sourcemap_fetch_and_parse', 'sourcemap'],
@@ -124,6 +130,7 @@ import {
   matchWorkflowRoute,
   isBrowserOrNetworkTask,
   isMaintenanceTask,
+  isStatelessComputeTask,
 } from '@server/ToolRouter.intent';
 // Import renderer functions directly to avoid circular dependency chain:
 // ToolRouter.ts → ToolRouter.renderer.ts → ToolRouter.probe.ts
@@ -1453,6 +1460,26 @@ describe('ToolRouter', () => {
       const reranked = rerankResultsForContext(results, 'check token budget', null, state);
       expect(reranked[0]!.score).toBe(10);
     });
+
+    it('boosts stateless compute tools and suppresses browser-stateful tools for pure compute tasks', () => {
+      const results = [
+        { name: 'page_evaluate', domain: 'browser', score: 10 },
+        { name: 'binary_decode', domain: 'encoding', score: 8 },
+        { name: 'proto_auto_detect', domain: 'protocol-analysis', score: 7 },
+        { name: 'crypto_test_harness', domain: 'transform', score: 6 },
+      ] as any;
+      const state = { hasActivePage: false, networkEnabled: false, capturedRequestCount: 0 };
+      const reranked = rerankResultsForContext(
+        results,
+        '离线分析协议 payload，做十六进制解码和字段推断',
+        null,
+        state,
+      );
+
+      expect(reranked[0]!.name).toBe('binary_decode');
+      expect(reranked[1]!.name).toBe('proto_auto_detect');
+      expect(reranked.at(-1)!.name).toBe('page_evaluate');
+    });
   });
 
   describe('ToolRouter.intent — detectWorkflowIntent', () => {
@@ -1567,6 +1594,10 @@ describe('ToolRouter', () => {
         } as any),
       ).toBe(true);
     });
+
+    it('returns false for pure compute tasks even when they mention payload-like browser keywords', () => {
+      expect(isBrowserOrNetworkTask('decode request payload bytes offline', null)).toBe(false);
+    });
   });
 
   describe('ToolRouter.intent — isMaintenanceTask', () => {
@@ -1575,7 +1606,129 @@ describe('ToolRouter', () => {
     });
   });
 
+  describe('ToolRouter.intent — isStatelessComputeTask', () => {
+    it('returns true for deterministic decode and protocol analysis tasks', () => {
+      expect(isStatelessComputeTask('decode protobuf payload and infer protocol fields')).toBe(
+        true,
+      );
+      expect(isStatelessComputeTask('纯算分析十六进制报文并推断字段')).toBe(true);
+    });
+  });
+
   describe('ToolRouter.ts — routeToolRequest uncovered branches', () => {
+    it('prioritizes stateless compute recommendations for offline protocol-analysis tasks', async () => {
+      const ctx = createCtx();
+      const searchEngine = {
+        search: vi.fn(() => [
+          {
+            name: 'page_evaluate',
+            shortDescription: 'Evaluate JavaScript',
+            score: 30,
+            domain: 'browser',
+            isActive: false,
+          },
+          {
+            name: 'binary_decode',
+            shortDescription: 'Decode binary data',
+            score: 22,
+            domain: 'encoding',
+            isActive: false,
+          },
+          {
+            name: 'proto_auto_detect',
+            shortDescription: 'Auto-detect a protocol pattern',
+            score: 21,
+            domain: 'protocol-analysis',
+            isActive: false,
+          },
+        ]),
+      } as any;
+
+      const response = await routeToolRequest(
+        { task: '离线分析十六进制 payload，解码并推断协议字段', context: { autoActivate: false } },
+        ctx,
+        searchEngine,
+      );
+
+      expect(response.recommendations[0]!.name).toBe('binary_detect_format');
+      expect(response.recommendations.map((item) => item.name)).toEqual(
+        expect.arrayContaining(['binary_decode', 'proto_auto_detect']),
+      );
+      expect(response.recommendations.map((item) => item.name)).not.toEqual(
+        expect.arrayContaining(['browser_launch', 'browser_attach']),
+      );
+      expect(response.nextActions[1]!.toolName).toBe('binary_detect_format');
+    });
+
+    it('keeps explicit protocol workflow tools ahead of generic high-score search results', async () => {
+      const ctx = createCtx();
+      const searchEngine = {
+        search: vi.fn(() => [
+          {
+            name: 'search_in_scripts',
+            shortDescription: 'Search collected scripts',
+            score: 260,
+            domain: 'core',
+            isActive: false,
+          },
+          {
+            name: 'detect_crypto',
+            shortDescription: 'Detect crypto code',
+            score: 220,
+            domain: 'core',
+            isActive: false,
+          },
+          {
+            name: 'search_in_scripts',
+            shortDescription: 'Search collected scripts',
+            score: 210,
+            domain: 'core',
+            isActive: false,
+          },
+          {
+            name: 'binary_detect_format',
+            shortDescription: 'Detect binary format',
+            score: 30,
+            domain: 'encoding',
+            isActive: false,
+          },
+          {
+            name: 'binary_decode',
+            shortDescription: 'Decode binary data',
+            score: 28,
+            domain: 'encoding',
+            isActive: false,
+          },
+          {
+            name: 'proto_auto_detect',
+            shortDescription: 'Auto-detect a protocol pattern',
+            score: 27,
+            domain: 'protocol-analysis',
+            isActive: false,
+          },
+        ]),
+      } as any;
+
+      const response = await routeToolRequest(
+        {
+          task: '离线解码 base64 payload，推断协议字段，并用 crypto harness 验证',
+          context: { autoActivate: false },
+        },
+        ctx,
+        searchEngine,
+      );
+
+      expect(response.recommendations[0]!.name).toBe('binary_detect_format');
+      expect(response.recommendations[1]!.name).toBe('binary_decode');
+      expect(response.recommendations[2]!.name).toBe('proto_auto_detect');
+      expect(response.recommendations.slice(0, 3).map((item) => item.name)).not.toContain(
+        'search_in_scripts',
+      );
+      expect(response.recommendations.slice(0, 3).map((item) => item.name)).not.toContain(
+        'detect_crypto',
+      );
+    });
+
     it('skips activationCandidates when nonMaintenanceTools is empty and uses inactiveTools', async () => {
       const ctx = createCtx({
         pageController: { getPage: vi.fn(async () => ({})) },

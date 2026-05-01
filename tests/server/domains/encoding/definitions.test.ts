@@ -15,4 +15,13 @@ describe('encoding definitions', () => {
     expect(tool?.inputSchema.properties).toHaveProperty('data');
     expect(tool?.inputSchema.properties).toHaveProperty('blockSize');
   });
+
+  it('marks binary_decode as a read-only deterministic helper', async () => {
+    const tool = getTool('binary_decode');
+    expect(tool?.annotations).toMatchObject({
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
+    });
+  });
 });
