@@ -124,9 +124,9 @@ describe('DebuggerManager core class internals', () => {
     expect(manager.isEnabled()).toBe(false);
     expect((manager as any).cdpSession).toBeNull();
     expect((manager as any).advancedFeatureSession).toBeNull();
-    expect((manager as any)._xhrManager).toBeNull();
-    expect((manager as any)._eventManager).toBeNull();
-    expect((manager as any)._blackboxManager).toBeNull();
+    expect((manager as any).xhrManager).toBeNull();
+    expect((manager as any).eventManager).toBeNull();
+    expect((manager as any).blackboxManager).toBeNull();
   });
 
   it('reinitializes advanced features when the session changed or managers are missing', async () => {
@@ -137,9 +137,9 @@ describe('DebuggerManager core class internals', () => {
     const currentSession = { send: vi.fn() };
     (manager as any).cdpSession = currentSession;
     (manager as any).advancedFeatureSession = { send: vi.fn() };
-    (manager as any)._xhrManager = null;
-    (manager as any)._eventManager = {};
-    (manager as any)._blackboxManager = {};
+    (manager as any).xhrManager = null;
+    (manager as any).eventManager = {};
+    (manager as any).blackboxManager = {};
 
     const ensureSessionSpy = vi.spyOn(manager, 'ensureSession').mockResolvedValue(undefined);
     const initAdvancedSpy = vi
@@ -152,7 +152,7 @@ describe('DebuggerManager core class internals', () => {
     expect(initAdvancedSpy).toHaveBeenCalledTimes(1);
 
     (manager as any).advancedFeatureSession = currentSession;
-    (manager as any)._xhrManager = {};
+    (manager as any).xhrManager = {};
     initAdvancedSpy.mockClear();
 
     await manager.ensureAdvancedFeatures();

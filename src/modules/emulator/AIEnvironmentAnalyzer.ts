@@ -28,7 +28,7 @@ export class AIEnvironmentAnalyzer {
   }
 
   async analyze(
-    _code: string,
+    _exitCodeValue: string,
     _detected: DetectedEnvironmentVariables,
     _missing: MissingAPI[],
     _browserType: BrowserType = 'chrome',
@@ -46,7 +46,7 @@ export class AIEnvironmentAnalyzer {
     };
   }
 
-  async analyzeAntiCrawl(_code: string): Promise<AIAnalysisResult['antiCrawlFeatures']> {
+  async analyzeAntiCrawl(_exitCodeValue: string): Promise<AIAnalysisResult['antiCrawlFeatures']> {
     return [];
   }
 

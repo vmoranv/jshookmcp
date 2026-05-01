@@ -94,8 +94,8 @@ function stripParamDescriptions(schema: JsonSchemaObj): JsonSchemaObj {
 
 export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): RegisteredTool {
   const builtTool = toolDef as BuiltTool;
-  if (builtTool.__autocomplete) {
-    ctx.toolAutocompleteHandlers.set(toolDef.name, builtTool.__autocomplete);
+  if (builtTool.autocompleteHandlers) {
+    ctx.toolAutocompleteHandlers.set(toolDef.name, builtTool.autocompleteHandlers);
   }
 
   const rawSchema =
@@ -125,7 +125,7 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
     );
 
     if (builtTool.execution) {
-      const sdkInternalMap = (ctx.server as any)._registeredTools;
+      const sdkInternalMap = (ctx.server as any).registeredTools;
       if (sdkInternalMap && sdkInternalMap[toolDef.name]) {
         sdkInternalMap[toolDef.name].execution = builtTool.execution;
       }
@@ -149,7 +149,7 @@ export function registerSingleTool(ctx: MCPServerContext, toolDef: Tool): Regist
   );
 
   if (builtTool.execution) {
-    const sdkInternalMap = (ctx.server as any)._registeredTools;
+    const sdkInternalMap = (ctx.server as any).registeredTools;
     if (sdkInternalMap && sdkInternalMap[toolDef.name]) {
       sdkInternalMap[toolDef.name].execution = builtTool.execution;
     }

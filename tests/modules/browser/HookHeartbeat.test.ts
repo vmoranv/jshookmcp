@@ -23,10 +23,10 @@ function createMockPage() {
     evaluate: vi.fn().mockResolvedValue(undefined),
     isClosed: vi.fn().mockReturnValue(false),
     mainFrame: vi.fn().mockReturnValue(mainFrame),
-    _emit(event: string, ...args: any[]) {
+    emitFrameEvent(event: string, ...args: any[]) {
       for (const handler of handlers.get(event) ?? []) handler(...args);
     },
-    _handlers: handlers,
+    handlers,
   };
 }
 
@@ -62,7 +62,7 @@ describe('HookHeartbeat', () => {
     heartbeat.start();
 
     const mainFrame = { url: () => 'https://example.com/new-page', parentFrame: () => null };
-    page._emit('framenavigated', mainFrame);
+    page.emitFrameEvent('framenavigated', mainFrame);
 
     // Run debounce timer
     await vi.advanceTimersByTimeAsync(10);
@@ -77,7 +77,7 @@ describe('HookHeartbeat', () => {
     heartbeat.start();
 
     const subFrame = { url: () => 'https://ads.example.com', parentFrame: () => ({}) };
-    page._emit('framenavigated', subFrame);
+    page.emitFrameEvent('framenavigated', subFrame);
 
     await vi.advanceTimersByTimeAsync(10);
 
@@ -91,9 +91,9 @@ describe('HookHeartbeat', () => {
     heartbeat.start();
 
     const frame = { url: () => 'https://example.com/a', parentFrame: () => null };
-    page._emit('framenavigated', frame);
-    page._emit('framenavigated', frame);
-    page._emit('framenavigated', frame);
+    page.emitFrameEvent('framenavigated', frame);
+    page.emitFrameEvent('framenavigated', frame);
+    page.emitFrameEvent('framenavigated', frame);
 
     await vi.advanceTimersByTimeAsync(50);
     expect(page.evaluate).not.toHaveBeenCalled();
@@ -122,7 +122,7 @@ describe('HookHeartbeat', () => {
     heartbeat.start();
 
     const frame = { url: () => 'about:blank', parentFrame: () => null };
-    page._emit('framenavigated', frame);
+    page.emitFrameEvent('framenavigated', frame);
     await vi.advanceTimersByTimeAsync(10);
 
     expect(page.evaluate).not.toHaveBeenCalled();
@@ -140,7 +140,7 @@ describe('HookHeartbeat', () => {
     heartbeat.start();
 
     const frame = { url: () => 'https://example.com', parentFrame: () => null };
-    page._emit('framenavigated', frame);
+    page.emitFrameEvent('framenavigated', frame);
     await vi.advanceTimersByTimeAsync(10);
 
     expect(page.evaluate).toHaveBeenCalledTimes(2);

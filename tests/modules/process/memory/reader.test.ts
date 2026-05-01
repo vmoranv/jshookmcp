@@ -45,13 +45,13 @@ vi.mock('@src/utils/logger', () => ({
   },
 }));
 
-import { readMemory, _resetLinuxProviderCache } from '@modules/process/memory/reader';
+import { readMemory, resetLinuxProviderCache } from '@modules/process/memory/reader';
 import { MEMORY_MAX_READ_BYTES } from '@src/constants';
 
 describe('memory/reader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    _resetLinuxProviderCache();
+    resetLinuxProviderCache();
     state.isKoffiAvailable.mockReturnValue(false);
   });
 

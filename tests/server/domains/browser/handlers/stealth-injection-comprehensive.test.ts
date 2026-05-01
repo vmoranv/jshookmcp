@@ -82,7 +82,7 @@ import {
   StealthInjectionHandlers,
   getJitterOptions,
   createJitteredSession,
-  _resetFingerprintCacheForTesting,
+  resetFingerprintCacheForTesting,
 } from '@server/domains/browser/handlers/stealth-injection';
 
 describe('StealthInjectionHandlers — comprehensive coverage', () => {
@@ -216,7 +216,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
     // Reset the module-level FingerprintManager cache before each test
     // to prevent cross-test contamination from the lazy-init singleton.
     beforeEach(() => {
-      _resetFingerprintCacheForTesting();
+      resetFingerprintCacheForTesting();
     });
 
     it('returns error when fingerprint packages are not installed', async () => {
@@ -430,7 +430,7 @@ describe('StealthInjectionHandlers — comprehensive coverage', () => {
 
   describe('handleStealthInject with fingerprint integration', () => {
     beforeEach(() => {
-      _resetFingerprintCacheForTesting();
+      resetFingerprintCacheForTesting();
     });
 
     it('applies fingerprint when FingerprintManager is available and has profile', async () => {

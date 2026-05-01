@@ -288,9 +288,10 @@ export class MCPTestClient {
       /* best-effort teardown */
     }
     try {
-      const proc = this.transport as unknown as { _process?: { pid?: number } } | null;
-      if (proc?._process?.pid) {
-        process.kill(proc._process.pid, 'SIGTERM');
+      const transportRecord = this.transport as unknown as Record<string, unknown> | null;
+      const childProcessRecord = transportRecord?.['_process'] as { pid?: number } | undefined;
+      if (childProcessRecord?.pid) {
+        process.kill(childProcessRecord.pid, 'SIGTERM');
         // Give the server time to gracefully shut down (triggering Puppeteer browser.close)
         await new Promise((resolve) => setTimeout(resolve, 300));
       }

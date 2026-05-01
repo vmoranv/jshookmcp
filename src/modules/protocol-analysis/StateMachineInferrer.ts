@@ -41,7 +41,7 @@ function printableRatioOf(value: string): number {
 }
 
 interface InternalProtocolMessage extends ProtocolMessage {
-  _rawBuffer?: Buffer;
+  rawBuffer?: Buffer;
 }
 
 export class StateMachineInferrer {
@@ -174,7 +174,7 @@ export class StateMachineInferrer {
         message.payload.length > 0
           ? message.payload.toString('utf8')
           : message.payload.toString('hex'),
-      _rawBuffer: message.payload,
+      rawBuffer: message.payload,
     }));
 
     return this.infer(normalizedMessages);
@@ -270,8 +270,8 @@ export class StateMachineInferrer {
 
   private buildSignature(message: ProtocolMessage): string {
     const fieldKeys = Object.keys(message.fields).toSorted().join(',');
-    const raw = (message as InternalProtocolMessage)._rawBuffer
-      ? (message as InternalProtocolMessage)._rawBuffer!.toString('hex')
+    const raw = (message as InternalProtocolMessage).rawBuffer
+      ? (message as InternalProtocolMessage).rawBuffer!.toString('hex')
       : message.raw;
     const rawPrefix = normalizeText(raw).slice(0, 24);
     return `${message.direction}|${fieldKeys}|${rawPrefix}`;
@@ -287,7 +287,7 @@ export class StateMachineInferrer {
       return `${directionName}_empty`;
     }
 
-    const buf = message._rawBuffer;
+    const buf = message.rawBuffer;
     const hexContent = Buffer.isBuffer(buf) ? buf.toString('hex') : raw;
 
     // Detect TLS handshake (0x16 = handshake, 0x15 = alert, 0x17 = application_data)

@@ -2,13 +2,13 @@
  * HeapAnalyzer coverage tests — exercise uncovered branches.
  *
  * Gaps in the main test suite (HeapAnalyzer.test.ts):
- *  - _computeStats: totalSize=0 with heaps (L245-248 fallback)
- *  - _computeStats: totalBlocks=0 with heaps (L252)
- *  - _computeStats: averageBlockSize = 0 when blocks=[]
- *  - _computeStats: fragmentationRatio = 0 when totalSize=0
+ *  - computeStats: totalSize=0 with heaps (L245-248 fallback)
+ *  - computeStats: totalBlocks=0 with heaps (L252)
+ *  - computeStats: averageBlockSize = 0 when blocks=[]
+ *  - computeStats: fragmentationRatio = 0 when totalSize=0
  *  - classifyBlock: boundary cases (exactly at range limits)
- *  - _detectSuspiciousSizes: zero-size block edge
- *  - _detectPossibleUAF: non-zero data in free block
+ *  - detectSuspiciousSizes: zero-size block edge
+ *  - detectPossibleUaf: non-zero data in free block
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -49,9 +49,9 @@ vi.mock('koffi', () => ({
 
 import { HeapAnalyzer } from '@native/HeapAnalyzer';
 
-// ── _computeStats: boundary branches ─────────────────────────────────────────
+// ── computeStats: boundary branches ─────────────────────────────────────────
 
-describe('HeapAnalyzer coverage: _computeStats()', () => {
+describe('HeapAnalyzer coverage: computeStats()', () => {
   let analyzer: HeapAnalyzer;
 
   beforeEach(() => {
@@ -60,7 +60,7 @@ describe('HeapAnalyzer coverage: _computeStats()', () => {
   });
 
   it('uses heap-level totalSize when blocks array is empty', () => {
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [
         {
           heapId: '0x100',
@@ -83,7 +83,7 @@ describe('HeapAnalyzer coverage: _computeStats()', () => {
       { address: '0x1000', size: 64, flags: 0x01, heapId: '0x100', isFree: false },
       { address: '0x2000', size: 32, flags: 0x02, heapId: '0x100', isFree: true },
     ];
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [
         {
           heapId: '0x100',
@@ -105,7 +105,7 @@ describe('HeapAnalyzer coverage: _computeStats()', () => {
       { address: '0x1000', size: 50, flags: 0x01, heapId: '0x100', isFree: false },
       { address: '0x2000', size: 50, flags: 0x02, heapId: '0x100', isFree: true },
     ];
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [
         {
           heapId: '0x100',
@@ -122,12 +122,12 @@ describe('HeapAnalyzer coverage: _computeStats()', () => {
   });
 
   it('fragmentationRatio is 0 when totalSize is 0', () => {
-    const stats = (analyzer as any)._computeStats([], []);
+    const stats = (analyzer as any).computeStats([], []);
     expect(stats.fragmentationRatio).toBe(0);
   });
 
   it('averageBlockSize = 0 when blocks array is empty', () => {
-    const stats = (analyzer as any)._computeStats([], []);
+    const stats = (analyzer as any).computeStats([], []);
     expect(stats.averageBlockSize).toBe(0);
   });
 
@@ -142,7 +142,7 @@ describe('HeapAnalyzer coverage: _computeStats()', () => {
       // 1-4KB range
       { address: '0x4000', size: 2048, flags: 0x01, heapId: '0x100', isFree: false },
     ];
-    const stats = (analyzer as any)._computeStats([], blocks as any);
+    const stats = (analyzer as any).computeStats([], blocks as any);
     expect(stats.sizeDistribution.length).toBe(8);
     expect(stats.sizeDistribution[0]!.count).toBe(1); // 32B in 0-64B
     expect(stats.sizeDistribution[1]!.count).toBe(1); // 128B in 64-256B
@@ -152,7 +152,7 @@ describe('HeapAnalyzer coverage: _computeStats()', () => {
 
   it('smallestBlock is 0 when all blocks are free', () => {
     const blocks = [{ address: '0x1000', size: 64, flags: 0x02, heapId: '0x100', isFree: true }];
-    const stats = (analyzer as any)._computeStats([], blocks as any);
+    const stats = (analyzer as any).computeStats([], blocks as any);
     expect(stats.smallestBlock).toBe(0); // no non-free blocks
     expect(stats.largestBlock).toBe(64);
   });
@@ -162,7 +162,7 @@ describe('HeapAnalyzer coverage: _computeStats()', () => {
       { address: '0x1000', size: 10, flags: 0x01, heapId: '0x100', isFree: false },
       { address: '0x2000', size: 1024, flags: 0x01, heapId: '0x100', isFree: false },
     ];
-    const stats = (analyzer as any)._computeStats([], blocks as any);
+    const stats = (analyzer as any).computeStats([], blocks as any);
     expect(stats.largestBlock).toBe(1024);
   });
 });
@@ -187,11 +187,11 @@ describe('HeapAnalyzer coverage: classifyBlock() boundary cases', () => {
   // ['>1MB', 1048576, Number.MAX_SAFE_INTEGER]
 
   // classifyBlock is a module-level function (not exported), so we test it
-  // indirectly through _computeStats which uses it to populate sizeDistribution buckets.
+  // indirectly through computeStats which uses it to populate sizeDistribution buckets.
 
   it('classifies size exactly at lower boundary (64) → bucket 1 (64-256B)', () => {
     // 64 >= 64 && 64 < 256 → index 1
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [],
       [{ address: '0x1000', size: 64, flags: 0x01, heapId: '0x100', isFree: false }],
     );
@@ -200,7 +200,7 @@ describe('HeapAnalyzer coverage: classifyBlock() boundary cases', () => {
 
   it('classifies size exactly at upper boundary (256) → bucket 2 (256B-1KB)', () => {
     // 256 >= 256 && 256 < 1024 → index 2
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [],
       [{ address: '0x1000', size: 256, flags: 0x01, heapId: '0x100', isFree: false }],
     );
@@ -208,7 +208,7 @@ describe('HeapAnalyzer coverage: classifyBlock() boundary cases', () => {
   });
 
   it('classifies size exactly at 1KB boundary (1024) → bucket 3 (1-4KB)', () => {
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [],
       [{ address: '0x1000', size: 1024, flags: 0x01, heapId: '0x100', isFree: false }],
     );
@@ -216,7 +216,7 @@ describe('HeapAnalyzer coverage: classifyBlock() boundary cases', () => {
   });
 
   it('classifies size exactly at 1MB boundary (1048576) → bucket 7 (>1MB)', () => {
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [],
       [{ address: '0x1000', size: 1048576, flags: 0x01, heapId: '0x100', isFree: false }],
     );
@@ -224,7 +224,7 @@ describe('HeapAnalyzer coverage: classifyBlock() boundary cases', () => {
   });
 
   it('classifies 0-size block → bucket 0 (0-64B)', () => {
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [],
       [{ address: '0x1000', size: 0, flags: 0x01, heapId: '0x100', isFree: false }],
     );
@@ -232,7 +232,7 @@ describe('HeapAnalyzer coverage: classifyBlock() boundary cases', () => {
   });
 
   it('classifies very large block → bucket 7 (>1MB)', () => {
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [],
       [{ address: '0x1000', size: 10 * 1024 * 1024, flags: 0x01, heapId: '0x100', isFree: false }],
     );
@@ -240,9 +240,9 @@ describe('HeapAnalyzer coverage: classifyBlock() boundary cases', () => {
   });
 });
 
-// ── _detectSuspiciousSizes: zero-size edge ─────────────────────────────────────
+// ── detectSuspiciousSizes: zero-size edge ─────────────────────────────────────
 
-describe('HeapAnalyzer coverage: _detectSuspiciousSizes()', () => {
+describe('HeapAnalyzer coverage: detectSuspiciousSizes()', () => {
   let analyzer: HeapAnalyzer;
 
   beforeEach(() => {
@@ -252,7 +252,7 @@ describe('HeapAnalyzer coverage: _detectSuspiciousSizes()', () => {
   it('detects zero-size block as suspicious', () => {
     const anomalies: any[] = [];
     const blocks = [{ address: '0x1000', size: 0, flags: 0x01, heapId: '0x100', isFree: false }];
-    (analyzer as any)._detectSuspiciousSizes(blocks as any, '0x100', anomalies);
+    (analyzer as any).detectSuspiciousSizes(blocks as any, '0x100', anomalies);
     expect(anomalies.some((a) => a.type === 'suspicious_size' && a.details.includes('zero'))).toBe(
       true,
     );
@@ -263,7 +263,7 @@ describe('HeapAnalyzer coverage: _detectSuspiciousSizes()', () => {
     const blocks = [
       { address: '0x1000', size: 200 * 1024 * 1024, flags: 0x01, heapId: '0x100', isFree: false },
     ];
-    (analyzer as any)._detectSuspiciousSizes(blocks as any, '0x100', anomalies);
+    (analyzer as any).detectSuspiciousSizes(blocks as any, '0x100', anomalies);
     expect(anomalies.some((a) => a.type === 'suspicious_size' && a.details.includes('MB'))).toBe(
       true,
     );
@@ -275,19 +275,19 @@ describe('HeapAnalyzer coverage: _detectSuspiciousSizes()', () => {
       { address: '0x1000', size: 64, flags: 0x01, heapId: '0x100', isFree: false },
       { address: '0x2000', size: 256, flags: 0x01, heapId: '0x100', isFree: false },
     ];
-    (analyzer as any)._detectSuspiciousSizes(blocks as any, '0x100', anomalies);
+    (analyzer as any).detectSuspiciousSizes(blocks as any, '0x100', anomalies);
     expect(anomalies.filter((a) => a.type === 'suspicious_size')).toHaveLength(0);
   });
 });
 
-// ── _detectPossibleUAF: non-zero data in free block ───────────────────────────
+// ── detectPossibleUaf: non-zero data in free block ───────────────────────────
 
-describe('HeapAnalyzer coverage: _detectPossibleUAF()', () => {
+describe('HeapAnalyzer coverage: detectPossibleUaf()', () => {
   it('detects non-zero data in free block as potential UAF', async () => {
     const analyzer = new HeapAnalyzer();
     // ReadProcessMemory returns non-zero data for free block → UAF heuristic triggered
     const anomalies: any[] = [];
-    await (analyzer as any)._detectPossibleUAF(
+    await (analyzer as any).detectPossibleUaf(
       1234,
       [{ address: '0x1000', size: 64, flags: 0x02, heapId: '0x100', isFree: true }],
       '0x100',
@@ -299,7 +299,7 @@ describe('HeapAnalyzer coverage: _detectPossibleUAF()', () => {
   it('skips non-free blocks in UAF check', async () => {
     const analyzer = new HeapAnalyzer();
     const anomalies: any[] = [];
-    await (analyzer as any)._detectPossibleUAF(
+    await (analyzer as any).detectPossibleUaf(
       1234,
       [{ address: '0x1000', size: 64, flags: 0x01, heapId: '0x100', isFree: false }],
       '0x100',
@@ -310,9 +310,9 @@ describe('HeapAnalyzer coverage: _detectPossibleUAF()', () => {
   });
 });
 
-// ── _detectSpray: size tolerance boundary ─────────────────────────────────────
+// ── detectSpray: size tolerance boundary ─────────────────────────────────────
 
-describe('HeapAnalyzer coverage: _detectSpray()', () => {
+describe('HeapAnalyzer coverage: detectSpray()', () => {
   let analyzer: HeapAnalyzer;
 
   beforeEach(() => {
@@ -328,7 +328,7 @@ describe('HeapAnalyzer coverage: _detectSpray()', () => {
       { address: '0x3000', size: 72, flags: 0x01, heapId: '0x100', isFree: false },
       { address: '0x4000', size: 63, flags: 0x01, heapId: '0x100', isFree: false },
     ];
-    (analyzer as any)._detectSpray(blocks as any, '0x100', anomalies);
+    (analyzer as any).detectSpray(blocks as any, '0x100', anomalies);
     expect(anomalies.some((a) => a.type === 'heap_spray_pattern')).toBe(true);
   });
 
@@ -339,7 +339,7 @@ describe('HeapAnalyzer coverage: _detectSpray()', () => {
       { address: '0x2000', size: 64, flags: 0x02, heapId: '0x100', isFree: true },
       { address: '0x3000', size: 64, flags: 0x02, heapId: '0x100', isFree: true },
     ];
-    (analyzer as any)._detectSpray(blocks as any, '0x100', anomalies);
+    (analyzer as any).detectSpray(blocks as any, '0x100', anomalies);
     expect(anomalies.some((a) => a.type === 'heap_spray_pattern')).toBe(false);
   });
 });

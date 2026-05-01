@@ -275,14 +275,14 @@ export class MojoMonitor {
     messages: MojoMessage[];
     totalAvailable: number;
     filtered: boolean;
-    _simulation: boolean;
+    simulation: boolean;
   }> {
     if (!this.active) {
       return {
         messages: [],
         totalAvailable: 0,
         filtered: false,
-        _simulation: this.simulationMode,
+        simulation: this.simulationMode,
       };
     }
 
@@ -298,7 +298,7 @@ export class MojoMonitor {
       messages: allMessages.slice(0, limit),
       totalAvailable: allMessages.length,
       filtered: !!options?.interfaceName,
-      _simulation: this.simulationMode,
+      simulation: this.simulationMode,
     };
   }
 

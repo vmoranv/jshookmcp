@@ -65,12 +65,12 @@ declare module 'camoufox-js' {
   export function Camoufox(options?: LaunchOptions): Promise<CamoufoxBrowser>;
   export function launchServer(options?: CamoufoxServerOptions): Promise<CamoufoxServer>;
 
-  const _default: {
+  const defaultExport: {
     Camoufox: typeof Camoufox;
     launchServer: typeof launchServer;
   };
 
-  export default _default;
+  export default defaultExport;
 }
 
 declare module 'camoufox-js/fingerprints' {

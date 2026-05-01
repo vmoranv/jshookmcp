@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { RuntimeSnapshotScheduler } from '@server/persistence/RuntimeSnapshotScheduler';
 import { StateBoardStore } from '@server/domains/shared-state-board/handlers/shared';
 import { SharedStateBoardHandlers } from '@server/domains/shared-state-board/index';
-import { ReverseEvidenceGraph, _resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
+import { ReverseEvidenceGraph, resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -82,7 +82,7 @@ describe('RuntimeSnapshotScheduler', () => {
 
     // Write a snapshot manually
     const graph = new ReverseEvidenceGraph();
-    _resetIdCounter();
+    resetIdCounter();
     graph.addNode('request', 'https://example.com', { url: 'https://example.com' });
     const snapshot = graph.exportSnapshot();
     await mkdir(resolve(tmpDir, 'evidence-graph'), { recursive: true });
@@ -90,7 +90,7 @@ describe('RuntimeSnapshotScheduler', () => {
 
     // Start a new scheduler with a fresh graph
     const freshGraph = new ReverseEvidenceGraph();
-    _resetIdCounter();
+    resetIdCounter();
     expect(freshGraph.nodeCount).toBe(0);
 
     const scheduler = new RuntimeSnapshotScheduler();
@@ -106,7 +106,7 @@ describe('RuntimeSnapshotScheduler', () => {
     const filePath = resolve(tmpDir, 'late-register', 'current.json');
 
     const graph = new ReverseEvidenceGraph();
-    _resetIdCounter();
+    resetIdCounter();
     graph.addNode('request', 'https://late.example', { url: 'https://late.example' });
     await mkdir(resolve(tmpDir, 'late-register'), { recursive: true });
     await writeFile(filePath, JSON.stringify(graph.exportSnapshot()), 'utf-8');
@@ -238,7 +238,7 @@ describe('StateBoardStore snapshot', () => {
 
 describe('ReverseEvidenceGraph snapshot', () => {
   beforeEach(() => {
-    _resetIdCounter();
+    resetIdCounter();
   });
 
   it('export and restore roundtrip', () => {
@@ -253,7 +253,7 @@ describe('ReverseEvidenceGraph snapshot', () => {
     expect(snapshot.graph.edges).toHaveLength(1);
 
     const restored = new ReverseEvidenceGraph();
-    _resetIdCounter();
+    resetIdCounter();
     restored.restoreSnapshot(snapshot);
     expect(restored.nodeCount).toBe(2);
     expect(restored.edgeCount).toBe(1);

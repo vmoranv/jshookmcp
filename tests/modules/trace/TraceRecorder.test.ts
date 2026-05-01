@@ -32,11 +32,11 @@ type TraceRecorderInstance = InstanceType<typeof TraceRecorder>;
 type CDPSessionLike = import('@modules/trace/TraceRecorder').CDPSessionLike;
 
 function createMockCDPSession(): CDPSessionLike & {
-  _listeners: Map<string, Set<(params: any) => void>>;
+  listeners: Map<string, Set<(params: any) => void>>;
 } {
   const listeners = new Map<string, Set<(params: any) => void>>();
   return {
-    _listeners: listeners,
+    listeners,
     on(event: string, handler: (params: any) => void) {
       if (!listeners.has(event)) listeners.set(event, new Set());
       listeners.get(event)!.add(handler);
@@ -113,14 +113,13 @@ describe('TraceRecorder', () => {
     expect(mockCdp.send).toHaveBeenCalledWith('Debugger.enable');
     expect(mockCdp.send).toHaveBeenCalledWith('Runtime.enable');
     expect(mockCdp.send).toHaveBeenCalledWith('Debugger.disable');
-    expect(mockCdp._listeners.size).toBe(0);
+    expect(mockCdp.listeners.size).toBe(0);
     expect(recorder.getState()).toBe('idle');
     expect(recorder.getDB()).toBeNull();
   });
 
   it('records EventBus events', async () => {
-    // @ts-expect-error
-    const _session = await recorder.start(eventBus, null);
+    await recorder.start(eventBus, null);
 
     // Emit a test event
     eventBus.emit('tool:called', { name: 'test_tool', args: {} } as never);
@@ -242,17 +241,17 @@ describe('TraceRecorder', () => {
     expect(mockCdp.send).toHaveBeenCalledWith('Page.enable');
 
     // Verify CDP event listeners were registered
-    expect(mockCdp._listeners.has('Debugger.paused')).toBe(true);
-    expect(mockCdp._listeners.has('Network.requestWillBeSent')).toBe(true);
+    expect(mockCdp.listeners.has('Debugger.paused')).toBe(true);
+    expect(mockCdp.listeners.has('Network.requestWillBeSent')).toBe(true);
 
     // Simulate emitting a network request event
-    const networkHandler = Array.from(mockCdp._listeners.get('Network.requestWillBeSent') || [])[0];
+    const networkHandler = Array.from(mockCdp.listeners.get('Network.requestWillBeSent') || [])[0];
     if (networkHandler) {
       networkHandler({ requestId: '12345', timestamp: 1000.5 });
     }
 
     // Simulate emitting a Debugger.paused event with script info
-    const pausedHandler = Array.from(mockCdp._listeners.get('Debugger.paused') || [])[0];
+    const pausedHandler = Array.from(mockCdp.listeners.get('Debugger.paused') || [])[0];
     if (pausedHandler) {
       pausedHandler({
         callFrames: [
@@ -276,7 +275,7 @@ describe('TraceRecorder', () => {
     expect(mockCdp.send).toHaveBeenCalledWith('Page.disable');
 
     // Verify listeners were cleaned up
-    for (const [, handlers] of mockCdp._listeners) {
+    for (const [, handlers] of mockCdp.listeners) {
       expect(handlers.size).toBe(0);
     }
 
@@ -336,10 +335,10 @@ describe('TraceRecorder', () => {
 
     await recorder.start(eventBus, mockCdp);
 
-    const requestHandler = Array.from(mockCdp._listeners.get('Network.requestWillBeSent') || [])[0];
-    const responseHandler = Array.from(mockCdp._listeners.get('Network.responseReceived') || [])[0];
-    const dataHandler = Array.from(mockCdp._listeners.get('Network.dataReceived') || [])[0];
-    const finishedHandler = Array.from(mockCdp._listeners.get('Network.loadingFinished') || [])[0];
+    const requestHandler = Array.from(mockCdp.listeners.get('Network.requestWillBeSent') || [])[0];
+    const responseHandler = Array.from(mockCdp.listeners.get('Network.responseReceived') || [])[0];
+    const dataHandler = Array.from(mockCdp.listeners.get('Network.dataReceived') || [])[0];
+    const finishedHandler = Array.from(mockCdp.listeners.get('Network.loadingFinished') || [])[0];
 
     requestHandler?.({
       requestId: 'req-flow',
@@ -465,7 +464,7 @@ describe('TraceRecorder', () => {
       if (method === 'HeapProfiler.takeHeapSnapshot') {
         // Emit chunks to simulate CDP
         const handler = Array.from(
-          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+          mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
         )[0];
         if (handler) {
           handler({ chunk: snapshotContent.substring(0, 50) });
@@ -505,7 +504,7 @@ describe('TraceRecorder', () => {
     mockCdp.send = vi.fn().mockImplementation(async (method) => {
       if (method === 'HeapProfiler.takeHeapSnapshot') {
         const handler = Array.from(
-          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+          mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
         )[0];
         handler?.({ chunk: snapshotContent });
       }
@@ -525,7 +524,7 @@ describe('TraceRecorder', () => {
     mockCdp.send = vi.fn().mockImplementation(async (method) => {
       if (method === 'HeapProfiler.takeHeapSnapshot') {
         const handler = Array.from(
-          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+          mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
         )[0];
         if (handler) {
           // Send malformed JSON
@@ -552,7 +551,7 @@ describe('TraceRecorder', () => {
     mockCdp.send = vi.fn().mockImplementation(async (method) => {
       if (method === 'HeapProfiler.takeHeapSnapshot') {
         const handler = Array.from(
-          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+          mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
         )[0];
         if (handler) {
           // Send valid JSON missing the 'snapshot' key
@@ -591,7 +590,7 @@ describe('TraceRecorder', () => {
     });
 
     await expect(recorder.captureHeapSnapshot(mockCdp)).rejects.toThrow(/boom/);
-    expect(mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk')?.size ?? 0).toBe(0);
+    expect(mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk')?.size ?? 0).toBe(0);
   });
 
   // ── Error-path coverage ────────────────────────────────────────────────────
@@ -626,7 +625,7 @@ describe('TraceRecorder', () => {
       throw new Error('simulated CDP handler error');
     };
 
-    const handler = Array.from(mockCdp._listeners.get('Debugger.paused') || [])[0];
+    const handler = Array.from(mockCdp.listeners.get('Debugger.paused') || [])[0];
     expect(handler).toBeDefined();
 
     // Should not throw
@@ -642,7 +641,7 @@ describe('TraceRecorder', () => {
     const mockCdp = createMockCDPSession();
     await recorder.start(eventBus, mockCdp);
 
-    const networkHandler = Array.from(mockCdp._listeners.get('Network.requestWillBeSent') || [])[0];
+    const networkHandler = Array.from(mockCdp.listeners.get('Network.requestWillBeSent') || [])[0];
     expect(networkHandler).toBeDefined();
 
     // Pass null — CDP handler checks `typeof params === 'object' && params !== null`
@@ -654,7 +653,7 @@ describe('TraceRecorder', () => {
     const mockCdp = createMockCDPSession();
     await recorder.start(eventBus, mockCdp);
 
-    const networkHandler = Array.from(mockCdp._listeners.get('Network.requestWillBeSent') || [])[0];
+    const networkHandler = Array.from(mockCdp.listeners.get('Network.requestWillBeSent') || [])[0];
     expect(() => networkHandler!(42 as any)).not.toThrow();
     await recorder.stop();
   });
@@ -674,7 +673,7 @@ describe('TraceRecorder', () => {
     await recorder.start(eventBus, mockCdp);
 
     // Emit Runtime.exceptionThrown with scriptId/lineNumber directly
-    const handler = Array.from(mockCdp._listeners.get('Runtime.exceptionThrown') || [])[0];
+    const handler = Array.from(mockCdp.listeners.get('Runtime.exceptionThrown') || [])[0];
     expect(handler).toBeDefined();
 
     handler!({
@@ -705,7 +704,7 @@ describe('TraceRecorder', () => {
     mockCdp.send = vi.fn().mockImplementation(async (method) => {
       if (method === 'HeapProfiler.takeHeapSnapshot') {
         const handler = Array.from(
-          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+          mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
         )[0];
         if (handler) {
           // snapshot with node_fields but nameIndex would be -1
@@ -743,7 +742,7 @@ describe('TraceRecorder', () => {
     mockCdp.send = vi.fn().mockImplementation(async (method) => {
       if (method === 'HeapProfiler.takeHeapSnapshot') {
         const handler = Array.from(
-          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+          mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
         )[0];
         if (handler) {
           handler({ chunk: '' }); // empty string → JSON.parse returns {}
@@ -769,7 +768,7 @@ describe('TraceRecorder', () => {
     mockCdp.send = vi.fn().mockImplementation(async (method) => {
       if (method === 'HeapProfiler.takeHeapSnapshot') {
         const handler = Array.from(
-          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+          mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
         )[0];
         if (handler) {
           // Valid JSON but missing the 'snapshot' top-level key
@@ -795,7 +794,7 @@ describe('TraceRecorder', () => {
     mockCdp.send = vi.fn().mockImplementation(async (method) => {
       if (method === 'HeapProfiler.takeHeapSnapshot') {
         const handler = Array.from(
-          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+          mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
         )[0];
         if (handler) {
           // snapshot info present but nodes/strings absent
@@ -833,7 +832,7 @@ describe('TraceRecorder', () => {
     mockCdp.send = vi.fn().mockImplementation(async (method) => {
       if (method === 'HeapProfiler.takeHeapSnapshot') {
         const handler = Array.from(
-          mockCdp._listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
+          mockCdp.listeners.get('HeapProfiler.addHeapSnapshotChunk') || [],
         )[0];
         if (handler) {
           handler({
@@ -862,7 +861,7 @@ describe('TraceRecorder', () => {
     const mockCdp = createMockCDPSession();
     await recorder.start(eventBus, mockCdp);
 
-    const handler = Array.from(mockCdp._listeners.get('Debugger.paused') || [])[0];
+    const handler = Array.from(mockCdp.listeners.get('Debugger.paused') || [])[0];
     expect(handler).toBeDefined();
 
     // callFrames present but location is undefined
@@ -887,7 +886,7 @@ describe('TraceRecorder', () => {
     const mockCdp = createMockCDPSession();
     await recorder.start(eventBus, mockCdp);
 
-    const handler = Array.from(mockCdp._listeners.get('Debugger.paused') || [])[0];
+    const handler = Array.from(mockCdp.listeners.get('Debugger.paused') || [])[0];
     expect(handler).toBeDefined();
 
     // Empty callFrames array

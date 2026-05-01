@@ -316,15 +316,15 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
     const isSelf = handle.pid === process.pid;
 
     if (isSelf) {
-      return this._enumerateModulesSelf();
+      return this.enumerateModulesSelf();
     }
-    return this._enumerateModulesRemote(h.task);
+    return this.enumerateModulesRemote(h.task);
   }
 
   /**
    * Enumerate modules for the current process using dyld APIs (fast path).
    */
-  private _enumerateModulesSelf(): ModuleInfo[] {
+  private enumerateModulesSelf(): ModuleInfo[] {
     const count = dyldImageCount();
     const modules: ModuleInfo[] = [];
 
@@ -353,7 +353,7 @@ export class DarwinMemoryProvider implements PlatformMemoryAPI {
    * This reads the target process's dyld info structures from memory.
    * Falls back to an empty list if the info struct cannot be located.
    */
-  private _enumerateModulesRemote(task: number): ModuleInfo[] {
+  private enumerateModulesRemote(task: number): ModuleInfo[] {
     // Remote module enumeration requires reading the dyld_all_image_infos
     // structure from the target process. The address is obtained via
     // task_info(TASK_DYLD_INFO), but koffi doesn't give us easy access.

@@ -1,12 +1,12 @@
 /**
  * Comprehensive tests for QuickJSSandbox.ts — covers remaining ~59% uncovered code:
  * - executeWithOrchestration() full loop
- * - _injectBridge() with mcp.call() and mcp.listTools()
- * - _injectBridgeForOrchestration() enqueue/reject
+ * - injectBridge() with mcp.call() and mcp.listTools()
+ * - injectBridgeForOrchestration() enqueue/reject
  * - Multi-round orchestration with pending calls
  * - Error paths in orchestration
  * - Bridge injection with bridge set on sandbox
- * - _injectHelpers error path
+ * - injectHelpers error path
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QuickJSSandbox } from '@server/sandbox/QuickJSSandbox';

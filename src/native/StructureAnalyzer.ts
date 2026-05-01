@@ -28,13 +28,17 @@ import type { ProcessHandle } from './platform/types.js';
 import { nativeMemoryManager } from './NativeMemoryManager.impl';
 
 export class StructureAnalyzer {
-  private _provider: PlatformMemoryAPI | null = null;
+  private providerCache: PlatformMemoryAPI | null = null;
 
   private get provider(): PlatformMemoryAPI {
-    if (!this._provider) {
-      this._provider = createPlatformProvider();
+    if (!this.providerCache) {
+      this.providerCache = createPlatformProvider();
     }
-    return this._provider;
+    return this.providerCache;
+  }
+
+  private set provider(value: PlatformMemoryAPI | null) {
+    this.providerCache = value;
   }
 
   /**

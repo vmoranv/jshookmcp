@@ -142,7 +142,7 @@ export class PageEvaluationHandlers {
 
       // ── Batch mode: multiple selectors ──
       if (selectors.length > 1) {
-        return this._screenshotBatch(selectors, requestedPath, type, quality);
+        return this.screenshotBatch(selectors, requestedPath, type, quality);
       }
 
       // ── Single-selector / clip / full-page ──
@@ -216,7 +216,7 @@ export class PageEvaluationHandlers {
   }
 
   /** Take one screenshot per selector and return all results. */
-  private async _screenshotBatch(
+  private async screenshotBatch(
     selectors: string[],
     requestedPath: string | undefined,
     type: 'png' | 'jpeg',

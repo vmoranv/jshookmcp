@@ -90,7 +90,7 @@ export function generateNodeJSCode(
   if (includeComments) {
     lines.push('// === SDK Extensions ===');
   }
-  lines.push('window._sdkGlueVersionMap = {};');
+  lines.push('window.sdkGlueVersionMap = {};');
   lines.push('');
 
   if (includeComments) {
@@ -220,7 +220,7 @@ export function generatePythonCode(
   lines.push('');
 
   lines.push('');
-  lines.push('window._sdkGlueVersionMap = {};');
+  lines.push('window.sdkGlueVersionMap = {};');
   lines.push('');
 
   lines.push('');

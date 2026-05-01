@@ -117,7 +117,7 @@ export class PEAnalyzer {
     const hProcess = openProcessForMemory(pid);
 
     try {
-      const headers = await this._readCoreHeaders(hProcess, base);
+      const headers = await this.readCoreHeaders(hProcess, base);
       const sections: PESection[] = [];
 
       for (let i = 0; i < headers.numSections; i++) {
@@ -161,7 +161,7 @@ export class PEAnalyzer {
     const hProcess = openProcessForMemory(pid);
 
     try {
-      const headers = await this._readCoreHeaders(hProcess, base);
+      const headers = await this.readCoreHeaders(hProcess, base);
       const importRva = headers.dataDirectories[IMAGE_DIRECTORY_ENTRY.IMPORT];
       if (!importRva || importRva.rva === 0) return [];
 
@@ -182,7 +182,7 @@ export class PEAnalyzer {
 
         // Read thunk array (simplified — just collect names)
         const originalFirstThunkRva = desc.readUInt32LE(0) || desc.readUInt32LE(16);
-        const functions = this._readThunkArray(
+        const functions = this.readThunkArray(
           hProcess,
           base,
           originalFirstThunkRva,
@@ -207,7 +207,7 @@ export class PEAnalyzer {
     const hProcess = openProcessForMemory(pid);
 
     try {
-      const headers = await this._readCoreHeaders(hProcess, base);
+      const headers = await this.readCoreHeaders(hProcess, base);
       const exportDir = headers.dataDirectories[IMAGE_DIRECTORY_ENTRY.EXPORT];
       if (!exportDir || exportDir.rva === 0) return [];
 
@@ -280,7 +280,7 @@ export class PEAnalyzer {
 
     try {
       // Find module by name
-      const modules = this._enumerateModulesInternal(hProcess);
+      const modules = this.enumerateModulesInternal(hProcess);
       const targets = moduleName
         ? modules.filter((m) => m.name.toLowerCase().includes(moduleName.toLowerCase()))
         : modules;
@@ -305,14 +305,14 @@ export class PEAnalyzer {
             );
 
             // Read disk bytes (need to convert RVA to file offset)
-            const diskOffset = this._rvaToFileOffset(diskData, funcRva);
+            const diskOffset = this.rvaToFileOffset(diskData, funcRva);
             if (diskOffset < 0 || diskOffset + COMPARE_BYTES > diskData.length) continue;
             const diskBytes = diskData.subarray(diskOffset, diskOffset + COMPARE_BYTES);
 
             // Compare
             if (!memBytes.equals(diskBytes)) {
-              const hookType = this._classifyHook(memBytes);
-              const jumpTarget = this._decodeJumpTarget(
+              const hookType = this.classifyHook(memBytes);
+              const jumpTarget = this.decodeJumpTarget(
                 memBytes,
                 BigInt(mod.base) + BigInt(funcRva),
               );
@@ -386,7 +386,7 @@ export class PEAnalyzer {
 
   // ── Private Helpers ──
 
-  private async _readCoreHeaders(hProcess: bigint, base: bigint) {
+  private async readCoreHeaders(hProcess: bigint, base: bigint) {
     const dosData = ReadProcessMemory(hProcess, base, 64);
     const e_lfanew = dosData.readUInt32LE(60);
 
@@ -415,7 +415,7 @@ export class PEAnalyzer {
     return { numSections, isPE32Plus, firstSectionOffset, dataDirectories };
   }
 
-  private _readThunkArray(
+  private readThunkArray(
     hProcess: bigint,
     base: bigint,
     thunkRva: number,
@@ -466,7 +466,7 @@ export class PEAnalyzer {
     return functions;
   }
 
-  private _enumerateModulesInternal(
+  private enumerateModulesInternal(
     hProcess: bigint,
   ): { name: string; base: string; path: string; size: number }[] {
     const modules: { name: string; base: string; path: string; size: number }[] = [];
@@ -496,7 +496,7 @@ export class PEAnalyzer {
     return modules;
   }
 
-  private _rvaToFileOffset(peData: Buffer, rva: number): number {
+  private rvaToFileOffset(peData: Buffer, rva: number): number {
     // Read section headers to convert RVA to file offset
     const e_lfanew = peData.readUInt32LE(60);
     const numSections = peData.readUInt16LE(e_lfanew + 6);
@@ -519,14 +519,14 @@ export class PEAnalyzer {
     return -1; // Not found
   }
 
-  private _classifyHook(memBytes: Buffer): InlineHookDetection['hookType'] {
+  private classifyHook(memBytes: Buffer): InlineHookDetection['hookType'] {
     if (memBytes[0] === 0xe9) return 'jmp_rel32';
     if (memBytes[0] === 0xff && memBytes[1] === 0x25) return 'jmp_abs64';
     if (memBytes[0] === 0x68 && memBytes[5] === 0xc3) return 'push_ret';
     return 'unknown';
   }
 
-  private _decodeJumpTarget(memBytes: Buffer, funcAddr: bigint): string {
+  private decodeJumpTarget(memBytes: Buffer, funcAddr: bigint): string {
     if (memBytes[0] === 0xe9) {
       // JMP rel32 — target = addr + 5 + rel32
       const rel32 = memBytes.readInt32LE(1);

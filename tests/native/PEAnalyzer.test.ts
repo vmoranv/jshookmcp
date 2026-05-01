@@ -292,7 +292,7 @@ describe('PEAnalyzer', () => {
       const buf = Buffer.alloc(16);
       buf[0] = 0xe9; // JMP rel32
       buf.writeInt32LE(0x1000, 1);
-      expect(p._classifyHook(buf)).toBe('jmp_rel32');
+      expect(p.classifyHook(buf)).toBe('jmp_rel32');
     });
 
     it('should classify JMP abs64 hook', () => {
@@ -300,7 +300,7 @@ describe('PEAnalyzer', () => {
       const buf = Buffer.alloc(16);
       buf[0] = 0xff;
       buf[1] = 0x25;
-      expect(p._classifyHook(buf)).toBe('jmp_abs64');
+      expect(p.classifyHook(buf)).toBe('jmp_abs64');
     });
 
     it('should classify PUSH+RET hook', () => {
@@ -308,13 +308,13 @@ describe('PEAnalyzer', () => {
       const buf = Buffer.alloc(16);
       buf[0] = 0x68; // PUSH imm32
       buf[5] = 0xc3; // RET
-      expect(p._classifyHook(buf)).toBe('push_ret');
+      expect(p.classifyHook(buf)).toBe('push_ret');
     });
 
     it('should return unknown for unrecognized pattern', () => {
       const p = analyzer as any;
       const buf = Buffer.alloc(16, 0x90); // NOP sled
-      expect(p._classifyHook(buf)).toBe('unknown');
+      expect(p.classifyHook(buf)).toBe('unknown');
     });
   });
 
@@ -325,7 +325,7 @@ describe('PEAnalyzer', () => {
       buf[0] = 0xe9;
       buf.writeInt32LE(0x1337, 1);
       // funcAddr + 5 + 0x1337 => 0x1000 + 5 + 0x1337 = 0x233c
-      expect(p._decodeJumpTarget(buf, 0x1000n)).toBe('0x233c');
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x233c');
     });
 
     it('should decode JMP [rip+disp32]', () => {
@@ -334,7 +334,7 @@ describe('PEAnalyzer', () => {
       buf[0] = 0xff;
       buf[1] = 0x25;
       buf.writeBigUInt64LE(0xdeadbeefn, 6);
-      expect(p._decodeJumpTarget(buf, 0x1000n)).toBe('0xdeadbeef');
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0xdeadbeef');
     });
 
     it('should decode PUSH imm32; RET', () => {
@@ -342,7 +342,7 @@ describe('PEAnalyzer', () => {
       const buf = Buffer.alloc(16);
       buf[0] = 0x68;
       buf.writeUInt32LE(0xbadc0de, 1);
-      expect(p._decodeJumpTarget(buf, 0x1000n)).toBe('0xbadc0de');
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0xbadc0de');
     });
 
     it('should return 0x0 for short JMP abs64 buffer', () => {
@@ -350,13 +350,13 @@ describe('PEAnalyzer', () => {
       const buf = Buffer.alloc(10);
       buf[0] = 0xff;
       buf[1] = 0x25;
-      expect(p._decodeJumpTarget(buf, 0x1000n)).toBe('0x0');
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x0');
     });
 
     it('should return 0x0 for unknown', () => {
       const p = analyzer as any;
       const buf = Buffer.alloc(16, 0x90);
-      expect(p._decodeJumpTarget(buf, 0x1000n)).toBe('0x0');
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x0');
     });
   });
 
@@ -367,13 +367,13 @@ describe('PEAnalyzer', () => {
       (EnumProcessModules as any).mockImplementationOnce(() => {
         throw new Error('Fake access denied');
       });
-      const mods = p._enumerateModulesInternal(1234n);
+      const mods = p.enumerateModulesInternal(1234n);
       expect(mods.length).toBe(0);
     });
 
     it('should return -1 when RVA is out of bounds', () => {
       const p = analyzer as any;
-      const offset = p._rvaToFileOffset(Buffer.from(mockPE), 0x999999);
+      const offset = p.rvaToFileOffset(Buffer.from(mockPE), 0x999999);
       expect(offset).toBe(-1);
     });
 
@@ -383,7 +383,7 @@ describe('PEAnalyzer', () => {
       buf.writeUInt32LE(10, 60);
       buf.writeUInt16LE(50, 16);
       buf.writeUInt16LE(0, 30);
-      const offset = p._rvaToFileOffset(buf, 0x1000);
+      const offset = p.rvaToFileOffset(buf, 0x1000);
       expect(offset).toBe(-1);
     });
 
@@ -391,7 +391,7 @@ describe('PEAnalyzer', () => {
       const p = analyzer as any;
       const { GetModuleFileNameEx: GMFNLocal } = await import('@native/Win32API');
       (GMFNLocal as any).mockReturnValueOnce(null);
-      const mods = p._enumerateModulesInternal(1234n);
+      const mods = p.enumerateModulesInternal(1234n);
       expect(mods[0]!.path).toBe('test.exe');
     });
 
@@ -399,7 +399,7 @@ describe('PEAnalyzer', () => {
       const p = analyzer as any;
       const { GetModuleInformation } = await import('@native/Win32API');
       (GetModuleInformation as any).mockReturnValueOnce({ success: false });
-      const mods = p._enumerateModulesInternal(1234n);
+      const mods = p.enumerateModulesInternal(1234n);
       expect(mods.length).toBe(0);
     });
 
@@ -417,13 +417,11 @@ describe('PEAnalyzer', () => {
           return buf;
         });
 
-      const headers = await p._readCoreHeaders(1234n, 0n);
+      const headers = await p.readCoreHeaders(1234n, 0n);
       expect(headers.dataDirectories.length).toBeLessThan(16);
     });
 
     it('should read 32-bit thunks for PE32 headers', async () => {
-      // @ts-expect-error
-      const _p = analyzer as any;
       const { ReadProcessMemory: RPMLocal } = await import('@native/Win32API');
       const originalRPM = RPMLocal as any;
 
@@ -681,7 +679,7 @@ describe('PEAnalyzer', () => {
           // Also make `off + 8 <= ntData.length` FALSE by making the buffer physically shorter than required
           return Buffer.from(buf.subarray(0, 138));
         });
-      const res = await p._readCoreHeaders(1234n, 0n);
+      const res = await p.readCoreHeaders(1234n, 0n);
       expect(res.isPE32Plus).toBe(true);
       expect(res.dataDirectories.length).toBe(0);
     });
@@ -720,8 +718,6 @@ describe('PEAnalyzer', () => {
     });
 
     it('should skip detection gracefully if fs.readFile throws', async () => {
-      // @ts-expect-error
-      const _fs = await import('node:fs/promises');
       (GetModuleFileNameEx as any).mockReturnValue('C:\\does_not_exist.dll');
       const detections = await analyzer.detectInlineHooks(1234, 'test.exe');
       expect(detections.length).toBe(0);

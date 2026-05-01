@@ -4,7 +4,7 @@ import { platform } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 // Lazy-initialize base directory to avoid direct import.meta parsing pitfalls.
-let _scriptsBaseDir: string | null = null;
+let scriptsBaseDir: string | null = null;
 
 function tryGetEsmBaseDir(): string | null {
   try {
@@ -20,12 +20,12 @@ function tryGetEsmBaseDir(): string | null {
 }
 
 function getScriptsBaseDir(): string {
-  if (_scriptsBaseDir) return _scriptsBaseDir;
+  if (scriptsBaseDir) return scriptsBaseDir;
 
   const esmBaseDir = tryGetEsmBaseDir();
   if (esmBaseDir) {
-    _scriptsBaseDir = esmBaseDir;
-    return _scriptsBaseDir;
+    scriptsBaseDir = esmBaseDir;
+    return scriptsBaseDir;
   }
 
   // Fallback for test/CLI contexts where import.meta is unavailable.

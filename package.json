@@ -150,7 +150,7 @@
     "better-sqlite3": "12.9.0",
     "camoufox-js": "^0.10.2",
     "playwright-core": "^1.59.1",
-    "webcrack": "^2.15.1"
+    "webcrack": "2.15.1"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

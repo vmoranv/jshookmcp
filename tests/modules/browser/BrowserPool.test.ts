@@ -19,7 +19,7 @@ const unifiedBrowserManagerState = vi.hoisted(() => ({
 
 vi.mock('@modules/browser/UnifiedBrowserManager', () => {
   class UnifiedBrowserManager {
-    __config: any;
+    configForTest: any;
     private browser = { isConnected: vi.fn(() => true) };
     // @ts-expect-error
     private pages: any[] = [];
@@ -36,11 +36,11 @@ vi.mock('@modules/browser/UnifiedBrowserManager', () => {
       this.browser.isConnected = vi.fn(() => false);
     });
     getBrowser = vi.fn(() => this.browser);
-    getIdleTimeout = vi.fn(() => this.__config?.idleTimeout);
-    getMaxTabs = vi.fn(() => this.__config?.maxTabs);
+    getIdleTimeout = vi.fn(() => this.configForTest?.idleTimeout);
+    getMaxTabs = vi.fn(() => this.configForTest?.maxTabs);
 
     constructor(config: any) {
-      this.__config = config;
+      this.configForTest = config;
       unifiedBrowserManagerState.instances.push(this);
     }
   }
@@ -135,9 +135,9 @@ describe('BrowserPool', () => {
       const manager = await pool.acquire(profile);
 
       expect(manager).toBeInstanceOf(UnifiedBrowserManager);
-      expect((manager as any).__config.driver).toBe('chrome');
-      expect((manager as any).__config.headless).toBe(true);
-      expect((manager as any).__config.args).toContain('--no-sandbox');
+      expect((manager as any).configForTest.driver).toBe('chrome');
+      expect((manager as any).configForTest.headless).toBe(true);
+      expect((manager as any).configForTest.args).toContain('--no-sandbox');
     });
 
     it('marks entry as inUse on acquire', async () => {
@@ -960,9 +960,9 @@ describe('BrowserPool', () => {
       await pool.release(manager);
       const sameManager = await pool.acquire(profile);
 
-      expect((sameManager as any).__config.driver).toBe('chrome');
-      expect((sameManager as any).__config.headless).toBe(true);
-      expect((sameManager as any).__config.debugPort).toBe(9222);
+      expect((sameManager as any).configForTest.driver).toBe('chrome');
+      expect((sameManager as any).configForTest.headless).toBe(true);
+      expect((sameManager as any).configForTest.debugPort).toBe(9222);
     });
 
     it('handles errors during browser disposal', async () => {

@@ -54,23 +54,23 @@ class TestableBase extends StreamingToolHandlersBase {
   }
 
   // Expose protected state
-  get _wsFramesByRequest() {
+  get wsFramesByRequestForTest() {
     return this.wsFramesByRequest;
   }
 
-  get _wsFrameOrder() {
+  get wsFrameOrderForTest() {
     return this.wsFrameOrder;
   }
 
-  get _wsConnections() {
+  get wsConnectionsForTest() {
     return this.wsConnections;
   }
 
-  get _wsConfig() {
+  get wsConfigForTest() {
     return this.wsConfig;
   }
 
-  set _wsConfig(value: typeof this.wsConfig) {
+  set wsConfigForTest(value: typeof this.wsConfig) {
     this.wsConfig = value;
   }
 }
@@ -282,16 +282,16 @@ describe('StreamingToolHandlersBase', () => {
       const frame = makeFrame({ requestId: 'r1' });
       handler.callAppendWsFrame('r1', frame);
 
-      expect(handler._wsFramesByRequest.get('r1')).toHaveLength(1);
-      expect(handler._wsFramesByRequest.get('r1')![0]).toBe(frame);
+      expect(handler.wsFramesByRequestForTest.get('r1')).toHaveLength(1);
+      expect(handler.wsFramesByRequestForTest.get('r1')![0]).toBe(frame);
     });
 
     it('adds frame to wsFrameOrder ring buffer', async () => {
       const frame = makeFrame({ requestId: 'r1' });
       handler.callAppendWsFrame('r1', frame);
 
-      expect(handler._wsFrameOrder.length).toBe(1);
-      const entries = handler._wsFrameOrder.toArray();
+      expect(handler.wsFrameOrderForTest.length).toBe(1);
+      const entries = handler.wsFrameOrderForTest.toArray();
       const entry = entries[0];
       expect(entry).toBeDefined();
       if (!entry) {
@@ -305,11 +305,11 @@ describe('StreamingToolHandlersBase', () => {
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', direction: 'sent' }));
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', direction: 'received' }));
 
-      expect(handler._wsFramesByRequest.get('r1')).toHaveLength(2);
+      expect(handler.wsFramesByRequestForTest.get('r1')).toHaveLength(2);
     });
 
     it('increments connection framesCount when connection exists', async () => {
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://example.com',
         status: 'open',
@@ -319,11 +319,11 @@ describe('StreamingToolHandlersBase', () => {
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
-      expect(handler._wsConnections.get('r1')!.framesCount).toBe(1);
+      expect(handler.wsConnectionsForTest.get('r1')!.framesCount).toBe(1);
     });
 
     it('transitions connection from "connecting" to "open" on first frame', async () => {
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://example.com',
         status: 'connecting',
@@ -333,11 +333,11 @@ describe('StreamingToolHandlersBase', () => {
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
-      expect(handler._wsConnections.get('r1')!.status).toBe('open');
+      expect(handler.wsConnectionsForTest.get('r1')!.status).toBe('open');
     });
 
     it('does not change status if already "open"', async () => {
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://example.com',
         status: 'open',
@@ -347,7 +347,7 @@ describe('StreamingToolHandlersBase', () => {
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
-      expect(handler._wsConnections.get('r1')!.status).toBe('open');
+      expect(handler.wsConnectionsForTest.get('r1')!.status).toBe('open');
     });
   });
 
@@ -356,15 +356,15 @@ describe('StreamingToolHandlersBase', () => {
   // -----------------------------------------------------------------------
   describe('enforceWsFrameLimit', () => {
     it('does nothing when frame count is within limit', async () => {
-      handler._wsConfig = { enabled: true, maxFrames: 10 };
+      handler.wsConfigForTest = { enabled: true, maxFrames: 10 };
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1' }));
 
       handler.callEnforceWsFrameLimit();
-      expect(handler._wsFrameOrder.length).toBe(1);
+      expect(handler.wsFrameOrderForTest.length).toBe(1);
     });
 
     it('evicts oldest frames when over the limit', async () => {
-      handler._wsConfig = { enabled: true, maxFrames: 2 };
+      handler.wsConfigForTest = { enabled: true, maxFrames: 2 };
 
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 2 }));
@@ -372,24 +372,24 @@ describe('StreamingToolHandlersBase', () => {
 
       // maxFrames is 2, but the ring buffer capacity was set in constructor (1000 default).
       // enforceWsFrameLimit uses wsConfig.maxFrames to trim.
-      expect(handler._wsFrameOrder.length).toBe(2);
+      expect(handler.wsFrameOrderForTest.length).toBe(2);
     });
 
     it('removes empty requestId bucket from map after eviction', async () => {
-      handler._wsConfig = { enabled: true, maxFrames: 1 };
+      handler.wsConfigForTest = { enabled: true, maxFrames: 1 };
 
       handler.callAppendWsFrame('old', makeFrame({ requestId: 'old', timestamp: 1 }));
       handler.callAppendWsFrame('new', makeFrame({ requestId: 'new', timestamp: 2 }));
 
       // 'old' bucket should have been emptied and deleted
-      expect(handler._wsFramesByRequest.has('old')).toBe(false);
-      expect(handler._wsFramesByRequest.has('new')).toBe(true);
+      expect(handler.wsFramesByRequestForTest.has('old')).toBe(false);
+      expect(handler.wsFramesByRequestForTest.has('new')).toBe(true);
     });
 
     it('decrements connection framesCount on eviction', async () => {
-      handler._wsConfig = { enabled: true, maxFrames: 1 };
+      handler.wsConfigForTest = { enabled: true, maxFrames: 1 };
 
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://example.com',
         status: 'open',
@@ -401,13 +401,13 @@ describe('StreamingToolHandlersBase', () => {
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 2 }));
 
       // After two appends with maxFrames=1, one was evicted
-      expect(handler._wsConnections.get('r1')!.framesCount).toBe(1);
+      expect(handler.wsConnectionsForTest.get('r1')!.framesCount).toBe(1);
     });
 
     it('does not let framesCount go below zero', async () => {
-      handler._wsConfig = { enabled: true, maxFrames: 1 };
+      handler.wsConfigForTest = { enabled: true, maxFrames: 1 };
 
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://example.com',
         status: 'open',
@@ -417,82 +417,80 @@ describe('StreamingToolHandlersBase', () => {
 
       // Manually set framesCount to 0 before eviction occurs
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
-      handler._wsConnections.get('r1')!.framesCount = 0;
+      handler.wsConnectionsForTest.get('r1')!.framesCount = 0;
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 2 }));
 
-      expect(handler._wsConnections.get('r1')!.framesCount).toBeGreaterThanOrEqual(0);
+      expect(handler.wsConnectionsForTest.get('r1')!.framesCount).toBeGreaterThanOrEqual(0);
     });
 
     it('breaks out of eviction loop when shift returns undefined (defensive guard)', async () => {
-      handler._wsConfig = { enabled: true, maxFrames: 1 };
+      handler.wsConfigForTest = { enabled: true, maxFrames: 1 };
 
       // Add a frame so the ring buffer has something
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
 
       // Now mock the ring buffer: make length report > maxFrames but shift() return undefined
       // This simulates the defensive edge case at line 204
-      // @ts-expect-error
-      const _originalShift = handler._wsFrameOrder.shift.bind(handler._wsFrameOrder);
       let callCount = 0;
-      Object.defineProperty(handler._wsFrameOrder, 'length', {
+      Object.defineProperty(handler.wsFrameOrderForTest, 'length', {
         get: () => (callCount++ < 2 ? 10 : 0),
       });
-      vi.spyOn(handler._wsFrameOrder, 'shift').mockReturnValue(undefined);
+      vi.spyOn(handler.wsFrameOrderForTest, 'shift').mockReturnValue(undefined);
 
       // This should trigger the break on line 204 without infinite loop
       handler.callEnforceWsFrameLimit();
 
       // If we got here, the break worked properly
-      expect(handler._wsFrameOrder.shift).toHaveBeenCalled();
+      expect(handler.wsFrameOrderForTest.shift).toHaveBeenCalled();
     });
 
     it('handles eviction when bucket does not exist in wsFramesByRequest', async () => {
-      handler._wsConfig = { enabled: true, maxFrames: 1 };
+      handler.wsConfigForTest = { enabled: true, maxFrames: 1 };
 
       // Add two frames for different request IDs
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
 
       // Manually delete the bucket for r1 before eviction is triggered
-      handler._wsFramesByRequest.delete('r1');
+      handler.wsFramesByRequestForTest.delete('r1');
 
       // Now add another frame which triggers eviction of r1
       handler.callAppendWsFrame('r2', makeFrame({ requestId: 'r2', timestamp: 2 }));
 
       // The eviction should have handled the missing bucket gracefully
-      expect(handler._wsFramesByRequest.has('r2')).toBe(true);
+      expect(handler.wsFramesByRequestForTest.has('r2')).toBe(true);
     });
 
     it('handles eviction when bucket exists but is empty', async () => {
-      handler._wsConfig = { enabled: true, maxFrames: 1 };
+      handler.wsConfigForTest = { enabled: true, maxFrames: 1 };
 
       // Add a frame
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
 
       // Set the bucket to empty array
-      handler._wsFramesByRequest.set('r1', []);
+      handler.wsFramesByRequestForTest.set('r1', []);
 
       // Now add another frame to trigger eviction
       handler.callAppendWsFrame('r2', makeFrame({ requestId: 'r2', timestamp: 2 }));
 
       // The eviction should handle the empty bucket - it won't delete it since shift on empty array returns undefined
       // but bucket.length === 0 check should handle it
-      expect(handler._wsFramesByRequest.has('r2')).toBe(true);
+      expect(handler.wsFramesByRequestForTest.has('r2')).toBe(true);
     });
 
     it('handles eviction when connection does not exist for evicted frame', async () => {
-      handler._wsConfig = { enabled: true, maxFrames: 1 };
+      handler.wsConfigForTest = { enabled: true, maxFrames: 1 };
 
       // Add a frame
       handler.callAppendWsFrame('r1', makeFrame({ requestId: 'r1', timestamp: 1 }));
 
       // Remove the connection record
-      handler._wsConnections.delete('r1');
+      handler.wsConnectionsForTest.delete('r1');
 
       // Now add another frame to trigger eviction of r1
       handler.callAppendWsFrame('r2', makeFrame({ requestId: 'r2', timestamp: 2 }));
 
       // Should not throw even though no connection exists for evicted frame
-      expect(handler._wsFramesByRequest.has('r2')).toBe(true);
+      expect(handler.wsFramesByRequestForTest.has('r2')).toBe(true);
     });
   });
 
@@ -501,23 +499,23 @@ describe('StreamingToolHandlersBase', () => {
   // -----------------------------------------------------------------------
   describe('initial state', () => {
     it('starts with empty wsFramesByRequest', async () => {
-      expect(handler._wsFramesByRequest.size).toBe(0);
+      expect(handler.wsFramesByRequestForTest.size).toBe(0);
     });
 
     it('starts with empty wsFrameOrder', async () => {
-      expect(handler._wsFrameOrder.length).toBe(0);
+      expect(handler.wsFrameOrderForTest.length).toBe(0);
     });
 
     it('starts with empty wsConnections', async () => {
-      expect(handler._wsConnections.size).toBe(0);
+      expect(handler.wsConnectionsForTest.size).toBe(0);
     });
 
     it('starts with ws monitoring disabled', async () => {
-      expect(handler._wsConfig.enabled).toBe(false);
+      expect(handler.wsConfigForTest.enabled).toBe(false);
     });
 
     it('starts with default maxFrames of 1000', async () => {
-      expect(handler._wsConfig.maxFrames).toBe(1000);
+      expect(handler.wsConfigForTest.maxFrames).toBe(1000);
     });
   });
 });

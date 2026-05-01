@@ -45,7 +45,7 @@ describe('MojoIPCHandlers', () => {
         messages: [],
         totalAvailable: 0,
         filtered: false,
-        _simulation: false,
+        simulation: false,
       }),
       isSimulationMode: vi.fn().mockReturnValue(false),
       didFridaProbeSucceed: vi.fn().mockReturnValue(false),
@@ -67,7 +67,7 @@ describe('MojoIPCHandlers', () => {
       success: true,
       available: true,
       started: true,
-      _simulation: false,
+      simulation: false,
       interfaceCatalogSource: 'seeded-defaults',
       observedInterfaceCount: 0,
     });
@@ -105,7 +105,7 @@ describe('MojoIPCHandlers', () => {
     expect(result).toMatchObject({
       success: true,
       available: true,
-      _simulation: false,
+      simulation: false,
       interfaceCatalogSource: 'seeded-defaults',
       observedInterfaceCount: 0,
     });

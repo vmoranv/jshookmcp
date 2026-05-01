@@ -35,7 +35,7 @@ export class AdvancedToolHandlers {
 
   private core: CoreHandlers;
   private perf: PerformanceHandlers;
-  private console_: ConsoleHandlers;
+  private consoleHandlers: ConsoleHandlers;
   private replay: ReplayHandlers;
   private intercept: InterceptHandlers;
   private raw: RawHandlers;
@@ -57,7 +57,7 @@ export class AdvancedToolHandlers {
       getPerformanceMonitor: () => this.getPerformanceMonitor(),
       getTraceRecorder,
     });
-    this.console_ = new ConsoleHandlers({ consoleMonitor });
+    this.consoleHandlers = new ConsoleHandlers({ consoleMonitor });
     this.replay = new ReplayHandlers({ consoleMonitor });
     this.intercept = new InterceptHandlers({ consoleMonitor, eventBus });
     this.raw = new RawHandlers(eventBus);
@@ -121,38 +121,38 @@ export class AdvancedToolHandlers {
   // ── Console ──
 
   handleConsoleGetExceptions = (args: Record<string, unknown>) =>
-    this.console_.handleConsoleGetExceptions(args);
+    this.consoleHandlers.handleConsoleGetExceptions(args);
   handleConsoleInjectDispatch = (args: Record<string, unknown>) => {
     const type = String(args['type'] ?? '');
     switch (type) {
       case 'xhr':
-        return this.console_.handleConsoleInjectXhrInterceptor(args);
+        return this.consoleHandlers.handleConsoleInjectXhrInterceptor(args);
       case 'fetch':
-        return this.console_.handleConsoleInjectFetchInterceptor(args);
+        return this.consoleHandlers.handleConsoleInjectFetchInterceptor(args);
       case 'function':
-        return this.console_.handleConsoleInjectFunctionTracer(args);
+        return this.consoleHandlers.handleConsoleInjectFunctionTracer(args);
       default:
-        return this.console_.handleConsoleInjectScriptMonitor(args);
+        return this.consoleHandlers.handleConsoleInjectScriptMonitor(args);
     }
   };
   handleConsoleBuffersDispatch = (args: Record<string, unknown>) => {
     const action = String(args['action'] ?? '');
     return action === 'reset'
-      ? this.console_.handleConsoleResetInjectedInterceptors(args)
-      : this.console_.handleConsoleClearInjectedBuffers(args);
+      ? this.consoleHandlers.handleConsoleResetInjectedInterceptors(args)
+      : this.consoleHandlers.handleConsoleClearInjectedBuffers(args);
   };
   handleConsoleInjectScriptMonitor = (args: Record<string, unknown>) =>
-    this.console_.handleConsoleInjectScriptMonitor(args);
+    this.consoleHandlers.handleConsoleInjectScriptMonitor(args);
   handleConsoleInjectXhrInterceptor = (args: Record<string, unknown>) =>
-    this.console_.handleConsoleInjectXhrInterceptor(args);
+    this.consoleHandlers.handleConsoleInjectXhrInterceptor(args);
   handleConsoleInjectFetchInterceptor = (args: Record<string, unknown>) =>
-    this.console_.handleConsoleInjectFetchInterceptor(args);
+    this.consoleHandlers.handleConsoleInjectFetchInterceptor(args);
   handleConsoleClearInjectedBuffers = (args: Record<string, unknown>) =>
-    this.console_.handleConsoleClearInjectedBuffers(args);
+    this.consoleHandlers.handleConsoleClearInjectedBuffers(args);
   handleConsoleResetInjectedInterceptors = (args: Record<string, unknown>) =>
-    this.console_.handleConsoleResetInjectedInterceptors(args);
+    this.consoleHandlers.handleConsoleResetInjectedInterceptors(args);
   handleConsoleInjectFunctionTracer = (args: Record<string, unknown>) =>
-    this.console_.handleConsoleInjectFunctionTracer(args);
+    this.consoleHandlers.handleConsoleInjectFunctionTracer(args);
 
   // ── Replay ──
 

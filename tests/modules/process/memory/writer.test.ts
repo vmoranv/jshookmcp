@@ -39,14 +39,14 @@ vi.mock('@src/utils/logger', () => ({
 import {
   writeMemory,
   batchMemoryWrite,
-  _resetLinuxProviderCache,
+  resetLinuxProviderCache,
 } from '@modules/process/memory/writer';
 import { MEMORY_MAX_WRITE_BYTES } from '@src/constants';
 
 describe('memory/writer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    _resetLinuxProviderCache();
+    resetLinuxProviderCache();
     state.isKoffiAvailable.mockReturnValue(false);
   });
 

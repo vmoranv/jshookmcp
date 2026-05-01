@@ -111,29 +111,29 @@ export class StealthScripts {
   static async injectTimingDefense(page: Page): Promise<void> {
     await page.evaluateOnNewDocument(() => {
       // ── performance.now() hijack ──
-      const _originalPerfNow = performance.now.bind(performance);
-      const _originalDateNow = Date.now;
+      const originalPerfNow = performance.now.bind(performance);
+      const originalDateNow = Date.now;
 
       // Accumulated offset from CDP operations (starts at 0,
       // can be adjusted externally via __cdpTimingOffset)
-      let _cdpOffset = 0;
+      let cdpOffset = 0;
 
       performance.now = function () {
         // Read dynamic offset if set by CDPTimingProxy
         const win = window as unknown as Record<string, unknown>;
         if (typeof win.__cdpTimingOffset === 'number') {
-          _cdpOffset = win.__cdpTimingOffset as number;
+          cdpOffset = win.__cdpTimingOffset as number;
         }
-        return _originalPerfNow() - _cdpOffset;
+        return originalPerfNow() - cdpOffset;
       };
 
       // ── Date.now() hijack ──
       Date.now = function () {
         const win = window as unknown as Record<string, unknown>;
         if (typeof win.__cdpTimingOffset === 'number') {
-          _cdpOffset = win.__cdpTimingOffset as number;
+          cdpOffset = win.__cdpTimingOffset as number;
         }
-        return _originalDateNow.call(Date) - Math.floor(_cdpOffset);
+        return originalDateNow.call(Date) - Math.floor(cdpOffset);
       };
 
       // ── performance.timeOrigin defense ──
@@ -142,24 +142,24 @@ export class StealthScripts {
       // instead we ensure our now() offset keeps the sum consistent.
 
       // ── new Date() constructor defense ──
-      const _OriginalDate = Date;
-      const _ProxiedDate = function (...args: unknown[]) {
+      const OriginalDateValue = Date;
+      const ProxiedDateValue = function (...args: unknown[]) {
         if (args.length === 0) {
           // new Date() — use our compensated Date.now()
-          return new _OriginalDate(_OriginalDate.now());
+          return new OriginalDateValue(OriginalDateValue.now());
         }
         // @ts-expect-error dynamic constructor call
-        return new _OriginalDate(...args);
+        return new OriginalDateValue(...args);
       } as unknown as DateConstructor;
 
       // Copy static methods and prototype
-      _ProxiedDate.now = _OriginalDate.now;
-      _ProxiedDate.parse = _OriginalDate.parse.bind(_OriginalDate);
-      _ProxiedDate.UTC = _OriginalDate.UTC.bind(_OriginalDate);
-      Object.defineProperty(_ProxiedDate, 'prototype', { value: _OriginalDate.prototype });
+      ProxiedDateValue.now = OriginalDateValue.now;
+      ProxiedDateValue.parse = OriginalDateValue.parse.bind(OriginalDateValue);
+      ProxiedDateValue.UTC = OriginalDateValue.UTC.bind(OriginalDateValue);
+      Object.defineProperty(ProxiedDateValue, 'prototype', { value: OriginalDateValue.prototype });
 
       // Override global Date
-      (globalThis as Record<string, unknown>).Date = _ProxiedDate;
+      (globalThis as Record<string, unknown>).Date = ProxiedDateValue;
     });
   }
 

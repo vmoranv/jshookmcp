@@ -45,7 +45,7 @@ function createDeps(): ProcessHandlerDeps {
 export class ProcessHandlersBase {
   protected processMgmt: ProcessManagementHandlers;
   protected memoryOps: MemoryOperationHandlers;
-  protected _deps: ProcessHandlerDeps;
+  protected deps: ProcessHandlerDeps;
 
   // Diagnostic helpers exposed for test subclasses
   protected buildMemoryDiagnostics!: (input: MemoryDiagnosticsInput) => Promise<MemoryDiagnostics>;
@@ -59,10 +59,10 @@ export class ProcessHandlersBase {
   protected recordMemoryAudit!: (entry: Omit<AuditEntry, 'timestamp' | 'user'>) => void;
 
   constructor() {
-    this._deps = createDeps();
-    logger.info(`ProcessToolHandlers initialized for platform: ${this._deps.platform}`);
-    this.processMgmt = new ProcessManagementHandlers(this._deps);
-    this.memoryOps = new MemoryOperationHandlers(this._deps, this.processMgmt);
+    this.deps = createDeps();
+    logger.info(`ProcessToolHandlers initialized for platform: ${this.deps.platform}`);
+    this.processMgmt = new ProcessManagementHandlers(this.deps);
+    this.memoryOps = new MemoryOperationHandlers(this.deps, this.processMgmt);
 
     // Bind diagnostic helpers from the shared processMgmt instance
     this.buildMemoryDiagnostics = this.processMgmt.buildMemoryDiagnostics.bind(this.processMgmt);
@@ -135,7 +135,7 @@ export class ProcessToolHandlers extends ProcessHandlersBase {
   constructor() {
     super();
     // Re-use the same deps and processMgmt from the base class
-    this.injection = new InjectionHandlers(this._deps, this.processMgmt);
+    this.injection = new InjectionHandlers(this.deps, this.processMgmt);
   }
 
   // ── Injection Handlers ──

@@ -1,17 +1,17 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import {
   CrossDomainEvidenceBridge,
-  _resetIdCounter,
+  resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
 import {
   ReverseEvidenceGraph,
-  _resetIdCounter as _resetGraphIdCounter,
+  resetIdCounter as _resetGraphIdCounter,
 } from '@server/evidence/ReverseEvidenceGraph';
 import { createServerEventBus } from '@server/EventBus';
 
 describe('Shared Evidence Graph Integration', () => {
   beforeEach(() => {
-    _resetIdCounter();
+    resetIdCounter();
     _resetGraphIdCounter();
   });
 

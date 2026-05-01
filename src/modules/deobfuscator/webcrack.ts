@@ -79,6 +79,10 @@ type MappingMetadata = {
   fromPath: string;
 };
 
+async function importOptionalModule<T>(specifier: string): Promise<T> {
+  return (await import(specifier)) as T;
+}
+
 function normalizeOptions(
   options: WebcrackInvocationOptions,
 ): Required<Pick<DeobfuscateOptions, 'jsx' | 'mangle' | 'unminify' | 'unpack'>> {
@@ -252,7 +256,7 @@ export async function runWebcrack(
   }
 
   try {
-    const { webcrack } = (await import('webcrack')) as WebcrackModuleImport;
+    const { webcrack } = await importOptionalModule<WebcrackModuleImport>('webcrack');
     const result = await webcrack(code, {
       jsx: optionsUsed.jsx,
       unpack: optionsUsed.unpack,

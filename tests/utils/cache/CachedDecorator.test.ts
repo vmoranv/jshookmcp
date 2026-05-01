@@ -246,7 +246,7 @@ describe('CachedDecorator', () => {
 
       const fetch = withCache(
         // @ts-expect-error
-        async (url: string, _headers: Record<string, string>): Promise<string> => {
+        async (url: string): Promise<string> => {
           callCount++;
           return `response-from-${url}`;
         },

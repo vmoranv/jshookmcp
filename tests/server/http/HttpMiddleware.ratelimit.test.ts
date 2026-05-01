@@ -10,29 +10,29 @@ function mockReq(overrides: Partial<IncomingMessage> = {}): IncomingMessage {
 }
 
 function mockRes(): ServerResponse & {
-  _status?: number;
-  _body?: string;
-  _headers?: Record<string, string>;
+  statusCodeValue?: number;
+  bodyValue?: string;
+  headersValue?: Record<string, string>;
 } {
   const res: Record<string, unknown> = {
-    _status: undefined,
-    _body: undefined,
-    _headers: {},
+    statusCodeValue: undefined,
+    bodyValue: undefined,
+    headersValue: {},
     writeHead(status: number, headers?: Record<string, string>) {
-      res._status = status;
-      if (headers) res._headers = headers;
+      res.statusCodeValue = status;
+      if (headers) res.headersValue = headers;
       return res;
     },
     end(body?: string, cb?: () => void) {
-      res._body = body;
+      res.bodyValue = body;
       if (typeof cb === 'function') cb();
       return res;
     },
   };
   return res as unknown as ServerResponse & {
-    _status?: number;
-    _body?: string;
-    _headers?: Record<string, string>;
+    statusCodeValue?: number;
+    bodyValue?: string;
+    headersValue?: Record<string, string>;
   };
 }
 
@@ -72,9 +72,9 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const req = mockReq({ socket: { remoteAddress: ip } } as any);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(false);
-    expect(res._status).toBe(429);
-    expect(res._body).toContain('Too Many Requests');
-    expect((res._headers as any)?.['Retry-After']).toBeDefined();
+    expect(res.statusCodeValue).toBe(429);
+    expect(res.bodyValue).toContain('Too Many Requests');
+    expect((res.headersValue as any)?.['Retry-After']).toBeDefined();
   });
 
   it('authenticated users get 3x rate limit', async () => {
@@ -92,7 +92,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     const req = mockReq({ socket: { remoteAddress: ip } } as any);
     const res = mockRes();
     expect(checkRateLimit(req, res, true)).toBe(false);
-    expect(res._status).toBe(429);
+    expect(res.statusCodeValue).toBe(429);
   });
 
   it('uses X-Forwarded-For when MCP_TRUST_PROXY is set', async () => {
@@ -116,7 +116,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     } as any);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(false);
-    expect(res._status).toBe(429);
+    expect(res.statusCodeValue).toBe(429);
   });
 
   it('ignores X-Forwarded-For when MCP_TRUST_PROXY is not set', async () => {
@@ -141,7 +141,7 @@ describe('HttpMiddleware rate-limit and proxy tests', () => {
     } as any);
     const res = mockRes();
     expect(checkRateLimit(req, res)).toBe(false);
-    expect(res._status).toBe(429);
+    expect(res.statusCodeValue).toBe(429);
   });
 
   it('uses X-Forwarded-For array format', async () => {

@@ -9,10 +9,10 @@ import {
 
 /** Build a mock PlatformMemoryAPI provider */
 function createMockProvider(): PlatformMemoryAPI & {
-  _queryRegionMock: ReturnType<typeof vi.fn>;
-  _readMemoryMock: ReturnType<typeof vi.fn>;
-  _openProcessMock: ReturnType<typeof vi.fn>;
-  _closeProcessMock: ReturnType<typeof vi.fn>;
+  queryRegionMock: ReturnType<typeof vi.fn>;
+  readMemoryMock: ReturnType<typeof vi.fn>;
+  openProcessMock: ReturnType<typeof vi.fn>;
+  closeProcessMock: ReturnType<typeof vi.fn>;
 } {
   const openProcess = vi.fn(
     (_pid: number, _write: boolean): ProcessHandle => ({
@@ -36,10 +36,10 @@ function createMockProvider(): PlatformMemoryAPI & {
     allocateMemory: vi.fn(() => ({ address: 0n })),
     freeMemory: vi.fn(),
     enumerateModules: vi.fn(() => []),
-    _queryRegionMock: queryRegion,
-    _readMemoryMock: readMemory,
-    _openProcessMock: openProcess,
-    _closeProcessMock: closeProcess,
+    queryRegionMock: queryRegion,
+    readMemoryMock: readMemory,
+    openProcessMock: openProcess,
+    closeProcessMock: closeProcess,
   };
 }
 
@@ -130,10 +130,10 @@ describe('NativeMemoryManager chunked scanning', () => {
       isExecutable: false,
     };
 
-    mockProvider._queryRegionMock.mockReturnValueOnce(regionInfo).mockReturnValueOnce(null); // end of regions
+    mockProvider.queryRegionMock.mockReturnValueOnce(regionInfo).mockReturnValueOnce(null); // end of regions
 
     // Return a small buffer with 0xAA pattern for each chunk read
-    mockProvider._readMemoryMock.mockImplementation(
+    mockProvider.readMemoryMock.mockImplementation(
       (_handle: ProcessHandle, _addr: bigint, size: number) => ({
         data: Buffer.alloc(Math.min(size, 4096), 0xaa),
         bytesRead: Math.min(size, 4096),
@@ -144,9 +144,9 @@ describe('NativeMemoryManager chunked scanning', () => {
     const result = await manager.scanMemory(42, 'AA', 'hex');
 
     expect(result.success).toBe(true);
-    expect(mockProvider._readMemoryMock).toHaveBeenCalled();
-    expect(mockProvider._readMemoryMock.mock.calls.length).toBeGreaterThan(1);
-    expect(mockProvider._openProcessMock).toHaveBeenCalledTimes(1);
-    expect(mockProvider._closeProcessMock).toHaveBeenCalledTimes(1);
+    expect(mockProvider.readMemoryMock).toHaveBeenCalled();
+    expect(mockProvider.readMemoryMock.mock.calls.length).toBeGreaterThan(1);
+    expect(mockProvider.openProcessMock).toHaveBeenCalledTimes(1);
+    expect(mockProvider.closeProcessMock).toHaveBeenCalledTimes(1);
   });
 });

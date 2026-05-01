@@ -138,31 +138,31 @@ function createMocks() {
  * Concrete subclass to expose protected WS internals for testing.
  */
 class TestableWs extends StreamingToolHandlersWs {
-  get _wsSession() {
+  get wsSessionForTest() {
     return this.wsSession;
   }
 
-  set _wsSession(v) {
+  set wsSessionForTest(v) {
     this.wsSession = v;
   }
 
-  get _wsListeners() {
+  get wsListenersForTest() {
     return this.wsListeners;
   }
 
-  get _wsConfig() {
+  get wsConfigForTest() {
     return this.wsConfig;
   }
 
-  get _wsConnections() {
+  get wsConnectionsForTest() {
     return this.wsConnections;
   }
 
-  get _wsFrameOrder() {
+  get wsFrameOrderForTest() {
     return this.wsFrameOrder;
   }
 
-  get _wsFramesByRequest() {
+  get wsFramesByRequestForTest() {
     return this.wsFramesByRequest;
   }
 
@@ -287,14 +287,14 @@ describe('StreamingToolHandlersWs', () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
       // Add some data
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://x',
         status: 'open',
         framesCount: 1,
         createdTimestamp: 1,
       } as WsConnection);
-      handler._wsFrameOrder.push({ requestId: 'r1', frame: makeFrame() });
+      handler.wsFrameOrderForTest.push({ requestId: 'r1', frame: makeFrame() });
 
       // Re-enable
       const newSession = {
@@ -306,16 +306,16 @@ describe('StreamingToolHandlersWs', () => {
       mocks.page.createCDPSession.mockResolvedValue(newSession);
       await handler.handleWsMonitorEnable({});
 
-      expect(handler._wsConnections.size).toBe(0);
-      expect(handler._wsFrameOrder.length).toBe(0);
-      expect(handler._wsFramesByRequest.size).toBe(0);
+      expect(handler.wsConnectionsForTest.size).toBe(0);
+      expect(handler.wsFrameOrderForTest.length).toBe(0);
+      expect(handler.wsFramesByRequestForTest.size).toBe(0);
     });
 
     it('sets wsConfig to enabled state', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 500 });
 
-      expect(handler._wsConfig.enabled).toBe(true);
-      expect(handler._wsConfig.maxFrames).toBe(500);
+      expect(handler.wsConfigForTest.enabled).toBe(true);
+      expect(handler.wsConfigForTest.maxFrames).toBe(500);
     });
 
     it('returns zero stats on fresh enable', async () => {
@@ -340,7 +340,7 @@ describe('StreamingToolHandlersWs', () => {
     it('returns summary with frame stats', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
-      handler._wsConnections.set('a', {
+      handler.wsConnectionsForTest.set('a', {
         requestId: 'a',
         url: 'wss://x',
         status: 'open',
@@ -348,11 +348,11 @@ describe('StreamingToolHandlersWs', () => {
         createdTimestamp: 1,
       } as WsConnection);
 
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'a',
         frame: makeFrame({ requestId: 'a', direction: 'sent' }),
       });
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'a',
         frame: makeFrame({ requestId: 'a', direction: 'received' }),
       });
@@ -377,21 +377,21 @@ describe('StreamingToolHandlersWs', () => {
     it('reports closed connections separately from active', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
-      handler._wsConnections.set('a', {
+      handler.wsConnectionsForTest.set('a', {
         requestId: 'a',
         url: 'wss://x',
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
       } as WsConnection);
-      handler._wsConnections.set('b', {
+      handler.wsConnectionsForTest.set('b', {
         requestId: 'b',
         url: 'wss://y',
         status: 'closed',
         framesCount: 0,
         createdTimestamp: 2,
       } as WsConnection);
-      handler._wsConnections.set('c', {
+      handler.wsConnectionsForTest.set('c', {
         requestId: 'c',
         url: 'wss://z',
         status: 'connecting',
@@ -416,10 +416,10 @@ describe('StreamingToolHandlersWs', () => {
 
     it('sets enabled to false after disable', async () => {
       await handler.handleWsMonitorEnable({});
-      expect(handler._wsConfig.enabled).toBe(true);
+      expect(handler.wsConfigForTest.enabled).toBe(true);
 
       await handler.handleWsMonitorDisable({});
-      expect(handler._wsConfig.enabled).toBe(false);
+      expect(handler.wsConfigForTest.enabled).toBe(false);
     });
 
     it('works even if no session was enabled', async () => {
@@ -443,11 +443,11 @@ describe('StreamingToolHandlersWs', () => {
     it('returns all frames with direction=all', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r1',
         frame: makeFrame({ requestId: 'r1', direction: 'sent', payloadPreview: 'A' }),
       });
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r1',
         frame: makeFrame({ requestId: 'r1', direction: 'received', payloadPreview: 'B' }),
       });
@@ -462,11 +462,11 @@ describe('StreamingToolHandlersWs', () => {
     it('filters frames by direction=sent', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r1',
         frame: makeFrame({ requestId: 'r1', direction: 'sent' }),
       });
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r1',
         frame: makeFrame({ requestId: 'r1', direction: 'received' }),
       });
@@ -483,11 +483,11 @@ describe('StreamingToolHandlersWs', () => {
     it('filters frames by direction=received', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r1',
         frame: makeFrame({ requestId: 'r1', direction: 'sent' }),
       });
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r1',
         frame: makeFrame({ requestId: 'r1', direction: 'received' }),
       });
@@ -513,7 +513,7 @@ describe('StreamingToolHandlersWs', () => {
     it('applies payloadFilter regex to frame payloadSample', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r1',
         frame: makeFrame({
           requestId: 'r1',
@@ -521,7 +521,7 @@ describe('StreamingToolHandlersWs', () => {
           payloadPreview: '{"type":"ping"}',
         }),
       });
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r2',
         frame: makeFrame({
           requestId: 'r2',
@@ -543,7 +543,7 @@ describe('StreamingToolHandlersWs', () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
       for (let i = 0; i < 5; i++) {
-        handler._wsFrameOrder.push({
+        handler.wsFrameOrderForTest.push({
           requestId: `r${i}`,
           frame: makeFrame({ requestId: `r${i}`, timestamp: i }),
         });
@@ -561,7 +561,7 @@ describe('StreamingToolHandlersWs', () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
       for (let i = 0; i < 5; i++) {
-        handler._wsFrameOrder.push({
+        handler.wsFrameOrderForTest.push({
           requestId: `r${i}`,
           frame: makeFrame({ requestId: `r${i}`, timestamp: i }),
         });
@@ -577,7 +577,7 @@ describe('StreamingToolHandlersWs', () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
       for (let i = 0; i < 5; i++) {
-        handler._wsFrameOrder.push({
+        handler.wsFrameOrderForTest.push({
           requestId: `r${i}`,
           frame: makeFrame({ requestId: `r${i}` }),
         });
@@ -594,7 +594,7 @@ describe('StreamingToolHandlersWs', () => {
     it('returns null nextOffset on last page', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r1',
         frame: makeFrame({ requestId: 'r1' }),
       });
@@ -631,7 +631,7 @@ describe('StreamingToolHandlersWs', () => {
     it('does not include payloadSample in output frames', async () => {
       await handler.handleWsMonitorEnable({ maxFrames: 10 });
 
-      handler._wsFrameOrder.push({
+      handler.wsFrameOrderForTest.push({
         requestId: 'r1',
         frame: makeFrame({
           requestId: 'r1',
@@ -670,14 +670,14 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('returns tracked connections sorted by createdTimestamp', async () => {
-      handler._wsConnections.set('b', {
+      handler.wsConnectionsForTest.set('b', {
         requestId: 'b',
         url: 'wss://second.com',
         status: 'open',
         framesCount: 3,
         createdTimestamp: 200,
       } as any);
-      handler._wsConnections.set('a', {
+      handler.wsConnectionsForTest.set('a', {
         requestId: 'a',
         url: 'wss://first.com',
         status: 'closed',
@@ -695,7 +695,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('includes required fields in each connection', async () => {
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://example.com/ws',
         status: 'open',
@@ -713,7 +713,7 @@ describe('StreamingToolHandlersWs', () => {
     });
 
     it('does not expose internal fields like createdTimestamp', async () => {
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://x',
         status: 'open',
@@ -750,7 +750,7 @@ describe('StreamingToolHandlersWs', () => {
     it('ignores params without requestId', async () => {
       handler.callHandleWsFrame('sent', { response: { opcode: 1, payloadData: 'hi' } });
 
-      expect(handler._wsFrameOrder.length).toBe(0);
+      expect(handler.wsFrameOrderForTest.length).toBe(0);
     });
 
     it('creates connection record for untracked requestId when no URL filter', async () => {
@@ -760,8 +760,8 @@ describe('StreamingToolHandlersWs', () => {
         timestamp: 100,
       });
 
-      expect(handler._wsConnections.has('new-req')).toBe(true);
-      const conn = handler._wsConnections.get('new-req')!;
+      expect(handler.wsConnectionsForTest.has('new-req')).toBe(true);
+      const conn = handler.wsConnectionsForTest.get('new-req')!;
       expect(conn.url).toBe('unknown');
       expect(conn.status).toBe('open');
     });
@@ -770,10 +770,8 @@ describe('StreamingToolHandlersWs', () => {
       // This tests the defensive guard at line 102 in handleWsFrame.
       // Normally unreachable: after .set() on line 91, line 100 .get() always finds it.
       // We mock .get() to return undefined on the second call to simulate this edge case.
-      // @ts-expect-error
-      const _originalGet = handler._wsConnections.get.bind(handler._wsConnections);
       let getCallCount = 0;
-      vi.spyOn(handler._wsConnections, 'get').mockImplementation((_key: string) => {
+      vi.spyOn(handler.wsConnectionsForTest, 'get').mockImplementation((_key: string) => {
         getCallCount++;
         if (getCallCount === 1) {
           // First call (line 85): return undefined to trigger the creation path
@@ -789,7 +787,7 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       // Should have returned early without adding any frames
-      expect(handler._wsFramesByRequest.has('ghost-req')).toBe(false);
+      expect(handler.wsFramesByRequestForTest.has('ghost-req')).toBe(false);
     });
 
     it('skips untracked requestId when URL filter is active', async () => {
@@ -802,14 +800,14 @@ describe('StreamingToolHandlersWs', () => {
 
       // The frame should not be appended since the requestId is not in wsConnections
       // and a URL filter is active
-      expect(handler._wsFramesByRequest.has('untracked')).toBe(false);
+      expect(handler.wsFramesByRequestForTest.has('untracked')).toBe(false);
     });
 
     it('skips frame if connection URL does not match filter', async () => {
       await handler.handleWsMonitorEnable({ urlFilter: 'api\\.example' });
 
       // Manually add a connection with non-matching URL
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://other.com',
         status: 'open',
@@ -822,13 +820,13 @@ describe('StreamingToolHandlersWs', () => {
         response: { opcode: 1, payloadData: 'data' },
       });
 
-      expect(handler._wsFramesByRequest.has('r1')).toBe(false);
+      expect(handler.wsFramesByRequestForTest.has('r1')).toBe(false);
     });
 
     it('records frame when connection URL matches filter', async () => {
       await handler.handleWsMonitorEnable({ urlFilter: 'api\\.example' });
 
-      handler._wsConnections.set('r1', {
+      handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
         url: 'wss://api.example.com/ws',
         status: 'open',
@@ -842,8 +840,8 @@ describe('StreamingToolHandlersWs', () => {
         timestamp: 50,
       });
 
-      expect(handler._wsFramesByRequest.has('r1')).toBe(true);
-      const frames = handler._wsFramesByRequest.get('r1')!;
+      expect(handler.wsFramesByRequestForTest.has('r1')).toBe(true);
+      const frames = handler.wsFramesByRequestForTest.get('r1')!;
       expect(frames).toHaveLength(1);
       expect(frames[0]!.direction).toBe('received');
     });
@@ -854,7 +852,7 @@ describe('StreamingToolHandlersWs', () => {
         response: { opcode: 2, payloadData: 'binary' },
       });
 
-      const frames = handler._wsFramesByRequest.get('r1')!;
+      const frames = handler.wsFramesByRequestForTest.get('r1')!;
       expect(frames[0]!.opcode).toBe(2);
       expect(frames[0]!.isBinary).toBe(true);
     });
@@ -865,7 +863,7 @@ describe('StreamingToolHandlersWs', () => {
         response: { payloadData: 'data' },
       });
 
-      const frames = handler._wsFramesByRequest.get('r1')!;
+      const frames = handler.wsFramesByRequestForTest.get('r1')!;
       expect(frames[0]!.opcode).toBe(-1);
     });
 
@@ -876,7 +874,7 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       // Should still create a frame with default values
-      const frames = handler._wsFramesByRequest.get('r1');
+      const frames = handler.wsFramesByRequestForTest.get('r1');
       expect(frames).toBeDefined();
       expect(frames![0]!.opcode).toBe(-1);
       expect(frames![0]!.payloadLength).toBe(0);
@@ -888,7 +886,7 @@ describe('StreamingToolHandlersWs', () => {
         response: null,
       });
 
-      const frames = handler._wsFramesByRequest.get('r2');
+      const frames = handler.wsFramesByRequestForTest.get('r2');
       expect(frames).toBeDefined();
       expect(frames![0]!.opcode).toBe(-1);
     });
@@ -898,7 +896,7 @@ describe('StreamingToolHandlersWs', () => {
         requestId: 'r3',
       });
 
-      const frames = handler._wsFramesByRequest.get('r3');
+      const frames = handler.wsFramesByRequestForTest.get('r3');
       expect(frames).toBeDefined();
       expect(frames![0]!.payloadPreview).toBe('');
     });
@@ -908,13 +906,13 @@ describe('StreamingToolHandlersWs', () => {
       handler.callHandleWsFrame('sent', 'not-an-object' as any);
 
       // No requestId can be extracted, so nothing should happen
-      expect(handler._wsFramesByRequest.size).toBe(0);
+      expect(handler.wsFramesByRequestForTest.size).toBe(0);
     });
 
     it('handles params as null', async () => {
       handler.callHandleWsFrame('sent', null as any);
 
-      expect(handler._wsFramesByRequest.size).toBe(0);
+      expect(handler.wsFramesByRequestForTest.size).toBe(0);
     });
 
     it('defaults payloadData to empty string when missing', async () => {
@@ -923,7 +921,7 @@ describe('StreamingToolHandlersWs', () => {
         response: { opcode: 1 },
       });
 
-      const frames = handler._wsFramesByRequest.get('r1')!;
+      const frames = handler.wsFramesByRequestForTest.get('r1')!;
       expect(frames[0]!.payloadLength).toBe(0);
       expect(frames[0]!.payloadPreview).toBe('');
       expect(frames[0]!.payloadSample).toBe('');
@@ -937,7 +935,7 @@ describe('StreamingToolHandlersWs', () => {
         response: { opcode: 1, payloadData: longPayload },
       });
 
-      const frames = handler._wsFramesByRequest.get('r1')!;
+      const frames = handler.wsFramesByRequestForTest.get('r1')!;
       // 200 chars + ellipsis character
       expect(frames[0]!.payloadPreview.length).toBeLessThanOrEqual(201);
     });
@@ -950,7 +948,7 @@ describe('StreamingToolHandlersWs', () => {
         response: { opcode: 1, payloadData: longPayload },
       });
 
-      const frames = handler._wsFramesByRequest.get('r1')!;
+      const frames = handler.wsFramesByRequestForTest.get('r1')!;
       expect(frames[0]!.payloadSample.length).toBe(2000);
     });
 
@@ -960,7 +958,7 @@ describe('StreamingToolHandlersWs', () => {
         response: { opcode: 1, payloadData: 'short' },
       });
 
-      const frames = handler._wsFramesByRequest.get('r1')!;
+      const frames = handler.wsFramesByRequestForTest.get('r1')!;
       expect(frames[0]!.payloadPreview).toBe('short');
       expect(frames[0]!.payloadSample).toBe('short');
     });
@@ -972,7 +970,7 @@ describe('StreamingToolHandlersWs', () => {
         timestamp: 123.456,
       });
 
-      const frames = handler._wsFramesByRequest.get('r1')!;
+      const frames = handler.wsFramesByRequestForTest.get('r1')!;
       expect(frames[0]!.timestamp).toBe(123.456);
     });
 
@@ -985,7 +983,7 @@ describe('StreamingToolHandlersWs', () => {
       });
 
       const after = Date.now() / 1000;
-      const frames = handler._wsFramesByRequest.get('r1')!;
+      const frames = handler.wsFramesByRequestForTest.get('r1')!;
       expect(frames[0]!.timestamp).toBeGreaterThanOrEqual(before);
       expect(frames[0]!.timestamp).toBeLessThanOrEqual(after);
     });
@@ -1018,13 +1016,13 @@ describe('StreamingToolHandlersWs', () => {
     it('nullifies session and listeners references', async () => {
       await handler.handleWsMonitorEnable({});
 
-      expect(handler._wsSession).not.toBeNull();
-      expect(handler._wsListeners).not.toBeNull();
+      expect(handler.wsSessionForTest).not.toBeNull();
+      expect(handler.wsListenersForTest).not.toBeNull();
 
       await handler.callTeardownWsSession();
 
-      expect(handler._wsSession).toBeNull();
-      expect(handler._wsListeners).toBeNull();
+      expect(handler.wsSessionForTest).toBeNull();
+      expect(handler.wsListenersForTest).toBeNull();
     });
 
     it('is safe to call when no session exists', async () => {
@@ -1037,7 +1035,7 @@ describe('StreamingToolHandlersWs', () => {
 
       // Should not throw
       await expect(handler.callTeardownWsSession()).resolves.not.toThrow();
-      expect(handler._wsSession).toBeNull();
+      expect(handler.wsSessionForTest).toBeNull();
     });
 
     it('handles listener removal failure gracefully', async () => {
@@ -1074,24 +1072,24 @@ describe('StreamingToolHandlersWs', () => {
           url: 'wss://example.com/ws',
         });
 
-        expect(handler._wsConnections.has('ws-1')).toBe(true);
-        const conn = handler._wsConnections.get('ws-1')!;
+        expect(handler.wsConnectionsForTest.has('ws-1')).toBe(true);
+        const conn = handler.wsConnectionsForTest.get('ws-1')!;
         expect(conn.url).toBe('wss://example.com/ws');
         expect(conn.status).toBe('connecting');
       });
 
       it('ignores event without requestId', async () => {
         listeners['Network.webSocketCreated']!({ url: 'wss://example.com/ws' });
-        expect(handler._wsConnections.size).toBe(0);
+        expect(handler.wsConnectionsForTest.size).toBe(0);
       });
 
       it('ignores event without url', async () => {
         listeners['Network.webSocketCreated']!({ requestId: 'ws-1' });
-        expect(handler._wsConnections.size).toBe(0);
+        expect(handler.wsConnectionsForTest.size).toBe(0);
       });
 
       it('preserves existing connection data on re-created event', async () => {
-        handler._wsConnections.set('ws-1', {
+        handler.wsConnectionsForTest.set('ws-1', {
           requestId: 'ws-1',
           url: 'wss://old.com',
           status: 'open',
@@ -1105,7 +1103,7 @@ describe('StreamingToolHandlersWs', () => {
           url: 'wss://new.com',
         });
 
-        const conn = handler._wsConnections.get('ws-1')!;
+        const conn = handler.wsConnectionsForTest.get('ws-1')!;
         expect(conn.url).toBe('wss://new.com');
         expect(conn.status).toBe('open');
         expect(conn.framesCount).toBe(5);
@@ -1124,14 +1122,14 @@ describe('StreamingToolHandlersWs', () => {
           timestamp: 999,
         });
 
-        const conn = handler._wsConnections.get('ws-1')!;
+        const conn = handler.wsConnectionsForTest.get('ws-1')!;
         expect(conn.status).toBe('closed');
         expect(conn.closedTimestamp).toBe(999);
       });
 
       it('ignores close for unknown connection', async () => {
         listeners['Network.webSocketClosed']!({ requestId: 'unknown' });
-        expect(handler._wsConnections.has('unknown')).toBe(false);
+        expect(handler.wsConnectionsForTest.has('unknown')).toBe(false);
       });
 
       it('ignores close without requestId', async () => {
@@ -1149,7 +1147,7 @@ describe('StreamingToolHandlersWs', () => {
         listeners['Network.webSocketClosed']!({ requestId: 'ws-1' });
         const after = Date.now() / 1000;
 
-        const conn = handler._wsConnections.get('ws-1')!;
+        const conn = handler.wsConnectionsForTest.get('ws-1')!;
         expect(conn.closedTimestamp).toBeGreaterThanOrEqual(before);
         expect(conn.closedTimestamp).toBeLessThanOrEqual(after);
       });
@@ -1167,7 +1165,7 @@ describe('StreamingToolHandlersWs', () => {
           response: { status: 101 },
         });
 
-        const conn = handler._wsConnections.get('ws-1')!;
+        const conn = handler.wsConnectionsForTest.get('ws-1')!;
         expect(conn.handshakeStatus).toBe(101);
         expect(conn.status).toBe('open');
       });
@@ -1183,7 +1181,7 @@ describe('StreamingToolHandlersWs', () => {
           response: { status: 403 },
         });
 
-        const conn = handler._wsConnections.get('ws-1')!;
+        const conn = handler.wsConnectionsForTest.get('ws-1')!;
         expect(conn.status).toBe('error');
       });
 
@@ -1198,7 +1196,7 @@ describe('StreamingToolHandlersWs', () => {
           response: { status: 200 },
         });
 
-        const conn = handler._wsConnections.get('ws-1')!;
+        const conn = handler.wsConnectionsForTest.get('ws-1')!;
         expect(conn.status).toBe('open');
       });
 
@@ -1207,7 +1205,7 @@ describe('StreamingToolHandlersWs', () => {
           requestId: 'unknown',
           response: { status: 101 },
         });
-        expect(handler._wsConnections.has('unknown')).toBe(false);
+        expect(handler.wsConnectionsForTest.has('unknown')).toBe(false);
       });
 
       it('ignores handshake without requestId', async () => {
@@ -1231,8 +1229,8 @@ describe('StreamingToolHandlersWs', () => {
           timestamp: 100,
         });
 
-        expect(handler._wsFramesByRequest.has('ws-1')).toBe(true);
-        const frames = handler._wsFramesByRequest.get('ws-1')!;
+        expect(handler.wsFramesByRequestForTest.has('ws-1')).toBe(true);
+        const frames = handler.wsFramesByRequestForTest.get('ws-1')!;
         expect(frames[0]!.direction).toBe('sent');
       });
     });
@@ -1250,8 +1248,8 @@ describe('StreamingToolHandlersWs', () => {
           timestamp: 200,
         });
 
-        expect(handler._wsFramesByRequest.has('ws-1')).toBe(true);
-        const frames = handler._wsFramesByRequest.get('ws-1')!;
+        expect(handler.wsFramesByRequestForTest.has('ws-1')).toBe(true);
+        const frames = handler.wsFramesByRequestForTest.get('ws-1')!;
         expect(frames[0]!.direction).toBe('received');
       });
     });
@@ -1278,8 +1276,8 @@ describe('StreamingToolHandlersWs', () => {
         url: 'wss://other.com/ws',
       });
 
-      expect(handler._wsConnections.has('match')).toBe(true);
-      expect(handler._wsConnections.has('no-match')).toBe(false);
+      expect(handler.wsConnectionsForTest.has('match')).toBe(true);
+      expect(handler.wsConnectionsForTest.has('no-match')).toBe(false);
     });
   });
 });

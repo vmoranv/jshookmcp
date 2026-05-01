@@ -51,10 +51,10 @@ export class ExternalToolRunner {
    * Wrapped in ioLimit for global concurrency control.
    */
   async run(request: ToolRunRequest): Promise<ToolRunResult> {
-    return ioLimit(() => this._run(request));
+    return ioLimit(() => this.runInternal(request));
   }
 
-  private async _run(request: ToolRunRequest): Promise<ToolRunResult> {
+  private async runInternal(request: ToolRunRequest): Promise<ToolRunResult> {
     const spec = this.registry.getSpec(request.tool);
 
     // Check availability

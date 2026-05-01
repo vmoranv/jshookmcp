@@ -9,7 +9,7 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 export type BuiltTool = Tool & {
-  __autocomplete?: Record<string, (value: string) => string[] | Promise<string[]>>;
+  autocompleteHandlers?: Record<string, (value: string) => string[] | Promise<string[]>>;
   outputSchema?: Record<string, unknown>;
 };
 
@@ -161,7 +161,7 @@ function buildTool(state: BuilderState): BuiltTool {
     },
     ...(state.asyncTask ? { execution: { taskSupport: 'optional' as const } } : {}),
     ...(Object.keys(state.autocompleteHandlers).length > 0
-      ? { __autocomplete: state.autocompleteHandlers }
+      ? { autocompleteHandlers: state.autocompleteHandlers }
       : {}),
     ...(state.outputSchema ? { outputSchema: state.outputSchema as any } : {}),
   };

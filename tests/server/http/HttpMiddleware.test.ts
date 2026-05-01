@@ -17,21 +17,21 @@ function mockReq(overrides: Partial<IncomingMessage> = {}): IncomingMessage {
   } as unknown as IncomingMessage;
 }
 
-function mockRes(): ServerResponse & { _status?: number; _body?: string } {
+function mockRes(): ServerResponse & { statusCodeValue?: number; bodyValue?: string } {
   const res: Record<string, unknown> = {
-    _status: undefined,
-    _body: undefined,
+    statusCodeValue: undefined,
+    bodyValue: undefined,
     writeHead(status: number) {
-      res._status = status;
+      res.statusCodeValue = status;
       return res;
     },
     end(body?: string, cb?: () => void) {
-      res._body = body;
+      res.bodyValue = body;
       if (typeof cb === 'function') cb();
       return res;
     },
   };
-  return res as unknown as ServerResponse & { _status?: number; _body?: string };
+  return res as unknown as ServerResponse & { statusCodeValue?: number; bodyValue?: string };
 }
 
 /* ---------- tests ---------- */
@@ -76,7 +76,7 @@ describe('HttpMiddleware', () => {
       const req = mockReq({ headers: { origin: 'http://evil.com' } });
       const res = mockRes();
       expect(checkOrigin(req, res)).toBe(false);
-      expect(res._status).toBe(403);
+      expect(res.statusCodeValue).toBe(403);
     });
 
     it('allows non-localhost origin when auth token is set', () => {
@@ -90,7 +90,7 @@ describe('HttpMiddleware', () => {
       const req = mockReq({ headers: { origin: 'not-a-url' } });
       const res = mockRes();
       expect(checkOrigin(req, res)).toBe(false);
-      expect(res._status).toBe(403);
+      expect(res.statusCodeValue).toBe(403);
     });
   });
 
@@ -107,7 +107,7 @@ describe('HttpMiddleware', () => {
       const req = mockReq();
       const res = mockRes();
       expect(checkAuth(req, res)).toBe(false);
-      expect(res._status).toBe(403);
+      expect(res.statusCodeValue).toBe(403);
     });
 
     it('allows non-local binding with MCP_ALLOW_INSECURE=1', () => {
@@ -134,7 +134,7 @@ describe('HttpMiddleware', () => {
       });
       const res = mockRes();
       expect(checkAuth(req, res)).toBe(false);
-      expect(res._status).toBe(403);
+      expect(res.statusCodeValue).toBe(403);
     });
 
     it('rejects missing authorization header', () => {
@@ -142,7 +142,7 @@ describe('HttpMiddleware', () => {
       const req = mockReq({ headers: {} });
       const res = mockRes();
       expect(checkAuth(req, res)).toBe(false);
-      expect(res._status).toBe(401);
+      expect(res.statusCodeValue).toBe(401);
     });
 
     it('rejects non-Bearer authorization scheme', () => {
@@ -152,7 +152,7 @@ describe('HttpMiddleware', () => {
       });
       const res = mockRes();
       expect(checkAuth(req, res)).toBe(false);
-      expect(res._status).toBe(401);
+      expect(res.statusCodeValue).toBe(401);
     });
   });
 
@@ -182,7 +182,7 @@ describe('HttpMiddleware', () => {
       const res = mockRes();
 
       await expect(readBodyWithLimit(req, res, 1024)).rejects.toThrow('body_too_large');
-      expect(res._status).toBe(413);
+      expect(res.statusCodeValue).toBe(413);
     });
 
     it('parses valid JSON body', async () => {
@@ -215,7 +215,7 @@ describe('HttpMiddleware', () => {
       handlers['end']!();
 
       await expect(promise).rejects.toThrow('invalid_json');
-      expect(res._status).toBe(400);
+      expect(res.statusCodeValue).toBe(400);
     });
 
     it('rejects body exceeding limit during streaming', async () => {
@@ -231,7 +231,7 @@ describe('HttpMiddleware', () => {
       handlers['data']!(Buffer.from('a'.repeat(20)));
 
       await expect(promise).rejects.toThrow('body_too_large');
-      expect(res._status).toBe(413);
+      expect(res.statusCodeValue).toBe(413);
     });
 
     it('rejects on request error event', async () => {
@@ -324,7 +324,7 @@ describe('HttpMiddleware', () => {
       });
       const res = mockRes();
       expect(checkAuth(req, res)).toBe(false);
-      expect(res._status).toBe(403);
+      expect(res.statusCodeValue).toBe(403);
     });
   });
 });

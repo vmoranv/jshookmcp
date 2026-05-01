@@ -85,7 +85,7 @@ export class MacroRunner {
       });
 
       // Build progress from spans
-      const progress = this._buildProgress(def, result.spans, result.stepResults);
+      const progress = this.buildProgress(def, result.spans, result.stepResults);
 
       return {
         macroId: def.id,
@@ -102,7 +102,7 @@ export class MacroRunner {
       const error = err instanceof Error ? err.message : String(err);
 
       // Atomic bailout — collect whatever step results we have
-      const progress = this._buildPartialProgress(def, error);
+      const progress = this.buildPartialProgress(def, error);
 
       return {
         macroId: def.id,
@@ -153,7 +153,7 @@ export class MacroRunner {
   /**
    * Build progress from workflow spans and step results (success path).
    */
-  private _buildProgress(
+  private buildProgress(
     def: MacroDefinition,
     spans: Array<{ name: string; attrs?: Record<string, unknown>; at: string }>,
     stepResults: Record<string, unknown>,
@@ -187,7 +187,7 @@ export class MacroRunner {
   /**
    * Build partial progress for the failure path.
    */
-  private _buildPartialProgress(def: MacroDefinition, error: string): MacroStepProgress[] {
+  private buildPartialProgress(def: MacroDefinition, error: string): MacroStepProgress[] {
     // We don't know exactly which step failed without stepResults,
     // so mark all as unknown and the last attempted as failed
     return def.steps.map((step, i) => ({

@@ -132,19 +132,19 @@ export class QuickJSSandbox {
 
     try {
       // Inject console.log stub to capture output
-      this._injectConsole(context, logs);
+      this.injectConsole(context, logs);
 
       // Inject pre-built helper libraries
-      this._injectHelpers(context);
+      this.injectHelpers(context);
 
       // Inject MCP bridge if available
       if (this.bridge) {
-        this._injectBridge(context, this.bridge, logs);
+        this.injectBridge(context, this.bridge, logs);
       }
 
       // Inject user-supplied globals
       if (options.globals) {
-        this._injectGlobals(context, options.globals);
+        this.injectGlobals(context, options.globals);
       }
 
       // Evaluate the user code
@@ -245,7 +245,7 @@ export class QuickJSSandbox {
       }
 
       // Execute one round
-      const roundResult = await this._executeOneRound(code, bridge, {
+      const roundResult = await this.executeOneRound(code, bridge, {
         ...options,
         globals: roundGlobals,
       });
@@ -314,7 +314,7 @@ export class QuickJSSandbox {
    * Run a single evaluation round inside a fresh QuickJS runtime.
    * Used internally by executeWithOrchestration.
    */
-  private async _executeOneRound(
+  private async executeOneRound(
     code: string,
     bridge: MCPBridge,
     options: SandboxOptions = {},
@@ -340,12 +340,12 @@ export class QuickJSSandbox {
     const logs: string[] = [];
 
     try {
-      this._injectConsole(context, logs);
-      this._injectHelpers(context);
-      this._injectBridgeForOrchestration(context, bridge, logs);
+      this.injectConsole(context, logs);
+      this.injectHelpers(context);
+      this.injectBridgeForOrchestration(context, bridge, logs);
 
       if (options.globals) {
-        this._injectGlobals(context, options.globals);
+        this.injectGlobals(context, options.globals);
       }
 
       const result = context.evalCode(code, 'sandbox-eval.js');
@@ -395,7 +395,7 @@ export class QuickJSSandbox {
    * Inject a `console` object into the sandbox whose `log` method
    * pushes stringified arguments into the captured `logs` array.
    */
-  private _injectConsole(ctx: QuickJSContext, logs: string[]): void {
+  private injectConsole(ctx: QuickJSContext, logs: string[]): void {
     const consoleObj = ctx.newObject();
     const logFn = ctx.newFunction('log', (...args: QuickJSHandle[]) => {
       const parts = args.map((a) => {
@@ -417,7 +417,7 @@ export class QuickJSSandbox {
   /**
    * Inject user-supplied global variables into the QuickJS context.
    */
-  private _injectGlobals(ctx: QuickJSContext, globals: Record<string, unknown>): void {
+  private injectGlobals(ctx: QuickJSContext, globals: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(globals)) {
       const handle = marshalToQuickJS(ctx, value);
       ctx.setProp(ctx.global, key, handle);
@@ -429,7 +429,7 @@ export class QuickJSSandbox {
    * Inject pre-built helper libraries (base64, hex, hash, etc.) into the
    * sandbox global scope by evaluating the helper source code.
    */
-  private _injectHelpers(ctx: QuickJSContext): void {
+  private injectHelpers(ctx: QuickJSContext): void {
     const result = ctx.evalCode(SANDBOX_HELPER_SOURCE, 'sandbox-helpers.js');
     if (result.error) {
       // Helpers failed to load — log but don't block execution
@@ -451,7 +451,7 @@ export class QuickJSSandbox {
    * For sandbox scripts that need bridge results inline, the host orchestrator
    * (AutoCorrectionLoop or handler) resolves bridge calls between executions.
    */
-  private _injectBridge(ctx: QuickJSContext, bridge: MCPBridge, logs: string[]): void {
+  private injectBridge(ctx: QuickJSContext, bridge: MCPBridge, logs: string[]): void {
     const mcpObj = ctx.newObject();
 
     // mcp.call(name, args) — synchronous stub that logs the call intent
@@ -489,7 +489,7 @@ export class QuickJSSandbox {
    * resolves these calls between rounds and injects results into
    * `__bridgeResults[callId]`.
    */
-  private _injectBridgeForOrchestration(
+  private injectBridgeForOrchestration(
     ctx: QuickJSContext,
     bridge: MCPBridge,
     logs: string[],

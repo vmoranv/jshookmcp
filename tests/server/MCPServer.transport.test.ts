@@ -13,8 +13,8 @@ const mocks = vi.hoisted(() => {
   function createMockHttpServer(handler: (req: any, res: any) => void) {
     const listeners = new Map<string, Array<(...args: any[]) => void>>();
     const server = {
-      __handler: handler,
-      __listeners: listeners,
+      requestHandlerForTest: handler,
+      listenersForTest: listeners,
       requestTimeout: 0,
       headersTimeout: 0,
       keepAliveTimeout: 0,
@@ -270,15 +270,15 @@ describe('MCPServer.transport', () => {
       destroy: vi.fn(),
       on: vi.fn((event: string, cb: () => void) => {
         if (event === 'close') {
-          socket.__close = cb;
+          socket.closeHandlerForTest = cb;
         }
       }),
-      __close: undefined as undefined | (() => void),
+      closeHandlerForTest: undefined as undefined | (() => void),
     };
 
     server.emit('connection', socket);
     expect(ctx.httpSockets.has(socket)).toBe(true);
-    socket.__close?.();
+    socket.closeHandlerForTest?.();
     expect(ctx.httpSockets.has(socket)).toBe(false);
 
     const sessionId = transport.options.sessionIdGenerator as () => string;
@@ -297,7 +297,7 @@ describe('MCPServer.transport', () => {
     const req = { url: '/health', method: 'GET' };
     const res = createRes();
 
-    server.__handler(req, res);
+    server.requestHandlerForTest(req, res);
 
     expect(mocks.checkOrigin).not.toHaveBeenCalled();
     expect(mocks.checkAuth).not.toHaveBeenCalled();
@@ -328,7 +328,7 @@ describe('MCPServer.transport', () => {
     const req = { url: '/health', method: 'GET' };
     const res = createRes();
 
-    server.__handler(req, res);
+    server.requestHandlerForTest(req, res);
 
     expect(res.status).toBe(200);
     const body = JSON.parse(res.body);
@@ -343,7 +343,7 @@ describe('MCPServer.transport', () => {
     const server = mocks.httpServers[0];
     const res = createRes();
 
-    server.__handler({ url: '/other', method: 'GET' }, res);
+    server.requestHandlerForTest({ url: '/other', method: 'GET' }, res);
 
     expect(res.status).toBe(404);
     expect(res.body).toBe('Not Found – use POST /mcp or GET /health');
@@ -356,17 +356,17 @@ describe('MCPServer.transport', () => {
     const res = createRes();
 
     mocks.checkOrigin.mockReturnValueOnce(false);
-    server.__handler({ url: '/mcp', method: 'GET' }, res);
+    server.requestHandlerForTest({ url: '/mcp', method: 'GET' }, res);
     expect(mocks.checkAuth).not.toHaveBeenCalled();
 
     mocks.checkOrigin.mockReturnValue(true);
     mocks.checkAuth.mockReturnValueOnce(false);
-    server.__handler({ url: '/mcp', method: 'GET' }, createRes());
+    server.requestHandlerForTest({ url: '/mcp', method: 'GET' }, createRes());
     expect(mocks.checkRateLimit).not.toHaveBeenCalled();
 
     mocks.checkAuth.mockReturnValue(true);
     mocks.checkRateLimit.mockReturnValueOnce(false);
-    server.__handler({ url: '/mcp', method: 'GET' }, createRes());
+    server.requestHandlerForTest({ url: '/mcp', method: 'GET' }, createRes());
     expect(mocks.httpTransports[0].handleRequest).not.toHaveBeenCalled();
   });
 
@@ -378,8 +378,8 @@ describe('MCPServer.transport', () => {
 
     const getReq = { url: '/mcp', method: 'GET' };
     const deleteReq = { url: '/mcp', method: 'DELETE' };
-    server.__handler(getReq, createRes());
-    server.__handler(deleteReq, createRes());
+    server.requestHandlerForTest(getReq, createRes());
+    server.requestHandlerForTest(deleteReq, createRes());
 
     expect(transport.handleRequest).toHaveBeenNthCalledWith(1, getReq, expect.any(Object));
     expect(transport.handleRequest).toHaveBeenNthCalledWith(2, deleteReq, expect.any(Object));
@@ -393,7 +393,7 @@ describe('MCPServer.transport', () => {
     const req = { url: '/mcp', method: 'POST' };
     const res = createRes();
 
-    server.__handler(req, res);
+    server.requestHandlerForTest(req, res);
     await Promise.resolve();
 
     expect(mocks.readBodyWithLimit).toHaveBeenCalledWith(req, res);
@@ -406,7 +406,7 @@ describe('MCPServer.transport', () => {
     const server = mocks.httpServers[0];
     const res = createRes();
 
-    server.__handler({ url: '/mcp', method: 'PUT' }, res);
+    server.requestHandlerForTest({ url: '/mcp', method: 'PUT' }, res);
 
     expect(res.status).toBe(405);
     expect(res.body).toBe('Method Not Allowed');
@@ -556,7 +556,7 @@ describe('MCPServer.transport', () => {
     const res = createRes();
 
     mocks.readBodyWithLimit.mockRejectedValueOnce(new Error('Body too large'));
-    server.__handler(req, res);
+    server.requestHandlerForTest(req, res);
 
     await new Promise((r) => setTimeout(r, 0));
     expect(transport.handleRequest).not.toHaveBeenCalled();
@@ -595,8 +595,8 @@ describe('MCPServer.transport', () => {
     let errCb: any;
     mocks.createServer.mockImplementationOnce((handler: any) => {
       return {
-        __handler: handler,
-        __listeners: new Map(),
+        requestHandlerForTest: handler,
+        listenersForTest: new Map(),
         requestTimeout: 0,
         headersTimeout: 0,
         keepAliveTimeout: 0,

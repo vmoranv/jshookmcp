@@ -22,9 +22,9 @@ export type { ToolResponse };
  */
 export class ResponseBuilder {
   private payload: Record<string, unknown> = {};
-  private _isError = false;
-  private _additionalContent: (ImageContent | EmbeddedResource)[] = [];
-  private _useStructured = false;
+  private hasMcpError = false;
+  private additionalContent: (ImageContent | EmbeddedResource)[] = [];
+  private useStructuredContent = false;
 
   /** Mark as success (sets `success: true`). */
   ok(): this {
@@ -55,13 +55,13 @@ export class ResponseBuilder {
 
   /** Set MCP-level `isError: true` on the response envelope. */
   mcpError(): this {
-    this._isError = true;
+    this.hasMcpError = true;
     return this;
   }
 
   /** Push an image block to the final response. */
   image(base64: string, mimeType: string): this {
-    this._additionalContent.push({
+    this.additionalContent.push({
       type: 'image',
       data: base64,
       mimeType,
@@ -71,7 +71,7 @@ export class ResponseBuilder {
 
   /** Push an embedded resource block to the final response. */
   embeddedResource(uri: string, text: string, mimeType = 'text/plain'): this {
-    this._additionalContent.push({
+    this.additionalContent.push({
       type: 'resource',
       resource: {
         uri,
@@ -84,7 +84,7 @@ export class ResponseBuilder {
 
   /** Send output payload natively as `structuredContent` in the MCP envelope instead of stringifying inside text block. */
   structured(): this {
-    this._useStructured = true;
+    this.useStructuredContent = true;
     return this;
   }
 
@@ -97,12 +97,12 @@ export class ResponseBuilder {
       this.merge(fields);
     }
     const textContent: TextContent = { type: 'text', text: JSON.stringify(this.payload, null, 2) };
-    const content = [textContent, ...this._additionalContent];
+    const content = [textContent, ...this.additionalContent];
 
     return {
       content,
-      ...(this._isError ? { isError: true } : {}),
-      ...(this._useStructured ? { structuredContent: this.payload } : {}),
+      ...(this.hasMcpError ? { isError: true } : {}),
+      ...(this.useStructuredContent ? { structuredContent: this.payload } : {}),
     } as ToolResponse;
   }
 

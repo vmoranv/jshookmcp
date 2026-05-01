@@ -21,7 +21,7 @@ vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
 
 vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
   StdioClientTransport: class MockStdioClientTransport {
-    _process = { pid: 4321 };
+    ['_process'] = { pid: 4321 };
     close = state.closeTransport;
   },
 }));

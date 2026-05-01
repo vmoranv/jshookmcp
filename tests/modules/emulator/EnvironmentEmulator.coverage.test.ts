@@ -228,8 +228,7 @@ describe('EnvironmentEmulator – coverage gaps', () => {
 
     it('classifies object types when path ends with Element', async () => {
       const emulator = new EnvironmentEmulator();
-      // @ts-expect-error
-      const _result = await emulator.analyze({
+      await emulator.analyze({
         code: 'document.activeElement;',
         autoFetch: false,
         includeComments: false,

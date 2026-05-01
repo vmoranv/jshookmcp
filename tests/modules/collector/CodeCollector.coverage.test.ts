@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PuppeteerConfig, CodeFile } from '@internal-types/index';
+import type { PuppeteerConfig } from '@internal-types/index';
 
 const mocks = vi.hoisted(() => ({
   launch: vi.fn(),
@@ -55,19 +55,6 @@ vi.mock('@modules/collector/PageScriptCollectors', () => ({
 
 import { CodeCollector } from '@modules/collector/CodeCollector';
 
-// @ts-expect-error
-class _TestCodeCollector extends CodeCollector {
-  public getProtectedCollectedUrls() {
-    return this.collectedUrls;
-  }
-  public getProtectedCollectedFilesCache() {
-    return this.collectedFilesCache;
-  }
-  public setProtectedCollectedFilesCache(files: Map<string, CodeFile>) {
-    this.collectedFilesCache = files;
-  }
-}
-
 function createBrowserMock(overrides: Record<string, any> = {}) {
   return {
     on: vi.fn(),
@@ -79,23 +66,6 @@ function createBrowserMock(overrides: Record<string, any> = {}) {
     version: vi.fn().mockResolvedValue('Chrome/123'),
     process: vi.fn().mockReturnValue({ pid: 12345 }),
     ...overrides,
-  } as any;
-}
-
-// @ts-expect-error
-function _createTargetMock(url = 'https://example.com', type = 'page', page?: any) {
-  return {
-    type: vi.fn().mockReturnValue(type),
-    url: vi.fn().mockReturnValue(url),
-    page: vi.fn().mockResolvedValue(
-      page ?? {
-        url: vi.fn().mockReturnValue(url),
-        title: vi.fn().mockResolvedValue('Example'),
-        setUserAgent: vi.fn().mockResolvedValue(undefined),
-        evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
-        goto: vi.fn().mockResolvedValue(undefined),
-      },
-    ),
   } as any;
 }
 

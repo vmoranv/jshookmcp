@@ -1,11 +1,11 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { getCrossDomainConfig, _resetConfigCache } from '@server/domains/cross-domain/config';
+import { getCrossDomainConfig, resetConfigCache } from '@server/domains/cross-domain/config';
 
 describe('CrossDomainConfig', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    _resetConfigCache();
+    resetConfigCache();
     process.env = { ...originalEnv };
   });
 
@@ -33,7 +33,7 @@ describe('CrossDomainConfig', () => {
     process.env.FRIDA_SERVER_HOST = '192.168.1.100';
     process.env.FRIDA_SERVER_PORT = '27043';
 
-    _resetConfigCache();
+    resetConfigCache();
     const config = getCrossDomainConfig();
 
     expect(config.fridaEnabled).toBe(false);
@@ -44,7 +44,7 @@ describe('CrossDomainConfig', () => {
   it('should enable Ghidra when path is set', async () => {
     process.env.GHIDRA_HEADLESS_PATH = '/opt/ghidra/support/analyzeHeadless';
 
-    _resetConfigCache();
+    resetConfigCache();
     const config = getCrossDomainConfig();
 
     expect(config.ghidraEnabled).toBe(true);
@@ -54,7 +54,7 @@ describe('CrossDomainConfig', () => {
   it('should enable Unidbg when JAR path is set', async () => {
     process.env.UNIDBG_JAR_PATH = '/opt/unidbg/unidbg-android.jar';
 
-    _resetConfigCache();
+    resetConfigCache();
     const config = getCrossDomainConfig();
 
     expect(config.unidbgEnabled).toBe(true);

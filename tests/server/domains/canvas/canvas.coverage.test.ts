@@ -159,7 +159,7 @@ vi.mock('@server/domains/canvas/handlers/shared', () => {
     return null;
   });
   // Expose mutable state so tests can reset/configure the mock
-  (globalThis as Record<string, unknown>).__canvasMock = { fp: fpControl, ra };
+  (globalThis as Record<string, unknown>).canvasMockForTest = { fp: fpControl, ra };
   return {
     fingerprintCanvas,
     resolveAdapter: ra,
@@ -177,12 +177,16 @@ vi.mock('@server/domains/canvas/handlers/shared', () => {
 /** Get the fingerprintCanvas mock from the vi.mock factory. */
 function getFingerprintCanvasMock() {
   // @ts-expect-error
-  return (globalThis as Record<string, unknown>).__canvasMock['fp'] as ReturnType<typeof vi.fn>;
+  return (globalThis as Record<string, unknown>).canvasMockForTest['fp'] as ReturnType<
+    typeof vi.fn
+  >;
 }
 /** Get the resolveAdapter mock. */
 function getResolveAdapterMock() {
   // @ts-expect-error
-  return (globalThis as Record<string, unknown>).__canvasMock['ra'] as ReturnType<typeof vi.fn>;
+  return (globalThis as Record<string, unknown>).canvasMockForTest['ra'] as ReturnType<
+    typeof vi.fn
+  >;
 }
 function installDefaultFingerprintCanvasMock() {
   const mock = getFingerprintCanvasMock();

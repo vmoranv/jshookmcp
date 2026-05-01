@@ -37,10 +37,10 @@ export const MAINTENANCE_TASK_PATTERN =
 
 // ── Workflow Rules Cache ──
 
-let _cachedWorkflowRules: WorkflowRule[] | null = null;
+let cachedWorkflowRules: WorkflowRule[] | null = null;
 
 // LRU cache for detectWorkflowIntent results (queries repeat frequently)
-const _intentCache = new Map<string, WorkflowRule | null>();
+const intentCache = new Map<string, WorkflowRule | null>();
 const INTENT_CACHE_MAX = 64;
 
 /**
@@ -51,7 +51,7 @@ const INTENT_CACHE_MAX = 64;
  * Cached lazily — manifests are immutable at runtime.
  */
 export function getEffectiveWorkflowRules(): WorkflowRule[] {
-  if (_cachedWorkflowRules) return _cachedWorkflowRules;
+  if (cachedWorkflowRules) return cachedWorkflowRules;
   const rules: WorkflowRule[] = [];
   for (const m of getAllManifests()) {
     if (m.workflowRule) {
@@ -64,18 +64,18 @@ export function getEffectiveWorkflowRules(): WorkflowRule[] {
       });
     }
   }
-  _cachedWorkflowRules = [...rules].toSorted(
+  cachedWorkflowRules = [...rules].toSorted(
     (a: WorkflowRule, b: WorkflowRule) => b.priority - a.priority,
   );
   // Invalidate intent cache when rules are recomputed
-  _intentCache.clear();
-  return _cachedWorkflowRules;
+  intentCache.clear();
+  return cachedWorkflowRules;
 }
 
 // ── Intent Detection Functions ──
 
 export function detectWorkflowIntent(query: string): WorkflowRule | null {
-  const cached = _intentCache.get(query);
+  const cached = intentCache.get(query);
   if (cached !== undefined) return cached;
 
   const matches: WorkflowRule[] = [];
@@ -91,11 +91,11 @@ export function detectWorkflowIntent(query: string): WorkflowRule | null {
     matches.length === 0 ? null : matches.toSorted((a, b) => b.priority - a.priority)[0]!;
 
   // Evict oldest entry when cache is full
-  if (_intentCache.size >= INTENT_CACHE_MAX) {
-    const firstKey = _intentCache.keys().next().value;
-    if (firstKey !== undefined) _intentCache.delete(firstKey);
+  if (intentCache.size >= INTENT_CACHE_MAX) {
+    const firstKey = intentCache.keys().next().value;
+    if (firstKey !== undefined) intentCache.delete(firstKey);
   }
-  _intentCache.set(query, result);
+  intentCache.set(query, result);
   return result;
 }
 

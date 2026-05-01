@@ -154,8 +154,8 @@ describe('StealthScripts — coverage for injected script bodies', () => {
         fn();
 
         // Without offset
-        // @ts-expect-error
-        const _t1 = performance.now();
+        const t1 = performance.now();
+        expect(typeof t1).toBe('number');
 
         // With offset (set on window, which the patch reads)
         (globalThis as any).__cdpTimingOffset = 100;
@@ -431,8 +431,7 @@ describe('StealthScripts — coverage for injected script bodies', () => {
           }),
         };
 
-        // @ts-expect-error
-        const _result = patchedToDataURL.call(fakeCanvas, 'image/png');
+        patchedToDataURL.call(fakeCanvas, 'image/png');
 
         // getContext should have been called
         expect(fakeCanvas.getContext).toHaveBeenCalledWith('2d');

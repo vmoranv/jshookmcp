@@ -99,7 +99,7 @@ export async function fetchRealEnvironmentData(
 
       type WindowWithExtensions = Window & {
         chrome?: ChromeLike;
-        _sdkGlueVersionMap?: Record<string, unknown>;
+        sdkGlueVersionMap?: Record<string, unknown>;
         requestAnimationFrame?: (callback: FrameRequestCallback) => number;
         cancelAnimationFrame?: (id: number) => void;
       };
@@ -237,7 +237,7 @@ export async function fetchRealEnvironmentData(
         };
       }
 
-      typedWindow._sdkGlueVersionMap = typedWindow._sdkGlueVersionMap || {};
+      typedWindow.sdkGlueVersionMap = typedWindow.sdkGlueVersionMap || {};
     });
 
     await page.goto(url, { waitUntil: 'networkidle2', timeout: EMULATOR_FETCH_GOTO_TIMEOUT_MS });

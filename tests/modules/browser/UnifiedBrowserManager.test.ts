@@ -33,8 +33,8 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
   chromeState.ctor = ctorSpy;
 
   class BrowserModeManager {
-    __modeConfig: any;
-    __launchOptions: any;
+    modeConfigForTest: any;
+    launchOptionsForTest: any;
     private browser = { isConnected: vi.fn(() => true) };
     private page = { id: 'primary-browser-page' };
     launch = vi.fn(async () =>
@@ -47,8 +47,8 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
 
     constructor(modeConfig: any, launchOptions: any) {
       ctorSpy(modeConfig, launchOptions);
-      this.__modeConfig = modeConfig;
-      this.__launchOptions = launchOptions;
+      this.modeConfigForTest = modeConfig;
+      this.launchOptionsForTest = launchOptions;
       chromeState.instances.push(this);
     }
   }
@@ -61,7 +61,7 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => {
   camoufoxState.ctor = ctorSpy;
 
   class CamoufoxBrowserManager {
-    __config: any;
+    configForTest: any;
     private browser = { isConnected: vi.fn(() => true) };
     private page = { id: 'camoufox-page' };
     launch = vi.fn(async () =>
@@ -75,7 +75,7 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => {
 
     constructor(config: any) {
       ctorSpy(config);
-      this.__config = config;
+      this.configForTest = config;
       camoufoxState.instances.push(this);
     }
   }
@@ -126,11 +126,13 @@ describe('UnifiedBrowserManager', () => {
 
     expect(chromeState.ctor).toHaveBeenCalledTimes(1);
     const chromeInstance = chromeState.instances[0]!;
-    expect(chromeInstance.__modeConfig.defaultHeadless).toBe(true);
-    expect(chromeInstance.__launchOptions.headless).toBe(true);
-    expect(chromeInstance.__launchOptions.args).toContain('--custom-arg');
-    expect(chromeInstance.__launchOptions.args).toContain('--proxy-server=http://127.0.0.1:8888');
-    expect(chromeInstance.__launchOptions.args).toContain('--remote-debugging-port=9222');
+    expect(chromeInstance.modeConfigForTest.defaultHeadless).toBe(true);
+    expect(chromeInstance.launchOptionsForTest.headless).toBe(true);
+    expect(chromeInstance.launchOptionsForTest.args).toContain('--custom-arg');
+    expect(chromeInstance.launchOptionsForTest.args).toContain(
+      '--proxy-server=http://127.0.0.1:8888',
+    );
+    expect(chromeInstance.launchOptionsForTest.args).toContain('--remote-debugging-port=9222');
   });
 
   it('launches Camoufox with driver-specific headless normalization', async () => {
@@ -145,9 +147,9 @@ describe('UnifiedBrowserManager', () => {
 
     expect(camoufoxState.ctor).toHaveBeenCalledTimes(1);
     const camoufoxInstance = camoufoxState.instances[0]!;
-    expect(camoufoxInstance.__config.headless).toBe(true);
-    expect(camoufoxInstance.__config.os).toBe('linux');
-    expect(camoufoxInstance.__config.proxy).toEqual({ server: 'socks5://127.0.0.1:9000' });
+    expect(camoufoxInstance.configForTest.headless).toBe(true);
+    expect(camoufoxInstance.configForTest.os).toBe('linux');
+    expect(camoufoxInstance.configForTest.proxy).toEqual({ server: 'socks5://127.0.0.1:9000' });
   });
 
   it('creates new pages lazily and tracks active page state', async () => {

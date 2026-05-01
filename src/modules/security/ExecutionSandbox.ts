@@ -99,10 +99,10 @@ export class ExecutionSandbox {
    * Wrapped in cpuLimit for global concurrency control.
    */
   async execute(request: SandboxExecuteRequest): Promise<SandboxExecuteResult> {
-    return cpuLimit(() => this._execute(request));
+    return cpuLimit(() => this.executeInternal(request));
   }
 
-  private _execute(request: SandboxExecuteRequest): Promise<SandboxExecuteResult> {
+  private executeInternal(request: SandboxExecuteRequest): Promise<SandboxExecuteResult> {
     const timeoutMs = request.timeoutMs ?? SANDBOX_EXEC_TIMEOUT_MS;
     const memoryLimitMB = request.memoryLimitMB ?? SANDBOX_MEMORY_LIMIT_MB;
     const startTime = Date.now();

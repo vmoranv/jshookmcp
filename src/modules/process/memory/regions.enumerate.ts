@@ -233,9 +233,9 @@ export async function enumerateRegions(
       timeout: MEMORY_MODULES_TIMEOUT_MS,
     });
 
-    const _trimmed = stdout.trim();
-    if (!_trimmed) throw new Error('PowerShell returned empty output');
-    const result = JSON.parse(_trimmed);
+    const trimmed = stdout.trim();
+    if (!trimmed) throw new Error('PowerShell returned empty output');
+    const result = JSON.parse(trimmed);
     return { success: result.success, regions: result.regions, error: result.error };
   } catch (error) {
     logger.error('Region enumeration failed:', error);

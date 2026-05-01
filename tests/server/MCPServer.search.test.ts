@@ -194,7 +194,7 @@ interface RegisteredToolInfo {
 }
 
 interface MockContext extends MCPServerContext {
-  __registered: Map<string, RegisteredToolInfo>;
+  registeredToolsForTest: Map<string, RegisteredToolInfo>;
 }
 
 function createCtx(overrides: DeepPartial<MCPServerContext> = {}): MockContext {
@@ -228,7 +228,7 @@ function createCtx(overrides: DeepPartial<MCPServerContext> = {}): MockContext {
     registerSingleTool: vi.fn(() => ({ remove: vi.fn() })),
     reloadExtensions: vi.fn(async () => ({ success: true })),
     listExtensions: vi.fn(() => ({ success: true })),
-    __registered: registered,
+    registeredToolsForTest: registered,
     ...overrides,
   } as unknown as MockContext;
   return ctx;
@@ -312,7 +312,7 @@ describe('MCPServer.search', () => {
     });
 
     registerSearchMetaTools(ctx);
-    const searchToolsRegistration = ctx.__registered.get('search_tools')!;
+    const searchToolsRegistration = ctx.registeredToolsForTest.get('search_tools')!;
 
     // Extension tool counted in total (4 built-in + 1 extension = 5)
     expect(searchToolsRegistration.options.description).toContain('Search 5 tools');
@@ -328,7 +328,7 @@ describe('MCPServer.search', () => {
     ctx.activatedToolNames.add('page_navigate');
 
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     const first = parseResponse<SearchToolsResponse>(
       await searchHandler({ query: 'page', top_k: 5 }),
@@ -349,7 +349,7 @@ describe('MCPServer.search', () => {
   it('defaults search_tools top_k to 10 when omitted', async () => {
     const ctx = createCtx();
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     const response = parseResponse<SearchToolsResponse>(await searchHandler({ query: 'page' }));
 
@@ -361,7 +361,7 @@ describe('MCPServer.search', () => {
   it('returns a hint that explains tool usage', async () => {
     const ctx = createCtx();
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     const response = parseResponse<SearchToolsResponse>(await searchHandler({ query: 'page' }));
 
@@ -374,7 +374,7 @@ describe('MCPServer.search', () => {
   it('returns direct-call nextActions with exampleArgs instead of forcing describe_tool', async () => {
     const ctx = createCtx();
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     state.searchImpl = () => [
       {
@@ -410,7 +410,7 @@ describe('MCPServer.search', () => {
   it('does not auto-activate domains when search finds inactive tools (auto-activation disabled)', async () => {
     const ctx = createCtx({ enabledDomains: new Set<string>() });
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     // Return inactive browser-domain tool from search
     state.searchImpl = () => [
@@ -449,7 +449,7 @@ describe('MCPServer.search', () => {
     ];
 
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     const response = parseResponse<SearchToolsResponse>(
       await searchHandler({ query: 'page', top_k: 5 }),
@@ -474,7 +474,7 @@ describe('MCPServer.search', () => {
     ];
 
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     const response = parseResponse<SearchToolsResponse>(
       await searchHandler({ query: 'page', top_k: 5 }),
@@ -487,7 +487,7 @@ describe('MCPServer.search', () => {
   it('invalidates the cached search engine when extension signature changes', async () => {
     const ctx = createCtx();
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     parseResponse<SearchToolsResponse>(await searchHandler({ query: 'page', top_k: 5 }));
     // @ts-expect-error — auto-suppressed [TS2345]
@@ -508,7 +508,7 @@ describe('MCPServer.search', () => {
   it('invalidates the cached search engine when workflow runtime count changes', async () => {
     const ctx = createCtx();
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     parseResponse<SearchToolsResponse>(await searchHandler({ query: 'network', top_k: 5 }));
     // @ts-expect-error — auto-suppressed [TS2345]
@@ -537,9 +537,9 @@ describe('MCPServer.search', () => {
     });
     registerSearchMetaTools(ctx);
 
-    const describeHandler = ctx.__registered.get('describe_tool')!.handler;
-    const activateHandler = ctx.__registered.get('activate_tools')!.handler;
-    const deactivateHandler = ctx.__registered.get('deactivate_tools')!.handler;
+    const describeHandler = ctx.registeredToolsForTest.get('describe_tool')!.handler;
+    const activateHandler = ctx.registeredToolsForTest.get('activate_tools')!.handler;
+    const deactivateHandler = ctx.registeredToolsForTest.get('deactivate_tools')!.handler;
 
     expect(
       parseResponse<CommonSuccessResponse>(
@@ -591,7 +591,7 @@ describe('MCPServer.search', () => {
       registerSingleTool: vi.fn(() => ({ remove: vi.fn() })),
     });
     registerSearchMetaTools(ctx);
-    const routeHandler = ctx.__registered.get('route_tool')!.handler;
+    const routeHandler = ctx.registeredToolsForTest.get('route_tool')!.handler;
 
     state.searchImpl = () => [
       {
@@ -626,7 +626,7 @@ describe('MCPServer.search', () => {
       },
     });
     registerSearchMetaTools(ctx);
-    const routeHandler = ctx.__registered.get('route_tool')!.handler;
+    const routeHandler = ctx.registeredToolsForTest.get('route_tool')!.handler;
 
     state.searchImpl = () => [
       {
@@ -681,7 +681,7 @@ describe('MCPServer.search', () => {
       },
     });
     registerSearchMetaTools(ctx);
-    const routeHandler = ctx.__registered.get('route_tool')!.handler;
+    const routeHandler = ctx.registeredToolsForTest.get('route_tool')!.handler;
 
     state.searchImpl = () => [
       {
@@ -725,7 +725,7 @@ describe('MCPServer.search', () => {
       },
     });
     registerSearchMetaTools(ctx);
-    const routeHandler = ctx.__registered.get('route_tool')!.handler;
+    const routeHandler = ctx.registeredToolsForTest.get('route_tool')!.handler;
 
     state.searchImpl = () => [
       {
@@ -761,8 +761,8 @@ describe('MCPServer.search', () => {
     const ctx = createCtx();
     registerSearchMetaTools(ctx);
 
-    const activateHandler = ctx.__registered.get('activate_tools')!.handler;
-    const deactivateHandler = ctx.__registered.get('deactivate_tools')!.handler;
+    const activateHandler = ctx.registeredToolsForTest.get('activate_tools')!.handler;
+    const deactivateHandler = ctx.registeredToolsForTest.get('deactivate_tools')!.handler;
 
     expect(
       parseResponse<CommonSuccessResponse>(await activateHandler({ names: 'not an array' })),
@@ -802,7 +802,7 @@ describe('MCPServer.search', () => {
     ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('notify failed'));
 
     registerSearchMetaTools(ctx);
-    const activateHandler = ctx.__registered.get('activate_tools')!.handler;
+    const activateHandler = ctx.registeredToolsForTest.get('activate_tools')!.handler;
     const response = parseResponse<CommonSuccessResponse>(
       await activateHandler({
         names: ['page_navigate', 'network_get_requests', 'custom_tool', 'missing_tool'],
@@ -850,7 +850,7 @@ describe('MCPServer.search', () => {
     ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('notify failed'));
 
     registerSearchMetaTools(ctx);
-    const deactivateHandler = ctx.__registered.get('deactivate_tools')!.handler;
+    const deactivateHandler = ctx.registeredToolsForTest.get('deactivate_tools')!.handler;
     const response = parseResponse<CommonSuccessResponse>(
       await deactivateHandler({ names: ['custom_tool', 'missing_tool'] }),
     );
@@ -872,7 +872,7 @@ describe('MCPServer.search', () => {
     const ctx = createCtx();
     registerSearchMetaTools(ctx);
 
-    const activateDomainHandler = ctx.__registered.get('activate_domain')!.handler;
+    const activateDomainHandler = ctx.registeredToolsForTest.get('activate_domain')!.handler;
 
     expect(parseResponse<CommonSuccessResponse>(await activateDomainHandler({}))).toEqual({
       success: false,
@@ -907,7 +907,7 @@ describe('MCPServer.search', () => {
     ctx.server.sendToolListChanged.mockRejectedValueOnce(new Error('notify failed'));
 
     registerSearchMetaTools(ctx);
-    const activateDomainHandler = ctx.__registered.get('activate_domain')!.handler;
+    const activateDomainHandler = ctx.registeredToolsForTest.get('activate_domain')!.handler;
 
     const first = parseResponse<CommonSuccessResponse>(
       await activateDomainHandler({ domain: 'browser' }),
@@ -962,7 +962,7 @@ describe('MCPServer.search', () => {
     });
 
     registerSearchMetaTools(ctx);
-    const activateDomainHandler = ctx.__registered.get('activate_domain')!.handler;
+    const activateDomainHandler = ctx.registeredToolsForTest.get('activate_domain')!.handler;
     const response = parseResponse<CommonSuccessResponse>(
       await activateDomainHandler({ domain: 'custom' }),
     );
@@ -986,7 +986,7 @@ describe('MCPServer.search', () => {
     });
 
     registerSearchMetaTools(ctx);
-    const activateDomainHandler = ctx.__registered.get('activate_domain')!.handler;
+    const activateDomainHandler = ctx.registeredToolsForTest.get('activate_domain')!.handler;
     const response = parseResponse<CommonSuccessResponse>(
       await activateDomainHandler({ domain: 'browser', ttlMinutes: 0 }),
     );
@@ -1000,8 +1000,8 @@ describe('MCPServer.search', () => {
     registerSearchMetaTools(ctx);
 
     // These tools are only in the maintenance domain now, not duplicated as search meta-tools
-    expect(ctx.__registered.has('extensions_list')).toBe(false);
-    expect(ctx.__registered.has('extensions_reload')).toBe(false);
+    expect(ctx.registeredToolsForTest.has('extensions_list')).toBe(false);
+    expect(ctx.registeredToolsForTest.has('extensions_reload')).toBe(false);
   });
 
   it('wraps search_tools failures as error responses', async () => {
@@ -1010,7 +1010,7 @@ describe('MCPServer.search', () => {
       throw new Error('search exploded');
     };
     registerSearchMetaTools(ctx);
-    const searchHandler = ctx.__registered.get('search_tools')!.handler;
+    const searchHandler = ctx.registeredToolsForTest.get('search_tools')!.handler;
 
     const response = await searchHandler({ query: 'page' });
 
@@ -1025,7 +1025,7 @@ describe('MCPServer.search', () => {
       }),
     });
     registerSearchMetaTools(ctx);
-    const activateHandler = ctx.__registered.get('activate_tools')!.handler;
+    const activateHandler = ctx.registeredToolsForTest.get('activate_tools')!.handler;
 
     const response = await activateHandler({ names: ['network_get_requests'] });
 
@@ -1044,7 +1044,7 @@ describe('MCPServer.search', () => {
       },
     });
     registerSearchMetaTools(ctx);
-    const deactivateHandler = ctx.__registered.get('deactivate_tools')!.handler;
+    const deactivateHandler = ctx.registeredToolsForTest.get('deactivate_tools')!.handler;
 
     const response = await deactivateHandler({ names: ['custom_tool'] });
 
@@ -1059,7 +1059,7 @@ describe('MCPServer.search', () => {
       }),
     });
     registerSearchMetaTools(ctx);
-    const activateDomainHandler = ctx.__registered.get('activate_domain')!.handler;
+    const activateDomainHandler = ctx.registeredToolsForTest.get('activate_domain')!.handler;
 
     const response = await activateDomainHandler({ domain: 'browser' });
 
@@ -1079,7 +1079,7 @@ describe('MCPServer.search', () => {
             if (name === 'search_tools') {
               throw new Error('schema build failed');
             }
-            ctx.__registered.set(name, { options, handler });
+            ctx.registeredToolsForTest.set(name, { options, handler });
           },
         ),
         sendToolListChanged: vi.fn(async () => undefined),
@@ -1088,7 +1088,7 @@ describe('MCPServer.search', () => {
 
     expect(() => registerSearchMetaTools(ctx)).toThrow('schema build failed');
     expect(ctx.server.registerTool).toHaveBeenCalledTimes(1);
-    expect(ctx.__registered.size).toBe(0);
+    expect(ctx.registeredToolsForTest.size).toBe(0);
     expect(ctx.metaToolsByName.size).toBe(0);
   });
 
@@ -1107,7 +1107,7 @@ describe('MCPServer.search', () => {
     ];
 
     for (const name of expectedMetaTools) {
-      expect(ctx.__registered.has(name)).toBe(true);
+      expect(ctx.registeredToolsForTest.has(name)).toBe(true);
       expect(ctx.metaToolsByName.has(name)).toBe(true);
     }
   });

@@ -39,8 +39,7 @@ async function getFingerprintManager(): Promise<FingerprintManagerLike | null> {
 }
 
 /** @internal Reset the cached FingerprintManager instance. Exported for testing only. */
-// oxlint-disable-next-line no-underscore-dangle
-export function _resetFingerprintCacheForTesting(): void {
+export function resetFingerprintCacheForTesting(): void {
   fingerprintManagerInstance = null;
 }
 
