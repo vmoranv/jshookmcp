@@ -137,8 +137,8 @@ importers:
         specifier: ^1.59.1
         version: 1.59.1
       webcrack:
-        specifier: ^2.15.1
-        version: 2.16.0
+        specifier: 2.15.1
+        version: 2.15.1
 
   packages/extension-sdk:
     dependencies:
@@ -1928,6 +1928,10 @@ packages:
 
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
+
+  commander@12.1.0:
+    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
+    engines: {node: '>=18'}
 
   commander@14.0.3:
     resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
@@ -3824,9 +3828,8 @@ packages:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
 
-  webcrack@2.16.0:
-    resolution: {integrity: sha512-sQx0otp+7W8MgOWjdpc+5dqGna1GRK4tx55SyRohtq4g4A1aXbqu0TLfqvIsY/PllBZgSfvV5h0nDE0iwC8gbA==}
-    engines: {node: '>=22.0.0 <23 || >=24.0.0 <25'}
+  webcrack@2.15.1:
+    resolution: {integrity: sha512-27RaVlw5lNQ9ZOlUpbs6XWYoQ3mlW6TX/6tXh803NqNztnqAv8UhsHIq5MaRh9ANV95MWV4issozPADSVJDitg==}
     hasBin: true
 
   webidl-conversions@8.0.1:
@@ -5596,6 +5599,9 @@ snapshots:
   color-name@1.1.4: {}
 
   comma-separated-tokens@2.0.3: {}
+
+  commander@12.1.0:
+    optional: true
 
   commander@14.0.3:
     optional: true
@@ -7682,7 +7688,7 @@ snapshots:
     dependencies:
       xml-name-validator: 5.0.0
 
-  webcrack@2.16.0:
+  webcrack@2.15.1:
     dependencies:
       '@babel/generator': 7.29.1
       '@babel/helper-validator-identifier': 7.28.5
@@ -7691,7 +7697,7 @@ snapshots:
       '@babel/traverse': 7.29.0
       '@babel/types': 7.29.0
       '@codemod/matchers': 1.7.1
-      commander: 14.0.3
+      commander: 12.1.0
       debug: 4.4.3
       isolated-vm: 6.1.2
     transitivePeerDependencies:
