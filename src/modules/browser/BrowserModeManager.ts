@@ -4,6 +4,8 @@ import { logger } from '@utils/logger';
 import { findBrowserExecutable } from '@utils/browserExecutable';
 import { CaptchaDetector, type CaptchaDetectionResult } from '@modules/captcha/CaptchaDetector';
 import { determineCaptchaResolution } from '@modules/captcha/CaptchaPolicy';
+import { SessionProfileManager } from '@modules/stealth/SessionProfileManager';
+import type { SessionProfile } from '@internal-types/SessionProfile';
 
 type PermissionQueryInput = Parameters<Permissions['query']>[0];
 
@@ -74,7 +76,12 @@ export class BrowserModeManager {
     cookies?: Awaited<ReturnType<Page['cookies']>>;
     localStorage?: Record<string, string>;
     sessionStorage?: Record<string, string>;
+    userAgent?: string;
+    platform?: string;
+    acceptLanguage?: string;
+    sessionProfile?: SessionProfile;
   } = {};
+  private readonly sessionProfileManager = SessionProfileManager.getInstance();
 
   constructor(config: BrowserModeConfig = {}, launchOptions: LaunchOptions = {}) {
     this.config = {
@@ -330,6 +337,10 @@ export class BrowserModeManager {
 
     if (completed) {
       logger.info('CAPTCHA solved in headed mode');
+      this.sessionData.sessionProfile = await this.sessionProfileManager.exportFromPage(newPage, {
+        origin: this.sessionData.origin,
+        ttlSec: 1800,
+      });
 
       if (this.config.askBeforeSwitchBack && this.config.defaultHeadless) {
         logger.info('Headless mode can be restored based on configured policy');
@@ -393,11 +404,24 @@ export class BrowserModeManager {
           }
         }
 
-        return { local, session };
+        return {
+          local,
+          session,
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          acceptLanguage: navigator.language,
+        };
       });
 
       this.sessionData.localStorage = storageData.local;
       this.sessionData.sessionStorage = storageData.session;
+      this.sessionData.userAgent = storageData.userAgent;
+      this.sessionData.platform = storageData.platform;
+      this.sessionData.acceptLanguage = storageData.acceptLanguage;
+      this.sessionData.sessionProfile = await this.sessionProfileManager.exportFromPage(page, {
+        origin: this.sessionData.origin,
+        ttlSec: 1800,
+      });
 
       logger.info('Session data captured before browser mode switch');
     } catch (error) {
