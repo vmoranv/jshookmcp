@@ -175,10 +175,21 @@ function createPageAdapter(
 
       return (await context.newCDPSession(playwrightPage)) as unknown as PuppeteerCDPSession;
     },
-    async setUserAgent(_userAgent: string): Promise<void> {
-      logger.debug(
-        '[playwright-cdp-fallback] Ignoring page.setUserAgent() for attached Playwright CDP page.',
-      );
+    async setUserAgent(userAgent: string): Promise<void> {
+      const context = playwrightPage.context() as PlaywrightBrowserContext & {
+        newCDPSession?: (page: PlaywrightPage) => Promise<{
+          send: (method: string, params?: Record<string, unknown>) => Promise<unknown>;
+        }>;
+      };
+      if (typeof context.newCDPSession !== 'function') {
+        logger.debug(
+          '[playwright-cdp-fallback] Cannot apply UA override: newCDPSession unavailable.',
+        );
+        return;
+      }
+      const cdp = await context.newCDPSession(playwrightPage);
+      await cdp.send('Network.setUserAgentOverride', { userAgent });
+      logger.debug('[playwright-cdp-fallback] Applied user agent override via CDP session.');
     },
   };
 
