@@ -13,6 +13,7 @@ import type {
   E2EConfig,
   E2EContext,
   Phase,
+  PhaseTool,
   ToolResult,
   ToolStatus,
 } from '@tests/e2e/helpers/types';
@@ -123,6 +124,7 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'miniapp_pkg_unpack',
   'network_get_response_body',
   'network_replay_request',
+  'instrumentation_network_replay',
   'process_check_debug_port',
   'process_windows',
   'run_extension_workflow',
@@ -171,7 +173,7 @@ function getToolTimeoutOverride(toolName: string): number | null {
     toolName.startsWith('memory_') ||
     toolName.startsWith('proto_') ||
     toolName.startsWith('mojo_') ||
-    toolName.startsWith('webhook_') ||
+    toolName === 'webhook' ||
     toolName.startsWith('tls_') ||
     toolName.startsWith('net_raw_') ||
     toolName.startsWith('stealth_')
@@ -199,11 +201,7 @@ function getToolTimeoutOverride(toolName: string): number | null {
     return 20_000;
   }
 
-  if (
-    toolName.startsWith('v8_') ||
-    toolName === 'register_account_flow' ||
-    toolName === 'batch_register'
-  ) {
+  if (toolName.startsWith('v8_') || toolName === 'batch_register') {
     return 10_000;
   }
 
@@ -214,6 +212,21 @@ function normalizeStatus(result: ToolResult): ToolStatus {
   if (result.status) return result.status;
   if (result.ok === true) return 'PASS';
   return result.isError ? 'FAIL' : 'EXPECTED_LIMITATION';
+}
+
+function resolvePhaseTool(tool: PhaseTool): {
+  toolName: string;
+  caseName: string;
+  argsKey: string;
+} {
+  if (typeof tool === 'string') {
+    return { toolName: tool, caseName: tool, argsKey: tool };
+  }
+  return {
+    toolName: tool.tool,
+    caseName: tool.name ?? tool.tool,
+    argsKey: tool.argsKey ?? tool.tool,
+  };
 }
 
 function isPassingResult(result: ToolResult): boolean {
@@ -293,6 +306,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     get_script_source: ctx.scriptId ? { scriptId: ctx.scriptId } : { url: targetUrl },
     ...(ctx.detailId ? { get_detailed_data: { detailId: ctx.detailId } } : {}),
     breakpoint_set_on_exception: { state: 'all' },
+    breakpoint: { action: 'list' },
     breakpoint_list: {},
     xhr_breakpoint_set: { urlPattern: '/api/' },
     xhr_breakpoint_list: {},
@@ -306,9 +320,11 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
       ? { event_breakpoint_remove: { breakpointId: ctx.eventBreakpointId } }
       : {}),
     watch_add: { expression: 'window.location.href' },
+    watch: { action: 'list' },
     watch_list: {},
     watch_evaluate_all: {},
     ...(ctx.watchId ? { watch_remove: { watchId: ctx.watchId } } : {}),
+    watch_clear_all: { action: 'clear_all' },
     get_scope_variables_enhanced: { includeObjectProperties: true, maxDepth: 1 },
     debugger_get_paused_state: {},
     debugger_step: { direction: 'into' },
@@ -416,7 +432,7 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     },
     captcha_detect: {},
     captcha_config: { provider: '2captcha', apiKey: 'test' },
-    camoufox_server_status: {},
+    camoufox_server: { action: 'status' },
     browser_select_tab: { index: 0 },
     tab_workflow: { action: 'list' },
     webpack_enumerate: {},
@@ -424,7 +440,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     indexeddb_dump: {},
     framework_state_extract: {},
     ...(ctx.objectId ? { get_object_properties: { objectId: ctx.objectId } } : {}),
-    web_api_capture_session: { url: targetUrl },
     api_probe_batch: { baseUrl: targetUrl, paths: ['/'] },
     js_bundle_search: { url: targetUrl, patterns: [{ name: 'fetch_calls', regex: 'fetch\\(' }] },
     get_token_budget_stats: {},
@@ -471,7 +486,35 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
             outputPath: `${artifactDir}/e2e_dump.bin`,
           },
           memory_scan_session: { pid: browserPid },
+          memory_scan_list: { action: 'list' },
+          memory_scan_delete: {
+            action: 'delete',
+            sessionId: ctx.memoryScanSessionId ?? '__placeholder__',
+          },
+          memory_scan_export: {
+            action: 'export',
+            sessionId: ctx.memoryScanSessionId ?? '__placeholder__',
+          },
           memory_pointer_chain: { pid: browserPid, baseAddress: '0x10000', offsets: [0x10] },
+          memory_pointer_chain_scan: {
+            action: 'scan',
+            pid: browserPid,
+            targetAddress: '0x10000',
+          },
+          memory_pointer_chain_validate: {
+            action: 'validate',
+            pid: browserPid,
+            chains: '[]',
+          },
+          memory_pointer_chain_resolve: {
+            action: 'resolve',
+            pid: browserPid,
+            chain: '{}',
+          },
+          memory_pointer_chain_export: {
+            action: 'export',
+            chains: '[]',
+          },
           memory_breakpoint: { pid: browserPid, address: '0x10000' },
           memory_speedhack: { pid: browserPid, speed: 2 },
           memory_write_history: { pid: browserPid },
@@ -484,6 +527,9 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
           memory_anticheat_detect: { pid: browserPid },
           memory_guard_pages: { pid: browserPid },
           memory_integrity_check: { pid: browserPid },
+          memory_unfreeze: { action: 'unfreeze', freezeId: ctx.freezeId ?? '__placeholder__' },
+          memory_write_undo: { action: 'undo' },
+          memory_write_redo: { action: 'redo' },
         }
       : {}),
     memory_audit_export: { clear: false },
@@ -493,10 +539,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     captcha_vision_solve: {},
     widget_challenge_solve: {},
     captcha_wait: { timeout: 3000 },
-    register_account_flow: {
-      registerUrl: targetUrl,
-      fields: { email: 'e2e@test.local', password: 'Test123!' },
-    },
     ...(browserPid && ctx.dllPath
       ? {
           inject_dll: { pid: browserPid, dllPath: ctx.dllPath },
@@ -509,8 +551,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
           memory_batch_write: { pid: browserPid, patches: [{ address: '0x10000', data: '00' }] },
         }
       : {}),
-    camoufox_server_launch: {},
-    camoufox_server_close: {},
     camoufox_geolocation: { locale: 'en-US' },
     ...(browserPid ? { check_debug_port: { pid: browserPid } } : {}),
     ...(ctx.sessionPath ? { debugger_session: { action: 'load', filePath: ctx.sessionPath } } : {}),
@@ -558,13 +598,30 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     summarize_trace: { detail: 'compact' },
     execute_sandbox_script: { code: '1 + 2', timeoutMs: 1000 },
     frida_attach: { target: 'test-target' },
+    state_board: { action: 'list' },
     state_board_watch: { action: 'start', key: 'e2e-watch-key', pollIntervalMs: 250 },
+    state_board_io: { action: 'export' },
     webhook: { action: 'list' },
     // ── Memory Advanced (pid-driven via browserPid above) ──
-    // ── Instrumentation aliases ──
-    instrumentation_session: { action: 'list' },
-    instrumentation_operation: { action: 'list' },
-    instrumentation_artifact: { action: 'query' },
+    instrumentation_session: { action: 'create', name: 'e2e-session' },
+    instrumentation_operation: {
+      action: 'register',
+      sessionId: ctx.instrumentationSessionId ?? '__placeholder__',
+      type: 'runtime-hook',
+      target: 'fetch',
+    },
+    instrumentation_artifact: {
+      action: 'query',
+      sessionId: ctx.instrumentationSessionId ?? '__placeholder__',
+    },
+    ...(ctx.instrumentationSessionId
+      ? {
+          instrumentation_hook_preset: {
+            sessionId: ctx.instrumentationSessionId,
+            preset: 'network_monitor',
+          },
+        }
+      : {}),
     // ── Profiling aliases ──
     performance_coverage: { action: 'start' },
     performance_trace: { action: 'start' },
@@ -622,21 +679,15 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     proxy_clear_logs: {},
     proxy_setup_adb_device: { deviceId: '__placeholder__' },
     // ── Mojo/Network ──
-    mojo_monitor: { action: 'list' },
+    mojo_monitor: { action: 'start' },
     // ── Evidence aliases ──
     evidence_query: { by: 'url', value: targetUrl },
     evidence_export: { format: 'json' },
     // ── Console aliases ──
     console_inject: { type: 'fetch' },
     console_buffers: { action: 'list' },
-    // ── State board aliases ──
-    state_board: { action: 'list' },
-    state_board_io: { action: 'get', key: 'e2e-test' },
     // ── Trace alias ──
     trace_recording: { action: 'status' },
-    // ── Debugger aliases ──
-    breakpoint: { action: 'list' },
-    watch: { action: 'list' },
     // ── Search meta ──
     activate_tools: { tools: ['search_tools'] },
     deactivate_tools: { tools: ['search_tools'] },
@@ -659,8 +710,6 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     browser_jsdom_execute: { code: 'document.title' },
     browser_jsdom_serialize: {},
     browser_jsdom_cookies: {},
-    // ── Camoufox server alias ──
-    camoufox_server: { action: 'status' },
   };
 }
 
@@ -685,6 +734,9 @@ function createEmptyContext(): E2EContext {
     eventBreakpointId: null,
     watchId: null,
     taskId: null,
+    instrumentationSessionId: null,
+    memoryScanSessionId: null,
+    freezeId: null,
   };
 }
 
@@ -806,13 +858,14 @@ function createLaneRuntime(laneKey: string, options: LaneRuntimeOptions = {}): L
           }
         });
 
-        for (const toolName of phase.tools) {
-          it(toolName, async () => {
+        for (const phaseTool of phase.tools) {
+          const { toolName, caseName, argsKey } = resolvePhaseTool(phaseTool);
+          it(caseName, async () => {
             const nextOverrides = getOverrides(ctx, laneConfig);
-            if (shouldSkipTool(toolName, nextOverrides)) return;
+            if (shouldSkipTool(argsKey, nextOverrides)) return;
             overrides = nextOverrides;
             const args =
-              overrides[toolName] ?? buildArgs(toolMap.get(toolName)?.inputSchema, laneConfig);
+              overrides[argsKey] ?? buildArgs(toolMap.get(toolName)?.inputSchema, laneConfig);
 
             const isTimeoutProne = [
               'sse_monitor_enable',

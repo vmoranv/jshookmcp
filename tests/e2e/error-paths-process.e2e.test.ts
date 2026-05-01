@@ -41,7 +41,7 @@ describe('Error Paths & Process/Memory E2E', { timeout: 120_000, sequential: tru
     // Test tools with clearly wrong parameter types
     const invalidCalls: Array<{ tool: string; args: Record<string, unknown> }> = [
       { tool: 'page_navigate', args: { url: '', waitUntil: 'invalid_event' } },
-      { tool: 'breakpoint_set', args: { scriptId: '', lineNumber: -1 } },
+      { tool: 'breakpoint', args: { action: 'set', type: 'code', scriptId: '', lineNumber: -1 } },
       { tool: 'memory_read', args: { pid: -1, address: 'not_hex', size: 0 } },
     ];
 

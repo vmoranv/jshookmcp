@@ -72,16 +72,6 @@ export function recordCapabilityObservation(
     state.networkCapture = true;
   }
 
-  if (
-    name === 'web_api_capture_session' &&
-    isRecord(parsed) &&
-    isRecord(parsed.networkSummary) &&
-    Array.isArray(parsed.networkSummary.requests) &&
-    (parsed.networkSummary.requests as unknown[]).length > 0
-  ) {
-    state.networkCapture = true;
-  }
-
   if (name === 'wasm_dump' && isRecord(parsed) && typeof parsed.artifactPath === 'string') {
     state.wasmArtifactPath = parsed.artifactPath.includes('(binary not available')
       ? null

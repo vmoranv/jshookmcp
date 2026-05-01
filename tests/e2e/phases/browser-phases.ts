@@ -125,7 +125,7 @@ export const browserPhases: Phase[] = [
   {
     name: 'Camoufox',
     setup: [],
-    tools: ['camoufox_server_status', 'camoufox_server_launch', 'camoufox_server_close'],
+    tools: ['camoufox_server'],
   },
   {
     name: 'Human Behavior Simulation',

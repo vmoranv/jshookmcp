@@ -9,11 +9,27 @@ export type CallFn = (
   timeoutMs?: number,
 ) => Promise<unknown>;
 
+export type PhaseTool =
+  | string
+  | {
+      tool: string;
+      /**
+       * Optional stable display name for the test case. Defaults to `tool`.
+       * Use this when one real tool is exercised under multiple action variants.
+       */
+      name?: string;
+      /**
+       * Optional override key used to look up args in the E2E harness.
+       * Defaults to `tool`.
+       */
+      argsKey?: string;
+    };
+
 /** A single test phase with optional setup and tool list */
 export interface Phase {
   name: string;
   setup: string[] | ((call: CallFn) => Promise<void>);
-  tools: string[];
+  tools: PhaseTool[];
   /** When true, tools in this phase run in parallel (no ordering dependency) */
   concurrent?: boolean;
   /**
@@ -45,6 +61,9 @@ export interface E2EContext {
   eventBreakpointId: string | null;
   watchId: string | null;
   taskId: string | null;
+  instrumentationSessionId: string | null;
+  memoryScanSessionId: string | null;
+  freezeId: string | null;
 }
 
 /** Tool test status (unified result model) */
