@@ -47,7 +47,7 @@
   "performance_get_metrics": "查看页面性能指标，如 FCP、LCP、FID、CLS。",
   "network_extract_auth": "从网络请求中提取认证凭据（Token、Cookie、API Key、签名等）。",
   "network_export_har": "将网络请求记录导出为 HAR 文件。",
-  "network_replay_request": "重新发送某个已捕获的网络请求，支持按需修改请求内容。",
+  "network_replay_request": "重新发送某个已捕获的网络请求，支持按需修改请求内容。可通过 sessionProfile 注入浏览器会话的 Cookie、User-Agent 和 Accept-Language。",
   "page_script_register": "在脚本库中注册可复用的命名 JavaScript 片段。",
   "page_script_run": "在当前页面上下文中执行脚本库里的命名脚本。",
   "api_probe_batch": "在浏览器上下文中批量探测多个 API 端点。",

@@ -65,7 +65,7 @@
 | `network_icmp_probe` | ICMP 探测，支持 TTL 控制与错误分类。Windows 无需管理员权限；Linux/macOS 需要 root 或 CAP_NET_RAW。 |
 | `network_extract_auth` | 从网络请求中提取认证凭据（Token、Cookie、API Key、签名等）。 |
 | `network_export_har` | 将网络请求记录导出为 HAR 文件。 |
-| `network_replay_request` | 重新发送某个已捕获的网络请求，支持按需修改请求内容。 |
+| `network_replay_request` | 重新发送某个已捕获的网络请求，支持按需修改请求内容。可通过 sessionProfile 注入浏览器会话的 Cookie、User-Agent 和 Accept-Language。 |
 | `network_intercept` | 管理基于 CDP Fetch 域的响应拦截规则。操作：add（创建规则）、list（显示活跃规则）、disable（移除规则）。 |
 | `network_tls_fingerprint` | 计算 TLS/HTTP 指纹哈希，用于机器人检测。 |
 | `network_bot_detect_analyze` | 分析已捕获请求的机器人检测信号（TLS 指纹、Header 顺序、时序模式）。 |
