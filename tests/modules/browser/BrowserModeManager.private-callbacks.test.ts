@@ -190,9 +190,16 @@ describe('BrowserModeManager private callback coverage', () => {
       goto: vi.fn(async () => undefined),
       reload: vi.fn(async () => undefined),
       setCookie: vi.fn(async () => undefined),
-      evaluate: vi.fn(async () => undefined),
+      evaluate: vi.fn(async () => ({
+        userAgent: 'TestAgent',
+        platform: 'Win32',
+        acceptLanguage: 'en-US',
+        referer: undefined,
+        clientHints: {},
+      })),
       evaluateOnNewDocument: vi.fn(async () => undefined),
       url: vi.fn(() => 'about:blank'),
+      cookies: vi.fn(async () => []),
     } as unknown as Page;
     const newBrowser = {
       newPage: vi.fn(async () => newPage),

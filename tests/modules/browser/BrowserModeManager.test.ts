@@ -383,9 +383,16 @@ describe('BrowserModeManager', () => {
       url: vi.fn(() => 'https://example.com'),
       goto: vi.fn(async () => undefined),
       reload: vi.fn(async () => undefined),
-      evaluate: vi.fn(async () => undefined),
+      evaluate: vi.fn(async () => ({
+        userAgent: 'TestAgent',
+        platform: 'Win32',
+        acceptLanguage: 'en-US',
+        referer: undefined,
+        clientHints: {},
+      })),
       evaluateOnNewDocument: vi.fn(async () => {}),
       setCookie: vi.fn(async () => {}),
+      cookies: vi.fn(async () => []),
     } as unknown as Page;
 
     const browser = {

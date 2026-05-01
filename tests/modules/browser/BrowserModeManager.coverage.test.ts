@@ -550,8 +550,15 @@ describe('BrowserModeManager coverage', () => {
       goto: vi.fn(async () => undefined),
       reload: vi.fn(async () => undefined),
       setCookie: vi.fn(async () => undefined),
-      evaluate: vi.fn(async () => undefined),
+      evaluate: vi.fn(async () => ({
+        userAgent: 'TestAgent',
+        platform: 'Win32',
+        acceptLanguage: 'en-US',
+        referer: undefined,
+        clientHints: {},
+      })),
       evaluateOnNewDocument: vi.fn(async () => undefined),
+      cookies: vi.fn(async () => []),
     } as unknown as Page;
 
     const headedBrowser = {
@@ -624,7 +631,7 @@ describe('BrowserModeManager coverage', () => {
     });
     expect(newPage.setCookie).toHaveBeenCalledWith({ name: 'sid', value: 'abc' });
     expect(newPage.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
-    expect(newPage.evaluate).toHaveBeenCalledTimes(1);
+    expect(newPage.evaluate).toHaveBeenCalledTimes(2);
     expect(newPage.reload).toHaveBeenCalledWith({ waitUntil: 'networkidle2' });
     expect(waitForCompletionMock).toHaveBeenCalledWith(newPage, 300000);
   });
@@ -657,8 +664,15 @@ describe('BrowserModeManager coverage', () => {
       goto: vi.fn(async () => undefined),
       reload: vi.fn(async () => undefined),
       setCookie: vi.fn(async () => undefined),
-      evaluate: vi.fn(async () => undefined),
+      evaluate: vi.fn(async () => ({
+        userAgent: 'TestAgent',
+        platform: 'Win32',
+        acceptLanguage: 'en-US',
+        referer: undefined,
+        clientHints: {},
+      })),
       evaluateOnNewDocument: vi.fn(async () => undefined),
+      cookies: vi.fn(async () => []),
     } as unknown as Page;
 
     const headedBrowser = {
