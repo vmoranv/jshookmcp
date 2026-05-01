@@ -39,6 +39,7 @@ async function getFingerprintManager(): Promise<FingerprintManagerLike | null> {
 }
 
 /** @internal Reset the cached FingerprintManager instance. Exported for testing only. */
+// oxlint-disable-next-line no-underscore-dangle
 export function _resetFingerprintCacheForTesting(): void {
   fingerprintManagerInstance = null;
 }
@@ -83,7 +84,7 @@ export class StealthInjectionHandlers {
           headers?: Record<string, string>;
           os?: string;
         } | null;
-        const cached = sessionProfileManager.getProfile();
+        const cached = sessionProfileManager.getValidProfile();
         const mergedProfile: SessionProfile = {
           cookies: cached?.cookies ?? [],
           userAgent: activeProfile?.headers?.['User-Agent'] ?? cached?.userAgent,

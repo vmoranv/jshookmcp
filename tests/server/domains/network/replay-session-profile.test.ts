@@ -16,6 +16,7 @@ const SESSION_PROFILE: SessionProfile = {
   ],
   userAgent: 'TestBot/1.0',
   acceptLanguage: 'en-US,en;q=0.9',
+  referer: 'https://example.com/page',
   platform: 'Win32',
   origin: 'https://example.com',
   collectedAt: Date.now(),
@@ -119,5 +120,38 @@ describe('replayRequest sessionProfile', () => {
     const headers = (callArgs[1] as Record<string, unknown>).headers as Record<string, string>;
     expect(headers.Cookie).toBeUndefined();
     expect(headers['X-Test']).toBe('1');
+  });
+
+  it('injects Referer from sessionProfile when not in base headers', async () => {
+    lookupMock.mockResolvedValue({ address: '93.184.216.34', family: 4 });
+    fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
+
+    await replayRequest(
+      { url: 'https://example.com/api', method: 'GET', headers: {} },
+      { requestId: 'r7', dryRun: false, sessionProfile: SESSION_PROFILE },
+    );
+
+    const callArgs = fetchMock.mock.calls[0]!;
+    const headers = (callArgs[1] as Record<string, unknown>).headers as Record<string, string>;
+    expect(headers['Referer']).toBe('https://example.com/page');
+  });
+
+  it('does not override existing Referer from headerPatch', async () => {
+    lookupMock.mockResolvedValue({ address: '93.184.216.34', family: 4 });
+    fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
+
+    await replayRequest(
+      { url: 'https://example.com/api', method: 'GET', headers: {} },
+      {
+        requestId: 'r8',
+        dryRun: false,
+        sessionProfile: SESSION_PROFILE,
+        headerPatch: { Referer: 'https://other.com' },
+      },
+    );
+
+    const callArgs = fetchMock.mock.calls[0]!;
+    const headers = (callArgs[1] as Record<string, unknown>).headers as Record<string, string>;
+    expect(headers['Referer']).toBe('https://other.com');
   });
 });

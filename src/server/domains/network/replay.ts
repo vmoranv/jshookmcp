@@ -127,6 +127,9 @@ export async function replayRequest(
   ) {
     mergedHeaders['Accept-Language'] = args.sessionProfile.acceptLanguage;
   }
+  if (args.sessionProfile?.referer && !mergedHeaders['Referer'] && !mergedHeaders['referer']) {
+    mergedHeaders.Referer = args.sessionProfile.referer;
+  }
   const body = args.bodyPatch !== undefined ? args.bodyPatch : base.postData;
   const authorizationPolicy = createNetworkAuthorizationPolicy(args.authorization);
   const allowLegacyLocalSsrf = !authorizationPolicy && isLocalSsrfBypassEnabled();

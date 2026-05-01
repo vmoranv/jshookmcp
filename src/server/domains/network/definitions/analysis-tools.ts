@@ -55,6 +55,15 @@ export const analysisTools: Tool[] = [
           userAgent: { type: 'string' },
           acceptLanguage: { type: 'string' },
           referer: { type: 'string' },
+          clientHints: {
+            type: 'object',
+            properties: {
+              'sec-ch-ua': { type: 'string' },
+              'sec-ch-ua-mobile': { type: 'string' },
+              'sec-ch-ua-platform': { type: 'string' },
+              'sec-ch-ua-full-version-list': { type: 'string' },
+            },
+          },
           platform: { type: 'string' },
           origin: { type: 'string' },
           collectedAt: { type: 'number' },
