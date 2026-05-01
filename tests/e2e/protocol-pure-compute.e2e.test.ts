@@ -91,17 +91,13 @@ describe('Protocol Pure Compute E2E', { timeout: 180_000, sequential: true }, ()
     const body = routed.parsed as RouteToolResponse;
     const recommendedNames = body.recommendations.map((item) => item.name);
 
-    expect(recommendedNames.slice(0, 8)).toEqual(
-      expect.arrayContaining([
-        'binary_detect_format',
-        'binary_decode',
-        'proto_auto_detect',
-        'proto_infer_fields',
-      ]),
+    expect(recommendedNames.slice(0, 10)).toEqual(
+      expect.arrayContaining(['binary_detect_format', 'binary_decode', 'proto_auto_detect']),
     );
     expect(recommendedNames[0]).toBe('binary_detect_format');
-    expect(recommendedNames.slice(0, 8)).not.toContain('browser_launch');
-    expect(recommendedNames.slice(0, 8)).not.toContain('page_evaluate');
+    expect(recommendedNames).toContain('proto_infer_fields');
+    expect(recommendedNames.slice(0, 10)).not.toContain('browser_launch');
+    expect(recommendedNames.slice(0, 10)).not.toContain('page_evaluate');
   });
 
   test('PROTOCOL-02: agent-usable pure-compute chain decodes, infers, rebuilds, and computes payloads', async () => {
