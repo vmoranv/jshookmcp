@@ -56,7 +56,7 @@ vi.mock('@modules/monitor/NetworkMonitor', () => {
     public getXHRRequests = vi.fn(async () => []);
     public getFetchRequests = vi.fn(async () => []);
 
-    constructor(_session: any) {
+    constructor() {
       classState.networkInstances.push(this);
     }
   }

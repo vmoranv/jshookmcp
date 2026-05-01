@@ -141,7 +141,7 @@ vi.mock('@modules/monitor/FetchInterceptor', () => {
       totalHits: 2,
     }));
 
-    constructor(_session: unknown) {
+    constructor() {
       wrapperState.fetch.instances.push(this);
     }
   }

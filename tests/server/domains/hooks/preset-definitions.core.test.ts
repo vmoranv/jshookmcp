@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockBuildHookCode = vi.hoisted(() =>
   vi.fn(
-    (name: string, _body: string, cs: boolean, lc: boolean) => `[mock:${name}:cs=${cs}:lc=${lc}]`,
+    (name: string, bodySource: string, cs: boolean, lc: boolean) =>
+      `[mock:${name}:cs=${cs}:lc=${lc}]`,
   ),
 );
 

@@ -20,20 +20,20 @@ import {
   type MemoryScanResult,
   type MemoryProtectionInfo,
   type MemoryPatch,
-  readMemory as _readMemory,
-  writeMemory as _writeMemory,
-  batchMemoryWrite as _batchMemoryWrite,
-  scanMemory as _scanMemory,
-  scanMemoryFiltered as _scanMemoryFiltered,
-  dumpMemoryRegion as _dumpMemoryRegion,
-  enumerateRegions as _enumerateRegions,
-  checkMemoryProtection as _checkMemoryProtection,
-  enumerateModules as _enumerateModules,
-  injectDll as _injectDll,
-  injectShellcode as _injectShellcode,
+  readMemory as readMemoryImpl,
+  writeMemory as writeMemoryImpl,
+  batchMemoryWrite as batchMemoryWriteImpl,
+  scanMemory as scanMemoryImpl,
+  scanMemoryFiltered as scanMemoryFilteredImpl,
+  dumpMemoryRegion as dumpMemoryRegionImpl,
+  enumerateRegions as enumerateRegionsImpl,
+  checkMemoryProtection as checkMemoryProtectionImpl,
+  enumerateModules as enumerateModulesImpl,
+  injectDll as injectDllImpl,
+  injectShellcode as injectShellcodeImpl,
   MemoryMonitorManager,
-  checkAvailability as _checkAvailability,
-  checkDebugPort as _checkDebugPort,
+  checkAvailability as checkAvailabilityImpl,
+  checkDebugPort as checkDebugPortImpl,
 } from '@modules/process/memory/index';
 
 // Re-export types so existing consumers keep working
@@ -73,8 +73,8 @@ export class MemoryManager {
   // ── Read / Write ──
 
   async readMemory(pid: number, address: string, size: number): Promise<MemoryReadResult> {
-    return _readMemory(this.platform, pid, address, size, (p, a) =>
-      _checkMemoryProtection(this.platform, p, a),
+    return readMemoryImpl(this.platform, pid, address, size, (p, a) =>
+      checkMemoryProtectionImpl(this.platform, p, a),
     );
   }
 
@@ -84,8 +84,8 @@ export class MemoryManager {
     data: string,
     encoding: 'hex' | 'base64' = 'hex',
   ): Promise<MemoryWriteResult> {
-    return _writeMemory(this.platform, pid, address, data, encoding, (p, a) =>
-      _checkMemoryProtection(this.platform, p, a),
+    return writeMemoryImpl(this.platform, pid, address, data, encoding, (p, a) =>
+      checkMemoryProtectionImpl(this.platform, p, a),
     );
   }
 
@@ -97,7 +97,7 @@ export class MemoryManager {
     results: { address: string; success: boolean; error?: string }[];
     error?: string;
   }> {
-    return _batchMemoryWrite(pid, patches, (p, addr, data, enc) =>
+    return batchMemoryWriteImpl(pid, patches, (p, addr, data, enc) =>
       this.writeMemory(p, addr, data, enc),
     );
   }
@@ -110,7 +110,7 @@ export class MemoryManager {
     patternType: PatternType = 'hex',
     suspendTarget = false,
   ): Promise<MemoryScanResult> {
-    return _scanMemory(this.platform, pid, pattern, patternType, suspendTarget);
+    return scanMemoryImpl(this.platform, pid, pattern, patternType, suspendTarget);
   }
 
   async scanMemoryFiltered(
@@ -119,7 +119,7 @@ export class MemoryManager {
     addresses: string[],
     patternType: PatternType = 'hex',
   ): Promise<MemoryScanResult> {
-    return _scanMemoryFiltered(
+    return scanMemoryFilteredImpl(
       pid,
       pattern,
       addresses,
@@ -137,15 +137,15 @@ export class MemoryManager {
     size: number,
     outputPath: string,
   ): Promise<{ success: boolean; error?: string }> {
-    return _dumpMemoryRegion(this.platform, pid, startAddress, size, outputPath);
+    return dumpMemoryRegionImpl(this.platform, pid, startAddress, size, outputPath);
   }
 
-  async enumerateRegions(pid: number): ReturnType<typeof _enumerateRegions> {
-    return _enumerateRegions(this.platform, pid);
+  async enumerateRegions(pid: number): ReturnType<typeof enumerateRegionsImpl> {
+    return enumerateRegionsImpl(this.platform, pid);
   }
 
   async checkMemoryProtection(pid: number, address: string): Promise<MemoryProtectionInfo> {
-    return _checkMemoryProtection(this.platform, pid, address);
+    return checkMemoryProtectionImpl(this.platform, pid, address);
   }
 
   async enumerateModules(pid: number): Promise<{
@@ -153,7 +153,7 @@ export class MemoryManager {
     modules?: { name: string; baseAddress: string; size: number }[];
     error?: string;
   }> {
-    return _enumerateModules(this.platform, pid);
+    return enumerateModulesImpl(this.platform, pid);
   }
 
   // ── Injection ──
@@ -166,7 +166,7 @@ export class MemoryManager {
     pid: number,
     dllPath: string,
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
-    return _injectDll(this.platform, pid, dllPath);
+    return injectDllImpl(this.platform, pid, dllPath);
   }
 
   /**
@@ -178,7 +178,7 @@ export class MemoryManager {
     shellcode: string,
     encoding: 'hex' | 'base64' = 'hex',
   ): Promise<{ success: boolean; remoteThreadId?: number; error?: string }> {
-    return _injectShellcode(this.platform, pid, shellcode, encoding);
+    return injectShellcodeImpl(this.platform, pid, shellcode, encoding);
   }
 
   // ── Anti-Detection ──
@@ -186,7 +186,7 @@ export class MemoryManager {
   async checkDebugPort(
     pid: number,
   ): Promise<{ success: boolean; isDebugged?: boolean; error?: string }> {
-    return _checkDebugPort(this.platform, pid);
+    return checkDebugPortImpl(this.platform, pid);
   }
 
   // ── Monitor ──
@@ -215,6 +215,6 @@ export class MemoryManager {
   // ── Availability ──
 
   async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
-    return _checkAvailability(this.platform);
+    return checkAvailabilityImpl(this.platform);
   }
 }

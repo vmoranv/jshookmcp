@@ -32,8 +32,8 @@ vi.mock('@utils/logger', () => ({
 
 vi.mock('@src/modules/browser/BrowserModeManager', () => {
   class BrowserModeManager {
-    __modeConfig: any;
-    __launchOptions: any;
+    modeConfigForTest: any;
+    launchOptionsForTest: any;
     private browser: any = null;
     private page = { id: 'chrome-page' };
     launch = vi.fn(async () =>
@@ -48,8 +48,8 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
 
     constructor(modeConfig: any, launchOptions: any) {
       chromeState.ctor(modeConfig, launchOptions);
-      this.__modeConfig = modeConfig;
-      this.__launchOptions = launchOptions;
+      this.modeConfigForTest = modeConfig;
+      this.launchOptionsForTest = launchOptions;
       chromeState.instances.push(this);
     }
   }
@@ -59,7 +59,7 @@ vi.mock('@src/modules/browser/BrowserModeManager', () => {
 
 vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => {
   class CamoufoxBrowserManager {
-    __config: any;
+    configForTest: any;
     private browser: any = null;
     private page = { id: 'camoufox-page' };
     launch = vi.fn(async () =>
@@ -77,7 +77,7 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => {
 
     constructor(config: any) {
       camoufoxState.ctor(config);
-      this.__config = config;
+      this.configForTest = config;
       camoufoxState.instances.push(this);
     }
   }
@@ -129,8 +129,8 @@ describe('UnifiedBrowserManager coverage', () => {
 
     expect(chromeState.ctor).toHaveBeenCalledTimes(1);
     const chromeInstance = chromeState.instances[0]!;
-    expect(chromeInstance.__modeConfig.defaultHeadless).toBe(false);
-    expect(chromeInstance.__launchOptions.headless).toBe(false);
+    expect(chromeInstance.modeConfigForTest.defaultHeadless).toBe(false);
+    expect(chromeInstance.launchOptionsForTest.headless).toBe(false);
   });
 
   it('uses shell headless mode for Chrome', async () => {
@@ -145,11 +145,13 @@ describe('UnifiedBrowserManager coverage', () => {
     await manager.launch();
 
     const chromeInstance = chromeState.instances[0]!;
-    expect(chromeInstance.__modeConfig.defaultHeadless).toBe(true);
-    expect(chromeInstance.__launchOptions.headless).toBe('shell');
-    expect(chromeInstance.__launchOptions.args).toContain('--custom-arg');
-    expect(chromeInstance.__launchOptions.args).toContain('--proxy-server=http://127.0.0.1:8888');
-    expect(chromeInstance.__launchOptions.args).toContain('--remote-debugging-port=9222');
+    expect(chromeInstance.modeConfigForTest.defaultHeadless).toBe(true);
+    expect(chromeInstance.launchOptionsForTest.headless).toBe('shell');
+    expect(chromeInstance.launchOptionsForTest.args).toContain('--custom-arg');
+    expect(chromeInstance.launchOptionsForTest.args).toContain(
+      '--proxy-server=http://127.0.0.1:8888',
+    );
+    expect(chromeInstance.launchOptionsForTest.args).toContain('--remote-debugging-port=9222');
   });
 
   it('launches Camoufox with virtual headless mode', async () => {
@@ -163,8 +165,8 @@ describe('UnifiedBrowserManager coverage', () => {
 
     expect(camoufoxState.ctor).toHaveBeenCalledTimes(1);
     const camoufoxInstance = camoufoxState.instances[0]!;
-    expect(camoufoxInstance.__config.headless).toBe('virtual');
-    expect(camoufoxInstance.__config.os).toBe('linux');
+    expect(camoufoxInstance.configForTest.headless).toBe('virtual');
+    expect(camoufoxInstance.configForTest.os).toBe('linux');
   });
 
   it('reuses a connected Chrome browser on repeated launches', async () => {

@@ -100,11 +100,17 @@ function createCtx(overrides: Record<string, unknown> = {}) {
 
 describe('ExtensionManager', () => {
   const originalEnv = { ...process.env };
+  const pluginContextKey = 'pluginCtxForTest';
+  const rollbackFlagKey = 'rollbackFlagForTest';
+  const activationFlagKey = 'activationFlagForTest';
+  const parsedMetaKey = 'parsedMetaForTest';
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    delete (globalThis as Record<string, unknown>).__pluginCtx;
-    delete (globalThis as Record<string, unknown>).__rolledBack;
+    delete (globalThis as Record<string, unknown>)[pluginContextKey];
+    delete (globalThis as Record<string, unknown>)[rollbackFlagKey];
+    delete (globalThis as Record<string, unknown>)[activationFlagKey];
+    delete (globalThis as Record<string, unknown>)[parsedMetaKey];
     vi.resetModules();
     vi.clearAllMocks();
     state.parseDigestAllowlist.mockReturnValue(new Set());
@@ -197,7 +203,7 @@ describe('ExtensionManager', () => {
           tools: [],
           workflows: [],
           async onLoadHandler(ctx) {
-            globalThis.__pluginCtx = ctx;
+            globalThis.pluginCtxForTest = ctx;
           },
           async onActivateHandler() {},
         };
@@ -306,7 +312,7 @@ describe('ExtensionManager', () => {
               },
             ],
             async onLoadHandler() {
-              globalThis.__pluginCtx = 'executed';
+              globalThis.pluginCtxForTest = 'executed';
             },
           };
         `);
@@ -344,7 +350,7 @@ describe('ExtensionManager', () => {
     expect(ctx.extensionPluginsById.get('plugin-with-workflow')?.workflows).toEqual([
       'plugin-workflow-lazy',
     ]);
-    expect((globalThis as Record<string, unknown>).__pluginCtx).toBeUndefined();
+    expect((globalThis as Record<string, unknown>)[pluginContextKey]).toBeUndefined();
     expect(state.clearLoadedExtensionTools).not.toHaveBeenCalled();
   });
 
@@ -409,7 +415,7 @@ describe('ExtensionManager', () => {
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
 
     const result = await reloadExtensions(ctx);
-    const lifecycleContext = (globalThis as Record<string, unknown>).__pluginCtx as {
+    const lifecycleContext = (globalThis as Record<string, unknown>)[pluginContextKey] as {
       pluginRoot: string;
       state: string;
       hasPermission: (capability: string) => boolean;
@@ -528,7 +534,7 @@ describe('ExtensionManager', () => {
           tools: [],
           workflows: [],
           async onLoadHandler(ctx) {
-            globalThis.__pluginCtx = ctx;
+            globalThis.pluginCtxForTest = ctx;
           },
           async onActivateHandler() {},
         };
@@ -575,7 +581,7 @@ describe('ExtensionManager', () => {
             throw new Error('activate failed');
           },
           async onDeactivateHandler() {
-            globalThis.__rolledBack = true;
+            globalThis.rollbackFlagForTest = true;
           },
         };
       `),
@@ -588,7 +594,7 @@ describe('ExtensionManager', () => {
     expect(result.errors).toEqual([
       expect.stringContaining('Plugin lifecycle failed for plugin-bad: Error: activate failed'),
     ]);
-    expect((globalThis as Record<string, unknown>).__rolledBack).toBeUndefined();
+    expect((globalThis as Record<string, unknown>)[rollbackFlagKey]).toBeUndefined();
     expect(ctx.extensionPluginsById.size).toBe(0);
   });
 
@@ -646,10 +652,10 @@ describe('ExtensionManager', () => {
           tools: [],
           workflows: [],
           async onActivateHandler() {
-            globalThis.__activated = true;
+            globalThis.activationFlagForTest = true;
           },
           async onDeactivateHandler() {
-            globalThis.__rolledBack = true;
+            globalThis.rollbackFlagForTest = true;
           },
         };
       `),
@@ -662,8 +668,8 @@ describe('ExtensionManager', () => {
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
     await reloadExtensions(ctx);
 
-    expect((globalThis as any).__activated).toBe(true);
-    expect((globalThis as any).__rolledBack).toBe(true);
+    expect((globalThis as any)[activationFlagKey]).toBe(true);
+    expect((globalThis as any)[rollbackFlagKey]).toBe(true);
   });
 
   it('tolerates deactivation failure during rollback', async () => {
@@ -724,7 +730,7 @@ describe('ExtensionManager', () => {
           tools: [],
           workflows: [],
           mergeMetadata(meta) { 
-            globalThis.__parsedMeta = meta; 
+            globalThis.parsedMetaForTest = meta; 
           },
         };
       `),
@@ -733,7 +739,7 @@ describe('ExtensionManager', () => {
     const { reloadExtensions } = await import('@server/extensions/ExtensionManager');
     await reloadExtensions(ctx);
 
-    expect((globalThis as any).__parsedMeta).toEqual({
+    expect((globalThis as any)[parsedMetaKey]).toEqual({
       valid: 'value',
       good: 'ok',
     });

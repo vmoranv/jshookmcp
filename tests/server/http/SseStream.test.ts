@@ -18,7 +18,7 @@ function createMockResponseFactory() {
       writes,
       ended: false,
       writableEnded: false,
-      writeHead: vi.fn((_status, _headers) => mockRes),
+      writeHead: vi.fn(() => mockRes),
       setHeader: vi.fn(),
       write: vi.fn((chunk: string) => {
         writes.push(chunk);

@@ -53,7 +53,7 @@ function createPageAndSession() {
       listeners.get(event)?.delete(handler);
     }),
     detach: vi.fn(async () => {}),
-    _listeners: listeners,
+    listeners,
   };
   const page = {
     setDefaultTimeout: vi.fn(),
@@ -208,7 +208,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       // Override goto to fire the responseReceived listener with bad data
       page.goto = vi.fn(async () => {
-        const handlers = session._listeners.get('Network.responseReceived');
+        const handlers = session.listeners.get('Network.responseReceived');
         if (handlers) {
           for (const handler of handlers) {
             // Not a valid CDP response
@@ -241,7 +241,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       page.goto = vi.fn(async () => {
-        const handlers = session._listeners.get('Network.responseReceived');
+        const handlers = session.listeners.get('Network.responseReceived');
         if (handlers) {
           for (const handler of handlers) {
             await handler({
@@ -285,7 +285,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       page.goto = vi.fn(async () => {
-        const handlers = session._listeners.get('Network.responseReceived');
+        const handlers = session.listeners.get('Network.responseReceived');
         if (handlers) {
           for (const handler of handlers) {
             await handler({
@@ -323,7 +323,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       page.goto = vi.fn(async () => {
-        const handlers = session._listeners.get('Network.responseReceived');
+        const handlers = session.listeners.get('Network.responseReceived');
         if (handlers) {
           for (const handler of handlers) {
             await handler({
@@ -362,7 +362,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       page.goto = vi.fn(async () => {
-        const handlers = session._listeners.get('Network.responseReceived');
+        const handlers = session.listeners.get('Network.responseReceived');
         if (handlers) {
           for (const handler of handlers) {
             for (let i = 0; i < 5; i++) {
@@ -399,7 +399,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       page.goto = vi.fn(async () => {
-        const handlers = session._listeners.get('Network.responseReceived');
+        const handlers = session.listeners.get('Network.responseReceived');
         if (handlers) {
           for (const handler of handlers) {
             // Same URL twice
@@ -440,7 +440,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       page.goto = vi.fn(async () => {
-        const handlers = session._listeners.get('Network.responseReceived');
+        const handlers = session.listeners.get('Network.responseReceived');
         if (handlers) {
           for (const handler of handlers) {
             await handler({
@@ -477,7 +477,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       page.goto = vi.fn(async () => {
-        const handlers = session._listeners.get('Network.responseReceived');
+        const handlers = session.listeners.get('Network.responseReceived');
         if (handlers) {
           for (const handler of handlers) {
             await handler({

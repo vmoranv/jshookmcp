@@ -625,8 +625,9 @@ describe('MCPServer', () => {
 
   it('initCrossDomainInfrastructure catches import errors gracefully', async () => {
     // Force the dynamic import to fail by mocking the module resolution
-    const originalLoad = module.constructor.prototype._resolveFilename;
-    module.constructor.prototype._resolveFilename = () => {
+    const modulePrototype = module.constructor.prototype as Record<string, unknown>;
+    const originalLoad = modulePrototype['_resolveFilename'];
+    modulePrototype['_resolveFilename'] = () => {
       throw new Error('Cannot find module');
     };
 
@@ -634,7 +635,7 @@ describe('MCPServer', () => {
     // Wait for the async init to settle (it catches the error internally)
     await new Promise((r) => setTimeout(r, 10));
 
-    module.constructor.prototype._resolveFilename = originalLoad;
+    modulePrototype['_resolveFilename'] = originalLoad;
     // Server should still be usable
     expect(server).toBeDefined();
   });

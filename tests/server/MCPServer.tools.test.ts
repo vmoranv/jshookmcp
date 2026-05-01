@@ -63,7 +63,7 @@ function createCtx(overrides: Record<string, unknown> = {}) {
       content: [{ type: 'text', text: JSON.stringify(args) }],
     })),
     toolAutocompleteHandlers: new Map(),
-    __registrations: registrations,
+    registrationsForTest: registrations,
     ...overrides,
   } as any;
 
@@ -87,10 +87,10 @@ describe('MCPServer.tools', () => {
     };
 
     const registered = registerSingleTool(ctx, toolDef as any);
-    const handler = ctx.__registrations[0].handler;
+    const handler = ctx.registrationsForTest[0].handler;
     const result = await handler({ url: 'https://example.com' });
 
-    expect(registered).toBe(ctx.__registrations[0]);
+    expect(registered).toBe(ctx.registrationsForTest[0]);
     expect(ctx.server.registerTool).toHaveBeenCalledWith(
       'page_navigate',
       {
@@ -116,7 +116,7 @@ describe('MCPServer.tools', () => {
     };
 
     registerSingleTool(ctx, toolDef as any);
-    const handler = ctx.__registrations[0].handler;
+    const handler = ctx.registrationsForTest[0].handler;
     await handler({ ignored: true });
 
     expect(ctx.server.registerTool).toHaveBeenCalledWith(
@@ -133,7 +133,7 @@ describe('MCPServer.tools', () => {
     registerSingleTool(ctx, {
       name: 'extensions_reload',
     } as any);
-    const handler = ctx.__registrations[0].handler;
+    const handler = ctx.registrationsForTest[0].handler;
     await handler({ ignored: true });
 
     expect(mocks.buildZodShape).not.toHaveBeenCalled();
@@ -158,7 +158,7 @@ describe('MCPServer.tools', () => {
       description: 'Navigate a page',
       inputSchema: { type: 'object', properties: {} },
     } as any);
-    await expect(ctx.__registrations[0].handler()).rejects.toThrow(/missing prerequisite/);
+    await expect(ctx.registrationsForTest[0].handler()).rejects.toThrow(/missing prerequisite/);
     expect(mocks.logger.error).toHaveBeenCalled();
   });
 
