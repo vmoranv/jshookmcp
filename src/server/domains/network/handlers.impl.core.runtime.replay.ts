@@ -4,6 +4,7 @@ import { buildHar } from '@server/domains/network/har';
 import type { BuildHarParams } from '@server/domains/network/har';
 import { replayRequest } from '@server/domains/network/replay';
 import type { NetworkAuthorizationInput } from '@server/domains/network/ssrf-policy';
+import type { SessionProfile } from '@internal-types/SessionProfile';
 import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
 import { R } from '@server/domains/shared/ResponseBuilder';
 
@@ -300,6 +301,7 @@ export class AdvancedToolHandlersRuntime extends AdvancedHandlersBase {
       const result = await replayRequest(base, {
         requestId,
         headerPatch: args.headerPatch as Record<string, string> | undefined,
+        sessionProfile: args.sessionProfile as SessionProfile | undefined,
         bodyPatch: args.bodyPatch as string | undefined,
         methodOverride: args.methodOverride as string | undefined,
         urlOverride: args.urlOverride as string | undefined,

@@ -32,6 +32,36 @@ export const analysisTools: Tool[] = [
         { additionalProperties: { type: 'string' } },
         'Headers to add or override (key-value pairs)',
       )
+      .object(
+        'sessionProfile',
+        {
+          cookies: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                value: { type: 'string' },
+                domain: { type: 'string' },
+                path: { type: 'string' },
+                expires: { type: 'number' },
+                httpOnly: { type: 'boolean' },
+                secure: { type: 'boolean' },
+                sameSite: { type: 'string', enum: ['Strict', 'Lax', 'None'] },
+              },
+              required: ['name', 'value'],
+            },
+          },
+          userAgent: { type: 'string' },
+          acceptLanguage: { type: 'string' },
+          referer: { type: 'string' },
+          platform: { type: 'string' },
+          origin: { type: 'string' },
+          collectedAt: { type: 'number' },
+          ttlSec: { type: 'number' },
+        },
+        'Inject browser cookies, User-Agent and Accept-Language from a captured session into the replay.',
+      )
       .string('bodyPatch', 'Replace the entire request body with this string')
       .string('methodOverride', 'Override the HTTP method')
       .string('urlOverride', 'Override the request URL')

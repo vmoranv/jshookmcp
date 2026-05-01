@@ -10,6 +10,7 @@ import { buildHar } from '@server/domains/network/har';
 import type { BuildHarParams } from '@server/domains/network/har';
 import { replayRequest } from '@server/domains/network/replay';
 import type { NetworkAuthorizationInput } from '@server/domains/network/ssrf-policy';
+import type { SessionProfile } from '@internal-types/SessionProfile';
 import { R } from '@server/domains/shared/ResponseBuilder';
 import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import { getDetailedDataManager, parseBooleanArg, parseNumberArg } from './shared';
@@ -315,6 +316,7 @@ export class ReplayHandlers {
       const result = await replayRequest(base, {
         requestId,
         headerPatch: args.headerPatch as Record<string, string> | undefined,
+        sessionProfile: args.sessionProfile as SessionProfile | undefined,
         bodyPatch: args.bodyPatch as string | undefined,
         methodOverride: args.methodOverride as string | undefined,
         urlOverride: args.urlOverride as string | undefined,

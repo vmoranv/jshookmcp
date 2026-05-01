@@ -37,9 +37,12 @@ const STRIPPED_HEADERS = new Set([
 
 export { isLoopbackHost, isPrivateHost, isSsrfTarget } from '@server/domains/network/ssrf-policy';
 
+import type { SessionProfile } from '@internal-types/SessionProfile';
+
 export interface ReplayArgs {
   requestId: string;
   headerPatch?: Record<string, string>;
+  sessionProfile?: SessionProfile;
   bodyPatch?: string;
   methodOverride?: string;
   urlOverride?: string;
@@ -79,6 +82,15 @@ interface BaseRequest {
 
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
+function buildCookieHeader(profile: SessionProfile): string | undefined {
+  const parts: string[] = [];
+  for (const cookie of profile.cookies) {
+    if (!cookie.name) continue;
+    parts.push(`${cookie.name}=${cookie.value}`);
+  }
+  return parts.length > 0 ? parts.join('; ') : undefined;
+}
+
 function sanitizeHeaders(headers: Record<string, string>): Record<string, string> {
   const out = Object.create(null) as Record<string, string>;
   for (const [k, v] of Object.entries(headers)) {
@@ -97,6 +109,24 @@ export async function replayRequest(
   const url = args.urlOverride ?? base.url;
   const method = (args.methodOverride ?? base.method).toUpperCase();
   const mergedHeaders = sanitizeHeaders({ ...base.headers, ...args.headerPatch });
+  const cookieHeader = args.sessionProfile ? buildCookieHeader(args.sessionProfile) : undefined;
+  if (cookieHeader) {
+    mergedHeaders.Cookie = cookieHeader;
+  }
+  if (
+    args.sessionProfile?.userAgent &&
+    !mergedHeaders['User-Agent'] &&
+    !mergedHeaders['user-agent']
+  ) {
+    mergedHeaders['User-Agent'] = args.sessionProfile.userAgent;
+  }
+  if (
+    args.sessionProfile?.acceptLanguage &&
+    !mergedHeaders['Accept-Language'] &&
+    !mergedHeaders['accept-language']
+  ) {
+    mergedHeaders['Accept-Language'] = args.sessionProfile.acceptLanguage;
+  }
   const body = args.bodyPatch !== undefined ? args.bodyPatch : base.postData;
   const authorizationPolicy = createNetworkAuthorizationPolicy(args.authorization);
   const allowLegacyLocalSsrf = !authorizationPolicy && isLocalSsrfBypassEnabled();
