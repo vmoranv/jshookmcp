@@ -193,7 +193,7 @@ export class CrossDomainWorkflowClassifier {
     ) {
       return ['binary-instrument'];
     }
-    if (toolName.startsWith('extension_') || toolName.startsWith('webhook_')) {
+    if (toolName.startsWith('extension_') || toolName === 'webhook') {
       return ['extension-registry'];
     }
     if (toolName.startsWith('cross_domain_')) {

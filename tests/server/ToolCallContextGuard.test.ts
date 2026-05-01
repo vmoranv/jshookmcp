@@ -422,9 +422,34 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('page_navigate', response);
       const parsed = JSON.parse(getText(enriched));
 
-      expect(parsed.repeatWarning.suggestedTools).toContain('page_evaluate');
       expect(parsed.repeatWarning.suggestedTools).toContain('browser_jsdom_parse');
+      expect(parsed.repeatWarning.suggestedTools).toContain('js_bundle_search');
+      expect(parsed.repeatWarning.suggestedTools).toContain('network_get_requests');
       expect(parsed.repeatWarning.suggestedTools).not.toContain('page_navigate');
+    });
+
+    it('special-cases repeated page_evaluate with loop-breaking alternatives', () => {
+      const guard = new ToolCallContextGuard(() => ({
+        getContextMeta: () => meta,
+      }));
+
+      guard.recordCall('page_evaluate');
+      guard.recordCall('page_evaluate');
+      guard.recordCall('page_evaluate');
+
+      const response = makeResponse('{"success":true}');
+      const enriched = guard.enrichResponse('page_evaluate', response);
+      const parsed = JSON.parse(getText(enriched));
+
+      expect(parsed.repeatWarning.suggestedTools).toEqual(
+        expect.arrayContaining([
+          'browser_jsdom_parse',
+          'js_bundle_search',
+          'network_get_requests',
+          'page_screenshot',
+        ]),
+      );
+      expect(parsed.repeatWarning.suggestedTools).not.toContain('page_evaluate');
     });
 
     it('recordCall returns correct consecutive count', () => {

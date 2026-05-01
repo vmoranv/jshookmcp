@@ -209,7 +209,7 @@ export class BrowserControlHandlers {
           const wsEndpoint = argString(args, 'wsEndpoint');
           if (!wsEndpoint) {
             return R.fail(
-              'wsEndpoint is required for connect mode. Use camoufox_server_launch first to get a wsEndpoint.',
+              'wsEndpoint is required for connect mode. Use camoufox_server({ action: "launch" }) first to get a wsEndpoint.',
             ).json();
           }
           return R.ok()

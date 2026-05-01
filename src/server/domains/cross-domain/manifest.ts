@@ -126,7 +126,7 @@ const manifest = {
     },
     {
       from: 'cross_domain_correlate_all',
-      to: 'evidence_export_json',
+      to: 'evidence_export',
       relation: 'precedes',
       weight: 0.7,
     },

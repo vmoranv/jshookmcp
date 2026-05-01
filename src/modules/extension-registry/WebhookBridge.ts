@@ -102,7 +102,7 @@ export class WebhookBridge {
 
   /**
    * Register an external callback URL for a webhook endpoint.
-   * Used when webhook_create registers an endpoint — the URL is stored
+   * Used when webhook({ action: "create" }) registers an endpoint — the URL is stored
    * here so emitEvent() can forward events to external callbacks.
    */
   registerExternalCallback(endpointId: string, url: string): void {
