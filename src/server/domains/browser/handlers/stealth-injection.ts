@@ -4,6 +4,8 @@ import { argString } from '@server/domains/shared/parse-args';
 import { CDPTimingProxy } from '@modules/stealth/CDPTimingProxy';
 import type { CDPTimingOptions } from '@modules/stealth/CDPTimingProxy.types';
 import { DEFAULT_TIMING_OPTIONS } from '@modules/stealth/CDPTimingProxy.types';
+import { SessionProfileManager } from '@modules/stealth/SessionProfileManager';
+import type { SessionProfile } from '@internal-types/SessionProfile';
 import { logger } from '@utils/logger';
 import { R } from '@server/domains/shared/ResponseBuilder';
 import type { ToolResponse } from '@server/domains/shared/ResponseBuilder';
@@ -16,6 +18,7 @@ interface StealthInjectionHandlersDeps {
 /** Module-level jitter configuration shared across handler calls. */
 const jitterOptions: CDPTimingOptions = { ...DEFAULT_TIMING_OPTIONS };
 let fingerprintManagerInstance: FingerprintManagerLike | null = null;
+const sessionProfileManager = SessionProfileManager.getInstance();
 
 interface FingerprintManagerLike {
   isAvailable(): boolean;
@@ -74,6 +77,26 @@ export class StealthInjectionHandlers {
       }
 
       await StealthScripts.injectAll(page);
+
+      if (fingerprintApplied && fm) {
+        const activeProfile = fm.getActiveProfile() as {
+          headers?: Record<string, string>;
+          os?: string;
+        } | null;
+        const cached = sessionProfileManager.getProfile();
+        const mergedProfile: SessionProfile = {
+          cookies: cached?.cookies ?? [],
+          userAgent: activeProfile?.headers?.['User-Agent'] ?? cached?.userAgent,
+          acceptLanguage: activeProfile?.headers?.['Accept-Language'] ?? cached?.acceptLanguage,
+          referer: cached?.referer,
+          clientHints: cached?.clientHints,
+          platform: activeProfile?.os ?? cached?.platform,
+          origin: cached?.origin,
+          collectedAt: cached?.collectedAt ?? Date.now(),
+          ttlSec: cached?.ttlSec ?? 1800,
+        };
+        sessionProfileManager.setProfile(mergedProfile);
+      }
 
       return R.ok().build({
         message: 'Stealth scripts injected successfully',
