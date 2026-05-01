@@ -129,9 +129,9 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
   },
 }));
 
-const _createCacheAdaptersMock = vi.fn(() => []);
+const createCacheAdaptersMock = vi.fn(() => []);
 vi.mock('@utils/CacheAdapters', () => ({
-  createCacheAdapters: _createCacheAdaptersMock,
+  createCacheAdapters: createCacheAdaptersMock,
 }));
 
 vi.mock('@src/utils/logger', () => ({
@@ -217,7 +217,7 @@ describe('MCPServer', () => {
     delete process.env.MCP_TRANSPORT;
     delete process.env.MCP_TOOL_PROFILE;
     delete process.env.MCP_TOOL_DOMAINS;
-    _createCacheAdaptersMock.mockImplementation(() => []);
+    createCacheAdaptersMock.mockImplementation(() => []);
   });
 
   it('registers selected tools plus meta tools on construction', () => {
@@ -580,7 +580,7 @@ describe('MCPServer', () => {
     server.cacheRegistrationPromise = undefined;
 
     // Make createCacheAdapters throw when registerCaches calls it
-    _createCacheAdaptersMock.mockImplementationOnce(() => {
+    createCacheAdaptersMock.mockImplementationOnce(() => {
       throw new Error('createCacheAdapters exploded');
     });
 

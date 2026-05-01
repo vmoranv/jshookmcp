@@ -26,7 +26,7 @@ function createMockMonitor(overrides: Record<string, unknown> = {}) {
       messages: [],
       totalAvailable: 0,
       filtered: false,
-      _simulation: false,
+      simulation: false,
     }),
     isSimulationMode: vi.fn().mockReturnValue(false),
     didFridaProbeSucceed: vi.fn().mockReturnValue(false),
@@ -115,7 +115,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         available: true,
         started: true,
         deviceId: null,
-        _simulation: false,
+        simulation: false,
         interfaceCatalogSource: 'seeded-defaults',
         observedInterfaceCount: 0,
       });
@@ -129,7 +129,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         success: true,
         available: true,
         started: true,
-        _simulation: false,
+        simulation: false,
       });
       // source does `?? null`, so undefined becomes null
       expect(result).toHaveProperty('deviceId', null);
@@ -171,7 +171,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
     it('reflects isActive=false when monitor reports inactive after start', async () => {
       monitor.isActive.mockReturnValue(false);
       const result = await handlers.handleMojoMonitorStart({});
-      expect(result).toMatchObject({ started: false, _simulation: false });
+      expect(result).toMatchObject({ started: false, simulation: false });
     });
 
     it('returns simulation warning when monitor starts degraded', async () => {
@@ -179,11 +179,11 @@ describe('MojoIPCHandlers — coverage expansion', () => {
       const result = await handlers.handleMojoMonitorStart({});
       expect(result).toMatchObject({
         success: true,
-        _simulation: true,
+        simulation: true,
         interfaceCatalogSource: 'seeded-defaults',
         observedInterfaceCount: 0,
       });
-      expect((result as Record<string, unknown>)['_warning']).toContain('simulation mode');
+      expect((result as Record<string, unknown>)['warningMessage']).toContain('simulation mode');
     });
   });
 
@@ -197,7 +197,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         success: true,
         available: true,
         started: false,
-        _simulation: false,
+        simulation: false,
       });
     });
 
@@ -303,10 +303,10 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         available: true,
         active: true,
         interfaces,
-        _simulation: false,
+        simulation: false,
         interfaceCatalogSource: 'seeded-defaults',
         observedInterfaceCount: 0,
-        _warning:
+        warningMessage:
           'Interface list currently comes from the seeded default catalog; no live observed Mojo interfaces have been captured yet.',
       });
     });
@@ -359,7 +359,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         interfaceCatalogSource: 'mixed',
         observedInterfaceCount: 2,
       });
-      expect((result as Record<string, unknown>)['_warning']).toBeUndefined();
+      expect((result as Record<string, unknown>)['warningMessage']).toBeUndefined();
     });
   });
 
@@ -435,7 +435,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         messages,
         totalAvailable: 2,
         filtered: false,
-        _simulation: false,
+        simulation: false,
       });
       const result = await handlers.handleMojoMessagesGet({});
 
@@ -448,7 +448,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         messages,
         totalAvailable: 2,
         filtered: false,
-        _simulation: false,
+        simulation: false,
         interfaceCatalogSource: 'seeded-defaults',
         observedInterfaceCount: 0,
       });
@@ -459,7 +459,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         messages: [],
         totalAvailable: 0,
         filtered: false,
-        _simulation: false,
+        simulation: false,
       });
       await handlers.handleMojoMessagesGet({});
       expect(eventBus.emit).not.toHaveBeenCalled();
@@ -470,7 +470,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         messages: undefined as any,
         totalAvailable: 0,
         filtered: false,
-        _simulation: false,
+        simulation: false,
       });
       await handlers.handleMojoMessagesGet({});
       expect(eventBus.emit).not.toHaveBeenCalled();
@@ -481,29 +481,29 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         messages: 'not-an-array' as any,
         totalAvailable: 0,
         filtered: false,
-        _simulation: false,
+        simulation: false,
       });
       await handlers.handleMojoMessagesGet({});
       expect(eventBus.emit).not.toHaveBeenCalled();
     });
 
-    it('adds _warning when monitor is in simulation mode', async () => {
+    it('adds warningMessage when monitor is in simulation mode', async () => {
       monitor.isSimulationMode.mockReturnValue(true);
       monitor.getMessages.mockResolvedValue({
         messages: [],
         totalAvailable: 0,
         filtered: false,
-        _simulation: true,
+        simulation: true,
       });
       const result = (await handlers.handleMojoMessagesGet({})) as Record<string, unknown>;
-      expect(result).toHaveProperty('_warning');
-      expect(result['_warning']).toContain('simulation mode');
+      expect(result).toHaveProperty('warningMessage');
+      expect(result['warningMessage']).toContain('simulation mode');
     });
 
-    it('does not add _warning when not in simulation mode', async () => {
+    it('does not add warningMessage when not in simulation mode', async () => {
       monitor.isSimulationMode.mockReturnValue(false);
       const result = (await handlers.handleMojoMessagesGet({})) as Record<string, unknown>;
-      expect(result).not.toHaveProperty('_warning');
+      expect(result).not.toHaveProperty('warningMessage');
       expect(result).toMatchObject({
         interfaceCatalogSource: 'seeded-defaults',
         observedInterfaceCount: 0,
@@ -524,7 +524,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         messages: [],
         totalAvailable: 0,
         filtered: false,
-        _simulation: true,
+        simulation: true,
       });
     });
 
@@ -543,7 +543,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         messages: [{ interfaceName: 'test', payload: 'ab' }],
         totalAvailable: 1,
         filtered: false,
-        _simulation: false,
+        simulation: false,
       });
       // Should not throw
       const result = await handlersNoBus.handleMojoMessagesGet({});
@@ -573,7 +573,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
         messages: [{ interfaceName: 'test' }],
         totalAvailable: 1,
         filtered: false,
-        _simulation: false,
+        simulation: false,
       });
       await handlers.handleMojoMessagesGet({});
       expect(eventBus.emit).toHaveBeenCalledWith(
@@ -582,15 +582,15 @@ describe('MojoIPCHandlers — coverage expansion', () => {
       );
     });
 
-    it('preserves _simulation flag from getMessages result', async () => {
+    it('preserves simulation flag from getMessages result', async () => {
       monitor.getMessages.mockResolvedValue({
         messages: [],
         totalAvailable: 0,
         filtered: true,
-        _simulation: true,
+        simulation: true,
       });
       const result = (await handlers.handleMojoMessagesGet({})) as Record<string, unknown>;
-      expect(result).toMatchObject({ filtered: true, _simulation: true });
+      expect(result).toMatchObject({ filtered: true, simulation: true });
     });
   });
 
@@ -696,7 +696,7 @@ describe('MojoIPCHandlers — coverage expansion', () => {
       const result = await handlers.handleMojoMessagesGet({});
       expect(Object.keys(result as object).toSorted()).toEqual(
         [
-          '_simulation',
+          'simulation',
           'available',
           'capability',
           'error',

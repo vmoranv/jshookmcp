@@ -120,7 +120,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
   private chromeLaunchPromise?: Promise<PuppeteerBrowser>;
   private camoufoxLaunchPromise?: Promise<CamoufoxBrowserLike>;
   private isClosing = false;
-  private _chromeIsAttached = false;
+  private chromeIsAttached = false;
 
   constructor(config: UnifiedBrowserConfig = {}) {
     this.config = config;
@@ -265,7 +265,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
     this.chromeManager = new BrowserModeManager({}, {});
     // Access internal browser reference
     Reflect.set(this.chromeManager as object, 'browser', browser);
-    this._chromeIsAttached = true;
+    this.chromeIsAttached = true;
 
     logger.info('Connected to Chrome browser successfully');
     return browser;
@@ -329,8 +329,8 @@ export class UnifiedBrowserManager implements IBrowserManager {
       this.chromeLaunchPromise = undefined;
       this.camoufoxLaunchPromise = undefined;
       this.activePage = null;
-      const chromeWasAttached = this._chromeIsAttached;
-      this._chromeIsAttached = false;
+      const chromeWasAttached = this.chromeIsAttached;
+      this.chromeIsAttached = false;
 
       const closeTasks: Promise<void>[] = [];
 

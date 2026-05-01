@@ -26,7 +26,7 @@ vi.mock('camoufox-js/ip', () => ({
 }));
 
 import { StealthInjectionHandlers } from '@server/domains/browser/handlers/stealth-injection';
-import { _resetFingerprintCacheForTesting } from '@server/domains/browser/handlers/stealth-injection';
+import { resetFingerprintCacheForTesting } from '@server/domains/browser/handlers/stealth-injection';
 
 describe('StealthInjectionHandlers — camoufox features', () => {
   const pageController = { getPage: vi.fn() } as any;
@@ -35,7 +35,7 @@ describe('StealthInjectionHandlers — camoufox features', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    _resetFingerprintCacheForTesting();
+    resetFingerprintCacheForTesting();
     getActiveDriver.mockReturnValue('chrome');
     handlers = new StealthInjectionHandlers({ pageController, getActiveDriver });
   });

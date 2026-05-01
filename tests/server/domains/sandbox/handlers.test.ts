@@ -5,7 +5,7 @@ vi.mock('@server/sandbox/QuickJSSandbox', () => {
   return {
     QuickJSSandbox: class {
       setBridge() {}
-      async execute(_code: string, options: any) {
+      async execute(_exitCodeValue: string, options: any) {
         const scratch = options.globals?.__scratchpad;
         const hasContent = scratch && Object.keys(scratch).length > 0;
         return {

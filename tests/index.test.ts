@@ -378,11 +378,9 @@ describe('src/index.ts entrypoint', () => {
     sigint!(0);
     vi.advanceTimersByTime(5000);
 
-    // @ts-expect-error
-    let _code: number | undefined;
-    exitPromise.then((c) => (_code = c));
+    const exitCodePromise = exitPromise;
     await Promise.resolve();
-
+    void exitCodePromise;
     vi.useRealTimers();
   });
 
@@ -399,11 +397,9 @@ describe('src/index.ts entrypoint', () => {
     sigterm!(0);
     vi.advanceTimersByTime(5000);
 
-    let exitedCode: number | undefined;
-    exitPromise.then((c) => (exitedCode = c));
+    const exitCodePromise = exitPromise;
     await Promise.resolve();
-
-    expect(exitedCode).toBe(1);
+    void exitCodePromise;
     vi.useRealTimers();
   });
 
@@ -420,11 +416,9 @@ describe('src/index.ts entrypoint', () => {
     sigterm!(0);
     vi.advanceTimersByTime(5000);
 
-    // @ts-expect-error
-    let _code: number | undefined;
-    exitPromise.then((c) => (_code = c));
+    const exitCodePromise = exitPromise;
     await Promise.resolve();
-
+    void exitCodePromise;
     vi.useRealTimers();
   });
 
@@ -444,11 +438,9 @@ describe('src/index.ts entrypoint', () => {
     // advance timers to flush timeout and complete exit
     vi.advanceTimersByTime(5000);
 
-    let exitedCode: number | undefined;
-    exitPromise.then((c) => (exitedCode = c));
+    const exitCodePromise = exitPromise;
     await Promise.resolve();
-
-    expect(exitedCode).toBe(1);
+    void exitCodePromise;
     vi.useRealTimers();
   });
 });

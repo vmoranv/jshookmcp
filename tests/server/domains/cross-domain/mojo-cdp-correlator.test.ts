@@ -2,18 +2,18 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { correlateMojoToCDP } from '@server/domains/cross-domain/handlers/mojo-cdp-correlator';
 import {
   CrossDomainEvidenceBridge,
-  _resetIdCounter,
+  resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
 import {
   ReverseEvidenceGraph,
-  _resetIdCounter as _resetGraphIdCounter,
+  resetIdCounter as _resetGraphIdCounter,
 } from '@server/evidence/ReverseEvidenceGraph';
 
 describe('MOJO-03: Mojo-to-CDP Correlator', () => {
   let bridge: CrossDomainEvidenceBridge;
 
   beforeEach(() => {
-    _resetIdCounter();
+    resetIdCounter();
     _resetGraphIdCounter();
     bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });

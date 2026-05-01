@@ -134,10 +134,10 @@ export class DebuggerManager {
 
   private pauseOnExceptionsState: 'none' | 'uncaught' | 'all' = 'none';
 
-  private _watchManager: WatchExpressionManager | null = null;
-  private _xhrManager: XHRBreakpointManager | null = null;
-  private _eventManager: EventBreakpointManager | null = null;
-  private _blackboxManager: BlackboxManager | null = null;
+  private watchManager: WatchExpressionManager | null = null;
+  private xhrManager: XHRBreakpointManager | null = null;
+  private eventManager: EventBreakpointManager | null = null;
+  private blackboxManager: BlackboxManager | null = null;
   private advancedFeatureSession: CDPSession | null = null;
 
   private pausedListener: ((params: unknown) => void) | null = null;
@@ -170,31 +170,31 @@ export class DebuggerManager {
   }
 
   getWatchManager(): WatchExpressionManager {
-    if (!this._watchManager) {
+    if (!this.watchManager) {
       throw new Error('WatchExpressionManager not initialized. Call initAdvancedFeatures() first.');
     }
-    return this._watchManager;
+    return this.watchManager;
   }
 
   getXHRManager(): XHRBreakpointManager {
-    if (!this._xhrManager) {
+    if (!this.xhrManager) {
       throw new Error('XHRBreakpointManager not initialized. Call initAdvancedFeatures() first.');
     }
-    return this._xhrManager;
+    return this.xhrManager;
   }
 
   getEventManager(): EventBreakpointManager {
-    if (!this._eventManager) {
+    if (!this.eventManager) {
       throw new Error('EventBreakpointManager not initialized. Call initAdvancedFeatures() first.');
     }
-    return this._eventManager;
+    return this.eventManager;
   }
 
   getBlackboxManager(): BlackboxManager {
-    if (!this._blackboxManager) {
+    if (!this.blackboxManager) {
       throw new Error('BlackboxManager not initialized. Call initAdvancedFeatures() first.');
     }
-    return this._blackboxManager;
+    return this.blackboxManager;
   }
 
   async init(): Promise<void> {
@@ -225,9 +225,9 @@ export class DebuggerManager {
         this.enabled = false;
         this.cdpSession = null;
         this.advancedFeatureSession = null;
-        this._xhrManager = null;
-        this._eventManager = null;
-        this._blackboxManager = null;
+        this.xhrManager = null;
+        this.eventManager = null;
+        this.blackboxManager = null;
       });
 
       await this.cdpSession.send('Debugger.enable');
@@ -282,17 +282,17 @@ export class DebuggerManager {
 
     try {
       if (runtimeInspector) {
-        this._watchManager = new WatchExpressionManager(runtimeInspector);
+        this.watchManager = new WatchExpressionManager(runtimeInspector);
         logger.info('WatchExpressionManager initialized');
       }
 
-      this._xhrManager = new XHRBreakpointManager(this.cdpSession);
+      this.xhrManager = new XHRBreakpointManager(this.cdpSession);
       logger.info('XHRBreakpointManager initialized');
 
-      this._eventManager = new EventBreakpointManager(this.cdpSession);
+      this.eventManager = new EventBreakpointManager(this.cdpSession);
       logger.info('EventBreakpointManager initialized');
 
-      this._blackboxManager = new BlackboxManager(this.cdpSession);
+      this.blackboxManager = new BlackboxManager(this.cdpSession);
       logger.info('BlackboxManager initialized');
       this.advancedFeatureSession = this.cdpSession;
 
@@ -311,9 +311,9 @@ export class DebuggerManager {
 
     const needsReinit =
       this.advancedFeatureSession !== this.cdpSession ||
-      !this._xhrManager ||
-      !this._eventManager ||
-      !this._blackboxManager;
+      !this.xhrManager ||
+      !this.eventManager ||
+      !this.blackboxManager;
 
     if (needsReinit) {
       await this.initAdvancedFeatures();
@@ -327,24 +327,24 @@ export class DebuggerManager {
     }
 
     try {
-      if (this._xhrManager) {
-        await this._xhrManager.close();
-        this._xhrManager = null;
+      if (this.xhrManager) {
+        await this.xhrManager.close();
+        this.xhrManager = null;
       }
 
-      if (this._eventManager) {
-        await this._eventManager.close();
-        this._eventManager = null;
+      if (this.eventManager) {
+        await this.eventManager.close();
+        this.eventManager = null;
       }
 
-      if (this._blackboxManager) {
-        await this._blackboxManager.close();
-        this._blackboxManager = null;
+      if (this.blackboxManager) {
+        await this.blackboxManager.close();
+        this.blackboxManager = null;
       }
 
-      if (this._watchManager) {
-        this._watchManager.clearAll();
-        this._watchManager = null;
+      if (this.watchManager) {
+        this.watchManager.clearAll();
+        this.watchManager = null;
       }
 
       if (this.pausedListener) {

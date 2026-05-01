@@ -404,7 +404,7 @@ describe('CaptchaDetector — deep coverage', () => {
       });
 
       // @ts-expect-error — mock page
-      const _assessment = await detector.assess(page);
+      await detector.assess(page);
 
       expect(loggerState.warn).toHaveBeenCalledWith(
         expect.stringContaining('text'),
@@ -437,7 +437,7 @@ describe('CaptchaDetector — deep coverage', () => {
       vi.spyOn(detector, 'checkVendorSpecific').mockRejectedValue(new Error('vendor fail'));
 
       // @ts-expect-error — mock page
-      const _assessment2 = await detector.assess(page);
+      await detector.assess(page);
 
       expect(loggerState.warn).toHaveBeenCalledWith(
         expect.stringContaining('vendor'),

@@ -122,9 +122,9 @@ export async function dumpMemoryRegion(
       timeout: MEMORY_DUMP_TIMEOUT_MS,
     });
 
-    const _trimmed = stdout.trim();
-    if (!_trimmed) throw new Error('PowerShell returned empty output');
-    const result = JSON.parse(_trimmed);
+    const trimmed = stdout.trim();
+    if (!trimmed) throw new Error('PowerShell returned empty output');
+    const result = JSON.parse(trimmed);
     return { success: result.success, error: result.error };
   } catch (error) {
     logger.error('Memory dump failed:', error);

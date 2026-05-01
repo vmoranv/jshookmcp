@@ -207,7 +207,7 @@ describe('HeapAnalyzer', () => {
   });
 
   it('computes stats fallback values when only heap totals are available', () => {
-    const stats = (analyzer as any)._computeStats(
+    const stats = (analyzer as any).computeStats(
       [
         {
           heapId: '0x100',
@@ -236,8 +236,8 @@ describe('HeapAnalyzer', () => {
       { address: '0x5', size: 200 * 1024 * 1024, flags: 1, heapId: '0x100', isFree: false },
     ];
 
-    (analyzer as any)._detectSpray(blocks, '0x100', anomalies);
-    (analyzer as any)._detectSuspiciousSizes(blocks, '0x100', anomalies);
+    (analyzer as any).detectSpray(blocks, '0x100', anomalies);
+    (analyzer as any).detectSuspiciousSizes(blocks, '0x100', anomalies);
 
     expect(anomalies.some((anomaly) => anomaly.type === 'heap_spray_pattern')).toBe(true);
     expect(anomalies.filter((anomaly) => anomaly.type === 'suspicious_size')).toHaveLength(2);
@@ -270,7 +270,7 @@ describe('HeapAnalyzer', () => {
 
     const anomalies: any[] = [];
     await expect(
-      (analyzerWithFailure as any)._detectPossibleUAF(
+      (analyzerWithFailure as any).detectPossibleUaf(
         1234,
         [{ address: '0x1000', size: 64, flags: 0x02, heapId: '0x100', isFree: true }],
         '0x100',

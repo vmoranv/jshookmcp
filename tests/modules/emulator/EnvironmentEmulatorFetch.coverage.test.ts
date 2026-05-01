@@ -535,7 +535,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
         browser: browser as any,
         url: 'https://example.com',
         detected: {
-          window: ['window.requestAnimationFrame', 'window._sdkGlueVersionMap'],
+          window: ['window.requestAnimationFrame', 'window.sdkGlueVersionMap'],
           document: ['document.title'],
           navigator: [
             'navigator.webdriver',
@@ -566,7 +566,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       (window.cancelAnimationFrame as (id: number) => void)(1);
       expect(typeof window.requestAnimationFrame).toBe('function');
       expect(typeof window.cancelAnimationFrame).toBe('function');
-      expect(window._sdkGlueVersionMap).toEqual({});
+      expect(window.sdkGlueVersionMap).toEqual({});
       expect((window as Record<string, any>).setTimeout).toHaveBeenCalled();
       expect((window as Record<string, any>).clearTimeout).toHaveBeenCalledWith(1);
       // @ts-expect-error
@@ -606,7 +606,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
         navigator,
         requestAnimationFrame: existingRaf,
         cancelAnimationFrame: existingCaf,
-        _sdkGlueVersionMap: { preset: true },
+        sdkGlueVersionMap: { preset: true },
         setTimeout,
         clearTimeout,
       } as Record<string, unknown>;
@@ -639,7 +639,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
         browser: browser as any,
         url: 'https://example.com',
         detected: {
-          window: ['window.requestAnimationFrame', 'window._sdkGlueVersionMap'],
+          window: ['window.requestAnimationFrame', 'window.sdkGlueVersionMap'],
           document: ['document.title'],
           navigator: ['navigator.userAgent'],
           location: [],
@@ -653,7 +653,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       expect(window.requestAnimationFrame).toBe(existingRaf);
       expect(window.cancelAnimationFrame).toBe(existingCaf);
-      expect(window._sdkGlueVersionMap).toEqual({ preset: true });
+      expect(window.sdkGlueVersionMap).toEqual({ preset: true });
       // @ts-expect-error
       await expect(navigator.permissions.query({ name: 'geolocation' })).resolves.toEqual({
         state: 'denied',

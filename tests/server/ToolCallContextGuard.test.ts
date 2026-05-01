@@ -300,7 +300,7 @@ describe('ToolCallContextGuard', () => {
   // ── Repeat call guard tests ──
 
   describe('repeat call guard', () => {
-    it('injects _repeatWarning after 3 consecutive identical calls', () => {
+    it('injects repeatWarning after 3 consecutive identical calls', () => {
       const guard = new ToolCallContextGuard(() => ({
         getContextMeta: () => meta,
       }));
@@ -315,11 +315,11 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('stealth_inject', response);
       const parsed = JSON.parse(getText(enriched));
 
-      expect(parsed._repeatWarning).toBeDefined();
-      expect(parsed._repeatWarning.detected).toBe(true);
-      expect(parsed._repeatWarning.consecutiveCount).toBe(3);
-      expect(parsed._repeatWarning.suggestedTools).toContain('page_navigate');
-      expect(parsed._repeatWarning.suggestedTools).not.toContain('stealth_inject');
+      expect(parsed.repeatWarning).toBeDefined();
+      expect(parsed.repeatWarning.detected).toBe(true);
+      expect(parsed.repeatWarning.consecutiveCount).toBe(3);
+      expect(parsed.repeatWarning.suggestedTools).toContain('page_navigate');
+      expect(parsed.repeatWarning.suggestedTools).not.toContain('stealth_inject');
     });
 
     it('resets repeat counter when a different tool is called', () => {
@@ -339,7 +339,7 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('stealth_inject', response);
       const parsed = JSON.parse(getText(enriched));
 
-      expect(parsed._repeatWarning).toBeUndefined();
+      expect(parsed.repeatWarning).toBeUndefined();
     });
 
     it('does not warn for meta-tools even after many repeats', () => {
@@ -355,7 +355,7 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('search_tools', response);
       const parsed = JSON.parse(getText(enriched));
 
-      expect(parsed._repeatWarning).toBeUndefined();
+      expect(parsed.repeatWarning).toBeUndefined();
     });
 
     it('does not inject warning for fewer than 3 repeats', () => {
@@ -372,10 +372,10 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('stealth_inject', response);
       const parsed = JSON.parse(getText(enriched));
 
-      expect(parsed._repeatWarning).toBeUndefined();
+      expect(parsed.repeatWarning).toBeUndefined();
     });
 
-    it('preserves _tabContext alongside _repeatWarning', () => {
+    it('preserves _tabContext alongside repeatWarning', () => {
       const guard = new ToolCallContextGuard(() => ({
         getContextMeta: () => meta,
       }));
@@ -389,7 +389,7 @@ describe('ToolCallContextGuard', () => {
       const parsed = JSON.parse(getText(enriched));
 
       // Both should be present
-      expect(parsed._repeatWarning).toBeDefined();
+      expect(parsed.repeatWarning).toBeDefined();
       expect(parsed._tabContext).toEqual(meta);
     });
 
@@ -406,7 +406,7 @@ describe('ToolCallContextGuard', () => {
       // Non-context-sensitive, so no _tabContext, but repeat warning should be appended
       expect(enriched.content.length).toBe(2);
       const warningItem = JSON.parse(getText(enriched, 1));
-      expect(warningItem._repeatWarning.detected).toBe(true);
+      expect(warningItem.repeatWarning.detected).toBe(true);
     });
 
     it('uses domain-specific alternatives for known prefixes', () => {
@@ -422,9 +422,9 @@ describe('ToolCallContextGuard', () => {
       const enriched = guard.enrichResponse('page_navigate', response);
       const parsed = JSON.parse(getText(enriched));
 
-      expect(parsed._repeatWarning.suggestedTools).toContain('page_evaluate');
-      expect(parsed._repeatWarning.suggestedTools).toContain('browser_jsdom_parse');
-      expect(parsed._repeatWarning.suggestedTools).not.toContain('page_navigate');
+      expect(parsed.repeatWarning.suggestedTools).toContain('page_evaluate');
+      expect(parsed.repeatWarning.suggestedTools).toContain('browser_jsdom_parse');
+      expect(parsed.repeatWarning.suggestedTools).not.toContain('page_navigate');
     });
 
     it('recordCall returns correct consecutive count', () => {

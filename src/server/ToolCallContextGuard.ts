@@ -6,7 +6,7 @@
  * appends `_tabContext` metadata to responses so the LLM always knows which page
  * it is operating on, preventing silent context drift.
  *
- * Additionally, tracks consecutive identical tool calls and injects `_repeatWarning`
+ * Additionally, tracks consecutive identical tool calls and injects `repeatWarning`
  * when the same tool is called ≥ MAX_CONSECUTIVE_REPEATS times in a row, helping
  * break LLM degeneration loops (e.g. stealth_inject called 5× instead of page_navigate).
  */
@@ -231,7 +231,7 @@ export class ToolCallContextGuard {
   }
 
   /**
-   * Inject a `_repeatWarning` into the response when a tool call loop is detected.
+   * Inject a `repeatWarning` into the response when a tool call loop is detected.
    * Splices into JSON text content if possible, or appends a new text entry.
    */
   private injectRepeatWarning<T extends { content?: unknown[] }>(
@@ -272,7 +272,7 @@ export class ToolCallContextGuard {
       try {
         const parsed = JSON.parse(raw);
         if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-          parsed._repeatWarning = warning;
+          parsed.repeatWarning = warning;
           firstText.text = JSON.stringify(parsed, null, 2);
           return;
         }
@@ -284,7 +284,7 @@ export class ToolCallContextGuard {
     // Fallback: append as a new content item
     content.push({
       type: 'text',
-      text: JSON.stringify({ _repeatWarning: warning }, null, 2),
+      text: JSON.stringify({ repeatWarning: warning }, null, 2),
     });
   }
 }

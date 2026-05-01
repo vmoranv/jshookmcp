@@ -17,11 +17,11 @@ export interface RoutingState {
 
 // ── Lazy Tool Index ──
 
-let _allToolsByName: Map<string, Tool> | null = null;
+let allToolsByNameCache: Map<string, Tool> | null = null;
 
 export function getAllToolsByName(): Map<string, Tool> {
-  if (!_allToolsByName) _allToolsByName = new Map(allTools.map((t) => [t.name, t]));
-  return _allToolsByName;
+  if (!allToolsByNameCache) allToolsByNameCache = new Map(allTools.map((t) => [t.name, t]));
+  return allToolsByNameCache;
 }
 
 // ── Tool Accessors ──

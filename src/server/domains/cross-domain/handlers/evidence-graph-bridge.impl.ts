@@ -1,7 +1,7 @@
-import { ReverseEvidenceGraph, _resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
+import { ReverseEvidenceGraph, resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
 import type { EvidenceGraphSnapshot, EvidenceNode, EvidenceNodeType } from '@server/evidence/types';
 
-export { _resetIdCounter };
+export { resetIdCounter };
 
 export interface V8ObjectInput {
   address: string;

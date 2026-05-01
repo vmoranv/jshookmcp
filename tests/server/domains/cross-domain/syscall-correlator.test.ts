@@ -2,18 +2,18 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { correlateSyscallToJS } from '@server/domains/cross-domain/handlers/syscall-js-correlator';
 import {
   CrossDomainEvidenceBridge,
-  _resetIdCounter,
+  resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
 import {
   ReverseEvidenceGraph,
-  _resetIdCounter as _resetGraphIdCounter,
+  resetIdCounter as _resetGraphIdCounter,
 } from '@server/evidence/ReverseEvidenceGraph';
 
 describe('SYSCALL-02: Syscall-to-JS Correlator', () => {
   let bridge: CrossDomainEvidenceBridge;
 
   beforeEach(() => {
-    _resetIdCounter();
+    resetIdCounter();
     _resetGraphIdCounter();
     bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });

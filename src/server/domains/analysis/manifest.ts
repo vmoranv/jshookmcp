@@ -21,11 +21,11 @@ function bindWithProgress(invoke: (h: H, a: Record<string, unknown>) => Promise<
   return (deps: Record<string, unknown>) => {
     const handler = deps[DEP_KEY] as H;
     return (args: Record<string, unknown>) => {
-      const _meta = args._meta as { progressToken?: string | number } | undefined;
+      const meta = args._meta as { progressToken?: string | number } | undefined;
       let onProgress: ((progress: number, total?: number) => void) | undefined;
 
-      if (_meta?.progressToken !== undefined && globalContext) {
-        onProgress = createProgressDebouncer(globalContext.eventBus, _meta.progressToken);
+      if (meta?.progressToken !== undefined && globalContext) {
+        onProgress = createProgressDebouncer(globalContext.eventBus, meta.progressToken);
       }
       return invoke(handler, { ...args, onProgress });
     };

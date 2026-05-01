@@ -242,7 +242,10 @@ export class CodeAnalyzer {
     };
   }
 
-  private async aiAnalyze(_code: string, _focus: string): Promise<Record<string, unknown>> {
+  private async aiAnalyze(
+    _exitCodeValue: string,
+    _focus: string,
+  ): Promise<Record<string, unknown>> {
     // LLM-based analysis removed — return empty analysis
     return {};
   }

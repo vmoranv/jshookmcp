@@ -88,14 +88,18 @@ export function scanRegionInChunks(
  * Win32-only methods (injection, debug) are guarded by platform checks.
  */
 export class NativeMemoryManager {
-  private _provider: PlatformMemoryAPI | null = null;
+  private providerCache: PlatformMemoryAPI | null = null;
 
   /** Lazily create the platform memory provider */
   private get provider(): PlatformMemoryAPI {
-    if (!this._provider) {
-      this._provider = createPlatformProvider();
+    if (!this.providerCache) {
+      this.providerCache = createPlatformProvider();
     }
-    return this._provider;
+    return this.providerCache;
+  }
+
+  private set provider(value: PlatformMemoryAPI | null) {
+    this.providerCache = value;
   }
 
   async checkAvailability(): Promise<{ available: boolean; reason?: string }> {

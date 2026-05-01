@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ReverseEvidenceGraph, _resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
+import { ReverseEvidenceGraph, resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
 import type { EvidenceNodeType } from '@server/evidence/types';
 
 describe('ReverseEvidenceGraph (EVID-01~03, EVID-05)', () => {
   let graph: ReverseEvidenceGraph;
 
   beforeEach(() => {
-    _resetIdCounter();
+    resetIdCounter();
     graph = new ReverseEvidenceGraph();
   });
 

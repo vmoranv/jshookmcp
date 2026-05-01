@@ -96,7 +96,7 @@ class MockSocket extends EventEmitter {
 
 class MockHttp2Request extends EventEmitter {
   public readonly end = vi.fn((_body?: Buffer) => this);
-  public readonly close = vi.fn((_code?: number) => this.emit('close'));
+  public readonly close = vi.fn((_exitCodeValue?: number) => this.emit('close'));
 }
 
 class MockHttp2Session extends EventEmitter {

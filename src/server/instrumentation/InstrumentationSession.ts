@@ -16,9 +16,9 @@ import { InstrumentationType } from './types';
 import type { EvidenceGraphBridge } from './EvidenceGraphBridge';
 import type { ToolResponse } from '@server/types';
 
-let _nextId = 0;
+let nextId = 0;
 function uid(prefix: string): string {
-  return `${prefix}-${Date.now().toString(36)}-${(++_nextId).toString(36)}`;
+  return `${prefix}-${Date.now().toString(36)}-${(++nextId).toString(36)}`;
 }
 
 interface HookPresetInvoker {

@@ -2,18 +2,18 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { correlateSkiaToJS } from '@server/domains/cross-domain/handlers/skia-correlator';
 import {
   CrossDomainEvidenceBridge,
-  _resetIdCounter,
+  resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
 import {
   ReverseEvidenceGraph,
-  _resetIdCounter as _resetGraphIdCounter,
+  resetIdCounter as _resetGraphIdCounter,
 } from '@server/evidence/ReverseEvidenceGraph';
 
 describe('SKIA-03: Skia-to-JS Correlator', () => {
   let bridge: CrossDomainEvidenceBridge;
 
   beforeEach(() => {
-    _resetIdCounter();
+    resetIdCounter();
     _resetGraphIdCounter();
     bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
   });

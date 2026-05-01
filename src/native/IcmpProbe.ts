@@ -63,7 +63,7 @@ function isValidIpv4(ip: string): boolean {
 
 // ── Platform State ──
 
-let _available: boolean | null = null;
+let available: boolean | null = null;
 
 // ════════════════════════════════════════════════════════════════════
 // Windows Implementation (IcmpSendEcho via iphlpapi.dll)
@@ -461,7 +461,7 @@ function posixStatusLabel(type: number, code: number, timedOut: boolean): string
   return `UNKNOWN_${type}_${code}`;
 }
 
-function posixErrorClass(type: number, _code: number, timedOut: boolean): string {
+function posixErrorClass(type: number, _exitCodeValue: number, timedOut: boolean): string {
   if (type === 0) return 'success';
   if (timedOut) return 'timeout';
   if (type === 11) return 'time_exceeded';
@@ -699,16 +699,16 @@ function posixTraceroute(params: {
 const isPosix = process.platform === 'linux' || process.platform === 'darwin';
 
 export function isIcmpAvailable(): boolean {
-  if (_available !== null) return _available;
+  if (available !== null) return available;
 
   if (process.platform === 'win32') {
     try {
       const lib = koffi.load('iphlpapi.dll');
       lib.unload();
-      _available = true;
+      available = true;
       return true;
     } catch {
-      _available = false;
+      available = false;
       return false;
     }
   }
@@ -718,17 +718,17 @@ export function isIcmpAvailable(): boolean {
       const fd = posixSocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
       if (fd >= 0) {
         posixClose(fd);
-        _available = true;
+        available = true;
       } else {
-        _available = false;
+        available = false;
       }
     } catch {
-      _available = false;
+      available = false;
     }
-    return _available;
+    return available;
   }
 
-  _available = false;
+  available = false;
   return false;
 }
 
@@ -802,6 +802,6 @@ export function unloadIcmpLibraries(): void {
     posixLib.unload();
     posixLib = null;
   }
-  _available = null;
+  available = null;
   logger.debug('Unloaded ICMP native libraries');
 }

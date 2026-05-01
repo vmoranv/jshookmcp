@@ -28,7 +28,7 @@ import { TH32CS } from '@native/Win32Debug';
 
 // ── Toolhelp32 Heap APIs (loaded lazily) ──
 
-let _heapApis: ReturnType<typeof loadHeapApis> | null = null;
+let heapApisCache: ReturnType<typeof loadHeapApis> | null = null;
 
 function loadHeapApis() {
   const k32 = koffi.load('kernel32.dll');
@@ -47,8 +47,8 @@ function loadHeapApis() {
 }
 
 function getHeapApis() {
-  if (!_heapApis) _heapApis = loadHeapApis();
-  return _heapApis;
+  if (!heapApisCache) heapApisCache = loadHeapApis();
+  return heapApisCache;
 }
 
 // ── Size Distribution Buckets ──
@@ -100,7 +100,7 @@ export class HeapAnalyzer {
         const flags = hlBuf.readUInt32LE(20);
 
         // Enumerate blocks in this heap
-        const blocks = await this._enumerateBlocksInternal(pid, heapId, HEAP_ENUMERATE_MAX_BLOCKS);
+        const blocks = await this.enumerateBlocksInternal(pid, heapId, HEAP_ENUMERATE_MAX_BLOCKS);
 
         heaps.push({
           heapId: `0x${heapId.toString(16)}`,
@@ -118,7 +118,7 @@ export class HeapAnalyzer {
       apis.CloseHandle(hSnap);
     }
 
-    const stats = this._computeStats(heaps, []);
+    const stats = this.computeStats(heaps, []);
     return { heaps, stats };
   }
 
@@ -132,7 +132,7 @@ export class HeapAnalyzer {
   ): Promise<HeapBlock[]> {
     const id = BigInt(heapId);
     const max = options?.maxBlocks ?? HEAP_ENUMERATE_MAX_BLOCKS;
-    return this._enumerateBlocksInternal(pid, id, max);
+    return this.enumerateBlocksInternal(pid, id, max);
   }
 
   /**
@@ -144,7 +144,7 @@ export class HeapAnalyzer {
     // Collect all blocks for detailed stats
     const allBlocks: HeapBlock[] = [];
     for (const heap of heaps) {
-      const blocks = await this._enumerateBlocksInternal(
+      const blocks = await this.enumerateBlocksInternal(
         pid,
         BigInt(heap.heapId),
         HEAP_ENUMERATE_MAX_BLOCKS,
@@ -152,7 +152,7 @@ export class HeapAnalyzer {
       allBlocks.push(...blocks);
     }
 
-    return this._computeStats(heaps, allBlocks);
+    return this.computeStats(heaps, allBlocks);
   }
 
   /**
@@ -163,20 +163,20 @@ export class HeapAnalyzer {
     const { heaps } = await this.enumerateHeaps(pid);
 
     for (const heap of heaps) {
-      const blocks = await this._enumerateBlocksInternal(
+      const blocks = await this.enumerateBlocksInternal(
         pid,
         BigInt(heap.heapId),
         HEAP_ENUMERATE_MAX_BLOCKS,
       );
 
       // Check for heap spray pattern
-      this._detectSpray(blocks, heap.heapId, anomalies);
+      this.detectSpray(blocks, heap.heapId, anomalies);
 
       // Check for suspicious sizes
-      this._detectSuspiciousSizes(blocks, heap.heapId, anomalies);
+      this.detectSuspiciousSizes(blocks, heap.heapId, anomalies);
 
       // Check for possible UAF (free blocks with non-zero data)
-      await this._detectPossibleUAF(pid, blocks, heap.heapId, anomalies);
+      await this.detectPossibleUaf(pid, blocks, heap.heapId, anomalies);
     }
 
     return anomalies;
@@ -184,7 +184,7 @@ export class HeapAnalyzer {
 
   // ── Private Helpers ──
 
-  private async _enumerateBlocksInternal(
+  private async enumerateBlocksInternal(
     pid: number,
     heapId: bigint,
     maxBlocks: number,
@@ -218,7 +218,7 @@ export class HeapAnalyzer {
     return blocks;
   }
 
-  private _computeStats(heaps: HeapInfo[], blocks: HeapBlock[]): HeapStats {
+  private computeStats(heaps: HeapInfo[], blocks: HeapBlock[]): HeapStats {
     const buckets: HeapSizeBucket[] = SIZE_RANGES.map(([range]) => ({
       range,
       count: 0,
@@ -261,7 +261,7 @@ export class HeapAnalyzer {
     };
   }
 
-  private _detectSpray(blocks: HeapBlock[], heapId: string, anomalies: HeapAnomaly[]): void {
+  private detectSpray(blocks: HeapBlock[], heapId: string, anomalies: HeapAnomaly[]): void {
     // Group blocks by approximate size (within tolerance)
     const sizeGroups = new Map<number, HeapBlock[]>();
 
@@ -287,7 +287,7 @@ export class HeapAnalyzer {
     }
   }
 
-  private _detectSuspiciousSizes(
+  private detectSuspiciousSizes(
     blocks: HeapBlock[],
     heapId: string,
     anomalies: HeapAnomaly[],
@@ -313,7 +313,7 @@ export class HeapAnalyzer {
     }
   }
 
-  private async _detectPossibleUAF(
+  private async detectPossibleUaf(
     pid: number,
     blocks: HeapBlock[],
     heapId: string,

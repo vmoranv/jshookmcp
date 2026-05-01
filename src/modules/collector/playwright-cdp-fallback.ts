@@ -44,7 +44,7 @@ function ensureElectronDownloadBehaviorCompatPatch(): void {
   const { CRBrowserContext } = require(crBrowserPath) as {
     CRBrowserContext: {
       prototype: {
-        _initialize: (...args: unknown[]) => Promise<unknown>;
+        initialize: (...args: unknown[]) => Promise<unknown>;
         __jshookElectronCompatPatched?: boolean;
       };
     };
@@ -55,8 +55,8 @@ function ensureElectronDownloadBehaviorCompatPatch(): void {
     return;
   }
 
-  const originalInitialize = CRBrowserContext.prototype._initialize;
-  CRBrowserContext.prototype._initialize = async function patchedInitialize(
+  const originalInitialize = CRBrowserContext.prototype.initialize;
+  CRBrowserContext.prototype.initialize = async function patchedInitialize(
     ...args: unknown[]
   ): Promise<unknown> {
     try {

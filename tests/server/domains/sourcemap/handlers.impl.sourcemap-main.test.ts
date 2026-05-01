@@ -44,11 +44,6 @@ describe('SourcemapToolHandlersMain', () => {
     handlers = new SourcemapToolHandlersMain(mockcollector as unknown as CodeCollector);
   });
 
-  // @ts-expect-error — auto-suppressed [TS6133]
-  const _dummyArgs = {
-    sourceMapUrl: 'http://test.com/map.js.map',
-  };
-
   it('instantiates correctly', async () => {
     expect(handlers).toBeInstanceOf(SourcemapToolHandlersMain);
   });

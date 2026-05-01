@@ -2,11 +2,11 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { CrossDomainHandlers } from '@server/domains/cross-domain/handlers';
 import {
   CrossDomainEvidenceBridge,
-  _resetIdCounter,
+  resetIdCounter,
 } from '@server/domains/cross-domain/handlers/evidence-graph-bridge';
 import {
   ReverseEvidenceGraph,
-  _resetIdCounter as _resetGraphIdCounter,
+  resetIdCounter as _resetGraphIdCounter,
 } from '@server/evidence/ReverseEvidenceGraph';
 
 describe('CrossDomainHandlers', () => {
@@ -14,7 +14,7 @@ describe('CrossDomainHandlers', () => {
   let handlers: CrossDomainHandlers;
 
   beforeEach(() => {
-    _resetIdCounter();
+    resetIdCounter();
     _resetGraphIdCounter();
     bridge = new CrossDomainEvidenceBridge(new ReverseEvidenceGraph());
     handlers = new CrossDomainHandlers(bridge);

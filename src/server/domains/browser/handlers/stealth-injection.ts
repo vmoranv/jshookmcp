@@ -36,7 +36,7 @@ async function getFingerprintManager(): Promise<FingerprintManagerLike | null> {
 }
 
 /** @internal Reset the cached FingerprintManager instance. Exported for testing only. */
-export function _resetFingerprintCacheForTesting(): void {
+export function resetFingerprintCacheForTesting(): void {
   fingerprintManagerInstance = null;
 }
 

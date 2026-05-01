@@ -175,8 +175,7 @@ describe('StreamingToolHandlersSse Coverage', () => {
 
         // 3. Test urlFilter
         mockWindow.__jshookSSEMonitor.urlFilterRaw = 'match';
-        // @ts-expect-error
-        const _esInstance2 = new WrappedES('http://nomatch.com');
+        const esInstance2 = new WrappedES('http://nomatch.com');
         // Clear calls to find the next one
         mockAddEventListener.mockClear();
         // Constructing esInstance2 should have added listeners again
@@ -185,8 +184,9 @@ describe('StreamingToolHandlersSse Coverage', () => {
         // Trigger message on esInstance2's listeners
         // We need to get the listeners for this specific instance if possible,
         // but since we cleared mockAddEventListener, we can just look at new calls.
-        // @ts-expect-error
-        const _messageCall2 = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'message');
+        const messageCall2 = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'message');
+        expect(esInstance2).toBeDefined();
+        void messageCall2;
         // Actually esInstance2 construction already called mockAddEventListener
         // Let's just use the logic that pushEvent is called.
 
@@ -297,9 +297,9 @@ describe('StreamingToolHandlersSse Coverage', () => {
         delete state.sources['http://new-source.com'];
         // Trigger via open event on a new ES for a new URL
         mockAddEventListener.mockClear();
-        // @ts-expect-error
-        const _esInstance3 = new WrappedES('http://new-source.com');
+        const esInstance3 = new WrappedES('http://new-source.com');
         const openHandler3 = mockAddEventListener.mock.calls.find((c: any) => c[0] === 'open');
+        expect(esInstance3).toBeDefined();
         if (openHandler3) {
           openHandler3[1]();
           expect(state.sources['http://new-source.com']).toBeDefined();

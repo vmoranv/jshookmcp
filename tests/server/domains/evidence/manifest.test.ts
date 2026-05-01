@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EvidenceHandlers } from '@server/domains/evidence/handlers';
 import manifest from '@server/domains/evidence/manifest';
-import { ReverseEvidenceGraph, _resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
+import { ReverseEvidenceGraph, resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
 
 describe('evidence manifest', () => {
   it('wires a shared evidence graph and bridge through ensure()', async () => {
@@ -23,7 +23,7 @@ describe('evidence manifest', () => {
   });
 
   it('returns MCP-compatible tool responses from evidence handlers', async () => {
-    _resetIdCounter();
+    resetIdCounter();
     const graph = new ReverseEvidenceGraph();
     const requestNode = graph.addNode('request', 'Login request', {
       url: 'https://example.com/api/login',

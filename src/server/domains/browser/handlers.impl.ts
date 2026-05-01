@@ -86,7 +86,7 @@ export class BrowserToolHandlers {
   private tabWorkflow: TabWorkflowHandlers;
   private detailedData: DetailedDataHandlers;
   private jsdomHandlers: JsdomHandlers;
-  private _tabRegistry: TabRegistry;
+  private tabRegistry: TabRegistry;
 
   constructor(
     collector: CodeCollector,
@@ -158,12 +158,12 @@ export class BrowserToolHandlers {
     this.tabWorkflow = modules.tabWorkflow;
     this.detailedData = modules.detailedData;
     this.jsdomHandlers = modules.jsdomHandlers;
-    this._tabRegistry = modules.tabRegistry;
+    this.tabRegistry = modules.tabRegistry;
   }
 
   /** Get the shared TabRegistry for context enrichment. */
   getTabRegistry(): TabRegistry {
-    return this._tabRegistry;
+    return this.tabRegistry;
   }
 
   /** Get or create camoufox page (Playwright Page). */

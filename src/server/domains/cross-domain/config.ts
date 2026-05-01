@@ -80,6 +80,6 @@ export function getCrossDomainConfig(): CrossDomainConfig {
 }
 
 /** Reset cached config — for testing only. */
-export function _resetConfigCache(): void {
+export function resetConfigCache(): void {
   cachedConfig = null;
 }

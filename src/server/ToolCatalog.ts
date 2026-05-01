@@ -15,31 +15,31 @@ export type ToolDomain = string;
 export type ToolProfile = ToolProfileId;
 
 // Derived from registry — lazily built on first access (after initRegistry).
-let _toolGroups: Record<string, Tool[]> | null = null;
-let _toolDomainByName: ReadonlyMap<string, string> | null = null;
-let _profileDomains: Record<ToolProfile, string[]> | null = null;
-let _allTools: Tool[] | null = null;
+let toolGroups: Record<string, Tool[]> | null = null;
+let toolDomainByName: ReadonlyMap<string, string> | null = null;
+let profileDomains: Record<ToolProfile, string[]> | null = null;
+let allToolsCache: Tool[] | null = null;
 
 function getToolGroups(): Record<string, Tool[]> {
-  if (!_toolGroups) _toolGroups = buildToolGroups();
-  return _toolGroups;
+  if (!toolGroups) toolGroups = buildToolGroups();
+  return toolGroups;
 }
 
 function getToolDomainByName(): ReadonlyMap<string, string> {
-  if (!_toolDomainByName) _toolDomainByName = buildToolDomainMap();
-  return _toolDomainByName;
+  if (!toolDomainByName) toolDomainByName = buildToolDomainMap();
+  return toolDomainByName;
 }
 
 function getProfileDomainsMap(): Record<ToolProfile, string[]> {
-  if (!_profileDomains) _profileDomains = buildProfileDomains();
-  return _profileDomains;
+  if (!profileDomains) profileDomains = buildProfileDomains();
+  return profileDomains;
 }
 
 // Proxy so that consumers can import allTools normally but values resolve lazily.
 export const allTools: Tool[] = new Proxy([] as Tool[], {
   get(_t, p) {
-    if (!_allTools) _allTools = buildAllTools();
-    const real = _allTools as unknown as Record<string | symbol, unknown>;
+    if (!allToolsCache) allToolsCache = buildAllTools();
+    const real = allToolsCache as unknown as Record<string | symbol, unknown>;
     const v = real[p as string];
     return typeof v === 'function' ? (v as Function).bind(real) : v;
   },

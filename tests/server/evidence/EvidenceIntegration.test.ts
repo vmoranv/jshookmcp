@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ReverseEvidenceGraph, _resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
+import { ReverseEvidenceGraph, resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
 import { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
 import { EvidenceGraphBridge } from '@server/instrumentation/EvidenceGraphBridge';
 import { InstrumentationType } from '@server/instrumentation/types';
@@ -10,7 +10,7 @@ describe('EVID-04: InstrumentationSession → Evidence Graph Integration', () =>
   let bridge: EvidenceGraphBridge;
 
   beforeEach(() => {
-    _resetIdCounter();
+    resetIdCounter();
     graph = new ReverseEvidenceGraph();
     sessionMgr = new InstrumentationSessionManager();
     bridge = new EvidenceGraphBridge(graph);

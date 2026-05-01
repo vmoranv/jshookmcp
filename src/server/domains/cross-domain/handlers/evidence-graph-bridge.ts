@@ -1,4 +1,4 @@
-export { CrossDomainEvidenceBridge, _resetIdCounter } from './evidence-graph-bridge.impl';
+export { CrossDomainEvidenceBridge, resetIdCounter } from './evidence-graph-bridge.impl';
 export type {
   V8ObjectInput,
   NetworkRequestInput,

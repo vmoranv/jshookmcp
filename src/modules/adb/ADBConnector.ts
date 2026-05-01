@@ -48,13 +48,13 @@ function checkADBBinary(): boolean {
 }
 
 /** Get or create an adbkit Client instance. */
-let _clientCache: InstanceType<typeof import('@devicefarmer/adbkit').Client> | null = null;
+let clientCache: InstanceType<typeof import('@devicefarmer/adbkit').Client> | null = null;
 async function getClient(): Promise<InstanceType<typeof import('@devicefarmer/adbkit').Client>> {
-  if (_clientCache) return _clientCache;
+  if (clientCache) return clientCache;
   const sdk = await loadAdbkit();
   if (!sdk) sdkUnavailableError();
-  _clientCache = new sdk.Client();
-  return _clientCache;
+  clientCache = new sdk.Client();
+  return clientCache;
 }
 
 /** Read all data from a stream (adbkit v3 uses Duplex for shell output). */
@@ -255,7 +255,7 @@ export class ADBConnector {
 
     const { stdout } = await this.shellCommand(serial, `dumpsys package ${packageName}`);
 
-    return this._parseDumpsysOutput(stdout, packageName);
+    return this.parseDumpsysOutput(stdout, packageName);
   }
 
   /**
@@ -289,7 +289,7 @@ export class ADBConnector {
   // ── Internal helpers ──
 
   /** Parse `dumpsys package` output into APKInfo. */
-  private _parseDumpsysOutput(output: string, packageName: string): APKInfo {
+  private parseDumpsysOutput(output: string, packageName: string): APKInfo {
     const info: APKInfo = {
       packageName,
       versionName: '',

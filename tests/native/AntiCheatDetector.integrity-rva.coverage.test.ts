@@ -1,5 +1,5 @@
 /**
- * AntiCheatDetector coverage tests — checkIntegrity() branches + _rvaToFileOffset.
+ * AntiCheatDetector coverage tests — checkIntegrity() branches + rvaToFileOffset.
  *
  * Split from a single large file to avoid OOM in vitest forks.
  */
@@ -105,7 +105,7 @@ describe('AntiCheatDetector coverage: checkIntegrity() — error branches', () =
   });
 });
 
-describe('AntiCheatDetector coverage: _rvaToFileOffset', () => {
+describe('AntiCheatDetector coverage: rvaToFileOffset', () => {
   it('handles PE with all-bits-set headers (corrupt/unusual PE)', async () => {
     const detector = new AntiCheatDetector();
     const p = detector as any;
@@ -117,7 +117,7 @@ describe('AntiCheatDetector coverage: _rvaToFileOffset', () => {
     buf.writeUInt32LE(0xffffffff, secStart + 12);
     buf.writeUInt32LE(0xffffffff, secStart + 20);
 
-    const offset = p._rvaToFileOffset(buf, 0xffffffff);
+    const offset = p.rvaToFileOffset(buf, 0xffffffff);
     expect(offset).toBe(-1);
   });
 
@@ -129,7 +129,7 @@ describe('AntiCheatDetector coverage: _rvaToFileOffset', () => {
     buf.writeUInt32LE(128, 60);
 
     // RVA way beyond anything in the buffer should always return -1
-    expect(p._rvaToFileOffset(buf, 0x3000)).toBe(-1);
-    expect(p._rvaToFileOffset(buf, 0xdeadbeef)).toBe(-1);
+    expect(p.rvaToFileOffset(buf, 0x3000)).toBe(-1);
+    expect(p.rvaToFileOffset(buf, 0xdeadbeef)).toBe(-1);
   });
 });

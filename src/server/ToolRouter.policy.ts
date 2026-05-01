@@ -65,14 +65,14 @@ function buildPrerequisiteCheck(condition: string): (state: RoutingState) => boo
 
 // ── Prerequisite Cache ──
 
-let _cachedPrerequisites: Record<string, PrerequisiteEntry[]> | null = null;
+let cachedPrerequisites: Record<string, PrerequisiteEntry[]> | null = null;
 
 /**
  * Aggregate prerequisite declarations from domain manifests.
  * Cached lazily — manifests are immutable at runtime.
  */
 export function getEffectivePrerequisites(): Record<string, PrerequisiteEntry[]> {
-  if (_cachedPrerequisites) return _cachedPrerequisites;
+  if (cachedPrerequisites) return cachedPrerequisites;
   const merged: Record<string, PrerequisiteEntry[]> = {};
   for (const m of getAllManifests()) {
     if (m.prerequisites) {
@@ -85,8 +85,8 @@ export function getEffectivePrerequisites(): Record<string, PrerequisiteEntry[]>
       }
     }
   }
-  _cachedPrerequisites = merged;
-  return _cachedPrerequisites;
+  cachedPrerequisites = merged;
+  return cachedPrerequisites;
 }
 
 // ── Workflow Tool Sequence Builders ──

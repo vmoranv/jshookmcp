@@ -221,7 +221,7 @@ describe('StructureAnalyzer', () => {
       };
       vi.mocked(ofactory.createPlatformProvider).mockReturnValue(mockProvider);
       // Force recreation of provider
-      (analyzer as any)._provider = null;
+      (analyzer as any).provider = null;
     });
 
     it('should parse simple structure with various types', async () => {

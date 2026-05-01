@@ -20,7 +20,7 @@ function generateId(prefix: string): string {
 }
 
 /** Reset ID counter (for testing only). */
-export function _resetIdCounter(): void {
+export function resetIdCounter(): void {
   nextId = 1;
 }
 

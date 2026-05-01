@@ -82,9 +82,9 @@ async function readMemoryWindows(
 
     const { stdout } = await executePowerShellScript(psScript, { maxBuffer: 1024 * 1024 * 10 });
 
-    const _trimmed = stdout.trim();
-    if (!_trimmed) throw new Error('PowerShell returned empty output');
-    const result = JSON.parse(_trimmed);
+    const trimmed = stdout.trim();
+    if (!trimmed) throw new Error('PowerShell returned empty output');
+    const result = JSON.parse(trimmed);
     return {
       success: result.success,
       data: result.data,
@@ -104,31 +104,31 @@ async function readMemoryWindows(
 
 // ── Linux ──
 
-let _linuxProvider: import('@native/platform/PlatformMemoryAPI.js').PlatformMemoryAPI | null = null;
-let _linuxProviderChecked = false;
+let linuxProvider: import('@native/platform/PlatformMemoryAPI.js').PlatformMemoryAPI | null = null;
+let linuxProviderChecked = false;
 
 async function getLinuxProvider(): Promise<
   import('@native/platform/PlatformMemoryAPI.js').PlatformMemoryAPI | null
 > {
-  if (_linuxProviderChecked) return _linuxProvider;
+  if (linuxProviderChecked) return linuxProvider;
   try {
     const { createPlatformProvider } = await import('@native/platform/factory.js');
     const provider = createPlatformProvider();
     const avail = await provider.checkAvailability();
     if (avail.available) {
-      _linuxProvider = provider;
+      linuxProvider = provider;
     }
   } catch {
     // provider not available on this platform
   }
-  _linuxProviderChecked = true;
-  return _linuxProvider;
+  linuxProviderChecked = true;
+  return linuxProvider;
 }
 
 /** @internal Reset cached provider for test isolation */
-export function _resetLinuxProviderCache(): void {
-  _linuxProvider = null;
-  _linuxProviderChecked = false;
+export function resetLinuxProviderCache(): void {
+  linuxProvider = null;
+  linuxProviderChecked = false;
 }
 
 function bufferToHex(data: Buffer, bytesRead: number): string {

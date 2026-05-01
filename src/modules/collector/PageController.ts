@@ -330,7 +330,7 @@ export class PageController {
     return page.frames().map((frame) => ({
       url: frame.url(),
       name: frame.name() || '',
-      id: (frame as unknown as { _id?: string })._id || '',
+      id: ((frame as unknown as Record<string, unknown>)['_id'] as string | undefined) || '',
       isMainFrame: frame === mainFrame,
     }));
   }

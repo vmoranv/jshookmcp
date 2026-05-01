@@ -13,8 +13,8 @@ function isCallable(value: unknown): value is (input: unknown) => unknown {
 }
 
 export class ExtensionRegistryHandlers {
-  private _webhookServer?: WebhookServer;
-  private _commandQueue?: CommandQueue;
+  private webhookServer?: WebhookServer;
+  private commandQueue?: CommandQueue;
 
   constructor(
     private registry?: PluginRegistry,
@@ -168,13 +168,13 @@ export class ExtensionRegistryHandlers {
   }
 
   getWebhookServer(): WebhookServer {
-    if (!this._webhookServer) {
-      this._commandQueue = new CommandQueue();
-      this._webhookServer = new WebhookServer({
-        commandQueue: this._commandQueue,
+    if (!this.webhookServer) {
+      this.commandQueue = new CommandQueue();
+      this.webhookServer = new WebhookServer({
+        commandQueue: this.commandQueue,
       });
     }
-    return this._webhookServer;
+    return this.webhookServer;
   }
 
   async startWebhookServer(): Promise<void> {
@@ -185,10 +185,10 @@ export class ExtensionRegistryHandlers {
   }
 
   async stopWebhookServer(): Promise<void> {
-    if (this._webhookServer) {
-      await this._webhookServer.stop();
-      this._webhookServer = undefined;
-      this._commandQueue = undefined;
+    if (this.webhookServer) {
+      await this.webhookServer.stop();
+      this.webhookServer = undefined;
+      this.commandQueue = undefined;
     }
   }
 
@@ -209,10 +209,10 @@ export class ExtensionRegistryHandlers {
   }
 
   private getCommandQueue(): CommandQueue {
-    if (!this._commandQueue) {
-      this._commandQueue = new CommandQueue();
+    if (!this.commandQueue) {
+      this.commandQueue = new CommandQueue();
     }
-    return this._commandQueue;
+    return this.commandQueue;
   }
 
   private emitEvent(event: string, payload: unknown): void {

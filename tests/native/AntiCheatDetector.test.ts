@@ -441,8 +441,8 @@ describe('AntiCheatDetector', () => {
     pe.writeUInt32LE(0x200, secStart + 8);
     pe.writeUInt32LE(0x400, secStart + 20);
 
-    expect((detector as any)._rvaToFileOffset(pe, 0x1100)).toBe(0x500);
-    expect((detector as any)._rvaToFileOffset(pe, 0x3000)).toBe(-1);
+    expect((detector as any).rvaToFileOffset(pe, 0x1100)).toBe(0x500);
+    expect((detector as any).rvaToFileOffset(pe, 0x3000)).toBe(-1);
   });
 
   it('gracefully handles module enumeration failures', async () => {
@@ -471,7 +471,7 @@ describe('AntiCheatDetector', () => {
       .mockReturnValueOnce({ success: true, info: { lpBaseOfDll: 0x1000n, SizeOfImage: 1234 } })
       .mockReturnValueOnce({ success: false, info: { lpBaseOfDll: 0x2000n, SizeOfImage: 4321 } });
 
-    const modules = (detector as any)._enumerateModules(1n);
+    const modules = (detector as any).enumerateModules(1n);
 
     expect(modules).toEqual([
       expect.objectContaining({
@@ -487,6 +487,6 @@ describe('AntiCheatDetector', () => {
     pe.writeUInt16LE(1, 80 + 6);
     pe.writeUInt16LE(0xe0, 80 + 20);
 
-    expect((detector as any)._rvaToFileOffset(pe, 0x1000)).toBe(-1);
+    expect((detector as any).rvaToFileOffset(pe, 0x1000)).toBe(-1);
   });
 });

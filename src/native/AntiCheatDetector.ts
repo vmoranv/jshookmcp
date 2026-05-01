@@ -146,7 +146,7 @@ export class AntiCheatDetector {
     const hProcess = openProcessForMemory(pid);
 
     try {
-      const modules = this._enumerateModules(hProcess);
+      const modules = this.enumerateModules(hProcess);
 
       for (const mod of modules) {
         try {
@@ -221,12 +221,12 @@ export class AntiCheatDetector {
     };
 
     try {
-      const modules = this._enumerateModules(hProcess);
+      const modules = this.enumerateModules(hProcess);
       let address = 0n;
       const maxAddress = 0x7fffffffffffn; // User-mode address space
 
       while (address < maxAddress) {
-        if (this._isTimedOut(startedAt, stats.timeoutMs)) {
+        if (this.isTimedOut(startedAt, stats.timeoutMs)) {
           stats.timedOut = true;
           stats.truncated = true;
           break;
@@ -310,14 +310,14 @@ export class AntiCheatDetector {
     let stopScan = false;
 
     try {
-      const modules = this._enumerateModules(hProcess);
+      const modules = this.enumerateModules(hProcess);
       const targets = moduleName
         ? modules.filter((m) => m.name.toLowerCase().includes(moduleName.toLowerCase()))
         : modules;
 
       for (const mod of targets) {
-        if (this._shouldStopIntegrityScan(stats, startedAt)) {
-          if (this._isTimedOut(startedAt, stats.timeoutMs)) {
+        if (this.shouldStopIntegrityScan(stats, startedAt)) {
+          if (this.isTimedOut(startedAt, stats.timeoutMs)) {
             stats.timedOut = true;
           }
           stats.truncated = true;
@@ -331,8 +331,8 @@ export class AntiCheatDetector {
           const sections = await this.peAnalyzer.listSections(pid, mod.base);
 
           for (const sec of sections) {
-            if (this._shouldStopIntegrityScan(stats, startedAt)) {
-              if (this._isTimedOut(startedAt, stats.timeoutMs)) {
+            if (this.shouldStopIntegrityScan(stats, startedAt)) {
+              if (this.isTimedOut(startedAt, stats.timeoutMs)) {
                 stats.timedOut = true;
               }
               stats.truncated = true;
@@ -364,7 +364,7 @@ export class AntiCheatDetector {
             );
 
             // Read disk bytes (need RVA → file offset conversion)
-            const diskOffset = this._rvaToFileOffset(diskData, secRva);
+            const diskOffset = this.rvaToFileOffset(diskData, secRva);
             if (diskOffset < 0 || diskOffset + secSize > diskData.length) continue;
             const diskBytes = diskData.subarray(diskOffset, diskOffset + secSize);
 
@@ -398,7 +398,7 @@ export class AntiCheatDetector {
 
   // ── Private Helpers ──
 
-  private _enumerateModules(
+  private enumerateModules(
     hProcess: bigint,
   ): { name: string; base: string; path: string; size: number }[] {
     const modules: { name: string; base: string; path: string; size: number }[] = [];
@@ -427,7 +427,7 @@ export class AntiCheatDetector {
     return modules;
   }
 
-  private _rvaToFileOffset(peData: Buffer, rva: number): number {
+  private rvaToFileOffset(peData: Buffer, rva: number): number {
     const e_lfanew = peData.readUInt32LE(60);
     const numSections = peData.readUInt16LE(e_lfanew + 6);
     const sizeOfOptionalHeader = peData.readUInt16LE(e_lfanew + 20);
@@ -449,11 +449,11 @@ export class AntiCheatDetector {
     return -1;
   }
 
-  private _isTimedOut(startedAt: number, timeoutMs: number): boolean {
+  private isTimedOut(startedAt: number, timeoutMs: number): boolean {
     return Date.now() - startedAt >= timeoutMs;
   }
 
-  private _shouldStopIntegrityScan(
+  private shouldStopIntegrityScan(
     stats: {
       scannedModules: number;
       scannedSections: number;
@@ -466,7 +466,7 @@ export class AntiCheatDetector {
     startedAt: number,
   ): boolean {
     return (
-      this._isTimedOut(startedAt, stats.timeoutMs) ||
+      this.isTimedOut(startedAt, stats.timeoutMs) ||
       stats.scannedModules >= stats.maxModules ||
       stats.scannedSections >= stats.maxSections ||
       stats.hashedBytes >= stats.maxBytes

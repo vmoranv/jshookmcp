@@ -28,46 +28,46 @@ import { logger } from '@utils/logger';
 
 // ── Lazy-init singleton ──
 
-let _manifests: DomainManifest[] | null = null;
-let _registrations: ToolRegistration[] | null = null;
-let _initPromise: Promise<void> | null = null;
+let manifestsCache: DomainManifest[] | null = null;
+let registrationsCache: ToolRegistration[] | null = null;
+let initPromise: Promise<void> | null = null;
 
 // Cached views — materialized once after init, updated on lazy loads.
-let _domainsView: Set<string> | null = null;
-let _toolNamesView: ReadonlySet<string> | null = null;
-let _registrationsByName: Map<string, ToolRegistration> | null = null;
+let domainsView: Set<string> | null = null;
+let toolNamesView: ReadonlySet<string> | null = null;
+let registrationsByName: Map<string, ToolRegistration> | null = null;
 
 async function init(profile?: ToolProfileId): Promise<void> {
-  if (_manifests !== null) return;
-  if (_initPromise) {
-    await _initPromise;
+  if (manifestsCache !== null) return;
+  if (initPromise) {
+    await initPromise;
     return;
   }
-  _initPromise = (async () => {
+  initPromise = (async () => {
     const domainsToLoad = profile ? getDomainsForProfile(profile) : undefined;
     const discovered = await discoverDomainManifests(domainsToLoad);
-    _manifests = discovered;
+    manifestsCache = discovered;
 
-    _registrationsByName = new Map();
+    registrationsByName = new Map();
     for (const m of discovered) {
       for (const r of m.registrations) {
         const registration: ToolRegistration = r.domain ? r : { ...r, domain: m.domain };
-        const existing = _registrationsByName.get(registration.tool.name);
+        const existing = registrationsByName.get(registration.tool.name);
         if (existing) {
           logger.warn(
             `[registry] Duplicate tool name "${registration.tool.name}": domain "${registration.domain}" conflicts with "${existing.domain}" — keeping first`,
           );
         } else {
-          _registrationsByName.set(registration.tool.name, registration);
+          registrationsByName.set(registration.tool.name, registration);
         }
       }
     }
-    _registrations = [..._registrationsByName.values()];
+    registrationsCache = [...registrationsByName.values()];
 
-    _domainsView = new Set(_manifests.map((m) => m.domain));
-    _toolNamesView = new Set(_registrations.map((r) => r.tool.name));
+    domainsView = new Set(manifestsCache.map((m) => m.domain));
+    toolNamesView = new Set(registrationsCache.map((r) => r.tool.name));
   })();
-  await _initPromise;
+  await initPromise;
 }
 
 // ── Public initialiser (call before first use) ──
@@ -84,32 +84,32 @@ export async function initRegistry(profile?: ToolProfileId): Promise<void> {
  * Returns the manifest or null if loading failed.
  */
 export async function ensureDomainLoaded(domainName: string): Promise<DomainManifest | null> {
-  if (!_manifests) throw new Error('[registry] Not initialised - call initRegistry() first.');
+  if (!manifestsCache) throw new Error('[registry] Not initialised - call initRegistry() first.');
 
   // Already loaded
-  if (_manifests.some((m) => m.domain === domainName)) {
-    return _manifests.find((m) => m.domain === domainName)!;
+  if (manifestsCache.some((m) => m.domain === domainName)) {
+    return manifestsCache.find((m) => m.domain === domainName)!;
   }
 
   const manifest = await loadSingleManifest(domainName);
   if (!manifest) return null;
 
   // Add to manifests array
-  _manifests.push(manifest);
-  _domainsView!.add(manifest.domain);
+  manifestsCache.push(manifest);
+  domainsView!.add(manifest.domain);
 
   // Add registrations
   for (const r of manifest.registrations) {
     const registration: ToolRegistration = r.domain ? r : { ...r, domain: manifest.domain };
-    if (!_registrationsByName!.has(registration.tool.name)) {
-      _registrationsByName!.set(registration.tool.name, registration);
+    if (!registrationsByName!.has(registration.tool.name)) {
+      registrationsByName!.set(registration.tool.name, registration);
     }
   }
-  _registrations = [..._registrationsByName!.values()];
+  registrationsCache = [...registrationsByName!.values()];
 
   // Update tool names view
   for (const r of manifest.registrations) {
-    (_toolNamesView as Set<string>).add(r.tool.name);
+    (toolNamesView as Set<string>).add(r.tool.name);
   }
 
   return manifest;
@@ -121,10 +121,10 @@ export async function ensureDomainLoaded(domainName: string): Promise<DomainMani
  * No-op if all domains are already loaded.
  */
 export async function ensureAllDomainsLoaded(): Promise<void> {
-  if (!_manifests) throw new Error('[registry] Not initialised - call initRegistry() first.');
+  if (!manifestsCache) throw new Error('[registry] Not initialised - call initRegistry() first.');
 
   const allDomains = getAllKnownDomainNames();
-  const loaded = new Set(_manifests.map((m) => m.domain));
+  const loaded = new Set(manifestsCache.map((m) => m.domain));
   const missing = [...allDomains].filter((d) => !loaded.has(d));
 
   if (missing.length === 0) return;
@@ -136,13 +136,14 @@ export async function ensureAllDomainsLoaded(): Promise<void> {
 // ── Accessors ──
 
 function getManifests(): DomainManifest[] {
-  if (!_manifests) throw new Error('[registry] Not initialised - call initRegistry() first.');
-  return _manifests;
+  if (!manifestsCache) throw new Error('[registry] Not initialised - call initRegistry() first.');
+  return manifestsCache;
 }
 
 function getRegistrations(): ToolRegistration[] {
-  if (!_registrations) throw new Error('[registry] Not initialised - call initRegistry() first.');
-  return _registrations;
+  if (!registrationsCache)
+    throw new Error('[registry] Not initialised - call initRegistry() first.');
+  return registrationsCache;
 }
 
 // ── Public read-only views ──
@@ -157,8 +158,8 @@ export function getAllRegistrations(): readonly ToolRegistration[] {
 
 /** Returns domain names of LOADED manifests only. */
 export function getAllDomains(): ReadonlySet<string> {
-  if (!_domainsView) throw new Error('[registry] Not initialised - call initRegistry() first.');
-  return _domainsView;
+  if (!domainsView) throw new Error('[registry] Not initialised - call initRegistry() first.');
+  return domainsView;
 }
 
 /** Returns ALL known domain names from build-time metadata (no loading needed). */
@@ -167,16 +168,16 @@ export function getAllKnownDomains(): ReadonlySet<string> {
 }
 
 export function getAllToolNames(): ReadonlySet<string> {
-  if (!_toolNamesView) throw new Error('[registry] Not initialised - call initRegistry() first.');
-  return _toolNamesView;
+  if (!toolNamesView) throw new Error('[registry] Not initialised - call initRegistry() first.');
+  return toolNamesView;
 }
 
 /** O(1) lookup of a single ToolRegistration by tool name. */
 export function getRegistrationByName(name: string): ToolRegistration | undefined {
-  if (!_registrationsByName) {
-    _registrationsByName = new Map(getRegistrations().map((r) => [r.tool.name, r]));
+  if (!registrationsByName) {
+    registrationsByName = new Map(getRegistrations().map((r) => [r.tool.name, r]));
   }
-  return _registrationsByName.get(name);
+  return registrationsByName.get(name);
 }
 
 // ── Builders ──

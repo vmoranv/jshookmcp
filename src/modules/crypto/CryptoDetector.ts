@@ -266,7 +266,7 @@ export class CryptoDetector {
     });
   }
 
-  private evaluateSecurity(algorithms: CryptoAlgorithm[], _code: string): SecurityIssue[] {
+  private evaluateSecurity(algorithms: CryptoAlgorithm[], _exitCodeValue: string): SecurityIssue[] {
     const issues: SecurityIssue[] = [];
     const securityRules = this.rulesManager.getSecurityRules();
 

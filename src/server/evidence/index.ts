@@ -1,4 +1,4 @@
-export { ReverseEvidenceGraph, _resetIdCounter } from './ReverseEvidenceGraph';
+export { ReverseEvidenceGraph, resetIdCounter } from './ReverseEvidenceGraph';
 export type {
   EvidenceNode,
   EvidenceNodeType,
