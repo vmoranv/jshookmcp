@@ -53,7 +53,7 @@ Memory analysis domain for native scans, pointer-chain discovery, structure infe
 | `memory_patch_nop` | NOP out instructions at address (replace with 0x90). Useful for disabling checks or jumps. |
 | `memory_patch_undo` | Undo a previous patch by restoring the original bytes. |
 | `memory_code_caves` | Find code caves (runs of 0x00 or 0xCC) in executable sections of loaded modules. Returns largest caves first. |
-| `memory_write_value` | Write a typed value to a memory address. Supports undo via memory_write_undo. |
+| `memory_write_value` | Write a typed value to a memory address. Supports undo/redo via memory_write_history(action=undo\|redo). |
 | `memory_freeze` | Freeze or unfreeze a memory address. Freeze continuously writes a value to prevent changes; unfreeze stops it. |
 | `memory_dump` | Dump memory region as hex with ASCII column. Outputs a formatted hex dump similar to xxd. |
 | `memory_speedhack` | Speedhack: hook time APIs to scale process time. Speed 2.0 = 2x faster, 0.5 = half speed. |

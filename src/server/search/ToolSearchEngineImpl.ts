@@ -832,7 +832,8 @@ export class ToolSearchEngine {
 
   /**
    * Build prefix-group affinity graph (§4.1.4 dependency hull).
-   * Tools sharing a name prefix (e.g. "breakpoint_set", "breakpoint_list")
+   * Tools sharing a name prefix (e.g. legacy "breakpoint_set"/"breakpoint_list"
+   * or unified families such as "memory_*")
    * form an affinity group with mutual edges.
    */
   private applyGraphExpansion(scores: Float64Array): void {

@@ -117,21 +117,21 @@ describe('ExtensionManagementHandlers', () => {
           json: async () => ({
             workflows: [
               {
-                slug: 'web-api-capture-session',
-                id: 'workflow.web-api-capture-session.v1',
+                slug: 'batch-register',
+                id: 'workflow.batch-register.v1',
                 source: {
                   type: 'git',
-                  repo: 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
+                  repo: 'https://github.com/vmoranv/jshook_workflow_batch_register',
                   ref: 'main',
                   commit: 'abc123',
                   subpath: '.',
                   entry: 'workflow.ts',
                 },
                 meta: {
-                  name: 'Web API Capture Session',
+                  name: 'Batch Register',
                   description: 'workflow',
                   author: 'tester',
-                  source_repo: 'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
+                  source_repo: 'https://github.com/vmoranv/jshook_workflow_batch_register',
                 },
               },
             ],
@@ -141,7 +141,7 @@ describe('ExtensionManagementHandlers', () => {
       throw new Error(`Unexpected fetch: ${textUrl}`);
     }) as typeof fetch;
 
-    const response = await handlers.handleInstallExtension('web-api-capture-session');
+    const response = await handlers.handleInstallExtension('batch-register');
     const content = response.content[0] as { type: string; text: string };
     const body = JSON.parse(content.text) as {
       success: boolean;
@@ -162,14 +162,12 @@ describe('ExtensionManagementHandlers', () => {
     );
     const metadataCall = writeFileMock.mock.calls.find((call) =>
       // @ts-expect-error — auto-suppressed [TS2352, TS2493]
-      normalizePath(call[0] as string).endsWith(
-        '/workflows/web-api-capture-session/.jshook-install.json',
-      ),
+      normalizePath(call[0] as string).endsWith('/workflows/batch-register/.jshook-install.json'),
     );
     expect(metadataCall).toBeDefined();
     // @ts-expect-error — auto-suppressed [TS18048, TS2352, TS2493]
     expect(normalizePath(metadataCall[0] as string)).toContain(
-      '/workflows/web-api-capture-session/.jshook-install.json',
+      '/workflows/batch-register/.jshook-install.json',
     );
     // @ts-expect-error — auto-suppressed [TS18048, TS2493]
     expect(metadataCall[1]).toContain('"entry": "dist/workflow.js"');
@@ -180,7 +178,7 @@ describe('ExtensionManagementHandlers', () => {
       'git',
       [
         'clone',
-        'https://github.com/vmoranv/jshook_workflow_web_api_capture_session',
+        'https://github.com/vmoranv/jshook_workflow_batch_register',
         expect.stringContaining('workflows'),
       ],
       expect.objectContaining({ timeout: expect.any(Number) }),

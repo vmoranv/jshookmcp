@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TrigramIndex } from '@server/search/TrigramIndex';
 
 describe('search/TrigramIndex', () => {
-  const names = ['page_navigate', 'page_click', 'debug_pause', 'network_enable', 'breakpoint_set'];
+  const names = ['page_navigate', 'page_click', 'debug_pause', 'network_enable', 'breakpoint'];
   const index = new TrigramIndex(names);
 
   describe('extractTrigrams()', () => {

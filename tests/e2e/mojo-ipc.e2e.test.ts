@@ -9,12 +9,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function getString(value: unknown, key: string): string | null {
-  if (!isRecord(value)) return null;
-  const candidate = value[key];
-  return typeof candidate === 'string' && candidate.length > 0 ? candidate : null;
-}
-
 describe.skipIf(!TARGET_URL)('Mojo IPC E2E', { timeout: 180_000, sequential: true }, () => {
   const client = new MCPTestClient();
 
@@ -27,12 +21,7 @@ describe.skipIf(!TARGET_URL)('Mojo IPC E2E', { timeout: 180_000, sequential: tru
   });
 
   test('start Mojo monitor, capture messages, decode', async () => {
-    const requiredTools = [
-      'browser_launch',
-      'page_navigate',
-      'mojo_monitor_start',
-      'mojo_messages_get',
-    ];
+    const requiredTools = ['browser_launch', 'page_navigate', 'mojo_monitor', 'mojo_messages_get'];
     const missingTools = requiredTools.filter((name) => !client.getToolMap().has(name));
     if (missingTools.length > 0) {
       client.recordSynthetic('mojo-ipc-suite', 'SKIP', `Missing tools: ${missingTools.join(', ')}`);
@@ -49,24 +38,20 @@ describe.skipIf(!TARGET_URL)('Mojo IPC E2E', { timeout: 180_000, sequential: tru
     );
     expect(navigate.result.status).not.toBe('FAIL');
 
-    const start = await client.call(
-      'mojo_monitor_start',
-      { processName: 'chrome', maxBuffer: 512 },
-      30_000,
-    );
+    const start = await client.call('mojo_monitor', { action: 'start' }, 30_000);
     expect(start.result.status).not.toBe('FAIL');
 
-    const sessionId = getString(start.parsed, 'sessionId');
-    if (!sessionId) {
+    const started = isRecord(start.parsed) ? start.parsed.started : null;
+    if (started !== true) {
       client.recordSynthetic(
-        'mojo_monitor_start',
+        'mojo_monitor',
         'EXPECTED_LIMITATION',
-        'Monitor start did not return a sessionId',
+        'Monitor start did not report started=true',
       );
       return;
     }
 
-    const messages = await client.call('mojo_messages_get', { sessionId }, 30_000);
+    const messages = await client.call('mojo_messages_get', {}, 30_000);
     expect(messages.result.status).not.toBe('FAIL');
 
     if (!client.getToolMap().has('mojo_decode_message')) {

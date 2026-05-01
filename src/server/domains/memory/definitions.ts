@@ -269,7 +269,9 @@ Actions:
   // Control Tools
   tool('memory_write_value', (t) =>
     t
-      .desc('Write a typed value to a memory address. Supports undo via memory_write_undo.')
+      .desc(
+        'Write a typed value to a memory address. Supports undo/redo via memory_write_history(action=undo|redo).',
+      )
       .number('pid', 'Target process ID')
       .string('address', 'Address to write to (hex)')
       .string('value', 'Value to write (as string)')

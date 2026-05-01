@@ -73,7 +73,7 @@ describe('search/SearchIntegration', () => {
   it('synonym expansion: "intercept API" finds network capture tools', async () => {
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     state.allTools = [
-      makeTool('web_api_capture_session', 'Full-chain web API capture workflow'),
+      makeTool('run_extension_workflow', 'Execute an API capture workflow'),
       makeTool('network_enable', 'Enable network request monitoring'),
       makeTool('page_navigate', 'Navigate to a URL'),
       makeTool(
@@ -88,7 +88,7 @@ describe('search/SearchIntegration', () => {
     // At least one capture/intercept-related tool should be in top results
     const topNames = results.slice(0, 5).map((r) => r.name);
     const hasRelevant =
-      topNames.includes('web_api_capture_session') ||
+      topNames.includes('run_extension_workflow') ||
       topNames.includes('console_inject_fetch_interceptor') ||
       topNames.includes('network_enable');
     expect(hasRelevant).toBe(true);
@@ -132,9 +132,9 @@ describe('search/SearchIntegration', () => {
   it('RRF fusion rescues BM25-missed docs via other signals', async () => {
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     state.allTools = [
-      // This tool's NAME contains "breakpoint" but query says "pause"
-      makeTool('breakpoint_set', 'Set a breakpoint at a specific location'),
-      makeTool('breakpoint_list', 'List all active breakpoints'),
+      // These tools' NAMES contain "breakpoint" but query says "pause"
+      makeTool('breakpoint', 'Set, remove, or list breakpoints'),
+      makeTool('breakpoint_conditions', 'Conditional breakpoint helpers'),
       // This tool's NAME contains "debug_pause" — direct keyword match
       makeTool('debug_pause', 'Pause execution at the next statement'),
     ];

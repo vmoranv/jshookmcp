@@ -143,11 +143,13 @@ describe('ToolSearchEngine', () => {
 
   it('expands english workflow intent terms for API capture queries', async () => {
     const rankedTools: Tool[] = [
-      makeTool('web_api_capture_session', 'Capture API requests and export HAR in one workflow'),
+      makeTool('run_extension_workflow', 'Run a capture-oriented extension workflow'),
+      makeTool('api_probe_batch', 'Probe API endpoints in batch and summarize responses'),
       makeTool('page_navigate', 'Navigate to a URL in the browser tab'),
     ];
     const domainOverrides = new Map<string, string>([
-      ['web_api_capture_session', 'workflow'],
+      ['run_extension_workflow', 'workflow'],
+      ['api_probe_batch', 'workflow'],
       ['page_navigate', 'browser'],
     ]);
     const domainScoreMultipliers = new Map<string, number>([['workflow', 1.5]]);
@@ -155,16 +157,18 @@ describe('ToolSearchEngine', () => {
     const results = await engine.search('api capture session');
 
     expect(results.length).toBeGreaterThan(0);
-    expect(results[0]!.name).toBe('web_api_capture_session');
+    expect(['api_probe_batch', 'run_extension_workflow']).toContain(results[0]!.name);
   });
 
   it('expands english registration intent for workflow onboarding tools', async () => {
     const rankedTools: Tool[] = [
-      makeTool('register_account_flow', 'Automate account registration with email verification'),
+      makeTool('run_extension_workflow', 'Execute extension workflow by workflowId'),
+      makeTool('page_script_run', 'Run a reusable in-page script helper'),
       makeTool('page_type', 'Type text into an input field'),
     ];
     const domainOverrides = new Map<string, string>([
-      ['register_account_flow', 'workflow'],
+      ['run_extension_workflow', 'workflow'],
+      ['page_script_run', 'workflow'],
       ['page_type', 'browser'],
     ]);
     const domainScoreMultipliers = new Map<string, number>([['workflow', 1.5]]);
@@ -172,7 +176,7 @@ describe('ToolSearchEngine', () => {
     const results = await engine.search('register signup verify');
 
     expect(results.length).toBeGreaterThan(0);
-    expect(results[0]!.name).toBe('register_account_flow');
+    expect(results[0]!.name).toBe('run_extension_workflow');
   });
 
   it('applies explicit intent-to-tool boosts for english zero-overlap intent phrases', async () => {
@@ -212,13 +216,13 @@ describe('ToolSearchEngine', () => {
     const rankedTools: Tool[] = [
       makeTool('run_extension_workflow', 'Execute extension workflow by workflowId'),
       makeTool('list_extension_workflows', 'List loaded extension workflows'),
-      makeTool('register_account_flow', 'Automate account registration flow'),
+      makeTool('page_script_run', 'Run a reusable registration helper script'),
       makeTool('page_type', 'Type text into an input field'),
     ];
     const domainOverrides = new Map<string, string>([
       ['run_extension_workflow', 'workflow'],
       ['list_extension_workflows', 'workflow'],
-      ['register_account_flow', 'workflow'],
+      ['page_script_run', 'workflow'],
       ['page_type', 'browser'],
     ]);
     const domainScoreMultipliers = new Map<string, number>([['workflow', 1.5]]);

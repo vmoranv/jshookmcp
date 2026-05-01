@@ -7,7 +7,12 @@
  */
 
 import { ALL_PHASES } from '@tests/e2e/phases/index';
-import type { CoverageReport, DomainCoverage, ToolCoverageEntry } from '@tests/e2e/helpers/types';
+import type {
+  CoverageReport,
+  DomainCoverage,
+  PhaseTool,
+  ToolCoverageEntry,
+} from '@tests/e2e/helpers/types';
 
 const STRICT_OVERRIDE_TOOLS = new Set<string>([
   'adb_device_list',
@@ -75,11 +80,15 @@ const STRICT_OVERRIDE_TOOLS = new Set<string>([
 ]);
 
 /** Extract all tools listed across e2e phases (setup + tools arrays). */
+function resolvePhaseToolName(tool: PhaseTool): string {
+  return typeof tool === 'string' ? tool : tool.tool;
+}
+
 function collectPhaseTools(): Set<string> {
   const phaseTools = new Set<string>();
   for (const phase of ALL_PHASES) {
     for (const tool of phase.tools) {
-      phaseTools.add(tool);
+      phaseTools.add(resolvePhaseToolName(tool));
     }
     if (Array.isArray(phase.setup)) {
       for (const tool of phase.setup) {
@@ -99,6 +108,8 @@ function inferDomain(toolName: string): string {
     ['tab_', 'browser'],
     ['console_', 'browser'],
     ['debugger_', 'debugger'],
+    ['breakpoint', 'debugger'],
+    ['watch', 'debugger'],
     ['breakpoint_', 'debugger'],
     ['xhr_breakpoint_', 'debugger'],
     ['event_breakpoint_', 'debugger'],
@@ -118,6 +129,7 @@ function inferDomain(toolName: string): string {
     ['sse_', 'streaming'],
     ['performance_', 'instrumentation'],
     ['profiler_', 'instrumentation'],
+    ['instrumentation_', 'instrumentation'],
     ['memory_', 'memory'],
     ['process_', 'process'],
     ['module_', 'process'],
@@ -147,10 +159,14 @@ function inferDomain(toolName: string): string {
     ['antidebug_', 'antidebug'],
     ['webpack_', 'workflow'],
     ['js_bundle_', 'workflow'],
+    ['page_script_', 'workflow'],
     ['js_heap_', 'workflow'],
     ['web_api_', 'workflow'],
     ['api_probe_', 'workflow'],
     ['script_replace_', 'workflow'],
+    ['state_board', 'shared-state-board'],
+    ['state_board_watch', 'shared-state-board'],
+    ['state_board_io', 'shared-state-board'],
     ['indexeddb_', 'browser'],
     ['framework_', 'browser'],
     ['extension_', 'extension-registry'],

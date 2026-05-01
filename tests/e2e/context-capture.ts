@@ -4,11 +4,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-const PREFERRED_WORKFLOW_IDS = [
-  'workflow.batch-register.v1',
-  'workflow.web-api-capture-session.v1',
-  'workflow.demo.v1',
-];
+const PREFERRED_WORKFLOW_IDS = ['workflow.batch-register.v1', 'workflow.demo.v1'];
 
 function selectWorkflowId(parsed: unknown): string | null {
   const workflows =
@@ -72,10 +68,13 @@ export function applyContextCapture(
   }
 
   // ── Breakpoints ──
-  if (toolName === 'breakpoint_set' && isRecord(parsed)) {
+  if (isRecord(parsed)) {
     const breakpoint = isRecord(parsed.breakpoint) ? parsed.breakpoint : undefined;
     const breakpointId = parsed.breakpointId ?? breakpoint?.breakpointId;
-    if (breakpointId !== undefined && breakpointId !== null) {
+    if (
+      toolName === 'breakpoint_set' ||
+      (toolName === 'breakpoint' && typeof breakpointId === 'string' && breakpointId.length > 0)
+    ) {
       ctx.breakpointId = String(breakpointId);
       overrides.breakpoint_remove = { breakpointId: ctx.breakpointId };
     }
@@ -96,20 +95,41 @@ export function applyContextCapture(
     }
   }
 
-  // Also capture requestId from web_api_capture_session
-  if (
-    toolName === 'web_api_capture_session' &&
-    isRecord(parsed) &&
-    isRecord(parsed.networkSummary)
-  ) {
-    const ns = parsed.networkSummary as Record<string, unknown>;
-    if (Array.isArray(ns.requests) && ns.requests.length > 0) {
-      const first = ns.requests[0] as Record<string, unknown>;
-      if (first.requestId !== undefined && first.requestId !== null && !ctx.requestId) {
-        ctx.requestId = String(first.requestId);
-        overrides.network_get_response_body = { requestId: ctx.requestId };
-        overrides.network_replay_request = { requestId: ctx.requestId, dryRun: true };
-      }
+  if (toolName === 'instrumentation_session' && isRecord(parsed)) {
+    const session =
+      parsed.success === true && isRecord(parsed.session)
+        ? parsed.session
+        : isRecord(parsed.result) && isRecord(parsed.result.session)
+          ? parsed.result.session
+          : undefined;
+    const sessionId = session?.id;
+    if (typeof sessionId === 'string' && sessionId.length > 0) {
+      ctx.instrumentationSessionId = sessionId;
+      overrides.instrumentation_operation = {
+        action: 'list',
+        sessionId: ctx.instrumentationSessionId,
+      };
+      overrides.instrumentation_artifact = {
+        action: 'query',
+        sessionId: ctx.instrumentationSessionId,
+      };
+    }
+  }
+
+  if (toolName === 'memory_first_scan' && isRecord(parsed)) {
+    const sessionId = parsed.sessionId;
+    if (typeof sessionId === 'string' && sessionId.length > 0) {
+      ctx.memoryScanSessionId = sessionId;
+      overrides.memory_scan_delete = { action: 'delete', sessionId: ctx.memoryScanSessionId };
+      overrides.memory_scan_export = { action: 'export', sessionId: ctx.memoryScanSessionId };
+    }
+  }
+
+  if (toolName === 'memory_freeze' && isRecord(parsed)) {
+    const freezeId = parsed.id ?? parsed.freezeId;
+    if (typeof freezeId === 'string' && freezeId.length > 0) {
+      ctx.freezeId = freezeId;
+      overrides.memory_unfreeze = { action: 'unfreeze', freezeId: ctx.freezeId };
     }
   }
 
@@ -202,7 +222,11 @@ export function applyContextCapture(
   }
 
   // ── Watch: capture ID for watch_remove ──
-  if (toolName === 'watch_add' && isRecord(parsed)) {
+  if (
+    (toolName === 'watch_add' || toolName === 'watch') &&
+    isRecord(parsed) &&
+    parsed.success === true
+  ) {
     const watchId = parsed.id ?? parsed.watchId;
     if (watchId !== undefined && watchId !== null) {
       ctx.watchId = String(watchId);
@@ -211,7 +235,11 @@ export function applyContextCapture(
   }
 
   // ── XHR breakpoint: capture ID for xhr_breakpoint_remove ──
-  if (toolName === 'xhr_breakpoint_set' && isRecord(parsed)) {
+  if (
+    isRecord(parsed) &&
+    (toolName === 'xhr_breakpoint_set' ||
+      (toolName === 'breakpoint' && parsed.success === true && parsed.urlPattern !== undefined))
+  ) {
     const breakpointId = parsed.id ?? parsed.breakpointId;
     if (breakpointId !== undefined && breakpointId !== null) {
       ctx.xhrBreakpointId = String(breakpointId);
@@ -220,11 +248,30 @@ export function applyContextCapture(
   }
 
   // ── Event breakpoint: capture ID for event_breakpoint_remove ──
-  if (toolName === 'event_breakpoint_set' && isRecord(parsed)) {
+  if (isRecord(parsed)) {
     const breakpointId = parsed.id ?? parsed.breakpointId;
-    if (breakpointId !== undefined && breakpointId !== null) {
+    const isSingleEventBreakpoint =
+      toolName === 'event_breakpoint_set' ||
+      (toolName === 'breakpoint' && parsed.success === true && parsed.eventName !== undefined);
+    const isCategoryBreakpoint =
+      toolName === 'event_breakpoint_set_category' ||
+      (toolName === 'breakpoint' && parsed.success === true && Array.isArray(parsed.breakpointIds));
+
+    if (isSingleEventBreakpoint && breakpointId !== undefined && breakpointId !== null) {
       ctx.eventBreakpointId = String(breakpointId);
       overrides.event_breakpoint_remove = { breakpointId: ctx.eventBreakpointId };
+    }
+
+    if (
+      isCategoryBreakpoint &&
+      Array.isArray(parsed.breakpointIds) &&
+      parsed.breakpointIds.length > 0
+    ) {
+      const firstId = parsed.breakpointIds[0];
+      if (typeof firstId === 'string' && firstId.length > 0) {
+        ctx.eventBreakpointId = firstId;
+        overrides.event_breakpoint_remove = { breakpointId: ctx.eventBreakpointId };
+      }
     }
   }
 

@@ -7,7 +7,7 @@ const batchRegisterWorkflow = defineWorkflow(
   (w) =>
     w
       .description(
-        'Run register_account_flow for multiple accounts with concurrency controls, retry policies, and success rate gating.',
+        'Probe registration endpoints and run reusable in-page registration helpers for multiple accounts with concurrency controls, retry policies, and success rate gating.',
       )
       .tags(['workflow', 'registration', 'batch', 'automation'])
       .timeoutMs(15 * 60_000)
@@ -17,37 +17,40 @@ const batchRegisterWorkflow = defineWorkflow(
 
         return sequenceStep('batch-register-root', (s) =>
           s
-            .tool('precheck', 'web_api_capture_session', {
+            .tool('precheck', 'api_probe_batch', {
               input: {
-                url: 'about:blank',
-                exportHar: false,
-                exportReport: false,
+                baseUrl: 'https://example.com',
+                paths: ['/register', '/api/register', '/openapi.json'],
               },
             })
             .parallel('register-parallel', (p) =>
               p
                 .maxConcurrency(maxConcurrency)
                 .failFast(false)
-                .tool('register-account-1', 'register_account_flow', (t) =>
+                .tool('register-account-1', 'page_script_run', (t) =>
                   t
                     .input({
-                      registerUrl: 'https://example.com/register',
-                      fields: {
-                        username: 'user1',
-                        email: 'user1@temp.mail',
-                        password: '{{PLACEHOLDER}}',
+                      name: 'react_fill_form',
+                      params: {
+                        fields: {
+                          'input[name="username"]': 'user1',
+                          'input[name="email"]': 'user1@temp.mail',
+                          'input[name="password"]': '{{PLACEHOLDER}}',
+                        },
                       },
                     })
                     .retry({ maxAttempts: 2, backoffMs: 1000, multiplier: 2 }),
                 )
-                .tool('register-account-2', 'register_account_flow', (t) =>
+                .tool('register-account-2', 'page_script_run', (t) =>
                   t
                     .input({
-                      registerUrl: 'https://example.com/register',
-                      fields: {
-                        username: 'user2',
-                        email: 'user2@temp.mail',
-                        password: '{{PLACEHOLDER}}',
+                      name: 'react_fill_form',
+                      params: {
+                        fields: {
+                          'input[name="username"]': 'user2',
+                          'input[name="email"]': 'user2@temp.mail',
+                          'input[name="password"]': '{{PLACEHOLDER}}',
+                        },
                       },
                     })
                     .retry({ maxAttempts: 2, backoffMs: 1000, multiplier: 2 }),
@@ -128,11 +131,10 @@ describe('workflow contract sample: batch-register', () => {
     expect(sequenceGraph.steps[0]).toMatchObject({
       kind: 'tool',
       id: 'precheck',
-      toolName: 'web_api_capture_session',
+      toolName: 'api_probe_batch',
       input: {
-        url: 'about:blank',
-        exportHar: false,
-        exportReport: false,
+        baseUrl: 'https://example.com',
+        paths: ['/register', '/api/register', '/openapi.json'],
       },
     });
 
@@ -150,11 +152,11 @@ describe('workflow contract sample: batch-register', () => {
     expect(parallelStep.steps).toHaveLength(2);
     expect(parallelStep.steps[0]).toMatchObject({
       id: 'register-account-1',
-      toolName: 'register_account_flow',
+      toolName: 'page_script_run',
     });
     expect(parallelStep.steps[1]).toMatchObject({
       id: 'register-account-2',
-      toolName: 'register_account_flow',
+      toolName: 'page_script_run',
     });
 
     const branchStep = sequenceGraph.steps[2] as {

@@ -17,8 +17,8 @@ describe('search/AffinityGraph', () => {
 
   it('builds edges only for prefix groups between 2 and 15 members', () => {
     const graph = new AffinityGraphImpl([
-      { name: 'breakpoint_set', domain: 'debugger' },
-      { name: 'breakpoint_remove', domain: 'debugger' },
+      { name: 'breakpoint_code', domain: 'debugger' },
+      { name: 'breakpoint_event', domain: 'debugger' },
       { name: 'lonely', domain: 'browser' },
       ...Array.from({ length: 16 }, (_, index) => ({
         name: `huge_${index}`,
@@ -33,8 +33,8 @@ describe('search/AffinityGraph', () => {
 
   it('expands only already-relevant affinity neighbors', () => {
     const graph = new AffinityGraphImpl([
-      { name: 'breakpoint_set', domain: 'debugger' },
-      { name: 'breakpoint_remove', domain: 'debugger' },
+      { name: 'breakpoint_code', domain: 'debugger' },
+      { name: 'breakpoint_event', domain: 'debugger' },
       { name: 'page_navigate', domain: 'browser' },
     ]);
     const scores = new Float64Array([10, 1, 0]);
@@ -68,7 +68,7 @@ describe('search/AffinityGraph', () => {
       [
         { name: 'intercept_fetch', domain: 'network' },
         { name: 'evaluate_js', domain: 'browser' },
-        { name: 'breakpoint_set', domain: 'debugger' },
+        { name: 'breakpoint_code', domain: 'debugger' },
       ],
       [{ from: 'intercept_fetch', to: 'evaluate_js', relation: 'suggests', weight: 0.5 }],
     );
@@ -81,12 +81,12 @@ describe('search/AffinityGraph', () => {
   it('merges explicit edges with prefix edges using max-weight', () => {
     const graph = new AffinityGraphImpl(
       [
-        { name: 'breakpoint_set', domain: 'debugger' },
-        { name: 'breakpoint_remove', domain: 'debugger' },
+        { name: 'breakpoint_code', domain: 'debugger' },
+        { name: 'breakpoint_event', domain: 'debugger' },
       ],
       [
         // Explicit edge with higher weight than prefix would generate
-        { from: 'breakpoint_set', to: 'breakpoint_remove', relation: 'requires', weight: 0.9 },
+        { from: 'breakpoint_code', to: 'breakpoint_event', relation: 'requires', weight: 0.9 },
       ],
     );
 

@@ -3,7 +3,7 @@
  *
  * Validates cross-domain integration with:
  * - browser (page_evaluate)
- * - debugger (event_breakpoint_set, get_call_stack)
+ * - debugger (breakpoint(type=event), get_call_stack)
  * - evidence (ReverseEvidenceGraph)
  * - trace (TraceRecorder)
  *
@@ -787,7 +787,7 @@ describe('canvas cross-domain coordination', () => {
     expect(typeof pageController.evaluate).toBe('function');
   });
 
-  it('debugger event_breakpoint_set is used in trace_click', async () => {
+  it('debugger event breakpoints are used in trace_click', async () => {
     const debuggerManager = createDebuggerManagerMock();
     const eventManager = debuggerManager.getEventManager();
 

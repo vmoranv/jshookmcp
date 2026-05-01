@@ -38,10 +38,10 @@ export class HookHandlers {
       return toTextResponse({
         success: true,
         ...config,
-        hint: `Hardware breakpoint set on DR register. Use memory_breakpoint_trace to collect hits.`,
+        hint: "Hardware breakpoint set on DR register. Use memory_breakpoint with action='trace' to collect hits.",
       });
     } catch (error) {
-      return toErrorResponse('memory_breakpoint_set', error);
+      return toErrorResponse('memory_breakpoint', error);
     }
   }
 
@@ -52,7 +52,7 @@ export class HookHandlers {
         removed: await this.bpEngine!.removeBreakpoint(args.breakpointId as string),
       });
     } catch (error) {
-      return toErrorResponse('memory_breakpoint_remove', error);
+      return toErrorResponse('memory_breakpoint', error);
     }
   }
 
@@ -61,7 +61,7 @@ export class HookHandlers {
       const bps = this.bpEngine!.listBreakpoints();
       return toTextResponse({ success: true, breakpoints: bps, count: bps.length });
     } catch (error) {
-      return toErrorResponse('memory_breakpoint_list', error);
+      return toErrorResponse('memory_breakpoint', error);
     }
   }
 
@@ -84,7 +84,7 @@ export class HookHandlers {
             : 'No hits captured within timeout.',
       });
     } catch (error) {
-      return toErrorResponse('memory_breakpoint_trace', error);
+      return toErrorResponse('memory_breakpoint', error);
     }
   }
 

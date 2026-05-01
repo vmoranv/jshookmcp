@@ -203,7 +203,7 @@ export const DEFAULT_CJK_QUERY_ALIAS_CONFIGS = [
 export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
   {
     pattern:
-      '(?:端到端闭环|全链路闭环|一键闭环|api(?:[_\\s-]*)capture(?:[_\\s-]*)session|web_api_capture_session|抓取接口|抓包流程)',
+      '(?:端到端闭环|全链路闭环|一键闭环|api(?:[_\\s-]*)capture(?:[_\\s-]*)session|抓取接口|抓包流程)',
     flags: 'i',
     boosts: [
       { tool: 'run_extension_workflow', bonus: 18 },
@@ -303,9 +303,8 @@ export const DEFAULT_INTENT_TOOL_BOOST_RULE_CONFIGS = [
     pattern: '(?:evidence|export.*(?:har|markdown|json)|har|report|证据|导出|报告|取证)',
     flags: 'i',
     boosts: [
-      { tool: 'evidence_query_url', bonus: 16 },
-      { tool: 'evidence_export_markdown', bonus: 14 },
-      { tool: 'evidence_export_json', bonus: 12 },
+      { tool: 'evidence_query', bonus: 16 },
+      { tool: 'evidence_export', bonus: 14 },
       { tool: 'run_extension_workflow', bonus: 6 },
     ],
   },

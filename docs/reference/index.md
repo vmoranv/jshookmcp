@@ -51,9 +51,9 @@
 
 ## 重点高层入口
 
-- `web_api_capture_session`：一键抓请求、提取 auth、导出 HAR/报告
-- `register_account_flow`：注册 + 邮箱验证流程
 - `api_probe_batch`：批量探测 OpenAPI / Swagger / API 端点
 - `js_bundle_search`：远程抓取 bundle 并做多模式匹配
+- `page_script_register` / `page_script_run`：复用页面内脚本完成定制化采集与自动化
 - `doctor_environment`：环境依赖与 bridge 健康检查
 - `cleanup_artifacts`：按 retention / size 规则清理产物
+- `list_extension_workflows` / `run_extension_workflow`：发现并执行外置扩展工作流

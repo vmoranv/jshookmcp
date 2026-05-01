@@ -51,9 +51,9 @@ The following tool domains are available:
 
 ## Key high-level entry points
 
-- `web_api_capture_session` — capture APIs, extract auth, and export HAR/report
-- `register_account_flow` — registration plus email verification flow
 - `api_probe_batch` — batch-probe OpenAPI / Swagger / API paths
 - `js_bundle_search` — fetch a bundle remotely and search it with multiple patterns
+- `page_script_register` / `page_script_run` — register reusable page-side snippets and execute them on demand
 - `doctor_environment` — diagnose dependencies and local bridge health
 - `cleanup_artifacts` — clean retained artifacts by age or size
+- `list_extension_workflows` / `run_extension_workflow` — discover and execute external extension workflows

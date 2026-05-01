@@ -177,7 +177,7 @@ Step 4: LLM calls business tool (e.g., page_navigate)
 
 **Pros**:
 ✅ Significantly reduces model learning cost - no need to master activate/boost protocol details
-✅ Can solidify "workflow-first" strategy as routing rules (prioritize run_extension_workflow/web_api_capture_session when strong intent detected)
+✅ Can solidify "workflow-first" strategy as routing rules (prioritize run_extension_workflow plus current workflow/page-script/API-probe entry points when strong intent is detected)
 ✅ Can embed safety/performance guardrails (limit auto-enabled domains, limit full-tier auto-upgrade conditions)
 ✅ Can return executable nextActions (structured) + minimal example args, improving closure rate
 

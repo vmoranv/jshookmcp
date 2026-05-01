@@ -28,7 +28,11 @@ export class ReadWriteHandlers {
         args.value as string,
         args.valueType as string,
       );
-      return toTextResponse({ success: true, ...entry, hint: 'Use memory_write_undo to revert.' });
+      return toTextResponse({
+        success: true,
+        ...entry,
+        hint: "Use memory_write_history with action='undo' to revert.",
+      });
     } catch (error) {
       return toErrorResponse('memory_write_value', error);
     }
@@ -46,7 +50,7 @@ export class ReadWriteHandlers {
       return toTextResponse({
         success: true,
         ...entry,
-        hint: `Frozen. Use memory_unfreeze with freezeId "${entry.id}" to stop.`,
+        hint: `Frozen. Use memory_freeze with action="unfreeze" and freezeId "${entry.id}" to stop.`,
       });
     } catch (error) {
       return toErrorResponse('memory_freeze', error);
@@ -60,7 +64,7 @@ export class ReadWriteHandlers {
         unfrozen: await this.memCtrl.unfreeze(args.freezeId as string),
       });
     } catch (error) {
-      return toErrorResponse('memory_unfreeze', error);
+      return toErrorResponse('memory_freeze', error);
     }
   }
 
@@ -82,7 +86,7 @@ export class ReadWriteHandlers {
       const entry = await this.memCtrl.undo();
       return toTextResponse({ success: true, undone: entry !== null, entry });
     } catch (error) {
-      return toErrorResponse('memory_write_undo', error);
+      return toErrorResponse('memory_write_history', error);
     }
   }
 
@@ -91,7 +95,7 @@ export class ReadWriteHandlers {
       const entry = await this.memCtrl.redo();
       return toTextResponse({ success: true, redone: entry !== null, entry });
     } catch (error) {
-      return toErrorResponse('memory_write_redo', error);
+      return toErrorResponse('memory_write_history', error);
     }
   }
 }

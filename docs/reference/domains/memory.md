@@ -53,7 +53,7 @@
 | `memory_patch_nop` | 将指定地址处的指令改写为 NOP（0x90）。常用于禁用检查逻辑或跳转指令。 |
 | `memory_patch_undo` | 撤销之前的补丁，并恢复原始字节内容。 |
 | `memory_code_caves` | 在已加载模块的可执行节中查找 code cave（连续的 0x00 或 0xCC 区段），并按大小优先返回。 |
-| `memory_write_value` | 向指定内存地址写入一个带类型的值，并支持通过 memory_write_undo 进行撤销。 |
+| `memory_write_value` | 向指定内存地址写入一个带类型的值，并支持通过 memory_write_history 的 undo/redo 动作进行撤销与重做。 |
 | `memory_freeze` | 将某个地址冻结为固定值。工具会按设定间隔持续回写该值，防止它被其他逻辑修改。 |
 | `memory_dump` | 以十六进制 + ASCII 列的形式导出一段内存区域，输出风格类似 xxd 的格式化十六进制转储。 |
 | `memory_speedhack` | 变速器：Hook 时间 API 以缩放进程时间流速。speed=2.0 为两倍速，0.5 为半速。 |

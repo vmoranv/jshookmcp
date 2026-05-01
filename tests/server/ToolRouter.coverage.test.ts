@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => {
     makeTool('network_enable', 'Enable request capture'),
     makeTool('network_get_requests', 'Inspect captured requests'),
     makeTool('network_extract_auth', 'Extract auth credentials'),
-    makeTool('web_api_capture_session', 'Capture an API session'),
+    makeTool('api_probe_batch', 'Probe multiple API endpoints in batch'),
     makeTool('run_extension_workflow', 'Execute extension workflow'),
     makeTool('get_token_budget_stats', 'Inspect token budget state'),
   ];
@@ -38,7 +38,7 @@ const mocks = vi.hoisted(() => {
     ['network_enable', 'network'],
     ['network_get_requests', 'network'],
     ['network_extract_auth', 'network'],
-    ['web_api_capture_session', 'network'],
+    ['api_probe_batch', 'workflow'],
     ['run_extension_workflow', 'workflow'],
     ['get_token_budget_stats', 'maintenance'],
   ]);

@@ -70,14 +70,21 @@ export function resolveSearchQualityToolDomain(name: string): string | null {
     name.startsWith('dom_')
   )
     return 'browser';
-  if (name.startsWith('debug_') || name.startsWith('breakpoint_')) return 'debugger';
+  if (
+    name.startsWith('debug_') ||
+    name === 'breakpoint' ||
+    name.startsWith('breakpoint_') ||
+    name === 'watch'
+  )
+    return 'debugger';
   if (name.startsWith('network_') || name.startsWith('ws_') || name.startsWith('sse_'))
     return 'network';
   if (
     name.startsWith('workflow_') ||
-    name.startsWith('web_api_') ||
     name.startsWith('run_extension_') ||
-    name.startsWith('list_extension_')
+    name.startsWith('list_extension_') ||
+    name.startsWith('api_probe_') ||
+    name.startsWith('page_script_')
   )
     return 'workflow';
   if (
@@ -170,8 +177,8 @@ const TOOLS: readonly Tool[] = [
   // debugger
   makeTool('debug_pause', 'Pause JavaScript execution'),
   makeTool('debug_resume', 'Resume paused JavaScript execution'),
-  makeTool('breakpoint_set', 'Set a breakpoint at a URL and line number'),
-  makeTool('breakpoint_list', 'List all active breakpoints'),
+  makeTool('breakpoint', 'Set, remove, or list breakpoints'),
+  makeTool('watch', 'Add, remove, list, evaluate, or clear watch expressions'),
   // analysis
   makeTool('search_in_scripts', 'Search for patterns in loaded scripts'),
   makeTool('collect_code', 'Collect JavaScript source code from the page'),
@@ -193,13 +200,12 @@ const TOOLS: readonly Tool[] = [
   makeTool('memory_scan', 'Scan process memory for patterns'),
   makeTool('heap_snapshot', 'Capture a heap snapshot'),
   // evidence
-  makeTool('evidence_query_url', 'Query evidence collected for a URL'),
-  makeTool('evidence_export_markdown', 'Export evidence as a markdown report'),
-  makeTool('evidence_export_json', 'Export evidence as JSON'),
+  makeTool('evidence_query', 'Query evidence graph by URL, function name, or script ID'),
+  makeTool('evidence_export', 'Export evidence graph as JSON or Markdown'),
   // workflow
   makeTool('run_extension_workflow', 'Run an installed extension workflow'),
   makeTool('list_extension_workflows', 'List available extension workflows'),
-  makeTool('web_api_capture_session', 'Full-chain web API capture session'),
+  makeTool('api_probe_batch', 'Probe multiple API endpoints in a single workflow burst'),
   // v8-inspector
   makeTool('v8_heap_snapshot_capture', 'Capture V8 heap snapshot via CDP'),
   makeTool('v8_heap_snapshot_analyze', 'Analyze V8 heap snapshot for leaks'),
@@ -221,7 +227,7 @@ const TOOLS: readonly Tool[] = [
   makeTool('adb_devices', 'List connected Android devices'),
   makeTool('adb_webview_debug', 'Enable WebView debugging on Android device'),
   // mojo-ipc
-  makeTool('mojo_monitor_start', 'Start monitoring Chromium Mojo IPC messages'),
+  makeTool('mojo_monitor', 'Start or stop monitoring Chromium Mojo IPC messages'),
   makeTool('mojo_decode_message', 'Decode a Mojo IPC message'),
   // syscall-hook
   makeTool('syscall_start_monitor', 'Start monitoring system calls via ETW/strace'),
@@ -299,18 +305,18 @@ const CASES: readonly SearchEvalCase[] = [
     expectations: [
       { tool: 'console_inject_fetch_interceptor', gain: 3 },
       { tool: 'network_enable', gain: 2 },
-      { tool: 'web_api_capture_session', gain: 2 },
+      { tool: 'run_extension_workflow', gain: 2 },
     ],
     tags: ['network'],
   },
   // debugger
   {
     id: 'debugger-breakpoint',
-    title: 'debugger: "set a breakpoint" → breakpoint_set in top-3',
+    title: 'debugger: "set a breakpoint" → breakpoint in top-3',
     query: 'set a breakpoint at line 42',
     topK: 10,
-    expectations: [{ tool: 'breakpoint_set', gain: 3 }],
-    idealTool: 'breakpoint_set',
+    expectations: [{ tool: 'breakpoint', gain: 3 }],
+    idealTool: 'breakpoint',
     tags: ['debugger'],
   },
   {
@@ -444,11 +450,11 @@ const CASES: readonly SearchEvalCase[] = [
   // mojo-ipc
   {
     id: 'mojo-monitor',
-    title: 'mojo: "monitor Mojo IPC" → mojo_monitor_start in top-3',
+    title: 'mojo: "monitor Mojo IPC" → mojo_monitor in top-3',
     query: 'monitor Chromium Mojo IPC messages',
     topK: 10,
-    expectations: [{ tool: 'mojo_monitor_start', gain: 3 }],
-    idealTool: 'mojo_monitor_start',
+    expectations: [{ tool: 'mojo_monitor', gain: 3 }],
+    idealTool: 'mojo_monitor',
     tags: ['mojo-ipc'],
   },
   // syscall-hook
@@ -498,9 +504,8 @@ const CASES: readonly SearchEvalCase[] = [
     query: 'export evidence as markdown report',
     topK: 10,
     expectations: [
-      { tool: 'evidence_export_markdown', gain: 3 },
-      { tool: 'evidence_query_url', gain: 2 },
-      { tool: 'evidence_export_json', gain: 2 },
+      { tool: 'evidence_export', gain: 3 },
+      { tool: 'evidence_query', gain: 2 },
     ],
     tags: ['evidence'],
   },

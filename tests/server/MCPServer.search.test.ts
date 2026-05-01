@@ -111,7 +111,7 @@ vi.mock('@server/registry/index', () => ({
         patterns: [/(capture|intercept|monitor|hook).*(network|request|response|api|traffic)/i],
         priority: 100,
         tools: [
-          'web_api_capture_session',
+          'run_extension_workflow',
           'network_enable',
           'page_navigate',
           'network_get_requests',
@@ -755,6 +755,65 @@ describe('MCPServer.search', () => {
 
     // @ts-expect-error — auto-suppressed [TS2532]
     expect(response.recommendations[0].name).toBe('network_get_requests');
+  });
+
+  it('route_tool prioritizes stateless compute helpers for offline decode and protocol inference tasks', async () => {
+    const ctx = createCtx({
+      selectedTools: [],
+    });
+    registerSearchMetaTools(ctx);
+    const routeHandler = ctx.registeredToolsForTest.get('route_tool')!.handler;
+
+    state.searchImpl = () => [
+      {
+        name: 'page_evaluate',
+        description: 'Evaluate JavaScript in the current page',
+        shortDescription: 'Evaluate JavaScript in the current page',
+        score: 30,
+        domain: 'browser',
+        isActive: false,
+      },
+      {
+        name: 'binary_decode',
+        description: 'Decode binary payloads into hex, utf8, or json output',
+        shortDescription: 'Decode binary payloads into hex, utf8, or json output',
+        score: 24,
+        domain: 'encoding',
+        isActive: false,
+      },
+      {
+        name: 'proto_auto_detect',
+        description: 'Auto-detect a protocol pattern from one or more hex payload samples',
+        shortDescription: 'Auto-detect a protocol pattern from one or more hex payload samples',
+        score: 23,
+        domain: 'protocol-analysis',
+        isActive: false,
+      },
+      {
+        name: 'crypto_test_harness',
+        description:
+          'Run extracted crypto code in worker_threads + vm sandbox and return deterministic test results.',
+        shortDescription:
+          'Run extracted crypto code in worker_threads + vm sandbox and return deterministic test results.',
+        score: 20,
+        domain: 'transform',
+        isActive: false,
+      },
+    ];
+
+    const response = parseResponse<RouteToolResponse>(
+      await routeHandler({
+        task: '离线解码 payload 并推断协议字段，再做确定性 crypto harness 验证',
+        context: { autoActivate: false },
+      }),
+    );
+
+    expect(response.recommendations[0]?.name).toBe('binary_decode');
+    expect(response.recommendations[1]?.name).toBe('proto_auto_detect');
+    expect(response.recommendations[2]?.name).toBe('crypto_test_harness');
+    expect(response.recommendations.map((item) => item.name)).not.toEqual(
+      expect.arrayContaining(['browser_launch', 'browser_attach']),
+    );
   });
 
   it('rejects invalid activate_tools and deactivate_tools payloads', async () => {

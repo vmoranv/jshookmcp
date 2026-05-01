@@ -858,8 +858,20 @@ async function loadZhToolDescriptions() {
 }
 
 async function syncZhCoverage(manifests, zhToolDescriptions) {
-  const merged = { ...zhToolDescriptions };
+  const activeToolNames = new Set(
+    manifests.flatMap((manifest) => manifest.tools.map((tool) => tool.name)),
+  );
+  const merged = {};
   const added = [];
+  const removed = [];
+
+  for (const [toolName, description] of Object.entries(zhToolDescriptions)) {
+    if (activeToolNames.has(toolName)) {
+      merged[toolName] = description;
+    } else {
+      removed.push(toolName);
+    }
+  }
 
   for (const manifest of manifests) {
     for (const tool of manifest.tools) {
@@ -870,13 +882,22 @@ async function syncZhCoverage(manifests, zhToolDescriptions) {
     }
   }
 
-  if (added.length > 0) {
+  if (added.length > 0 || removed.length > 0) {
     await writeFile(zhTranslationsPath, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
-    console.log(
-      `[docs] Added ${added.length} placeholder Chinese tool descriptions: ${added
-        .slice(0, 20)
-        .join(', ')}`,
-    );
+    if (added.length > 0) {
+      console.log(
+        `[docs] Added ${added.length} placeholder Chinese tool descriptions: ${added
+          .slice(0, 20)
+          .join(', ')}`,
+      );
+    }
+    if (removed.length > 0) {
+      console.log(
+        `[docs] Removed ${removed.length} stale Chinese tool descriptions: ${removed
+          .slice(0, 20)
+          .join(', ')}`,
+      );
+    }
   }
 
   const placeholders = [];
@@ -973,12 +994,12 @@ ${rows}
 
 ## 重点高层入口
 
-- \`web_api_capture_session\`：一键抓请求、提取 auth、导出 HAR/报告
-- \`register_account_flow\`：注册 + 邮箱验证流程
 - \`api_probe_batch\`：批量探测 OpenAPI / Swagger / API 端点
 - \`js_bundle_search\`：远程抓取 bundle 并做多模式匹配
+- \`page_script_register\` / \`page_script_run\`：复用页面内脚本完成定制化采集与自动化
 - \`doctor_environment\`：环境依赖与 bridge 健康检查
 - \`cleanup_artifacts\`：按 retention / size 规则清理产物
+- \`list_extension_workflows\` / \`run_extension_workflow\`：发现并执行外置扩展工作流
 ${externalPresetSection}`;
   }
 
@@ -1000,12 +1021,12 @@ ${rows}
 
 ## Key high-level entry points
 
-- \`web_api_capture_session\` — capture APIs, extract auth, and export HAR/report
-- \`register_account_flow\` — registration plus email verification flow
 - \`api_probe_batch\` — batch-probe OpenAPI / Swagger / API paths
 - \`js_bundle_search\` — fetch a bundle remotely and search it with multiple patterns
+- \`page_script_register\` / \`page_script_run\` — register reusable page-side snippets and execute them on demand
 - \`doctor_environment\` — diagnose dependencies and local bridge health
 - \`cleanup_artifacts\` — clean retained artifacts by age or size
+- \`list_extension_workflows\` / \`run_extension_workflow\` — discover and execute external extension workflows
 ${externalPresetSection}`;
 }
 

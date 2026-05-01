@@ -37,7 +37,7 @@ When dispatching multiple tool executions natively, the following consistency bo
 
 - **Concurrency Permitted (Side-Effect Free)**: State-agnostic read probes (`page_local_storage(action=get)`, `page_cookies(action=get)`, `network_get_requests`, `console_get_logs`) support highly concurrent payload delivery.
 - **Mutex Required (Side-Effect Heavy)**: DOM mutations (`page_click`, `page_type`), auth state transitions (CAPTCHA slider solving, generic SSO redirects) introduce strong side-effects. Execution must be synchronously blocked to prevent phantom triggers and race conditions.
-- **Persistent Context Serialization**: Prefer the external workflow `workflow.web-api-capture-session.v1` for long-polling traces. It coordinates HAR export and request-capture steps so contexts can be reconstructed from archived artifacts without keeping the Headless lifecycle resident.
+- **Persistent Context Serialization**: Prefer `run_extension_workflow` with an available capture-oriented external workflow, or compose `network_export_har` with request-capture tools directly. The goal is to archive HAR plus request context so sessions can be reconstructed later without hardcoding a retired workflow ID into the dispatcher.
 
 ---
 

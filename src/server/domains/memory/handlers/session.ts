@@ -25,7 +25,7 @@ export class SessionHandlers {
       const sessions = this.sessionManager.listSessions();
       return toTextResponse({ success: true, sessions, count: sessions.length });
     } catch (error) {
-      return toErrorResponse('memory_scan_list', error);
+      return toErrorResponse('memory_scan_session', error);
     }
   }
 
@@ -36,7 +36,7 @@ export class SessionHandlers {
         deleted: this.sessionManager.deleteSession(args.sessionId as string),
       });
     } catch (error) {
-      return toErrorResponse('memory_scan_delete', error);
+      return toErrorResponse('memory_scan_session', error);
     }
   }
 
@@ -47,7 +47,7 @@ export class SessionHandlers {
         exportedData: this.sessionManager.exportSession(args.sessionId as string),
       });
     } catch (error) {
-      return toErrorResponse('memory_scan_export', error);
+      return toErrorResponse('memory_scan_session', error);
     }
   }
 }
