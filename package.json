@@ -67,9 +67,10 @@
     "registry": "https://registry.npmjs.org"
   },
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && node scripts/generate-domains-index.mjs && tsdown",
+    "build": "node scripts/build.mjs",
+    "build:dts": "node scripts/build.mjs --dts",
     "build:sdk": "corepack pnpm -C packages/extension-sdk build",
-    "build:all": "corepack pnpm run build && corepack pnpm run build:sdk",
+    "build:all": "corepack pnpm run build:dts && corepack pnpm run build:sdk",
     "build:analyze": "cross-env BUNDLE_ANALYZE=1 corepack pnpm run build && echo 'Open stats.html in browser to view bundle analysis'",
     "typecheck": "tsc --noEmit -p tsconfig.json && corepack pnpm -C packages/extension-sdk typecheck",
     "deps:update": "corepack pnpm update -r",

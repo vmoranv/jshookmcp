@@ -6,7 +6,7 @@ export default defineConfig(async () => ({
   entry: ['src/index.ts', 'src/server/plugin-api.ts'],
   format: 'esm',
   clean: true,
-  dts: true,
+  dts: false,
   minify: true,
   plugins: analyzeEnabled
     ? [
