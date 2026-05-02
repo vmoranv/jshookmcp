@@ -25,7 +25,7 @@ Core static and semi-static analysis domain for script collection, deobfuscation
 - `collect_code` — Collect JavaScript from a target website in summary, priority, incremental, o...
 - `search_in_scripts` — Search collected scripts by keyword or regex pattern
 - `extract_function_tree` — Extract a function and its dependency tree from collected scripts
-- `deobfuscate` — Run webcrack-powered JavaScript deobfuscation with bundle unpacking. Use engine="webcrack" for aggressive VM/advanced options.
+- `deobfuscate` — Run webcrack-powered JavaScript deobfuscation with bundle unpacking.
 - `understand_code` — Run semantic code analysis for structure, behavior, and risks
 - `detect_crypto` — Detect cryptographic algorithms and usage patterns in source code
 - `manage_hooks` — Create, inspect, and clear JavaScript runtime hooks
@@ -40,7 +40,7 @@ Core static and semi-static analysis domain for script collection, deobfuscation
 | `collect_code` | Collect JavaScript from a target website in summary, priority, incremental, o... |
 | `search_in_scripts` | Search collected scripts by keyword or regex pattern |
 | `extract_function_tree` | Extract a function and its dependency tree from collected scripts |
-| `deobfuscate` | Run webcrack-powered JavaScript deobfuscation with bundle unpacking. Use engine="webcrack" for aggressive VM/advanced options. |
+| `deobfuscate` | Run webcrack-powered JavaScript deobfuscation with bundle unpacking. |
 | `understand_code` | Run semantic code analysis for structure, behavior, and risks |
 | `detect_crypto` | Detect cryptographic algorithms and usage patterns in source code |
 | `manage_hooks` | Create, inspect, and clear JavaScript runtime hooks |

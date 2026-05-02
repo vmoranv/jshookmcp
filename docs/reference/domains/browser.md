@@ -34,7 +34,7 @@
 - `browser_launch` — 启动浏览器。
 - `browser_close` — 关闭浏览器。
 
-## 工具清单（59）
+## 工具清单（60）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -55,6 +55,7 @@
 | `page_forward` | 前进到下一个页面。 |
 | `page_click` | 点击页面上的元素。 |
 | `page_type` | 在输入框中输入文字。 |
+| `page_upload_files` | 待补充中文：Upload one or more local files into an &lt;input type="file"&gt; element. |
 | `page_select` | 在 &lt;select&gt; 下拉菜单中选择选项。 |
 | `page_hover` | 将鼠标移到元素上方。 |
 | `page_scroll` | 滚动页面。 |

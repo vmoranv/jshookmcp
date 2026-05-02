@@ -34,7 +34,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 - `browser_launch` — Launch or connect to a browser.
 - `browser_close` — Close browser.
 
-## Full tool list (59)
+## Full tool list (60)
 
 | Tool | Description |
 | --- | --- |
@@ -55,6 +55,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `page_forward` | Go forward in history |
 | `page_click` | Click an element. |
 | `page_type` | Type text into an element. |
+| `page_upload_files` | Upload one or more local files into an &lt;input type="file"&gt; element. |
 | `page_select` | Select option(s) in a &lt;select&gt; element. |
 | `page_hover` | Hover over an element. |
 | `page_scroll` | Scroll the page. |
