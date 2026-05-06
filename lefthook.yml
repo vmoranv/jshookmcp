@@ -14,6 +14,9 @@ pre-commit:
     docs-generate:
       run: corepack pnpm docs:generate
       stage_fixed: true
+    sync-lockfile:
+      glob: "package.json"
+      run: corepack pnpm install --no-frozen-lockfile && git add pnpm-lock.yaml
     oxfmt:
       glob: "*.{ts,tsx,js,mjs,json}"
       run: npx oxfmt {staged_files} --write
