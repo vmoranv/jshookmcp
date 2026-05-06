@@ -136,7 +136,7 @@
     "cross-env": "^10.1.0",
     "lefthook": "^2.1.5",
     "medium-zoom": "^1.1.0",
-    "oxfmt": "^0.47.0",
+    "oxfmt": "^0.48.0",
     "oxlint": "^1.59.0",
     "rollup-plugin-visualizer": "^7.0.1",
     "tsdown": "^0.21.7",
