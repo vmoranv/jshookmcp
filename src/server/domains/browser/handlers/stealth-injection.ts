@@ -10,6 +10,21 @@ import { logger } from '@utils/logger';
 import { R } from '@server/domains/shared/ResponseBuilder';
 import type { ToolResponse } from '@server/domains/shared/ResponseBuilder';
 
+const STEALTH_PATCH_MANIFEST = [
+  { api: 'navigator.webdriver', method: 'property override (configurable:false)' },
+  { api: 'window.chrome', method: 'object injection (runtime, loadTimes, csi)' },
+  { api: 'navigator.plugins', method: 'PluginArray override (spoofed length/names)' },
+  { api: 'Permissions.query', method: 'result filter (returns granted/prompt)' },
+  { api: 'HTMLCanvasElement.toDataURL/toBlob', method: 'pixel noise injection' },
+  { api: 'WebGLRenderingContext.getParameter', method: 'vendor/renderer override' },
+  { api: 'navigator.languages', method: 'array override (locale-specific)' },
+  { api: 'navigator.getBattery', method: 'fake BatteryManager' },
+  { api: 'MediaDevices.enumerateDevices', method: 'device list filter' },
+  { api: 'Notification.permission', method: 'permission override' },
+  { api: 'performance.now / Date.now', method: 'timing offset compensation' },
+  { api: 'CDP request timing', method: 'jitter compensation proxy' },
+];
+
 interface StealthInjectionHandlersDeps {
   pageController: PageController;
   getActiveDriver: () => 'chrome' | 'camoufox';
@@ -102,6 +117,7 @@ export class StealthInjectionHandlers {
       return R.ok().build({
         message: 'Stealth scripts injected successfully',
         fingerprintApplied,
+        patchManifest: STEALTH_PATCH_MANIFEST,
         _nextStepHint:
           'Stealth patches are now active. ' +
           'Next: navigate to your target URL with page_navigate. ' +

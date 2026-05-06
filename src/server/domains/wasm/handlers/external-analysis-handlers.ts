@@ -103,6 +103,33 @@ export class ExternalAnalysisHandlers extends ExternalToolHandlersBase {
       });
     }
 
+    // call_indirect density: high call_indirect ratio suggests VM dispatch table
+    const callIndirectCount = (wat.match(/\bcall_indirect\b/g) || []).length;
+    const callDirectCount = (wat.match(/\bcall\s+(?!indirect)/g) || []).length;
+    if (callIndirectCount > 3 && callIndirectCount >= callDirectCount * 0.3) {
+      detections.push({
+        type: 'indirect-call-dispatch',
+        confidence: Math.min(callIndirectCount / 15, 0.85),
+        description:
+          `${callIndirectCount} call_indirect vs ${callDirectCount} direct calls — ` +
+          `indirect call ratio suggests dispatch-based VM or obfuscation`,
+      });
+    }
+
+    // Import pattern: obfuscated modules often import env with unusual functions
+    const importEnvMatches = wat.match(/\(import\s+"env"\s+"(\w+)"/g) || [];
+    const importedFunctions = importEnvMatches.map((m) => m.split('"')[3] ?? '');
+    const nonStubImports = importedFunctions.filter(
+      (f) => !['memory', 'table', '__linear_memory', '__indirect_function_table'].includes(f),
+    );
+    if (nonStubImports.length > 20) {
+      detections.push({
+        type: 'large-import-surface',
+        confidence: Math.min(nonStubImports.length / 50, 0.7),
+        description: `${nonStubImports.length} env imports — large import surface typical of obfuscated/wrapped modules`,
+      });
+    }
+
     const hasObfuscation = detections.length > 0;
     const maxConfidence = detections.reduce(
       (max, detection) => Math.max(max, detection.confidence),

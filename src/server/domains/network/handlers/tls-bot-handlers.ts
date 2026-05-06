@@ -551,6 +551,12 @@ export class TlsBotHandlers {
     // Track unique HTTP fingerprints for anomaly detection
     const httpFingerprints = new Map<string, number>();
 
+    // Inter-request consistency tracking
+    let uaDriftCount = 0;
+    let headerOrderDriftCount = 0;
+    const seenUserAgents = new Map<string, string>(); // httpFingerprint → UA
+    let headerOrderBaseline: string | null = null;
+
     for (const req of sample) {
       const headers = req.headers || {};
       const headerNames = Object.keys(headers);
@@ -587,6 +593,21 @@ export class TlsBotHandlers {
         acceptLanguage,
       );
       httpFingerprints.set(http, (httpFingerprints.get(http) ?? 0) + 1);
+
+      // Inter-request consistency: same HTTP fingerprint but different UA
+      if (seenUserAgents.has(http)) {
+        if (seenUserAgents.get(http) !== ua) {
+          uaDriftCount++;
+        }
+      } else {
+        seenUserAgents.set(http, ua);
+      }
+      // Header order consistency: first request sets baseline
+      if (headerOrderBaseline === null) {
+        headerOrderBaseline = headerNames.join(',');
+      } else if (headerNames.join(',') !== headerOrderBaseline) {
+        headerOrderDriftCount++;
+      }
 
       const reqDetail: Record<string, unknown> = {
         requestId: req.requestId,
@@ -631,6 +652,21 @@ export class TlsBotHandlers {
       );
     }
 
+    // Inter-request consistency summary
+    const interRequestSignals: string[] = [];
+    if (uaDriftCount > 0) {
+      interRequestSignals.push(
+        `${uaDriftCount} request(s) with different UA for same HTTP fingerprint — UA drift detected`,
+      );
+    }
+    if (headerOrderDriftCount > 0) {
+      interRequestSignals.push(
+        `${headerOrderDriftCount} request(s) with different header order — header rotation detected`,
+      );
+    }
+    const consistencyScore =
+      sample.length > 1 ? 1 - (uaDriftCount + headerOrderDriftCount) / (sample.length * 2) : 1.0;
+
     return R.ok()
       .merge({
         analyzed: sample.length,
@@ -647,6 +683,12 @@ export class TlsBotHandlers {
         },
         signals: signals.slice(0, 20),
         ...(diversitySignals.length > 0 ? { diversitySignals } : {}),
+        interRequestConsistency: {
+          consistencyScore: Math.round(consistencyScore * 100) / 100,
+          uaDriftCount,
+          headerOrderDriftCount,
+          ...(interRequestSignals.length > 0 ? { signals: interRequestSignals } : {}),
+        },
         details: includeDetails ? details : undefined,
         recommendations:
           avgBotScore > 0.5

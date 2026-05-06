@@ -86,7 +86,55 @@ export class EvidenceHandlers {
   }
 
   handleExportMarkdown() {
-    return asTextResponse(this.graph.exportMarkdown());
+    const md = this.graph.exportMarkdown();
+    const snapshot = this.graph.exportJson();
+    if (!snapshot || !Array.isArray(snapshot.nodes)) {
+      return asTextResponse(md);
+    }
+
+    const danglingNoInbound = snapshot.nodes.filter(
+      (n) => snapshot.edges.filter((e) => e.target === n.id).length === 0,
+    );
+    const danglingNoOutbound = snapshot.nodes.filter(
+      (n) => snapshot.edges.filter((e) => e.source === n.id).length === 0,
+    );
+    const lowConfidenceEdges = snapshot.edges.filter(
+      (e) => e.metadata && typeof e.metadata.confidence === 'number' && e.metadata.confidence < 0.3,
+    );
+
+    const gaps: string[] = [];
+    gaps.push('');
+    gaps.push('## Evidence Gaps');
+    gaps.push('');
+    gaps.push(`- **Dangling nodes (no inbound edges):** ${danglingNoInbound.length}`);
+    if (danglingNoInbound.length > 0) {
+      gaps.push(
+        `  ${danglingNoInbound
+          .slice(0, 10)
+          .map((n) => `\`${n.type}:${n.label}\``)
+          .join(', ')}`,
+      );
+    }
+    gaps.push(`- **Dangling nodes (no outbound edges):** ${danglingNoOutbound.length}`);
+    if (danglingNoOutbound.length > 0) {
+      gaps.push(
+        `  ${danglingNoOutbound
+          .slice(0, 10)
+          .map((n) => `\`${n.type}:${n.label}\``)
+          .join(', ')}`,
+      );
+    }
+    gaps.push(`- **Low-confidence edges (<0.3):** ${lowConfidenceEdges.length}`);
+    if (
+      danglingNoInbound.length === 0 &&
+      danglingNoOutbound.length === 0 &&
+      lowConfidenceEdges.length === 0
+    ) {
+      gaps.push('- **Status:** No gaps detected — evidence chain is fully connected.');
+    }
+    gaps.push('');
+
+    return asTextResponse(md + gaps.join('\n'));
   }
 
   handleChain(args: Record<string, unknown>) {
