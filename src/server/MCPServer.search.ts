@@ -138,9 +138,16 @@ function buildMetaToolDefinitions(ctx: MCPServerContext): MetaToolDef[] {
         type: 'object',
         properties: {
           names: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Array of tool names to activate (from search_tools results)',
+            anyOf: [
+              { type: 'array', items: { type: 'string' } },
+              {
+                type: 'string',
+                description:
+                  'JSON stringified array for MCP clients that serialize arrays as strings',
+              },
+            ],
+            description:
+              'Array of tool names to activate (from search_tools results). Also accepts a JSON stringified array for clients that serialize arrays as strings.',
           },
         },
         required: ['names'],
@@ -156,8 +163,10 @@ function buildMetaToolDefinitions(ctx: MCPServerContext): MetaToolDef[] {
         type: 'object',
         properties: {
           names: {
-            type: 'array',
-            items: { type: 'string' },
+            anyOf: [
+              { type: 'array', items: { type: 'string' } },
+              { type: 'string', description: 'JSON stringified array' },
+            ],
             description: 'Array of tool names to deactivate',
           },
         },

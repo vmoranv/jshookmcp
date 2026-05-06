@@ -37,6 +37,19 @@ function jsonSchemaToZod(prop: Record<string, unknown>): z.ZodTypeAny {
   const schemaType = prop.type as string | undefined;
   const description = typeof prop.description === 'string' ? prop.description : undefined;
 
+  // Handle anyOf / oneOf for union types (e.g., string | array fallback)
+  if (prop.anyOf !== undefined || prop.oneOf !== undefined) {
+    const variants = ((prop.anyOf ?? prop.oneOf) as Array<Record<string, unknown>>).map((v) =>
+      jsonSchemaToZod(v),
+    );
+    const zodType = z.union([variants[0], ...variants.slice(1)] as [
+      z.ZodTypeAny,
+      ...z.ZodTypeAny[],
+    ]);
+    if (description) return zodType.describe(description);
+    return zodType;
+  }
+
   let zodType: z.ZodTypeAny;
 
   switch (schemaType) {

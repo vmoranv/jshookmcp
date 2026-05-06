@@ -105,7 +105,18 @@ export async function handleActivateTools(
   ctx: MCPServerContext,
   args: Record<string, unknown>,
 ): Promise<ToolResponse> {
-  const { names, error } = validateToolNameArray(args);
+  // Handle both array and JSON-string formats (anyOf schema may pass either)
+  let namesArg = args.names;
+  if (typeof namesArg === 'string' && namesArg.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(namesArg);
+      if (Array.isArray(parsed)) namesArg = parsed;
+    } catch {
+      /* malformed — fall through */
+    }
+  }
+
+  const { names, error } = validateToolNameArray({ names: namesArg });
   if (error) {
     return asTextResponse(JSON.stringify({ success: false, error }));
   }
