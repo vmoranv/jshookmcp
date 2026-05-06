@@ -46,6 +46,16 @@ export const captureTools: Tool[] = [
         'enableExceptions',
         'When autoEnable=true, also enable uncaught exception monitoring',
         { default: true },
+      )
+      .array(
+        'fields',
+        { type: 'string' },
+        'Only include these fields per request (e.g. ["url","method","status"]). Reduces response size drastically.',
+      )
+      .boolean(
+        'deduplicateUrls',
+        'Deduplicate URLs by stripping query params and normalizing path segments (UUIDs/IDs → {id}). Returns unique endpoint patterns with counts instead of individual requests.',
+        { default: false },
       ),
   ),
   tool('network_get_response_body', (t) =>

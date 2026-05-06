@@ -20,6 +20,23 @@ import type { NetworkHandlerDeps } from './shared';
 import { getDetailedDataManager, parseBooleanArg, parseNumberArg } from './shared';
 import { getMergedNetworkRequestsFromMonitor } from '../request-merge';
 
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+const LONG_HEX_RE = /\/[0-9a-f]{16,}(?=[/?#]|$)/gi;
+const NUMERIC_ID_RE = /\/\d{2,}(?=[/?#]|$)/g;
+
+function normalizeUrlToPattern(rawUrl: string): string {
+  try {
+    const url = new URL(rawUrl);
+    let path = url.pathname;
+    path = path.replace(UUID_RE, '{id}');
+    path = path.replace(LONG_HEX_RE, '/{id}');
+    path = path.replace(NUMERIC_ID_RE, '/{id}');
+    return `${url.origin}${path}`;
+  } catch {
+    return rawUrl;
+  }
+}
+
 export class CoreHandlers {
   private detailedDataManager = getDetailedDataManager();
 
@@ -154,6 +171,12 @@ export class CoreHandlers {
       const sinceTimestamp = isFiniteNumber(args.sinceTimestamp) ? args.sinceTimestamp : undefined;
       const sinceRequestId = asOptionalString(args.sinceRequestId);
       const tail = isFiniteNumber(args.tail) && args.tail > 0 ? Math.floor(args.tail) : undefined;
+      const deduplicateUrls = parseBooleanArg(args.deduplicateUrls, false);
+      const rawFields = args.fields;
+      const fields: string[] | undefined =
+        Array.isArray(rawFields) && rawFields.length > 0
+          ? rawFields.filter((f): f is string => typeof f === 'string')
+          : undefined;
       const limit = parseNumberArg(args.limit, {
         defaultValue: 100,
         min: 1,
@@ -182,6 +205,8 @@ export class CoreHandlers {
         limit,
         offset,
         autoEnabled: networkState.autoEnabled,
+        fields,
+        deduplicateUrls,
       });
 
       const processedResult = this.detailedDataManager.smartHandle(result.finalPayload, 25600);
@@ -427,6 +452,8 @@ export class CoreHandlers {
       limit: number;
       offset: number;
       autoEnabled: boolean;
+      fields?: string[];
+      deduplicateUrls?: boolean;
     },
   ) {
     const {
@@ -439,6 +466,8 @@ export class CoreHandlers {
       limit,
       offset,
       autoEnabled,
+      fields,
+      deduplicateUrls,
     } = filters;
     const originalCount = requests.length;
     const allUrls = requests.map((r) => r.url);
@@ -522,10 +551,59 @@ export class CoreHandlers {
       ? allUrls.slice(0, 10).map((u) => u.substring(0, 120))
       : undefined;
 
+    // URL deduplication: normalize URLs to endpoint patterns
+    if (deduplicateUrls) {
+      const patternMap = new Map<
+        string,
+        { pattern: string; method: string; count: number; example: string }
+      >();
+      for (const req of requests) {
+        const pattern = normalizeUrlToPattern(req.url);
+        const key = `${req.method.toUpperCase()} ${pattern}`;
+        const existing = patternMap.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          patternMap.set(key, {
+            pattern,
+            method: req.method.toUpperCase(),
+            count: 1,
+            example: req.url,
+          });
+        }
+      }
+      const endpoints = [...patternMap.values()].toSorted((a, b) => b.count - a.count);
+      return {
+        finalPayload: {
+          message: ` Deduplicated ${requests.length} requests into ${endpoints.length} unique endpoint(s)`,
+          endpoints,
+          totalRequests: requests.length,
+          uniqueEndpoints: endpoints.length,
+          stats: {
+            totalCaptured: originalCount,
+            afterFilter: beforeLimit,
+          },
+          filtered: hasAnyFilter,
+          monitoring: { autoEnabled },
+        },
+      };
+    }
+
+    // Field filtering: strip unwanted fields per request
+    const finalRequests = fields
+      ? requests.map((r) => {
+          const picked: Record<string, unknown> = {};
+          for (const f of fields) {
+            if (f in r) picked[f] = r[f];
+          }
+          return picked;
+        })
+      : requests;
+
     return {
       finalPayload: {
         message: ` Retrieved ${requests.length} network request(s)`,
-        requests,
+        requests: finalRequests,
         total: requests.length,
         page: {
           offset,
