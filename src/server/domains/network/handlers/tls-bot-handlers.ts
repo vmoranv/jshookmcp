@@ -665,7 +665,9 @@ export class TlsBotHandlers {
       );
     }
     const consistencyScore =
-      sample.length > 1 ? 1 - (uaDriftCount + headerOrderDriftCount) / (sample.length * 2) : 1.0;
+      sample.length > 1
+        ? Math.max(0, 1 - (uaDriftCount + headerOrderDriftCount) / (sample.length * 2))
+        : 1.0;
 
     return R.ok()
       .merge({
