@@ -82,8 +82,10 @@ export async function handleCallTool(
   }
 
   const name = normalizeToolName(rawName);
-  // Accept both 'args' (schema-defined name) and 'parameters' (used by some MCP clients
-  // that stringify the nested JSON). String values are parsed if they contain valid JSON.
+  // Accept three argument formats:
+  // 1. { args: { ... } }                — schema-defined name
+  // 2. { parameters: "{...}" }          — JSON-serialized string (some MCP clients)
+  // 3. { url: ..., method: ... }        — spread flat (params are top-level keys, no wrapper)
   let toolArgs: Record<string, unknown> = {};
   const rawArgs = args.args ?? args.parameters;
   if (rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs)) {
@@ -95,7 +97,17 @@ export async function handleCallTool(
         toolArgs = parsed as Record<string, unknown>;
       }
     } catch {
-      /* malformed JSON — fall through to empty object */
+      /* malformed JSON — fall through to Format 3 */
+    }
+  }
+
+  // Format 3 (spread flat): only when neither args nor parameters was provided,
+  // and no wrapper was successfully parsed — collect remaining keys as tool arguments.
+  if (Object.keys(toolArgs).length === 0 && !('args' in args) && !('parameters' in args)) {
+    for (const [k, v] of Object.entries(args)) {
+      if (k !== 'name') {
+        toolArgs[k] = v;
+      }
     }
   }
 

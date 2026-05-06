@@ -292,4 +292,66 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
       });
     });
   });
+
+  describe('args spread flat (Format B — no wrapper key)', () => {
+    it('collects top-level keys as tool args when no args/parameters wrapper is present', async () => {
+      const ctx = createCtx();
+
+      await handleCallTool(ctx, {
+        name: 'http2_probe',
+        url: 'https://api.iwara.tv/search',
+        method: 'GET',
+        timeoutMs: 20000,
+      });
+
+      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('http2_probe', {
+        url: 'https://api.iwara.tv/search',
+        method: 'GET',
+        timeoutMs: 20000,
+      });
+    });
+
+    it('handles mixed string/number values in spread-flat format', async () => {
+      const ctx = createCtx();
+
+      await handleCallTool(ctx, {
+        name: 'tab_workflow',
+        action: 'alias_bind',
+        alias: 'main',
+        index: 0,
+      });
+
+      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('tab_workflow', {
+        action: 'alias_bind',
+        alias: 'main',
+        index: 0,
+      });
+    });
+
+    it('does NOT use spread-flat when parameters wrapper is present (even if malformed JSON)', async () => {
+      const ctx = createCtx();
+
+      await handleCallTool(ctx, {
+        name: 'test_tool',
+        url: 'https://example.com',
+        parameters: 'not-valid-json',
+      });
+
+      // parameters key is present → Format 3 is skipped; malformed string → toolArgs stays {}
+      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+    });
+
+    it('does NOT use spread-flat when args wrapper is present (even if null)', async () => {
+      const ctx = createCtx();
+
+      await handleCallTool(ctx, {
+        name: 'test_tool',
+        url: 'https://example.com',
+        args: null,
+      });
+
+      // args key is present → Format 3 is skipped; null is not an object → toolArgs stays {}
+      expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {});
+    });
+  });
 });

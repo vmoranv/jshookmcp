@@ -206,6 +206,12 @@ function buildMetaToolDefinitions(ctx: MCPServerContext): MetaToolDef[] {
             description: 'Arguments object to pass to the tool',
             additionalProperties: true,
           },
+          parameters: {
+            type: 'string',
+            description:
+              'Alternative: JSON-serialized arguments string. ' +
+              'Some MCP clients serialize the nested arguments as a single stringified-JSON field.',
+          },
         },
         required: ['name'],
       },
