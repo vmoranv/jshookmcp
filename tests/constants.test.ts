@@ -32,15 +32,15 @@ describe('constants env parsing', () => {
     expect(
       (await loadConstants({ SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: undefined }))
         .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
-    ).toBe(1.5);
+    ).toBe(2.4);
     expect(
       (await loadConstants({ SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: '' }))
         .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
-    ).toBe(1.5);
+    ).toBe(2.4);
     expect(
       (await loadConstants({ SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: 'abc' }))
         .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,
-    ).toBe(1.5);
+    ).toBe(2.4);
     expect(
       (await loadConstants({ SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER: '2.25' }))
         .SEARCH_WORKFLOW_DOMAIN_BOOST_MULTIPLIER,

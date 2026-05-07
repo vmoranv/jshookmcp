@@ -483,6 +483,6 @@ describe('ToolRouter.policy edge cases', () => {
       { hasActivePage: true, networkEnabled: true, capturedRequestCount: 2 },
     );
 
-    expect(reranked[0]?.score).toBe(4.5);
+    expect(reranked[0]?.score).toBe(4.65);
   });
 });

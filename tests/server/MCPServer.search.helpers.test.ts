@@ -39,6 +39,7 @@ vi.mock('@server/ToolCatalog', () => ({
 vi.mock('@server/registry/index', () => ({
   getAllRegistrations: () => mocks.registrations,
   ensureAllDomainsLoaded: vi.fn().mockResolvedValue(undefined),
+  getAllManifests: () => [],
 }));
 
 vi.mock('@src/constants', async (importOriginal) => ({
