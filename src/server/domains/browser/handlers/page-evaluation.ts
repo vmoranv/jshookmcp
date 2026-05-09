@@ -52,6 +52,15 @@ interface PageEvaluationHandlersDeps {
 export class PageEvaluationHandlers {
   constructor(private deps: PageEvaluationHandlersDeps) {}
 
+  private resolveEvaluationSource(args: Record<string, unknown>): string | null {
+    const code =
+      argString(args, 'script', '') ||
+      argString(args, 'code', '') ||
+      argString(args, 'expression', '');
+
+    return code.trim() ? code : null;
+  }
+
   private async getCamoufoxEvaluationContext(
     frameOptions?: FrameResolveOptions,
   ): Promise<CamoufoxEvaluateContextLike> {
@@ -67,13 +76,17 @@ export class PageEvaluationHandlers {
 
   async handlePageEvaluate(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
-      const code = argString(args, 'script', '') || argString(args, 'code', '');
+      const code = this.resolveEvaluationSource(args);
       const autoSummarize = argBool(args, 'autoSummarize', true);
       const maxSize = argNumber(args, 'maxSize', 51200);
       const fieldFilterArg = argStringArray(args, 'fieldFilter');
       const doStripBase64 = argBool(args, 'stripBase64', false);
       const frameUrl = argString(args, 'frameUrl');
       const frameSelector = argString(args, 'frameSelector');
+
+      if (!code) {
+        return R.fail('code, script, or expression is required').build();
+      }
 
       const frameOptions: FrameResolveOptions | undefined =
         frameUrl || frameSelector

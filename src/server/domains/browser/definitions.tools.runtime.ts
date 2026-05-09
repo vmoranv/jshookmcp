@@ -168,13 +168,14 @@ export const browserRuntimeTools: Tool[] = [
       .desc('Evaluate JS in the attached CDP target.')
       .string('code', 'JavaScript code')
       .string('script', 'Alias of code')
+      .string('expression', 'Alias of code')
       .boolean('returnByValue', 'Return by value', { default: true })
       .boolean('awaitPromise', 'Await promises', { default: true })
       .boolean('autoSummarize', 'Summarize large results', { default: true })
       .number('maxSize', 'Max size before summarizing', { default: 51200 })
       .array('fieldFilter', { type: 'string' }, 'Field names to strip')
       .boolean('stripBase64', 'Strip base64 payloads', { default: false })
-      .required('code'),
+      .openWorld(),
   ),
   tool('browser_close', (t) => t.desc('Close browser.').destructive()),
   tool('browser_status', (t) => t.desc('Browser status.').query()),

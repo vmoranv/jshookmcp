@@ -15,7 +15,10 @@ export class TargetEvaluationHandlers {
 
   async handleBrowserEvaluateCdpTarget(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
-      const code = argString(args, 'script', '') || argString(args, 'code', '');
+      const code =
+        argString(args, 'script', '') ||
+        argString(args, 'code', '') ||
+        argString(args, 'expression', '');
       const autoSummarize = argBool(args, 'autoSummarize', true);
       const maxSize = argNumber(args, 'maxSize', 51200);
       const fieldFilterArg = argStringArray(args, 'fieldFilter');
@@ -23,8 +26,8 @@ export class TargetEvaluationHandlers {
       const returnByValue = argBool(args, 'returnByValue', true);
       const awaitPromise = argBool(args, 'awaitPromise', true);
 
-      if (!code) {
-        return R.fail('code is required').build();
+      if (!code.trim()) {
+        return R.fail('code, script, or expression is required').build();
       }
 
       const activeTarget = this.deps.pageController.getAttachedTargetInfo();

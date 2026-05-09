@@ -58,6 +58,10 @@ export class ConsoleHandlers {
       const maxSize = argNumber(args, 'maxSize', 10485760);
       const stripBase64 = argBool(args, 'stripBase64', false);
 
+      if (!expression.trim()) {
+        return R.fail('expression is required').build();
+      }
+
       const raw = await this.deps.consoleMonitor.execute(expression);
 
       // Apply smartHandle + optional base64 stripping before returning.
