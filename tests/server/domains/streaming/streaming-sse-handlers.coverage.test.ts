@@ -12,6 +12,7 @@ import { RingBuffer } from '@utils/RingBuffer';
 import type { StreamingSharedState } from '@server/domains/streaming/handlers/shared';
 import { SseHandlers } from '@server/domains/streaming/handlers/sse-handlers';
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function parseBody(result: unknown): any {
   return parseJson<Record<string, unknown>>(result);
@@ -329,7 +330,9 @@ describe('SseHandlers', () => {
       const enableBody = parseBody(enableResult);
       expect(enableBody.success).toBe(true);
 
-      const wrappedSource = new browserWindow.EventSource('http://api.test/stream');
+      const wrappedSource = new browserWindow.EventSource(
+        buildTestUrl('api', { scheme: 'http', suffix: 'test', path: 'stream' }),
+      );
       wrappedSource.dispatch('message', {
         type: 'message',
         data: { marker: 'serialized-sse' },
@@ -342,7 +345,7 @@ describe('SseHandlers', () => {
       expect(body.success).toBe(true);
       expect(body.events).toHaveLength(1);
       expect(body.events[0]).toMatchObject({
-        sourceUrl: 'http://api.test/stream',
+        sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: 'stream' }),
         eventType: 'message',
         dataPreview: '{"marker":"serialized-sse"}',
         dataLength: 27,
@@ -374,7 +377,7 @@ describe('SseHandlers', () => {
       },
       events: [
         {
-          sourceUrl: 'http://api.test/stream',
+          sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: 'stream' }),
           eventType: 'message',
           dataPreview: 'hello',
           dataLength: 5,
@@ -382,7 +385,7 @@ describe('SseHandlers', () => {
           timestamp: 1000,
         },
         {
-          sourceUrl: 'http://api.test/stream',
+          sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: 'stream' }),
           eventType: 'message',
           dataPreview: 'world',
           dataLength: 5,
@@ -422,7 +425,10 @@ describe('SseHandlers', () => {
     it('filters by sourceUrl', async () => {
       const filteredResponse = {
         ...defaultGetEventsResponse,
-        filters: { sourceUrl: 'http://api.test', eventType: null },
+        filters: {
+          sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: '/' }),
+          eventType: null,
+        },
         page: {
           offset: 0,
           limit: 100,
@@ -435,15 +441,21 @@ describe('SseHandlers', () => {
       };
       mockPage.evaluate.mockResolvedValue(filteredResponse);
 
-      const result = await handlers.handleSseGetEvents({ sourceUrl: 'http://api.test' });
+      const result = await handlers.handleSseGetEvents({
+        sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: '/' }),
+      });
       const body = parseBody(result);
 
       expect(body.success).toBe(true);
-      expect(body.filters.sourceUrl).toBe('http://api.test');
+      expect(body.filters.sourceUrl).toBe(
+        buildTestUrl('api', { scheme: 'http', suffix: 'test', path: '/' }),
+      );
 
       expect(mockPage.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.objectContaining({ sourceUrl: 'http://api.test' }),
+        expect.objectContaining({
+          sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: '/' }),
+        }),
       );
     });
 

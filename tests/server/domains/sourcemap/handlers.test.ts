@@ -5,6 +5,7 @@ import { evaluateWithTimeout } from '../../../../src/modules/collector/PageContr
 import * as fsPromises from 'node:fs/promises';
 
 import { resolveArtifactPath } from '@utils/artifacts';
+import { TEST_HTTP_URLS, withPath } from '@tests/shared/test-urls';
 
 vi.mock('../../../../src/modules/collector/PageController', () => ({
   evaluateWithTimeout: vi.fn(),
@@ -77,7 +78,7 @@ describe('SourcemapToolHandlers', () => {
             if (scriptParsedCallback) {
               scriptParsedCallback({
                 scriptId: '1',
-                url: 'http://example.com/app.js',
+                url: withPath(TEST_HTTP_URLS.root, 'app.js'),
                 sourceMapURL: 'app.js.map',
               });
             }
@@ -90,7 +91,7 @@ describe('SourcemapToolHandlers', () => {
       // @ts-expect-error
       expect(res.content[0].text).toContain('app.js.map');
       // @ts-expect-error
-      expect(res.content[0].text).toContain('http://example.com/app.js.map');
+      expect(res.content[0].text).toContain(withPath(TEST_HTTP_URLS.root, 'app.js.map'));
     });
 
     it('falls back to fetching script source for map extraction over CDP', async () => {
@@ -105,7 +106,7 @@ describe('SourcemapToolHandlers', () => {
             if (scriptParsedCallback) {
               scriptParsedCallback({
                 scriptId: '2',
-                url: 'http://example.com/app2.js',
+                url: withPath(TEST_HTTP_URLS.root, 'app2.js'),
               });
             }
           }, 10);
@@ -149,8 +150,8 @@ describe('SourcemapToolHandlers', () => {
       });
 
       const res = await handlers.handleSourcemapFetchAndParse({
-        sourceMapUrl: 'http://example.com/test.map',
-        scriptUrl: 'http://example.com/test.js',
+        sourceMapUrl: withPath(TEST_HTTP_URLS.root, 'test.map'),
+        scriptUrl: withPath(TEST_HTTP_URLS.root, 'test.js'),
       });
 
       // @ts-expect-error
@@ -190,8 +191,8 @@ describe('SourcemapToolHandlers', () => {
       });
 
       const res = await handlers.handleSourcemapFetchAndParse({
-        sourceMapUrl: 'http://example.com/err.map',
-        scriptUrl: 'http://example.com/test.js',
+        sourceMapUrl: withPath(TEST_HTTP_URLS.root, 'err.map'),
+        scriptUrl: withPath(TEST_HTTP_URLS.root, 'test.js'),
       });
 
       // @ts-expect-error
@@ -215,7 +216,7 @@ describe('SourcemapToolHandlers', () => {
       vi.mocked(evaluateWithTimeout).mockResolvedValue(JSON.stringify(mockMap));
 
       const res = await handlers.handleSourcemapFetchAndParse({
-        sourceMapUrl: 'http://example.com/fallback.map',
+        sourceMapUrl: withPath(TEST_HTTP_URLS.root, 'fallback.map'),
       });
       // @ts-expect-error
       expect(res.content[0].text).toContain('fallback.ts');
@@ -237,7 +238,7 @@ describe('SourcemapToolHandlers', () => {
       });
 
       const res = await handlers.handleSourcemapReconstructTree({
-        sourceMapUrl: 'http://example.com/tree.map',
+        sourceMapUrl: withPath(TEST_HTTP_URLS.root, 'tree.map'),
       });
       // @ts-expect-error
       if (res.content[0].text.includes('"success": false')) {
@@ -267,7 +268,7 @@ describe('SourcemapToolHandlers', () => {
       vi.mocked(fsPromises.writeFile).mockRejectedValueOnce(new Error('Disk full'));
 
       const res = await handlers.handleSourcemapReconstructTree({
-        sourceMapUrl: 'http://example.com/fail.map',
+        sourceMapUrl: withPath(TEST_HTTP_URLS.root, 'fail.map'),
       });
 
       // @ts-expect-error
@@ -285,7 +286,7 @@ describe('SourcemapToolHandlers', () => {
             url: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop/worker.js',
             title: 'Test Ext',
           },
-          { targetId: '2', type: 'page', url: 'http://example.com' },
+          { targetId: '2', type: 'page', url: TEST_HTTP_URLS.root },
         ],
       });
 

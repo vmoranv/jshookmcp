@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { defineWorkflow, sequenceStep, toolStep } from '@server/workflows/WorkflowContract';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 const batchRegisterWorkflow = defineWorkflow(
   'workflow.batch-register.v1',
@@ -19,7 +20,7 @@ const batchRegisterWorkflow = defineWorkflow(
           s
             .tool('precheck', 'api_probe_batch', {
               input: {
-                baseUrl: 'https://example.com',
+                baseUrl: TEST_URLS.root,
                 paths: ['/register', '/api/register', '/openapi.json'],
               },
             })
@@ -133,7 +134,7 @@ describe('workflow contract sample: batch-register', () => {
       id: 'precheck',
       toolName: 'api_probe_batch',
       input: {
-        baseUrl: 'https://example.com',
+        baseUrl: TEST_URLS.root,
         paths: ['/register', '/api/register', '/openapi.json'],
       },
     });

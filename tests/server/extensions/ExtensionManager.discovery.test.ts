@@ -1,6 +1,7 @@
 import type { PathLike } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const fixtureBase = resolve(__dirname, '../../tmp/fixtures');
 const pluginRoot = resolve(fixtureBase, 'plugins-root');
@@ -63,7 +64,7 @@ describe('ExtensionManager.discovery', () => {
           id: 'plugin.alpha.v1',
           source: {
             type: 'git',
-            repo: 'https://example.com/alpha.git',
+            repo: withPath(TEST_URLS.root, 'alpha.git'),
             ref: 'main',
             commit: 'abc123',
             subpath: '.',
@@ -105,7 +106,7 @@ describe('ExtensionManager.discovery', () => {
           id: 'workflow.alpha.v1',
           source: {
             type: 'git',
-            repo: 'https://example.com/alpha.git',
+            repo: withPath(TEST_URLS.root, 'alpha.git'),
             ref: 'main',
             commit: 'abc123',
             subpath: '.',
@@ -144,7 +145,7 @@ describe('ExtensionManager.discovery', () => {
           id: 'workflow.alpha.v1',
           source: {
             type: 'git',
-            repo: 'https://example.com/alpha.git',
+            repo: withPath(TEST_URLS.root, 'alpha.git'),
             ref: 'main',
             commit: 'abc123',
             subpath: '.',

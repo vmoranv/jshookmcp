@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CodeCache, type CacheEntry } from '@modules/collector/CodeCache';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 vi.mock('@src/utils/logger', () => ({
   logger: {
@@ -26,7 +27,7 @@ class TestCodeCache extends CodeCache {
 const sampleResult = {
   files: [
     {
-      url: 'https://example.com/app.js',
+      url: buildTestUrl('', { path: 'app.js' }),
       content: 'console.log("hello")',
       size: 20,
       type: 'external' as const,
@@ -37,7 +38,7 @@ const sampleResult = {
   collectTime: 5,
   summaries: [
     {
-      url: 'https://example.com/app.js',
+      url: buildTestUrl('', { path: 'app.js' }),
       size: 20,
       type: 'external',
       hasEncryption: false,
@@ -79,22 +80,22 @@ describe('CodeCache – additional coverage', () => {
   describe('generateKey', () => {
     it('generates consistent keys for same inputs', () => {
       const cache = new TestCodeCache({ cacheDir });
-      const key1 = cache.callGenerateKey('https://example.com', { mode: 'full' });
-      const key2 = cache.callGenerateKey('https://example.com', { mode: 'full' });
+      const key1 = cache.callGenerateKey(buildTestUrl('', { path: '/' }), { mode: 'full' });
+      const key2 = cache.callGenerateKey(buildTestUrl('', { path: '/' }), { mode: 'full' });
       expect(key1).toBe(key2);
     });
 
     it('generates different keys for different inputs', () => {
       const cache = new TestCodeCache({ cacheDir });
-      const key1 = cache.callGenerateKey('https://example.com/a');
-      const key2 = cache.callGenerateKey('https://example.com/b');
+      const key1 = cache.callGenerateKey(buildTestUrl('', { path: 'a' }));
+      const key2 = cache.callGenerateKey(buildTestUrl('', { path: 'b' }));
       expect(key1).not.toBe(key2);
     });
 
     it('generates different keys when options differ', () => {
       const cache = new TestCodeCache({ cacheDir });
-      const key1 = cache.callGenerateKey('https://example.com', { mode: 'full' });
-      const key2 = cache.callGenerateKey('https://example.com', { mode: 'summary' });
+      const key1 = cache.callGenerateKey(buildTestUrl('', { path: '/' }), { mode: 'full' });
+      const key2 = cache.callGenerateKey(buildTestUrl('', { path: '/' }), { mode: 'summary' });
       expect(key1).not.toBe(key2);
     });
   });
@@ -105,9 +106,9 @@ describe('CodeCache – additional coverage', () => {
       const cache = new TestCodeCache({ cacheDir, maxAge: 1 });
 
       // Manually set a memory cache entry that's already expired
-      const key = cache.callGenerateKey('https://expired.example');
+      const key = cache.callGenerateKey(buildTestUrl('expired', { suffix: 'example', path: '/' }));
       cache.getMemoryCache().set(key, {
-        url: 'https://expired.example',
+        url: buildTestUrl('expired', { suffix: 'example', path: '/' }),
         files: sampleResult.files,
         totalSize: sampleResult.totalSize,
         collectTime: sampleResult.collectTime,
@@ -115,14 +116,14 @@ describe('CodeCache – additional coverage', () => {
         hash: 'expired-hash',
       });
 
-      const result = await cache.get('https://expired.example');
+      const result = await cache.get(buildTestUrl('expired', { suffix: 'example', path: '/' }));
       expect(result).toBeNull();
       expect(cache.getMemoryCache().has(key)).toBe(false);
     });
 
     it('removes expired disk cache entry and returns null', async () => {
       const cache = new TestCodeCache({ cacheDir, maxAge: 1 });
-      const url = 'https://disk-expired.example';
+      const url = buildTestUrl('disk-expired', { suffix: 'example', path: '/' });
       const key = cache.callGenerateKey(url);
 
       await writeFile(
@@ -147,16 +148,20 @@ describe('CodeCache – additional coverage', () => {
   describe('get with disk failures', () => {
     it('returns null when cache file does not exist', async () => {
       const cache = new CodeCache({ cacheDir, maxAge: 60_000 });
-      const result = await cache.get('https://nonexistent.example');
+      const result = await cache.get(buildTestUrl('nonexistent', { suffix: 'example', path: '/' }));
       expect(result).toBeNull();
     });
 
     it('returns null when cache file contains invalid JSON', async () => {
       const cache = new TestCodeCache({ cacheDir, maxAge: 60_000 });
-      const key = cache.callGenerateKey('https://invalid-json.example');
+      const key = cache.callGenerateKey(
+        buildTestUrl('invalid-json', { suffix: 'example', path: '/' }),
+      );
       await writeFile(join(cacheDir, `${key}.json`), '{invalid json', 'utf-8');
 
-      const result = await cache.get('https://invalid-json.example');
+      const result = await cache.get(
+        buildTestUrl('invalid-json', { suffix: 'example', path: '/' }),
+      );
       expect(result).toBeNull();
     });
   });
@@ -168,9 +173,11 @@ describe('CodeCache – additional coverage', () => {
 
       // Fill the memory cache beyond the limit (100)
       for (let i = 0; i < 101; i++) {
-        const key = cache.callGenerateKey(`https://evict.example/${i}`);
+        const key = cache.callGenerateKey(
+          buildTestUrl('evict', { suffix: 'example', path: `${i}` }),
+        );
         cache.getMemoryCache().set(key, {
-          url: `https://evict.example/${i}`,
+          url: buildTestUrl('evict', { suffix: 'example', path: `${i}` }),
           files: [],
           totalSize: 0,
           collectTime: 0,
@@ -180,7 +187,7 @@ describe('CodeCache – additional coverage', () => {
       }
 
       // Add one more via set
-      await cache.set('https://evict.example/new', sampleResult);
+      await cache.set(buildTestUrl('evict', { suffix: 'example', path: 'new' }), sampleResult);
 
       // Memory cache should not exceed 101 (100 + 1 new, first was evicted)
       expect(cache.getMemoryCache().size).toBeLessThanOrEqual(102);
@@ -195,7 +202,10 @@ describe('CodeCache – additional coverage', () => {
 
       // Write 20 entries to trigger cleanup (CLEANUP_INTERVAL = 20)
       for (let i = 0; i < 20; i++) {
-        await cache.set(`https://cleanup-trigger.example/${i}`, sampleResult);
+        await cache.set(
+          buildTestUrl('cleanup-trigger', { suffix: 'example', path: `${i}` }),
+          sampleResult,
+        );
       }
 
       expect(cleanupSpy).toHaveBeenCalledTimes(1);
@@ -206,7 +216,10 @@ describe('CodeCache – additional coverage', () => {
       const cleanupSpy = vi.spyOn(cache, 'cleanup').mockResolvedValue(undefined);
 
       for (let i = 0; i < 19; i++) {
-        await cache.set(`https://no-cleanup.example/${i}`, sampleResult);
+        await cache.set(
+          buildTestUrl('no-cleanup', { suffix: 'example', path: `${i}` }),
+          sampleResult,
+        );
       }
 
       expect(cleanupSpy).not.toHaveBeenCalled();
@@ -219,10 +232,14 @@ describe('CodeCache – additional coverage', () => {
       const cache = new TestCodeCache({ cacheDir: '/nonexistent/path/that/fails', maxAge: 60_000 });
 
       // Should not throw
-      await expect(cache.set('https://write-fail.example', sampleResult)).resolves.toBeUndefined();
+      await expect(
+        cache.set(buildTestUrl('write-fail', { suffix: 'example', path: '/' }), sampleResult),
+      ).resolves.toBeUndefined();
 
       // Memory cache should still have the entry
-      const key = cache.callGenerateKey('https://write-fail.example');
+      const key = cache.callGenerateKey(
+        buildTestUrl('write-fail', { suffix: 'example', path: '/' }),
+      );
       expect(cache.getMemoryCache().has(key)).toBe(true);
     });
   });
@@ -234,7 +251,7 @@ describe('CodeCache – additional coverage', () => {
       await writeFile(join(cacheDir, 'data.log'), 'log file');
 
       const cache = new CodeCache({ cacheDir, maxSize: 1 }); // tiny maxSize to force cleanup
-      await cache.set('https://cleanup-skip.example', sampleResult);
+      await cache.set(buildTestUrl('cleanup-skip', { suffix: 'example', path: '/' }), sampleResult);
 
       // Cleanup should only consider .json files
       await expect(cache.cleanup()).resolves.toBeUndefined();
@@ -254,7 +271,7 @@ describe('CodeCache – additional coverage', () => {
 
     it('does not remove files when total size is under maxSize', async () => {
       const cache = new CodeCache({ cacheDir, maxSize: 999_999_999, maxAge: 60_000 });
-      await cache.set('https://under-limit.example', sampleResult);
+      await cache.set(buildTestUrl('under-limit', { suffix: 'example', path: '/' }), sampleResult);
 
       const statsBefore = await cache.getStats();
       await cache.cleanup();
@@ -283,7 +300,7 @@ describe('CodeCache – additional coverage', () => {
 
     it('only removes .json files during clear', async () => {
       const cache = new CodeCache({ cacheDir, maxAge: 60_000 });
-      await cache.set('https://clear-keep.example', sampleResult);
+      await cache.set(buildTestUrl('clear-keep', { suffix: 'example', path: '/' }), sampleResult);
       await writeFile(join(cacheDir, 'keep.txt'), 'not a cache file');
 
       await cache.clear();
@@ -307,7 +324,7 @@ describe('CodeCache – additional coverage', () => {
 
     it('skips non-JSON files when computing stats', async () => {
       const cache = new CodeCache({ cacheDir, maxAge: 60_000 });
-      await cache.set('https://stats.example', sampleResult);
+      await cache.set(buildTestUrl('stats', { suffix: 'example', path: '/' }), sampleResult);
       await writeFile(join(cacheDir, 'extra.txt'), 'text');
 
       const stats = await cache.getStats();
@@ -321,21 +338,27 @@ describe('CodeCache – additional coverage', () => {
       const cache = new TestCodeCache({ cacheDir, maxAge: 60_000 });
 
       // Store to disk first
-      await cache.set('https://warmup.example/a', sampleResult);
-      await cache.set('https://warmup.example/b', sampleResult);
+      await cache.set(buildTestUrl('warmup', { suffix: 'example', path: 'a' }), sampleResult);
+      await cache.set(buildTestUrl('warmup', { suffix: 'example', path: 'b' }), sampleResult);
 
       // Clear memory cache
       cache.getMemoryCache().clear();
 
       // Warmup should re-populate from disk
-      await cache.warmup(['https://warmup.example/a', 'https://warmup.example/b']);
+      await cache.warmup([
+        buildTestUrl('warmup', { suffix: 'example', path: 'a' }),
+        buildTestUrl('warmup', { suffix: 'example', path: 'b' }),
+      ]);
 
       expect(cache.getMemoryCache().size).toBe(2);
     });
 
     it('handles URLs not present on disk', async () => {
       const cache = new CodeCache({ cacheDir });
-      await cache.warmup(['https://missing.example/a', 'https://missing.example/b']);
+      await cache.warmup([
+        buildTestUrl('missing', { suffix: 'example', path: 'a' }),
+        buildTestUrl('missing', { suffix: 'example', path: 'b' }),
+      ]);
       // Should not throw
     });
   });

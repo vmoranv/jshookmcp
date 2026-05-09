@@ -1,6 +1,7 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleCaptchaSolverCapabilities } from '@server/domains/browser/handlers/captcha-capabilities';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createCollector(page: unknown = null) {
   return {
@@ -65,11 +66,11 @@ describe('handleCaptchaSolverCapabilities', () => {
   it('reports external 2captcha path and widget hook as available when configured', async () => {
     process.env.CAPTCHA_PROVIDER = '2captcha';
     process.env.CAPTCHA_API_KEY = 'test-key';
-    process.env.CAPTCHA_SOLVER_BASE_URL = 'https://solver.example';
+    process.env.CAPTCHA_SOLVER_BASE_URL = buildTestUrl('solver', { suffix: 'example', path: '/' });
 
     const page = {
       evaluate: vi.fn().mockResolvedValue({
-        url: 'https://example.test/captcha',
+        url: buildTestUrl('example', { suffix: 'test', path: 'captcha' }),
         callbackCount: 2,
       }),
     };
@@ -93,7 +94,7 @@ describe('handleCaptchaSolverCapabilities', () => {
       available: true,
       pageAttached: true,
       callbackCount: 2,
-      url: 'https://example.test/captcha',
+      url: buildTestUrl('example', { suffix: 'test', path: 'captcha' }),
     });
   });
 });

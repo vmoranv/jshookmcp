@@ -5,17 +5,18 @@ import {
   buildHttpRequest,
   isLikelyTextHttpBody,
 } from '@server/domains/network/http-raw';
+import { TEST_HOSTS } from '@tests/shared/test-urls';
 
 describe('network http-raw buildHttpRequest', () => {
   it('builds minimal GET with auto headers', async () => {
     const built = buildHttpRequest({
       method: 'post',
       target: '/submit',
-      host: 'lab.example.com',
+      host: TEST_HOSTS.lab,
       body: '{"ok":true}',
     });
     expect(built.startLine).toBe('POST /submit HTTP/1.1');
-    expect(built.headers.Host).toBe('lab.example.com');
+    expect(built.headers.Host).toBe(TEST_HOSTS.lab);
     expect(built.headers['Content-Length']).toBe(String(Buffer.byteLength('{"ok":true}', 'utf8')));
     expect(built.headers.Connection).toBe('close');
     expect(built.requestText).toContain('\r\n\r\n{"ok":true}');
@@ -111,7 +112,7 @@ describe('network http-raw buildHttpRequest', () => {
     const built = buildHttpRequest({
       method: 'GET',
       target: '/',
-      host: 'example.com',
+      host: TEST_HOSTS.root,
       addHostHeader: false,
       addConnectionClose: false,
     });

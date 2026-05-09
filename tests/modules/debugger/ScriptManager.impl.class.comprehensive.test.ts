@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 
 vi.mock('@src/utils/logger', () => ({
   logger: {
@@ -20,6 +21,7 @@ vi.mock('@modules/debugger/ScriptManager.impl.extract-function-tree', () => ({
 }));
 
 import { ScriptManager } from '@modules/debugger/ScriptManager.impl.class';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -106,7 +108,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
       // init() is called lazily inside getAllScripts when session is null
       // After init we emit scripts and can get them
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
 
       const scripts = await manager.getAllScripts();
 
@@ -117,7 +119,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
       await manager.init();
 
       for (let i = 0; i < 5; i++) {
-        emitScript(cdp, String(i), `https://site/${i}.js`);
+        emitScript(cdp, String(i), withPath(TEST_URLS.root, `${i}.js`));
       }
 
       const scripts = await manager.getAllScripts(false, 3);
@@ -127,7 +129,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('handles failed source loading gracefully', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
 
       cdp.send.mockImplementation((method: string) => {
         if (method === 'Debugger.getScriptSource') {
@@ -144,7 +146,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('skips already-loaded scripts when includeSource is true', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
 
       // First load
       await manager.getScriptSource('1');
@@ -175,14 +177,17 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
     it('returns null when script not found by url', async () => {
       await manager.init();
 
-      const result = await manager.getScriptSource(undefined, 'https://notfound.com/app.js');
+      const result = await manager.getScriptSource(
+        undefined,
+        withPath(TEST_URLS.notFound, 'app.js'),
+      );
 
       expect(result).toBeNull();
     });
 
     it('finds script by url pattern with wildcard', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site.com/vendor.bundle.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/vendor.bundle.js`);
 
       const result = await manager.getScriptSource(undefined, '*vendor*');
 
@@ -192,7 +197,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('returns null when source loading fails', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
 
       cdp.send.mockImplementation((method: string) => {
         if (method === 'Debugger.getScriptSource') {
@@ -210,7 +215,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
       // init() is called lazily inside getScriptSource when session is null
       // After init, we emit scripts and then call it
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
 
       const result = await manager.getScriptSource('1');
 
@@ -223,7 +228,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
       // When not initialized, findScriptsByUrl calls init() first
       // but the scripts are parsed on CDP events that happen AFTER init
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
 
       const results = await manager.findScriptsByUrl('*app*');
 
@@ -232,7 +237,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('returns empty array when no match found', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
 
       const results = await manager.findScriptsByUrl('*vendor*');
 
@@ -241,8 +246,8 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('returns multiple scripts with same URL', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
-      emitScript(cdp, '2', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
+      emitScript(cdp, '2', `${testUrls.TEST_URLS.root}/app.js`);
 
       const results = await manager.findScriptsByUrl('*app*');
 
@@ -253,7 +258,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
   describe('clearCache() / clear()', () => {
     it('clears all internal data structures', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const statsBefore = manager.getStats();
@@ -272,7 +277,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
   describe('searchInScripts()', () => {
     it('auto-initializes when not initialized', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const result = await manager.searchInScripts('hello');
@@ -282,7 +287,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('respects maxMatches limit', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const result = await manager.searchInScripts('e', { maxMatches: 1 });
@@ -292,7 +297,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('supports regex search mode', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const result = await manager.searchInScripts('hel+o', { isRegex: true });
@@ -302,7 +307,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('supports case-sensitive search', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const sensitive = await manager.searchInScripts('Hello', { caseSensitive: true });
@@ -314,7 +319,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('includes context lines in results', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const result = await manager.searchInScripts('greeting', { contextLines: 2 });
@@ -328,7 +333,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
   describe('searchInScriptsEnhanced()', () => {
     it('uses indexed lookup for non-regex queries', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const result = await manager.searchInScriptsEnhanced('hello');
@@ -338,7 +343,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('falls back to regex search for regex queries', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const result = await manager.searchInScriptsEnhanced('hel+o', { isRegex: true });
@@ -348,7 +353,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('supports case-insensitive indexed search', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const result = await manager.searchInScriptsEnhanced('HELLO', { caseSensitive: false });
@@ -360,7 +365,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('respects maxMatches limit in indexed search', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const result = await manager.searchInScriptsEnhanced('e', { maxMatches: 1 });
@@ -372,7 +377,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
   describe('extractFunctionTree()', () => {
     it('calls extractFunctionTree method', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       // extractFunctionTree delegates to extractFunctionTreeCore
@@ -391,7 +396,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('returns null for out-of-range chunk index', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const chunk = manager.getScriptChunk('1', 999);
@@ -401,7 +406,7 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('returns chunk content for valid index', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
       await manager.getScriptSource('1');
 
       const chunk = manager.getScriptChunk('1', 0);
@@ -425,8 +430,8 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
     it('returns correct counts after loading scripts', async () => {
       await manager.init();
-      emitScript(cdp, '1', 'https://site/app.js');
-      emitScript(cdp, '2', 'https://site/vendor.js');
+      emitScript(cdp, '1', `${testUrls.TEST_URLS.root}/app.js`);
+      emitScript(cdp, '2', `${testUrls.TEST_URLS.root}/vendor.js`);
       await manager.getScriptSource('1');
 
       const stats = manager.getStats();

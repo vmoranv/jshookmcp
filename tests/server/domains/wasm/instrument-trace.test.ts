@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { WasmSharedState } from '@server/domains/wasm/handlers/shared';
 import { ExternalToolHandlers } from '@server/domains/wasm/handlers/external-tool-handlers';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 const MOCK_RUN_RESULT = {
   ok: true as const,
@@ -112,7 +113,7 @@ describe('ExternalToolHandlers — WASM instrumentation wrapper behavioral tests
 
       try {
         const res = await handlers.handleWasmInstrumentTrace({
-          inputPath: 'https://example.test/module.wasm',
+          inputPath: buildTestUrl('example', { suffix: 'test', path: 'module.wasm' }),
           outputPath,
           hooks: ['branch'],
         });
@@ -225,7 +226,7 @@ describe('ExternalToolHandlers — WASM instrumentation wrapper behavioral tests
       }));
       const handlers = new ExternalToolHandlers(mockState);
       const res = await handlers.handleWasmInstrumentTrace({
-        inputPath: 'https://example.test/sample.wasm',
+        inputPath: buildTestUrl('example', { suffix: 'test', path: 'sample.wasm' }),
       });
       const json = JSON.parse(res.content[0]!.text);
       expect(json.warning).toBeUndefined();

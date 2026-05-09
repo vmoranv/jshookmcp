@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -48,13 +49,13 @@ describe('ConsoleMonitor logs core helpers', () => {
     const ctx = {
       messages: [{ type: 'error', text: 'boom', timestamp: 20 }],
       exceptions: [
-        { message: 'x', timestamp: 1, url: 'https://a.test/x.js' },
-        { message: 'y', timestamp: 10, url: 'https://a.test/y.js' },
+        { message: 'x', timestamp: 1, url: buildTestUrl('a', { suffix: 'test', path: 'x.js' }) },
+        { message: 'y', timestamp: 10, url: buildTestUrl('a', { suffix: 'test', path: 'y.js' }) },
       ],
     };
 
     expect(getExceptionsCore(ctx, { url: 'y.js', since: 5 })).toEqual([
-      { message: 'y', timestamp: 10, url: 'https://a.test/y.js' },
+      { message: 'y', timestamp: 10, url: buildTestUrl('a', { suffix: 'test', path: 'y.js' }) },
     ]);
 
     clearLogsCore(ctx);

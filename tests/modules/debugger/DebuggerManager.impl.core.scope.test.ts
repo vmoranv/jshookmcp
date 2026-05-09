@@ -17,6 +17,7 @@ import {
   getObjectPropertiesCore,
   getScopeVariablesCore,
 } from '@modules/debugger/DebuggerManager.impl.core.scope';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('DebuggerManager scope core helpers', () => {
   beforeEach(() => {
@@ -55,7 +56,7 @@ describe('DebuggerManager scope core helpers', () => {
           {
             callFrameId: 'cf-1',
             functionName: 'main',
-            url: 'https://example.com/app.js',
+            url: withPath(TEST_URLS.root, 'app.js'),
             location: { lineNumber: 10, columnNumber: 2 },
             scopeChain: [{ type: 'local', object: { objectId: 'obj-1' } }],
           },

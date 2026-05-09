@@ -39,6 +39,7 @@ vi.mock('@modules/collector/PageScriptCollectors', () => ({
 }));
 
 import { collectInnerImpl } from '@modules/collector/CodeCollectorCollectInternal';
+import { TEST_HTTP_URLS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createPageAndSession() {
   const listeners = new Map<string, Set<ResponseHandler>>();
@@ -111,20 +112,20 @@ describe('CodeCollector collectInternal additional coverage', () => {
   describe('assertCollectorInternals validation', () => {
     it('throws for non-object context', async () => {
       await expect(
-        collectInnerImpl(null, { url: 'https://example.com' } as DeepPartial<any>),
+        collectInnerImpl(null, { url: TEST_URLS.root } as DeepPartial<any>),
       ).rejects.toThrow('Invalid collector context');
     });
 
     it('throws for context missing required functions', async () => {
       await expect(
-        collectInnerImpl({ init: vi.fn() }, { url: 'https://example.com' } as DeepPartial<any>),
+        collectInnerImpl({ init: vi.fn() }, { url: TEST_URLS.root } as DeepPartial<any>),
       ).rejects.toThrow('Invalid collector context');
     });
 
     it('throws when init is not a function', async () => {
       await expect(
         collectInnerImpl({ init: 'not-a-function', applyAntiDetection: vi.fn() }, {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
         } as DeepPartial<any>),
       ).rejects.toThrow('Invalid collector context');
     });
@@ -138,7 +139,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         ctx as DeepPartial<any>,
-        { url: 'https://example.com' } as CollectCodeOptions,
+        { url: TEST_URLS.root } as CollectCodeOptions,
       );
 
       expect(ctx.cache.get).not.toHaveBeenCalled();
@@ -151,10 +152,10 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         ctx as DeepPartial<any>,
-        { url: 'https://example.com' } as CollectCodeOptions,
+        { url: TEST_URLS.root } as CollectCodeOptions,
       );
 
-      expect(ctx.cache.get).toHaveBeenCalledWith('https://example.com', expect.any(Object));
+      expect(ctx.cache.get).toHaveBeenCalledWith(TEST_URLS.root, expect.any(Object));
     });
   });
 
@@ -166,7 +167,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           timeout: 10000,
         } as DeepPartial<any>,
       );
@@ -181,7 +182,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         ctx as DeepPartial<any>,
-        { url: 'https://example.com' } as CollectCodeOptions,
+        { url: TEST_URLS.root } as CollectCodeOptions,
       );
 
       expect(page.setDefaultTimeout).toHaveBeenCalledWith(8000);
@@ -194,7 +195,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         ctx as DeepPartial<any>,
-        { url: 'https://example.com' } as CollectCodeOptions,
+        { url: TEST_URLS.root } as CollectCodeOptions,
       );
 
       expect(page.setDefaultTimeout).toHaveBeenCalledWith(30000);
@@ -214,7 +215,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
             // Not a valid CDP response
             await handler({ something: 'else' });
             // Missing requestId
-            await handler({ response: { url: 'http://example.com' } });
+            await handler({ response: { url: TEST_HTTP_URLS.root } });
           }
         }
       });
@@ -222,7 +223,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
         } as DeepPartial<any>,
       );
 
@@ -246,7 +247,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
           for (const handler of handlers) {
             await handler({
               response: {
-                url: 'https://example.com/script.js',
+                url: withPath(TEST_URLS.root, 'script.js'),
                 mimeType: 'application/javascript',
               },
               requestId: 'req1',
@@ -259,7 +260,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
         } as DeepPartial<any>,
       );
 
@@ -267,7 +268,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       expect(externalFiles.length).toBeGreaterThanOrEqual(1);
       const firstExternalFile = externalFiles[0];
       expect(firstExternalFile).toBeDefined();
-      expect(firstExternalFile?.url).toBe('https://example.com/script.js');
+      expect(firstExternalFile?.url).toBe(withPath(TEST_URLS.root, 'script.js'));
       expect(firstExternalFile?.content).toBe('console.log("hello")');
     });
 
@@ -289,7 +290,10 @@ describe('CodeCollector collectInternal additional coverage', () => {
         if (handlers) {
           for (const handler of handlers) {
             await handler({
-              response: { url: 'https://example.com/encoded.js', mimeType: 'text/javascript' },
+              response: {
+                url: withPath(TEST_URLS.root, 'encoded.js'),
+                mimeType: 'text/javascript',
+              },
               requestId: 'req2',
               type: 'Script',
             });
@@ -300,11 +304,11 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
         } as DeepPartial<any>,
       );
 
-      const file = result.files.find((f: any) => f.url === 'https://example.com/encoded.js');
+      const file = result.files.find((f: any) => f.url === withPath(TEST_URLS.root, 'encoded.js'));
       expect(file).toBeDefined();
       expect(file!.content).toBe(originalContent);
     });
@@ -327,7 +331,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
         if (handlers) {
           for (const handler of handlers) {
             await handler({
-              response: { url: 'https://example.com/large.js' },
+              response: { url: withPath(TEST_URLS.root, 'large.js') },
               requestId: 'req3',
               type: 'Script',
             });
@@ -338,11 +342,11 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
         } as DeepPartial<any>,
       );
 
-      const file = result.files.find((f: any) => f.url === 'https://example.com/large.js');
+      const file = result.files.find((f: any) => f.url === withPath(TEST_URLS.root, 'large.js'));
       expect(file).toBeDefined();
       expect(file!.content.length).toBe(10);
       expect(file!.metadata?.truncated).toBe(true);
@@ -367,7 +371,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
           for (const handler of handlers) {
             for (let i = 0; i < 5; i++) {
               await handler({
-                response: { url: `https://example.com/script${i}.js` },
+                response: { url: withPath(TEST_URLS.root, `script${i}.js`) },
                 requestId: `req-${i}`,
                 type: 'Script',
               });
@@ -379,7 +383,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
         } as DeepPartial<any>,
       );
 
@@ -404,12 +408,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
           for (const handler of handlers) {
             // Same URL twice
             await handler({
-              response: { url: 'https://example.com/dup.js' },
+              response: { url: withPath(TEST_URLS.root, 'dup.js') },
               requestId: 'req-a',
               type: 'Script',
             });
             await handler({
-              response: { url: 'https://example.com/dup.js' },
+              response: { url: withPath(TEST_URLS.root, 'dup.js') },
               requestId: 'req-b',
               type: 'Script',
             });
@@ -420,11 +424,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
         } as DeepPartial<any>,
       );
 
-      const dupFiles = result.files.filter((f: any) => f.url === 'https://example.com/dup.js');
+      const dupFiles = result.files.filter(
+        (f: any) => f.url === withPath(TEST_URLS.root, 'dup.js'),
+      );
       expect(dupFiles.length).toBe(1);
     });
 
@@ -444,7 +450,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
         if (handlers) {
           for (const handler of handlers) {
             await handler({
-              response: { url: 'https://example.com/fail.js' },
+              response: { url: withPath(TEST_URLS.root, 'fail.js') },
               requestId: 'req-fail',
               type: 'Script',
             });
@@ -455,13 +461,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
         } as DeepPartial<any>,
       );
 
-      expect(result.files.filter((f: any) => f.url === 'https://example.com/fail.js')).toHaveLength(
-        0,
-      );
+      expect(
+        result.files.filter((f: any) => f.url === withPath(TEST_URLS.root, 'fail.js')),
+      ).toHaveLength(0);
       expect(loggerState.warn).toHaveBeenCalled();
     });
 
@@ -481,7 +487,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
         if (handlers) {
           for (const handler of handlers) {
             await handler({
-              response: { url: 'https://example.com/null-body.js' },
+              response: { url: withPath(TEST_URLS.root, 'null-body.js') },
               requestId: 'req-null',
               type: 'Script',
             });
@@ -492,12 +498,12 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
         } as DeepPartial<any>,
       );
 
       expect(
-        result.files.filter((f: any) => f.url === 'https://example.com/null-body.js'),
+        result.files.filter((f: any) => f.url === withPath(TEST_URLS.root, 'null-body.js')),
       ).toHaveLength(0);
     });
   });
@@ -514,7 +520,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           includeInline: false,
         } as DeepPartial<any>,
       );
@@ -529,7 +535,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           includeServiceWorker: false,
         } as DeepPartial<any>,
       );
@@ -544,7 +550,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           includeWebWorker: false,
         } as DeepPartial<any>,
       );
@@ -558,7 +564,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         ctx as DeepPartial<any>,
-        { url: 'https://example.com' } as CollectCodeOptions,
+        { url: TEST_URLS.root } as CollectCodeOptions,
       );
 
       expect(collectorHelpers.collectInlineScripts).toHaveBeenCalled();
@@ -573,14 +579,19 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const ctx = createBaseContext(page);
 
       const smartFiles: CodeFile[] = [
-        { url: 'https://example.com/smart.js', content: 'optimized', size: 9, type: 'external' },
+        {
+          url: withPath(TEST_URLS.root, 'smart.js'),
+          content: 'optimized',
+          size: 9,
+          type: 'external',
+        },
       ];
       ctx.smartCollector.smartCollect = vi.fn(async (_page: any, _files: CodeFile[]) => smartFiles);
 
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           smartMode: 'priority',
         } as DeepPartial<any>,
       );
@@ -600,7 +611,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           smartMode: 'priority',
         } as DeepPartial<any>,
       );
@@ -621,7 +632,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           smartMode: 'priority',
         } as DeepPartial<any>,
       );
@@ -636,7 +647,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           smartMode: 'full',
         } as DeepPartial<any>,
       );
@@ -652,7 +663,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       ctx.compressor.shouldCompress = vi.fn(() => true);
       ctx.compressor.compressBatch = vi.fn(async () => [
         {
-          url: 'https://example.com/inline',
+          url: withPath(TEST_URLS.root, 'inline'),
           originalSize: 100,
           compressedSize: 50,
           compressionRatio: 0.5,
@@ -667,19 +678,26 @@ describe('CodeCollector collectInternal additional coverage', () => {
       }));
 
       collectorHelpers.collectInlineScripts.mockResolvedValue([
-        { url: 'https://example.com/inline', content: 'a'.repeat(100), size: 100, type: 'inline' },
+        {
+          url: withPath(TEST_URLS.root, 'inline'),
+          content: 'a'.repeat(100),
+          size: 100,
+          type: 'inline',
+        },
       ]);
 
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           compress: true,
         } as DeepPartial<any>,
       );
 
       expect(ctx.compressor.compressBatch).toHaveBeenCalled();
-      const compressed = result.files.find((f: any) => f.url === 'https://example.com/inline');
+      const compressed = result.files.find(
+        (f: any) => f.url === withPath(TEST_URLS.root, 'inline'),
+      );
       expect(compressed?.metadata?.compressed).toBe(true);
     });
 
@@ -691,7 +709,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           compress: true,
         } as DeepPartial<any>,
       );
@@ -708,13 +726,13 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       collectorHelpers.collectInlineScripts.mockResolvedValue([
-        { url: 'https://example.com/inline', content: 'code', size: 4, type: 'inline' },
+        { url: withPath(TEST_URLS.root, 'inline'), content: 'code', size: 4, type: 'inline' },
       ]);
 
       const result = await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           compress: true,
         } as DeepPartial<any>,
       );
@@ -732,11 +750,11 @@ describe('CodeCollector collectInternal additional coverage', () => {
 
       await collectInnerImpl(
         ctx as DeepPartial<any>,
-        { url: 'https://example.com' } as CollectCodeOptions,
+        { url: TEST_URLS.root } as CollectCodeOptions,
       );
 
       expect(ctx.cache.set).toHaveBeenCalledWith(
-        'https://example.com',
+        TEST_URLS.root,
         expect.objectContaining({
           files: expect.any(Array),
           dependencies: expect.any(Object),
@@ -758,10 +776,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       await expect(
-        collectInnerImpl(
-          ctx as DeepPartial<any>,
-          { url: 'https://example.com' } as DeepPartial<any>,
-        ),
+        collectInnerImpl(ctx as DeepPartial<any>, { url: TEST_URLS.root } as DeepPartial<any>),
       ).rejects.toThrow('Navigation failed');
 
       expect(page.close).toHaveBeenCalled();
@@ -781,10 +796,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       });
 
       await expect(
-        collectInnerImpl(
-          ctx as DeepPartial<any>,
-          { url: 'https://example.com' } as DeepPartial<any>,
-        ),
+        collectInnerImpl(ctx as DeepPartial<any>, { url: TEST_URLS.root } as DeepPartial<any>),
       ).rejects.toThrow('Nav error');
 
       // page.close should still be called even if detach fails
@@ -802,7 +814,7 @@ describe('CodeCollector collectInternal additional coverage', () => {
       await collectInnerImpl(
         ctx as DeepPartial<any>,
         {
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           includeDynamic: true,
         } as DeepPartial<any>,
       );

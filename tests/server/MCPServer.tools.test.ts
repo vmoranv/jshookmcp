@@ -37,6 +37,7 @@ vi.mock('@errors/ToolError', () => ({
 }));
 
 import { registerSingleTool } from '@server/MCPServer.tools';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
   const registrations: Array<{
@@ -88,7 +89,7 @@ describe('MCPServer.tools', () => {
 
     const registered = registerSingleTool(ctx, toolDef as any);
     const handler = ctx.registrationsForTest[0].handler;
-    const result = await handler({ url: 'https://example.com' });
+    const result = await handler({ url: TEST_URLS.root });
 
     expect(registered).toBe(ctx.registrationsForTest[0]);
     expect(ctx.server.registerTool).toHaveBeenCalledWith(
@@ -100,10 +101,10 @@ describe('MCPServer.tools', () => {
       expect.any(Function),
     );
     expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('page_navigate', {
-      url: 'https://example.com',
+      url: TEST_URLS.root,
     });
     expect(result).toEqual({
-      content: [{ type: 'text', text: '{"url":"https://example.com"}' }],
+      content: [{ type: 'text', text: JSON.stringify({ url: TEST_URLS.root }) }],
     });
   });
 

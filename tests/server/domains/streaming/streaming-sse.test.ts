@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersSse } from '@server/domains/streaming/handlers.impl.streaming-sse';
 import type { TextToolResponse } from '@server/domains/streaming/handlers.impl.streaming-base';
+import * as testUrls from '@tests/shared/test-urls';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -289,7 +290,7 @@ describe('StreamingToolHandlersSse', () => {
     it('passes sourceUrl filter through', async () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
-        filters: { sourceUrl: 'http://example.com/events', eventType: null },
+        filters: { sourceUrl: `${testUrls.TEST_HTTP_URLS.root}/events`, eventType: null },
         page: {
           offset: 0,
           limit: 100,
@@ -303,9 +304,9 @@ describe('StreamingToolHandlersSse', () => {
       });
 
       const body = parseJson(
-        await handler.handleSseGetEvents({ sourceUrl: 'http://example.com/events' }),
+        await handler.handleSseGetEvents({ sourceUrl: `${testUrls.TEST_HTTP_URLS.root}/events` }),
       );
-      expect(body.filters.sourceUrl).toBe('http://example.com/events');
+      expect(body.filters.sourceUrl).toBe(`${testUrls.TEST_HTTP_URLS.root}/events`);
     });
 
     it('passes eventType filter through', async () => {
@@ -331,7 +332,7 @@ describe('StreamingToolHandlersSse', () => {
     it('returns events from page.evaluate result', async () => {
       const mockEvents = [
         {
-          sourceUrl: 'http://example.com/sse',
+          sourceUrl: `${testUrls.TEST_HTTP_URLS.root}/sse`,
           eventType: 'message',
           dataPreview: 'hello world',
           dataLength: 11,
@@ -385,7 +386,7 @@ describe('StreamingToolHandlersSse', () => {
         },
         monitor: { enabled: true, patched: true, maxEvents: 2000, urlFilter: null, sourceCount: 1 },
         events: Array.from({ length: 5 }, () => ({
-          sourceUrl: 'http://example.com/sse',
+          sourceUrl: `${testUrls.TEST_HTTP_URLS.root}/sse`,
           eventType: 'message',
           dataPreview: 'data',
           dataLength: 4,
@@ -658,7 +659,7 @@ describe('StreamingToolHandlersSse', () => {
     it('passes combined sourceUrl and eventType filters to evaluate', async () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
-        filters: { sourceUrl: 'http://x.com/sse', eventType: 'update' },
+        filters: { sourceUrl: `${testUrls.TEST_HTTP_URLS.x}/sse`, eventType: 'update' },
         page: {
           offset: 0,
           limit: 50,
@@ -678,7 +679,7 @@ describe('StreamingToolHandlersSse', () => {
       });
 
       await handler.handleSseGetEvents({
-        sourceUrl: 'http://x.com/sse',
+        sourceUrl: `${testUrls.TEST_HTTP_URLS.x}/sse`,
         eventType: 'update',
         limit: 50,
         offset: 0,
@@ -686,7 +687,7 @@ describe('StreamingToolHandlersSse', () => {
 
       const evaluateArgs = getFirstEvaluateArgs(mocks);
       expect(evaluateArgs).toEqual({
-        sourceUrl: 'http://x.com/sse',
+        sourceUrl: `${testUrls.TEST_HTTP_URLS.x}/sse`,
         eventType: 'update',
         limit: 50,
         offset: 0,
@@ -892,7 +893,7 @@ describe('StreamingToolHandlersSse', () => {
     it('returns multiple events with complete structure', async () => {
       const events = [
         {
-          sourceUrl: 'http://a.com/sse',
+          sourceUrl: `${testUrls.TEST_HTTP_URLS.a}/sse`,
           eventType: 'message',
           dataPreview: 'msg1',
           dataLength: 4,
@@ -900,7 +901,7 @@ describe('StreamingToolHandlersSse', () => {
           timestamp: 1000,
         },
         {
-          sourceUrl: 'http://a.com/sse',
+          sourceUrl: `${testUrls.TEST_HTTP_URLS.a}/sse`,
           eventType: 'update',
           dataPreview: 'msg2',
           dataLength: 4,

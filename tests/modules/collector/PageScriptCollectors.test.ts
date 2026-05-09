@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { logger } from '@src/utils/logger';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 vi.mock('@src/utils/logger', () => ({
   logger: {
@@ -95,14 +96,28 @@ describe('PageScriptCollectors', () => {
 
   it('analyzeDependencies builds nodes and import edges', () => {
     const files: any[] = [
-      { url: 'https://site/a.js', content: `import b from "b";`, type: 'external', size: 10 },
-      { url: 'https://site/b.js', content: 'export default 1', type: 'external', size: 10 },
+      {
+        url: buildTestUrl('site', { suffix: 'bare', path: 'a.js' }),
+        content: `import b from "b";`,
+        type: 'external',
+        size: 10,
+      },
+      {
+        url: buildTestUrl('site', { suffix: 'bare', path: 'b.js' }),
+        content: 'export default 1',
+        type: 'external',
+        size: 10,
+      },
     ];
 
     const graph = analyzeDependencies(files);
     expect(graph.nodes).toHaveLength(2);
     expect(graph.edges).toEqual([
-      { from: 'https://site/a.js', to: 'https://site/b.js', type: 'import' },
+      {
+        from: buildTestUrl('site', { suffix: 'bare', path: 'a.js' }),
+        to: buildTestUrl('site', { suffix: 'bare', path: 'b.js' }),
+        type: 'import',
+      },
     ]);
   });
 
@@ -208,7 +223,7 @@ describe('PageScriptCollectors', () => {
         integrity: '',
       },
       {
-        src: 'https://cdn.example.com/app.js',
+        src: buildTestUrl('cdn', { path: 'app.js' }),
         textContent: '',
         type: '',
         async: false,
@@ -257,8 +272,16 @@ describe('PageScriptCollectors', () => {
       evaluate: vi
         .fn()
         .mockResolvedValueOnce([
-          { url: 'https://site/sw-1.js', scope: '/', state: 'activated' },
-          { url: 'https://site/sw-2.js', scope: '/', state: 'activated' },
+          {
+            url: buildTestUrl('site', { suffix: 'bare', path: 'sw-1.js' }),
+            scope: '/',
+            state: 'activated',
+          },
+          {
+            url: buildTestUrl('site', { suffix: 'bare', path: 'sw-2.js' }),
+            scope: '/',
+            state: 'activated',
+          },
         ])
         .mockResolvedValueOnce('self.addEventListener("fetch",()=>{})')
         .mockRejectedValueOnce(new Error('fetch failed')),
@@ -275,7 +298,11 @@ describe('PageScriptCollectors', () => {
       evaluate: vi
         .fn()
         .mockResolvedValueOnce([
-          { url: 'https://site/sw-1.js', scope: '/', state: 'activated' },
+          {
+            url: buildTestUrl('site', { suffix: 'bare', path: 'sw-1.js' }),
+            scope: '/',
+            state: 'activated',
+          },
           { url: 'https://other/sw-2.js', scope: '/', state: 'activated' },
         ])
         .mockResolvedValueOnce('self.addEventListener("fetch",()=>{})'),
@@ -284,7 +311,7 @@ describe('PageScriptCollectors', () => {
     const files = await collectServiceWorkers(page, (url) => url.includes('site'));
 
     expect(files).toHaveLength(1);
-    expect(files[0]?.url).toBe('https://site/sw-1.js');
+    expect(files[0]?.url).toBe(buildTestUrl('site', { suffix: 'bare', path: 'sw-1.js' }));
     expect(page.evaluate).toHaveBeenCalledTimes(2);
   });
 
@@ -294,12 +321,14 @@ describe('PageScriptCollectors', () => {
         .fn()
         .mockResolvedValueOnce(['/worker.js'])
         .mockResolvedValueOnce('onmessage=()=>{}'),
-      url: vi.fn().mockReturnValue('https://site/app/index.html'),
+      url: vi
+        .fn()
+        .mockReturnValue(buildTestUrl('site', { suffix: 'bare', path: 'app/index.html' })),
     } as any;
 
     const files = await collectWebWorkers(page);
     expect(files).toHaveLength(1);
-    expect(files[0]?.url).toBe('https://site/worker.js');
+    expect(files[0]?.url).toBe(buildTestUrl('site', { suffix: 'bare', path: 'worker.js' }));
     expect(files[0]?.type).toBe('web-worker');
   });
 
@@ -309,13 +338,15 @@ describe('PageScriptCollectors', () => {
         .fn()
         .mockResolvedValueOnce(['/allowed-worker.js', 'https://other/blocked-worker.js'])
         .mockResolvedValueOnce('onmessage=()=>{}'),
-      url: vi.fn().mockReturnValue('https://site/app/index.html'),
+      url: vi
+        .fn()
+        .mockReturnValue(buildTestUrl('site', { suffix: 'bare', path: 'app/index.html' })),
     } as any;
 
     const files = await collectWebWorkers(page, (url) => url.includes('site'));
 
     expect(files).toHaveLength(1);
-    expect(files[0]?.url).toBe('https://site/allowed-worker.js');
+    expect(files[0]?.url).toBe(buildTestUrl('site', { suffix: 'bare', path: 'allowed-worker.js' }));
     expect(page.evaluate).toHaveBeenCalledTimes(2);
   });
 
@@ -323,7 +354,10 @@ describe('PageScriptCollectors', () => {
     const serviceWorkerRegistrations = [
       {
         scope: '/',
-        active: { scriptURL: 'https://site/sw-1.js', state: 'activated' },
+        active: {
+          scriptURL: buildTestUrl('site', { suffix: 'bare', path: 'sw-1.js' }),
+          state: 'activated',
+        },
         installing: null,
         waiting: null,
       },
@@ -334,7 +368,10 @@ describe('PageScriptCollectors', () => {
         waiting: null,
       },
     ];
-    const workerUrls = ['/worker-a.js', 'https://site/worker-b.js'];
+    const workerUrls = [
+      '/worker-a.js',
+      buildTestUrl('site', { suffix: 'bare', path: 'worker-b.js' }),
+    ];
     const fetchMock = vi.fn(async (url: string) => ({
       text: async () => `// ${url}`,
     }));
@@ -353,13 +390,15 @@ describe('PageScriptCollectors', () => {
           () => callback(...args),
         ),
       ),
-      url: vi.fn().mockReturnValue('https://site/app/index.html'),
+      url: vi
+        .fn()
+        .mockReturnValue(buildTestUrl('site', { suffix: 'bare', path: 'app/index.html' })),
     } as any;
 
     const serviceFiles = await collectServiceWorkers(page, (url) => url.includes('site'));
     expect(serviceFiles).toHaveLength(1);
     expect(serviceFiles[0]).toMatchObject({
-      url: 'https://site/sw-1.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'sw-1.js' }),
       type: 'service-worker',
       content: '// https://site/sw-1.js',
     });
@@ -367,7 +406,7 @@ describe('PageScriptCollectors', () => {
     const workerFiles = await collectWebWorkers(page, (url) => url.endsWith('worker-b.js'));
     expect(workerFiles).toHaveLength(1);
     expect(workerFiles[0]).toMatchObject({
-      url: 'https://site/worker-b.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'worker-b.js' }),
       type: 'web-worker',
       content: '// https://site/worker-b.js',
     });
@@ -473,7 +512,9 @@ describe('PageScriptCollectors', () => {
 
       const trackedUrls = workerWindow.__workerUrls;
       const workerA = new workerWindow.Worker('/worker-a.js');
-      const workerB = new workerWindow.Worker(new URL('https://site/worker-b.js'));
+      const workerB = new workerWindow.Worker(
+        new URL(buildTestUrl('site', { suffix: 'bare', path: 'worker-b.js' })),
+      );
 
       expect(workerA).toBeInstanceOf(OriginalWorker);
       expect(workerB).toBeInstanceOf(OriginalWorker);
@@ -482,7 +523,7 @@ describe('PageScriptCollectors', () => {
       expect(workerWindow.__workerUrls).toEqual([
         '/existing-worker.js',
         '/worker-a.js',
-        'https://site/worker-b.js',
+        buildTestUrl('site', { suffix: 'bare', path: 'worker-b.js' }),
       ]);
     } finally {
       restoreWindow();
@@ -559,7 +600,9 @@ describe('PageScriptCollectors', () => {
         .fn()
         .mockResolvedValueOnce(['/worker.js'])
         .mockRejectedValueOnce(new Error('network error')),
-      url: vi.fn().mockReturnValue('https://site/app/index.html'),
+      url: vi
+        .fn()
+        .mockReturnValue(buildTestUrl('site', { suffix: 'bare', path: 'app/index.html' })),
     } as any;
 
     const files = await collectWebWorkers(page);
@@ -574,7 +617,9 @@ describe('PageScriptCollectors', () => {
   it('collectWebWorkers returns empty array when outer evaluate throws', async () => {
     const page = {
       evaluate: vi.fn().mockRejectedValue(new Error('evaluate failed')),
-      url: vi.fn().mockReturnValue('https://site/app/index.html'),
+      url: vi
+        .fn()
+        .mockReturnValue(buildTestUrl('site', { suffix: 'bare', path: 'app/index.html' })),
     } as any;
 
     await expect(collectWebWorkers(page)).resolves.toEqual([]);
@@ -646,7 +691,12 @@ describe('PageScriptCollectors', () => {
 
   it('analyzeDependencies skips dependencies with no matching target file', () => {
     const files: any[] = [
-      { url: 'https://site/main.js', content: `import 'vendor/lib';`, type: 'external', size: 10 },
+      {
+        url: buildTestUrl('site', { suffix: 'bare', path: 'main.js' }),
+        content: `import 'vendor/lib';`,
+        type: 'external',
+        size: 10,
+      },
     ];
     const graph = analyzeDependencies(files);
     // 'vendor/lib' does not match 'main.js' via includes/endsWith — targetFile is undefined

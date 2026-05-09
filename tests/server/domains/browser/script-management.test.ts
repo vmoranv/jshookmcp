@@ -3,6 +3,7 @@ import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ScriptManagementHandlers } from '@server/domains/browser/handlers/script-management';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 describe('ScriptManagementHandlers', () => {
   const scriptManager = {
@@ -47,13 +48,13 @@ describe('ScriptManagementHandlers', () => {
     const body = parseJson<BrowserStatusResponse>(
       await handlers.handleGetScriptSource({
         scriptId: 'missing-script',
-        url: 'https://example.test/app.js',
+        url: buildTestUrl('example', { suffix: 'test', path: 'app.js' }),
       }),
     );
 
     expect(scriptManager.getScriptSource).toHaveBeenCalledWith(
       'missing-script',
-      'https://example.test/app.js',
+      buildTestUrl('example', { suffix: 'test', path: 'app.js' }),
     );
     expect(body).toEqual({
       success: false,
@@ -65,7 +66,7 @@ describe('ScriptManagementHandlers', () => {
   it('returns preview content with default maxLines and small-script hint', async () => {
     scriptManager.getScriptSource.mockResolvedValue({
       scriptId: 'script-1',
-      url: 'https://example.test/app.js',
+      url: buildTestUrl('example', { suffix: 'test', path: 'app.js' }),
       source: ['first line', 'second line', 'third line'].join('\n'),
     });
 
@@ -76,7 +77,7 @@ describe('ScriptManagementHandlers', () => {
     expect(body).toMatchObject({
       success: true,
       scriptId: 'script-1',
-      url: 'https://example.test/app.js',
+      url: buildTestUrl('example', { suffix: 'test', path: 'app.js' }),
       preview: true,
       totalLines: 3,
       showingLines: '1-3',
@@ -89,7 +90,7 @@ describe('ScriptManagementHandlers', () => {
     const largeLines = ['line-1', 'line-2', 'line-3', 'x'.repeat(52010)];
     scriptManager.getScriptSource.mockResolvedValue({
       scriptId: 'script-2',
-      url: 'https://example.test/large.js',
+      url: buildTestUrl('example', { suffix: 'test', path: 'large.js' }),
       source: largeLines.join('\n'),
     });
 
@@ -111,7 +112,7 @@ describe('ScriptManagementHandlers', () => {
   it('wraps full script responses with smartHandle and size limit', async () => {
     const script = {
       scriptId: 'script-3',
-      url: 'https://example.test/full.js',
+      url: buildTestUrl('example', { suffix: 'test', path: 'full.js' }),
       source: 'console.log("hello");',
     };
     scriptManager.getScriptSource.mockResolvedValue(script);

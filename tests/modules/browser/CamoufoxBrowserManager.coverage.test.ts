@@ -5,6 +5,7 @@ import {
   type CamoufoxPageLike,
   type CamoufoxBrowserServerLike,
 } from '@modules/browser/CamoufoxBrowserManager';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -244,9 +245,9 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       const manager = new CamoufoxBrowserManager();
       await manager.launch();
 
-      const result = await manager.goto('https://example.com');
+      const result = await manager.goto(TEST_URLS.root);
       expect(result).toBe(fakePage);
-      expect(fakePage.goto).toHaveBeenCalledWith('https://example.com', {
+      expect(fakePage.goto).toHaveBeenCalledWith(TEST_URLS.root, {
         waitUntil: 'networkidle',
       });
     });
@@ -259,10 +260,10 @@ describe('CamoufoxBrowserManager — coverage expansion', () => {
       await manager.launch();
 
       const existingPage = createFakePage();
-      const result = await manager.goto('https://example.com', existingPage);
+      const result = await manager.goto(TEST_URLS.root, existingPage);
 
       expect(result).toBe(existingPage);
-      expect(existingPage.goto).toHaveBeenCalledWith('https://example.com', {
+      expect(existingPage.goto).toHaveBeenCalledWith(TEST_URLS.root, {
         waitUntil: 'networkidle',
       });
       // Should not create new page

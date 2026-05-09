@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { TargetEvaluationHandlers } from '@server/domains/browser/handlers/target-evaluation';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 interface PageControllerMock {
   getAttachedTargetInfo: Mock<() => { targetId: string; type: string; url?: string } | null>;
@@ -21,7 +22,7 @@ function createDeps() {
     getAttachedTargetInfo: vi.fn(() => ({
       targetId: 'frame-1',
       type: 'iframe',
-      url: 'https://example.com/frame',
+      url: withPath(TEST_URLS.root, 'frame'),
     })),
     evaluateAttachedTarget: vi.fn<
       (

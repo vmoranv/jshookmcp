@@ -17,6 +17,7 @@ vi.unmock('@src/modules/captcha/CaptchaDetector');
 import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
 import type { CaptchaDetectionResult } from '@modules/captcha/types';
 import { createPageMock } from '../../server/domains/shared/mock-factories';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestCaptchaDetector extends CaptchaDetector {
   public override toAssessmentSignal(source: any, result: any) {
@@ -86,7 +87,7 @@ describe('CaptchaDetector — deep coverage', () => {
         type: 'browser_check',
         confidence: 92,
         providerHint: 'edge_service',
-        url: 'https://example.com/cdn-cgi/challenge',
+        url: withPath(TEST_URLS.root, 'cdn-cgi/challenge'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -124,7 +125,7 @@ describe('CaptchaDetector — deep coverage', () => {
         detected: true,
         type: 'url_redirect',
         confidence: 75,
-        url: 'https://example.com/verify',
+        url: withPath(TEST_URLS.root, 'verify'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -162,7 +163,7 @@ describe('CaptchaDetector — deep coverage', () => {
         detected: true,
         type: 'url_redirect',
         confidence: 50,
-        url: 'https://example.com/verify',
+        url: withPath(TEST_URLS.root, 'verify'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -235,7 +236,7 @@ describe('CaptchaDetector — deep coverage', () => {
         detected: true,
         type: 'url_redirect',
         confidence: 70,
-        url: 'https://example.com/challenge',
+        url: withPath(TEST_URLS.root, 'challenge'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
@@ -274,7 +275,7 @@ describe('CaptchaDetector — deep coverage', () => {
         detected: true,
         type: 'url_redirect',
         confidence: 80,
-        url: 'https://example.com/challenge',
+        url: withPath(TEST_URLS.root, 'challenge'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
@@ -637,7 +638,7 @@ describe('CaptchaDetector — deep coverage', () => {
   describe('checkUrl — additional paths', () => {
     it('returns no match for neutral URLs', async () => {
       const page = createPageMock({
-        url: vi.fn(() => 'https://example.com/about'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'about')),
       });
 
       const result = await detector.checkUrl(page);
@@ -647,7 +648,7 @@ describe('CaptchaDetector — deep coverage', () => {
 
     it('handles URL with captcha-frame pattern', async () => {
       const page = createPageMock({
-        url: vi.fn(() => 'https://example.com/captcha-frame?id=123'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'captcha-frame?id=123')),
       });
 
       const result = await detector.checkUrl(page);
@@ -657,7 +658,7 @@ describe('CaptchaDetector — deep coverage', () => {
 
     it('handles URL with security-check pattern', async () => {
       const page = createPageMock({
-        url: vi.fn(() => 'https://example.com/security-check'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'security-check')),
       });
 
       const result = await detector.checkUrl(page);
@@ -817,7 +818,7 @@ describe('CaptchaDetector — deep coverage', () => {
         type: 'browser_check',
         confidence: 95,
         providerHint: 'edge_service',
-        url: 'https://example.com/challenge',
+        url: withPath(TEST_URLS.root, 'challenge'),
         details: { ruleId: 'test', ruleLabel: 'test rule' },
       };
 
@@ -826,7 +827,7 @@ describe('CaptchaDetector — deep coverage', () => {
       expect(signal).toEqual({
         source: 'url',
         kind: 'captcha',
-        value: 'https://example.com/challenge',
+        value: withPath(TEST_URLS.root, 'challenge'),
         confidence: 95,
         typeHint: 'browser_check',
         providerHint: 'edge_service',
@@ -844,14 +845,14 @@ describe('CaptchaDetector — deep coverage', () => {
         type: 'browser_check',
         confidence: 95,
         providerHint: 'edge_service',
-        url: 'https://example.com/challenge',
+        url: withPath(TEST_URLS.root, 'challenge'),
       };
 
       const candidate = detector.toAssessmentCandidate('url', result);
 
       expect(candidate).toEqual({
         source: 'url',
-        value: 'https://example.com/challenge',
+        value: withPath(TEST_URLS.root, 'challenge'),
         confidence: 95,
         type: 'browser_check',
         providerHint: 'edge_service',
@@ -891,7 +892,7 @@ describe('CaptchaDetector — deep coverage', () => {
         type: 'browser_check',
         confidence: 95,
         providerHint: 'edge_service',
-        url: 'https://example.com/challenge',
+        url: withPath(TEST_URLS.root, 'challenge'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -1019,7 +1020,7 @@ describe('CaptchaDetector — deep coverage', () => {
         type: 'widget',
         confidence: 91,
         providerHint: 'embedded_widget',
-        url: 'https://example.com/captcha-frame',
+        url: withPath(TEST_URLS.root, 'captcha-frame'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,

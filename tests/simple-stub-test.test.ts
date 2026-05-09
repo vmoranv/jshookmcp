@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -46,7 +47,7 @@ describe('simple stubGlobal test', () => {
     // Import and call the function
     const { fetchRealEnvironmentData } = await import('@modules/emulator/EnvironmentEmulatorFetch');
     await fetchRealEnvironmentData({
-      url: 'https://example.com',
+      url: TEST_URLS.root,
       detected: { window: [], document: [], navigator: [], location: [], screen: [], other: [] },
       depth: 1,
       resolveExecutablePath: vi.fn(),

@@ -23,7 +23,9 @@ const wrapperState = vi.hoisted(() => ({
       listenerCount: 2,
       cdpSessionActive: true,
     })),
-    getNetworkRequestsCore: vi.fn(() => [{ requestId: 'req-1', url: 'https://api.test/a' }]),
+    getNetworkRequestsCore: vi.fn(() => [
+      { requestId: 'req-1', url: buildTestUrl('api', { suffix: 'test', path: 'a' }) },
+    ]),
     getNetworkResponsesCore: vi.fn(() => [{ requestId: 'req-1', status: 200 }]),
     getNetworkActivityCore: vi.fn(() => ({
       request: { requestId: 'req-1' },
@@ -197,6 +199,7 @@ vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
 });
 
 import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl.core.class';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createCdpSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -248,7 +251,7 @@ describe('ConsoleMonitor.impl.core.class wrapper delegation', () => {
     expect(monitor.isNetworkEnabled()).toBe(true);
     expect(monitor.getNetworkStatus()).toMatchObject({ enabled: true, requestCount: 1 });
     expect(monitor.getNetworkRequests({ url: 'api' })).toEqual([
-      { requestId: 'req-1', url: 'https://api.test/a' },
+      { requestId: 'req-1', url: buildTestUrl('api', { suffix: 'test', path: 'a' }) },
     ]);
     expect(monitor.getNetworkResponses({ status: 200 })).toEqual([
       { requestId: 'req-1', status: 200 },

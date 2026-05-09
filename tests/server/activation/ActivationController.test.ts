@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventBus, type ServerEventMap } from '@server/EventBus';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 const state = vi.hoisted(() => ({
   handleActivateDomain: vi.fn(
@@ -290,7 +291,7 @@ describe('activation/ActivationController', () => {
     });
 
     await eventBus.emit('browser:navigated', {
-      url: 'https://example.com',
+      url: TEST_URLS.root,
       timestamp: new Date().toISOString(),
     });
 
@@ -332,7 +333,7 @@ describe('activation/ActivationController', () => {
     const controller = new ActivationController(eventBus, mockCtx as never);
 
     await eventBus.emit('browser:navigated', {
-      url: 'https://example.com',
+      url: TEST_URLS.root,
       timestamp: new Date().toISOString(),
     });
 

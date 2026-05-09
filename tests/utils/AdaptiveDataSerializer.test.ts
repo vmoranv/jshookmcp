@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { AdaptiveDataSerializer } from '@utils/AdaptiveDataSerializer';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('AdaptiveDataSerializer', () => {
   let serializer: AdaptiveDataSerializer;
@@ -52,7 +53,7 @@ describe('AdaptiveDataSerializer', () => {
   it('summarizes network request arrays when exceeding max length', () => {
     const requests = Array.from({ length: 12 }, (_, i) => ({
       requestId: `r${i}`,
-      url: `https://vmoranv.github.io/jshookmcp/${i}`,
+      url: withPath(TEST_URLS.root, `${i}`),
       method: 'GET',
       type: 'xhr',
       timestamp: i,
@@ -69,7 +70,7 @@ describe('AdaptiveDataSerializer', () => {
     expect(output.summary).toHaveLength(10);
     expect(output.summary[0]).toEqual({
       requestId: 'r0',
-      url: 'https://vmoranv.github.io/jshookmcp/0',
+      url: withPath(TEST_URLS.root, '0'),
       method: 'GET',
       type: 'xhr',
       timestamp: 0,

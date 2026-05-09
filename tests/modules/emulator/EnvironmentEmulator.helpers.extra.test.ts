@@ -21,6 +21,7 @@ vi.mock('@modules/emulator/EnvironmentEmulatorFetch', () => ({
 }));
 
 import { EnvironmentEmulator } from '@modules/emulator/EnvironmentEmulator';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 describe('EnvironmentEmulator helper coverage', () => {
   beforeEach(() => {
@@ -110,7 +111,7 @@ describe('EnvironmentEmulator helper coverage', () => {
     });
 
     const manifest = await emulator.fetchRealEnvironment(
-      'https://target.test',
+      buildTestUrl('target', { suffix: 'test', path: '/' }),
       {
         window: ['window.innerWidth'],
         document: [],
@@ -126,7 +127,7 @@ describe('EnvironmentEmulator helper coverage', () => {
     expect(fetchRealEnvironmentDataMock).toHaveBeenCalledWith(
       expect.objectContaining({
         browser: existingBrowser,
-        url: 'https://target.test',
+        url: buildTestUrl('target', { suffix: 'test', path: '/' }),
         depth: 2,
       }),
     );

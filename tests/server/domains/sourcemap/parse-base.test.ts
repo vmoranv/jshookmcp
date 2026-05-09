@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SourcemapToolHandlersParseBase } from '@server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
+import { TEST_HTTP_URLS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestableParseBase extends SourcemapToolHandlersParseBase {
   constructor() {
@@ -333,8 +334,8 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   describe('validateFetchUrl', () => {
     it('allows public http(s) urls', async () => {
       const tool = createTool();
-      expect(() => tool.testValidateFetchUrl('https://example.com/a.map')).not.toThrow();
-      expect(() => tool.testValidateFetchUrl('http://example.com/a.map')).not.toThrow();
+      expect(() => tool.testValidateFetchUrl(withPath(TEST_URLS.root, 'a.map'))).not.toThrow();
+      expect(() => tool.testValidateFetchUrl(withPath(TEST_HTTP_URLS.root, 'a.map'))).not.toThrow();
     });
 
     it('blocks localhost and metadata hostnames', async () => {
@@ -418,7 +419,7 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   describe('resolveSourceMapUrl', () => {
     it('returns empty string for blank input', async () => {
       const tool = createTool();
-      expect(tool.testResolveSourceMapUrl('   ', 'https://example.com/app.js')).toBe('');
+      expect(tool.testResolveSourceMapUrl('   ', withPath(TEST_URLS.root, 'app.js'))).toBe('');
     });
 
     it('returns data: URIs as-is (trimmed)', async () => {
@@ -431,15 +432,15 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
     it('returns absolute URLs as-is', async () => {
       const tool = createTool();
       expect(
-        tool.testResolveSourceMapUrl('https://cdn.example.com/app.js.map', 'https://x/y.js'),
-      ).toBe('https://cdn.example.com/app.js.map');
+        tool.testResolveSourceMapUrl(withPath(TEST_URLS.cdn, 'app.js.map'), 'https://x/y.js'),
+      ).toBe(withPath(TEST_URLS.cdn, 'app.js.map'));
     });
 
     it('resolves relative URLs against scriptUrl when provided', async () => {
       const tool = createTool();
-      expect(tool.testResolveSourceMapUrl('app.js.map', 'https://example.com/assets/app.js')).toBe(
-        'https://example.com/assets/app.js.map',
-      );
+      expect(
+        tool.testResolveSourceMapUrl('app.js.map', withPath(TEST_URLS.root, 'assets/app.js')),
+      ).toBe(withPath(TEST_URLS.root, 'assets/app.js.map'));
     });
 
     it('returns relative URLs unchanged when scriptUrl is empty', async () => {
@@ -487,8 +488,8 @@ describe('SourcemapToolHandlersParseBase (parse-base)', () => {
   describe('hasProtocol', () => {
     it('detects strings with a protocol prefix', async () => {
       const tool = createTool();
-      expect(tool.testHasProtocol('https://example.com')).toBe(true);
-      expect(tool.testHasProtocol('http://example.com')).toBe(true);
+      expect(tool.testHasProtocol(TEST_URLS.root)).toBe(true);
+      expect(tool.testHasProtocol(TEST_HTTP_URLS.root)).toBe(true);
       expect(tool.testHasProtocol('/path')).toBe(false);
       expect(tool.testHasProtocol('relative')).toBe(false);
     });

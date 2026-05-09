@@ -60,6 +60,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { AdvancedToolHandlersRuntime } from '@server/domains/network/handlers.impl.core.runtime.replay';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('AdvancedToolHandlersRuntime', () => {
   const collector = createCodeCollectorMock();
@@ -110,9 +111,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     });
 
     it('returns auth findings filtered by default minConfidence', async () => {
-      consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://api.example.com', method: 'GET' },
-      ]);
+      consoleMonitor.getNetworkRequests.mockReturnValue([{ url: TEST_URLS.api, method: 'GET' }]);
       extractAuthMock.mockReturnValue([
         { type: 'bearer', confidence: 0.9, value: 'tok***' },
         { type: 'cookie', confidence: 0.3, value: 'ses***' },
@@ -131,9 +130,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     });
 
     it('respects custom minConfidence parameter', async () => {
-      consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://api.example.com', method: 'GET' },
-      ]);
+      consoleMonitor.getNetworkRequests.mockReturnValue([{ url: TEST_URLS.api, method: 'GET' }]);
       extractAuthMock.mockReturnValue([
         { type: 'bearer', confidence: 0.9, value: 'tok***' },
         { type: 'cookie', confidence: 0.5, value: 'ses***' },
@@ -148,9 +145,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     });
 
     it('returns zero findings when nothing passes the threshold', async () => {
-      consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://example.com', method: 'GET' },
-      ]);
+      consoleMonitor.getNetworkRequests.mockReturnValue([{ url: TEST_URLS.root, method: 'GET' }]);
       extractAuthMock.mockReturnValue([{ type: 'weak', confidence: 0.1 }]);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkExtractAuth({}));
@@ -172,9 +167,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     });
 
     it('returns HAR inline when no outputPath is given', async () => {
-      consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://example.com', method: 'GET' },
-      ]);
+      consoleMonitor.getNetworkRequests.mockReturnValue([{ url: TEST_URLS.root, method: 'GET' }]);
       buildHarMock.mockResolvedValue({
         log: {
           entries: [{ request: {}, response: {} }],
@@ -190,9 +183,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     });
 
     it('catches buildHar errors and returns failure', async () => {
-      consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://example.com', method: 'GET' },
-      ]);
+      consoleMonitor.getNetworkRequests.mockReturnValue([{ url: TEST_URLS.root, method: 'GET' }]);
       buildHarMock.mockRejectedValue(new Error('HAR build failed'));
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkExportHar({}));
@@ -201,9 +192,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     });
 
     it('passes includeBodies option to buildHar', async () => {
-      consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://example.com', method: 'GET' },
-      ]);
+      consoleMonitor.getNetworkRequests.mockReturnValue([{ url: TEST_URLS.root, method: 'GET' }]);
       buildHarMock.mockResolvedValue({ log: { entries: [] } });
 
       await handler.handleNetworkExportHar({ includeBodies: true });
@@ -211,9 +200,7 @@ describe('AdvancedToolHandlersRuntime', () => {
     });
 
     it('defaults includeBodies to false', async () => {
-      consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://example.com', method: 'GET' },
-      ]);
+      consoleMonitor.getNetworkRequests.mockReturnValue([{ url: TEST_URLS.root, method: 'GET' }]);
       buildHarMock.mockResolvedValue({ log: { entries: [] } });
 
       await handler.handleNetworkExportHar({});
@@ -232,7 +219,7 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('returns error when requestId is not found in captured requests', async () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'other', url: 'https://example.com', method: 'GET' },
+        { requestId: 'other', url: TEST_URLS.root, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -245,12 +232,12 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('replays a captured request with dryRun=true by default', async () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com/data', method: 'POST' },
+        { requestId: 'req-1', url: withPath(TEST_URLS.api, 'data'), method: 'POST' },
       ]);
       replayRequestMock.mockResolvedValue({
         dryRun: true,
         requestId: 'req-1',
-        url: 'https://api.example.com/data',
+        url: withPath(TEST_URLS.api, 'data'),
       });
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -262,7 +249,7 @@ describe('AdvancedToolHandlersRuntime', () => {
       expect(replayRequestMock).toHaveBeenCalledWith(
         expect.objectContaining({
           requestId: 'req-1',
-          url: 'https://api.example.com/data',
+          url: withPath(TEST_URLS.api, 'data'),
           method: 'POST',
         }),
         expect.objectContaining({
@@ -274,7 +261,7 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('passes override options to replayRequest', async () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com/data', method: 'POST' },
+        { requestId: 'req-1', url: withPath(TEST_URLS.api, 'data'), method: 'POST' },
       ]);
       replayRequestMock.mockResolvedValue({ dryRun: false });
 
@@ -283,7 +270,7 @@ describe('AdvancedToolHandlersRuntime', () => {
         headerPatch: { Authorization: 'Bearer new-token' },
         bodyPatch: '{"key":"value"}',
         methodOverride: 'PUT',
-        urlOverride: 'https://api.example.com/v2/data',
+        urlOverride: withPath(TEST_URLS.api, 'v2/data'),
         timeoutMs: 5000,
         dryRun: false,
       });
@@ -295,7 +282,7 @@ describe('AdvancedToolHandlersRuntime', () => {
           headerPatch: { Authorization: 'Bearer new-token' },
           bodyPatch: '{"key":"value"}',
           methodOverride: 'PUT',
-          urlOverride: 'https://api.example.com/v2/data',
+          urlOverride: withPath(TEST_URLS.api, 'v2/data'),
           timeoutMs: 5000,
           dryRun: false,
         }),
@@ -304,7 +291,7 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('handles replayRequest throwing an error', async () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
+        { requestId: 'req-1', url: TEST_URLS.api, method: 'GET' },
       ]);
       replayRequestMock.mockRejectedValue(new Error('Network timeout'));
 
@@ -317,7 +304,7 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('handles non-Error throws from replayRequest', async () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
+        { requestId: 'req-1', url: TEST_URLS.api, method: 'GET' },
       ]);
       replayRequestMock.mockRejectedValue('string error');
 
@@ -333,7 +320,7 @@ describe('AdvancedToolHandlersRuntime', () => {
         null,
         42,
         { broken: true },
-        { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
+        { requestId: 'req-1', url: TEST_URLS.api, method: 'GET' },
       ]);
       replayRequestMock.mockResolvedValue({ dryRun: true });
 
@@ -345,7 +332,7 @@ describe('AdvancedToolHandlersRuntime', () => {
 
     it('does not find request missing required fields', async () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://example.com' }, // missing method
+        { requestId: 'req-1', url: TEST_URLS.root }, // missing method
         { requestId: 'req-2', method: 'GET' }, // missing url
       ]);
 

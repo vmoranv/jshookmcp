@@ -168,7 +168,7 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => ({
       this.page = {
         goto: vi.fn(async () => {}),
         title: vi.fn(async () => 'Camoufox Page'),
-        url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp'),
+        url: vi.fn(() => TEST_URLS.root),
       };
     }
     async launch() {}
@@ -239,6 +239,7 @@ vi.mock('@src/server/domains/browser/handlers/tab-workflow', () => ({
 }));
 
 import { BrowserToolHandlers } from '@server/domains/browser/handlers';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('BrowserToolHandlers', () => {
   const collector = {
@@ -327,7 +328,7 @@ describe('BrowserToolHandlers', () => {
 
   it('delegates page navigation when chrome is active', async () => {
     const result = await handlers.handlePageNavigate({
-      url: 'https://example.com',
+      url: TEST_URLS.root,
       waitUntil: 'domcontentloaded',
     });
 
@@ -335,12 +336,12 @@ describe('BrowserToolHandlers', () => {
       success: true,
       from: 'page-nav',
       args: {
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         waitUntil: 'domcontentloaded',
       },
     });
     expect(pageNavigationMocks.handlePageNavigate).toHaveBeenCalledWith({
-      url: 'https://example.com',
+      url: TEST_URLS.root,
       waitUntil: 'domcontentloaded',
     });
   });
@@ -362,7 +363,7 @@ describe('BrowserToolHandlers', () => {
     (handlers as any).camoufoxManager = {
       getBrowser: vi.fn(() => ({})),
     };
-    (handlers as any).camoufoxPage = { url: vi.fn(() => 'https://example.com') };
+    (handlers as any).camoufoxPage = { url: vi.fn(() => TEST_URLS.root) };
 
     const body = parseJson<BrowserStatusResponse>(await handlers.handleBrowserStatus({}));
 
@@ -385,7 +386,7 @@ describe('BrowserToolHandlers', () => {
       newPage: vi.fn(async () => ({
         goto: vi.fn(async () => {}),
         title: vi.fn(async () => 'Camoufox Page'),
-        url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/target'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'target')),
       })),
       close: vi.fn(async () => {}),
       getBrowser: vi.fn(() => ({})),
@@ -393,13 +394,37 @@ describe('BrowserToolHandlers', () => {
 
     const body = parseJson<BrowserStatusResponse>(
       await handlers.handlePageNavigate({
-        url: 'https://vmoranv.github.io/jshookmcp/target',
-        waitUntil: 'networkidle2',
+        url: withPath(TEST_URLS.root, 'target'),
+        waitUntil: 'networkidle',
       }),
     );
     expect(consoleMonitor.setPlaywrightPage).toHaveBeenCalledOnce();
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
-    expect(body.url).toBe('https://vmoranv.github.io/jshookmcp/target');
+    expect(body.url).toBe(withPath(TEST_URLS.root, 'target'));
+  });
+
+  it('rejects unsupported waitUntil aliases on camoufox navigation', async () => {
+    (handlers as any).activeDriver = 'camoufox';
+    (handlers as any).camoufoxManager = {
+      newPage: vi.fn(async () => ({
+        goto: vi.fn(async () => {}),
+        title: vi.fn(async () => 'Camoufox Page'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'target')),
+      })),
+      close: vi.fn(async () => {}),
+      getBrowser: vi.fn(() => ({})),
+    };
+
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handlePageNavigate({
+        url: withPath(TEST_URLS.root, 'target'),
+        waitUntil: 'networkidle2',
+      }),
+    );
+
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('Invalid waitUntil: "networkidle2"');
+    expect(consoleMonitor.setPlaywrightPage).not.toHaveBeenCalled();
   });
 });

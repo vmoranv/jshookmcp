@@ -82,6 +82,7 @@ vi.mock(import('@src/constants'), async (importOriginal) => {
 });
 
 import { ProcessToolHandlersRuntime } from '@server/domains/process/handlers.impl.core.runtime.inject';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 const originalFetch = global.fetch;
 
@@ -319,14 +320,14 @@ describe('handlers.impl.core.runtime.inject', () => {
           {
             id: 'page-1',
             title: 'Home',
-            url: 'https://app.local/home',
+            url: buildTestUrl('app', { suffix: 'local', path: 'home' }),
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
           {
             id: 'page-2',
             title: 'Settings',
-            url: 'https://app.local/settings',
+            url: buildTestUrl('app', { suffix: 'local', path: 'settings' }),
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-2',
           },
@@ -344,7 +345,7 @@ describe('handlers.impl.core.runtime.inject', () => {
       expect(response.pages[0]).toEqual(
         expect.objectContaining({
           title: 'Settings',
-          url: 'https://app.local/settings',
+          url: buildTestUrl('app', { suffix: 'local', path: 'settings' }),
         }),
       );
       expect(state.connect).not.toHaveBeenCalled();
@@ -380,7 +381,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           {
             id: 'page-1',
             title: 'Home',
-            url: 'https://app.local/home',
+            url: buildTestUrl('app', { suffix: 'local', path: 'home' }),
             type: 'page',
           },
         ]),
@@ -404,7 +405,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           {
             id: 'page-1',
             title: 'Main Window',
-            url: 'https://app.local/dashboard',
+            url: buildTestUrl('app', { suffix: 'local', path: 'dashboard' }),
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
@@ -416,7 +417,9 @@ describe('handlers.impl.core.runtime.inject', () => {
         }),
       );
       global.fetch = fetchMock as typeof fetch;
-      state.browserPages.mockResolvedValue([createBrowserPage('https://app.local/dashboard')]);
+      state.browserPages.mockResolvedValue([
+        createBrowserPage(buildTestUrl('app', { suffix: 'local', path: 'dashboard' })),
+      ]);
       state.pageEvaluate.mockResolvedValue({ ok: true, result: { value: 2 } });
 
       const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });
@@ -443,7 +446,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           {
             id: 'page-1',
             title: 'Main Window',
-            url: 'https://app.local/dashboard',
+            url: buildTestUrl('app', { suffix: 'local', path: 'dashboard' }),
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
@@ -451,7 +454,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       );
       fetchMock.mockRejectedValueOnce(new Error('version endpoint unavailable'));
       global.fetch = fetchMock as typeof fetch;
-      state.browserPages.mockResolvedValue([createBrowserPage('https://app.local/other')]);
+      state.browserPages.mockResolvedValue([
+        createBrowserPage(buildTestUrl('app', { suffix: 'local', path: 'other' })),
+      ]);
       state.pageEvaluate.mockResolvedValue({
         ok: false,
         error: { name: 'TypeError', message: 'boom' },
@@ -471,7 +476,7 @@ describe('handlers.impl.core.runtime.inject', () => {
       expect(response.error).toBe('Evaluation failed: TypeError: boom');
       expect(response.target).toEqual({
         title: 'Main Window',
-        url: 'https://app.local/dashboard',
+        url: buildTestUrl('app', { suffix: 'local', path: 'dashboard' }),
       });
       expect(state.browserDisconnect).toHaveBeenCalledTimes(1);
     });
@@ -482,7 +487,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           {
             id: 'page-1',
             title: 'Main Window',
-            url: 'https://app.local/dashboard',
+            url: buildTestUrl('app', { suffix: 'local', path: 'dashboard' }),
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
@@ -508,7 +513,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           {
             id: 'page-1',
             title: 'Main Window',
-            url: 'https://app.local/dashboard',
+            url: buildTestUrl('app', { suffix: 'local', path: 'dashboard' }),
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
@@ -536,7 +541,7 @@ describe('handlers.impl.core.runtime.inject', () => {
           {
             id: 'page-1',
             title: 'Main Window',
-            url: 'https://app.local/dashboard',
+            url: buildTestUrl('app', { suffix: 'local', path: 'dashboard' }),
             type: 'page',
             webSocketDebuggerUrl: 'ws://127.0.0.1:9229/devtools/page/page-1',
           },
@@ -549,7 +554,9 @@ describe('handlers.impl.core.runtime.inject', () => {
       );
       global.fetch = fetchMock as typeof fetch;
       state.connect.mockRejectedValue(new Error('Target closed during CDP handshake'));
-      state.browserPages.mockResolvedValue([createBrowserPage('https://app.local/dashboard')]);
+      state.browserPages.mockResolvedValue([
+        createBrowserPage(buildTestUrl('app', { suffix: 'local', path: 'dashboard' })),
+      ]);
       state.pageEvaluate.mockResolvedValue({ ok: true, result: { fallback: true } });
 
       const result = await handler.handleElectronAttach({ port: 9229, evaluate: '1 + 1' });

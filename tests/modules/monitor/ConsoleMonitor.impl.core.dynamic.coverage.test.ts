@@ -22,6 +22,7 @@ import {
   injectPropertyWatcherCore,
   resetDynamicScriptMonitoringCore,
 } from '@modules/monitor/ConsoleMonitor.impl.core.dynamic';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 interface RuntimeEvaluateResult<T = unknown> {
   result?: {
@@ -332,7 +333,7 @@ describe('ConsoleMonitor.impl.core.dynamic.ts', () => {
     it('returns array of dynamic scripts when valid', async () => {
       const ctx = createMockContext();
       const scripts = [
-        { type: 'dynamic', src: 'https://example.com/script.js', timestamp: 123 },
+        { type: 'dynamic', src: withPath(TEST_URLS.root, 'script.js'), timestamp: 123 },
         { type: 'dynamic', src: '(inline)', content: 'console.log("test")', timestamp: 456 },
       ];
       ctx.cdpSession!.send.mockResolvedValueOnce({

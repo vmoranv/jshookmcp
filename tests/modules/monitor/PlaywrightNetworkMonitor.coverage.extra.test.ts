@@ -17,6 +17,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMonitor';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function OriginalXHR() {}
 
@@ -122,18 +123,27 @@ describe('PlaywrightNetworkMonitor extra coverage', () => {
     await monitor.enable();
     (monitor as any).MAX_NETWORK_RECORDS = 1;
 
-    const req1 = makeRequest('https://api.test/first', 'GET', 'xhr');
-    const req2 = makeRequest('https://api.test/second', 'POST', 'fetch');
+    const req1 = makeRequest(buildTestUrl('api', { suffix: 'test', path: 'first' }), 'GET', 'xhr');
+    const req2 = makeRequest(
+      buildTestUrl('api', { suffix: 'test', path: 'second' }),
+      'POST',
+      'fetch',
+    );
 
     page.handlers.request?.(req1);
-    page.handlers.response?.(makeResponse(req1, 'https://api.test/first', 200));
+    page.handlers.response?.(
+      makeResponse(req1, buildTestUrl('api', { suffix: 'test', path: 'first' }), 200),
+    );
     page.handlers.request?.(req2);
     page.handlers.response?.(
-      Object.assign(makeResponse(req2, 'https://api.test/second', 202), {
-        body: async () => {
-          throw new Error('boom');
+      Object.assign(
+        makeResponse(req2, buildTestUrl('api', { suffix: 'test', path: 'second' }), 202),
+        {
+          body: async () => {
+            throw new Error('boom');
+          },
         },
-      }),
+      ),
     );
 
     await vi.waitFor(() => {
@@ -243,15 +253,33 @@ describe('PlaywrightNetworkMonitor extra coverage', () => {
     await cachingMonitor.enable();
     (cachingMonitor as any).MAX_BODY_CACHE_ENTRIES = 1;
 
-    const req1 = makeRequest('https://api.test/a.js', 'GET', 'script');
-    const req2 = makeRequest('https://api.test/b.bin', 'GET', 'fetch');
+    const req1 = makeRequest(
+      buildTestUrl('api', { suffix: 'test', path: 'a.js' }),
+      'GET',
+      'script',
+    );
+    const req2 = makeRequest(
+      buildTestUrl('api', { suffix: 'test', path: 'b.bin' }),
+      'GET',
+      'fetch',
+    );
     cachingPage.handlers.request!(req1);
     cachingPage.handlers.response!(
-      makeResponse(req1, 'https://api.test/a.js', 200, 'text/javascript'),
+      makeResponse(
+        req1,
+        buildTestUrl('api', { suffix: 'test', path: 'a.js' }),
+        200,
+        'text/javascript',
+      ),
     );
     cachingPage.handlers.request!(req2);
     cachingPage.handlers.response!(
-      makeResponse(req2, 'https://api.test/b.bin', 200, 'application/octet-stream'),
+      makeResponse(
+        req2,
+        buildTestUrl('api', { suffix: 'test', path: 'b.bin' }),
+        200,
+        'application/octet-stream',
+      ),
     );
 
     await vi.waitFor(async () => {
@@ -272,9 +300,16 @@ describe('PlaywrightNetworkMonitor extra coverage', () => {
     const monitor = new PlaywrightNetworkMonitor(page as any);
     await monitor.enable();
 
-    const req = makeRequest('https://api.test/valid', 'POST', 'xhr', '{"x":1}');
+    const req = makeRequest(
+      buildTestUrl('api', { suffix: 'test', path: 'valid' }),
+      'POST',
+      'xhr',
+      '{"x":1}',
+    );
     page.handlers.request!(req);
-    page.handlers.response!(makeResponse(req, 'https://api.test/valid', 201));
+    page.handlers.response!(
+      makeResponse(req, buildTestUrl('api', { suffix: 'test', path: 'valid' }), 201),
+    );
 
     expect(monitor.getRequests({ method: 'POST', url: '/valid' })).toHaveLength(1);
     expect(monitor.getResponses({ status: 201, url: '/valid' })).toHaveLength(1);

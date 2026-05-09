@@ -8,6 +8,7 @@ import {
   formatValueForJS,
   generateRecommendations,
 } from '@modules/emulator/EmulatorCodeGen';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 describe('EmulatorCodeGen', () => {
   it('generates both runtime code blocks when targetRuntime=both', () => {
@@ -117,7 +118,7 @@ describe('EmulatorCodeGen', () => {
 
   it('categorizeManifest groups location and screen paths', () => {
     const result = categorizeManifest({
-      'location.href': 'https://example.com',
+      'location.href': TEST_URLS.root,
       'screen.width': 1920,
     });
     expect(result.location).toHaveLength(1);

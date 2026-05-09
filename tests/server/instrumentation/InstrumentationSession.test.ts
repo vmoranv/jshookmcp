@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
 import { InstrumentationType } from '@server/instrumentation/types';
 import type { ToolResponse } from '@server/types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function jsonToolResponse(payload: unknown): ToolResponse {
   return {
@@ -102,7 +103,7 @@ describe('InstrumentationSession', () => {
       const op = manager.registerOperation(
         session.id,
         InstrumentationType.NETWORK_INTERCEPT,
-        'https://api.example.com/*',
+        withPath(TEST_URLS.api, '*'),
         {},
       );
       expect(op.type).toBe(InstrumentationType.NETWORK_INTERCEPT);
@@ -161,12 +162,12 @@ describe('InstrumentationSession', () => {
         {},
       );
       const artifact = manager.recordArtifact(op.id, {
-        url: 'https://api.example.com/login',
+        url: withPath(TEST_URLS.api, 'login'),
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: { user: 'test' },
       });
-      expect(artifact.data.url).toBe('https://api.example.com/login');
+      expect(artifact.data.url).toBe(withPath(TEST_URLS.api, 'login'));
       expect(artifact.data.method).toBe('POST');
     });
 
@@ -337,7 +338,7 @@ describe('InstrumentationSession', () => {
       const result = await manager.replayNetworkRequest(session.id, advancedHandlers, {
         requestId: 'req-1',
         methodOverride: 'POST',
-        urlOverride: 'https://example.com/api/login',
+        urlOverride: withPath(TEST_URLS.root, 'api/login'),
         dryRun: false,
       });
 
@@ -357,7 +358,7 @@ describe('InstrumentationSession', () => {
             success: true,
             dryRun: true,
             preview: {
-              url: 'https://example.com/api/login',
+              url: withPath(TEST_URLS.root, 'api/login'),
               method: 'POST',
               headers: { authorization: 'Bearer abc' },
               body: '{"user":"alice"}',
@@ -372,7 +373,7 @@ describe('InstrumentationSession', () => {
 
       expect(result.operation.status).toBe('completed');
       expect(result.artifacts[0]!.data.replayMode).toBe('dry-run');
-      expect(result.artifacts[0]!.data.url).toBe('https://example.com/api/login');
+      expect(result.artifacts[0]!.data.url).toBe(withPath(TEST_URLS.root, 'api/login'));
     });
 
     it('builds session snapshots for resources and exports', () => {

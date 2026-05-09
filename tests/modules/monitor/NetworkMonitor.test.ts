@@ -12,6 +12,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createMockSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -55,7 +56,7 @@ describe('NetworkMonitor', () => {
     emit('Network.requestWillBeSent', {
       requestId: 'req-1',
       request: {
-        url: 'https://vmoranv.github.io/jshookmcp/api/users',
+        url: withPath(TEST_URLS.root, 'api/users'),
         method: 'GET',
         headers: {},
         postData: '',
@@ -68,7 +69,7 @@ describe('NetworkMonitor', () => {
     emit('Network.responseReceived', {
       requestId: 'req-1',
       response: {
-        url: 'https://vmoranv.github.io/jshookmcp/api/users',
+        url: withPath(TEST_URLS.root, 'api/users'),
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
@@ -99,7 +100,7 @@ describe('NetworkMonitor', () => {
     emit('Network.requestWillBeSent', {
       requestId: 'req-pending',
       request: {
-        url: 'https://vmoranv.github.io/jshookmcp/api/pending',
+        url: withPath(TEST_URLS.root, 'api/pending'),
         method: 'GET',
         headers: {},
       },
@@ -131,7 +132,7 @@ describe('NetworkMonitor', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-ok',
-      request: { url: 'https://vmoranv.github.io/jshookmcp/api/ok', method: 'GET', headers: {} },
+      request: { url: withPath(TEST_URLS.root, 'api/ok'), method: 'GET', headers: {} },
       timestamp: 1,
       type: 'XHR',
       initiator: {},
@@ -139,7 +140,7 @@ describe('NetworkMonitor', () => {
     emit('Network.responseReceived', {
       requestId: 'req-ok',
       response: {
-        url: 'https://vmoranv.github.io/jshookmcp/api/ok',
+        url: withPath(TEST_URLS.root, 'api/ok'),
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -153,7 +154,7 @@ describe('NetworkMonitor', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-fail',
-      request: { url: 'https://vmoranv.github.io/jshookmcp/api/fail', method: 'GET', headers: {} },
+      request: { url: withPath(TEST_URLS.root, 'api/fail'), method: 'GET', headers: {} },
       timestamp: 3,
       type: 'XHR',
       initiator: {},
@@ -161,7 +162,7 @@ describe('NetworkMonitor', () => {
     emit('Network.responseReceived', {
       requestId: 'req-fail',
       response: {
-        url: 'https://vmoranv.github.io/jshookmcp/api/fail',
+        url: withPath(TEST_URLS.root, 'api/fail'),
         status: 500,
         statusText: 'FAIL',
         headers: {},
@@ -207,7 +208,7 @@ describe('NetworkMonitor', () => {
     emit('Network.requestWillBeSent', {
       requestId: 'js-a',
       request: {
-        url: 'https://vmoranv.github.io/jshookmcp/cdn/app.js',
+        url: withPath(TEST_URLS.root, 'cdn/app.js'),
         method: 'GET',
         headers: {},
       },
@@ -218,7 +219,7 @@ describe('NetworkMonitor', () => {
     emit('Network.responseReceived', {
       requestId: 'js-a',
       response: {
-        url: 'https://vmoranv.github.io/jshookmcp/cdn/app.js',
+        url: withPath(TEST_URLS.root, 'cdn/app.js'),
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -233,7 +234,7 @@ describe('NetworkMonitor', () => {
     emit('Network.requestWillBeSent', {
       requestId: 'js-b',
       request: {
-        url: 'https://vmoranv.github.io/jshookmcp/cdn/chunk.js?v=1',
+        url: withPath(TEST_URLS.root, 'cdn/chunk.js?v=1'),
         method: 'GET',
         headers: {},
       },
@@ -244,7 +245,7 @@ describe('NetworkMonitor', () => {
     emit('Network.responseReceived', {
       requestId: 'js-b',
       response: {
-        url: 'https://vmoranv.github.io/jshookmcp/cdn/chunk.js?v=1',
+        url: withPath(TEST_URLS.root, 'cdn/chunk.js?v=1'),
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -289,7 +290,7 @@ describe('NetworkMonitor', () => {
       emit('Network.requestWillBeSent', {
         requestId,
         request: {
-          url: `https://vmoranv.github.io/jshookmcp/cdn/${requestId}.js`,
+          url: withPath(TEST_URLS.root, `cdn/${requestId}.js`),
           method: 'GET',
           headers: {},
         },
@@ -300,7 +301,7 @@ describe('NetworkMonitor', () => {
       emit('Network.responseReceived', {
         requestId,
         response: {
-          url: `https://vmoranv.github.io/jshookmcp/cdn/${requestId}.js`,
+          url: withPath(TEST_URLS.root, `cdn/${requestId}.js`),
           status: 200,
           statusText: 'OK',
           headers: {},

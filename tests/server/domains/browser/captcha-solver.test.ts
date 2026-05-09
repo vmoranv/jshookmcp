@@ -1,6 +1,7 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { describe, expect, it, vi } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';
 import {
   handleCaptchaVisionSolve,
   handleWidgetChallengeSolve,
@@ -12,7 +13,7 @@ function createMockCollector(hasPage = true) {
         evaluate: vi
           .fn()
           .mockResolvedValue({ challengeType: 'image', taskKind: 'image', siteKey: '' }),
-        url: () => 'http://test.local/page',
+        url: () => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: 'page' }),
       }
     : null;
   return { getActivePage: vi.fn().mockResolvedValue(page) } as any;
@@ -164,7 +165,7 @@ describe('handleWidgetChallengeSolve', () => {
     // evaluate returns empty string for siteKey
     (collector.getActivePage as any).mockResolvedValue({
       evaluate: vi.fn().mockResolvedValue(''),
-      url: () => 'http://test.local',
+      url: () => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' }),
     });
 
     const result = parseJson<BrowserStatusResponse>(
@@ -178,7 +179,7 @@ describe('handleWidgetChallengeSolve', () => {
     const collector = createMockCollector(true);
     (collector.getActivePage as any).mockResolvedValue({
       evaluate: vi.fn().mockResolvedValue('test-site-key'),
-      url: () => 'http://test.local',
+      url: () => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' }),
     });
 
     const result = parseJson<BrowserStatusResponse>(

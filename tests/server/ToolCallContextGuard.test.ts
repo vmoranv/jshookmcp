@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 vi.mock('@src/utils/logger', () => ({
   logger: {
@@ -38,7 +39,7 @@ function makeResponse(text: string, isError = false): McpResponse {
 
 describe('ToolCallContextGuard', () => {
   const meta = {
-    url: 'https://vmoranv.github.io/jshookmcp/app',
+    url: withPath(TEST_URLS.root, 'app'),
     title: 'Example App',
     tabIndex: 2,
     pageId: 'page-2',
@@ -140,7 +141,7 @@ describe('ToolCallContextGuard', () => {
     const nonText = {
       isError: false,
       content: [
-        { type: 'image', url: 'https://vmoranv.github.io/jshookmcp/a.png' },
+        { type: 'image', url: withPath(TEST_URLS.root, 'a.png') },
         { type: 'text', text: 123 },
       ],
     } as unknown as McpResponse;
@@ -185,14 +186,22 @@ describe('ToolCallContextGuard', () => {
       getContextMeta: () => meta,
     }));
     const alreadyEnriched = makeResponse(
-      `{"success":true,"_tabContext":{"url":"https://old.example.com","title":"Old","tabIndex":0,"pageId":"p-0"}}`,
+      JSON.stringify({
+        success: true,
+        _tabContext: {
+          url: TEST_URLS.old,
+          title: 'Old',
+          tabIndex: 0,
+          pageId: 'p-0',
+        },
+      }),
     );
 
     const result = guard.enrichResponse('page_navigate', alreadyEnriched);
     const parsed = JSON.parse(getText(result));
 
     // Should preserve the original _tabContext, not inject a new one
-    expect(parsed._tabContext.url).toBe('https://old.example.com');
+    expect(parsed._tabContext.url).toBe(TEST_URLS.old);
     expect(parsed._tabContext.pageId).toBe('p-0');
   });
 

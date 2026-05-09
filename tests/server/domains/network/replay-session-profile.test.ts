@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 
 const lookupMock = vi.fn();
 
@@ -11,14 +12,14 @@ import type { SessionProfile } from '@internal-types/SessionProfile';
 
 const SESSION_PROFILE: SessionProfile = {
   cookies: [
-    { name: 'cf_clearance', value: 'abc123', domain: '.example.com' },
+    { name: 'cf_clearance', value: 'abc123', domain: `.${testUrls.TEST_HOSTS.root}` },
     { name: 'session', value: 'xyz', path: '/' },
   ],
   userAgent: 'TestBot/1.0',
   acceptLanguage: 'en-US,en;q=0.9',
-  referer: 'https://example.com/page',
+  referer: `${testUrls.TEST_URLS.root}/page`,
   platform: 'Win32',
-  origin: 'https://example.com',
+  origin: testUrls.TEST_URLS.root,
   collectedAt: Date.now(),
   ttlSec: 1800,
 };
@@ -36,7 +37,7 @@ describe('replayRequest sessionProfile', () => {
     fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
     await replayRequest(
-      { url: 'https://example.com/api', method: 'GET', headers: {} },
+      { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET', headers: {} },
       { requestId: 'r1', dryRun: false, sessionProfile: SESSION_PROFILE },
     );
 
@@ -50,7 +51,7 @@ describe('replayRequest sessionProfile', () => {
     fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
     await replayRequest(
-      { url: 'https://example.com/api', method: 'GET', headers: {} },
+      { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET', headers: {} },
       { requestId: 'r2', dryRun: false, sessionProfile: SESSION_PROFILE },
     );
 
@@ -64,7 +65,7 @@ describe('replayRequest sessionProfile', () => {
     fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
     await replayRequest(
-      { url: 'https://example.com/api', method: 'GET', headers: {} },
+      { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET', headers: {} },
       { requestId: 'r3', dryRun: false, sessionProfile: SESSION_PROFILE },
     );
 
@@ -78,7 +79,7 @@ describe('replayRequest sessionProfile', () => {
     fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
     await replayRequest(
-      { url: 'https://example.com/api', method: 'GET', headers: {} },
+      { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET', headers: {} },
       {
         requestId: 'r4',
         dryRun: false,
@@ -98,7 +99,7 @@ describe('replayRequest sessionProfile', () => {
 
     const emptyProfile: SessionProfile = { ...SESSION_PROFILE, cookies: [] };
     await replayRequest(
-      { url: 'https://example.com/api', method: 'GET', headers: {} },
+      { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET', headers: {} },
       { requestId: 'r5', dryRun: false, sessionProfile: emptyProfile },
     );
 
@@ -112,7 +113,7 @@ describe('replayRequest sessionProfile', () => {
     fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
     await replayRequest(
-      { url: 'https://example.com/api', method: 'GET', headers: { 'X-Test': '1' } },
+      { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET', headers: { 'X-Test': '1' } },
       { requestId: 'r6', dryRun: false },
     );
 
@@ -127,13 +128,13 @@ describe('replayRequest sessionProfile', () => {
     fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
     await replayRequest(
-      { url: 'https://example.com/api', method: 'GET', headers: {} },
+      { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET', headers: {} },
       { requestId: 'r7', dryRun: false, sessionProfile: SESSION_PROFILE },
     );
 
     const callArgs = fetchMock.mock.calls[0]!;
     const headers = (callArgs[1] as Record<string, unknown>).headers as Record<string, string>;
-    expect(headers['Referer']).toBe('https://example.com/page');
+    expect(headers['Referer']).toBe(`${testUrls.TEST_URLS.root}/page`);
   });
 
   it('does not override existing Referer from headerPatch', async () => {
@@ -141,17 +142,17 @@ describe('replayRequest sessionProfile', () => {
     fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
     await replayRequest(
-      { url: 'https://example.com/api', method: 'GET', headers: {} },
+      { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET', headers: {} },
       {
         requestId: 'r8',
         dryRun: false,
         sessionProfile: SESSION_PROFILE,
-        headerPatch: { Referer: 'https://other.com' },
+        headerPatch: { Referer: testUrls.TEST_URLS.other },
       },
     );
 
     const callArgs = fetchMock.mock.calls[0]!;
     const headers = (callArgs[1] as Record<string, unknown>).headers as Record<string, string>;
-    expect(headers['Referer']).toBe('https://other.com');
+    expect(headers['Referer']).toBe(testUrls.TEST_URLS.other);
   });
 });

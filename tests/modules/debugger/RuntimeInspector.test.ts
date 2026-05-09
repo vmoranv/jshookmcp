@@ -11,6 +11,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createSession() {
   return {
@@ -74,7 +75,7 @@ describe('RuntimeInspector', () => {
           callFrameId: 'cf-1',
           functionName: 'main',
           location: { scriptId: 's1', lineNumber: 1, columnNumber: 1 },
-          url: 'https://site/app.js',
+          url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
           scopeChain: [{ type: 'local', object: { type: 'object', objectId: 'obj-1' } }],
         },
       ],
@@ -128,7 +129,7 @@ describe('RuntimeInspector', () => {
           callFrameId: 'cf-1',
           functionName: 'main',
           location: { scriptId: 's1', lineNumber: 1, columnNumber: 1 },
-          url: 'https://site/app.js',
+          url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
           scopeChain: [],
         },
       ],

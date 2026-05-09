@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SourcemapToolHandlersCommon } from '@server/domains/sourcemap/handlers.impl.sourcemap-common';
+import { buildTestUrl, TEST_HOSTS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestableCommon extends SourcemapToolHandlersCommon {
   constructor() {
@@ -65,8 +66,11 @@ describe('SourcemapToolHandlersCommon', () => {
 
     it('returns sourcePath when it has a protocol (ignores sourceRoot)', async () => {
       expect(
-        handlers.testCombineSourceRoot('https://example.com/root', 'http://other.test/a.js'),
-      ).toBe('http://other.test/a.js');
+        handlers.testCombineSourceRoot(
+          withPath(TEST_URLS.root, 'root'),
+          buildTestUrl('other', { scheme: 'http', suffix: 'test', path: 'a.js' }),
+        ),
+      ).toBe(buildTestUrl('other', { scheme: 'http', suffix: 'test', path: 'a.js' }));
     });
 
     it('returns sourcePath when it starts with "/" (ignores sourceRoot)', async () => {
@@ -74,14 +78,14 @@ describe('SourcemapToolHandlersCommon', () => {
     });
 
     it('resolves relative paths against protocol sourceRoot (directory semantics via trailing slash)', async () => {
-      expect(handlers.testCombineSourceRoot('https://example.com/root', 'a.js')).toBe(
-        'https://example.com/root/a.js',
+      expect(handlers.testCombineSourceRoot(withPath(TEST_URLS.root, 'root'), 'a.js')).toBe(
+        withPath(TEST_URLS.root, 'root/a.js'),
       );
     });
 
     it('handles protocol sourceRoot that already ends with "/"', async () => {
-      expect(handlers.testCombineSourceRoot('https://example.com/root/', 'a.js')).toBe(
-        'https://example.com/root/a.js',
+      expect(handlers.testCombineSourceRoot(withPath(TEST_URLS.root, 'root/'), 'a.js')).toBe(
+        withPath(TEST_URLS.root, 'root/a.js'),
       );
     });
 
@@ -115,9 +119,9 @@ describe('SourcemapToolHandlersCommon', () => {
     });
 
     it('normalizes full URLs into hostname + pathname', async () => {
-      expect(handlers.testNormalizeSourcePath('https://example.com/path/file.js?x=1#hash', 0)).toBe(
-        'example.com/path/file.js',
-      );
+      expect(
+        handlers.testNormalizeSourcePath(withPath(TEST_URLS.root, 'path/file.js?x=1#hash'), 0),
+      ).toBe(`${TEST_HOSTS.root}/path/file.js`);
     });
 
     it('strips query and hash fragments from non-URL paths', async () => {
@@ -176,7 +180,7 @@ describe('SourcemapToolHandlersCommon', () => {
 
   describe('safeTarget', () => {
     it('strips protocol and replaces non-alnum with "_"', async () => {
-      expect(handlers.testSafeTarget('https://example.com/path/file.js')).toBe(
+      expect(handlers.testSafeTarget(withPath(TEST_URLS.root, 'path/file.js'))).toBe(
         'example_com_path_file_js',
       );
     });
@@ -186,7 +190,7 @@ describe('SourcemapToolHandlersCommon', () => {
     });
 
     it('truncates to 48 characters', async () => {
-      const value = `https://example.com/${'a'.repeat(100)}`;
+      const value = withPath(TEST_URLS.root, `${'a'.repeat(100)}`);
       const result = handlers.testSafeTarget(value);
       expect(result.length).toBeLessThanOrEqual(48);
     });
@@ -201,7 +205,7 @@ describe('SourcemapToolHandlersCommon', () => {
     });
 
     it('returns false when no protocol prefix is present', async () => {
-      expect(handlers.testHasProtocol('example.com/path')).toBe(false);
+      expect(handlers.testHasProtocol(`${TEST_HOSTS.root}/path`)).toBe(false);
       expect(handlers.testHasProtocol('/absolute/path')).toBe(false);
       expect(handlers.testHasProtocol('relative/path')).toBe(false);
     });

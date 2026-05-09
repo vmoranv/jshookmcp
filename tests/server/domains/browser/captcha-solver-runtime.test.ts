@@ -1,5 +1,6 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -15,7 +16,7 @@ vi.mock('@utils/logger', () => ({
 function createPage(overrides: Record<string, any> = {}) {
   return {
     evaluate: vi.fn(),
-    url: vi.fn(() => 'http://test.local/page'),
+    url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: 'page' })),
     ...overrides,
   };
 }
@@ -46,7 +47,7 @@ describe('captcha-solver runtime coverage', () => {
     originalFetch = (globalThis as any).fetch;
     delete process.env.CAPTCHA_API_KEY;
     delete process.env.CAPTCHA_PROVIDER;
-    process.env.CAPTCHA_SOLVER_BASE_URL = 'https://solver.example';
+    process.env.CAPTCHA_SOLVER_BASE_URL = buildTestUrl('solver', { suffix: 'example', path: '/' });
     process.env.CAPTCHA_POLL_INTERVAL_MS = '0';
   });
 

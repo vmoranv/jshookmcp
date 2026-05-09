@@ -2,6 +2,7 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { StreamingToolHandlersWs } from '@server/domains/streaming/handlers.impl.streaming-ws';
 import type { WsFrameRecord } from '@server/domains/streaming/handlers.impl.streaming-base';
+import * as testUrls from '@tests/shared/test-urls';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -672,14 +673,14 @@ describe('StreamingToolHandlersWs', () => {
     it('returns tracked connections sorted by createdTimestamp', async () => {
       handler.wsConnectionsForTest.set('b', {
         requestId: 'b',
-        url: 'wss://second.com',
+        url: testUrls.TEST_WS_URLS.second,
         status: 'open',
         framesCount: 3,
         createdTimestamp: 200,
       } as any);
       handler.wsConnectionsForTest.set('a', {
         requestId: 'a',
-        url: 'wss://first.com',
+        url: testUrls.TEST_WS_URLS.first,
         status: 'closed',
         framesCount: 1,
         createdTimestamp: 100,
@@ -697,7 +698,7 @@ describe('StreamingToolHandlersWs', () => {
     it('includes required fields in each connection', async () => {
       handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
-        url: 'wss://example.com/ws',
+        url: `${testUrls.TEST_WS_URLS.root}/ws`,
         status: 'open',
         framesCount: 42,
         createdTimestamp: 1,
@@ -707,7 +708,7 @@ describe('StreamingToolHandlersWs', () => {
       const conn = body.connections[0];
 
       expect(conn).toHaveProperty('requestId', 'r1');
-      expect(conn).toHaveProperty('url', 'wss://example.com/ws');
+      expect(conn).toHaveProperty('url', `${testUrls.TEST_WS_URLS.root}/ws`);
       expect(conn).toHaveProperty('status', 'open');
       expect(conn).toHaveProperty('framesCount', 42);
     });
@@ -809,7 +810,7 @@ describe('StreamingToolHandlersWs', () => {
       // Manually add a connection with non-matching URL
       handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
-        url: 'wss://other.com',
+        url: testUrls.TEST_WS_URLS.other,
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
@@ -828,7 +829,7 @@ describe('StreamingToolHandlersWs', () => {
 
       handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
-        url: 'wss://api.example.com/ws',
+        url: `${testUrls.TEST_WS_URLS.api}/ws`,
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
@@ -1069,17 +1070,17 @@ describe('StreamingToolHandlersWs', () => {
       it('tracks new connection', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
-          url: 'wss://example.com/ws',
+          url: `${testUrls.TEST_WS_URLS.root}/ws`,
         });
 
         expect(handler.wsConnectionsForTest.has('ws-1')).toBe(true);
         const conn = handler.wsConnectionsForTest.get('ws-1')!;
-        expect(conn.url).toBe('wss://example.com/ws');
+        expect(conn.url).toBe(`${testUrls.TEST_WS_URLS.root}/ws`);
         expect(conn.status).toBe('connecting');
       });
 
       it('ignores event without requestId', async () => {
-        listeners['Network.webSocketCreated']!({ url: 'wss://example.com/ws' });
+        listeners['Network.webSocketCreated']!({ url: `${testUrls.TEST_WS_URLS.root}/ws` });
         expect(handler.wsConnectionsForTest.size).toBe(0);
       });
 
@@ -1091,7 +1092,7 @@ describe('StreamingToolHandlersWs', () => {
       it('preserves existing connection data on re-created event', async () => {
         handler.wsConnectionsForTest.set('ws-1', {
           requestId: 'ws-1',
-          url: 'wss://old.com',
+          url: testUrls.TEST_WS_URLS.old,
           status: 'open',
           framesCount: 5,
           createdTimestamp: 100,
@@ -1100,11 +1101,11 @@ describe('StreamingToolHandlersWs', () => {
 
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
-          url: 'wss://new.com',
+          url: testUrls.TEST_WS_URLS.new,
         });
 
         const conn = handler.wsConnectionsForTest.get('ws-1')!;
-        expect(conn.url).toBe('wss://new.com');
+        expect(conn.url).toBe(testUrls.TEST_WS_URLS.new);
         expect(conn.status).toBe('open');
         expect(conn.framesCount).toBe(5);
       });
@@ -1114,7 +1115,7 @@ describe('StreamingToolHandlersWs', () => {
       it('updates connection status to closed', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
-          url: 'wss://example.com/ws',
+          url: `${testUrls.TEST_WS_URLS.root}/ws`,
         });
 
         listeners['Network.webSocketClosed']!({
@@ -1157,7 +1158,7 @@ describe('StreamingToolHandlersWs', () => {
       it('updates handshakeStatus and sets open for successful status', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
-          url: 'wss://example.com/ws',
+          url: `${testUrls.TEST_WS_URLS.root}/ws`,
         });
 
         listeners['Network.webSocketHandshakeResponseReceived']!({
@@ -1173,7 +1174,7 @@ describe('StreamingToolHandlersWs', () => {
       it('sets error for 4xx handshake status', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
-          url: 'wss://example.com/ws',
+          url: `${testUrls.TEST_WS_URLS.root}/ws`,
         });
 
         listeners['Network.webSocketHandshakeResponseReceived']!({
@@ -1188,7 +1189,7 @@ describe('StreamingToolHandlersWs', () => {
       it('sets open for 1xx-3xx status range', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
-          url: 'wss://example.com/ws',
+          url: `${testUrls.TEST_WS_URLS.root}/ws`,
         });
 
         listeners['Network.webSocketHandshakeResponseReceived']!({
@@ -1220,7 +1221,7 @@ describe('StreamingToolHandlersWs', () => {
       it('captures sent frame', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
-          url: 'wss://example.com/ws',
+          url: `${testUrls.TEST_WS_URLS.root}/ws`,
         });
 
         listeners['Network.webSocketFrameSent']!({
@@ -1239,7 +1240,7 @@ describe('StreamingToolHandlersWs', () => {
       it('captures received frame', async () => {
         listeners['Network.webSocketCreated']!({
           requestId: 'ws-1',
-          url: 'wss://example.com/ws',
+          url: `${testUrls.TEST_WS_URLS.root}/ws`,
         });
 
         listeners['Network.webSocketFrameReceived']!({
@@ -1269,11 +1270,11 @@ describe('StreamingToolHandlersWs', () => {
 
       listeners['Network.webSocketCreated']!({
         requestId: 'match',
-        url: 'wss://api.example.com/ws',
+        url: `${testUrls.TEST_WS_URLS.api}/ws`,
       });
       listeners['Network.webSocketCreated']!({
         requestId: 'no-match',
-        url: 'wss://other.com/ws',
+        url: `${testUrls.TEST_WS_URLS.other}/ws`,
       });
 
       expect(handler.wsConnectionsForTest.has('match')).toBe(true);

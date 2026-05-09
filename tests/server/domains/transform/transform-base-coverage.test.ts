@@ -18,6 +18,7 @@ import {
   DEAD_CODE_IF_FALSE_WITH_ELSE,
   TransformLimit,
 } from '@server/domains/transform/handlers.impl.transform-base';
+import { TEST_HTTP_URLS, withPath } from '@tests/shared/test-urls';
 
 // vi.hoisted creates refs BEFORE vi.mock hoisting so factories can close over them
 const getScriptSourceMock = vi.hoisted(() =>
@@ -425,7 +426,7 @@ describe('TransformToolHandlersBase — additional coverage', () => {
       // This bypasses the collector.getFileByUrl and page.evaluate fallbacks
       vi.mocked(getScriptSourceMock).mockResolvedValueOnce({
         source: 'const x = 1;',
-        url: 'http://example.com/script.js',
+        url: withPath(TEST_HTTP_URLS.root, 'script.js'),
       });
 
       const source = await base.testResolveScriptSource('some-script-id');

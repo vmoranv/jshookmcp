@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -12,6 +13,7 @@ vi.mock('@utils/logger', () => ({
 }));
 
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor.impl';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createMockSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -53,7 +55,7 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-1',
-      request: { url: 'https://example.com/api', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET', headers: {} },
       timestamp: 1,
       type: 'XHR',
       initiator: {},
@@ -61,7 +63,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'req-1',
       response: {
-        url: 'https://example.com/api',
+        url: `${testUrls.TEST_URLS.root}/api`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -181,7 +183,7 @@ describe('NetworkMonitor impl', () => {
     for (let i = 0; i < 5; i++) {
       emit('Network.requestWillBeSent', {
         requestId: `req-${i}`,
-        request: { url: `https://example.com/${i}`, method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, `${i}`), method: 'GET', headers: {} },
         timestamp: i,
       });
     }
@@ -202,7 +204,7 @@ describe('NetworkMonitor impl', () => {
       emit('Network.responseReceived', {
         requestId: `req-${i}`,
         response: {
-          url: `https://example.com/${i}`,
+          url: withPath(TEST_URLS.root, `${i}`),
           status: 200,
           statusText: 'OK',
           headers: {},
@@ -232,7 +234,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'req-cache',
       response: {
-        url: 'https://example.com/cached',
+        url: `${testUrls.TEST_URLS.root}/cached`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -256,7 +258,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'req-sw',
       response: {
-        url: 'https://example.com/sw',
+        url: `${testUrls.TEST_URLS.root}/sw`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -315,7 +317,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'req-fromcache',
       response: {
-        url: 'https://example.com/cached',
+        url: `${testUrls.TEST_URLS.root}/cached`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -343,7 +345,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'req-big',
       response: {
-        url: 'https://example.com/big',
+        url: `${testUrls.TEST_URLS.root}/big`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -381,7 +383,7 @@ describe('NetworkMonitor impl', () => {
       emit('Network.responseReceived', {
         requestId: `req-pre${i}`,
         response: {
-          url: `https://example.com/pre${i}`,
+          url: withPath(TEST_URLS.root, `pre${i}`),
           status: 200,
           statusText: 'OK',
           headers: {},
@@ -405,7 +407,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'req-new',
       response: {
-        url: 'https://example.com/new',
+        url: `${testUrls.TEST_URLS.root}/new`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -435,7 +437,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'req-err',
       response: {
-        url: 'https://example.com/err',
+        url: `${testUrls.TEST_URLS.root}/err`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -464,7 +466,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'req-bad-payload',
       response: {
-        url: 'https://example.com/bad',
+        url: `${testUrls.TEST_URLS.root}/bad`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -531,7 +533,7 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'pending-req',
-      request: { url: 'https://example.com/pending', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/pending`, method: 'GET', headers: {} },
       timestamp: 1,
     });
 
@@ -550,13 +552,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-fail',
-      request: { url: 'https://example.com/fail', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/fail`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-fail',
       response: {
-        url: 'https://example.com/fail',
+        url: `${testUrls.TEST_URLS.root}/fail`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -581,13 +583,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-malformed',
-      request: { url: 'https://example.com/malformed', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/malformed`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-malformed',
       response: {
-        url: 'https://example.com/malformed',
+        url: `${testUrls.TEST_URLS.root}/malformed`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -612,13 +614,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-cache',
-      request: { url: 'https://example.com/cache', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/cache`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-cache',
       response: {
-        url: 'https://example.com/cache',
+        url: `${testUrls.TEST_URLS.root}/cache`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -652,13 +654,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-b64',
-      request: { url: 'https://example.com/b64', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/b64`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-b64',
       response: {
-        url: 'https://example.com/b64',
+        url: `${testUrls.TEST_URLS.root}/b64`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -694,13 +696,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-html',
-      request: { url: 'https://example.com/index.html', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/index.html`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-html',
       response: {
-        url: 'https://example.com/index.html',
+        url: `${testUrls.TEST_URLS.root}/index.html`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -724,13 +726,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-js',
-      request: { url: 'https://example.com/app.js', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/app.js`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-js',
       response: {
-        url: 'https://example.com/app.js',
+        url: `${testUrls.TEST_URLS.root}/app.js`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -761,13 +763,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-js-url',
-      request: { url: 'https://cdn.example.com/lib.min.js', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.cdn}/lib.min.js`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-js-url',
       response: {
-        url: 'https://cdn.example.com/lib.min.js',
+        url: `${testUrls.TEST_URLS.cdn}/lib.min.js`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -796,13 +798,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-js-query',
-      request: { url: 'https://example.com/bundle.js?v=1.2.3', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/bundle.js?v=1.2.3`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-js-query',
       response: {
-        url: 'https://example.com/bundle.js?v=1.2.3',
+        url: `${testUrls.TEST_URLS.root}/bundle.js?v=1.2.3`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -831,13 +833,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-js-null',
-      request: { url: 'https://example.com/missing.js', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/missing.js`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-js-null',
       response: {
-        url: 'https://example.com/missing.js',
+        url: `${testUrls.TEST_URLS.root}/missing.js`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -865,13 +867,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'req-js-b64',
-      request: { url: 'https://example.com/b64.js', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/b64.js`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'req-js-b64',
       response: {
-        url: 'https://example.com/b64.js',
+        url: `${testUrls.TEST_URLS.root}/b64.js`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -905,12 +907,12 @@ describe('NetworkMonitor impl', () => {
     await monitor.enable();
     emit('Network.requestWillBeSent', {
       requestId: 'req-a',
-      request: { url: 'https://api.example.com/data', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.api}/data`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.requestWillBeSent', {
       requestId: 'req-b',
-      request: { url: 'https://other.example.com/data', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.other}/data`, method: 'GET', headers: {} },
       timestamp: 2,
     });
 
@@ -927,12 +929,12 @@ describe('NetworkMonitor impl', () => {
     await monitor.enable();
     emit('Network.requestWillBeSent', {
       requestId: 'req-get',
-      request: { url: 'https://example.com/', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.requestWillBeSent', {
       requestId: 'req-post',
-      request: { url: 'https://example.com/', method: 'POST', headers: {}, postData: '{}' },
+      request: { url: `${testUrls.TEST_URLS.root}/`, method: 'POST', headers: {}, postData: '{}' },
       timestamp: 2,
     });
 
@@ -950,7 +952,7 @@ describe('NetworkMonitor impl', () => {
     for (let i = 0; i < 5; i++) {
       emit('Network.requestWillBeSent', {
         requestId: `req-${i}`,
-        request: { url: `https://example.com/${i}`, method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, `${i}`), method: 'GET', headers: {} },
         timestamp: i,
       });
     }
@@ -984,8 +986,8 @@ describe('NetworkMonitor impl', () => {
         timestamp: 1,
       });
 
-    emitResponse('res-1', 'https://api.example.com/', 200);
-    emitResponse('res-2', 'https://other.example.com/', 200);
+    emitResponse('res-1', `${testUrls.TEST_URLS.api}/`, 200);
+    emitResponse('res-2', `${testUrls.TEST_URLS.other}/`, 200);
 
     const filtered = monitor.getResponses({ url: 'api.example' });
     expect(filtered).toHaveLength(1);
@@ -1002,7 +1004,7 @@ describe('NetworkMonitor impl', () => {
       emit('Network.responseReceived', {
         requestId: id,
         response: {
-          url: 'https://example.com/' + id,
+          url: `${testUrls.TEST_URLS.root}/` + id,
           status,
           statusText: status === 200 ? 'OK' : 'Not Found',
           headers: {},
@@ -1032,7 +1034,7 @@ describe('NetworkMonitor impl', () => {
       emit('Network.responseReceived', {
         requestId: `res-${i}`,
         response: {
-          url: `https://example.com/${i}`,
+          url: withPath(TEST_URLS.root, `${i}`),
           status: 200,
           statusText: 'OK',
           headers: {},
@@ -1065,19 +1067,19 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'r1',
-      request: { url: 'https://a.com', method: 'GET', headers: {} },
+      request: { url: testUrls.TEST_URLS.a, method: 'GET', headers: {} },
       timestamp: 1,
       type: 'Script',
     });
     emit('Network.requestWillBeSent', {
       requestId: 'r2',
-      request: { url: 'https://b.com', method: 'GET', headers: {} },
+      request: { url: testUrls.TEST_URLS.b, method: 'GET', headers: {} },
       timestamp: 2,
       type: 'Script',
     });
     emit('Network.requestWillBeSent', {
       requestId: 'r3',
-      request: { url: 'https://c.com', method: 'POST', headers: {} },
+      request: { url: testUrls.TEST_URLS.c, method: 'POST', headers: {} },
       timestamp: 3,
     });
 
@@ -1085,7 +1087,7 @@ describe('NetworkMonitor impl', () => {
       emit('Network.responseReceived', {
         requestId: id,
         response: {
-          url: 'https://example.com/' + id,
+          url: `${testUrls.TEST_URLS.root}/` + id,
           status,
           statusText: status === 200 ? 'OK' : 'Not Found',
           headers: {},
@@ -1121,13 +1123,13 @@ describe('NetworkMonitor impl', () => {
 
     emit('Network.requestWillBeSent', {
       requestId: 'r1',
-      request: { url: 'https://a.com', method: 'GET', headers: {} },
+      request: { url: testUrls.TEST_URLS.a, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'r1',
       response: {
-        url: 'https://a.com',
+        url: testUrls.TEST_URLS.a,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -1241,8 +1243,8 @@ describe('NetworkMonitor impl', () => {
     session.send.mockResolvedValueOnce({
       result: {
         value: [
-          { method: 'POST', url: 'https://example.com/api' },
-          { method: 'GET', url: 'https://example.com/data' },
+          { method: 'POST', url: `${testUrls.TEST_URLS.root}/api` },
+          { method: 'GET', url: `${testUrls.TEST_URLS.root}/data` },
         ],
       },
     });
@@ -1268,7 +1270,7 @@ describe('NetworkMonitor impl', () => {
     session.send.mockResolvedValueOnce({
       result: {
         value: [
-          { method: 'POST', url: 'https://example.com/api' },
+          { method: 'POST', url: `${testUrls.TEST_URLS.root}/api` },
           'invalid',
           null,
           { method: 'GET' },
@@ -1318,7 +1320,7 @@ describe('NetworkMonitor impl', () => {
 
     session.send.mockResolvedValueOnce({
       result: {
-        value: [{ method: 'GET', url: 'https://example.com/data' }],
+        value: [{ method: 'GET', url: `${testUrls.TEST_URLS.root}/data` }],
       },
     });
 
@@ -1352,7 +1354,7 @@ describe('NetworkMonitor impl', () => {
 
     session.send.mockResolvedValueOnce({
       result: {
-        value: [{ method: 'GET', url: 'https://example.com/' }, 'invalid', null],
+        value: [{ method: 'GET', url: `${testUrls.TEST_URLS.root}/` }, 'invalid', null],
       },
     });
 
@@ -1513,13 +1515,13 @@ describe('NetworkMonitor impl', () => {
     await monitor.enable();
     emit('Network.requestWillBeSent', {
       requestId: 'r1',
-      request: { url: 'https://example.com/', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/`, method: 'GET', headers: {} },
       timestamp: 1,
     });
     emit('Network.responseReceived', {
       requestId: 'r1',
       response: {
-        url: 'https://example.com/',
+        url: `${testUrls.TEST_URLS.root}/`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -1550,7 +1552,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.requestWillBeSent', {
       requestId: 'req-post',
       request: {
-        url: 'https://example.com/api',
+        url: `${testUrls.TEST_URLS.root}/api`,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         postData: '{"key":"value"}',
@@ -1573,7 +1575,7 @@ describe('NetworkMonitor impl', () => {
     await monitor.enable();
     emit('Network.requestWillBeSent', {
       requestId: 'req-no-opt',
-      request: { url: 'https://example.com/', method: 'GET', headers: {} },
+      request: { url: `${testUrls.TEST_URLS.root}/`, method: 'GET', headers: {} },
       timestamp: 1,
     });
 
@@ -1593,7 +1595,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.requestWillBeSent', {
       requestId: 'bad-postdata',
       request: {
-        url: 'https://example.com/',
+        url: `${testUrls.TEST_URLS.root}/`,
         method: 'POST',
         headers: {},
         postData: 123, // should be string
@@ -1612,7 +1614,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'bad-mime',
       response: {
-        url: 'https://example.com/',
+        url: `${testUrls.TEST_URLS.root}/`,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -1635,7 +1637,7 @@ describe('NetworkMonitor impl', () => {
     emit('Network.responseReceived', {
       requestId: 'bad-status',
       response: {
-        url: 'https://example.com/',
+        url: `${testUrls.TEST_URLS.root}/`,
         status: '200', // should be number
         statusText: 'OK',
         headers: {},

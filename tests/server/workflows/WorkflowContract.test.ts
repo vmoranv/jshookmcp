@@ -6,6 +6,7 @@ import {
   sequenceStep,
   toolStep,
 } from '@server/workflows/WorkflowContract';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 const alwaysTruePredicate = () => true;
 
@@ -16,7 +17,7 @@ describe('workflows/WorkflowContract', () => {
 
   it('builds tool nodes with input, retry, timeout, and inputFrom', () => {
     const node = toolStep('tool-1', 'page_navigate', {
-      input: { url: 'https://example.com' },
+      input: { url: TEST_URLS.root },
       inputFrom: { copied: 'prev.result' },
       retry: { maxAttempts: 2, backoffMs: 10, multiplier: 2 },
       timeoutMs: 500,
@@ -26,7 +27,7 @@ describe('workflows/WorkflowContract', () => {
       kind: 'tool',
       id: 'tool-1',
       toolName: 'page_navigate',
-      input: { url: 'https://example.com' },
+      input: { url: TEST_URLS.root },
       inputFrom: { copied: 'prev.result' },
       retry: { maxAttempts: 2, backoffMs: 10, multiplier: 2 },
       timeoutMs: 500,
@@ -36,7 +37,7 @@ describe('workflows/WorkflowContract', () => {
   it('builds nested sequence and parallel graphs with defaults', () => {
     const node = sequenceStep('root', (s) => {
       s.tool('tool-1', 'page_navigate', {
-        input: { url: 'https://example.com' },
+        input: { url: TEST_URLS.root },
       });
       s.parallel('parallel-1', (p) => {
         p.tool('tool-2', 'page_click');
@@ -51,7 +52,7 @@ describe('workflows/WorkflowContract', () => {
           kind: 'tool',
           id: 'tool-1',
           toolName: 'page_navigate',
-          input: { url: 'https://example.com' },
+          input: { url: TEST_URLS.root },
           inputFrom: undefined,
           retry: undefined,
           timeoutMs: undefined,

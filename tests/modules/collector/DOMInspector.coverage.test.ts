@@ -12,6 +12,7 @@ vi.mock('@src/utils/logger', () => ({
 
 import type { CDPSession } from 'rebrowser-puppeteer-core';
 import { DOMInspector } from '@modules/collector/DOMInspector';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function NoopMutationObserver() {}
 
@@ -454,7 +455,7 @@ describe('DOMInspector – additional coverage', () => {
       tagName: 'A',
       id: 'docs',
       textContent: 'Read docs',
-      href: 'https://example.com/docs',
+      href: withPath(TEST_URLS.root, 'docs'),
     });
 
     const observerInstances: Array<{ observe: any; disconnect: any }> = [];

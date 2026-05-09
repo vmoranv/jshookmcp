@@ -19,6 +19,7 @@ import type {
   BrowserFetchResult,
   ExtractedGraphQLQuery,
 } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('GraphQL runtime shared constants', () => {
   it('GRAPHQL_MAX_PREVIEW_CHARS is a positive number', async () => {
@@ -101,7 +102,7 @@ describe('shared type interfaces', () => {
   it('ScriptReplaceRule has required fields', async () => {
     const rule: ScriptReplaceRule = {
       id: 'test-id',
-      url: 'https://example.com/script.js',
+      url: withPath(TEST_URLS.root, 'script.js'),
       replacement: 'console.log("replaced")',
       matchType: 'contains',
       createdAt: Date.now(),
@@ -113,12 +114,12 @@ describe('shared type interfaces', () => {
 
   it('InterceptRequest shape is correct', async () => {
     const request: InterceptRequest = {
-      url: () => 'https://example.com/script.js',
+      url: () => withPath(TEST_URLS.root, 'script.js'),
       resourceType: () => 'script',
       continue: async () => {},
       respond: async () => {},
     };
-    expect(request.url()).toBe('https://example.com/script.js');
+    expect(request.url()).toBe(withPath(TEST_URLS.root, 'script.js'));
     expect(request.resourceType()).toBe('script');
   });
 
@@ -191,7 +192,7 @@ describe('shared type interfaces', () => {
   it('ExtractedGraphQLQuery has required fields', async () => {
     const query: ExtractedGraphQLQuery = {
       source: 'window.__fetchRequests',
-      url: 'https://example.com/graphql',
+      url: withPath(TEST_URLS.root, 'graphql'),
       method: 'POST',
       operationName: 'GetUser',
       query: 'query GetUser { user { name } }',
@@ -205,7 +206,7 @@ describe('shared type interfaces', () => {
   it('ExtractedGraphQLQuery allows null operationName and timestamp', async () => {
     const query: ExtractedGraphQLQuery = {
       source: 'window.__xhrRequests',
-      url: 'https://example.com/graphql',
+      url: withPath(TEST_URLS.root, 'graphql'),
       method: 'POST',
       operationName: null,
       query: '{ viewer { id } }',

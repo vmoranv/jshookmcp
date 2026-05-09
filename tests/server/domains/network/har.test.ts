@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 import { buildHar } from '@server/domains/network/har';
 import type { BuildHarParams, Har, HarEntry } from '@server/domains/network/har';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -15,7 +16,7 @@ type RawHarResponse = Exclude<ReturnType<GetResponseFn>, undefined>;
 function makeRequest(overrides: Partial<RawHarRequest> = {}): RawHarRequest {
   return {
     requestId: 'req-1',
-    url: 'https://example.com/api/data',
+    url: buildTestUrl('', { path: 'api/data' }),
     method: 'GET',
     headers: {},
     timestamp: 1700000000,
@@ -110,7 +111,12 @@ describe('buildHar', () => {
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
-      requests: [makeRequest({ method: 'POST', url: 'https://api.test/v1/submit' })],
+      requests: [
+        makeRequest({
+          method: 'POST',
+          url: buildTestUrl('api', { suffix: 'test', path: 'v1/submit' }),
+        }),
+      ],
       getResponse: getResponseMock,
       getResponseBody: getResponseBodyMock,
       includeBodies: false,
@@ -118,7 +124,7 @@ describe('buildHar', () => {
 
     const entry = getEntry(har);
     expect(entry.request.method).toBe('POST');
-    expect(entry.request.url).toBe('https://api.test/v1/submit');
+    expect(entry.request.url).toBe(buildTestUrl('api', { suffix: 'test', path: 'v1/submit' }));
     expect(entry.request.httpVersion).toBe('HTTP/1.1');
   });
 
@@ -160,7 +166,7 @@ describe('buildHar', () => {
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
-      requests: [makeRequest({ url: 'https://example.com/api?foo=bar&baz=42' })],
+      requests: [makeRequest({ url: buildTestUrl('', { path: 'api?foo=bar&baz=42' }) })],
       getResponse: getResponseMock,
       getResponseBody: getResponseBodyMock,
       includeBodies: false,
@@ -176,7 +182,7 @@ describe('buildHar', () => {
     getResponseBodyMock.mockResolvedValue(null);
 
     const har = await buildHar({
-      requests: [makeRequest({ url: 'https://example.com/plain' })],
+      requests: [makeRequest({ url: buildTestUrl('', { path: 'plain' }) })],
       getResponse: getResponseMock,
       getResponseBody: getResponseBodyMock,
       includeBodies: false,
@@ -385,7 +391,7 @@ describe('buildHar', () => {
     getResponseMock.mockReturnValue(
       makeResponse({
         status: 302,
-        headers: { location: 'https://example.com/redirected' },
+        headers: { location: buildTestUrl('', { path: 'redirected' }) },
       }),
     );
     getResponseBodyMock.mockResolvedValue(null);
@@ -397,7 +403,7 @@ describe('buildHar', () => {
       includeBodies: false,
     });
 
-    expect(getEntry(har).response.redirectURL).toBe('https://example.com/redirected');
+    expect(getEntry(har).response.redirectURL).toBe(buildTestUrl('', { path: 'redirected' }));
   });
 
   // -----------------------------------------------------------------------
@@ -567,7 +573,7 @@ describe('buildHar', () => {
   // -----------------------------------------------------------------------
   it('fetches bodies in batches of 8 to limit concurrency', async () => {
     const requests = Array.from({ length: 20 }, (_, i) =>
-      makeRequest({ requestId: `r-${i}`, url: `https://example.com/${i}` }),
+      makeRequest({ requestId: `r-${i}`, url: buildTestUrl('', { path: `${i}` }) }),
     );
 
     getResponseMock.mockReturnValue(makeResponse());

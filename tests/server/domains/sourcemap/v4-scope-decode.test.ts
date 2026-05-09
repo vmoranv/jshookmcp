@@ -6,6 +6,7 @@ import {
 } from '@server/domains/sourcemap/handlers/shared';
 import { SourcemapToolHandlers } from '@server/domains/sourcemap/handlers';
 import { createCodeCollectorMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const globalFetch = vi.fn();
@@ -118,7 +119,7 @@ describe('ECMA-426 Source Map V4 — VLQ decoding', () => {
 
       const result = parseJson<any>(
         await handlers.handleSourcemapParseV4({
-          sourceMapUrl: 'https://example.com/app.js.map',
+          sourceMapUrl: withPath(TEST_URLS.root, 'app.js.map'),
         }),
       );
 
@@ -158,7 +159,7 @@ describe('ECMA-426 Source Map V4 — VLQ decoding', () => {
 
       const result = parseJson<any>(
         await handlers.handleSourcemapParseV4({
-          sourceMapUrl: 'https://example.com/app.js.map',
+          sourceMapUrl: withPath(TEST_URLS.root, 'app.js.map'),
         }),
       );
 

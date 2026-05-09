@@ -12,6 +12,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 }));
 
 import { GraphQLToolHandlersExtract } from '@server/domains/graphql/handlers.impl.core.runtime.extract';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 interface ExtractQueriesResponse {
   success: boolean;
@@ -47,7 +48,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               headers: { 'content-type': 'application/json' },
               body: JSON.stringify({
@@ -89,7 +90,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __getFetchRequests: () => [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               headers: { 'content-type': 'application/json' },
               body: JSON.stringify({
@@ -130,7 +131,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __xhrRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -170,7 +171,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __networkRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({
                 query: 'query ListItems { items { id } }',
@@ -208,7 +209,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
           __aiHooks: {
             myHook: [
               {
-                url: 'https://api.example.com/graphql',
+                url: withPath(TEST_URLS.api, 'graphql'),
                 method: 'POST',
                 body: JSON.stringify({
                   query: 'query HookQuery { data }',
@@ -249,7 +250,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               headers: { 'content-type': 'application/x-www-form-urlencoded' },
               body: 'query=query+GetUser+%7B+user+%7B+name+%7D+%7D&operationName=GetUser&variables=%7B%22id%22%3A%221%22%7D',
@@ -286,7 +287,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: 'query=query+Test+%7B+t+%7D&variables=not-valid-json',
             },
@@ -321,7 +322,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: {
                 query: 'query DirectObj { field }',
@@ -359,7 +360,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               postData: JSON.stringify({
                 query: 'query PostData { pd }',
@@ -396,7 +397,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               options: {
                 body: JSON.stringify({
@@ -435,7 +436,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               headers: { 'Content-Type': 'application/graphql' },
               body: 'query RawGQL { raw }',
@@ -471,13 +472,13 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({ query: 'query Dup { dup }' }),
               timestamp: 1000,
             },
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({ query: 'query Dup { dup }' }),
               timestamp: 2000,
@@ -513,19 +514,19 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({ query: 'query A { a }' }),
               timestamp: 1000,
             },
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({ query: 'query B { b }' }),
               timestamp: 3000,
             },
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({ query: 'query C { c }' }),
               timestamp: 2000,
@@ -562,7 +563,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({
                 query: 'query InferredOp { field }',
@@ -570,14 +571,14 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
               }),
             },
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({
                 query: 'mutation CreateThing { create }',
               }),
             },
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({
                 query: 'subscription OnEvent { event }',
@@ -617,12 +618,12 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({ query: '' }),
             },
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: JSON.stringify({ query: '   ' }),
             },
@@ -660,7 +661,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
             42,
             'string',
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               body: JSON.stringify({ query: 'query Valid { v }' }),
             },
           ],
@@ -694,7 +695,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: 'query RawString { raw }',
             },
@@ -730,12 +731,12 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: 'mutation DoThing { doThing }',
             },
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               body: 'subscription OnThing { onThing }',
             },
@@ -804,7 +805,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               requestHeaders: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ query: 'query ReqH { rh }' }),
@@ -868,15 +869,15 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               body: null,
             },
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               body: undefined,
             },
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               body: '',
             },
           ],
@@ -910,7 +911,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               body: [{ query: 'query Batch { b }' }],
             },
           ],
@@ -945,7 +946,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               body: 'query=&something=else',
             },
           ],
@@ -980,7 +981,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               body: JSON.stringify({ query: 42 }),
             },
           ],
@@ -1014,7 +1015,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               headers: { 'content-type': 42 },
               body: JSON.stringify({ query: 'query Test { t }' }),
             },
@@ -1047,7 +1048,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
     it('respects limit in extraction', async () => {
       (page.evaluate as Mock).mockImplementationOnce(async (fn: Function, maxItems: any) => {
         const requests = Array.from({ length: 10 }, (_, i) => ({
-          url: 'https://api.example.com/graphql',
+          url: withPath(TEST_URLS.api, 'graphql'),
           body: JSON.stringify({ query: `query Q${i} { f${i} }` }),
           timestamp: 1000 + i,
         }));
@@ -1081,7 +1082,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
         const fakeWindow: Record<string, unknown> = {
           __fetchRequests: [
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               options: ['not', 'an', 'object'],
               body: JSON.stringify({ query: 'query WithArrayOpts { w }' }),
             },
@@ -1119,7 +1120,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
               null,
               42,
               {
-                url: 'https://api.example.com/graphql',
+                url: withPath(TEST_URLS.api, 'graphql'),
                 body: JSON.stringify({ query: 'query Valid { v }' }),
               },
             ],
@@ -1191,7 +1192,7 @@ describe('GraphQLToolHandlersExtract - additional coverage', () => {
           getXHRRequests: vi.fn().mockResolvedValue([]),
           getNetworkRequests: vi.fn().mockReturnValue([
             {
-              url: 'https://api.example.com/graphql',
+              url: withPath(TEST_URLS.api, 'graphql'),
               method: 'POST',
               headers: { 'content-type': 'application/json' },
               request: {

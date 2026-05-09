@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 
 import * as parser from '@babel/parser';
 
@@ -290,7 +291,7 @@ describe('EnvironmentEmulator – coverage gaps', () => {
       const result = await emulator.analyze({
         code: 'window.innerWidth;',
         autoFetch: true,
-        browserUrl: 'https://target.com',
+        browserUrl: testUrls.TEST_URLS.target,
         browserType: 'chrome',
         includeComments: false,
         extractDepth: 5,
@@ -354,7 +355,7 @@ describe('EnvironmentEmulator – coverage gaps', () => {
         emulator.analyze({
           code: 'window.innerWidth;',
           autoFetch: true,
-          browserUrl: 'https://target.com',
+          browserUrl: testUrls.TEST_URLS.target,
         }),
       ).rejects.toThrow('network failure');
     });
@@ -378,7 +379,7 @@ describe('EnvironmentEmulator – coverage gaps', () => {
       await emulator.analyze({
         code: 'window.x;',
         autoFetch: true,
-        browserUrl: 'https://target.com',
+        browserUrl: testUrls.TEST_URLS.target,
       });
 
       await emulator.cleanup();

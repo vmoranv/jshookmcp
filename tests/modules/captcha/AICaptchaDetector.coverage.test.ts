@@ -24,6 +24,7 @@ vi.mock('fs/promises', () => ({
 
 import { AICaptchaDetector } from '@modules/captcha/AICaptchaDetector';
 import type { AICaptchaDetectionResult, CaptchaPageInfo } from '@modules/captcha/types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestAICaptchaDetector extends AICaptchaDetector {
   public getScreenshotDir() {
@@ -74,7 +75,7 @@ class TestAICaptchaDetector extends AICaptchaDetector {
 function createPage(overrides: Record<string, unknown> = {}) {
   return {
     screenshot: vi.fn(async () => Buffer.from('img').toString('base64')),
-    url: vi.fn(() => 'https://example.com/login'),
+    url: vi.fn(() => withPath(TEST_URLS.root, 'login')),
     title: vi.fn(async () => 'Login Page'),
     evaluate: vi.fn(async () => ({
       bodyText: 'Welcome',
@@ -487,7 +488,7 @@ describe('AICaptchaDetector — deep coverage', () => {
   describe('hasStrongOverrideSignals', () => {
     it('returns true when both element signals and captcha keywords present', () => {
       const result = detector.hasStrongOverride({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: '安全验证',
         bodyText: '请完成安全验证',
         hasIframes: false,
@@ -498,7 +499,7 @@ describe('AICaptchaDetector — deep coverage', () => {
 
     it('returns false when element signals present but no captcha keywords', () => {
       const result = detector.hasStrongOverride({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Normal Page',
         bodyText: 'Welcome back',
         hasIframes: false,
@@ -509,7 +510,7 @@ describe('AICaptchaDetector — deep coverage', () => {
 
     it('returns false when captcha keywords present but no element signals', () => {
       const result = detector.hasStrongOverride({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: '安全验证',
         bodyText: '请完成安全验证',
         hasIframes: false,
@@ -520,7 +521,7 @@ describe('AICaptchaDetector — deep coverage', () => {
 
     it('returns false when neither present', () => {
       const result = detector.hasStrongOverride({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Normal Page',
         bodyText: 'Welcome back',
         hasIframes: false,
@@ -541,7 +542,7 @@ describe('AICaptchaDetector — deep coverage', () => {
         reasoning: 'Slider CAPTCHA detected',
       };
       const pageInfo: CaptchaPageInfo = {
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Normal',
         bodyText: 'Normal page',
         hasIframes: false,
@@ -560,7 +561,7 @@ describe('AICaptchaDetector — deep coverage', () => {
         reasoning: 'No CAPTCHA found',
       };
       const pageInfo: CaptchaPageInfo = {
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Normal',
         bodyText: 'Normal page',
         hasIframes: false,
@@ -577,7 +578,7 @@ describe('AICaptchaDetector — deep coverage', () => {
   describe('evaluateFallbackTextAnalysis', () => {
     it('detects CAPTCHA when strong elements and keywords present', () => {
       const result = detector.evaluateFallback({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Security Check',
         bodyText: 'Please complete the captcha verification',
         hasIframes: false,
@@ -593,7 +594,7 @@ describe('AICaptchaDetector — deep coverage', () => {
 
     it('returns not-detected with high confidence when excluded keywords match without captcha signals', () => {
       const result = detector.evaluateFallback({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Login',
         bodyText: 'Enter verification code sent to your email',
         hasIframes: false,
@@ -608,7 +609,7 @@ describe('AICaptchaDetector — deep coverage', () => {
 
     it('detects with lower confidence when both CAPTCHA and exclude signals present', () => {
       const result = detector.evaluateFallback({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: '安全验证',
         bodyText: '请输入验证码后拖动滑块完成安全验证',
         hasIframes: false,
@@ -623,7 +624,7 @@ describe('AICaptchaDetector — deep coverage', () => {
 
     it('returns not-detected for normal page without any signals', () => {
       const result = detector.evaluateFallback({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Home',
         bodyText: 'Welcome to our platform',
         hasIframes: false,
@@ -638,7 +639,7 @@ describe('AICaptchaDetector — deep coverage', () => {
 
     it('returns not-detected when only element signals match but no keywords', () => {
       const result = detector.evaluateFallback({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Dashboard',
         bodyText: 'Your account overview',
         hasIframes: false,
@@ -651,7 +652,7 @@ describe('AICaptchaDetector — deep coverage', () => {
 
     it('returns not-detected when only keywords match but no element signals', () => {
       const result = detector.evaluateFallback({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Security check',
         bodyText: 'Please complete captcha',
         hasIframes: false,
@@ -664,7 +665,7 @@ describe('AICaptchaDetector — deep coverage', () => {
 
     it('checks URL in searchable text for keywords', () => {
       const result = detector.evaluateFallback({
-        url: 'https://example.com/captcha-challenge',
+        url: withPath(TEST_URLS.root, 'captcha-challenge'),
         title: 'Test',
         bodyText: 'Please complete verification',
         hasIframes: false,
@@ -806,7 +807,7 @@ describe('AICaptchaDetector — deep coverage', () => {
         screenshotPath: '/path/to/screenshot.png',
       };
       const pageInfo: CaptchaPageInfo = {
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: '安全验证',
         bodyText: '请完成安全验证',
         hasIframes: false,
@@ -826,7 +827,7 @@ describe('AICaptchaDetector — deep coverage', () => {
         reasoning: 'no captcha',
       };
       const pageInfo: CaptchaPageInfo = {
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: '安全验证',
         bodyText: '请完成安全验证',
         hasIframes: false,

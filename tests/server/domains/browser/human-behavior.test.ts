@@ -1,6 +1,7 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { describe, expect, it, vi, afterEach } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';
 import {
   handleHumanMouse,
   handleHumanScroll,
@@ -17,7 +18,7 @@ function createMockCollector(hasPage = true) {
         keyboard,
         click: vi.fn(),
         evaluate: vi.fn().mockResolvedValue(null),
-        url: () => 'http://test.local',
+        url: () => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' }),
       }
     : null;
   return {

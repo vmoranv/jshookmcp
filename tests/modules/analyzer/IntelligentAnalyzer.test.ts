@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -65,25 +66,25 @@ vi.mock('@src/modules/analyzer/PatternDetector', () => ({
 
 import { IntelligentAnalyzer } from '@modules/analyzer/IntelligentAnalyzer';
 
+const rootUrl = (path = '') => withPath(TEST_URLS.root, path);
+
 function makeData() {
   return {
     requests: [
       {
-        url: 'https://vmoranv.github.io/jshookmcp/a/api/x?sig=1',
+        url: rootUrl('a/api/x?sig=1'),
         method: 'GET',
         headers: {},
         timestamp: 1,
       },
       {
-        url: 'https://vmoranv.github.io/jshookmcp/a/api/x?sig=2',
+        url: rootUrl('a/api/x?sig=2'),
         method: 'GET',
         headers: {},
         timestamp: 2,
       },
     ] as any[],
-    responses: [
-      { url: 'https://vmoranv.github.io/jshookmcp/a/api/x', status: 200, timestamp: 3 },
-    ] as any[],
+    responses: [{ url: rootUrl('a/api/x'), status: 200, timestamp: 3 }] as any[],
     logs: [{ type: 'log', text: 'fnA', timestamp: 4 }] as any[],
     exceptions: [{ message: 'boom' }] as any[],
   };
@@ -114,13 +115,13 @@ describe('IntelligentAnalyzer', () => {
   it('aggregates similar requests by origin+pathname and skips invalid URLs', () => {
     const analyzer = new IntelligentAnalyzer();
     const grouped = analyzer.aggregateSimilarRequests([
-      { url: 'https://vmoranv.github.io/jshookmcp/a/path?a=1' },
-      { url: 'https://vmoranv.github.io/jshookmcp/a/path?a=2' },
+      { url: rootUrl('a/path?a=1') },
+      { url: rootUrl('a/path?a=2') },
       { url: 'invalid-url' },
     ] as any);
 
     expect(grouped.size).toBe(1);
-    expect(grouped.get('https://vmoranv.github.io/jshookmcp/a/path')).toHaveLength(2);
+    expect(grouped.get(rootUrl('a/path'))).toHaveLength(2);
   });
 
   it('generates readable summary text with key sections', () => {

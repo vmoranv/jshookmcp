@@ -10,6 +10,7 @@ import {
   lookupCipherSuite,
   parseTLSRecord,
 } from '@modules/boringssl-inspector/TLSPacketParser';
+import { TEST_HOSTS } from '@tests/shared/test-urls';
 
 describe('TLSPacketParser', () => {
   describe('parseHandshake', () => {
@@ -25,12 +26,12 @@ describe('TLSPacketParser', () => {
     });
 
     it('parses a ClientHello with SNI extension', () => {
-      const buf = buildClientHelloWithSNI('example.com');
+      const buf = buildClientHelloWithSNI(TEST_HOSTS.root);
       const result = parseHandshake(buf);
 
       const sniExt = result.extensions.find((e) => e.type === 0);
       expect(sniExt).toBeDefined();
-      expect(sniExt?.data).toEqual({ serverName: 'example.com' });
+      expect(sniExt?.data).toEqual({ serverName: TEST_HOSTS.root });
     });
 
     it('parses a ClientHello with ALPN extension', () => {

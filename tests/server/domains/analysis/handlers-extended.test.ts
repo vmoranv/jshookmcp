@@ -2,6 +2,8 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { CoreAnalysisHandlers } from '@server/domains/analysis/handlers';
 import { runSourceMapExtract } from '@server/domains/analysis/handlers.web-tools';
+import * as testUrls from '@tests/shared/test-urls';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 const webcrackState = vi.hoisted(() => ({
   runWebcrack: vi.fn<(...args: any[]) => Promise<Record<string, unknown>>>(async () => ({
@@ -161,7 +163,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       const result = await handlers.handleCollectCode({
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         includeInline: false,
         includeExternal: true,
         includeDynamic: true,
@@ -173,7 +175,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       expect(deps.collector.collect).toHaveBeenCalledWith({
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         includeInline: false,
         includeExternal: true,
         includeDynamic: true,
@@ -205,7 +207,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       const body = parseJson<CollectCodeResponse>(
-        await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true }),
+        await handlers.handleCollectCode({ url: testUrls.TEST_URLS.root, returnSummaryOnly: true }),
       );
 
       expect(body.mode).toBe('summary');
@@ -227,7 +229,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
         collectTime: 5,
       });
 
-      await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true });
+      await handlers.handleCollectCode({ url: testUrls.TEST_URLS.root, returnSummaryOnly: true });
 
       expect(deps.collector.collect).toHaveBeenCalledWith(
         expect.objectContaining({ smartMode: 'summary' }),
@@ -255,7 +257,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       const body = parseJson<CollectCodeResponse>(
-        await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true }),
+        await handlers.handleCollectCode({ url: testUrls.TEST_URLS.root, returnSummaryOnly: true }),
       );
 
       expect(body.mode).toBe('summary');
@@ -283,7 +285,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       const body = parseJson<CollectCodeResponse>(
-        await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true }),
+        await handlers.handleCollectCode({ url: testUrls.TEST_URLS.root, returnSummaryOnly: true }),
       );
 
       expect(body.totalSize).toBe(0);
@@ -306,7 +308,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       const body = parseJson<CollectCodeResponse>(
-        await handlers.handleCollectCode({ url: 'https://test.com', returnSummaryOnly: true }),
+        await handlers.handleCollectCode({ url: testUrls.TEST_URLS.root, returnSummaryOnly: true }),
       );
 
       expect(body.totalSize).toBe(24);
@@ -323,7 +325,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       });
 
       const body = parseJson<CollectCodeResponse>(
-        await handlers.handleCollectCode({ url: 'https://test.com' }),
+        await handlers.handleCollectCode({ url: testUrls.TEST_URLS.root }),
       );
 
       expect(body.warning).toContain('safe response threshold');
@@ -765,7 +767,7 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       deps.collector.getAllStats.mockResolvedValue({
         cache: { memoryEntries: 5, diskEntries: 3, totalSize: 10240 },
         compression: { averageRatio: 45.2, cacheHits: 10, cacheMisses: 5 },
-        collector: { collectedUrls: ['https://a.com', 'https://b.com'] },
+        collector: { collectedUrls: [testUrls.TEST_URLS.a, testUrls.TEST_URLS.b] },
       });
 
       const body = parseJson<GetCollectionStatsResponse>(await handlers.handleGetCollectionStats());
@@ -1789,7 +1791,9 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
       ).toString('base64');
 
       vi.stubGlobal('document', {
-        querySelectorAll: vi.fn(() => [{ src: 'https://cdn.example/app.js' }]),
+        querySelectorAll: vi.fn(() => [
+          { src: buildTestUrl('cdn', { suffix: 'example', path: 'app.js' }) },
+        ]),
       });
       vi.stubGlobal(
         'fetch',
@@ -1815,10 +1819,10 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     it('extracts external source maps and skips malformed or missing mappings', async () => {
       vi.stubGlobal('document', {
         querySelectorAll: vi.fn(() => [
-          { src: 'https://cdn.example/no-map.js' },
-          { src: 'https://cdn.example/bad-inline.js' },
-          { src: 'https://cdn.example/good-map.js' },
-          { src: 'https://cdn.example/fetch-error.js' },
+          { src: buildTestUrl('cdn', { suffix: 'example', path: 'no-map.js' }) },
+          { src: buildTestUrl('cdn', { suffix: 'example', path: 'bad-inline.js' }) },
+          { src: buildTestUrl('cdn', { suffix: 'example', path: 'good-map.js' }) },
+          { src: buildTestUrl('cdn', { suffix: 'example', path: 'fetch-error.js' }) },
         ]),
       });
       vi.stubGlobal(
@@ -1867,8 +1871,8 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
     it('handles absolute map URLs, missing sources, and null sourcesContent entries', async () => {
       vi.stubGlobal('document', {
         querySelectorAll: vi.fn(() => [
-          { src: 'https://cdn.example/absolute-map.js' },
-          { src: 'https://cdn.example/no-sources.js' },
+          { src: buildTestUrl('cdn', { suffix: 'example', path: 'absolute-map.js' }) },
+          { src: buildTestUrl('cdn', { suffix: 'example', path: 'no-sources.js' }) },
         ]),
       });
       vi.stubGlobal(

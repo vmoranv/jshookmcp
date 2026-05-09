@@ -51,6 +51,7 @@ vi.mock('node:net', async () => {
 });
 
 import { AdvancedToolHandlers } from '@server/domains/network/handlers';
+import { TEST_HOSTS } from '@tests/shared/test-urls';
 
 class MockPlainSocket extends EventEmitter {
   public readonly end = vi.fn((data?: string | Buffer) => {
@@ -162,7 +163,7 @@ describe('AdvancedToolHandlers raw DNS/HTTP handlers', () => {
       await handler.handleHttpRequestBuild({
         method: 'POST',
         target: '/submit',
-        host: 'lab.example.com',
+        host: TEST_HOSTS.lab,
         headers: { 'Content-Type': 'application/json' },
         body: '{"ok":true}',
       }),
@@ -170,7 +171,7 @@ describe('AdvancedToolHandlers raw DNS/HTTP handlers', () => {
 
     expect(body.success).toBe(true);
     expect(body.startLine).toBe('POST /submit HTTP/1.1');
-    expect(body.requestText).toContain('Host: lab.example.com');
+    expect(body.requestText).toContain(`Host: ${TEST_HOSTS.lab}`);
     expect(body.requestText).toContain('Content-Type: application/json');
     expect(body.requestText).toContain('\r\n\r\n{"ok":true}');
   });

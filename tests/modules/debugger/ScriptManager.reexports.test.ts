@@ -8,6 +8,7 @@ import {
   ScriptManager as ImplScriptManager,
   type ScriptInfo as ImplScriptInfo,
 } from '@modules/debugger/ScriptManager.impl';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('ScriptManager.ts public re-exports', () => {
   it('re-exports the ScriptManager class from the impl module', () => {
@@ -17,7 +18,7 @@ describe('ScriptManager.ts public re-exports', () => {
   it('exports ScriptInfo type compatible with impl', () => {
     const minimal: PublicScriptInfo = {
       scriptId: 's-1',
-      url: 'https://example.com/app.js',
+      url: withPath(TEST_URLS.root, 'app.js'),
       startLine: 0,
       startColumn: 0,
       endLine: 100,
@@ -32,7 +33,7 @@ describe('ScriptManager.ts public re-exports', () => {
   it('exports ScriptInfo type with optional source fields', () => {
     const full: PublicScriptInfo = {
       scriptId: 's-2',
-      url: 'https://example.com/vendor.js',
+      url: withPath(TEST_URLS.root, 'vendor.js'),
       startLine: 0,
       startColumn: 0,
       endLine: 500,

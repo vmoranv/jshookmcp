@@ -15,6 +15,7 @@ vi.mock('@utils/logger', () => ({
 }));
 
 import { ScriptManager } from '@modules/debugger/ScriptManager.impl.class';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -82,7 +83,7 @@ describe('ScriptManager core class internals', () => {
     await manager.init();
     const script = {
       scriptId: 'script-1',
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       startLine: 0,
       startColumn: 0,
       endLine: 1,
@@ -103,7 +104,7 @@ describe('ScriptManager core class internals', () => {
       if (method === 'Debugger.enable') {
         cdp.session.emit('Debugger.scriptParsed', {
           scriptId: 'script-enable',
-          url: 'https://site/enable.js',
+          url: buildTestUrl('site', { suffix: 'bare', path: 'enable.js' }),
           startLine: 0,
           startColumn: 0,
           endLine: 1,
@@ -132,7 +133,7 @@ describe('ScriptManager core class internals', () => {
     expect(scripts).toHaveLength(1);
     expect(scripts[0]).toMatchObject({
       scriptId: 'script-enable',
-      url: 'https://site/enable.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'enable.js' }),
     });
   });
 
@@ -145,7 +146,11 @@ describe('ScriptManager core class internals', () => {
     } as never);
 
     await manager.init();
-    emitScriptParsed(cdp.session, 'script-1', 'https://site/app.js');
+    emitScriptParsed(
+      cdp.session,
+      'script-1',
+      buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
+    );
 
     await expect(manager.getScriptSource()).rejects.toThrow(
       'Either scriptId or url parameter must be provided',
@@ -183,7 +188,12 @@ describe('ScriptManager core class internals', () => {
 
     await manager.init();
     for (let index = 1; index <= 9; index++) {
-      emitScriptParsed(cdp.session, `script-${index}`, `https://site/${index}.js`, 20);
+      emitScriptParsed(
+        cdp.session,
+        `script-${index}`,
+        buildTestUrl('site', { suffix: 'bare', path: `${index}.js` }),
+        20,
+      );
     }
 
     const loading = manager.getAllScripts(true, 9);
@@ -215,7 +225,11 @@ describe('ScriptManager core class internals', () => {
     } as never);
 
     await manager.init();
-    emitScriptParsed(cdp.session, 'script-1', 'https://site/app.js');
+    emitScriptParsed(
+      cdp.session,
+      'script-1',
+      buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
+    );
     await manager.getScriptSource('script-1');
 
     const result = await manager.searchInScripts('token\\w+', {
@@ -250,7 +264,11 @@ describe('ScriptManager core class internals', () => {
     } as never);
 
     await manager.init();
-    emitScriptParsed(cdp.session, 'script-1', 'https://site/app.js');
+    emitScriptParsed(
+      cdp.session,
+      'script-1',
+      buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
+    );
     await manager.getScriptSource('script-1');
 
     expect(manager.getStats().totalScripts).toBe(1);
@@ -263,7 +281,11 @@ describe('ScriptManager core class internals', () => {
       totalChunks: 0,
     });
 
-    emitScriptParsed(cdp.session, 'script-2', 'https://site/app-2.js');
+    emitScriptParsed(
+      cdp.session,
+      'script-2',
+      buildTestUrl('site', { suffix: 'bare', path: 'app-2.js' }),
+    );
     await manager.close();
 
     expect(scriptClassMocks.logger.warn).toHaveBeenCalledWith(
@@ -280,7 +302,7 @@ describe('ScriptManager core class internals', () => {
 
     (manager as any).buildKeywordIndex(
       'script-1',
-      'https://site/app.js',
+      buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       'line1\nLine2 tokenValue\nline3\nline4\nline5',
     );
     (manager as any).chunkScript('script-1', 'abcdefghij');
@@ -289,7 +311,7 @@ describe('ScriptManager core class internals', () => {
     expect(keywordEntries).toHaveLength(1);
     expect(keywordEntries[0]).toMatchObject({
       scriptId: 'script-1',
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       line: 2,
       column: 6,
     });
@@ -309,7 +331,7 @@ describe('ScriptManager core class internals', () => {
       matches: [
         {
           scriptId: 'script-1',
-          url: 'https://site/app.js',
+          url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
           line: 1,
           column: 0,
           matchText: 'token',

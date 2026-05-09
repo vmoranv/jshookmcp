@@ -9,6 +9,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 
 import { GraphQLToolHandlersIntrospection } from '@server/domains/graphql/handlers.impl.core.runtime.introspection';
 import type { BrowserFetchResult } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { TEST_FTP_URLS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('GraphQLToolHandlersIntrospection', () => {
   const page = {
@@ -16,7 +17,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
     evaluateOnNewDocument: vi.fn(),
     setRequestInterception: vi.fn(),
     on: vi.fn(),
-    url: vi.fn(() => 'https://example.com/app'),
+    url: vi.fn(() => withPath(TEST_URLS.root, 'app')),
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
@@ -101,7 +102,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
     it('returns error for unsupported protocol', async () => {
       const response = await handlers.handleGraphqlIntrospect({
-        endpoint: 'ftp://example.com/graphql',
+        endpoint: withPath(TEST_FTP_URLS.root, 'graphql'),
       });
       const body = parseJson<any>(response);
       expect((response as any).isError).toBe(true);
@@ -127,14 +128,14 @@ describe('GraphQLToolHandlersIntrospection', () => {
       page.evaluate.mockResolvedValueOnce(browserResult);
 
       const response = await handlers.handleGraphqlIntrospect({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         useBrowser: true,
       });
       const body = parseJson<any>(response);
 
       expect((response as any).isError).toBeUndefined();
       expect(body.success).toBe(true);
-      expect(body.endpoint).toBe('https://example.com/graphql');
+      expect(body.endpoint).toBe(withPath(TEST_URLS.root, 'graphql'));
       expect(body.status).toBe(200);
       expect(body.statusText).toBe('OK');
       expect(body.schema).toEqual({ __schema: { types: [] } });
@@ -157,7 +158,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );
@@ -178,7 +179,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       page.evaluate.mockResolvedValueOnce(browserResult);
 
       await handlers.handleGraphqlIntrospect({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         headers: { Authorization: 'Bearer token123' },
         useBrowser: true,
       });
@@ -186,7 +187,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
       expect(page.evaluate).toHaveBeenCalledWith(
         expect.any(Function),
         expect.objectContaining({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           headers: { Authorization: 'Bearer token123' },
           query: expect.stringContaining('IntrospectionQuery'),
         }),
@@ -208,7 +209,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );
@@ -234,7 +235,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );
@@ -259,7 +260,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );
@@ -284,7 +285,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );
@@ -307,7 +308,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );
@@ -335,7 +336,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );
@@ -365,7 +366,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );
@@ -383,7 +384,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
     it('catches and wraps unexpected errors', async () => {
       collector.getActivePage.mockRejectedValueOnce(new Error('No browser'));
       const response = await handlers.handleGraphqlIntrospect({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         useBrowser: true,
       });
       const body = parseJson<any>(response);
@@ -406,7 +407,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );
@@ -428,7 +429,7 @@ describe('GraphQLToolHandlersIntrospection', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlIntrospect({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           useBrowser: true,
         }),
       );

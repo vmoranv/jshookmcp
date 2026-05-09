@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TraceDB } from '@modules/trace/TraceDB';
 import type { TraceEvent, MemoryDelta } from '@modules/trace/TraceDB.types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function makeEvent(overrides?: Partial<TraceEvent>): TraceEvent {
   return {
@@ -143,11 +144,11 @@ describe('TraceDB', () => {
   });
 
   it('sets and retrieves metadata', () => {
-    db.setMetadata('url', 'https://example.com');
+    db.setMetadata('url', TEST_URLS.root);
     db.setMetadata('platform', 'darwin');
 
     const metadata = db.getMetadata();
-    expect(metadata['url']).toBe('https://example.com');
+    expect(metadata['url']).toBe(TEST_URLS.root);
     expect(metadata['platform']).toBe('darwin');
   });
 
@@ -350,7 +351,7 @@ describe('TraceDB', () => {
   it('stores and retrieves network flow state and chunks', () => {
     db.upsertNetworkResource({
       requestId: 'req-1',
-      url: 'https://example.com/api',
+      url: withPath(TEST_URLS.root, 'api'),
       method: 'GET',
       resourceType: 'XHR',
       requestHeaders: '{"accept":"application/json"}',

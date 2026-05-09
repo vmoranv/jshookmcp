@@ -146,6 +146,7 @@ const consoleMonitor = {
 // ── Class under test ──────────────────────────────────────────────────────────
 
 import { AdvancedToolHandlersRuntime } from '@server/domains/network/handlers.impl.core.runtime.replay';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestableAdvancedToolHandlersRuntime extends AdvancedToolHandlersRuntime {
   public testParseNumberArg(
@@ -204,8 +205,8 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
   describe('handleNetworkExtractAuth', () => {
     it('returns success with multiple findings when requests pass threshold', async () => {
       mockGetNetworkRequests.mockReturnValue([
-        { url: 'https://api.example.com/auth', method: 'POST', requestId: 'req-1' },
-        { url: 'https://cdn.example.com/resource', method: 'GET', requestId: 'req-2' },
+        { url: withPath(TEST_URLS.api, 'auth'), method: 'POST', requestId: 'req-1' },
+        { url: withPath(TEST_URLS.cdn, 'resource'), method: 'GET', requestId: 'req-2' },
       ]);
       extractAuthMock.mockReturnValue([
         { type: 'bearer', confidence: 0.9, value: 'tok_abc123def456gh' },
@@ -222,7 +223,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
     });
 
     it('returns success with zero findings when nothing passes the threshold', async () => {
-      mockGetNetworkRequests.mockReturnValue([{ url: 'https://example.com', method: 'GET' }]);
+      mockGetNetworkRequests.mockReturnValue([{ url: TEST_URLS.root, method: 'GET' }]);
       extractAuthMock.mockReturnValue([{ type: 'weak', confidence: 0.1 }]);
 
       const result = await handler.handleNetworkExtractAuth({ minConfidence: 0.4 });
@@ -234,7 +235,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
     });
 
     it('uses default minConfidence of 0.4 when minConfidence is not provided', async () => {
-      mockGetNetworkRequests.mockReturnValue([{ url: 'https://example.com', method: 'GET' }]);
+      mockGetNetworkRequests.mockReturnValue([{ url: TEST_URLS.root, method: 'GET' }]);
       extractAuthMock.mockReturnValue([
         { type: 'bearer', confidence: 0.9 },
         { type: 'cookie', confidence: 0.3 },
@@ -255,7 +256,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
   describe('handleNetworkExportHar — inline (no outputPath)', () => {
     beforeEach(() => {
       mockGetNetworkRequests.mockReturnValue([
-        { url: 'https://example.com', method: 'GET', requestId: 'req-1' },
+        { url: TEST_URLS.root, method: 'GET', requestId: 'req-1' },
       ]);
       mockGetNetworkActivity.mockReturnValue({ response: { status: 200 } });
       mockGetResponseBody.mockResolvedValue({ body: '{"data":1}', base64Encoded: false });
@@ -337,7 +338,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
     beforeEach(() => {
       // Default network requests (needed for the HAR builder path)
       mockGetNetworkRequests.mockReturnValue([
-        { url: 'https://example.com', method: 'GET', requestId: 'req-1' },
+        { url: TEST_URLS.root, method: 'GET', requestId: 'req-1' },
       ]);
       mockGetNetworkActivity.mockReturnValue({ response: { status: 200 } });
       mockGetResponseBody.mockResolvedValue({ body: 'ok', base64Encoded: false });
@@ -551,7 +552,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
 
     it('returns error when requestId is not found in captured requests', async () => {
       mockGetNetworkRequests.mockReturnValue([
-        { requestId: 'req-other', url: 'https://example.com', method: 'GET' },
+        { requestId: 'req-other', url: TEST_URLS.root, method: 'GET' },
       ]);
 
       const result = await handler.handleNetworkReplayRequest({ requestId: 'req-missing' });
@@ -566,7 +567,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
       mockGetNetworkRequests.mockReturnValue([
         {
           requestId: 'req-1',
-          url: 'https://api.example.com/data',
+          url: withPath(TEST_URLS.api, 'data'),
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           postData: '{"key":"value"}',
@@ -581,7 +582,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
       expect(replayRequestMock).toHaveBeenCalledWith(
         expect.objectContaining({
           requestId: 'req-1',
-          url: 'https://api.example.com/data',
+          url: withPath(TEST_URLS.api, 'data'),
           method: 'POST',
         }),
         expect.objectContaining({ requestId: 'req-1', dryRun: true }),
@@ -590,7 +591,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
 
     it('uses dryRun=true by default when dryRun arg is not provided', async () => {
       mockGetNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
+        { requestId: 'req-1', url: TEST_URLS.api, method: 'GET' },
       ]);
       replayRequestMock.mockResolvedValue({ dryRun: true });
 
@@ -603,7 +604,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
 
     it('passes dryRun=false when explicitly set', async () => {
       mockGetNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
+        { requestId: 'req-1', url: TEST_URLS.api, method: 'GET' },
       ]);
       replayRequestMock.mockResolvedValue({ dryRun: false });
 
@@ -616,7 +617,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
 
     it('passes headerPatch, bodyPatch, methodOverride, urlOverride, timeoutMs to replayRequest', async () => {
       mockGetNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com/data', method: 'POST' },
+        { requestId: 'req-1', url: withPath(TEST_URLS.api, 'data'), method: 'POST' },
       ]);
       replayRequestMock.mockResolvedValue({ dryRun: false });
 
@@ -625,7 +626,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
         headerPatch: { Authorization: 'Bearer new-token' },
         bodyPatch: '{"key":"value"}',
         methodOverride: 'PUT',
-        urlOverride: 'https://api.example.com/v2/data',
+        urlOverride: withPath(TEST_URLS.api, 'v2/data'),
         timeoutMs: 5000,
         dryRun: false,
       });
@@ -636,7 +637,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
           headerPatch: { Authorization: 'Bearer new-token' },
           bodyPatch: '{"key":"value"}',
           methodOverride: 'PUT',
-          urlOverride: 'https://api.example.com/v2/data',
+          urlOverride: withPath(TEST_URLS.api, 'v2/data'),
           timeoutMs: 5000,
           dryRun: false,
         }),
@@ -645,7 +646,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
 
     it('handles replayRequest throwing an Error', async () => {
       mockGetNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
+        { requestId: 'req-1', url: TEST_URLS.api, method: 'GET' },
       ]);
       replayRequestMock.mockRejectedValue(new Error('Network timeout'));
 
@@ -658,7 +659,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
 
     it('handles replayRequest throwing a non-Error string value', async () => {
       mockGetNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
+        { requestId: 'req-1', url: TEST_URLS.api, method: 'GET' },
       ]);
       replayRequestMock.mockRejectedValue('string error');
 
@@ -671,7 +672,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
 
     it('handles replayRequest throwing a non-Error object value', async () => {
       mockGetNetworkRequests.mockReturnValue([
-        { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
+        { requestId: 'req-1', url: TEST_URLS.api, method: 'GET' },
       ]);
       replayRequestMock.mockRejectedValue({ reason: 'unknown error' });
 
@@ -688,7 +689,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
         42,
         { broken: true },
         undefined,
-        { requestId: 'req-1', url: 'https://api.example.com', method: 'GET' },
+        { requestId: 'req-1', url: TEST_URLS.api, method: 'GET' },
       ]);
       replayRequestMock.mockResolvedValue({ dryRun: true, requestId: 'req-1' });
 
@@ -709,7 +710,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
     });
 
     it('does not match a request missing the method field', async () => {
-      mockGetNetworkRequests.mockReturnValue([{ requestId: 'req-1', url: 'https://example.com' }]);
+      mockGetNetworkRequests.mockReturnValue([{ requestId: 'req-1', url: TEST_URLS.root }]);
 
       const result = await handler.handleNetworkReplayRequest({ requestId: 'req-1' });
       const body = parseJson<NetworkReplayResponse>(result);
@@ -720,7 +721,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
 
     it('does not match a request where requestId is not a string', async () => {
       mockGetNetworkRequests.mockReturnValue([
-        { requestId: 123 as unknown, url: 'https://example.com', method: 'GET' },
+        { requestId: 123 as unknown, url: TEST_URLS.root, method: 'GET' },
       ]);
 
       const result = await handler.handleNetworkReplayRequest({ requestId: 'req-1' });
@@ -784,7 +785,7 @@ describe('AdvancedToolHandlersRuntime — replay.ts coverage', () => {
       mockGetNetworkRequests.mockReturnValue([
         {
           requestId: 'req-1',
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           method: 'GET',
           headers: {},
           postData: '',

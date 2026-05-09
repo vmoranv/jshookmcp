@@ -51,6 +51,7 @@ vi.mock('@server/MCPServer.search.handlers.activate', () => ({
 }));
 
 import { handleCallTool } from '@server/MCPServer.search.handlers.call';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
   return {
@@ -239,11 +240,11 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
 
       await handleCallTool(ctx, {
         name: 'test_tool',
-        parameters: { url: 'https://example.com/get', method: 'GET' },
+        parameters: { url: withPath(TEST_URLS.root, 'get'), method: 'GET' },
       });
 
       expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {
-        url: 'https://example.com/get',
+        url: withPath(TEST_URLS.root, 'get'),
         method: 'GET',
       });
     });
@@ -253,11 +254,11 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
 
       await handleCallTool(ctx, {
         name: 'test_tool',
-        parameters: '{"url": "https://example.com/videos", "limit": 1}',
+        parameters: JSON.stringify({ url: withPath(TEST_URLS.root, 'videos'), limit: 1 }),
       });
 
       expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('test_tool', {
-        url: 'https://example.com/videos',
+        url: withPath(TEST_URLS.root, 'videos'),
         limit: 1,
       });
     });
@@ -297,11 +298,11 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
 
       await handleCallTool(ctx, {
         name: 'http2_probe',
-        arguments: '{"url": "https://example.com/search", "method": "GET"}',
+        arguments: JSON.stringify({ url: withPath(TEST_URLS.root, 'search'), method: 'GET' }),
       });
 
       expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('http2_probe', {
-        url: 'https://example.com/search',
+        url: withPath(TEST_URLS.root, 'search'),
         method: 'GET',
       });
     });
@@ -313,13 +314,13 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
 
       await handleCallTool(ctx, {
         name: 'http2_probe',
-        url: 'https://example.com/search',
+        url: withPath(TEST_URLS.root, 'search'),
         method: 'GET',
         timeoutMs: 20000,
       });
 
       expect(ctx.executeToolWithTracking).toHaveBeenCalledWith('http2_probe', {
-        url: 'https://example.com/search',
+        url: withPath(TEST_URLS.root, 'search'),
         method: 'GET',
         timeoutMs: 20000,
       });
@@ -347,7 +348,7 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
 
       await handleCallTool(ctx, {
         name: 'test_tool',
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         parameters: 'not-valid-json',
       });
 
@@ -360,7 +361,7 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
 
       await handleCallTool(ctx, {
         name: 'test_tool',
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         args: null,
       });
 

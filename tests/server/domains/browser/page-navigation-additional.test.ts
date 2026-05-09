@@ -2,6 +2,7 @@ import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
 import { TabRegistry } from '@modules/browser/TabRegistry';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 type Driver = 'chrome' | 'camoufox';
 type NavigationResponse = {
@@ -39,7 +40,7 @@ function mockDeps(driver: Driver = 'chrome') {
   const camoufoxGoForwardMock = vi.fn<CamoufoxPageStub['goForward']>().mockResolvedValue(undefined);
   const camoufoxUrlMock = vi
     .fn<CamoufoxPageStub['url']>()
-    .mockReturnValue('https://example.com/page');
+    .mockReturnValue(buildTestUrl('', { path: 'page' }));
   const camoufoxTitleMock = vi.fn<CamoufoxPageStub['title']>().mockResolvedValue('Example');
 
   const camoufoxPage = {
@@ -52,7 +53,7 @@ function mockDeps(driver: Driver = 'chrome') {
   } satisfies CamoufoxPageStub;
 
   const navigateMock = vi.fn<PageControllerStub['navigate']>().mockResolvedValue({
-    url: 'https://example.com/chrome',
+    url: buildTestUrl('', { path: 'chrome' }),
     title: 'Chrome Page',
     loadTime: 0,
   });
@@ -61,7 +62,7 @@ function mockDeps(driver: Driver = 'chrome') {
   const goForwardMock = vi.fn<PageControllerStub['goForward']>().mockResolvedValue(undefined);
   const getURLMock = vi
     .fn<PageControllerStub['getURL']>()
-    .mockResolvedValue('https://example.com/chrome');
+    .mockResolvedValue(buildTestUrl('', { path: 'chrome' }));
   const getTitleMock = vi.fn<PageControllerStub['getTitle']>().mockResolvedValue('Chrome Page');
 
   const pageController = {
@@ -121,11 +122,11 @@ describe('PageNavigationHandlers', () => {
       const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
-      expect(body.url).toBe('https://example.com/chrome');
+      expect(body.url).toBe(buildTestUrl('', { path: 'chrome' }));
       expect(body.title).toBe('Chrome Page');
       expect(pageController.navigate).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'networkidle2' }),
+        expect.objectContaining({ waitUntil: 'networkidle' }),
       );
     });
 
@@ -135,7 +136,7 @@ describe('PageNavigationHandlers', () => {
 
       const result = await handler.handlePageNavigate({
         url: 'https://test.com',
-        waitUntil: 'networkidle2',
+        waitUntil: 'networkidle',
         timeout: 5000,
       });
       const body = parseJson<NavigationResponse>(result);
@@ -147,6 +148,22 @@ describe('PageNavigationHandlers', () => {
         timeout: 5000,
       });
       expect(consoleMonitor.setPlaywrightPage).toHaveBeenCalledWith(camoufoxPage);
+    });
+
+    it('rejects unsupported waitUntil aliases via camoufox driver', async () => {
+      const { deps, camoufoxPage, consoleMonitor } = mockDeps('camoufox');
+      const handler = new PageNavigationHandlers(deps);
+
+      const result = await handler.handlePageNavigate({
+        url: 'https://test.com',
+        waitUntil: 'networkidle2',
+      });
+      const body = parseJson<{ success: boolean; error?: string }>(result);
+
+      expect(body.success).toBe(false);
+      expect(body.error).toMatch(/Invalid waitUntil: "networkidle2"/);
+      expect(camoufoxPage.goto).not.toHaveBeenCalled();
+      expect(consoleMonitor.setPlaywrightPage).not.toHaveBeenCalled();
     });
 
     it('enables network monitoring on camoufox', async () => {
@@ -179,7 +196,7 @@ describe('PageNavigationHandlers', () => {
       });
     });
 
-    it('maps "commit" waitUntil to "load" for chrome', async () => {
+    it('passes "commit" waitUntil through to the controller abstraction', async () => {
       const { deps, pageController } = mockDeps('chrome');
       const handler = new PageNavigationHandlers(deps);
 
@@ -187,7 +204,7 @@ describe('PageNavigationHandlers', () => {
 
       expect(pageController.navigate).toHaveBeenCalledWith(
         'https://test.com',
-        expect.objectContaining({ waitUntil: 'load' }),
+        expect.objectContaining({ waitUntil: 'commit' }),
       );
     });
 
@@ -195,7 +212,7 @@ describe('PageNavigationHandlers', () => {
       const { deps, tabRegistry, activeChromePage } = mockDeps('chrome');
       const pageId = tabRegistry.registerPage(activeChromePage, {
         index: 4,
-        url: 'https://old.example',
+        url: buildTestUrl('old', { suffix: 'example', path: '/' }),
         title: 'Old',
       });
       const handler = new PageNavigationHandlers(deps);
@@ -203,7 +220,7 @@ describe('PageNavigationHandlers', () => {
       await handler.handlePageNavigate({ url: 'https://test.com' });
 
       expect(tabRegistry.getContextMeta()).toEqual({
-        url: 'https://example.com/chrome',
+        url: buildTestUrl('', { path: 'chrome' }),
         title: 'Chrome Page',
         tabIndex: 4,
         pageId,
@@ -215,7 +232,7 @@ describe('PageNavigationHandlers', () => {
       pageController.getTitle.mockResolvedValueOnce('');
       const pageId = tabRegistry.registerPage(activeChromePage, {
         index: 2,
-        url: 'https://before.example/blank',
+        url: buildTestUrl('before', { suffix: 'example', path: 'blank' }),
         title: 'Before',
       });
       const handler = new PageNavigationHandlers(deps);
@@ -223,7 +240,7 @@ describe('PageNavigationHandlers', () => {
       await handler.handlePageNavigate({ url: 'https://test.com' });
 
       expect(tabRegistry.getContextMeta()).toEqual({
-        url: 'https://example.com/chrome',
+        url: buildTestUrl('', { path: 'chrome' }),
         title: '',
         tabIndex: 2,
         pageId,
@@ -266,7 +283,7 @@ describe('PageNavigationHandlers', () => {
       const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
-      expect(body.url).toBe('https://example.com/chrome');
+      expect(body.url).toBe(buildTestUrl('', { path: 'chrome' }));
       expect(pageController.goBack).toHaveBeenCalled();
     });
 
@@ -279,7 +296,7 @@ describe('PageNavigationHandlers', () => {
 
       expect(body.success).toBe(true);
       expect(body.driver).toBe('camoufox');
-      expect(body.url).toBe('https://example.com/page');
+      expect(body.url).toBe(buildTestUrl('', { path: 'page' }));
       expect(camoufoxPage.goBack).toHaveBeenCalled();
     });
   });
@@ -293,7 +310,7 @@ describe('PageNavigationHandlers', () => {
       const body = parseJson<NavigationResponse>(result);
 
       expect(body.success).toBe(true);
-      expect(body.url).toBe('https://example.com/chrome');
+      expect(body.url).toBe(buildTestUrl('', { path: 'chrome' }));
       expect(pageController.goForward).toHaveBeenCalled();
     });
 

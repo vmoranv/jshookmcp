@@ -11,23 +11,24 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { SmartCodeCollector } from '@modules/collector/SmartCodeCollector';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function makeFiles() {
   return [
     {
-      url: 'https://site/main.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'main.js' }),
       content: `import x from "./dep"; function alpha(){}; fetch('/api');`,
       size: 200,
       type: 'external',
     },
     {
-      url: 'https://site/crypto.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'crypto.js' }),
       content: `const cipher = 'aes'; eval('1+1');`,
       size: 300,
       type: 'inline',
     },
     {
-      url: 'https://site/vendor.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'vendor.js' }),
       content: 'x'.repeat(2000),
       size: 2000,
       type: 'external',

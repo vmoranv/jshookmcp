@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserInfo } from '@modules/browser/BrowserDiscovery';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   info: vi.fn(),
@@ -168,10 +169,10 @@ describe('UnifiedBrowserManager', () => {
     const manager = new UnifiedBrowserManager({ driver: 'camoufox' });
     const page = await manager.newPage();
 
-    await manager.goto('https://vmoranv.github.io/jshookmcp/path');
+    await manager.goto(withPath(TEST_URLS.root, 'path'));
 
     expect(camoufoxState.instances[0]!.goto).toHaveBeenCalledWith(
-      'https://vmoranv.github.io/jshookmcp/path',
+      withPath(TEST_URLS.root, 'path'),
       page,
     );
   });

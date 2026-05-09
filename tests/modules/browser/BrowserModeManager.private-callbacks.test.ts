@@ -46,6 +46,7 @@ vi.mock('@modules/captcha/CaptchaPolicy', () => ({
 }));
 
 import { BrowserModeManager } from '@modules/browser/BrowserModeManager';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 async function withPatchedGlobals<T>(
   context: Record<string, unknown>,
@@ -155,7 +156,7 @@ describe('BrowserModeManager private callback coverage', () => {
     });
 
     await expect(
-      manager.checkAndHandleCaptcha({} as Page, 'https://example.com'),
+      manager.checkAndHandleCaptcha({} as Page, TEST_URLS.root),
     ).resolves.toBeUndefined();
     expect(loggerState.info).toHaveBeenCalledWith('CAPTCHA auto-handling skipped: monitor only');
   });
@@ -216,7 +217,7 @@ describe('BrowserModeManager private callback coverage', () => {
     const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     try {
       await expect(
-        (manager as any).switchToHeaded(currentPage, 'https://example.com', {
+        (manager as any).switchToHeaded(currentPage, TEST_URLS.root, {
           type: 'slider',
           confidence: 90,
         }),
@@ -240,7 +241,7 @@ describe('BrowserModeManager private callback coverage', () => {
     ]);
     const sessionEntries = new Map([['tab', '1']]);
     const savePage = {
-      url: vi.fn(() => 'https://example.com/path'),
+      url: vi.fn(() => withPath(TEST_URLS.root, 'path')),
       cookies: vi.fn(async () => [{ name: 'sid', value: 'cookie' }]),
       evaluate: vi.fn(async (fn: (...args: any[]) => unknown) =>
         withPatchedGlobals(
@@ -266,7 +267,7 @@ describe('BrowserModeManager private callback coverage', () => {
     const setLocal = vi.fn();
     const setSession = vi.fn();
     const restorePage = {
-      url: vi.fn(() => 'https://example.com/other'),
+      url: vi.fn(() => withPath(TEST_URLS.root, 'other')),
       evaluate: vi.fn(async (fn: (...args: any[]) => unknown, arg: unknown) =>
         withPatchedGlobals(
           {

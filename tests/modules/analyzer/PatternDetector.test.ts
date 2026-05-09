@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { TEST_HTTP_URLS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 import type { ConsoleMessage } from '@modules/monitor/ConsoleMonitor';
 import type { NetworkRequest, NetworkResponse } from '@modules/monitor/ConsoleMonitor';
 import {
@@ -15,10 +16,13 @@ import {
   calculateLogPriority,
 } from '@modules/analyzer/PatternDetector';
 
+const rootUrl = (path = '') => withPath(TEST_URLS.root, path);
+const HTTP_ROOT_URL_WITH_SLASH = `${TEST_HTTP_URLS.root}/`;
+
 function request(overrides: Partial<NetworkRequest>): NetworkRequest {
   return {
     requestId: overrides.requestId ?? 'r1',
-    url: overrides.url ?? 'https://vmoranv.github.io/jshookmcp/api/data',
+    url: overrides.url ?? rootUrl('api/data'),
     method: overrides.method ?? 'GET',
     headers: overrides.headers ?? {},
     postData: overrides.postData,
@@ -31,7 +35,7 @@ function request(overrides: Partial<NetworkRequest>): NetworkRequest {
 function response(overrides: Partial<NetworkResponse>): NetworkResponse {
   return {
     requestId: overrides.requestId ?? 'resp-1',
-    url: overrides.url ?? 'https://vmoranv.github.io/jshookmcp/api/data',
+    url: overrides.url ?? rootUrl('api/data'),
     status: overrides.status ?? 200,
     statusText: overrides.statusText ?? 'OK',
     headers: overrides.headers ?? {},
@@ -60,17 +64,17 @@ describe('PatternDetector', () => {
     const requests = [
       request({
         requestId: 'r-ignored',
-        url: 'https://vmoranv.github.io/jshookmcp/static/ignored.css',
+        url: rootUrl('static/ignored.css'),
       }),
-      request({ requestId: 'r-static', url: 'https://vmoranv.github.io/jshookmcp/logo.png' }),
+      request({ requestId: 'r-static', url: rootUrl('logo.png') }),
       request({
         requestId: 'r-post',
-        url: 'https://vmoranv.github.io/jshookmcp/order',
+        url: rootUrl('order'),
         method: 'POST',
       }),
       request({
         requestId: 'r-keyword',
-        url: 'https://vmoranv.github.io/jshookmcp/api/login?token=abc',
+        url: rootUrl('api/login?token=abc'),
       }),
     ];
 
@@ -85,22 +89,22 @@ describe('PatternDetector', () => {
     const requests = [
       request({
         requestId: 'r-get-query',
-        url: 'https://example.com/items/view?q=1',
+        url: rootUrl('items/view?q=1'),
         method: 'GET',
       }),
       request({
         requestId: 'r-get-no-query',
-        url: 'https://example.com/items/view', // No keyword, no query
+        url: rootUrl('items/view'), // No keyword, no query
         method: 'GET',
       }),
       request({
         requestId: 'r-head',
-        url: 'https://example.com/items/view?q=1',
+        url: rootUrl('items/view?q=1'),
         method: 'HEAD',
       }),
       request({
         requestId: 'r-put-keyword',
-        url: 'https://example.com/login', // Keyword 'login'
+        url: rootUrl('login'), // Keyword 'login'
         method: 'PUT',
       }),
     ];
@@ -119,13 +123,13 @@ describe('PatternDetector', () => {
       }),
       response({
         requestId: 'json',
-        url: 'https://vmoranv.github.io/jshookmcp/plain',
+        url: rootUrl('plain'),
         mimeType: 'application/json',
         timestamp: 2,
       }),
       response({
         requestId: 'keyword',
-        url: 'https://vmoranv.github.io/jshookmcp/auth/step',
+        url: rootUrl('auth/step'),
         mimeType: 'text/html',
         timestamp: 3,
       }),
@@ -139,13 +143,13 @@ describe('PatternDetector', () => {
     const responses = [
       response({
         requestId: 'boring',
-        url: 'https://vmoranv.github.io/jshookmcp/boring',
+        url: rootUrl('boring'),
         mimeType: 'text/plain',
         timestamp: 1,
       }),
       response({
         requestId: 'js-mime',
-        url: 'https://vmoranv.github.io/jshookmcp/app.js',
+        url: rootUrl('app.js'),
         mimeType: 'application/javascript',
         timestamp: 2, // Should be kept
       }),
@@ -186,7 +190,7 @@ describe('PatternDetector', () => {
     const patterns = detectEncryptionPatterns(
       [
         request({
-          url: 'https://vmoranv.github.io/jshookmcp/crypto/aes/endpoint',
+          url: rootUrl('crypto/aes/endpoint'),
           postData: '{"payload":"encrypt this"}',
         }),
       ],
@@ -202,7 +206,7 @@ describe('PatternDetector', () => {
     const patterns = detectSignaturePatterns(
       [
         request({
-          url: 'https://vmoranv.github.io/jshookmcp/api?signature=abc&data=1',
+          url: rootUrl('api?signature=abc&data=1'),
           headers: { 'x-signature': 'a'.repeat(64), 'x-trace-id': 'trace' },
           postData: JSON.stringify({ sign: 'a'.repeat(64), payload: 'x' }),
         }),
@@ -222,7 +226,7 @@ describe('PatternDetector', () => {
     const patterns = detectTokenPatterns(
       [
         request({
-          url: `https://vmoranv.github.io/jshookmcp/login?access_token=${oauthToken}`,
+          url: rootUrl(`login?access_token=${oauthToken}`),
           headers: { Authorization: `Bearer ${jwt}` },
           postData: 'token=abc12345678901234567890',
         }),
@@ -247,11 +251,11 @@ describe('PatternDetector', () => {
     ]);
 
     const apis = extractSuspiciousAPIs([
-      request({ method: 'GET', url: 'https://vmoranv.github.io/jshookmcp/api/user' }),
-      request({ method: 'POST', url: 'https://vmoranv.github.io/jshookmcp/v1/login' }),
-      request({ method: 'GET', url: 'https://vmoranv.github.io/jshookmcp/api/user' }),
+      request({ method: 'GET', url: rootUrl('api/user') }),
+      request({ method: 'POST', url: rootUrl('v1/login') }),
+      request({ method: 'GET', url: rootUrl('api/user') }),
     ]);
-    expect(apis).toEqual(['GET /jshookmcp/api/user', 'POST /jshookmcp/v1/login']);
+    expect(apis).toEqual(['GET /api/user', 'POST /v1/login']);
 
     const functions = extractKeyFunctions([
       log({ text: 'signPayload(data); console.log("x"); verifyToken(token);' }),
@@ -274,7 +278,7 @@ describe('PatternDetector', () => {
       const patterns = detectEncryptionPatterns(
         [
           request({
-            url: 'https://vmoranv.github.io/jshookmcp/invalidkeyword',
+            url: rootUrl('invalidkeyword'),
             postData: 'invalidkeyword',
           }),
         ],
@@ -303,7 +307,7 @@ describe('PatternDetector', () => {
     const apis = extractSuspiciousAPIs([
       request({
         requestId: 'normal',
-        url: 'https://vmoranv.github.io/jshookmcp/static/image.png',
+        url: rootUrl('static/image.png'),
         method: 'GET',
       }),
       request({
@@ -319,7 +323,7 @@ describe('PatternDetector', () => {
     // calculateRequestPriority falsy postData
     expect(
       calculateRequestPriority(
-        request({ method: 'GET', url: 'http://example.com/', postData: '' }),
+        request({ method: 'GET', url: HTTP_ROOT_URL_WITH_SLASH, postData: '' }),
       ),
     ).toBe(0);
 
@@ -335,7 +339,7 @@ describe('PatternDetector', () => {
 
     // detectEncryptionPatterns missing postData and log.url
     const result = detectEncryptionPatterns(
-      [request({ method: 'GET', url: 'http://example.com/', postData: undefined })],
+      [request({ method: 'GET', url: HTTP_ROOT_URL_WITH_SLASH, postData: undefined })],
       [log({ text: 'base64 init', url: '' })],
     );
     expect(result.length).toBe(1);
@@ -346,7 +350,7 @@ describe('PatternDetector', () => {
     // calculateRequestPriority truthy postData
     expect(
       calculateRequestPriority(
-        request({ method: 'POST', url: 'http://example.com/', postData: 'truthy' }),
+        request({ method: 'POST', url: HTTP_ROOT_URL_WITH_SLASH, postData: 'truthy' }),
       ),
     ).toBe(15);
 

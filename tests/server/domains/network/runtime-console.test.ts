@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { PerformanceMonitor } from '@server/domains/shared/modules';
+import * as testUrls from '@tests/shared/test-urls';
 
 // ---------------------------------------------------------------------------
 // Mocks — hoisted so they are available before module imports
@@ -47,6 +48,7 @@ vi.mock('@utils/DetailedDataManager', () => ({
 }));
 
 import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -107,8 +109,8 @@ describe('AdvancedHandlersBase (console)', () => {
   describe('handleConsoleGetExceptions', () => {
     it('returns all exceptions when no URL filter is provided', async () => {
       const exceptions = [
-        { message: 'Error 1', url: 'https://a.com/script.js' },
-        { message: 'Error 2', url: 'https://b.com/app.js' },
+        { message: 'Error 1', url: `${testUrls.TEST_URLS.a}/script.js` },
+        { message: 'Error 2', url: `${testUrls.TEST_URLS.b}/app.js` },
       ];
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
@@ -122,19 +124,19 @@ describe('AdvancedHandlersBase (console)', () => {
 
     it('filters exceptions by URL substring', async () => {
       const exceptions = [
-        { message: 'Error 1', url: 'https://a.com/script.js' },
-        { message: 'Error 2', url: 'https://b.com/app.js' },
-        { message: 'Error 3', url: 'https://a.com/other.js' },
+        { message: 'Error 1', url: `${testUrls.TEST_URLS.a}/script.js` },
+        { message: 'Error 2', url: `${testUrls.TEST_URLS.b}/app.js` },
+        { message: 'Error 3', url: `${testUrls.TEST_URLS.a}/other.js` },
       ];
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
-      const result = await handler.handleConsoleGetExceptions({ url: 'a.com' });
+      const result = await handler.handleConsoleGetExceptions({ url: testUrls.TEST_HOSTS.a });
       const parsed = parseContent<ConsoleExceptionsPayload>(result);
 
       expect(parsed.total).toBe(2);
       expect(
         parsed.exceptions.every((exception) =>
-          exception.url ? new URL(exception.url).hostname === 'a.com' : false,
+          exception.url ? new URL(exception.url).hostname === testUrls.TEST_HOSTS.a : false,
         ),
       ).toBe(true);
     });
@@ -142,7 +144,7 @@ describe('AdvancedHandlersBase (console)', () => {
     it('applies default limit of 50', async () => {
       const exceptions = Array.from({ length: 60 }, (_, i) => ({
         message: `Error ${i}`,
-        url: `https://example.com/${i}.js`,
+        url: withPath(TEST_URLS.root, `${i}.js`),
       }));
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
@@ -155,7 +157,7 @@ describe('AdvancedHandlersBase (console)', () => {
     it('applies custom limit', async () => {
       const exceptions = Array.from({ length: 20 }, (_, i) => ({
         message: `Error ${i}`,
-        url: `https://example.com/${i}.js`,
+        url: withPath(TEST_URLS.root, `${i}.js`),
       }));
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
@@ -168,11 +170,15 @@ describe('AdvancedHandlersBase (console)', () => {
     it('applies URL filter before limit', async () => {
       const exceptions = Array.from({ length: 10 }, (_, i) => ({
         message: `Error ${i}`,
-        url: i < 3 ? 'https://target.com/script.js' : `https://other.com/${i}.js`,
+        url:
+          i < 3 ? `${testUrls.TEST_URLS.target}/script.js` : withPath(TEST_URLS.other, `${i}.js`),
       }));
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
-      const result = await handler.handleConsoleGetExceptions({ url: 'target.com', limit: 2 });
+      const result = await handler.handleConsoleGetExceptions({
+        url: testUrls.TEST_HOSTS.target,
+        limit: 2,
+      });
       const parsed = parseContent(result);
 
       expect(parsed.total).toBe(2);
@@ -192,14 +198,14 @@ describe('AdvancedHandlersBase (console)', () => {
     it('handles exceptions with undefined url during filtering', async () => {
       const exceptions = [
         { message: 'Error 1', url: undefined },
-        { message: 'Error 2', url: 'https://a.com/script.js' },
+        { message: 'Error 2', url: `${testUrls.TEST_URLS.a}/script.js` },
       ];
       mocks.consoleMonitorMock.getExceptions.mockReturnValue(exceptions);
 
-      const result = await handler.handleConsoleGetExceptions({ url: 'a.com' });
+      const result = await handler.handleConsoleGetExceptions({ url: testUrls.TEST_HOSTS.a });
       const parsed = parseContent(result);
 
-      // undefined url does not include 'a.com', so only the second exception matches
+      // undefined url does not include testUrls.TEST_HOSTS.a, so only the second exception matches
       expect(parsed.total).toBe(1);
     });
 

@@ -56,6 +56,7 @@ vi.mock('@modules/captcha/CaptchaPolicy', () => ({
 }));
 
 import { BrowserModeManager } from '@modules/browser/BrowserModeManager';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 async function withPatchedGlobals<T>(
   context: Record<string, unknown>,
@@ -206,7 +207,7 @@ describe('BrowserModeManager coverage', () => {
     const manager = new BrowserModeManager();
     const page = {} as unknown as Page;
 
-    await manager.checkAndHandleCaptcha(page, 'https://example.com');
+    await manager.checkAndHandleCaptcha(page, buildTestUrl('', { path: '/' }));
 
     expect(waitForCompletionMock).not.toHaveBeenCalled();
   });
@@ -217,7 +218,7 @@ describe('BrowserModeManager coverage', () => {
       goto: vi.fn(async () => undefined),
     } as unknown as Page;
 
-    await manager.goto('https://example.com', page);
+    await manager.goto(buildTestUrl('', { path: '/' }), page);
 
     expect(assessMock).not.toHaveBeenCalled();
   });
@@ -229,22 +230,24 @@ describe('BrowserModeManager coverage', () => {
     } as unknown as Page;
     const captchaSpy = vi.spyOn(manager, 'checkAndHandleCaptcha').mockResolvedValueOnce(undefined);
 
-    await expect(manager.goto('https://example.com', page)).resolves.toBe(page);
+    await expect(manager.goto(buildTestUrl('', { path: '/' }), page)).resolves.toBe(page);
 
-    expect(page.goto).toHaveBeenCalledWith('https://example.com', { waitUntil: 'networkidle2' });
-    expect(captchaSpy).toHaveBeenCalledWith(page, 'https://example.com');
+    expect(page.goto).toHaveBeenCalledWith(buildTestUrl('', { path: '/' }), {
+      waitUntil: 'networkidle2',
+    });
+    expect(captchaSpy).toHaveBeenCalledWith(page, buildTestUrl('', { path: '/' }));
   });
 
   it('restores session data only for the same origin', async () => {
     const manager = new BrowserModeManager();
     Reflect.set(manager as object, 'sessionData', {
-      origin: 'https://a.example',
+      origin: buildTestUrl('a', { suffix: 'example', path: '/' }),
       localStorage: { token: 'abc' },
       sessionStorage: { theme: 'dark' },
     });
 
     const page = {
-      url: vi.fn(() => 'https://b.example/path'),
+      url: vi.fn(() => buildTestUrl('b', { suffix: 'example', path: 'path' })),
       evaluate: vi.fn(async () => undefined),
     } as unknown as Page;
 
@@ -256,7 +259,7 @@ describe('BrowserModeManager coverage', () => {
   it('captures session data errors without throwing', async () => {
     const manager = new BrowserModeManager();
     const page = {
-      url: vi.fn(() => 'https://example.com'),
+      url: vi.fn(() => buildTestUrl('', { path: '/' })),
       cookies: vi.fn(async () => [{ name: 'sid', value: 'abc' }]),
       evaluate: vi.fn(async () => {
         throw new Error('boom');
@@ -269,7 +272,7 @@ describe('BrowserModeManager coverage', () => {
   it('does not restore session data when none is stored', async () => {
     const manager = new BrowserModeManager();
     const page = {
-      url: vi.fn(() => 'https://example.com'),
+      url: vi.fn(() => buildTestUrl('', { path: '/' })),
       evaluate: vi.fn(async () => undefined),
     } as unknown as Page;
 
@@ -316,7 +319,7 @@ describe('BrowserModeManager coverage', () => {
   it('captures and restores session data for same-origin mode switches', async () => {
     const manager = new BrowserModeManager();
     const page = {
-      url: vi.fn(() => 'https://example.com/path'),
+      url: vi.fn(() => buildTestUrl('', { path: 'path' })),
       cookies: vi.fn(async () => [{ name: 'sid', value: 'abc' }]),
       evaluate: vi.fn(async () => ({
         local: { token: '1' },
@@ -327,13 +330,13 @@ describe('BrowserModeManager coverage', () => {
     await (manager as any).saveSessionData(page);
 
     const stored = Reflect.get(manager as object, 'sessionData') as Record<string, unknown>;
-    expect(stored.origin).toBe('https://example.com');
+    expect(stored.origin).toBe(new URL(buildTestUrl('', { path: '/' })).origin);
     expect(stored.cookies).toEqual([{ name: 'sid', value: 'abc' }]);
     expect(stored.localStorage).toEqual({ token: '1' });
     expect(stored.sessionStorage).toEqual({ theme: 'dark' });
 
     const restorePage = {
-      url: vi.fn(() => 'https://example.com/other'),
+      url: vi.fn(() => buildTestUrl('', { path: 'other' })),
       evaluate: vi.fn(async () => undefined),
     } as unknown as Page;
 
@@ -348,13 +351,13 @@ describe('BrowserModeManager coverage', () => {
   it('skips restoring session data across origins', async () => {
     const manager = new BrowserModeManager();
     Reflect.set(manager as object, 'sessionData', {
-      origin: 'https://a.example',
+      origin: buildTestUrl('a', { suffix: 'example', path: '/' }),
       localStorage: { token: 'abc' },
       sessionStorage: { theme: 'dark' },
     });
 
     const page = {
-      url: vi.fn(() => 'https://b.example/path'),
+      url: vi.fn(() => buildTestUrl('b', { suffix: 'example', path: 'path' })),
       evaluate: vi.fn(async () => undefined),
     } as unknown as Page;
 
@@ -366,7 +369,7 @@ describe('BrowserModeManager coverage', () => {
   it('swallows session capture and restore failures', async () => {
     const manager = new BrowserModeManager();
     const capturePage = {
-      url: vi.fn(() => 'https://example.com'),
+      url: vi.fn(() => buildTestUrl('', { path: '/' })),
       cookies: vi.fn(async () => {
         throw new Error('cookie failure');
       }),
@@ -376,12 +379,12 @@ describe('BrowserModeManager coverage', () => {
     await expect((manager as any).saveSessionData(capturePage)).resolves.toBeUndefined();
 
     Reflect.set(manager as object, 'sessionData', {
-      origin: 'https://example.com',
+      origin: buildTestUrl('', { path: '/' }),
       localStorage: { token: 'abc' },
     });
 
     const restorePage = {
-      url: vi.fn(() => 'https://example.com'),
+      url: vi.fn(() => buildTestUrl('', { path: '/' })),
       evaluate: vi.fn(async () => {
         throw new Error('restore failure');
       }),
@@ -527,7 +530,7 @@ describe('BrowserModeManager coverage', () => {
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
 
     const currentPage = {
-      url: vi.fn(() => 'https://example.com/path'),
+      url: vi.fn(() => buildTestUrl('', { path: 'path' })),
       cookies: vi.fn(async () => [{ name: 'sid', value: 'abc' }]),
       evaluate: vi.fn(async () => ({
         local: { token: '1' },
@@ -546,7 +549,7 @@ describe('BrowserModeManager coverage', () => {
     } as unknown as Browser;
 
     const newPage = {
-      url: vi.fn(() => 'https://example.com/path'),
+      url: vi.fn(() => buildTestUrl('', { path: 'path' })),
       goto: vi.fn(async () => undefined),
       reload: vi.fn(async () => undefined),
       setCookie: vi.fn(async () => undefined),
@@ -599,7 +602,7 @@ describe('BrowserModeManager coverage', () => {
         type: 'slider',
         confidence: 95,
         providerHint: 'test',
-        url: 'https://example.com/challenge',
+        url: buildTestUrl('', { path: 'challenge' }),
       },
     });
     determineCaptchaResolutionMock.mockReturnValue({
@@ -617,7 +620,7 @@ describe('BrowserModeManager coverage', () => {
 
     try {
       await expect(
-        manager.checkAndHandleCaptcha(currentPage, 'https://example.com/path'),
+        manager.checkAndHandleCaptcha(currentPage, buildTestUrl('', { path: 'path' })),
       ).resolves.toBeUndefined();
     } finally {
       stderrSpy.mockRestore();
@@ -626,7 +629,7 @@ describe('BrowserModeManager coverage', () => {
     expect(oldBrowser.close).toHaveBeenCalledTimes(1);
     expect(launchMock).toHaveBeenCalledTimes(1);
     expect(headedBrowser.newPage).toHaveBeenCalledTimes(1);
-    expect(newPage.goto).toHaveBeenCalledWith('https://example.com/path', {
+    expect(newPage.goto).toHaveBeenCalledWith(buildTestUrl('', { path: 'path' }), {
       waitUntil: 'networkidle2',
     });
     expect(newPage.setCookie).toHaveBeenCalledWith({ name: 'sid', value: 'abc' });
@@ -641,7 +644,7 @@ describe('BrowserModeManager coverage', () => {
     findBrowserExecutableMock.mockReturnValue('/detected/browser-bin');
 
     const currentPage = {
-      url: vi.fn(() => 'https://example.com/path'),
+      url: vi.fn(() => buildTestUrl('', { path: 'path' })),
       cookies: vi.fn(async () => []),
       evaluate: vi.fn(async () => ({
         local: {},
@@ -660,7 +663,7 @@ describe('BrowserModeManager coverage', () => {
     } as unknown as Browser;
 
     const newPage = {
-      url: vi.fn(() => 'https://example.com/path'),
+      url: vi.fn(() => buildTestUrl('', { path: 'path' })),
       goto: vi.fn(async () => undefined),
       reload: vi.fn(async () => undefined),
       setCookie: vi.fn(async () => undefined),
@@ -702,7 +705,7 @@ describe('BrowserModeManager coverage', () => {
         detected: true,
         type: 'slider',
         confidence: 95,
-        url: 'https://example.com/challenge',
+        url: buildTestUrl('', { path: 'challenge' }),
       },
     });
     determineCaptchaResolutionMock.mockReturnValue({
@@ -719,7 +722,7 @@ describe('BrowserModeManager coverage', () => {
     const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     try {
       await expect(
-        manager.checkAndHandleCaptcha(currentPage, 'https://example.com/path'),
+        manager.checkAndHandleCaptcha(currentPage, buildTestUrl('', { path: 'path' })),
       ).rejects.toThrow(/Captcha completion timeout/);
     } finally {
       stderrWrite.mockRestore();

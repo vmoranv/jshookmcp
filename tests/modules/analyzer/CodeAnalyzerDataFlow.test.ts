@@ -23,6 +23,7 @@ vi.mock('@modules/analyzer/SecurityCodeAnalyzer', () => ({
 }));
 
 import { analyzeDataFlowWithTaint } from '@modules/analyzer/CodeAnalyzerDataFlow';
+import { TEST_HTTP_URLS } from '@tests/shared/test-urls';
 
 describe('CodeAnalyzer data flow analysis', () => {
   beforeEach(() => {
@@ -78,7 +79,7 @@ describe('CodeAnalyzer data flow analysis', () => {
 
   it('detects network and dom sources, and variable propagation', async () => {
     const result = await analyzeDataFlowWithTaint(`
-      const netSource = axios.get('http://example.com');
+      const netSource = axios.get('${TEST_HTTP_URLS.root}');
       let domSource = document.querySelector('#input');
       
       const taintedVar = netSource;

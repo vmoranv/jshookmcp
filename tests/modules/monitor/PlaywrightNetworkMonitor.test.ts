@@ -13,6 +13,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { PlaywrightNetworkMonitor } from '@modules/monitor/PlaywrightNetworkMonitor';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createPage() {
   const handlers: Record<string, (payload: any) => void> = {};
@@ -88,9 +89,16 @@ describe('PlaywrightNetworkMonitor', () => {
     const monitor = new PlaywrightNetworkMonitor(page as any);
 
     await monitor.enable();
-    const req = makeRequest('https://api.test/user?id=1', 'POST', 'xhr', '{"x":1}');
+    const req = makeRequest(
+      buildTestUrl('api', { suffix: 'test', path: 'user?id=1' }),
+      'POST',
+      'xhr',
+      '{"x":1}',
+    );
     page.handlers['request']!(req);
-    page.handlers['response']!(makeResponse(req, 'https://api.test/user?id=1', 201));
+    page.handlers['response']!(
+      makeResponse(req, buildTestUrl('api', { suffix: 'test', path: 'user?id=1' }), 201),
+    );
 
     const requests = monitor.getRequests();
     const responses = monitor.getResponses();
@@ -106,7 +114,7 @@ describe('PlaywrightNetworkMonitor', () => {
     const monitor = new PlaywrightNetworkMonitor(page as any);
 
     await monitor.enable();
-    const req = makeRequest('https://api.test/no-version');
+    const req = makeRequest(buildTestUrl('api', { suffix: 'test', path: 'no-version' }));
     page.handlers['request']!(req);
 
     const requests = monitor.getRequests();
@@ -119,9 +127,11 @@ describe('PlaywrightNetworkMonitor', () => {
     const monitor = new PlaywrightNetworkMonitor(page as any);
 
     await monitor.enable();
-    const req = makeRequest('https://api.test/h2');
+    const req = makeRequest(buildTestUrl('api', { suffix: 'test', path: 'h2' }));
     page.handlers['request']!(req);
-    page.handlers['response']!(makeProtocolResponse(req, 'https://api.test/h2', 'h2'));
+    page.handlers['response']!(
+      makeProtocolResponse(req, buildTestUrl('api', { suffix: 'test', path: 'h2' }), 'h2'),
+    );
 
     const requests = monitor.getRequests();
     expect(requests[0]!.httpVersion).toBe('h2');
@@ -132,12 +142,16 @@ describe('PlaywrightNetworkMonitor', () => {
     const monitor = new PlaywrightNetworkMonitor(page as any);
     await monitor.enable();
 
-    const req1 = makeRequest('https://api.test/a', 'GET', 'xhr');
-    const req2 = makeRequest('https://api.test/b', 'PUT', 'fetch');
+    const req1 = makeRequest(buildTestUrl('api', { suffix: 'test', path: 'a' }), 'GET', 'xhr');
+    const req2 = makeRequest(buildTestUrl('api', { suffix: 'test', path: 'b' }), 'PUT', 'fetch');
     page.handlers['request']!(req1);
     page.handlers['request']!(req2);
-    page.handlers['response']!(makeResponse(req1, 'https://api.test/a', 200));
-    page.handlers['response']!(makeResponse(req2, 'https://api.test/b', 404));
+    page.handlers['response']!(
+      makeResponse(req1, buildTestUrl('api', { suffix: 'test', path: 'a' }), 200),
+    );
+    page.handlers['response']!(
+      makeResponse(req2, buildTestUrl('api', { suffix: 'test', path: 'b' }), 404),
+    );
 
     const onlyPut = monitor.getRequests({ method: 'PUT' });
     const only404 = monitor.getResponses({ status: 404 });
@@ -154,9 +168,11 @@ describe('PlaywrightNetworkMonitor', () => {
     const monitor = new PlaywrightNetworkMonitor(page as any);
     await monitor.enable();
 
-    const req = makeRequest('https://api.test/a', 'GET', 'script');
+    const req = makeRequest(buildTestUrl('api', { suffix: 'test', path: 'a' }), 'GET', 'script');
     page.handlers['request']!(req);
-    page.handlers['response']!(makeResponse(req, 'https://api.test/a', 200));
+    page.handlers['response']!(
+      makeResponse(req, buildTestUrl('api', { suffix: 'test', path: 'a' }), 200),
+    );
 
     const stats = monitor.getStats();
     expect(stats.byMethod.GET).toBe(1);
@@ -226,14 +242,25 @@ describe('PlaywrightNetworkMonitor', () => {
     await monitor.enable();
     monitor.setPage(page2 as any);
 
-    const req1 = makeRequest('https://api.test/text.js', 'GET', 'script');
-    const req2 = makeRequest('https://api.test/bin', 'GET', 'fetch');
+    const req1 = makeRequest(
+      buildTestUrl('api', { suffix: 'test', path: 'text.js' }),
+      'GET',
+      'script',
+    );
+    const req2 = makeRequest(buildTestUrl('api', { suffix: 'test', path: 'bin' }), 'GET', 'fetch');
     page2.handlers['request']!(req1);
     page2.handlers['response']!(
-      makeResponse(req1, 'https://api.test/text.js', 200, 'text/javascript'),
+      makeResponse(
+        req1,
+        buildTestUrl('api', { suffix: 'test', path: 'text.js' }),
+        200,
+        'text/javascript',
+      ),
     );
     page2.handlers['request']!(req2);
-    page2.handlers['response']!(makeBinaryResponse(req2, 'https://api.test/bin', 200));
+    page2.handlers['response']!(
+      makeBinaryResponse(req2, buildTestUrl('api', { suffix: 'test', path: 'bin' }), 200),
+    );
 
     await vi.waitFor(async () => {
       expect(await monitor.getResponseBody('pw-1')).toMatchObject({ base64Encoded: false });
@@ -271,12 +298,16 @@ describe('PlaywrightNetworkMonitor', () => {
     monitor.setPage(page2 as any);
     monitor.setPage(page2 as any);
 
-    const req1 = makeRequest('https://api.test/a', 'GET', 'xhr');
-    const req2 = makeRequest('https://api.test/b', 'POST', 'fetch');
+    const req1 = makeRequest(buildTestUrl('api', { suffix: 'test', path: 'a' }), 'GET', 'xhr');
+    const req2 = makeRequest(buildTestUrl('api', { suffix: 'test', path: 'b' }), 'POST', 'fetch');
     page2.handlers['request']!(req1);
     page2.handlers['request']!(req2);
-    page2.handlers['response']!(makeResponse(req1, 'https://api.test/a', 200));
-    page2.handlers['response']!(makeResponse(req2, 'https://api.test/b', 201));
+    page2.handlers['response']!(
+      makeResponse(req1, buildTestUrl('api', { suffix: 'test', path: 'a' }), 200),
+    );
+    page2.handlers['response']!(
+      makeResponse(req2, buildTestUrl('api', { suffix: 'test', path: 'b' }), 201),
+    );
 
     const limitedRequests = monitor.getRequests({ limit: 1 });
     const limitedResponses = monitor.getResponses({ limit: 1 });
@@ -315,12 +346,24 @@ describe('PlaywrightNetworkMonitor', () => {
       fetchReset: false,
     });
 
-    const req = makeRequest('https://api.test/huge.js', 'GET', 'script');
+    const req = makeRequest(
+      buildTestUrl('api', { suffix: 'test', path: 'huge.js' }),
+      'GET',
+      'script',
+    );
     page.handlers['request']!(req);
     page.handlers['response']!(
-      Object.assign(makeResponse(req, 'https://api.test/huge.js', 200, 'text/javascript'), {
-        body: async () => Buffer.alloc(1_048_577, 1),
-      }),
+      Object.assign(
+        makeResponse(
+          req,
+          buildTestUrl('api', { suffix: 'test', path: 'huge.js' }),
+          200,
+          'text/javascript',
+        ),
+        {
+          body: async () => Buffer.alloc(1_048_577, 1),
+        },
+      ),
     );
 
     await vi.waitFor(() => {

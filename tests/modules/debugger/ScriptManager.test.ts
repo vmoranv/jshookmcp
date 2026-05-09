@@ -11,6 +11,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { ScriptManager } from '@modules/debugger/ScriptManager';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -64,7 +65,7 @@ describe('ScriptManager', () => {
   it('captures scriptParsed events and stores script metadata', async () => {
     cdp.emit('Debugger.scriptParsed', {
       scriptId: '1',
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       startLine: 0,
       startColumn: 0,
       endLine: 10,
@@ -80,7 +81,7 @@ describe('ScriptManager', () => {
   it('loads script source by scriptId and exposes chunk access', async () => {
     cdp.emit('Debugger.scriptParsed', {
       scriptId: '1',
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       startLine: 0,
       startColumn: 0,
       endLine: 10,
@@ -112,7 +113,7 @@ describe('ScriptManager', () => {
     for (const scriptId of ['1', '2', '3']) {
       cdp.emit('Debugger.scriptParsed', {
         scriptId,
-        url: `https://site/${scriptId}.js`,
+        url: buildTestUrl('site', { suffix: 'bare', path: `${scriptId}.js` }),
         startLine: 0,
         startColumn: 0,
         endLine: 1,
@@ -136,7 +137,7 @@ describe('ScriptManager', () => {
   it('finds scripts by wildcard URL patterns', async () => {
     cdp.emit('Debugger.scriptParsed', {
       scriptId: 'a',
-      url: 'https://site/vendor.bundle.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'vendor.bundle.js' }),
       startLine: 0,
       startColumn: 0,
       endLine: 1,
@@ -145,7 +146,7 @@ describe('ScriptManager', () => {
     });
     cdp.emit('Debugger.scriptParsed', {
       scriptId: 'b',
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       startLine: 0,
       startColumn: 0,
       endLine: 1,
@@ -161,7 +162,7 @@ describe('ScriptManager', () => {
   it('searches loaded script sources and returns contextual matches', async () => {
     cdp.emit('Debugger.scriptParsed', {
       scriptId: '1',
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       startLine: 0,
       startColumn: 0,
       endLine: 10,
@@ -178,7 +179,7 @@ describe('ScriptManager', () => {
   it('searchInScriptsEnhanced uses indexed lookup for non-regex queries', async () => {
     cdp.emit('Debugger.scriptParsed', {
       scriptId: '1',
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       startLine: 0,
       startColumn: 0,
       endLine: 10,

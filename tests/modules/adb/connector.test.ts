@@ -67,6 +67,7 @@ vi.mock('node:fs', () => ({
 
 import { ADBConnector } from '@modules/adb/ADBConnector';
 import type { ADBDevice } from '@modules/adb/types';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 describe('ADBConnector', () => {
   beforeEach(() => {
@@ -247,7 +248,7 @@ describe('ADBConnector', () => {
         {
           id: 'target-1',
           title: 'Test WebView',
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           type: 'page',
           webSocketDebuggerUrl: 'ws://localhost:9222/devtools/page/target-1',
         },

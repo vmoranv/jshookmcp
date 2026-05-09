@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { ProtocolAnalysisHandlers } from '@server/domains/protocol-analysis/handlers/handler-class';
 import type { ToolResponse } from '@server/types';
+import { TEST_HOSTS } from '@tests/shared/test-urls';
 
 function parseContent(res: ToolResponse) {
   const textBlock = res.content.find(
@@ -100,7 +101,7 @@ describe('ProtocolAnalysisHandlers — handleProtoFingerprint behavioral tests',
 
   describe('HTTP detection', () => {
     it('detects GET request', async () => {
-      const http = Buffer.from('GET / HTTP/1.1\r\nHost: example.com').toString('hex');
+      const http = Buffer.from(`GET / HTTP/1.1\r\nHost: ${TEST_HOSTS.root}`).toString('hex');
       const res = await handlers.handleProtoFingerprint({ hexPayloads: [http] });
       const json = parseContent(res);
       const fp = json.fingerprints[0];

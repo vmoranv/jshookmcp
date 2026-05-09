@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SourcemapToolHandlersParseBase } from '../../../../src/server/domains/sourcemap/handlers.impl.sourcemap-parse-base';
+import { TEST_FTP_URLS, TEST_HTTP_URLS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestParseBase extends SourcemapToolHandlersParseBase {
   public async testParseSourceMap(u: string, s?: string) {
@@ -121,11 +122,11 @@ describe('SourcemapToolHandlersParseBase', () => {
 
   describe('validateFetchUrl', () => {
     it('allows valid URLs', async () => {
-      expect(() => handlers.testValidateFetchUrl('http://example.com/')).not.toThrow();
-      expect(() => handlers.testValidateFetchUrl('https://example.com/')).not.toThrow();
+      expect(() => handlers.testValidateFetchUrl(`${TEST_HTTP_URLS.root}/`)).not.toThrow();
+      expect(() => handlers.testValidateFetchUrl(`${TEST_URLS.root}/`)).not.toThrow();
     });
     it('blocks unsupported protocols', async () => {
-      expect(() => handlers.testValidateFetchUrl('ftp://example.com/')).toThrow(
+      expect(() => handlers.testValidateFetchUrl(`${TEST_FTP_URLS.root}/`)).toThrow(
         'unsupported protocol',
       );
     });
@@ -158,7 +159,7 @@ describe('SourcemapToolHandlersParseBase', () => {
     it('fetches via native fetch', async () => {
       const oldFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => 'native-fetch-text' });
-      const res = await handlers.testFetchSourceMapText('http://example.com');
+      const res = await handlers.testFetchSourceMapText(TEST_HTTP_URLS.root);
       expect(res).toBe('native-fetch-text');
       global.fetch = oldFetch;
     });
@@ -168,7 +169,7 @@ describe('SourcemapToolHandlersParseBase', () => {
       global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' });
       // Throws HTTP error and falls back to evaluate
       mockEvaluateWithTimeout.mockResolvedValue('__FETCH_ERROR__evaluation fallback error');
-      await expect(handlers.testFetchSourceMapText('http://example.com')).rejects.toThrow(
+      await expect(handlers.testFetchSourceMapText(TEST_HTTP_URLS.root)).rejects.toThrow(
         'evaluation fallback error',
       );
       global.fetch = oldFetch;
@@ -179,7 +180,7 @@ describe('SourcemapToolHandlersParseBase', () => {
       const abortErr = new Error('AbortError');
       abortErr.name = 'AbortError';
       global.fetch = vi.fn().mockRejectedValue(abortErr);
-      await expect(handlers.testFetchSourceMapText('http://example.com')).rejects.toThrow(
+      await expect(handlers.testFetchSourceMapText(TEST_HTTP_URLS.root)).rejects.toThrow(
         'timed out after 10s',
       );
       global.fetch = oldFetch;
@@ -189,7 +190,7 @@ describe('SourcemapToolHandlersParseBase', () => {
       const oldFetch = global.fetch;
       global.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
       mockEvaluateWithTimeout.mockResolvedValue('page-fetch-text');
-      const res = await handlers.testFetchSourceMapText('http://example.com');
+      const res = await handlers.testFetchSourceMapText(TEST_HTTP_URLS.root);
       expect(res).toBe('page-fetch-text');
       global.fetch = oldFetch;
     });
@@ -198,7 +199,7 @@ describe('SourcemapToolHandlersParseBase', () => {
       const oldFetch = global.fetch;
       global.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
       mockEvaluateWithTimeout.mockResolvedValue(123); // invalid
-      await expect(handlers.testFetchSourceMapText('http://example.com')).rejects.toThrow(
+      await expect(handlers.testFetchSourceMapText(TEST_HTTP_URLS.root)).rejects.toThrow(
         'Failed to fetch SourceMap content',
       );
       global.fetch = oldFetch;
@@ -292,16 +293,16 @@ describe('SourcemapToolHandlersParseBase', () => {
 
     it('throws on invalid JSON', async () => {
       vi.spyOn(handlers as any, 'fetchSourceMapText').mockResolvedValue('invalid');
-      await expect(handlers.testLoadSourceMap('http://example.com/map.js')).rejects.toThrow(
-        'Invalid SourceMap JSON',
-      );
+      await expect(
+        handlers.testLoadSourceMap(withPath(TEST_HTTP_URLS.root, 'map.js')),
+      ).rejects.toThrow('Invalid SourceMap JSON');
     });
 
     it('fetches natively', async () => {
       vi.spyOn(handlers as any, 'fetchSourceMapText').mockResolvedValue(
         JSON.stringify({ version: 3, mappings: 'A' }),
       );
-      const loaded = await handlers.testLoadSourceMap('http://example.com/map.js');
+      const loaded = await handlers.testLoadSourceMap(withPath(TEST_HTTP_URLS.root, 'map.js'));
       expect(loaded.map.mappings).toBe('A');
     });
   });

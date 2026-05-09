@@ -46,12 +46,12 @@ function createDebuggerManagerMock(
           callFrames: [
             {
               functionName: 'onClick',
-              url: 'https://example.com/game.js',
+              url: withPath(TEST_URLS.root, 'game.js'),
               location: { lineNumber: 42, columnNumber: 5 },
             },
             {
               functionName: 'handleInput',
-              url: 'https://example.com/game.js',
+              url: withPath(TEST_URLS.root, 'game.js'),
               location: { lineNumber: 100, columnNumber: 10 },
             },
           ],
@@ -191,6 +191,7 @@ vi.mock('@server/domains/canvas/handlers', () => ({
 
 import manifest from '@server/domains/canvas/manifest';
 import { canvasTools } from '@server/domains/canvas/definitions';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

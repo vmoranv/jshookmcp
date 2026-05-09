@@ -20,6 +20,7 @@ import type {
   PickOpts,
   TraceOpts,
 } from '@server/domains/canvas/types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('canvas domain types', () => {
   // ── Primitive types ───────────────────────────────────────────────────
@@ -472,13 +473,13 @@ describe('canvas domain types', () => {
     it('has required protocol and optional request fields', async () => {
       const event: NetworkEvent = {
         protocol: 'fetch',
-        url: 'https://api.example.com/data',
+        url: withPath(TEST_URLS.api, 'data'),
         method: 'GET',
         payloadPreview: '{"key":"value"}',
       };
 
       expect(event.protocol).toBe('fetch');
-      expect(event.url).toBe('https://api.example.com/data');
+      expect(event.url).toBe(withPath(TEST_URLS.api, 'data'));
       expect(event.method).toBe('GET');
     });
   });

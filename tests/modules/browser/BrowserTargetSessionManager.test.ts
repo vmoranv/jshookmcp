@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BrowserTargetSessionManager } from '@modules/browser/BrowserTargetSessionManager';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class FakeAttachedSession {
   send = vi.fn(async (method: string) => {
@@ -40,14 +41,14 @@ class FakeParentSession {
             targetId: 'page-1',
             type: 'page',
             title: 'Main',
-            url: 'https://example.com',
+            url: TEST_URLS.root,
             attached: false,
           },
           {
             targetId: 'frame-1',
             type: 'iframe',
             title: 'Inner',
-            url: 'https://example.com/frame',
+            url: withPath(TEST_URLS.root, 'frame'),
             attached: false,
           },
         ],

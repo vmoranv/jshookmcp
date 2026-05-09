@@ -5,6 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PluginRegistry } from '@modules/extension-registry/PluginRegistry';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('PluginRegistry', () => {
   let tempDir: string;
@@ -111,12 +112,12 @@ describe('PluginRegistry', () => {
       id: 'remote/plugin',
       name: 'Remote Plugin',
       version: '1.0.0',
-      entry: 'https://example.com/remote-plugin.mjs',
+      entry: withPath(TEST_URLS.root, 'remote-plugin.mjs'),
     });
 
     const loaded = await registry.loadPlugin(pluginId);
 
-    expect(fetchMock).toHaveBeenCalledWith('https://example.com/remote-plugin.mjs');
+    expect(fetchMock).toHaveBeenCalledWith(withPath(TEST_URLS.root, 'remote-plugin.mjs'));
     expect(loaded.exports['remoteValue']).toBe('remote');
     expect(existsSync(path.join(tempDir, 'modules', 'remote-plugin.mjs'))).toBe(true);
   });
@@ -135,7 +136,7 @@ describe('PluginRegistry', () => {
       id: 'remote-plugin',
       name: 'Remote Plugin',
       version: '1.0.0',
-      entry: 'https://example.com/remote-plugin.mjs',
+      entry: withPath(TEST_URLS.root, 'remote-plugin.mjs'),
     });
 
     await expect(registry.loadPlugin(pluginId)).rejects.toThrow(

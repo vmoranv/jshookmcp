@@ -8,6 +8,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 }));
 
 import { GraphQLToolHandlers } from '@server/domains/graphql/handlers';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('GraphQLToolHandlers', () => {
   const page = {
@@ -92,7 +93,7 @@ describe('GraphQLToolHandlers', () => {
 
     const body = parseJson<any>(
       await handlers.handleGraphqlIntrospect({
-        endpoint: 'https://vmoranv.github.io/jshookmcp/api/graphql',
+        endpoint: withPath(TEST_URLS.root, 'api/graphql'),
       }),
     );
 
@@ -113,7 +114,7 @@ describe('GraphQLToolHandlers', () => {
 
     const body = parseJson<any>(
       await handlers.handleGraphqlReplay({
-        endpoint: 'https://vmoranv.github.io/jshookmcp/api/graphql',
+        endpoint: withPath(TEST_URLS.root, 'api/graphql'),
         query: 'query Test { ok }',
         variables: { id: 1 },
       }),

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ReplayHandlers } from '@server/domains/network/handlers/replay-handlers';
+import * as testUrls from '@tests/shared/test-urls';
 
 // Use a hoisted mock variable so we can re-configure in beforeEach (survives mockReset)
 const mockReplayRequest = vi.fn();
@@ -30,7 +31,7 @@ describe('ReplayHandlers', () => {
     // Re-configure mock after clearAllMocks wipes the implementation
     mockReplayRequest.mockResolvedValue({
       dryRun: true,
-      preview: { url: 'https://a.com', method: 'GET', headers: {}, body: undefined },
+      preview: { url: testUrls.TEST_URLS.a, method: 'GET', headers: {}, body: undefined },
     });
     deps = createDeps();
     handlers = new ReplayHandlers(deps as never);
@@ -46,7 +47,7 @@ describe('ReplayHandlers', () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
         {
           requestId: 'r1',
-          url: 'https://api.com/data',
+          url: `${testUrls.TEST_URLS.api}/data`,
           method: 'GET',
           headers: { authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.test.sig' },
         },
@@ -59,7 +60,7 @@ describe('ReplayHandlers', () => {
 
     it('respects minConfidence filter', async () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'r1', url: 'https://a.com', method: 'GET' },
+        { requestId: 'r1', url: testUrls.TEST_URLS.a, method: 'GET' },
       ]);
       const r = await handlers.handleNetworkExtractAuth({ minConfidence: 0.99 });
       expect(parseBody(r).scannedRequests).toBe(1);
@@ -82,7 +83,7 @@ describe('ReplayHandlers', () => {
 
     it('exports HAR with requests', async () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'r1', url: 'https://a.com', method: 'GET' },
+        { requestId: 'r1', url: testUrls.TEST_URLS.a, method: 'GET' },
       ]);
       deps.consoleMonitor.getNetworkActivity.mockReturnValue({
         response: { status: 200, headers: {} },
@@ -95,7 +96,7 @@ describe('ReplayHandlers', () => {
 
     it('exports HAR with includeBodies', async () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'r1', url: 'https://a.com', method: 'GET' },
+        { requestId: 'r1', url: testUrls.TEST_URLS.a, method: 'GET' },
       ]);
       deps.consoleMonitor.getNetworkActivity.mockReturnValue({
         response: { status: 200, headers: {} },
@@ -132,7 +133,7 @@ describe('ReplayHandlers', () => {
 
     it('replays a found request (dryRun)', async () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: 'r1', url: 'https://a.com', method: 'GET', headers: {} },
+        { requestId: 'r1', url: testUrls.TEST_URLS.a, method: 'GET', headers: {} },
       ]);
       const r = await handlers.handleNetworkReplayRequest({ requestId: 'r1' });
       const body = parseBody(r);

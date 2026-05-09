@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamingToolHandlersSse } from '@server/domains/streaming/handlers.impl.streaming-sse';
 import type { TextToolResponse } from '@server/domains/streaming/handlers.impl.streaming-base';
+import * as testUrls from '@tests/shared/test-urls';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -339,7 +340,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
     it('passes all four arguments to page.evaluate', async () => {
       mocks.page.evaluate.mockResolvedValue({
         success: true,
-        filters: { sourceUrl: 'http://a.com', eventType: 'data' },
+        filters: { sourceUrl: testUrls.TEST_HTTP_URLS.a, eventType: 'data' },
         page: {
           offset: 5,
           limit: 50,
@@ -359,7 +360,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
       });
 
       await handler.handleSseGetEvents({
-        sourceUrl: 'http://a.com',
+        sourceUrl: testUrls.TEST_HTTP_URLS.a,
         eventType: 'data',
         limit: 50,
         offset: 5,
@@ -367,7 +368,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
 
       const evaluateArgs = mocks.page.evaluate.mock.calls[0]![1];
       expect(evaluateArgs).toEqual({
-        sourceUrl: 'http://a.com',
+        sourceUrl: testUrls.TEST_HTTP_URLS.a,
         eventType: 'data',
         limit: 50,
         offset: 5,
@@ -395,7 +396,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
         },
         events: [
           {
-            sourceUrl: 'http://a.com/sse',
+            sourceUrl: `${testUrls.TEST_HTTP_URLS.a}/sse`,
             eventType: 'message',
             dataPreview: 'a',
             dataLength: 1,
@@ -403,7 +404,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
             timestamp: 1000,
           },
           {
-            sourceUrl: 'http://b.com/sse',
+            sourceUrl: `${testUrls.TEST_HTTP_URLS.b}/sse`,
             eventType: 'update',
             dataPreview: 'b',
             dataLength: 1,
@@ -411,7 +412,7 @@ describe('StreamingToolHandlersSse — additional coverage', () => {
             timestamp: 2000,
           },
           {
-            sourceUrl: 'http://c.com/sse',
+            sourceUrl: `${testUrls.TEST_HTTP_URLS.c}/sse`,
             eventType: 'open',
             dataPreview: '',
             dataLength: 0,

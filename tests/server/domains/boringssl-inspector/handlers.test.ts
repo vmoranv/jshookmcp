@@ -16,6 +16,7 @@ import {
 import { describe, expect, it, beforeAll, beforeEach, afterAll, afterEach, vi } from 'vitest';
 import { BoringsslInspectorHandlers } from '@server/domains/boringssl-inspector/index';
 import { disableKeyLog } from '@modules/boringssl-inspector/TLSKeyLogExtractor';
+import { TEST_HOSTS } from '@tests/shared/test-urls';
 
 describe('BoringsslInspectorHandlers', () => {
   let handlers: BoringsslInspectorHandlers;
@@ -272,13 +273,13 @@ describe('BoringsslInspectorHandlers', () => {
     });
 
     it('parses a ClientHello with SNI extension', async () => {
-      const sni = buildClientHelloWithSNI('example.com');
+      const sni = buildClientHelloWithSNI(TEST_HOSTS.root);
       const result = await handlers.handleParseHandshake({ rawHex: sni.toString('hex') });
       const content = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
       const parsed = JSON.parse(content);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.sni).toEqual({ serverName: 'example.com' });
+      expect(parsed.sni).toEqual({ serverName: TEST_HOSTS.root });
     });
 
     it('returns error result for invalid hex input', async () => {

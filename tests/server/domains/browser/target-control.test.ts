@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { TargetControlHandlers } from '@server/domains/browser/handlers/target-control';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 interface CollectorMock {
   listPages: Mock<() => Promise<Array<{ index: number; url: string; title: string }>>>;
@@ -76,7 +77,7 @@ describe('TargetControlHandlers', () => {
         targetId: 'frame-1',
         type: 'iframe',
         title: 'Frame',
-        url: 'https://example.com/frame',
+        url: withPath(TEST_URLS.root, 'frame'),
         attached: true,
         openerId: 'page-1',
         canAccessOpener: true,
@@ -84,7 +85,7 @@ describe('TargetControlHandlers', () => {
     ]);
     collector.getAttachedTargetInfo.mockReturnValueOnce({ targetId: 'frame-1', type: 'iframe' });
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://example.com/frame', title: 'Frame' },
+      { index: 0, url: withPath(TEST_URLS.root, 'frame'), title: 'Frame' },
     ]);
 
     const body = parseJson<any>(
@@ -98,7 +99,7 @@ describe('TargetControlHandlers', () => {
     expect(body.success).toBe(true);
     expect(body.count).toBe(1);
     expect(body.activeTarget.targetId).toBe('frame-1');
-    expect(body.currentTab.url).toBe('https://example.com/frame');
+    expect(body.currentTab.url).toBe(withPath(TEST_URLS.root, 'frame'));
     expect(body.targets[0].isActiveTarget).toBe(true);
     expect(body.targets[0].matchesCurrentTabUrl).toBe(true);
     expect(body.targets[0].relationHints).toContain('active_target');
@@ -117,7 +118,7 @@ describe('TargetControlHandlers', () => {
     collector.attachCdpTarget.mockResolvedValueOnce({
       targetId: 'frame-1',
       type: 'iframe',
-      url: 'https://example.com/frame',
+      url: withPath(TEST_URLS.root, 'frame'),
     });
 
     const body = parseJson<any>(

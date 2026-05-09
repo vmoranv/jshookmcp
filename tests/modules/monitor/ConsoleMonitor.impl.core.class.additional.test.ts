@@ -78,6 +78,7 @@ vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
 });
 
 import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl.core.class';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createCdpSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -227,7 +228,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
         message: {
           level: 'warning',
           text: 'deprecated API',
-          url: 'https://site/old.js',
+          url: buildTestUrl('site', { suffix: 'bare', path: 'old.js' }),
           line: 42,
           column: 10,
         },
@@ -237,7 +238,7 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
       expect(logs[0]).toMatchObject({
         type: 'warning',
         text: 'deprecated API',
-        url: 'https://site/old.js',
+        url: buildTestUrl('site', { suffix: 'bare', path: 'old.js' }),
         lineNumber: 42,
         columnNumber: 10,
       });
@@ -512,14 +513,14 @@ describe('ConsoleMonitor.impl.core.class – additional coverage', () => {
         exceptionDetails: {
           text: 'err1',
           exceptionId: 1,
-          url: 'https://site/a.js',
+          url: buildTestUrl('site', { suffix: 'bare', path: 'a.js' }),
         },
       });
       session.emit('Runtime.exceptionThrown', {
         exceptionDetails: {
           text: 'err2',
           exceptionId: 2,
-          url: 'https://site/b.js',
+          url: buildTestUrl('site', { suffix: 'bare', path: 'b.js' }),
         },
       });
 

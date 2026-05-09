@@ -275,15 +275,22 @@ describe('browser tool definitions', () => {
       expect(schema.required).toContain('values');
     });
 
-    it('page_evaluate requires code', async () => {
+    it('page_evaluate exposes code/script/expression aliases', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_evaluate');
-      expect(getInputSchema(tool).required).toContain('code');
+      const schema = getInputSchema(tool);
+      expect(schema.properties).toHaveProperty('code');
+      expect(schema.properties).toHaveProperty('script');
+      expect(schema.properties).toHaveProperty('expression');
+      expect(schema.required).toBeUndefined();
     });
 
-    it('browser_evaluate_cdp_target requires code and keeps target evaluation explicit', async () => {
+    it('browser_evaluate_cdp_target exposes evaluation aliases and keeps target evaluation explicit', async () => {
       const tool = getToolByName(browserRuntimeTools, 'browser_evaluate_cdp_target');
       const schema = getInputSchema(tool);
-      expect(schema.required).toContain('code');
+      expect(schema.properties).toHaveProperty('code');
+      expect(schema.properties).toHaveProperty('script');
+      expect(schema.properties).toHaveProperty('expression');
+      expect(schema.required).toBeUndefined();
       expect(schema.properties).not.toHaveProperty('targetId');
     });
 

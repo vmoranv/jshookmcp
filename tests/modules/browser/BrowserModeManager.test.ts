@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Page, Browser } from 'rebrowser-puppeteer-core';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -156,7 +157,7 @@ describe('BrowserModeManager', () => {
 
   it('goto throws when no active page is available', async () => {
     const manager = new BrowserModeManager();
-    await expect(manager.goto('https://vmoranv.github.io/jshookmcp')).rejects.toThrow(/newPage/i);
+    await expect(manager.goto(TEST_URLS.root)).rejects.toThrow(/newPage/i);
   });
 
   it('waits for manual completion when captcha detected and no auto switch', async () => {
@@ -198,7 +199,7 @@ describe('BrowserModeManager', () => {
     const page = {} as unknown as Page;
     const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     try {
-      await manager.checkAndHandleCaptcha(page, 'https://vmoranv.github.io/jshookmcp');
+      await manager.checkAndHandleCaptcha(page, TEST_URLS.root);
     } finally {
       stderrWrite.mockRestore();
     }
@@ -211,7 +212,7 @@ describe('BrowserModeManager', () => {
         {
           source: 'url',
           kind: 'captcha',
-          value: 'https://vmoranv.github.io/jshookmcp/challenge',
+          value: withPath(TEST_URLS.root, 'challenge'),
           confidence: 70,
           typeHint: 'url_redirect',
         },
@@ -225,7 +226,7 @@ describe('BrowserModeManager', () => {
       candidates: [
         {
           source: 'url',
-          value: 'https://vmoranv.github.io/jshookmcp/challenge',
+          value: withPath(TEST_URLS.root, 'challenge'),
           confidence: 70,
           type: 'url_redirect',
         },
@@ -245,7 +246,7 @@ describe('BrowserModeManager', () => {
     });
 
     const page = {} as unknown as Page;
-    await manager.checkAndHandleCaptcha(page, 'https://vmoranv.github.io/jshookmcp');
+    await manager.checkAndHandleCaptcha(page, TEST_URLS.root);
 
     expect(waitForCompletionMock).not.toHaveBeenCalled();
     expect(detectMock).not.toHaveBeenCalled();
@@ -371,7 +372,7 @@ describe('BrowserModeManager', () => {
     waitForCompletionMock.mockResolvedValue(true);
 
     const firstPage = {
-      url: vi.fn(() => 'https://example.com'),
+      url: vi.fn(() => TEST_URLS.root),
       cookies: vi.fn(async () => [{ name: 'sid', value: 'abc' }]),
       evaluate: vi.fn(async () => ({
         local: { token: '1' },
@@ -380,7 +381,7 @@ describe('BrowserModeManager', () => {
     } as unknown as Page;
 
     const headedPage = {
-      url: vi.fn(() => 'https://example.com'),
+      url: vi.fn(() => TEST_URLS.root),
       goto: vi.fn(async () => undefined),
       reload: vi.fn(async () => undefined),
       evaluate: vi.fn(async () => ({
@@ -417,10 +418,10 @@ describe('BrowserModeManager', () => {
 
     const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
-    await manager.checkAndHandleCaptcha(firstPage, 'https://example.com');
+    await manager.checkAndHandleCaptcha(firstPage, TEST_URLS.root);
 
     expect(browser.close).toHaveBeenCalledTimes(1);
-    expect(headedPage.goto).toHaveBeenCalledWith('https://example.com', {
+    expect(headedPage.goto).toHaveBeenCalledWith(TEST_URLS.root, {
       waitUntil: 'networkidle2',
     });
     expect(headedPage.evaluate).toHaveBeenCalledWith(expect.any(Function), {

@@ -3,6 +3,7 @@ import {
   chromeEnvironmentTemplate,
   getChromeEnvironment,
 } from '@modules/emulator/templates/chrome-env';
+import { buildTestUrl, TEST_HOSTS, TEST_URLS } from '@tests/shared/test-urls';
 
 describe('chromeEnvironmentTemplate', () => {
   describe('window properties', () => {
@@ -98,12 +99,12 @@ describe('chromeEnvironmentTemplate', () => {
   });
 
   describe('location properties', () => {
-    it('has a consistent example.com URL', () => {
-      expect(chromeEnvironmentTemplate.location.href).toBe('https://www.example.com/');
-      expect(chromeEnvironmentTemplate.location.origin).toBe('https://www.example.com');
+    it('has a consistent shared test host URL', () => {
+      expect(chromeEnvironmentTemplate.location.href).toBe(`${TEST_URLS.www}/`);
+      expect(chromeEnvironmentTemplate.location.origin).toBe(TEST_URLS.www);
       expect(chromeEnvironmentTemplate.location.protocol).toBe('https:');
-      expect(chromeEnvironmentTemplate.location.host).toBe('www.example.com');
-      expect(chromeEnvironmentTemplate.location.hostname).toBe('www.example.com');
+      expect(chromeEnvironmentTemplate.location.host).toBe(TEST_HOSTS.www);
+      expect(chromeEnvironmentTemplate.location.hostname).toBe(TEST_HOSTS.www);
       expect(chromeEnvironmentTemplate.location.pathname).toBe('/');
     });
 
@@ -298,7 +299,9 @@ describe('chromeEnvironmentTemplate', () => {
 
     it('WebSocket accepts url and has required methods', () => {
       // @ts-expect-error — auto-suppressed [TS2554]
-      const ws = new chromeEnvironmentTemplate.constructors.WebSocket('ws://test');
+      const ws = new chromeEnvironmentTemplate.constructors.WebSocket(
+        buildTestUrl('test', { scheme: 'ws', suffix: 'bare', path: '/' }),
+      );
       expect(typeof ws.send).toBe('function');
       expect(typeof ws.close).toBe('function');
       expect(typeof ws.addEventListener).toBe('function');

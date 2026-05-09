@@ -5,6 +5,7 @@ import {
   jsonResponse,
   errorResponse,
 } from '../../../packages/extension-sdk/src/plugin';
+import { TEST_HOSTS } from '@tests/shared/test-urls';
 
 describe('plugin', () => {
   describe('Response helpers', () => {
@@ -49,7 +50,7 @@ describe('plugin', () => {
         .allowCommand('npm')
         .allowCommand(['git', 'npx'])
         .allowHost('localhost')
-        .allowHost(['api.example.com'])
+        .allowHost([TEST_HOSTS.api])
         .allowTool('tool1')
         .allowTool(['tool2'])
         .metric('metric1')
@@ -63,7 +64,7 @@ describe('plugin', () => {
       expect(ext.compatibleCoreRange).toBe('>=1.0.0');
       expect(ext.profiles).toEqual(['search', 'workflow']);
       expect(ext.allowedCommands).toEqual(['npm', 'git', 'npx']);
-      expect(ext.allowedHosts).toEqual(['localhost', 'api.example.com']);
+      expect(ext.allowedHosts).toEqual(['localhost', TEST_HOSTS.api]);
       expect(ext.allowedTools).toEqual(['tool1', 'tool2']);
       expect(ext.declaredMetrics).toEqual(['metric1', 'metric2']);
       expect(ext.configDefaults).toEqual({ k: 'v' });

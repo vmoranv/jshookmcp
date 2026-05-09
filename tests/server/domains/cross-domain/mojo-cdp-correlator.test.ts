@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { correlateMojoToCDP } from '@server/domains/cross-domain/handlers/mojo-cdp-correlator';
+import { buildTestUrl } from '@tests/shared/test-urls';
 import {
   CrossDomainEvidenceBridge,
   resetIdCounter,
@@ -50,7 +51,7 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
       {
         eventType: 'Network.requestWillBeSent',
         timestamp: 1000,
-        url: 'https://example.com/api',
+        url: buildTestUrl('', { path: 'api' }),
       },
     ];
 
@@ -133,7 +134,13 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
       bridge,
       [],
       [],
-      [{ requestId: 'req-alone', url: 'https://evidence.example/path', timestamp: 1 }],
+      [
+        {
+          requestId: 'req-alone',
+          url: buildTestUrl('evidence', { suffix: 'example', path: 'path' }),
+          timestamp: 1,
+        },
+      ],
     );
 
     expect(result.graphNodeIds.length).toBe(1);
@@ -143,7 +150,7 @@ describe('MOJO-03: Mojo-to-CDP Correlator', () => {
         (node) =>
           node.type === 'network-request' &&
           node.metadata.requestId === 'req-alone' &&
-          node.metadata.url === 'https://evidence.example/path',
+          node.metadata.url === buildTestUrl('evidence', { suffix: 'example', path: 'path' }),
       ),
     ).toBe(true);
   });

@@ -157,7 +157,7 @@ vi.mock('@src/modules/browser/CamoufoxBrowserManager', () => ({
       this.page = {
         goto: vi.fn(async () => {}),
         title: vi.fn(async () => 'Camoufox Page'),
-        url: vi.fn(() => 'https://example.com'),
+        url: vi.fn(() => TEST_URLS.root),
       };
     }
     async launch() {}
@@ -269,6 +269,7 @@ import {
   createCodeCollectorMock,
   createConsoleMonitorMock,
 } from '@tests/server/domains/shared/mock-factories';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 describe('BrowserToolHandlers — additional delegation coverage', () => {
   const collector = createCodeCollectorMock({ getActivePage: vi.fn() } as any);
@@ -457,7 +458,7 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
       });
 
       it('delegates handlePageNavigate to pageNavigation for chrome driver', async () => {
-        const args = { url: 'https://example.com' };
+        const args = { url: TEST_URLS.root };
         const result = await handlers.handlePageNavigate(args);
         expect(pageNavigationMocks.handlePageNavigate).toHaveBeenCalledWith(args);
         expect(result).toEqual({ from: 'page-nav', args });
@@ -761,7 +762,7 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
         handlers.setCamoufoxManager(null);
 
         // Navigate triggers getCamoufoxPage internally
-        const response = await handlers.handlePageNavigate({ url: 'https://example.com' });
+        const response = await handlers.handlePageNavigate({ url: TEST_URLS.root });
         const body = parseJson<any>(response);
         expect(body.success).toBe(false);
         expect(body.message).toMatch(/Camoufox browser not launched/);

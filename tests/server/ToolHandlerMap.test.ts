@@ -5,6 +5,7 @@ import {
   type ToolHandlerMapDependencies,
 } from '@server/ToolHandlerMap';
 import { initRegistry } from '@server/registry/index';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 await initRegistry();
 
@@ -66,7 +67,7 @@ describe('ToolHandlerMap', () => {
     const { deps, spies } = createDeps();
     const map = createToolHandlerMap(deps, new Set(['page_navigate']));
 
-    const payload = { url: 'https://vmoranv.github.io/jshookmcp' };
+    const payload = { url: TEST_URLS.root };
     await expect(map.page_navigate?.(payload)).resolves.toEqual({
       ok: 'navigate',
       args: payload,

@@ -26,6 +26,7 @@ import {
   handleCamoufoxLaunchFlow,
   handleCamoufoxNavigateFlow,
 } from '@server/domains/browser/handlers/camoufox-flow';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 describe('camoufox-flow', () => {
   beforeEach(() => {
@@ -128,7 +129,7 @@ describe('camoufox-flow', () => {
     function makeContext() {
       const page = {
         goto: vi.fn().mockResolvedValue(undefined),
-        url: vi.fn().mockReturnValue('https://example.com'),
+        url: vi.fn().mockReturnValue(TEST_URLS.root),
         title: vi.fn().mockResolvedValue('Example'),
       };
       return {
@@ -146,7 +147,7 @@ describe('camoufox-flow', () => {
       const body = parseJson<PageInteractionResponse & { url: string; title: string }>(result);
       expect(body.success).toBe(true);
       expect(body.driver).toBe('camoufox');
-      expect(body.url).toBe('https://example.com');
+      expect(body.url).toBe(TEST_URLS.root);
       expect(body.title).toBe('Example');
       expect(page.goto).toHaveBeenCalledWith('https://test.com', {
         waitUntil: 'networkidle',
@@ -154,16 +155,16 @@ describe('camoufox-flow', () => {
       });
     });
 
-    it('normalizes networkidle2 to networkidle', async () => {
+    it('rejects unsupported waitUntil aliases', async () => {
       const { context, page } = makeContext();
-      await handleCamoufoxNavigateFlow(context, {
+      const result = await handleCamoufoxNavigateFlow(context, {
         url: 'https://test.com',
         waitUntil: 'networkidle2',
       });
-      expect(page.goto).toHaveBeenCalledWith(
-        'https://test.com',
-        expect.objectContaining({ waitUntil: 'networkidle' }),
-      );
+      const body = parseJson<PageInteractionResponse & { error?: string }>(result);
+      expect(body.success).toBe(false);
+      expect(body.error).toMatch(/Invalid waitUntil: "networkidle2"/);
+      expect(page.goto).not.toHaveBeenCalled();
     });
 
     it('passes load waitUntil unchanged', async () => {
@@ -196,13 +197,16 @@ describe('camoufox-flow', () => {
       );
     });
 
-    it('normalizes unknown waitUntil to networkidle', async () => {
+    it('rejects unsupported waitUntil values', async () => {
       const { context, page } = makeContext();
-      await handleCamoufoxNavigateFlow(context, { url: 'https://test.com', waitUntil: 'unknown' });
-      expect(page.goto).toHaveBeenCalledWith(
-        'https://test.com',
-        expect.objectContaining({ waitUntil: 'networkidle' }),
-      );
+      const result = await handleCamoufoxNavigateFlow(context, {
+        url: 'https://test.com',
+        waitUntil: 'unknown',
+      });
+      const body = parseJson<PageInteractionResponse & { error?: string }>(result);
+      expect(body.success).toBe(false);
+      expect(body.error).toMatch(/Invalid waitUntil: "unknown"/);
+      expect(page.goto).not.toHaveBeenCalled();
     });
 
     it('passes timeout option', async () => {

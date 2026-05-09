@@ -11,6 +11,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { PageController } from '@modules/collector/PageController';
+import { TEST_HOSTS, TEST_URLS, buildTestUrl, withPath } from '@tests/shared/test-urls';
 
 type AnyRecord = Record<string, any>;
 
@@ -58,7 +59,7 @@ describe('PageController', () => {
     page = {
       goto: vi.fn().mockResolvedValue(undefined),
       title: vi.fn().mockResolvedValue('Demo'),
-      url: vi.fn().mockReturnValue('https://vmoranv.github.io/jshookmcp/final'),
+      url: vi.fn().mockReturnValue(withPath(TEST_URLS.root, 'final')),
       content: vi.fn().mockResolvedValue('<html></html>'),
       click: vi.fn().mockResolvedValue(undefined),
       type: vi.fn().mockResolvedValue(undefined),
@@ -87,18 +88,19 @@ describe('PageController', () => {
     collector = {
       getActivePage: vi.fn().mockResolvedValue(page),
       getAttachedTargetSession: vi.fn(() => null),
+      isExistingBrowserConnection: vi.fn(() => false),
     };
     controller = new PageController(collector);
   });
 
   it('navigates with defaults and returns page metadata', async () => {
-    const result = await controller.navigate('https://vmoranv.github.io/jshookmcp');
+    const result = await controller.navigate(TEST_URLS.root);
 
-    expect(page.goto).toHaveBeenCalledWith('https://vmoranv.github.io/jshookmcp', {
+    expect(page.goto).toHaveBeenCalledWith(TEST_URLS.root, {
       waitUntil: 'networkidle2',
       timeout: 30000,
     });
-    expect(result.url).toBe('https://vmoranv.github.io/jshookmcp/final');
+    expect(result.url).toBe(withPath(TEST_URLS.root, 'final'));
     expect(result.title).toBe('Demo');
   });
 
@@ -176,8 +178,8 @@ describe('PageController', () => {
     });
 
     it('resolves frame by frameUrl', async () => {
-      const mockFrame1 = { url: () => 'https://example.com/ad' };
-      const mockFrame2 = { url: () => 'https://sandbox.local/game' };
+      const mockFrame1 = { url: () => buildTestUrl('', { path: 'ad' }) };
+      const mockFrame2 = { url: () => buildTestUrl('sandbox', { suffix: 'local', path: 'game' }) };
       page.frames.mockReturnValue([mockFrame1, mockFrame2]);
 
       const resolved = await (controller as any).resolveFrame(page, { frameUrl: 'sandbox.local' });
@@ -185,7 +187,7 @@ describe('PageController', () => {
     });
 
     it('throws error if frameUrl not found', async () => {
-      page.frames.mockReturnValue([{ url: () => 'https://example.com/ad' }]);
+      page.frames.mockReturnValue([{ url: () => buildTestUrl('', { path: 'ad' }) }]);
 
       await expect((controller as any).resolveFrame(page, { frameUrl: 'missing' })).rejects.toThrow(
         'No frame matching URL substring "missing"',
@@ -193,7 +195,7 @@ describe('PageController', () => {
     });
 
     it('resolves frame by frameSelector', async () => {
-      const mockFrame = { url: () => 'https://sandbox.local/iframe' };
+      const mockFrame = { url: () => buildTestUrl('sandbox', { suffix: 'local', path: 'iframe' }) };
       const mockElementHandle = {
         contentFrame: vi.fn().mockResolvedValue(mockFrame),
       };
@@ -272,7 +274,7 @@ describe('PageController', () => {
     await controller.waitForNavigation(1000);
     await controller.waitForNetworkIdle(2000);
     await controller.pressKey('Enter');
-    await controller.setCookies([{ name: 'sid', value: 'abc', domain: 'example.com' }]);
+    await controller.setCookies([{ name: 'sid', value: 'abc', domain: TEST_HOSTS.root }]);
     await controller.clearCookies();
     await controller.setViewport(1280, 720);
 
@@ -292,7 +294,7 @@ describe('PageController', () => {
     expect(page.setCookie).toHaveBeenCalledWith({
       name: 'sid',
       value: 'abc',
-      domain: 'example.com',
+      domain: TEST_HOSTS.root,
     });
     expect(page.deleteCookie).toHaveBeenCalledWith({ name: 'sid', value: '1' });
     expect(page.setViewport).toHaveBeenCalledWith({ width: 1280, height: 720 });
@@ -313,7 +315,7 @@ describe('PageController', () => {
         type: 'png',
       }),
     );
-    expect(await controller.getURL()).toBe('https://vmoranv.github.io/jshookmcp/final');
+    expect(await controller.getURL()).toBe(withPath(TEST_URLS.root, 'final'));
     expect(await controller.getTitle()).toBe('Demo');
     expect(await controller.getContent()).toBe('<html></html>');
     expect(await controller.emulateDevice('Pixel 8')).toBe('Android');
@@ -331,12 +333,12 @@ describe('PageController', () => {
       })
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce([{ text: 'Home', href: 'https://example.com' }]);
+      .mockResolvedValueOnce([{ text: 'Home', href: TEST_URLS.root }]);
 
     expect(await controller.getLocalStorage()).toEqual({ foo: 'bar' });
     await controller.setLocalStorage('theme', 'dark');
     await controller.clearLocalStorage();
-    expect(await controller.getAllLinks()).toEqual([{ text: 'Home', href: 'https://example.com' }]);
+    expect(await controller.getAllLinks()).toEqual([{ text: 'Home', href: TEST_URLS.root }]);
     expect(page.evaluate).toHaveBeenCalledTimes(4);
   });
 
@@ -348,7 +350,7 @@ describe('PageController', () => {
   it('evaluates inside a resolved frame with the same CDP health check as top-level evaluate', async () => {
     const frame = {
       evaluate: vi.fn().mockResolvedValue('frame-title'),
-      url: vi.fn().mockReturnValue('https://sandbox.local/frame'),
+      url: vi.fn().mockReturnValue(buildTestUrl('sandbox', { suffix: 'local', path: 'frame' })),
     };
     page.frames.mockReturnValue([frame]);
     page.createCDPSession = vi.fn().mockResolvedValue({
@@ -370,7 +372,7 @@ describe('PageController', () => {
     try {
       const frame = {
         evaluate: vi.fn(() => new Promise(() => {})),
-        url: vi.fn().mockReturnValue('https://sandbox.local/frame'),
+        url: vi.fn().mockReturnValue(buildTestUrl('sandbox', { suffix: 'local', path: 'frame' })),
       };
       page.frames.mockReturnValue([frame]);
       page.createCDPSession = vi.fn().mockResolvedValue({
@@ -401,7 +403,7 @@ describe('PageController', () => {
     const links = [
       {
         textContent: 'Home',
-        href: 'https://example.com',
+        href: TEST_URLS.root,
       },
     ];
     const headChildren: any[] = [];
@@ -533,7 +535,7 @@ describe('PageController', () => {
     await controller.clearLocalStorage();
     expect(localStore.size).toBe(0);
     expect(await controller.getLocalStorage()).toEqual({});
-    expect(await controller.getAllLinks()).toEqual([{ text: 'Home', href: 'https://example.com' }]);
+    expect(await controller.getAllLinks()).toEqual([{ text: 'Home', href: TEST_URLS.root }]);
 
     expect(await controller.evaluate<number>('1 + 1')).toBe(2);
     expect(page.createCDPSession).toHaveBeenCalledTimes(3);

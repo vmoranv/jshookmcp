@@ -9,6 +9,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 
 import { GraphQLToolHandlersRuntime } from '@server/domains/graphql/handlers.impl.core.runtime.replay';
 import type { BrowserFetchResult } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('GraphQLToolHandlersRuntime (replay)', () => {
   const page = {
@@ -16,7 +17,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
     evaluateOnNewDocument: vi.fn(),
     setRequestInterception: vi.fn(),
     on: vi.fn(),
-    url: vi.fn(() => 'https://example.com/app'),
+    url: vi.fn(() => withPath(TEST_URLS.root, 'app')),
   };
   const collector = {
     getActivePage: vi.fn(async () => page),
@@ -54,7 +55,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
     it('returns error when query is missing', async () => {
       const response = await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
       });
       const body = parseJson<any>(response);
       expect((response as any).isError).toBe(true);
@@ -63,7 +64,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
     it('returns error when query is empty string', async () => {
       const response = await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: '   ',
       });
       const body = parseJson<any>(response);
@@ -73,7 +74,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
     it('returns error when query is not a string', async () => {
       const response = await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: 42,
       });
       const body = parseJson<any>(response);
@@ -146,7 +147,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query GetUser { user { name } }',
           useBrowser: true,
         }),
@@ -172,7 +173,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       page.evaluate.mockResolvedValueOnce(browserResult);
 
       await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: 'query GetUser($id: ID!) { user(id: $id) { name } }',
         variables: { id: '123' },
         useBrowser: true,
@@ -198,7 +199,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       page.evaluate.mockResolvedValueOnce(browserResult);
 
       await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: 'query { ok }',
         useBrowser: true,
       });
@@ -224,7 +225,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query GetUser { user { name } }',
           operationName: 'GetUser',
           useBrowser: true,
@@ -253,7 +254,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query { ok }',
           operationName: '   ',
           useBrowser: true,
@@ -275,7 +276,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       page.evaluate.mockResolvedValueOnce(browserResult);
 
       await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: 'query { ok }',
         headers: { Authorization: 'Bearer xyz' },
         useBrowser: true,
@@ -306,7 +307,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query { ok }',
           useBrowser: true,
         }),
@@ -335,7 +336,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query { ok }',
           useBrowser: true,
         }),
@@ -359,7 +360,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query { ok }',
           useBrowser: true,
         }),
@@ -386,7 +387,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query { ok }',
           useBrowser: true,
         }),
@@ -400,7 +401,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
       collector.getActivePage.mockRejectedValueOnce(new Error('Browser disconnected'));
 
       const response = await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: 'query { ok }',
         useBrowser: true,
       });
@@ -421,7 +422,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query { ok }',
           useBrowser: true,
         }),
@@ -447,13 +448,13 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query { ok }',
           useBrowser: true,
         }),
       );
 
-      expect(body.endpoint).toBe('https://example.com/graphql');
+      expect(body.endpoint).toBe(withPath(TEST_URLS.root, 'graphql'));
       expect(body.status).toBe(200);
       expect(body.statusText).toBe('OK');
     });
@@ -471,7 +472,7 @@ describe('GraphQLToolHandlersRuntime (replay)', () => {
 
       const body = parseJson<any>(
         await handlers.handleGraphqlReplay({
-          endpoint: 'https://example.com/graphql',
+          endpoint: withPath(TEST_URLS.root, 'graphql'),
           query: 'query { ok }',
           useBrowser: true,
         }),

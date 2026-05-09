@@ -12,6 +12,7 @@ import {
   isSsrfTarget,
   replayRequest,
 } from '@server/domains/network/replay';
+import { TEST_HOSTS, TEST_HTTP_URLS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 // Helper: a publicly-routable IP for testing
 function buildPublicIp(): string {
@@ -109,7 +110,7 @@ describe('replay — additional coverage', () => {
     });
 
     it('allows public hostnames', async () => {
-      expect(isPrivateHost('example.com')).toBe(false);
+      expect(isPrivateHost(TEST_HOSTS.root)).toBe(false);
       expect(isPrivateHost('google.com')).toBe(false);
     });
 
@@ -150,7 +151,7 @@ describe('replay — additional coverage', () => {
 
     it('rejects non-loopback hosts', async () => {
       expect(isLoopbackHost('10.0.0.1')).toBe(false);
-      expect(isLoopbackHost('example.com')).toBe(false);
+      expect(isLoopbackHost(TEST_HOSTS.root)).toBe(false);
       expect(isLoopbackHost('192.168.1.1')).toBe(false);
     });
   });
@@ -167,17 +168,17 @@ describe('replay — additional coverage', () => {
 
     it('denies when DNS resolves to private IP', async () => {
       lookupMock.mockResolvedValue({ address: '127.0.0.1' });
-      expect(await isSsrfTarget('https://evil.example.com/')).toBe(true);
+      expect(await isSsrfTarget(`${TEST_URLS.evil}/`)).toBe(true);
     });
 
     it('denies when DNS resolution fails', async () => {
       lookupMock.mockRejectedValue(new Error('NXDOMAIN'));
-      expect(await isSsrfTarget('https://nonexistent.example.com/')).toBe(true);
+      expect(await isSsrfTarget(`${TEST_URLS.nonexistent}/`)).toBe(true);
     });
 
     it('allows public DNS resolution', async () => {
       lookupMock.mockResolvedValue({ address: buildPublicIp() });
-      expect(await isSsrfTarget('https://example.com/')).toBe(false);
+      expect(await isSsrfTarget(`${TEST_URLS.root}/`)).toBe(false);
     });
 
     it('denies invalid URLs', async () => {
@@ -190,7 +191,7 @@ describe('replay — additional coverage', () => {
 
       try {
         expect(await isSsrfTarget('https://localhost/api')).toBe(false);
-        expect(await isSsrfTarget('https://evil.example.com/')).toBe(false);
+        expect(await isSsrfTarget(`${TEST_URLS.evil}/`)).toBe(false);
         expect(await isSsrfTarget('not-a-url')).toBe(true);
         expect(lookupMock).not.toHaveBeenCalled();
       } finally {
@@ -212,10 +213,10 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: {
-            Host: 'example.com',
+            Host: TEST_HOSTS.root,
             'Content-Length': '100',
             'Transfer-Encoding': 'chunked',
             Connection: 'keep-alive',
@@ -247,10 +248,10 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: {
-            host: 'example.com',
+            host: TEST_HOSTS.root,
             'CONTENT-LENGTH': '100',
             'transfer-encoding': 'chunked',
             'Proxy-Authenticate': 'Basic',
@@ -277,7 +278,7 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           postData: '{"key":"value"}',
@@ -287,7 +288,7 @@ describe('replay — additional coverage', () => {
 
       expect(result.dryRun).toBe(true);
       const preview = (result as any).preview;
-      expect(preview.url).toBe('https://example.com/api');
+      expect(preview.url).toBe(withPath(TEST_URLS.root, 'api'));
       expect(preview.method).toBe('POST');
       expect(preview.body).toBe('{"key":"value"}');
     });
@@ -297,7 +298,7 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: {},
         },
@@ -321,7 +322,7 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://old.example.com/api',
+          url: withPath(TEST_URLS.old, 'api'),
           method: 'GET',
           headers: { Accept: 'text/html' },
           postData: 'old-body',
@@ -329,7 +330,7 @@ describe('replay — additional coverage', () => {
         {
           requestId: 'r1',
           dryRun: true,
-          urlOverride: 'https://new.example.com/api',
+          urlOverride: withPath(TEST_URLS.new, 'api'),
           methodOverride: 'POST',
           headerPatch: { 'X-Custom': 'new' },
           bodyPatch: 'new-body',
@@ -337,7 +338,7 @@ describe('replay — additional coverage', () => {
       );
 
       const preview = (result as any).preview;
-      expect(preview.url).toBe('https://new.example.com/api');
+      expect(preview.url).toBe(withPath(TEST_URLS.new, 'api'));
       expect(preview.method).toBe('POST');
       expect(preview.headers['X-Custom']).toBe('new');
       expect(preview.body).toBe('new-body');
@@ -348,7 +349,7 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'POST',
           headers: {},
           postData: 'original-body',
@@ -365,7 +366,7 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: {},
         },
@@ -393,7 +394,7 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: {},
         },
@@ -415,7 +416,7 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: {},
         },
@@ -434,7 +435,7 @@ describe('replay — additional coverage', () => {
       await expect(
         replayRequest(
           {
-            url: 'http://example.com/api',
+            url: withPath(TEST_HTTP_URLS.root, 'api'),
             method: 'GET',
             headers: {},
           },
@@ -514,7 +515,7 @@ describe('replay — additional coverage', () => {
       await expect(
         replayRequest(
           {
-            url: 'https://evil.example.com/api',
+            url: withPath(TEST_URLS.evil, 'api'),
             method: 'GET',
             headers: {},
           },
@@ -529,7 +530,7 @@ describe('replay — additional coverage', () => {
       await expect(
         replayRequest(
           {
-            url: 'https://no-such-host.example.com/api',
+            url: withPath(TEST_URLS.noSuchHost, 'api'),
             method: 'GET',
             headers: {},
           },
@@ -544,7 +545,7 @@ describe('replay — additional coverage', () => {
 
       await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: {},
           postData: 'should-not-be-sent',
@@ -562,7 +563,7 @@ describe('replay — additional coverage', () => {
 
       await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'HEAD',
           headers: {},
           postData: 'should-not-be-sent',
@@ -580,7 +581,7 @@ describe('replay — additional coverage', () => {
 
       await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'POST',
           headers: {},
           postData: '{"key":"value"}',
@@ -598,7 +599,7 @@ describe('replay — additional coverage', () => {
 
       await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'get',
           headers: {},
         },
@@ -615,7 +616,7 @@ describe('replay — additional coverage', () => {
 
       await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: {},
         },
@@ -632,15 +633,15 @@ describe('replay — additional coverage', () => {
 
       await replayRequest(
         {
-          url: 'https://old.example.com/api',
+          url: withPath(TEST_URLS.old, 'api'),
           method: 'GET',
           headers: {},
         },
-        { requestId: 'r1', dryRun: false, urlOverride: 'https://new.example.com/api' },
+        { requestId: 'r1', dryRun: false, urlOverride: withPath(TEST_URLS.new, 'api') },
       );
 
       const fetchCall = getFetchCall(0);
-      expect(fetchCall[0]).toBe('https://new.example.com/api');
+      expect(fetchCall[0]).toBe(withPath(TEST_URLS.new, 'api'));
     });
 
     it('collects response headers', async () => {
@@ -657,7 +658,7 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: {},
         },
@@ -699,14 +700,14 @@ describe('replay — additional coverage', () => {
         .mockResolvedValueOnce(
           new Response(null, {
             status: 302,
-            headers: { Location: 'https://example.com/new-path' },
+            headers: { Location: withPath(TEST_URLS.root, 'new-path') },
           }),
         )
         .mockResolvedValueOnce(new Response('redirected', { status: 200 }));
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/old-path',
+          url: withPath(TEST_URLS.root, 'old-path'),
           method: 'POST',
           headers: {},
           postData: 'body-data',
@@ -731,14 +732,14 @@ describe('replay — additional coverage', () => {
         .mockResolvedValueOnce(
           new Response(null, {
             status: 301,
-            headers: { Location: 'https://example.com/new' },
+            headers: { Location: withPath(TEST_URLS.root, 'new') },
           }),
         )
         .mockResolvedValueOnce(new Response('final', { status: 200 }));
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/old',
+          url: withPath(TEST_URLS.root, 'old'),
           method: 'POST',
           headers: {},
         },
@@ -756,14 +757,14 @@ describe('replay — additional coverage', () => {
         .mockResolvedValueOnce(
           new Response(null, {
             status: 303,
-            headers: { Location: 'https://example.com/see-other' },
+            headers: { Location: withPath(TEST_URLS.root, 'see-other') },
           }),
         )
         .mockResolvedValueOnce(new Response('final', { status: 200 }));
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/action',
+          url: withPath(TEST_URLS.root, 'action'),
           method: 'POST',
           headers: {},
         },
@@ -787,7 +788,7 @@ describe('replay — additional coverage', () => {
       await expect(
         replayRequest(
           {
-            url: 'https://example.com/api',
+            url: withPath(TEST_URLS.root, 'api'),
             method: 'GET',
             headers: {},
           },
@@ -804,7 +805,7 @@ describe('replay — additional coverage', () => {
         fetchMock.mockResolvedValueOnce(
           new Response(null, {
             status: 302,
-            headers: { Location: `https://example.com/hop${i + 1}` },
+            headers: { Location: withPath(TEST_URLS.root, `hop${i + 1}`) },
           }),
         );
       }
@@ -812,7 +813,7 @@ describe('replay — additional coverage', () => {
       await expect(
         replayRequest(
           {
-            url: 'https://example.com/start',
+            url: withPath(TEST_URLS.root, 'start'),
             method: 'GET',
             headers: {},
           },
@@ -831,7 +832,7 @@ describe('replay — additional coverage', () => {
 
       const result = await replayRequest(
         {
-          url: 'https://example.com/api',
+          url: withPath(TEST_URLS.root, 'api'),
           method: 'GET',
           headers: { Authorization: 'Bearer old', Accept: 'text/html' },
         },

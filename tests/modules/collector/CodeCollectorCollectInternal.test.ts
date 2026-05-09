@@ -34,6 +34,7 @@ vi.mock('@modules/collector/PageScriptCollectors', () => ({
 }));
 
 import { collectInnerImpl } from '@modules/collector/CodeCollectorCollectInternal';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 interface MockCollectedFile {
   url: string;
@@ -117,7 +118,10 @@ function createHarness(options: HarnessOptions = {}) {
   };
   const gotoResponses = options.gotoResponses ?? [
     {
-      response: { url: 'https://site/app.js', mimeType: 'application/javascript' },
+      response: {
+        url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
+        mimeType: 'application/javascript',
+      },
       requestId: 'req-1',
       type: 'Script',
     },
@@ -182,7 +186,11 @@ function createHarness(options: HarnessOptions = {}) {
     init: vi.fn().mockResolvedValue(undefined),
     getActivePage: vi.fn().mockResolvedValue(activePage),
     getActivePageIndex: vi.fn().mockResolvedValue(0),
-    listPages: vi.fn().mockResolvedValue([{ index: 0, url: 'https://site', title: 'Site' }]),
+    listPages: vi
+      .fn()
+      .mockResolvedValue([
+        { index: 0, url: buildTestUrl('site', { suffix: 'bare', path: '/' }), title: 'Site' },
+      ]),
     selectPage: vi.fn().mockResolvedValue(undefined),
     browser: {
       newPage: vi.fn().mockResolvedValue(page),
@@ -243,7 +251,7 @@ describe('CodeCollector collect internals', () => {
     const cachedResult = {
       files: [
         {
-          url: 'https://site/cached.js',
+          url: buildTestUrl('site', { suffix: 'bare', path: 'cached.js' }),
           content: 'cached',
           size: 6,
           type: 'external',
@@ -259,7 +267,7 @@ describe('CodeCollector collect internals', () => {
     });
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
     });
 
     expect(result).toBe(cachedResult);
@@ -287,7 +295,7 @@ describe('CodeCollector collect internals', () => {
       collectInnerImpl(
         ctx as any,
         {
-          url: 'https://example.com',
+          url: buildTestUrl('', { path: '/' }),
         } as any,
       ),
     ).rejects.toThrow('Browser not initialized');
@@ -319,7 +327,7 @@ describe('CodeCollector collect internals', () => {
       smartCollector: {
         smartCollect: vi.fn(async () => [
           {
-            url: 'https://example.com/app.js',
+            url: buildTestUrl('', { path: 'app.js' }),
             size: 10,
             type: 'external',
             hasEncryption: false,
@@ -347,7 +355,7 @@ describe('CodeCollector collect internals', () => {
     const result = await collectInnerImpl(
       ctx as any,
       {
-        url: 'https://example.com',
+        url: buildTestUrl('', { path: '/' }),
         smartMode: 'summary',
       } as any,
     );
@@ -356,7 +364,7 @@ describe('CodeCollector collect internals', () => {
       files: [],
       summaries: [
         expect.objectContaining({
-          url: 'https://example.com/app.js',
+          url: buildTestUrl('', { path: 'app.js' }),
           hasAPI: true,
         }),
       ],
@@ -372,7 +380,7 @@ describe('CodeCollector collect internals', () => {
     const { page, self } = createHarness();
 
     await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: true,
@@ -388,7 +396,7 @@ describe('CodeCollector collect internals', () => {
     const { self } = createHarness();
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeExternal: false,
       includeInline: false,
       includeServiceWorker: false,
@@ -403,7 +411,7 @@ describe('CodeCollector collect internals', () => {
     const { self } = createHarness();
     collectorHelpers.collectWebWorkers.mockResolvedValue([
       {
-        url: 'https://site/worker.js',
+        url: buildTestUrl('site', { suffix: 'bare', path: 'worker.js' }),
         content: 'worker',
         size: 6,
         type: 'web-worker',
@@ -411,7 +419,7 @@ describe('CodeCollector collect internals', () => {
     ]);
 
     await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -429,11 +437,16 @@ describe('CodeCollector collect internals', () => {
       { url: 'inline-script-1', content: 'b', size: 1, type: 'inline' },
     ]);
     collectorHelpers.collectServiceWorkers.mockResolvedValue([
-      { url: 'https://site/sw.js', content: 'sw', size: 2, type: 'service-worker' },
+      {
+        url: buildTestUrl('site', { suffix: 'bare', path: 'sw.js' }),
+        content: 'sw',
+        size: 2,
+        type: 'service-worker',
+      },
     ]);
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: true,
       includeServiceWorker: true,
       includeWebWorker: false,
@@ -451,13 +464,23 @@ describe('CodeCollector collect internals', () => {
     });
     self.MAX_FILES_PER_COLLECT = 1;
     collectorHelpers.collectWebWorkers.mockResolvedValue([
-      { url: 'https://site/worker-0.js', content: 'worker-0', size: 8, type: 'web-worker' },
+      {
+        url: buildTestUrl('site', { suffix: 'bare', path: 'worker-0.js' }),
+        content: 'worker-0',
+        size: 8,
+        type: 'web-worker',
+      },
       { url: 'https://other/worker-1.js', content: 'worker-1', size: 8, type: 'web-worker' },
-      { url: 'https://site/worker-2.js', content: 'worker-2', size: 8, type: 'web-worker' },
+      {
+        url: buildTestUrl('site', { suffix: 'bare', path: 'worker-2.js' }),
+        content: 'worker-2',
+        size: 8,
+        type: 'web-worker',
+      },
     ]);
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: true,
@@ -467,7 +490,7 @@ describe('CodeCollector collect internals', () => {
     expect(result.files).toHaveLength(1);
     expect(result.files.some((file) => file.url.includes('https://other/'))).toBe(false);
     expect(result.files[0]).toMatchObject({
-      url: 'https://site/worker-0.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'worker-0.js' }),
       type: 'web-worker',
     });
   });
@@ -478,12 +501,18 @@ describe('CodeCollector collect internals', () => {
       responseBodyDelayMs: 5,
       gotoResponses: [
         {
-          response: { url: 'https://site/app-a.js', mimeType: 'application/javascript' },
+          response: {
+            url: buildTestUrl('site', { suffix: 'bare', path: 'app-a.js' }),
+            mimeType: 'application/javascript',
+          },
           requestId: 'req-1',
           type: 'Script',
         },
         {
-          response: { url: 'https://site/app-b.js', mimeType: 'application/javascript' },
+          response: {
+            url: buildTestUrl('site', { suffix: 'bare', path: 'app-b.js' }),
+            mimeType: 'application/javascript',
+          },
           requestId: 'req-2',
           type: 'Script',
         },
@@ -492,7 +521,7 @@ describe('CodeCollector collect internals', () => {
     self.MAX_FILES_PER_COLLECT = 1;
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -513,7 +542,10 @@ describe('CodeCollector collect internals', () => {
       },
       gotoResponses: [
         {
-          response: { url: 'https://site/base64.js', mimeType: 'application/javascript' },
+          response: {
+            url: buildTestUrl('site', { suffix: 'bare', path: 'base64.js' }),
+            mimeType: 'application/javascript',
+          },
           requestId: 'req-1',
           type: 'Script',
         },
@@ -521,7 +553,7 @@ describe('CodeCollector collect internals', () => {
     });
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -542,7 +574,10 @@ describe('CodeCollector collect internals', () => {
       },
       gotoResponses: [
         {
-          response: { url: 'https://site/large.js', mimeType: 'application/javascript' },
+          response: {
+            url: buildTestUrl('site', { suffix: 'bare', path: 'large.js' }),
+            mimeType: 'application/javascript',
+          },
           requestId: 'req-1',
           type: 'Script',
         },
@@ -551,7 +586,7 @@ describe('CodeCollector collect internals', () => {
     self.MAX_SINGLE_FILE_SIZE = 8;
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -568,8 +603,20 @@ describe('CodeCollector collect internals', () => {
 
   it('returns analyzed dependencies and writes them to cache on cache miss', async () => {
     const dependencyGraph = {
-      nodes: [{ id: 'https://site/app.js', url: 'https://site/app.js', type: 'external' }],
-      edges: [{ from: 'https://site/app.js', to: 'https://site/dep.js', type: 'import' as const }],
+      nodes: [
+        {
+          id: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
+          url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
+          type: 'external',
+        },
+      ],
+      edges: [
+        {
+          from: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
+          to: buildTestUrl('site', { suffix: 'bare', path: 'dep.js' }),
+          type: 'import' as const,
+        },
+      ],
     };
     collectorHelpers.analyzeDependencies.mockReturnValue(dependencyGraph);
 
@@ -578,7 +625,7 @@ describe('CodeCollector collect internals', () => {
     });
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -586,19 +633,23 @@ describe('CodeCollector collect internals', () => {
 
     expect(result.dependencies).toEqual(dependencyGraph);
     expect(self.cache.set).toHaveBeenCalledTimes(1);
-    expect(self.cache.set.mock.calls[0]?.[0]).toBe('https://site');
+    expect(self.cache.set.mock.calls[0]?.[0]).toBe(
+      buildTestUrl('site', { suffix: 'bare', path: '/' }),
+    );
     expect(self.cache.set.mock.calls[0]?.[1]).toMatchObject({
       dependencies: dependencyGraph,
     });
     expect(self.cache.set.mock.calls[0]?.[1]?.summaries).toBeUndefined();
-    expect(self.cache.set.mock.calls[0]?.[2]).toMatchObject({ url: 'https://site' });
+    expect(self.cache.set.mock.calls[0]?.[2]).toMatchObject({
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
+    });
   });
 
   it('recomputes totalSize from processed files after smart collection', async () => {
     const { self } = createHarness();
     self.smartCollector.smartCollect = vi.fn().mockResolvedValue([
       {
-        url: 'https://site/app.js',
+        url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
         content: 'tiny',
         size: 4,
         type: 'external',
@@ -606,7 +657,7 @@ describe('CodeCollector collect internals', () => {
     ]);
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -621,7 +672,10 @@ describe('CodeCollector collect internals', () => {
     const { self } = createHarness({
       gotoResponses: [
         {
-          response: { url: 'https://site/app.js', mimeType: 'application/javascript' },
+          response: {
+            url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
+            mimeType: 'application/javascript',
+          },
           requestId: 'req-1',
           type: 'Script',
         },
@@ -630,7 +684,7 @@ describe('CodeCollector collect internals', () => {
     self.compressor.shouldCompress = vi.fn().mockReturnValue(true);
     self.compressor.compressBatch = vi.fn().mockResolvedValue([
       {
-        url: 'https://site/app.js',
+        url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
         originalSize: 20,
         compressedSize: 10,
         compressionRatio: 50,
@@ -645,7 +699,7 @@ describe('CodeCollector collect internals', () => {
     });
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -665,7 +719,7 @@ describe('CodeCollector collect internals', () => {
     const { self } = createHarness();
     const summaries = [
       {
-        url: 'https://site/app.js',
+        url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
         size: 10,
         type: 'external',
         hasEncryption: false,
@@ -679,7 +733,7 @@ describe('CodeCollector collect internals', () => {
     self.smartCollector.smartCollect = vi.fn().mockResolvedValue(summaries);
 
     const result = await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -697,7 +751,7 @@ describe('CodeCollector collect internals', () => {
     const { activePage, browserContext, page, self } = createHarness();
 
     await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -718,7 +772,7 @@ describe('CodeCollector collect internals', () => {
     self.listPages.mockResolvedValue([]);
 
     await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -736,7 +790,7 @@ describe('CodeCollector collect internals', () => {
     const { self, page } = createHarness({ useBrowserContext: false });
 
     await collectInnerImpl(self, {
-      url: 'https://site',
+      url: buildTestUrl('site', { suffix: 'bare', path: '/' }),
       includeInline: false,
       includeServiceWorker: false,
       includeWebWorker: false,
@@ -754,7 +808,7 @@ describe('CodeCollector collect internals', () => {
           init: vi.fn(),
           applyAntiDetection: vi.fn(),
         },
-        { url: 'https://site' },
+        { url: buildTestUrl('site', { suffix: 'bare', path: '/' }) },
       ),
     ).rejects.toThrow('Invalid collector context');
   });

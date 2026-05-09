@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ToolError } from '@errors/ToolError';
 import { DebuggerStateHandlers } from '@server/domains/debugger/handlers/debugger-state';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 describe('DebuggerStateHandlers', () => {
   const debuggerManager = {
@@ -122,7 +123,7 @@ describe('DebuggerStateHandlers', () => {
           callFrameId: 'frame-1',
           functionName: 'render',
           location: {
-            url: 'https://app.local/app.js',
+            url: buildTestUrl('app', { suffix: 'local', path: 'app.js' }),
             lineNumber: 15,
             columnNumber: 3,
           },
@@ -143,7 +144,7 @@ describe('DebuggerStateHandlers', () => {
             index: 0,
             callFrameId: 'frame-1',
             functionName: 'render',
-            location: 'https://app.local/app.js:15:3',
+            location: buildTestUrl('app', { suffix: 'local', path: 'app.js:15:3' }),
             scopeCount: 2,
           },
         ],

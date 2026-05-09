@@ -4,6 +4,7 @@ import * as http from 'node:http';
 import * as net from 'node:net';
 import { once } from 'node:events';
 import { ProxyHandlers } from '@server/domains/proxy/index';
+import { TEST_HTTP_URLS, withPath } from '@tests/shared/test-urls';
 
 vi.mock('child_process', () => {
   return {
@@ -115,7 +116,7 @@ describe('ProxyHandlers (Integration)', () => {
     const ruleRes: any = await handlers.handleProxyAddRule({
       action: 'mock_response',
       method: 'GET',
-      urlPattern: 'http://example.com/api',
+      urlPattern: withPath(TEST_HTTP_URLS.root, 'api'),
       mockStatus: 201,
       mockBody: '{"mocked": true}',
     });

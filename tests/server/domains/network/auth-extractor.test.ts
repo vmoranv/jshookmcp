@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { extractAuthFromRequests, type AuthFinding } from '@server/domains/network/auth-extractor';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -14,7 +15,7 @@ function req(
   } = {},
 ) {
   return {
-    url: overrides.url ?? 'https://api.example.com/v1/data',
+    url: overrides.url ?? withPath(TEST_URLS.api, 'v1/data'),
     headers: overrides.headers,
     postData: overrides.postData,
   };
@@ -186,7 +187,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   it('extracts auth tokens from URL query parameters', async () => {
     const findings = extractAuthFromRequests([
-      req({ url: 'https://api.example.com/data?token=abcdef123456789012345&page=1' }),
+      req({ url: withPath(TEST_URLS.api, 'data?token=abcdef123456789012345&page=1') }),
     ]);
 
     expect(findings).toHaveLength(1);
@@ -197,16 +198,16 @@ describe('extractAuthFromRequests', () => {
   it('detects various auth-related query parameter names', async () => {
     const longVal = 'abcdef123456789012345';
     const urls = [
-      `https://api.example.com?access_token=${longVal}`,
-      `https://api.example.com?api_key=${longVal}`,
-      `https://api.example.com?apikey=${longVal}`,
-      `https://api.example.com?key=${longVal}`,
-      `https://api.example.com?secret=${longVal}`,
-      `https://api.example.com?jwt=${longVal}`,
-      `https://api.example.com?auth=${longVal}`,
-      `https://api.example.com?sign=${longVal}`,
-      `https://api.example.com?signature=${longVal}`,
-      `https://api.example.com?refresh_token=${longVal}`,
+      `${TEST_URLS.api}?access_token=${longVal}`,
+      `${TEST_URLS.api}?api_key=${longVal}`,
+      `${TEST_URLS.api}?apikey=${longVal}`,
+      `${TEST_URLS.api}?key=${longVal}`,
+      `${TEST_URLS.api}?secret=${longVal}`,
+      `${TEST_URLS.api}?jwt=${longVal}`,
+      `${TEST_URLS.api}?auth=${longVal}`,
+      `${TEST_URLS.api}?sign=${longVal}`,
+      `${TEST_URLS.api}?signature=${longVal}`,
+      `${TEST_URLS.api}?refresh_token=${longVal}`,
     ];
 
     for (const url of urls) {
@@ -220,7 +221,7 @@ describe('extractAuthFromRequests', () => {
     // A long base64-ish string (>20, all alphanumeric) gets base score 0.7
     const longAlphanumeric = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef';
     const findings = extractAuthFromRequests([
-      req({ url: `https://api.example.com?token=${longAlphanumeric}` }),
+      req({ url: `${TEST_URLS.api}?token=${longAlphanumeric}` }),
     ]);
 
     expect(findings).toHaveLength(1);
@@ -228,7 +229,7 @@ describe('extractAuthFromRequests', () => {
   });
 
   it('ignores query parameters with values shorter than 8 chars', async () => {
-    const findings = extractAuthFromRequests([req({ url: 'https://api.example.com?token=short' })]);
+    const findings = extractAuthFromRequests([req({ url: `${TEST_URLS.api}?token=short` })]);
 
     expect(findings).toEqual([]);
   });
@@ -391,8 +392,8 @@ describe('extractAuthFromRequests', () => {
   it('deduplicates identical header findings across requests', async () => {
     const token = 'Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig';
     const findings = extractAuthFromRequests([
-      req({ url: 'https://api.example.com/a', headers: { authorization: token } }),
-      req({ url: 'https://api.example.com/b', headers: { authorization: token } }),
+      req({ url: withPath(TEST_URLS.api, 'a'), headers: { authorization: token } }),
+      req({ url: withPath(TEST_URLS.api, 'b'), headers: { authorization: token } }),
     ]);
 
     // Same header + same value prefix → deduped
@@ -402,15 +403,15 @@ describe('extractAuthFromRequests', () => {
   it('deduplicates identical cookie findings across requests', async () => {
     const cookieVal = 'session_id=abcdef1234567890abcdef1234567890';
     const findings = extractAuthFromRequests([
-      req({ url: 'https://api.example.com/a', headers: { cookie: cookieVal } }),
-      req({ url: 'https://api.example.com/b', headers: { cookie: cookieVal } }),
+      req({ url: withPath(TEST_URLS.api, 'a'), headers: { cookie: cookieVal } }),
+      req({ url: withPath(TEST_URLS.api, 'b'), headers: { cookie: cookieVal } }),
     ]);
 
     expect(findings).toHaveLength(1);
   });
 
   it('deduplicates identical query param findings across requests', async () => {
-    const url = 'https://api.example.com/data?token=abcdef123456789012345';
+    const url = withPath(TEST_URLS.api, 'data?token=abcdef123456789012345');
     const findings = extractAuthFromRequests([req({ url }), req({ url })]);
 
     expect(findings).toHaveLength(1);
@@ -452,7 +453,7 @@ describe('extractAuthFromRequests', () => {
     const longVal = 'abcdef123456789012345';
     const findings = extractAuthFromRequests([
       req({
-        url: `https://api.example.com/data?token=${longVal}`,
+        url: withPath(TEST_URLS.api, `data?token=${longVal}`),
         headers: {
           authorization: `Bearer ${longVal}`,
           cookie: `session=${longVal}`,
@@ -509,7 +510,7 @@ describe('extractAuthFromRequests', () => {
   // -----------------------------------------------------------------------
   it('ignores non-auth query parameters', async () => {
     const findings = extractAuthFromRequests([
-      req({ url: 'https://api.example.com?page=1&limit=50&sort=name&filter=active' }),
+      req({ url: `${TEST_URLS.api}?page=1&limit=50&sort=name&filter=active` }),
     ]);
 
     expect(findings).toEqual([]);

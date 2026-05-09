@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { handleV8BytecodeDecompile } from '@server/domains/platform/handlers/v8-bytecode-handler';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 type JsonPayload = Record<string, unknown>;
 
@@ -29,7 +30,7 @@ describe('v8_bytecode_decompile', () => {
       'function calculateTotal() { return price * quantity; } ' +
         'const isPremiumUser = true; ' +
         'require("electron").ipcRenderer.invoke("check-license"); ' +
-        'https://api.example.com/v1/verify',
+        withPath(TEST_URLS.api, 'v1/verify'),
     );
     const filePath = join(tempDir, 'app.jsc');
     await writeFile(filePath, Buffer.concat([magic, padding, codeStrings]));

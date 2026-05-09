@@ -18,6 +18,7 @@ import type {
 } from '@server/domains/canvas/dependencies';
 import { CanvasToolHandlers } from '@server/domains/canvas/handlers';
 import type { CanvasProbeEnv, DumpOpts, PickOpts } from '@server/domains/canvas/types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 // ── Mock shared module ─────────────────────────────────────────────────────────
 //
@@ -189,12 +190,12 @@ function createMockDebuggerManager(
         callFrames: [
           {
             functionName: 'onClick',
-            url: 'https://example.com/game.js',
+            url: withPath(TEST_URLS.root, 'game.js'),
             location: { lineNumber: 42, columnNumber: 5 },
           },
           {
             functionName: 'handleInput',
-            url: 'https://example.com/game.js',
+            url: withPath(TEST_URLS.root, 'game.js'),
             location: { lineNumber: 100, columnNumber: 10 },
           },
         ],

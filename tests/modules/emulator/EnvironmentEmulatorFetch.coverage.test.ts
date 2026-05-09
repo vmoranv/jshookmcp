@@ -24,6 +24,7 @@ vi.mock('rebrowser-puppeteer-core', () => ({
 }));
 
 import { fetchRealEnvironmentData } from '@modules/emulator/EnvironmentEmulatorFetch';
+import { TEST_HOSTS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function demoFn() {
   return 'fn';
@@ -112,7 +113,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -134,7 +135,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -158,7 +159,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: createDetected(),
         depth: 2,
         resolveExecutablePath: vi.fn(),
@@ -178,7 +179,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: createDetected(),
         depth: 3,
         resolveExecutablePath: vi.fn(),
@@ -199,7 +200,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       puppeteerState.launch.mockResolvedValue(browser);
 
       const result = await fetchRealEnvironmentData({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: () => undefined,
@@ -216,7 +217,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       puppeteerState.launch.mockResolvedValue(browser);
 
       const result = await fetchRealEnvironmentData({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: () => '/chrome',
@@ -288,20 +289,20 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
             orientation: { type: 'landscape-primary' },
           },
           location: {
-            href: 'https://example.com/path?x=1#hash',
+            href: withPath(TEST_URLS.root, 'path?x=1#hash'),
             protocol: 'https:',
-            host: 'example.com',
-            hostname: 'example.com',
+            host: TEST_HOSTS.root,
+            hostname: TEST_HOSTS.root,
             port: '',
             pathname: '/path',
             search: '?x=1',
             hash: '#hash',
-            origin: 'https://example.com',
+            origin: TEST_URLS.root,
           },
           document: {
             title: 'Example',
-            URL: 'https://example.com/path?x=1#hash',
-            domain: 'example.com',
+            URL: withPath(TEST_URLS.root, 'path?x=1#hash'),
+            domain: TEST_HOSTS.root,
             referrer: '',
             cookie: '',
             readyState: 'complete',
@@ -337,7 +338,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com/path?x=1#hash',
+        url: withPath(TEST_URLS.root, 'path?x=1#hash'),
         detected: {
           window: ['custom.stringValue', 'custom.numberValue', 'custom.booleanValue'],
           document: ['custom.nullValue', 'custom.undefinedValue'],
@@ -396,7 +397,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -415,7 +416,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -443,7 +444,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: emptyDetected,
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -463,7 +464,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       puppeteerState.launch.mockResolvedValue(browser);
 
       await fetchRealEnvironmentData({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: () => '/chrome',
@@ -508,8 +509,8 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       } as Record<string, unknown>;
       const document = {
         title: 'Example',
-        URL: 'https://example.com',
-        domain: 'example.com',
+        URL: TEST_URLS.root,
+        domain: TEST_HOSTS.root,
         referrer: '',
         cookie: '',
       } as Record<string, unknown>;
@@ -533,7 +534,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: {
           window: ['window.requestAnimationFrame', 'window.sdkGlueVersionMap'],
           document: ['document.title'],
@@ -612,8 +613,8 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       } as Record<string, unknown>;
       const document = {
         title: 'Example',
-        URL: 'https://example.com',
-        domain: 'example.com',
+        URL: TEST_URLS.root,
+        domain: TEST_HOSTS.root,
         referrer: '',
         cookie: '',
       } as Record<string, unknown>;
@@ -637,7 +638,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: {
           window: ['window.requestAnimationFrame', 'window.sdkGlueVersionMap'],
           document: ['document.title'],
@@ -724,8 +725,8 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       } as Record<string, unknown>;
       const document = {
         title: 'Example',
-        URL: 'https://example.com/path?x=1#hash',
-        domain: 'example.com',
+        URL: withPath(TEST_URLS.root, 'path?x=1#hash'),
+        domain: TEST_HOSTS.root,
         referrer: '',
         cookie: '',
         createElement: vi.fn(() => ({
@@ -754,15 +755,15 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
           orientation: { type: 'landscape-primary' },
         },
         location: {
-          href: 'https://example.com/path?x=1#hash',
+          href: withPath(TEST_URLS.root, 'path?x=1#hash'),
           protocol: 'https:',
-          host: 'example.com',
-          hostname: 'example.com',
+          host: TEST_HOSTS.root,
+          hostname: TEST_HOSTS.root,
           port: '',
           pathname: '/path',
           search: '?x=1',
           hash: '#hash',
-          origin: 'https://example.com',
+          origin: TEST_URLS.root,
         },
         document,
         custom,
@@ -790,7 +791,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com/path?x=1#hash',
+        url: withPath(TEST_URLS.root, 'path?x=1#hash'),
         detected: {
           window: [
             'custom.stringValue',
@@ -848,8 +849,8 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
       expect(result.manifest['custom.getterValue']).toMatch(/getter blew up/);
       expect(result.manifest['custom.missingValue']).toBeUndefined();
       expect(String(result.manifest['custom.proxyValue'])).toContain('Circular');
-      expect(result.manifest['location.href']).toBe('https://example.com/path?x=1#hash');
-      expect(result.manifest['location.origin']).toBe('https://example.com');
+      expect(result.manifest['location.href']).toBe(withPath(TEST_URLS.root, 'path?x=1#hash'));
+      expect(result.manifest['location.origin']).toBe(TEST_URLS.root);
       expect(result.manifest['screen.orientation.type']).toBe('landscape-primary');
       expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
       expect(page.evaluate).toHaveBeenCalledTimes(1);
@@ -892,7 +893,7 @@ describe('EnvironmentEmulatorFetch – coverage gaps', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         detected: {
           window: ['custom.nested'],
           document: [],

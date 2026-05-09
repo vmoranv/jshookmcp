@@ -5,6 +5,7 @@ import {
   type CamoufoxPageLike,
   type CamoufoxBrowserServerLike,
 } from '@modules/browser/CamoufoxBrowserManager';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   info: vi.fn(),
@@ -156,8 +157,8 @@ describe('CamoufoxBrowserManager — edge cases', () => {
       await manager.launch();
 
       const fakePage = createFakePage();
-      const result = await manager.goto('https://example.com', fakePage);
-      expect(fakePage.goto).toHaveBeenCalledWith('https://example.com', {
+      const result = await manager.goto(TEST_URLS.root, fakePage);
+      expect(fakePage.goto).toHaveBeenCalledWith(TEST_URLS.root, {
         waitUntil: 'networkidle',
       });
       expect(result).toBe(fakePage);
@@ -169,7 +170,7 @@ describe('CamoufoxBrowserManager — edge cases', () => {
       const manager = new CamoufoxBrowserManager();
       await manager.launch();
 
-      await manager.goto('https://example.com');
+      await manager.goto(TEST_URLS.root);
       expect(fakeBrowser.newPage).toHaveBeenCalledTimes(1);
     });
   });

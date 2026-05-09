@@ -99,6 +99,7 @@ vi.mock('rebrowser-puppeteer-core', () => ({
 }));
 
 import { UnifiedBrowserManager } from '@modules/browser/UnifiedBrowserManager';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -323,26 +324,26 @@ describe('UnifiedBrowserManager coverage', () => {
     const manager = new UnifiedBrowserManager({ driver: 'chrome' });
     const page = await manager.newPage();
 
-    await manager.goto('https://example.com', page);
+    await manager.goto(TEST_URLS.root, page);
 
-    expect(chromeState.instances[0]!.goto).toHaveBeenCalledWith('https://example.com', page);
+    expect(chromeState.instances[0]!.goto).toHaveBeenCalledWith(TEST_URLS.root, page);
   });
 
   it('lazily launches Chrome from goto when no page exists', async () => {
     const manager = new UnifiedBrowserManager({ driver: 'chrome' });
 
-    await manager.goto('https://example.com');
+    await manager.goto(TEST_URLS.root);
 
     expect(chromeState.ctor).toHaveBeenCalledTimes(1);
-    expect(chromeState.instances[0]!.goto).toHaveBeenCalledWith('https://example.com', null);
+    expect(chromeState.instances[0]!.goto).toHaveBeenCalledWith(TEST_URLS.root, null);
   });
 
   it('lazily launches Camoufox from goto when no page exists', async () => {
     const manager = new UnifiedBrowserManager({ driver: 'camoufox' });
 
-    await manager.goto('https://example.com');
+    await manager.goto(TEST_URLS.root);
 
     expect(camoufoxState.ctor).toHaveBeenCalledTimes(1);
-    expect(camoufoxState.instances[0]!.goto).toHaveBeenCalledWith('https://example.com', null);
+    expect(camoufoxState.instances[0]!.goto).toHaveBeenCalledWith(TEST_URLS.root, null);
   });
 });

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TEST_HOSTS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 vi.mock('@utils/logger', () => ({
   logger: {
@@ -46,7 +47,7 @@ function createMockPage(overrides: Record<string, any> = {}) {
     waitForNavigation: vi.fn(async () => {}),
     waitForNetworkIdle: vi.fn(async () => {}),
     title: vi.fn(async () => 'Test Page'),
-    url: vi.fn(() => 'https://example.com/page'),
+    url: vi.fn(() => withPath(TEST_URLS.root, 'page')),
     content: vi.fn(async () => '<html></html>'),
     screenshot: vi.fn(async () => Buffer.from('png-data')),
     setViewport: vi.fn(async () => {}),
@@ -76,6 +77,7 @@ function createMockCollector(page: any) {
   return {
     getActivePage: vi.fn(async () => page),
     getAttachedTargetSession: vi.fn(() => null),
+    isExistingBrowserConnection: vi.fn(() => false),
   } as any;
 }
 
@@ -92,22 +94,22 @@ describe('PageController', () => {
 
   describe('navigate', () => {
     it('navigates to a URL with default options', async () => {
-      const result = await controller.navigate('https://example.com');
-      expect(page.goto).toHaveBeenCalledWith('https://example.com', {
+      const result = await controller.navigate(TEST_URLS.root);
+      expect(page.goto).toHaveBeenCalledWith(TEST_URLS.root, {
         waitUntil: 'networkidle2',
         timeout: 30000,
       });
-      expect(result.url).toBe('https://example.com/page');
+      expect(result.url).toBe(withPath(TEST_URLS.root, 'page'));
       expect(result.title).toBe('Test Page');
       expect(result.loadTime).toBeGreaterThanOrEqual(0);
     });
 
     it('navigates with custom options', async () => {
-      await controller.navigate('https://example.com', {
+      await controller.navigate(TEST_URLS.root, {
         waitUntil: 'load',
         timeout: 5000,
       });
-      expect(page.goto).toHaveBeenCalledWith('https://example.com', {
+      expect(page.goto).toHaveBeenCalledWith(TEST_URLS.root, {
         waitUntil: 'load',
         timeout: 5000,
       });
@@ -274,7 +276,7 @@ describe('PageController', () => {
   describe('getURL', () => {
     it('returns the current URL', async () => {
       const url = await controller.getURL();
-      expect(url).toBe('https://example.com/page');
+      expect(url).toBe(withPath(TEST_URLS.root, 'page'));
     });
   });
 
@@ -361,7 +363,7 @@ describe('PageController', () => {
   describe('setCookies', () => {
     it('sets cookies on the page', async () => {
       const cookies = [
-        { name: 'session', value: 'abc123', domain: '.example.com' },
+        { name: 'session', value: 'abc123', domain: `.${TEST_HOSTS.root}` },
         { name: 'pref', value: 'dark' },
       ];
       await controller.setCookies(cookies);
@@ -389,6 +391,13 @@ describe('PageController', () => {
 
       await controller.clearCookies();
       expect(page.deleteCookie).toHaveBeenCalledWith(...cookies);
+    });
+
+    it('rejects when connected to an existing browser', async () => {
+      collector.isExistingBrowserConnection.mockReturnValue(true);
+      await expect(controller.clearCookies()).rejects.toThrow(
+        'Cannot clear cookies on an attached browser',
+      );
     });
   });
 
@@ -479,6 +488,13 @@ describe('PageController', () => {
       await controller.clearLocalStorage();
       expect(page.evaluate).toHaveBeenCalledWith(expect.any(Function));
     });
+
+    it('rejects when connected to an existing browser', async () => {
+      collector.isExistingBrowserConnection.mockReturnValue(true);
+      await expect(controller.clearLocalStorage()).rejects.toThrow(
+        'Cannot clear localStorage on an attached browser',
+      );
+    });
   });
 
   describe('pressKey', () => {
@@ -519,8 +535,8 @@ describe('PageController', () => {
   describe('getAllLinks', () => {
     it('retrieves all links from page', async () => {
       const links = [
-        { text: 'Home', href: 'https://example.com/' },
-        { text: 'About', href: 'https://example.com/about' },
+        { text: 'Home', href: `${TEST_URLS.root}/` },
+        { text: 'About', href: withPath(TEST_URLS.root, 'about') },
       ];
       page.evaluate.mockResolvedValue(links);
 

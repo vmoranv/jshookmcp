@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fsPromises from 'node:fs/promises';
 import { SourcemapToolHandlersMain } from '../../../../src/server/domains/sourcemap/handlers.impl.sourcemap-main';
 import { CodeCollector } from '../../../../src/modules/collector/CodeCollector';
+import { TEST_HTTP_URLS, withPath } from '@tests/shared/test-urls';
 
 // Mock fs/promises completely to avoid real filesystem side effects
 vi.mock('node:fs/promises', async () => {
@@ -62,26 +63,26 @@ describe('SourcemapToolHandlersMain', () => {
 
             onCall[1]({
               scriptId: '1',
-              url: 'http://example.com/a.js',
-              sourceMapURL: 'http://example.com/a.js.map',
+              url: withPath(TEST_HTTP_URLS.root, 'a.js'),
+              sourceMapURL: withPath(TEST_HTTP_URLS.root, 'a.js.map'),
             });
-            onCall[1]({ scriptId: '2', url: 'http://example.com/b.js' }); // no map
+            onCall[1]({ scriptId: '2', url: withPath(TEST_HTTP_URLS.root, 'b.js') }); // no map
             onCall[1]({
               scriptId: '3',
-              url: 'http://example.com/c.js',
+              url: withPath(TEST_HTTP_URLS.root, 'c.js'),
               sourceMapURL: 'data:application/json;base64,123',
             }); // inline
 
             // For localeCompare coverage (lines 86-88)
             onCall[1]({
               scriptId: 'z',
-              url: 'http://example.com/z.js',
-              sourceMapURL: 'http://example.com/z.js.map',
+              url: withPath(TEST_HTTP_URLS.root, 'z.js'),
+              sourceMapURL: withPath(TEST_HTTP_URLS.root, 'z.js.map'),
             });
             onCall[1]({
               scriptId: '0',
-              url: 'http://example.com/0.js',
-              sourceMapURL: 'http://example.com/0.js.map',
+              url: withPath(TEST_HTTP_URLS.root, '0.js'),
+              sourceMapURL: withPath(TEST_HTTP_URLS.root, '0.js.map'),
             });
           }
         }
@@ -106,10 +107,10 @@ describe('SourcemapToolHandlersMain', () => {
             (c: any) => c[0] === 'Debugger.scriptParsed',
           );
           if (onCall) {
-            onCall[1]({ scriptId: '2', url: 'http://example.com/b.js' }); // no map initially
-            onCall[1]({ scriptId: '4', url: 'http://example.com/d.js' }); // no map inside
-            onCall[1]({ scriptId: '5', url: 'http://example.com/e.js' }); // throw error
-            onCall[1]({ scriptId: '6', url: 'http://example.com/f.js' }); // return null source
+            onCall[1]({ scriptId: '2', url: withPath(TEST_HTTP_URLS.root, 'b.js') }); // no map initially
+            onCall[1]({ scriptId: '4', url: withPath(TEST_HTTP_URLS.root, 'd.js') }); // no map inside
+            onCall[1]({ scriptId: '5', url: withPath(TEST_HTTP_URLS.root, 'e.js') }); // throw error
+            onCall[1]({ scriptId: '6', url: withPath(TEST_HTTP_URLS.root, 'f.js') }); // return null source
           }
           return {};
         }
@@ -126,7 +127,7 @@ describe('SourcemapToolHandlersMain', () => {
 
       vi.spyOn(handlers as any, 'delay').mockResolvedValue(undefined);
       vi.spyOn(handlers as any, 'resolveSourceMapUrl').mockReturnValue(
-        'http://example.com/b.js.map',
+        withPath(TEST_HTTP_URLS.root, 'b.js.map'),
       );
       vi.spyOn(handlers as any, 'extractSourceMappingUrlFromScript').mockImplementation(
         // @ts-expect-error
@@ -139,7 +140,7 @@ describe('SourcemapToolHandlersMain', () => {
       const res = await handlers.handleSourcemapDiscover({ includeInline: true });
       const parsed = JSON.parse((res.content[0] as any).text);
       expect(parsed).toHaveLength(1);
-      expect(parsed[0].sourceMapUrl).toBe('http://example.com/b.js.map');
+      expect(parsed[0].sourceMapUrl).toBe(withPath(TEST_HTTP_URLS.root, 'b.js.map'));
     });
 
     it('throws when getActivePage fails', async () => {
@@ -182,7 +183,7 @@ describe('SourcemapToolHandlersMain', () => {
     it('reconstructs tree to artifact directory', async () => {
       // Mock base methods
       vi.spyOn(handlers as any, 'parseSourceMapStats').mockResolvedValue({
-        resolvedUrl: 'http://example.com/source.map',
+        resolvedUrl: withPath(TEST_HTTP_URLS.root, 'source.map'),
         map: {
           version: 3,
           sourceRoot: '/test',

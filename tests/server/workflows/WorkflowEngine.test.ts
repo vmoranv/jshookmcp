@@ -6,6 +6,7 @@ import {
   sequenceStep,
   toolStep,
 } from '@server/workflows/WorkflowContract';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 const state = vi.hoisted(() => ({
   randomUUID: vi.fn(() => 'run-123'),
@@ -43,7 +44,7 @@ describe('workflows/WorkflowEngine', () => {
         expect(executionContext.getConfig('override.flag', false)).toBe(true);
         return sequenceStep('root', (s) => {
           s.tool('step-1', 'page_navigate', {
-            input: { url: 'https://example.com' },
+            input: { url: TEST_URLS.root },
           });
           s.tool('step-2', 'page_click');
         });
@@ -61,7 +62,7 @@ describe('workflows/WorkflowEngine', () => {
     expect(result.stepResults).toHaveProperty('step-1');
     expect(result.stepResults).toHaveProperty('step-2');
     expect(ctx.executeToolWithTracking).toHaveBeenNthCalledWith(1, 'page_navigate', {
-      url: 'https://example.com',
+      url: TEST_URLS.root,
     });
     expect(ctx.executeToolWithTracking).toHaveBeenNthCalledWith(2, 'page_click', {
       selector: '#submit',

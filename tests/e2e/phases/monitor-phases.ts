@@ -1,4 +1,5 @@
 import type { Phase } from '@tests/e2e/helpers/types';
+import { E2E_DEFAULT_TARGET_URL } from '@tests/shared/test-urls';
 
 export const monitorPhases: Phase[] = [
   {
@@ -32,7 +33,7 @@ export const monitorPhases: Phase[] = [
       await new Promise((r) => setTimeout(r, 50));
       // Navigate to capture real HTTP requests
       await call('page_navigate', {
-        url: 'https://vmoranv.github.io/jshookmcp/',
+        url: E2E_DEFAULT_TARGET_URL,
         waitUntil: 'load',
         timeout: 15000,
       });

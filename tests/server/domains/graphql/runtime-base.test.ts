@@ -21,6 +21,7 @@ import {
   findMatchingRule,
 } from '@server/domains/graphql/handlers/shared';
 import type { ScriptReplaceRule } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { TEST_FTP_URLS, TEST_HTTP_URLS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 /**
  * Minimal testable wrapper for functions that operate on a rules array.
@@ -167,13 +168,13 @@ describe('GraphQL shared utilities (from handlers/shared.ts)', () => {
   describe('validateExternalEndpoint', () => {
     it('returns null for valid https URL', async () => {
       isSsrfTargetMock.mockResolvedValueOnce(false);
-      const result = await validateExternalEndpoint('https://example.com/graphql');
+      const result = await validateExternalEndpoint(withPath(TEST_URLS.root, 'graphql'));
       expect(result).toBeNull();
     });
 
     it('returns null for valid http URL', async () => {
       isSsrfTargetMock.mockResolvedValueOnce(false);
-      const result = await validateExternalEndpoint('http://example.com/graphql');
+      const result = await validateExternalEndpoint(withPath(TEST_HTTP_URLS.root, 'graphql'));
       expect(result).toBeNull();
     });
 
@@ -183,7 +184,7 @@ describe('GraphQL shared utilities (from handlers/shared.ts)', () => {
     });
 
     it('returns error for unsupported protocol', async () => {
-      const result = await validateExternalEndpoint('ftp://example.com/graphql');
+      const result = await validateExternalEndpoint(withPath(TEST_FTP_URLS.root, 'graphql'));
       expect(result).toContain('Unsupported endpoint protocol');
     });
 
@@ -209,7 +210,7 @@ describe('GraphQL shared utilities (from handlers/shared.ts)', () => {
       isSsrfTargetMock.mockResolvedValueOnce(true);
       const result = await validateBrowserEndpoint(
         'http://127.0.0.1/graphql',
-        'https://example.com/app',
+        withPath(TEST_URLS.root, 'app'),
       );
       expect(result).toContain('Blocked');
     });
@@ -313,7 +314,7 @@ describe('GraphQL shared utilities (from handlers/shared.ts)', () => {
 
   describe('findMatchingRule', () => {
     it('returns null when no rules exist', async () => {
-      expect(shared.findMatchingRule('https://example.com/main.js')).toBeNull();
+      expect(shared.findMatchingRule(withPath(TEST_URLS.root, 'main.js'))).toBeNull();
     });
 
     it('returns last matching rule (highest priority)', async () => {
@@ -335,7 +336,7 @@ describe('GraphQL shared utilities (from handlers/shared.ts)', () => {
           hits: 0,
         },
       );
-      const match = shared.findMatchingRule('https://example.com/main.js');
+      const match = shared.findMatchingRule(withPath(TEST_URLS.root, 'main.js'));
       expect(match?.id).toBe('r2');
     });
 
@@ -348,7 +349,7 @@ describe('GraphQL shared utilities (from handlers/shared.ts)', () => {
         createdAt: 0,
         hits: 0,
       });
-      expect(shared.findMatchingRule('https://example.com/main.js')).toBeNull();
+      expect(shared.findMatchingRule(withPath(TEST_URLS.root, 'main.js'))).toBeNull();
     });
   });
 });

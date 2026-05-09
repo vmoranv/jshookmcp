@@ -24,6 +24,7 @@ vi.mock('rebrowser-puppeteer-core', () => ({
 }));
 
 import { fetchRealEnvironmentData } from '@modules/emulator/EnvironmentEmulatorFetch';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 function createDetected() {
   return {
@@ -71,7 +72,7 @@ describe('EnvironmentEmulatorFetch', () => {
     puppeteerState.launch.mockResolvedValue(browser);
 
     const result = await fetchRealEnvironmentData({
-      url: 'https://example.com',
+      url: TEST_URLS.root,
       detected: createDetected(),
       depth: 2,
       resolveExecutablePath,
@@ -88,7 +89,7 @@ describe('EnvironmentEmulatorFetch', () => {
     expect(browser.newPage).toHaveBeenCalledTimes(1);
     expect(page.setUserAgent).toHaveBeenCalledWith(expect.stringContaining('Chrome/120.0.0.0'));
     expect(page.evaluateOnNewDocument).toHaveBeenCalledTimes(1);
-    expect(page.goto).toHaveBeenCalledWith('https://example.com', {
+    expect(page.goto).toHaveBeenCalledWith(TEST_URLS.root, {
       waitUntil: 'networkidle2',
       timeout: 30000,
     });
@@ -111,7 +112,7 @@ describe('EnvironmentEmulatorFetch', () => {
 
     const result = await fetchRealEnvironmentData({
       browser: browser as any,
-      url: 'https://example.com',
+      url: TEST_URLS.root,
       detected: createDetected(),
       depth: 1,
       resolveExecutablePath: vi.fn(() => 'ignored'),
@@ -134,7 +135,7 @@ describe('EnvironmentEmulatorFetch', () => {
 
     const result = await fetchRealEnvironmentData({
       browser: browser as any,
-      url: 'https://example.com',
+      url: TEST_URLS.root,
       detected: createDetected(),
       depth: 1,
       resolveExecutablePath: vi.fn(),

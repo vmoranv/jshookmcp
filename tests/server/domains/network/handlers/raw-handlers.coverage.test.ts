@@ -73,6 +73,7 @@ vi.mock('@native/IcmpProbe', () => ({
 }));
 
 import { RawHandlers } from '@server/domains/network/handlers/raw-handlers';
+import { buildTestUrl, TEST_HOSTS, TEST_URLS } from '@tests/shared/test-urls';
 
 function parseJsonResponse(response: {
   content: Array<{ type: string; text?: string }>;
@@ -142,21 +143,21 @@ describe('RawHandlers', () => {
       const missing = await handler.handleDnsResolve({});
       expect(parseTextResponse(missing)).toEqual({ text: 'hostname is required', isError: true });
 
-      const invalid = await handler.handleDnsResolve({ hostname: 'example.com', rrType: 'BAD' });
+      const invalid = await handler.handleDnsResolve({ hostname: TEST_HOSTS.root, rrType: 'BAD' });
       expect(parseTextResponse(invalid).text).toContain('Invalid rrType');
     });
 
     it('resolves and reverse-resolves DNS records', async () => {
       state.dnsResolve.mockResolvedValue(['93.184.216.34']);
-      state.dnsReverse.mockResolvedValue(['example.com']);
+      state.dnsReverse.mockResolvedValue([TEST_HOSTS.root]);
 
       const resolved = parseJsonResponse(
-        await handler.handleDnsResolve({ hostname: 'example.com', rrType: 'A' }),
+        await handler.handleDnsResolve({ hostname: TEST_HOSTS.root, rrType: 'A' }),
       );
       const reversed = parseJsonResponse(await handler.handleDnsReverse({ ip: '93.184.216.34' }));
 
       expect(resolved.records).toEqual(['93.184.216.34']);
-      expect(reversed.hostnames).toEqual(['example.com']);
+      expect(reversed.hostnames).toEqual([TEST_HOSTS.root]);
     });
 
     it('returns structured failures when DNS lookups throw', async () => {
@@ -190,14 +191,14 @@ describe('RawHandlers', () => {
         await handler.handleHttpRequestBuild({
           method: 'POST',
           target: '/submit',
-          host: 'example.com',
+          host: TEST_HOSTS.root,
           headers: { 'Content-Type': 'application/json' },
           body: '{"ok":true}',
         }),
       );
 
       expect(built.startLine).toBe('POST /submit HTTP/1.1');
-      expect(String(built.requestText)).toContain('Host: example.com');
+      expect(String(built.requestText)).toContain(`Host: ${TEST_HOSTS.root}`);
       expect(eventBus.emit).toHaveBeenCalledWith(
         'network:http_request_built',
         expect.objectContaining({ target: '/submit', byteLength: expect.any(Number) }),
@@ -208,7 +209,7 @@ describe('RawHandlers', () => {
   describe('handleHttpPlainRequest', () => {
     beforeEach(() => {
       state.resolveAuthorizedTransportTarget.mockResolvedValue({
-        url: new URL('http://allowed.example/'),
+        url: new URL(buildTestUrl('allowed', { scheme: 'http', suffix: 'example', path: '/' })),
         target: { hostname: 'allowed.example', resolvedAddress: '93.184.216.34' },
       });
     });
@@ -313,7 +314,7 @@ describe('RawHandlers', () => {
   describe('handleHttp2Probe', () => {
     beforeEach(() => {
       state.resolveAuthorizedTransportTarget.mockResolvedValue({
-        url: new URL('https://api.example/data'),
+        url: new URL(buildTestUrl('api', { suffix: 'example', path: 'data' })),
         target: { hostname: 'api.example', resolvedAddress: '1.2.3.4' },
       });
     });
@@ -321,7 +322,10 @@ describe('RawHandlers', () => {
     it('validates url and method', async () => {
       const missingUrl = parseJsonResponse(await handler.handleHttp2Probe({}));
       const invalidMethod = parseJsonResponse(
-        await handler.handleHttp2Probe({ url: 'https://api.example', method: 'bad value' }),
+        await handler.handleHttp2Probe({
+          url: buildTestUrl('api', { suffix: 'example', path: '/' }),
+          method: 'bad value',
+        }),
       );
 
       expect(missingUrl.success).toBe(false);
@@ -338,7 +342,10 @@ describe('RawHandlers', () => {
         alpnProtocol: 'h2',
       });
       const textResponse = parseJsonResponse(
-        await handler.handleHttp2Probe({ url: 'https://api.example/data', method: 'GET' }),
+        await handler.handleHttp2Probe({
+          url: buildTestUrl('api', { suffix: 'example', path: 'data' }),
+          method: 'GET',
+        }),
       );
       expect(textResponse.statusCode).toBe(200);
       expect(textResponse.bodyText).toBe('ok');
@@ -350,7 +357,10 @@ describe('RawHandlers', () => {
         alpnProtocol: 'h2',
       });
       const binaryResponse = parseJsonResponse(
-        await handler.handleHttp2Probe({ url: 'https://api.example/data', method: 'POST' }),
+        await handler.handleHttp2Probe({
+          url: buildTestUrl('api', { suffix: 'example', path: 'data' }),
+          method: 'POST',
+        }),
       );
       expect(binaryResponse.bodyBase64).toBe(Buffer.from([0x00, 0xff]).toString('base64'));
       expect(binaryResponse.truncated).toBe(true);
@@ -364,7 +374,9 @@ describe('RawHandlers', () => {
       state.performHttp2ProbeInternal.mockRejectedValue(new Error('probe failed'));
 
       const response = parseJsonResponse(
-        await handler.handleHttp2Probe({ url: 'https://api.example/data' }),
+        await handler.handleHttp2Probe({
+          url: buildTestUrl('api', { suffix: 'example', path: 'data' }),
+        }),
       );
       expect(response.success).toBe(false);
       expect(String(response.error)).toContain('probe failed');
@@ -384,7 +396,7 @@ describe('RawHandlers', () => {
 
       const result = parseJsonResponse(
         await handler.handleHttp2Probe({
-          url: 'https://api.example/data',
+          url: buildTestUrl('api', { suffix: 'example', path: 'data' }),
           method: 'POST',
           body: { text: 'decrypt-me' },
         }),
@@ -409,7 +421,7 @@ describe('RawHandlers', () => {
       });
 
       await handler.handleHttp2Probe({
-        url: 'https://api.example/data',
+        url: buildTestUrl('api', { suffix: 'example', path: 'data' }),
         method: 'POST',
         body: { key: 'val' },
         headers: { 'content-type': 'text/plain' },
@@ -457,12 +469,12 @@ describe('RawHandlers', () => {
     it('validates RTT request input and aggregates successes with errors', async () => {
       await expect(handler.handleNetworkRttMeasure({})).rejects.toThrow('url is required');
       await expect(
-        handler.handleNetworkRttMeasure({ url: 'https://example.com', probeType: 'udp' }),
+        handler.handleNetworkRttMeasure({ url: TEST_URLS.root, probeType: 'udp' }),
       ).rejects.toThrow('probeType must be one of: tcp, tls, http');
 
       state.resolveAuthorizedTransportTarget.mockResolvedValue({
-        url: new URL('https://example.com/'),
-        target: { hostname: 'example.com', resolvedAddress: '93.184.216.34' },
+        url: new URL(`${TEST_URLS.root}/`),
+        target: { hostname: TEST_HOSTS.root, resolvedAddress: '93.184.216.34' },
       });
       const typedHandler = handler as unknown as {
         measureSingleRtt: (
@@ -480,7 +492,7 @@ describe('RawHandlers', () => {
 
       const response = parseJsonResponse(
         await handler.handleNetworkRttMeasure({
-          url: 'https://example.com',
+          url: TEST_URLS.root,
           iterations: 3,
           timeoutMs: 1000,
         }),
@@ -594,7 +606,7 @@ describe('RawHandlers', () => {
       );
 
       const result = await (handler as any).probeHttp(
-        'example.com',
+        TEST_HOSTS.root,
         '93.184.216.34',
         443,
         1000,
@@ -603,11 +615,11 @@ describe('RawHandlers', () => {
       expect(typeof result).toBe('number');
       expect(state.httpsRequest).toHaveBeenCalledWith(
         expect.objectContaining({
-          host: 'example.com',
+          host: TEST_HOSTS.root,
           port: 443,
           path: '/',
           method: 'HEAD',
-          servername: 'example.com',
+          servername: TEST_HOSTS.root,
         }),
         expect.any(Function),
       );
@@ -633,13 +645,13 @@ describe('RawHandlers', () => {
       state.dnsResolve.mockResolvedValue(['1.2.3.4']);
       state.traceroute.mockReturnValue({ hops: [{ ttl: 1, host: 'router' }] });
       const tracerouteResponse = parseJsonResponse(
-        await handler.handleNetworkTraceroute({ target: 'example.com', maxHops: 5 }),
+        await handler.handleNetworkTraceroute({ target: TEST_HOSTS.root, maxHops: 5 }),
       );
       expect(tracerouteResponse.hops as Array<unknown>).toHaveLength(1);
 
       state.icmpProbe.mockReturnValue({ success: true, rttMs: 12.3 });
       const probeResponse = parseJsonResponse(
-        await handler.handleNetworkIcmpProbe({ target: 'example.com', ttl: 64 }),
+        await handler.handleNetworkIcmpProbe({ target: TEST_HOSTS.root, ttl: 64 }),
       );
       expect(probeResponse.success).toBe(true);
       expect(probeResponse.rttMs).toBe(12.3);
@@ -656,10 +668,10 @@ describe('RawHandlers', () => {
       });
 
       const tracerouteResponse = parseJsonResponse(
-        await handler.handleNetworkTraceroute({ target: 'example.com' }),
+        await handler.handleNetworkTraceroute({ target: TEST_HOSTS.root }),
       );
       const probeResponse = parseJsonResponse(
-        await handler.handleNetworkIcmpProbe({ target: 'example.com' }),
+        await handler.handleNetworkIcmpProbe({ target: TEST_HOSTS.root }),
       );
 
       expect(tracerouteResponse.success).toBe(false);

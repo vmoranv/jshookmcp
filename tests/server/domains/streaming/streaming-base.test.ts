@@ -4,6 +4,7 @@ import type {
   TextToolResponse,
   WsFrameRecord,
 } from '@server/domains/streaming/handlers.impl.streaming-base';
+import { TEST_WS_URLS } from '@tests/shared/test-urls';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -311,7 +312,7 @@ describe('StreamingToolHandlersBase', () => {
     it('increments connection framesCount when connection exists', async () => {
       handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
-        url: 'wss://example.com',
+        url: TEST_WS_URLS.root,
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
@@ -325,7 +326,7 @@ describe('StreamingToolHandlersBase', () => {
     it('transitions connection from "connecting" to "open" on first frame', async () => {
       handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
-        url: 'wss://example.com',
+        url: TEST_WS_URLS.root,
         status: 'connecting',
         framesCount: 0,
         createdTimestamp: 1,
@@ -339,7 +340,7 @@ describe('StreamingToolHandlersBase', () => {
     it('does not change status if already "open"', async () => {
       handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
-        url: 'wss://example.com',
+        url: TEST_WS_URLS.root,
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
@@ -391,7 +392,7 @@ describe('StreamingToolHandlersBase', () => {
 
       handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
-        url: 'wss://example.com',
+        url: TEST_WS_URLS.root,
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,
@@ -409,7 +410,7 @@ describe('StreamingToolHandlersBase', () => {
 
       handler.wsConnectionsForTest.set('r1', {
         requestId: 'r1',
-        url: 'wss://example.com',
+        url: TEST_WS_URLS.root,
         status: 'open',
         framesCount: 0,
         createdTimestamp: 1,

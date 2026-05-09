@@ -9,6 +9,7 @@ import type {
   InstrumentationOperation,
   InstrumentationArtifact,
 } from '@server/instrumentation/types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('EvidenceGraphBridge', () => {
   let graph: ReverseEvidenceGraph;
@@ -87,7 +88,7 @@ describe('EvidenceGraphBridge', () => {
         sessionId: 'sess1',
         // @ts-expect-error
         type: 'network-intercept',
-        target: 'https://api.example.com/login',
+        target: withPath(TEST_URLS.api, 'login'),
         config: { initiator: 'fetchWrapper' },
         registeredAt: new Date().toISOString(),
       };
@@ -104,7 +105,7 @@ describe('EvidenceGraphBridge', () => {
         sessionId: 'sess1',
         // @ts-expect-error
         type: 'network-intercept',
-        target: 'https://api.example.com/data',
+        target: withPath(TEST_URLS.api, 'data'),
         config: { initiator: { stack: 'at fetchWrapper (app.js:42)' } },
         registeredAt: new Date().toISOString(),
       };
@@ -121,7 +122,7 @@ describe('EvidenceGraphBridge', () => {
         sessionId: 'sess1',
         // @ts-expect-error
         type: 'network-intercept',
-        target: 'https://api.example.com/sign',
+        target: withPath(TEST_URLS.api, 'sign'),
         config: { initiator: 'fetchCall', initiatorScriptId: 'script-99' },
         registeredAt: new Date().toISOString(),
       };
@@ -138,7 +139,7 @@ describe('EvidenceGraphBridge', () => {
         sessionId: 'sess1',
         // @ts-expect-error
         type: 'network-intercept',
-        target: 'https://cdn.example.com/lib.js',
+        target: withPath(TEST_URLS.cdn, 'lib.js'),
         config: {},
         registeredAt: new Date().toISOString(),
       };
@@ -232,7 +233,7 @@ describe('EvidenceGraphBridge', () => {
         sessionId: 'sess1',
         // @ts-expect-error
         type: 'network-intercept',
-        target: 'https://api.example.com/data',
+        target: withPath(TEST_URLS.api, 'data'),
         config: {},
         registeredAt: new Date().toISOString(),
       };
@@ -247,7 +248,7 @@ describe('EvidenceGraphBridge', () => {
         data: {
           replayMode: 'live',
           requestId: 'req-42',
-          url: 'https://api.example.com/data',
+          url: withPath(TEST_URLS.api, 'data'),
           method: 'GET',
           statusCode: 200,
         },
@@ -319,7 +320,7 @@ describe('EvidenceGraphBridge', () => {
 
   describe('linkRequestToInitiator', () => {
     it('creates an initiates edge between two node IDs', () => {
-      const reqNode = graph.addNode('request', 'https://api.example.com', {});
+      const reqNode = graph.addNode('request', TEST_URLS.api, {});
       const initNode = graph.addNode('initiator-stack', 'fetchWrapper:42', {});
 
       bridge.linkRequestToInitiator(reqNode.id, initNode.id);
@@ -342,7 +343,7 @@ describe('EvidenceGraphBridge', () => {
         sessionId: 'sess-chain',
         // @ts-expect-error
         type: 'network-intercept',
-        target: 'https://api.example.com/sign',
+        target: withPath(TEST_URLS.api, 'sign'),
         config: { initiator: 'signModule', initiatorScriptId: 'script-main' },
         registeredAt: new Date().toISOString(),
       });
@@ -377,7 +378,7 @@ describe('EvidenceGraphBridge', () => {
         data: {
           replayMode: 'live',
           requestId: 'req-sign',
-          url: 'https://api.example.com/sign',
+          url: withPath(TEST_URLS.api, 'sign'),
           method: 'POST',
           statusCode: 200,
         },

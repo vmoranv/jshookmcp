@@ -1,5 +1,6 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 // Mock shared modules before imports
 vi.mock('@server/domains/shared/modules', () => ({
@@ -154,7 +155,7 @@ describe('StreamingToolHandlersSse', () => {
           },
           events: [
             {
-              sourceUrl: 'http://api.test/stream',
+              sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: 'stream' }),
               eventType: 'message',
               dataPreview: 'hello',
               dataLength: 5,
@@ -162,7 +163,7 @@ describe('StreamingToolHandlersSse', () => {
               timestamp: 1000,
             },
             {
-              sourceUrl: 'http://api.test/stream',
+              sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: 'stream' }),
               eventType: 'message',
               dataPreview: 'world',
               dataLength: 5,
@@ -187,7 +188,10 @@ describe('StreamingToolHandlersSse', () => {
       const { handler } = createHandler({
         evaluate: vi.fn().mockResolvedValue({
           success: true,
-          filters: { sourceUrl: 'http://api.test', eventType: null },
+          filters: {
+            sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: '/' }),
+            eventType: null,
+          },
           page: {
             offset: 0,
             limit: 100,
@@ -205,7 +209,7 @@ describe('StreamingToolHandlersSse', () => {
           },
           events: [
             {
-              sourceUrl: 'http://api.test',
+              sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: '/' }),
               eventType: 'message',
               dataPreview: 'data',
               dataLength: 4,
@@ -216,12 +220,16 @@ describe('StreamingToolHandlersSse', () => {
         }),
       });
 
-      const result = await handler.handleSseGetEvents({ sourceUrl: 'http://api.test' });
+      const result = await handler.handleSseGetEvents({
+        sourceUrl: buildTestUrl('api', { scheme: 'http', suffix: 'test', path: '/' }),
+      });
       const body = parseJson(result);
       // @ts-expect-error — auto-suppressed [TS18046]
       expect(body.success).toBe(true);
       // @ts-expect-error — auto-suppressed [TS18046]
-      expect(body.filters.sourceUrl).toBe('http://api.test');
+      expect(body.filters.sourceUrl).toBe(
+        buildTestUrl('api', { scheme: 'http', suffix: 'test', path: '/' }),
+      );
     });
 
     it('filters by eventType', async () => {

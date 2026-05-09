@@ -3,6 +3,7 @@ import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PageNavigationHandlers } from '@server/domains/browser/handlers/page-navigation';
 import { TabRegistry } from '@modules/browser/TabRegistry';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 describe('PageNavigationHandlers', () => {
   beforeEach(() => {
@@ -14,18 +15,18 @@ describe('PageNavigationHandlers', () => {
     const tabRegistry = new TabRegistry<object>();
     const pageId = tabRegistry.registerPage(activePage, {
       index: 0,
-      url: 'https://before.example',
+      url: buildTestUrl('before', { suffix: 'example', path: '/' }),
       title: 'Before',
     });
 
     const pageController = {
       navigate: vi.fn(async () => ({
-        url: 'https://target.example',
+        url: buildTestUrl('target', { suffix: 'example', path: '/' }),
         title: 'Target',
         loadTime: 12,
       })),
       getPage: vi.fn(async () => activePage),
-      getURL: vi.fn(async () => 'https://target.example'),
+      getURL: vi.fn(async () => buildTestUrl('target', { suffix: 'example', path: '/' })),
       getTitle: vi.fn(async () => 'Target'),
     } as any;
 
@@ -44,14 +45,16 @@ describe('PageNavigationHandlers', () => {
     });
 
     const body = parseJson<BrowserStatusResponse>(
-      await handlers.handlePageNavigate({ url: 'https://target.example' }),
+      await handlers.handlePageNavigate({
+        url: buildTestUrl('target', { suffix: 'example', path: '/' }),
+      }),
     );
 
     expect(body.success).toBe(true);
-    expect(body.url).toBe('https://target.example');
+    expect(body.url).toBe(buildTestUrl('target', { suffix: 'example', path: '/' }));
     expect(body).not.toHaveProperty('captcha_detected');
     expect(tabRegistry.getContextMeta()).toEqual({
-      url: 'https://target.example',
+      url: buildTestUrl('target', { suffix: 'example', path: '/' }),
       title: 'Target',
       tabIndex: 0,
       pageId,
@@ -63,13 +66,13 @@ describe('PageNavigationHandlers', () => {
     const tabRegistry = new TabRegistry<object>();
     const pageId = tabRegistry.registerPage(pageHandle, {
       index: 1,
-      url: 'https://before.example/camoufox',
+      url: buildTestUrl('before', { suffix: 'example', path: 'camoufox' }),
       title: 'Before Camoufox',
     });
 
     const page = {
       goto: vi.fn(async () => {}),
-      url: vi.fn(() => 'https://target.example'),
+      url: vi.fn(() => buildTestUrl('target', { suffix: 'example', path: '/' })),
       title: vi.fn(async () => 'Camoufox Target'),
     };
 
@@ -88,15 +91,17 @@ describe('PageNavigationHandlers', () => {
     });
 
     const body = parseJson<BrowserStatusResponse>(
-      await handlers.handlePageNavigate({ url: 'https://target.example' }),
+      await handlers.handlePageNavigate({
+        url: buildTestUrl('target', { suffix: 'example', path: '/' }),
+      }),
     );
 
     expect(body.success).toBe(true);
     expect(body.driver).toBe('camoufox');
-    expect(body.url).toBe('https://target.example');
+    expect(body.url).toBe(buildTestUrl('target', { suffix: 'example', path: '/' }));
     expect(body).not.toHaveProperty('captcha_detected');
     expect(tabRegistry.getContextMeta()).toEqual({
-      url: 'https://target.example',
+      url: buildTestUrl('target', { suffix: 'example', path: '/' }),
       title: 'Camoufox Target',
       tabIndex: 1,
       pageId,
@@ -108,13 +113,13 @@ describe('PageNavigationHandlers', () => {
     const tabRegistry = new TabRegistry<object>();
     const pageId = tabRegistry.registerPage(pageHandle, {
       index: 3,
-      url: 'https://before.example/empty-title',
+      url: buildTestUrl('before', { suffix: 'example', path: 'empty-title' }),
       title: 'Before Empty',
     });
 
     const page = {
       goto: vi.fn(async () => {}),
-      url: vi.fn(() => 'https://target.example/blank'),
+      url: vi.fn(() => buildTestUrl('target', { suffix: 'example', path: 'blank' })),
       title: vi.fn(async () => ''),
     };
 
@@ -132,10 +137,12 @@ describe('PageNavigationHandlers', () => {
       getTabRegistry: () => tabRegistry,
     });
 
-    await handlers.handlePageNavigate({ url: 'https://target.example/blank' });
+    await handlers.handlePageNavigate({
+      url: buildTestUrl('target', { suffix: 'example', path: 'blank' }),
+    });
 
     expect(tabRegistry.getContextMeta()).toEqual({
-      url: 'https://target.example/blank',
+      url: buildTestUrl('target', { suffix: 'example', path: 'blank' }),
       title: '',
       tabIndex: 3,
       pageId,

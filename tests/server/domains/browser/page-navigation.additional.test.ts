@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('PageNavigationHandlers', () => {
   // We need to mock the module dependencies before importing
@@ -11,7 +12,7 @@ describe('PageNavigationHandlers', () => {
         reload: vi.fn(async () => {}),
         goBack: vi.fn(async () => {}),
         goForward: vi.fn(async () => {}),
-        getURL: vi.fn(async () => 'https://example.com/current'),
+        getURL: vi.fn(async () => withPath(TEST_URLS.root, 'current')),
         getTitle: vi.fn(async () => 'Example Page'),
       },
       consoleMonitor: {
@@ -25,7 +26,7 @@ describe('PageNavigationHandlers', () => {
         reload: vi.fn(async () => {}),
         goBack: vi.fn(async () => {}),
         goForward: vi.fn(async () => {}),
-        url: vi.fn(() => 'https://example.com/camoufox'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'camoufox')),
         title: vi.fn(async () => 'Camoufox Page'),
       })),
       ...overrides,
@@ -39,45 +40,60 @@ describe('PageNavigationHandlers', () => {
   });
 
   describe('handlePageNavigate - Chrome path', () => {
-    it('navigates with default waitUntil mapped to networkidle2', async () => {
+    it('navigates with default waitUntil normalized to networkidle', async () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      const result = await handler.handlePageNavigate({ url: 'https://example.com' });
+      const result = await handler.handlePageNavigate({ url: TEST_URLS.root });
       const parsed = JSON.parse(result.content[0].text);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.url).toBe('https://example.com/current');
+      expect(parsed.url).toBe(withPath(TEST_URLS.root, 'current'));
       expect(parsed.title).toBe('Example Page');
       expect(deps.pageController.navigate).toHaveBeenCalledWith(
-        'https://example.com',
-        expect.objectContaining({ waitUntil: 'networkidle2' }),
+        TEST_URLS.root,
+        expect.objectContaining({ waitUntil: 'networkidle' }),
       );
     });
 
-    it('maps commit waitUntil to load', async () => {
+    it('rejects unsupported waitUntil aliases', async () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      await handler.handlePageNavigate({ url: 'https://example.com', waitUntil: 'commit' });
+      const result = await handler.handlePageNavigate({
+        url: TEST_URLS.root,
+        waitUntil: 'networkidle2',
+      });
+      const parsed = JSON.parse(result.content[0].text);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toMatch(/Invalid waitUntil: "networkidle2"/);
+      expect(deps.pageController.navigate).not.toHaveBeenCalled();
+    });
+
+    it('passes commit waitUntil through to the controller abstraction', async () => {
+      const deps = createMockDeps();
+      const handler = new PageNavigationHandlers(deps);
+
+      await handler.handlePageNavigate({ url: TEST_URLS.root, waitUntil: 'commit' });
 
       expect(deps.pageController.navigate).toHaveBeenCalledWith(
-        'https://example.com',
-        expect.objectContaining({ waitUntil: 'load' }),
+        TEST_URLS.root,
+        expect.objectContaining({ waitUntil: 'commit' }),
       );
     });
 
-    it('passes through unknown waitUntil values', async () => {
+    it('passes supported waitUntil values through', async () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
       await handler.handlePageNavigate({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         waitUntil: 'domcontentloaded',
       });
 
       expect(deps.pageController.navigate).toHaveBeenCalledWith(
-        'https://example.com',
+        TEST_URLS.root,
         expect.objectContaining({ waitUntil: 'domcontentloaded' }),
       );
     });
@@ -86,10 +102,10 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      await handler.handlePageNavigate({ url: 'https://example.com', timeout: 10000 });
+      await handler.handlePageNavigate({ url: TEST_URLS.root, timeout: 10000 });
 
       expect(deps.pageController.navigate).toHaveBeenCalledWith(
-        'https://example.com',
+        TEST_URLS.root,
         expect.objectContaining({ timeout: 10000 }),
       );
     });
@@ -99,7 +115,7 @@ describe('PageNavigationHandlers', () => {
       const handler = new PageNavigationHandlers(deps);
 
       await handler.handlePageNavigate({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         enableNetworkMonitoring: true,
       });
 
@@ -113,7 +129,7 @@ describe('PageNavigationHandlers', () => {
       const deps = createMockDeps();
       const handler = new PageNavigationHandlers(deps);
 
-      await handler.handlePageNavigate({ url: 'https://example.com' });
+      await handler.handlePageNavigate({ url: TEST_URLS.root });
 
       expect(deps.consoleMonitor.enable).not.toHaveBeenCalled();
     });
@@ -124,7 +140,7 @@ describe('PageNavigationHandlers', () => {
       const handler = new PageNavigationHandlers(deps);
 
       const result = await handler.handlePageNavigate({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         enableNetworkMonitoring: true,
       });
       const parsed = JSON.parse(result.content[0].text);
@@ -137,7 +153,7 @@ describe('PageNavigationHandlers', () => {
     it('uses camoufox page for navigation', async () => {
       const camoufoxPage = {
         goto: vi.fn(async () => {}),
-        url: vi.fn(() => 'https://example.com/cam'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'cam')),
         title: vi.fn(async () => 'Cam Title'),
       };
       const deps = createMockDeps({
@@ -146,20 +162,20 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      const result = await handler.handlePageNavigate({ url: 'https://example.com' });
+      const result = await handler.handlePageNavigate({ url: TEST_URLS.root });
       const parsed = JSON.parse(result.content[0].text);
 
       expect(parsed.success).toBe(true);
       expect(parsed.driver).toBe('camoufox');
-      expect(parsed.url).toBe('https://example.com/cam');
+      expect(parsed.url).toBe(withPath(TEST_URLS.root, 'cam'));
       expect(parsed.title).toBe('Cam Title');
       expect(camoufoxPage.goto).toHaveBeenCalled();
     });
 
-    it('converts networkidle2 to networkidle for camoufox', async () => {
+    it('rejects unsupported waitUntil aliases for camoufox', async () => {
       const camoufoxPage = {
         goto: vi.fn(async () => {}),
-        url: vi.fn(() => 'https://example.com'),
+        url: vi.fn(() => TEST_URLS.root),
         title: vi.fn(async () => 'Title'),
       };
       const deps = createMockDeps({
@@ -168,18 +184,21 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      await handler.handlePageNavigate({ url: 'https://example.com', waitUntil: 'networkidle2' });
-
-      expect(camoufoxPage.goto).toHaveBeenCalledWith('https://example.com', {
-        waitUntil: 'networkidle',
-        timeout: undefined,
+      const result = await handler.handlePageNavigate({
+        url: TEST_URLS.root,
+        waitUntil: 'networkidle2',
       });
+      const parsed = JSON.parse(result.content[0].text);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toMatch(/Invalid waitUntil: "networkidle2"/);
+      expect(camoufoxPage.goto).not.toHaveBeenCalled();
     });
 
     it('sets playwright page on console monitor', async () => {
       const camoufoxPage = {
         goto: vi.fn(async () => {}),
-        url: vi.fn(() => 'https://example.com'),
+        url: vi.fn(() => TEST_URLS.root),
         title: vi.fn(async () => 'Title'),
       };
       const deps = createMockDeps({
@@ -188,7 +207,7 @@ describe('PageNavigationHandlers', () => {
       });
       const handler = new PageNavigationHandlers(deps);
 
-      await handler.handlePageNavigate({ url: 'https://example.com' });
+      await handler.handlePageNavigate({ url: TEST_URLS.root });
 
       expect(deps.consoleMonitor.setPlaywrightPage).toHaveBeenCalledWith(camoufoxPage);
     });
@@ -196,7 +215,7 @@ describe('PageNavigationHandlers', () => {
     it('enables network monitoring on camoufox path when requested', async () => {
       const camoufoxPage = {
         goto: vi.fn(async () => {}),
-        url: vi.fn(() => 'https://example.com'),
+        url: vi.fn(() => TEST_URLS.root),
         title: vi.fn(async () => 'Title'),
       };
       const deps = createMockDeps({
@@ -206,7 +225,7 @@ describe('PageNavigationHandlers', () => {
       const handler = new PageNavigationHandlers(deps);
 
       await handler.handlePageNavigate({
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         enableNetworkMonitoring: true,
       });
 
@@ -258,14 +277,14 @@ describe('PageNavigationHandlers', () => {
       const parsed = JSON.parse(result.content[0].text);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.url).toBe('https://example.com/current');
+      expect(parsed.url).toBe(withPath(TEST_URLS.root, 'current'));
       expect(deps.pageController.goBack).toHaveBeenCalled();
     });
 
     it('goes back in Camoufox', async () => {
       const camoufoxPage = {
         goBack: vi.fn(async () => {}),
-        url: vi.fn(() => 'https://example.com/previous'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'previous')),
       };
       const deps = createMockDeps({
         getActiveDriver: vi.fn(() => 'camoufox'),
@@ -278,7 +297,7 @@ describe('PageNavigationHandlers', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.driver).toBe('camoufox');
-      expect(parsed.url).toBe('https://example.com/previous');
+      expect(parsed.url).toBe(withPath(TEST_URLS.root, 'previous'));
       expect(camoufoxPage.goBack).toHaveBeenCalled();
     });
   });
@@ -292,14 +311,14 @@ describe('PageNavigationHandlers', () => {
       const parsed = JSON.parse(result.content[0].text);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.url).toBe('https://example.com/current');
+      expect(parsed.url).toBe(withPath(TEST_URLS.root, 'current'));
       expect(deps.pageController.goForward).toHaveBeenCalled();
     });
 
     it('goes forward in Camoufox', async () => {
       const camoufoxPage = {
         goForward: vi.fn(async () => {}),
-        url: vi.fn(() => 'https://example.com/next'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'next')),
       };
       const deps = createMockDeps({
         getActiveDriver: vi.fn(() => 'camoufox'),
@@ -312,7 +331,7 @@ describe('PageNavigationHandlers', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.driver).toBe('camoufox');
-      expect(parsed.url).toBe('https://example.com/next');
+      expect(parsed.url).toBe(withPath(TEST_URLS.root, 'next'));
       expect(camoufoxPage.goForward).toHaveBeenCalled();
     });
   });

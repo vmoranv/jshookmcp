@@ -4,8 +4,9 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { findBrowserExecutable } from '@utils/browserExecutable';
+import { E2E_DEFAULT_TARGET_URL } from '@tests/shared/test-urls';
 
-const TARGET = 'https://vmoranv.github.io/jshookmcp/';
+const TARGET = E2E_DEFAULT_TARGET_URL;
 const DEFAULT_BROWSER_EXECUTABLE = findBrowserExecutable() ?? '';
 
 // All 210 E2E tools in order

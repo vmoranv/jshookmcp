@@ -3,13 +3,14 @@ import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createPage(overrides: Record<string, unknown> = {}) {
   return {
     goto: vi.fn(async () => {}),
     waitForSelector: vi.fn(async () => {}),
     evaluate: vi.fn(async () => ''),
-    url: vi.fn(() => 'https://example.test'),
+    url: vi.fn(() => buildTestUrl('example', { suffix: 'test', path: '/' })),
     title: vi.fn(async () => 'Example'),
     ...overrides,
   } as any;
@@ -72,7 +73,7 @@ describe('TabWorkflowHandlers', () => {
       staleAliases: [],
       currentPageId: 'tab-1',
       currentIndex: 0,
-      url: 'https://app.test',
+      url: buildTestUrl('app', { suffix: 'test', path: '/' }),
       title: 'App',
     });
     registry.getSharedContextMap.mockReturnValueOnce({ token: 'abc' });
@@ -99,11 +100,11 @@ describe('TabWorkflowHandlers', () => {
 
   it('reconciles chrome pages before binding an alias by index', async () => {
     const pageA = createPage({
-      url: vi.fn(() => 'https://a.test'),
+      url: vi.fn(() => buildTestUrl('a', { suffix: 'test', path: '/' })),
       title: vi.fn(async () => 'A'),
     });
     const pageB = createPage({
-      url: vi.fn(() => 'https://b.test'),
+      url: vi.fn(() => buildTestUrl('b', { suffix: 'test', path: '/' })),
       title: vi.fn(async () => 'B'),
     });
     const browser = {
@@ -125,8 +126,8 @@ describe('TabWorkflowHandlers', () => {
     expect(registry.reconcilePages).toHaveBeenCalledWith(
       [pageA, pageB],
       [
-        { index: 0, url: 'https://a.test', title: 'A' },
-        { index: 1, url: 'https://b.test', title: 'B' },
+        { index: 0, url: buildTestUrl('a', { suffix: 'test', path: '/' }), title: 'A' },
+        { index: 1, url: buildTestUrl('b', { suffix: 'test', path: '/' }), title: 'B' },
       ],
     );
     expect(registry.bindAliasByIndex).toHaveBeenCalledWith('inbox', 1);
@@ -141,7 +142,7 @@ describe('TabWorkflowHandlers', () => {
   it('opens a new camoufox tab and binds the alias', async () => {
     activeDriver = 'camoufox';
     const newPage = createPage({
-      url: vi.fn(() => 'https://mail.test'),
+      url: vi.fn(() => buildTestUrl('mail', { suffix: 'test', path: '/' })),
       title: vi.fn(async () => 'Inbox'),
     });
     const context = {
@@ -158,17 +159,17 @@ describe('TabWorkflowHandlers', () => {
       await handlers.handleTabWorkflow({
         action: 'alias_open',
         alias: 'mail',
-        url: 'https://mail.test',
+        url: buildTestUrl('mail', { suffix: 'test', path: '/' }),
       }),
     );
 
     expect(context.newPage).toHaveBeenCalledOnce();
-    expect(newPage.goto).toHaveBeenCalledWith('https://mail.test', {
+    expect(newPage.goto).toHaveBeenCalledWith(buildTestUrl('mail', { suffix: 'test', path: '/' }), {
       waitUntil: 'domcontentloaded',
     });
     expect(registry.registerPage).toHaveBeenCalledWith(newPage, {
       index: 1,
-      url: 'https://mail.test',
+      url: buildTestUrl('mail', { suffix: 'test', path: '/' }),
       title: 'Inbox',
     });
     expect(registry.bindAlias).toHaveBeenCalledWith('mail', 'tab-9');
@@ -178,7 +179,7 @@ describe('TabWorkflowHandlers', () => {
 
   it('navigates the page resolved from an alias', async () => {
     const page = createPage({
-      url: vi.fn(() => 'https://next.test'),
+      url: vi.fn(() => buildTestUrl('next', { suffix: 'test', path: '/' })),
     });
     registry.resolveAlias.mockReturnValueOnce('tab-4');
     registry.getPageById.mockReturnValueOnce(page);
@@ -187,15 +188,15 @@ describe('TabWorkflowHandlers', () => {
       await handlers.handleTabWorkflow({
         action: 'navigate',
         alias: 'mail',
-        url: 'https://next.test',
+        url: buildTestUrl('next', { suffix: 'test', path: '/' }),
       }),
     );
 
-    expect(page.goto).toHaveBeenCalledWith('https://next.test', {
+    expect(page.goto).toHaveBeenCalledWith(buildTestUrl('next', { suffix: 'test', path: '/' }), {
       waitUntil: 'domcontentloaded',
     });
     expect(body.success).toBe(true);
-    expect(body.currentUrl).toBe('https://next.test');
+    expect(body.currentUrl).toBe(buildTestUrl('next', { suffix: 'test', path: '/' }));
   });
 
   it('waits for a selector with the default timeout', async () => {

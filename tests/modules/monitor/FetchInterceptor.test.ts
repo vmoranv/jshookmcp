@@ -30,6 +30,7 @@ vi.mock('node:crypto', async () => {
 });
 
 import { FetchInterceptor } from '@modules/monitor/FetchInterceptor';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createMockSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -378,7 +379,7 @@ describe('FetchInterceptor', () => {
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
         request: {
-          url: 'https://example.com/api/users?page=1',
+          url: withPath(TEST_URLS.root, 'api/users?page=1'),
           method: 'GET',
           headers: {},
         },
@@ -418,7 +419,7 @@ describe('FetchInterceptor', () => {
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
         request: {
-          url: 'https://example.com/api/v1/users',
+          url: withPath(TEST_URLS.root, 'api/v1/users'),
           method: 'GET',
           headers: {},
         },
@@ -448,7 +449,7 @@ describe('FetchInterceptor', () => {
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
         request: {
-          url: 'https://example.com/[invalid(regex',
+          url: withPath(TEST_URLS.root, '[invalid(regex'),
           method: 'GET',
           headers: {},
         },
@@ -470,7 +471,7 @@ describe('FetchInterceptor', () => {
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
         request: {
-          url: 'https://example.com/api/products',
+          url: withPath(TEST_URLS.root, 'api/products'),
           method: 'GET',
           headers: {},
         },
@@ -494,7 +495,7 @@ describe('FetchInterceptor', () => {
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
         request: {
-          url: 'https://example.com/api/products',
+          url: withPath(TEST_URLS.root, 'api/products'),
           method: 'GET',
           headers: {},
         },
@@ -524,7 +525,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/test', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'test'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -554,7 +555,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/test', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'test'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -584,7 +585,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/test', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'test'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -615,7 +616,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/test', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'test'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -646,7 +647,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/test', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'test'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -676,7 +677,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/test', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'test'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -701,7 +702,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/other', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'other'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -724,7 +725,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/other', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'other'), method: 'GET', headers: {} },
         responseStatusCode: 200,
       });
 
@@ -746,7 +747,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/v1/api/users/123', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'v1/api/users/123'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -764,7 +765,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/api/v1/users', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'api/v1/users'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -782,7 +783,7 @@ describe('FetchInterceptor', () => {
 
       await emit('Fetch.requestPaused', {
         requestId: 'req-1',
-        request: { url: 'https://example.com/api/users?id=1', method: 'GET', headers: {} },
+        request: { url: withPath(TEST_URLS.root, 'api/users?id=1'), method: 'GET', headers: {} },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));

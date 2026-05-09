@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import type { TabWorkflowResponse } from '@tests/shared/common-test-types';
 
 import { TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-workflow';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 vi.mock('@utils/logger', () => ({
   logger: {
@@ -27,7 +28,7 @@ function createPage(overrides: Partial<PageMock> = {}): PageMock {
     goto: vi.fn(async () => {}),
     waitForSelector: vi.fn(async () => {}),
     evaluate: vi.fn(async () => ''),
-    url: vi.fn(() => 'https://example.test'),
+    url: vi.fn(() => buildTestUrl('example', { suffix: 'test', path: '/' })),
     title: vi.fn(async () => 'Example'),
     ...overrides,
   };
@@ -142,7 +143,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
 
   it('opens a new chrome tab via puppeteer browser', async () => {
     const newPage = createPage({
-      url: vi.fn(() => 'https://app.test'),
+      url: vi.fn(() => buildTestUrl('app', { suffix: 'test', path: '/' })),
       title: vi.fn(async () => 'App'),
     });
     const browser = {
@@ -156,12 +157,12 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       await handlers.handleTabWorkflow({
         action: 'alias_open',
         alias: 'app',
-        url: 'https://app.test',
+        url: buildTestUrl('app', { suffix: 'test', path: '/' }),
       }),
     );
 
     expect(browser.newPage).toHaveBeenCalledOnce();
-    expect(newPage.goto).toHaveBeenCalledWith('https://app.test', {
+    expect(newPage.goto).toHaveBeenCalledWith(buildTestUrl('app', { suffix: 'test', path: '/' }), {
       waitUntil: 'domcontentloaded',
     });
     expect(registry.registerPage).toHaveBeenCalled();
@@ -343,7 +344,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
   it('reconciles camoufox pages before binding alias', async () => {
     activeDriver = 'camoufox';
     const page = createPage({
-      url: vi.fn(() => 'https://a.test'),
+      url: vi.fn(() => buildTestUrl('a', { suffix: 'test', path: '/' })),
       title: vi.fn(async () => 'A'),
       context: vi.fn(() => ({
         pages: vi.fn(() => [page]),
@@ -392,7 +393,7 @@ describe('TabWorkflowHandlers — extended coverage', () => {
       staleAliases: [{ alias: 'old', pageId: 'tab-0', index: 0, stale: true }],
       currentPageId: 'tab-1',
       currentIndex: 0,
-      url: 'https://app.test',
+      url: buildTestUrl('app', { suffix: 'test', path: '/' }),
       title: 'App',
     });
     registry.getSharedContextMap.mockReturnValueOnce({});

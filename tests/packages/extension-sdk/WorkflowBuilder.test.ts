@@ -9,6 +9,7 @@ import {
   type WorkflowExecutionContext,
   type ToolNodeOptions,
 } from '@extension-sdk/workflow';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 const alwaysTruePredicate = () => true;
 const onStartHandler = () => {};
@@ -26,10 +27,10 @@ describe('extension-sdk workflow steps', () => {
 
     it('builds a ToolNode with input via shorthand options', () => {
       const node = toolStep('nav', 'page_navigate', {
-        input: { url: 'https://example.com' },
+        input: { url: TEST_URLS.root },
         inputFrom: { copied: 'prev.result' },
       });
-      expect(node.input).toEqual({ url: 'https://example.com' });
+      expect(node.input).toEqual({ url: TEST_URLS.root });
       expect(node.inputFrom).toEqual({ copied: 'prev.result' });
     });
 
@@ -206,7 +207,7 @@ describe('defineWorkflow', () => {
     const wf = defineWorkflow('seq.wf', 'Seq WF', (w) =>
       w.buildGraph((_ctx) =>
         sequenceStep('main', (s) => {
-          s.tool('nav', 'page_navigate', { input: { url: 'https://example.com' } });
+          s.tool('nav', 'page_navigate', { input: { url: TEST_URLS.root } });
           s.tool('links', 'page_get_all_links');
         }),
       ),

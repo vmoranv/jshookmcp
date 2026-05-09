@@ -107,6 +107,7 @@ vi.mock('@modules/monitor/PlaywrightNetworkMonitor', () => {
 });
 
 import { ConsoleMonitor } from '@modules/monitor/ConsoleMonitor.impl.core.class';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createCdpSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -155,7 +156,7 @@ describe('ConsoleMonitor.impl.core.class.ts', () => {
         callFrames: [
           {
             functionName: 'handler',
-            url: 'https://site/app.js',
+            url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
             lineNumber: 4,
             columnNumber: 2,
           },
@@ -170,13 +171,13 @@ describe('ConsoleMonitor.impl.core.class.ts', () => {
           callFrames: [
             {
               functionName: 'explode',
-              url: 'https://site/app.js',
+              url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
               lineNumber: 8,
               columnNumber: 1,
             },
           ],
         },
-        url: 'https://site/app.js',
+        url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
         lineNumber: 8,
         columnNumber: 1,
       },
@@ -188,12 +189,12 @@ describe('ConsoleMonitor.impl.core.class.ts', () => {
     expect(classState.networkInstances[0]?.enable).toHaveBeenCalledTimes(1);
     expect(monitor.getLogs({ type: 'warn' })[0]).toMatchObject({
       text: 'careful',
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       lineNumber: 4,
     });
     expect(monitor.getExceptions()[0]).toMatchObject({
       text: 'boom',
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       lineNumber: 8,
     });
   });

@@ -20,6 +20,7 @@ import {
   setBreakpointByUrlCore,
   setBreakpointCore,
 } from '@modules/debugger/DebuggerManager.impl.core.breakpoints';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function makeCtx(overrides: Record<string, unknown> = {}) {
   const send = vi.fn(async () => ({ breakpointId: 'bp-default' }));
@@ -49,7 +50,7 @@ describe('BreakpointsCoreExtended - conditional breakpoints', () => {
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-cond-1' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
-      url: 'https://example.com/app.js',
+      url: withPath(TEST_URLS.root, 'app.js'),
       lineNumber: 10,
       condition: 'i === 5',
     });
@@ -79,7 +80,7 @@ describe('BreakpointsCoreExtended - conditional breakpoints', () => {
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-no-cond' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
-      url: 'https://example.com/app.js',
+      url: withPath(TEST_URLS.root, 'app.js'),
       lineNumber: 5,
     });
 
@@ -101,7 +102,7 @@ describe('BreakpointsCoreExtended - hit counts', () => {
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-hit' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
-      url: 'https://example.com/index.js',
+      url: withPath(TEST_URLS.root, 'index.js'),
       lineNumber: 1,
     });
 
@@ -126,7 +127,7 @@ describe('BreakpointsCoreExtended - hit counts', () => {
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-ts' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
-      url: 'https://example.com/app.js',
+      url: withPath(TEST_URLS.root, 'app.js'),
       lineNumber: 1,
     });
 
@@ -412,13 +413,13 @@ describe('BreakpointsCoreExtended - columnNumber edge cases', () => {
     ctx.cdpSession.send.mockResolvedValueOnce({ breakpointId: 'bp-uloc' });
 
     const bp = await setBreakpointByUrlCore(ctx, {
-      url: 'https://example.com/bundle.js',
+      url: withPath(TEST_URLS.root, 'bundle.js'),
       lineNumber: 100,
       columnNumber: 15,
     });
 
     expect(bp.location).toEqual({
-      url: 'https://example.com/bundle.js',
+      url: withPath(TEST_URLS.root, 'bundle.js'),
       lineNumber: 100,
       columnNumber: 15,
     });

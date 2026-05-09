@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -77,9 +78,9 @@ describe('constants env parsing', () => {
       'http://127.0.0.1:18080',
     );
     expect(
-      (await loadConstants({ GHIDRA_BRIDGE_URL: 'https://vmoranv.github.io/jshookmcp/test' }))
+      (await loadConstants({ GHIDRA_BRIDGE_URL: withPath(TEST_URLS.root, 'test') }))
         .GHIDRA_BRIDGE_ENDPOINT,
-    ).toBe('https://vmoranv.github.io/jshookmcp/test');
+    ).toBe(withPath(TEST_URLS.root, 'test'));
   });
 
   it('parses numeric lists and drops invalid entries without falling back', async () => {
@@ -111,20 +112,20 @@ describe('constants env parsing', () => {
     expect(
       (
         await loadConstants({
-          CAPTCHA_SOLVER_BASE_URL: ' https://vmoranv.github.io/jshookmcp/captcha-a ',
-          CAPTCHA_2CAPTCHA_BASE_URL: 'https://vmoranv.github.io/jshookmcp/captcha-b',
+          CAPTCHA_SOLVER_BASE_URL: ` ${withPath(TEST_URLS.root, 'captcha-a')} `,
+          CAPTCHA_2CAPTCHA_BASE_URL: withPath(TEST_URLS.root, 'captcha-b'),
         })
       ).CAPTCHA_SOLVER_BASE_URL,
-    ).toBe('https://vmoranv.github.io/jshookmcp/captcha-a');
+    ).toBe(withPath(TEST_URLS.root, 'captcha-a'));
 
     expect(
       (
         await loadConstants({
           CAPTCHA_SOLVER_BASE_URL: '   ',
-          CAPTCHA_2CAPTCHA_BASE_URL: ' https://vmoranv.github.io/jshookmcp/captcha-b ',
+          CAPTCHA_2CAPTCHA_BASE_URL: ` ${withPath(TEST_URLS.root, 'captcha-b')} `,
         })
       ).CAPTCHA_SOLVER_BASE_URL,
-    ).toBe('https://vmoranv.github.io/jshookmcp/captcha-b');
+    ).toBe(withPath(TEST_URLS.root, 'captcha-b'));
 
     expect(
       (

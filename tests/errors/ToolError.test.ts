@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { ToolError, USER_CORRECTABLE_CODES } from '@errors/ToolError';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 describe('ToolError', () => {
   beforeEach(() => {
@@ -11,7 +12,7 @@ describe('ToolError', () => {
     const cause = new Error('root-cause');
     const error = new ToolError('RUNTIME', 'tool failed', {
       toolName: 'page_evaluate',
-      details: { url: 'https://example.com' },
+      details: { url: TEST_URLS.root },
       cause,
     });
 
@@ -21,7 +22,7 @@ describe('ToolError', () => {
     expect(error.message).toBe('tool failed');
     expect(error.code).toBe('RUNTIME');
     expect(error.toolName).toBe('page_evaluate');
-    expect(error.details).toEqual({ url: 'https://example.com' });
+    expect(error.details).toEqual({ url: TEST_URLS.root });
     expect(error.cause).toBe(cause);
   });
 

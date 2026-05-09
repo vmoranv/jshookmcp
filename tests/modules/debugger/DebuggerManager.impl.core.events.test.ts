@@ -20,6 +20,7 @@ import {
   offBreakpointHitCore,
   onBreakpointHitCore,
 } from '@modules/debugger/DebuggerManager.impl.core.events';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('DebuggerManager event core helpers', () => {
   beforeEach(() => {
@@ -50,7 +51,7 @@ describe('DebuggerManager event core helpers', () => {
           callFrameId: 'cf-1',
           functionName: 'main',
           location: { scriptId: 'script-1', lineNumber: 10, columnNumber: 1 },
-          url: 'https://example.com/app.js',
+          url: withPath(TEST_URLS.root, 'app.js'),
           scopeChain: [],
           this: {},
         },

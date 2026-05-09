@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -24,18 +25,18 @@ describe('TabRegistry', () => {
 
     const firstId = registry.registerPage(page, {
       index: 0,
-      url: 'https://example.com/one',
+      url: withPath(TEST_URLS.root, 'one'),
       title: 'One',
     });
     const secondId = registry.registerPage(page, {
       index: 3,
-      url: 'https://example.com/updated',
+      url: withPath(TEST_URLS.root, 'updated'),
       title: 'Updated',
     });
 
     expect(secondId).toBe(firstId);
     expect(registry.getTabById(firstId)?.index).toBe(3);
-    expect(registry.getTabById(firstId)?.url).toBe('https://example.com/updated');
+    expect(registry.getTabById(firstId)?.url).toBe(withPath(TEST_URLS.root, 'updated'));
   });
 
   it('reconciles pages, marks missing entries stale and clears stale current page', () => {
@@ -45,12 +46,12 @@ describe('TabRegistry', () => {
 
     const pageAId = registry.registerPage(pageA, {
       index: 0,
-      url: 'https://example.com/a',
+      url: withPath(TEST_URLS.root, 'a'),
       title: 'A',
     });
     const pageBId = registry.registerPage(pageB, {
       index: 1,
-      url: 'https://example.com/b',
+      url: withPath(TEST_URLS.root, 'b'),
       title: 'B',
     });
     registry.bindAlias('secondary', pageBId);
@@ -58,7 +59,7 @@ describe('TabRegistry', () => {
 
     const tabs = registry.reconcilePages(
       [pageA],
-      [{ index: 0, url: 'https://example.com/a2', title: 'A2' }],
+      [{ index: 0, url: withPath(TEST_URLS.root, 'a2'), title: 'A2' }],
     );
 
     expect(tabs).toHaveLength(1);
@@ -76,8 +77,8 @@ describe('TabRegistry', () => {
     registry.reconcilePages(
       [pageA, pageB],
       [
-        { index: 0, url: 'https://example.com/a', title: 'A' },
-        { index: 1, url: 'https://example.com/b', title: 'B' },
+        { index: 0, url: withPath(TEST_URLS.root, 'a'), title: 'A' },
+        { index: 1, url: withPath(TEST_URLS.root, 'b'), title: 'B' },
       ],
     );
 
@@ -85,7 +86,10 @@ describe('TabRegistry', () => {
     expect(boundPageId).toBeTruthy();
     expect(registry.setCurrentByIndex(1)?.pageId).toBe(boundPageId);
 
-    registry.reconcilePages([pageA], [{ index: 0, url: 'https://example.com/a', title: 'A' }]);
+    registry.reconcilePages(
+      [pageA],
+      [{ index: 0, url: withPath(TEST_URLS.root, 'a'), title: 'A' }],
+    );
 
     const info = registry.getCurrentTabInfo('chrome');
     expect(info.currentPageId).toBeNull();
@@ -103,7 +107,7 @@ describe('TabRegistry', () => {
     const page = {};
     const pageId = registry.registerPage(page, {
       index: 0,
-      url: 'https://example.com',
+      url: TEST_URLS.root,
       title: 'Example',
     });
 
@@ -126,19 +130,19 @@ describe('TabRegistry', () => {
     const page = {};
     const pageId = registry.registerPage(page, {
       index: 2,
-      url: 'https://example.com/old',
+      url: withPath(TEST_URLS.root, 'old'),
       title: 'Old',
     });
     registry.setCurrentPageId(pageId);
 
     const updatedId = registry.upsertPage(page, {
-      url: 'https://example.com/new',
+      url: withPath(TEST_URLS.root, 'new'),
       title: 'New',
     });
 
     expect(updatedId).toBe(pageId);
     expect(registry.getContextMeta()).toEqual({
-      url: 'https://example.com/new',
+      url: withPath(TEST_URLS.root, 'new'),
       title: 'New',
       tabIndex: 2,
       pageId,

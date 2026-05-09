@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CoreHandlers } from '@server/domains/network/handlers/core-handlers';
+import * as testUrls from '@tests/shared/test-urls';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function parseBody(r: unknown) {
   return JSON.parse((r as { content: [{ text: string }] }).content[0]!.text);
@@ -88,7 +90,7 @@ describe('CoreHandlers', () => {
         deps.consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       });
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://a.com', method: 'GET', type: 'XHR', timestamp: 100 },
+        { requestId: '1', url: testUrls.TEST_URLS.a, method: 'GET', type: 'XHR', timestamp: 100 },
       ]);
       const r = await handlers.handleNetworkGetRequests({ autoEnable: true });
       expect(deps.consoleMonitor.enable).toHaveBeenCalled();
@@ -112,20 +114,20 @@ describe('CoreHandlers', () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
         {
           requestId: '1',
-          url: 'https://api.com/data',
+          url: `${testUrls.TEST_URLS.api}/data`,
           method: 'GET',
           type: 'Fetch',
           timestamp: 100,
         },
         {
           requestId: '2',
-          url: 'https://other.com/page',
+          url: `${testUrls.TEST_URLS.other}/page`,
           method: 'POST',
           type: 'XHR',
           timestamp: 200,
         },
       ]);
-      const r = await handlers.handleNetworkGetRequests({ url: 'api.com' });
+      const r = await handlers.handleNetworkGetRequests({ url: testUrls.TEST_HOSTS.api });
       const body = parseBody(r);
       expect(body.requests).toHaveLength(1);
       expect(body.requests[0].requestId).toBe('1');
@@ -133,10 +135,16 @@ describe('CoreHandlers', () => {
 
     it('filters by urlRegex', async () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://api.com/v1', method: 'GET', type: 'Fetch', timestamp: 100 },
+        {
+          requestId: '1',
+          url: `${testUrls.TEST_URLS.api}/v1`,
+          method: 'GET',
+          type: 'Fetch',
+          timestamp: 100,
+        },
         {
           requestId: '2',
-          url: 'https://other.com/v2',
+          url: `${testUrls.TEST_URLS.other}/v2`,
           method: 'POST',
           type: 'XHR',
           timestamp: 200,
@@ -157,8 +165,8 @@ describe('CoreHandlers', () => {
 
     it('filters by method', async () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://a.com', method: 'GET', type: 'Fetch', timestamp: 100 },
-        { requestId: '2', url: 'https://b.com', method: 'POST', type: 'XHR', timestamp: 200 },
+        { requestId: '1', url: testUrls.TEST_URLS.a, method: 'GET', type: 'Fetch', timestamp: 100 },
+        { requestId: '2', url: testUrls.TEST_URLS.b, method: 'POST', type: 'XHR', timestamp: 200 },
       ]);
       const r = await handlers.handleNetworkGetRequests({ method: 'POST' });
       const body = parseBody(r);
@@ -168,8 +176,8 @@ describe('CoreHandlers', () => {
 
     it('method=ALL returns all', async () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://a.com', method: 'GET', type: 'Fetch', timestamp: 100 },
-        { requestId: '2', url: 'https://b.com', method: 'POST', type: 'XHR', timestamp: 200 },
+        { requestId: '1', url: testUrls.TEST_URLS.a, method: 'GET', type: 'Fetch', timestamp: 100 },
+        { requestId: '2', url: testUrls.TEST_URLS.b, method: 'POST', type: 'XHR', timestamp: 200 },
       ]);
       const r = await handlers.handleNetworkGetRequests({ method: 'ALL' });
       expect(parseBody(r).requests).toHaveLength(2);
@@ -198,7 +206,7 @@ describe('CoreHandlers', () => {
     it('applies tail filter', async () => {
       const reqs = Array.from({ length: 10 }, (_, i) => ({
         requestId: String(i),
-        url: `https://a.com/${i}`,
+        url: withPath(TEST_URLS.a, `${i}`),
         method: 'GET',
         type: 'Fetch',
         timestamp: i,
@@ -212,7 +220,7 @@ describe('CoreHandlers', () => {
     it('applies limit and offset', async () => {
       const reqs = Array.from({ length: 10 }, (_, i) => ({
         requestId: String(i),
-        url: `https://a.com/${i}`,
+        url: withPath(TEST_URLS.a, `${i}`),
         method: 'GET',
         type: 'Fetch',
         timestamp: i,
@@ -241,7 +249,7 @@ describe('CoreHandlers', () => {
 
     it('shows filterMiss hint when filters match nothing', async () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://a.com', method: 'GET', type: 'Fetch', timestamp: 100 },
+        { requestId: '1', url: testUrls.TEST_URLS.a, method: 'GET', type: 'Fetch', timestamp: 100 },
       ]);
       const r = await handlers.handleNetworkGetRequests({ url: 'nonexistent' });
       expect(parseBody(r).filterMiss).toBe(true);
@@ -251,7 +259,7 @@ describe('CoreHandlers', () => {
     it('shows optimization hint for >100 unfiltered requests', async () => {
       const reqs = Array.from({ length: 101 }, (_, i) => ({
         requestId: String(i),
-        url: `https://a.com/${i}`,
+        url: withPath(TEST_URLS.a, `${i}`),
         method: 'GET',
         type: 'Fetch',
         timestamp: i,
@@ -263,24 +271,34 @@ describe('CoreHandlers', () => {
 
     it('merges injected fetch/xhr records into network_get_requests', async () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://a.com/cdp', method: 'GET', type: 'Fetch', timestamp: 100 },
+        {
+          requestId: '1',
+          url: `${testUrls.TEST_URLS.a}/cdp`,
+          method: 'GET',
+          type: 'Fetch',
+          timestamp: 100,
+        },
       ]);
       deps.consoleMonitor.getXHRRequests.mockResolvedValue([
-        { url: 'https://a.com/xhr', method: 'POST', timestamp: 101 },
+        { url: `${testUrls.TEST_URLS.a}/xhr`, method: 'POST', timestamp: 101 },
       ]);
       deps.consoleMonitor.getFetchRequests.mockResolvedValue([
-        { url: 'https://a.com/fetch', method: 'PUT', timestamp: 102 },
+        { url: `${testUrls.TEST_URLS.a}/fetch`, method: 'PUT', timestamp: 102 },
       ]);
 
-      const r = await handlers.handleNetworkGetRequests({ url: 'a.com' });
+      const r = await handlers.handleNetworkGetRequests({ url: testUrls.TEST_HOSTS.a });
       const body = parseBody(r);
 
       expect(body.total).toBe(3);
       expect(
-        body.requests.some((req: any) => req.url === 'https://a.com/xhr' && req.type === 'XHR'),
+        body.requests.some(
+          (req: any) => req.url === `${testUrls.TEST_URLS.a}/xhr` && req.type === 'XHR',
+        ),
       ).toBe(true);
       expect(
-        body.requests.some((req: any) => req.url === 'https://a.com/fetch' && req.type === 'Fetch'),
+        body.requests.some(
+          (req: any) => req.url === `${testUrls.TEST_URLS.a}/fetch` && req.type === 'Fetch',
+        ),
       ).toBe(true);
     });
 
@@ -288,7 +306,13 @@ describe('CoreHandlers', () => {
       deps.consoleMonitor.isNetworkEnabled.mockReturnValueOnce(false).mockReturnValueOnce(true);
       deps.consoleMonitor.enable.mockResolvedValue(undefined);
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://a.com/api', method: 'GET', type: 'Fetch', timestamp: 100 },
+        {
+          requestId: '1',
+          url: `${testUrls.TEST_URLS.a}/api`,
+          method: 'GET',
+          type: 'Fetch',
+          timestamp: 100,
+        },
       ]);
 
       const r = await handlers.handleNetworkGetRequests({ autoEnable: true });
@@ -299,28 +323,30 @@ describe('CoreHandlers', () => {
       deps.consoleMonitor.getNetworkRequests.mockReturnValue([
         {
           requestId: 'cdp-first',
-          url: 'https://a.com/poll',
+          url: `${testUrls.TEST_URLS.a}/poll`,
           method: 'GET',
           type: 'Fetch',
           timestamp: 1_000,
         },
         {
           requestId: 'cdp-second',
-          url: 'https://a.com/poll',
+          url: `${testUrls.TEST_URLS.a}/poll`,
           method: 'GET',
           type: 'Fetch',
           timestamp: 8_000,
         },
       ]);
       deps.consoleMonitor.getFetchRequests.mockResolvedValue([
-        { url: 'https://a.com/poll', method: 'GET', timestamp: 20_000 },
+        { url: `${testUrls.TEST_URLS.a}/poll`, method: 'GET', timestamp: 20_000 },
       ]);
 
       const r = await handlers.handleNetworkGetRequests({ url: 'poll' });
       const body = parseBody(r);
 
       expect(body.total).toBe(3);
-      expect(body.requests.filter((req: any) => req.url === 'https://a.com/poll')).toHaveLength(3);
+      expect(
+        body.requests.filter((req: any) => req.url === `${testUrls.TEST_URLS.a}/poll`),
+      ).toHaveLength(3);
     });
   });
 

@@ -8,6 +8,12 @@ import { applyContextCapture } from '@tests/e2e/context-capture';
 import { analyzeCoverage, formatCoverageReport } from '@tests/e2e/helpers/coverage-analyzer';
 import { buildPerformanceSummary } from '@tests/e2e/helpers/perf-metrics';
 import { findBrowserExecutable } from '@utils/browserExecutable';
+import {
+  E2E_DEFAULT_TARGET_URL,
+  TEST_HOSTS,
+  TEST_HTTP_URLS,
+  TEST_URLS,
+} from '@tests/shared/test-urls';
 import type {
   CallFn,
   E2EConfig,
@@ -39,12 +45,11 @@ function extractDomain(url: string): string {
   try {
     return '.' + new URL(url).hostname.replace(/^www\./, '');
   } catch {
-    return '.example.com';
+    return `.${TEST_HOSTS.root}`;
   }
 }
 
-const DEFAULT_TARGET_URL = 'https://vmoranv.github.io/jshookmcp/';
-const TARGET_URL = process.env.E2E_TARGET_URL || flag('--target-url', DEFAULT_TARGET_URL);
+const TARGET_URL = process.env.E2E_TARGET_URL || flag('--target-url', E2E_DEFAULT_TARGET_URL);
 const ELECTRON_E2E_ENABLED = parseBooleanFlag(
   process.env.E2E_ENABLE_ELECTRON || flag('--enable-electron', 'false'),
 );
@@ -631,13 +636,13 @@ function getOverrides(ctx: E2EContext, cfg: E2EConfig): Record<string, Record<st
     network_monitor: { action: 'status' },
     network_rtt_measure: { url: targetUrl, probeType: 'http', iterations: 1 },
     // ── HTTP builders ──
-    http_request_build: { method: 'GET', url: 'http://example.com' },
+    http_request_build: { method: 'GET', url: TEST_HTTP_URLS.root },
     http_plain_request: {
-      host: 'example.com',
+      host: TEST_HOSTS.root,
       port: 80,
-      requestText: 'GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n',
+      requestText: `GET / HTTP/1.1\r\nHost: ${TEST_HOSTS.root}\r\nConnection: close\r\n\r\n`,
     },
-    http2_probe: { url: 'https://example.com/' },
+    http2_probe: { url: `${TEST_URLS.root}/` },
     http2_frame_build: { type: 'HEADERS' },
     // ── Packet builders ──
     payload_template_build: {

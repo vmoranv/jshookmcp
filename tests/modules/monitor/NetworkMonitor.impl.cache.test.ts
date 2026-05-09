@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 
 const mocks = vi.hoisted(() => ({
   logger: {
@@ -25,6 +26,7 @@ vi.mock('@modules/monitor/NetworkMonitor.interceptors', () => ({
 }));
 
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor.impl';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createMockSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -65,13 +67,13 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
       // Simulate request+response
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://example.com/api', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://example.com/api',
+          url: `${testUrls.TEST_URLS.root}/api`,
           status: 200,
           statusText: 'OK',
           mimeType: 'application/json',
@@ -108,13 +110,13 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://example.com/api', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://example.com/api',
+          url: `${testUrls.TEST_URLS.root}/api`,
           status: 200,
           statusText: 'OK',
           mimeType: 'application/json',
@@ -147,7 +149,7 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
       // Only request, no response
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://example.com/api', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET' },
         timestamp: 1,
       });
 
@@ -169,13 +171,13 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://example.com/api', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://example.com/api',
+          url: `${testUrls.TEST_URLS.root}/api`,
           status: 304,
           statusText: 'Not Modified',
           mimeType: 'application/json',
@@ -202,13 +204,13 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://example.com/big', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/big`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://example.com/big',
+          url: `${testUrls.TEST_URLS.root}/big`,
           status: 200,
           statusText: 'OK',
           mimeType: 'application/octet-stream',
@@ -246,13 +248,13 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
       for (let i = 0; i <= MAX_CACHE; i++) {
         emit('Network.requestWillBeSent', {
           requestId: `r${i}`,
-          request: { url: `https://example.com/${i}`, method: 'GET' },
+          request: { url: withPath(TEST_URLS.root, `${i}`), method: 'GET' },
           timestamp: i,
         });
         emit('Network.responseReceived', {
           requestId: `r${i}`,
           response: {
-            url: `https://example.com/${i}`,
+            url: withPath(TEST_URLS.root, `${i}`),
             status: 200,
             statusText: 'OK',
             mimeType: 'text/plain',
@@ -284,13 +286,13 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://example.com/api', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://example.com/api',
+          url: `${testUrls.TEST_URLS.root}/api`,
           status: 200,
           statusText: 'OK',
           mimeType: 'application/json',
@@ -317,13 +319,13 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://example.com/api', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://example.com/api',
+          url: `${testUrls.TEST_URLS.root}/api`,
           status: 200,
           statusText: 'OK',
           mimeType: 'application/json',
@@ -356,13 +358,13 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
       for (const id of ['r1', 'r2']) {
         emit('Network.requestWillBeSent', {
           requestId: id,
-          request: { url: `https://example.com/${id}`, method: 'GET' },
+          request: { url: withPath(TEST_URLS.root, `${id}`), method: 'GET' },
           timestamp: 1,
         });
         emit('Network.responseReceived', {
           requestId: id,
           response: {
-            url: `https://example.com/${id}`,
+            url: withPath(TEST_URLS.root, `${id}`),
             status: 200,
             statusText: 'OK',
             mimeType: 'text/plain',
@@ -519,14 +521,20 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
 
       send.mockResolvedValueOnce({
         result: {
-          value: [{ url: 'https://api.com/a' }, null, 'invalid', 123, { url: 'https://api.com/b' }],
+          value: [
+            { url: `${testUrls.TEST_URLS.api}/a` },
+            null,
+            'invalid',
+            123,
+            { url: `${testUrls.TEST_URLS.api}/b` },
+          ],
         },
       });
 
       const reqs = await monitor.getXHRRequests();
       expect(reqs).toHaveLength(2);
-      expect(reqs[0]).toMatchObject({ url: 'https://api.com/a' });
-      expect(reqs[1]).toMatchObject({ url: 'https://api.com/b' });
+      expect(reqs[0]).toMatchObject({ url: `${testUrls.TEST_URLS.api}/a` });
+      expect(reqs[1]).toMatchObject({ url: `${testUrls.TEST_URLS.api}/b` });
     });
 
     it('filters out non-object entries from Fetch results', async () => {
@@ -536,7 +544,13 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
 
       send.mockResolvedValueOnce({
         result: {
-          value: [{ url: 'https://api.com/x' }, undefined, 42, 'str', { url: 'https://api.com/y' }],
+          value: [
+            { url: `${testUrls.TEST_URLS.api}/x` },
+            undefined,
+            42,
+            'str',
+            { url: `${testUrls.TEST_URLS.api}/y` },
+          ],
         },
       });
 

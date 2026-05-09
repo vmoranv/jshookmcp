@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { EvidenceHandlers } from '@server/domains/evidence/handlers';
 import manifest from '@server/domains/evidence/manifest';
 import { ReverseEvidenceGraph, resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('evidence manifest', () => {
   it('wires a shared evidence graph and bridge through ensure()', async () => {
@@ -26,7 +27,7 @@ describe('evidence manifest', () => {
     resetIdCounter();
     const graph = new ReverseEvidenceGraph();
     const requestNode = graph.addNode('request', 'Login request', {
-      url: 'https://example.com/api/login',
+      url: withPath(TEST_URLS.root, 'api/login'),
     });
     const handlers = new EvidenceHandlers(graph);
 

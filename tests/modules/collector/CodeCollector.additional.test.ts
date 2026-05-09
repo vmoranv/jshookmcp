@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PuppeteerConfig, CodeFile } from '@internal-types/index';
 import { CodeCollector } from '@modules/collector/CodeCollector';
+import * as testUrls from '@tests/shared/test-urls';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestCodeCollector extends CodeCollector {
   public getProtectedCollectedUrls() {
@@ -100,7 +102,11 @@ function createBrowserMock() {
   } as any;
 }
 
-function createTargetMock(url = 'https://example.com', type = 'page', page = createPageMock(url)) {
+function createTargetMock(
+  url = testUrls.TEST_URLS.root,
+  type = 'page',
+  page = createPageMock(url),
+) {
   return {
     type: vi.fn().mockReturnValue(type),
     url: vi.fn().mockReturnValue(url),
@@ -108,7 +114,7 @@ function createTargetMock(url = 'https://example.com', type = 'page', page = cre
   } as any;
 }
 
-function createPageMock(url = 'https://example.com') {
+function createPageMock(url = testUrls.TEST_URLS.root) {
   return {
     url: vi.fn().mockReturnValue(url),
     title: vi.fn().mockResolvedValue('Example'),
@@ -172,7 +178,7 @@ describe('CodeCollector – additional coverage', () => {
 
     it('clearCache resets collected URLs', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      collector.getProtectedCollectedUrls().add('https://site.com/a.js');
+      collector.getProtectedCollectedUrls().add(`${testUrls.TEST_URLS.root}/a.js`);
 
       collector.clearCache();
       expect(collector.getCollectionStats().totalCollected).toBe(0);
@@ -200,7 +206,7 @@ describe('CodeCollector – additional coverage', () => {
 
       const urls = collector.getProtectedCollectedUrls();
       for (let i = 0; i < 5; i++) {
-        urls.add(`https://site.com/${i}.js`);
+        urls.add(withPath(TEST_URLS.root, `${i}.js`));
       }
 
       collector.cleanupCollectedUrls();
@@ -215,7 +221,7 @@ describe('CodeCollector – additional coverage', () => {
         maxCollectedUrls: 100,
       } as PuppeteerConfig);
 
-      collector.getProtectedCollectedUrls().add('https://site.com/a.js');
+      collector.getProtectedCollectedUrls().add(`${testUrls.TEST_URLS.root}/a.js`);
       collector.cleanupCollectedUrls();
       expect(collector.getCollectionStats().totalCollected).toBe(1);
     });
@@ -259,7 +265,10 @@ describe('CodeCollector – additional coverage', () => {
 
     it('returns running with page count when browser exists', async () => {
       const browser = createBrowserMock() as any;
-      browser.targets.mockReturnValue([createTargetMock(), createTargetMock('https://site.com/2')]);
+      browser.targets.mockReturnValue([
+        createTargetMock(),
+        createTargetMock(`${testUrls.TEST_URLS.root}/2`),
+      ]);
       mocks.launch.mockResolvedValue(browser);
 
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
@@ -287,12 +296,12 @@ describe('CodeCollector – additional coverage', () => {
   // ── getActivePage ─────────────────────────────────────────────────
   describe('getActivePage', () => {
     it('returns the last page when no active index is set', async () => {
-      const page1 = createPageMock('https://site.com/1');
-      const page2 = createPageMock('https://site.com/2');
+      const page1 = createPageMock(`${testUrls.TEST_URLS.root}/1`);
+      const page2 = createPageMock(`${testUrls.TEST_URLS.root}/2`);
       const browser = createBrowserMock() as any;
       browser.targets.mockReturnValue([
-        createTargetMock('https://site.com/1', 'page', page1),
-        createTargetMock('https://site.com/2', 'page', page2),
+        createTargetMock(`${testUrls.TEST_URLS.root}/1`, 'page', page1),
+        createTargetMock(`${testUrls.TEST_URLS.root}/2`, 'page', page2),
       ]);
       mocks.launch.mockResolvedValue(browser);
 
@@ -304,12 +313,12 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('returns the selected page when activePageIndex is set', async () => {
-      const page1 = createPageMock('https://site.com/1');
-      const page2 = createPageMock('https://site.com/2');
+      const page1 = createPageMock(`${testUrls.TEST_URLS.root}/1`);
+      const page2 = createPageMock(`${testUrls.TEST_URLS.root}/2`);
       const browser = createBrowserMock() as any;
       browser.targets.mockReturnValue([
-        createTargetMock('https://site.com/1', 'page', page1),
-        createTargetMock('https://site.com/2', 'page', page2),
+        createTargetMock(`${testUrls.TEST_URLS.root}/1`, 'page', page1),
+        createTargetMock(`${testUrls.TEST_URLS.root}/2`, 'page', page2),
       ]);
       mocks.launch.mockResolvedValue(browser);
 
@@ -353,6 +362,38 @@ describe('CodeCollector – additional coverage', () => {
 
       await expect(collector.selectPage(5)).rejects.toThrow('out of range');
     });
+
+    it('selects a resolved page by targetId and caches it as active page', async () => {
+      const page1 = createPageMock(`${testUrls.TEST_URLS.root}/1`);
+      const page2 = createPageMock(`${testUrls.TEST_URLS.root}/2`);
+      const target1 = createTargetMock(`${testUrls.TEST_URLS.root}/1`, 'page', page1);
+      const target2 = createTargetMock(`${testUrls.TEST_URLS.root}/2`, 'page', page2);
+      const browser = createBrowserMock() as any;
+      browser.targets.mockReturnValue([target1, target2]);
+
+      const cdpSession1 = {
+        send: vi.fn().mockResolvedValue({ targetInfo: { targetId: 'page-1' } }),
+        detach: vi.fn().mockResolvedValue(undefined),
+      };
+      target1.createCDPSession = vi.fn().mockResolvedValue(cdpSession1);
+
+      const cdpSession2 = {
+        send: vi.fn().mockResolvedValue({ targetInfo: { targetId: 'page-2' } }),
+        detach: vi.fn().mockResolvedValue(undefined),
+      };
+      target2.createCDPSession = vi.fn().mockResolvedValue(cdpSession2);
+
+      mocks.launch.mockResolvedValue(browser);
+
+      const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
+      await collector.init();
+
+      const resolved = await collector.selectResolvedPageByTargetId('page-2');
+
+      expect(resolved).not.toBeNull();
+      expect(resolved?.index).toBe(1);
+      await expect(collector.getActivePage()).resolves.toBe(page2);
+    });
   });
 
   // ── listPages ─────────────────────────────────────────────────────
@@ -364,7 +405,7 @@ describe('CodeCollector – additional coverage', () => {
     });
 
     it('returns page metadata', async () => {
-      const target = createTargetMock('https://example.com');
+      const target = createTargetMock(testUrls.TEST_URLS.root);
       const browser = createBrowserMock();
       browser.targets.mockReturnValue([target]);
       mocks.launch.mockResolvedValue(browser);
@@ -376,7 +417,7 @@ describe('CodeCollector – additional coverage', () => {
       expect(pages).toHaveLength(1);
       expect(pages[0]).toMatchObject({
         index: 0,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         title: '',
       });
     });
@@ -408,8 +449,8 @@ describe('CodeCollector – additional coverage', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 5000 } as PuppeteerConfig);
       await collector.init();
 
-      await collector.createPage('https://target.com');
-      expect(page.goto).toHaveBeenCalledWith('https://target.com', expect.any(Object));
+      await collector.createPage(testUrls.TEST_URLS.target);
+      expect(page.goto).toHaveBeenCalledWith(testUrls.TEST_URLS.target, expect.any(Object));
     });
   });
 
@@ -599,19 +640,19 @@ describe('CodeCollector – additional coverage', () => {
     it('returns a cached file by URL', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
       const file = {
-        url: 'https://site.com/a.js',
+        url: `${testUrls.TEST_URLS.root}/a.js`,
         size: 100,
         content: 'abc',
         type: 'external' as const,
       };
-      collector.getProtectedCollectedFilesCache().set('https://site.com/a.js', file);
+      collector.getProtectedCollectedFilesCache().set(`${testUrls.TEST_URLS.root}/a.js`, file);
 
-      expect(collector.getFileByUrl('https://site.com/a.js')).toBe(file);
+      expect(collector.getFileByUrl(`${testUrls.TEST_URLS.root}/a.js`)).toBe(file);
     });
 
     it('returns null for unknown URL', () => {
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
-      expect(collector.getFileByUrl('https://site.com/nonexistent.js')).toBeNull();
+      expect(collector.getFileByUrl(`${testUrls.TEST_URLS.root}/nonexistent.js`)).toBeNull();
     });
   });
 
@@ -658,12 +699,12 @@ describe('CodeCollector – additional coverage', () => {
       collector.setProtectedCollectedFilesCache(
         new Map([
           [
-            'https://site/a.js',
-            { url: 'https://site/a.js', content: 'a', size: 5, type: 'external' },
+            `${testUrls.TEST_URLS.root}/a.js`,
+            { url: `${testUrls.TEST_URLS.root}/a.js`, content: 'a', size: 5, type: 'external' },
           ],
           [
-            'https://site/b.js',
-            { url: 'https://site/b.js', content: 'b', size: 5, type: 'external' },
+            `${testUrls.TEST_URLS.root}/b.js`,
+            { url: `${testUrls.TEST_URLS.root}/b.js`, content: 'b', size: 5, type: 'external' },
           ],
         ]),
       );
@@ -679,16 +720,16 @@ describe('CodeCollector – additional coverage', () => {
       collector.setProtectedCollectedFilesCache(
         new Map([
           [
-            'https://site/a.js',
-            { url: 'https://site/a.js', content: 'a', size: 1, type: 'external' },
+            `${testUrls.TEST_URLS.root}/a.js`,
+            { url: `${testUrls.TEST_URLS.root}/a.js`, content: 'a', size: 1, type: 'external' },
           ],
           [
-            'https://site/b.js',
-            { url: 'https://site/b.js', content: 'b', size: 1, type: 'external' },
+            `${testUrls.TEST_URLS.root}/b.js`,
+            { url: `${testUrls.TEST_URLS.root}/b.js`, content: 'b', size: 1, type: 'external' },
           ],
           [
-            'https://site/c.js',
-            { url: 'https://site/c.js', content: 'c', size: 1, type: 'external' },
+            `${testUrls.TEST_URLS.root}/c.js`,
+            { url: `${testUrls.TEST_URLS.root}/c.js`, content: 'c', size: 1, type: 'external' },
           ],
         ]),
       );
@@ -703,12 +744,22 @@ describe('CodeCollector – additional coverage', () => {
       collector.setProtectedCollectedFilesCache(
         new Map([
           [
-            'https://site/a.js',
-            { url: 'https://site/a.js', content: 'a'.repeat(10), size: 10, type: 'external' },
+            `${testUrls.TEST_URLS.root}/a.js`,
+            {
+              url: `${testUrls.TEST_URLS.root}/a.js`,
+              content: 'a'.repeat(10),
+              size: 10,
+              type: 'external',
+            },
           ],
           [
-            'https://site/b.js',
-            { url: 'https://site/b.js', content: 'b'.repeat(10), size: 10, type: 'external' },
+            `${testUrls.TEST_URLS.root}/b.js`,
+            {
+              url: `${testUrls.TEST_URLS.root}/b.js`,
+              content: 'b'.repeat(10),
+              size: 10,
+              type: 'external',
+            },
           ],
         ]),
       );
@@ -764,10 +815,10 @@ describe('CodeCollector – additional coverage', () => {
       mocks.shouldCollectUrlImpl.mockReturnValue(true);
       const collector = new TestCodeCollector({ headless: true, timeout: 1000 } as PuppeteerConfig);
 
-      const result = collector.shouldCollectUrl('https://example.com/script.js');
+      const result = collector.shouldCollectUrl(`${testUrls.TEST_URLS.root}/script.js`);
       expect(result).toBe(true);
       expect(mocks.shouldCollectUrlImpl).toHaveBeenCalledWith(
-        'https://example.com/script.js',
+        `${testUrls.TEST_URLS.root}/script.js`,
         undefined,
       );
     });
@@ -781,8 +832,8 @@ describe('CodeCollector – additional coverage', () => {
       await collector.init();
 
       const results = await Promise.all([
-        collector.collect({ url: 'https://a.com' } as any),
-        collector.collect({ url: 'https://b.com' } as any),
+        collector.collect({ url: testUrls.TEST_URLS.a } as any),
+        collector.collect({ url: testUrls.TEST_URLS.b } as any),
       ]);
 
       expect(results).toHaveLength(2);

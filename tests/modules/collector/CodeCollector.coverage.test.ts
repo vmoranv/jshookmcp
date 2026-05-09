@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PuppeteerConfig } from '@internal-types/index';
+import * as testUrls from '@tests/shared/test-urls';
 
 const mocks = vi.hoisted(() => ({
   launch: vi.fn(),
@@ -189,11 +190,11 @@ describe('CodeCollector – coverage gap', () => {
     it('returns resolved pages with titles', async () => {
       const page1 = {
         title: vi.fn().mockResolvedValue('Page One'),
-        url: vi.fn().mockReturnValue('https://page1.com'),
+        url: vi.fn().mockReturnValue(testUrls.TEST_URLS.page1),
       };
       const target = {
         type: vi.fn().mockReturnValue('page'),
-        url: vi.fn().mockReturnValue('https://page1.com'),
+        url: vi.fn().mockReturnValue(testUrls.TEST_URLS.page1),
         page: vi.fn().mockResolvedValue(page1),
       };
       const browser = createBrowserMock({
@@ -208,7 +209,7 @@ describe('CodeCollector – coverage gap', () => {
       expect(pages).toHaveLength(1);
       expect(pages[0]).toMatchObject({
         index: 0,
-        url: 'https://page1.com',
+        url: testUrls.TEST_URLS.page1,
         title: 'Page One',
       });
     });
@@ -216,14 +217,14 @@ describe('CodeCollector – coverage gap', () => {
     it('filters out targets that fail to resolve', async () => {
       const goodTarget = {
         type: vi.fn().mockReturnValue('page'),
-        url: vi.fn().mockReturnValue('https://good.com'),
+        url: vi.fn().mockReturnValue(testUrls.TEST_URLS.good),
         page: vi.fn().mockResolvedValue({
           title: vi.fn().mockResolvedValue('Good'),
         }),
       };
       const badTarget = {
         type: vi.fn().mockReturnValue('page'),
-        url: vi.fn().mockReturnValue('https://bad.com'),
+        url: vi.fn().mockReturnValue(testUrls.TEST_URLS.bad),
         page: vi.fn().mockRejectedValue(new Error('resolve failed')),
       };
       const browser = createBrowserMock({
@@ -236,7 +237,7 @@ describe('CodeCollector – coverage gap', () => {
 
       const pages = await collector.listResolvedPages();
       expect(pages).toHaveLength(1);
-      expect(pages[0]?.url).toBe('https://good.com');
+      expect(pages[0]?.url).toBe(testUrls.TEST_URLS.good);
     });
 
     it('handles title fetch failure gracefully', async () => {
@@ -245,7 +246,7 @@ describe('CodeCollector – coverage gap', () => {
       };
       const target = {
         type: vi.fn().mockReturnValue('page'),
-        url: vi.fn().mockReturnValue('https://no-title.com'),
+        url: vi.fn().mockReturnValue(testUrls.TEST_URLS.noTitle),
         page: vi.fn().mockResolvedValue(page),
       };
       const browser = createBrowserMock({
@@ -381,8 +382,8 @@ describe('CodeCollector – coverage gap', () => {
       await collector.init();
 
       const [result1, result2] = await Promise.all([
-        collector.collect({ url: 'https://a.com' } as any),
-        collector.collect({ url: 'https://b.com' } as any),
+        collector.collect({ url: testUrls.TEST_URLS.a } as any),
+        collector.collect({ url: testUrls.TEST_URLS.b } as any),
       ]);
 
       // Both should complete
@@ -404,7 +405,7 @@ describe('CodeCollector – coverage gap', () => {
       const collector = new CodeCollector(defaultConfig);
       await collector.init();
 
-      await expect(collector.collect({ url: 'https://a.com' } as any)).rejects.toThrow(
+      await expect(collector.collect({ url: testUrls.TEST_URLS.a } as any)).rejects.toThrow(
         'collect failed',
       );
 
@@ -447,7 +448,7 @@ describe('CodeCollector – coverage gap', () => {
     it('throws when target.page() returns null', async () => {
       const target = {
         type: vi.fn().mockReturnValue('page'),
-        url: vi.fn().mockReturnValue('https://example.com'),
+        url: vi.fn().mockReturnValue(testUrls.TEST_URLS.root),
         page: vi.fn().mockResolvedValue(null),
       };
       const browser = createBrowserMock({

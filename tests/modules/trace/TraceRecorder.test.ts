@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EventBus } from '@server/EventBus';
 import type { ServerEventMap } from '@server/EventBus';
 import { TraceDB } from '@modules/trace/TraceDB';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 let currentTestDir = '';
 
@@ -346,7 +347,7 @@ describe('TraceRecorder', () => {
       wallTime: 100,
       type: 'XHR',
       request: {
-        url: 'https://example.com/api',
+        url: withPath(TEST_URLS.root, 'api'),
         method: 'GET',
         headers: { accept: 'application/json' },
       },
@@ -355,7 +356,7 @@ describe('TraceRecorder', () => {
       requestId: 'req-flow',
       timestamp: 1.5,
       response: {
-        url: 'https://example.com/api',
+        url: withPath(TEST_URLS.root, 'api'),
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
@@ -387,7 +388,7 @@ describe('TraceRecorder', () => {
       const events = db.getEventsByRequestId('req-flow');
 
       expect(resource).not.toBeNull();
-      expect(resource?.url).toBe('https://example.com/api');
+      expect(resource?.url).toBe(withPath(TEST_URLS.root, 'api'));
       expect(resource?.protocol).toBe('h2');
       expect(resource?.bodyCaptureState).toBe('inline');
       expect(resource?.bodyInline).toBe('{"ok":true}');

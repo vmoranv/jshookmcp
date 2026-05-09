@@ -7,6 +7,7 @@ vi.mock('@src/constants', () => ({
 }));
 
 import { ScriptManagementHandlers } from '@server/domains/browser/handlers/script-management';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 interface GetAllScriptsResponse {
   count: number;
@@ -141,9 +142,9 @@ describe('ScriptManagementHandlers — comprehensive coverage', () => {
 
     it('returns multiple scripts with correct count', async () => {
       const scripts = [
-        { scriptId: '1', url: 'https://example.com/a.js' },
-        { scriptId: '2', url: 'https://example.com/b.js' },
-        { scriptId: '3', url: 'https://example.com/c.js' },
+        { scriptId: '1', url: withPath(TEST_URLS.root, 'a.js') },
+        { scriptId: '2', url: withPath(TEST_URLS.root, 'b.js') },
+        { scriptId: '3', url: withPath(TEST_URLS.root, 'c.js') },
       ];
       scriptManager.getAllScripts.mockResolvedValue(scripts);
       detailedDataManager.smartHandle.mockImplementation((v) => v);
@@ -171,11 +172,11 @@ describe('ScriptManagementHandlers — comprehensive coverage', () => {
       it('searches by url when scriptId is not provided', async () => {
         scriptManager.getScriptSource.mockResolvedValue(null);
 
-        await handlers.handleGetScriptSource({ url: 'https://example.com/app.js' });
+        await handlers.handleGetScriptSource({ url: withPath(TEST_URLS.root, 'app.js') });
 
         expect(scriptManager.getScriptSource).toHaveBeenCalledWith(
           undefined,
-          'https://example.com/app.js',
+          withPath(TEST_URLS.root, 'app.js'),
         );
       });
 
@@ -184,12 +185,12 @@ describe('ScriptManagementHandlers — comprehensive coverage', () => {
 
         await handlers.handleGetScriptSource({
           scriptId: 'script-1',
-          url: 'https://example.com/app.js',
+          url: withPath(TEST_URLS.root, 'app.js'),
         });
 
         expect(scriptManager.getScriptSource).toHaveBeenCalledWith(
           'script-1',
-          'https://example.com/app.js',
+          withPath(TEST_URLS.root, 'app.js'),
         );
       });
     });
@@ -199,7 +200,7 @@ describe('ScriptManagementHandlers — comprehensive coverage', () => {
         const source = Array.from({ length: 200 }, (_, i) => `line ${i + 1}`).join('\n');
         scriptManager.getScriptSource.mockResolvedValue({
           scriptId: 'script-1',
-          url: 'https://example.com/app.js',
+          url: withPath(TEST_URLS.root, 'app.js'),
           source,
         });
 

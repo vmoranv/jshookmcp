@@ -36,6 +36,7 @@ vi.mock('@src/utils/DetailedDataManager', () => ({
 }));
 
 import { AdvancedToolHandlers } from '@server/domains/network/handlers';
+import { TEST_HOSTS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('AdvancedToolHandlers (network)', () => {
   const collector = createCodeCollectorMock();
@@ -184,9 +185,9 @@ describe('AdvancedToolHandlers (network)', () => {
   it('filters and paginates captured requests', async () => {
     consoleMonitor.isNetworkEnabled.mockReturnValue(true);
     consoleMonitor.getNetworkRequests.mockReturnValue([
-      { requestId: '1', url: 'https://vmoranv.github.io/jshookmcp/api/a', method: 'GET' },
-      { requestId: '2', url: 'https://vmoranv.github.io/jshookmcp/api/b', method: 'POST' },
-      { requestId: '3', url: 'https://vmoranv.github.io/jshookmcp/cdn/c', method: 'GET' },
+      { requestId: '1', url: withPath(TEST_URLS.root, 'api/a'), method: 'GET' },
+      { requestId: '2', url: withPath(TEST_URLS.root, 'api/b'), method: 'POST' },
+      { requestId: '3', url: withPath(TEST_URLS.root, 'cdn/c'), method: 'GET' },
     ]);
 
     const body = parseJson<NetworkRequestsResponse>(
@@ -240,7 +241,7 @@ describe('AdvancedToolHandlers (network)', () => {
       requestId: 'abc',
       dryRun: false,
       authorization: {
-        allowedHosts: ['lab.example.com'],
+        allowedHosts: [TEST_HOSTS.lab],
         allowedCidrs: ['10.0.0.0/24'],
         allowPrivateNetwork: true,
         allowInsecureHttp: true,
@@ -253,7 +254,7 @@ describe('AdvancedToolHandlers (network)', () => {
       expect.anything(),
       expect.objectContaining({
         authorization: {
-          allowedHosts: ['lab.example.com'],
+          allowedHosts: [TEST_HOSTS.lab],
           allowedCidrs: ['10.0.0.0/24'],
           allowPrivateNetwork: true,
           allowInsecureHttp: true,
@@ -273,7 +274,7 @@ describe('AdvancedToolHandlers (network)', () => {
       JSON.stringify({
         version: 1,
         requestId: 'abc',
-        allowedHosts: ['lab.example.com'],
+        allowedHosts: [TEST_HOSTS.lab],
         allowInsecureHttp: true,
       }),
     ).toString('base64url');
@@ -288,7 +289,7 @@ describe('AdvancedToolHandlers (network)', () => {
       expect.anything(),
       expect.objectContaining({
         authorization: {
-          allowedHosts: ['lab.example.com'],
+          allowedHosts: [TEST_HOSTS.lab],
           allowInsecureHttp: true,
         },
       }),
@@ -303,7 +304,7 @@ describe('AdvancedToolHandlers (network)', () => {
       JSON.stringify({
         version: 1,
         requestId: 'other',
-        allowedHosts: ['lab.example.com'],
+        allowedHosts: [TEST_HOSTS.lab],
         allowInsecureHttp: true,
       }),
     ).toString('base64url');
@@ -374,9 +375,9 @@ describe('AdvancedToolHandlers (network)', () => {
 
     const body = parseJson<NetworkRequestsResponse>(
       await handlers.handleHttpPlainRequest({
-        host: 'example.com',
+        host: TEST_HOSTS.root,
         port: 80,
-        requestText: 'GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n',
+        requestText: `GET / HTTP/1.1\r\nHost: ${TEST_HOSTS.root}\r\nConnection: close\r\n\r\n`,
       }),
     );
 

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { EvidenceHandlers } from '@server/domains/evidence/handlers';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 describe('EvidenceHandlers', () => {
   let handlers: EvidenceHandlers;
@@ -20,11 +21,20 @@ describe('EvidenceHandlers', () => {
   describe('handleQueryUrl', () => {
     it('should query nodes by url and return JSON', async () => {
       mockGraph.queryByUrl.mockReturnValue([
-        { id: 'n1', type: 'url', label: 'http://test', metadata: {} },
+        {
+          id: 'n1',
+          type: 'url',
+          label: buildTestUrl('test', { scheme: 'http', suffix: 'bare', path: '/' }),
+          metadata: {},
+        },
       ]);
-      const result = handlers.handleQueryUrl({ url: 'http://test' }) as any;
+      const result = handlers.handleQueryUrl({
+        url: buildTestUrl('test', { scheme: 'http', suffix: 'bare', path: '/' }),
+      }) as any;
       const data = JSON.parse(result.content[0].text);
-      expect(data.query.value).toBe('http://test');
+      expect(data.query.value).toBe(
+        buildTestUrl('test', { scheme: 'http', suffix: 'bare', path: '/' }),
+      );
       expect(data.nodes[0].id).toBe('n1');
     });
   });
@@ -32,14 +42,21 @@ describe('EvidenceHandlers', () => {
   describe('handleQueryDispatch', () => {
     it('should map by=url value into url queries', async () => {
       mockGraph.queryByUrl.mockReturnValue([
-        { id: 'n-url', type: 'request', label: 'https://example.test', metadata: {} },
+        {
+          id: 'n-url',
+          type: 'request',
+          label: buildTestUrl('example', { suffix: 'test', path: '/' }),
+          metadata: {},
+        },
       ]);
       const result = handlers.handleQueryDispatch({
         by: 'url',
-        value: 'https://example.test',
+        value: buildTestUrl('example', { suffix: 'test', path: '/' }),
       }) as any;
       const data = JSON.parse(result.content[0].text);
-      expect(mockGraph.queryByUrl).toHaveBeenCalledWith('https://example.test');
+      expect(mockGraph.queryByUrl).toHaveBeenCalledWith(
+        buildTestUrl('example', { suffix: 'test', path: '/' }),
+      );
       expect(data.resultCount).toBe(1);
     });
 

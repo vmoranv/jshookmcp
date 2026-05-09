@@ -1,5 +1,6 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TEST_URLS, TEST_HTTP_URLS, withPath } from '@tests/shared/test-urls';
 
 const {
   mockIsSsrfTarget,
@@ -129,7 +130,7 @@ describe('WorkflowHandlers', () => {
           type: 'text',
           text: JSON.stringify({
             success: true,
-            requests: [{ url: 'https://vmoranv.github.io/jshookmcp/api' }],
+            requests: [{ url: withPath(TEST_URLS.root, 'api') }],
           }),
         },
       ],
@@ -222,7 +223,7 @@ describe('WorkflowHandlers', () => {
     });
 
     await handlers.handleApiProbeBatch({
-      baseUrl: 'https://vmoranv.github.io/jshookmcp',
+      baseUrl: TEST_URLS.root,
       paths: ['/a', '/b'],
       method: 'GET',
     });
@@ -301,7 +302,7 @@ describe('WorkflowHandlers', () => {
 
     const body = parseJson<BundleSearchResponse>(
       await handlers.handleJsBundleSearch({
-        url: 'https://vmoranv.github.io/jshookmcp/assets/main.js',
+        url: withPath(TEST_URLS.root, 'assets/main.js'),
         patterns: [{ name: 'auth', regex: 'token' }],
       }),
     );
@@ -309,7 +310,7 @@ describe('WorkflowHandlers', () => {
     expect(body.success).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://vmoranv.github.io/jshookmcp/assets/main.js',
+      withPath(TEST_URLS.root, 'assets/main.js'),
       expect.objectContaining({
         redirect: 'manual',
         headers: {},
@@ -328,7 +329,7 @@ describe('WorkflowHandlers', () => {
 
     const body = parseJson<BundleSearchResponse>(
       await handlers.handleJsBundleSearch({
-        url: 'http://vmoranv.github.io/jshookmcp/assets/main.js',
+        url: withPath(TEST_HTTP_URLS.root, 'assets/main.js'),
         patterns: [{ name: 'auth', regex: 'token' }],
       }),
     );

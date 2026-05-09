@@ -4,6 +4,7 @@ import { PersistentCache } from '@utils/cache/PersistentCache';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { existsSync, rmSync } from 'fs';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const applyMethodDecorator = (
   target: object,
@@ -257,15 +258,15 @@ describe('CachedDecorator', () => {
         },
       );
 
-      await fetch('https://api.example.com/data', { Authorization: 'Bearer token1' });
+      await fetch(withPath(TEST_URLS.api, 'data'), { Authorization: 'Bearer token1' });
       expect(callCount).toBe(1);
 
       // Same URL, different headers - should use cache
-      await fetch('https://api.example.com/data', { Authorization: 'Bearer token2' });
+      await fetch(withPath(TEST_URLS.api, 'data'), { Authorization: 'Bearer token2' });
       expect(callCount).toBe(1);
 
       // Different URL - new call
-      await fetch('https://api.example.com/other', {});
+      await fetch(withPath(TEST_URLS.api, 'other'), {});
       expect(callCount).toBe(2);
 
       await cache.close();

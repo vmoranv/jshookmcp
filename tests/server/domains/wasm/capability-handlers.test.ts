@@ -1,6 +1,7 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { describe, expect, it, vi } from 'vitest';
 import { CapabilityHandlers } from '@server/domains/wasm/handlers/capability-handlers';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createState(overrides: Record<string, unknown> = {}) {
   return {
@@ -49,7 +50,7 @@ describe('CapabilityHandlers', () => {
   it('reports browser capture as available when the current page exposes WASM state', async () => {
     const page = {
       evaluate: vi.fn().mockResolvedValue({
-        url: 'https://example.test/wasm',
+        url: buildTestUrl('example', { suffix: 'test', path: 'wasm' }),
         hookEventCount: 4,
         instantiatedCount: 1,
         importCallCount: 2,
@@ -74,7 +75,7 @@ describe('CapabilityHandlers', () => {
     expect(currentPage).toMatchObject({
       available: true,
       pageAttached: true,
-      url: 'https://example.test/wasm',
+      url: buildTestUrl('example', { suffix: 'test', path: 'wasm' }),
       instantiatedCount: 1,
     });
   });

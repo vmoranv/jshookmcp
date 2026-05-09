@@ -1,6 +1,7 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import type { BrowserStatusResponse } from '@tests/shared/common-test-types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -21,7 +22,7 @@ import {
 function createMockPage(overrides: Record<string, any> = {}) {
   return {
     evaluate: vi.fn().mockResolvedValue({ challengeType: 'image', taskKind: 'image', siteKey: '' }),
-    url: vi.fn(() => 'http://test.local/page'),
+    url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: 'page' })),
     ...overrides,
   };
 }
@@ -77,7 +78,11 @@ describe('captcha-solver — deep coverage', () => {
     });
 
     it('errors with fetch failure on submit', async () => {
-      process.env.CAPTCHA_SOLVER_BASE_URL = 'http://invalid-captcha-service.test';
+      process.env.CAPTCHA_SOLVER_BASE_URL = buildTestUrl('invalid-captcha-service', {
+        scheme: 'http',
+        suffix: 'test',
+        path: '/',
+      });
       const page = createMockPage();
       const collector = createMockCollector(page);
 
@@ -97,7 +102,11 @@ describe('captcha-solver — deep coverage', () => {
     });
 
     it('retries on failure up to maxRetries then returns error', async () => {
-      process.env.CAPTCHA_SOLVER_BASE_URL = 'http://invalid-captcha-service.test';
+      process.env.CAPTCHA_SOLVER_BASE_URL = buildTestUrl('invalid-captcha-service', {
+        scheme: 'http',
+        suffix: 'test',
+        path: '/',
+      });
       const page = createMockPage();
       const collector = createMockCollector(page);
 
@@ -350,7 +359,7 @@ describe('captcha-solver — deep coverage', () => {
       process.env.CAPTCHA_PROVIDER = 'capsolver';
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue(null),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -372,7 +381,9 @@ describe('captcha-solver — deep coverage', () => {
     it('uses page.url() when pageUrl is not in args', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('site-key'),
-        url: vi.fn(() => 'http://detected-url.local'),
+        url: vi.fn(() =>
+          buildTestUrl('detected-url', { scheme: 'http', suffix: 'local', path: '/' }),
+        ),
       });
       const collector = createMockCollector(page);
 
@@ -387,13 +398,15 @@ describe('captcha-solver — deep coverage', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.pageUrl).toBe('http://detected-url.local');
+      expect(result.pageUrl).toBe(
+        buildTestUrl('detected-url', { scheme: 'http', suffix: 'local', path: '/' }),
+      );
     });
 
     it('manual mode with explicit pageUrl uses it', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('site-key'),
-        url: vi.fn(() => 'http://original.local'),
+        url: vi.fn(() => buildTestUrl('original', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -402,21 +415,23 @@ describe('captcha-solver — deep coverage', () => {
           {
             mode: 'manual',
             siteKey: 'test-key',
-            pageUrl: 'http://custom.local',
+            pageUrl: buildTestUrl('custom', { scheme: 'http', suffix: 'local', path: '/' }),
           },
           collector,
         ),
       );
 
       expect(result.success).toBe(true);
-      expect(result.pageUrl).toBe('http://custom.local');
+      expect(result.pageUrl).toBe(
+        buildTestUrl('custom', { scheme: 'http', suffix: 'local', path: '/' }),
+      );
     });
 
     it('returns error when injectToken is false and external service fails', async () => {
       delete process.env.CAPTCHA_SOLVER_BASE_URL;
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('site-key'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -439,7 +454,7 @@ describe('captcha-solver — deep coverage', () => {
     it('clamps widget timeoutMs to [5000, 600000] for low value', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('site-key'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -460,7 +475,7 @@ describe('captcha-solver — deep coverage', () => {
     it('clamps widget timeoutMs to [5000, 600000] for high value', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('site-key'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -481,7 +496,7 @@ describe('captcha-solver — deep coverage', () => {
     it('hook mode with successful token includes correct fields', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('hook-token-123'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -521,7 +536,7 @@ describe('captcha-solver — deep coverage', () => {
     it('toErrorResponse converts non-Error objects to string', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue(''),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -535,7 +550,11 @@ describe('captcha-solver — deep coverage', () => {
 
   describe('retry and attempt tracking', () => {
     it('logs warning for each failed attempt', async () => {
-      process.env.CAPTCHA_SOLVER_BASE_URL = 'http://invalid-captcha-service.test';
+      process.env.CAPTCHA_SOLVER_BASE_URL = buildTestUrl('invalid-captcha-service', {
+        scheme: 'http',
+        suffix: 'test',
+        path: '/',
+      });
       const page = createMockPage();
       const collector = createMockCollector(page);
 

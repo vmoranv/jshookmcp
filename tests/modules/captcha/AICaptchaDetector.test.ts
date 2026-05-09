@@ -24,6 +24,7 @@ vi.mock('fs/promises', () => ({
 }));
 
 import { AICaptchaDetector } from '@modules/captcha/AICaptchaDetector';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestAICaptchaDetector extends AICaptchaDetector {
   public getScreenshotDir() {
@@ -46,7 +47,7 @@ class TestAICaptchaDetector extends AICaptchaDetector {
 function createPage(overrides: Record<string, unknown> = {}) {
   return {
     screenshot: vi.fn(async () => Buffer.from('img').toString('base64')),
-    url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/login'),
+    url: vi.fn(() => withPath(TEST_URLS.root, 'login')),
     title: vi.fn(async () => 'Security Check'),
     evaluate: vi.fn(async () => ({
       bodyText: 'Please verify',
@@ -144,7 +145,7 @@ describe('AICaptchaDetector', () => {
   it('evaluateFallbackTextAnalysis handles verification wording without strong markers', () => {
     const detector = new TestAICaptchaDetector();
     const result = detector.evaluateFallback({
-      url: 'https://vmoranv.github.io/jshookmcp/verify',
+      url: withPath(TEST_URLS.root, 'verify'),
       title: '账号验证',
       bodyText: '请完成验证后继续',
       hasIframes: false,
@@ -159,7 +160,7 @@ describe('AICaptchaDetector', () => {
   it('applyLocalGuardrails overrides false negatives when local heuristics are strong', () => {
     const detector = new TestAICaptchaDetector();
     const pageInfo = {
-      url: 'https://vmoranv.github.io/jshookmcp/login',
+      url: withPath(TEST_URLS.root, 'login'),
       title: '安全验证',
       bodyText: '请完成安全验证，并拖动滑块继续',
       hasIframes: false,
@@ -184,7 +185,7 @@ describe('AICaptchaDetector', () => {
   it('applyLocalGuardrails preserves negatives when no strong override signals exist', () => {
     const detector = new TestAICaptchaDetector();
     const pageInfo = {
-      url: 'https://vmoranv.github.io/jshookmcp/verify',
+      url: withPath(TEST_URLS.root, 'verify'),
       title: '账号验证',
       bodyText: '请完成验证后继续',
       hasIframes: false,

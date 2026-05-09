@@ -3,6 +3,7 @@ import { ReverseEvidenceGraph, resetIdCounter } from '@server/evidence/ReverseEv
 import { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
 import { EvidenceGraphBridge } from '@server/instrumentation/EvidenceGraphBridge';
 import { InstrumentationType } from '@server/instrumentation/types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('EVID-04: InstrumentationSession → Evidence Graph Integration', () => {
   let graph: ReverseEvidenceGraph;
@@ -44,14 +45,14 @@ describe('EVID-04: InstrumentationSession → Evidence Graph Integration', () =>
     sessionMgr.registerOperation(
       session.id,
       InstrumentationType.NETWORK_INTERCEPT,
-      'https://api.example.com/auth',
+      withPath(TEST_URLS.api, 'auth'),
       { method: 'POST' },
     );
 
     const nodes = graph.exportJson().nodes;
     const reqNode = nodes.find((n) => n.type === 'request');
     expect(reqNode).toBeDefined();
-    expect(reqNode!.metadata.url).toBe('https://api.example.com/auth');
+    expect(reqNode!.metadata.url).toBe(withPath(TEST_URLS.api, 'auth'));
   });
 
   it('registerOperation(function-trace) creates function node with name metadata', () => {

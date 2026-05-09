@@ -2,6 +2,7 @@ import { createConsoleMonitorMock, parseJson } from '@tests/server/domains/share
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { TlsBotHandlers } from '@server/domains/network/handlers/tls-bot-handlers';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
   let handlers: TlsBotHandlers;
@@ -135,7 +136,7 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
         getNetworkRequests: (() => [
           {
             requestId: 'req-1',
-            url: 'https://example.com',
+            url: TEST_URLS.root,
             method: 'GET',
             headers: { 'user-agent': 'Mozilla/5.0 (HeadlessChrome/120.0)', accept: '*/*' },
           },
@@ -158,7 +159,7 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
         getNetworkRequests: (() => [
           {
             requestId: 'req-2',
-            url: 'https://example.com',
+            url: TEST_URLS.root,
             method: 'GET',
             headers: { 'user-agent': 'python-requests/2.28' },
           },
@@ -182,7 +183,7 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
         getNetworkRequests: (() => [
           {
             requestId: 'req-3',
-            url: 'https://example.com/login',
+            url: withPath(TEST_URLS.root, 'login'),
             method: 'POST',
             headers: {
               'user-agent': 'Mozilla/5.0 Chrome/123.0',
@@ -203,7 +204,7 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
       expect(json.success).toBe(true);
       expect(json.mode).toBe('analyze_request');
       expect(json.requestId).toBe('req-3');
-      expect(json.url).toBe('https://example.com/login');
+      expect(json.url).toBe(withPath(TEST_URLS.root, 'login'));
       expect(json.method).toBe('POST');
       expect(typeof json.http).toBe('string');
       expect(json.analysis).toBeUndefined();
@@ -214,7 +215,7 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
         getNetworkRequests: (() => [
           {
             requestId: 'req-unknown',
-            url: 'https://example.com/app',
+            url: withPath(TEST_URLS.root, 'app'),
             method: 'GET',
             headers: {
               'user-agent': 'Mozilla/5.0 Chrome/123.0',
@@ -240,7 +241,7 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
         getNetworkRequests: (() => [
           {
             requestId: 'req-4',
-            url: 'https://example.com/app',
+            url: withPath(TEST_URLS.root, 'app'),
             method: 'GET',
             headers: {
               'user-agent': 'Mozilla/5.0 Chrome/123.0',
@@ -271,7 +272,7 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
     it('returns diversity analysis for multiple requests', async () => {
       const requests = Array.from({ length: 10 }, (_, i) => ({
         requestId: `req-${i}`,
-        url: `https://example.com/page/${i}`,
+        url: withPath(TEST_URLS.root, `page/${i}`),
         method: 'GET',
         headers: {
           'user-agent': 'Mozilla/5.0 Chrome/120',
@@ -299,13 +300,13 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
       const requests = [
         {
           requestId: 'r1',
-          url: 'https://example.com/1',
+          url: withPath(TEST_URLS.root, '1'),
           method: 'GET',
           headers: { 'user-agent': 'Chrome/120', accept: '*/*', 'accept-language': 'en' },
         },
         {
           requestId: 'r2',
-          url: 'https://example.com/2',
+          url: withPath(TEST_URLS.root, '2'),
           method: 'GET',
           headers: { 'user-agent': 'Chrome/119', accept: '*/*', 'accept-language': 'en' },
         },
@@ -323,7 +324,7 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
       const ua = 'Mozilla/5.0 Chrome/120';
       const requests = Array.from({ length: 5 }, (_, i) => ({
         requestId: `r${i}`,
-        url: `https://example.com/${i}`,
+        url: withPath(TEST_URLS.root, `${i}`),
         method: 'GET',
         headers: { 'user-agent': ua, accept: '*/*', 'accept-language': 'en' },
       }));
@@ -340,7 +341,7 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
     it('clamps consistencyScore to 0 when all requests drift', async () => {
       const requests = Array.from({ length: 3 }, (_, i) => ({
         requestId: `r${i}`,
-        url: `https://example.com/${i}`,
+        url: withPath(TEST_URLS.root, `${i}`),
         method: 'GET',
         headers: { 'user-agent': `Chrome/${120 + i}`, accept: '*/*', 'accept-language': 'en' },
       }));

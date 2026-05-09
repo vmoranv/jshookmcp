@@ -6,19 +6,20 @@ import type {
   NetworkResponse,
   NetworkTiming,
 } from '@modules/monitor/NetworkMonitor.types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('NetworkMonitor.types.ts', () => {
   it('defines NetworkRequest with required fields', () => {
     const request: NetworkRequest = {
       requestId: 'req-1',
-      url: 'https://example.com/api',
+      url: withPath(TEST_URLS.root, 'api'),
       method: 'GET',
       headers: { 'content-type': 'application/json' },
       timestamp: Date.now(),
     };
 
     expect(request.requestId).toBe('req-1');
-    expect(request.url).toBe('https://example.com/api');
+    expect(request.url).toBe(withPath(TEST_URLS.root, 'api'));
     expect(request.method).toBe('GET');
     expect(request.headers).toEqual({ 'content-type': 'application/json' });
     expect(typeof request.timestamp).toBe('number');
@@ -27,7 +28,7 @@ describe('NetworkMonitor.types.ts', () => {
   it('defines NetworkRequest with optional fields', () => {
     const request: NetworkRequest = {
       requestId: 'req-2',
-      url: 'https://example.com/submit',
+      url: withPath(TEST_URLS.root, 'submit'),
       method: 'POST',
       headers: {},
       postData: '{"key":"value"}',
@@ -44,7 +45,7 @@ describe('NetworkMonitor.types.ts', () => {
   it('defines NetworkResponse with required fields', () => {
     const response: NetworkResponse = {
       requestId: 'req-1',
-      url: 'https://example.com/api',
+      url: withPath(TEST_URLS.root, 'api'),
       status: 200,
       statusText: 'OK',
       headers: { 'content-type': 'application/json' },
@@ -62,7 +63,7 @@ describe('NetworkMonitor.types.ts', () => {
   it('defines NetworkResponse with optional fields', () => {
     const response: NetworkResponse = {
       requestId: 'req-3',
-      url: 'https://example.com/cached',
+      url: withPath(TEST_URLS.root, 'cached'),
       status: 304,
       statusText: 'Not Modified',
       headers: {},
@@ -77,7 +78,7 @@ describe('NetworkMonitor.types.ts', () => {
   });
 
   it('treats NetworkInitiator and NetworkTiming as opaque unknown types', () => {
-    const initiator: NetworkInitiator = { type: 'parser', url: 'https://example.com' };
+    const initiator: NetworkInitiator = { type: 'parser', url: TEST_URLS.root };
     const timing: NetworkTiming = { requestTime: 1, proxyStart: -1 };
 
     // These are typed as `unknown`, so they accept any shape

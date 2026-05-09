@@ -7,6 +7,7 @@ import {
   type ExtensionToolHandler,
 } from '@extension-sdk/plugin';
 import type { WorkflowContract } from '@extension-sdk/workflow';
+import { TEST_HOSTS } from '@tests/shared/test-urls';
 
 const echoToolHandler: ExtensionToolHandler = async () => ({
   content: [{ type: 'text', text: 'ok' }],
@@ -99,15 +100,15 @@ describe('ExtensionBuilder', () => {
 
     it('allowHost adds single host and returns this', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      const result = builder.allowHost('example.com');
+      const result = builder.allowHost(TEST_HOSTS.root);
       expect(result).toBe(builder);
-      expect(builder.allowedHosts).toEqual(['example.com']);
+      expect(builder.allowedHosts).toEqual([TEST_HOSTS.root]);
     });
 
     it('allowHost adds multiple hosts', () => {
       const builder = new ExtensionBuilder('test', '1.0.0');
-      builder.allowHost(['api.example.com', 'cdn.example.com']);
-      expect(builder.allowedHosts).toEqual(['api.example.com', 'cdn.example.com']);
+      builder.allowHost([TEST_HOSTS.api, TEST_HOSTS.cdn]);
+      expect(builder.allowedHosts).toEqual([TEST_HOSTS.api, TEST_HOSTS.cdn]);
     });
 
     it('allowTool adds single tool and returns this', () => {

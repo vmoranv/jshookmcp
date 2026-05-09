@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -79,7 +80,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       puppeteerState.launch.mockResolvedValue(browser);
 
       await fetchRealEnvironmentData({
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 2,
         resolveExecutablePath: () => undefined,
@@ -98,7 +99,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       puppeteerState.launch.mockResolvedValue(browser);
 
       await fetchRealEnvironmentData({
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 2,
         resolveExecutablePath: () => '/usr/bin/chromium',
@@ -115,7 +116,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 2,
         resolveExecutablePath: vi.fn(),
@@ -135,7 +136,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createEmptyDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -151,7 +152,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createEmptyDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -163,20 +164,20 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       expect(typeof fn).toBe('function');
     });
 
-    it('navigates to the provided URL with networkidle2 and timeout', async () => {
+    it('navigates to the provided URL with the normalized networkidle wait and timeout', async () => {
       const page = createPage({});
       const browser = createBrowser(page);
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://target-site.com/page',
+        url: `${testUrls.TEST_URLS.target}/page`,
         detected: createEmptyDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
         buildManifestFromTemplate: vi.fn(),
       });
 
-      expect(page.goto).toHaveBeenCalledWith('https://target-site.com/page', {
+      expect(page.goto).toHaveBeenCalledWith(`${testUrls.TEST_URLS.target}/page`, {
         waitUntil: 'networkidle2',
         timeout: 30000,
       });
@@ -201,7 +202,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
         'window.outerWidth': 1920,
         'document.title': 'Test',
         'navigator.userAgent': 'Mozilla',
-        'location.href': 'https://test.com',
+        'location.href': testUrls.TEST_URLS.root,
         'screen.width': 1920,
         'custom.prop': 'value',
       });
@@ -209,7 +210,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected,
         depth: 3,
         resolveExecutablePath: vi.fn(),
@@ -242,7 +243,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createEmptyDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -265,7 +266,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 2,
         resolveExecutablePath: vi.fn(),
@@ -285,7 +286,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createEmptyDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -307,7 +308,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -330,7 +331,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -349,7 +350,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -365,7 +366,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       const buildManifestFromTemplate = vi.fn(() => ({ launchFailed: true }));
 
       const result = await fetchRealEnvironmentData({
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: () => '/usr/bin/chrome',
@@ -386,7 +387,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -403,7 +404,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -421,7 +422,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       // Should not throw
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -439,7 +440,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       // Should not throw - page will be undefined, so finally should handle gracefully
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),
@@ -459,7 +460,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 5,
         resolveExecutablePath: vi.fn(),
@@ -476,7 +477,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 0,
         resolveExecutablePath: vi.fn(),
@@ -497,7 +498,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       puppeteerState.launch.mockResolvedValue(browser);
 
       await fetchRealEnvironmentData({
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: () => '/chrome',
@@ -524,7 +525,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
       puppeteerState.launch.mockResolvedValue(browser);
 
       const result = await fetchRealEnvironmentData({
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createEmptyDetected(),
         depth: 1,
         resolveExecutablePath: () => undefined,
@@ -541,7 +542,7 @@ describe('EnvironmentEmulatorFetch – additional coverage', () => {
 
       const result = await fetchRealEnvironmentData({
         browser: browser as any,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         detected: createDetected(),
         depth: 1,
         resolveExecutablePath: vi.fn(),

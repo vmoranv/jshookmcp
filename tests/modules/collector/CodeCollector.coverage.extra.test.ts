@@ -67,6 +67,7 @@ vi.mock('@modules/collector/PageScriptCollectors', () => ({
 }));
 
 import { CodeCollector } from '@modules/collector/CodeCollector';
+import { buildTestUrl, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestCodeCollector extends CodeCollector {
   getUrls() {
@@ -107,29 +108,29 @@ function setPlatform(platform: NodeJS.Platform) {
 function seedFiles() {
   return new Map<string, CodeFile>([
     [
-      'https://example.com/a.js',
+      withPath(TEST_URLS.root, 'a.js'),
       // @ts-expect-error
       {
-        url: 'https://example.com/a.js',
+        url: withPath(TEST_URLS.root, 'a.js'),
         size: 12,
         type: 'script',
         metadata: { truncated: true, originalSize: 24 },
       } as CodeFile,
     ],
     [
-      'https://example.com/b.css',
+      withPath(TEST_URLS.root, 'b.css'),
       // @ts-expect-error
       {
-        url: 'https://example.com/b.css',
+        url: withPath(TEST_URLS.root, 'b.css'),
         size: 8,
         type: 'stylesheet',
       } as CodeFile,
     ],
     [
-      'https://example.com/c.json',
+      withPath(TEST_URLS.root, 'c.json'),
       // @ts-expect-error
       {
-        url: 'https://example.com/c.json',
+        url: withPath(TEST_URLS.root, 'c.json'),
         size: 20,
         type: 'json',
       } as CodeFile,
@@ -195,34 +196,38 @@ describe('CodeCollector extra coverage', () => {
     });
     expect(collector.getCollectedFilesSummary()).toEqual([
       {
-        url: 'https://example.com/a.js',
+        url: withPath(TEST_URLS.root, 'a.js'),
         size: 12,
         type: 'script',
         truncated: true,
         originalSize: 24,
       },
       {
-        url: 'https://example.com/b.css',
+        url: withPath(TEST_URLS.root, 'b.css'),
         size: 8,
         type: 'stylesheet',
         truncated: undefined,
         originalSize: undefined,
       },
       {
-        url: 'https://example.com/c.json',
+        url: withPath(TEST_URLS.root, 'c.json'),
         size: 20,
         type: 'json',
         truncated: undefined,
         originalSize: undefined,
       },
     ]);
-    expect(collector.getFileByUrl('https://example.com/b.css')).toMatchObject({
-      url: 'https://example.com/b.css',
+    expect(collector.getFileByUrl(withPath(TEST_URLS.root, 'b.css'))).toMatchObject({
+      url: withPath(TEST_URLS.root, 'b.css'),
       size: 8,
     });
     expect(collector.getFileByUrl('missing')).toBeNull();
 
-    const matched = collector.getFilesByPattern('https://example\\.com', 2, 15);
+    const matched = collector.getFilesByPattern(
+      buildTestUrl('', { suffix: 'example', path: '.com' }),
+      2,
+      15,
+    );
     expect(matched).toMatchObject({
       matched: 3,
       returned: 1,
@@ -233,8 +238,8 @@ describe('CodeCollector extra coverage', () => {
     const top = collector.getTopPriorityFiles(2, 100);
     expect(top.totalFiles).toBe(3);
     expect(top.files.map((file) => file.url)).toEqual([
-      'https://example.com/c.json',
-      'https://example.com/a.js',
+      withPath(TEST_URLS.root, 'c.json'),
+      withPath(TEST_URLS.root, 'a.js'),
     ]);
 
     collector.clearCache();
@@ -250,10 +255,10 @@ describe('CodeCollector extra coverage', () => {
       maxCollectedUrls: 4,
     });
 
-    collector.getUrls().add('https://example.com');
+    collector.getUrls().add(TEST_URLS.root);
     collector
       .getFiles()
-      .set('https://example.com/a.js', seedFiles().get('https://example.com/a.js')!);
+      .set(withPath(TEST_URLS.root, 'a.js'), seedFiles().get(withPath(TEST_URLS.root, 'a.js'))!);
 
     const cacheClearSpy = vi.spyOn(collector.getCache(), 'clear').mockResolvedValue(undefined);
     const cacheStatsSpy = vi.spyOn(collector.getCache(), 'getStats').mockResolvedValue({

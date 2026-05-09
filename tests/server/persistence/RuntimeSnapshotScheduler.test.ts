@@ -6,6 +6,7 @@ import { ReverseEvidenceGraph, resetIdCounter } from '@server/evidence/ReverseEv
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 async function makeTmpDir(): Promise<string> {
   const dir = resolve(
@@ -83,7 +84,9 @@ describe('RuntimeSnapshotScheduler', () => {
     // Write a snapshot manually
     const graph = new ReverseEvidenceGraph();
     resetIdCounter();
-    graph.addNode('request', 'https://example.com', { url: 'https://example.com' });
+    graph.addNode('request', buildTestUrl('', { path: '/' }), {
+      url: buildTestUrl('', { path: '/' }),
+    });
     const snapshot = graph.exportSnapshot();
     await mkdir(resolve(tmpDir, 'evidence-graph'), { recursive: true });
     await writeFile(filePath, JSON.stringify(snapshot), 'utf-8');
@@ -107,7 +110,9 @@ describe('RuntimeSnapshotScheduler', () => {
 
     const graph = new ReverseEvidenceGraph();
     resetIdCounter();
-    graph.addNode('request', 'https://late.example', { url: 'https://late.example' });
+    graph.addNode('request', buildTestUrl('late', { suffix: 'example', path: '/' }), {
+      url: buildTestUrl('late', { suffix: 'example', path: '/' }),
+    });
     await mkdir(resolve(tmpDir, 'late-register'), { recursive: true });
     await writeFile(filePath, JSON.stringify(graph.exportSnapshot()), 'utf-8');
 
@@ -287,7 +292,11 @@ describe('ReverseEvidenceGraph snapshot', () => {
     const graph = new ReverseEvidenceGraph();
     graph.setPersistNotifier(notifyDirty);
 
-    const request = graph.addNode('request', 'https://graph.example', {});
+    const request = graph.addNode(
+      'request',
+      buildTestUrl('graph', { suffix: 'example', path: '/' }),
+      {},
+    );
     const fn = graph.addNode('function', 'handler', {});
     graph.addEdge(request.id, fn.id, 'initiates');
     graph.removeNode(fn.id);

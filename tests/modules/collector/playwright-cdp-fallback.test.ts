@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizePlaywrightConnectEndpoint } from '@modules/collector/playwright-cdp-fallback';
+import { TEST_WS_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('normalizePlaywrightConnectEndpoint', () => {
   it('preserves direct ws CDP endpoints with browser routing path', () => {
@@ -11,9 +12,9 @@ describe('normalizePlaywrightConnectEndpoint', () => {
   it('preserves secure ws CDP endpoints with browser routing path', () => {
     expect(
       normalizePlaywrightConnectEndpoint(
-        'wss://cdp.example.com/devtools/browser/routed-browser-id',
+        withPath(TEST_WS_URLS.cdp, 'devtools/browser/routed-browser-id'),
       ),
-    ).toBe('wss://cdp.example.com/devtools/browser/routed-browser-id');
+    ).toBe(withPath(TEST_WS_URLS.cdp, 'devtools/browser/routed-browser-id'));
   });
 
   it('leaves browserURL endpoints unchanged', () => {

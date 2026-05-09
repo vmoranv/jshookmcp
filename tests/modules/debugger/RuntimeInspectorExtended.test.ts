@@ -13,6 +13,7 @@ vi.mock('@utils/logger', () => ({
 
 import { RuntimeInspector } from '@modules/debugger/RuntimeInspector';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createSession() {
   return {
@@ -237,7 +238,7 @@ describe('RuntimeInspector - getCallStack', () => {
           callFrameId: 'cf-1',
           functionName: '',
           location: { scriptId: 's1', lineNumber: 5, columnNumber: 0 },
-          url: 'https://example.com/app.js',
+          url: withPath(TEST_URLS.root, 'app.js'),
           scopeChain: [{ type: 'local', name: 'localScope' }],
         },
       ],
@@ -261,14 +262,14 @@ describe('RuntimeInspector - getCallStack', () => {
           callFrameId: 'cf-1',
           functionName: 'inner',
           location: { scriptId: 's1', lineNumber: 10, columnNumber: 3 },
-          url: 'https://example.com/app.js',
+          url: withPath(TEST_URLS.root, 'app.js'),
           scopeChain: [],
         },
         {
           callFrameId: 'cf-2',
           functionName: 'outer',
           location: { scriptId: 's1', lineNumber: 20, columnNumber: 0 },
-          url: 'https://example.com/app.js',
+          url: withPath(TEST_URLS.root, 'app.js'),
           scopeChain: [{ type: 'global' }],
         },
       ],

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConsoleHandlers } from '@server/domains/network/handlers/console-handlers';
+import * as testUrls from '@tests/shared/test-urls';
 
 function parseBody(r: unknown) {
   return JSON.parse((r as { content: [{ text: string }] }).content[0]!.text);
@@ -38,10 +39,10 @@ describe('ConsoleHandlers', () => {
 
     it('filters by url', async () => {
       deps.consoleMonitor.getExceptions.mockReturnValue([
-        { url: 'https://a.com/page.js', message: 'err1' },
-        { url: 'https://b.com/other.js', message: 'err2' },
+        { url: `${testUrls.TEST_URLS.a}/page.js`, message: 'err1' },
+        { url: `${testUrls.TEST_URLS.b}/other.js`, message: 'err2' },
       ]);
-      const r = await handlers.handleConsoleGetExceptions({ url: 'a.com' });
+      const r = await handlers.handleConsoleGetExceptions({ url: testUrls.TEST_HOSTS.a });
       expect(parseBody(r).exceptions).toHaveLength(1);
     });
 

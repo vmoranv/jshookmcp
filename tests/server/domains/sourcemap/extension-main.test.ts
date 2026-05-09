@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 
 vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),
@@ -96,7 +97,7 @@ describe('SourcemapToolHandlersExtension', () => {
             url: 'chrome-extension://ponmlkjihgfedcbaponmlkjihgfedcba/bg.html',
             title: 'Ext B',
           },
-          { targetId: 't4', type: 'iframe', url: 'https://example.com', title: 'Frame' },
+          { targetId: 't4', type: 'iframe', url: testUrls.TEST_URLS.root, title: 'Frame' },
         ],
       });
 
@@ -173,7 +174,7 @@ describe('SourcemapToolHandlersExtension', () => {
           {
             targetId: 't1',
             type: 'service_worker',
-            url: 'https://example.com/sw.js',
+            url: `${testUrls.TEST_URLS.root}/sw.js`,
             title: 'Not ext',
           },
         ],
@@ -286,7 +287,7 @@ describe('SourcemapToolHandlersExtension', () => {
     });
 
     it('returns null for non-chrome-extension URL', async () => {
-      const id = handlers.extractExtensionId('https://example.com/sw.js');
+      const id = handlers.extractExtensionId(`${testUrls.TEST_URLS.root}/sw.js`);
       expect(id).toBeNull();
     });
 
@@ -481,7 +482,7 @@ describe('SourcemapToolHandlersMain', () => {
         if (method === 'Debugger.enable') {
           parsedCallback?.({
             scriptId: 's1',
-            url: 'https://example.com/app.js',
+            url: `${testUrls.TEST_URLS.root}/app.js`,
             sourceMapURL: 'app.js.map',
           });
           return {};
@@ -530,7 +531,7 @@ describe('SourcemapToolHandlersMain', () => {
 
     it('returns parsed source map with sources and mappings', async () => {
       vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
-        resolvedUrl: 'https://example.com/app.js.map',
+        resolvedUrl: `${testUrls.TEST_URLS.root}/app.js.map`,
         map: {
           version: 3,
           sources: ['src/index.ts', 'src/utils.ts'],
@@ -545,7 +546,7 @@ describe('SourcemapToolHandlersMain', () => {
 
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
-          sourceMapUrl: 'https://example.com/app.js.map',
+          sourceMapUrl: `${testUrls.TEST_URLS.root}/app.js.map`,
         }),
       );
 
@@ -557,7 +558,7 @@ describe('SourcemapToolHandlersMain', () => {
 
     it('omits sourcesContent when not in map', async () => {
       vi.spyOn(handlers, 'parseSourceMap').mockResolvedValue({
-        resolvedUrl: 'https://example.com/app.js.map',
+        resolvedUrl: `${testUrls.TEST_URLS.root}/app.js.map`,
         map: {
           version: 3,
           sources: ['src/index.ts'],
@@ -571,7 +572,7 @@ describe('SourcemapToolHandlersMain', () => {
 
       const body = parseJson<any>(
         await handlers.handleSourcemapFetchAndParse({
-          sourceMapUrl: 'https://example.com/app.js.map',
+          sourceMapUrl: `${testUrls.TEST_URLS.root}/app.js.map`,
         }),
       );
 
@@ -583,7 +584,9 @@ describe('SourcemapToolHandlersMain', () => {
       vi.spyOn(handlers, 'parseSourceMap').mockRejectedValue(new Error('Invalid SourceMap JSON'));
 
       const body = parseJson<any>(
-        await handlers.handleSourcemapFetchAndParse({ sourceMapUrl: 'https://bad.com/map' }),
+        await handlers.handleSourcemapFetchAndParse({
+          sourceMapUrl: `${testUrls.TEST_URLS.bad}/map`,
+        }),
       );
 
       expect(body.success).toBe(false);
@@ -601,10 +604,10 @@ describe('SourcemapToolHandlersMain', () => {
 
       await handlers.handleSourcemapFetchAndParse({
         sourceMapUrl: 'app.js.map',
-        scriptUrl: 'https://example.com/app.js',
+        scriptUrl: `${testUrls.TEST_URLS.root}/app.js`,
       });
 
-      expect(spy).toHaveBeenCalledWith('app.js.map', 'https://example.com/app.js');
+      expect(spy).toHaveBeenCalledWith('app.js.map', `${testUrls.TEST_URLS.root}/app.js`);
     });
   });
 
@@ -619,7 +622,7 @@ describe('SourcemapToolHandlersMain', () => {
 
     it('reconstructs file tree from source map', async () => {
       vi.spyOn(handlers, 'parseSourceMapStats').mockResolvedValue({
-        resolvedUrl: 'https://example.com/app.js.map',
+        resolvedUrl: `${testUrls.TEST_URLS.root}/app.js.map`,
         map: {
           version: 3,
           sources: ['src/index.ts', 'src/utils.ts'],
@@ -633,7 +636,7 @@ describe('SourcemapToolHandlersMain', () => {
 
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
-          sourceMapUrl: 'https://example.com/app.js.map',
+          sourceMapUrl: `${testUrls.TEST_URLS.root}/app.js.map`,
         }),
       );
 
@@ -646,7 +649,7 @@ describe('SourcemapToolHandlersMain', () => {
 
     it('handles missing sourcesContent gracefully', async () => {
       vi.spyOn(handlers, 'parseSourceMapStats').mockResolvedValue({
-        resolvedUrl: 'https://example.com/app.js.map',
+        resolvedUrl: `${testUrls.TEST_URLS.root}/app.js.map`,
         map: {
           version: 3,
           sources: ['src/main.js'],
@@ -659,7 +662,7 @@ describe('SourcemapToolHandlersMain', () => {
 
       const body = parseJson<any>(
         await handlers.handleSourcemapReconstructTree({
-          sourceMapUrl: 'https://example.com/app.js.map',
+          sourceMapUrl: `${testUrls.TEST_URLS.root}/app.js.map`,
         }),
       );
 

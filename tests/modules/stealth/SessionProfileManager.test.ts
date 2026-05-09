@@ -1,22 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SessionProfileManager } from '@modules/stealth/SessionProfileManager';
 import type { SessionProfile } from '@internal-types/SessionProfile';
+import { TEST_HOSTS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const mockPage = {
-  url: vi.fn(() => 'https://example.com/path'),
+  url: vi.fn(() => withPath(TEST_URLS.root, 'path')),
   cookies: vi.fn(),
   evaluate: vi.fn(),
 };
 
 const BASE_PROFILE: SessionProfile = {
   cookies: [
-    { name: 'cf_clearance', value: 'test_value_123', domain: '.example.com' },
+    { name: 'cf_clearance', value: 'test_value_123', domain: `.${TEST_HOSTS.root}` },
     { name: 'session', value: 'abc', path: '/' },
   ],
   userAgent: 'Mozilla/5.0 (Test)',
   acceptLanguage: 'en-US',
   platform: 'Win32',
-  origin: 'https://example.com',
+  origin: TEST_URLS.root,
   collectedAt: Date.now(),
   ttlSec: 1800,
 };
@@ -45,7 +46,7 @@ describe('SessionProfileManager', () => {
   describe('exportFromPage', () => {
     it('collects cookies and navigator metadata', async () => {
       mockPage.cookies.mockResolvedValue([
-        { name: 'cf_clearance', value: 'xyz', domain: '.example.com' },
+        { name: 'cf_clearance', value: 'xyz', domain: `.${TEST_HOSTS.root}` },
       ]);
       mockPage.evaluate.mockResolvedValue({
         userAgent: 'Mozilla/5.0 Test',
@@ -65,7 +66,7 @@ describe('SessionProfileManager', () => {
       expect(profile.platform).toBe('Win32');
       expect(profile.referer).toBe('https://google.com');
       expect(profile.clientHints?.secChUa).toBe('"Chrome";v="120"');
-      expect(profile.origin).toBe('https://example.com');
+      expect(profile.origin).toBe(TEST_URLS.root);
       expect(profile.collectedAt).toBeGreaterThan(0);
       expect(profile.ttlSec).toBe(1800);
     });

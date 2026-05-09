@@ -17,6 +17,7 @@ import {
   navigateWithRetryImpl,
   shouldCollectUrlImpl,
 } from '@modules/collector/CodeCollectorUtilsInternal';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('CodeCollector utils internals', () => {
   beforeEach(() => {
@@ -24,9 +25,9 @@ describe('CodeCollector utils internals', () => {
   });
 
   it('matches urls against wildcard filter rules', () => {
-    expect(shouldCollectUrlImpl('https://example.com/app.js', ['*app.js'])).toBe(true);
-    expect(shouldCollectUrlImpl('https://example.com/app.css', ['*app.js'])).toBe(false);
-    expect(shouldCollectUrlImpl('https://example.com/any', [])).toBe(true);
+    expect(shouldCollectUrlImpl(withPath(TEST_URLS.root, 'app.js'), ['*app.js'])).toBe(true);
+    expect(shouldCollectUrlImpl(withPath(TEST_URLS.root, 'app.css'), ['*app.js'])).toBe(false);
+    expect(shouldCollectUrlImpl(withPath(TEST_URLS.root, 'any'), [])).toBe(true);
   });
 
   it('retries navigation until it succeeds', async () => {
@@ -36,7 +37,7 @@ describe('CodeCollector utils internals', () => {
       .mockRejectedValueOnce(new Error('first fail'))
       .mockResolvedValueOnce(undefined);
 
-    const navigation = navigateWithRetryImpl({ goto } as any, 'https://example.com', {}, 2);
+    const navigation = navigateWithRetryImpl({ goto } as any, TEST_URLS.root, {}, 2);
     await vi.advanceTimersByTimeAsync(1000);
     await navigation;
 
@@ -48,14 +49,14 @@ describe('CodeCollector utils internals', () => {
     const page = {
       evaluate: vi.fn().mockResolvedValueOnce({ totalTime: 120 }).mockResolvedValueOnce({
         title: 'Example',
-        url: 'https://example.com',
+        url: TEST_URLS.root,
       }),
     };
 
     await expect(getPerformanceMetricsImpl(page as any)).resolves.toEqual({ totalTime: 120 });
     await expect(collectPageMetadataImpl(page as any)).resolves.toEqual({
       title: 'Example',
-      url: 'https://example.com',
+      url: TEST_URLS.root,
     });
 
     page.evaluate = vi.fn().mockRejectedValue(new Error('boom'));

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -25,7 +26,7 @@ describe('TabRegistry — additional coverage', () => {
 
       const firstId = registry.registerPage(page, {
         index: 0,
-        url: 'https://example.com/a',
+        url: `${testUrls.TEST_URLS.root}/a`,
         title: 'A',
       });
 
@@ -35,7 +36,7 @@ describe('TabRegistry — additional coverage', () => {
       // Re-register the same page object
       const secondId = registry.registerPage(page, {
         index: 1,
-        url: 'https://example.com/b',
+        url: `${testUrls.TEST_URLS.root}/b`,
         title: 'B',
       });
 
@@ -45,7 +46,7 @@ describe('TabRegistry — additional coverage', () => {
       const tab = registry.getTabById(firstId);
       expect(tab).not.toBeNull();
       expect(tab!.index).toBe(1);
-      expect(tab!.url).toBe('https://example.com/b');
+      expect(tab!.url).toBe(`${testUrls.TEST_URLS.root}/b`);
       expect(tab!.stale).toBe(false);
     });
   });
@@ -62,7 +63,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         title: 'Test',
       });
       const result = registry.bindAlias('main', pageId);
@@ -75,12 +76,12 @@ describe('TabRegistry — additional coverage', () => {
       const page2 = {};
       const id1 = registry.registerPage(page1, {
         index: 0,
-        url: 'https://a.com',
+        url: testUrls.TEST_URLS.a,
         title: 'A',
       });
       const id2 = registry.registerPage(page2, {
         index: 1,
-        url: 'https://b.com',
+        url: testUrls.TEST_URLS.b,
         title: 'B',
       });
 
@@ -106,13 +107,13 @@ describe('TabRegistry — additional coverage', () => {
       registry.reconcilePages(
         [page1, page2],
         [
-          { index: 0, url: 'https://a.com', title: 'A' },
-          { index: 1, url: 'https://b.com', title: 'B' },
+          { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+          { index: 1, url: testUrls.TEST_URLS.b, title: 'B' },
         ],
       );
 
       // Remove page2 by reconciling without it
-      registry.reconcilePages([page1], [{ index: 0, url: 'https://a.com', title: 'A' }]);
+      registry.reconcilePages([page1], [{ index: 0, url: testUrls.TEST_URLS.a, title: 'A' }]);
 
       // Try to bind alias to index 1 (now stale)
       const result = registry.bindAliasByIndex('staleAlias', 1);
@@ -126,7 +127,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         title: 'Test',
       });
       registry.bindAlias('test', pageId);
@@ -150,7 +151,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         title: 'Test',
       });
       registry.bindAlias('myAlias', pageId);
@@ -173,7 +174,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         title: 'Test',
       });
 
@@ -187,7 +188,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         title: 'Test',
       });
       expect(registry.getPageById(pageId)).toBe(page);
@@ -205,7 +206,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://example.com',
+        url: testUrls.TEST_URLS.root,
         title: 'Test',
       });
       registry.bindAlias('a1', pageId);
@@ -227,18 +228,18 @@ describe('TabRegistry — additional coverage', () => {
       const registry = new TabRegistry<object>();
       const page1 = {};
       const page2 = {};
-      registry.registerPage(page1, { index: 0, url: 'https://a.com', title: 'A' });
-      const id2 = registry.registerPage(page2, { index: 1, url: 'https://b.com', title: 'B' });
+      registry.registerPage(page1, { index: 0, url: testUrls.TEST_URLS.a, title: 'A' });
+      const id2 = registry.registerPage(page2, { index: 1, url: testUrls.TEST_URLS.b, title: 'B' });
 
       const tab = registry.getTabByIndex(1);
       expect(tab!.pageId).toBe(id2);
-      expect(tab!.url).toBe('https://b.com');
+      expect(tab!.url).toBe(testUrls.TEST_URLS.b);
     });
 
     it('skips stale tabs', () => {
       const registry = new TabRegistry<object>();
       const page = {};
-      registry.registerPage(page, { index: 5, url: 'https://test.com', title: 'Test' });
+      registry.registerPage(page, { index: 5, url: testUrls.TEST_URLS.test, title: 'Test' });
 
       // Make stale
       registry.reconcilePages([], []);
@@ -250,9 +251,9 @@ describe('TabRegistry — additional coverage', () => {
     it('returns null when no tab matches predicate', () => {
       const registry = new TabRegistry<object>();
       const page = {};
-      registry.registerPage(page, { index: 0, url: 'https://a.com', title: 'A' });
+      registry.registerPage(page, { index: 0, url: testUrls.TEST_URLS.a, title: 'A' });
 
-      const result = registry.findTab((tab) => tab.url === 'https://nonexistent.com');
+      const result = registry.findTab((tab) => tab.url === testUrls.TEST_URLS.nonexistent);
       expect(result).toBeNull();
     });
 
@@ -260,10 +261,10 @@ describe('TabRegistry — additional coverage', () => {
       const registry = new TabRegistry<object>();
       const page1 = {};
       const page2 = {};
-      registry.registerPage(page1, { index: 0, url: 'https://a.com', title: 'A' });
-      const id2 = registry.registerPage(page2, { index: 1, url: 'https://b.com', title: 'B' });
+      registry.registerPage(page1, { index: 0, url: testUrls.TEST_URLS.a, title: 'A' });
+      const id2 = registry.registerPage(page2, { index: 1, url: testUrls.TEST_URLS.b, title: 'B' });
 
-      const result = registry.findTab((tab) => tab.url === 'https://b.com');
+      const result = registry.findTab((tab) => tab.url === testUrls.TEST_URLS.b);
       expect(result!.pageId).toBe(id2);
     });
   });
@@ -279,7 +280,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://test.com',
+        url: testUrls.TEST_URLS.test,
         title: 'Test',
       });
       registry.reconcilePages([], []);
@@ -301,7 +302,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 3,
-        url: 'https://test.com',
+        url: testUrls.TEST_URLS.test,
         title: 'Test',
       });
 
@@ -322,7 +323,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://test.com',
+        url: testUrls.TEST_URLS.test,
         title: 'Test',
       });
       registry.setCurrentPageId(pageId);
@@ -348,7 +349,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 2,
-        url: 'https://current.com',
+        url: testUrls.TEST_URLS.current,
         title: 'Current',
       });
       registry.setCurrentPageId(pageId);
@@ -357,7 +358,7 @@ describe('TabRegistry — additional coverage', () => {
       expect(info.driver).toBe('camoufox');
       expect(info.currentPageId).toBe(pageId);
       expect(info.currentIndex).toBe(2);
-      expect(info.url).toBe('https://current.com');
+      expect(info.url).toBe(testUrls.TEST_URLS.current);
       expect(info.title).toBe('Current');
     });
 
@@ -366,7 +367,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://test.com',
+        url: testUrls.TEST_URLS.test,
         title: 'Test',
       });
       registry.setCurrentPageId(pageId);
@@ -392,13 +393,13 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 5,
-        url: 'https://meta.com',
+        url: testUrls.TEST_URLS.meta,
         title: 'Meta',
       });
       registry.setCurrentPageId(pageId);
 
       const meta = registry.getContextMeta();
-      expect(meta.url).toBe('https://meta.com');
+      expect(meta.url).toBe(testUrls.TEST_URLS.meta);
       expect(meta.title).toBe('Meta');
       expect(meta.tabIndex).toBe(5);
       expect(meta.pageId).toBe(pageId);
@@ -409,7 +410,7 @@ describe('TabRegistry — additional coverage', () => {
       const page = {};
       const pageId = registry.registerPage(page, {
         index: 0,
-        url: 'https://stale.com',
+        url: testUrls.TEST_URLS.stale,
         title: 'Stale',
       });
       registry.setCurrentPageId(pageId);
@@ -431,15 +432,15 @@ describe('TabRegistry — additional coverage', () => {
       const page1 = {};
       const page2 = {};
 
-      registry.registerPage(page1, { index: 0, url: 'https://a.com', title: 'A' });
-      registry.registerPage(page2, { index: 1, url: 'https://b.com', title: 'B' });
+      registry.registerPage(page1, { index: 0, url: testUrls.TEST_URLS.a, title: 'A' });
+      registry.registerPage(page2, { index: 1, url: testUrls.TEST_URLS.b, title: 'B' });
 
       // Make page2 stale
-      registry.reconcilePages([page1], [{ index: 0, url: 'https://a.com', title: 'A' }]);
+      registry.reconcilePages([page1], [{ index: 0, url: testUrls.TEST_URLS.a, title: 'A' }]);
 
       const tabs = registry.listTabs();
       expect(tabs).toHaveLength(1);
-      expect(tabs[0]!.url).toBe('https://a.com');
+      expect(tabs[0]!.url).toBe(testUrls.TEST_URLS.a);
     });
 
     it('sorts tabs by index', () => {
@@ -448,9 +449,9 @@ describe('TabRegistry — additional coverage', () => {
       const page2 = {};
       const page3 = {};
 
-      registry.registerPage(page3, { index: 2, url: 'https://c.com', title: 'C' });
-      registry.registerPage(page1, { index: 0, url: 'https://a.com', title: 'A' });
-      registry.registerPage(page2, { index: 1, url: 'https://b.com', title: 'B' });
+      registry.registerPage(page3, { index: 2, url: testUrls.TEST_URLS.c, title: 'C' });
+      registry.registerPage(page1, { index: 0, url: testUrls.TEST_URLS.a, title: 'A' });
+      registry.registerPage(page2, { index: 1, url: testUrls.TEST_URLS.b, title: 'B' });
 
       const tabs = registry.listTabs();
       expect(tabs[0]!.index).toBe(0);
@@ -465,17 +466,17 @@ describe('TabRegistry — additional coverage', () => {
       const page1 = {};
       const page2 = {};
 
-      registry.registerPage(page1, { index: 0, url: 'https://a.com', title: 'A' });
-      registry.registerPage(page2, { index: 1, url: 'https://b.com', title: 'B' });
+      registry.registerPage(page1, { index: 0, url: testUrls.TEST_URLS.a, title: 'A' });
+      registry.registerPage(page2, { index: 1, url: testUrls.TEST_URLS.b, title: 'B' });
 
       // Make page2 stale
-      registry.reconcilePages([page1], [{ index: 0, url: 'https://a.com', title: 'A' }]);
+      registry.reconcilePages([page1], [{ index: 0, url: testUrls.TEST_URLS.a, title: 'A' }]);
 
       const allTabs = registry.listAllTabs();
       expect(allTabs).toHaveLength(2);
       const staleTabs = allTabs.filter((t) => t.stale);
       expect(staleTabs).toHaveLength(1);
-      expect(staleTabs[0]!.url).toBe('https://b.com');
+      expect(staleTabs[0]!.url).toBe(testUrls.TEST_URLS.b);
     });
 
     it('sorts by index', () => {
@@ -483,8 +484,8 @@ describe('TabRegistry — additional coverage', () => {
       const page1 = {};
       const page2 = {};
 
-      registry.registerPage(page2, { index: 5, url: 'https://b.com', title: 'B' });
-      registry.registerPage(page1, { index: 2, url: 'https://a.com', title: 'A' });
+      registry.registerPage(page2, { index: 5, url: testUrls.TEST_URLS.b, title: 'B' });
+      registry.registerPage(page1, { index: 2, url: testUrls.TEST_URLS.a, title: 'A' });
 
       const tabs = registry.listAllTabs();
       expect(tabs[0]!.index).toBe(2);
@@ -501,7 +502,7 @@ describe('TabRegistry — additional coverage', () => {
       // metaList has fewer entries than pages
       const tabs = registry.reconcilePages(
         [page1, page2],
-        [{ index: 0, url: 'https://a.com', title: 'A' }],
+        [{ index: 0, url: testUrls.TEST_URLS.a, title: 'A' }],
       );
 
       expect(tabs).toHaveLength(2);
@@ -517,17 +518,17 @@ describe('TabRegistry — additional coverage', () => {
       registry.reconcilePages(
         [page1, page2],
         [
-          { index: 0, url: 'https://a.com', title: 'A' },
-          { index: 1, url: 'https://b.com', title: 'B' },
+          { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+          { index: 1, url: testUrls.TEST_URLS.b, title: 'B' },
         ],
       );
 
       // First reconcile without page2 — marks it stale
-      registry.reconcilePages([page1], [{ index: 0, url: 'https://a.com', title: 'A' }]);
+      registry.reconcilePages([page1], [{ index: 0, url: testUrls.TEST_URLS.a, title: 'A' }]);
 
       // Second reconcile still without page2 — should not re-log
       loggerState.debug.mockClear();
-      registry.reconcilePages([page1], [{ index: 0, url: 'https://a.com', title: 'A' }]);
+      registry.reconcilePages([page1], [{ index: 0, url: testUrls.TEST_URLS.a, title: 'A' }]);
 
       // Should not log "marked stale" again since it's already stale
       const staleLogCalls = loggerState.debug.mock.calls.filter(

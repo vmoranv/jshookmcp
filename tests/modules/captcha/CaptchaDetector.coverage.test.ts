@@ -16,6 +16,7 @@ vi.unmock('@src/modules/captcha/CaptchaDetector');
 
 import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
 import { createPageMock } from '../../server/domains/shared/mock-factories';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function runInBrowserContext<T>(
   source: (...args: any[]) => T,
@@ -171,7 +172,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         type: 'browser_check',
         confidence: 95,
         providerHint: 'edge_service',
-        url: 'https://example.com/cdn-cgi/challenge',
+        url: withPath(TEST_URLS.root, 'cdn-cgi/challenge'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
@@ -252,7 +253,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         type: 'widget',
         confidence: 90,
         providerHint: 'embedded_widget',
-        url: 'https://example.com/captcha-frame',
+        url: withPath(TEST_URLS.root, 'captcha-frame'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -290,7 +291,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         type: 'browser_check',
         confidence: 95,
         providerHint: 'edge_service',
-        url: 'https://example.com/challenge',
+        url: withPath(TEST_URLS.root, 'challenge'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
@@ -329,7 +330,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         detected: true,
         type: 'url_redirect',
         confidence: 90,
-        url: 'https://example.com/challenge',
+        url: withPath(TEST_URLS.root, 'challenge'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -369,7 +370,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         type: 'browser_check',
         confidence: 90,
         providerHint: 'edge_service',
-        url: 'https://example.com/challenge',
+        url: withPath(TEST_URLS.root, 'challenge'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: true,
@@ -412,7 +413,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         detected: true,
         type: 'url_redirect',
         confidence: 50,
-        url: 'https://example.com/verify',
+        url: withPath(TEST_URLS.root, 'verify'),
       });
       vi.spyOn(detector, 'checkTitle').mockResolvedValue({
         detected: false,
@@ -555,12 +556,12 @@ describe('CaptchaDetector — coverage expansion', () => {
   describe('getSignalValue', () => {
     it('returns URL from result for url source', () => {
       const value = detector.getSignalValue('url', {
-        url: 'https://example.com/challenge',
+        url: withPath(TEST_URLS.root, 'challenge'),
         detected: true,
         type: 'url_redirect',
         confidence: 90,
       });
-      expect(value).toBe('https://example.com/challenge');
+      expect(value).toBe(withPath(TEST_URLS.root, 'challenge'));
     });
 
     it('returns url-match fallback when url is absent', () => {
@@ -797,7 +798,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         .mockResolvedValueOnce(true) // hasWidget
         .mockResolvedValueOnce(true); // hasBrowserCheck
       const page = createPageMock({
-        url: vi.fn(() => 'https://example.com/verify'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'verify')),
         evaluate: mockEvaluate,
       });
 
@@ -813,7 +814,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         .mockResolvedValueOnce(false) // hasWidget
         .mockResolvedValueOnce(false); // hasBrowserCheck
       const page = createPageMock({
-        url: vi.fn(() => 'https://example.com/verify'),
+        url: vi.fn(() => withPath(TEST_URLS.root, 'verify')),
         evaluate: mockEvaluate,
       });
 
@@ -1124,13 +1125,13 @@ describe('CaptchaDetector — coverage expansion', () => {
   describe('matchRule', () => {
     it('returns matching rule and text', () => {
       const rules = [{ pattern: /captcha/i, id: 'test', confidence: 90, label: 'test' }];
-      const result = detector.matchRule('https://example.com/captcha', rules);
+      const result = detector.matchRule(withPath(TEST_URLS.root, 'captcha'), rules);
       expect(result).toEqual({ rule: rules[0], matchText: 'captcha' });
     });
 
     it('returns null when no rule matches', () => {
       const rules = [{ pattern: /captcha/i, id: 'test', confidence: 90, label: 'test' }];
-      const result = detector.matchRule('https://example.com/about', rules);
+      const result = detector.matchRule(withPath(TEST_URLS.root, 'about'), rules);
       expect(result).toBeNull();
     });
   });
@@ -1155,7 +1156,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         confidence: 95,
         type: 'browser_check',
         providerHint: 'edge_service',
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         title: 'Check',
         selector: '#challenge',
         details: { extra: true },
@@ -1165,7 +1166,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       expect(result.confidence).toBe(95);
       expect(result.type).toBe('browser_check');
       expect(result.providerHint).toBe('edge_service');
-      expect(result.url).toBe('https://example.com');
+      expect(result.url).toBe(TEST_URLS.root);
       expect(result.title).toBe('Check');
       expect(result.selector).toBe('#challenge');
       expect(result.details).toEqual({ extra: true });
@@ -1180,14 +1181,14 @@ describe('CaptchaDetector — coverage expansion', () => {
           type: 'browser_check',
           confidence: 91,
           providerHint: 'edge_service',
-          url: 'https://example.com/captcha',
+          url: withPath(TEST_URLS.root, 'captcha'),
           details: { keyword: 'verify' },
         }),
       ).toEqual(
         expect.objectContaining({
           source: 'url',
           kind: 'captcha',
-          value: 'https://example.com/captcha',
+          value: withPath(TEST_URLS.root, 'captcha'),
         }),
       );
 
@@ -1255,7 +1256,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       ).toBe('unknown');
 
       expect(
-        detector.matchRule('https://example.com/challenge', [
+        detector.matchRule(withPath(TEST_URLS.root, 'challenge'), [
           { id: 'a', label: 'A', pattern: /challenge/i, confidence: 10 },
           { id: 'b', label: 'B', pattern: /verify/i, confidence: 20 },
         ]),
@@ -1398,7 +1399,7 @@ describe('CaptchaDetector — coverage expansion', () => {
 
     it('covers checkUrl, checkTitle and checkPageText fallback branches', async () => {
       const excludeUrlPage = createPageMock();
-      excludeUrlPage.url.mockReturnValue('https://example.com/verify-email');
+      excludeUrlPage.url.mockReturnValue(withPath(TEST_URLS.root, 'verify-email'));
       await expect(detector.checkUrl(excludeUrlPage)).resolves.toMatchObject({
         detected: false,
         type: 'none',
@@ -1406,7 +1407,7 @@ describe('CaptchaDetector — coverage expansion', () => {
       });
 
       const confirmUrlPage = createPageMock();
-      confirmUrlPage.url.mockReturnValue('https://example.com/cdn-cgi/challenge-platform');
+      confirmUrlPage.url.mockReturnValue(withPath(TEST_URLS.root, 'cdn-cgi/challenge-platform'));
       vi.spyOn(detector, 'confirmRuleWithDOM').mockResolvedValueOnce(false);
       await expect(detector.checkUrl(confirmUrlPage)).resolves.toMatchObject({
         detected: false,
@@ -1661,7 +1662,7 @@ describe('CaptchaDetector — coverage expansion', () => {
         type: 'browser_check',
         confidence: 95,
         providerHint: 'edge_service',
-        url: 'https://example.com/cdn-cgi/challenge',
+        url: withPath(TEST_URLS.root, 'cdn-cgi/challenge'),
       });
       const titleSpy = vi.spyOn(detector, 'checkTitle');
 

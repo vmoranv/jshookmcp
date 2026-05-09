@@ -8,6 +8,7 @@ import {
   normalizeBaseUrl,
   buildUrl,
 } from '@extension-sdk/bridges/shared';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 /* ================================================================== */
 /*  Response helpers                                                    */
@@ -59,7 +60,7 @@ describe('toErrorResponse', () => {
 
 describe('parseStringArg', () => {
   it('extracts string value', () => {
-    expect(parseStringArg({ url: 'https://example.com' }, 'url')).toBe('https://example.com');
+    expect(parseStringArg({ url: TEST_URLS.root }, 'url')).toBe(TEST_URLS.root);
   });
 
   it('returns undefined for missing optional arg', () => {

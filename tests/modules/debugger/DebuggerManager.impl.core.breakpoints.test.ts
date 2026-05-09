@@ -20,6 +20,7 @@ import {
   setBreakpointByUrlCore,
   setBreakpointCore,
 } from '@modules/debugger/DebuggerManager.impl.core.breakpoints';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('DebuggerManager breakpoint core helpers', () => {
   beforeEach(() => {
@@ -43,7 +44,7 @@ describe('DebuggerManager breakpoint core helpers', () => {
     };
 
     const byUrl = await setBreakpointByUrlCore(ctx, {
-      url: 'https://example.com/app.js',
+      url: withPath(TEST_URLS.root, 'app.js'),
       lineNumber: 4,
       condition: 'x > 1',
     });

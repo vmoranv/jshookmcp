@@ -7,6 +7,7 @@ vi.mock('node:dns/promises', () => ({
 }));
 
 import { replayRequest } from '@server/domains/network/replay';
+import { TEST_HOSTS, TEST_HTTP_URLS, TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function buildReservedDocIpv4(): string {
   return [203, 0, 113, 10].map(String).join('.');
@@ -31,7 +32,7 @@ describe('replayRequest', () => {
 
     const result = await replayRequest(
       {
-        url: 'https://vmoranv.github.io/jshookmcp/assets/main.js',
+        url: withPath(TEST_URLS.root, 'assets/main.js'),
         method: 'GET',
         headers: {},
       },
@@ -44,7 +45,7 @@ describe('replayRequest', () => {
     expect(result.dryRun).toBe(false);
     expect((result as any).status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://vmoranv.github.io/jshookmcp/assets/main.js',
+      withPath(TEST_URLS.root, 'assets/main.js'),
       expect.objectContaining({
         method: 'GET',
         redirect: 'manual',
@@ -59,7 +60,7 @@ describe('replayRequest', () => {
     await expect(
       replayRequest(
         {
-          url: 'http://vmoranv.github.io/jshookmcp/assets/main.js',
+          url: withPath(TEST_HTTP_URLS.root, 'assets/main.js'),
           method: 'GET',
           headers: {},
         },
@@ -86,7 +87,7 @@ describe('replayRequest', () => {
 
     const result = await replayRequest(
       {
-        url: 'http://lab.example.com/assets/main.js',
+        url: withPath(TEST_HTTP_URLS.lab, 'assets/main.js'),
         method: 'GET',
         headers: {},
       },
@@ -94,7 +95,7 @@ describe('replayRequest', () => {
         requestId: 'req-http-authorized',
         dryRun: false,
         authorization: {
-          allowedHosts: ['lab.example.com'],
+          allowedHosts: [TEST_HOSTS.lab],
           allowInsecureHttp: true,
         },
       },
@@ -107,7 +108,7 @@ describe('replayRequest', () => {
         method: 'GET',
         redirect: 'manual',
         headers: expect.objectContaining({
-          Host: 'lab.example.com',
+          Host: TEST_HOSTS.lab,
         }),
       }),
     );

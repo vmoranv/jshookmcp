@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, type Mock } from 'vitest';
 import { createPageMock, parseJson } from '@tests/server/domains/shared/mock-factories';
+import * as testUrls from '@tests/shared/test-urls';
 import type {
   BrowserAttachResponse,
   BrowserCloseResponse,
@@ -457,8 +458,8 @@ describe('BrowserControlHandlers – handleBrowserListTabs', () => {
 
   it('lists pages enriched with tab registry info', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com', title: 'A' },
-      { index: 1, url: 'https://b.com', title: 'B' },
+      { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+      { index: 1, url: testUrls.TEST_URLS.b, title: 'B' },
     ]);
 
     const body = parseJson<BrowserListTabsResponse>(await handlers.handleBrowserListTabs({}));
@@ -515,8 +516,8 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
 
   it('selects a tab by index', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com', title: 'A' },
-      { index: 1, url: 'https://b.com', title: 'B' },
+      { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+      { index: 1, url: testUrls.TEST_URLS.b, title: 'B' },
     ]);
 
     const body = parseJson<BrowserSelectTabResponse>(
@@ -527,7 +528,7 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
     expect(tabRegistry.setCurrentByIndex).toHaveBeenCalledWith(1);
     expect(body.success).toBe(true);
     expect(body.selectedIndex).toBe(1);
-    expect(body.url).toBe('https://b.com');
+    expect(body.url).toBe(testUrls.TEST_URLS.b);
     expect(body.title).toBe('B');
     expect(body.contextSwitched).toBe(true);
     expect(body.monitoringBindingDeferred).toBe(true);
@@ -537,7 +538,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
   });
 
   it('selects a tab by index without enabling monitoring when no stable page handle exists', async () => {
-    collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
+    collector.listPages.mockResolvedValueOnce([
+      { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+    ]);
     tabRegistry.setCurrentByIndex.mockReturnValueOnce({
       pageId: undefined as unknown as string,
       aliases: [],
@@ -559,8 +562,8 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
 
   it('selects a tab by urlPattern', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com/page', title: 'A' },
-      { index: 1, url: 'https://b.com/target', title: 'B' },
+      { index: 0, url: `${testUrls.TEST_URLS.a}/page`, title: 'A' },
+      { index: 1, url: `${testUrls.TEST_URLS.b}/target`, title: 'B' },
     ]);
 
     const body = parseJson<BrowserSelectTabResponse>(
@@ -575,8 +578,8 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
 
   it('selects a tab by titlePattern', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com', title: 'First' },
-      { index: 1, url: 'https://b.com', title: 'Second Tab' },
+      { index: 0, url: testUrls.TEST_URLS.a, title: 'First' },
+      { index: 1, url: testUrls.TEST_URLS.b, title: 'Second Tab' },
     ]);
 
     const body = parseJson<BrowserSelectTabResponse>(
@@ -589,7 +592,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
   });
 
   it('returns error when no matching tab found', async () => {
-    collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
+    collector.listPages.mockResolvedValueOnce([
+      { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+    ]);
 
     const body = parseJson<BrowserSelectTabResponse>(
       await handlers.handleBrowserSelectTab({ urlPattern: 'notfound' }),
@@ -612,7 +617,9 @@ describe('BrowserControlHandlers – handleBrowserSelectTab', () => {
   });
 
   it('continues when marking the monitoring context stale fails', async () => {
-    collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
+    collector.listPages.mockResolvedValueOnce([
+      { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+    ]);
     consoleMonitor.markContextChanged.mockImplementationOnce(() => {
       throw new Error('mark stale failed');
     });
@@ -654,7 +661,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
 
   it('attaches to browser and selects the default page 0', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://example.com', title: 'Example' },
+      { index: 0, url: testUrls.TEST_URLS.root, title: 'Example' },
     ]);
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
@@ -685,8 +692,8 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
 
   it('attaches and selects the requested pageIndex', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com', title: 'A' },
-      { index: 1, url: 'https://b.com', title: 'B' },
+      { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+      { index: 1, url: testUrls.TEST_URLS.b, title: 'B' },
     ]);
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
@@ -699,11 +706,13 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
 
     expect(collector.selectPage).toHaveBeenCalledWith(1);
     expect(body.selectedIndex).toBe(1);
-    expect(body.currentUrl).toBe('https://b.com');
+    expect(body.currentUrl).toBe(testUrls.TEST_URLS.b);
   });
 
   it('falls back to page 0 when pageIndex is out of range', async () => {
-    collector.listPages.mockResolvedValueOnce([{ index: 0, url: 'https://a.com', title: 'A' }]);
+    collector.listPages.mockResolvedValueOnce([
+      { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+    ]);
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
     const body = parseJson<BrowserAttachResponse>(
@@ -719,8 +728,8 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
 
   it('parses string pageIndex correctly', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://a.com', title: 'A' },
-      { index: 1, url: 'https://b.com', title: 'B' },
+      { index: 0, url: testUrls.TEST_URLS.a, title: 'A' },
+      { index: 1, url: testUrls.TEST_URLS.b, title: 'B' },
     ]);
     collector.getStatus.mockResolvedValueOnce({ connected: true });
 
@@ -750,7 +759,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
 
   it('attaches without takeover when the selected tab does not expose a stable page handle', async () => {
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://example.com', title: 'Example' },
+      { index: 0, url: testUrls.TEST_URLS.root, title: 'Example' },
     ]);
     collector.getStatus.mockResolvedValueOnce({ connected: true });
     tabRegistry.setCurrentByIndex.mockReturnValueOnce({
@@ -816,7 +825,7 @@ describe('BrowserControlHandlers – target context clearing', () => {
     }));
     const collector = deps.collector as unknown as CollectorMock;
     collector.listPages.mockResolvedValueOnce([
-      { index: 0, url: 'https://example.com', title: 'Example' },
+      { index: 0, url: testUrls.TEST_URLS.root, title: 'Example' },
     ]);
 
     const body = parseJson<

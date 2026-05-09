@@ -3,6 +3,7 @@ import type { Page } from 'rebrowser-puppeteer-core';
 import { CaptchaDetector } from '@modules/captcha/CaptchaDetector';
 import { CAPTCHA_KEYWORDS, EXCLUDE_KEYWORDS } from '@modules/captcha/CaptchaDetector.constants';
 import type { CaptchaDetectionResult, CaptchaAssessment } from '@modules/captcha/types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -48,7 +49,7 @@ interface PageMock {
 
 function createPage(overrides: Partial<PageMock> = {}): any {
   return {
-    url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp'),
+    url: vi.fn(() => TEST_URLS.root),
     title: vi.fn(async () => 'home'),
     $: vi.fn(async () => null),
     evaluate: vi.fn(async () => false),
@@ -87,23 +88,11 @@ describe('CaptchaDetector', () => {
     });
 
     it.each([
-      [
-        'https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge-platform',
-        'edge_service',
-        'browser_check',
-      ],
-      [
-        'https://vmoranv.github.io/jshookmcp/browser-check/interstitial',
-        'edge_service',
-        'browser_check',
-      ],
-      ['https://vmoranv.github.io/jshookmcp/security-check', 'edge_service', 'browser_check'],
-      [
-        'https://vmoranv.github.io/jshookmcp/widget-challenge?sitekey=abc',
-        'embedded_widget',
-        'widget',
-      ],
-      ['https://vmoranv.github.io/jshookmcp/captcha-frame', 'embedded_widget', 'widget'],
+      [withPath(TEST_URLS.root, 'cdn-cgi/challenge-platform'), 'edge_service', 'browser_check'],
+      [withPath(TEST_URLS.root, 'browser-check/interstitial'), 'edge_service', 'browser_check'],
+      [withPath(TEST_URLS.root, 'security-check'), 'edge_service', 'browser_check'],
+      [withPath(TEST_URLS.root, 'widget-challenge?sitekey=abc'), 'embedded_widget', 'widget'],
+      [withPath(TEST_URLS.root, 'captcha-frame'), 'embedded_widget', 'widget'],
     ])('detects captcha when URL contains provider signal: %s', async (url, providerHint, type) => {
       const detector = new CaptchaDetector();
       const page = createPage({ url: vi.fn(() => url) });
@@ -136,7 +125,7 @@ describe('CaptchaDetector', () => {
   it('treats known URL exclude keywords as false positives', async () => {
     const detector = new TestCaptchaDetector();
     const page = createPage({
-      url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/test/verify-email'),
+      url: vi.fn(() => withPath(TEST_URLS.root, 'test/verify-email')),
     });
 
     const result = await detector.checkUrl(page);
@@ -149,7 +138,7 @@ describe('CaptchaDetector', () => {
   it('detects managed challenge from URL signature', async () => {
     const detector = new TestCaptchaDetector();
     const page = createPage({
-      url: vi.fn(() => 'https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge-platform'),
+      url: vi.fn(() => withPath(TEST_URLS.root, 'cdn-cgi/challenge-platform')),
     });
 
     const result = await detector.checkUrl(page);
@@ -251,7 +240,7 @@ describe('CaptchaDetector', () => {
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
       detected: true,
       type: 'browser_check',
-      url: 'https://vmoranv.github.io/jshookmcp/cdn-cgi/challenge',
+      url: withPath(TEST_URLS.root, 'cdn-cgi/challenge'),
       providerHint: 'edge_service',
       confidence: 95,
     });
@@ -304,7 +293,7 @@ describe('CaptchaDetector', () => {
     vi.spyOn(detector, 'checkUrl').mockResolvedValue({
       detected: true,
       type: 'url_redirect',
-      url: 'https://vmoranv.github.io/jshookmcp/challenge',
+      url: withPath(TEST_URLS.root, 'challenge'),
       confidence: 70,
     });
     vi.spyOn(detector, 'checkTitle').mockResolvedValue({

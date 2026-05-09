@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 import type {
   CodeCollectorMirror,
   ConsoleMonitorMirror,
@@ -29,6 +30,7 @@ vi.mock('@src/server/domains/shared/modules', () => ({
 }));
 
 import { AdvancedHandlersBase } from '@server/domains/network/handlers.base';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('AdvancedHandlersBase (requests)', () => {
   let collector: CodeCollectorMirror;
@@ -88,7 +90,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([]);
       consoleMonitor.getFetchRequests.mockResolvedValue([
         {
-          url: 'https://example.com/api/fetch-only',
+          url: `${testUrls.TEST_URLS.root}/api/fetch-only`,
           method: 'POST',
           status: 200,
           timestamp: 1234,
@@ -99,7 +101,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       expect(body.success).toBe(true);
       expect(body.total).toBe(1);
       expect(body.requests[0]).toMatchObject({
-        url: 'https://example.com/api/fetch-only',
+        url: `${testUrls.TEST_URLS.root}/api/fetch-only`,
         method: 'POST',
         type: 'Fetch',
         injected: true,
@@ -111,14 +113,14 @@ describe('AdvancedHandlersBase (requests)', () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
         {
           requestId: 'cdp-1',
-          url: 'https://example.com/api/one',
+          url: `${testUrls.TEST_URLS.root}/api/one`,
           method: 'GET',
           type: 'XHR',
           timestamp: 111,
         },
         {
           requestId: 'dup-1',
-          url: 'https://example.com/api/dup',
+          url: `${testUrls.TEST_URLS.root}/api/dup`,
           method: 'POST',
           type: 'Fetch',
           timestamp: 222,
@@ -127,7 +129,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       consoleMonitor.getFetchRequests.mockResolvedValue([
         {
           requestId: 'dup-1',
-          url: 'https://example.com/api/dup',
+          url: `${testUrls.TEST_URLS.root}/api/dup`,
           method: 'POST',
           timestamp: 222,
           status: 201,
@@ -135,7 +137,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       ]);
       consoleMonitor.getXHRRequests.mockResolvedValue([
         {
-          url: 'https://example.com/api/two',
+          url: `${testUrls.TEST_URLS.root}/api/two`,
           method: 'GET',
           timestamp: 333,
         },
@@ -147,10 +149,10 @@ describe('AdvancedHandlersBase (requests)', () => {
 
       expect(body.total).toBe(3);
       expect(
-        body.requests.filter((req: any) => req.url === 'https://example.com/api/dup'),
+        body.requests.filter((req: any) => req.url === `${testUrls.TEST_URLS.root}/api/dup`),
       ).toHaveLength(1);
       expect(
-        body.requests.find((req: any) => req.url === 'https://example.com/api/two'),
+        body.requests.find((req: any) => req.url === `${testUrls.TEST_URLS.root}/api/two`),
       ).toMatchObject({
         type: 'XHR',
         injected: true,
@@ -162,7 +164,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
         {
           requestId: 'cdp-near',
-          url: 'https://example.com/api/near',
+          url: `${testUrls.TEST_URLS.root}/api/near`,
           method: 'GET',
           type: 'Fetch',
           timestamp: 1000,
@@ -170,7 +172,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       ]);
       consoleMonitor.getFetchRequests.mockResolvedValue([
         {
-          url: 'https://example.com/api/near',
+          url: `${testUrls.TEST_URLS.root}/api/near`,
           method: 'GET',
           timestamp: 2200,
           status: 200,
@@ -184,7 +186,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       expect(body.total).toBe(1);
       expect(body.requests[0]).toMatchObject({
         requestId: 'cdp-near',
-        url: 'https://example.com/api/near',
+        url: `${testUrls.TEST_URLS.root}/api/near`,
         method: 'GET',
       });
     });
@@ -194,14 +196,14 @@ describe('AdvancedHandlersBase (requests)', () => {
       consoleMonitor.getNetworkRequests.mockReturnValue([
         {
           requestId: 'cdp-first',
-          url: 'https://example.com/api/poll',
+          url: `${testUrls.TEST_URLS.root}/api/poll`,
           method: 'GET',
           type: 'Fetch',
           timestamp: 1_000,
         },
         {
           requestId: 'cdp-second',
-          url: 'https://example.com/api/poll',
+          url: `${testUrls.TEST_URLS.root}/api/poll`,
           method: 'GET',
           type: 'Fetch',
           timestamp: 8_000,
@@ -209,7 +211,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       ]);
       consoleMonitor.getFetchRequests.mockResolvedValue([
         {
-          url: 'https://example.com/api/poll',
+          url: `${testUrls.TEST_URLS.root}/api/poll`,
           method: 'GET',
           timestamp: 20_000,
           status: 200,
@@ -222,7 +224,7 @@ describe('AdvancedHandlersBase (requests)', () => {
 
       expect(body.total).toBe(3);
       expect(
-        body.requests.filter((req: any) => req.url === 'https://example.com/api/poll'),
+        body.requests.filter((req: any) => req.url === `${testUrls.TEST_URLS.root}/api/poll`),
       ).toHaveLength(3);
       expect(body.requests.map((req: any) => req.requestId)).toEqual(
         expect.arrayContaining(['cdp-first', 'cdp-second']),
@@ -232,8 +234,8 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('returns all requests when no filter is specified', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api/a', method: 'GET', type: 'XHR' },
-        { requestId: '2', url: 'https://example.com/api/b', method: 'POST', type: 'Fetch' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api/a`, method: 'GET', type: 'XHR' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/api/b`, method: 'POST', type: 'Fetch' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({}));
@@ -246,12 +248,37 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('excludes static resource types by default when no filters are set', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api/data', method: 'GET', type: 'XHR' },
-        { requestId: '2', url: 'https://example.com/logo.png', method: 'GET', type: 'Image' },
-        { requestId: '3', url: 'https://example.com/style.css', method: 'GET', type: 'Stylesheet' },
-        { requestId: '4', url: 'https://example.com/font.woff2', method: 'GET', type: 'Font' },
-        { requestId: '5', url: 'https://example.com/video.mp4', method: 'GET', type: 'Media' },
-        { requestId: '6', url: 'https://example.com/api/users', method: 'POST', type: 'Fetch' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api/data`, method: 'GET', type: 'XHR' },
+        {
+          requestId: '2',
+          url: `${testUrls.TEST_URLS.root}/logo.png`,
+          method: 'GET',
+          type: 'Image',
+        },
+        {
+          requestId: '3',
+          url: `${testUrls.TEST_URLS.root}/style.css`,
+          method: 'GET',
+          type: 'Stylesheet',
+        },
+        {
+          requestId: '4',
+          url: `${testUrls.TEST_URLS.root}/font.woff2`,
+          method: 'GET',
+          type: 'Font',
+        },
+        {
+          requestId: '5',
+          url: `${testUrls.TEST_URLS.root}/video.mp4`,
+          method: 'GET',
+          type: 'Media',
+        },
+        {
+          requestId: '6',
+          url: `${testUrls.TEST_URLS.root}/api/users`,
+          method: 'POST',
+          type: 'Fetch',
+        },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(await handler.handleNetworkGetRequests({}));
@@ -266,13 +293,18 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('includes static resources when an explicit filter is set', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api/data', method: 'GET', type: 'XHR' },
-        { requestId: '2', url: 'https://example.com/logo.png', method: 'GET', type: 'Image' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api/data`, method: 'GET', type: 'XHR' },
+        {
+          requestId: '2',
+          url: `${testUrls.TEST_URLS.root}/logo.png`,
+          method: 'GET',
+          type: 'Image',
+        },
       ]);
 
       // With url filter set, Image type should NOT be excluded
       const body = parseJson<NetworkRequestsResponse>(
-        await handler.handleNetworkGetRequests({ url: 'example.com' }),
+        await handler.handleNetworkGetRequests({ url: testUrls.TEST_HOSTS.root }),
       );
       expect(body.total).toBe(2);
       expect(body.requests).toHaveLength(2);
@@ -282,14 +314,19 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('sorts results by type priority (XHR > Fetch > Document > Script)', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/app.js', method: 'GET', type: 'Script' },
-        { requestId: '2', url: 'https://example.com/', method: 'GET', type: 'Document' },
-        { requestId: '3', url: 'https://example.com/api/data', method: 'GET', type: 'XHR' },
-        { requestId: '4', url: 'https://example.com/api/users', method: 'POST', type: 'Fetch' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/app.js`, method: 'GET', type: 'Script' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/`, method: 'GET', type: 'Document' },
+        { requestId: '3', url: `${testUrls.TEST_URLS.root}/api/data`, method: 'GET', type: 'XHR' },
+        {
+          requestId: '4',
+          url: `${testUrls.TEST_URLS.root}/api/users`,
+          method: 'POST',
+          type: 'Fetch',
+        },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
-        await handler.handleNetworkGetRequests({ url: 'example.com' }),
+        await handler.handleNetworkGetRequests({ url: testUrls.TEST_HOSTS.root }),
       );
       const types = body.requests.map((r: any) => r.type);
       expect(types).toEqual(['XHR', 'Fetch', 'Document', 'Script']);
@@ -299,7 +336,7 @@ describe('AdvancedHandlersBase (requests)', () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       const manyRequests = Array.from({ length: 110 }, (_, i) => ({
         requestId: String(i),
-        url: `https://example.com/api/${i}`,
+        url: withPath(TEST_URLS.root, `api/${i}`),
         method: 'GET',
         type: 'XHR',
       }));
@@ -313,9 +350,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('filters requests by URL substring (case-insensitive)', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api/users', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/cdn/image.png', method: 'GET' },
-        { requestId: '3', url: 'https://example.com/API/orders', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api/users`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/cdn/image.png`, method: 'GET' },
+        { requestId: '3', url: `${testUrls.TEST_URLS.root}/API/orders`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -329,9 +366,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('filters requests by URL regex', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api/v1/users', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/api/v2/orders', method: 'GET' },
-        { requestId: '3', url: 'https://example.com/cdn/image.png', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api/v1/users`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/api/v2/orders`, method: 'GET' },
+        { requestId: '3', url: `${testUrls.TEST_URLS.root}/cdn/image.png`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -344,8 +381,8 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('urlRegex takes precedence over url substring', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api/v1/users', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/api/v2/orders', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api/v1/users`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/api/v2/orders`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -360,7 +397,7 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('returns error for invalid urlRegex pattern', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -373,7 +410,7 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('returns error for urlRegex exceeding 500 characters', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -386,9 +423,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('filters requests by HTTP method', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api/a', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/api/b', method: 'POST' },
-        { requestId: '3', url: 'https://example.com/api/c', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api/a`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/api/b`, method: 'POST' },
+        { requestId: '3', url: `${testUrls.TEST_URLS.root}/api/c`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -402,8 +439,8 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('method=ALL does not filter by method', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/a', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/b', method: 'POST' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/b`, method: 'POST' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -415,9 +452,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('filters by sinceRequestId (excludes up to and including the ID)', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/a', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/b', method: 'GET' },
-        { requestId: '3', url: 'https://example.com/c', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/b`, method: 'GET' },
+        { requestId: '3', url: `${testUrls.TEST_URLS.root}/c`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -430,8 +467,8 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('sinceRequestId that does not match keeps all requests', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/a', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/b', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/b`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -443,9 +480,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('filters by sinceTimestamp', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/a', method: 'GET', timestamp: 1000 },
-        { requestId: '2', url: 'https://example.com/b', method: 'GET', timestamp: 2000 },
-        { requestId: '3', url: 'https://example.com/c', method: 'GET', timestamp: 3000 },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/a`, method: 'GET', timestamp: 1000 },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/b`, method: 'GET', timestamp: 2000 },
+        { requestId: '3', url: `${testUrls.TEST_URLS.root}/c`, method: 'GET', timestamp: 3000 },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -458,10 +495,10 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('applies tail filter to return only the last N results', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/a', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/b', method: 'GET' },
-        { requestId: '3', url: 'https://example.com/c', method: 'GET' },
-        { requestId: '4', url: 'https://example.com/d', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/b`, method: 'GET' },
+        { requestId: '3', url: `${testUrls.TEST_URLS.root}/c`, method: 'GET' },
+        { requestId: '4', url: `${testUrls.TEST_URLS.root}/d`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -475,11 +512,11 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('paginates results with offset and limit', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/a', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/b', method: 'GET' },
-        { requestId: '3', url: 'https://example.com/c', method: 'GET' },
-        { requestId: '4', url: 'https://example.com/d', method: 'GET' },
-        { requestId: '5', url: 'https://example.com/e', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/b`, method: 'GET' },
+        { requestId: '3', url: `${testUrls.TEST_URLS.root}/c`, method: 'GET' },
+        { requestId: '4', url: `${testUrls.TEST_URLS.root}/d`, method: 'GET' },
+        { requestId: '5', url: `${testUrls.TEST_URLS.root}/e`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -496,8 +533,8 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('reports hasMore=false on last page', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/a', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/b', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/b`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -510,8 +547,8 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('provides filterMiss hint when URL filter matches nothing', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/cdn/img.png', method: 'GET' },
-        { requestId: '2', url: 'https://example.com/cdn/style.css', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/cdn/img.png`, method: 'GET' },
+        { requestId: '2', url: `${testUrls.TEST_URLS.root}/cdn/style.css`, method: 'GET' },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -526,7 +563,7 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('skips non-request payloads that lack url/method', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/a', method: 'GET' },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
         { broken: true },
         null,
         42,
@@ -544,10 +581,20 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('combines multiple filters together', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { requestId: '1', url: 'https://example.com/api/v1', method: 'GET', timestamp: 100 },
-        { requestId: '2', url: 'https://example.com/api/v1', method: 'POST', timestamp: 200 },
-        { requestId: '3', url: 'https://example.com/api/v1', method: 'POST', timestamp: 300 },
-        { requestId: '4', url: 'https://example.com/cdn/x', method: 'GET', timestamp: 400 },
+        { requestId: '1', url: `${testUrls.TEST_URLS.root}/api/v1`, method: 'GET', timestamp: 100 },
+        {
+          requestId: '2',
+          url: `${testUrls.TEST_URLS.root}/api/v1`,
+          method: 'POST',
+          timestamp: 200,
+        },
+        {
+          requestId: '3',
+          url: `${testUrls.TEST_URLS.root}/api/v1`,
+          method: 'POST',
+          timestamp: 300,
+        },
+        { requestId: '4', url: `${testUrls.TEST_URLS.root}/cdn/x`, method: 'GET', timestamp: 400 },
       ]);
 
       const body = parseJson<NetworkRequestsResponse>(
@@ -729,9 +776,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('computes method and status distribution stats', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://a.com', method: 'GET', type: 'Document' },
-        { url: 'https://b.com', method: 'GET', type: 'Script' },
-        { url: 'https://c.com', method: 'POST', type: 'XHR' },
+        { url: testUrls.TEST_URLS.a, method: 'GET', type: 'Document' },
+        { url: testUrls.TEST_URLS.b, method: 'GET', type: 'Script' },
+        { url: testUrls.TEST_URLS.c, method: 'POST', type: 'XHR' },
       ]);
       consoleMonitor.getNetworkResponses.mockReturnValue([
         { status: 200 },
@@ -763,9 +810,9 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('computes time stats from timestamps', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://a.com', method: 'GET', timestamp: 1000 },
-        { url: 'https://b.com', method: 'GET', timestamp: 2000 },
-        { url: 'https://c.com', method: 'GET', timestamp: 3000 },
+        { url: testUrls.TEST_URLS.a, method: 'GET', timestamp: 1000 },
+        { url: testUrls.TEST_URLS.b, method: 'GET', timestamp: 2000 },
+        { url: testUrls.TEST_URLS.c, method: 'GET', timestamp: 3000 },
       ]);
       consoleMonitor.getNetworkResponses.mockReturnValue([]);
 
@@ -779,7 +826,9 @@ describe('AdvancedHandlersBase (requests)', () => {
 
     it('uses "unknown" type for requests without type field', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
-      consoleMonitor.getNetworkRequests.mockReturnValue([{ url: 'https://a.com', method: 'GET' }]);
+      consoleMonitor.getNetworkRequests.mockReturnValue([
+        { url: testUrls.TEST_URLS.a, method: 'GET' },
+      ]);
       consoleMonitor.getNetworkResponses.mockReturnValue([]);
 
       const body = parseJson<NetworkStatsResponse>(await handler.handleNetworkGetStats({}));
@@ -789,7 +838,7 @@ describe('AdvancedHandlersBase (requests)', () => {
     it('filters out non-request and non-response payloads', async () => {
       consoleMonitor.isNetworkEnabled.mockReturnValue(true);
       consoleMonitor.getNetworkRequests.mockReturnValue([
-        { url: 'https://a.com', method: 'GET' },
+        { url: testUrls.TEST_URLS.a, method: 'GET' },
         null,
         42,
         { broken: true },

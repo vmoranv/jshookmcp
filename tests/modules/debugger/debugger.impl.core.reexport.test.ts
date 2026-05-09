@@ -16,6 +16,7 @@ import {
   type PausedState as ClassPausedState,
   type Scope as ClassScope,
 } from '@modules/debugger/DebuggerManager.impl.core.class';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('DebuggerManager.impl.core.ts re-exports', () => {
   it('re-exports the DebuggerManager class from the class module', () => {
@@ -39,7 +40,7 @@ describe('DebuggerManager.impl.core.ts re-exports', () => {
       callFrameId: 'cf-1',
       functionName: 'testFunc',
       location: { scriptId: 's1', lineNumber: 5, columnNumber: 0 },
-      url: 'https://example.com/test.js',
+      url: withPath(TEST_URLS.root, 'test.js'),
       scopeChain: [],
       this: {},
     };

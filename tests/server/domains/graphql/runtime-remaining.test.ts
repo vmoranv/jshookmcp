@@ -14,6 +14,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 import { GraphQLToolHandlersIntrospection } from '@server/domains/graphql/handlers.impl.core.runtime.introspection';
 import { GraphQLToolHandlersRuntime } from '@server/domains/graphql/handlers.impl.core.runtime.replay';
 import { GraphQLToolHandlersScriptReplace } from '@server/domains/graphql/handlers.impl.core.runtime.script-replace';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 interface IntrospectResponse {
   success: boolean;
@@ -69,7 +70,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
 
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         useBrowser: true,
       }),
     );
@@ -102,7 +103,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
 
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         useBrowser: true,
       }),
     );
@@ -125,7 +126,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
 
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         useBrowser: true,
       }),
     );
@@ -146,7 +147,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
 
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         useBrowser: true,
       }),
     );
@@ -188,7 +189,7 @@ describe('GraphQLToolHandlersIntrospection - evaluate callback', () => {
 
     const body = parseJson<IntrospectResponse>(
       await handlers.handleGraphqlIntrospect({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         headers: { 'x-custom': 'test' },
         useBrowser: true,
       }),
@@ -247,7 +248,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
 
     const body = parseJson<ReplayResponse>(
       await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: 'query Test { test }',
         useBrowser: true,
       }),
@@ -280,7 +281,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
 
     const body = parseJson<ReplayResponse>(
       await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: 'query Test { test }',
         useBrowser: true,
       }),
@@ -302,7 +303,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
 
     const body = parseJson<ReplayResponse>(
       await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: 'query Test { test }',
         useBrowser: true,
       }),
@@ -342,7 +343,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
     });
 
     await handlers.handleGraphqlReplay({
-      endpoint: 'https://example.com/graphql',
+      endpoint: withPath(TEST_URLS.root, 'graphql'),
       query: 'query GetUser($id: ID!) { user(id: $id) { name } }',
       variables: { id: '42' },
       operationName: 'GetUser',
@@ -363,7 +364,7 @@ describe('GraphQLToolHandlersRuntime (replay) - evaluate callback', () => {
 
     const body = parseJson<ReplayResponse>(
       await handlers.handleGraphqlReplay({
-        endpoint: 'https://example.com/graphql',
+        endpoint: withPath(TEST_URLS.root, 'graphql'),
         query: 'query Test { test }',
         useBrowser: true,
       }),
@@ -443,7 +444,7 @@ describe('GraphQLToolHandlersScriptReplace - additional coverage', () => {
   it('registers replacement rule with exact matchType', async () => {
     const body = parseJson<ScriptReplaceResponse>(
       await handlers.handleScriptReplacePersist({
-        url: 'https://example.com/bundle.js',
+        url: withPath(TEST_URLS.root, 'bundle.js'),
         replacement: 'void 0',
         matchType: 'exact',
       }),

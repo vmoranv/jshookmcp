@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 // No external dependencies to mock for PatternDetector -
 // it imports types and functions from sibling modules which we can mock.
@@ -31,6 +32,10 @@ import {
   detectTokenPatternsInternal,
 } from '@modules/analyzer/PatternDetectorAuthPatterns';
 
+const rootUrl = (path = '') => withPath(TEST_URLS.root, path);
+const ROOT_URL_WITH_SLASH = `${TEST_URLS.root}/`;
+const ROOT_HOST = new URL(TEST_URLS.root).hostname;
+
 type NetworkRequest = {
   requestId: string;
   url: string;
@@ -60,7 +65,7 @@ type ConsoleMessage = {
 function makeRequest(overrides: Partial<NetworkRequest> = {}): NetworkRequest {
   return {
     requestId: 'r1',
-    url: 'https://example.com/api/data',
+    url: rootUrl('api/data'),
     method: 'GET',
     headers: {},
     timestamp: Date.now(),
@@ -71,7 +76,7 @@ function makeRequest(overrides: Partial<NetworkRequest> = {}): NetworkRequest {
 function makeResponse(overrides: Partial<NetworkResponse> = {}): NetworkResponse {
   return {
     requestId: 'r1',
-    url: 'https://example.com/api/data',
+    url: rootUrl('api/data'),
     status: 200,
     statusText: 'OK',
     headers: {},
@@ -117,36 +122,36 @@ describe('PatternDetector additional coverage', () => {
 
   describe('calculateRequestPriority', () => {
     it('gives higher score to POST requests', () => {
-      const postReq = makeRequest({ method: 'POST', url: 'https://example.com/submit' });
-      const getReq = makeRequest({ method: 'GET', url: 'https://example.com/submit' });
+      const postReq = makeRequest({ method: 'POST', url: rootUrl('submit') });
+      const getReq = makeRequest({ method: 'GET', url: rootUrl('submit') });
       expect(calculateRequestPriority(postReq)).toBeGreaterThan(calculateRequestPriority(getReq));
     });
 
     it('gives higher score to PUT requests', () => {
-      const putReq = makeRequest({ method: 'PUT', url: 'https://example.com/update' });
-      const getReq = makeRequest({ method: 'GET', url: 'https://example.com/update' });
+      const putReq = makeRequest({ method: 'PUT', url: rootUrl('update') });
+      const getReq = makeRequest({ method: 'GET', url: rootUrl('update') });
       expect(calculateRequestPriority(putReq)).toBeGreaterThan(calculateRequestPriority(getReq));
     });
 
     it('increases score for each whitelist keyword in URL', () => {
-      const reqWithKeywords = makeRequest({ url: 'https://example.com/api/login/token' });
-      const reqWithout = makeRequest({ url: 'https://example.com/static/image' });
+      const reqWithKeywords = makeRequest({ url: rootUrl('api/login/token') });
+      const reqWithout = makeRequest({ url: rootUrl('static/image') });
       expect(calculateRequestPriority(reqWithKeywords)).toBeGreaterThan(
         calculateRequestPriority(reqWithout),
       );
     });
 
     it('increases score when postData is present', () => {
-      const withPost = makeRequest({ url: 'https://example.com/', postData: 'data=1' });
-      const withoutPost = makeRequest({ url: 'https://example.com/' });
+      const withPost = makeRequest({ url: ROOT_URL_WITH_SLASH, postData: 'data=1' });
+      const withoutPost = makeRequest({ url: ROOT_URL_WITH_SLASH });
       expect(calculateRequestPriority(withPost)).toBeGreaterThan(
         calculateRequestPriority(withoutPost),
       );
     });
 
     it('adds score based on URL length', () => {
-      const longUrl = makeRequest({ url: 'https://example.com/' + 'a'.repeat(200) });
-      const shortUrl = makeRequest({ url: 'https://example.com/' });
+      const longUrl = makeRequest({ url: `${ROOT_URL_WITH_SLASH}${'a'.repeat(200)}` });
+      const shortUrl = makeRequest({ url: ROOT_URL_WITH_SLASH });
       expect(calculateRequestPriority(longUrl)).toBeGreaterThan(calculateRequestPriority(shortUrl));
     });
   });
@@ -155,7 +160,7 @@ describe('PatternDetector additional coverage', () => {
     it('filters out blacklisted domains', () => {
       const requests = [
         makeRequest({ url: 'https://google-analytics.com/collect' }),
-        makeRequest({ url: 'https://example.com/api/login' }),
+        makeRequest({ url: rootUrl('api/login') }),
       ];
       const filtered = filterCriticalRequests(requests);
       expect(filtered.some((r) => new URL(r.url).hostname === 'google-analytics.com')).toBe(false);
@@ -163,44 +168,44 @@ describe('PatternDetector additional coverage', () => {
 
     it('filters out static resources', () => {
       const requests = [
-        makeRequest({ url: 'https://example.com/image.png' }),
-        makeRequest({ url: 'https://example.com/style.css' }),
-        makeRequest({ url: 'https://example.com/font.woff2' }),
-        makeRequest({ url: 'https://example.com/api/login' }),
+        makeRequest({ url: rootUrl('image.png') }),
+        makeRequest({ url: rootUrl('style.css') }),
+        makeRequest({ url: rootUrl('font.woff2') }),
+        makeRequest({ url: rootUrl('api/login') }),
       ];
       const filtered = filterCriticalRequests(requests);
       expect(filtered.every((r) => !r.url.match(/\.(png|css|woff2)$/i))).toBe(true);
     });
 
     it('includes requests with whitelist keywords', () => {
-      const requests = [makeRequest({ url: 'https://example.com/api/auth/token' })];
+      const requests = [makeRequest({ url: rootUrl('api/auth/token') })];
       const filtered = filterCriticalRequests(requests);
       expect(filtered.length).toBe(1);
     });
 
     it('includes POST requests even without keywords', () => {
-      const requests = [makeRequest({ method: 'POST', url: 'https://example.com/submit' })];
+      const requests = [makeRequest({ method: 'POST', url: rootUrl('submit') })];
       const filtered = filterCriticalRequests(requests);
       expect(filtered.length).toBe(1);
     });
 
     it('includes GET requests with query params', () => {
-      const requests = [makeRequest({ url: 'https://example.com/search?q=test' })];
+      const requests = [makeRequest({ url: rootUrl('search?q=test') })];
       const filtered = filterCriticalRequests(requests);
       expect(filtered.length).toBe(1);
     });
 
     it('excludes GET requests without keywords or query params', () => {
-      const requests = [makeRequest({ url: 'https://example.com/about' })];
+      const requests = [makeRequest({ url: rootUrl('about') })];
       const filtered = filterCriticalRequests(requests);
       expect(filtered.length).toBe(0);
     });
 
     it('sorts results by priority score descending', () => {
       const requests = [
-        makeRequest({ url: 'https://example.com/search?q=test', method: 'GET' }),
+        makeRequest({ url: rootUrl('search?q=test'), method: 'GET' }),
         makeRequest({
-          url: 'https://example.com/api/login/auth',
+          url: rootUrl('api/login/auth'),
           method: 'POST',
           postData: 'user=test',
         }),
@@ -219,11 +224,11 @@ describe('PatternDetector additional coverage', () => {
           url: 'https://googletagmanager.com/script.js',
           mimeType: 'text/javascript',
         }),
-        makeResponse({ url: 'https://example.com/api/data', mimeType: 'application/json' }),
+        makeResponse({ url: rootUrl('api/data'), mimeType: 'application/json' }),
       ];
       const filtered = filterCriticalResponses(responses);
       expect(filtered.length).toBe(1);
-      expect(filtered[0]!.url).toContain('example.com');
+      expect(filtered[0]!.url).toContain(ROOT_HOST);
     });
 
     it('includes JSON responses', () => {
@@ -239,15 +244,13 @@ describe('PatternDetector additional coverage', () => {
     });
 
     it('includes responses with whitelist keyword in URL', () => {
-      const responses = [
-        makeResponse({ url: 'https://example.com/api/auth', mimeType: 'text/html' }),
-      ];
+      const responses = [makeResponse({ url: rootUrl('api/auth'), mimeType: 'text/html' })];
       const filtered = filterCriticalResponses(responses);
       expect(filtered.length).toBe(1);
     });
 
     it('excludes responses without matching criteria', () => {
-      const responses = [makeResponse({ url: 'https://example.com/about', mimeType: 'text/html' })];
+      const responses = [makeResponse({ url: rootUrl('about'), mimeType: 'text/html' })];
       const filtered = filterCriticalResponses(responses);
       expect(filtered.length).toBe(0);
     });
@@ -255,12 +258,12 @@ describe('PatternDetector additional coverage', () => {
     it('sorts by timestamp descending', () => {
       const responses = [
         makeResponse({
-          url: 'https://example.com/api/a',
+          url: rootUrl('api/a'),
           mimeType: 'application/json',
           timestamp: 100,
         }),
         makeResponse({
-          url: 'https://example.com/api/b',
+          url: rootUrl('api/b'),
           mimeType: 'application/json',
           timestamp: 200,
         }),
@@ -346,9 +349,9 @@ describe('PatternDetector additional coverage', () => {
   describe('deduplicatePatterns', () => {
     it('removes duplicates based on type and location', () => {
       const patterns = [
-        { type: 'AES', location: 'https://example.com/api' },
-        { type: 'AES', location: 'https://example.com/api' },
-        { type: 'RSA', location: 'https://example.com/api' },
+        { type: 'AES', location: rootUrl('api') },
+        { type: 'AES', location: rootUrl('api') },
+        { type: 'RSA', location: rootUrl('api') },
       ];
       const deduped = deduplicatePatterns(patterns);
       expect(deduped.length).toBe(2);
@@ -371,7 +374,7 @@ describe('PatternDetector additional coverage', () => {
 
   describe('detectEncryptionPatterns', () => {
     it('detects AES keyword in request URL', () => {
-      const requests = [makeRequest({ url: 'https://example.com/api/aes-encrypt' })];
+      const requests = [makeRequest({ url: rootUrl('api/aes-encrypt') })];
       const patterns = detectEncryptionPatterns(requests, []);
       expect(patterns.some((p) => p.type === 'AES')).toBe(true);
     });
@@ -379,7 +382,7 @@ describe('PatternDetector additional coverage', () => {
     it('detects crypto keywords in POST data', () => {
       const requests = [
         makeRequest({
-          url: 'https://example.com/submit',
+          url: rootUrl('submit'),
           method: 'POST',
           postData: 'cipher=aes256',
         }),
@@ -390,33 +393,31 @@ describe('PatternDetector additional coverage', () => {
     });
 
     it('detects RSA keywords', () => {
-      const requests = [makeRequest({ url: 'https://example.com/rsa/publickey' })];
+      const requests = [makeRequest({ url: rootUrl('rsa/publickey') })];
       const patterns = detectEncryptionPatterns(requests, []);
       expect(patterns.some((p) => p.type === 'RSA')).toBe(true);
     });
 
     it('detects MD5 keywords', () => {
-      const requests = [makeRequest({ url: 'https://example.com/hash/md5' })];
+      const requests = [makeRequest({ url: rootUrl('hash/md5') })];
       const patterns = detectEncryptionPatterns(requests, []);
       expect(patterns.some((p) => p.type === 'MD5')).toBe(true);
     });
 
     it('detects SHA keywords', () => {
-      const requests = [makeRequest({ url: 'https://example.com/hash/sha256' })];
+      const requests = [makeRequest({ url: rootUrl('hash/sha256') })];
       const patterns = detectEncryptionPatterns(requests, []);
       expect(patterns.some((p) => p.type === 'SHA')).toBe(true);
     });
 
     it('detects Base64 keywords', () => {
-      const requests = [makeRequest({ url: 'https://example.com/encode/base64' })];
+      const requests = [makeRequest({ url: rootUrl('encode/base64') })];
       const patterns = detectEncryptionPatterns(requests, []);
       expect(patterns.some((p) => p.type === 'Base64')).toBe(true);
     });
 
     it('detects encryption patterns in console logs', () => {
-      const logs = [
-        makeLog({ text: 'CryptoJS.AES.encrypt(data)', url: 'https://example.com/app.js' }),
-      ];
+      const logs = [makeLog({ text: 'CryptoJS.AES.encrypt(data)', url: rootUrl('app.js') })];
       const patterns = detectEncryptionPatterns([], logs);
       expect(patterns.some((p) => p.type === 'AES')).toBe(true);
       expect(patterns.some((p) => p.evidence.includes('Found in console log'))).toBe(true);
@@ -429,10 +430,7 @@ describe('PatternDetector additional coverage', () => {
     });
 
     it('deduplicates results', () => {
-      const requests = [
-        makeRequest({ url: 'https://example.com/aes' }),
-        makeRequest({ url: 'https://example.com/aes' }),
-      ];
+      const requests = [makeRequest({ url: rootUrl('aes') }), makeRequest({ url: rootUrl('aes') })];
       const patterns = detectEncryptionPatterns(requests, []);
       const aesPatterns = patterns.filter((p) => p.type === 'AES');
       // Should be deduplicated (same type + location)
@@ -460,41 +458,37 @@ describe('PatternDetector additional coverage', () => {
 
   describe('detectAntiDebugPatterns', () => {
     it('detects debugger keyword', () => {
-      const logs = [makeLog({ text: 'debugger statement hit', url: 'https://example.com/app.js' })];
+      const logs = [makeLog({ text: 'debugger statement hit', url: rootUrl('app.js') })];
       const patterns = detectAntiDebugPatterns(logs);
       expect(patterns.some((p) => p.type === 'debugger')).toBe(true);
     });
 
     it('detects console.log with assignment', () => {
-      const logs = [
-        makeLog({ text: 'console.log = function(){}', url: 'https://example.com/app.js' }),
-      ];
+      const logs = [makeLog({ text: 'console.log = function(){}', url: rootUrl('app.js') })];
       const patterns = detectAntiDebugPatterns(logs);
       expect(patterns.some((p) => p.type === 'console.log')).toBe(true);
     });
 
     it('detects devtools-detect keyword', () => {
-      const logs = [makeLog({ text: 'devtools is open', url: 'https://example.com/app.js' })];
+      const logs = [makeLog({ text: 'devtools is open', url: rootUrl('app.js') })];
       const patterns = detectAntiDebugPatterns(logs);
       expect(patterns.some((p) => p.type === 'devtools-detect')).toBe(true);
     });
 
     it('detects firebug keyword', () => {
-      const logs = [makeLog({ text: 'firebug detected', url: 'https://example.com/app.js' })];
+      const logs = [makeLog({ text: 'firebug detected', url: rootUrl('app.js') })];
       const patterns = detectAntiDebugPatterns(logs);
       expect(patterns.some((p) => p.type === 'devtools-detect')).toBe(true);
     });
 
     it('detects timing-check with performance.now', () => {
-      const logs = [
-        makeLog({ text: 'performance.now() diff > 100', url: 'https://example.com/app.js' }),
-      ];
+      const logs = [makeLog({ text: 'performance.now() diff > 100', url: rootUrl('app.js') })];
       const patterns = detectAntiDebugPatterns(logs);
       expect(patterns.some((p) => p.type === 'timing-check')).toBe(true);
     });
 
     it('detects timing-check with Date.now', () => {
-      const logs = [makeLog({ text: 'Date.now() check', url: 'https://example.com/app.js' })];
+      const logs = [makeLog({ text: 'Date.now() check', url: rootUrl('app.js') })];
       const patterns = detectAntiDebugPatterns(logs);
       expect(patterns.some((p) => p.type === 'timing-check')).toBe(true);
     });
@@ -521,19 +515,19 @@ describe('PatternDetector additional coverage', () => {
 
   describe('extractSuspiciousAPIs', () => {
     it('extracts API paths containing /api/', () => {
-      const requests = [makeRequest({ url: 'https://example.com/api/users', method: 'GET' })];
+      const requests = [makeRequest({ url: rootUrl('api/users'), method: 'GET' })];
       const apis = extractSuspiciousAPIs(requests);
       expect(apis.some((a) => a.includes('/api/users'))).toBe(true);
     });
 
     it('extracts API paths containing /v1/', () => {
-      const requests = [makeRequest({ url: 'https://example.com/v1/data', method: 'POST' })];
+      const requests = [makeRequest({ url: rootUrl('v1/data'), method: 'POST' })];
       const apis = extractSuspiciousAPIs(requests);
       expect(apis.some((a) => a.includes('POST /v1/data'))).toBe(true);
     });
 
     it('extracts API paths containing /v2/', () => {
-      const requests = [makeRequest({ url: 'https://example.com/v2/items', method: 'GET' })];
+      const requests = [makeRequest({ url: rootUrl('v2/items'), method: 'GET' })];
       const apis = extractSuspiciousAPIs(requests);
       expect(apis.some((a) => a.includes('GET /v2/items'))).toBe(true);
     });
@@ -546,7 +540,7 @@ describe('PatternDetector additional coverage', () => {
 
     it('limits results to 20', () => {
       const requests = Array.from({ length: 30 }, (_, i) =>
-        makeRequest({ url: `https://example.com/api/resource${i}`, requestId: `r${i}` }),
+        makeRequest({ url: rootUrl(`api/resource${i}`), requestId: `r${i}` }),
       );
       const apis = extractSuspiciousAPIs(requests);
       expect(apis.length).toBeLessThanOrEqual(20);
@@ -554,8 +548,8 @@ describe('PatternDetector additional coverage', () => {
 
     it('deduplicates same method+path', () => {
       const requests = [
-        makeRequest({ url: 'https://example.com/api/data', method: 'GET', requestId: 'r1' }),
-        makeRequest({ url: 'https://example.com/api/data', method: 'GET', requestId: 'r2' }),
+        makeRequest({ url: rootUrl('api/data'), method: 'GET', requestId: 'r1' }),
+        makeRequest({ url: rootUrl('api/data'), method: 'GET', requestId: 'r2' }),
       ];
       const apis = extractSuspiciousAPIs(requests);
       expect(apis.filter((a) => a.includes('GET /api/data')).length).toBe(1);

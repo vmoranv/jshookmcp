@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ReverseEvidenceGraph, resetIdCounter } from '@server/evidence/ReverseEvidenceGraph';
 import type { EvidenceNodeType } from '@server/evidence/types';
+import * as testUrls from '@tests/shared/test-urls';
 
 describe('ReverseEvidenceGraph (EVID-01~03, EVID-05)', () => {
   let graph: ReverseEvidenceGraph;
@@ -15,14 +16,14 @@ describe('ReverseEvidenceGraph (EVID-01~03, EVID-05)', () => {
   describe('CRUD operations', () => {
     it('addNode creates a node with correct type and metadata', () => {
       const node = graph.addNode('request', 'GET /api/auth', {
-        url: 'https://example.com/api/auth',
+        url: `${testUrls.TEST_URLS.root}/api/auth`,
         method: 'GET',
       });
 
       expect(node.id).toMatch(/^request-/);
       expect(node.type).toBe('request');
       expect(node.label).toBe('GET /api/auth');
-      expect(node.metadata.url).toBe('https://example.com/api/auth');
+      expect(node.metadata.url).toBe(`${testUrls.TEST_URLS.root}/api/auth`);
       expect(node.metadata.method).toBe('GET');
       expect(node.createdAt).toBeGreaterThan(0);
     });
@@ -171,13 +172,13 @@ describe('ReverseEvidenceGraph (EVID-01~03, EVID-05)', () => {
   describe('queryByUrl', () => {
     it('returns all nodes associated with a URL', () => {
       const req = graph.addNode('request', 'GET /api/auth', {
-        url: 'https://example.com/api/auth',
+        url: `${testUrls.TEST_URLS.root}/api/auth`,
       });
       const stack = graph.addNode('initiator-stack', 'fetch', {});
-      const unrelated = graph.addNode('request', 'unrelated', { url: 'https://other.com' });
+      const unrelated = graph.addNode('request', 'unrelated', { url: testUrls.TEST_URLS.other });
       graph.addEdge(req.id, stack.id, 'initiates');
 
-      const result = graph.queryByUrl('example.com/api/auth');
+      const result = graph.queryByUrl(`${testUrls.TEST_HOSTS.root}/api/auth`);
       const ids = result.map((n) => n.id);
       expect(ids).toContain(req.id);
       expect(ids).toContain(stack.id);
@@ -185,10 +186,12 @@ describe('ReverseEvidenceGraph (EVID-01~03, EVID-05)', () => {
     });
 
     it('returns non-request nodes if they contain url metadata', () => {
-      const func = graph.addNode('function', 'someFunc', { url: 'https://example.com/api/test' });
-      const unrelated = graph.addNode('script', 'unrelated', { url: 'https://other.com' });
+      const func = graph.addNode('function', 'someFunc', {
+        url: `${testUrls.TEST_URLS.root}/api/test`,
+      });
+      const unrelated = graph.addNode('script', 'unrelated', { url: testUrls.TEST_URLS.other });
 
-      const result = graph.queryByUrl('example.com/api/test');
+      const result = graph.queryByUrl(`${testUrls.TEST_HOSTS.root}/api/test`);
       const ids = result.map((n) => n.id);
       expect(ids).toContain(func.id);
       expect(ids).not.toContain(unrelated.id);

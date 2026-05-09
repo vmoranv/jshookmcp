@@ -7,6 +7,7 @@ import {
   ReverseEvidenceGraph,
   resetIdCounter as _resetGraphIdCounter,
 } from '@server/evidence/ReverseEvidenceGraph';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('CrossDomainEvidenceBridge', () => {
   let bridge: CrossDomainEvidenceBridge;
@@ -44,18 +45,18 @@ describe('CrossDomainEvidenceBridge', () => {
     it('should add a network request node', async () => {
       const { node } = bridge.addNetworkRequest({
         requestId: 'req-1',
-        url: 'https://api.example.com/data',
+        url: withPath(TEST_URLS.api, 'data'),
       });
       expect(node.id).toMatch(/^network-request-/);
       expect(node.type).toBe('network-request');
       expect(node.metadata.requestId).toBe('req-1');
-      expect(node.metadata.url).toBe('https://api.example.com/data');
+      expect(node.metadata.url).toBe(withPath(TEST_URLS.api, 'data'));
     });
 
     it('should link network request to initiator heap node', async () => {
       const heapNode = bridge.addV8Object({ address: '0x9999', name: 'FetchWrapper' });
       const { node: netNode } = bridge.addNetworkRequest(
-        { url: 'https://api.example.com/secure', method: 'POST' },
+        { url: withPath(TEST_URLS.api, 'secure'), method: 'POST' },
         heapNode.id,
       );
       const edges = bridge.getGraph().getEdgesFrom(heapNode.id);
@@ -120,7 +121,7 @@ describe('CrossDomainEvidenceBridge', () => {
   describe('queryByNetworkUrl', () => {
     it('should find network nodes by URL', async () => {
       bridge.addNetworkRequest({ url: 'https://secret.game/api/check' });
-      bridge.addNetworkRequest({ url: 'https://other.example.com' });
+      bridge.addNetworkRequest({ url: TEST_URLS.other });
       const results = bridge.queryByNetworkUrl('secret.game');
       expect(results.length).toBeGreaterThan(0);
       expect(results.some((n) => n.type === 'network-request')).toBe(true);
@@ -130,7 +131,7 @@ describe('CrossDomainEvidenceBridge', () => {
   describe('exportGraph', () => {
     it('should export a valid graph snapshot', async () => {
       bridge.addV8Object({ address: '0x1000', name: 'Obj1' });
-      bridge.addNetworkRequest({ url: 'https://example.com' });
+      bridge.addNetworkRequest({ url: TEST_URLS.root });
       const snapshot = bridge.exportGraph();
       expect(snapshot.version).toBe(1);
       expect(snapshot.nodes.length).toBeGreaterThanOrEqual(2);

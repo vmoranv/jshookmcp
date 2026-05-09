@@ -6,6 +6,7 @@ import { TraceToolHandlers } from '@server/domains/trace/handlers';
 import { TraceRecorder } from '@modules/trace/TraceRecorder';
 import { TraceDB } from '@modules/trace/TraceDB';
 import type { MCPServerContext } from '@server/MCPServer.context';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const parseToolResponse = <T>(response: unknown): T => {
   const r = response as { content?: Array<{ text?: string }> };
@@ -377,7 +378,7 @@ describe('TraceToolHandlers', () => {
       // @ts-expect-error
       db.upsertNetworkResource({
         requestId: 'req-trace',
-        url: 'https://example.com/api',
+        url: withPath(TEST_URLS.root, 'api'),
         method: 'GET',
         resourceType: 'XHR',
         requestHeaders: '{"accept":"application/json"}',

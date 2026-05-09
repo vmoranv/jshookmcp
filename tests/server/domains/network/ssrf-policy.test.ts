@@ -12,6 +12,7 @@ import {
   isSsrfTarget,
   resolveNetworkTarget,
 } from '@server/domains/network/ssrf-policy';
+import { TEST_HOSTS, TEST_URLS, TEST_HTTP_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('network ssrf-policy helpers', () => {
   describe('isPrivateHost', () => {
@@ -72,7 +73,7 @@ describe('network ssrf-policy helpers', () => {
     });
 
     it('returns false for non-IP hostnames', async () => {
-      expect(isPrivateHost('example.com')).toBe(false);
+      expect(isPrivateHost(TEST_HOSTS.root)).toBe(false);
     });
   });
 
@@ -108,7 +109,7 @@ describe('network ssrf-policy helpers', () => {
     });
 
     it('rejects non-loopback URLs', async () => {
-      expect(isLoopbackHttpUrl('http://example.com/api')).toBe(false);
+      expect(isLoopbackHttpUrl(withPath(TEST_HTTP_URLS.root, 'api'))).toBe(false);
     });
 
     it('returns false for invalid URL', async () => {
@@ -146,9 +147,9 @@ describe('network ssrf-policy helpers', () => {
 
     it('parses allowedHosts', async () => {
       const policy = createNetworkAuthorizationPolicy({
-        allowedHosts: ['example.com', 'localhost:8080'],
+        allowedHosts: [TEST_HOSTS.root, 'localhost:8080'],
       });
-      expect(policy!.allowedHosts.has('example.com')).toBe(true);
+      expect(policy!.allowedHosts.has(TEST_HOSTS.root)).toBe(true);
       expect(policy!.allowedHosts.has('localhost:8080')).toBe(true);
     });
 
@@ -259,7 +260,7 @@ describe('network ssrf-policy helpers', () => {
 
     it('returns true when hosts are allowed', async () => {
       const policy = createNetworkAuthorizationPolicy({
-        allowedHosts: ['example.com'],
+        allowedHosts: [TEST_HOSTS.root],
       });
       expect(hasAuthorizedTargets(policy)).toBe(true);
     });
@@ -304,11 +305,11 @@ describe('network ssrf-policy helpers', () => {
 
     it('returns true when hostname is in allowedHosts', async () => {
       const policy = createNetworkAuthorizationPolicy({
-        allowedHosts: ['example.com'],
+        allowedHosts: [TEST_HOSTS.root],
       });
       expect(
         isAuthorizedNetworkTarget(policy!, {
-          hostname: 'example.com',
+          hostname: TEST_HOSTS.root,
           resolvedAddress: '1.2.3.4',
         }),
       ).toBe(true);
@@ -333,7 +334,7 @@ describe('network ssrf-policy helpers', () => {
       });
       expect(
         isAuthorizedNetworkTarget(policy!, {
-          hostname: 'example.com',
+          hostname: TEST_HOSTS.root,
           resolvedAddress: '8.8.8.8',
         }),
       ).toBe(false);
@@ -341,7 +342,7 @@ describe('network ssrf-policy helpers', () => {
 
     it('returns false when resolvedAddress is null', async () => {
       const policy = createNetworkAuthorizationPolicy({
-        allowedHosts: ['example.com'],
+        allowedHosts: [TEST_HOSTS.root],
       });
       expect(
         isAuthorizedNetworkTarget(policy!, {
@@ -380,7 +381,7 @@ describe('network ssrf-policy helpers', () => {
 
   describe('isSsrfTarget', () => {
     it('returns false for public URLs', async () => {
-      await expect(isSsrfTarget('https://example.com/')).resolves.toBe(false);
+      await expect(isSsrfTarget(`${TEST_URLS.root}/`)).resolves.toBe(false);
     });
 
     it('returns true for invalid URLs', async () => {

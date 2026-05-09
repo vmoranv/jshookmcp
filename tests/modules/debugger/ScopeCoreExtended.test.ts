@@ -17,6 +17,7 @@ import {
   getObjectPropertiesCore,
   getScopeVariablesCore,
 } from '@modules/debugger/DebuggerManager.impl.core.scope';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function makePausedCtx(overrides: Record<string, unknown> = {}) {
   const send = vi.fn(async () => ({ result: [] }));
@@ -28,7 +29,7 @@ function makePausedCtx(overrides: Record<string, unknown> = {}) {
         {
           callFrameId: 'cf-1',
           functionName: 'testFn',
-          url: 'https://example.com/app.js',
+          url: withPath(TEST_URLS.root, 'app.js'),
           location: { lineNumber: 10, columnNumber: 2 },
           scopeChain: [{ type: 'local', object: { objectId: 'obj-local' } }],
         },
@@ -81,14 +82,14 @@ describe('getScopeVariablesCore - call frame lookup', () => {
           {
             callFrameId: 'cf-1',
             functionName: 'top',
-            url: 'https://example.com/a.js',
+            url: withPath(TEST_URLS.root, 'a.js'),
             location: { lineNumber: 1, columnNumber: 0 },
             scopeChain: [],
           },
           {
             callFrameId: 'cf-2',
             functionName: 'bottom',
-            url: 'https://example.com/b.js',
+            url: withPath(TEST_URLS.root, 'b.js'),
             location: { lineNumber: 20, columnNumber: 5 },
             scopeChain: [],
           },
@@ -152,7 +153,7 @@ describe('getScopeVariablesCore - scope error handling', () => {
           {
             callFrameId: 'cf-1',
             functionName: 'fn',
-            url: 'https://example.com/a.js',
+            url: withPath(TEST_URLS.root, 'a.js'),
             location: { lineNumber: 1, columnNumber: 0 },
             scopeChain: [
               { type: 'local', object: { objectId: 'obj-good' } },
@@ -205,7 +206,7 @@ describe('getScopeVariablesCore - scope error handling', () => {
           {
             callFrameId: 'cf-1',
             functionName: 'fn',
-            url: 'https://example.com/a.js',
+            url: withPath(TEST_URLS.root, 'a.js'),
             location: { lineNumber: 1, columnNumber: 0 },
             scopeChain: [
               { type: 'local', object: {} }, // no objectId
@@ -345,7 +346,7 @@ describe('getScopeVariablesCore - callFrameInfo', () => {
           {
             callFrameId: 'cf-1',
             functionName: '',
-            url: 'https://example.com/app.js',
+            url: withPath(TEST_URLS.root, 'app.js'),
             location: { lineNumber: 5, columnNumber: 3 },
             scopeChain: [],
           },
@@ -356,7 +357,7 @@ describe('getScopeVariablesCore - callFrameInfo', () => {
     const result = await getScopeVariablesCore(ctx);
 
     expect(result.callFrameInfo!.functionName).toBe('(anonymous)');
-    expect(result.callFrameInfo!.location).toBe('https://example.com/app.js:5:3');
+    expect(result.callFrameInfo!.location).toBe(withPath(TEST_URLS.root, 'app.js:5:3'));
   });
 });
 

@@ -16,6 +16,7 @@ import {
   type Scope as ImplScope,
   type ObjectPropertyInfo as ImplObjectPropertyInfo,
 } from '@modules/debugger/DebuggerManager.impl';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('DebuggerManager.ts public re-exports', () => {
   it('re-exports the DebuggerManager class from the impl module', () => {
@@ -54,7 +55,7 @@ describe('DebuggerManager.ts public re-exports', () => {
       callFrameId: 'cf-1',
       functionName: 'anonymous',
       location: { scriptId: 's-1', lineNumber: 10, columnNumber: 5 },
-      url: 'https://example.com/app.js',
+      url: withPath(TEST_URLS.root, 'app.js'),
       scopeChain: [
         {
           type: 'local',

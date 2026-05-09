@@ -1,5 +1,6 @@
 import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 import {
   handleHumanMouse,
@@ -40,7 +41,7 @@ function createPage(documentOverride: Record<string, any> = {}) {
         (globalThis as any).document = prevDocument;
       }
     }),
-    url: vi.fn(() => 'http://test.local'),
+    url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
     document,
   };
 }

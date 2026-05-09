@@ -58,6 +58,7 @@ vi.mock('@utils/logger', () => ({
 }));
 
 import { handleSearchTools } from '@server/MCPServer.search.handlers.search';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
   return {
@@ -175,7 +176,7 @@ describe('MCPServer.search.handlers.search', () => {
       name: 'page_navigate',
       inputSchema: { type: 'object', properties: { url: { type: 'string' } } },
     });
-    state.generateExampleArgs.mockReturnValue({ url: 'https://example.com' });
+    state.generateExampleArgs.mockReturnValue({ url: TEST_URLS.root });
     // Simulate activation of page_navigate and others
     state.activateToolNames.mockImplementation(async (c: any) => {
       if (c.server?.sendToolListChanged) await c.server.sendToolListChanged();
@@ -206,7 +207,7 @@ describe('MCPServer.search.handlers.search', () => {
         step: 1,
         action: 'call',
         command: 'page_navigate',
-        exampleArgs: { url: 'https://example.com' },
+        exampleArgs: { url: TEST_URLS.root },
         description:
           'Call page_navigate directly. Use describe_tool("page_navigate") only if you need the full schema.',
       },

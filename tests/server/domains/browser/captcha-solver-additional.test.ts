@@ -9,7 +9,7 @@ import {
 function createMockPage(overrides: Record<string, any> = {}) {
   return {
     evaluate: vi.fn().mockResolvedValue({ challengeType: 'image', taskKind: 'image', siteKey: '' }),
-    url: vi.fn(() => 'http://test.local/page'),
+    url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: 'page' })),
     ...overrides,
   };
 }
@@ -499,7 +499,7 @@ describe('captcha-solver additional coverage', () => {
     it('auto-detects siteKey from turnstile element', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('detected-site-key'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -519,7 +519,7 @@ describe('captcha-solver additional coverage', () => {
     it('uses provided siteKey over auto-detected', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('auto-detected-key'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -540,7 +540,7 @@ describe('captcha-solver additional coverage', () => {
     it('uses pageUrl from args if provided', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('test-key'),
-        url: vi.fn(() => 'http://original.local'),
+        url: vi.fn(() => buildTestUrl('original', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -566,7 +566,7 @@ describe('captcha-solver additional coverage', () => {
           // First call: siteKey auto-detect (not needed with explicit siteKey)
           // Second call: hook evaluation (returns null via catch)
           .mockRejectedValue(new Error('Hook timeout')),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -589,7 +589,7 @@ describe('captcha-solver additional coverage', () => {
     it('hook mode with successful token returns it', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('hooked-token'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -611,7 +611,7 @@ describe('captcha-solver additional coverage', () => {
     it('hook mode with null token falls through', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue(null),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -633,7 +633,7 @@ describe('captcha-solver additional coverage', () => {
     it('rejects non-2captcha external service for widget flow', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('test-key'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -657,7 +657,7 @@ describe('captcha-solver additional coverage', () => {
     it('uses timeoutMs from args clamped to valid range', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('test-key'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -679,7 +679,7 @@ describe('captcha-solver additional coverage', () => {
     it('injectToken defaults to true', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue('test-key'),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -699,7 +699,7 @@ describe('captcha-solver additional coverage', () => {
     it('returns error when page.evaluate returns empty string for siteKey', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue(''),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -714,7 +714,7 @@ describe('captcha-solver additional coverage', () => {
     it('returns error when page.evaluate returns undefined for siteKey', async () => {
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue(undefined),
-        url: vi.fn(() => 'http://test.local'),
+        url: vi.fn(() => buildTestUrl('test', { scheme: 'http', suffix: 'local', path: '/' })),
       });
       const collector = createMockCollector(page);
 
@@ -730,3 +730,4 @@ describe('captcha-solver additional coverage', () => {
 
 // Import afterEach at module scope for cleanup
 import { afterEach } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';

@@ -1,4 +1,5 @@
 import { vi, type Mock } from 'vitest';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 /**
  * DeepPartial utility for creating type-safe mocks of complex objects.
@@ -78,7 +79,7 @@ export function createPageMock(
   overrides: DeepPartial<PuppeteerPageMirror> = {},
 ): PuppeteerPageMirror {
   return {
-    url: vi.fn(() => 'https://example.com'),
+    url: vi.fn(() => TEST_URLS.root),
     title: vi.fn(async () => 'Default Title'),
     $: vi.fn(async () => null),
     $$: vi.fn(async () => []),

@@ -7,6 +7,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { EventBus, createServerEventBus, type ServerEventMap } from '@server/EventBus';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 describe('EventBus — comprehensive coverage', () => {
   describe('once() edge cases', () => {
@@ -74,7 +75,7 @@ describe('EventBus — comprehensive coverage', () => {
       const handler = vi.fn();
       bus.onAny(handler);
 
-      const payload = { url: 'https://example.com', timestamp: '' };
+      const payload = { url: TEST_URLS.root, timestamp: '' };
       await bus.emit('browser:navigated', payload);
 
       expect(handler).toHaveBeenCalledWith({

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SourcemapToolHandlersExtension } from '../../../../src/server/domains/sourcemap/handlers.impl.sourcemap-extension';
 import { CodeCollector } from '../../../../src/modules/collector/CodeCollector';
+import { TEST_HTTP_URLS } from '@tests/shared/test-urls';
 
 describe('SourcemapToolHandlersExtension', () => {
   let handlers: SourcemapToolHandlersExtension;
@@ -58,7 +59,7 @@ describe('SourcemapToolHandlersExtension', () => {
       ).toBe('abcdefghijklmnopabcdefghijklmnop');
     });
     it('returns null for invalid url', async () => {
-      expect((handlers as any).extractExtensionId('http://example.com')).toBe(null);
+      expect((handlers as any).extractExtensionId(TEST_HTTP_URLS.root)).toBe(null);
     });
     it('returns null for malformed ID', async () => {
       expect((handlers as any).extractExtensionId('chrome-extension://123/foo')).toBe(null);
@@ -83,7 +84,7 @@ describe('SourcemapToolHandlersExtension', () => {
     it('fetches targets and sorts them', async () => {
       mockSession.send.mockResolvedValue({
         targetInfos: [
-          { targetId: '1', type: 'page', url: 'http://example.com' }, // filtered
+          { targetId: '1', type: 'page', url: TEST_HTTP_URLS.root }, // filtered
           {
             targetId: '2',
             type: 'background_page',

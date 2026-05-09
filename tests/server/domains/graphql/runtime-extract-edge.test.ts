@@ -9,6 +9,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 
 import { GraphQLToolHandlersExtract } from '@server/domains/graphql/handlers.impl.core.runtime.extract';
 import type { ExtractedGraphQLQuery } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { TEST_URLS, TEST_WS_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('GraphQLToolHandlersExtract - edge cases', () => {
   const page = {
@@ -37,7 +38,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
         extracted: [
           {
             source: 'window.__fetchRequests',
-            url: 'https://api.example.com/graphql',
+            url: withPath(TEST_URLS.api, 'graphql'),
             method: 'POST',
             operationName: 'UpdateUser',
             query: 'mutation UpdateUser($id: ID!) { updateUser(id: $id) { ok } }',
@@ -63,7 +64,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
         extracted: [
           {
             source: 'window.__xhrRequests',
-            url: 'wss://api.example.com/graphql',
+            url: withPath(TEST_WS_URLS.api, 'graphql'),
             method: 'POST',
             operationName: 'OnMessage',
             query: 'subscription OnMessage { messageAdded { id text } }',
@@ -90,7 +91,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
         extracted: [
           {
             source: 'test',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: null,
             query: '{ viewer { id name } }',
@@ -138,7 +139,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
     it('handles many queries from extraction', async () => {
       const extracted: ExtractedGraphQLQuery[] = Array.from({ length: 100 }, (_, i) => ({
         source: `src_${i}`,
-        url: `https://example.com/graphql`,
+        url: withPath(TEST_URLS.root, 'graphql'),
         method: 'POST',
         operationName: `Op${i}`,
         query: `query Op${i} { field${i} }`,
@@ -171,7 +172,7 @@ describe('GraphQLToolHandlersExtract - edge cases', () => {
         extracted: [
           {
             source: 'test',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: null,
             query: largeQuery,

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HookHeartbeat, type HeartbeatScript } from '@modules/browser/HookHeartbeat';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 vi.mock('@utils/logger', () => ({
   logger: { debug: vi.fn(), warn: vi.fn(), info: vi.fn(), error: vi.fn() },
@@ -7,7 +8,7 @@ vi.mock('@utils/logger', () => ({
 
 function createMockPage() {
   const handlers = new Map<string, ((...args: any[]) => void)[]>();
-  const mainFrame = { url: () => 'https://example.com', parentFrame: () => null };
+  const mainFrame = { url: () => TEST_URLS.root, parentFrame: () => null };
   return {
     on: vi.fn((event: string, handler: (...args: any[]) => void) => {
       if (!handlers.has(event)) handlers.set(event, []);
@@ -61,7 +62,7 @@ describe('HookHeartbeat', () => {
     heartbeat.addScript(script);
     heartbeat.start();
 
-    const mainFrame = { url: () => 'https://example.com/new-page', parentFrame: () => null };
+    const mainFrame = { url: () => withPath(TEST_URLS.root, 'new-page'), parentFrame: () => null };
     page.emitFrameEvent('framenavigated', mainFrame);
 
     // Run debounce timer
@@ -76,7 +77,7 @@ describe('HookHeartbeat', () => {
     heartbeat.addScript({ id: 'test', source: 'test()' });
     heartbeat.start();
 
-    const subFrame = { url: () => 'https://ads.example.com', parentFrame: () => ({}) };
+    const subFrame = { url: () => TEST_URLS.ads, parentFrame: () => ({}) };
     page.emitFrameEvent('framenavigated', subFrame);
 
     await vi.advanceTimersByTimeAsync(10);
@@ -90,7 +91,7 @@ describe('HookHeartbeat', () => {
     heartbeat.addScript({ id: 'test', source: 'test()' });
     heartbeat.start();
 
-    const frame = { url: () => 'https://example.com/a', parentFrame: () => null };
+    const frame = { url: () => withPath(TEST_URLS.root, 'a'), parentFrame: () => null };
     page.emitFrameEvent('framenavigated', frame);
     page.emitFrameEvent('framenavigated', frame);
     page.emitFrameEvent('framenavigated', frame);
@@ -139,7 +140,7 @@ describe('HookHeartbeat', () => {
     heartbeat.addScript({ id: 'b', source: 'b()' });
     heartbeat.start();
 
-    const frame = { url: () => 'https://example.com', parentFrame: () => null };
+    const frame = { url: () => TEST_URLS.root, parentFrame: () => null };
     page.emitFrameEvent('framenavigated', frame);
     await vi.advanceTimersByTimeAsync(10);
 

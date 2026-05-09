@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as testUrls from '@tests/shared/test-urls';
 
 const mocks = vi.hoisted(() => ({
   logger: {
@@ -25,6 +26,7 @@ vi.mock('@modules/monitor/NetworkMonitor.interceptors', () => ({
 }));
 
 import { NetworkMonitor } from '@modules/monitor/NetworkMonitor.impl';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createMockSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -172,7 +174,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
         request: {
-          url: 'https://api.example.com/submit',
+          url: `${testUrls.TEST_URLS.api}/submit`,
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           postData: '{"key":"value"}',
@@ -199,7 +201,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://cdn.example.com/lib.js',
+          url: `${testUrls.TEST_URLS.cdn}/lib.js`,
           status: 304,
           statusText: 'Not Modified',
           headers: {},
@@ -228,7 +230,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       for (let i = 0; i <= MAX; i++) {
         emit('Network.requestWillBeSent', {
           requestId: `r-${i}`,
-          request: { url: `https://site.com/${i}`, method: 'GET' },
+          request: { url: withPath(TEST_URLS.root, `${i}`), method: 'GET' },
           timestamp: i,
         });
       }
@@ -246,7 +248,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
         emit('Network.responseReceived', {
           requestId: `r-${i}`,
           response: {
-            url: `https://site.com/${i}`,
+            url: withPath(TEST_URLS.root, `${i}`),
             status: 200,
             statusText: 'OK',
             mimeType: 'text/html',
@@ -268,12 +270,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://api.example.com/users', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.api}/users`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.requestWillBeSent', {
         requestId: 'r2',
-        request: { url: 'https://cdn.example.com/lib.js', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.cdn}/lib.js`, method: 'GET' },
         timestamp: 2,
       });
 
@@ -289,12 +291,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/a', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.requestWillBeSent', {
         requestId: 'r2',
-        request: { url: 'https://site.com/b', method: 'POST' },
+        request: { url: `${testUrls.TEST_URLS.root}/b`, method: 'POST' },
         timestamp: 2,
       });
 
@@ -310,7 +312,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       for (let i = 0; i < 5; i++) {
         emit('Network.requestWillBeSent', {
           requestId: `r-${i}`,
-          request: { url: `https://site.com/${i}`, method: 'GET' },
+          request: { url: withPath(TEST_URLS.root, `${i}`), method: 'GET' },
           timestamp: i,
         });
       }
@@ -329,7 +331,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://site.com/ok',
+          url: `${testUrls.TEST_URLS.root}/ok`,
           status: 200,
           statusText: 'OK',
           mimeType: 'text/html',
@@ -339,7 +341,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       emit('Network.responseReceived', {
         requestId: 'r2',
         response: {
-          url: 'https://site.com/err',
+          url: `${testUrls.TEST_URLS.root}/err`,
           status: 500,
           statusText: 'Error',
           mimeType: 'text/html',
@@ -361,7 +363,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
         emit('Network.responseReceived', {
           requestId: `r-${i}`,
           response: {
-            url: `https://api.site.com/${i}`,
+            url: withPath(TEST_URLS.api, `${i}`),
             status: 200,
             statusText: 'OK',
             mimeType: 'application/json',
@@ -370,7 +372,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
         });
       }
 
-      const filtered = monitor.getResponses({ url: 'api.site', limit: 2 });
+      const filtered = monitor.getResponses({ url: 'api.example', limit: 2 });
       expect(filtered).toHaveLength(2);
     });
   });
@@ -384,13 +386,13 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/api', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/api`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://site.com/api',
+          url: `${testUrls.TEST_URLS.root}/api`,
           status: 200,
           statusText: 'OK',
           mimeType: 'application/json',
@@ -399,7 +401,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       });
 
       const activity = monitor.getActivity('r1');
-      expect(activity.request?.url).toBe('https://site.com/api');
+      expect(activity.request?.url).toBe(`${testUrls.TEST_URLS.root}/api`);
       expect(activity.response?.status).toBe(200);
     });
 
@@ -423,7 +425,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/a', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
         timestamp: 1,
       });
 
@@ -445,20 +447,20 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/a', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
         timestamp: 1,
         type: 'Document',
       });
       emit('Network.requestWillBeSent', {
         requestId: 'r2',
-        request: { url: 'https://site.com/b', method: 'POST' },
+        request: { url: `${testUrls.TEST_URLS.root}/b`, method: 'POST' },
         timestamp: 2,
         type: 'XHR',
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://site.com/a',
+          url: `${testUrls.TEST_URLS.root}/a`,
           status: 200,
           statusText: 'OK',
           mimeType: 'text/html',
@@ -468,7 +470,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       emit('Network.responseReceived', {
         requestId: 'r2',
         response: {
-          url: 'https://site.com/b',
+          url: `${testUrls.TEST_URLS.root}/b`,
           status: 404,
           statusText: 'Not Found',
           mimeType: 'text/html',
@@ -497,7 +499,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/a', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
         timestamp: 1,
       });
 
@@ -533,7 +535,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/a', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
         timestamp: 1,
       });
 
@@ -548,13 +550,13 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/script.js', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/script.js`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://site.com/script.js',
+          url: `${testUrls.TEST_URLS.root}/script.js`,
           status: 200,
           statusText: 'OK',
           mimeType: 'application/javascript',
@@ -578,13 +580,13 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/a', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://site.com/a',
+          url: `${testUrls.TEST_URLS.root}/a`,
           status: 200,
           statusText: 'OK',
           mimeType: 'text/html',
@@ -605,13 +607,13 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/a', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/a`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://site.com/a',
+          url: `${testUrls.TEST_URLS.root}/a`,
           status: 200,
           statusText: 'OK',
           mimeType: 'text/html',
@@ -635,13 +637,13 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/app.js', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/app.js`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://site.com/app.js',
+          url: `${testUrls.TEST_URLS.root}/app.js`,
           status: 200,
           statusText: 'OK',
           mimeType: 'application/javascript',
@@ -654,7 +656,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       const jsResponses = await monitor.getAllJavaScriptResponses();
       expect(jsResponses).toHaveLength(1);
       expect(jsResponses[0]).toMatchObject({
-        url: 'https://site.com/app.js',
+        url: `${testUrls.TEST_URLS.root}/app.js`,
         content: 'var x = 1;',
         size: 10,
       });
@@ -668,7 +670,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://site.com/style.css',
+          url: `${testUrls.TEST_URLS.root}/style.css`,
           status: 200,
           statusText: 'OK',
           mimeType: 'text/css',
@@ -687,13 +689,13 @@ describe('NetworkMonitor.impl – additional coverage', () => {
 
       emit('Network.requestWillBeSent', {
         requestId: 'r1',
-        request: { url: 'https://site.com/bundle.js?v=123', method: 'GET' },
+        request: { url: `${testUrls.TEST_URLS.root}/bundle.js?v=123`, method: 'GET' },
         timestamp: 1,
       });
       emit('Network.responseReceived', {
         requestId: 'r1',
         response: {
-          url: 'https://site.com/bundle.js?v=123',
+          url: `${testUrls.TEST_URLS.root}/bundle.js?v=123`,
           status: 200,
           statusText: 'OK',
           mimeType: 'text/plain',
@@ -745,12 +747,12 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       await monitor.enable();
 
       send.mockResolvedValueOnce({
-        result: { value: [{ url: 'https://api.com/data', method: 'GET' }] },
+        result: { value: [{ url: `${testUrls.TEST_URLS.api}/data`, method: 'GET' }] },
       });
 
       const reqs = await monitor.getXHRRequests();
       expect(reqs).toHaveLength(1);
-      expect(reqs[0]).toMatchObject({ url: 'https://api.com/data' });
+      expect(reqs[0]).toMatchObject({ url: `${testUrls.TEST_URLS.api}/data` });
     });
 
     it('returns empty array when value is not an array', async () => {
@@ -783,7 +785,7 @@ describe('NetworkMonitor.impl – additional coverage', () => {
       await monitor.enable();
 
       send.mockResolvedValueOnce({
-        result: { value: [{ url: 'https://api.com/fetch', method: 'POST' }] },
+        result: { value: [{ url: `${testUrls.TEST_URLS.api}/fetch`, method: 'POST' }] },
       });
 
       const reqs = await monitor.getFetchRequests();

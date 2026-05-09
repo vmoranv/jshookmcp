@@ -11,6 +11,7 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { DebuggerManager } from '@modules/debugger/DebuggerManager';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 function createMockCDPSession() {
   const listeners = new Map<string, Set<(payload: any) => void>>();
@@ -57,7 +58,7 @@ function pausedPayload(hitBreakpoints: string[] = []) {
         callFrameId: 'cf-1',
         functionName: 'main',
         location: { scriptId: 's1', lineNumber: 10, columnNumber: 2 },
-        url: 'https://site/app.js',
+        url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
         scopeChain: [],
         this: {},
       },
@@ -89,7 +90,7 @@ describe('DebuggerManager', () => {
   it('sets breakpoint by url and persists it in manager state', async () => {
     await manager.init();
     const bp = await manager.setBreakpointByUrl({
-      url: 'https://site/app.js',
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       lineNumber: 12,
       condition: 'x > 1',
     });
@@ -118,7 +119,10 @@ describe('DebuggerManager', () => {
 
   it('increments hit count and invokes breakpoint-hit callbacks', async () => {
     await manager.init();
-    await manager.setBreakpointByUrl({ url: 'https://site/app.js', lineNumber: 10 });
+    await manager.setBreakpointByUrl({
+      url: buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
+      lineNumber: 10,
+    });
 
     const callback = vi.fn();
     manager.onBreakpointHit(callback);

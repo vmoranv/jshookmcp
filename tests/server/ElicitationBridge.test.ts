@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ElicitationBridge } from '@server/ElicitationBridge';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function createMockServer(capabilities?: { elicitation?: object }): McpServer {
   return {
@@ -166,7 +167,10 @@ describe('ElicitationBridge', () => {
       });
 
       const bridge = new ElicitationBridge(server);
-      const result = await bridge.requestCaptchaSolution('https://example.com/login', 'reCAPTCHA');
+      const result = await bridge.requestCaptchaSolution(
+        withPath(TEST_URLS.root, 'login'),
+        'reCAPTCHA',
+      );
 
       expect(result).toEqual({
         solved: true,
@@ -182,7 +186,7 @@ describe('ElicitationBridge', () => {
       });
 
       const bridge = new ElicitationBridge(server);
-      const result = await bridge.requestCaptchaSolution('https://example.com', 'Cloudflare');
+      const result = await bridge.requestCaptchaSolution(TEST_URLS.root, 'Cloudflare');
 
       expect(result).toEqual({ solved: true, token: undefined });
     });
@@ -194,14 +198,14 @@ describe('ElicitationBridge', () => {
       });
 
       const bridge = new ElicitationBridge(server);
-      const result = await bridge.requestCaptchaSolution('https://example.com', 'hCaptcha');
+      const result = await bridge.requestCaptchaSolution(TEST_URLS.root, 'hCaptcha');
       expect(result).toBeNull();
     });
 
     it('returns null when elicitation not supported', async () => {
       const server = createMockServer({});
       const bridge = new ElicitationBridge(server);
-      const result = await bridge.requestCaptchaSolution('https://example.com', 'reCAPTCHA');
+      const result = await bridge.requestCaptchaSolution(TEST_URLS.root, 'reCAPTCHA');
       expect(result).toBeNull();
     });
   });

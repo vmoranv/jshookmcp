@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WebViewDebugger } from '@modules/adb/WebViewDebugger';
 import { ToolError } from '@errors/ToolError';
+import { TEST_HTTP_URLS } from '@tests/shared/test-urls';
 
 class MockWebSocket {
   url: string;
@@ -77,7 +78,7 @@ describe('WebViewDebugger', () => {
         {
           id: 'target1',
           title: 'Test Page',
-          url: 'http://example.com',
+          url: TEST_HTTP_URLS.root,
           type: 'page',
           webSocketDebuggerUrl: 'ws://localhost:12345/devtools/page/target1',
         },
@@ -97,7 +98,7 @@ describe('WebViewDebugger', () => {
         {
           id: 'target1',
           title: 'Test Page',
-          url: 'http://example.com',
+          url: TEST_HTTP_URLS.root,
           type: 'page',
           webSocketDebuggerUrl: 'ws://localhost:12345/devtools/page/target1',
         },

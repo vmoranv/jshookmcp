@@ -8,6 +8,7 @@ import {
   resetIdCounter as _resetGraphIdCounter,
 } from '@server/evidence/ReverseEvidenceGraph';
 import { createServerEventBus } from '@server/EventBus';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 describe('Shared Evidence Graph Integration', () => {
   beforeEach(() => {
@@ -42,7 +43,7 @@ describe('Shared Evidence Graph Integration', () => {
 
     // Write via cross-domain bridge
     bridge.addV8Object({ address: '0x2000', name: 'EventTest' });
-    bridge.addNetworkRequest({ url: 'https://example.com' });
+    bridge.addNetworkRequest({ url: TEST_URLS.root });
 
     // Commit triggers the event
     sharedGraph.commit();

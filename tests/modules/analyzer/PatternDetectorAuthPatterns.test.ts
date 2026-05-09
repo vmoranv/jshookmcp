@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 const loggerState = vi.hoisted(() => ({
   debug: vi.fn(),
@@ -18,10 +19,12 @@ import {
   detectTokenPatternsInternal,
 } from '@modules/analyzer/PatternDetectorAuthPatterns';
 
+const rootUrl = (path = '') => withPath(TEST_URLS.root, path);
+
 function request(overrides: Partial<NetworkRequest>): NetworkRequest {
   return {
     requestId: overrides.requestId ?? 'req-1',
-    url: overrides.url ?? 'https://example.com/api',
+    url: overrides.url ?? TEST_URLS.api,
     method: overrides.method ?? 'GET',
     headers: overrides.headers ?? {},
     postData: overrides.postData,
@@ -39,7 +42,7 @@ describe('PatternDetectorAuthPatterns', () => {
   it('detects signature patterns in URL params, headers, JSON body and form data', () => {
     const patterns = detectSignaturePatternsInternal([
       request({
-        url: 'https://example.com/api?signature=abc&payload=1',
+        url: `${TEST_URLS.api}?signature=abc&payload=1`,
         headers: {
           'x-signature': 'a'.repeat(64),
           'x-trace-id': 'trace',
@@ -50,7 +53,7 @@ describe('PatternDetectorAuthPatterns', () => {
         }),
       }),
       request({
-        url: 'https://example.com/form',
+        url: rootUrl('form'),
         method: 'POST',
         postData: 'sig=custom123&foo=bar',
       }),
@@ -100,7 +103,7 @@ describe('PatternDetectorAuthPatterns', () => {
 
     const patterns = detectTokenPatternsInternal([
       request({
-        url: `https://example.com/callback?access_token=${oauthToken}&session=${customToken}`,
+        url: rootUrl(`callback?access_token=${oauthToken}&session=${customToken}`),
         headers: {
           Authorization: `Bearer ${jwt}`,
           'x-api-key': customToken,
@@ -111,7 +114,7 @@ describe('PatternDetectorAuthPatterns', () => {
         }),
       }),
       request({
-        url: 'https://example.com/form',
+        url: rootUrl('form'),
         method: 'POST',
         postData: 'token=abc12345678901234567890',
       }),

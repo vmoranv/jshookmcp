@@ -5,6 +5,14 @@ import {
   authorizeWorkflowUrl,
 } from '@server/domains/workflow/handlers/network-policy';
 import type { WorkflowNetworkPolicy } from '@server/domains/workflow/handlers/network-policy';
+import {
+  TEST_FTP_URLS,
+  TEST_HOSTS,
+  TEST_HTTP_URLS,
+  TEST_URLS,
+  buildTestUrl,
+  withPath,
+} from '@tests/shared/test-urls';
 
 vi.mock('@server/domains/network/ssrf-policy', () => ({
   isLoopbackHost: (host: string) => host === 'localhost' || host === '127.0.0.1',
@@ -14,8 +22,10 @@ vi.mock('@server/domains/network/ssrf-policy', () => ({
 
 vi.mock('node:dns/promises', () => ({
   lookup: vi.fn((hostname: string) => {
-    if (hostname === 'example.com') return Promise.resolve({ address: '93.184.216.34', family: 4 });
-    if (hostname === 'private.local') return Promise.resolve({ address: '10.0.0.1', family: 4 });
+    if (hostname === TEST_HOSTS.root)
+      return Promise.resolve({ address: '93.184.216.34', family: 4 });
+    if (hostname === buildTestUrl('private', { suffix: 'local' }).replace(/^https?:\/\//, ''))
+      return Promise.resolve({ address: '10.0.0.1', family: 4 });
     if (hostname === 'localhost') return Promise.resolve({ address: '127.0.0.1', family: 4 });
     return Promise.reject(new Error(`ENOTFOUND ${hostname}`));
   }),
@@ -73,7 +83,7 @@ describe('network-policy', () => {
         networkPolicy: {
           allowPrivateNetwork: true,
           allowInsecureHttp: true,
-          allowedHosts: ['example.com'],
+          allowedHosts: [TEST_HOSTS.root],
           allowedRedirectHosts: ['redirect.com'],
           allowedCidrs: [],
         },
@@ -88,7 +98,7 @@ describe('network-policy', () => {
         networkPolicy: JSON.stringify({
           allowPrivateNetwork: false,
           allowInsecureHttp: false,
-          allowedHosts: ['example.com'],
+          allowedHosts: [TEST_HOSTS.root],
           allowedCidrs: [],
         }),
       });
@@ -140,7 +150,7 @@ describe('network-policy', () => {
 
     it('returns error for non-IP CIDR address', async () => {
       const result = parseWorkflowNetworkPolicy({
-        networkPolicy: { allowedCidrs: ['example.com/24'] },
+        networkPolicy: { allowedCidrs: [`${TEST_HOSTS.root}/24`] },
       });
       expect(result.error).toContain('Invalid CIDR base address');
     });
@@ -162,21 +172,21 @@ describe('network-policy', () => {
 
     it('normalizes host patterns with port', async () => {
       const result = parseWorkflowNetworkPolicy({
-        networkPolicy: { allowedHosts: ['example.com:8080'] },
+        networkPolicy: { allowedHosts: [`${TEST_HOSTS.root}:8080`] },
       });
       expect(result.policy!.allowedHosts[0]).toEqual({
         scope: 'host',
-        value: 'example.com:8080',
+        value: `${TEST_HOSTS.root}:8080`,
       });
     });
 
     it('normalizes host patterns without port', async () => {
       const result = parseWorkflowNetworkPolicy({
-        networkPolicy: { allowedHosts: ['example.com'] },
+        networkPolicy: { allowedHosts: [TEST_HOSTS.root] },
       });
       expect(result.policy!.allowedHosts[0]).toEqual({
         scope: 'hostname',
-        value: 'example.com',
+        value: TEST_HOSTS.root,
       });
     });
 
@@ -191,10 +201,10 @@ describe('network-policy', () => {
 
   describe('authorizeWorkflowUrl', () => {
     it('authorizes HTTPS to public host', async () => {
-      const result = await authorizeWorkflowUrl('https://example.com/path', defaultPolicy, {
+      const result = await authorizeWorkflowUrl(withPath(TEST_URLS.root, 'path'), defaultPolicy, {
         label: 'fetch',
       });
-      expect(result.parsedUrl.hostname).toBe('example.com');
+      expect(result.parsedUrl.hostname).toBe(TEST_HOSTS.root);
       expect(result.resolvedIp).toBe('93.184.216.34');
     });
 
@@ -206,19 +216,23 @@ describe('network-policy', () => {
 
     it('rejects unsupported protocol', async () => {
       await expect(
-        authorizeWorkflowUrl('ftp://example.com/', defaultPolicy, { label: 'fetch' }),
+        authorizeWorkflowUrl(`${TEST_FTP_URLS.root}/`, defaultPolicy, { label: 'fetch' }),
       ).rejects.toThrow('Unsupported protocol');
     });
 
     it('rejects private host by default', async () => {
       await expect(
-        authorizeWorkflowUrl('https://private.local/', defaultPolicy, { label: 'fetch' }),
+        authorizeWorkflowUrl(
+          buildTestUrl('private', { suffix: 'local', path: '/' }),
+          defaultPolicy,
+          { label: 'fetch' },
+        ),
       ).rejects.toThrow('private');
     });
 
     it('rejects HTTP to non-loopback by default', async () => {
       await expect(
-        authorizeWorkflowUrl('http://example.com/', defaultPolicy, { label: 'fetch' }),
+        authorizeWorkflowUrl(`${TEST_HTTP_URLS.root}/`, defaultPolicy, { label: 'fetch' }),
       ).rejects.toThrow('insecure HTTP');
     });
 
@@ -258,7 +272,7 @@ describe('network-policy', () => {
         allowedCidrBlockList: new BlockList(),
       };
       await expect(
-        authorizeWorkflowUrl('https://example.com/', policy, { label: 'fetch' }),
+        authorizeWorkflowUrl(`${TEST_URLS.root}/`, policy, { label: 'fetch' }),
       ).rejects.toThrow('not authorized');
     });
 
@@ -266,10 +280,10 @@ describe('network-policy', () => {
       const { BlockList } = require('node:net');
       const policy: WorkflowNetworkPolicy = {
         ...defaultPolicy,
-        allowedHosts: [{ scope: 'hostname', value: 'example.com' }],
+        allowedHosts: [{ scope: 'hostname', value: TEST_HOSTS.root }],
         allowedCidrBlockList: new BlockList(),
       };
-      const result = await authorizeWorkflowUrl('https://example.com/', policy, { label: 'fetch' });
+      const result = await authorizeWorkflowUrl(`${TEST_URLS.root}/`, policy, { label: 'fetch' });
       expect(result.resolvedIp).toBe('93.184.216.34');
     });
 
@@ -278,10 +292,10 @@ describe('network-policy', () => {
       const policy: WorkflowNetworkPolicy = {
         ...defaultPolicy,
         allowedHosts: [{ scope: 'hostname', value: 'other.com' }],
-        allowedRedirectHosts: [{ scope: 'hostname', value: 'example.com' }],
+        allowedRedirectHosts: [{ scope: 'hostname', value: TEST_HOSTS.root }],
         allowedCidrBlockList: new BlockList(),
       };
-      const result = await authorizeWorkflowUrl('https://example.com/', policy, {
+      const result = await authorizeWorkflowUrl(`${TEST_URLS.root}/`, policy, {
         label: 'redirect',
         allowRedirectHosts: true,
       });
@@ -293,20 +307,24 @@ describe('network-policy', () => {
       const policy: WorkflowNetworkPolicy = {
         ...defaultPolicy,
         allowInsecureHttp: true,
-        allowedHosts: [{ scope: 'hostname', value: 'example.com' }],
+        allowedHosts: [{ scope: 'hostname', value: TEST_HOSTS.root }],
         allowedCidrBlockList: new BlockList(),
       };
-      const result = await authorizeWorkflowUrl('http://example.com/', policy, {
+      const result = await authorizeWorkflowUrl(`${TEST_HTTP_URLS.root}/`, policy, {
         label: 'fetch',
         rewriteHttpHostToResolvedIp: true,
       });
       expect(result.fetchUrl).toContain('93.184.216.34');
-      expect(result.headers.Host).toBe('example.com');
+      expect(result.headers.Host).toBe(TEST_HOSTS.root);
     });
 
     it('handles DNS failure', async () => {
       await expect(
-        authorizeWorkflowUrl('https://nonexistent.invalid/', defaultPolicy, { label: 'fetch' }),
+        authorizeWorkflowUrl(
+          buildTestUrl('nonexistent', { suffix: 'invalid', path: '/' }),
+          defaultPolicy,
+          { label: 'fetch' },
+        ),
       ).rejects.toThrow('DNS resolution failed');
     });
 

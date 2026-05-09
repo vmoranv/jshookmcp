@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ADBBridgeHandlers } from '@server/domains/adb-bridge/handlers.impl';
+import { TEST_URLS } from '@tests/shared/test-urls';
 
 describe('ADBBridgeHandlers', () => {
   let adbClient: {
@@ -26,12 +27,12 @@ describe('ADBBridgeHandlers', () => {
       listWebViews: vi
         .fn()
         .mockResolvedValue([
-          { id: 'target-1', url: 'https://example.com', title: 'Example', processId: 123 },
+          { id: 'target-1', url: TEST_URLS.root, title: 'Example', processId: 123 },
         ]),
       attachWebView: vi.fn().mockResolvedValue(undefined),
       executeScript: vi.fn().mockResolvedValue({
         title: 'Example',
-        url: 'https://example.com',
+        url: TEST_URLS.root,
         readyState: 'complete',
       }),
     };

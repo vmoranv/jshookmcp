@@ -9,6 +9,7 @@ vi.mock('@src/server/domains/network/replay', () => ({
 
 import { GraphQLToolHandlersExtract } from '@server/domains/graphql/handlers.impl.core.runtime.extract';
 import type { ExtractedGraphQLQuery } from '@server/domains/graphql/handlers.impl.core.runtime.shared';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('GraphQLToolHandlersExtract', () => {
   const page = {
@@ -39,7 +40,7 @@ describe('GraphQLToolHandlersExtract', () => {
         extracted: [
           {
             source: 'window.__fetchRequests',
-            url: 'https://api.example.com/graphql',
+            url: withPath(TEST_URLS.api, 'graphql'),
             method: 'POST',
             operationName: 'GetUser',
             query: 'query GetUser { user { name } }',
@@ -49,7 +50,7 @@ describe('GraphQLToolHandlersExtract', () => {
           },
           {
             source: 'window.__xhrRequests',
-            url: 'https://api.example.com/graphql',
+            url: withPath(TEST_URLS.api, 'graphql'),
             method: 'POST',
             operationName: 'ListItems',
             query: 'query ListItems { items { id title } }',
@@ -77,7 +78,7 @@ describe('GraphQLToolHandlersExtract', () => {
         extracted: [
           {
             source: 'window.__fetchRequests',
-            url: 'https://api.example.com/graphql',
+            url: withPath(TEST_URLS.api, 'graphql'),
             method: 'POST',
             operationName: 'GetUser',
             query: 'query GetUser { user { name } }',
@@ -94,7 +95,7 @@ describe('GraphQLToolHandlersExtract', () => {
       const q = body.queries[0];
       expect(q.index).toBe(0);
       expect(q.source).toBe('window.__fetchRequests');
-      expect(q.url).toBe('https://api.example.com/graphql');
+      expect(q.url).toBe(withPath(TEST_URLS.api, 'graphql'));
       expect(q.method).toBe('POST');
       expect(q.operationName).toBe('GetUser');
       expect(q.contentType).toBe('application/json');
@@ -198,7 +199,7 @@ describe('GraphQLToolHandlersExtract', () => {
         extracted: [
           {
             source: 'test',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: null,
             query: 'query { ok }',
@@ -225,7 +226,7 @@ describe('GraphQLToolHandlersExtract', () => {
         extracted: [
           {
             source: 'test',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: null,
             query: largeQuery,
@@ -257,7 +258,7 @@ describe('GraphQLToolHandlersExtract', () => {
         extracted: [
           {
             source: 'test',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: null,
             query: 'query { ok }',
@@ -284,7 +285,7 @@ describe('GraphQLToolHandlersExtract', () => {
         extracted: [
           {
             source: 'test',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: null,
             query: 'query { ok }',
@@ -315,7 +316,7 @@ describe('GraphQLToolHandlersExtract', () => {
         extracted: [
           {
             source: 'a',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: 'Op1',
             query: 'query Op1 { a }',
@@ -325,7 +326,7 @@ describe('GraphQLToolHandlersExtract', () => {
           },
           {
             source: 'b',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: 'Op2',
             query: 'query Op2 { b }',
@@ -335,7 +336,7 @@ describe('GraphQLToolHandlersExtract', () => {
           },
           {
             source: 'c',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: 'Op3',
             query: 'mutation Op3 { c }',
@@ -387,7 +388,7 @@ describe('GraphQLToolHandlersExtract', () => {
         extracted: [
           {
             source: 'test',
-            url: 'https://example.com/graphql',
+            url: withPath(TEST_URLS.root, 'graphql'),
             method: 'POST',
             operationName: null,
             query: 'query { ok }',

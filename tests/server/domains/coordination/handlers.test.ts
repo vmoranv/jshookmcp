@@ -6,6 +6,7 @@ import type {
   GetTaskContextResponse,
   AppendSessionInsightResponse,
 } from '@tests/server/domains/shared/common-test-types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('CoordinationHandlers', () => {
   const pageController = {
@@ -23,7 +24,7 @@ describe('CoordinationHandlers', () => {
 
   it('handleCreateTaskHandoff creates a new handoff', async () => {
     pageController.getPage.mockReturnValue({
-      url: () => 'https://example.com/target',
+      url: () => withPath(TEST_URLS.root, 'target'),
     });
 
     const body = (await handlers.handleCreateTaskHandoff({
@@ -37,7 +38,7 @@ describe('CoordinationHandlers', () => {
     expect(body.description).toBe('Test task');
     expect(body.constraints).toEqual(['no-db']);
     expect(body.targetDomain).toBe('browser');
-    expect(body.pageUrl).toBe('https://example.com/target');
+    expect(body.pageUrl).toBe(withPath(TEST_URLS.root, 'target'));
     expect(body.totalActiveHandoffs).toBe(1);
   });
 

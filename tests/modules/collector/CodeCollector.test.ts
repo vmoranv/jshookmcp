@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Browser, Page } from 'rebrowser-puppeteer-core';
 import type { PuppeteerConfig, CodeFile } from '@internal-types/index';
+import * as testUrls from '@tests/shared/test-urls';
 
 const launchMock = vi.hoisted(() => vi.fn());
 const connectMock = vi.hoisted(() => vi.fn());
@@ -35,6 +36,12 @@ vi.mock('@src/utils/logger', () => ({
 }));
 
 import { CodeCollector } from '@modules/collector/CodeCollector';
+import {
+  buildTestUrl,
+  E2E_DEFAULT_TARGET_GLOB,
+  TEST_URLS,
+  withPath,
+} from '@tests/shared/test-urls';
 
 class TestCodeCollector extends CodeCollector {
   public getCollectedFilesCache(): Map<string, CodeFile> {
@@ -140,13 +147,11 @@ describe('CodeCollector', () => {
     const collector = new CodeCollector(defaultConfig);
 
     expect(
-      collector.shouldCollectUrl('https://vmoranv.github.io/jshookmcp/app.js', [
-        '*vmoranv.github.io/jshookmcp/*',
-      ]),
+      collector.shouldCollectUrl(withPath(TEST_URLS.root, 'app.js'), [E2E_DEFAULT_TARGET_GLOB]),
     ).toBe(true);
     expect(
-      collector.shouldCollectUrl('https://cdn.other.com/lib.js', [
-        '*vmoranv.github.io/jshookmcp/*',
+      collector.shouldCollectUrl(buildTestUrl('cdn.other', { path: 'lib.js' }), [
+        E2E_DEFAULT_TARGET_GLOB,
       ]),
     ).toBe(false);
   });
@@ -158,12 +163,7 @@ describe('CodeCollector', () => {
     } as unknown as Page;
 
     await expect(
-      collector.navigateWithRetry(
-        page,
-        'https://vmoranv.github.io/jshookmcp',
-        { waitUntil: 'load' },
-        3,
-      ),
+      collector.navigateWithRetry(page, TEST_URLS.root, { waitUntil: 'load' }, 3),
     ).resolves.toBeUndefined();
     expect(page.goto).toHaveBeenCalledTimes(2);
   });
@@ -173,32 +173,27 @@ describe('CodeCollector', () => {
     const page = { goto: vi.fn().mockRejectedValue(new Error('fatal')) } as unknown as Page;
 
     await expect(
-      collector.navigateWithRetry(
-        page,
-        'https://vmoranv.github.io/jshookmcp',
-        { waitUntil: 'load' },
-        2,
-      ),
+      collector.navigateWithRetry(page, TEST_URLS.root, { waitUntil: 'load' }, 2),
     ).rejects.toThrow('fatal');
     expect(page.goto).toHaveBeenCalledTimes(2);
   });
 
   it('returns pattern-matched files with size limits and truncation flag', () => {
     const collector = new TestCodeCollector(defaultConfig);
-    collector.getCollectedFilesCache().set('https://site/a.js', {
-      url: 'https://site/a.js',
+    collector.getCollectedFilesCache().set(`${testUrls.TEST_URLS.root}/a.js`, {
+      url: `${testUrls.TEST_URLS.root}/a.js`,
       content: 'a'.repeat(10),
       size: 10,
       type: 'external',
     });
-    collector.getCollectedFilesCache().set('https://site/b.js', {
-      url: 'https://site/b.js',
+    collector.getCollectedFilesCache().set(`${testUrls.TEST_URLS.root}/b.js`, {
+      url: `${testUrls.TEST_URLS.root}/b.js`,
       content: 'b'.repeat(10),
       size: 10,
       type: 'external',
     });
-    collector.getCollectedFilesCache().set('https://site/c.css', {
-      url: 'https://site/c.css',
+    collector.getCollectedFilesCache().set(`${testUrls.TEST_URLS.root}/c.css`, {
+      url: `${testUrls.TEST_URLS.root}/c.css`,
       content: 'c',
       size: 1,
       type: 'external',
@@ -213,14 +208,14 @@ describe('CodeCollector', () => {
 
   it('returns top priority files ordered by scoring helper', () => {
     const collector = new TestCodeCollector(defaultConfig);
-    collector.getCollectedFilesCache().set('https://site/vendor.js', {
-      url: 'https://site/vendor.js',
+    collector.getCollectedFilesCache().set(`${testUrls.TEST_URLS.root}/vendor.js`, {
+      url: `${testUrls.TEST_URLS.root}/vendor.js`,
       content: 'noop',
       size: 2000,
       type: 'external',
     });
-    collector.getCollectedFilesCache().set('https://site/crypto-api-main.js', {
-      url: 'https://site/crypto-api-main.js',
+    collector.getCollectedFilesCache().set(`${testUrls.TEST_URLS.root}/crypto-api-main.js`, {
+      url: `${testUrls.TEST_URLS.root}/crypto-api-main.js`,
       content: 'fetch("/x"); const cipher = "aes";',
       size: 800,
       type: 'inline',

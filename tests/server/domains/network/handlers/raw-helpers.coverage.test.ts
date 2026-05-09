@@ -76,6 +76,7 @@ import {
   toHttp2RequestHeaders,
   performHttp2ProbeInternal,
 } from '@server/domains/network/handlers/raw-helpers';
+import { buildTestUrl, TEST_FTP_URLS, TEST_HOSTS, TEST_URLS } from '@tests/shared/test-urls';
 
 class MockSocket extends EventEmitter {
   public readonly destroy = vi.fn(() => this);
@@ -125,7 +126,7 @@ describe('raw-helpers', () => {
     ssrfState.isNetworkAuthorizationExpired.mockReturnValue(false);
     ssrfState.isPrivateHost.mockImplementation((value: string) => value.startsWith('10.'));
     ssrfState.resolveNetworkTarget.mockResolvedValue({
-      hostname: 'example.com',
+      hostname: TEST_HOSTS.root,
       resolvedAddress: '93.184.216.34',
     });
   });
@@ -162,7 +163,7 @@ describe('raw-helpers', () => {
     it('parses network authorization payloads', async () => {
       expect(
         parseNetworkAuthorization({
-          allowedHosts: [' example.com ', ''],
+          allowedHosts: [` ${TEST_HOSTS.root} `, ''],
           allowedCidrs: ['10.0.0.0/8'],
           allowPrivateNetwork: true,
           allowInsecureHttp: true,
@@ -170,7 +171,7 @@ describe('raw-helpers', () => {
           reason: 'testing',
         }),
       ).toEqual({
-        allowedHosts: ['example.com'],
+        allowedHosts: [TEST_HOSTS.root],
         allowedCidrs: ['10.0.0.0/8'],
         allowPrivateNetwork: true,
         allowInsecureHttp: true,
@@ -197,17 +198,19 @@ describe('raw-helpers', () => {
       });
       expect(computeRttStats([])).toBeNull();
       expect(normalizeTargetHost('[::1]')).toBe('::1');
-      expect(normalizeTargetHost(' example.com ')).toBe('example.com');
+      expect(normalizeTargetHost(` ${TEST_HOSTS.root} `)).toBe(TEST_HOSTS.root);
       expect(formatHostForUrl('::1')).toBe('[::1]');
-      expect(formatHostForUrl('example.com')).toBe('example.com');
-      expect(getRequestMethod('POST /test HTTP/1.1\r\nHost: example.com\r\n\r\n')).toBe('POST');
+      expect(formatHostForUrl(TEST_HOSTS.root)).toBe(TEST_HOSTS.root);
+      expect(getRequestMethod(`POST /test HTTP/1.1\r\nHost: ${TEST_HOSTS.root}\r\n\r\n`)).toBe(
+        'POST',
+      );
       expect(() => getRequestMethod('@@@ /test HTTP/1.1')).toThrow(
         'requestText must start with a valid HTTP request line',
       );
     });
 
     it('normalizes lookup results and HTTP/2 header values', async () => {
-      const lookup = normalizeLookupResults('example.com', [
+      const lookup = normalizeLookupResults(TEST_HOSTS.root, [
         { address: '2001:db8::1', family: 6 } as LookupAddress,
         { address: '10.0.0.2', family: 4 } as LookupAddress,
         { address: '10.0.0.1', family: 4 } as LookupAddress,
@@ -234,15 +237,11 @@ describe('raw-helpers', () => {
         resolveAuthorizedTransportTarget('::bad-url::', undefined, 'HTTP'),
       ).rejects.toThrow('url must be an absolute http:// or https:// URL');
       await expect(
-        resolveAuthorizedTransportTarget('ftp://example.com', undefined, 'HTTP'),
+        resolveAuthorizedTransportTarget(TEST_FTP_URLS.root, undefined, 'HTTP'),
       ).rejects.toThrow('url must use the http:// or https:// scheme');
 
       await expect(
-        resolveAuthorizedTransportTarget(
-          'https://example.com',
-          { allowPrivateNetwork: true },
-          'HTTP',
-        ),
+        resolveAuthorizedTransportTarget(TEST_URLS.root, { allowPrivateNetwork: true }, 'HTTP'),
       ).rejects.toThrow('authorization must include at least one allowed host or CIDR');
     });
 
@@ -250,8 +249,8 @@ describe('raw-helpers', () => {
       ssrfState.isNetworkAuthorizationExpired.mockReturnValue(true);
       await expect(
         resolveAuthorizedTransportTarget(
-          'https://example.com',
-          { allowedHosts: ['example.com'] },
+          TEST_URLS.root,
+          { allowedHosts: [TEST_HOSTS.root] },
           'HTTP',
         ),
       ).rejects.toThrow('authorization expired before the request was executed');
@@ -260,8 +259,8 @@ describe('raw-helpers', () => {
       ssrfState.resolveNetworkTarget.mockRejectedValue(new Error('dns failed'));
       await expect(
         resolveAuthorizedTransportTarget(
-          'https://example.com',
-          { allowedHosts: ['example.com'] },
+          TEST_URLS.root,
+          { allowedHosts: [TEST_HOSTS.root] },
           'HTTP',
         ),
       ).rejects.toThrow('HTTP blocked: DNS resolution failed');
@@ -273,7 +272,11 @@ describe('raw-helpers', () => {
         resolvedAddress: '93.184.216.34',
       });
       await expect(
-        resolveAuthorizedTransportTarget('http://public.example', undefined, 'HTTP'),
+        resolveAuthorizedTransportTarget(
+          buildTestUrl('public', { scheme: 'http', suffix: 'example', path: '/' }),
+          undefined,
+          'HTTP',
+        ),
       ).rejects.toThrow('insecure HTTP is only allowed');
 
       ssrfState.resolveNetworkTarget.mockResolvedValue({
@@ -282,7 +285,7 @@ describe('raw-helpers', () => {
       });
       await expect(
         resolveAuthorizedTransportTarget(
-          'https://public.example',
+          buildTestUrl('public', { suffix: 'example', path: '/' }),
           { allowedHosts: ['public.example'] },
           'HTTPS',
         ),
@@ -315,7 +318,7 @@ describe('raw-helpers', () => {
       });
       ssrfState.isAuthorizedNetworkTarget.mockReturnValue(true);
       const authorized = await resolveAuthorizedTransportTarget(
-        'https://internal.example',
+        buildTestUrl('internal', { suffix: 'example', path: '/' }),
         { allowedHosts: ['internal.example'], allowPrivateNetwork: true },
         'HTTPS',
       );
@@ -340,7 +343,7 @@ describe('raw-helpers', () => {
       });
       await expect(
         exchangePlainHttp(
-          'example.com',
+          TEST_HOSTS.root,
           80,
           Buffer.from('GET / HTTP/1.1\r\n\r\n'),
           'GET',
@@ -358,7 +361,7 @@ describe('raw-helpers', () => {
       });
       await expect(
         exchangePlainHttp(
-          'example.com',
+          TEST_HOSTS.root,
           80,
           Buffer.from('HEAD / HTTP/1.1\r\n\r\n'),
           'HEAD',
@@ -382,7 +385,7 @@ describe('raw-helpers', () => {
       });
       await expect(
         exchangePlainHttp(
-          'example.com',
+          TEST_HOSTS.root,
           80,
           Buffer.from('GET / HTTP/1.1\r\n\r\n'),
           'GET',
@@ -402,7 +405,7 @@ describe('raw-helpers', () => {
       });
       await expect(
         exchangePlainHttp(
-          'example.com',
+          TEST_HOSTS.root,
           80,
           Buffer.from('GET / HTTP/1.1\r\n\r\n'),
           'GET',
@@ -418,7 +421,7 @@ describe('raw-helpers', () => {
       });
       await expect(
         exchangePlainHttp(
-          'example.com',
+          TEST_HOSTS.root,
           80,
           Buffer.from('GET / HTTP/1.1\r\n\r\n'),
           'GET',
@@ -437,7 +440,7 @@ describe('raw-helpers', () => {
       });
       await expect(
         exchangePlainHttp(
-          'example.com',
+          TEST_HOSTS.root,
           80,
           Buffer.from('GET / HTTP/1.1\r\n\r\n'),
           'GET',
@@ -453,7 +456,7 @@ describe('raw-helpers', () => {
       });
       await expect(
         exchangePlainHttp(
-          'example.com',
+          TEST_HOSTS.root,
           80,
           Buffer.from('GET / HTTP/1.1\r\n\r\n'),
           'GET',
@@ -494,7 +497,7 @@ describe('raw-helpers', () => {
 
       await expect(
         performHttp2ProbeInternal({
-          url: new URL('https://api.example/data'),
+          url: new URL(buildTestUrl('api', { suffix: 'example', path: 'data' })),
           target: { hostname: 'api.example', resolvedAddress: '1.2.3.4' } as never,
           method: 'GET',
           requestHeaders: {},
@@ -530,7 +533,7 @@ describe('raw-helpers', () => {
 
       await expect(
         performHttp2ProbeInternal({
-          url: new URL('http://api.example/data'),
+          url: new URL(buildTestUrl('api', { scheme: 'http', suffix: 'example', path: 'data' })),
           target: { hostname: 'api.example', resolvedAddress: '1.2.3.4' } as never,
           method: 'GET',
           requestHeaders: {},
@@ -553,7 +556,7 @@ describe('raw-helpers', () => {
 
       await expect(
         performHttp2ProbeInternal({
-          url: new URL('http://api.example/data'),
+          url: new URL(buildTestUrl('api', { scheme: 'http', suffix: 'example', path: 'data' })),
           target: { hostname: 'api.example', resolvedAddress: '1.2.3.4' } as never,
           method: 'GET',
           requestHeaders: {},
