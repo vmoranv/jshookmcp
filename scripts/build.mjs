@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { rmSync, existsSync, mkdirSync, cpSync, readFileSync, chmodSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { build } from 'tsdown';
 
@@ -13,7 +13,7 @@ const t0 = Date.now();
 
 rmSync(resolve(root, 'dist'), { recursive: true, force: true });
 
-execSync(`node ${resolve(dir, 'generate-domains-index.mjs')}`, { stdio: 'inherit' });
+execFileSync(process.execPath, [resolve(dir, 'generate-domains-index.mjs')], { stdio: 'inherit' });
 
 await build({ dts: withDts });
 
