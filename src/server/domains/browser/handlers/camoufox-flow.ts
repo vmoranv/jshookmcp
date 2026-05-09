@@ -7,6 +7,8 @@ import {
   argStringArray,
   argObject,
 } from '@server/domains/shared/parse-args';
+import { type PageNavigationWaitUntil } from '@modules/browser/navigation-wait-until';
+import { parsePageNavigationWaitUntil } from '@server/domains/browser/page-navigation-wait-until';
 import { R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 
 function extractCamoufoxConfig(args: Record<string, unknown>): CamoufoxBrowserConfig {
@@ -37,7 +39,7 @@ function extractCamoufoxConfig(args: Record<string, unknown>): CamoufoxBrowserCo
   };
 }
 
-export type CamoufoxWaitUntil = 'load' | 'domcontentloaded' | 'networkidle' | 'commit';
+export type CamoufoxWaitUntil = PageNavigationWaitUntil;
 
 export type CamoufoxPage = Awaited<ReturnType<CamoufoxBrowserManager['newPage']>> & {
   url(): string;
@@ -113,25 +115,17 @@ export interface CamoufoxNavigateFlowContext {
   setConsoleMonitorPage: (page: CamoufoxPage) => void;
 }
 
-function normalizeWaitUntil(waitUntil: string): CamoufoxWaitUntil {
-  if (waitUntil === 'networkidle2') return 'networkidle';
-  if (waitUntil === 'load') return 'load';
-  if (waitUntil === 'domcontentloaded') return 'domcontentloaded';
-  if (waitUntil === 'commit') return 'commit';
-  return 'networkidle';
-}
-
 export async function handleCamoufoxNavigateFlow(
   context: CamoufoxNavigateFlowContext,
   args: Record<string, unknown>,
 ): Promise<ToolResponse> {
   try {
     const url = argString(args, 'url', '');
-    const rawWaitUntil = argString(args, 'waitUntil', 'networkidle');
+    const waitUntil = parsePageNavigationWaitUntil(args);
     const timeout = argNumber(args, 'timeout');
 
     const page = await context.getCamoufoxPage();
-    await page.goto(url, { waitUntil: normalizeWaitUntil(rawWaitUntil), timeout });
+    await page.goto(url, { waitUntil, timeout });
     context.setConsoleMonitorPage(page);
 
     return R.ok().build({

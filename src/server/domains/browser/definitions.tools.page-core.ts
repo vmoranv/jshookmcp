@@ -1,5 +1,6 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
+import { PAGE_NAVIGATION_WAIT_UNTIL_VALUES } from '@modules/browser/navigation-wait-until';
 
 export const browserPageCoreTools: Tool[] = [
   tool('page_navigate', (t) =>
@@ -8,7 +9,7 @@ export const browserPageCoreTools: Tool[] = [
       .string('url', 'Target URL')
       .enum(
         'waitUntil',
-        ['load', 'domcontentloaded', 'networkidle', 'commit'],
+        PAGE_NAVIGATION_WAIT_UNTIL_VALUES,
         'When to consider navigation succeeded',
         { default: 'networkidle' },
       )
@@ -114,6 +115,8 @@ export const browserPageCoreTools: Tool[] = [
     t
       .desc('Execute JavaScript in page context.')
       .string('code', 'JavaScript code')
+      .string('script', 'Alias of code')
+      .string('expression', 'Alias of code')
       .boolean('autoSummarize', 'Auto-summarize large results', { default: true })
       .number('maxSize', 'Max result size in bytes before summarizing', {
         default: 51200,
@@ -124,7 +127,7 @@ export const browserPageCoreTools: Tool[] = [
       .boolean('stripBase64', 'Strip base64 strings from result', { default: false })
       .string('frameUrl', 'iframe URL substring')
       .string('frameSelector', 'iframe CSS selector')
-      .requiredOpenWorld('code'),
+      .openWorld(),
   ),
   tool('page_screenshot', (t) =>
     t

@@ -2,6 +2,7 @@ import puppeteer from 'rebrowser-puppeteer-core';
 import type { Browser, Page } from 'rebrowser-puppeteer-core';
 import type { DetectedEnvironmentVariables } from '@internal-types/index';
 import { logger } from '@utils/logger';
+import { toChromeCompatibleWaitUntil } from '@modules/browser/navigation-wait-until';
 import { EMULATOR_FETCH_GOTO_TIMEOUT_MS } from '@src/constants';
 
 type ManifestRecord = Record<string, unknown>;
@@ -240,7 +241,10 @@ export async function fetchRealEnvironmentData(
       typedWindow.sdkGlueVersionMap = typedWindow.sdkGlueVersionMap || {};
     });
 
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: EMULATOR_FETCH_GOTO_TIMEOUT_MS });
+    await page.goto(url, {
+      waitUntil: toChromeCompatibleWaitUntil(),
+      timeout: EMULATOR_FETCH_GOTO_TIMEOUT_MS,
+    });
 
     const allPaths = [
       ...detected.window,

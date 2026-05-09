@@ -3,12 +3,9 @@ import type { ConsoleMonitor } from '@server/domains/shared/modules';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
 import { argString, argNumber, argBool } from '@server/domains/shared/parse-args';
+import { parsePageNavigationWaitUntil } from '@server/domains/browser/page-navigation-wait-until';
 import { R } from '@server/domains/shared/ResponseBuilder';
 import type { ToolResponse } from '@server/domains/shared/ResponseBuilder';
-
-type ChromeNavigationWaitUntil = NonNullable<
-  Parameters<PageController['navigate']>[1]
->['waitUntil'];
 
 interface CamoufoxPageLike {
   goto(url: string, options?: { waitUntil?: string; timeout?: number }): Promise<unknown>;
@@ -75,15 +72,14 @@ export class PageNavigationHandlers {
   async handlePageNavigate(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       const url = argString(args, 'url', '');
-      const rawWaitUntil = argString(args, 'waitUntil', 'networkidle');
+      const waitUntil = parsePageNavigationWaitUntil(args);
       const timeout = argNumber(args, 'timeout');
       const enableNetworkMonitoring = argBool(args, 'enableNetworkMonitoring');
 
       // Camoufox (Playwright) path
       if (this.deps.getActiveDriver() === 'camoufox') {
-        const playwrightWaitUntil = rawWaitUntil === 'networkidle2' ? 'networkidle' : rawWaitUntil;
         const page = (await this.deps.getCamoufoxPage()) as CamoufoxPageLike;
-        await page.goto(url, { waitUntil: playwrightWaitUntil, timeout });
+        await page.goto(url, { waitUntil, timeout });
 
         // setPlaywrightPage must come before enable() so the Playwright path is used
         this.deps.consoleMonitor.setPlaywrightPage(page);
@@ -113,12 +109,6 @@ export class PageNavigationHandlers {
       if (enableNetworkMonitoring) {
         await this.deps.consoleMonitor.enable({ enableNetwork: true, enableExceptions: true });
       }
-
-      const waitUntilMap: Record<string, string> = {
-        networkidle: 'networkidle2',
-        commit: 'load',
-      };
-      const waitUntil = (waitUntilMap[rawWaitUntil] || rawWaitUntil) as ChromeNavigationWaitUntil;
 
       await this.deps.pageController.navigate(url, { waitUntil, timeout });
 

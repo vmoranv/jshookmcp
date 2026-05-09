@@ -6,6 +6,7 @@ import { CaptchaDetector, type CaptchaDetectionResult } from '@modules/captcha/C
 import { determineCaptchaResolution } from '@modules/captcha/CaptchaPolicy';
 import { SessionProfileManager } from '@modules/stealth/SessionProfileManager';
 import type { SessionProfile } from '@internal-types/SessionProfile';
+import { toChromeCompatibleWaitUntil } from '@modules/browser/navigation-wait-until';
 
 type PermissionQueryInput = Parameters<Permissions['query']>[0];
 
@@ -243,7 +244,7 @@ export class BrowserModeManager {
 
     logger.info(`Navigating to URL: ${url}`);
 
-    await targetPage.goto(url, { waitUntil: 'networkidle2' });
+    await targetPage.goto(url, { waitUntil: toChromeCompatibleWaitUntil() });
 
     if (this.config.autoDetectCaptcha) {
       await this.checkAndHandleCaptcha(targetPage, url);
@@ -317,7 +318,7 @@ export class BrowserModeManager {
 
     const newPage = await this.newPage();
 
-    await newPage.goto(url, { waitUntil: 'networkidle2' });
+    await newPage.goto(url, { waitUntil: toChromeCompatibleWaitUntil() });
 
     // Restore session storage data after mode switch to preserve login state
     await this.restoreSessionData(newPage);
@@ -325,7 +326,7 @@ export class BrowserModeManager {
     // Reload page so the app reads restored storage data (important for SPAs)
     // Only reload if we actually restored data
     if (this.sessionData.localStorage || this.sessionData.sessionStorage) {
-      await newPage.reload({ waitUntil: 'networkidle2' });
+      await newPage.reload({ waitUntil: toChromeCompatibleWaitUntil() });
     }
 
     this.showCaptchaPrompt(captchaInfo);
