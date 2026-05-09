@@ -192,7 +192,7 @@ describe('AdvancedToolHandlers (network)', () => {
 
     const body = parseJson<NetworkRequestsResponse>(
       await handlers.handleNetworkGetRequests({
-        url: 'jshookmcp/api/',
+        url: 'api/',
         method: 'ALL',
         limit: 1,
         offset: 1,

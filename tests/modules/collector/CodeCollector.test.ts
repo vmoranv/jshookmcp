@@ -39,8 +39,8 @@ import { CodeCollector } from '@modules/collector/CodeCollector';
 import {
   buildTestUrl,
   E2E_DEFAULT_TARGET_GLOB,
+  E2E_DEFAULT_TARGET_URL,
   TEST_URLS,
-  withPath,
 } from '@tests/shared/test-urls';
 
 class TestCodeCollector extends CodeCollector {
@@ -147,11 +147,12 @@ describe('CodeCollector', () => {
     const collector = new CodeCollector(defaultConfig);
 
     expect(
-      collector.shouldCollectUrl(withPath(TEST_URLS.root, 'app.js'), [E2E_DEFAULT_TARGET_GLOB]),
+      collector.shouldCollectUrl(E2E_DEFAULT_TARGET_URL + 'app.js', [E2E_DEFAULT_TARGET_GLOB]),
     ).toBe(true);
     expect(
       collector.shouldCollectUrl(buildTestUrl('cdn.other', { path: 'lib.js' }), [
         E2E_DEFAULT_TARGET_GLOB,
+        E2E_DEFAULT_TARGET_URL,
       ]),
     ).toBe(false);
   });

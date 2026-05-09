@@ -67,7 +67,7 @@ vi.mock('@modules/collector/PageScriptCollectors', () => ({
 }));
 
 import { CodeCollector } from '@modules/collector/CodeCollector';
-import { buildTestUrl, TEST_URLS, withPath } from '@tests/shared/test-urls';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 class TestCodeCollector extends CodeCollector {
   getUrls() {
@@ -223,11 +223,7 @@ describe('CodeCollector extra coverage', () => {
     });
     expect(collector.getFileByUrl('missing')).toBeNull();
 
-    const matched = collector.getFilesByPattern(
-      buildTestUrl('', { suffix: 'example', path: '.com' }),
-      2,
-      15,
-    );
+    const matched = collector.getFilesByPattern(TEST_URLS.root, 2, 15);
     expect(matched).toMatchObject({
       matched: 3,
       returned: 1,
