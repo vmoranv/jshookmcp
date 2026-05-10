@@ -7,7 +7,7 @@ export function shouldCollectUrlImpl(url: string, filterRules?: string[]): boole
   }
 
   for (const rule of filterRules) {
-    const regex = new RegExp(rule.replace(/\*/g, '.*'));
+    const regex = new RegExp(rule.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*'));
     if (regex.test(url)) {
       return true;
     }
