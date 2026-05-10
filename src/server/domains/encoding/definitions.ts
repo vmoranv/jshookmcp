@@ -14,7 +14,7 @@ export const encodingTools: Tool[] = [
   ),
   tool('binary_decode', (t) =>
     t
-      .desc('Decode binary payloads into hex, utf8, or json output')
+      .desc('Decode binary payloads into hex, utf8, or json output.')
       .string('data', 'Input encoded payload')
       .enum('encoding', ['base64', 'hex', 'url', 'protobuf', 'msgpack'], 'Declared input encoding')
       .enum('outputFormat', ['hex', 'utf8', 'json'], 'Target output format', { default: 'hex' })
@@ -23,7 +23,7 @@ export const encodingTools: Tool[] = [
   ),
   tool('binary_encode', (t) =>
     t
-      .desc('Encode utf8/hex/json input into base64/hex/url output')
+      .desc('Encode utf8/hex/json input into base64/hex/url output.')
       .string('data', 'Input payload')
       .enum('inputFormat', ['utf8', 'hex', 'json'], 'How to parse input')
       .enum('outputEncoding', ['base64', 'hex', 'url'], 'Desired output encoding')
@@ -46,7 +46,7 @@ export const encodingTools: Tool[] = [
   ),
   tool('protobuf_decode_raw', (t) =>
     t
-      .desc('Decode base64 protobuf bytes without schema using wire-type aware recursive parser')
+      .desc('Decode protobuf bytes without a schema.')
       .string('data', 'Base64-encoded protobuf payload')
       .number('maxDepth', 'Maximum recursive decode depth', { default: 5, minimum: 1, maximum: 20 })
       .required('data')

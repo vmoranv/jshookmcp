@@ -12,7 +12,7 @@ const queryTypes = [
 export const instrumentationTools: Tool[] = [
   tool('instrumentation_session', (t) =>
     t
-      .desc('Manage instrumentation sessions.')
+      .desc('Start, stop, or query status of an instrumentation recording session.')
       .enum('action', ['create', 'list', 'destroy', 'status'], 'Session operation')
       .string('name', 'Optional session name for create')
       .string('sessionId', 'Session ID (required for destroy/status)')

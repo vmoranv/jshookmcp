@@ -1068,7 +1068,6 @@ function renderDomainPage(manifest, locale, zhToolDescriptions, workflowPresets)
         ? (zhToolDescriptions[tool.name] ?? `[缺少中文翻译] ${tool.description}`)
         : tool.description,
   }));
-  const representative = localizedTools.slice(0, Math.min(10, localizedTools.length));
   const allRows = localizedTools
     .map((tool) => `| \`${tool.name}\` | ${escapeMd(tool.localizedDescription)} |`)
     .join('\n');
@@ -1093,10 +1092,6 @@ ${scenarios.map((item) => `- ${item}`).join('\n')}
 ## 常见组合
 
 ${combos.map((item) => `- ${item}`).join('\n')}
-
-## 代表工具
-
-${representative.map((tool) => `- \`${tool.name}\` — ${tool.localizedDescription}`).join('\n')}
 
 ## 工具清单（${manifest.tools.length}）
 
@@ -1123,10 +1118,6 @@ ${scenarios.map((item) => `- ${item}`).join('\n')}
 ## Common combinations
 
 ${combos.map((item) => `- ${item}`).join('\n')}
-
-## Representative tools
-
-${representative.map((tool) => `- \`${tool.name}\` — ${tool.localizedDescription}`).join('\n')}
 
 ## Full tool list (${manifest.tools.length})
 

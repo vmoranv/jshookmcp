@@ -4,7 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const macroTools: Tool[] = [
   tool('run_macro', (t) =>
     t
-      .desc('Execute a registered macro by ID with inline progress and atomic bailout')
+      .desc('Execute a registered macro by ID with inline progress and atomic bailout.')
       .string('macroId', 'Macro ID to execute')
       .prop('inputOverrides', {
         type: 'object',
@@ -13,5 +13,5 @@ export const macroTools: Tool[] = [
       })
       .required('macroId'),
   ),
-  tool('list_macros', (t) => t.desc('List all available macros (built-in + user-defined)').query()),
+  tool('list_macros', (t) => t.desc('List all available macros.').query()),
 ];

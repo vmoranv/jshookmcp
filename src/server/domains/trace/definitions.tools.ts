@@ -37,7 +37,7 @@ export const TRACE_TOOLS: Tool[] = [
   ),
   tool('start_trace_recording', (t) =>
     t
-      .desc('Start trace recording into a SQLite database.')
+      .desc('Start recording debugger traces into a SQLite database for time-travel.')
       .array(
         'cdpDomains',
         { type: 'string' },

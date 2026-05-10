@@ -48,7 +48,7 @@ function withWebcrackOpts(b: ToolBuilder) {
 export const coreTools: Tool[] = [
   tool('collect_code', (t) =>
     t
-      .desc('Collect JavaScript from a target website in summary, priority, incremental, o...')
+      .desc('Collect JavaScript from a target website with configurable strategy.')
       .boolean('includeInline', 'Include inline scripts', { default: true })
       .boolean('includeExternal', 'Include external scripts', { default: true })
       .boolean('includeDynamic', 'Include dynamically loaded scripts', { default: false })
@@ -73,7 +73,7 @@ export const coreTools: Tool[] = [
   ),
   tool('search_in_scripts', (t) =>
     t
-      .desc('Search collected scripts by keyword or regex pattern')
+      .desc('Search collected scripts by keyword or regex pattern.')
       .string('keyword', 'Search keyword or regex pattern')
       .boolean('isRegex', 'Treat keyword as regex', { default: false })
       .boolean('caseSensitive', 'Case-sensitive search', { default: false })
@@ -94,7 +94,7 @@ export const coreTools: Tool[] = [
   ),
   tool('extract_function_tree', (t) =>
     t
-      .desc('Extract a function and its dependency tree from collected scripts')
+      .desc('Extract a function and its dependency tree from collected scripts.')
       .string('scriptId', 'Script identifier')
       .string('functionName', 'Function name to extract')
       .number('maxDepth', 'Maximum dependency traversal depth', {
@@ -120,7 +120,7 @@ export const coreTools: Tool[] = [
   ),
   tool('understand_code', (t) =>
     t
-      .desc('Run semantic code analysis for structure, behavior, and risks')
+      .desc('Run semantic code analysis for structure, behavior, and risks.')
       .string('code', 'Source code to analyze')
       .prop('context', { type: 'object', description: 'Additional contextual data' })
       .enum('focus', ['structure', 'business', 'security', 'all'], 'Analysis focus', {
@@ -130,14 +130,14 @@ export const coreTools: Tool[] = [
   ),
   tool('detect_crypto', (t) =>
     t
-      .desc('Detect cryptographic algorithms and usage patterns in source code')
+      .desc('Detect cryptographic algorithms and usage patterns in source code.')
       .string('code', 'Source code for crypto analysis')
       .required('code')
       .query(),
   ),
   tool('manage_hooks', (t) =>
     t
-      .desc('Create, inspect, and clear JavaScript runtime hooks')
+      .desc('Create, inspect, and clear JavaScript runtime hooks.')
       .enum('action', ['create', 'list', 'records', 'clear'], 'Hook management operation')
       .string('target', 'Hook target identifier')
       .enum(
@@ -152,7 +152,7 @@ export const coreTools: Tool[] = [
   ),
   tool('detect_obfuscation', (t) =>
     t
-      .desc('Detect obfuscation techniques in JavaScript source')
+      .desc('Detect obfuscation techniques in JavaScript source.')
       .string('code', 'Source code to inspect')
       .boolean('generateReport', 'Include human-readable report', { default: true })
       .required('code')
@@ -161,19 +161,19 @@ export const coreTools: Tool[] = [
   tool('webcrack_unpack', (t) =>
     withWebcrackOpts(
       t
-        .desc('Run webcrack bundle unpacking and return extracted module graph')
+        .desc('Run webcrack bundle unpacking and return extracted module graph.')
         .string('code', 'Bundled or obfuscated JavaScript source'),
     ).required('code'),
   ),
   tool('clear_collected_data', (t) =>
-    t.desc('Clear collected script data, caches, and in-memory indexes').destructive(),
+    t.desc('Clear collected script data, caches, and in-memory indexes.').destructive(),
   ),
   tool('get_collection_stats', (t) =>
-    t.desc('Get collection, cache, and compression statistics').query(),
+    t.desc('Get collection, cache, and compression statistics.').query(),
   ),
   tool('webpack_enumerate', (t) =>
     t
-      .desc('Enumerate webpack modules in current page and search for keywords')
+      .desc('Enumerate webpack modules in current page and search for keywords.')
       .string('searchKeyword', 'Keyword to search across module exports')
       .boolean('forceRequireAll', 'Force-require every module', { default: false })
       .number('maxResults', 'Maximum matching modules', { default: 20, minimum: 1, maximum: 10000 })
@@ -181,7 +181,7 @@ export const coreTools: Tool[] = [
   ),
   tool('llm_suggest_names', (t) =>
     t
-      .desc('Use client LLM (via MCP sampling) to suggest meaningful names for obfuscated ...')
+      .desc('Use LLM to suggest meaningful names for obfuscated identifiers.')
       .array('identifiers', { type: 'string' }, 'Array of obfuscated identifier names to rename')
       .required('code', 'identifiers')
       .readOnly(),
@@ -216,7 +216,7 @@ export const coreTools: Tool[] = [
   ),
   tool('js_analyze_vm', (t) =>
     t
-      .desc('Analyze JSVMP/VM interpreter structure: dispatch type, handler table, opcode map.')
+      .desc('Analyze JSVMP/VM interpreter: dispatch type, handler table, opcode map.')
       .string('code', 'JavaScript source containing VM interpreter')
       .boolean('extractBytecode', 'Attempt to extract VM bytecode', { default: true })
       .boolean('mapOpcodes', 'Map opcodes to inferred operations', { default: true })

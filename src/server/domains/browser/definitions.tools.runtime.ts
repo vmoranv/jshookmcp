@@ -12,7 +12,7 @@ export const browserRuntimeTools: Tool[] = [
   ),
   tool('browser_launch', (t) =>
     t
-      .desc('Launch or connect to a browser.')
+      .desc('Launch Chromium/Camoufox or connect to a running browser.')
       .enum('driver', ['chrome', 'camoufox'], 'Browser driver', { default: 'chrome' })
       .boolean('headless', 'Run headless', { default: false })
       .enum('os', ['windows', 'macos', 'linux'], 'OS fingerprint (camoufox)', {
@@ -72,7 +72,7 @@ export const browserRuntimeTools: Tool[] = [
   ),
   tool('camoufox_server', (t) =>
     t
-      .desc('Manage Camoufox WebSocket server.')
+      .desc('Start, close, or check status of a Camoufox anti-detect server.')
       .enum('action', ['launch', 'close', 'status'], 'Action')
       .number('port', 'Listen port (launch)')
       .string('ws_path', 'WebSocket path (launch)')
@@ -123,7 +123,7 @@ export const browserRuntimeTools: Tool[] = [
   ),
   tool('browser_attach', (t) =>
     t
-      .desc('Attach to a running browser via CDP.')
+      .desc('Connect to a running browser.')
       .string('browserURL', 'Debug endpoint URL')
       .string('wsEndpoint', 'WebSocket URL')
       .boolean('autoConnect', 'Auto-detect local Chrome debug WebSocket', { default: false })
@@ -136,7 +136,7 @@ export const browserRuntimeTools: Tool[] = [
   ),
   tool('browser_list_cdp_targets', (t) =>
     t
-      .desc('List CDP targets.')
+      .desc('List CDP targets with optional type/URL/title filters.')
       .string('browserURL', 'Browser URL')
       .string('wsEndpoint', 'WebSocket endpoint')
       .boolean('autoConnect', 'Auto-detect local Chrome debug WebSocket', { default: false })
@@ -177,6 +177,10 @@ export const browserRuntimeTools: Tool[] = [
       .boolean('stripBase64', 'Strip base64 payloads', { default: false })
       .openWorld(),
   ),
-  tool('browser_close', (t) => t.desc('Close browser.').destructive()),
-  tool('browser_status', (t) => t.desc('Browser status.').query()),
+  tool('browser_close', (t) =>
+    t.desc('Close the browser and release all resources.').destructive(),
+  ),
+  tool('browser_status', (t) =>
+    t.desc('Report browser status: running, tab count, version.').query(),
+  ),
 ];

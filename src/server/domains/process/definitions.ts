@@ -39,7 +39,7 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('memory_write', (t) =>
     t
-      .desc('Write data to process memory at a specific address. Requires elevated privileges.')
+      .desc('Write data to process memory at a given address.')
       .number('pid', 'Target process ID')
       .string('address', 'Memory address to write to (hex string like "0x12345678")')
       .string('data', 'Data to write (hex string or base64)')
@@ -73,7 +73,7 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('memory_scan_filtered', (t) =>
     t
-      .desc('Scan memory within a filtered set of addresses (secondary scan).')
+      .desc('Refine a previous memory scan with filtered addresses.')
       .number('pid', 'Target process ID')
       .string('pattern', 'Pattern to search for')
       .array(
@@ -110,7 +110,7 @@ export const processToolDefinitions: Tool[] = [
   ),
   tool('memory_dump_region', (t) =>
     t
-      .desc('Dump a memory region to a file for analysis.')
+      .desc('Dump a process memory region to a binary file for offline analysis.')
       .number('pid', 'Target process ID')
       .string('address', 'Start address (hex)')
       .number('size', 'Number of bytes to dump')
@@ -130,14 +130,14 @@ export const processToolDefinitions: Tool[] = [
   // Injection tools
   tool('inject_dll', (t) =>
     t
-      .desc('Inject a DLL into a target process using CreateRemoteThread + LoadLibraryA (W...')
+      .desc('Inject a DLL into a target process.')
       .number('pid', 'Target process ID')
       .string('dllPath', 'Full path to the DLL file to inject')
       .required('pid', 'dllPath'),
   ),
   tool('inject_shellcode', (t) =>
     t
-      .desc('Inject and execute shellcode in a target process.')
+      .desc('Allocate and execute raw shellcode in a target process.')
       .number('pid', 'Target process ID')
       .string('shellcode', 'Shellcode bytes (hex string or base64)')
       .enum('encoding', ['hex', 'base64'], 'Encoding of shellcode', { default: 'hex' })

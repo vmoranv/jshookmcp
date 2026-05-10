@@ -130,13 +130,7 @@ export const memoryScanToolDefinitions: readonly Tool[] = [
   tool('memory_pointer_chain', (t) =>
     t
       .desc(
-        `Multi-level pointer chain operations.
-
-Actions:
-- scan: Find pointer chains to a target address
-- validate: Validate chains by re-dereferencing
-- resolve: Resolve a single chain to its current target
-- export: Export chains as JSON`,
+        `Pointer chain operations: scan (find chains to target), validate, resolve, or export as JSON.`,
       )
       .enum('action', ['scan', 'validate', 'resolve', 'export'], 'Chain operation')
       .number('pid', 'Target process ID')
@@ -206,13 +200,7 @@ Actions:
   tool('memory_breakpoint', (t) =>
     t
       .desc(
-        `Hardware breakpoint operations using x64 debug registers (DR0-DR3). Max 4 concurrent.
-
-Actions:
-- set: Set a breakpoint (requires pid, address, access)
-- remove: Remove by breakpointId
-- list: List all active breakpoints
-- trace: Set temporary breakpoint, collect N hits, then auto-remove`,
+        `Hardware breakpoint via x64 debug registers (DR0-DR3). Actions: set, remove, list, trace.`,
       )
       .enum('action', ['set', 'remove', 'list', 'trace'], 'Breakpoint operation')
       .number('pid', 'Target process ID (action=set/trace)')
@@ -313,11 +301,7 @@ Actions:
   tool('memory_speedhack', (t) =>
     t
       .desc(
-        `Speedhack: hook time APIs to scale process time. Speed 2.0 = 2x faster, 0.5 = half speed.
-
-Actions:
-- apply: Hook and apply speed multiplier (requires pid, speed)
-- set: Adjust speed on active hack (requires pid, speed)`,
+        `Hook time APIs to scale process time. Actions: apply (hook + set speed), set (adjust speed).`,
       )
       .enum('action', ['apply', 'set'], 'Speedhack action')
       .number('pid', 'Target process ID')

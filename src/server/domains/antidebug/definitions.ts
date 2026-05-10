@@ -32,6 +32,6 @@ export const antidebugTools: Tool[] = [
       ),
   ),
   tool('antidebug_detect_protections', (t) =>
-    t.desc('Detect anti-debug protections in current page with bypass recommendations'),
+    t.desc('Detect anti-debug protections in current page with bypass recommendations.'),
   ),
 ];

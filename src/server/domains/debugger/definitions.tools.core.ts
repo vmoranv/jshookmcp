@@ -4,13 +4,13 @@ import { tool } from '@server/registry/tool-builder';
 export const DEBUGGER_CORE_TOOLS: Tool[] = [
   tool('debugger_lifecycle', (t) =>
     t
-      .desc('Manage the debugger lifecycle (enable or disable)')
+      .desc('Enable or disable the CDP debugger session.')
       .enum('action', ['enable', 'disable'], 'Action to perform')
       .required('action')
       .idempotent(),
   ),
-  tool('debugger_pause', (t) => t.desc('Pause execution at the next statement')),
-  tool('debugger_resume', (t) => t.desc('Resume execution (continue)')),
+  tool('debugger_pause', (t) => t.desc('Pause execution at the next statement.')),
+  tool('debugger_resume', (t) => t.desc('Resume execution.')),
   tool('debugger_step', (t) =>
     t
       .desc(
@@ -61,9 +61,7 @@ Types & params:
       .required('action')
       .idempotent(),
   ),
-  tool('get_call_stack', (t) =>
-    t.desc('Get the current call stack (only available when paused at a breakpoint)').query(),
-  ),
+  tool('get_call_stack', (t) => t.desc('Get the current call stack.').query()),
   tool('debugger_evaluate', (t) =>
     t
       .desc(
@@ -80,7 +78,7 @@ Types & params:
   ),
   tool('debugger_wait_for_paused', (t) =>
     t
-      .desc('Wait for the debugger to pause (useful after setting breakpoints and triggering code)')
+      .desc('Wait for debugger pause after setting breakpoints.')
       .number('timeout', 'Timeout in milliseconds (default: 30000)', {
         default: 30000,
         minimum: 1000,
@@ -88,12 +86,10 @@ Types & params:
       })
       .query(),
   ),
-  tool('debugger_get_paused_state', (t) =>
-    t.desc('Get the current paused state (check if debugger is paused and why)').query(),
-  ),
+  tool('debugger_get_paused_state', (t) => t.desc('Get current paused state and reason.').query()),
   tool('get_object_properties', (t) =>
     t
-      .desc('Get all properties of an object (when paused, use objectId from variables)')
+      .desc('Get properties of an object by objectId.')
       .string('objectId', 'Object ID (from get_scope_variables)')
       .required('objectId')
       .query(),

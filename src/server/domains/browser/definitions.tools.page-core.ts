@@ -5,7 +5,7 @@ import { PAGE_NAVIGATION_WAIT_UNTIL_VALUES } from '@modules/browser/navigation-w
 export const browserPageCoreTools: Tool[] = [
   tool('page_navigate', (t) =>
     t
-      .desc('Navigate to a URL.')
+      .desc('Navigate the page to a URL with wait and network options.')
       .string('url', 'Target URL')
       .enum(
         'waitUntil',
@@ -25,12 +25,14 @@ export const browserPageCoreTools: Tool[] = [
       .idempotent()
       .openWorld(),
   ),
-  tool('page_reload', (t) => t.desc('Reload current page').idempotent().openWorld()),
-  tool('page_back', (t) => t.desc('Go back in history').openWorld()),
-  tool('page_forward', (t) => t.desc('Go forward in history').openWorld()),
+  tool('page_reload', (t) =>
+    t.desc('Reload the page with optional cache bypass.').idempotent().openWorld(),
+  ),
+  tool('page_back', (t) => t.desc('Navigate back in browser history.').openWorld()),
+  tool('page_forward', (t) => t.desc('Navigate forward in browser history.').openWorld()),
   tool('page_click', (t) =>
     t
-      .desc('Click an element.')
+      .desc('Click a page element by CSS selector.')
       .string('selector', 'CSS selector')
       .enum('button', ['left', 'right', 'middle'], 'Mouse button', { default: 'left' })
       .number('clickCount', 'Number of clicks', {
@@ -84,7 +86,7 @@ export const browserPageCoreTools: Tool[] = [
   ),
   tool('page_hover', (t) =>
     t
-      .desc('Hover over an element.')
+      .desc('Hover over an element by CSS selector.')
       .string('selector', 'CSS selector')
       .string('frameUrl', 'iframe URL substring')
       .string('frameSelector', 'iframe CSS selector')
@@ -94,7 +96,7 @@ export const browserPageCoreTools: Tool[] = [
   ),
   tool('page_scroll', (t) =>
     t
-      .desc('Scroll the page.')
+      .desc('Scroll to absolute or relative coordinates.')
       .number('x', 'Horizontal position', { default: 0 })
       .number('y', 'Vertical position', { default: 0 })
       .idempotent(),
@@ -131,7 +133,7 @@ export const browserPageCoreTools: Tool[] = [
   ),
   tool('page_screenshot', (t) =>
     t
-      .desc('Take a screenshot.')
+      .desc('Capture a page or element screenshot.')
       .prop('selector', {
         oneOf: [
           { type: 'string', description: 'CSS selector' },
@@ -162,13 +164,13 @@ export const browserPageCoreTools: Tool[] = [
   ),
   tool('get_all_scripts', (t) =>
     t
-      .desc('List all loaded scripts.')
+      .desc('List all scripts loaded by the page with optional source.')
       .boolean('includeSource', 'Include source code', { default: false })
       .query(),
   ),
   tool('get_script_source', (t) =>
     t
-      .desc('Get source code of a script.')
+      .desc('Retrieve source code of a script by ID or URL pattern.')
       .string('scriptId', 'Script ID')
       .string('url', 'Script URL (supports wildcards)')
       .boolean('preview', 'Preview only (first N lines + metadata)', { default: false })

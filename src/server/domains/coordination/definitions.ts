@@ -15,7 +15,7 @@ export const coordinationTools: Tool[] = [
   ),
   tool('complete_task_handoff', (t) =>
     t
-      .desc('Complete a task handoff.')
+      .desc('Mark a task handoff as completed.')
       .string('taskId', 'Task ID from create_task_handoff')
       .string('summary', 'Concise summary of what was accomplished')
       .array('keyFindings', { type: 'string' }, 'Key discoveries or results')
@@ -30,7 +30,7 @@ export const coordinationTools: Tool[] = [
   ),
   tool('append_session_insight', (t) =>
     t
-      .desc('Append a session insight.')
+      .desc('Record an insight for the current session.')
       .string('category', 'Insight category')
       .string('content', 'The insight content')
       .number('confidence', 'Confidence level 0.0-1.0', { minimum: 0, maximum: 1, default: 1 })

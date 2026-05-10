@@ -4,7 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const sandboxTools: Tool[] = [
   tool('execute_sandbox_script', (t) =>
     t
-      .desc('Execute JavaScript in a WASM-isolated QuickJS sandbox with optional tool brid...')
+      .desc('Execute JavaScript in an isolated sandbox.')
       .string('code', 'JavaScript source code to execute inside the sandbox')
       .string('sessionId', 'Session ID for scratchpad persistence across executions')
       .number('timeoutMs', 'Execution timeout in ms', { default: 1000 })

@@ -5,7 +5,7 @@ describe('sandboxTools', () => {
   it('should define execute_sandbox_script tool', async () => {
     const tool = sandboxTools.find((t) => t.name === 'execute_sandbox_script');
     expect(tool).toBeDefined();
-    expect(tool?.description).toContain('Execute JavaScript in a WASM-isolated QuickJS sandbox');
+    expect(tool?.description).toContain('Execute JavaScript in an isolated sandbox');
     expect(tool?.inputSchema.required).toContain('code');
     expect(tool?.inputSchema.properties).toHaveProperty('sessionId');
     expect(tool?.inputSchema.properties).toHaveProperty('timeoutMs');

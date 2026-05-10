@@ -3,11 +3,11 @@ import { tool } from '@server/registry/tool-builder';
 
 export const crossDomainToolDefinitions: Tool[] = [
   tool('cross_domain_capabilities', (t) =>
-    t.desc('List cross-domain capabilities and workflows.').query(),
+    t.desc('List all cross-domain capability categories and available workflows.').query(),
   ),
   tool('cross_domain_suggest_workflow', (t) =>
     t
-      .desc('Suggest a cross-domain workflow for a goal.')
+      .desc('Recommend a multi-domain workflow to achieve a specific analysis goal.')
       .string('goal', 'High-level task goal or problem statement to classify')
       .boolean(
         'preferAvailableOnly',
@@ -19,7 +19,9 @@ export const crossDomainToolDefinitions: Tool[] = [
       .required('goal')
       .query(),
   ),
-  tool('cross_domain_health', (t) => t.desc('Report cross-domain health.').query()),
+  tool('cross_domain_health', (t) =>
+    t.desc('Report health status of cross-domain bridges and correlators.').query(),
+  ),
   tool('cross_domain_correlate_all', (t) =>
     t
       .desc(

@@ -99,7 +99,7 @@ export const protocolAnalysisTools: Tool[] = [
   ),
   tool('arp_build', (t) =>
     t
-      .desc('Build a deterministic ARP payload for Ethernet/IPv4 style address resolution packets.')
+      .desc('Build a deterministic ARP payload for Ethernet/IPv4.')
       .enum('operation', ['request', 'reply'], 'ARP operation code', {
         default: 'request',
       })
@@ -243,7 +243,7 @@ export const protocolAnalysisTools: Tool[] = [
   ),
   tool('proto_define_pattern', (t) =>
     t
-      .desc('Define a protocol pattern with delimiter, byte order, and field layout')
+      .desc('Define a protocol pattern with delimiter, byte order, and field layout.')
       .string('name', 'Pattern name')
       .prop('spec', {
         type: 'object',
@@ -255,28 +255,28 @@ export const protocolAnalysisTools: Tool[] = [
   ),
   tool('proto_auto_detect', (t) =>
     t
-      .desc('Auto-detect a protocol pattern from one or more hex payload samples')
+      .desc('Auto-detect a protocol pattern from one or more hex payload samples.')
       .array('hexPayloads', { type: 'string' }, 'Hex payload samples')
       .required('hexPayloads')
       .query(),
   ),
   tool('proto_export_schema', (t) =>
     t
-      .desc('Export a protocol pattern to a .proto-like schema definition')
+      .desc('Export a protocol pattern to a .proto-like schema definition.')
       .string('patternId', 'Pattern ID to export')
       .required('patternId')
       .query(),
   ),
   tool('proto_infer_fields', (t) =>
     t
-      .desc('Infer likely protocol fields from repeated hex payload samples')
+      .desc('Infer likely protocol fields from repeated hex payload samples.')
       .array('hexPayloads', { type: 'string' }, 'Hex payload samples')
       .required('hexPayloads')
       .query(),
   ),
   tool('proto_infer_state_machine', (t) =>
     t
-      .desc('Infer a protocol state machine from captured message sequences')
+      .desc('Infer a protocol state machine from captured message sequences.')
       .array(
         'messages',
         {
@@ -300,7 +300,7 @@ export const protocolAnalysisTools: Tool[] = [
   ),
   tool('proto_visualize_state', (t) =>
     t
-      .desc('Generate a Mermaid state diagram from a protocol state machine definition')
+      .desc('Generate a Mermaid state diagram from a protocol state machine definition.')
       .prop('stateMachine', {
         type: 'object',
         description: 'State machine definition with states and transitions',
@@ -310,7 +310,7 @@ export const protocolAnalysisTools: Tool[] = [
   ),
   tool('proto_fingerprint', (t) =>
     t
-      .desc('Identify protocol type from hex payload samples (TLS, HTTP, DNS, WebSocket, SSH).')
+      .desc('Identify protocol type from hex payload samples.')
       .array('hexPayloads', { type: 'string' }, 'Hex payload samples to fingerprint')
       .boolean('includeKnownProtocols', 'Match against known protocol signatures', {
         default: true,

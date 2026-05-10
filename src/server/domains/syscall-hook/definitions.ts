@@ -26,7 +26,7 @@ const SYSCALL_EVENT_SCHEMA = {
 export const syscallHookToolDefinitions: Tool[] = [
   tool('syscall_start_monitor', (t) =>
     t
-      .desc('Start syscall monitoring using ETW, strace, or dtrace.')
+      .desc('Start syscall monitoring.')
       .enum('backend', BACKEND_OPTIONS, 'Syscall capture backend')
       .number('pid', 'Optional PID to scope monitoring to a single process')
       .boolean('simulate', 'Use synthetic events instead of a real system tracer', {
@@ -34,7 +34,9 @@ export const syscallHookToolDefinitions: Tool[] = [
       })
       .required('backend'),
   ),
-  tool('syscall_stop_monitor', (t) => t.desc('Stop syscall monitoring.').idempotent()),
+  tool('syscall_stop_monitor', (t) =>
+    t.desc('Stop syscall interception and release all captured events.').idempotent(),
+  ),
   tool('syscall_capture_events', (t) =>
     t
       .desc('Capture syscall events from the active or last monitoring session.')
@@ -64,14 +66,14 @@ export const syscallHookToolDefinitions: Tool[] = [
   ),
   tool('syscall_filter', (t) =>
     t
-      .desc('Filter captured syscall events by syscall name.')
+      .desc('Filter captured syscall events by name, PID, or return value.')
       .array('names', { type: 'string' }, 'Syscall names to keep')
       .query(),
   ),
   tool('syscall_get_stats', (t) => t.desc('Get syscall monitoring statistics.').query()),
   tool('syscall_ebpf_trace', (t) =>
     t
-      .desc('Trace syscalls via Linux eBPF/bpftrace. Requires root or CAP_BPF.')
+      .desc('Trace syscalls on Linux with eBPF. Requires root or CAP_BPF.')
       .number('pid', 'Process ID to trace. 0 = trace all.', { default: 0 })
       .array('syscalls', { type: 'string' }, 'Specific syscall names to trace (empty = all)')
       .number('durationSec', 'Trace duration in seconds', { default: 10, minimum: 1, maximum: 300 })

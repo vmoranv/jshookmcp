@@ -13,7 +13,7 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('frida_enumerate_modules', (t) =>
     t
-      .desc('Enumerate modules for an attached Frida session.')
+      .desc('List loaded modules in an attached Frida session.')
       .string('sessionId', 'Session id returned by frida_attach')
       .required('sessionId')
       .query(),
@@ -63,10 +63,12 @@ export const binaryInstrumentTools: Tool[] = [
       .string('sessionId', 'Session id returned by frida_attach')
       .required('sessionId'),
   ),
-  tool('frida_list_sessions', (t) => t.desc('List all active Frida sessions.').query()),
+  tool('frida_list_sessions', (t) =>
+    t.desc('List all active Frida attach sessions with target info.').query(),
+  ),
   tool('frida_generate_script', (t) =>
     t
-      .desc('Generate a Frida hook script from a template.')
+      .desc('Generate a Frida interceptor or hook script from built-in templates.')
       .string('target', 'Target binary or module name')
       .string('template', 'Hook template type: trace, intercept, replace, log')
       .string('functionName', 'Function name to generate hook for')
@@ -75,21 +77,21 @@ export const binaryInstrumentTools: Tool[] = [
   tool('get_available_plugins', (t) => t.desc('List installed binary analysis plugins.').query()),
   tool('ghidra_decompile', (t) =>
     t
-      .desc('Decompile a specific function using Ghidra headless analysis.')
+      .desc('Decompile a function using Ghidra.')
       .string('binaryPath', 'Path to the binary file')
       .string('functionName', 'Function name to decompile')
       .required('binaryPath', 'functionName'),
   ),
   tool('ida_decompile', (t) =>
     t
-      .desc('Decompile a function using IDA Pro via plugin bridge.')
+      .desc('Decompile a function using IDA Pro.')
       .string('binaryPath', 'Path to the binary file')
       .string('functionName', 'Function name to decompile')
       .required('binaryPath', 'functionName'),
   ),
   tool('jadx_decompile', (t) =>
     t
-      .desc('Decompile an APK class or method using JADX via plugin bridge.')
+      .desc('Decompile an APK class or method using JADX.')
       .string('apkPath', 'Path to the APK file')
       .string('className', 'Fully qualified class name')
       .string('methodName', 'Method name to decompile')
@@ -97,7 +99,7 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('unidbg_launch', (t) =>
     t
-      .desc('Launch a shared library in Unidbg.')
+      .desc('Emulate a native shared library in Unidbg.')
       .string('soPath', 'Path to the .so library file')
       .string('arch', 'Architecture: arm or arm64')
       .required('soPath'),
@@ -111,7 +113,7 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('unidbg_trace', (t) =>
     t
-      .desc('Get an execution trace from an Unidbg session (full/basic/instruction modes).')
+      .desc('Get execution trace from Unidbg session with configurable detail.')
       .string('sessionId', 'Session id from unidbg_launch')
       .required('sessionId'),
   ),
@@ -130,7 +132,7 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('frida_find_symbols', (t) =>
     t
-      .desc('Search for symbols matching a pattern in a Frida session using ApiResolver.')
+      .desc('Search for symbols matching a pattern in a Frida session.')
       .string('sessionId', 'Session id returned by frida_attach')
       .string('pattern', 'Symbol search pattern (e.g. "exports:*libssl*SSL*")')
       .required('sessionId', 'pattern')

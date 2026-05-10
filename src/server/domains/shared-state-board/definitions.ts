@@ -4,7 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const sharedStateBoardTools: Tool[] = [
   tool('state_board', (t) =>
     t
-      .desc('Manage shared state board entries.')
+      .desc('CRUD operations on the cross-tool shared state board.')
       .enum('action', ['set', 'get', 'delete', 'list', 'history', 'clear'], 'Operation to perform')
       .string('key', 'Key name (required for set/get/delete/history)')
       .prop('value', {
@@ -22,7 +22,7 @@ export const sharedStateBoardTools: Tool[] = [
   ),
   tool('state_board_watch', (t) =>
     t
-      .desc('Start, poll, or stop shared state board watches.')
+      .desc('Watch state board keys for changes with configurable polling.')
       .enum(
         'action',
         ['start', 'poll', 'stop'],
@@ -36,7 +36,7 @@ export const sharedStateBoardTools: Tool[] = [
   ),
   tool('state_board_io', (t) =>
     t
-      .desc('Export or import state board entries.')
+      .desc('Serialize state board to JSON or restore from a previous export.')
       .enum('action', ['export', 'import'], 'IO operation')
       .string('namespace', 'Namespace filter or target namespace')
       .string('keyPattern', 'Key pattern filter')

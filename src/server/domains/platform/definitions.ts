@@ -28,7 +28,7 @@ export const platformTools: Tool[] = [
   ),
   tool('asar_extract', (t) =>
     t
-      .desc('Extract files from an Electron ASAR archive.')
+      .desc('Extract and list files from an Electron ASAR package.')
       .string('inputPath', '必填。asar 文件路径。')
       .string('outputDir', '可选。提取目录；不提供时自动生成 artifacts 临时目录。')
       .boolean('listOnly', '可选。默认 false；true 时仅列出文件清单，不执行提取。', {
@@ -38,7 +38,7 @@ export const platformTools: Tool[] = [
   ),
   tool('electron_inspect_app', (t) =>
     t
-      .desc('Inspect an Electron app structure.')
+      .desc('Analyze Electron app structure: main/renderer entry, preload, IPC.')
       .string('appPath', 'Path to Electron app (.exe or app directory)')
       .required('appPath'),
   ),
@@ -61,7 +61,7 @@ export const platformTools: Tool[] = [
   ),
   tool('asar_search', (t) =>
     t
-      .desc('Search text inside an ASAR archive.')
+      .desc('Grep text patterns inside ASAR archive contents without extraction.')
       .string('inputPath', '必填。ASAR 文件路径。')
       .string('pattern', '必填。正则表达式字符串。')
       .string('fileGlob', '可选。文件扩展名过滤。默认 *.js。', { default: '*.js' })
@@ -137,7 +137,7 @@ export const platformTools: Tool[] = [
   ),
   tool('electron_ipc_sniff', (t) =>
     t
-      .desc('Monitor Electron IPC via renderer-side hooks.')
+      .desc('Monitor Electron IPC messages.')
       .enum('action', ['start', 'dump', 'stop', 'list', 'guide'], 'Action to perform.', {
         default: 'guide',
       })

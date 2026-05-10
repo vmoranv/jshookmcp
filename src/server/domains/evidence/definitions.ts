@@ -21,7 +21,7 @@ export const evidenceTools: Tool[] = [
   ),
   tool('evidence_chain', (t) =>
     t
-      .desc('Get full provenance chain from a node ID in specified direction')
+      .desc('Get full provenance chain from a node ID in specified direction.')
       .string('nodeId', 'Evidence node ID to start from')
       .enum('direction', ['forward', 'backward'], 'Traversal direction', { default: 'forward' })
       .required('nodeId')

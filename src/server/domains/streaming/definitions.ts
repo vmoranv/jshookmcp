@@ -4,7 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const streamingTools: Tool[] = [
   tool('ws_monitor', (t) =>
     t
-      .desc('Enable or disable WebSocket frame capture via CDP Network events.')
+      .desc('Enable or disable WebSocket frame capture.')
       .enum('action', ['enable', 'disable'], 'Monitor action')
       .string('urlFilter', 'Regex filter for WebSocket URL (action=enable)')
       .number('maxFrames', 'Maximum frames in memory (action=enable, default: 1000)', {
@@ -17,7 +17,7 @@ export const streamingTools: Tool[] = [
   ),
   tool('ws_get_frames', (t) =>
     t
-      .desc('Get captured WebSocket frames with pagination and payload filter')
+      .desc('Get captured WebSocket frames with pagination and payload filter.')
       .enum('direction', ['sent', 'received', 'all'], 'Frame direction filter', { default: 'all' })
       .number('limit', 'Maximum frames to return', { default: 100, minimum: 1, maximum: 10000 })
       .number('offset', 'Pagination offset', { default: 0, minimum: 0 })
@@ -25,11 +25,11 @@ export const streamingTools: Tool[] = [
       .readOnly(),
   ),
   tool('ws_get_connections', (t) =>
-    t.desc('Get tracked WebSocket connections and frame counts').readOnly(),
+    t.desc('Get tracked WebSocket connections and frame counts.').readOnly(),
   ),
   tool('sse_monitor_enable', (t) =>
     t
-      .desc('Enable SSE monitoring by injecting EventSource interceptor')
+      .desc('Enable SSE monitoring by injecting EventSource interceptor.')
       .string('urlFilter', 'Regex filter for EventSource URL')
       .number('maxEvents', 'Maximum SSE events in memory', {
         default: 2000,
@@ -40,7 +40,7 @@ export const streamingTools: Tool[] = [
   ),
   tool('sse_get_events', (t) =>
     t
-      .desc('Get captured SSE events with filters and pagination')
+      .desc('Get captured SSE events with filters and pagination.')
       .string('sourceUrl', 'Filter by EventSource URL')
       .string('eventType', 'Filter by SSE event type')
       .number('limit', 'Maximum events', { default: 100, minimum: 1, maximum: 10000 })

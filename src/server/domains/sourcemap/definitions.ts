@@ -9,7 +9,7 @@ export const sourcemapTools: Tool[] = [
   ),
   tool('sourcemap_fetch_and_parse', (t) =>
     t
-      .desc('Parse a source map.')
+      .desc('Fetch a source map from URL and parse to original sources.')
       .string('sourceMapUrl', 'Source map URL.')
       .string('scriptUrl', 'Script URL for relative map resolution.')
       .required('sourceMapUrl'),

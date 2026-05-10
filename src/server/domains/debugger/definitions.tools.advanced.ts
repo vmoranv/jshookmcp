@@ -39,5 +39,5 @@ Includes:
 - jquery, react, vue, an...`)
       .idempotent(),
   ),
-  tool('blackbox_list', (t) => t.desc('List all blackboxed patterns').query()),
+  tool('blackbox_list', (t) => t.desc('List script blackbox patterns.').query()),
 ];

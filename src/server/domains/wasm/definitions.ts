@@ -16,7 +16,7 @@ export const wasmTools: Tool[] = [
   ),
   tool('wasm_disassemble', (t) =>
     t
-      .desc('Disassemble a .wasm file to WAT.')
+      .desc('Disassemble a .wasm binary to WAT text format.')
       .string('inputPath', 'Path to the .wasm file to disassemble')
       .string('outputPath', 'Output .wat file path. If omitted, auto-generates in artifacts/wasm/')
       .boolean('foldExprs', 'Fold expressions for more compact output', { default: true })
@@ -24,14 +24,14 @@ export const wasmTools: Tool[] = [
   ),
   tool('wasm_decompile', (t) =>
     t
-      .desc('Decompile a .wasm file to pseudo-code.')
+      .desc('Decompile .wasm bytecode to readable pseudo-code with type info.')
       .string('inputPath', 'Path to the .wasm file to decompile')
       .string('outputPath', 'Output file path. If omitted, auto-generates in artifacts/wasm/')
       .required('inputPath'),
   ),
   tool('wasm_inspect_sections', (t) =>
     t
-      .desc('Inspect sections and metadata of a .wasm file.')
+      .desc('Parse .wasm section headers: imports, exports, memory, tables, code.')
       .string('inputPath', 'Path to the .wasm file to inspect')
       .enum(
         'sections',
@@ -62,7 +62,7 @@ export const wasmTools: Tool[] = [
   ),
   tool('wasm_optimize', (t) =>
     t
-      .desc('Optimize a .wasm file.')
+      .desc('Optimize a .wasm binary for size or speed.')
       .string('inputPath', 'Path to the .wasm file to optimize')
       .string(
         'outputPath',
@@ -87,7 +87,7 @@ export const wasmTools: Tool[] = [
   ),
   tool('wasm_to_c', (t) =>
     t
-      .desc('Convert a .wasm file to C source and header.')
+      .desc('Transpile .wasm bytecode to C source and header files.')
       .string('inputPath', 'Path to the .wasm file to convert')
       .string(
         'outputDir',
@@ -97,7 +97,7 @@ export const wasmTools: Tool[] = [
   ),
   tool('wasm_detect_obfuscation', (t) =>
     t
-      .desc('Detect obfuscation patterns in a .wasm file.')
+      .desc('Detect WASM obfuscation: opaque predicates, control-flow flattening, bogus ops.')
       .string('inputPath', 'Path to the .wasm file to analyze')
       .boolean('verbose', 'Include detailed pattern evidence in output', { default: false })
       .required('inputPath'),

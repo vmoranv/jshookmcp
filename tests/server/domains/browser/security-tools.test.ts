@@ -12,7 +12,7 @@ describe('browserSecurityStateTools', () => {
     const tool = getTool('captcha_detect');
 
     expect(tool.description).toContain('CAPTCHA');
-    expect(tool.description!.length).toBeLessThan(50);
+    expect(tool.description!.length).toBeLessThan(40);
   });
 
   it('captcha_wait mentions manual solve', async () => {

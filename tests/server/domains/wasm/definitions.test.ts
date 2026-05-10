@@ -225,7 +225,7 @@ describe('wasm/definitions', () => {
     });
 
     it('description focuses on optimization behavior', async () => {
-      expect(getDescription(tool)).toContain('Optimize a .wasm file');
+      expect(getDescription(tool)).toContain('Optimize a .wasm binary');
     });
   });
 

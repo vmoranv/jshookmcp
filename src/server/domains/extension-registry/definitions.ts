@@ -3,11 +3,11 @@ import { tool } from '@server/registry/tool-builder';
 
 export const extensionRegistryTools: Tool[] = [
   tool('extension_list_installed', (t) =>
-    t.desc('List installed extensions from the local extension registry').query(),
+    t.desc('List installed extensions from the local registry.').query(),
   ),
   tool('extension_execute_in_context', (t) =>
     t
-      .desc('Load an extension and execute a named exported context function')
+      .desc('Load an extension and execute a named exported context function.')
       .string('pluginId', 'Plugin identifier')
       .string('contextName', 'Exported function or context name')
       .prop('args', {
@@ -19,13 +19,13 @@ export const extensionRegistryTools: Tool[] = [
   ),
   tool('extension_reload', (t) =>
     t
-      .desc('Reload an installed extension by unloading and loading it again')
+      .desc('Reload an installed extension by unloading and loading it again.')
       .string('pluginId', 'Plugin identifier')
       .requiredOpenWorld('pluginId'),
   ),
   tool('extension_uninstall', (t) =>
     t
-      .desc('Uninstall an extension from the local extension registry')
+      .desc('Uninstall an extension from the local registry.')
       .string('pluginId', 'Plugin identifier')
       .required('pluginId')
       .destructive(),

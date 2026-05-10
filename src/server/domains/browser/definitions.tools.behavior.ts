@@ -24,7 +24,7 @@ export const behaviorTools: Tool[] = [
   ),
   tool('human_scroll', (t) =>
     t
-      .desc('Scroll with human-like speed variation.')
+      .desc('Scroll with randomized speed and pauses to mimic human behavior.')
       .number('distance', 'Distance px', { default: 500 })
       .enum('direction', ['up', 'down', 'left', 'right'], 'Direction', {
         default: 'down',

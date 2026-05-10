@@ -12,7 +12,7 @@ export const nativeBridgeTools: Tool[] = [
   ),
   tool('ghidra_bridge', (t) =>
     t
-      .desc('Send an action to a Ghidra bridge server.')
+      .desc('Send a command to a Ghidra headless analysis bridge.')
       .enum(
         'action',
         [
@@ -37,7 +37,7 @@ export const nativeBridgeTools: Tool[] = [
   ),
   tool('ida_bridge', (t) =>
     t
-      .desc('Send an action to an IDA bridge server.')
+      .desc('Send a command to an IDA Pro plugin bridge.')
       .enum(
         'action',
         [
@@ -61,7 +61,7 @@ export const nativeBridgeTools: Tool[] = [
   ),
   tool('native_symbol_sync', (t) =>
     t
-      .desc('Export native symbols through a bridge server.')
+      .desc('Export native symbols to connected analysis backends.')
       .enum('source', ['ghidra', 'ida'], 'Which tool to export symbols from')
       .string('filter', 'Regex pattern to filter symbol names')
       .enum('exportFormat', ['json', 'csv', 'idc'], 'Output format', { default: 'json' })
