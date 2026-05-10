@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { R } from '@server/domains/shared/ResponseBuilder';
@@ -57,12 +58,24 @@ export class ProxyHandlers {
         if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
           console.log('[Proxy] generating new CA certificates...');
           const ca = await mockttp.generateCACertificate();
+
+          // Normalize to PKCS#8 for cross-platform compatibility (asn1.js schema
+          // resolution can fail on some Linux CI environments)
+          try {
+            const keyObj = crypto.createPrivateKey(ca.key);
+            ca.key = keyObj.export({ type: 'pkcs8', format: 'pem' }).toString();
+          } catch {
+            // Keep the original PEM if Node crypto can't parse it
+          }
+
           fs.writeFileSync(keyPath, ca.key);
           fs.writeFileSync(certPath, ca.cert);
         }
 
+        const key = fs.readFileSync(keyPath, 'utf8');
+        const cert = fs.readFileSync(certPath, 'utf8');
         this.server = mockttp.getLocal({
-          https: { keyPath, certPath },
+          https: { key, cert },
           cors: true,
         });
       } else {

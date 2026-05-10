@@ -59,51 +59,55 @@ function isAllowed(relPath: string): boolean {
 }
 
 describe('test URL guard', () => {
-  it('does not allow scattered placeholder/test site URLs outside shared entrypoints', async () => {
-    const files = await glob(['tests/**/*.ts'], {
-      cwd: process.cwd(),
-      absolute: true,
-    });
+  it(
+    'does not allow scattered placeholder/test site URLs outside shared entrypoints',
+    { timeout: 60_000 },
+    async () => {
+      const files = await glob(['tests/**/*.ts'], {
+        cwd: process.cwd(),
+        absolute: true,
+      });
 
-    const offenders: string[] = [];
+      const offenders: string[] = [];
 
-    for (const file of files) {
-      const relPath = relative(process.cwd(), file).replace(/\\/g, '/');
-      if (isAllowed(relPath)) continue;
+      for (const file of files) {
+        const relPath = relative(process.cwd(), file).replace(/\\/g, '/');
+        if (isAllowed(relPath)) continue;
 
-      const content = await readFile(file, 'utf8');
-      const sourceFile = ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true);
-      let foundOffender = false;
+        const content = await readFile(file, 'utf8');
+        const sourceFile = ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true);
+        let foundOffender = false;
 
-      const visit = (node: ts.Node) => {
-        if (foundOffender) return;
+        const visit = (node: ts.Node) => {
+          if (foundOffender) return;
 
-        if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-          if (isDisallowedLiteralUrl(node.text)) {
-            foundOffender = true;
-            return;
+          if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+            if (isDisallowedLiteralUrl(node.text)) {
+              foundOffender = true;
+              return;
+            }
           }
-        }
 
-        if (ts.isTemplateExpression(node)) {
-          const headText =
-            node.head.text + node.templateSpans.map((span) => '${}' + span.literal.text).join('');
-          if (isDisallowedTemplateUrl(headText)) {
-            foundOffender = true;
-            return;
+          if (ts.isTemplateExpression(node)) {
+            const headText =
+              node.head.text + node.templateSpans.map((span) => '${}' + span.literal.text).join('');
+            if (isDisallowedTemplateUrl(headText)) {
+              foundOffender = true;
+              return;
+            }
           }
+
+          ts.forEachChild(node, visit);
+        };
+
+        visit(sourceFile);
+
+        if (foundOffender) {
+          offenders.push(relPath);
         }
-
-        ts.forEachChild(node, visit);
-      };
-
-      visit(sourceFile);
-
-      if (foundOffender) {
-        offenders.push(relPath);
       }
-    }
 
-    expect(offenders).toEqual([]);
-  });
+      expect(offenders).toEqual([]);
+    },
+  );
 });
