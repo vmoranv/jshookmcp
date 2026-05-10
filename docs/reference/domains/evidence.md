@@ -19,12 +19,6 @@
 - instrumentation + evidence
 - network + hooks + evidence
 
-## 代表工具
-
-- `evidence_query` — 按 URL、函数名或脚本 ID 查询逆向证据图中的关联节点。
-- `evidence_export` — 将逆向证据图导出为 JSON 快照或 Markdown 报告。
-- `evidence_chain` — 从指定节点 ID 出发，按给定方向（forward/backward）遍历并返回完整溯源链。
-
 ## 工具清单（3）
 
 | 工具 | 说明 |

@@ -18,12 +18,8 @@ WASM-isolated QuickJS sandbox domain for secure custom script execution with MCP
 
 - sandbox + core + transform
 
-## Representative tools
-
-- `execute_sandbox_script` — Execute JavaScript in a WASM-isolated QuickJS sandbox with optional tool brid...
-
 ## Full tool list (1)
 
 | Tool | Description |
 | --- | --- |
-| `execute_sandbox_script` | Execute JavaScript in a WASM-isolated QuickJS sandbox with optional tool brid... |
+| `execute_sandbox_script` | Execute JavaScript in an isolated sandbox. |

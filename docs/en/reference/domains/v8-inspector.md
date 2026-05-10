@@ -20,26 +20,15 @@ V8 inspector domain providing heap snapshot analysis, CPU profiling, and memory 
 - v8-inspector + browser
 - v8-inspector + debugger
 
-## Representative tools
-
-- `v8_heap_snapshot_capture` — Capture a V8 heap snapshot
-- `v8_heap_snapshot_analyze` — Analyze a captured V8 heap snapshot
-- `v8_heap_diff` — Diff two V8 heap snapshots
-- `v8_object_inspect` — Inspect a live JS object by object identifier
-- `v8_heap_stats` — Read V8 heap usage
-- `v8_bytecode_extract` — Attempt V8 bytecode extraction for a script
-- `v8_version_detect` — Detect V8 version and capabilities
-- `v8_jit_inspect` — Inspect JIT status for a V8 script
-
 ## Full tool list (8)
 
 | Tool | Description |
 | --- | --- |
-| `v8_heap_snapshot_capture` | Capture a V8 heap snapshot |
-| `v8_heap_snapshot_analyze` | Analyze a captured V8 heap snapshot |
-| `v8_heap_diff` | Diff two V8 heap snapshots |
-| `v8_object_inspect` | Inspect a live JS object by object identifier |
-| `v8_heap_stats` | Read V8 heap usage |
-| `v8_bytecode_extract` | Attempt V8 bytecode extraction for a script |
-| `v8_version_detect` | Detect V8 version and capabilities |
-| `v8_jit_inspect` | Inspect JIT status for a V8 script |
+| `v8_heap_snapshot_capture` | Capture a V8 heap snapshot for offline analysis. |
+| `v8_heap_snapshot_analyze` | Analyze a heap snapshot: retained size, constructor distribution, dominators. |
+| `v8_heap_diff` | Compare two heap snapshots to find allocation changes. |
+| `v8_object_inspect` | Inspect a live JS object by objectId with property enumeration. |
+| `v8_heap_stats` | Report V8 heap statistics: used, total, external. |
+| `v8_bytecode_extract` | Extract V8 bytecode for a script by scriptId, with source fallback. |
+| `v8_version_detect` | Detect V8 engine version, flags, and runtime capabilities. |
+| `v8_jit_inspect` | Report JIT compilation status and optimization tier for a script. |

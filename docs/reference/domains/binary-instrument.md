@@ -19,19 +19,6 @@
 - binary-instrument + memory
 - binary-instrument + process
 
-## 代表工具
-
-- `binary_instrument_capabilities` — 报告二进制插桩后端可用性。
-- `frida_attach` — 附加 Frida 到本地进程、PID 或二进制路径，并创建二进制插桩会话。
-- `frida_enumerate_modules` — 枚举已附加 Frida 会话中的模块。
-- `ghidra_analyze` — 在 Ghidra headless 可用时运行二进制元数据分析，不可用时返回结构化降级输出。
-- `generate_hooks` — 为一组符号生成 Frida interceptor 脚本。
-- `unidbg_emulate` — 尝试用 unidbg 模拟原生函数，不可用时返回结构化模拟输出。
-- `frida_run_script` — 在已附加的 Frida 会话中执行一段 JavaScript 代码。
-- `frida_detach` — 从 Frida 会话分离并清理资源。
-- `frida_list_sessions` — 列出所有活跃的 Frida 会话。
-- `frida_generate_script` — 从模板（trace、intercept、replace、log）生成 Frida 拦截脚本。
-
 ## 工具清单（20）
 
 | 工具 | 说明 |

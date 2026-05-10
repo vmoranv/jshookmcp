@@ -20,13 +20,6 @@
 - browser + canvas + debugger
 - canvas + evidence + trace
 
-## 代表工具
-
-- `canvas_engine_fingerprint` — 检测页面中运行的 Canvas/WebGL 游戏引擎实例（LayaAir、PixiJS、Phaser、Cocos Creator、Unity WebGL 等）
-- `canvas_scene_dump` — 从检测到的 Canvas 引擎中提取完整的场景树/显示列表
-- `canvas_pick_object_at_point` — 使用引擎的命中测试系统，在给定屏幕坐标处拾取/命中测试最上层的对象
-- `canvas_trace_click_handler` — 追踪点击事件经过 DOM 事件、引擎分发和 JS 调用栈的过程，定位最终的处理函数
-
 ## 工具清单（4）
 
 | 工具 | 说明 |

@@ -18,14 +18,9 @@ Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debu
 
 - browser + antidebug + debugger
 
-## Representative tools
-
-- `antidebug_bypass` — Bypass one or more anti-debug protection types. Specify types to apply; omit or use ["all"] to apply all bypasses. Types: all, debugger_statement, timing, stack_trace, console_detect.
-- `antidebug_detect_protections` — Detect anti-debug protections in current page with bypass recommendations
-
 ## Full tool list (2)
 
 | Tool | Description |
 | --- | --- |
 | `antidebug_bypass` | Bypass one or more anti-debug protection types. Specify types to apply; omit or use ["all"] to apply all bypasses. Types: all, debugger_statement, timing, stack_trace, console_detect. |
-| `antidebug_detect_protections` | Detect anti-debug protections in current page with bypass recommendations |
+| `antidebug_detect_protections` | Detect anti-debug protections in current page with bypass recommendations. |

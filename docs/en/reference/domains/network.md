@@ -21,19 +21,6 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 - browser + network
 - network + workflow
 
-## Representative tools
-
-- `network_enable` — Enable network request monitoring.
-- `network_disable` — Disable network request monitoring
-- `network_get_status` — Get network monitoring status.
-- `network_monitor` — Manage network request monitoring.
-- `network_get_requests` — Get captured network requests.
-- `network_get_response_body` — Get the response body for a captured request.
-- `network_get_stats` — Get network statistics.
-- `performance_get_metrics` — Get page performance metrics.
-- `performance_coverage` — Start or stop code coverage recording.
-- `performance_take_heap_snapshot` — Take a V8 heap memory snapshot
-
 ## Full tool list (31)
 
 | Tool | Description |

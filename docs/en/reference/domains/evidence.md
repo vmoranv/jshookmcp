@@ -19,16 +19,10 @@ Evidence-graph domain that models provenance between URLs, scripts, functions, h
 - instrumentation + evidence
 - network + hooks + evidence
 
-## Representative tools
-
-- `evidence_query` — Query reverse evidence graph by URL, function name, or script ID to find associated nodes.
-- `evidence_export` — Export the reverse evidence graph as JSON snapshot or Markdown report.
-- `evidence_chain` — Get full provenance chain from a node ID in specified direction
-
 ## Full tool list (3)
 
 | Tool | Description |
 | --- | --- |
 | `evidence_query` | Query reverse evidence graph by URL, function name, or script ID to find associated nodes. |
 | `evidence_export` | Export the reverse evidence graph as JSON snapshot or Markdown report. |
-| `evidence_chain` | Get full provenance chain from a node ID in specified direction |
+| `evidence_chain` | Get full provenance chain from a node ID in specified direction. |

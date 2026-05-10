@@ -20,19 +20,6 @@ BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。
 - boringssl-inspector + network
 - boringssl-inspector + browser
 
-## 代表工具
-
-- `tls_keylog_enable` — 启用 BoringSSL 兼容客户端的 SSLKEYLOGFILE 输出。
-- `tls_keylog_parse` — 解析 SSLKEYLOGFILE 并汇总可用的密钥材料。
-- `tls_keylog_disable` — 禁用 SSLKEYLOGFILE 捕获并清除环境变量。
-- `tls_decrypt_payload` — 使用提供的密钥、nonce 和算法解密密文负载。
-- `tls_keylog_summarize` — 按标签分布汇总 SSLKEYLOGFILE 的内容。
-- `tls_keylog_lookup_secret` — 从解析的 keylog 中按 client random hex 查找 TLS 密钥。
-- `tls_cert_pin_bypass` — 返回目标平台的证书校验绕过策略。
-- `tls_parse_handshake` — 从原始十六进制解析 TLS 记录头和握手元数据（版本、密码套件、SNI、扩展）。可选 decrypt 参数使用已加载的 keylog 解密载荷预览。
-- `tls_cipher_suites` — 列出 IANA TLS 密码套件，支持按关键词过滤。
-- `tls_parse_certificate` — 从原始十六进制解析 TLS Certificate 消息并提取指纹。
-
 ## 工具清单（28）
 
 | 工具 | 说明 |

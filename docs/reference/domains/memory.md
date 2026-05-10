@@ -20,19 +20,6 @@
 - memory + debugger
 - memory + workflow
 
-## 代表工具
-
-- `memory_first_scan` — 开始新的内存扫描会话。扫描整个进程内存中的指定值并返回匹配地址。支持所有数值类型（byte/int8/int16/uint16/int32/uint32/int64/uint64/float/double/pointer）以及十六进制和字符串模式，并创建可供 memory_next_scan 继续缩小范围的会话。
-- `memory_next_scan` — 缩小已有扫描会话范围。重新读取上次匹配到的地址，并按比较模式进行过滤。通常接在 memory_first_scan 或 memory_unknown_scan 之后使用，等同于 Cheat Engine 的“Next Scan”。
-- `memory_unknown_scan` — 开始未知初始值扫描。先捕获指定类型的全部可读内存地址，再结合 memory_next_scan 的 "changed"、"unchanged"、"increased"、"decreased" 模式逐步缩小范围。等同于 Cheat Engine 的“Unknown initial value”扫描。
-- `memory_pointer_scan` — 查找指向目标地址的指针。扫描进程内存中的指针大小值，定位那些直接指向目标地址或落在目标地址附近（±4096 字节，适用于结构体成员访问）的指针。
-- `memory_group_scan` — 同时搜索多个已知偏移上的值。适合在你已知结构体相对布局时使用，例如生命值在 +0、法力值在 +4、等级在 +8。
-- `memory_scan_session` — 管理扫描会话。操作：list（列出全部）、delete（删除指定会话）、export（导出为 JSON）。
-- `memory_pointer_chain` — 多级指针链操作：扫描、验证、解析和导出指针链。
-- `memory_structure_analyze` — 分析某个地址处的内存内容，以推断数据结构布局。使用启发式规则将字段识别为 vtable 指针、普通指针、字符串指针、浮点数、整数、布尔值或填充区。可选解析 RTTI，以获取类名和继承链（MSVC x64）。
-- `memory_vtable_parse` — 解析 vtable，枚举其中的虚函数指针并解析为模块名 + 偏移。同时尝试解析 RTTI，以恢复类名和继承层级。
-- `memory_structure_export_c` — 将推断出的结构体导出为 C 风格的 struct 定义，并附带偏移注释和类型标注。
-
 ## 工具清单（30）
 
 | 工具 | 说明 |

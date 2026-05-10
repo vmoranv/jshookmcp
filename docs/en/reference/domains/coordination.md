@@ -18,24 +18,14 @@ Coordination domain for session insights and MCP Task Handoff, bridging the plan
 - coordination + workflow
 - coordination + browser
 
-## Representative tools
-
-- `create_task_handoff` — Create an in-session task handoff.
-- `complete_task_handoff` — Complete a task handoff.
-- `get_task_context` — Read task handoff context.
-- `append_session_insight` — Append a session insight.
-- `save_page_snapshot` — Save current page state.
-- `restore_page_snapshot` — Restore a saved page snapshot.
-- `list_page_snapshots` — List saved page snapshots.
-
 ## Full tool list (7)
 
 | Tool | Description |
 | --- | --- |
 | `create_task_handoff` | Create an in-session task handoff. |
-| `complete_task_handoff` | Complete a task handoff. |
+| `complete_task_handoff` | Mark a task handoff as completed. |
 | `get_task_context` | Read task handoff context. |
-| `append_session_insight` | Append a session insight. |
+| `append_session_insight` | Record an insight for the current session. |
 | `save_page_snapshot` | Save current page state. |
 | `restore_page_snapshot` | Restore a saved page snapshot. |
 | `list_page_snapshots` | List saved page snapshots. |

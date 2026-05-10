@@ -20,16 +20,10 @@ Cross-agent state synchronization domain providing a global shared state board f
 - shared-state-board + coordination
 - shared-state-board + workflow
 
-## Representative tools
-
-- `state_board` — Manage shared state board entries.
-- `state_board_watch` — Start, poll, or stop shared state board watches.
-- `state_board_io` — Export or import state board entries.
-
 ## Full tool list (3)
 
 | Tool | Description |
 | --- | --- |
-| `state_board` | Manage shared state board entries. |
-| `state_board_watch` | Start, poll, or stop shared state board watches. |
-| `state_board_io` | Export or import state board entries. |
+| `state_board` | CRUD operations on the cross-tool shared state board. |
+| `state_board_watch` | Watch state board keys for changes with configurable polling. |
+| `state_board_io` | Serialize state board to JSON or restore from a previous export. |

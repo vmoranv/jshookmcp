@@ -21,19 +21,6 @@
 - browser + hooks
 - browser + workflow
 
-## 代表工具
-
-- `get_detailed_data` — 获取之前因数据量过大而被截断的完整内容。
-- `browser_attach` — 通过 CDP 连接到一个正在运行的浏览器。
-- `browser_list_tabs` — 列出浏览器中所有打开的标签页。
-- `browser_list_cdp_targets` — 列出当前已连接浏览器目标可见的所有 CDP 目标。
-- `browser_select_tab` — 切换到指定的标签页，可按索引、URL 或标题模式匹配。
-- `browser_attach_cdp_target` — 连接到浏览器中的特定目标，如某个 iframe 或 Worker。
-- `browser_detach_cdp_target` — 断开当前已附加的底层 CDP 目标会话，并将 network/hooks 恢复为常规页面绑定。
-- `browser_evaluate_cdp_target` — 在当前已附加的 CDP 目标会话中执行 JavaScript。
-- `browser_launch` — 启动浏览器。
-- `browser_close` — 关闭浏览器。
-
 ## 工具清单（60）
 
 | 工具 | 说明 |

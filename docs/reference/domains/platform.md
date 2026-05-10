@@ -18,19 +18,6 @@
 - platform + process
 - platform + core
 
-## 代表工具
-
-- `platform_capabilities` — 报告平台工具后端可用性。
-- `miniapp_pkg_scan` — 扫描本地小程序缓存目录并列出所有包文件。
-- `miniapp_pkg_unpack` — 解包小程序包文件，优先使用外部工具，失败时自动降级为 Node.js 解析。
-- `miniapp_pkg_analyze` — 分析解包后的小程序结构，提取页面、分包、组件和体积等信息。
-- `asar_extract` — 提取 Electron 的 app.asar 内容，支持仅列出文件模式。
-- `electron_inspect_app` — 分析 Electron 应用结构，包括 package.json、入口、preload 和依赖信息。
-- `electron_scan_userdata` — 扫描 Electron 应用的用户数据目录，查找 JSON 配置文件并提取关键设置与令牌信息。
-- `asar_search` — 在 Electron ASAR 归档中搜索指定关键词或正则模式，返回匹配的文件和行。
-- `electron_check_fuses` — 检测 Electron 应用二进制的 Fuse 配置，识别哪些安全保护（如 ASAR 完整性、Node.js 开关）已启用或禁用。
-- `electron_patch_fuses` — 修补 Electron 二进制 Fuse 开关，启用或禁用调试相关保险丝（如 RunAsNode、InspectArguments）。修补前自动创建备份。
-
 ## 工具清单（14）
 
 | 工具 | 说明 |

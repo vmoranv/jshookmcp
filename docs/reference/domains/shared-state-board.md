@@ -20,12 +20,6 @@
 - shared-state-board + coordination
 - shared-state-board + workflow
 
-## 代表工具
-
-- `state_board` — 统一的共享状态板，用于跨 Agent 的键值协调。
-- `state_board_watch` — 监听某个 key 或模式的变化，返回可用于轮询更新的 watch ID。
-- `state_board_io` — 导出或导入共享状态板条目。
-
 ## 工具清单（3）
 
 | 工具 | 说明 |

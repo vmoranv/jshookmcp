@@ -18,14 +18,9 @@ Sub-agent macro orchestration domain that chains multiple tool calls into reusab
 
 - macro + core + transform
 
-## Representative tools
-
-- `run_macro` — Execute a registered macro by ID with inline progress and atomic bailout
-- `list_macros` — List all available macros (built-in + user-defined)
-
 ## Full tool list (2)
 
 | Tool | Description |
 | --- | --- |
-| `run_macro` | Execute a registered macro by ID with inline progress and atomic bailout |
-| `list_macros` | List all available macros (built-in + user-defined) |
+| `run_macro` | Execute a registered macro by ID with inline progress and atomic bailout. |
+| `list_macros` | List all available macros. |

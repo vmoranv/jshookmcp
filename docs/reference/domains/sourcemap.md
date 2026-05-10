@@ -17,13 +17,6 @@ SourceMap 发现、抓取、解析与源码树重建。
 
 - core + sourcemap
 
-## 代表工具
-
-- `sourcemap_discover` — 自动发现页面中的 Source Map 引用。
-- `sourcemap_fetch_and_parse` — 获取并解析 Source Map v3，恢复生成代码到原始源码的映射统计。
-- `sourcemap_reconstruct_tree` — 根据 Source Map 重建原始项目文件树并写出 sources 内容。
-- `sourcemap_parse_v4` — 解析 Source Map，支持 ECMA-426 v4 scope/debug-id；无 v4 字段时回退 v3。
-
 ## 工具清单（4）
 
 | 工具 | 说明 |

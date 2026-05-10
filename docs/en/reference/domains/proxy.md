@@ -19,26 +19,15 @@ Full-stack HTTP/HTTPS MITM proxy domain for system-level traffic interception, m
 - proxy + network
 - proxy + adb-bridge
 
-## Representative tools
-
-- `proxy_start` — Start the local HTTP/HTTPS proxy.
-- `proxy_stop` — Stop the proxy.
-- `proxy_status` — Read proxy status and CA path.
-- `proxy_export_ca` — Read the proxy CA certificate.
-- `proxy_add_rule` — Add a proxy rule.
-- `proxy_get_requests` — Read captured proxy requests.
-- `proxy_clear_logs` — Clear captured proxy logs.
-- `proxy_setup_adb_device` — Configure an Android device to use the proxy.
-
 ## Full tool list (8)
 
 | Tool | Description |
 | --- | --- |
-| `proxy_start` | Start the local HTTP/HTTPS proxy. |
-| `proxy_stop` | Stop the proxy. |
-| `proxy_status` | Read proxy status and CA path. |
+| `proxy_start` | Start the local HTTP/HTTPS interception proxy with optional TLS. |
+| `proxy_stop` | Stop the proxy and release all active rules. |
+| `proxy_status` | Report proxy status, listen port, and CA certificate path. |
 | `proxy_export_ca` | Read the proxy CA certificate. |
-| `proxy_add_rule` | Add a proxy rule. |
+| `proxy_add_rule` | Add an interception rule: forward, mock response, or block. |
 | `proxy_get_requests` | Read captured proxy requests. |
-| `proxy_clear_logs` | Clear captured proxy logs. |
+| `proxy_clear_logs` | Clear all captured proxy request/response logs. |
 | `proxy_setup_adb_device` | Configure an Android device to use the proxy. |

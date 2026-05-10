@@ -18,10 +18,6 @@
 
 - sandbox + core + transform
 
-## 代表工具
-
-- `execute_sandbox_script` — 在隔离沙箱中安全执行自定义 JavaScript 脚本。
-
 ## 工具清单（1）
 
 | 工具 | 说明 |

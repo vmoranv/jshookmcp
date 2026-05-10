@@ -20,19 +20,6 @@
 - network + protocol-analysis
 - encoding + protocol-analysis
 
-## 代表工具
-
-- `proto_define_pattern` — 用分隔符、字节序和字段布局定义协议模式。
-- `proto_auto_detect` — 从一个或多个十六进制负载样本自动检测协议模式。
-- `proto_infer_fields` — 从重复的十六进制负载样本推断可能的协议字段。
-- `proto_infer_state_machine` — 从捕获的消息序列推断协议状态机。
-- `proto_export_schema` — 将协议模式导出为类 .proto 的 schema 定义。
-- `proto_visualize_state` — 从协议状态机定义生成 Mermaid 状态图。
-- `payload_template_build` — 从声明式字段定义构建二进制载荷。支持原始数值字段、原始字节和 UTF-8 字符串。
-- `payload_mutate` — 对十六进制载荷应用确定性字节级变异。用于协议探测、边界测试和重放准备。
-- `ethernet_frame_build` — 从源/目标 MAC 地址、EtherType 和载荷字节构建确定性 Ethernet II 帧。
-- `arp_build` — 构建用于 Ethernet/IPv4 地址解析的确定性 ARP 载荷。
-
 ## 工具清单（16）
 
 | 工具 | 说明 |

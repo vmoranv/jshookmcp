@@ -19,22 +19,13 @@ Composite workflow and script-library domain; the main built-in orchestration la
 
 - workflow + browser + network
 
-## Representative tools
-
-- `page_script_register` — Register a named reusable JavaScript snippet in the Script Library.
-- `page_script_run` — Execute a named script from the Script Library in the current page context.
-- `api_probe_batch` — Probe multiple API endpoints in a single browser-context fetch burst.
-- `js_bundle_search` — Fetch a remote JavaScript bundle and search it with multiple named regex patterns in a single call.
-- `list_extension_workflows` — List runtime-loaded extension workflows discovered from plugins/ or workflows/ directories, including metadata needed before execution.
-- `run_extension_workflow` — Execute a runtime-loaded extension workflow contract by workflowId. Supports config overrides, per-node input overrides, and an optional timeout override.
-
 ## Full tool list (6)
 
 | Tool | Description |
 | --- | --- |
-| `page_script_register` | Register a named reusable JavaScript snippet in the Script Library. |
-| `page_script_run` | Execute a named script from the Script Library in the current page context. |
-| `api_probe_batch` | Probe multiple API endpoints in a single browser-context fetch burst. |
-| `js_bundle_search` | Fetch a remote JavaScript bundle and search it with multiple named regex patterns in a single call. |
-| `list_extension_workflows` | List runtime-loaded extension workflows discovered from plugins/ or workflows/ directories, including metadata needed before execution. |
-| `run_extension_workflow` | Execute a runtime-loaded extension workflow contract by workflowId. Supports config overrides, per-node input overrides, and an optional timeout override. |
+| `page_script_register` | Register a named reusable JS snippet in the Script Library. Execute with page_script_run. |
+| `page_script_run` | Execute a named script from the Script Library with optional runtime params (__params__). |
+| `api_probe_batch` | Batch-probe API endpoints in browser context with auto token injection and HTML skip. |
+| `js_bundle_search` | Fetch a remote JS bundle and search it with named regex patterns, with caching and noise filtering. |
+| `list_extension_workflows` | List runtime-loaded extension workflows from plugins/ or workflows/ directories. |
+| `run_extension_workflow` | Execute an extension workflow by workflowId with optional config and timeout overrides. |

@@ -20,12 +20,6 @@ Skia rendering engine capture domain for UI rendering analysis and visualization
 - skia-capture + browser
 - skia-capture + canvas
 
-## Representative tools
-
-- `skia_detect_renderer` — Detect the active Skia renderer backend from the current page context.
-- `skia_extract_scene` — Extract a lightweight Skia scene tree from the selected canvas.
-- `skia_correlate_objects` — Correlate requested Skia node identifiers with the extracted scene tree.
-
 ## Full tool list (3)
 
 | Tool | Description |

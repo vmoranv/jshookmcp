@@ -18,11 +18,6 @@
 
 - browser + antidebug + debugger
 
-## 代表工具
-
-- `antidebug_bypass` — 绕过指定类型的反调试保护。
-- `antidebug_detect_protections` — 检测当前页面的反调试机制并给出绕过建议。
-
 ## 工具清单（2）
 
 | 工具 | 说明 |

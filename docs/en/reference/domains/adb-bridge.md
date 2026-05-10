@@ -19,16 +19,10 @@ Android Debug Bridge integration domain for device management, application analy
 - adb-bridge + process
 - adb-bridge + network
 
-## Representative tools
-
-- `adb_apk_analyze` — Analyze an installed APK — package name, version, permissions, activities, se...
-- `adb_webview_list` — List debuggable WebView targets via ADB port forwarding to Chrome DevTools.
-- `adb_webview_attach` — Attach to a WebView via ADB port forwarding; returns WebSocket debugger URL for CDP.
-
 ## Full tool list (3)
 
 | Tool | Description |
 | --- | --- |
-| `adb_apk_analyze` | Analyze an installed APK — package name, version, permissions, activities, se... |
-| `adb_webview_list` | List debuggable WebView targets via ADB port forwarding to Chrome DevTools. |
-| `adb_webview_attach` | Attach to a WebView via ADB port forwarding; returns WebSocket debugger URL for CDP. |
+| `adb_apk_analyze` | Analyze an installed APK: package, permissions, activities, and security info. |
+| `adb_webview_list` | List debuggable WebView targets connected via ADB. |
+| `adb_webview_attach` | Attach to a WebView via ADB; returns WebSocket debugger URL for CDP. |
