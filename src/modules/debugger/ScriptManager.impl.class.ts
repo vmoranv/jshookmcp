@@ -57,6 +57,9 @@ export class ScriptManager {
   private scriptChunks: Map<string, ScriptChunk[]> = new Map();
   private readonly CHUNK_SIZE = 100 * 1024;
   private readonly MAX_KEYWORD_INDEX_ENTRIES = 50000;
+  /** Throttle zombie-CDP probes — re-probe at most once per this interval. */
+  private readonly CDP_HEALTH_PROBE_INTERVAL_MS = 30_000;
+  private lastHealthProbeAt = 0;
 
   constructor(private collector: CodeCollector) {}
 
@@ -107,6 +110,8 @@ export class ScriptManager {
     await this.cdpSession.send('Debugger.enable');
 
     this.initialized = true;
+    // Fresh init implies a working session; skip the next throttled probe.
+    this.lastHealthProbeAt = Date.now();
     logger.info('ScriptManager initialized');
   }
 
@@ -138,7 +143,9 @@ export class ScriptManager {
   /**
    * Ensure the CDP session is healthy (non-zombie).
    * After a browser reattach, the old session reference may be non-null
-   * while the underlying WebSocket is dead. This check catches that case.
+   * while the underlying WebSocket is dead. The probe is throttled to
+   * once per CDP_HEALTH_PROBE_INTERVAL_MS so hot-path callers don't pay
+   * the round-trip on every invocation.
    */
   private async ensureCdpSession(): Promise<void> {
     if (!this.cdpSession) {
@@ -149,6 +156,10 @@ export class ScriptManager {
       await this.init();
       return;
     }
+    const now = Date.now();
+    if (now - this.lastHealthProbeAt < this.CDP_HEALTH_PROBE_INTERVAL_MS) {
+      return;
+    }
     try {
       await Promise.race([
         this.cdpSession.send('Runtime.evaluate', { expression: '1', returnByValue: true }),
@@ -156,10 +167,12 @@ export class ScriptManager {
           setTimeout(() => reject(new Error('session_unreachable')), 3000),
         ),
       ]);
+      this.lastHealthProbeAt = now;
     } catch {
       logger.warn('ScriptManager CDP session unresponsive (zombie), reinitializing...');
       this.cdpSession = null;
       this.initialized = false;
+      this.lastHealthProbeAt = 0;
       this.scripts.clear();
       this.scriptsByUrl.clear();
       this.keywordIndex.clear();

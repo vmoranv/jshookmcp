@@ -284,7 +284,7 @@ describe('ToolRouter', () => {
       action: 'activate',
       toolName: undefined,
       command:
-        'activate_tools with names: ["browser_attach", "browser_launch", "run_extension_workflow", "list_extension_workflows", "network_monitor"]',
+        'activate_tools with names: ["browser_attach", "browser_launch", "network_monitor", "page_navigate", "network_get_requests"]',
       description: 'Activate 5 recommended tools',
     });
   });
@@ -324,7 +324,7 @@ describe('ToolRouter', () => {
       searchEngine,
     );
 
-    expect(response.recommendations).toHaveLength(5);
+    expect(response.recommendations).toHaveLength(4);
     expect(response.recommendations[0]!.name).toBe('network_get_requests');
     expect(response.recommendations[0]!.activationCommand).toBe(
       'activate_tools with names: ["network_get_requests"]',
@@ -1162,8 +1162,10 @@ describe('ToolRouter', () => {
         ctx,
         searchEngine,
       );
-      // Network task triggers BROWSER_OR_NETWORK_TASK_PATTERN — extension workflow tools from manifest
-      expect(response.nextActions[0]?.command).toContain('run_extension_workflow');
+      // After C.3 (network workflowRule no longer claims workflow-domain tools),
+      // a network task with all network tools already active falls back to the
+      // maintenance result instead of stuffing run_extension_workflow.
+      expect(response.nextActions[0]?.command).toContain('get_token_budget_stats');
     });
 
     it('ToolRouter.ts: provides empty activation array if all preset tools are active', async () => {
