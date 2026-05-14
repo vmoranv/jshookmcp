@@ -38,6 +38,9 @@ const MAX_HTML_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 /** Session lifetime in milliseconds. Configurable via env in future. */
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
+/** Maximum concurrent JSDOM sessions to prevent RSS explosion (~78 MB each). */
+const MAX_SESSIONS = 5;
+
 interface JsdomSession {
   dom: JSDOMType;
   url: string;
@@ -115,6 +118,12 @@ export class JsdomHandlers {
       const pretendToBeVisual = argBool(args, 'pretendToBeVisual', false);
       const referrer = argString(args, 'referrer', '');
       const storageQuotaBytes = argNumber(args, 'storageQuotaBytes', 1_000_000);
+
+      if (this.sessions.size >= MAX_SESSIONS) {
+        return R.fail(
+          `JSDOM session limit reached (${MAX_SESSIONS}). Close existing sessions first with browser_jsdom_serialize + drop.`,
+        ).build();
+      }
 
       const options: ConstructorParameters<typeof JSDOMType>[1] = {
         url,
