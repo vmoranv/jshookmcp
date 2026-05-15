@@ -169,6 +169,61 @@ describe('StealthVerifier — full coverage', () => {
       const result = await verifier.verify(mockPage);
       expect(result.recommendations).toContain('Fix: deviceMemory — expected >= 4, got undefined');
     });
+
+    it('generates recommendation for __commandLineAPI failure', async () => {
+      mockPage.evaluate.mockResolvedValue([
+        { name: '__commandLineAPI', passed: false, expected: 'undefined', actual: 'object' },
+      ]);
+      const result = await verifier.verify(mockPage);
+      expect(result.recommendations).toContain(
+        'Remove leaked Playwright command-line globals before navigation',
+      );
+    });
+
+    it('generates recommendation for __pwInitScripts failure', async () => {
+      mockPage.evaluate.mockResolvedValue([
+        { name: '__pwInitScripts', passed: false, expected: 'undefined', actual: 'object' },
+      ]);
+      const result = await verifier.verify(mockPage);
+      expect(result.recommendations).toContain(
+        'Remove leaked Playwright init-script globals before navigation',
+      );
+    });
+
+    it('generates recommendation for chrome.runtime.id failure', async () => {
+      mockPage.evaluate.mockResolvedValue([
+        { name: 'chrome.runtime.id', passed: false, expected: 'undefined', actual: 'abc123' },
+      ]);
+      const result = await verifier.verify(mockPage);
+      expect(result.recommendations).toContain(
+        'Do not expose chrome.runtime.id unless an extension is expected',
+      );
+    });
+
+    it('generates recommendation for Error.stack leak failure', async () => {
+      mockPage.evaluate.mockResolvedValue([
+        { name: 'Error.stack leak', passed: false, expected: 'clean', actual: 'detected' },
+      ]);
+      const result = await verifier.verify(mockPage);
+      expect(result.recommendations).toContain(
+        'Patch stack traces to avoid Playwright or Puppeteer markers',
+      );
+    });
+
+    it('generates recommendation for permissions consistency failure', async () => {
+      mockPage.evaluate.mockResolvedValue([
+        {
+          name: 'permissions consistency',
+          passed: false,
+          expected: 'matches Notification.permission',
+          actual: 'permissions=prompt notification=denied',
+        },
+      ]);
+      const result = await verifier.verify(mockPage);
+      expect(result.recommendations).toContain(
+        'Keep navigator.permissions and Notification.permission in sync',
+      );
+    });
   });
 
   // ── score calculation ─────────────────────────────────────────────
@@ -198,7 +253,7 @@ describe('StealthVerifier — full coverage', () => {
       expect(result.recommendations).toHaveLength(0);
     });
 
-    it('handles all 10 checks failing', async () => {
+    it('handles all checks failing', async () => {
       const allFailing = [
         { name: 'navigator.webdriver', passed: false, expected: 'undefined', actual: 'true' },
         { name: 'window.chrome', passed: false, expected: 'object', actual: 'undefined' },
@@ -225,14 +280,24 @@ describe('StealthVerifier — full coverage', () => {
         { name: 'cdc_ variables', passed: false, expected: 'none', actual: 'cdc_asdf' },
         { name: 'hardwareConcurrency', passed: false, expected: '>= 4', actual: '2' },
         { name: 'deviceMemory', passed: false, expected: '>= 4', actual: 'undefined' },
+        { name: '__commandLineAPI', passed: false, expected: 'undefined', actual: 'object' },
+        { name: '__pwInitScripts', passed: false, expected: 'undefined', actual: 'object' },
+        { name: 'chrome.runtime.id', passed: false, expected: 'undefined', actual: 'abc123' },
+        { name: 'Error.stack leak', passed: false, expected: 'clean', actual: 'detected' },
+        {
+          name: 'permissions consistency',
+          passed: false,
+          expected: 'matches Notification.permission',
+          actual: 'permissions=prompt notification=denied',
+        },
       ];
       mockPage.evaluate.mockResolvedValue(allFailing);
       const result = await verifier.verify(mockPage);
       expect(result.score).toBe(0);
       expect(result.passedCount).toBe(0);
-      expect(result.totalCount).toBe(10);
+      expect(result.totalCount).toBe(15);
       expect(result.passed).toBe(false);
-      expect(result.recommendations).toHaveLength(10);
+      expect(result.recommendations).toHaveLength(15);
     });
 
     it('rounds score to integer', async () => {
@@ -268,6 +333,8 @@ describe('StealthVerifier — full coverage', () => {
           actual: 'consistent',
         },
         { name: 'cdc_ variables', passed: true, expected: 'none', actual: 'none' },
+        { name: '__commandLineAPI', passed: true, expected: 'undefined', actual: 'undefined' },
+        { name: '__pwInitScripts', passed: true, expected: 'undefined', actual: 'undefined' },
       ]);
       const result = await verifier.verify(mockPage);
       expect(result.recommendations).toHaveLength(0);
@@ -327,6 +394,9 @@ describe('StealthVerifier — full coverage', () => {
         platform: 'Win32',
         hardwareConcurrency: 8,
         deviceMemory: 8,
+        permissions: {
+          query: vi.fn(async () => ({ state: 'granted' })),
+        },
       };
 
       const canvas = {
@@ -341,7 +411,7 @@ describe('StealthVerifier — full coverage', () => {
       };
 
       const window = {
-        chrome: { app: { isInstalled: false } },
+        chrome: { app: { isInstalled: false }, runtime: {} },
       };
 
       return {
@@ -363,8 +433,8 @@ describe('StealthVerifier — full coverage', () => {
 
       expect(result.passed).toBe(true);
       expect(result.score).toBe(100);
-      expect(result.passedCount).toBe(10);
-      expect(result.totalCount).toBe(10);
+      expect(result.passedCount).toBe(15);
+      expect(result.totalCount).toBe(15);
       expect(result.recommendations).toHaveLength(0);
       expect(result.checks.find((check) => check.name === 'WebGL vendor')?.passed).toBe(true);
     });
@@ -382,6 +452,9 @@ describe('StealthVerifier — full coverage', () => {
               platform: 'Win32',
               hardwareConcurrency: 8,
               deviceMemory: 8,
+              permissions: {
+                query: vi.fn(async () => ({ state: 'granted' })),
+              },
             },
           }),
         ),
@@ -410,6 +483,9 @@ describe('StealthVerifier — full coverage', () => {
               platform: 'Win32',
               hardwareConcurrency: 8,
               deviceMemory: 8,
+              permissions: {
+                query: vi.fn(async () => ({ state: 'granted' })),
+              },
             },
             window: {},
             document: {
@@ -453,6 +529,9 @@ describe('StealthVerifier — full coverage', () => {
         platform: 'Win32',
         hardwareConcurrency: 8,
         deviceMemory: 8,
+        permissions: {
+          query: vi.fn(async () => ({ state: 'granted' })),
+        },
       } as Record<string, unknown>;
       const document = {
         createElement: vi.fn(() => ({
@@ -463,7 +542,7 @@ describe('StealthVerifier — full coverage', () => {
         })),
       } as Record<string, unknown>;
       const window = {
-        chrome: { app: { isInstalled: false } },
+        chrome: { app: { isInstalled: false }, runtime: {} },
       } as Record<string, unknown>;
 
       stubBrowserGlobals({
@@ -478,8 +557,8 @@ describe('StealthVerifier — full coverage', () => {
 
       expect(result.passed).toBe(true);
       expect(result.score).toBe(100);
-      expect(result.passedCount).toBe(10);
-      expect(result.totalCount).toBe(10);
+      expect(result.passedCount).toBe(15);
+      expect(result.totalCount).toBe(15);
       expect(result.recommendations).toHaveLength(0);
       expect(result.checks.find((check) => check.name === 'WebGL vendor')?.actual).toBe(
         'Google Inc.',
@@ -495,6 +574,9 @@ describe('StealthVerifier — full coverage', () => {
         platform: 'Win32',
         hardwareConcurrency: 8,
         deviceMemory: 8,
+        permissions: {
+          query: vi.fn(async () => ({ state: 'granted' })),
+        },
       } as Record<string, unknown>;
       const document = {
         createElement: vi.fn(() => ({
@@ -533,6 +615,9 @@ describe('StealthVerifier — full coverage', () => {
         platform: 'MacIntel',
         hardwareConcurrency: 2,
         deviceMemory: undefined,
+        permissions: {
+          query: vi.fn(async () => ({ state: 'prompt' })),
+        },
       } as Record<string, unknown>;
       const document = {
         cdc_123: true,
@@ -542,6 +627,8 @@ describe('StealthVerifier — full coverage', () => {
       } as Record<string, unknown>;
       const window = {
         chrome: null,
+        __commandLineAPI: {},
+        __pwInitScripts: {},
       } as Record<string, unknown>;
 
       stubBrowserGlobals({
@@ -577,6 +664,15 @@ describe('StealthVerifier — full coverage', () => {
       );
       expect(result.recommendations).toContain('Fix: hardwareConcurrency — expected >= 4, got 2');
       expect(result.recommendations).toContain('Fix: deviceMemory — expected >= 4, got undefined');
+      expect(result.recommendations).toContain(
+        'Remove leaked Playwright command-line globals before navigation',
+      );
+      expect(result.recommendations).toContain(
+        'Remove leaked Playwright init-script globals before navigation',
+      );
+      expect(result.recommendations).toContain(
+        'Keep navigator.permissions and Notification.permission in sync',
+      );
     });
 
     it('flags Mac and Linux platform mismatches in separate runs', async () => {
@@ -611,6 +707,9 @@ describe('StealthVerifier — full coverage', () => {
           platform: testCase.platform,
           hardwareConcurrency: 8,
           deviceMemory: 8,
+          permissions: {
+            query: vi.fn(async () => ({ state: 'granted' })),
+          },
         } as Record<string, unknown>;
         const document = {
           ...baseDocument,
@@ -622,7 +721,7 @@ describe('StealthVerifier — full coverage', () => {
           })),
         } as Record<string, unknown>;
         const window = {
-          chrome: { app: { isInstalled: false } },
+          chrome: { app: { isInstalled: false }, runtime: {} },
         } as Record<string, unknown>;
 
         stubBrowserGlobals({

@@ -30,7 +30,7 @@ export class StealthVerifier {
    * Should be called AFTER stealth_inject for meaningful results.
    */
   async verify(page: Page): Promise<StealthCheckResult> {
-    const checks: StealthCheck[] = await page.evaluate(() => {
+    const checks: StealthCheck[] = await page.evaluate(async () => {
       const results: Array<{ name: string; passed: boolean; expected: string; actual: string }> =
         [];
 
@@ -149,6 +149,86 @@ export class StealthVerifier {
         actual: String(dm ?? 'undefined'),
       });
 
+      // 11. Playwright command-line API marker should not leak
+      const commandLineApi = (window as unknown as Record<string, unknown>)['__commandLineAPI'];
+      results.push({
+        name: '__commandLineAPI',
+        passed: commandLineApi === undefined,
+        expected: 'undefined',
+        actual: typeof commandLineApi,
+      });
+
+      // 12. Playwright init scripts marker should not leak
+      const pwInitScripts = (window as unknown as Record<string, unknown>)['__pwInitScripts'];
+      results.push({
+        name: '__pwInitScripts',
+        passed: pwInitScripts === undefined,
+        expected: 'undefined',
+        actual: typeof pwInitScripts,
+      });
+
+      // 13. chrome.runtime.id should not expose extension IDs by default
+      const chromeRuntimeId =
+        hasChrome && typeof (win.chrome as Record<string, unknown>).runtime === 'object'
+          ? ((win.chrome as Record<string, unknown>).runtime as Record<string, unknown>).id
+          : undefined;
+      results.push({
+        name: 'chrome.runtime.id',
+        passed: chromeRuntimeId === undefined,
+        expected: 'undefined',
+        actual: String(chromeRuntimeId ?? 'undefined'),
+      });
+
+      // 14. Error stack should not include Playwright/Puppeteer markers
+      let stackLeak = 'clean';
+      try {
+        const err = new Error('stealth-check');
+        const stack = String(err.stack ?? '');
+        const lowered = stack.toLowerCase();
+        if (
+          lowered.includes('playwright') ||
+          lowered.includes('puppeteer') ||
+          lowered.includes('__pw')
+        )
+          stackLeak = 'detected';
+      } catch {
+        stackLeak = 'error';
+      }
+      results.push({
+        name: 'Error.stack leak',
+        passed: stackLeak === 'clean',
+        expected: 'clean',
+        actual: stackLeak,
+      });
+
+      // 15. Notification permission and Permissions API should agree
+      let permissionState = 'unsupported';
+      try {
+        const permissions = (navigator as unknown as Record<string, unknown>).permissions as
+          | { query?: (input: { name: string }) => Promise<{ state?: string }> }
+          | undefined;
+        if (permissions?.query) {
+          const result = await permissions.query({ name: 'notifications' });
+          permissionState = String(result?.state ?? 'unknown');
+        }
+      } catch {
+        permissionState = 'error';
+      }
+      const notificationPermission =
+        typeof Notification === 'object' && Notification !== null
+          ? String((Notification as { permission?: string }).permission ?? 'unknown')
+          : 'unknown';
+      const permissionConsistent =
+        permissionState === 'unsupported' ||
+        permissionState === 'error' ||
+        permissionState === notificationPermission;
+      results.push({
+        name: 'permissions consistency',
+        passed: permissionConsistent,
+        expected: 'matches Notification.permission',
+        actual: `permissions=${permissionState} notification=${notificationPermission}`,
+      });
+
       return results;
     });
 
@@ -179,6 +259,21 @@ export class StealthVerifier {
             break;
           case 'cdc_ variables':
             recommendations.push('Run stealth_inject to clean up ChromeDriver cdc_ variables');
+            break;
+          case '__commandLineAPI':
+            recommendations.push('Remove leaked Playwright command-line globals before navigation');
+            break;
+          case '__pwInitScripts':
+            recommendations.push('Remove leaked Playwright init-script globals before navigation');
+            break;
+          case 'chrome.runtime.id':
+            recommendations.push('Do not expose chrome.runtime.id unless an extension is expected');
+            break;
+          case 'Error.stack leak':
+            recommendations.push('Patch stack traces to avoid Playwright or Puppeteer markers');
+            break;
+          case 'permissions consistency':
+            recommendations.push('Keep navigator.permissions and Notification.permission in sync');
             break;
           default:
             recommendations.push(

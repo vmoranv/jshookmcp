@@ -35,6 +35,16 @@ describe('StealthVerifier', () => {
       { name: 'cdc_ variables', passed: true, expected: 'none', actual: 'none' },
       { name: 'hardwareConcurrency', passed: true, expected: '>= 4', actual: '8' },
       { name: 'deviceMemory', passed: true, expected: '>= 4', actual: '8' },
+      { name: '__commandLineAPI', passed: true, expected: 'undefined', actual: 'undefined' },
+      { name: '__pwInitScripts', passed: true, expected: 'undefined', actual: 'undefined' },
+      { name: 'chrome.runtime.id', passed: true, expected: 'undefined', actual: 'undefined' },
+      { name: 'Error.stack leak', passed: true, expected: 'clean', actual: 'clean' },
+      {
+        name: 'permissions consistency',
+        passed: true,
+        expected: 'matches Notification.permission',
+        actual: 'permissions=granted notification=granted',
+      },
     ];
 
     mockPage.evaluate.mockResolvedValue(mockChecks);
@@ -43,8 +53,8 @@ describe('StealthVerifier', () => {
 
     expect(result.passed).toBe(true);
     expect(result.score).toBe(100);
-    expect(result.passedCount).toBe(10);
-    expect(result.totalCount).toBe(10);
+    expect(result.passedCount).toBe(15);
+    expect(result.totalCount).toBe(15);
     expect(result.recommendations).toHaveLength(0);
   });
 
@@ -68,6 +78,16 @@ describe('StealthVerifier', () => {
       { name: 'cdc_ variables', passed: false, expected: 'none', actual: 'cdc_asdf' },
       { name: 'WebGL vendor', passed: false, expected: 'non-empty vendor string', actual: 'empty' },
       { name: 'hardwareConcurrency', passed: false, expected: '>= 4', actual: '2' },
+      { name: '__commandLineAPI', passed: false, expected: 'undefined', actual: 'object' },
+      { name: '__pwInitScripts', passed: false, expected: 'undefined', actual: 'object' },
+      { name: 'chrome.runtime.id', passed: false, expected: 'undefined', actual: 'abc123' },
+      { name: 'Error.stack leak', passed: false, expected: 'clean', actual: 'detected' },
+      {
+        name: 'permissions consistency',
+        passed: false,
+        expected: 'matches Notification.permission',
+        actual: 'permissions=prompt notification=denied',
+      },
     ];
 
     mockPage.evaluate.mockResolvedValue(mockChecks);
@@ -92,6 +112,21 @@ describe('StealthVerifier', () => {
       'Fix: WebGL vendor — expected non-empty vendor string, got empty',
     );
     expect(result.recommendations).toContain('Fix: hardwareConcurrency — expected >= 4, got 2');
+    expect(result.recommendations).toContain(
+      'Remove leaked Playwright command-line globals before navigation',
+    );
+    expect(result.recommendations).toContain(
+      'Remove leaked Playwright init-script globals before navigation',
+    );
+    expect(result.recommendations).toContain(
+      'Do not expose chrome.runtime.id unless an extension is expected',
+    );
+    expect(result.recommendations).toContain(
+      'Patch stack traces to avoid Playwright or Puppeteer markers',
+    );
+    expect(result.recommendations).toContain(
+      'Keep navigator.permissions and Notification.permission in sync',
+    );
   });
 
   it('should test the actual evaluate function logic (partial)', async () => {
@@ -106,6 +141,9 @@ describe('StealthVerifier', () => {
         platform: 'Win32',
         hardwareConcurrency: 8,
         deviceMemory: 8,
+        permissions: {
+          query: vi.fn().mockResolvedValue({ state: 'granted' }),
+        },
       };
 
       const mockWindow = {
@@ -126,12 +164,13 @@ describe('StealthVerifier', () => {
         'navigator',
         'window',
         'document',
+        'Notification',
         `
         return (${fn.toString()})();
       `,
       );
 
-      return wrappedFn(mockNavigator, mockWindow, mockDocument);
+      return wrappedFn(mockNavigator, mockWindow, mockDocument, { permission: 'granted' });
     });
 
     const result = await verifier.verify(mockPage);
@@ -147,6 +186,9 @@ describe('StealthVerifier', () => {
         languages: ['en-US'],
         userAgent: 'Mozilla/5.0',
         platform: 'Win32',
+        permissions: {
+          query: vi.fn().mockResolvedValue({ state: 'granted' }),
+        },
       };
       const mockWindow = { chrome: { app: { isInstalled: false } } };
       const mockDocument = {
@@ -159,12 +201,13 @@ describe('StealthVerifier', () => {
         'navigator',
         'window',
         'document',
+        'Notification',
         `
         return (${fn.toString()})();
       `,
       );
 
-      return wrappedFn(mockNavigator, mockWindow, mockDocument);
+      return wrappedFn(mockNavigator, mockWindow, mockDocument, { permission: 'granted' });
     });
 
     const result = await verifier.verify(mockPage);
