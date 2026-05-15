@@ -8,7 +8,7 @@
 
 [English](./README.md) | 中文
 
-为 AI 赋予 **36 个技术域、387 个原子工具** 的 JavaScript 分析与安全研究 MCP 服务器——浏览器自动化、CDP 调试、网络拦截、JS Hook、LLM 代码分析、进程/内存取证、WASM 逆向、Source Map 重建、AST 变换与复合工作流，一应俱全。
+为 AI 赋予 **36 个技术域、402 个原子工具** 的 JavaScript 分析与安全研究 MCP 服务器——浏览器自动化、CDP 调试、网络拦截、JS Hook、LLM 代码分析、进程/内存取证、WASM 逆向、Source Map 重建、AST 变换与复合工作流，一应俱全。
 
 ## 快速导航
 
@@ -58,7 +58,7 @@
 
 <!-- metadata-sync:start -->
 - 包版本：`0.3.0`
-- 内置工具数：`389`
+- 内置工具数：`402`
 - 域列表：`adb-bridge`, `antidebug`, `binary-instrument`, `boringssl-inspector`, `browser`, `canvas`, `coordination`, `core`, `cross-domain`, `debugger`, `encoding`, `evidence`, `extension-registry`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `mojo-ipc`, `network`, `platform`, `process`, `protocol-analysis`, `proxy`, `sandbox`, `shared-state-board`, `skia-capture`, `sourcemap`, `streaming`, `syscall-hook`, `trace`, `transform`, `v8-inspector`, `wasm`, `workflow`
 - 说明：以上数据由运行时 registry 动态生成，不要手改计数。
 <!-- metadata-sync:end -->

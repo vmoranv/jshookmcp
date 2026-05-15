@@ -8,7 +8,7 @@
 
 English | [中文](./README.zh.md)
 
-An MCP server that gives AI agents **387 tools across 36 domains** for JavaScript analysis and security research — browser automation, CDP debugging, network interception, JS hooks, LLM-powered code analysis, process/memory forensics, WASM reverse engineering, source-map reconstruction, AST transforms, and composite workflows in a single server.
+An MCP server that gives AI agents **402 tools across 36 domains** for JavaScript analysis and security research — browser automation, CDP debugging, network interception, JS hooks, LLM-powered code analysis, process/memory forensics, WASM reverse engineering, source-map reconstruction, AST transforms, and composite workflows in a single server.
 
 ## Quick Links
 
@@ -58,7 +58,7 @@ The built-in surface below is generated from the runtime registry and checked in
 
 <!-- metadata-sync:start -->
 - Package version: `0.3.0`
-- Built-in Tools: `389`
+- Built-in Tools: `402`
 - Domains: `adb-bridge`, `antidebug`, `binary-instrument`, `boringssl-inspector`, `browser`, `canvas`, `coordination`, `core`, `cross-domain`, `debugger`, `encoding`, `evidence`, `extension-registry`, `graphql`, `hooks`, `instrumentation`, `macro`, `maintenance`, `memory`, `mojo-ipc`, `network`, `platform`, `process`, `protocol-analysis`, `proxy`, `sandbox`, `shared-state-board`, `skia-capture`, `sourcemap`, `streaming`, `syscall-hook`, `trace`, `transform`, `v8-inspector`, `wasm`, `workflow`
 - Note: this snapshot is generated from the runtime registry; do not edit the counts by hand.
 <!-- metadata-sync:end -->
