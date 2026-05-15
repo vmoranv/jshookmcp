@@ -48,14 +48,14 @@
 | `http2_probe` | 使用 Node http2 探测 HTTP/2 端点，带确定性 DNS 固定和有界响应捕获。报告协商协议、ALPN 结果、响应头、状态码和响应体片段。非回环明文 h2c 目标需要显式请求级授权。 |
 | `http2_frame_build` | 构建任意支持类型（DATA、SETTINGS、PING、WINDOW_UPDATE、RST_STREAM、GOAWAY、RAW）的原始 HTTP/2 二进制帧。返回 9 字节帧头和完整帧的十六进制字符串，可通过 tcp_write 或 tls_write 发送，用于协议级模糊测试与注入。 |
 | `network_rtt_measure` | 测量到目标主机的网络往返时间（RTT），支持 TCP、TLS 和 HTTP 三种探测模式。多次迭代平滑抖动，返回 min/max/avg/p50/p95 统计数据。非回环目标需要显式授权。 |
-| `network_latency_stats` | 待补充中文：Measure repeated latency and compute percentile stats. |
+| `network_latency_stats` | 重复探测目标 URL 并计算延迟百分位统计（p50/p90/p95/p99）。 |
 | `network_traceroute` | 基于 ICMP 的路由追踪，逐跳返回 RTT 与错误分类。Windows 无需管理员权限；Linux/macOS 需要 root 或 CAP_NET_RAW。 |
 | `network_icmp_probe` | ICMP 探测，支持 TTL 控制与错误分类。Windows 无需管理员权限；Linux/macOS 需要 root 或 CAP_NET_RAW。 |
 | `dns_resolve` | 通过系统解析器将主机名解析为 DNS 记录（A/AAAA/CNAME/MX/TXT 等）。 |
 | `dns_reverse` | 反向 DNS 查询——根据 IP 地址查找对应的主机名。 |
-| `dns_probe` | 待补充中文：Run a DNS query and return structured status instead of throwing. |
-| `dns_cname_chain` | 待补充中文：Trace the full CNAME chain for a hostname. |
-| `dns_bulk_resolve` | 待补充中文：Resolve many hostnames concurrently with per-host status. |
+| `dns_probe` | 执行 DNS 查询并返回结构化状态码，不抛异常（NXDOMAIN/SERVFAIL/TIMEOUT 等）。 |
+| `dns_cname_chain` | 追踪主机名的完整 CNAME 解析链，支持配置最大追踪深度。 |
+| `dns_bulk_resolve` | 并发解析大量主机名，返回每个主机的独立解析状态。 |
 | `network_extract_auth` | 从网络请求中提取认证凭据（Token、Cookie、API Key、签名等）。 |
 | `network_export_har` | 将网络请求记录导出为 HAR 文件。 |
 | `network_replay_request` | 重新发送某个已捕获的网络请求，支持按需修改请求内容。可通过 sessionProfile 注入浏览器会话的 Cookie、User-Agent 和 Accept-Language。 |

@@ -28,4 +28,4 @@ GraphQL 发现、提取、重放与 introspection 能力。
 | `graphql_introspect` | 对目标端点执行 GraphQL introspection 并返回模式数据。 |
 | `graphql_extract_queries` | 从页面内捕获的网络轨迹中提取 GraphQL 查询与变更。 |
 | `graphql_replay` | 通过页面内 fetch 重放 GraphQL 操作，支持变量与请求头覆盖。 |
-| `graphql_enum_schema` | 待补充中文：Enumerate GraphQL fields from server suggestion errors with introspection fallback. |
+| `graphql_enum_schema` | 利用服务端建议错误枚举 GraphQL 字段，introspection 不可用时自动回退探测。 |
