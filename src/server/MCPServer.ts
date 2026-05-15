@@ -648,12 +648,29 @@ export class MCPServer implements MCPServerContext {
       if (this.activatedToolNames.has(name)) {
         refreshDomainTtlForTool(this, name);
       }
+      let toolResultSuccess = !enriched.isError;
+      if (enriched?.structuredContent && typeof enriched.structuredContent === 'object') {
+        const resultPayload = enriched.structuredContent as Record<string, unknown>;
+        toolResultSuccess = resultPayload.success !== false;
+      } else if (enriched?.content?.[0]?.type === 'text' && 'text' in enriched.content[0]) {
+        try {
+          const parsed = JSON.parse(enriched.content[0].text) as Record<string, unknown>;
+          toolResultSuccess = parsed.success !== false;
+        } catch {
+          toolResultSuccess = !enriched.isError;
+        }
+      }
       // Emit tool:called event for ActivationController
       void this.eventBus.emit('tool:called', {
         toolName: name,
         domain: getToolDomain(name) ?? null,
         timestamp: new Date().toISOString(),
-        success: true,
+        success: toolResultSuccess,
+        args,
+        result: {
+          success: toolResultSuccess,
+          isError: enriched.isError === true,
+        },
       });
       // Commit pending resource updates to prevent stream flooding
       this.getDomainInstance<import('@server/evidence/ReverseEvidenceGraph').ReverseEvidenceGraph>(

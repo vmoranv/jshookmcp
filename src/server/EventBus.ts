@@ -12,7 +12,17 @@ export interface ServerEventMap {
   [key: string]: unknown;
   'tool:activated': { toolName: string; domain: string; timestamp: string };
   'tool:deactivated': { toolName: string; domain: string; timestamp: string };
-  'tool:called': { toolName: string; domain: string | null; timestamp: string; success: boolean };
+  'tool:called': {
+    toolName: string;
+    domain: string | null;
+    timestamp: string;
+    success: boolean;
+    args?: Record<string, unknown>;
+    result?: {
+      success?: boolean;
+      isError?: boolean;
+    };
+  };
   'domain:loaded': { domain: string; toolCount: number; timestamp: string };
   'domain:unloaded': { domain: string; timestamp: string };
   'extension:loaded': { pluginId: string; toolCount: number; source: string; timestamp: string };

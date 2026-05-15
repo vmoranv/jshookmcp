@@ -532,6 +532,11 @@ describe('MCPServer', () => {
       domain: 'browser',
       timestamp: expect.any(String),
       success: true,
+      args: { x: 7 },
+      result: {
+        success: true,
+        isError: false,
+      },
     });
   });
 
@@ -551,7 +556,34 @@ describe('MCPServer', () => {
       domain: null,
       timestamp: expect.any(String),
       success: true,
+      args: {},
+      result: {
+        success: true,
+        isError: false,
+      },
     });
+  });
+
+  it('executeToolWithTracking emits tool:called with success=false for soft-failed JSON results', async () => {
+    const server = new MCPServer(baseConfig) as any;
+    server.router.execute = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: '{"success":false,"error":"Selector not found"}' }],
+    });
+    const emitSpy = vi.spyOn(server.eventBus, 'emit');
+
+    await server.executeToolWithTracking('tool_alpha', { selector: '#missing' });
+
+    expect(emitSpy).toHaveBeenCalledWith(
+      'tool:called',
+      expect.objectContaining({
+        toolName: 'tool_alpha',
+        success: false,
+        result: {
+          success: false,
+          isError: false,
+        },
+      }),
+    );
   });
 
   it('executeToolWithTracking injects execution metrics into JSON responses when enabled', async () => {
