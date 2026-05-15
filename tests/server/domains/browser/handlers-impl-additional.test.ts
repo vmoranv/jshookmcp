@@ -734,6 +734,48 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
         const body = parseJson<any>(await noBusHandlers.handleBrowserCodegenStart());
         expect(body.success).toBe(false);
       });
+
+      it('compacts wait_for_selector after page_type with same selector', async () => {
+        await handlers.handleBrowserCodegenStart();
+        await eventBus.emit('tool:called', {
+          toolName: 'page_type',
+          domain: 'browser',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          success: true,
+          args: { selector: '#input', text: 'hello' },
+        } as any);
+        await eventBus.emit('tool:called', {
+          toolName: 'page_wait_for_selector',
+          domain: 'browser',
+          timestamp: '2026-01-01T00:00:01.000Z',
+          success: true,
+          args: { selector: '#input' },
+        } as any);
+        const stop = parseJson<any>(await handlers.handleBrowserCodegenStop());
+        expect(stop.stepCount).toBe(1);
+        expect(stop.steps[0].tool).toBe('page_type');
+      });
+
+      it('merges consecutive identical tool calls', async () => {
+        await handlers.handleBrowserCodegenStart();
+        await eventBus.emit('tool:called', {
+          toolName: 'page_navigate',
+          domain: 'browser',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          success: true,
+          args: { url: TEST_URLS.root },
+        } as any);
+        await eventBus.emit('tool:called', {
+          toolName: 'page_navigate',
+          domain: 'browser',
+          timestamp: '2026-01-01T00:00:01.000Z',
+          success: true,
+          args: { url: TEST_URLS.root },
+        } as any);
+        const stop = parseJson<any>(await handlers.handleBrowserCodegenStop());
+        expect(stop.stepCount).toBe(1);
+        expect(stop.steps[0].timestamp).toBe('2026-01-01T00:00:01.000Z');
+      });
     });
 
     // ============ CAPTCHA Solving delegation ============
