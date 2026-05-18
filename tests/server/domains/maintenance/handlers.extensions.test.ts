@@ -334,7 +334,7 @@ describe('ExtensionManagementHandlers', () => {
       );
     });
 
-    it('installs workflows successfully with workspace dependency rewrite', async () => {
+    it('installs workflows successfully with a published sdk dependency', async () => {
       const mockFetch = global.fetch as any;
       mockFetch.mockResolvedValue({
         ok: true,
@@ -368,7 +368,7 @@ describe('ExtensionManagementHandlers', () => {
       vi.mocked(fsPromises.readFile).mockImplementation((async (p: string) => {
         if (p.endsWith('package.json')) {
           return JSON.stringify({
-            dependencies: { '@jshookmcp/extension-sdk': 'workspace:*' }, // Will cause rewrite
+            dependencies: { '@jshookmcp/extension-sdk': '^0.3.2' },
           });
         }
         return '{}';
@@ -394,6 +394,50 @@ describe('ExtensionManagementHandlers', () => {
       const data = JSON.parse(res.content[0].text);
       expect(data.success).toBe(true);
       expect(data.installed.slug).toBe('wf-test');
+    });
+
+    it('rejects local sdk dependency specs during install', async () => {
+      const mockFetch = global.fetch as any;
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          workflows: [
+            {
+              slug: 'wf-local-sdk',
+              id: '1',
+              meta: {},
+              source: {
+                subpath: 'subdir',
+                entry: 'index.js',
+              },
+            },
+          ],
+        }),
+      });
+
+      vi.mocked(fs.existsSync).mockImplementation(((p: string) => {
+        if (p.endsWith('package.json')) return true;
+        if (p.endsWith('index.js')) return true;
+        return false;
+      }) as unknown as typeof fs.existsSync);
+
+      vi.mocked(fsPromises.readFile).mockImplementation((async (p: string) => {
+        if (p.endsWith('package.json')) {
+          return JSON.stringify({
+            dependencies: { '@jshookmcp/extension-sdk': 'workspace:*' },
+          });
+        }
+        return '{}';
+      }) as unknown as typeof fsPromises.readFile);
+
+      const resPromise = handlers.handleInstallExtension('wf-local-sdk', '/custom/dir') as any;
+      vi.runAllTimers();
+      const res = await resPromise;
+
+      const data = JSON.parse(res.content[0].text);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('unsupported local dependency spec');
+      expect(vi.mocked(child_process.execFile)).toHaveBeenCalledTimes(2);
     });
 
     it('resolves package manager from package.json packageManager explicit string via heuristics', async () => {
@@ -442,7 +486,8 @@ describe('ExtensionManagementHandlers', () => {
         return fullCommand.includes('npm') && fullCommand.includes('install');
       });
       expect(installCall).toBeDefined();
-      expect([installCall?.[0], ...(installCall?.[1] || [])].join(' ')).toContain('npm install');
+      const installCommand = [installCall?.[0], ...(installCall?.[1] || [])].join(' ');
+      expect(installCommand).toMatch(/npm(?:\.cmd)? install/);
     });
 
     it('resolves package manager pnpm if pnpm-lock.yaml exists', async () => {
@@ -471,6 +516,14 @@ describe('ExtensionManagementHandlers', () => {
           return true;
         return false;
       }) as unknown as typeof fs.existsSync);
+      vi.mocked(fsPromises.readFile).mockImplementation((async (p: string) => {
+        if (p.endsWith('package.json')) {
+          return JSON.stringify({
+            dependencies: { '@jshookmcp/extension-sdk': '^0.3.2' },
+          });
+        }
+        return '{}';
+      }) as unknown as typeof fsPromises.readFile);
 
       ctx.reloadExtensions.mockResolvedValue({ addedTools: 1 });
       const resPromise = handlers.handleInstallExtension('pl-test') as any;
@@ -478,9 +531,15 @@ describe('ExtensionManagementHandlers', () => {
       await resPromise;
 
       const execCalls = vi.mocked(child_process.execFile).mock.calls;
-      const installCall = execCalls[2]; // after clone and checkout, usually packageManager
+      const installCall = execCalls.find((c) => {
+        const cmd = c[0] as string;
+        const args = (c[1] || []) as string[];
+        return [cmd, ...args].join(' ').includes('--ignore-workspace install');
+      });
       expect(installCall).toBeDefined();
-      expect((installCall![1] as string[]).join(' ')).toContain('--ignore-workspace'); // only pnpm uses this in the handler logic
+      expect([installCall![0], ...((installCall![1] as string[]) || [])].join(' ')).toContain(
+        '--ignore-workspace',
+      );
     });
 
     it('resolves package manager npm if package-lock.json exists without pnpm', async () => {

@@ -1,9 +1,9 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { execFileAsync } from './runtime.mjs';
+import { execFileAsync, removePathRobust } from './runtime.mjs';
 
 async function createGitFixtureRepo(repoDir, entryFile, sourceText) {
-  await rm(repoDir, { recursive: true, force: true }).catch(() => {});
+  await removePathRobust(repoDir).catch(() => {});
   await mkdir(repoDir, { recursive: true });
   await writeFile(join(repoDir, entryFile), sourceText, 'utf8');
   await execFileAsync('git', ['init'], { cwd: repoDir, timeout: 15000 });

@@ -1,4 +1,5 @@
 import { FridaSession, GhidraAnalyzer } from '@modules/binary-instrument';
+import { probeCommand } from '@modules/external/ToolProbe';
 import { capabilityReport } from '@server/domains/shared/capabilities';
 import type { BinaryInstrumentState } from './shared';
 import { getLegacyPluginStatus, getUnidbgAvailability, jsonResponse } from './shared';
@@ -7,9 +8,19 @@ export class CapabilityHandlers {
   constructor(private readonly state: BinaryInstrumentState) {}
 
   async handleBinaryInstrumentCapabilities(): Promise<unknown> {
-    const fridaAvailability = await this.getFridaSession().getAvailability();
-    const ghidraAvailability = await this.getGhidraAnalyzer().getAvailability();
-    const unidbgAvailability = await getUnidbgAvailability();
+    const [
+      fridaAvailability,
+      ghidraAvailability,
+      jadxAvailability,
+      apktoolAvailability,
+      unidbgAvailability,
+    ] = await Promise.all([
+      this.getFridaSession().getAvailability(),
+      this.getGhidraAnalyzer().getAvailability(),
+      probeCommand('jadx', ['--version']),
+      probeCommand('apktool', ['--version']),
+      getUnidbgAvailability(),
+    ]);
 
     return jsonResponse(
       capabilityReport('binary_instrument_capabilities', [
@@ -67,10 +78,36 @@ export class CapabilityHandlers {
           },
         },
         {
+          capability: 'jadx_cli',
+          status: jadxAvailability.available ? 'available' : 'unavailable',
+          reason: jadxAvailability.reason,
+          fix: jadxAvailability.available
+            ? undefined
+            : 'Install JADX and ensure the jadx CLI is on PATH.',
+          details: {
+            tools: ['jadx_decompile'],
+            ...(jadxAvailability.path ? { path: jadxAvailability.path } : {}),
+            ...(jadxAvailability.version ? { version: jadxAvailability.version } : {}),
+          },
+        },
+        {
           capability: 'plugin_jadx_bridge',
           ...getLegacyPluginStatus(this.state.context, 'plugin_jadx_bridge'),
           details: {
             tools: ['jadx_decompile'],
+          },
+        },
+        {
+          capability: 'apktool_cli',
+          status: apktoolAvailability.available ? 'available' : 'unavailable',
+          reason: apktoolAvailability.reason,
+          fix: apktoolAvailability.available
+            ? undefined
+            : 'Install apktool and ensure it is on PATH.',
+          details: {
+            tools: ['apktool_decode'],
+            ...(apktoolAvailability.path ? { path: apktoolAvailability.path } : {}),
+            ...(apktoolAvailability.version ? { version: apktoolAvailability.version } : {}),
           },
         },
         {

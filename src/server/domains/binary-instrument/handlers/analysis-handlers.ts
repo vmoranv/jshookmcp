@@ -2,13 +2,24 @@
  * Static analysis sub-handler — Ghidra, IDA, JADX, Unidbg, hooks, plugins.
  */
 
+import { execFile } from 'node:child_process';
+import { mkdtemp, readFile, rm, mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {
+  open as openZipArchive,
+  type Entry as ZipEntry,
+  type ZipFile as YauzlZipFile,
+} from 'yauzl';
 import { GhidraAnalyzer, HookGenerator, getAvailablePlugins } from '@modules/binary-instrument';
+import { probeCommand } from '@modules/external/ToolProbe';
 import { UNIDBG_TIMEOUT_MS } from '@src/constants';
 import type { BinaryInstrumentState } from './shared';
 import {
   readRequiredString,
   readOptionalString,
   readOptionalNumber,
+  readOptionalBoolean,
   readStringArray,
   readHookOptions,
   isRecord,
@@ -29,12 +40,6 @@ export class AnalysisHandlers {
   }
 
   async handleGhidraAnalyze(args: Record<string, unknown>): Promise<unknown> {
-    const legacyTargetPath = readOptionalString(args, 'targetPath');
-    const explicitBinaryPath = readOptionalString(args, 'binaryPath');
-    if (!explicitBinaryPath && legacyTargetPath) {
-      return invokeLegacyPlugin(this.state.context, 'plugin_ghidra_bridge', 'ghidra_analyze', args);
-    }
-
     const binaryPath = readRequiredString(args, 'binaryPath');
     const timeout = readOptionalNumber(args, 'timeout');
     const ghidra = this.getGhidraAnalyzer();
@@ -67,7 +72,124 @@ export class AnalysisHandlers {
   }
 
   async handleJadxDecompile(args: Record<string, unknown>): Promise<unknown> {
+    const apkPath = readRequiredString(args, 'apkPath');
+    const className = readRequiredString(args, 'className');
+    const methodName = readOptionalString(args, 'methodName');
+
+    const jadxProbe = await probeCommand('jadx', ['--version']);
+    if (jadxProbe.available) {
+      return this.jadxNativeDecompile(jadxProbe.path ?? 'jadx', apkPath, className, methodName);
+    }
+
     return invokeLegacyPlugin(this.state.context, 'plugin_jadx_bridge', 'jadx_decompile', args);
+  }
+
+  async handleApktoolDecode(args: Record<string, unknown>): Promise<unknown> {
+    const apkPath = readRequiredString(args, 'apkPath');
+    const explicitOutputDir = readOptionalString(args, 'outputDir');
+    const force = readOptionalBoolean(args, 'force') ?? false;
+    const apktoolProbe = await probeCommand('apktool', ['--version']);
+    if (!apktoolProbe.available) {
+      return jsonResponse({
+        available: false,
+        capability: 'apktool_cli',
+        fix: 'Install apktool and ensure it is on PATH.',
+        apkPath,
+        reason: apktoolProbe.reason ?? 'apktool is not available',
+      });
+    }
+
+    const outputDir = explicitOutputDir ?? join(tmpdir(), `jshook-apktool-${Date.now()}`);
+    if (explicitOutputDir) {
+      await mkdir(outputDir, { recursive: true });
+    }
+
+    try {
+      const argsList = ['decode', '--output', outputDir];
+      if (force) argsList.push('--force');
+      argsList.push(apkPath);
+
+      const result = await execFileUtf8(apktoolProbe.path ?? 'apktool', argsList, 120_000);
+      return jsonResponse({
+        available: true,
+        apkPath,
+        outputDir,
+        force,
+        stdout: result.stdout.trim(),
+        stderr: result.stderr.trim(),
+      });
+    } catch (error) {
+      return jsonResponse({
+        available: true,
+        apkPath,
+        outputDir,
+        force,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  async handleApkManifestDump(args: Record<string, unknown>): Promise<unknown> {
+    const apkPath = readRequiredString(args, 'apkPath');
+    const manifestResult = await this.readZipEntryBuffer(apkPath, 'AndroidManifest.xml');
+    if (!manifestResult.success) {
+      return jsonResponse({
+        available: false,
+        apkPath,
+        entry: 'AndroidManifest.xml',
+        error: manifestResult.error,
+      });
+    }
+
+    const manifestText = this.decodeTextEntry(manifestResult.buffer);
+    if (manifestText !== null) {
+      return jsonResponse({
+        available: true,
+        apkPath,
+        entry: 'AndroidManifest.xml',
+        format: 'xml',
+        manifest: manifestText,
+      });
+    }
+
+    return jsonResponse({
+      available: true,
+      apkPath,
+      entry: 'AndroidManifest.xml',
+      format: 'binary-axml',
+      size: manifestResult.buffer.length,
+      manifestBase64: manifestResult.buffer.toString('base64'),
+    });
+  }
+
+  async handleApkNativeLibsList(args: Record<string, unknown>): Promise<unknown> {
+    const apkPath = readRequiredString(args, 'apkPath');
+    const entriesResult = await this.listZipEntries(apkPath);
+    if (!entriesResult.success) {
+      return jsonResponse({
+        available: false,
+        apkPath,
+        error: entriesResult.error,
+      });
+    }
+
+    const libraries = entriesResult.entries
+      .filter((entry) => /^lib\/.+\/[^/]+\.so$/i.test(entry))
+      .map((entry) => {
+        const parts = entry.split('/');
+        return {
+          path: entry,
+          abi: parts[1] ?? '',
+          name: parts[parts.length - 1] ?? '',
+        };
+      });
+
+    return jsonResponse({
+      available: true,
+      apkPath,
+      count: libraries.length,
+      libraries,
+    });
   }
 
   async handleGenerateHooks(args: Record<string, unknown>): Promise<unknown> {
@@ -233,5 +355,251 @@ export class AnalysisHandlers {
     if (!isGhidraAnalysisOutput(parsed)) return textResponse('ghidraOutput is required');
     const hooks = this.state.hookCodeGenerator.generateHooks(parsed);
     return jsonResponse({ count: hooks.length, hooks });
+  }
+
+  private async listZipEntries(
+    apkPath: string,
+  ): Promise<{ success: true; entries: string[] } | { success: false; error: string }> {
+    try {
+      const zipFile = await this.openZipFile(apkPath);
+      const entries = await new Promise<string[]>((resolve, reject) => {
+        const names: string[] = [];
+        let settled = false;
+
+        const onEntry = (entry: ZipEntry) => {
+          names.push(entry.fileName);
+          zipFile.readEntry();
+        };
+        const onEnd = () => finish(() => resolve(names));
+        const onError = (error: Error) => finish(() => reject(error));
+        const finish = (callback: () => void) => {
+          if (settled) return;
+          settled = true;
+          zipFile.removeListener('entry', onEntry);
+          zipFile.removeListener('end', onEnd);
+          zipFile.removeListener('error', onError);
+          callback();
+        };
+
+        zipFile.on('entry', onEntry);
+        zipFile.on('end', onEnd);
+        zipFile.on('error', onError);
+        zipFile.readEntry();
+      });
+
+      return { success: true, entries };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  private async readZipEntryBuffer(
+    apkPath: string,
+    entryName: string,
+  ): Promise<{ success: true; buffer: Buffer } | { success: false; error: string }> {
+    try {
+      const zipFile = await this.openZipFile(apkPath);
+      const buffer = await new Promise<Buffer>((resolve, reject) => {
+        let settled = false;
+
+        const closeZip = () => {
+          try {
+            zipFile.close();
+          } catch {
+            // ignore close errors after early return
+          }
+        };
+        const onEntry = (entry: ZipEntry) => {
+          if (entry.fileName !== entryName) {
+            zipFile.readEntry();
+            return;
+          }
+
+          zipFile.openReadStream(entry, (error, stream) => {
+            if (error || !stream) {
+              finish(() => reject(error ?? new Error(`Unable to read ZIP entry: ${entryName}`)));
+              closeZip();
+              return;
+            }
+
+            this.readStreamToBuffer(stream)
+              .then((content) => {
+                finish(() => resolve(content));
+                closeZip();
+              })
+              .catch((streamError) => {
+                finish(() => reject(streamError));
+                closeZip();
+              });
+          });
+        };
+        const onEnd = () => finish(() => reject(new Error(`ZIP entry not found: ${entryName}`)));
+        const onError = (error: Error) => finish(() => reject(error));
+        const finish = (callback: () => void) => {
+          if (settled) return;
+          settled = true;
+          zipFile.removeListener('entry', onEntry);
+          zipFile.removeListener('end', onEnd);
+          zipFile.removeListener('error', onError);
+          callback();
+        };
+
+        zipFile.on('entry', onEntry);
+        zipFile.on('end', onEnd);
+        zipFile.on('error', onError);
+        zipFile.readEntry();
+      });
+
+      return { success: true, buffer };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  private async jadxNativeDecompile(
+    jadx: string,
+    apkPath: string,
+    className: string,
+    methodName?: string,
+  ): Promise<unknown> {
+    const outDir = await mkdtemp(join(tmpdir(), 'jshook-jadx-'));
+    try {
+      const jadxArgs = ['--no-res', '--no-debug-info', '-d', outDir, apkPath];
+      await new Promise<void>((resolve, reject) => {
+        execFile(
+          jadx,
+          jadxArgs,
+          { encoding: 'utf8', windowsHide: true, timeout: 120_000 },
+          (err) => {
+            // JADX exits with code 1 on decompilation errors but still produces usable output
+            if (err && (err as any).code !== 1) reject(err);
+            else resolve();
+          },
+        );
+      });
+
+      const parts = className.split('.');
+      const classFile = join(
+        outDir,
+        'sources',
+        ...parts.slice(0, -1),
+        `${parts[parts.length - 1]}.java`,
+      );
+      let source: string;
+      try {
+        source = await readFile(classFile, 'utf8');
+      } catch {
+        return jsonResponse({
+          available: true,
+          apkPath,
+          className,
+          error: `Class file not found after decompilation: ${className}`,
+        });
+      }
+
+      if (methodName) {
+        const methodRegex = new RegExp(
+          `(?:public|private|protected|static|final|abstract|synchronized|native)\\s+[\\w<>\\[\\]]+\\s+${methodName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\([^)]*\\)\\s*(?:throws[^{]*)?\\{`,
+        );
+        const matchStart = source.search(methodRegex);
+        if (matchStart === -1) {
+          return jsonResponse({
+            available: true,
+            apkPath,
+            className,
+            methodName,
+            source: '',
+            error: `Method ${methodName} not found in ${className}`,
+          });
+        }
+        let depth = 0;
+        let i = source.indexOf('{', matchStart);
+        for (; i < source.length; i++) {
+          if (source[i] === '{') depth++;
+          else if (source[i] === '}') {
+            depth--;
+            if (depth === 0) break;
+          }
+        }
+        const methodSource = source.slice(matchStart, i + 1);
+        return jsonResponse({
+          available: true,
+          apkPath,
+          className,
+          methodName,
+          source: methodSource,
+        });
+      }
+
+      return jsonResponse({ available: true, apkPath, className, source });
+    } catch (error) {
+      return jsonResponse({
+        available: true,
+        apkPath,
+        className,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      await rm(outDir, { recursive: true, force: true });
+    }
+  }
+
+  private openZipFile(apkPath: string): Promise<YauzlZipFile> {
+    return new Promise((resolve, reject) => {
+      openZipArchive(
+        apkPath,
+        {
+          autoClose: true,
+          lazyEntries: true,
+          decodeStrings: true,
+          validateEntrySizes: true,
+          strictFileNames: false,
+        },
+        (error, zipFile) => {
+          if (error || !zipFile) {
+            reject(error ?? new Error(`Unable to open ZIP archive: ${apkPath}`));
+            return;
+          }
+          resolve(zipFile);
+        },
+      );
+    });
+  }
+
+  private readStreamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      stream.on('data', (chunk: string | Buffer) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      });
+      stream.on('end', () => resolve(Buffer.concat(chunks)));
+      stream.on('error', reject);
+    });
+  }
+
+  private decodeTextEntry(buffer: Buffer): string | null {
+    if (buffer.length === 0) return '';
+
+    const sample = buffer.subarray(0, Math.min(buffer.length, 1024));
+    let controlByteCount = 0;
+    for (const byte of sample) {
+      if (byte === 0) return null;
+      if (byte < 0x09 || (byte > 0x0d && byte < 0x20)) {
+        controlByteCount += 1;
+      }
+    }
+
+    if (controlByteCount > sample.length * 0.1) {
+      return null;
+    }
+
+    const text = buffer.toString('utf8');
+    return text.trimStart().startsWith('<') ? text : null;
   }
 }

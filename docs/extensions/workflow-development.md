@@ -16,6 +16,7 @@
 
 - 远端镜像: [jshook_workflow_template](https://github.com/vmoranv/jshook_workflow_template)
 - 初始化主进程指针: `export MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>`
+- PowerShell: `$env:MCP_WORKFLOW_ROOTS = "<path-to-cloned-jshook_workflow_template>"`
 
 ### 2. 管道编译验证
 
@@ -43,36 +44,35 @@ pnpm run check
 
 ```ts
 import type {
-  WorkflowContract,
   WorkflowExecutionContext,
-  WorkflowNode,
 } from '@jshookmcp/extension-sdk/workflow';
 import {
-  toolNode,
-  sequenceNode,
-  parallelNode,
-  branchNode,
+  defineWorkflow,
+  toolStep,
+  sequenceStep,
+  parallelStep,
+  branchStep,
 } from '@jshookmcp/extension-sdk/workflow';
 ```
 
 ### 工厂抽象类型
 
-#### 1. 单边步进节点 `toolNode(id, toolName, options?)`
+#### 1. 单边步进节点 `toolStep(id, toolName, options?)`
 
 向底层透传单个内联 RPC 调用。
 配置项支持：`input`，`retry` 抖动重发拦截，以及 `timeoutMs`。
 
-#### 2. 同步串行链 `sequenceNode(id, steps)`
+#### 2. 同步串行链 `sequenceStep(id, config?)`
 
 声明同步等待机制，实施前置依赖隔离。
 适用于有状态影响的生命周期变更节点（例如导航就绪后等待 DOM 重排）。
 
-#### 3. 并发派生簇 `parallelNode(id, steps, maxConcurrency?, failFast?)`
+#### 3. 并发派生簇 `parallelStep(id, config?)`
 
 向协程引擎派发无副作用采集流，支持并发数裁剪 (`maxConcurrency`) 及快速终止 (`failFast`)。
 **强规范约束**：严禁在此执行任何引发 Headless 环境的页面状态重置行为（导航、点击、注入）。
 
-#### 4. 分支路由阀 `branchNode(id, predicateId, whenTrue, whenFalse?, predicateFn?)`
+#### 4. 分支路由阀 `branchStep(id, predicateId, config?)`
 
 静态执行有向无环图内部的二路路由分支。
 `predicateId` 必须严格约束至预注册逻辑网关中；存在重叠声明时，优先使用 `predicateFn` 绑定函数。
@@ -88,7 +88,7 @@ import {
 ## 防重入拓扑规范
 
 - **安全并行读池**：`page_local_storage(action=get)`, `page_cookies(action=get)`, `network_get_requests`, `page_get_all_links`, `console_get_logs`。
-- **并发锁屏黑名单**：页面导航请求、坐标重定向、表单投毒注入以及一切涉及 Shared State 的关联副作用。必须回归由 `sequenceNode` 挂接的同步等待闭包中。
+- **并发锁屏黑名单**：页面导航请求、坐标重定向、表单投毒注入以及一切涉及 Shared State 的关联副作用。必须回归由 `sequenceStep` 挂接的同步等待闭包中。
 
 ## 重新加载机制
 

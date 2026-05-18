@@ -1,75 +1,146 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ADBBridgeHandlers } from '@server/domains/adb-bridge/handlers.impl';
-import { TEST_URLS } from '@tests/shared/test-urls';
+import { probeCommand } from '@modules/external/ToolProbe';
+import { execFile } from 'node:child_process';
+
+vi.mock('node:child_process', () => ({
+  execFile: vi.fn(),
+}));
+
+vi.mock('@modules/external/ToolProbe', () => ({
+  probeCommand: vi.fn(),
+}));
+
+function mockExecFile(responses: Array<{ stdout?: string; stderr?: string; error?: Error }>) {
+  let callIndex = 0;
+  (execFile as any).mockImplementation(
+    (_cmd: string, _args: string[], _opts: unknown, cb: Function) => {
+      const resp = responses[callIndex++];
+      if (!resp) {
+        cb(new Error('unexpected execFile call'));
+        return;
+      }
+      if (resp.error) cb(resp.error);
+      else cb(null, resp.stdout ?? '', resp.stderr ?? '');
+    },
+  );
+}
+
+function parseResult(result: unknown) {
+  const content = (result as { content: Array<{ text: string }> }).content;
+  return JSON.parse(content[0]?.text ?? '{}');
+}
 
 describe('ADBBridgeHandlers', () => {
-  let adbClient: {
-    listDevices: ReturnType<typeof vi.fn>;
-    shell: ReturnType<typeof vi.fn>;
-    pull: ReturnType<typeof vi.fn>;
-    getWebViewVersion: ReturnType<typeof vi.fn>;
-  };
-  let webviewDebugger: {
-    listWebViews: ReturnType<typeof vi.fn>;
-    attachWebView: ReturnType<typeof vi.fn>;
-    executeScript: ReturnType<typeof vi.fn>;
-  };
   let handlers: ADBBridgeHandlers;
 
   beforeEach(() => {
-    adbClient = {
-      listDevices: vi.fn().mockResolvedValue([{ serial: 'emulator-5554' }]),
-      shell: vi.fn().mockResolvedValue('package:/data/app/base.apk'),
-      pull: vi.fn().mockResolvedValue(undefined),
-      getWebViewVersion: vi.fn().mockResolvedValue('120.0.0'),
-    };
-    webviewDebugger = {
-      listWebViews: vi
-        .fn()
-        .mockResolvedValue([
-          { id: 'target-1', url: TEST_URLS.root, title: 'Example', processId: 123 },
-        ]),
-      attachWebView: vi.fn().mockResolvedValue(undefined),
-      executeScript: vi.fn().mockResolvedValue({
-        title: 'Example',
-        url: TEST_URLS.root,
-        readyState: 'complete',
-      }),
-    };
-    handlers = new ADBBridgeHandlers(adbClient as any, webviewDebugger as any);
+    vi.clearAllMocks();
+    handlers = new ADBBridgeHandlers();
+    (probeCommand as any).mockResolvedValue({
+      available: true,
+      path: 'adb',
+    });
+  });
+
+  it('lists devices from adb devices -l output', async () => {
+    mockExecFile([
+      {
+        stdout: [
+          'List of devices attached',
+          'emulator-5554          device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64 device:emu64a',
+          '',
+        ].join('\n'),
+      },
+    ]);
+
+    const result = await handlers.handleDeviceList({});
+    const parsed = parseResult(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.count).toBe(1);
+    expect(parsed.devices[0].serial).toBe('emulator-5554');
+    expect(parsed.devices[0].state).toBe('device');
+  });
+
+  it('runs shell command and returns output', async () => {
+    mockExecFile([{ stdout: 'Linux version 5.10' }]);
+
+    const result = await handlers.handleShell({
+      serial: 'emulator-5554',
+      command: 'uname -a',
+    });
+    const parsed = parseResult(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.stdout).toContain('Linux');
+  });
+
+  it('pulls APK from device', async () => {
+    mockExecFile([{ stdout: 'package:/data/app/base.apk' }, { stdout: 'pulled successfully' }]);
+
+    const result = await handlers.handleApkPull({
+      serial: 'emulator-5554',
+      packageName: 'com.example.app',
+      outputPath: '/tmp',
+    });
+    const parsed = parseResult(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.packageName).toBe('com.example.app');
+    expect(parsed.localPath).toContain('com.example.app.apk');
   });
 
   it('analyzes apk metadata from dumpsys output', async () => {
-    adbClient.shell.mockResolvedValueOnce(
-      [
-        'versionName=1.0.0',
-        'versionCode=42',
-        'minSdk=24',
-        'targetSdk=34',
-        'requested permissions:',
-        '  android.permission.INTERNET granted=true',
-      ].join('\n'),
-    );
+    mockExecFile([
+      {
+        stdout: [
+          'versionName=1.0.0',
+          'versionCode=42',
+          'minSdk=24',
+          'targetSdk=34',
+          'requested permissions:',
+          '  android.permission.INTERNET granted=true',
+        ].join('\n'),
+      },
+    ]);
+
     const result = await handlers.handleAnalyzeApk({
       serial: 'emulator-5554',
       packageName: 'com.example.app',
     });
-    expect(result.isError).toBeUndefined();
+    const parsed = parseResult(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.versionName).toBe('1.0.0');
+    expect(parsed.versionCode).toBe('42');
   });
 
-  it('lists webviews through the injected debugger', async () => {
-    const result = await handlers.handleWebViewList({ serial: 'emulator-5554' });
-    expect(webviewDebugger.listWebViews).toHaveBeenCalledWith('emulator-5554');
-    expect(result.isError).toBeUndefined();
-  });
+  it('pulls native libraries from package native library directories', async () => {
+    mockExecFile([
+      {
+        stdout: [
+          'nativeLibraryDir=/data/app/~~hash/com.example.app-abc/lib/arm64',
+          'secondaryNativeLibraryDir=/data/app/~~hash/com.example.app-abc/lib/armeabi-v7a',
+        ].join('\n'),
+      },
+      { stdout: 'pulled arm64' },
+      { stdout: 'pulled armeabi-v7a' },
+    ]);
 
-  it('attaches to a webview through the injected debugger', async () => {
-    const result = await handlers.handleWebViewAttach({
+    const result = await handlers.handlePullNativeLibs({
       serial: 'emulator-5554',
-      targetId: 'target-1',
+      packageName: 'com.example.app',
+      outputPath: '/tmp',
     });
-    expect(webviewDebugger.attachWebView).toHaveBeenCalledWith('emulator-5554', 'target-1');
-    expect(webviewDebugger.executeScript).toHaveBeenCalled();
-    expect(result.isError).toBeUndefined();
+    const parsed = parseResult(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.count).toBe(2);
+    expect(parsed.libraries[0].remoteDir).toContain('com.example.app');
+  });
+
+  it('throws prerequisite error when adb not found', async () => {
+    (probeCommand as any).mockResolvedValueOnce({
+      available: false,
+      reason: 'adb not found in PATH',
+    });
+
+    await expect(handlers.handleDeviceList({})).rejects.toThrow('adb not found');
   });
 });

@@ -45,12 +45,22 @@ export function isCapabilityAvailable(report, capability) {
 }
 
 export async function withTimeout(promise, label, timeoutMs = 30000) {
-  return await Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms (${label})`)), timeoutMs),
-    ),
-  ]);
+  let timer = null;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Timeout after ${timeoutMs}ms (${label})`)),
+      timeoutMs,
+    );
+    timer.unref?.();
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timer !== null) {
+      clearTimeout(timer);
+    }
+  }
 }
 
 export async function callTool(client, name, args = {}, timeoutMs = 30000) {
@@ -60,7 +70,9 @@ export async function callTool(client, name, args = {}, timeoutMs = 30000) {
   }
   try {
     const result = parseContent(
-      await withTimeout(client.callTool({ name, arguments: args }), name, timeoutMs),
+      await client.callTool({ name, arguments: args }, undefined, {
+        timeout: timeoutMs,
+      }),
     );
     if (AUDIT_DEBUG) {
       console.error(`[runtime-audit] completed ${name}`);
@@ -84,7 +96,7 @@ export async function callToolCaptureError(client, name, args = {}, timeoutMs = 
       success: false,
       error: message,
       tool: name,
-      timedOut: message.includes('Timeout after'),
+      timedOut: message.includes('Timeout after') || message.includes('Request timed out'),
     };
   }
 }

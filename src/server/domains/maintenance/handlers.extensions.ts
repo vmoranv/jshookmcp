@@ -16,11 +16,11 @@ import {
   findRegistryEntryBySlug,
   getRegistryBaseUrl,
   resolveDefaultExtensionRoot,
+  assertPublishedExtensionSdkDependency,
   resolveExtensionEntryFile,
   resolveExtensionProjectDir,
   resolveInstalledRuntimeEntry,
   resolvePackageManager,
-  rewriteLocalExtensionSdkDependency,
   serializeRegistryFetchError,
   writeInstalledExtensionMetadata,
 } from './handlers/extension-registry-utils';
@@ -156,7 +156,7 @@ export class ExtensionManagementHandlers {
 
       const packageJsonPath = resolve(projectDir, 'package.json');
       if (existsSync(packageJsonPath)) {
-        await rewriteLocalExtensionSdkDependency(projectDir);
+        await assertPublishedExtensionSdkDependency(projectDir);
         const packageManager = await resolvePackageManager(projectDir);
         const installArgs =
           packageManager === 'pnpm'

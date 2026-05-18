@@ -16,7 +16,11 @@ const registrations: ToolRegistration[] = defineMethodRegistrations<
   depKey: DEP_KEY,
   lookup: toolByName,
   entries: [
+    { tool: 'adb_device_list', method: 'handleDeviceList' },
+    { tool: 'adb_apk_pull', method: 'handleApkPull' },
+    { tool: 'adb_shell', method: 'handleShell' },
     { tool: 'adb_apk_analyze', method: 'handleAnalyzeApk' },
+    { tool: 'adb_pull_native_libs', method: 'handlePullNativeLibs' },
     { tool: 'adb_webview_list', method: 'handleWebViewList' },
     { tool: 'adb_webview_attach', method: 'handleWebViewAttach' },
   ],
@@ -46,10 +50,19 @@ const manifest: DomainManifest<'adbBridgeHandlers', ADBBridgeHandlers, 'adb-brid
     patterns: [
       /(android|adb|mobile|apk|device).*(list|shell|pull|analyze|dump)/i,
       /(adb|android).*(webview|chrome|debug|cdp|inspect)/i,
+      /(android|adb).*(native|\.so|libapp|libflutter|shared\s+library)/i,
     ],
     priority: 75,
-    tools: ['adb_apk_analyze', 'adb_webview_list', 'adb_webview_attach'],
-    hint: 'Android/ADB: list devices → run shell commands → pull/analyze APK → debug WebViews via CDP',
+    tools: [
+      'adb_device_list',
+      'adb_shell',
+      'adb_apk_pull',
+      'adb_apk_analyze',
+      'adb_pull_native_libs',
+      'adb_webview_list',
+      'adb_webview_attach',
+    ],
+    hint: 'Android/ADB: list devices → run shell commands → pull/analyze APK or native libs → debug WebViews via CDP',
   },
   prerequisites: {
     '*': [

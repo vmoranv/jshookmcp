@@ -2,7 +2,9 @@ import { execFile } from 'node:child_process';
 import { createCipheriv, randomBytes } from 'node:crypto';
 import { once } from 'node:events';
 import { existsSync } from 'node:fs';
+import { chmod, lstat, readdir, rm } from 'node:fs/promises';
 import net from 'node:net';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
@@ -85,6 +87,57 @@ export async function getFreePort() {
     throw new Error('Failed to allocate free port');
   }
   return address.port;
+}
+
+async function makePathWritableRecursive(targetPath) {
+  let stats;
+  try {
+    stats = await lstat(targetPath);
+  } catch (error) {
+    if (error && typeof error === 'object' && error.code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
+
+  if (stats.isDirectory()) {
+    const entries = await readdir(targetPath, { withFileTypes: true });
+    for (const entry of entries) {
+      await makePathWritableRecursive(join(targetPath, entry.name));
+    }
+    await chmod(targetPath, 0o777).catch(() => {});
+    return;
+  }
+
+  await chmod(targetPath, 0o666).catch(() => {});
+}
+
+export async function removePathRobust(targetPath, options = {}) {
+  const retries = options.retries ?? 5;
+  const retryDelayMs = options.retryDelayMs ?? 200;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      if (process.platform === 'win32') {
+        await makePathWritableRecursive(targetPath);
+      }
+      await rm(targetPath, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if (error && typeof error === 'object' && error.code === 'ENOENT') {
+        return;
+      }
+      const retriable =
+        process.platform === 'win32' &&
+        error &&
+        typeof error === 'object' &&
+        ['EPERM', 'EBUSY', 'ENOTEMPTY'].includes(error.code);
+      if (!retriable || attempt === retries) {
+        throw error;
+      }
+      await delay(retryDelayMs * (attempt + 1));
+    }
+  }
 }
 
 export function buildMinimalTlsClientHelloRecordHex() {
@@ -182,6 +235,42 @@ export async function waitForBrowserEndpoint(browserURL, timeoutMs = 20000) {
 
   throw new Error(
     `Timed out waiting for browser endpoint ${browserURL}: ${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }`,
+  );
+}
+
+export async function waitForBrowserWebSocketEndpoint(browserURL, timeoutMs = 20000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${browserURL}/json/version`);
+      if (!response.ok) {
+        lastError = new Error(`HTTP ${response.status}`);
+        await delay(250);
+        continue;
+      }
+
+      const payload = await response.json();
+      if (
+        payload &&
+        typeof payload === 'object' &&
+        typeof payload.webSocketDebuggerUrl === 'string' &&
+        payload.webSocketDebuggerUrl.length > 0
+      ) {
+        return payload;
+      }
+
+      lastError = new Error('Browser endpoint did not expose webSocketDebuggerUrl yet');
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(250);
+  }
+
+  throw new Error(
+    `Timed out waiting for browser WebSocket endpoint ${browserURL}: ${
       lastError instanceof Error ? lastError.message : String(lastError)
     }`,
   );

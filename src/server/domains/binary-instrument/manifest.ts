@@ -26,6 +26,9 @@ const registrations = defineMethodRegistrations<H, (typeof binaryInstrumentTools
     { tool: 'ghidra_decompile', method: 'handleGhidraDecompile' },
     { tool: 'ida_decompile', method: 'handleIdaDecompile' },
     { tool: 'jadx_decompile', method: 'handleJadxDecompile' },
+    { tool: 'apktool_decode', method: 'handleApktoolDecode' },
+    { tool: 'apk_manifest_dump', method: 'handleApkManifestDump' },
+    { tool: 'apk_native_libs_list', method: 'handleApkNativeLibsList' },
     { tool: 'unidbg_launch', method: 'handleUnidbgLaunch' },
     { tool: 'unidbg_call', method: 'handleUnidbgCall' },
     { tool: 'unidbg_trace', method: 'handleUnidbgTrace' },
@@ -60,18 +63,27 @@ const manifest = {
     patterns: [
       /\b(frida|ghidra|ida|unidbg|jadx|binary|disassemb|decompil|dump\s?so)\b/i,
       /(binary|native|so|dll|elf|apk).*(analyze|hook|instrument|decompile)/i,
+      /(apk|android).*(manifest|apktool|native\s+libs|shared\s+library|\.so)/i,
     ],
     priority: 88,
-    tools: ['frida_attach', 'ghidra_analyze', 'generate_hooks', 'unidbg_launch'],
-    hint:
-      'Binary analysis pipeline: attach Frida → decompile (Ghidra/IDA/JADX) → generate hook scripts → emulate' +
-      'with Unidbg.',
+    tools: [
+      'frida_attach',
+      'ghidra_analyze',
+      'jadx_decompile',
+      'apktool_decode',
+      'apk_manifest_dump',
+      'apk_native_libs_list',
+      'generate_hooks',
+      'unidbg_launch',
+    ],
+    hint: 'Binary analysis pipeline: attach Frida → decompile/inspect APK, manifest, and native libs → generate hook scripts → emulate with Unidbg.',
   },
   prerequisites: {
     frida_attach: [
       {
-        condition: 'plugin_frida_bridge must be installed and frida-server reachable',
-        fix: 'Install @jshookmcpextension/plugin-frida-bridge; launch frida-server on the target',
+        condition:
+          'Frida CLI must be installed; device targets may also require frida-server and elevated privileges',
+        fix: 'Install frida-tools and, for Android/device targets, launch frida-server on the target.',
       },
     ],
     frida_run_script: [
@@ -82,8 +94,8 @@ const manifest = {
     ],
     ghidra_analyze: [
       {
-        condition: 'plugin_ghidra_bridge must be installed with Ghidra headless available',
-        fix: 'Install @jshookmcpextension/plugin-ghidra-bridge and configure Ghidra path',
+        condition: 'Ghidra analyzeHeadless must be installed and reachable on PATH',
+        fix: 'Install Ghidra and ensure analyzeHeadless is on PATH.',
       },
     ],
     ida_decompile: [
@@ -94,8 +106,14 @@ const manifest = {
     ],
     jadx_decompile: [
       {
-        condition: 'plugin_jadx_bridge must be installed',
-        fix: 'Install @jshookmcpextension/plugin-jadx-bridge',
+        condition: 'jadx CLI or plugin_jadx_bridge must be available',
+        fix: 'Install JADX and ensure jadx is on PATH, or install @jshookmcpextension/plugin-jadx-bridge.',
+      },
+    ],
+    apktool_decode: [
+      {
+        condition: 'apktool CLI must be installed',
+        fix: 'Install apktool and ensure it is on PATH.',
       },
     ],
     unidbg_launch: [

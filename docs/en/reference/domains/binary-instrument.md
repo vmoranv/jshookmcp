@@ -19,7 +19,7 @@ Binary instrumentation domain providing binary analysis and runtime instrumentat
 - binary-instrument + memory
 - binary-instrument + process
 
-## Full tool list (20)
+## Full tool list (23)
 
 | Tool | Description |
 | --- | --- |
@@ -36,7 +36,10 @@ Binary instrumentation domain providing binary analysis and runtime instrumentat
 | `get_available_plugins` | List installed binary analysis plugins. |
 | `ghidra_decompile` | Decompile a function using Ghidra. |
 | `ida_decompile` | Decompile a function using IDA Pro. |
-| `jadx_decompile` | Decompile an APK class or method using JADX. |
+| `jadx_decompile` | Decompile an APK class or method with JADX CLI, or use the legacy plugin bridge when available. |
+| `apktool_decode` | Decode an APK using apktool to inspect resources, manifest, and smali output. |
+| `apk_manifest_dump` | Extract AndroidManifest.xml from an APK for quick inspection; binary AXML payloads are returned as base64. |
+| `apk_native_libs_list` | List packaged native shared libraries (.so) inside an APK. |
 | `unidbg_launch` | Emulate a native shared library in Unidbg. |
 | `unidbg_call` | Call a JNI function in a running Unidbg emulator session. |
 | `unidbg_trace` | Get execution trace from Unidbg session with configurable detail. |

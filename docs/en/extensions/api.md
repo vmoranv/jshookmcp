@@ -113,10 +113,12 @@ export default createExtension('io.github.demo.plugin', '0.1.0')
 
 | Functional Signature                                              | Minimal Integration Syntax                                                    | Architectural Purpose                         |
 | ----------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- |
-| `toolNode(id, toolName, options?)`                                | `toolNode('nav', 'page_navigate', { input: { url: 'https://example.com' } })` | Declares atomic capability execution triggers |
-| `sequenceNode(id, steps)`                                         | `sequenceNode('main', [stepA, stepB])`                                        | Models sequential dependency constraints      |
-| `parallelNode(id, steps, maxConcurrency?, failFast?)`             | `parallelNode('collect', [graphA, graphB], 2, false)`                         | Generates un-ordered parallel batch vectors   |
-| `branchNode(id, predicateId, whenTrue, whenFalse?, predicateFn?)` | `branchNode('gate', 'hasAuth', trueBranch, falseBranch)`                      | Allocates conditional logic pipelines         |
+| `defineWorkflow(id, displayName, configure)`                      | `defineWorkflow('demo.capture', 'Demo Capture', (w) => w.buildGraph(...))`    | Declares a workflow contract                  |
+| `toolStep(id, toolName, options?)`                                | `toolStep('nav', 'page_navigate', { input: { url: 'https://example.com' } })` | Declares atomic capability execution triggers |
+| `sequenceStep(id, config?)`                                       | `sequenceStep('main', (s) => s.tool('a', 'tool_a'))`                          | Models sequential dependency constraints      |
+| `parallelStep(id, config?)`                                       | `parallelStep('collect', (p) => p.tool('a', 'tool_a'))`                       | Generates un-ordered parallel batch vectors   |
+| `branchStep(id, predicateId, config?)`                            | `branchStep('gate', 'hasAuth', (b) => b.whenTrue(...))`                       | Allocates conditional logic pipelines         |
+| `fallbackStep(id, config?)`                                       | `fallbackStep('fb', (f) => f.primary(...).fallback(...))`                     | Declares a fallback branch                    |
 
 ### `WorkflowExecutionContext` Injected Execution Vectors (4)
 
@@ -142,26 +144,18 @@ const profileConfig = ctx.profile;
 ### Reference Implementation Model: Protocol Graph
 
 ```ts
-import type { WorkflowContract, WorkflowExecutionContext } from '@jshookmcp/extension-sdk/workflow';
-import { toolNode, sequenceNode } from '@jshookmcp/extension-sdk/workflow';
+import { defineWorkflow, sequenceStep } from '@jshookmcp/extension-sdk/workflow';
 
-export const workflow: WorkflowContract = {
-  kind: 'workflow-contract',
-  version: 1,
-  id: 'demo.capture',
-  displayName: 'Telemetry Synthesis',
-
-  build(_ctx: WorkflowExecutionContext) {
-    return sequenceNode('core_sequence', [
-      toolNode('navigate', 'page_navigate', {
+export default defineWorkflow('demo.capture', 'Telemetry Synthesis', (w) =>
+  w.buildGraph(() =>
+    sequenceStep('core-sequence', (s) => {
+      s.tool('navigate', 'page_navigate', {
         input: { url: 'https://example.com' },
-      }),
-      toolNode('links', 'page_get_all_links'),
-    ]);
-  },
-};
-
-export default workflow;
+      });
+      s.tool('links', 'page_get_all_links');
+    }),
+  ),
+);
 ```
 
 ## Process Abstraction Bridges SDK
@@ -228,10 +222,10 @@ await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
 ### Sequential Workflow Layer
 
 ```ts
-sequenceNode('capture_chain', [
-  toolNode('nav_trigger', 'page_navigate', { input: { url: 'https://example.com' } }),
-  toolNode('dump_trigger', 'page_local_storage', { input: { action: 'get' } }),
-]);
+sequenceStep('capture-chain', (s) => {
+  s.tool('nav-trigger', 'page_navigate', { input: { url: 'https://example.com' } });
+  s.tool('dump-trigger', 'page_local_storage', { input: { action: 'get' } });
+});
 ```
 
 ### Abstraction Bridge Invocation

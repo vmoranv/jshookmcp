@@ -394,7 +394,7 @@ describe('ExtensionManager', () => {
 
     await expect(ensureWorkflowsLoaded(ctx)).resolves.toBeUndefined();
     expect(ctx.extensionWorkflowsById.size).toBe(0);
-    expect(ctx.extensionPluginsById.has('plugin-missing-workflows')).toBe(false);
+    expect(ctx.extensionPluginsById.get('plugin-missing-workflows')?.workflows).toEqual([]);
   });
 
   it('warns when loading without an allowlist in non-strict mode', async () => {

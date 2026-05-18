@@ -28,6 +28,7 @@ import type {
   ExtensionPluginRecord,
   ExtensionPluginRuntimeRecord,
   ExtensionReloadResult,
+  ExtensionToolRecord,
   ExtensionWorkflowRecord,
   ExtensionWorkflowRuntimeRecord,
 } from '@server/extensions/types';
@@ -336,13 +337,11 @@ async function loadPluginWorkflowContributions(
       }
     }
 
-    if (loadedWorkflows.length === 0) {
-      continue;
-    }
+    const loadedTools = plugin.tools.map((t: ExtensionToolDefinition) => t.name);
 
     ctx.extensionPluginsById.set(
       plugin.id,
-      buildPluginRecord(plugin, pluginFile, [], loadedWorkflows),
+      buildPluginRecord(plugin, pluginFile, loadedTools, loadedWorkflows),
     );
   }
 }
@@ -515,6 +514,30 @@ async function reloadExtensionsInner(ctx: MCPServerContext): Promise<ExtensionRe
         runtimeRecord.state = pluginState;
       }
       ctx.extensionPluginRuntimeById.set(plugin.id, runtimeRecord);
+
+      // Register plugin tools into the extension tool registry
+      const pluginDomain = `plugin:${plugin.id}`;
+      for (const toolDef of plugin.tools) {
+        const toolRecord: ExtensionToolRecord = {
+          name: toolDef.name,
+          domain: pluginDomain,
+          source: pluginFile,
+          tool: {
+            name: toolDef.name,
+            description: toolDef.description,
+            inputSchema: toolDef.schema,
+          },
+          handler: async (args: Record<string, unknown>) => {
+            try {
+              return await toolDef.handler(args, lifecycleContext);
+            } catch (error) {
+              logger.error(`[extension:${plugin.id}] Tool "${toolDef.name}" failed:`, error);
+              throw error;
+            }
+          },
+        };
+        ctx.extensionToolsByName.set(toolDef.name, toolRecord);
+      }
     } catch (error) {
       try {
         if (plugin.onDeactivateHandler && pluginState === 'activated') {

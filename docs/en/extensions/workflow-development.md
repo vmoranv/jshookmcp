@@ -17,6 +17,7 @@ Typical structural signals necessitating a Workflow:
 
 - Source Template: [jshook_workflow_template](https://github.com/vmoranv/jshook_workflow_template)
 - Mount Main Process Pointer: `export MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>`
+- PowerShell: `$env:MCP_WORKFLOW_ROOTS = "<path-to-cloned-jshook_workflow_template>"`
 
 ### 2. Pre-compilation Constraint Verification
 
@@ -56,15 +57,14 @@ Conceptualize nodes structurally prior to logic population:
 
 ```ts
 import type {
-  WorkflowContract,
   WorkflowExecutionContext,
-  WorkflowNode,
 } from '@jshookmcp/extension-sdk/workflow';
 import {
-  toolNode,
-  sequenceNode,
-  parallelNode,
-  branchNode,
+  defineWorkflow,
+  toolStep,
+  sequenceStep,
+  parallelStep,
+  branchStep,
 } from '@jshookmcp/extension-sdk/workflow';
 ```
 
@@ -87,7 +87,7 @@ Mandatory closure returning a declarative DAG matrix. Procedural side-effects wi
 
 ## Node Factory APIs
 
-### `toolNode(id, toolName, options?)`
+### `toolStep(id, toolName, options?)`
 
 Instantiates an atomic MCP tool execution constraint.
 
@@ -97,7 +97,7 @@ Optional capability vectors:
 - `retry`
 - `timeoutMs`
 
-### `sequenceNode(id, steps)`
+### `sequenceStep(id, config?)`
 
 Enforces strict synchronous chronological execution.
 
@@ -107,7 +107,7 @@ Applicable structural usage:
 - Sequential mutation operations dependent on preceding DOM side-effects.
 - Deterministic teardown and state extraction phases.
 
-### `parallelNode(id, steps, maxConcurrency?, failFast?)`
+### `parallelStep(id, config?)`
 
 Abstracts concurrent execution queues without deterministic ordering.
 
@@ -118,7 +118,7 @@ Applicable structural usage:
 
 **Strict Limitation**: Parallel projection is solely applicable when node executions do not inflict mutating side-effects upon a shared target context.
 
-### `branchNode(id, predicateId, whenTrue, whenFalse?, predicateFn?)`
+### `branchStep(id, predicateId, config?)`
 
 Deploys conditional logic routing gates.
 

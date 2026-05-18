@@ -88,6 +88,15 @@ export class BinaryInstrumentHandlers {
   handleJadxDecompile(args: Record<string, unknown>) {
     return this.analysis.handleJadxDecompile(args);
   }
+  handleApktoolDecode(args: Record<string, unknown>) {
+    return this.analysis.handleApktoolDecode(args);
+  }
+  handleApkManifestDump(args: Record<string, unknown>) {
+    return this.analysis.handleApkManifestDump(args);
+  }
+  handleApkNativeLibsList(args: Record<string, unknown>) {
+    return this.analysis.handleApkNativeLibsList(args);
+  }
   handleGenerateHooks(args: Record<string, unknown>) {
     return this.analysis.handleGenerateHooks(args);
   }

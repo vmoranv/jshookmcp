@@ -91,11 +91,36 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('jadx_decompile', (t) =>
     t
-      .desc('Decompile an APK class or method using JADX.')
+      .desc(
+        'Decompile an APK class or method with JADX CLI, or use the legacy plugin bridge when available.',
+      )
       .string('apkPath', 'Path to the APK file')
       .string('className', 'Fully qualified class name')
       .string('methodName', 'Method name to decompile')
       .required('apkPath', 'className'),
+  ),
+  tool('apktool_decode', (t) =>
+    t
+      .desc('Decode an APK using apktool to inspect resources, manifest, and smali output.')
+      .string('apkPath', 'Path to the APK file')
+      .string('outputDir', 'Optional output directory for decoded contents')
+      .boolean('force', 'Overwrite output directory if it already exists', { default: false })
+      .required('apkPath'),
+  ),
+  tool('apk_manifest_dump', (t) =>
+    t
+      .desc(
+        'Extract AndroidManifest.xml from an APK for quick inspection; binary AXML payloads are returned as base64.',
+      )
+      .string('apkPath', 'Path to the APK file')
+      .required('apkPath'),
+  ),
+  tool('apk_native_libs_list', (t) =>
+    t
+      .desc('List packaged native shared libraries (.so) inside an APK.')
+      .string('apkPath', 'Path to the APK file')
+      .required('apkPath')
+      .query(),
   ),
   tool('unidbg_launch', (t) =>
     t

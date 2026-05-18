@@ -69,6 +69,14 @@ export function readOptionalNumber(args: Record<string, unknown>, key: string): 
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
+export function readOptionalBoolean(
+  args: Record<string, unknown>,
+  key: string,
+): boolean | undefined {
+  const value = args[key];
+  return typeof value === 'boolean' ? value : undefined;
+}
+
 export function readStringArray(args: Record<string, unknown>, key: string): string[] {
   const value = args[key];
   if (!Array.isArray(value)) return [];

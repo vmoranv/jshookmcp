@@ -19,7 +19,7 @@
 - binary-instrument + memory
 - binary-instrument + process
 
-## 工具清单（20）
+## 工具清单（23）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -36,7 +36,10 @@
 | `get_available_plugins` | 列出所有可用的二进制分析插件（frida、ghidra、ida、jadx）。 |
 | `ghidra_decompile` | 使用 Ghidra headless 分析反编译指定函数。 |
 | `ida_decompile` | 通过插件桥接使用 IDA Pro 反编译指定函数。 |
-| `jadx_decompile` | 通过插件桥接使用 JADX 反编译 APK 类或方法。 |
+| `jadx_decompile` | 优先使用 JADX CLI 反编译 APK 类或方法；CLI 不可用时回退到插件桥接。 |
+| `apktool_decode` | 使用 apktool 解包 APK，便于检查资源、Manifest 和 smali 输出。 |
+| `apk_manifest_dump` | 从 APK 中提取 AndroidManifest.xml；若为二进制 AXML，则返回原始 Base64 载荷与格式标记。 |
+| `apk_native_libs_list` | 列出 APK 内打包的原生共享库（.so）及其 ABI 目录。 |
 | `unidbg_launch` | 在 Unidbg 模拟器中启动 ARM/ARM64 .so 库，首次调用约 3-5 秒预热。 |
 | `unidbg_call` | 在运行中的 Unidbg 模拟器会话中调用 JNI 函数。 |
 | `unidbg_trace` | 获取 Unidbg 会话的执行追踪（full/basic/instruction 模式）。 |

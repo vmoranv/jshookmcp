@@ -12,21 +12,21 @@
 ## 基础插件示例
 
 所有插件的初始化基于声明式的 fluent builder 模式链式调用。
-参考代码库 `jshook_plugin_template` 下的 `src/manifest.ts`：
+参考代码库 `jshook_plugin_template` 下的 `manifest.ts`：
 
 ```ts
 import { createExtension, jsonResponse } from '@jshookmcp/extension-sdk/plugin';
 
 export default createExtension('io.github.example.my-first-plugin', '1.0.0')
   .compatibleCore('^0.1.0')
-  .allowTool(['browser_click', 'network_get_requests'])
+  .allowTool(['page_click', 'network_get_requests'])
   .metric(['my_plugin.loaded'])
   .tool(
     'my_custom_tool',
     'Execute DOM mutation and fetch traces.',
-    { message: { type: 'string', description: 'Mutation payload selector' } },
+    { selector: { type: 'string', description: 'Mutation payload selector' } },
     async (args, ctx) => {
-      const clickRes = await ctx.invokeTool('browser_click', { text: args.message });
+      const clickRes = await ctx.invokeTool('page_click', { selector: String(args.selector) });
       return jsonResponse({ success: true, result: clickRes });
     }
   )
@@ -51,6 +51,7 @@ export default createExtension('io.github.example.my-first-plugin', '1.0.0')
 
 - 使用基础模板库: `https://github.com/vmoranv/jshook_plugin_template`
 - 初始化主进程环境变量: `export MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>`
+- PowerShell: `$env:MCP_PLUGIN_ROOTS = "<path-to-cloned-jshook_plugin_template>"`
 
 ### 2. 构建与校验
 
@@ -114,10 +115,10 @@ pnpm run check
 
 `@jshookmcp/extension-sdk` 内置了以下常用辅助函数：
 
-- **`loadPluginEnv(import.meta.url)`**:
-  读取当前插件目录下的 `.env` 配置文件。
-- **`getPluginBooleanConfig(ctx, pluginId, key, fallback)`**:
-  读取布尔类型的配置项，优先读取环境变量。
+- **`jsonResponse(payload)` / `errorResponse(tool, error, extra?)`**:
+  生成标准 MCP 工具响应。
+- **`checkExternalCommand(...)` / `runProcess(...)`**:
+  用于桥接本地 CLI 并做基础超时与输出封装。
 
 ## 验证与发布
 

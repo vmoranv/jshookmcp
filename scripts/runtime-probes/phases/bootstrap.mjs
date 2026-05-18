@@ -1,8 +1,8 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 export async function prepareRuntimeFixtures(ctx) {
   const { report, server, paths, runtimeIds, state, constants, helpers } = ctx;
-  const { createRegistryFixtures, isRecord } = helpers;
+  const { createRegistryFixtures, isRecord, removePathRobust } = helpers;
   const { BODY_MARKER } = constants;
   const { runtimeMacroId, runtimeExtensionId } = runtimeIds;
   const {
@@ -18,8 +18,8 @@ export async function prepareRuntimeFixtures(ctx) {
 
   await mkdir(runtimeArtifactDir, { recursive: true });
   await mkdir(runtimeMacroDir, { recursive: true });
-  await rm(runtimeWorkflowRoot, { recursive: true, force: true });
-  await rm(runtimePluginRoot, { recursive: true, force: true });
+  await removePathRobust(runtimeWorkflowRoot);
+  await removePathRobust(runtimePluginRoot);
   await mkdir(runtimeWorkflowRoot, { recursive: true });
   await mkdir(runtimePluginRoot, { recursive: true });
 

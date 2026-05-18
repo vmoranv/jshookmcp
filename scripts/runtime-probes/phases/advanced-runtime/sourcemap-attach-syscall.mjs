@@ -16,7 +16,7 @@ export async function runSourcemapAttachSyscallPhase(ctx) {
     getFreePort,
     getPreferredBrowserExecutable,
     isRecord,
-    waitForBrowserEndpoint,
+    waitForBrowserWebSocketEndpoint,
   } = helpers;
   const { BODY_MARKER, SOURCEMAP_MARKER } = constants;
   const resources = state.runtimeResources;
@@ -164,7 +164,10 @@ export async function runSourcemapAttachSyscallPhase(ctx) {
       windowsHide: true,
     },
   );
-  report.browser.attachExternalVersion = await waitForBrowserEndpoint(externalBrowserURL, 20000);
+  report.browser.attachExternalVersion = await waitForBrowserWebSocketEndpoint(
+    externalBrowserURL,
+    20000,
+  );
   resources.attachClient = new Client(
     { name: 'runtime-tool-probe-browser-attach', version: '1.0.0' },
     { capabilities: {} },
@@ -178,7 +181,10 @@ export async function runSourcemapAttachSyscallPhase(ctx) {
   report.browser.attachExternal = await callTool(
     resources.attachClient,
     'browser_attach',
-    { browserURL: externalBrowserURL, pageIndex: 0 },
+    {
+      wsEndpoint: report.browser.attachExternalVersion.webSocketDebuggerUrl,
+      pageIndex: 0,
+    },
     30000,
   );
   report.browser.attachExternalEval = await callTool(

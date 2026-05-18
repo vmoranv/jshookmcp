@@ -1,4 +1,4 @@
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult, Tool } from '@modelcontextprotocol/sdk/types.js';
 import { toTextResponse, toErrorResponse } from '@extension-sdk/bridges/shared';
 import type { WorkflowContract } from './workflow.js';
 
@@ -39,10 +39,12 @@ export type ExtensionToolHandler = (
   ctx: PluginLifecycleContext,
 ) => Promise<ToolResponse>;
 
+export type ExtensionToolInputSchema = Tool['inputSchema'];
+
 export interface ExtensionToolDefinition {
   name: string;
   description: string;
-  schema: Record<string, unknown>;
+  schema: ExtensionToolInputSchema;
   handler: ExtensionToolHandler;
   /** Profile tiers this tool should be available in (default: ['full']). */
   profiles?: ToolProfileId[];
@@ -66,117 +68,117 @@ export const errorResponse: (
 
 export class ExtensionBuilder {
   // ── state ──
-  private readonly _id: string;
-  private readonly _version: string;
-  private _name: string = '';
-  private _description: string = '';
-  private _author: string = '';
-  private _sourceRepo: string = '';
-  private _compatibleCore: string = '>=0.1.0';
-  private _profiles: ToolProfileId[] = ['full'];
-  private _tools: ExtensionToolDefinition[] = [];
-  private _workflows: ExtensionWorkflowDefinition[] = [];
-  private _allowCommands: string[] = [];
-  private _allowHosts: string[] = [];
-  private _allowTools: string[] = [];
-  private _metrics: string[] = [];
-  private _configDefaults: Record<string, unknown> = {};
-  private _onLoadHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
-  private _onValidateHandler?: (
+  private readonly idValue: string;
+  private readonly versionValue: string;
+  private nameValue: string = '';
+  private descriptionValue: string = '';
+  private authorValue: string = '';
+  private sourceRepoValue: string = '';
+  private compatibleCoreValue: string = '>=0.1.0';
+  private profilesValue: ToolProfileId[] = ['full'];
+  private toolsValue: ExtensionToolDefinition[] = [];
+  private workflowsValue: ExtensionWorkflowDefinition[] = [];
+  private allowedCommandsValue: string[] = [];
+  private allowedHostsValue: string[] = [];
+  private allowedToolsValue: string[] = [];
+  private metricsValue: string[] = [];
+  private configDefaultsValue: Record<string, unknown> = {};
+  private onLoadHandlerValue?: (ctx: PluginLifecycleContext) => Promise<void> | void;
+  private onValidateHandlerValue?: (
     ctx: PluginLifecycleContext,
   ) => Promise<{ valid: boolean; errors: string[] }> | { valid: boolean; errors: string[] };
-  private _onActivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
-  private _onDeactivateHandler?: (ctx: PluginLifecycleContext) => Promise<void> | void;
+  private onActivateHandlerValue?: (ctx: PluginLifecycleContext) => Promise<void> | void;
+  private onDeactivateHandlerValue?: (ctx: PluginLifecycleContext) => Promise<void> | void;
 
   constructor(id: string, version: string) {
-    this._id = id;
-    this._version = version;
+    this.idValue = id;
+    this.versionValue = version;
   }
 
   // ── accessors ──
 
   get id(): string {
-    return this._id;
+    return this.idValue;
   }
   get version(): string {
-    return this._version;
+    return this.versionValue;
   }
   get pluginName(): string {
-    return this._name;
+    return this.nameValue;
   }
   get pluginDescription(): string {
-    return this._description;
+    return this.descriptionValue;
   }
   get pluginAuthor(): string {
-    return this._author;
+    return this.authorValue;
   }
   get pluginSourceRepo(): string {
-    return this._sourceRepo;
+    return this.sourceRepoValue;
   }
   get compatibleCoreRange(): string {
-    return this._compatibleCore;
+    return this.compatibleCoreValue;
   }
   get profiles(): ToolProfileId[] {
-    return this._profiles;
+    return this.profilesValue;
   }
   get tools(): ExtensionToolDefinition[] {
-    return this._tools;
+    return this.toolsValue;
   }
   get workflows(): ExtensionWorkflowDefinition[] {
-    return this._workflows;
+    return this.workflowsValue;
   }
   get allowedCommands(): string[] {
-    return this._allowCommands;
+    return this.allowedCommandsValue;
   }
   get allowedHosts(): string[] {
-    return this._allowHosts;
+    return this.allowedHostsValue;
   }
   get allowedTools(): string[] {
-    return this._allowTools;
+    return this.allowedToolsValue;
   }
   get declaredMetrics(): string[] {
-    return this._metrics;
+    return this.metricsValue;
   }
   get configDefaults(): Record<string, unknown> {
-    return this._configDefaults;
+    return this.configDefaultsValue;
   }
   get onLoadHandler(): ((ctx: PluginLifecycleContext) => Promise<void> | void) | undefined {
-    return this._onLoadHandler;
+    return this.onLoadHandlerValue;
   }
   get onValidateHandler():
     | ((
         ctx: PluginLifecycleContext,
       ) => Promise<{ valid: boolean; errors: string[] }> | { valid: boolean; errors: string[] })
     | undefined {
-    return this._onValidateHandler;
+    return this.onValidateHandlerValue;
   }
   get onActivateHandler(): ((ctx: PluginLifecycleContext) => Promise<void> | void) | undefined {
-    return this._onActivateHandler;
+    return this.onActivateHandlerValue;
   }
   get onDeactivateHandler(): ((ctx: PluginLifecycleContext) => Promise<void> | void) | undefined {
-    return this._onDeactivateHandler;
+    return this.onDeactivateHandlerValue;
   }
 
   // ── setters ──
 
   name(n: string): this {
-    this._name = n;
+    this.nameValue = n;
     return this;
   }
   description(desc: string): this {
-    this._description = desc;
+    this.descriptionValue = desc;
     return this;
   }
   author(a: string): this {
-    this._author = a;
+    this.authorValue = a;
     return this;
   }
   sourceRepo(url: string): this {
-    this._sourceRepo = url;
+    this.sourceRepoValue = url;
     return this;
   }
   compatibleCore(range: string): this {
-    this._compatibleCore = range;
+    this.compatibleCoreValue = range;
     return this;
   }
 
@@ -191,34 +193,34 @@ export class ExtensionBuilder {
     author?: string;
     source_repo?: string;
   }): this {
-    if (!this._name && meta.name) this._name = meta.name;
-    if (!this._description && meta.description) this._description = meta.description;
-    if (!this._author && meta.author) this._author = meta.author;
-    if (!this._sourceRepo && meta.source_repo) this._sourceRepo = meta.source_repo;
+    if (!this.nameValue && meta.name) this.nameValue = meta.name;
+    if (!this.descriptionValue && meta.description) this.descriptionValue = meta.description;
+    if (!this.authorValue && meta.author) this.authorValue = meta.author;
+    if (!this.sourceRepoValue && meta.source_repo) this.sourceRepoValue = meta.source_repo;
     return this;
   }
   profile(p: ToolProfileId | ToolProfileId[]): this {
-    this._profiles = Array.isArray(p) ? p : [p];
+    this.profilesValue = Array.isArray(p) ? p : [p];
     return this;
   }
   allowCommand(cmd: string | string[]): this {
-    this._allowCommands.push(...(Array.isArray(cmd) ? cmd : [cmd]));
+    this.allowedCommandsValue.push(...(Array.isArray(cmd) ? cmd : [cmd]));
     return this;
   }
   allowHost(host: string | string[]): this {
-    this._allowHosts.push(...(Array.isArray(host) ? host : [host]));
+    this.allowedHostsValue.push(...(Array.isArray(host) ? host : [host]));
     return this;
   }
   allowTool(tool: string | string[]): this {
-    this._allowTools.push(...(Array.isArray(tool) ? tool : [tool]));
+    this.allowedToolsValue.push(...(Array.isArray(tool) ? tool : [tool]));
     return this;
   }
   metric(m: string | string[]): this {
-    this._metrics.push(...(Array.isArray(m) ? m : [m]));
+    this.metricsValue.push(...(Array.isArray(m) ? m : [m]));
     return this;
   }
   configDefault(key: string, value: unknown): this {
-    this._configDefaults[key] = value;
+    this.configDefaultsValue[key] = value;
     return this;
   }
 
@@ -237,11 +239,11 @@ export class ExtensionBuilder {
   tool(
     name: string,
     desc: string,
-    schema: Record<string, unknown>,
+    schema: Record<string, object>,
     handler: ExtensionToolHandler,
     profiles?: ToolProfileId[],
   ): this {
-    this._tools.push({
+    this.toolsValue.push({
       name,
       description: desc,
       schema: { type: 'object', properties: schema },
@@ -258,12 +260,12 @@ export class ExtensionBuilder {
    * standalone workflow roots, while still preserving plugin ownership.
    */
   workflow(workflow: ExtensionWorkflowDefinition | ExtensionWorkflowDefinition[]): this {
-    this._workflows.push(...(Array.isArray(workflow) ? workflow : [workflow]));
+    this.workflowsValue.push(...(Array.isArray(workflow) ? workflow : [workflow]));
     return this;
   }
 
   onLoad(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this {
-    this._onLoadHandler = h;
+    this.onLoadHandlerValue = h;
     return this;
   }
   onValidate(
@@ -271,15 +273,15 @@ export class ExtensionBuilder {
       ctx: PluginLifecycleContext,
     ) => Promise<{ valid: boolean; errors: string[] }> | { valid: boolean; errors: string[] },
   ): this {
-    this._onValidateHandler = h;
+    this.onValidateHandlerValue = h;
     return this;
   }
   onActivate(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this {
-    this._onActivateHandler = h;
+    this.onActivateHandlerValue = h;
     return this;
   }
   onDeactivate(h: (ctx: PluginLifecycleContext) => Promise<void> | void): this {
-    this._onDeactivateHandler = h;
+    this.onDeactivateHandlerValue = h;
     return this;
   }
 }

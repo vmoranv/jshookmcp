@@ -167,8 +167,8 @@ export async function writeInstalledExtensionMetadata(
 type PackageManagerCommand = 'pnpm' | 'npm';
 type RegistryIndexKind = 'plugins' | 'workflows';
 
-const LOCAL_EXTENSION_SDK_PACKAGE = '@jshookmcp/extension-sdk';
-const LOCAL_EXTENSION_SDK_ROOT = resolve(getJshookInstallRoot(), 'packages', 'extension-sdk');
+const EXTENSION_SDK_PACKAGE = '@jshookmcp/extension-sdk';
+const LOCAL_EXTENSION_SDK_SPEC_PREFIXES = ['workspace:', 'link:', 'file:'];
 
 const enum RegistryLimit {
   FETCH_TIMEOUT_MS = 10_000,
@@ -215,10 +215,8 @@ function resolvePackageManagerInvocation(
     return { command: packageManager, args };
   }
 
-  return {
-    command: 'powershell.exe',
-    args: ['-NoProfile', '-NonInteractive', '-Command', `${packageManager} ${args.join(' ')}`],
-  };
+  // Use the .cmd shim on Windows — handles spaces in paths correctly
+  return { command: `${packageManager}.cmd`, args };
 }
 
 export async function execPackageManager(
@@ -400,50 +398,39 @@ export async function fetchJson<T>(
   }
 }
 
-async function rewriteLocalExtensionSdkDependency(installDir: string): Promise<boolean> {
-  const packageJsonPath = resolve(installDir, 'package.json');
-
-  try {
-    const raw = await readFile(packageJsonPath, 'utf8');
-    const pkg = JSON.parse(raw) as Record<string, unknown>;
-    const sections = [
-      'dependencies',
-      'devDependencies',
-      'peerDependencies',
-      'optionalDependencies',
-    ];
-    const relativeSdkPath = relative(installDir, LOCAL_EXTENSION_SDK_ROOT).replace(/\\/g, '/');
-    const localSdkSpec = `file:${relativeSdkPath || '.'}`;
-    let changed = false;
-
-    for (const sectionName of sections) {
-      const section = pkg[sectionName];
-      if (!section || typeof section !== 'object') {
-        continue;
-      }
-      const dependencyMap = section as Record<string, unknown>;
-      const currentValue = dependencyMap[LOCAL_EXTENSION_SDK_PACKAGE];
-      if (typeof currentValue === 'string' && currentValue.startsWith('workspace:')) {
-        dependencyMap[LOCAL_EXTENSION_SDK_PACKAGE] = localSdkSpec;
-        changed = true;
-      }
-    }
-
-    if (!changed) {
-      return false;
-    }
-
-    await writeFile(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
-    logger.info(
-      `[extensions] Rewrote ${LOCAL_EXTENSION_SDK_PACKAGE} dependency to local file path for ${installDir}`,
-    );
-    return true;
-  } catch (error) {
-    logger.warn(
-      `[extensions] Failed to rewrite ${LOCAL_EXTENSION_SDK_PACKAGE} dependency for ${installDir}:`,
-      error,
-    );
+function isLocalExtensionSdkSpec(spec: string): boolean {
+  const normalized = spec.trim();
+  if (!normalized) {
     return false;
+  }
+  if (LOCAL_EXTENSION_SDK_SPEC_PREFIXES.some((prefix) => normalized.startsWith(prefix))) {
+    return true;
+  }
+  if (normalized.startsWith('./') || normalized.startsWith('../') || normalized.startsWith('/')) {
+    return true;
+  }
+  return /^[A-Za-z]:[\\/]/.test(normalized);
+}
+
+async function assertPublishedExtensionSdkDependency(installDir: string): Promise<void> {
+  const packageJsonPath = resolve(installDir, 'package.json');
+  const raw = await readFile(packageJsonPath, 'utf8');
+  const pkg = JSON.parse(raw) as Record<string, unknown>;
+  const sections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
+
+  for (const sectionName of sections) {
+    const section = pkg[sectionName];
+    if (!section || typeof section !== 'object') {
+      continue;
+    }
+    const dependencyMap = section as Record<string, unknown>;
+    const currentValue = dependencyMap[EXTENSION_SDK_PACKAGE];
+    if (typeof currentValue === 'string' && isLocalExtensionSdkSpec(currentValue)) {
+      throw new Error(
+        `package.json ${sectionName}.${EXTENSION_SDK_PACKAGE} uses unsupported local dependency spec ` +
+          `"${currentValue}". Declare a published npm version instead, for example "^0.3.2".`,
+      );
+    }
   }
 }
 
@@ -525,5 +512,5 @@ export async function findRegistryEntryBySlug(
 export {
   EXTENSION_GIT_CLONE_TIMEOUT_MS,
   EXTENSION_GIT_CHECKOUT_TIMEOUT_MS,
-  rewriteLocalExtensionSdkDependency,
+  assertPublishedExtensionSdkDependency,
 };

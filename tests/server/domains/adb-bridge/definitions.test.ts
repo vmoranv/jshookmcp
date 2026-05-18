@@ -23,8 +23,8 @@ describe('adb-bridge tool definitions', () => {
       expect(adbBridgeTools.length).toBeGreaterThan(0);
     });
 
-    it('tool count matches expected (3 tools)', async () => {
-      expect(adbBridgeTools.length).toBe(3);
+    it('tool count matches expected (7 tools)', async () => {
+      expect(adbBridgeTools.length).toBe(7);
     });
 
     it('has unique tool names', async () => {
@@ -62,7 +62,12 @@ describe('adb-bridge tool definitions', () => {
   });
 
   describe('expected tool names', () => {
-    const expectedNames = ['adb_apk_analyze', 'adb_webview_list', 'adb_webview_attach'];
+    const expectedNames = [
+      'adb_apk_analyze',
+      'adb_pull_native_libs',
+      'adb_webview_list',
+      'adb_webview_attach',
+    ];
 
     it.each(expectedNames)('includes tool "%s"', (name) => {
       const found = adbBridgeTools.find((tool) => tool.name === name);
@@ -93,6 +98,20 @@ describe('adb-bridge tool definitions', () => {
       const prop = getToolProperty('adb_webview_list', 'hostPort');
       expect(prop.type).toBe('number');
       expect(prop.default).toBe(9222);
+    });
+  });
+
+  describe('adb_pull_native_libs', () => {
+    it('requires serial and packageName', async () => {
+      const tool = getTool('adb_pull_native_libs');
+      expect(tool.inputSchema.required ?? []).toContain('serial');
+      expect(tool.inputSchema.required ?? []).toContain('packageName');
+    });
+
+    it('has includeSystemLibs boolean default false', async () => {
+      const prop = getToolProperty('adb_pull_native_libs', 'includeSystemLibs');
+      expect(prop.type).toBe('boolean');
+      expect(prop.default).toBe(false);
     });
   });
 

@@ -9,7 +9,7 @@
 
 **Built-in Project Configuration:**
 
-- `manifest.ts` (Declarative entrypoint built upon `PluginContract`)
+- `manifest.ts` (Declarative entrypoint built with `createExtension()`)
 - Local build pipeline (`dist/*.js` compilation output structure)
 - ToolExecution explicit allowlist adhering to the Principle of Least Privilege
 - MVP reference for `ctx.invokeTool` parallel execution paradigm
@@ -22,8 +22,8 @@
 
 **Built-in Project Configuration:**
 
-- `workflow.ts` (Graph declaration entrypoint built upon `WorkflowContract`)
-- `SequenceNode` and `ParallelNode` sub-graph nesting paradigm
+- `workflow.ts` (Graph declaration entrypoint built with `defineWorkflow()`)
+- `sequenceStep()` and `parallelStep()` sub-graph nesting paradigm
 - Contains a standard closed-loop interception pipeline (`network_enable` -> `navigate` -> concurrent signal telemetry -> credential extraction)
 - Integration of the core `@jshookmcp/extension-sdk`
 
@@ -49,6 +49,10 @@ Mount the local plugin to the main process isolation zone:
 export MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
 ```
 
+```powershell
+$env:MCP_PLUGIN_ROOTS = "<path-to-cloned-jshook_plugin_template>"
+```
+
 **Hot-Reload Sequence:**
 
 1. Execute `extensions_reload`
@@ -61,6 +65,10 @@ Mount the local workflow to the main process isolation zone:
 
 ```bash
 export MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
+```
+
+```powershell
+$env:MCP_WORKFLOW_ROOTS = "<path-to-cloned-jshook_workflow_template>"
 ```
 
 **Hot-Reload Sequence:**

@@ -8,7 +8,7 @@ describe('WebhookServer', () => {
 
   beforeEach(() => {
     queue = new CommandQueue();
-    server = new WebhookServer({ commandQueue: queue });
+    server = new WebhookServer({ port: 0, commandQueue: queue });
   });
 
   afterEach(async () => {
@@ -115,7 +115,8 @@ describe('WebhookServer', () => {
     });
 
     it('should return default port', () => {
-      expect(server.getPort()).toBe(18789);
+      const defaultPortServer = new WebhookServer();
+      expect(defaultPortServer.getPort()).toBe(18789);
     });
   });
 

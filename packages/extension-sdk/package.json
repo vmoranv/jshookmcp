@@ -1,6 +1,6 @@
 {
   "name": "@jshookmcp/extension-sdk",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "SDK for developing jshookmcp plugins and workflows",
   "license": "AGPL-3.0-only",
   "author": {

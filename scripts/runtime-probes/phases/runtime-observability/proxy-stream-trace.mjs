@@ -51,32 +51,44 @@ export async function runProxyAndTraceSetupPhase(ctx) {
     },
     30000,
   );
-  const forwardedRawResponse = await sendRawHttpRequest(
-    proxyPort,
-    `GET ${server.baseUrl}/body?via=proxy HTTP/1.1\r\nHost: 127.0.0.1:${new URL(server.baseUrl).port}\r\nConnection: close\r\n\r\n`,
-  );
-  const headerSeparator = forwardedRawResponse.indexOf('\r\n\r\n');
-  const statusLine =
-    headerSeparator === -1
-      ? (forwardedRawResponse.split('\r\n', 1)[0] ?? '')
-      : (forwardedRawResponse.slice(0, headerSeparator).split('\r\n', 1)[0] ?? '');
-  const bodyText =
-    headerSeparator === -1 ? '' : forwardedRawResponse.slice(headerSeparator + '\r\n\r\n'.length);
-  report.proxy.forwarded = {
-    success: statusLine.length > 0,
-    statusLine,
-    responseBytes: Buffer.byteLength(forwardedRawResponse),
-    bodyPreview: bodyText.slice(0, 256),
-  };
-  report.proxy.bodyHasMarker = bodyText.includes(BODY_MARKER);
-  report.proxy.requestLogs = await callTool(
-    client,
-    'proxy_get_requests',
-    { urlFilter: '/body?via=proxy' },
-    15000,
-  );
-  report.proxy.clearLogs = await callTool(client, 'proxy_clear_logs', {}, 15000);
-  report.proxy.logsAfterClear = await callTool(client, 'proxy_get_requests', {}, 15000);
+  if (report.proxy.status?.running === true && report.proxy.rule?.success === true) {
+    const forwardedRawResponse = await sendRawHttpRequest(
+      proxyPort,
+      `GET ${server.baseUrl}/body?via=proxy HTTP/1.1\r\nHost: 127.0.0.1:${new URL(server.baseUrl).port}\r\nConnection: close\r\n\r\n`,
+    );
+    const headerSeparator = forwardedRawResponse.indexOf('\r\n\r\n');
+    const statusLine =
+      headerSeparator === -1
+        ? (forwardedRawResponse.split('\r\n', 1)[0] ?? '')
+        : (forwardedRawResponse.slice(0, headerSeparator).split('\r\n', 1)[0] ?? '');
+    const bodyText =
+      headerSeparator === -1 ? '' : forwardedRawResponse.slice(headerSeparator + '\r\n\r\n'.length);
+    report.proxy.forwarded = {
+      success: statusLine.length > 0,
+      statusLine,
+      responseBytes: Buffer.byteLength(forwardedRawResponse),
+      bodyPreview: bodyText.slice(0, 256),
+    };
+    report.proxy.bodyHasMarker = bodyText.includes(BODY_MARKER);
+    report.proxy.requestLogs = await callTool(
+      client,
+      'proxy_get_requests',
+      { urlFilter: '/body?via=proxy' },
+      15000,
+    );
+    report.proxy.clearLogs = await callTool(client, 'proxy_clear_logs', {}, 15000);
+    report.proxy.logsAfterClear = await callTool(client, 'proxy_get_requests', {}, 15000);
+  } else {
+    report.proxy.forwarded = {
+      success: false,
+      skipped: true,
+      reason:
+        typeof report.proxy.start?.error === 'string'
+          ? report.proxy.start.error
+          : 'Proxy is not running; skipped forwarding probe.',
+    };
+    report.proxy.bodyHasMarker = false;
+  }
 
   report.network.enable = await callTool(client, 'network_enable', {}, 15000);
   report.network.monitor = await callTool(client, 'network_monitor', { action: 'status' }, 15000);

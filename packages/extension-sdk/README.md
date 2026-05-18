@@ -24,14 +24,21 @@ import type { ExtensionBuilder, ToolArgs, PluginLifecycleContext } from '@jshook
 ### Workflow development (fluent builder API)
 
 ```ts
-import { createWorkflow, toolNode, sequenceNode, parallelNode, branchNode } from '@jshookmcp/extension-sdk/workflow';
+import {
+  defineWorkflow,
+  sequenceStep,
+  parallelStep,
+  branchStep,
+  fallbackStep,
+  toolStep,
+} from '@jshookmcp/extension-sdk/workflow';
 ```
 
-- `createWorkflow(id, displayName)` — entry point, returns a fluent `WorkflowBuilder`
-- `toolNode(id, toolName)` — create a tool execution node
-- `sequenceNode(id)` — create a sequential execution group
-- `parallelNode(id)` — create a parallel execution group
-- `branchNode(id, predicateId)` — create a conditional branch
+- `defineWorkflow(id, displayName, configure)` — declares a workflow contract
+- `sequenceStep(id, config?)` — creates a sequential execution group
+- `parallelStep(id, config?)` — creates a parallel execution group
+- `branchStep(id, predicateId, config?)` — creates a conditional branch
+- `fallbackStep(id, config?)` / `toolStep(id, toolName, config?)` — creates fallback or single-tool nodes
 
 ### Generic bridge helpers
 
@@ -49,17 +56,10 @@ import { requestJson, toTextResponse, toErrorResponse, assertLoopbackUrl } from 
 pnpm add @jshookmcp/extension-sdk
 ```
 
-Within the monorepo, use the `workspace:` protocol:
+Declare a published npm version in extension repositories. Do not use local
+`workspace:`, `link:`, or `file:` declarations.
 
-```json
-{
-  "dependencies": {
-    "@jshookmcp/extension-sdk": "workspace:*"
-  }
-}
-```
-
-## Quick Start
+## Plugin Quick Start
 
 ```ts
 import { createExtension, jsonResponse, errorResponse } from '@jshookmcp/extension-sdk/plugin';
@@ -84,4 +84,48 @@ export default createExtension('my-plugin', '1.0.0')
   .onLoad((ctx) => {
     ctx.setRuntimeData('loadedAt', new Date().toISOString());
   });
+```
+
+## Workflow Quick Start
+
+```ts
+import {
+  defineWorkflow,
+  sequenceStep,
+  type WorkflowExecutionContext,
+} from '@jshookmcp/extension-sdk/workflow';
+
+export default defineWorkflow('workflow.capture.v1', 'Capture Workflow', (workflow) =>
+  workflow
+    .description('Navigate, collect page state in parallel, and extract auth material.')
+    .tags(['capture', 'workflow'])
+    .buildGraph((ctx: WorkflowExecutionContext) => {
+      const url = String(ctx.getConfig('workflows.capture.url', 'https://example.com'));
+
+      return sequenceStep('capture-root', (root) => {
+        root.tool('enable-network', 'network_enable', {
+          input: { enableExceptions: true },
+        });
+        root.tool('navigate', 'page_navigate', {
+          input: { url, waitUntil: 'networkidle' },
+        });
+        root.parallel('collect-surface', (parallel) => {
+          parallel
+            .maxConcurrency(4)
+            .failFast(false)
+            .tool('collect-local-storage', 'page_local_storage', {
+              input: { action: 'get' },
+            })
+            .tool('collect-cookies', 'page_cookies', {
+              input: { action: 'get' },
+            })
+            .tool('collect-requests', 'network_get_requests', {
+              input: { tail: 20 },
+            })
+            .tool('collect-links', 'page_get_all_links');
+        });
+        root.tool('extract-auth', 'network_extract_auth');
+      });
+    }),
+);
 ```

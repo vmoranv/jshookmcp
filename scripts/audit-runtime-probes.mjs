@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve as pathResolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
@@ -76,9 +76,11 @@ import {
   getNewestChromePid,
   getPreferredBrowserExecutable,
   sendRawHttpRequest,
+  removePathRobust,
   terminateProcessId,
   terminateProcessTree,
   waitForBrowserEndpoint,
+  waitForBrowserWebSocketEndpoint,
 } from './runtime-probes/helpers/runtime.mjs';
 import { createProbeServer } from './runtime-probes/server/index.mjs';
 
@@ -165,11 +167,13 @@ const phaseHelpers = {
   buildMiniappPkg,
   sendRawHttpRequest,
   waitForBrowserEndpoint,
+  waitForBrowserWebSocketEndpoint,
   getPreferredBrowserExecutable,
   terminateProcessTree,
   terminateProcessId,
   getNewestChromePid,
   getTabularRowValue,
+  removePathRobust,
 };
 
 async function main() {
@@ -324,19 +328,19 @@ async function main() {
     await terminateProcessTree(memoryProbeProc);
     if (externalBrowserUserDataDir) {
       try {
-        await rm(externalBrowserUserDataDir, { recursive: true, force: true });
+        await removePathRobust(externalBrowserUserDataDir);
       } catch {}
     }
     await terminateProcessId(processLaunchPid);
     await terminateProcessId(electronDebugPid);
     if (processLaunchUserDataDir) {
       try {
-        await rm(processLaunchUserDataDir, { recursive: true, force: true });
+        await removePathRobust(processLaunchUserDataDir);
       } catch {}
     }
     if (electronDebugUserDataDir) {
       try {
-        await rm(electronDebugUserDataDir, { recursive: true, force: true });
+        await removePathRobust(electronDebugUserDataDir);
       } catch {}
     }
     try {
@@ -363,26 +367,32 @@ async function main() {
     } catch {}
     await server.close();
     try {
-      await rm(runtimeMacroPath, { force: true });
+      await removePathRobust(runtimeMacroPath);
     } catch {}
     try {
-      await rm(paths.runtimeExtensionPath, { force: true });
+      await removePathRobust(paths.runtimeExtensionPath);
     } catch {}
     if (paths.extensionRegistryFile) {
       try {
         if (state.extensionRegistryExisted) {
           await writeFile(paths.extensionRegistryFile, state.extensionRegistryBackup ?? '', 'utf8');
         } else {
-          await rm(paths.extensionRegistryFile, { force: true });
+          await removePathRobust(paths.extensionRegistryFile);
         }
       } catch {}
     }
     try {
-      await rm(paths.extensionRegistryRoot, { recursive: true, force: true });
+      await removePathRobust(paths.extensionRegistryRoot);
+    } catch {}
+    try {
+      await removePathRobust(paths.runtimeWorkflowRoot);
+    } catch {}
+    try {
+      await removePathRobust(paths.runtimePluginRoot);
     } catch {}
     if (state.platformProbeDir) {
       try {
-        await rm(state.platformProbeDir, { recursive: true, force: true });
+        await removePathRobust(state.platformProbeDir);
       } catch {}
     }
   }

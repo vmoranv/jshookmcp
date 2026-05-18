@@ -67,10 +67,12 @@ await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
 
 | 方法签名                                                          | 功能         |
 | ----------------------------------------------------------------- | ------------ |
-| `toolNode(id, toolName, options?)`                                | 单步工具调用 |
-| `sequenceNode(id, steps)`                                         | 顺序节点串联 |
-| `parallelNode(id, steps, maxConcurrency?, failFast?)`             | 并发节点调度 |
-| `branchNode(id, predicateId, whenTrue, whenFalse?, predicateFn?)` | 条件分支路由 |
+| `defineWorkflow(id, displayName, configure)`                      | 定义工作流契约 |
+| `toolStep(id, toolName, options?)`                                | 单步工具调用 |
+| `sequenceStep(id, config?)`                                       | 顺序节点串联 |
+| `parallelStep(id, config?)`                                       | 并发节点调度 |
+| `branchStep(id, predicateId, config?)`                            | 条件分支路由 |
+| `fallbackStep(id, config?)`                                       | 失败回退分支 |
 
 ### WorkflowExecutionContext 方法
 
@@ -84,10 +86,10 @@ await ctx.invokeTool('page_navigate', { url: 'https://example.com' });
 #### 最小调用示例
 
 ```ts
-sequenceNode('main', [
-  toolNode('nav', 'page_navigate', { input: { url: 'https://example.com' } }),
-  toolNode('dump', 'page_local_storage', { input: { action: 'get' } }),
-]);
+sequenceStep('main', (s) => {
+  s.tool('nav', 'page_navigate', { input: { url: 'https://example.com' } });
+  s.tool('dump', 'page_local_storage', { input: { action: 'get' } });
+});
 ```
 
 ## Bridge SDK 接口说明

@@ -9,7 +9,7 @@
 
 **内置工程配置:**
 
-- `manifest.ts` (基于 `PluginContract` 构建的声明式入口)
+- `manifest.ts` (基于 `createExtension()` 构建的声明式入口)
 - 本地构建流水线 (`dist/*.js` 编译产出结构)
 - 遵循最小权限原则 (Least Privilege) 的 ToolExecution 白名单声明
 - `ctx.invokeTool` 并行读取范式的 MVP 参考
@@ -22,8 +22,8 @@
 
 **内置工程配置:**
 
-- `workflow.ts` (基于 `WorkflowContract` 构建的图声明入口)
-- `SequenceNode` 与 `ParallelNode` 子图嵌套范式
+- `workflow.ts` (基于 `defineWorkflow()` 构建的图声明入口)
+- `sequenceStep()` 与 `parallelStep()` 子图嵌套范式
 - 包含标准导航至取证的闭环拦截链路 (`network_enable` -> `navigate` -> 并发特征采集 -> 凭证剥离)
 - 集成 `@jshookmcp/extension-sdk` 核心库
 
@@ -49,6 +49,10 @@ pnpm run check
 export MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
 ```
 
+```powershell
+$env:MCP_PLUGIN_ROOTS = "<path-to-cloned-jshook_plugin_template>"
+```
+
 **热加载序列:**
 
 1. 执行 `extensions_reload`
@@ -61,6 +65,10 @@ export MCP_PLUGIN_ROOTS=<path-to-cloned-jshook_plugin_template>
 
 ```bash
 export MCP_WORKFLOW_ROOTS=<path-to-cloned-jshook_workflow_template>
+```
+
+```powershell
+$env:MCP_WORKFLOW_ROOTS = "<path-to-cloned-jshook_workflow_template>"
 ```
 
 **热加载序列:**

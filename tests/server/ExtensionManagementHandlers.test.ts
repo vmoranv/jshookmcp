@@ -337,13 +337,8 @@ describe('ExtensionManagementHandlers', () => {
 
     if (process.platform === 'win32') {
       expect(thirdCall).toEqual([
-        'powershell.exe',
-        [
-          '-NoProfile',
-          '-NonInteractive',
-          '-Command',
-          'pnpm --ignore-workspace install --no-frozen-lockfile --ignore-scripts',
-        ],
+        'pnpm.cmd',
+        ['--ignore-workspace', 'install', '--no-frozen-lockfile', '--ignore-scripts'],
         expect.objectContaining({
           cwd: expect.stringContaining('workflows'),
           env: expect.objectContaining({ CI: 'true' }),
@@ -351,13 +346,8 @@ describe('ExtensionManagementHandlers', () => {
         expect.any(Function),
       ]);
       expect(fourthCall).toEqual([
-        'powershell.exe',
-        [
-          '-NoProfile',
-          '-NonInteractive',
-          '-Command',
-          'pnpm --ignore-workspace run --if-present build',
-        ],
+        'pnpm.cmd',
+        ['--ignore-workspace', 'run', '--if-present', 'build'],
         expect.objectContaining({
           cwd: expect.stringContaining('workflows'),
           env: expect.objectContaining({ CI: 'true' }),
