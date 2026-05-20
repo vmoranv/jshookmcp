@@ -4,6 +4,7 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 import { probeCommand } from '@modules/external/ToolProbe';
 import * as fsPromises from 'node:fs/promises';
 import * as childProcess from 'node:child_process';
+import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { EventEmitter } from 'node:events';
@@ -328,6 +329,52 @@ describe('BinaryInstrumentHandlers', () => {
       expect(parsed.manifestBase64).toBe(binaryManifest.toString('base64'));
     });
 
+    it('handleApkManifestDump decodes binary AXML via JADX when available', async () => {
+      const binaryManifest = Buffer.from([0x03, 0x00, 0x08, 0x00, 0x24, 0x00, 0x00, 0x00]);
+      mockZipEntries([{ fileName: 'AndroidManifest.xml', content: binaryManifest }]);
+
+      vi.mocked(probeCommand).mockResolvedValueOnce({
+        available: true,
+        path: 'jadx',
+      } as Awaited<ReturnType<typeof probeCommand>>);
+
+      const tempRoot = join(
+        tmpdir(),
+        `jadx-manifest-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      );
+      const resourcesDir = join(tempRoot, 'resources');
+      mkdirSync(resourcesDir, { recursive: true });
+      await fsPromises.writeFile(
+        join(resourcesDir, 'AndroidManifest.xml'),
+        '<?xml version="1.0" encoding="utf-8"?><manifest package="com.example.decoded" />',
+      );
+
+      const mkdtempSpy = vi.spyOn(fsPromises, 'mkdtemp').mockResolvedValueOnce(tempRoot);
+      vi.mocked(childProcess.execFile).mockImplementation(((
+        _file: string,
+        _args: readonly string[] | null | undefined,
+        _opts: unknown,
+        cb?: ((error: Error | null, stdout: string, stderr: string) => void) | null,
+      ) => {
+        cb?.(null, '', '');
+        return {} as never;
+      }) as unknown as typeof childProcess.execFile);
+
+      const handlers = createHandlers();
+      try {
+        const result = await handlers.handleApkManifestDump({ apkPath: '/tmp/app.apk' });
+        const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
+        const parsed = JSON.parse(text);
+        expect(parsed.available).toBe(true);
+        expect(parsed.format).toBe('xml');
+        expect(parsed.decodedBy).toBe('jadx_cli');
+        expect(parsed.manifest).toContain('com.example.decoded');
+      } finally {
+        mkdtempSpy.mockRestore();
+        await fsPromises.rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
     it('handleApkNativeLibsList returns native libraries from apk entries', async () => {
       mockZipEntries([
         { fileName: 'AndroidManifest.xml' },
@@ -347,6 +394,107 @@ describe('BinaryInstrumentHandlers', () => {
       expect(parsed.libraries.some((entry: { name: string }) => entry.name === 'libapp.so')).toBe(
         true,
       );
+    });
+
+    it('handleJadxDecompile resolves a uniquely matched class when requested package is wrong', async () => {
+      const tempRoot = join(
+        tmpdir(),
+        `jadx-class-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      );
+      const classDir = join(tempRoot, 'sources', 'com', 'example', 'flutter3_frame');
+      mkdirSync(classDir, { recursive: true });
+      await fsPromises.writeFile(
+        join(classDir, 'MainActivity.java'),
+        'package com.example.flutter3_frame;\npublic class MainActivity {\n  public void test() {}\n}\n',
+      );
+
+      vi.mocked(probeCommand).mockResolvedValueOnce({
+        available: true,
+        path: 'jadx',
+      } as Awaited<ReturnType<typeof probeCommand>>);
+
+      const mkdtempSpy = vi.spyOn(fsPromises, 'mkdtemp').mockResolvedValueOnce(tempRoot);
+      vi.mocked(childProcess.execFile).mockImplementation(((
+        _file: string,
+        _args: readonly string[] | null | undefined,
+        _opts: unknown,
+        cb?: ((error: Error | null, stdout: string, stderr: string) => void) | null,
+      ) => {
+        cb?.(null, '', '');
+        return {} as never;
+      }) as unknown as typeof childProcess.execFile);
+
+      const handlers = createHandlers();
+      try {
+        const result = await handlers.handleJadxDecompile({
+          apkPath: '/tmp/app.apk',
+          className: 'com.tangxin.MainActivity',
+        });
+
+        const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
+        const parsed = JSON.parse(text);
+        expect(parsed.available).toBe(true);
+        expect(parsed.resolvedClassName).toBe('com.example.flutter3_frame.MainActivity');
+        expect(parsed.source).toContain('class MainActivity');
+      } finally {
+        mkdtempSpy.mockRestore();
+        await fsPromises.rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    it('handleJadxDecompile returns suggestions when multiple class matches exist', async () => {
+      const tempRoot = join(
+        tmpdir(),
+        `jadx-multi-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      );
+      const firstDir = join(tempRoot, 'sources', 'com', 'example', 'first');
+      const secondDir = join(tempRoot, 'sources', 'org', 'demo', 'second');
+      mkdirSync(firstDir, { recursive: true });
+      mkdirSync(secondDir, { recursive: true });
+      await fsPromises.writeFile(
+        join(firstDir, 'MainActivity.java'),
+        'package com.example.first;\npublic class MainActivity {}\n',
+      );
+      await fsPromises.writeFile(
+        join(secondDir, 'MainActivity.java'),
+        'package org.demo.second;\npublic class MainActivity {}\n',
+      );
+
+      vi.mocked(probeCommand).mockResolvedValueOnce({
+        available: true,
+        path: 'jadx',
+      } as Awaited<ReturnType<typeof probeCommand>>);
+
+      const mkdtempSpy = vi.spyOn(fsPromises, 'mkdtemp').mockResolvedValueOnce(tempRoot);
+      vi.mocked(childProcess.execFile).mockImplementation(((
+        _file: string,
+        _args: readonly string[] | null | undefined,
+        _opts: unknown,
+        cb?: ((error: Error | null, stdout: string, stderr: string) => void) | null,
+      ) => {
+        cb?.(null, '', '');
+        return {} as never;
+      }) as unknown as typeof childProcess.execFile);
+
+      const handlers = createHandlers();
+      try {
+        const result = await handlers.handleJadxDecompile({
+          apkPath: '/tmp/app.apk',
+          className: 'wrong.package.MainActivity',
+        });
+
+        const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
+        const parsed = JSON.parse(text);
+        expect(parsed.available).toBe(true);
+        expect(parsed.error).toContain('Class file not found');
+        expect(parsed.suggestions).toEqual([
+          'com.example.first.MainActivity',
+          'org.demo.second.MainActivity',
+        ]);
+      } finally {
+        mkdtempSpy.mockRestore();
+        await fsPromises.rm(tempRoot, { recursive: true, force: true });
+      }
     });
   });
 

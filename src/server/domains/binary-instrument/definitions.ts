@@ -92,7 +92,7 @@ export const binaryInstrumentTools: Tool[] = [
   tool('jadx_decompile', (t) =>
     t
       .desc(
-        'Decompile an APK class or method with JADX CLI, or use the legacy plugin bridge when available.',
+        'Decompile an APK class or method with JADX CLI, auto-resolving likely class matches when possible, or use the legacy plugin bridge when available.',
       )
       .string('apkPath', 'Path to the APK file')
       .string('className', 'Fully qualified class name')
@@ -110,7 +110,7 @@ export const binaryInstrumentTools: Tool[] = [
   tool('apk_manifest_dump', (t) =>
     t
       .desc(
-        'Extract AndroidManifest.xml from an APK for quick inspection; binary AXML payloads are returned as base64.',
+        'Extract AndroidManifest.xml from an APK for quick inspection; return readable XML when possible, using JADX CLI as a cross-platform decode fallback for binary AXML, otherwise return base64.',
       )
       .string('apkPath', 'Path to the APK file')
       .required('apkPath'),
