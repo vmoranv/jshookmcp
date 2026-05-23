@@ -119,7 +119,9 @@ describe('captcha-solver deep coverage', () => {
     });
 
     it('uses provider arg with leading and trailing whitespace', async () => {
-      process.env.CAPTCHA_ANTICAPTCHA_BASE_URL = 'https://api.anti-captcha.com';
+      process.env.CAPTCHA_ANTICAPTCHA_BASE_URL = buildTestUrl('solver-anticaptcha', {
+        path: 'anticaptcha',
+      });
       installJsonTaskApiFailureMock();
       const result = parseJson<BrowserStatusResponse>(
         await handleCaptchaVisionSolve(
@@ -187,7 +189,9 @@ describe('captcha-solver deep coverage', () => {
   describe('widget solve branches', () => {
     it('falls through from hook mode to external mode after null result', async () => {
       process.env.CAPTCHA_PROVIDER = 'capsolver';
-      process.env.CAPTCHA_CAPSOLVER_BASE_URL = 'https://api.capsolver.com';
+      process.env.CAPTCHA_CAPSOLVER_BASE_URL = buildTestUrl('solver-capsolver', {
+        path: 'capsolver',
+      });
       installJsonTaskApiFailureMock();
       const page = createMockPage({
         evaluate: vi.fn().mockResolvedValue(null),

@@ -76,7 +76,9 @@ describe('captcha-solver additional coverage', () => {
 
     it('normalizes provider env to external_service for anticaptcha', async () => {
       process.env.CAPTCHA_PROVIDER = 'anticaptcha';
-      process.env.CAPTCHA_ANTICAPTCHA_BASE_URL = 'https://api.anti-captcha.com';
+      process.env.CAPTCHA_ANTICAPTCHA_BASE_URL = buildTestUrl('solver-anticaptcha', {
+        path: 'anticaptcha',
+      });
       installJsonTaskApiFailureMock();
 
       const result = parseJson<BrowserStatusResponse>(
@@ -91,7 +93,9 @@ describe('captcha-solver additional coverage', () => {
 
     it('normalizes provider env to external_service for capsolver', async () => {
       process.env.CAPTCHA_PROVIDER = 'capsolver';
-      process.env.CAPTCHA_CAPSOLVER_BASE_URL = 'https://api.capsolver.com';
+      process.env.CAPTCHA_CAPSOLVER_BASE_URL = buildTestUrl('solver-capsolver', {
+        path: 'capsolver',
+      });
       installJsonTaskApiFailureMock();
 
       const result = parseJson<BrowserStatusResponse>(
@@ -170,7 +174,9 @@ describe('captcha-solver additional coverage', () => {
 
     it('lets provider arg override env provider', async () => {
       process.env.CAPTCHA_PROVIDER = '2captcha';
-      process.env.CAPTCHA_ANTICAPTCHA_BASE_URL = 'https://api.anti-captcha.com';
+      process.env.CAPTCHA_ANTICAPTCHA_BASE_URL = buildTestUrl('solver-anticaptcha', {
+        path: 'anticaptcha',
+      });
       installJsonTaskApiFailureMock();
 
       const result = parseJson<BrowserStatusResponse>(
@@ -268,7 +274,9 @@ describe('captcha-solver additional coverage', () => {
 
     it('supports non-2captcha providers in widget flow with explicit taskKind', async () => {
       process.env.CAPTCHA_PROVIDER = 'capsolver';
-      process.env.CAPTCHA_CAPSOLVER_BASE_URL = 'https://api.capsolver.com';
+      process.env.CAPTCHA_CAPSOLVER_BASE_URL = buildTestUrl('solver-capsolver', {
+        path: 'capsolver',
+      });
       installJsonTaskApiFailureMock();
 
       const result = parseJson<BrowserStatusResponse>(

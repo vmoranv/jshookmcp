@@ -100,8 +100,12 @@ describe('handleCaptchaSolverCapabilities', () => {
   it('reports anticaptcha and capsolver as available when configured', async () => {
     process.env.CAPTCHA_PROVIDER = 'anticaptcha';
     process.env.CAPTCHA_API_KEY = 'test-key';
-    process.env.CAPTCHA_ANTICAPTCHA_BASE_URL = 'https://api.anti-captcha.com';
-    process.env.CAPTCHA_CAPSOLVER_BASE_URL = 'https://api.capsolver.com';
+    process.env.CAPTCHA_ANTICAPTCHA_BASE_URL = buildTestUrl('solver-anticaptcha', {
+      path: 'anticaptcha',
+    });
+    process.env.CAPTCHA_CAPSOLVER_BASE_URL = buildTestUrl('solver-capsolver', {
+      path: 'capsolver',
+    });
 
     const parsed = parseJson<any>(await handleCaptchaSolverCapabilities(createCollector()));
     const anticaptcha = parsed.capabilities.find(
@@ -121,7 +125,7 @@ describe('handleCaptchaSolverCapabilities', () => {
     expect(capsolver).toMatchObject({
       available: true,
       apiKeyConfigured: true,
-      baseUrl: 'https://api.capsolver.com',
+      baseUrl: buildTestUrl('solver-capsolver', { path: 'capsolver' }),
     });
   });
 });
