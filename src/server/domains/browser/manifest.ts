@@ -6,6 +6,8 @@ import {
 } from '@server/domains/shared/registry';
 import { browserTools, advancedBrowserToolDefinitions } from '@server/domains/browser/definitions';
 import type { BrowserToolHandlers } from '@server/domains/browser/index';
+import { getRuntimeState } from '@server/runtime/ServerRuntimeState';
+import { BrowserSessionCoordinator } from '@server/runtime/BrowserSessionCoordinator';
 
 const DOMAIN = 'browser' as const;
 const DEP_KEY = 'browserHandlers' as const;
@@ -88,12 +90,31 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   await ensureBrowserCore(ctx);
 
   if (!ctx.browserHandlers) {
+    const compatCtx = ctx as unknown as Record<string, unknown>;
+    const getDomainInstance =
+      typeof ctx.getDomainInstance === 'function' ? ctx.getDomainInstance.bind(ctx) : null;
+    const setDomainInstance =
+      typeof ctx.setDomainInstance === 'function' ? ctx.setDomainInstance.bind(ctx) : null;
+    const coordinator =
+      getDomainInstance?.<BrowserSessionCoordinator>('browserSessionCoordinator') ??
+      (compatCtx.browserSessionCoordinator as BrowserSessionCoordinator | undefined) ??
+      new BrowserSessionCoordinator(() => ctx.collector);
+    if (setDomainInstance) {
+      setDomainInstance('browserSessionCoordinator', coordinator);
+    } else {
+      compatCtx.browserSessionCoordinator = coordinator;
+    }
     ctx.browserHandlers = new BrowserToolHandlers(
       ctx.collector!,
       ctx.pageController!,
       ctx.scriptManager!,
       ctx.consoleMonitor!,
       ctx.eventBus,
+      () => coordinator.getCurrentSessionId(),
+      coordinator,
+      (snapshot) => {
+        getRuntimeState(ctx)?.setBrowserAttach(snapshot);
+      },
     );
   }
   return ctx.browserHandlers;

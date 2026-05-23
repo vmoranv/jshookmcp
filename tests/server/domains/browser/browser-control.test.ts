@@ -39,6 +39,8 @@ interface CollectorMock {
   listResolvedPages: Mock<() => Promise<Array<{ index: number; url: string; title: string }>>>;
   selectPage: Mock<(index: number) => Promise<void>>;
   getStatus: Mock<() => Promise<{ connected: boolean; pages?: number }>>;
+  getChromePid: Mock<() => number | null>;
+  getAttachedTargetInfo: Mock<() => { targetId: string } | null>;
 }
 
 interface ConsoleMonitorMock {
@@ -55,6 +57,7 @@ interface TabRegistryMock {
 }
 
 function createMocks() {
+  const onBrowserAttachStateChanged = vi.fn();
   const collector: CollectorMock = {
     connect: vi.fn(async () => {}),
     launch: vi.fn(async () => ({
@@ -70,6 +73,8 @@ function createMocks() {
     listResolvedPages: vi.fn(async () => []),
     selectPage: vi.fn(async () => {}),
     getStatus: vi.fn(async () => ({ connected: true })),
+    getChromePid: vi.fn(() => 4321),
+    getAttachedTargetInfo: vi.fn(() => null),
   };
 
   const consoleMonitor: ConsoleMonitorMock = {
@@ -106,9 +111,10 @@ function createMocks() {
         type: null,
       }),
     ),
+    onBrowserAttachStateChanged,
   };
 
-  return { collector, consoleMonitor, tabRegistry, deps };
+  return { collector, consoleMonitor, tabRegistry, deps, onBrowserAttachStateChanged };
 }
 
 // ─── handleBrowserLaunch ───
@@ -641,6 +647,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
   let collector: CollectorMock;
   let consoleMonitor: ConsoleMonitorMock;
   let tabRegistry: TabRegistryMock;
+  let onBrowserAttachStateChanged: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -648,6 +655,7 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     collector = m.collector;
     consoleMonitor = m.consoleMonitor;
     tabRegistry = m.tabRegistry;
+    onBrowserAttachStateChanged = m.onBrowserAttachStateChanged;
     handlers = new BrowserControlHandlers(m.deps);
   });
 
@@ -684,10 +692,42 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     expect(body.contextSwitched).toBe(true);
     expect(body.monitoringBindingDeferred).toBe(true);
     // @ts-expect-error
+    expect(body.capabilities).toEqual({
+      pageControllerReady: true,
+      v8InspectorReady: true,
+      memoryRendererPidReady: true,
+    });
+    // @ts-expect-error
     expect(body.networkMonitoringEnabled).toBe(false);
     // @ts-expect-error
     expect(body.consoleMonitoringEnabled).toBe(false);
     expect(consoleMonitor.markContextChanged).toHaveBeenCalledOnce();
+    expect(onBrowserAttachStateChanged).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: 'http://127.0.0.1:9222',
+        selectedIndex: 0,
+        selectedUrl: testUrls.TEST_URLS.root,
+        selectedTitle: 'Example',
+        browserPid: 4321,
+      }),
+    );
+  });
+
+  it('prefers a non-blank tab when pageIndex is omitted', async () => {
+    collector.listPages.mockResolvedValueOnce([
+      { index: 0, url: 'about:blank', title: '' },
+      { index: 1, url: testUrls.TEST_URLS.root, title: 'Example' },
+    ]);
+    collector.getStatus.mockResolvedValueOnce({ connected: true });
+
+    const body = parseJson<BrowserAttachResponse>(
+      await handlers.handleBrowserAttach({ browserURL: 'http://127.0.0.1:9222' }),
+    );
+
+    expect(collector.selectPage).toHaveBeenCalledWith(1);
+    expect(body.success).toBe(true);
+    expect(body.selectedIndex).toBe(1);
+    expect(body.currentUrl).toBe(testUrls.TEST_URLS.root);
   });
 
   it('attaches and selects the requested pageIndex', async () => {
@@ -724,6 +764,25 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
 
     expect(collector.selectPage).toHaveBeenCalledWith(0);
     expect(body.selectedIndex).toBe(0);
+  });
+
+  it('prefers a non-blank page when the requested index is out of range', async () => {
+    collector.listPages.mockResolvedValueOnce([
+      { index: 0, url: 'about:blank', title: '' },
+      { index: 1, url: testUrls.TEST_URLS.root, title: 'Example' },
+    ]);
+    collector.getStatus.mockResolvedValueOnce({ connected: true });
+
+    const body = parseJson<BrowserAttachResponse>(
+      await handlers.handleBrowserAttach({
+        browserURL: 'http://127.0.0.1:9222',
+        pageIndex: 99,
+      }),
+    );
+
+    expect(collector.selectPage).toHaveBeenCalledWith(1);
+    expect(body.selectedIndex).toBe(1);
+    expect(body.currentUrl).toBe(testUrls.TEST_URLS.root);
   });
 
   it('parses string pageIndex correctly', async () => {
@@ -780,6 +839,12 @@ describe('BrowserControlHandlers – handleBrowserAttach', () => {
     expect(body.takeoverReady).toBe(false);
     expect(body.contextSwitched).toBe(true);
     expect(body.monitoringBindingDeferred).toBe(false);
+    // @ts-expect-error
+    expect(body.capabilities).toEqual({
+      pageControllerReady: false,
+      v8InspectorReady: false,
+      memoryRendererPidReady: true,
+    });
     // @ts-expect-error
     expect(body.networkMonitoringEnabled).toBe(false);
     // @ts-expect-error

@@ -27,6 +27,7 @@ import { TargetEvaluationHandlers } from '@server/domains/browser/handlers/targe
 import { TargetControlHandlers } from '@server/domains/browser/handlers/target-control';
 import { JsdomHandlers } from '@server/domains/browser/handlers/jsdom-tools';
 import { TabRegistry } from '@modules/browser/TabRegistry';
+import type { BrowserAttachRuntimeSnapshot } from '@server/runtime/ServerRuntimeState';
 
 export interface BrowserHandlerModuleInitDeps {
   collector: CodeCollector;
@@ -47,7 +48,9 @@ export interface BrowserHandlerModuleInitDeps {
   setAutoDetectCaptcha: (value: boolean) => void;
   setAutoSwitchHeadless: (value: boolean) => void;
   setCaptchaTimeout: (value: number) => void;
+  getTabRegistry?: () => TabRegistry;
   eventBus?: EventBus<ServerEventMap>;
+  onBrowserAttachStateChanged?: (snapshot: Partial<BrowserAttachRuntimeSnapshot>) => void;
 }
 
 export interface BrowserHandlerModules {
@@ -82,10 +85,11 @@ export function initializeBrowserHandlerModules(
   };
 
   const tabRegistry = new TabRegistry();
+  const getTabRegistry = deps.getTabRegistry ?? (() => tabRegistry);
   const targetControl = new TargetControlHandlers({
     collector: deps.collector,
     consoleMonitor: deps.consoleMonitor,
-    getTabRegistry: () => tabRegistry,
+    getTabRegistry,
   });
 
   return {
@@ -99,8 +103,9 @@ export function initializeBrowserHandlerModules(
       getActiveDriver: deps.getActiveDriver,
       getCamoufoxManager: deps.getCamoufoxManager,
       getCamoufoxPage: deps.getCamoufoxPage,
-      getTabRegistry: () => tabRegistry,
+      getTabRegistry,
       clearAttachedTargetContext: (context) => targetControl.clearAttachedTargetContext(context),
+      onBrowserAttachStateChanged: deps.onBrowserAttachStateChanged,
     }),
 
     camoufoxBrowser: new CamoufoxBrowserHandlers({
@@ -112,7 +117,7 @@ export function initializeBrowserHandlerModules(
     pageNavigation: new PageNavigationHandlers({
       pageController: deps.pageController,
       consoleMonitor: deps.consoleMonitor,
-      getTabRegistry: () => tabRegistry,
+      getTabRegistry,
       eventBus: deps.eventBus,
       ...commonDeps,
     }),
@@ -181,7 +186,7 @@ export function initializeBrowserHandlerModules(
       getActiveDriver: deps.getActiveDriver,
       getCamoufoxPage: deps.getCamoufoxPage,
       getPageController: () => deps.pageController,
-      getTabRegistry: () => tabRegistry,
+      getTabRegistry,
     }),
 
     detailedData: new DetailedDataHandlers({

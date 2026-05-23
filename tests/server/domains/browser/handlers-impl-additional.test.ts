@@ -889,6 +889,29 @@ describe('BrowserToolHandlers — additional delegation coverage', () => {
         const registry = handlers.getTabRegistry();
         expect(registry).toBeDefined();
       });
+
+      it('switches registry by logical session provider', () => {
+        const current = { value: 'session-a' as string | null };
+        const coordinator = {
+          getTabRegistry: vi.fn((sessionId: string | null) => ({
+            marker: `registry:${sessionId ?? 'default'}`,
+          })),
+        } as any;
+
+        const isolated = new TestBrowserToolHandlers(
+          collector as any,
+          pageController as any,
+          scriptManager as any,
+          consoleMonitor as any,
+          eventBus as any,
+          () => current.value,
+          coordinator,
+        );
+
+        expect(isolated.getTabRegistry()).toMatchObject({ marker: 'registry:session-a' });
+        current.value = 'session-b';
+        expect(isolated.getTabRegistry()).toMatchObject({ marker: 'registry:session-b' });
+      });
     });
 
     // ============ handleBrowserAttach without camoufox ============

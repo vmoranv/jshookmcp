@@ -37,6 +37,8 @@ import { type TabWorkflowHandlers } from '@server/domains/browser/handlers/tab-w
 import { type JsdomHandlers } from '@server/domains/browser/handlers/jsdom-tools';
 import { initializeBrowserHandlerModules } from '@server/domains/browser/handlers/facade-initializer';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
+import type { BrowserAttachRuntimeSnapshot } from '@server/runtime/ServerRuntimeState';
+import { BrowserSessionCoordinator } from '@server/runtime/BrowserSessionCoordinator';
 import {
   handleHumanMouse,
   handleHumanScroll,
@@ -115,6 +117,11 @@ export class BrowserToolHandlers {
   private jsdomHandlers: JsdomHandlers;
   private tabRegistry: TabRegistry;
   private readonly eventBus?: EventBus<ServerEventMap>;
+  private readonly getCurrentSessionId?: () => string | null;
+  private readonly sessionCoordinator?: BrowserSessionCoordinator;
+  private readonly onBrowserAttachStateChanged?: (
+    snapshot: Partial<BrowserAttachRuntimeSnapshot>,
+  ) => void;
   private codegenStopListening?: () => void;
   private codegenSteps: BrowserCodegenStep[] = [];
 
@@ -125,6 +132,9 @@ export class BrowserToolHandlers {
     scriptManager: ScriptManager,
     consoleMonitor: ConsoleMonitor,
     eventBus?: EventBus<ServerEventMap>,
+    getCurrentSessionId?: () => string | null,
+    sessionCoordinator?: BrowserSessionCoordinator,
+    onBrowserAttachStateChanged?: (snapshot: Partial<BrowserAttachRuntimeSnapshot>) => void,
   ) {
     this.collector = collector;
     this.pageController = pageController;
@@ -132,6 +142,9 @@ export class BrowserToolHandlers {
     this.scriptManager = scriptManager;
     this.consoleMonitor = consoleMonitor;
     this.eventBus = eventBus;
+    this.getCurrentSessionId = getCurrentSessionId;
+    this.sessionCoordinator = sessionCoordinator;
+    this.onBrowserAttachStateChanged = onBrowserAttachStateChanged;
 
     const screenshotDir = resolveOutputDirectory(
       getConfig().paths.captchaScreenshotDir,
@@ -168,6 +181,8 @@ export class BrowserToolHandlers {
       setCaptchaTimeout: (value) => {
         this.captchaTimeout = value;
       },
+      getTabRegistry: () => this.getCurrentTabRegistry(),
+      onBrowserAttachStateChanged: this.onBrowserAttachStateChanged,
     });
 
     this.browserControl = modules.browserControl;
@@ -206,6 +221,11 @@ export class BrowserToolHandlers {
       }
     }
     return sanitized;
+  }
+
+  private getCurrentTabRegistry(): TabRegistry {
+    const sessionId = this.getCurrentSessionId?.() ?? null;
+    return this.sessionCoordinator?.getTabRegistry(sessionId) ?? this.tabRegistry;
   }
 
   private isSameFrameArgs(left: ToolArgs, right: ToolArgs): boolean {
@@ -279,7 +299,7 @@ export class BrowserToolHandlers {
 
   /** Get the shared TabRegistry for context enrichment. */
   getTabRegistry(): TabRegistry {
-    return this.tabRegistry;
+    return this.getCurrentTabRegistry();
   }
 
   /** Get or create camoufox page (Playwright Page). */
