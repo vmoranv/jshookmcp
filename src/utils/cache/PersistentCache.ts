@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { mkdirSync, existsSync } from 'fs';
+import { homedir } from 'node:os';
 import { logger } from '@utils/logger';
-import { getProjectRoot } from '@utils/outputPaths';
 
 // better-sqlite3 is an optional dependency — lazy-load to fail gracefully
 let Database: typeof import('better-sqlite3');
@@ -14,7 +14,6 @@ try {
 export interface PersistentCacheOptions {
   /** Cache name for logging */
   name?: string;
-  /** Database file path (relative to project root or absolute) */
   dbPath?: string;
   /** Default TTL in milliseconds */
   defaultTTL?: number;
@@ -40,7 +39,7 @@ export class PersistentCache {
   constructor(options: PersistentCacheOptions = {}) {
     this.options = {
       name: options.name ?? 'default',
-      dbPath: options.dbPath ?? '.jshookmcp/cache.db',
+      dbPath: options.dbPath ?? join(homedir(), '.jshookmcp', 'cache.db'),
       defaultTTL: options.defaultTTL ?? 24 * 60 * 60 * 1000, // 24 hours
       enabled: options.enabled ?? true,
     };
@@ -109,14 +108,11 @@ export class PersistentCache {
   private resolveDbPath(): string {
     const { dbPath } = this.options;
 
-    // Absolute path
     if (dbPath.startsWith('/') || /^[A-Z]:\\/i.test(dbPath)) {
       return dbPath;
     }
 
-    // Relative to project root
-    const projectRoot = getProjectRoot();
-    return join(projectRoot, dbPath);
+    return join(homedir(), dbPath);
   }
 
   private createTables(): void {

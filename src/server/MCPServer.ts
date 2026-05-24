@@ -510,7 +510,7 @@ export class MCPServer implements MCPServerContext {
     this.setDomainInstance('activationController', new ActivationController(this.eventBus, this));
 
     // Snapshot scheduler for StateBoard + EvidenceGraph persistence
-    const stateDir = getStateDir(process.cwd());
+    const stateDir = getStateDir();
     const snapshotScheduler = new RuntimeSnapshotScheduler();
     const runtimeState = new ServerRuntimeState();
     const browserSessionCoordinator = new BrowserSessionCoordinator(() => this.collector);

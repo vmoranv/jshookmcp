@@ -52,7 +52,6 @@ export function cached(options: CachedOptions = {}) {
       options.cache ??
       new PersistentCache({
         name: `cached-${String(propertyKey)}`,
-        dbPath: '.jshookmcp/cache.db',
       });
 
     descriptor.value = async function (this: unknown, ...args: unknown[]) {
@@ -103,7 +102,6 @@ export function withCache<T extends (...args: unknown[]) => Promise<unknown>>(
     options.cache ??
     new PersistentCache({
       name: `withCache-${fn.name}`,
-      dbPath: '.jshookmcp/cache.db',
     });
   const keyGenerator = options.keyFn ?? generateDefaultKey;
 
