@@ -12,6 +12,8 @@
 
 import { StringsExtractor } from '@modules/dart-inspector/StringsExtractor';
 import { compileRuleInput } from '@modules/dart-inspector/classifiers';
+import { SmiScanner } from '@modules/dart-inspector/SmiScanner';
+import type { SmiScanOptions, SmiWidth } from '@modules/dart-inspector/SmiScanner';
 import type {
   CategoryRule,
   CategoryRuleInput,
@@ -73,9 +75,14 @@ function compileCustomRules(raw: unknown): CategoryRule[] | undefined {
 
 export class DartInspectorHandlers {
   private readonly extractor: StringsExtractor;
+  private readonly smiScanner: SmiScanner;
 
-  constructor(extractor: StringsExtractor = new StringsExtractor()) {
+  constructor(
+    extractor: StringsExtractor = new StringsExtractor(),
+    smiScanner: SmiScanner = new SmiScanner(),
+  ) {
     this.extractor = extractor;
+    this.smiScanner = smiScanner;
   }
 
   handleDartStringsExtract(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -114,6 +121,45 @@ export class DartInspectorHandlers {
 
       const strings = await this.extractor.extractFromFile(filePath, opts);
       return { strings };
+    });
+  }
+
+  handleDartSmiScan(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => {
+      const filePath = argStringRequired(args, 'filePath');
+      const opts: SmiScanOptions = {};
+      const width = argNumber(args, 'width');
+      if (width !== undefined) {
+        if (width !== 4 && width !== 8) {
+          throw new ToolError('VALIDATION', `width must be 4 or 8 (got ${width})`);
+        }
+        opts.width = width as SmiWidth;
+      }
+      const stride = argNumber(args, 'stride');
+      if (stride !== undefined) opts.stride = stride;
+      const minValue = argNumber(args, 'minValue');
+      if (minValue !== undefined) opts.minValue = minValue;
+      const maxValue = argNumber(args, 'maxValue');
+      if (maxValue !== undefined) opts.maxValue = maxValue;
+      const includeZero = argBool(args, 'includeZero');
+      if (includeZero !== undefined) opts.includeZero = includeZero;
+      const includeNegative = argBool(args, 'includeNegative');
+      if (includeNegative !== undefined) opts.includeNegative = includeNegative;
+      const maxResults = argNumber(args, 'maxResults');
+      if (maxResults !== undefined) opts.maxResults = maxResults;
+      const maxChunkBytes = argNumber(args, 'maxChunkBytes');
+      if (maxChunkBytes !== undefined) opts.maxChunkBytes = maxChunkBytes;
+
+      const scanWindowRaw = argObject(args, 'scanWindow');
+      if (scanWindowRaw !== undefined) {
+        const start =
+          typeof scanWindowRaw['start'] === 'number' ? scanWindowRaw['start'] : undefined;
+        const end = typeof scanWindowRaw['end'] === 'number' ? scanWindowRaw['end'] : undefined;
+        opts.scanWindow = { start, end };
+      }
+
+      const result = await this.smiScanner.scanFile(filePath, opts);
+      return { smi: result };
     });
   }
 }
