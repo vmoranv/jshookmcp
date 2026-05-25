@@ -59,4 +59,10 @@ export interface ExtractOptions {
   customRules?: CategoryRule[];
   ruleMode?: RuleMode;
   maxOffsetsPerString?: number;
+  /**
+   * Per-`.test()` budget enforced by the post-hoc ReDoS guard
+   * (see {@link classifyOne}). Defaults to `DART_REGEX_TIMEOUT_MS`.
+   * Tests that exercise the guard set this explicitly to a small value.
+   */
+  regexTimeoutMs?: number;
 }
