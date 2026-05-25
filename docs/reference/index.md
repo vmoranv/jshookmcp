@@ -14,6 +14,7 @@
 | --- | --- | --- | --- |
 | `adb-bridge` | ADB Bridge | full | Android Debug Bridge 集成域，用于设备管理、应用分析和远程调试。 |
 | `antidebug` | AntiDebug | full | 反反调试域，集中提供检测与绕过浏览器端反调试脚本的工具。 |
+| `apk-packer` | APK Packer | full | 通过匹配 `lib/<abi>/lib*.so` 文件名识别 Android 商业加固（360 加固、腾讯乐固、爱加密、百度、阿里聚安全、网易易盾、DexGuard、DexProtector、AppSealing、Virbox 等）。纯声明式指纹库，不脱壳、不动态执行。 |
 | `binary-instrument` | Binary Instrument | full | 二进制插桩域，提供二进制分析和运行时插桩能力。 |
 | `boringssl-inspector` | BoringSSL Inspector | workflow, full | BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。 |
 | `browser` | Browser | workflow, full | 浏览器控制与 DOM 交互主域，也是大多数工作流的入口。 |
