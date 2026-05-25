@@ -21,7 +21,13 @@ import type {
 import { ToolError } from '@errors/ToolError';
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 import type { ToolResponse } from '@server/types';
-import { argBool, argEnum, argNumber, argStringRequired } from '@server/domains/shared/parse-args';
+import {
+  argBool,
+  argEnum,
+  argNumber,
+  argObject,
+  argStringRequired,
+} from '@server/domains/shared/parse-args';
 
 const ENCODING_SET = new Set(['ascii', 'utf16le', 'both'] as const);
 const RULE_MODE_SET = new Set(['append', 'prepend', 'replace'] as const);
@@ -52,6 +58,15 @@ function compileCustomRules(raw: unknown): CategoryRule[] | undefined {
     if (typeof flags === 'string') ruleInput.flags = flags;
     if (typeof exclude === 'string') ruleInput.exclude = exclude;
     if (typeof excludeFlags === 'string') ruleInput.excludeFlags = excludeFlags;
+    if (typeof input['confidence'] === 'number') {
+      ruleInput.confidence = input['confidence'];
+    }
+    if (typeof input['enableWhenFileNameMatches'] === 'string') {
+      ruleInput.enableWhenFileNameMatches = input['enableWhenFileNameMatches'];
+    }
+    if (typeof input['enableWhenFileNameFlags'] === 'string') {
+      ruleInput.enableWhenFileNameFlags = input['enableWhenFileNameFlags'];
+    }
     return compileRuleInput(ruleInput);
   });
 }
@@ -86,6 +101,16 @@ export class DartInspectorHandlers {
       const regexTimeoutMs = argNumber(args, 'regexTimeoutMs');
       if (regexTimeoutMs !== undefined) opts.regexTimeoutMs = regexTimeoutMs;
       if (customRules !== undefined) opts.customRules = customRules;
+
+      const scanWindowRaw = argObject(args, 'scanWindow');
+      if (scanWindowRaw !== undefined) {
+        const start =
+          typeof scanWindowRaw['start'] === 'number' ? scanWindowRaw['start'] : undefined;
+        const end = typeof scanWindowRaw['end'] === 'number' ? scanWindowRaw['end'] : undefined;
+        opts.scanWindow = { start, end };
+      }
+      const scanStride = argNumber(args, 'scanStride');
+      if (scanStride !== undefined) opts.scanStride = scanStride;
 
       const strings = await this.extractor.extractFromFile(filePath, opts);
       return { strings };
