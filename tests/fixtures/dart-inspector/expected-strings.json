@@ -1,0 +1,87 @@
+{
+  "fixtureSize": 4096,
+  "fillByte": 255,
+  "categories": {
+    "urls": [
+      {
+        "value": "https://api.example.com/login",
+        "offsets": [100],
+        "encoding": "ascii"
+      },
+      {
+        "value": "https://cdn.example.org/static/asset",
+        "offsets": [200],
+        "encoding": "ascii"
+      }
+    ],
+    "paths": [
+      {
+        "value": "/api/v1/users",
+        "offsets": [280],
+        "encoding": "ascii"
+      },
+      {
+        "value": "/data/storage/cache",
+        "offsets": [330],
+        "encoding": "ascii"
+      }
+    ],
+    "classNames": [
+      {
+        "value": "LoginViewModel",
+        "offsets": [400],
+        "encoding": "ascii"
+      },
+      {
+        "value": "UserRepository",
+        "offsets": [450],
+        "encoding": "ascii"
+      }
+    ],
+    "packageRefs": [
+      {
+        "value": "package:dio/src/dio.dart",
+        "offsets": [500],
+        "encoding": "ascii"
+      },
+      {
+        "value": "package:provider/provider.dart",
+        "offsets": [560],
+        "encoding": "ascii"
+      }
+    ],
+    "cryptoKeywords": [
+      {
+        "value": "HMAC",
+        "offsets": [620],
+        "encoding": "ascii"
+      },
+      {
+        "value": "SHA256",
+        "offsets": [640],
+        "encoding": "ascii"
+      }
+    ]
+  },
+  "raw": [
+    {
+      "value": "CROSS_CHUNK_BOUNDARY_DETECTED_STRING",
+      "offsets": [1010],
+      "encoding": "ascii"
+    },
+    {
+      "value": "TRIPLE_TOKEN_VALUE_AA",
+      "offsets": [700, 800, 900],
+      "encoding": "ascii"
+    },
+    {
+      "value": "utf16_user_pref_key",
+      "offsets": [1100],
+      "encoding": "utf16le"
+    }
+  ],
+  "crossChunk": {
+    "value": "CROSS_CHUNK_BOUNDARY_DETECTED_STRING",
+    "offset": 1010
+  }
+}
