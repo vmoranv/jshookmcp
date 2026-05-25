@@ -11,6 +11,7 @@ import type { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import type { UnifiedCacheManager } from '@utils/UnifiedCacheManager';
 import type { DetailedDataManager } from '@utils/DetailedDataManager';
 import type { ADBBridgeHandlers } from '@server/domains/adb-bridge/handlers';
+import type { ApkPackerHandlers } from '@server/domains/apk-packer/handlers';
 import type { BinaryInstrumentHandlers } from '@server/domains/binary-instrument/handlers';
 import type { BoringsslInspectorHandlers } from '@server/domains/boringssl-inspector/handlers';
 import type { CrossDomainHandlers } from '@server/domains/cross-domain/handlers';
@@ -132,6 +133,7 @@ export interface DomainInstances {
   skiaCaptureHandlers?: SkiaCaptureHandlers;
   binaryInstrumentHandlers?: BinaryInstrumentHandlers;
   adbBridgeHandlers?: ADBBridgeHandlers;
+  apkPackerHandlers?: ApkPackerHandlers;
   mojoIpcHandlers?: MojoIPCHandlers;
   syscallHookHandlers?: SyscallHookHandlers;
   protocolAnalysisHandlers?: ProtocolAnalysisHandlers;

@@ -457,6 +457,22 @@ const META = {
     enScenarios: ['Flutter app reversing', 'libapp.so string audit', 'Crypto keyword location'],
     enCombos: ['dart-inspector + binary-instrument', 'dart-inspector + adb-bridge'],
   },
+  'apk-packer': {
+    zhTitle: 'APK Packer',
+    zhSummary:
+      '通过匹配 `lib/<abi>/lib*.so` 文件名识别 Android 商业加固（360 加固、腾讯乐固、爱加密、百度、阿里聚安全、网易易盾、DexGuard、DexProtector、AppSealing、Virbox 等）。纯声明式指纹库，不脱壳、不动态执行。',
+    zhScenarios: ['Android 加固识别', '多层加固层级分析', '自定义指纹匹配'],
+    zhCombos: ['apk-packer + binary-instrument', 'apk-packer + adb-bridge'],
+    enTitle: 'APK Packer',
+    enSummary:
+      'Identify Android commercial packers (Qihoo Jiagu, Tencent Legu, Ijiami, Baidu, Aliyun, NetEase Yidun, DexGuard, DexProtector, AppSealing, Virbox, ...) by matching `lib/<abi>/lib*.so` filenames against a declarative fingerprint database. No unpacking, no dynamic execution.',
+    enScenarios: [
+      'Android packer identification',
+      'Multi-layer protection analysis',
+      'Custom fingerprint matching',
+    ],
+    enCombos: ['apk-packer + binary-instrument', 'apk-packer + adb-bridge'],
+  },
   'extension-registry': {
     zhTitle: 'Extension Registry',
     zhSummary: '扩展注册域，管理和发现社区扩展。',
