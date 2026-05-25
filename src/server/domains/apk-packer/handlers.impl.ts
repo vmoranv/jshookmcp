@@ -119,9 +119,10 @@ export class ApkPackerHandlers {
       const customSignatures = compileCustomSignatures(args['customSignatures']);
       const ruleMode = argEnum(args, 'ruleMode', RULE_MODE_SET) as SignatureMode | undefined;
 
-      const opts: DetectOptions = {};
-      if (customSignatures !== undefined) opts.customSignatures = customSignatures;
-      if (ruleMode !== undefined) opts.ruleMode = ruleMode;
+      const opts: DetectOptions = {
+        ...(customSignatures !== undefined ? { customSignatures } : {}),
+        ...(ruleMode !== undefined ? { ruleMode } : {}),
+      };
 
       const result = apkPath
         ? await this.detector.detectFromApk(apkPath, opts)
