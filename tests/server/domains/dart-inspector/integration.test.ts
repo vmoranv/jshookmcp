@@ -38,7 +38,8 @@ describe('dart-inspector integration', () => {
 
   it('registry exposes dart_strings_extract via the manifest registrations', () => {
     const toolNames = manifest.registrations.map((r) => r.tool.name);
-    expect(toolNames).toEqual(['dart_strings_extract']);
+    expect(toolNames).toContain('dart_strings_extract');
+    expect(toolNames).toContain('dart_smi_scan');
   });
 
   it('end-to-end call returns the expected categories for the tiny libapp fixture', async () => {
