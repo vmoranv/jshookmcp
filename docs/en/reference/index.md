@@ -14,6 +14,7 @@ The following tool domains are available:
 | --- | --- | --- | --- |
 | `adb-bridge` | ADB Bridge | full | Android Debug Bridge integration domain for device management, application analysis, and remote debugging. |
 | `antidebug` | AntiDebug | full | Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debugging protections. |
+| `apk-packer` | APK Packer | full | Identify Android commercial packers (Qihoo Jiagu, Tencent Legu, Ijiami, Baidu, Aliyun, NetEase Yidun, DexGuard, DexProtector, AppSealing, Virbox, ...) by matching `lib/<abi>/lib*.so` filenames against a declarative fingerprint database. No unpacking, no dynamic execution. |
 | `binary-instrument` | Binary Instrument | full | Binary instrumentation domain providing binary analysis and runtime instrumentation capabilities. |
 | `boringssl-inspector` | BoringSSL Inspector | workflow, full | BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate inspection. |
 | `browser` | Browser | workflow, full | Primary browser control and DOM interaction domain; the usual entry point for most workflows. |
