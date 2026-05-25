@@ -14,6 +14,7 @@ import type { ADBBridgeHandlers } from '@server/domains/adb-bridge/handlers';
 import type { BinaryInstrumentHandlers } from '@server/domains/binary-instrument/handlers';
 import type { BoringsslInspectorHandlers } from '@server/domains/boringssl-inspector/handlers';
 import type { CrossDomainHandlers } from '@server/domains/cross-domain/handlers';
+import type { DartInspectorHandlers } from '@server/domains/dart-inspector/handlers';
 import type { ExtensionRegistryHandlers } from '@server/domains/extension-registry/handlers';
 import type { MojoIPCHandlers } from '@server/domains/mojo-ipc/handlers';
 import type { ProtocolAnalysisHandlers } from '@server/domains/protocol-analysis/handlers';
@@ -136,6 +137,7 @@ export interface DomainInstances {
   protocolAnalysisHandlers?: ProtocolAnalysisHandlers;
   extensionRegistryHandlers?: ExtensionRegistryHandlers;
   crossDomainHandlers?: CrossDomainHandlers;
+  dartInspectorHandlers?: DartInspectorHandlers;
   debuggerHandlers?: import('@server/domains/debugger/index').DebuggerToolHandlers;
   advancedHandlers?: import('@server/domains/network/index').AdvancedToolHandlers;
   aiHookHandlers?: import('@server/domains/hooks/index').AIHookToolHandlers;
