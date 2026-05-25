@@ -1,0 +1,59 @@
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { tool } from '@server/registry/tool-builder';
+
+export const dartInspectorTools: Tool[] = [
+  tool('dart_strings_extract', (t) =>
+    t
+      .desc(
+        'Extract and classify printable strings from a Dart AOT libapp.so (or any binary). ' +
+          'Streams the file in chunks, scans ASCII and/or UTF-16LE runs, merges offsets, and ' +
+          'categorizes hits (urls, paths, classNames, packageRefs, cryptoKeywords, plus any ' +
+          'customRules). Includes ReDoS guards for user-supplied regex rules.',
+      )
+      .string('filePath', 'Absolute path to the libapp.so (or arbitrary binary) to extract from')
+      .number('minLength', 'Minimum string length to emit', { default: 4, minimum: 2, maximum: 64 })
+      .boolean('includeRaw', 'Include unclassified strings under the `raw` bucket', {
+        default: false,
+      })
+      .boolean('includeOffsets', 'Include byte offsets[] for each extracted string', {
+        default: true,
+      })
+      .enum('encoding', ['ascii', 'utf16le', 'both'], 'Which encodings to scan', {
+        default: 'both',
+      })
+      .number('maxChunkBytes', 'Streaming chunk size in bytes')
+      .number('maxOffsetsPerString', 'Cap on offsets recorded per string (excess sets truncated)', {
+        default: 1000,
+      })
+      .enum(
+        'ruleMode',
+        ['append', 'prepend', 'replace'],
+        'How customRules interact with DEFAULT_RULES',
+        { default: 'append' },
+      )
+      .number('regexTimeoutMs', 'Per-rule .test() wall-clock budget for the ReDoS guard')
+      .array(
+        'customRules',
+        {
+          type: 'object',
+          properties: {
+            category: { type: 'string', description: 'Category bucket name for matched strings' },
+            pattern: { type: 'string', description: 'Regex source (anchored as needed)' },
+            flags: {
+              type: 'string',
+              description: 'Regex flags (must be in DART_ALLOWED_REGEX_FLAGS)',
+            },
+            exclude: {
+              type: 'string',
+              description: 'Optional exclude regex applied before category match',
+            },
+            excludeFlags: { type: 'string', description: 'Flags for the exclude regex' },
+          },
+          required: ['category', 'pattern'],
+        },
+        'Custom classification rules with safe regex compilation (ReDoS-guarded)',
+      )
+      .required('filePath')
+      .query(),
+  ),
+];
