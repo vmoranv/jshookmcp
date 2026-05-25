@@ -21,6 +21,7 @@ The following tool domains are available:
 | `coordination` | Coordination | full | Coordination domain for session insights and MCP Task Handoff, bridging the planning and execution boundaries of LLMs. |
 | `core` | Core | workflow, full | Core static and semi-static analysis domain for script collection, deobfuscation, semantic inspection, webpack analysis, source map recovery, and crypto detection. |
 | `cross-domain` | Cross-Domain | full | Cross-domain correlation domain that bridges analysis results across multiple domains, supporting workflow orchestration and evidence graph integration. |
+| `dart-inspector` | Dart Inspector | full | Extract and classify strings from Flutter AOT libapp.so (URLs, paths, class names, package refs, crypto keywords). |
 | `debugger` | Debugger | workflow, full | CDP-based debugging domain covering breakpoints, stepping, call stacks, watches, and debugger sessions. |
 | `encoding` | Encoding | workflow, full | Binary format detection, encoding conversion, entropy analysis, and raw protobuf decoding. |
 | `evidence` | Evidence | full | Evidence-graph domain that models provenance between URLs, scripts, functions, hooks, and captured artifacts. |
