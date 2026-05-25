@@ -32,6 +32,18 @@ export const dartInspectorTools: Tool[] = [
         { default: 'append' },
       )
       .number('regexTimeoutMs', 'Per-rule .test() wall-clock budget for the ReDoS guard')
+      .number(
+        'scanStride',
+        'Only emit hits whose offset is divisible by stride (e.g. 4 for pointer-aligned scans)',
+      )
+      .object(
+        'scanWindow',
+        {
+          start: { type: 'number', description: 'Inclusive start byte offset' },
+          end: { type: 'number', description: 'Exclusive end byte offset' },
+        },
+        'Restrict scanning to a byte range (skip ELF headers, focus on a section, etc.)',
+      )
       .array(
         'customRules',
         {
@@ -48,6 +60,18 @@ export const dartInspectorTools: Tool[] = [
               description: 'Optional exclude regex applied before category match',
             },
             excludeFlags: { type: 'string', description: 'Flags for the exclude regex' },
+            confidence: {
+              type: 'number',
+              description: 'Confidence weight in [0,1] carried onto each matching hit',
+            },
+            enableWhenFileNameMatches: {
+              type: 'string',
+              description: 'Rule only fires when source basename matches this regex',
+            },
+            enableWhenFileNameFlags: {
+              type: 'string',
+              description: 'Flags for enableWhenFileNameMatches',
+            },
           },
           required: ['category', 'pattern'],
         },

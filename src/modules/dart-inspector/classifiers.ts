@@ -112,7 +112,42 @@ export function compileRuleInput(input: CategoryRuleInput): CategoryRule {
     exclude = compileSafeRegex(input.exclude, input.excludeFlags ?? '', input.category);
   }
 
-  return { category: input.category, pattern, exclude };
+  const rule: CategoryRule = { category: input.category, pattern, exclude };
+
+  if (input.confidence !== undefined) {
+    if (
+      typeof input.confidence !== 'number' ||
+      !Number.isFinite(input.confidence) ||
+      input.confidence < 0 ||
+      input.confidence > 1
+    ) {
+      throw ensureValidationError('customRule.confidence must be a number in [0, 1]', {
+        category: input.category,
+        confidence: input.confidence,
+      });
+    }
+    rule.confidence = input.confidence;
+  }
+
+  if (input.enableWhenFileNameMatches) {
+    if (input.enableWhenFileNameMatches.length > DART_MAX_REGEX_PATTERN_LENGTH) {
+      throw ensureValidationError(
+        `customRule.enableWhenFileNameMatches length exceeds DART_MAX_REGEX_PATTERN_LENGTH (${DART_MAX_REGEX_PATTERN_LENGTH})`,
+        { category: input.category },
+      );
+    }
+    assertSafePattern(input.enableWhenFileNameMatches, input.category);
+    assertFlagsAllowed(input.enableWhenFileNameFlags ?? '', input.category);
+    rule.enableWhen = {
+      fileNameMatches: compileSafeRegex(
+        input.enableWhenFileNameMatches,
+        input.enableWhenFileNameFlags ?? '',
+        input.category,
+      ),
+    };
+  }
+
+  return rule;
 }
 
 function assertSafePattern(source: string, category: CategoryKey): void {
@@ -153,7 +188,7 @@ function compileSafeRegex(source: string, flags: string, category: CategoryKey):
   }
 }
 
-/** Return the category of the first matching rule, or `undefined` when nothing matches.
+/** Return the first matching rule (or undefined) — used to attach confidence to the hit.
  *
  * Wraps every `.test()` call with a `performance.now()` measurement. When a
  * single test exceeds `timeoutMs` (default {@link DART_REGEX_TIMEOUT_MS}) a
@@ -162,17 +197,38 @@ function compileSafeRegex(source: string, flags: string, category: CategoryKey):
  * (red line 2): JavaScript regex execution cannot be preempted, so we cannot
  * interrupt the slow match in flight — but we can refuse to keep running
  * after we have seen one.
+ *
+ * When `fileName` is provided, rules with a `enableWhen.fileNameMatches`
+ * predicate are skipped unless that predicate matches the file's basename.
  */
+export function classifyOneRule(
+  value: string,
+  rules: readonly CategoryRule[],
+  timeoutMs: number = DART_REGEX_TIMEOUT_MS,
+  fileName?: string,
+): CategoryRule | undefined {
+  for (const rule of rules) {
+    if (
+      rule.enableWhen?.fileNameMatches &&
+      fileName !== undefined &&
+      !rule.enableWhen.fileNameMatches.test(fileName)
+    ) {
+      continue;
+    }
+    if (rule.exclude && timedTest(rule.exclude, value, timeoutMs, rule.category)) continue;
+    if (timedTest(rule.pattern, value, timeoutMs, rule.category)) return rule;
+  }
+  return undefined;
+}
+
+/** Backwards-compatible wrapper — returns only the category key. */
 export function classifyOne(
   value: string,
   rules: readonly CategoryRule[],
   timeoutMs: number = DART_REGEX_TIMEOUT_MS,
+  fileName?: string,
 ): CategoryKey | undefined {
-  for (const rule of rules) {
-    if (rule.exclude && timedTest(rule.exclude, value, timeoutMs, rule.category)) continue;
-    if (timedTest(rule.pattern, value, timeoutMs, rule.category)) return rule.category;
-  }
-  return undefined;
+  return classifyOneRule(value, rules, timeoutMs, fileName)?.category;
 }
 
 function timedTest(re: RegExp, value: string, timeoutMs: number, category: CategoryKey): boolean {
@@ -237,6 +293,7 @@ export function categorize(
   rules: readonly CategoryRule[],
   includeRaw: boolean,
   timeoutMs: number = DART_REGEX_TIMEOUT_MS,
+  fileName?: string,
 ): ExtractedStrings {
   const buckets = new Map<CategoryKey, ExtractedString[]>();
   // Seed buckets for every category referenced by the rule chain so they
@@ -247,14 +304,18 @@ export function categorize(
   const rawBucket: ExtractedString[] = [];
 
   for (const item of strings) {
-    const category = classifyOne(item.value, rules, timeoutMs);
-    if (category === undefined) {
+    const rule = classifyOneRule(item.value, rules, timeoutMs, fileName);
+    if (rule === undefined) {
       if (includeRaw) rawBucket.push(item);
       continue;
     }
-    const bucket = buckets.get(category);
-    if (bucket) bucket.push(item);
-    else buckets.set(category, [item]);
+    // Propagate the rule's confidence onto the hit (only when set, to keep
+    // the output schema slim for the default-confidence-of-1 case).
+    const tagged: ExtractedString =
+      rule.confidence === undefined ? item : { ...item, confidence: rule.confidence };
+    const bucket = buckets.get(rule.category);
+    if (bucket) bucket.push(tagged);
+    else buckets.set(rule.category, [tagged]);
   }
 
   const result = {} as ExtractedStrings;
