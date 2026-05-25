@@ -80,4 +80,32 @@ export const dartInspectorTools: Tool[] = [
       .required('filePath')
       .query(),
   ),
+  tool('dart_smi_scan', (t) =>
+    t
+      .desc(
+        'Recover Dart Small Integer (Smi) constants from a libapp.so binary. ' +
+          'The Dart VM tags every word-sized value with the low bit (0=Smi, 1=heap pointer) ' +
+          'and stores integer literals as `value << 1`, so raw string/byte scans miss them. ' +
+          'This tool reads aligned little-endian words and emits the decoded values.',
+      )
+      .string('filePath', 'Absolute path to the libapp.so (or arbitrary binary) to scan')
+      .enum('width', ['4', '8'], 'Word width in bytes (4 for ARM32, 8 for ARM64)', { default: '8' })
+      .number('stride', 'Bytes between consecutive scan positions; defaults to `width`')
+      .number('minValue', 'Inclusive minimum decoded Smi value', { default: 1 })
+      .number('maxValue', 'Inclusive maximum decoded Smi value', { default: 1_000_000 })
+      .boolean('includeZero', 'Include decoded-to-zero hits', { default: false })
+      .boolean('includeNegative', 'Include decoded-to-negative hits', { default: false })
+      .number('maxResults', 'Cap on returned hits (truncates with truncated=true)')
+      .number('maxChunkBytes', 'Streaming chunk size in bytes')
+      .object(
+        'scanWindow',
+        {
+          start: { type: 'number', description: 'Inclusive start byte offset' },
+          end: { type: 'number', description: 'Exclusive end byte offset' },
+        },
+        'Restrict scanning to a byte range',
+      )
+      .required('filePath')
+      .query(),
+  ),
 ];
