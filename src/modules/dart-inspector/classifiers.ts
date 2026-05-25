@@ -11,7 +11,11 @@
  * @see openspec/changes/add-dart-strings-extract/design.md §3.3
  */
 
-import { DART_ALLOWED_REGEX_FLAGS, DART_MAX_REGEX_PATTERN_LENGTH } from '@src/constants';
+import {
+  DART_ALLOWED_REGEX_FLAGS,
+  DART_MAX_REGEX_PATTERN_LENGTH,
+  DART_REGEX_TIMEOUT_MS,
+} from '@src/constants';
 import { ToolError } from '@errors/ToolError';
 import type {
   CategoryKey,
@@ -149,16 +153,48 @@ function compileSafeRegex(source: string, flags: string, category: CategoryKey):
   }
 }
 
-/** Return the category of the first matching rule, or `undefined` when nothing matches. */
+/** Return the category of the first matching rule, or `undefined` when nothing matches.
+ *
+ * Wraps every `.test()` call with a `performance.now()` measurement. When a
+ * single test exceeds `timeoutMs` (default {@link DART_REGEX_TIMEOUT_MS}) a
+ * `ToolError` with code `TIMEOUT` is thrown, aborting the entire extract.
+ * This is the "post-hoc" runtime ReDoS guard described in the design doc
+ * (red line 2): JavaScript regex execution cannot be preempted, so we cannot
+ * interrupt the slow match in flight — but we can refuse to keep running
+ * after we have seen one.
+ */
 export function classifyOne(
   value: string,
   rules: readonly CategoryRule[],
+  timeoutMs: number = DART_REGEX_TIMEOUT_MS,
 ): CategoryKey | undefined {
   for (const rule of rules) {
-    if (rule.exclude?.test(value)) continue;
-    if (rule.pattern.test(value)) return rule.category;
+    if (rule.exclude && timedTest(rule.exclude, value, timeoutMs, rule.category)) continue;
+    if (timedTest(rule.pattern, value, timeoutMs, rule.category)) return rule.category;
   }
   return undefined;
+}
+
+function timedTest(re: RegExp, value: string, timeoutMs: number, category: CategoryKey): boolean {
+  const start = performance.now();
+  const result = re.test(value);
+  const elapsed = performance.now() - start;
+  if (elapsed > timeoutMs) {
+    throw new ToolError(
+      'TIMEOUT',
+      `Regex match exceeded DART_REGEX_TIMEOUT_MS (${timeoutMs} ms): ${elapsed.toFixed(2)} ms`,
+      {
+        details: {
+          category,
+          pattern: re.source,
+          flags: re.flags,
+          elapsedMs: elapsed,
+          timeoutMs,
+        },
+      },
+    );
+  }
+  return result;
 }
 
 /** Combine defaults and custom rules per the requested {@link RuleMode}. */
@@ -200,6 +236,7 @@ export function categorize(
   strings: readonly ExtractedString[],
   rules: readonly CategoryRule[],
   includeRaw: boolean,
+  timeoutMs: number = DART_REGEX_TIMEOUT_MS,
 ): ExtractedStrings {
   const buckets = new Map<CategoryKey, ExtractedString[]>();
   // Seed buckets for every category referenced by the rule chain so they
@@ -210,7 +247,7 @@ export function categorize(
   const rawBucket: ExtractedString[] = [];
 
   for (const item of strings) {
-    const category = classifyOne(item.value, rules);
+    const category = classifyOne(item.value, rules, timeoutMs);
     if (category === undefined) {
       if (includeRaw) rawBucket.push(item);
       continue;
