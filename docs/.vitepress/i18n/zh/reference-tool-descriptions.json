@@ -409,5 +409,6 @@
   "sourcemap_coverage": "汇总 source map 的已映射与未映射源码覆盖范围。",
   "sourcemap_lookup": "将生成代码的位置（行号:列号）反向映射到原始源码位置。",
   "js_symbolic_execute": "JavaScript 符号执行：探索所有可行执行路径，收集路径约束并求解。适用于控制流平坦化后的复杂分支代码分析。",
-  "js_symbolic_execute_jsvmp": "JSVMP 字节码符号执行：逐步对指令进行符号执行，推断原始逻辑、约束和置信度。需先使用 js_analyze_vm 获取指令序列。"
+  "js_symbolic_execute_jsvmp": "JSVMP 字节码符号执行：逐步对指令进行符号执行，推断原始逻辑、约束和置信度。需先使用 js_analyze_vm 获取指令序列。",
+  "dart_strings_extract": "从 Flutter libapp.so 抽取并分类可见字符串，识别 URL、路径、类名、包引用与加密关键字。"
 }
