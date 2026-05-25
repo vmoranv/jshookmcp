@@ -32,12 +32,16 @@ function makeValidation(message: string, details?: Record<string, unknown>): Too
 }
 
 /**
- * Decide whether a user-supplied `libPatterns` source is a RegExp source
- * (anchored or contains metacharacters) or a literal filename.
+ * Decide whether a user-supplied `libPatterns` source should be compiled
+ * as a `RegExp` or kept as a literal lowercase filename.
+ *
+ * The bare `.` and `_` characters appear in legitimate filenames (e.g.
+ * `libjiagu_art.so`), so they alone do not promote a source to regex.
+ * Promotion requires explicit regex syntax: anchors, quantifiers,
+ * character classes, alternation, groups, or escape sequences.
  */
 function looksLikeRegex(src: string): boolean {
-  // Anchored, contains alternation, quantifier, escape, char class, etc.
-  return /[\\^$.*+?()[\]{}|]/.test(src);
+  return /[\\^$*+?()[\]{}|]/.test(src);
 }
 
 /**
