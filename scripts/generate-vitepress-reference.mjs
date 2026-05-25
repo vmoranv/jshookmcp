@@ -445,6 +445,18 @@ const META = {
     enScenarios: ['TLS traffic analysis', 'Certificate parsing', 'Key log capture'],
     enCombos: ['boringssl-inspector + network', 'boringssl-inspector + browser'],
   },
+  'dart-inspector': {
+    zhTitle: 'Dart Inspector',
+    zhSummary:
+      '从 Flutter AOT libapp.so 中抽取并分类字符串（URL、路径、类名、包引用、加密关键字）。',
+    zhScenarios: ['Flutter 应用逆向', 'libapp.so 字符串审计', '加密关键字定位'],
+    zhCombos: ['dart-inspector + binary-instrument', 'dart-inspector + adb-bridge'],
+    enTitle: 'Dart Inspector',
+    enSummary:
+      'Extract and classify strings from Flutter AOT libapp.so (URLs, paths, class names, package refs, crypto keywords).',
+    enScenarios: ['Flutter app reversing', 'libapp.so string audit', 'Crypto keyword location'],
+    enCombos: ['dart-inspector + binary-instrument', 'dart-inspector + adb-bridge'],
+  },
   'extension-registry': {
     zhTitle: 'Extension Registry',
     zhSummary: '扩展注册域，管理和发现社区扩展。',
