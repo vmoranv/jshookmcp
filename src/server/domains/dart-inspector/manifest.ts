@@ -11,7 +11,10 @@ const registrations = defineMethodRegistrations<H, (typeof dartInspectorTools)[n
   domain: DOMAIN,
   depKey: DEP_KEY,
   lookup: t,
-  entries: [{ tool: 'dart_strings_extract', method: 'handleDartStringsExtract' }],
+  entries: [
+    { tool: 'dart_strings_extract', method: 'handleDartStringsExtract' },
+    { tool: 'dart_smi_scan', method: 'handleDartSmiScan' },
+  ],
 });
 
 async function ensure(ctx: MCPServerContext): Promise<H> {
