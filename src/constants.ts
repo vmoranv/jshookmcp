@@ -912,3 +912,17 @@ export const DART_ALLOWED_REGEX_FLAGS = str('DART_ALLOWED_REGEX_FLAGS', 'iu');
 /** Overall budget for a single dart_strings_extract call (ms / payload bytes). */
 export const DART_MAX_EXTRACT_DURATION_MS = int('DART_MAX_EXTRACT_DURATION_MS', 30_000);
 export const DART_MAX_RESULT_BYTES = int('DART_MAX_RESULT_BYTES', 16 * 1024 * 1024);
+
+/**
+ * dart_smi_scan default upper bound on decoded Smi values. Tunes the
+ * signal-to-noise ratio of the scanner (large random words divide out to
+ * huge "integers" that are almost never meaningful literals).
+ */
+export const DART_MAX_SMI_VALUE = int('DART_MAX_SMI_VALUE', 1_000_000);
+
+/**
+ * dart_symbolize ceiling on the obfuscation-map JSON the loader will
+ * accept. Real Flutter obfuscation maps are typically a few hundred KB;
+ * 16 MiB keeps memory bounded against pathological inputs.
+ */
+export const DART_MAX_MAP_BYTES = int('DART_MAX_MAP_BYTES', 16 * 1024 * 1024);
