@@ -18,6 +18,7 @@ const registrations = defineMethodRegistrations<H, (typeof dartInspectorTools)[n
     { tool: 'flutter_packages_detect', method: 'handleDartPackagesDetect' },
     { tool: 'dart_snapshot_header_parse', method: 'handleDartSnapshotHeaderParse' },
     { tool: 'dart_version_fingerprint', method: 'handleDartVersionFingerprint' },
+    { tool: 'dart_object_pool_dump', method: 'handleDartObjectPoolDump' },
   ],
 });
 

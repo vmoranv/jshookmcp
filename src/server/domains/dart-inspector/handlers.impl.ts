@@ -24,6 +24,9 @@ import type {
 } from '@modules/dart-inspector/Symbolizer';
 import { SnapshotFingerprint } from '@modules/dart-inspector/SnapshotFingerprint';
 import type { FingerprintOptions, ParseOptions } from '@modules/dart-inspector/snapshot-types';
+import { ObjectPoolDumper } from '@modules/dart-inspector/ObjectPoolDumper';
+import type { DumpOptions } from '@modules/dart-inspector/pool-types';
+import type { VersionFingerprint } from '@modules/dart-inspector/snapshot-types';
 import type {
   CategoryRule,
   CategoryRuleInput,
@@ -93,6 +96,7 @@ export class DartInspectorHandlers {
   private readonly symbolizer: Symbolizer;
   private readonly packageDetector: PackageDetector;
   private readonly snapshotFingerprint: SnapshotFingerprint;
+  private readonly objectPoolDumper: ObjectPoolDumper;
 
   constructor(
     extractor: StringsExtractor = new StringsExtractor(),
@@ -100,12 +104,14 @@ export class DartInspectorHandlers {
     symbolizer: Symbolizer = new Symbolizer(),
     packageDetector?: PackageDetector,
     snapshotFingerprint: SnapshotFingerprint = new SnapshotFingerprint(),
+    objectPoolDumper?: ObjectPoolDumper,
   ) {
     this.extractor = extractor;
     this.smiScanner = smiScanner;
     this.symbolizer = symbolizer;
     this.packageDetector = packageDetector ?? new PackageDetector(extractor);
     this.snapshotFingerprint = snapshotFingerprint;
+    this.objectPoolDumper = objectPoolDumper ?? new ObjectPoolDumper(snapshotFingerprint);
   }
 
   handleDartStringsExtract(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -273,4 +279,84 @@ export class DartInspectorHandlers {
       return { fingerprint };
     });
   }
+
+  handleDartObjectPoolDump(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => {
+      const filePath = argStringRequired(args, 'filePath');
+      const opts: DumpOptions = {};
+      const maxSlots = argNumber(args, 'maxSlots');
+      if (maxSlots !== undefined) opts.maxSlots = maxSlots;
+      const previewBytes = argNumber(args, 'previewBytes');
+      if (previewBytes !== undefined) opts.previewBytes = previewBytes;
+      const grammar = argString(args, 'grammar');
+      if (grammar !== undefined && grammar.length > 0) opts.grammar = grammar;
+
+      const fingerprintRaw = argObject(args, 'fingerprint');
+      if (fingerprintRaw !== undefined) {
+        opts.fingerprint = coerceFingerprint(fingerprintRaw);
+      }
+
+      const dump = await this.objectPoolDumper.dump(filePath, opts);
+      return { dump };
+    });
+  }
+}
+
+/**
+ * Coerce a partial fingerprint argument into a {@link VersionFingerprint}.
+ * Missing fields are filled with neutral defaults so the dumper sees a
+ * complete shape; callers typically only supply the SDK identification
+ * fields (flutterVersion / dartSdkRev / targetArch).
+ */
+function coerceFingerprint(raw: Record<string, unknown>): VersionFingerprint {
+  const fp: VersionFingerprint = {
+    magic: typeof raw['magic'] === 'number' ? raw['magic'] : 0,
+    kind: pickKind(raw['kind']),
+    hash: typeof raw['hash'] === 'string' ? raw['hash'] : '',
+    features: Array.isArray(raw['features'])
+      ? raw['features'].filter((v): v is string => typeof v === 'string')
+      : [],
+    targetArch: pickArch(raw['targetArch']),
+    isProduction: typeof raw['isProduction'] === 'boolean' ? raw['isProduction'] : false,
+    fileOffset: typeof raw['fileOffset'] === 'number' ? raw['fileOffset'] : 0,
+    source: pickSource(raw['source']),
+    unknown: typeof raw['unknown'] === 'boolean' ? raw['unknown'] : false,
+  };
+  if (typeof raw['flutterVersion'] === 'string') fp.flutterVersion = raw['flutterVersion'];
+  if (typeof raw['dartSdkRev'] === 'string') fp.dartSdkRev = raw['dartSdkRev'];
+  if (typeof raw['engineCommit'] === 'string') fp.engineCommit = raw['engineCommit'];
+  if (typeof raw['releaseDate'] === 'string') fp.releaseDate = raw['releaseDate'];
+  return fp;
+}
+
+function pickKind(value: unknown): VersionFingerprint['kind'] {
+  if (
+    value === 'full' ||
+    value === 'full-aot' ||
+    value === 'full-jit' ||
+    value === 'full-core' ||
+    value === 'unknown'
+  ) {
+    return value;
+  }
+  return 'unknown';
+}
+
+function pickArch(value: unknown): VersionFingerprint['targetArch'] {
+  if (
+    value === 'arm32' ||
+    value === 'arm64' ||
+    value === 'x64' ||
+    value === 'ia32' ||
+    value === 'riscv64' ||
+    value === 'unknown'
+  ) {
+    return value;
+  }
+  return 'unknown';
+}
+
+function pickSource(value: unknown): VersionFingerprint['source'] {
+  if (value === 'symbol' || value === 'byte-scan') return value;
+  return 'byte-scan';
 }
