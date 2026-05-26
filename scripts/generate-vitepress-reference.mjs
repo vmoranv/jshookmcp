@@ -480,6 +480,8 @@ const META = {
       'Android packer-layer identification',
       'Multi-layer protection analysis',
       'Custom fingerprint matching',
+      'Multi-layer protection analysis',
+      'APK lib inventory audit',
     ],
     enCombos: ['apk-packer + binary-instrument', 'apk-packer + adb-bridge'],
   },
