@@ -26,6 +26,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { TEST_URLS, withPath } from '../../shared/test-urls.js';
 
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
+
 const FIXTURE_DIR = dirname(fileURLToPath(import.meta.url));
 const BIN_PATH = join(FIXTURE_DIR, 'tiny-libapp.so');
 const JSON_PATH = join(FIXTURE_DIR, 'expected-strings.json');
