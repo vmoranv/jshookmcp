@@ -28,6 +28,7 @@ import {
   argEnum,
   argNumber,
   argObject,
+  argString,
   argStringRequired,
 } from '@server/domains/shared/parse-args';
 
@@ -128,7 +129,8 @@ export class DartInspectorHandlers {
     return handleSafe(async () => {
       const filePath = argStringRequired(args, 'filePath');
       const opts: SmiScanOptions = {};
-      const width = argNumber(args, 'width');
+      const widthRaw = argString(args, 'width');
+      const width = widthRaw ? parseInt(widthRaw, 10) : undefined;
       if (width !== undefined) {
         if (width !== 4 && width !== 8) {
           throw new ToolError('VALIDATION', `width must be 4 or 8 (got ${width})`);
