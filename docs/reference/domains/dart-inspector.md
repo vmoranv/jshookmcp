@@ -20,7 +20,7 @@
 - dart-inspector + binary-instrument
 - dart-inspector + adb-bridge
 
-## 工具清单（6）
+## 工具清单（7）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -30,3 +30,4 @@
 | `flutter_packages_detect` | 扫描 Flutter libapp.so 中的 `package:` 引用并按包名聚合，过滤 Flutter SDK 自带包；可输出每包文件清单与偏移。 |
 | `dart_snapshot_header_parse` | 解析 Flutter libapp.so 中 Dart 隔离快照头部，返回 magic、kind、32 字节 hash、features、目标架构。仅读取，无任何脱壳/动态执行。 |
 | `dart_version_fingerprint` | 在 dart_snapshot_header_parse 基础上查内置 hash→版本表，识别 Flutter / Dart SDK 版本；查不到时降级返回 raw header + unknown:true。 |
+| `dart_object_pool_dump` | 只读静态导出 libapp.so 中 Dart 隔离快照的 ObjectPool 数组：逐槽位识别 smi/mint/double/string/classRef/functionRef/pool/null/unknown，未识别槽位附 rawBytes。无任何脱壳/动态执行/Dart VM 初始化。 |

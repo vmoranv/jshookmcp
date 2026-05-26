@@ -20,7 +20,7 @@ Extract and classify strings, recover Smi integer constants, and resolve obfusca
 - dart-inspector + binary-instrument
 - dart-inspector + adb-bridge
 
-## Full tool list (6)
+## Full tool list (7)
 
 | Tool | Description |
 | --- | --- |
@@ -30,3 +30,4 @@ Extract and classify strings, recover Smi integer constants, and resolve obfusca
 | `flutter_packages_detect` | Detect third-party Dart `package:` refs in a Flutter libapp.so, aggregated and SDK-stdlib-filtered. |
 | `dart_snapshot_header_parse` | Parse the Dart isolate snapshot header in a libapp.so: magic, kind, 32-byte hash, features, target arch. Read-only. |
 | `dart_version_fingerprint` | Identify Flutter/Dart SDK release from a libapp.so by combining header parse with a built-in (and optionally user-supplied) hash table. |
+| `dart_object_pool_dump` | Read-only static dump of the Dart isolate ObjectPool in a libapp.so: classify each slot as smi/mint/double/string/classRef/functionRef/pool/null/unknown. |
