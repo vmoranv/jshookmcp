@@ -2,13 +2,13 @@
  * Classifier helpers for the apk-packer module.
  *
  * Provides:
- *   - {@link compileSignatureInput}: safe compilation of user-supplied
- *     {@link PackerSignatureInput} entries (rejects ReDoS heuristics and
- *     over-long patterns before constructing any `RegExp`).
- *   - {@link mergeSignatures}: combine defaults + custom signatures
- *     according to {@link SignatureMode} (append / prepend / replace).
- *   - {@link testPatternTimed}: post-hoc wall-clock runtime guard
- *     around `.test()` calls in the detector.
+ *   - compileSignatureInput: safe compilation of user-supplied
+ *     PackerSignatureInput entries (rejects ReDoS heuristics and
+ *     over-long patterns before constructing any RegExp).
+ *   - mergeSignatures: combine defaults + custom signatures
+ *     according to SignatureMode (append / prepend / replace).
+ *   - testPatternTimed: post-hoc wall-clock runtime guard
+ *     around .test() calls in the detector.
  */
 
 import { ToolError } from '@errors/ToolError';
@@ -16,14 +16,11 @@ import { APK_PACKER_MAX_REGEX_PATTERN_LENGTH, APK_PACKER_REGEX_TIMEOUT_MS } from
 import type { PackerSignature, PackerSignatureInput, SignatureMode } from './types';
 
 /**
- * Heuristic patterns that flag catastrophic-backtracking shapes
- * (e.g. `(a+)+`, `(a*)+b`, `(a|b)+c+`). Not exhaustive — pairs with
- * the runtime APK_PACKER_REGEX_TIMEOUT_MS guard.
+ * Heuristic patterns that flag catastrophic-backtracking shapes.
+ * Not exhaustive - pairs with the runtime APK_PACKER_REGEX_TIMEOUT_MS guard.
  */
 const REDOS_HEURISTICS: readonly RegExp[] = Object.freeze([
-  // (...+)+ or (...*)+
   /\([^()]*[+*][^()]*\)[+*]/,
-  // alternation followed by ambiguous quantifier: (a|b)+c+ etc.
   /\([^()]*\|[^()]*\)[+*][^()]*[+*]/,
 ]);
 
@@ -32,26 +29,25 @@ function makeValidation(message: string, details?: Record<string, unknown>): Too
 }
 
 /**
- * Decide whether a user-supplied `libPatterns` source should be compiled
- * as a `RegExp` or kept as a literal lowercase filename.
+ * Decide whether a user-supplied libPatterns source should be compiled
+ * as a RegExp or kept as a literal lowercase filename.
  *
- * The bare `.` and `_` characters appear in legitimate filenames (e.g.
- * `libjiagu_art.so`), so they alone do not promote a source to regex.
- * Promotion requires explicit regex syntax: anchors, quantifiers,
- * character classes, alternation, groups, or escape sequences.
+ * Promotion to regex requires explicit regex syntax: anchors,
+ * quantifiers, character classes, alternation, groups, or escape
+ * sequences. Bare dots and underscores do not promote.
  */
 function looksLikeRegex(src: string): boolean {
-  return /[\\^$*+?()[\]{}|]/.test(src);
+  return /[\^$*+?()[\]{}|]/.test(src);
 }
 
 /**
- * Compile a single serialized {@link PackerSignatureInput} into a runtime
- * {@link PackerSignature}.
+ * Compile a single serialized PackerSignatureInput into a runtime
+ * PackerSignature.
  *
- * String patterns that look like regex (contain metacharacters or anchors)
- * are compiled with `i` flag; bare filenames stay as strings (fastest
- * matching path). Both paths reject ReDoS-shaped sources before any
- * `RegExp` is constructed.
+ * String patterns that look like regex (contain metacharacters or
+ * anchors) are compiled with the i flag; bare filenames stay as strings
+ * (fastest matching path). Both paths reject ReDoS-shaped sources
+ * before any RegExp is constructed.
  */
 export function compileSignatureInput(input: PackerSignatureInput): PackerSignature {
   if (!input.name || input.name.length === 0) {
@@ -126,7 +122,7 @@ function compileSafeRegex(source: string, flags: string, name: string): RegExp {
   }
 }
 
-/** Combine defaults and custom signatures per the requested {@link SignatureMode}. */
+/** Combine defaults and custom signatures per the requested SignatureMode. */
 export function mergeSignatures(
   defaults: readonly PackerSignature[],
   custom: readonly PackerSignature[] | undefined,
@@ -145,10 +141,9 @@ export function mergeSignatures(
 }
 
 /**
- * Post-hoc runtime ReDoS guard. Mirrors the dart-inspector classifier:
- * V8 cannot preempt a slow regex execution, so we measure elapsed time
- * after the fact and refuse to keep running once we have seen one over
- * budget.
+ * Post-hoc runtime ReDoS guard. V8 cannot preempt a slow regex
+ * execution, so we measure elapsed time after the fact and refuse to
+ * keep running once we have seen one over budget.
  */
 export function testPatternTimed(
   re: RegExp,
