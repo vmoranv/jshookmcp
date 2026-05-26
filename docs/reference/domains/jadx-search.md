@@ -23,4 +23,4 @@
 
 | 工具 | 说明 |
 | --- | --- |
-| `jadx_search_code` | 待补充中文：Read-only ripgrep-backed search over an existing jadx decompile directory. ReDoS-guarded; Node fallback. |
+| `jadx_search_code` | 对已有的 jadx 反编译输出目录执行只读 ripgrep 搜索（带 Node 纯回退引擎）。内置 ReDoS 双重防护。 |
