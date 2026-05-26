@@ -20,7 +20,7 @@
 - dart-inspector + binary-instrument
 - dart-inspector + adb-bridge
 
-## 工具清单（6）
+## 工具清单（7）
 
 | 工具 | 说明 |
 | --- | --- |

@@ -194,4 +194,29 @@ export const dartInspectorTools: Tool[] = [
       .required('filePath')
       .query(),
   ),
+  tool('dart_object_pool_dump', (t) =>
+    t
+      .desc(
+        'Read-only static dump of the Dart isolate ObjectPool in a libapp.so: classify each ' +
+          'slot as smi/mint/double/string/classRef/functionRef/pool/null/unknown.',
+      )
+      .string('filePath', 'Absolute path to the libapp.so to dump')
+      .number('maxSlots', 'Upper bound on emitted slots (defaults to env)', { minimum: 1 })
+      .number('previewBytes', 'String slot preview byte cap (defaults to env)', { minimum: 0 })
+      .string(
+        'grammar',
+        'Force a cluster grammar by sdkFamily (e.g. "2.10", "2.17", "3.0+"); overrides auto-pick',
+      )
+      .object(
+        'fingerprint',
+        {
+          flutterVersion: { type: 'string' },
+          dartSdkRev: { type: 'string' },
+          targetArch: { type: 'string' },
+        },
+        'Optional pre-supplied snapshot fingerprint to skip internal lookup',
+      )
+      .required('filePath')
+      .query(),
+  ),
 ];
