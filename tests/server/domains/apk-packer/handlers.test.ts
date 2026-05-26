@@ -38,10 +38,15 @@ async function makeApkDir(libsByAbi: Record<string, string[]>): Promise<string> 
 }
 
 describe('ApkPackerHandlers.handleApkPackerDetect — happy paths', () => {
-  it('detects Jiagu from an unpacked dir', async () => {
+  it('detects a custom signature from an unpacked dir', async () => {
     const handlers = new ApkPackerHandlers();
-    const dirPath = await makeApkDir({ 'arm64-v8a': ['libjiagu.so'] });
-    const response = await handlers.handleApkPackerDetect({ dirPath });
+    const dirPath = await makeApkDir({ 'arm64-v8a': ['libtestguarda.so'] });
+    const response = await handlers.handleApkPackerDetect({
+      dirPath,
+      customSignatures: [
+        { name: 'TestSignatureA', libPatterns: ['libtestguarda.so'], category: 'native-wrapper' },
+      ],
+    });
     const body = R.parse<{
       success: boolean;
       packers: Array<{ name: string }>;
@@ -50,7 +55,7 @@ describe('ApkPackerHandlers.handleApkPackerDetect — happy paths', () => {
     }>(response);
     expect(body.success).toBe(true);
     expect(body.layerCount).toBe(1);
-    expect(body.packers[0]!.name).toBe('Qihoo 360 Jiagu');
+    expect(body.packers[0]!.name).toBe('TestSignatureA');
     expect(body.confidence).toBeGreaterThan(0);
   });
 
@@ -64,13 +69,13 @@ describe('ApkPackerHandlers.handleApkPackerDetect — happy paths', () => {
     expect(body.packers).toHaveLength(0);
   });
 
-  it('accepts customSignatures append-mode and merges with defaults', async () => {
+  it('accepts customSignatures replace mode', async () => {
     const handlers = new ApkPackerHandlers();
-    const dirPath = await makeApkDir({ 'arm64-v8a': ['libjiagu.so', 'libcustom.so'] });
+    const dirPath = await makeApkDir({ 'arm64-v8a': ['libcustom.so'] });
     const response = await handlers.handleApkPackerDetect({
       dirPath,
-      ruleMode: 'append',
-      customSignatures: [{ name: 'MyCustom', vendor: 'Acme', libPatterns: ['libcustom.so'] }],
+      ruleMode: 'replace',
+      customSignatures: [{ name: 'MyCustom', libPatterns: ['libcustom.so'] }],
     });
     const body = R.parse<{
       success: boolean;
@@ -78,10 +83,8 @@ describe('ApkPackerHandlers.handleApkPackerDetect — happy paths', () => {
       layerCount: number;
     }>(response);
     expect(body.success).toBe(true);
-    expect(body.layerCount).toBe(2);
-    expect(body.packers.map((p) => p.name).toSorted()).toEqual(
-      ['MyCustom', 'Qihoo 360 Jiagu'].toSorted(),
-    );
+    expect(body.layerCount).toBe(1);
+    expect(body.packers[0]!.name).toBe('MyCustom');
   });
 });
 
@@ -120,78 +123,40 @@ describe('ApkPackerHandlers.handleApkPackerDetect — validation errors', () => 
     const dirPath = await makeApkDir({ 'arm64-v8a': ['libapp.so'] });
     const response = await handlers.handleApkPackerDetect({
       dirPath,
-      customSignatures: [{ name: 'evil', vendor: 'attacker', libPatterns: ['^(a+)+$'] }],
+      customSignatures: [{ name: 'evil', libPatterns: ['^(a+)+$'] }],
     });
     const body = R.parse<{ success: boolean; error: string }>(response);
     expect(body.success).toBe(false);
     expect(body.error.toLowerCase()).toContain('catastrophic');
   });
 
-  it('rejects customSignatures with malformed shape (missing vendor)', async () => {
+  it('rejects customSignatures with malformed shape (missing name)', async () => {
     const handlers = new ApkPackerHandlers();
     const dirPath = await makeApkDir({ 'arm64-v8a': ['libapp.so'] });
     const response = await handlers.handleApkPackerDetect({
       dirPath,
-      customSignatures: [{ name: 'oops', libPatterns: ['libfoo.so'] }],
+      customSignatures: [{ libPatterns: ['libfoo.so'] }],
     });
     const body = R.parse<{ success: boolean; error: string }>(response);
     expect(body.success).toBe(false);
-    expect(body.error).toMatch(/vendor/i);
+    expect(body.error).toMatch(/name/i);
   });
 });
 
 describe('ApkPackerHandlers.handleApkPackerListSignatures', () => {
-  it('returns the full signature table with no args', async () => {
+  it('returns an empty signature table (framework ships none by default)', async () => {
     const handlers = new ApkPackerHandlers();
     const response = await handlers.handleApkPackerListSignatures({});
-    const body = R.parse<{
-      success: boolean;
-      signatures: Array<{ name: string; vendor: string; libPatterns: unknown[] }>;
-    }>(response);
-    expect(body.success).toBe(true);
-    expect(body.signatures.length).toBeGreaterThanOrEqual(16);
-    for (const sig of body.signatures) {
-      expect(typeof sig.name).toBe('string');
-      expect(typeof sig.vendor).toBe('string');
-      expect(sig.libPatterns.length).toBeGreaterThan(0);
-    }
-  });
-
-  it('filters by vendor substring case-insensitively', async () => {
-    const handlers = new ApkPackerHandlers();
-    const response = await handlers.handleApkPackerListSignatures({ vendor: 'tencent' });
-    const body = R.parse<{ success: boolean; signatures: Array<{ vendor: string }> }>(response);
-    expect(body.success).toBe(true);
-    expect(body.signatures.length).toBeGreaterThanOrEqual(2);
-    for (const sig of body.signatures) {
-      expect(sig.vendor.toLowerCase()).toContain('tencent');
-    }
-  });
-
-  it('returns an empty list for an unknown vendor filter', async () => {
-    const handlers = new ApkPackerHandlers();
-    const response = await handlers.handleApkPackerListSignatures({
-      vendor: 'no-such-vendor-zzz',
-    });
     const body = R.parse<{ success: boolean; signatures: unknown[] }>(response);
     expect(body.success).toBe(true);
-    expect(body.signatures).toHaveLength(0);
+    expect(body.signatures).toEqual([]);
   });
 
-  it('serializes literal vs regex patterns distinctly', async () => {
+  it('returns an empty list for any category filter (default table is empty)', async () => {
     const handlers = new ApkPackerHandlers();
-    const response = await handlers.handleApkPackerListSignatures({ vendor: 'qihoo' });
-    const body = R.parse<{
-      success: boolean;
-      signatures: Array<{
-        libPatterns: Array<{ type: string; value: string }>;
-      }>;
-    }>(response);
+    const response = await handlers.handleApkPackerListSignatures({ category: 'native-wrapper' });
+    const body = R.parse<{ success: boolean; signatures: unknown[] }>(response);
     expect(body.success).toBe(true);
-    const sig = body.signatures[0]!;
-    const types = new Set(sig.libPatterns.map((p) => p.type));
-    // Jiagu has both literal filenames and a regex variant.
-    expect(types).toContain('literal');
-    expect(types).toContain('regex');
+    expect(body.signatures).toEqual([]);
   });
 });

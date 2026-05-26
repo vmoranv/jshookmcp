@@ -37,7 +37,7 @@ import type { DetectionResult, DetectOptions, PackerMatch, PackerSignature } fro
 
 const LIB_PATH_RE = /^lib\/[^/]+\/(lib[^/]+\.so)$/i;
 
-/** Match an APK or an extracted APK directory against vendor packer signatures. */
+/** Match an APK or an extracted APK directory against user-supplied packer signatures. */
 export class PackerDetector {
   constructor(private readonly defaults: readonly PackerSignature[] = DEFAULT_SIGNATURES) {}
 
@@ -124,7 +124,7 @@ export class PackerDetector {
       const confidence: 'high' | 'medium' | 'low' = matchedLibs.size >= 2 ? 'high' : baseConfidence;
       matches.push({
         name: sig.name,
-        vendor: sig.vendor,
+        ...(sig.category ? { category: sig.category } : {}),
         matchedLibs: [...matchedLibs].toSorted(),
         confidence,
       });

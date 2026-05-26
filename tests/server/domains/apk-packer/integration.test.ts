@@ -54,8 +54,17 @@ describe('apk-packer integration', () => {
   it('end-to-end: detect via dirPath surfaces matched packers', async () => {
     const ctx = {} as MCPServerContext;
     const handler = await manifest.ensure(ctx);
-    const dirPath = await makeApkDir({ 'arm64-v8a': ['libshell.so', 'libshella-2.10.7.0.so'] });
-    const response = await handler.handleApkPackerDetect({ dirPath });
+    const dirPath = await makeApkDir({ 'arm64-v8a': ['libtestguarda.so', 'libtestguarda_v2.so'] });
+    const response = await handler.handleApkPackerDetect({
+      dirPath,
+      customSignatures: [
+        {
+          name: 'TestSignatureA',
+          category: 'native-wrapper',
+          libPatterns: ['libtestguarda.so', '^libtestguarda_[\\w.-]+\\.so$'],
+        },
+      ],
+    });
     const body = R.parse<{
       success: boolean;
       packers: Array<{ name: string; confidence: string }>;
@@ -63,21 +72,18 @@ describe('apk-packer integration', () => {
     }>(response);
     expect(body.success).toBe(true);
     expect(body.layerCount).toBe(1);
-    expect(body.packers[0]!.name).toBe('Tencent Legu');
-    // Two distinct libs → confidence escalates to high.
+    expect(body.packers[0]!.name).toBe('TestSignatureA');
+    // Two distinct libs -> confidence escalates to high.
     expect(body.packers[0]!.confidence).toBe('high');
   });
 
-  it('end-to-end: list_signatures returns the catalogue', async () => {
+  it('end-to-end: list_signatures returns the (empty) default catalogue', async () => {
     const ctx = {} as MCPServerContext;
     const handler = await manifest.ensure(ctx);
     const response = await handler.handleApkPackerListSignatures({});
-    const body = R.parse<{ success: boolean; signatures: Array<{ name: string }> }>(response);
+    const body = R.parse<{ success: boolean; signatures: unknown[] }>(response);
     expect(body.success).toBe(true);
-    expect(body.signatures.length).toBeGreaterThanOrEqual(16);
-    const names = body.signatures.map((s) => s.name);
-    expect(names).toContain('Qihoo 360 Jiagu');
-    expect(names).toContain('Tencent Legu');
+    expect(body.signatures).toEqual([]);
   });
 
   it('end-to-end: detect with NOT_FOUND apk surfaces error response', async () => {
