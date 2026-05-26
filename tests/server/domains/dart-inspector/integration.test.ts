@@ -10,7 +10,8 @@
 import { describe, expect, it } from 'vitest';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 
 import manifest from '@server/domains/dart-inspector/manifest';
 import type { MCPServerContext } from '@server/MCPServer.context';
@@ -40,6 +41,7 @@ describe('dart-inspector integration', () => {
     const toolNames = manifest.registrations.map((r) => r.tool.name);
     expect(toolNames).toContain('dart_strings_extract');
     expect(toolNames).toContain('dart_smi_scan');
+    expect(toolNames).toContain('dart_symbolize');
   });
 
   it('end-to-end call returns the expected categories for the tiny libapp fixture', async () => {
@@ -69,6 +71,55 @@ describe('dart-inspector integration', () => {
     const handler = await manifest.ensure(ctx);
     const response = await handler.handleDartStringsExtract({
       filePath: join(FIXTURE_DIR, 'does-not-exist.bin'),
+    });
+    const payload = R.parse<{ success: boolean; error?: string }>(response);
+    expect(payload.success).toBe(false);
+    expect(payload.error).toBeDefined();
+  });
+
+  it('end-to-end dart_symbolize call resolves obfuscated names from a map fixture', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'dart-symbolize-int-'));
+    try {
+      const mapPath = join(tmp, 'obfuscation-map.json');
+      await writeFile(
+        mapPath,
+        JSON.stringify(['HomePage', 'a1', 'LoginService', 'a2', '_doLogin', 'a3']),
+      );
+
+      const ctx = {} as MCPServerContext;
+      const handler = await manifest.ensure(ctx);
+      const response = await handler.handleDartSymbolize({
+        obfuscationMapFile: mapPath,
+        obfuscatedNames: ['a1', 'a3', 'unknown'],
+      });
+      const payload = R.parse<{
+        success: boolean;
+        symbols: {
+          resolved: Array<{ query: string; resolved: string }>;
+          unresolved: string[];
+          mapEntries: number;
+          format: string;
+          mode: string;
+        };
+      }>(response);
+
+      expect(payload.success).toBe(true);
+      expect(payload.symbols.format).toBe('flat');
+      expect(payload.symbols.mode).toBe('forward');
+      expect(payload.symbols.mapEntries).toBe(3);
+      expect(payload.symbols.resolved.map((r) => r.resolved)).toEqual(['HomePage', '_doLogin']);
+      expect(payload.symbols.unresolved).toEqual(['unknown']);
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('end-to-end dart_symbolize call surfaces ToolError for a missing map file', async () => {
+    const ctx = {} as MCPServerContext;
+    const handler = await manifest.ensure(ctx);
+    const response = await handler.handleDartSymbolize({
+      obfuscationMapFile: join(FIXTURE_DIR, 'no-such-map.json'),
+      obfuscatedNames: ['a1'],
     });
     const payload = R.parse<{ success: boolean; error?: string }>(response);
     expect(payload.success).toBe(false);
