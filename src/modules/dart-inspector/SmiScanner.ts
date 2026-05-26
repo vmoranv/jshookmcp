@@ -198,7 +198,7 @@ export class SmiScanner {
               rawValue:
                 width === 4
                   ? combined.readUInt32LE(localOffset)
-                  : Number(combined.readBigUInt64LE(localOffset) & ((1n << 53n) - 1n)),
+                  : Number(combined.readBigUInt64LE(localOffset)),
               smiValue: decoded,
               width,
             });
