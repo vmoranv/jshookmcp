@@ -71,4 +71,15 @@ export const apkPackerTools: Tool[] = [
       .string('category', 'Optional case-insensitive category substring filter')
       .query(),
   ),
+  tool('apk_signing_block_parse', (t) =>
+    t
+      .desc(
+        'Read-only parser for the APK Signing Block (schemes v2/v3/v3.1/v4) plus ' +
+          'key-rotation lineage detection and residue-block / dex-prefix / magic-offset ' +
+          'anomaly flags. Never mutates the APK.',
+      )
+      .string('apkPath', 'Absolute path to the .apk file to parse')
+      .required('apkPath')
+      .query(),
+  ),
 ];

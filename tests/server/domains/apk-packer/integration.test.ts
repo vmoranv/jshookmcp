@@ -47,9 +47,13 @@ describe('apk-packer integration', () => {
     expect(found?.depKey).toBe('apkPackerHandlers');
   });
 
-  it('registry exposes both apk-packer tools', () => {
+  it('registry exposes all three apk-packer tools', () => {
     const toolNames = manifest.registrations.map((r) => r.tool.name).toSorted();
-    expect(toolNames).toEqual(['apk_packer_detect', 'apk_packer_list_signatures']);
+    expect(toolNames).toEqual([
+      'apk_packer_detect',
+      'apk_packer_list_signatures',
+      'apk_signing_block_parse',
+    ]);
   });
 
   it('end-to-end: detect via dirPath with customSignatures surfaces matches', async () => {
