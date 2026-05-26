@@ -108,4 +108,40 @@ export const dartInspectorTools: Tool[] = [
       .required('filePath')
       .query(),
   ),
+  tool('dart_symbolize', (t) =>
+    t
+      .desc(
+        'Resolve obfuscated Dart identifiers back to their original names using a ' +
+          'developer-supplied Flutter obfuscation map (--save-obfuscation-map output). ' +
+          'Supports the flat pair array (Flutter default), 2-tuple array, and object ' +
+          "shapes. The map is the developer's own choice to retain — this tool does " +
+          'not recover names the developer dropped.',
+      )
+      .string(
+        'obfuscationMapFile',
+        'Absolute path to the obfuscation-map.json emitted by `flutter build ... ' +
+          '--extra-gen-snapshot-options=--save-obfuscation-map=FILE`',
+      )
+      .array(
+        'obfuscatedNames',
+        { type: 'string', description: 'An obfuscated (or original, in reverse mode) identifier' },
+        'List of identifiers to resolve against the map',
+      )
+      .enum(
+        'format',
+        ['auto', 'flat', 'pairs', 'object'],
+        'Force a specific parser; auto sniffs the JSON shape',
+        { default: 'auto' },
+      )
+      .enum(
+        'mode',
+        ['forward', 'reverse'],
+        'Lookup direction (forward: obfuscated→original, reverse: original→obfuscated)',
+        { default: 'forward' },
+      )
+      .number('maxMapBytes', 'Cap on map file size in bytes', { default: 16 * 1024 * 1024 })
+      .number('maxLookups', 'Cap on number of lookups attempted (extras go to unresolved)')
+      .required('obfuscationMapFile', 'obfuscatedNames')
+      .query(),
+  ),
 ];
