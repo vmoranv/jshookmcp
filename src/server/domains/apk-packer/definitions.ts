@@ -10,7 +10,10 @@ import { tool } from '@server/registry/tool-builder';
  *   - `apk_packer_list_signatures` exposes the in-process signature table so
  *     callers can inspect or filter the catalogue (empty by default).
  *
- * No unpacking, no payload, no shellcode — only filename matching.
+ * The framework ships no built-in fingerprints - every signature used at
+ * detection time comes from the caller.
+ *
+ * No unpacking, no payload, no shellcode - only filename matching.
  */
 export const apkPackerTools: Tool[] = [
   tool('apk_packer_detect', (t) =>
@@ -26,7 +29,7 @@ export const apkPackerTools: Tool[] = [
       .enum(
         'ruleMode',
         ['append', 'prepend', 'replace'],
-        'How customSignatures interact with DEFAULT_SIGNATURES',
+        'How customSignatures interact with the default (empty) signature table',
         { default: 'append' },
       )
       .array(
@@ -54,8 +57,7 @@ export const apkPackerTools: Tool[] = [
           },
           required: ['name', 'libPatterns'],
         },
-        'Additional fingerprints supplied by the caller. Compile-time and ' +
-          'runtime ReDoS guards apply.',
+        'Fingerprints supplied by the caller. Compile-time and runtime ReDoS guards apply.',
       )
       .query(),
   ),
