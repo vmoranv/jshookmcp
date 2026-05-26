@@ -16,6 +16,7 @@ import type { ToolResponse } from '@server/types';
 import { argEnum, argString } from '@server/domains/shared/parse-args';
 import { DEFAULT_SIGNATURES } from '@modules/apk-packer/fingerprints';
 import { PackerDetector } from '@modules/apk-packer/PackerDetector';
+import { SigningBlockParser } from '@modules/apk-packer/SigningBlockParser';
 import { compileSignatureInput } from '@modules/apk-packer/classifiers';
 import type {
   DetectOptions,
@@ -107,9 +108,14 @@ function serializeSignature(sig: PackerSignature): Record<string, unknown> {
 
 export class ApkPackerHandlers {
   private readonly detector: PackerDetector;
+  private readonly signingBlockParser: SigningBlockParser;
 
-  constructor(detector: PackerDetector = new PackerDetector()) {
+  constructor(
+    detector: PackerDetector = new PackerDetector(),
+    signingBlockParser: SigningBlockParser = new SigningBlockParser(),
+  ) {
     this.detector = detector;
+    this.signingBlockParser = signingBlockParser;
   }
 
   handleApkPackerDetect(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -151,6 +157,17 @@ export class ApkPackerHandlers {
           )
         : DEFAULT_SIGNATURES;
       return { signatures: filtered.map(serializeSignature) };
+    });
+  }
+
+  handleApkSigningBlockParse(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => {
+      const apkPath = argString(args, 'apkPath');
+      if (!apkPath) {
+        throw new ToolError('VALIDATION', 'apkPath must be a non-empty string');
+      }
+      const report = await this.signingBlockParser.parse(apkPath);
+      return { report };
     });
   }
 }

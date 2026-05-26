@@ -14,6 +14,7 @@ const registrations = defineMethodRegistrations<H, (typeof apkPackerTools)[numbe
   entries: [
     { tool: 'apk_packer_detect', method: 'handleApkPackerDetect' },
     { tool: 'apk_packer_list_signatures', method: 'handleApkPackerListSignatures' },
+    { tool: 'apk_signing_block_parse', method: 'handleApkSigningBlockParse' },
   ],
 });
 
