@@ -23,4 +23,4 @@
 
 | 工具 | 说明 |
 | --- | --- |
-| `binary_key_extract` | 待补充中文：Scan a binary for hardcoded key candidates (raw high-entropy, Base64, hex). Read-only — no decryption. |
+| `binary_key_extract` | 扫描二进制文件中的硬编码密钥候选（高熵原始字节、Base64、十六进制）。只读分析，不执行解密。 |
