@@ -11,6 +11,7 @@ import type {
   CategoryRuleInput,
   ExtractedString,
 } from '@modules/dart-inspector/types';
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 function mkString(value: string): ExtractedString {
   return { value, offsets: [0], encoding: 'ascii' };
@@ -18,11 +19,11 @@ function mkString(value: string): ExtractedString {
 
 describe('DEFAULT_RULES classification', () => {
   it('matches HTTPS URLs to urls', () => {
-    expect(classifyOne('https://api.example.com/v1/login', DEFAULT_RULES)).toBe('urls');
+    expect(classifyOne(withPath(TEST_URLS.api, '/v1/login'), DEFAULT_RULES)).toBe('urls');
   });
 
   it('matches HTTP URLs to urls', () => {
-    expect(classifyOne('http://localhost:8080/api', DEFAULT_RULES)).toBe('urls');
+    expect(classifyOne('http://127.0.0.1:8080/api', DEFAULT_RULES)).toBe('urls');
   });
 
   it('matches absolute slash paths to paths', () => {
@@ -206,14 +207,14 @@ describe('mergeRules', () => {
 describe('categorize', () => {
   it('groups strings by their first-matching rule', () => {
     const strings: ExtractedString[] = [
-      mkString('https://api.example.com'),
+      mkString(TEST_URLS.api),
       mkString('/v1/users'),
       mkString('package:dio/src/dio.dart'),
       mkString('LoginViewModel'),
       mkString('AES'),
     ];
     const out = categorize(strings, DEFAULT_RULES, false);
-    expect(out.urls?.map((s) => s.value)).toEqual(['https://api.example.com']);
+    expect(out.urls?.map((s) => s.value)).toEqual([TEST_URLS.api]);
     expect(out.paths?.map((s) => s.value)).toEqual(['/v1/users']);
     expect(out.packageRefs?.map((s) => s.value)).toEqual(['package:dio/src/dio.dart']);
     expect(out.classNames?.map((s) => s.value)).toEqual(['LoginViewModel']);
@@ -249,7 +250,7 @@ describe('categorize', () => {
 
   it('preserves ExtractedString offsets and encoding', () => {
     const item: ExtractedString = {
-      value: 'https://api.example.com',
+      value: TEST_URLS.api,
       offsets: [100, 200],
       encoding: 'utf16le',
     };

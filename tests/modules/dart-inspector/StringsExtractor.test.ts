@@ -6,6 +6,12 @@ import { Buffer } from 'node:buffer';
 
 import { StringsExtractor } from '@modules/dart-inspector/StringsExtractor';
 import type { CategoryRule, ExtractedString } from '@modules/dart-inspector/types';
+import { TEST_URLS, buildTestUrl, withPath } from '@tests/shared/test-urls';
+
+const API_URL = withPath(TEST_URLS.api, '/login');
+const ONLY_ONCE_URL = buildTestUrl('only-once');
+const NORMAL_URL = withPath(buildTestUrl('normal'), '/api');
+const UTF16_URL = buildTestUrl('utf16');
 
 let tmpDir: string;
 let basicFixturePath: string;
@@ -35,7 +41,7 @@ beforeAll(async () => {
   // ── Basic fixture: one of each default category + raw noise ──
   const basic = Buffer.alloc(4096, 0xff); // 0xff is non-printable, won't match strings
   let p = 200;
-  p = writeAscii(basic, p, 'https://api.example.com/login');
+  p = writeAscii(basic, p, API_URL);
   p = writeAscii(basic, p + 50, '/api/v1/users');
   p = writeAscii(basic, p + 50, 'LoginViewModel');
   p = writeAscii(basic, p + 50, 'package:dio/src/dio.dart');
@@ -52,7 +58,7 @@ beforeAll(async () => {
   writeAscii(dup, 100, 'TWICE_OCCURRING_TOKEN');
   writeAscii(dup, 500, 'TWICE_OCCURRING_TOKEN');
   writeAscii(dup, 1000, 'TWICE_OCCURRING_TOKEN');
-  writeAscii(dup, 1500, 'https://only-once.example.com');
+  writeAscii(dup, 1500, ONLY_ONCE_URL);
   duplicatesFixturePath = join(tmpDir, 'dup.bin');
   await writeFile(duplicatesFixturePath, dup);
 
@@ -61,14 +67,14 @@ beforeAll(async () => {
   const cross = Buffer.alloc(4096, 0xff);
   writeAscii(cross, 1010, 'CROSS_CHUNK_BOUNDARY_DETECTED_STRING');
   // also add a same-chunk normal string at offset 100
-  writeAscii(cross, 100, 'https://normal.example.com/api');
+  writeAscii(cross, 100, NORMAL_URL);
   crossChunkFixturePath = join(tmpDir, 'cross.bin');
   await writeFile(crossChunkFixturePath, cross);
 
   // ── UTF-16LE-only fixture ──
   const u16 = Buffer.alloc(2048, 0xff);
   writeUtf16le(u16, 100, 'utf16_string_value');
-  writeUtf16le(u16, 500, 'https://utf16.example.com');
+  writeUtf16le(u16, 500, UTF16_URL);
   utf16OnlyFixturePath = join(tmpDir, 'u16.bin');
   await writeFile(utf16OnlyFixturePath, u16);
 });
@@ -82,7 +88,7 @@ describe('StringsExtractor.extractFromFile - basic categorization', () => {
     const extractor = new StringsExtractor();
     const result = await extractor.extractFromFile(basicFixturePath);
 
-    expect(result.urls?.map((s) => s.value)).toEqual(['https://api.example.com/login']);
+    expect(result.urls?.map((s) => s.value)).toEqual([API_URL]);
     expect(result.paths?.map((s) => s.value)).toEqual(['/api/v1/users']);
     expect(result.classNames?.map((s) => s.value)).toEqual(['LoginViewModel']);
     expect(result.packageRefs?.map((s) => s.value)).toEqual(['package:dio/src/dio.dart']);
@@ -159,7 +165,7 @@ describe('StringsExtractor.extractFromFile - offsets', () => {
     const url = result.urls?.[0];
     expect(url).toBeDefined();
     expect(url?.offsets).toBeUndefined();
-    expect(url?.value).toBe('https://api.example.com/login');
+    expect(url?.value).toBe(API_URL);
   });
 });
 
@@ -270,9 +276,9 @@ describe('StringsExtractor.extractFromFile - customRules', () => {
       customRules: [flagRule],
       ruleMode: 'prepend',
     });
-    expect(result.apiHost?.map((s) => s.value)).toEqual(['https://api.example.com/login']);
+    expect(result.apiHost?.map((s) => s.value)).toEqual([API_URL]);
     // urls bucket exists but does not contain the now-routed url
-    expect(result.urls?.find((s) => s.value === 'https://api.example.com/login')).toBeUndefined();
+    expect(result.urls?.find((s) => s.value === API_URL)).toBeUndefined();
   });
 
   it("ruleMode='replace' uses only custom rules (defaults disabled)", async () => {

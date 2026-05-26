@@ -25,6 +25,8 @@ import { Buffer } from 'node:buffer';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
+import { TEST_URLS, withPath } from '@tests/shared/test-urls';
+
 const FIXTURE_DIR = dirname(fileURLToPath(import.meta.url));
 const BIN_PATH = join(FIXTURE_DIR, 'tiny-libapp.so');
 const JSON_PATH = join(FIXTURE_DIR, 'expected-strings.json');
@@ -46,13 +48,13 @@ interface PlannedString {
 const PLAN: readonly PlannedString[] = [
   // urls (2)
   {
-    value: 'https://api.example.com/login',
+    value: withPath(TEST_URLS.api, '/login'),
     offset: 100,
     encoding: 'ascii',
     expectedCategory: 'urls',
   },
   {
-    value: 'https://cdn.example.org/static/asset',
+    value: withPath(TEST_URLS.cdn, '/static/asset'),
     offset: 200,
     encoding: 'ascii',
     expectedCategory: 'urls',
