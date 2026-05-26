@@ -19,9 +19,10 @@
 - apk-packer + binary-instrument
 - apk-packer + adb-bridge
 
-## 工具清单（2）
+## 工具清单（3）
 
 | 工具 | 说明 |
 | --- | --- |
 | `apk_packer_detect` | 用用户提供的指纹库识别 Android APK 中 `lib/&lt;abi&gt;/lib*.so` 文件名匹配。ReDoS 安全的正则编译，纯文件名匹配 —— 不脱壳、不动态执行、不调用外部工具。 |
 | `apk_packer_list_signatures` | 列出当前 apk-packer 域可见的指纹条目（内置为空，全部由用户的 customSignatures 提供）。 |
+| `apk_signing_block_parse` | 只读解析 APK Signing Block（v2/v3/v3.1/v4 方案 + 密钥轮换世系），并提供 residue 块、dex 前缀、magic 偏移等异常标记。不修改 APK。 |
