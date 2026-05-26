@@ -926,3 +926,12 @@ export const DART_MAX_SMI_VALUE = int('DART_MAX_SMI_VALUE', 1_000_000);
  * 16 MiB keeps memory bounded against pathological inputs.
  */
 export const DART_MAX_MAP_BYTES = int('DART_MAX_MAP_BYTES', 16 * 1024 * 1024);
+
+/**
+ * flutter_packages_detect aggregation caps. Real-world Flutter apps reference
+ * 50–300 packages and each package usually surfaces a few dozen files; the
+ * defaults keep the response bounded against pathological binaries that
+ * splice tens of thousands of synthetic `package:` strings.
+ */
+export const DART_MAX_PACKAGES_PER_RESULT = int('DART_MAX_PACKAGES_PER_RESULT', 1000);
+export const DART_MAX_FILES_PER_PACKAGE = int('DART_MAX_FILES_PER_PACKAGE', 50);
