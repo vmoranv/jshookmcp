@@ -74,24 +74,42 @@ export function compileSafePattern(
   }
 }
 
-/** Match a file path (relative, forward-slash) against a glob list. */
-export function matchesGlobs(path: string, globs: readonly string[]): boolean {
-  let include = false;
-  let hasPositive = false;
-  for (const raw of globs) {
+/** A glob pre-compiled to a RegExp + its `!`-negation flag. */
+interface CompiledGlob {
+  readonly negate: boolean;
+  readonly re: RegExp;
+}
+
+/** Compile a glob list once for repeated use across many paths. */
+export function compileGlobs(globs: readonly string[]): CompiledGlob[] {
+  return globs.map((raw) => {
     const negate = raw.startsWith('!');
     const pattern = negate ? raw.slice(1) : raw;
+    return { negate, re: globToRegExp(pattern) };
+  });
+}
+
+/** Match a file path (relative, forward-slash) against pre-compiled globs. */
+export function matchesCompiledGlobs(path: string, compiled: readonly CompiledGlob[]): boolean {
+  let include = false;
+  let hasPositive = false;
+  for (const { negate, re } of compiled) {
     if (!negate) hasPositive = true;
-    const re = globToRegExp(pattern);
     if (re.test(path)) {
       if (negate) return false;
       include = true;
     }
   }
-  // If no positive glob is specified, everything is included by default
-  // (subject to the negative filters above).
   return hasPositive ? include : true;
 }
+
+/** Match a file path (relative, forward-slash) against a glob list. */
+export function matchesGlobs(path: string, globs: readonly string[]): boolean {
+  return matchesCompiledGlobs(path, compileGlobs(globs));
+}
+
+/** Standard RegExp metacharacters (excluding `*`, `?` which are glob ops). */
+const REGEX_METACHARS = /[\\^$.+()|[\]{}]/;
 
 /** Convert a Bash-style glob to a RegExp. Supports `*`, `**`, `?`. */
 function globToRegExp(glob: string): RegExp {
@@ -109,7 +127,7 @@ function globToRegExp(glob: string): RegExp {
       out += '[^/]*';
     } else if (ch === '?') {
       out += '[^/]';
-    } else if (ch === '.' || ch === '+' || ch === '(' || ch === ')' || ch === '|') {
+    } else if (ch !== undefined && REGEX_METACHARS.test(ch)) {
       out += '\\' + ch;
     } else if (ch === '/') {
       out += '/';
@@ -167,11 +185,12 @@ export async function enumerateFiles(
       cause: cause as Error,
     });
   }
+  const compiled = compileGlobs(globs);
   const collected: string[] = [];
   for (const entry of results) {
     if (collected.length >= limit) break;
     const norm = entry.split(sep).join('/');
-    if (!matchesGlobs(norm, globs)) continue;
+    if (!matchesCompiledGlobs(norm, compiled)) continue;
     // Skip directories — readdir(recursive) returns both directories
     // and files; we filter by attempting a stat below only when needed.
     collected.push(norm);

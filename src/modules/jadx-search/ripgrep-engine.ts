@@ -301,11 +301,10 @@ export class RipgrepEngine {
               const keepGoing = acceptEvent(event);
               if (!keepGoing) {
                 buf = '';
-                try {
-                  child.kill('SIGTERM');
-                } catch {
-                  // ignore
-                }
+                // Stop event processing immediately so trailing data
+                // buffered before SIGTERM arrives is discarded.
+                stop();
+                child.kill('SIGTERM');
                 break;
               }
             }

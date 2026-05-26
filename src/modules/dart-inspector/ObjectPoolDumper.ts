@@ -33,7 +33,7 @@
  *     no code or data is imported, re-implemented, or vendored)
  */
 
-import { open, stat } from 'node:fs/promises';
+import { open, stat, type FileHandle } from 'node:fs/promises';
 import { Buffer } from 'node:buffer';
 import { performance } from 'node:perf_hooks';
 
@@ -111,21 +111,6 @@ function classifyCid(cid: number, grammar: ClusterGrammar): ObjectPoolSlotKind |
   return undefined;
 }
 
-/**
- * Read a single object header word at `targetOffset` and return the
- * cid. Returns `undefined` if `targetOffset` is out-of-bounds.
- */
-function readCid(snapshot: Buffer, targetOffset: number): number | undefined {
-  if (targetOffset < 0 || targetOffset + 4 > snapshot.length) return undefined;
-  const header = snapshot.readUInt32LE(targetOffset);
-  return header & CID_MASK;
-}
-
-/**
- * Decode the preview for a string-like slot. Reads up to `previewBytes`
- * after a small string-header offset; falls back to hex when the bytes
- * are non-printable.
- */
 /** True when every code unit of `s` is printable ASCII (0x20..0x7e). */
 function isPrintableAscii(s: string): boolean {
   if (s.length === 0) return false;
@@ -143,6 +128,11 @@ function stripTrailingNul(s: string): string {
   return s.slice(0, end);
 }
 
+/**
+ * Decode the preview for a string-like slot. Reads up to `previewBytes`
+ * after a small string-header offset; falls back to hex when the bytes
+ * are non-printable.
+ */
 function decodeStringPreview(
   snapshot: Buffer,
   targetOffset: number,
@@ -287,66 +277,95 @@ export class ObjectPoolDumper {
       };
     }
 
-    // 4. Best-effort: read the whole file into a buffer so we can both
-    //    iterate slot words and dereference pointer slots without
-    //    repeated I/O. We then compute the slot region start as the
-    //    end of the snapshot header (magic + kind + hash + NUL-
-    //    terminated features) plus the grammar's `poolHeaderSize`
-    //    preamble. This skips the variable-length snapshot header so
-    //    fixtures and real binaries see the same offset arithmetic.
-    const snapshotBuf = await this.readRegion(filePath, 0, fileSize);
-    checkBudget();
-
-    const snapshotHeaderEnd = this.computeSnapshotHeaderEnd(snapshotBuf, headerOffset);
-    const slotRegionStart = snapshotHeaderEnd + grammar.poolHeaderSize;
-    const slotRegionEnd = Math.min(
-      fileSize,
-      slotRegionStart + maxSlots * (grammar.pointerSize + grammar.perSlotPrefixSize),
-    );
-    if (slotRegionStart >= fileSize || slotRegionEnd - slotRegionStart < MIN_SLOT_BYTES) {
-      return {
-        pool: { fileOffset: headerOffset, slotCount: 0, pointerSize: grammar.pointerSize },
-        grammar: { sdkFamily: grammar.sdkFamily, matched: true },
-        slots: [],
-        truncated: false,
-        unknownSlotCount: 0,
-      };
-    }
-
-    // 5. Iterate slots.
-    const slots: ObjectPoolSlot[] = [];
-    let truncated = false;
-    let unknownSlotCount = 0;
-    const stride = grammar.pointerSize + grammar.perSlotPrefixSize;
-
-    for (let slotIndex = 0; slotIndex < maxSlots; slotIndex++) {
-      checkBudget();
-      const absOffset = slotRegionStart + slotIndex * stride;
-      if (absOffset + grammar.pointerSize > slotRegionEnd) {
-        break;
+    // 4. Open the file once and stream small reads instead of loading the
+    //    entire libapp.so (which can reach DART_SNAPSHOT_MAX_FILE_BYTES =
+    //    1 GiB) into memory. We need three small windows:
+    //      a) the snapshot-header probe (≤ 0x28 + 4 KiB) to find the
+    //         features-string NUL terminator
+    //      b) the slot table region (≤ maxSlots * stride bytes)
+    //      c) a reusable probe at each pointer target, sized to cover
+    //         the largest preview we might decode
+    const fh = await open(filePath, 'r');
+    try {
+      // 4a. Snapshot header probe.
+      const headerProbeLen = Math.min(0x28 + 4096, Math.max(0, fileSize - headerOffset));
+      const headerProbe = Buffer.alloc(headerProbeLen);
+      if (headerProbeLen > 0) {
+        await fh.read(headerProbe, 0, headerProbeLen, headerOffset);
       }
-      const wordOffset = absOffset + grammar.perSlotPrefixSize;
-      const slot = this.decodeSlot(snapshotBuf, slotIndex, wordOffset, grammar, previewBytes);
-      slots.push(slot);
-      if (slot.kind === 'unknown') unknownSlotCount += 1;
-    }
+      checkBudget();
 
-    if (slots.length >= maxSlots && slotRegionStart + maxSlots * stride < fileSize) {
-      // There were more bytes available but we capped at maxSlots.
-      truncated = true;
-    }
+      const snapshotHeaderEnd = this.computeSnapshotHeaderEnd(headerProbe, headerOffset);
+      const slotRegionStart = snapshotHeaderEnd + grammar.poolHeaderSize;
+      const stride = grammar.pointerSize + grammar.perSlotPrefixSize;
+      const slotRegionEnd = Math.min(fileSize, slotRegionStart + maxSlots * stride);
+      if (slotRegionStart >= fileSize || slotRegionEnd - slotRegionStart < MIN_SLOT_BYTES) {
+        return {
+          pool: { fileOffset: headerOffset, slotCount: 0, pointerSize: grammar.pointerSize },
+          grammar: { sdkFamily: grammar.sdkFamily, matched: true },
+          slots: [],
+          truncated: false,
+          unknownSlotCount: 0,
+        };
+      }
 
-    return {
-      pool: {
-        fileOffset: headerOffset,
-        slotCount: slots.length,
-        pointerSize: grammar.pointerSize,
-      },
-      grammar: { sdkFamily: grammar.sdkFamily, matched: true },
-      slots,
-      truncated,
-      unknownSlotCount,
-    };
+      // 4b. Slot table region only — typically a few KiB.
+      const slotTableLen = slotRegionEnd - slotRegionStart;
+      const slotTableBuf = Buffer.alloc(slotTableLen);
+      await fh.read(slotTableBuf, 0, slotTableLen, slotRegionStart);
+      checkBudget();
+
+      // 4c. Reusable probe at each pointer target. We need
+      //     headerSize (≤ 16) + max(previewBytes, 8) bytes worst case.
+      const probeMax = 16 + Math.max(previewBytes, 8);
+      const probe = Buffer.alloc(probeMax);
+
+      // 5. Iterate slots.
+      const slots: ObjectPoolSlot[] = [];
+      let truncated = false;
+      let unknownSlotCount = 0;
+
+      for (let slotIndex = 0; slotIndex < maxSlots; slotIndex++) {
+        checkBudget();
+        const absOffset = slotRegionStart + slotIndex * stride;
+        if (absOffset + grammar.pointerSize > slotRegionEnd) break;
+        const wordOffsetInTable = absOffset - slotRegionStart + grammar.perSlotPrefixSize;
+        const wordOffsetAbs = absOffset + grammar.perSlotPrefixSize;
+
+        const slot = await this.decodeSlot(
+          slotTableBuf,
+          wordOffsetInTable,
+          wordOffsetAbs,
+          fileSize,
+          fh,
+          probe,
+          slotIndex,
+          grammar,
+          previewBytes,
+        );
+        slots.push(slot);
+        if (slot.kind === 'unknown') unknownSlotCount += 1;
+      }
+
+      if (slots.length >= maxSlots && slotRegionStart + maxSlots * stride < fileSize) {
+        // There were more bytes available but we capped at maxSlots.
+        truncated = true;
+      }
+
+      return {
+        pool: {
+          fileOffset: headerOffset,
+          slotCount: slots.length,
+          pointerSize: grammar.pointerSize,
+        },
+        grammar: { sdkFamily: grammar.sdkFamily, matched: true },
+        slots,
+        truncated,
+        unknownSlotCount,
+      };
+    } finally {
+      await fh.close();
+    }
   }
 
   /** Pick the grammar for this dump (force-override → fingerprint → undefined). */
@@ -368,34 +387,49 @@ export class ObjectPoolDumper {
   /**
    * Compute the absolute file offset just past the snapshot header
    * (magic + kind + 32-byte hash + NUL-terminated features). The
-   * NUL-terminator search is bounded so we never run away on a
-   * non-Dart byte sequence.
+   * `headerProbe` is the first ≤ (0x28 + 4 KiB) bytes starting at
+   * `headerOffset`, so the NUL search is bounded by the probe length.
    */
-  private computeSnapshotHeaderEnd(snapshot: Buffer, headerOffset: number): number {
-    const featuresStart = headerOffset + 0x28;
-    if (featuresStart >= snapshot.length) {
-      return featuresStart;
+  private computeSnapshotHeaderEnd(headerProbe: Buffer, headerOffset: number): number {
+    const featuresStartInProbe = 0x28;
+    if (featuresStartInProbe >= headerProbe.length) {
+      // Probe is shorter than the fixed-size prefix; treat the whole
+      // probe as the header and return its end. Downstream bounds
+      // checks will surface an empty slot region.
+      return headerOffset + headerProbe.length;
     }
-    // Bound the search at 4 KiB — matches the probe length used by SnapshotFingerprint.
-    const featuresEnd = Math.min(featuresStart + 4096, snapshot.length);
-    let nul = snapshot.indexOf(0, featuresStart);
-    if (nul < 0 || nul >= featuresEnd) nul = featuresEnd - 1;
-    return nul + 1;
+    const nulInProbe = headerProbe.indexOf(0, featuresStartInProbe);
+    const trailer = nulInProbe < 0 ? headerProbe.length : nulInProbe + 1;
+    return headerOffset + trailer;
   }
 
-  /** Decode a single slot at `wordOffset`. */
-  private decodeSlot(
-    snapshot: Buffer,
+  /**
+   * Decode a single slot. The slot WORD lives inside `slotTable` (a
+   * small buffer covering only the slot region); when the slot turns
+   * out to be a pointer, we read a tiny probe at the target via
+   * `fh.read()` instead of holding the whole file in memory.
+   *
+   *  `slotTable[wordOffsetInTable..]`  — the slot word (8 or 4 bytes)
+   *  `wordOffsetAbs`                   — absolute file offset for the
+   *                                      `slot.fileOffset` field
+   *  `fh` / `probe`                    — used only for pointer targets
+   */
+  private async decodeSlot(
+    slotTable: Buffer,
+    wordOffsetInTable: number,
+    wordOffsetAbs: number,
+    fileSize: number,
+    fh: FileHandle,
+    probe: Buffer,
     slotIndex: number,
-    wordOffset: number,
     grammar: ClusterGrammar,
     previewBytes: number,
-  ): ObjectPoolSlot {
+  ): Promise<ObjectPoolSlot> {
     const width = grammar.pointerSize;
-    if (wordOffset + width > snapshot.length) {
+    if (wordOffsetInTable + width > slotTable.length) {
       return {
         slotIndex,
-        fileOffset: wordOffset,
+        fileOffset: wordOffsetAbs,
         kind: 'unknown',
         rawBytes: '',
         confidence: 'low',
@@ -403,11 +437,11 @@ export class ObjectPoolDumper {
     }
 
     // Smi case (tag bit 0 = 0)
-    const smi = decodeSmi(snapshot, wordOffset, width);
+    const smi = decodeSmi(slotTable, wordOffsetInTable, width);
     if (smi !== undefined) {
       return {
         slotIndex,
-        fileOffset: wordOffset,
+        fileOffset: wordOffsetAbs,
         kind: 'smi',
         preview: smi.toString(),
         confidence: 'high',
@@ -415,42 +449,57 @@ export class ObjectPoolDumper {
     }
 
     // Pointer case
-    const target = pointerToOffset(snapshot, wordOffset, width);
-    if (target === undefined || target < 0 || target >= snapshot.length) {
+    const target = pointerToOffset(slotTable, wordOffsetInTable, width);
+    if (target === undefined || target < 0 || target >= fileSize) {
       return {
         slotIndex,
-        fileOffset: wordOffset,
+        fileOffset: wordOffsetAbs,
         kind: 'unknown',
-        rawBytes: wordToHex(snapshot, wordOffset, width),
+        rawBytes: wordToHex(slotTable, wordOffsetInTable, width),
         confidence: 'low',
       };
     }
-    const cid = readCid(snapshot, target);
-    if (cid === undefined) {
+
+    // Read a probe at the pointer target. probe.length is sized to fit
+    // the largest preview we might decode (header + max(previewBytes,8)).
+    const want = Math.min(probe.length, fileSize - target);
+    if (want < 4) {
       return {
         slotIndex,
-        fileOffset: wordOffset,
+        fileOffset: wordOffsetAbs,
         kind: 'unknown',
-        rawBytes: wordToHex(snapshot, wordOffset, width),
+        rawBytes: wordToHex(slotTable, wordOffsetInTable, width),
         confidence: 'low',
       };
     }
+    const { bytesRead } = await fh.read(probe, 0, want, target);
+    if (bytesRead < 4) {
+      return {
+        slotIndex,
+        fileOffset: wordOffsetAbs,
+        kind: 'unknown',
+        rawBytes: wordToHex(slotTable, wordOffsetInTable, width),
+        confidence: 'low',
+      };
+    }
+    const validProbe = bytesRead === probe.length ? probe : probe.subarray(0, bytesRead);
+
+    const cid = validProbe.readUInt32LE(0) & CID_MASK;
     const kind = classifyCid(cid, grammar);
     if (!kind) {
       return {
         slotIndex,
-        fileOffset: wordOffset,
+        fileOffset: wordOffsetAbs,
         kind: 'unknown',
         cid,
-        rawBytes: wordToHex(snapshot, wordOffset, width),
+        rawBytes: wordToHex(slotTable, wordOffsetInTable, width),
         confidence: 'low',
       };
     }
     return this.buildClassifiedSlot(
-      snapshot,
+      validProbe,
       slotIndex,
-      wordOffset,
-      target,
+      wordOffsetAbs,
       cid,
       kind,
       grammar,
@@ -458,12 +507,16 @@ export class ObjectPoolDumper {
     );
   }
 
-  /** Build a classified-pointer slot result (handles preview decoding). */
+  /**
+   * Build a classified-pointer slot result. `probe` is the small buffer
+   * read at the pointer target — i.e. the target object is at offset
+   * `0` within `probe`. Preview decoders read `headerSize + body`
+   * relative to `0`.
+   */
   private buildClassifiedSlot(
-    snapshot: Buffer,
+    probe: Buffer,
     slotIndex: number,
-    wordOffset: number,
-    target: number,
+    wordOffsetAbs: number,
     cid: number,
     kind: ObjectPoolSlotKind,
     grammar: ClusterGrammar,
@@ -473,13 +526,13 @@ export class ObjectPoolDumper {
     let confidence: ObjectPoolSlotConfidence = 'medium';
     if (kind === 'string') {
       const twoByte = cid === grammar.knownCids['twoByteString'];
-      preview = decodeStringPreview(snapshot, target, previewBytes, twoByte);
+      preview = decodeStringPreview(probe, 0, previewBytes, twoByte);
       if (preview !== undefined) confidence = 'high';
     } else if (kind === 'mint') {
-      preview = decodeMintPreview(snapshot, target);
+      preview = decodeMintPreview(probe, 0);
       if (preview !== undefined) confidence = 'high';
     } else if (kind === 'double') {
-      preview = decodeDoublePreview(snapshot, target);
+      preview = decodeDoublePreview(probe, 0);
       if (preview !== undefined) confidence = 'high';
     } else if (kind === 'null') {
       confidence = 'high';
@@ -488,27 +541,12 @@ export class ObjectPoolDumper {
     }
     const slot: ObjectPoolSlot = {
       slotIndex,
-      fileOffset: wordOffset,
+      fileOffset: wordOffsetAbs,
       kind,
       cid,
       confidence,
     };
     if (preview !== undefined) slot.preview = preview;
     return slot;
-  }
-
-  /** Read `[start, end)` of the file into a buffer. */
-  private async readRegion(filePath: string, start: number, end: number): Promise<Buffer> {
-    const fh = await open(filePath, 'r');
-    try {
-      const length = Math.max(0, end - start);
-      const buf = Buffer.alloc(length);
-      if (length > 0) {
-        await fh.read(buf, 0, length, start);
-      }
-      return buf;
-    } finally {
-      await fh.close();
-    }
   }
 }

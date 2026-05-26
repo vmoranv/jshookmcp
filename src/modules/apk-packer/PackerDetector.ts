@@ -210,6 +210,9 @@ async function listLibBasenamesFromApk(apkPath: string): Promise<LibEntry[]> {
       };
       const onError = (e: Error) => {
         cleanup();
+        // autoClose:true only fires on 'end'; close explicitly on error to
+        // release the file descriptor. yauzl's close() is idempotent.
+        zip.close();
         reject(
           new ToolError('RUNTIME', `ZIP read failed: ${e.message}`, {
             details: { apkPath },

@@ -257,6 +257,9 @@ async function resolveSnapshotSymbol(
   const symEntSize = dynsym.entsize > 0 ? dynsym.entsize : ei_class === 2 ? 24 : 16;
   const symCount = Math.floor(dynsym.size / symEntSize);
   if (symCount === 0) return null;
+  // Reject malformed/hostile ELFs where dynsym.size would push the read
+  // past EOF or trigger an oversized allocation.
+  if (dynsym.offset + dynsym.size > fileSize) return null;
   const symBuf = Buffer.alloc(dynsym.size);
   await fh.read(symBuf, 0, dynsym.size, dynsym.offset);
 

@@ -489,15 +489,20 @@ async function readContextWindow(
   if (contextBytes === 0) {
     return { before: '', after: '', beforeAscii: '', afterAscii: '' };
   }
-  // For 'raw' the candidate occupies `length` bytes starting at `absOffset`.
-  // For 'base64'/'hex' the **encoded** string occupies more bytes than
-  // `length` (the decoded payload). We approximate context by reading
-  // contextBytes immediately before/after `absOffset` and `absOffset+length`
-  // respectively — close enough for forensic review without re-parsing
-  // the encoded run.
+  // `hit.length` is the **decoded** byte count. For base64/hex the
+  // encoded run on disk is wider than the decoded payload — using
+  // `length` directly would place `afterStart` inside the encoded run
+  // and surface the candidate's own characters as trailing context.
+  // Recompute the encoded width per format.
+  const encodedLength =
+    hit.format === 'hex'
+      ? hit.length * 2
+      : hit.format === 'base64'
+        ? Math.ceil(hit.length / 3) * 4
+        : hit.length;
   const beforeStart = Math.max(0, hit.absOffset - contextBytes);
   const beforeEnd = hit.absOffset;
-  const afterStart = Math.min(totalSize, hit.absOffset + hit.length);
+  const afterStart = Math.min(totalSize, hit.absOffset + encodedLength);
   const afterEnd = Math.min(totalSize, afterStart + contextBytes);
 
   const before = await readRange(filePath, beforeStart, beforeEnd);
