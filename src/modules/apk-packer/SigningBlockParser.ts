@@ -32,7 +32,6 @@ import {
 } from './constants';
 import {
   APK_SIG_BLOCK_MAGIC,
-  Anomaly,
   BLOCK_ID_PROOF_OF_ROTATION_ATTR,
   BLOCK_ID_SOURCE_STAMP,
   BLOCK_ID_UNKNOWN_RESIDUE,
@@ -40,9 +39,12 @@ import {
   BLOCK_ID_V3,
   BLOCK_ID_V3_1,
   BLOCK_ID_V4,
-  CertificateInfo,
   DEX_MAGIC,
   EOCD_SIGNATURE,
+} from './signing-block-types';
+import type {
+  Anomaly,
+  CertificateInfo,
   ProofOfRotation,
   SigAlgorithm,
   SigningBlockReport,

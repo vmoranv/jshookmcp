@@ -470,18 +470,50 @@ const META = {
   'apk-packer': {
     zhTitle: 'APK Packer',
     zhSummary:
-      '通过匹配 `lib/<abi>/lib*.so` 文件名识别 Android 商业加固（360 加固、腾讯乐固、爱加密、百度、阿里聚安全、网易易盾、DexGuard、DexProtector、AppSealing、Virbox 等）。纯声明式指纹库，不脱壳、不动态执行。',
-    zhScenarios: ['Android 加固识别', '多层加固层级分析', '自定义指纹匹配'],
+      '用调用方提供的指纹库匹配 APK 中 `lib/<abi>/lib*.so` 文件名，识别可能的保护壳。框架不内置任何具名指纹，所有条目通过 customSignatures 传入。',
+    zhScenarios: ['自定义指纹匹配', '多层壳层级分析', 'APK lib 文件清单审计'],
     zhCombos: ['apk-packer + binary-instrument', 'apk-packer + adb-bridge'],
     enTitle: 'APK Packer',
     enSummary:
-      'Identify Android commercial packers (Qihoo Jiagu, Tencent Legu, Ijiami, Baidu, Aliyun, NetEase Yidun, DexGuard, DexProtector, AppSealing, Virbox, ...) by matching `lib/<abi>/lib*.so` filenames against a declarative fingerprint database. No unpacking, no dynamic execution.',
+      'Match caller-supplied fingerprints against `lib/<abi>/*.so` filenames inside an APK. No built-in fingerprints — all signatures come from `customSignatures`.',
     enScenarios: [
-      'Android packer identification',
-      'Multi-layer protection analysis',
       'Custom fingerprint matching',
+      'Multi-layer protection analysis',
+      'APK lib inventory audit',
     ],
     enCombos: ['apk-packer + binary-instrument', 'apk-packer + adb-bridge'],
+  },
+  'binary-secrets': {
+    zhTitle: 'Binary Secrets',
+    zhSummary:
+      '在任意二进制文件中静态扫描高熵窗口、Base64 / Hex 候选串与硬编码密钥位点，输出 offset + 上下文（候选检测，由人工审计）。',
+    zhScenarios: ['硬编码密钥候选定位', '高熵区间审计', 'Base64 / Hex 凭据线索'],
+    zhCombos: ['binary-secrets + dart-inspector', 'binary-secrets + apk-packer'],
+    enTitle: 'Binary Secrets',
+    enSummary:
+      'Statically scan a binary for high-entropy windows, Base64/Hex candidates, and hard-coded key shapes; emit offsets + context as audit candidates.',
+    enScenarios: [
+      'Hard-coded key candidate discovery',
+      'High-entropy region audit',
+      'Base64/Hex credential leads',
+    ],
+    enCombos: ['binary-secrets + dart-inspector', 'binary-secrets + apk-packer'],
+  },
+  'jadx-search': {
+    zhTitle: 'Jadx Search',
+    zhSummary:
+      '在已存在的 jadx 反编译输出目录里做只读关键字/正则搜索，优先 ripgrep，缺失时降级到 Node 内置扫描。不触发新的反编译。',
+    zhScenarios: ['反编译产物全文检索', '调用点定位', 'Java 源码模式匹配'],
+    zhCombos: ['jadx-search + apk-packer', 'jadx-search + binary-instrument'],
+    enTitle: 'Jadx Search',
+    enSummary:
+      'Read-only keyword / regex search over an existing jadx decompile directory. Prefers ripgrep, falls back to Node when unavailable. Never triggers decompilation.',
+    enScenarios: [
+      'Decompiled source full-text search',
+      'Call-site discovery',
+      'Java pattern matching',
+    ],
+    enCombos: ['jadx-search + apk-packer', 'jadx-search + binary-instrument'],
   },
   'extension-registry': {
     zhTitle: 'Extension Registry',

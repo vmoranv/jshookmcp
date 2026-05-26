@@ -35,3 +35,24 @@ export const APK_PACKER_MAX_REGEX_PATTERN_LENGTH = int('APK_PACKER_MAX_REGEX_PAT
  * Per-`.test()` budget enforced by the post-hoc ReDoS guard. Default: 50 ms.
  */
 export const APK_PACKER_REGEX_TIMEOUT_MS = int('APK_PACKER_REGEX_TIMEOUT_MS', 50);
+
+/**
+ * APK Signing Block — tail-window scanned for EOCD magic. AOSP allows a
+ * ZIP comment up to 65535 bytes, plus a 22-byte EOCD record = 65557. We
+ * read at most this many trailing bytes when looking for the central
+ * directory offset. Default: 65557.
+ */
+export const APK_SIGBLOCK_EOCD_SCAN_BYTES = int('APK_SIGBLOCK_EOCD_SCAN_BYTES', 65_557);
+
+/**
+ * Hard ceiling on the Signing Block size we will read into memory. AOSP
+ * imposes no formal limit; we cap at 16 MiB to avoid OOM on hostile APK.
+ * Default: 16 MiB.
+ */
+export const APK_SIGBLOCK_MAX_BYTES = int('APK_SIGBLOCK_MAX_BYTES', 16 * 1024 * 1024);
+
+/**
+ * Number of bytes from the file head scanned for the DEX-prefix heuristic
+ * (DEX magic injected before the ZIP local file headers). Default: 4096.
+ */
+export const APK_SIGBLOCK_DEX_PREFIX_HEAD_BYTES = int('APK_SIGBLOCK_DEX_PREFIX_HEAD_BYTES', 4096);

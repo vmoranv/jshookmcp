@@ -14,8 +14,9 @@
 | --- | --- | --- | --- |
 | `adb-bridge` | ADB Bridge | full | Android Debug Bridge 集成域，用于设备管理、应用分析和远程调试。 |
 | `antidebug` | AntiDebug | full | 反反调试域，集中提供检测与绕过浏览器端反调试脚本的工具。 |
-| `apk-packer` | APK Packer | full | 通过匹配 `lib/<abi>/lib*.so` 文件名识别 Android 商业加固（360 加固、腾讯乐固、爱加密、百度、阿里聚安全、网易易盾、DexGuard、DexProtector、AppSealing、Virbox 等）。纯声明式指纹库，不脱壳、不动态执行。 |
+| `apk-packer` | APK Packer | full | 用调用方提供的指纹库匹配 APK 中 `lib/<abi>/lib*.so` 文件名，识别可能的保护壳。框架不内置任何具名指纹，所有条目通过 customSignatures 传入。 |
 | `binary-instrument` | Binary Instrument | full | 二进制插桩域，提供二进制分析和运行时插桩能力。 |
+| `binary-secrets` | Binary Secrets | full | 在任意二进制文件中静态扫描高熵窗口、Base64 / Hex 候选串与硬编码密钥位点，输出 offset + 上下文（候选检测，由人工审计）。 |
 | `boringssl-inspector` | BoringSSL Inspector | workflow, full | BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。 |
 | `browser` | Browser | workflow, full | 浏览器控制与 DOM 交互主域，也是大多数工作流的入口。 |
 | `canvas` | Canvas | full | 游戏引擎 Canvas 逆向分析域，支持 Laya/Pixi/Phaser/Cocos/Unity 等主流游戏引擎的指纹识别、场景树导出和对象拾取。 |
@@ -30,6 +31,7 @@
 | `graphql` | GraphQL | workflow, full | GraphQL 发现、提取、重放与 introspection 能力。 |
 | `hooks` | Hooks | full | AI Hook 生成、注入、数据导出，以及内置/自定义 preset 管理。 |
 | `instrumentation` | Instrumentation | full | 统一仪器化会话域，将 Hook、拦截、Trace 与产物记录收束到可查询的 session 中。 |
+| `jadx-search` | Jadx Search | full | 在已存在的 jadx 反编译输出目录里做只读关键字/正则搜索，优先 ripgrep，缺失时降级到 Node 内置扫描。不触发新的反编译。 |
 | `macro` | Macro | full | 子代理宏编排域，将多步工具调用组合为可复用的宏流程。 |
 | `maintenance` | Maintenance | workflow, full | 运维与维护域，覆盖缓存、token 预算、环境诊断、产物清理与扩展管理。 |
 | `memory` | Memory | full | 面向原生内存扫描、指针链分析、结构体推断与断点观测的内存分析域。 |

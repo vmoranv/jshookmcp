@@ -14,8 +14,9 @@ The following tool domains are available:
 | --- | --- | --- | --- |
 | `adb-bridge` | ADB Bridge | full | Android Debug Bridge integration domain for device management, application analysis, and remote debugging. |
 | `antidebug` | AntiDebug | full | Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debugging protections. |
-| `apk-packer` | APK Packer | full | Identify Android commercial packers (Qihoo Jiagu, Tencent Legu, Ijiami, Baidu, Aliyun, NetEase Yidun, DexGuard, DexProtector, AppSealing, Virbox, ...) by matching `lib/<abi>/lib*.so` filenames against a declarative fingerprint database. No unpacking, no dynamic execution. |
+| `apk-packer` | APK Packer | full | Match caller-supplied fingerprints against `lib/<abi>/*.so` filenames inside an APK. No built-in fingerprints — all signatures come from `customSignatures`. |
 | `binary-instrument` | Binary Instrument | full | Binary instrumentation domain providing binary analysis and runtime instrumentation capabilities. |
+| `binary-secrets` | Binary Secrets | full | Statically scan a binary for high-entropy windows, Base64/Hex candidates, and hard-coded key shapes; emit offsets + context as audit candidates. |
 | `boringssl-inspector` | BoringSSL Inspector | workflow, full | BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate inspection. |
 | `browser` | Browser | workflow, full | Primary browser control and DOM interaction domain; the usual entry point for most workflows. |
 | `canvas` | Canvas | full | Canvas game engine reverse analysis domain supporting Laya, Pixi, Phaser, Cocos, and Unity engines for fingerprinting, scene tree dumping, and object picking. |
@@ -30,6 +31,7 @@ The following tool domains are available:
 | `graphql` | GraphQL | workflow, full | GraphQL discovery, extraction, replay, and introspection tooling. |
 | `hooks` | Hooks | full | AI hook generation, injection, export, and built-in/custom preset management. |
 | `instrumentation` | Instrumentation | full | Unified instrumentation-session domain that groups hooks, intercepts, traces, and artifacts into a queryable session. |
+| `jadx-search` | Jadx Search | full | Read-only keyword / regex search over an existing jadx decompile directory. Prefers ripgrep, falls back to Node when unavailable. Never triggers decompilation. |
 | `macro` | Macro | full | Sub-agent macro orchestration domain that chains multiple tool calls into reusable macro workflows. |
 | `maintenance` | Maintenance | workflow, full | Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management. |
 | `memory` | Memory | full | Memory analysis domain for native scans, pointer-chain discovery, structure inference, and breakpoint-based observation. |
