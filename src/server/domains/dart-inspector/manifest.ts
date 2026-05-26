@@ -14,6 +14,7 @@ const registrations = defineMethodRegistrations<H, (typeof dartInspectorTools)[n
   entries: [
     { tool: 'dart_strings_extract', method: 'handleDartStringsExtract' },
     { tool: 'dart_smi_scan', method: 'handleDartSmiScan' },
+    { tool: 'dart_symbolize', method: 'handleDartSymbolize' },
   ],
 });
 
