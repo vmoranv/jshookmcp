@@ -23,5 +23,5 @@ Identify Android commercial packers (Qihoo Jiagu, Tencent Legu, Ijiami, Baidu, A
 
 | Tool | Description |
 | --- | --- |
-| `apk_packer_detect` | Detect Android APK commercial packers by matching `lib/&lt;abi&gt;/lib*.so` filenames against a built-in declarative fingerprint database covering 16+ vendors (Qihoo Jiagu, Tencent Legu, Bangcle/SecNeo, Ijiami, Baidu, Aliyun, NetEase Yidun, DexGuard, DexProtector, AppSealing, Virbox, ApkProtect, Naga, Kiwi, UPX, ...). Supports user-supplied customSignatures with ReDoS-guarded regex compilation. **Does not unpack, execute, or otherwise interact with the packed payload.** |
+| `apk_packer_detect` | Detect Android APK commercial packers by matching `lib/&lt;abi&gt;/lib*.so` filenames against a built-in fingerprint DB; ReDoS-guarded customSignatures supported. Read-only — no unpacking or execution. |
 | `apk_packer_list_signatures` | List the built-in declarative fingerprint database used by `apk_packer_detect`. Optionally filter by case-insensitive vendor substring. Purely informational — no APK input required. |

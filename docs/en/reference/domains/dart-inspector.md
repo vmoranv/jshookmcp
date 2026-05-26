@@ -24,6 +24,6 @@ Extract and classify strings, recover Smi integer constants, and resolve obfusca
 
 | Tool | Description |
 | --- | --- |
-| `dart_strings_extract` | Extract and classify printable strings from a Dart AOT libapp.so (or any binary). Streams the file in chunks, scans ASCII and/or UTF-16LE runs, merges offsets, and categorizes hits (urls, paths, classNames, packageRefs, cryptoKeywords, plus any customRules). Includes ReDoS guards for user-supplied regex rules. |
-| `dart_smi_scan` | Recover Dart Small Integer (Smi) constants from a libapp.so binary. The Dart VM tags every word-sized value with the low bit (0=Smi, 1=heap pointer) and stores integer literals as `value &lt;&lt; 1`, so raw string/byte scans miss them. This tool reads aligned little-endian words and emits the decoded values. |
-| `dart_symbolize` | Resolve obfuscated Dart identifiers back to their original names using a developer-supplied Flutter obfuscation map (--save-obfuscation-map output). Supports the flat pair array (Flutter default), 2-tuple array, and object shapes. The map is the developer's own choice to retain — this tool does not recover names the developer dropped. |
+| `dart_strings_extract` | Stream-extract ASCII/UTF-16LE strings from a Dart AOT libapp.so and classify them (urls, paths, classNames, packageRefs, cryptoKeywords, plus customRules). ReDoS-guarded. |
+| `dart_smi_scan` | Recover Dart Small Integer (Smi) constants from a libapp.so by reading aligned little-endian words and stripping the heap-pointer tag bit. |
+| `dart_symbolize` | Resolve obfuscated Dart identifiers using a developer-supplied Flutter --save-obfuscation-map JSON (flat, pairs, or object shape). |
