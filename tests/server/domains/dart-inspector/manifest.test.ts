@@ -27,12 +27,15 @@ describe('dart-inspector manifest', () => {
     expect(manifest.profiles).not.toContain('search');
   });
 
-  it('registers the dart_strings_extract, dart_smi_scan, and dart_symbolize tools', () => {
+  it('registers the dart_strings_extract, dart_smi_scan, dart_symbolize, flutter_packages_detect, dart_snapshot_header_parse, dart_version_fingerprint tools', () => {
     const toolNames = manifest.registrations.map((r) => r.tool.name);
     expect(toolNames).toContain('dart_strings_extract');
     expect(toolNames).toContain('dart_smi_scan');
     expect(toolNames).toContain('dart_symbolize');
-    expect(toolNames).toHaveLength(3);
+    expect(toolNames).toContain('flutter_packages_detect');
+    expect(toolNames).toContain('dart_snapshot_header_parse');
+    expect(toolNames).toContain('dart_version_fingerprint');
+    expect(toolNames).toHaveLength(6);
   });
 
   it('every registration is bound to the dart-inspector domain', () => {
