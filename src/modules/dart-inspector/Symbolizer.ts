@@ -28,15 +28,16 @@
 
 import { readFile, stat } from 'node:fs/promises';
 
+import { DART_MAX_MAP_BYTES } from '@src/constants';
 import { ToolError } from '@errors/ToolError';
 
 /**
- * Default maximum bytes the symbolizer will load from disk before giving
- * up. Obfuscation maps from real apps are typically a few hundred KB,
- * but pathological inputs could grow large. 16 MB is the same ceiling as
- * other dart-inspector tools.
+ * Default ceiling on obfuscation-map file size — `DART_MAX_MAP_BYTES`
+ * from {@link "@src/constants"}, runtime-tunable via the same env var.
+ * Real Flutter obfuscation maps are typically a few hundred KB; 16 MiB
+ * keeps memory bounded against pathological inputs.
  */
-const DEFAULT_MAX_MAP_BYTES = 16 * 1024 * 1024;
+const DEFAULT_MAX_MAP_BYTES = DART_MAX_MAP_BYTES;
 
 export type SymbolizerFormat = 'auto' | 'flat' | 'pairs' | 'object';
 
