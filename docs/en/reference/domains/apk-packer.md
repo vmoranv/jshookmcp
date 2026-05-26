@@ -13,6 +13,8 @@ Identify Android APK packer layers by matching `lib/<abi>/lib*.so` filenames aga
 - Android packer-layer identification
 - Multi-layer protection analysis
 - Custom fingerprint matching
+- Multi-layer protection analysis
+- APK lib inventory audit
 
 ## Common combinations
 
