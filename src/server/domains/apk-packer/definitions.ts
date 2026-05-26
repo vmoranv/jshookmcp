@@ -17,12 +17,8 @@ export const apkPackerTools: Tool[] = [
     t
       .desc(
         'Detect Android APK commercial packers by matching `lib/<abi>/lib*.so` ' +
-          'filenames against a built-in declarative fingerprint database covering ' +
-          '16+ vendors (Qihoo Jiagu, Tencent Legu, Bangcle/SecNeo, Ijiami, Baidu, ' +
-          'Aliyun, NetEase Yidun, DexGuard, DexProtector, AppSealing, Virbox, ' +
-          'ApkProtect, Naga, Kiwi, UPX, ...). Supports user-supplied customSignatures ' +
-          'with ReDoS-guarded regex compilation. **Does not unpack, execute, or ' +
-          'otherwise interact with the packed payload.**',
+          'filenames against a built-in fingerprint DB; ReDoS-guarded customSignatures ' +
+          'supported. Read-only — no unpacking or execution.',
       )
       .string('apkPath', 'Absolute path to the .apk (or .aab) file to inspect')
       .string('dirPath', 'Optional path to a directory containing an already-unpacked APK tree')

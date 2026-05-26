@@ -25,7 +25,11 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { Buffer } from 'node:buffer';
 
-import { DART_MAX_CHUNK_BYTES, DART_MAX_OFFSETS_PER_STRING } from '@src/constants';
+import {
+  DART_MAX_CHUNK_BYTES,
+  DART_MAX_OFFSETS_PER_STRING,
+  DART_MAX_SMI_VALUE,
+} from '@src/constants';
 import { ToolError } from '@errors/ToolError';
 
 import type { ScanWindow } from './types';
@@ -72,7 +76,13 @@ export interface SmiScanResult {
 }
 
 const DEFAULT_MIN_VALUE = 1;
-const DEFAULT_MAX_VALUE = 1_000_000;
+/**
+ * Default upper bound on decoded Smi values, sourced from
+ * {@link DART_MAX_SMI_VALUE} so operators can override via env. Higher
+ * caps let through random-looking constants; lower caps focus on
+ * literal-shaped integers.
+ */
+const DEFAULT_MAX_VALUE = DART_MAX_SMI_VALUE;
 const DEFAULT_WIDTH: SmiWidth = 8;
 
 /**
