@@ -27,9 +27,13 @@ describe('apk-packer manifest', () => {
     expect(manifest.profiles).not.toContain('search');
   });
 
-  it('registers both tools', () => {
+  it('registers all three tools', () => {
     const toolNames = manifest.registrations.map((r) => r.tool.name).toSorted();
-    expect(toolNames).toEqual(['apk_packer_detect', 'apk_packer_list_signatures']);
+    expect(toolNames).toEqual([
+      'apk_packer_detect',
+      'apk_packer_list_signatures',
+      'apk_signing_block_parse',
+    ]);
   });
 
   it('every registration is bound to the apk-packer domain', () => {
@@ -45,6 +49,7 @@ describe('apk-packer manifest', () => {
     expect(handler).toBeInstanceOf(ApkPackerHandlers);
     expect(typeof handler.handleApkPackerDetect).toBe('function');
     expect(typeof handler.handleApkPackerListSignatures).toBe('function');
+    expect(typeof handler.handleApkSigningBlockParse).toBe('function');
     expect(ctx.apkPackerHandlers).toBe(handler);
   });
 
