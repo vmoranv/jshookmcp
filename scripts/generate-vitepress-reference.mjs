@@ -448,13 +448,23 @@ const META = {
   'dart-inspector': {
     zhTitle: 'Dart Inspector',
     zhSummary:
-      '从 Flutter AOT libapp.so 中抽取并分类字符串（URL、路径、类名、包引用、加密关键字）。',
-    zhScenarios: ['Flutter 应用逆向', 'libapp.so 字符串审计', '加密关键字定位'],
+      '从 Flutter AOT libapp.so 中抽取并分类字符串、还原 Smi 整数常量，并使用开发者提供的混淆映射反查原始符号。',
+    zhScenarios: [
+      'Flutter 应用逆向',
+      'libapp.so 字符串审计',
+      'Smi 整数常量恢复',
+      '混淆符号反查（obfuscation-map.json）',
+    ],
     zhCombos: ['dart-inspector + binary-instrument', 'dart-inspector + adb-bridge'],
     enTitle: 'Dart Inspector',
     enSummary:
-      'Extract and classify strings from Flutter AOT libapp.so (URLs, paths, class names, package refs, crypto keywords).',
-    enScenarios: ['Flutter app reversing', 'libapp.so string audit', 'Crypto keyword location'],
+      'Extract and classify strings, recover Smi integer constants, and resolve obfuscated identifiers from Flutter AOT libapp.so using a developer-supplied obfuscation map.',
+    enScenarios: [
+      'Flutter app reversing',
+      'libapp.so string audit',
+      'Smi integer constant recovery',
+      'Obfuscation map symbol lookup',
+    ],
     enCombos: ['dart-inspector + binary-instrument', 'dart-inspector + adb-bridge'],
   },
   'apk-packer': {

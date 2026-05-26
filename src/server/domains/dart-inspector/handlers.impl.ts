@@ -14,6 +14,12 @@ import { StringsExtractor } from '@modules/dart-inspector/StringsExtractor';
 import { compileRuleInput } from '@modules/dart-inspector/classifiers';
 import { SmiScanner } from '@modules/dart-inspector/SmiScanner';
 import type { SmiScanOptions, SmiWidth } from '@modules/dart-inspector/SmiScanner';
+import { Symbolizer } from '@modules/dart-inspector/Symbolizer';
+import type {
+  SymbolizeOptions,
+  SymbolizerFormat,
+  SymbolizerMode,
+} from '@modules/dart-inspector/Symbolizer';
 import type {
   CategoryRule,
   CategoryRuleInput,
@@ -29,11 +35,14 @@ import {
   argNumber,
   argObject,
   argString,
+  argStringArray,
   argStringRequired,
 } from '@server/domains/shared/parse-args';
 
 const ENCODING_SET = new Set(['ascii', 'utf16le', 'both'] as const);
 const RULE_MODE_SET = new Set(['append', 'prepend', 'replace'] as const);
+const SYMBOLIZER_FORMAT_SET = new Set(['auto', 'flat', 'pairs', 'object'] as const);
+const SYMBOLIZER_MODE_SET = new Set(['forward', 'reverse'] as const);
 
 /**
  * Coerce the raw `customRules` argument into a list of compiled
@@ -77,13 +86,16 @@ function compileCustomRules(raw: unknown): CategoryRule[] | undefined {
 export class DartInspectorHandlers {
   private readonly extractor: StringsExtractor;
   private readonly smiScanner: SmiScanner;
+  private readonly symbolizer: Symbolizer;
 
   constructor(
     extractor: StringsExtractor = new StringsExtractor(),
     smiScanner: SmiScanner = new SmiScanner(),
+    symbolizer: Symbolizer = new Symbolizer(),
   ) {
     this.extractor = extractor;
     this.smiScanner = smiScanner;
+    this.symbolizer = symbolizer;
   }
 
   handleDartStringsExtract(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -162,6 +174,34 @@ export class DartInspectorHandlers {
 
       const result = await this.smiScanner.scanFile(filePath, opts);
       return { smi: result };
+    });
+  }
+
+  handleDartSymbolize(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => {
+      const mapPath = argStringRequired(args, 'obfuscationMapFile');
+      const rawNames = args['obfuscatedNames'];
+      if (!Array.isArray(rawNames)) {
+        throw new ToolError('VALIDATION', 'obfuscatedNames must be an array of strings');
+      }
+      const names = argStringArray(args, 'obfuscatedNames');
+      if (names.length !== rawNames.length) {
+        throw new ToolError('VALIDATION', 'obfuscatedNames contains non-string entries', {
+          details: { firstNonStringIndex: rawNames.findIndex((v) => typeof v !== 'string') },
+        });
+      }
+      const opts: SymbolizeOptions = {};
+      const format = argEnum(args, 'format', SYMBOLIZER_FORMAT_SET);
+      if (format !== undefined) opts.format = format as SymbolizerFormat;
+      const mode = argEnum(args, 'mode', SYMBOLIZER_MODE_SET);
+      if (mode !== undefined) opts.mode = mode as SymbolizerMode;
+      const maxMapBytes = argNumber(args, 'maxMapBytes');
+      if (maxMapBytes !== undefined) opts.maxMapBytes = maxMapBytes;
+      const maxLookups = argNumber(args, 'maxLookups');
+      if (maxLookups !== undefined) opts.maxLookups = maxLookups;
+
+      const result = await this.symbolizer.resolveNames(names, mapPath, opts);
+      return { symbols: result };
     });
   }
 }
