@@ -164,4 +164,34 @@ export const dartInspectorTools: Tool[] = [
       .required('filePath')
       .query(),
   ),
+  tool('dart_snapshot_header_parse', (t) =>
+    t
+      .desc(
+        'Parse the Dart isolate snapshot header in a libapp.so: magic, kind, 32-byte hash, ' +
+          'features, target arch. Read-only.',
+      )
+      .string('filePath', 'Absolute path to the libapp.so to parse')
+      .number('maxScanBytes', 'Upper bound on the byte-scan fallback (defaults to env)', {
+        minimum: 0,
+      })
+      .required('filePath')
+      .query(),
+  ),
+  tool('dart_version_fingerprint', (t) =>
+    t
+      .desc(
+        'Identify Flutter/Dart SDK release from a libapp.so by combining header parse ' +
+          'with a built-in (and optionally user-supplied) hash table.',
+      )
+      .string('filePath', 'Absolute path to the libapp.so to fingerprint')
+      .boolean('includeFeatures', 'Include the raw features array in the response', {
+        default: true,
+      })
+      .string(
+        'customTablePath',
+        'Optional path to a JSON file extending the built-in hash table (user wins on collision)',
+      )
+      .required('filePath')
+      .query(),
+  ),
 ];
