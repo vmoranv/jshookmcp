@@ -22,6 +22,8 @@ import type {
   SymbolizerFormat,
   SymbolizerMode,
 } from '@modules/dart-inspector/Symbolizer';
+import { SnapshotFingerprint } from '@modules/dart-inspector/SnapshotFingerprint';
+import type { FingerprintOptions, ParseOptions } from '@modules/dart-inspector/snapshot-types';
 import type {
   CategoryRule,
   CategoryRuleInput,
@@ -90,17 +92,20 @@ export class DartInspectorHandlers {
   private readonly smiScanner: SmiScanner;
   private readonly symbolizer: Symbolizer;
   private readonly packageDetector: PackageDetector;
+  private readonly snapshotFingerprint: SnapshotFingerprint;
 
   constructor(
     extractor: StringsExtractor = new StringsExtractor(),
     smiScanner: SmiScanner = new SmiScanner(),
     symbolizer: Symbolizer = new Symbolizer(),
     packageDetector?: PackageDetector,
+    snapshotFingerprint: SnapshotFingerprint = new SnapshotFingerprint(),
   ) {
     this.extractor = extractor;
     this.smiScanner = smiScanner;
     this.symbolizer = symbolizer;
     this.packageDetector = packageDetector ?? new PackageDetector(extractor);
+    this.snapshotFingerprint = snapshotFingerprint;
   }
 
   handleDartStringsExtract(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -238,6 +243,34 @@ export class DartInspectorHandlers {
 
       const report = await this.packageDetector.detect(opts);
       return { packages: report };
+    });
+  }
+
+  handleDartSnapshotHeaderParse(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => {
+      const filePath = argStringRequired(args, 'filePath');
+      const opts: ParseOptions = {};
+      const maxScanBytes = argNumber(args, 'maxScanBytes');
+      if (maxScanBytes !== undefined) opts.maxScanBytes = maxScanBytes;
+      const snapshot = await this.snapshotFingerprint.parseHeader(filePath, opts);
+      return { snapshot };
+    });
+  }
+
+  handleDartVersionFingerprint(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => {
+      const filePath = argStringRequired(args, 'filePath');
+      const opts: FingerprintOptions = {};
+      const maxScanBytes = argNumber(args, 'maxScanBytes');
+      if (maxScanBytes !== undefined) opts.maxScanBytes = maxScanBytes;
+      const includeFeatures = argBool(args, 'includeFeatures');
+      if (includeFeatures !== undefined) opts.includeFeatures = includeFeatures;
+      const customTablePath = argString(args, 'customTablePath');
+      if (customTablePath !== undefined && customTablePath.length > 0) {
+        opts.customTablePath = customTablePath;
+      }
+      const fingerprint = await this.snapshotFingerprint.fingerprint(filePath, opts);
+      return { fingerprint };
     });
   }
 }
