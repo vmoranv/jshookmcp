@@ -1,0 +1,64 @@
+{
+  "fixtureSize": 8192,
+  "packages": [
+    {
+      "name": "dio",
+      "isFlutterStdlib": false,
+      "occurrenceCount": 3,
+      "files": [
+        "package:dio/src/dio.dart",
+        "package:dio/src/interceptor.dart",
+        "package:dio/dio.dart"
+      ]
+    },
+    {
+      "name": "flutter",
+      "isFlutterStdlib": true,
+      "occurrenceCount": 3,
+      "files": [
+        "package:flutter/material.dart",
+        "package:flutter/widgets.dart",
+        "package:flutter/foundation.dart"
+      ]
+    },
+    {
+      "name": "flutter_test",
+      "isFlutterStdlib": true,
+      "occurrenceCount": 2,
+      "files": ["package:flutter_test/flutter_test.dart", "package:flutter_test/src/finders.dart"]
+    },
+    {
+      "name": "http",
+      "isFlutterStdlib": false,
+      "occurrenceCount": 2,
+      "files": ["package:http/http.dart", "package:http/src/client.dart"]
+    },
+    {
+      "name": "provider",
+      "isFlutterStdlib": false,
+      "occurrenceCount": 2,
+      "files": ["package:provider/provider.dart", "package:provider/src/inherited_provider.dart"]
+    },
+    {
+      "name": "riverpod",
+      "isFlutterStdlib": false,
+      "occurrenceCount": 2,
+      "files": ["package:riverpod/riverpod.dart", "package:riverpod/src/framework.dart"]
+    },
+    {
+      "name": "sky_engine",
+      "isFlutterStdlib": true,
+      "occurrenceCount": 2,
+      "files": ["package:sky_engine/ui.dart", "package:sky_engine/dart_ui.dart"]
+    },
+    {
+      "name": "sqflite",
+      "isFlutterStdlib": false,
+      "occurrenceCount": 2,
+      "files": ["package:sqflite/sqflite.dart", "package:sqflite/src/database.dart"]
+    }
+  ],
+  "flutterStdlibPackages": ["flutter", "flutter_test", "sky_engine"],
+  "thirdPartyPackages": ["dio", "http", "provider", "riverpod", "sqflite"],
+  "invalid": ["package:", "package://double-slash/x.dart"]
+}
