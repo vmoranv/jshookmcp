@@ -8,6 +8,7 @@ export { SmiScanner } from './SmiScanner';
 export { Symbolizer } from './Symbolizer';
 export { PackageDetector } from './PackageDetector';
 export { SnapshotFingerprint } from './SnapshotFingerprint';
+export { ObjectPoolDumper } from './ObjectPoolDumper';
 export {
   SNAPSHOT_VERSION_TABLE,
   loadVersionTable,
@@ -25,3 +26,14 @@ export type {
   ParseOptions,
   FingerprintOptions,
 } from './snapshot-types';
+
+export type { ClusterGrammar, GrammarSelectInput } from './cluster-grammar';
+export { GRAMMARS, selectGrammar } from './cluster-grammar';
+
+export type {
+  DumpOptions,
+  DumpResult,
+  ObjectPoolSlot,
+  ObjectPoolSlotConfidence,
+  ObjectPoolSlotKind,
+} from './pool-types';

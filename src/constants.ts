@@ -956,3 +956,15 @@ export const DART_SNAPSHOT_HEADER_SCAN_MAX_BYTES = int(
  * precedence on hash collisions. Default empty = built-in table only.
  */
 export const DART_SNAPSHOT_TABLE_PATH = str('DART_SNAPSHOT_TABLE_PATH', '');
+
+/**
+ * dart_object_pool_dump safety knobs. The dumper iterates the Dart isolate
+ * snapshot's ObjectPool slot-by-slot; these constants bound the work per
+ * call. MAX_SLOTS caps how many slots may be emitted (default 4096).
+ * PREVIEW_BYTES truncates string slot previews (default 64 bytes).
+ * MAX_DUMP_DURATION_MS is a wall-clock budget enforced inside the dumper
+ * (default 10 s) so a malformed grammar can not loop forever.
+ */
+export const DART_PP_MAX_SLOTS = int('DART_PP_MAX_SLOTS', 4096);
+export const DART_PP_PREVIEW_BYTES = int('DART_PP_PREVIEW_BYTES', 64);
+export const DART_PP_MAX_DUMP_DURATION_MS = int('DART_PP_MAX_DUMP_DURATION_MS', 10_000);
