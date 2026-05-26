@@ -82,7 +82,7 @@ describe('apk-packer integration', () => {
     const ctx = {} as MCPServerContext;
     const handler = await manifest.ensure(ctx);
     const response = await handler.handleApkPackerListSignatures({});
-    const body = R.parse<{ success: boolean; signatures: Array<{ name: string }> }>(response);
+    const body = R.parse<{ success: boolean; signatures: unknown[] }>(response);
     expect(body.success).toBe(true);
     expect(body.signatures).toHaveLength(0);
   });

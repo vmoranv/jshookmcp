@@ -130,7 +130,7 @@ describe('PackerDetector.detectFromDir — negative cases', () => {
 describe('PackerDetector.detectFromDir — multi-layer detection', () => {
   const detector = new PackerDetector();
 
-  it('detects two distinct packers stacked in the same APK', async () => {
+  it('detects two distinct signatures stacked in the same APK', async () => {
     const dir = await makeApkDir({
       'arm64-v8a': ['libpacka.so', 'libpackb_main.so'],
     });
@@ -147,7 +147,7 @@ describe('PackerDetector.detectFromDir — multi-layer detection', () => {
 describe('PackerDetector.detectFromDir — customSignatures', () => {
   const detector = new PackerDetector();
 
-  it('appends custom signature in append mode (default keeps both)', async () => {
+  it('append mode keeps both defaults and custom (defaults are empty here)', async () => {
     const custom = compileSignatureInput({
       name: 'CustomGuard',
       category: 'Acme',
