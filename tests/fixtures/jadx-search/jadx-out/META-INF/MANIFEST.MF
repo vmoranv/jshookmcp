@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Created-By: jadx-search fixture
+AES=mentioned-but-not-source
