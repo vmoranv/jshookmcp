@@ -31,6 +31,7 @@ The following tool domains are available:
 | `graphql` | GraphQL | workflow, full | GraphQL discovery, extraction, replay, and introspection tooling. |
 | `hooks` | Hooks | full | AI hook generation, injection, export, and built-in/custom preset management. |
 | `instrumentation` | Instrumentation | full | Unified instrumentation-session domain that groups hooks, intercepts, traces, and artifacts into a queryable session. |
+| `jadx-search` | Jadx Search | full | Read-only keyword / regex search over an existing jadx decompile directory. Prefers ripgrep, falls back to Node when unavailable. Never triggers decompilation. |
 | `macro` | Macro | full | Sub-agent macro orchestration domain that chains multiple tool calls into reusable macro workflows. |
 | `maintenance` | Maintenance | workflow, full | Operations and maintenance domain covering cache hygiene, token budget, environment diagnostics, artifact cleanup, and extension management. |
 | `memory` | Memory | full | Memory analysis domain for native scans, pointer-chain discovery, structure inference, and breakpoint-based observation. |
