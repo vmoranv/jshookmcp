@@ -12,6 +12,8 @@
 
 import { StringsExtractor } from '@modules/dart-inspector/StringsExtractor';
 import { compileRuleInput } from '@modules/dart-inspector/classifiers';
+import { PackageDetector } from '@modules/dart-inspector/PackageDetector';
+import type { PackageDetectOptions } from '@modules/dart-inspector/types.packages';
 import { SmiScanner } from '@modules/dart-inspector/SmiScanner';
 import type { SmiScanOptions, SmiWidth } from '@modules/dart-inspector/SmiScanner';
 import { Symbolizer } from '@modules/dart-inspector/Symbolizer';
@@ -87,15 +89,18 @@ export class DartInspectorHandlers {
   private readonly extractor: StringsExtractor;
   private readonly smiScanner: SmiScanner;
   private readonly symbolizer: Symbolizer;
+  private readonly packageDetector: PackageDetector;
 
   constructor(
     extractor: StringsExtractor = new StringsExtractor(),
     smiScanner: SmiScanner = new SmiScanner(),
     symbolizer: Symbolizer = new Symbolizer(),
+    packageDetector?: PackageDetector,
   ) {
     this.extractor = extractor;
     this.smiScanner = smiScanner;
     this.symbolizer = symbolizer;
+    this.packageDetector = packageDetector ?? new PackageDetector(extractor);
   }
 
   handleDartStringsExtract(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -202,6 +207,37 @@ export class DartInspectorHandlers {
 
       const result = await this.symbolizer.resolveNames(names, mapPath, opts);
       return { symbols: result };
+    });
+  }
+
+  handleDartPackagesDetect(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => {
+      const filePath = argStringRequired(args, 'filePath');
+      const opts: PackageDetectOptions = { filePath };
+
+      const includeFlutterStdlib = argBool(args, 'includeFlutterStdlib');
+      if (includeFlutterStdlib !== undefined) opts.includeFlutterStdlib = includeFlutterStdlib;
+      const includeFiles = argBool(args, 'includeFiles');
+      if (includeFiles !== undefined) opts.includeFiles = includeFiles;
+      const includeOffsets = argBool(args, 'includeOffsets');
+      if (includeOffsets !== undefined) opts.includeOffsets = includeOffsets;
+      const maxFilesPerPackage = argNumber(args, 'maxFilesPerPackage');
+      if (maxFilesPerPackage !== undefined) opts.maxFilesPerPackage = maxFilesPerPackage;
+      const maxPackages = argNumber(args, 'maxPackages');
+      if (maxPackages !== undefined) opts.maxPackages = maxPackages;
+
+      if (args['extraStdlibPackages'] !== undefined) {
+        const raw = args['extraStdlibPackages'];
+        if (!Array.isArray(raw)) {
+          throw new ToolError('VALIDATION', 'extraStdlibPackages must be an array of strings');
+        }
+        // Preserve every element so PackageDetector can validate per-entry
+        // shape (length / type) rather than silently dropping non-strings.
+        opts.extraStdlibPackages = raw as readonly string[];
+      }
+
+      const report = await this.packageDetector.detect(opts);
+      return { packages: report };
     });
   }
 }

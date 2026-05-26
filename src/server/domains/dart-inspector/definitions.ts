@@ -138,4 +138,30 @@ export const dartInspectorTools: Tool[] = [
       .required('obfuscationMapFile', 'obfuscatedNames')
       .query(),
   ),
+  tool('flutter_packages_detect', (t) =>
+    t
+      .desc(
+        'Detect third-party Dart `package:` refs in a Flutter libapp.so, ' +
+          'aggregated and SDK-stdlib-filtered.',
+      )
+      .string('filePath', 'Absolute path to the libapp.so (or arbitrary binary) to scan')
+      .boolean('includeFlutterStdlib', 'Keep Flutter SDK packages in the result', {
+        default: false,
+      })
+      .boolean('includeFiles', 'Emit the list of `package:foo/...` files per package', {
+        default: true,
+      })
+      .boolean('includeOffsets', 'Emit aggregated byte offsets per package', { default: false })
+      .integer('maxFilesPerPackage', 'Per-package file cap (excess marks filesTruncated)', {
+        minimum: 1,
+      })
+      .integer('maxPackages', 'Global package cap (excess marks truncated:true)', { minimum: 1 })
+      .array(
+        'extraStdlibPackages',
+        { type: 'string', minLength: 1, maxLength: 128 },
+        'Additional package names to treat as stdlib (filtered when includeFlutterStdlib=false)',
+      )
+      .required('filePath')
+      .query(),
+  ),
 ];
