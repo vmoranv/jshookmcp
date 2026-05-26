@@ -21,7 +21,7 @@
 - apk-packer + binary-instrument
 - apk-packer + adb-bridge
 
-## 工具清单（2）
+## 工具清单（3）
 
 | 工具 | 说明 |
 | --- | --- |

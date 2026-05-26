@@ -21,7 +21,7 @@ Identify Android APK packer layers by matching `lib/<abi>/lib*.so` filenames aga
 - apk-packer + binary-instrument
 - apk-packer + adb-bridge
 
-## Full tool list (2)
+## Full tool list (3)
 
 | Tool | Description |
 | --- | --- |
