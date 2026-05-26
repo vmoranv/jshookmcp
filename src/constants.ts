@@ -935,3 +935,24 @@ export const DART_MAX_MAP_BYTES = int('DART_MAX_MAP_BYTES', 16 * 1024 * 1024);
  */
 export const DART_MAX_PACKAGES_PER_RESULT = int('DART_MAX_PACKAGES_PER_RESULT', 1000);
 export const DART_MAX_FILES_PER_PACKAGE = int('DART_MAX_FILES_PER_PACKAGE', 50);
+
+/**
+ * dart_snapshot_header_parse / dart_version_fingerprint safety knobs.
+ * MAX_FILE_BYTES caps total input size (default 1 GiB) so the parser refuses
+ * pathological inputs early with a PERMISSION error. HEADER_SCAN_MAX_BYTES is
+ * the upper bound on the byte-scan fallback used when the named ELF symbol is
+ * stripped (default 32 MiB — Dart isolate snapshot data normally sits within
+ * the first dozen MiB of libapp.so).
+ */
+export const DART_SNAPSHOT_MAX_FILE_BYTES = int('DART_SNAPSHOT_MAX_FILE_BYTES', 1024 * 1024 * 1024);
+export const DART_SNAPSHOT_HEADER_SCAN_MAX_BYTES = int(
+  'DART_SNAPSHOT_HEADER_SCAN_MAX_BYTES',
+  32 * 1024 * 1024,
+);
+
+/**
+ * Optional path to a JSON file extending the built-in snapshot version table
+ * (snapshotHash → flutterVersion/engineCommit/dartSdkRev). User entries take
+ * precedence on hash collisions. Default empty = built-in table only.
+ */
+export const DART_SNAPSHOT_TABLE_PATH = str('DART_SNAPSHOT_TABLE_PATH', '');
