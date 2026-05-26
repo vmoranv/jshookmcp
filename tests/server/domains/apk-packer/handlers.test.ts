@@ -172,6 +172,6 @@ describe('ApkPackerHandlers.handleApkPackerListSignatures', () => {
     const response = await handlers.handleApkPackerListSignatures({ category: 'anything' });
     const body = R.parse<{ success: boolean; signatures: unknown[] }>(response);
     expect(body.success).toBe(true);
-    expect(body.signatures).toHaveLength(0);
+    expect(body.signatures).toEqual([]);
   });
 });

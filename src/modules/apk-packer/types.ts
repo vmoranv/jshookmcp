@@ -1,8 +1,8 @@
 /**
  * Type definitions for the apk-packer module.
  *
- * Purely declarative — no payload, no shellcode, no unpacking.
- * Signatures match against `lib/<abi>/lib*.so` filenames inside an APK
+ * Purely declarative - no payload, no shellcode, no unpacking.
+ * Signatures match against lib/<abi>/lib*.so filenames inside an APK
  * (or an unpacked APK directory tree).
  */
 
@@ -17,7 +17,7 @@ export type PackerConfidence = 'high' | 'medium' | 'low';
  *   - a `RegExp`
  *
  * Multiple distinct hits across patterns escalate confidence
- * (single hit → medium, ≥2 hits → high).
+ * (single hit -> medium, >=2 hits -> high).
  */
 export interface PackerSignature {
   /** Display name of the fingerprint entry. */
@@ -28,8 +28,8 @@ export interface PackerSignature {
   readonly libPatterns: readonly (string | RegExp)[];
   /**
    * Optional confidence override for single-pattern hits. Defaults to
-   * `medium` when omitted; matchers with ≥2 distinct lib hits always
-   * escalate to `high` regardless of this hint.
+   * medium when omitted; matchers with >=2 distinct lib hits always
+   * escalate to high regardless of this hint.
    */
   readonly confidence?: PackerConfidence;
   /** Optional notes for the user-facing list-signatures tool. */
@@ -39,9 +39,10 @@ export interface PackerSignature {
 /**
  * Serializable input form accepted via MCP tool customSignatures field.
  *
- * `libPatterns` are strings here; the loader compiles to RegExp when the
- * source starts with `^` or contains regex metacharacters, otherwise
- * treats it as a literal lowercase filename.
+ * libPatterns are strings here; the loader compiles to RegExp when the
+ * source looks like a regex (anchors, quantifiers, character classes,
+ * alternation, groups, or escape sequences), otherwise treats it as a
+ * literal lowercase filename.
  */
 export interface PackerSignatureInput {
   readonly name: string;
@@ -68,7 +69,7 @@ export interface DetectionResult {
   readonly layerCount: number;
 }
 
-/** How `customSignatures` interact with the built-in `DEFAULT_SIGNATURES`. */
+/** How customSignatures interact with the built-in DEFAULT_SIGNATURES. */
 export type SignatureMode = 'append' | 'prepend' | 'replace';
 
 /** Options accepted by the detector. */

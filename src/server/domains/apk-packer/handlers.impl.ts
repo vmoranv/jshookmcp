@@ -1,13 +1,13 @@
 /**
- * apk-packer domain — two tool handlers wrapping the PackerDetector module.
+ * apk-packer domain - two tool handlers wrapping the PackerDetector module.
  *
  * Responsibilities:
- *  - Type-safe argument extraction via `parseArgs` utilities.
+ *  - Type-safe argument extraction via parseArgs utilities.
  *  - Compile every customSignature input into a runtime PackerSignature
  *    (rejecting ReDoS heuristics, oversize sources, and malformed shapes
- *    with a `ToolError(VALIDATION)`).
+ *    with a ToolError(VALIDATION)).
  *  - Defer matching to the module layer.
- *  - Wrap the result in the standard MCP envelope via {@link handleSafe}.
+ *  - Wrap the result in the standard MCP envelope via handleSafe.
  */
 
 import { ToolError } from '@errors/ToolError';
@@ -28,8 +28,8 @@ const RULE_MODE_SET = new Set(['append', 'prepend', 'replace'] as const);
 const CONFIDENCE_SET = new Set(['high', 'medium', 'low'] as const);
 
 /**
- * Coerce a raw `customSignatures` arg into compiled {@link PackerSignature}s.
- * Throws {@link ToolError}(`VALIDATION`) on malformed shape.
+ * Coerce a raw customSignatures arg into compiled PackerSignatures.
+ * Throws ToolError(VALIDATION) on malformed shape.
  */
 function compileCustomSignatures(raw: unknown): PackerSignature[] | undefined {
   if (raw === undefined || raw === null) return undefined;
@@ -91,7 +91,7 @@ function compileCustomSignatures(raw: unknown): PackerSignature[] | undefined {
   });
 }
 
-/** Serialize a built-in or compiled signature for list-signatures output. */
+/** Serialize a compiled signature for list-signatures output. */
 function serializeSignature(sig: PackerSignature): Record<string, unknown> {
   return {
     name: sig.name,
@@ -99,6 +99,7 @@ function serializeSignature(sig: PackerSignature): Record<string, unknown> {
     libPatterns: sig.libPatterns.map((p) =>
       typeof p === 'string' ? { type: 'literal', value: p } : { type: 'regex', value: p.source },
     ),
+    ...(sig.category ? { category: sig.category } : {}),
     ...(sig.confidence ? { confidence: sig.confidence } : {}),
     ...(sig.notes ? { notes: sig.notes } : {}),
   };
