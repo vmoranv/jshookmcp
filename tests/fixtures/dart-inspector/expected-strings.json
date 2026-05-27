@@ -9,7 +9,7 @@
         "encoding": "ascii"
       },
       {
-        "value": "https://cdn.example.org/static/asset",
+        "value": "https://cdn.example.com/static/asset",
         "offsets": [200],
         "encoding": "ascii"
       }
