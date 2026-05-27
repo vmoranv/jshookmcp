@@ -57,8 +57,10 @@ export function compileSignatureInput(input: PackerSignatureInput): PackerSignat
   if (!input.name || input.name.length === 0) {
     throw makeValidation('customSignature.name must be a non-empty string');
   }
-  if (!input.vendor || input.vendor.length === 0) {
-    throw makeValidation('customSignature.vendor must be a non-empty string', { name: input.name });
+  if (input.category !== undefined && typeof input.category !== 'string') {
+    throw makeValidation('customSignature.category, when present, must be a string', {
+      name: input.name,
+    });
   }
   if (!Array.isArray(input.libPatterns) || input.libPatterns.length === 0) {
     throw makeValidation('customSignature.libPatterns must be a non-empty array', {
@@ -90,8 +92,8 @@ export function compileSignatureInput(input: PackerSignatureInput): PackerSignat
 
   const sig: PackerSignature = {
     name: input.name,
-    vendor: input.vendor,
     libPatterns: compiled,
+    ...(input.category ? { category: input.category } : {}),
     ...(input.confidence ? { confidence: input.confidence } : {}),
     ...(input.notes ? { notes: input.notes } : {}),
   };
