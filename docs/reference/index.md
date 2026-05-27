@@ -31,7 +31,7 @@
 | `graphql` | GraphQL | workflow, full | GraphQL 发现、提取、重放与 introspection 能力。 |
 | `hooks` | Hooks | full | AI Hook 生成、注入、数据导出，以及内置/自定义 preset 管理。 |
 | `instrumentation` | Instrumentation | full | 统一仪器化会话域，将 Hook、拦截、Trace 与产物记录收束到可查询的 session 中。 |
-| `jadx-search` | Jadx Search | full | 在已存在的 jadx 反编译输出目录里做只读关键字/正则搜索，优先 ripgrep，缺失时降级到 Node 内置扫描。不触发新的反编译。 |
+| `jadx-search` | JADX Search | full | 通过 JADX 对 APK 进行反编译后的代码搜索域，支持类名、方法名、字符串的全文检索。 |
 | `macro` | Macro | full | 子代理宏编排域，将多步工具调用组合为可复用的宏流程。 |
 | `maintenance` | Maintenance | workflow, full | 运维与维护域，覆盖缓存、token 预算、环境诊断、产物清理与扩展管理。 |
 | `memory` | Memory | full | 面向原生内存扫描、指针链分析、结构体推断与断点观测的内存分析域。 |
