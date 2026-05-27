@@ -144,7 +144,6 @@ export interface DomainInstances {
   extensionRegistryHandlers?: ExtensionRegistryHandlers;
   crossDomainHandlers?: CrossDomainHandlers;
   dartInspectorHandlers?: DartInspectorHandlers;
-  binarySecretsHandlers?: import('@server/domains/binary-secrets/index').BinarySecretsHandlers;
   debuggerHandlers?: import('@server/domains/debugger/index').DebuggerToolHandlers;
   advancedHandlers?: import('@server/domains/network/index').AdvancedToolHandlers;
   aiHookHandlers?: import('@server/domains/hooks/index').AIHookToolHandlers;
