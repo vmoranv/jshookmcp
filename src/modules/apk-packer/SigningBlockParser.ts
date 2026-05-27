@@ -30,9 +30,18 @@ import {
   APK_SIGBLOCK_EOCD_SCAN_BYTES,
   APK_SIGBLOCK_MAX_BYTES,
 } from './constants';
+import type {
+  Anomaly,
+  CertificateInfo,
+  ProofOfRotation,
+  SigAlgorithm,
+  SigningBlockReport,
+  V2Signer,
+  V3Signer,
+  V4Block,
+} from './signing-block-types';
 import {
   APK_SIG_BLOCK_MAGIC,
-  Anomaly,
   BLOCK_ID_PROOF_OF_ROTATION_ATTR,
   BLOCK_ID_SOURCE_STAMP,
   BLOCK_ID_UNKNOWN_RESIDUE,
@@ -40,15 +49,8 @@ import {
   BLOCK_ID_V3,
   BLOCK_ID_V3_1,
   BLOCK_ID_V4,
-  CertificateInfo,
   DEX_MAGIC,
   EOCD_SIGNATURE,
-  ProofOfRotation,
-  SigAlgorithm,
-  SigningBlockReport,
-  V2Signer,
-  V3Signer,
-  V4Block,
 } from './signing-block-types';
 
 const SIG_BLOCK_MAGIC_BYTES = Buffer.from(APK_SIG_BLOCK_MAGIC, 'utf8');
