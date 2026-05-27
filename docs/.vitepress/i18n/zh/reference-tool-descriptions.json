@@ -415,5 +415,6 @@
   "apk_packer_detect": "通过匹配 `lib/<abi>/lib*.so` 文件名识别 Android APK 加固层；框架不内置签名表，调用方通过 customSignatures 提供（ReDoS 防护正则编译）。**不脱壳、不动态执行、不与加固载荷交互。**",
   "apk_packer_list_signatures": "返回框架当前的签名表（默认为空）。可按 vendor 子串过滤。纯声明式数据查询，无需 APK 输入。",
   "binary_key_extract": "待补充中文：Scan a binary for hardcoded key candidates (raw high-entropy, Base64, hex). Read-only — no decryption.",
-  "dart_symbolize": "待补充中文：Resolve obfuscated Dart identifiers using a developer-supplied Flutter --save-obfuscation-map JSON (flat, pairs, or object shape)."
+  "dart_symbolize": "待补充中文：Resolve obfuscated Dart identifiers using a developer-supplied Flutter --save-obfuscation-map JSON (flat, pairs, or object shape).",
+  "jadx_search_code": "待补充中文：Read-only ripgrep-backed search over an existing jadx decompile directory. ReDoS-guarded; Node fallback."
 }

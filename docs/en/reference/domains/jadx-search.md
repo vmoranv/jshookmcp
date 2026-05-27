@@ -1,8 +1,8 @@
-# Jadx Search
+# JADX Search
 
 Domain: `jadx-search`
 
-Read-only keyword / regex search over an existing jadx decompile directory. Prefers ripgrep, falls back to Node when unavailable. Never triggers decompilation.
+Search decompiled APK source via JADX — full-text search across class names, method names, and string constants.
 
 ## Profiles
 
@@ -10,14 +10,14 @@ Read-only keyword / regex search over an existing jadx decompile directory. Pref
 
 ## Typical scenarios
 
-- Decompiled source full-text search
-- Call-site discovery
-- Java pattern matching
+- Full-text search in decompiled code
+- Locate classes and methods by name
+- Search string constants
 
 ## Common combinations
 
 - jadx-search + apk-packer
-- jadx-search + binary-instrument
+- jadx-search + binary-secrets
 
 ## Full tool list (1)
 

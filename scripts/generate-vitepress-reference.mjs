@@ -500,6 +500,21 @@ const META = {
     ],
     enCombos: ['binary-secrets + apk-packer', 'binary-secrets + binary-instrument'],
   },
+  'jadx-search': {
+    zhTitle: 'JADX Search',
+    zhSummary: '通过 JADX 对 APK 进行反编译后的代码搜索域，支持类名、方法名、字符串的全文检索。',
+    zhScenarios: ['反编译代码全文搜索', '类名/方法名定位', '字符串常量检索'],
+    zhCombos: ['jadx-search + apk-packer', 'jadx-search + binary-secrets'],
+    enTitle: 'JADX Search',
+    enSummary:
+      'Search decompiled APK source via JADX — full-text search across class names, method names, and string constants.',
+    enScenarios: [
+      'Full-text search in decompiled code',
+      'Locate classes and methods by name',
+      'Search string constants',
+    ],
+    enCombos: ['jadx-search + apk-packer', 'jadx-search + binary-secrets'],
+  },
   'extension-registry': {
     zhTitle: 'Extension Registry',
     zhSummary: '扩展注册域，管理和发现社区扩展。',
