@@ -62,7 +62,7 @@ describe('apk-packer integration', () => {
       customSignatures: [
         {
           name: 'PackerA',
-          vendor: 'vendor-a',
+          category: 'category-a',
           libPatterns: ['libpacka_main.so', 'libpacka_helper.so'],
         },
       ],
