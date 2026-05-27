@@ -20,9 +20,9 @@ export type PackerConfidence = 'high' | 'medium' | 'low';
  * (single hit → medium, ≥2 hits → high).
  */
 export interface PackerSignature {
-  /** Display name, e.g. `Qihoo 360 Jiagu`. */
+  /** Display name, e.g. `CustomPackerA`. */
   readonly name: string;
-  /** Vendor / origin, e.g. `Qihoo`. */
+  /** Vendor / origin label, supplied by the caller. */
   readonly vendor: string;
   /** Patterns evaluated against `lib/<abi>/<filename>` basenames. */
   readonly libPatterns: readonly (string | RegExp)[];
