@@ -16,6 +16,7 @@ The following tool domains are available:
 | `antidebug` | AntiDebug | full | Anti-anti-debug domain focused on detecting and bypassing browser-side anti-debugging protections. |
 | `apk-packer` | APK Packer | full | Identify Android APK packer layers by matching `lib/<abi>/lib*.so` filenames against caller-supplied customSignatures (ReDoS-guarded regex compilation). The framework ships no built-in signature table. No unpacking, no dynamic execution, no payload interaction. |
 | `binary-instrument` | Binary Instrument | full | Binary instrumentation domain providing binary analysis and runtime instrumentation capabilities. |
+| `binary-secrets` | Binary Secrets | full | Scan binaries for hardcoded key candidates (raw high-entropy, Base64, hex). Read-only informational output. |
 | `boringssl-inspector` | BoringSSL Inspector | workflow, full | BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate inspection. |
 | `browser` | Browser | workflow, full | Primary browser control and DOM interaction domain; the usual entry point for most workflows. |
 | `canvas` | Canvas | full | Canvas game engine reverse analysis domain supporting Laya, Pixi, Phaser, Cocos, and Unity engines for fingerprinting, scene tree dumping, and object picking. |
