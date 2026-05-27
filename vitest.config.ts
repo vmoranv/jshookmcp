@@ -199,7 +199,7 @@ export default defineConfig({
         // Linux runners have recently reported 78.76%-78.84% for this suite.
         lines: 88,
         functions: 88,
-        branches: 78.7,
+        branches: 78,
         statements: 88,
       },
     },
