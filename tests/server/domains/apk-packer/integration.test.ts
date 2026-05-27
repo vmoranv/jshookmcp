@@ -3,7 +3,8 @@
  *
  * Verifies the domain is discoverable by the registry, the manifest
  * registrations bind correctly, and the two tools work end-to-end
- * against synthetic temp-dir fixtures.
+ * against synthetic temp-dir fixtures. The framework ships no built-in
+ * signatures; callers supply customSignatures.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
@@ -51,11 +52,21 @@ describe('apk-packer integration', () => {
     expect(toolNames).toEqual(['apk_packer_detect', 'apk_packer_list_signatures']);
   });
 
-  it('end-to-end: detect via dirPath surfaces matched packers', async () => {
+  it('end-to-end: detect via dirPath with customSignatures surfaces matches', async () => {
     const ctx = {} as MCPServerContext;
     const handler = await manifest.ensure(ctx);
-    const dirPath = await makeApkDir({ 'arm64-v8a': ['libshell.so', 'libshella-2.10.7.0.so'] });
-    const response = await handler.handleApkPackerDetect({ dirPath });
+    const dirPath = await makeApkDir({ 'arm64-v8a': ['libpacka_main.so', 'libpacka_helper.so'] });
+    const response = await handler.handleApkPackerDetect({
+      dirPath,
+      ruleMode: 'replace',
+      customSignatures: [
+        {
+          name: 'PackerA',
+          vendor: 'vendor-a',
+          libPatterns: ['libpacka_main.so', 'libpacka_helper.so'],
+        },
+      ],
+    });
     const body = R.parse<{
       success: boolean;
       packers: Array<{ name: string; confidence: string }>;
@@ -63,21 +74,17 @@ describe('apk-packer integration', () => {
     }>(response);
     expect(body.success).toBe(true);
     expect(body.layerCount).toBe(1);
-    expect(body.packers[0]!.name).toBe('Tencent Legu');
-    // Two distinct libs → confidence escalates to high.
+    expect(body.packers[0]!.name).toBe('PackerA');
     expect(body.packers[0]!.confidence).toBe('high');
   });
 
-  it('end-to-end: list_signatures returns the catalogue', async () => {
+  it('end-to-end: list_signatures returns the empty default catalogue', async () => {
     const ctx = {} as MCPServerContext;
     const handler = await manifest.ensure(ctx);
     const response = await handler.handleApkPackerListSignatures({});
     const body = R.parse<{ success: boolean; signatures: Array<{ name: string }> }>(response);
     expect(body.success).toBe(true);
-    expect(body.signatures.length).toBeGreaterThanOrEqual(16);
-    const names = body.signatures.map((s) => s.name);
-    expect(names).toContain('Qihoo 360 Jiagu');
-    expect(names).toContain('Tencent Legu');
+    expect(body.signatures).toHaveLength(0);
   });
 
   it('end-to-end: detect with NOT_FOUND apk surfaces error response', async () => {
