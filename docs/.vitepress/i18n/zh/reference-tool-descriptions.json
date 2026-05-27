@@ -416,5 +416,9 @@
   "apk_packer_list_signatures": "返回框架当前的签名表（默认为空）。可按 vendor 子串过滤。纯声明式数据查询，无需 APK 输入。",
   "binary_key_extract": "待补充中文：Scan a binary for hardcoded key candidates (raw high-entropy, Base64, hex). Read-only — no decryption.",
   "dart_symbolize": "待补充中文：Resolve obfuscated Dart identifiers using a developer-supplied Flutter --save-obfuscation-map JSON (flat, pairs, or object shape).",
-  "jadx_search_code": "待补充中文：Read-only ripgrep-backed search over an existing jadx decompile directory. ReDoS-guarded; Node fallback."
+  "jadx_search_code": "待补充中文：Read-only ripgrep-backed search over an existing jadx decompile directory. ReDoS-guarded; Node fallback.",
+  "apk_signing_block_parse": "待补充中文：Read-only parser for the APK Signing Block (schemes v2/v3/v3.1/v4) plus key-rotation lineage detection and residue-block / dex-prefix / magic-offset anomaly flags. Never mutates the APK.",
+  "flutter_packages_detect": "待补充中文：Detect third-party Dart `package:` refs in a Flutter libapp.so, aggregated and SDK-stdlib-filtered.",
+  "dart_snapshot_header_parse": "待补充中文：Parse the Dart isolate snapshot header in a libapp.so: magic, kind, 32-byte hash, features, target arch. Read-only.",
+  "dart_version_fingerprint": "待补充中文：Identify Flutter/Dart SDK release from a libapp.so by combining header parse with a built-in (and optionally user-supplied) hash table."
 }
