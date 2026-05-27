@@ -35,3 +35,21 @@ export const APK_PACKER_MAX_REGEX_PATTERN_LENGTH = int('APK_PACKER_MAX_REGEX_PAT
  * Per-`.test()` budget enforced by the post-hoc ReDoS guard. Default: 50 ms.
  */
 export const APK_PACKER_REGEX_TIMEOUT_MS = int('APK_PACKER_REGEX_TIMEOUT_MS', 50);
+
+/**
+ * SigningBlockParser: how many bytes from the file tail to scan for the
+ * End-of-Central-Directory record. Default: 64 KiB.
+ */
+export const APK_SIGBLOCK_EOCD_SCAN_BYTES = int('APK_SIGBLOCK_EOCD_SCAN_BYTES', 65_536);
+
+/**
+ * SigningBlockParser: maximum signing-block size we are willing to read
+ * into memory. Default: 1 MiB.
+ */
+export const APK_SIGBLOCK_MAX_BYTES = int('APK_SIGBLOCK_MAX_BYTES', 1024 * 1024);
+
+/**
+ * SigningBlockParser: how many bytes from the file head to inspect for the
+ * DEX-magic prefix heuristic. Default: 4 bytes (enough for the u32 magic).
+ */
+export const APK_SIGBLOCK_DEX_PREFIX_HEAD_BYTES = int('APK_SIGBLOCK_DEX_PREFIX_HEAD_BYTES', 4);
