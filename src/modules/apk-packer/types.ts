@@ -13,17 +13,17 @@ export type PackerConfidence = 'high' | 'medium' | 'low';
  * Compiled fingerprint used internally by the detector.
  *
  * `libPatterns` may contain either:
- *   - a literal lowercase filename (e.g. `libjiagu.so`)
- *   - a `RegExp` (e.g. `/^libshellx-[\w.-]+\.so$/`)
+ *   - a literal lowercase filename
+ *   - a `RegExp`
  *
  * Multiple distinct hits across patterns escalate confidence
  * (single hit → medium, ≥2 hits → high).
  */
 export interface PackerSignature {
-  /** Display name, e.g. `CustomPackerA`. */
+  /** Display name of the fingerprint entry. */
   readonly name: string;
-  /** Vendor / origin label, supplied by the caller. */
-  readonly vendor: string;
+  /** Optional free-form category label supplied by the caller. */
+  readonly category?: string;
   /** Patterns evaluated against `lib/<abi>/<filename>` basenames. */
   readonly libPatterns: readonly (string | RegExp)[];
   /**
@@ -45,7 +45,7 @@ export interface PackerSignature {
  */
 export interface PackerSignatureInput {
   readonly name: string;
-  readonly vendor: string;
+  readonly category?: string;
   readonly libPatterns: readonly string[];
   readonly confidence?: PackerConfidence;
   readonly notes?: string;
@@ -54,7 +54,7 @@ export interface PackerSignatureInput {
 /** A single packer match produced by the detector. */
 export interface PackerMatch {
   readonly name: string;
-  readonly vendor: string;
+  readonly category?: string;
   readonly matchedLibs: readonly string[];
   readonly confidence: PackerConfidence;
 }
