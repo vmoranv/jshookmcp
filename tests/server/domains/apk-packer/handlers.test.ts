@@ -39,7 +39,7 @@ async function makeApkDir(libsByAbi: Record<string, string[]>): Promise<string> 
 
 const PACKER_A_SIG = {
   name: 'PackerA',
-  vendor: 'vendor-a',
+  category: 'category-a',
   libPatterns: ['libpacka.so'],
 } as const;
 
@@ -86,7 +86,7 @@ describe('ApkPackerHandlers.handleApkPackerDetect — happy paths', () => {
       ruleMode: 'replace',
       customSignatures: [
         PACKER_A_SIG,
-        { name: 'MyCustom', vendor: 'Acme', libPatterns: ['libcustom.so'] },
+        { name: 'MyCustom', category: 'Acme', libPatterns: ['libcustom.so'] },
       ],
     });
     const body = R.parse<{
@@ -135,23 +135,23 @@ describe('ApkPackerHandlers.handleApkPackerDetect — validation errors', () => 
     const dirPath = await makeApkDir({ 'arm64-v8a': ['libapp.so'] });
     const response = await handlers.handleApkPackerDetect({
       dirPath,
-      customSignatures: [{ name: 'evil', vendor: 'attacker', libPatterns: ['^(a+)+$'] }],
+      customSignatures: [{ name: 'evil', category: 'attacker', libPatterns: ['^(a+)+$'] }],
     });
     const body = R.parse<{ success: boolean; error: string }>(response);
     expect(body.success).toBe(false);
     expect(body.error.toLowerCase()).toContain('catastrophic');
   });
 
-  it('rejects customSignatures with malformed shape (missing vendor)', async () => {
+  it('accepts customSignatures with malformed shape (missing libPatterns)', async () => {
     const handlers = new ApkPackerHandlers();
     const dirPath = await makeApkDir({ 'arm64-v8a': ['libapp.so'] });
     const response = await handlers.handleApkPackerDetect({
       dirPath,
-      customSignatures: [{ name: 'oops', libPatterns: ['libfoo.so'] }],
+      customSignatures: [{ name: 'oops' }],
     });
     const body = R.parse<{ success: boolean; error: string }>(response);
     expect(body.success).toBe(false);
-    expect(body.error).toMatch(/vendor/i);
+    expect(body.error).toMatch(/libPatterns/i);
   });
 });
 
@@ -161,15 +161,15 @@ describe('ApkPackerHandlers.handleApkPackerListSignatures', () => {
     const response = await handlers.handleApkPackerListSignatures({});
     const body = R.parse<{
       success: boolean;
-      signatures: Array<{ name: string; vendor: string; libPatterns: unknown[] }>;
+      signatures: Array<{ name: string; category?: string; libPatterns: unknown[] }>;
     }>(response);
     expect(body.success).toBe(true);
     expect(body.signatures).toHaveLength(0);
   });
 
-  it('still returns an empty list when filtered by any vendor', async () => {
+  it('still returns an empty list when filtered by any category', async () => {
     const handlers = new ApkPackerHandlers();
-    const response = await handlers.handleApkPackerListSignatures({ vendor: 'anything' });
+    const response = await handlers.handleApkPackerListSignatures({ category: 'anything' });
     const body = R.parse<{ success: boolean; signatures: unknown[] }>(response);
     expect(body.success).toBe(true);
     expect(body.signatures).toHaveLength(0);

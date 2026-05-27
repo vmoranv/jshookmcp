@@ -6,9 +6,9 @@ import { tool } from '@server/registry/tool-builder';
  *
  * Both tools are pure declarative-fingerprint operations:
  *   - `apk_packer_detect` matches a target APK (or already-unpacked dir)
- *     against the built-in DEFAULT_SIGNATURES plus optional customSignatures.
+ *     against caller-supplied customSignatures (DEFAULT_SIGNATURES is empty).
  *   - `apk_packer_list_signatures` exposes the in-process signature table so
- *     callers can inspect or filter the catalogue.
+ *     callers can inspect or filter the catalogue (empty by default).
  *
  * No unpacking, no payload, no shellcode — only filename matching.
  */
@@ -34,8 +34,11 @@ export const apkPackerTools: Tool[] = [
         {
           type: 'object',
           properties: {
-            name: { type: 'string', description: 'Display name, e.g. "MyCustomGuard"' },
-            vendor: { type: 'string', description: 'Vendor / origin label' },
+            name: { type: 'string', description: 'Display name of the fingerprint entry' },
+            category: {
+              type: 'string',
+              description: 'Optional free-form category label supplied by the caller',
+            },
             libPatterns: {
               type: 'array',
               items: { type: 'string' },
@@ -49,7 +52,7 @@ export const apkPackerTools: Tool[] = [
             },
             notes: { type: 'string', description: 'Free-form notes surfaced in list-signatures' },
           },
-          required: ['name', 'vendor', 'libPatterns'],
+          required: ['name', 'libPatterns'],
         },
         'Additional fingerprints supplied by the caller. Compile-time and ' +
           'runtime ReDoS guards apply.',
@@ -59,11 +62,11 @@ export const apkPackerTools: Tool[] = [
   tool('apk_packer_list_signatures', (t) =>
     t
       .desc(
-        'List the built-in declarative fingerprint database used by ' +
-          '`apk_packer_detect`. Optionally filter by case-insensitive vendor ' +
-          'substring. Purely informational — no APK input required.',
+        'List the in-process signature table used by `apk_packer_detect`. ' +
+          'Empty by default; reflects caller-managed state at request time. ' +
+          'Optionally filter by case-insensitive category substring.',
       )
-      .string('vendor', 'Optional case-insensitive vendor substring filter')
+      .string('category', 'Optional case-insensitive category substring filter')
       .query(),
   ),
 ];

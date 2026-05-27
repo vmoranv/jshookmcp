@@ -40,12 +40,12 @@ async function makeApkDir(libsByAbi: Record<string, string[]>): Promise<string> 
 
 const SIG_A = compileSignatureInput({
   name: 'PackerA',
-  vendor: 'vendor-a',
+  category: 'category-a',
   libPatterns: ['libpacka.so', '^libpacka_[\\w.-]+\\.so$'],
 });
 const SIG_B = compileSignatureInput({
   name: 'PackerB',
-  vendor: 'vendor-b',
+  category: 'category-b',
   libPatterns: ['libpackb_main.so', 'libpackb_runtime.so'],
 });
 
@@ -150,7 +150,7 @@ describe('PackerDetector.detectFromDir — customSignatures', () => {
   it('appends custom signature in append mode (default keeps both)', async () => {
     const custom = compileSignatureInput({
       name: 'CustomGuard',
-      vendor: 'Acme',
+      category: 'Acme',
       libPatterns: ['libcustomguard.so'],
     });
     const dir = await makeApkDir({ 'arm64-v8a': ['libcustomguard.so', 'libpacka.so'] });
@@ -165,7 +165,7 @@ describe('PackerDetector.detectFromDir — customSignatures', () => {
   it('replace mode drops defaults entirely', async () => {
     const custom = compileSignatureInput({
       name: 'CustomOnly',
-      vendor: 'Acme',
+      category: 'Acme',
       libPatterns: ['libcustom.so'],
     });
     const dir = await makeApkDir({ 'arm64-v8a': ['libcustom.so'] });
@@ -180,7 +180,7 @@ describe('PackerDetector.detectFromDir — customSignatures', () => {
   it('regex custom signatures match across abi dirs', async () => {
     const custom = compileSignatureInput({
       name: 'RegexGuard',
-      vendor: 'Acme',
+      category: 'Acme',
       libPatterns: ['^libregex[\\w.-]+\\.so$'],
     });
     const dir = await makeApkDir({ 'arm64-v8a': ['libregex123.so'] });

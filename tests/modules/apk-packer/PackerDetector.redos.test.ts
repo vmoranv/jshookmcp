@@ -18,7 +18,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
     expect(() =>
       compileSignatureInput({
         name: 'evil',
-        vendor: 'attacker',
+        category: 'attacker',
         libPatterns: ['^(a+)+$'],
       }),
     ).toThrowError(
@@ -34,7 +34,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
     expect(() =>
       compileSignatureInput({
         name: 'evil',
-        vendor: 'attacker',
+        category: 'attacker',
         libPatterns: ['^(a|b)+c+$'],
       }),
     ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
@@ -44,7 +44,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
     expect(() =>
       compileSignatureInput({
         name: 'evil',
-        vendor: 'attacker',
+        category: 'attacker',
         libPatterns: ['(a*)+b'],
       }),
     ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
@@ -55,7 +55,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
     expect(() =>
       compileSignatureInput({
         name: 'long',
-        vendor: 'attacker',
+        category: 'attacker',
         libPatterns: [longPattern],
       }),
     ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
@@ -65,7 +65,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
     expect(() =>
       compileSignatureInput({
         name: 'bad-syntax',
-        vendor: 'attacker',
+        category: 'attacker',
         libPatterns: ['^lib(.+\\.so$'],
       }),
     ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
@@ -73,18 +73,12 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
 
   it('rejects empty name', () => {
     expect(() =>
-      compileSignatureInput({ name: '', vendor: 'x', libPatterns: ['libfoo.so'] }),
-    ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
-  });
-
-  it('rejects empty vendor', () => {
-    expect(() =>
-      compileSignatureInput({ name: 'x', vendor: '', libPatterns: ['libfoo.so'] }),
+      compileSignatureInput({ name: '', category: 'x', libPatterns: ['libfoo.so'] }),
     ).toThrowError(expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }));
   });
 
   it('rejects empty libPatterns array', () => {
-    expect(() => compileSignatureInput({ name: 'x', vendor: 'y', libPatterns: [] })).toThrowError(
+    expect(() => compileSignatureInput({ name: 'x', category: 'y', libPatterns: [] })).toThrowError(
       expect.objectContaining({ name: 'ToolError', code: 'VALIDATION' }),
     );
   });
@@ -92,7 +86,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
   it('accepts literal filenames untouched (no regex compilation)', () => {
     const sig = compileSignatureInput({
       name: 'safe',
-      vendor: 'safe',
+      category: 'safe',
       libPatterns: ['libfoo.so', 'libbar.so'],
     });
     expect(sig.libPatterns).toEqual(['libfoo.so', 'libbar.so']);
@@ -101,7 +95,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
   it('lowercases literal filenames', () => {
     const sig = compileSignatureInput({
       name: 'safe',
-      vendor: 'safe',
+      category: 'safe',
       libPatterns: ['LIBFOO.SO'],
     });
     expect(sig.libPatterns[0]).toBe('libfoo.so');
@@ -110,7 +104,7 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
   it('compiles safe regex sources with the i flag', () => {
     const sig = compileSignatureInput({
       name: 'safe',
-      vendor: 'safe',
+      category: 'safe',
       libPatterns: ['^libfoo[0-9]+\\.so$'],
     });
     expect(sig.libPatterns[0]).toBeInstanceOf(RegExp);
@@ -120,12 +114,8 @@ describe('ReDoS red line 1 — compile-time heuristic rejection', () => {
 
 describe('ReDoS red line 2 — runtime per-test timeout', () => {
   it('aborts when a single .test() exceeds the timeout budget', () => {
-    // `(a|a)*` slips past the heuristic but blows up at runtime on a
-    // long all-`a` input.
     const slow = new RegExp('^(a|a)*$');
     const longA = 'a'.repeat(30);
-    // Run with timeout = 0 — even microseconds of elapsed time trip the
-    // guard, making the test reliable regardless of CPU speed.
     expect(() => testPatternTimed(slow, longA, 0, 'evil')).toThrowError(
       expect.objectContaining({
         name: 'ToolError',
@@ -136,8 +126,8 @@ describe('ReDoS red line 2 — runtime per-test timeout', () => {
   });
 
   it('does NOT fire under a normal timeout for a trivial regex', () => {
-    const fast = /^libjiagu\.so$/;
-    expect(() => testPatternTimed(fast, 'libjiagu.so', 50, 'safe')).not.toThrow();
-    expect(testPatternTimed(fast, 'libjiagu.so', 50, 'safe')).toBe(true);
+    const fast = /^libfoo\.so$/;
+    expect(() => testPatternTimed(fast, 'libfoo.so', 50, 'safe')).not.toThrow();
+    expect(testPatternTimed(fast, 'libfoo.so', 50, 'safe')).toBe(true);
   });
 });
