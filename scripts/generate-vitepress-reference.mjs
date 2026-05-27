@@ -483,6 +483,21 @@ const META = {
     ],
     enCombos: ['apk-packer + binary-instrument', 'apk-packer + adb-bridge'],
   },
+  'binary-secrets': {
+    zhTitle: 'Binary Secrets',
+    zhSummary: '扫描二进制文件中硬编码的密钥候选（高熵原始数据、Base64、hex），纯只读信息输出。',
+    zhScenarios: ['密钥候选偏移定位', '高熵区域检测', 'Base64/hex 编码密钥提取'],
+    zhCombos: ['binary-secrets + apk-packer', 'binary-secrets + binary-instrument'],
+    enTitle: 'Binary Secrets',
+    enSummary:
+      'Scan binaries for hardcoded key candidates (raw high-entropy, Base64, hex). Read-only informational output.',
+    enScenarios: [
+      'Locate candidate key offsets',
+      'Detect high-entropy regions',
+      'Extract Base64/hex encoded keys',
+    ],
+    enCombos: ['binary-secrets + apk-packer', 'binary-secrets + binary-instrument'],
+  },
   'extension-registry': {
     zhTitle: 'Extension Registry',
     zhSummary: '扩展注册域，管理和发现社区扩展。',

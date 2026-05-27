@@ -16,6 +16,7 @@
 | `antidebug` | AntiDebug | full | 反反调试域，集中提供检测与绕过浏览器端反调试脚本的工具。 |
 | `apk-packer` | APK Packer | full | 通过匹配 `lib/<abi>/lib*.so` 文件名识别 Android APK 加固层；框架不内置签名表，调用方通过 customSignatures 提供（ReDoS 防护正则编译）。不脱壳、不动态执行、不与加固载荷交互。 |
 | `binary-instrument` | Binary Instrument | full | 二进制插桩域，提供二进制分析和运行时插桩能力。 |
+| `binary-secrets` | Binary Secrets | full | 扫描二进制文件中硬编码的密钥候选（高熵原始数据、Base64、hex），纯只读信息输出。 |
 | `boringssl-inspector` | BoringSSL Inspector | workflow, full | BoringSSL/TLS 检查域，支持 TLS 流量分析和证书检查。 |
 | `browser` | Browser | workflow, full | 浏览器控制与 DOM 交互主域，也是大多数工作流的入口。 |
 | `canvas` | Canvas | full | 游戏引擎 Canvas 逆向分析域，支持 Laya/Pixi/Phaser/Cocos/Unity 等主流游戏引擎的指纹识别、场景树导出和对象拾取。 |
