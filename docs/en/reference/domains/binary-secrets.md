@@ -2,7 +2,7 @@
 
 Domain: `binary-secrets`
 
-Statically scan a binary for high-entropy windows, Base64/Hex candidates, and hard-coded key shapes; emit offsets + context as audit candidates.
+Scan binaries for hardcoded key candidates (raw high-entropy, Base64, hex). Read-only informational output.
 
 ## Profiles
 
@@ -10,14 +10,14 @@ Statically scan a binary for high-entropy windows, Base64/Hex candidates, and ha
 
 ## Typical scenarios
 
-- Hard-coded key candidate discovery
-- High-entropy region audit
-- Base64/Hex credential leads
+- Locate candidate key offsets
+- Detect high-entropy regions
+- Extract Base64/hex encoded keys
 
 ## Common combinations
 
-- binary-secrets + dart-inspector
 - binary-secrets + apk-packer
+- binary-secrets + binary-instrument
 
 ## Full tool list (1)
 
