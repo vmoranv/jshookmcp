@@ -414,11 +414,12 @@
   "dart_smi_scan": "从 libapp.so 中还原 Dart Small Integer（Smi）整数常量。Dart VM 用最低位区分 Smi（0）与堆指针（1），整数字面量按 value << 1 存储，普通字符串扫描看不到。本工具按对齐的小端字（4 或 8 字节）扫描并还原 Smi 值，支持范围过滤、起止偏移、步长、限量截断等参数。",
   "apk_packer_detect": "通过匹配 `lib/<abi>/lib*.so` 文件名识别 Android APK 加固层；框架不内置签名表，调用方通过 customSignatures 提供（ReDoS 防护正则编译）。**不脱壳、不动态执行、不与加固载荷交互。**",
   "apk_packer_list_signatures": "返回框架当前的签名表（默认为空）。可按 vendor 子串过滤。纯声明式数据查询，无需 APK 输入。",
-  "binary_key_extract": "待补充中文：Scan a binary for hardcoded key candidates (raw high-entropy, Base64, hex). Read-only — no decryption.",
-  "dart_symbolize": "待补充中文：Resolve obfuscated Dart identifiers using a developer-supplied Flutter --save-obfuscation-map JSON (flat, pairs, or object shape).",
-  "jadx_search_code": "待补充中文：Read-only ripgrep-backed search over an existing jadx decompile directory. ReDoS-guarded; Node fallback.",
-  "apk_signing_block_parse": "待补充中文：Read-only parser for the APK Signing Block (schemes v2/v3/v3.1/v4) plus key-rotation lineage detection and residue-block / dex-prefix / magic-offset anomaly flags. Never mutates the APK.",
-  "flutter_packages_detect": "待补充中文：Detect third-party Dart `package:` refs in a Flutter libapp.so, aggregated and SDK-stdlib-filtered.",
-  "dart_snapshot_header_parse": "待补充中文：Parse the Dart isolate snapshot header in a libapp.so: magic, kind, 32-byte hash, features, target arch. Read-only.",
-  "dart_version_fingerprint": "待补充中文：Identify Flutter/Dart SDK release from a libapp.so by combining header parse with a built-in (and optionally user-supplied) hash table."
+  "binary_key_extract": "扫描二进制文件中的硬编码密钥候选（高熵原始字节、Base64、十六进制）。只读分析，不执行解密。",
+  "dart_symbolize": "使用开发者提供的 Flutter --save-obfuscation-map JSON（flat、pairs 或 object 格式）还原混淆后的 Dart 标识符。",
+  "jadx_search_code": "对已有的 jadx 反编译输出目录执行只读 ripgrep 搜索（带 Node 纯回退引擎）。内置 ReDoS 双重防护。",
+  "apk_signing_block_parse": "只读解析 APK Signing Block（v2/v3/v3.1/v4 签名方案），检测密钥轮换谱系及残留块/dex 前缀/魔数偏移异常标记。不修改 APK。",
+  "flutter_packages_detect": "检测 Flutter libapp.so 中的第三方 Dart `package:` 引用，聚合后过滤 SDK 标准库。",
+  "dart_snapshot_header_parse": "解析 libapp.so 中 Dart isolate 快照头：魔数、类型、32 字节哈希、特性标志、目标架构。只读。",
+  "dart_version_fingerprint": "通过解析头信息并结合内置（及可选用户提供的）哈希表，从 libapp.so 识别 Flutter/Dart SDK 版本。",
+  "dart_object_pool_dump": "只读静态转储 libapp.so 中 Dart isolate ObjectPool：按 smi/mint/double/string/classRef/functionRef/pool/null/unknown 分类每个槽位。"
 }
