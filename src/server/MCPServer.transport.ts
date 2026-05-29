@@ -250,6 +250,9 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
       ['debuggerManager', ctx.debuggerManager, 'close'],
       ['scriptManager', ctx.scriptManager, 'close'],
       ['transformHandlers', ctx.transformHandlers, 'close'],
+      // Lazy domain — undefined when never activated (or in a partial context),
+      // skipped by the guard below.
+      ['nativeEmulatorHandlers', ctx.getDomainInstance?.('nativeEmulatorHandlers'), 'dispose'],
     ];
 
     for (const [name, instance, method] of closables) {

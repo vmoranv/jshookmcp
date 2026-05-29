@@ -671,6 +671,17 @@ export const GHIDRA_TIMEOUT_MS = int('GHIDRA_TIMEOUT_MS', 120_000);
 export const UNIDBG_TIMEOUT_MS = int('UNIDBG_TIMEOUT_MS', 60_000);
 
 /* ================================================================== */
+/*  Native emulator (in-process ARM64) session pool                   */
+/* ================================================================== */
+
+/** Idle TTL before an untouched native-emulator session is swept (ms). Default: 5 min. */
+export const NEMU_SESSION_IDLE_TTL_MS = int('NEMU_SESSION_IDLE_TTL_MS', 300_000);
+/** How often the native-emulator idle sweep runs (ms). Default: 1 min. */
+export const NEMU_SESSION_SWEEP_MS = int('NEMU_SESSION_SWEEP_MS', 60_000);
+/** Max concurrent native-emulator sessions (bounds memory). Default: 64. */
+export const NEMU_MAX_SESSIONS = int('NEMU_MAX_SESSIONS', 64);
+
+/* ================================================================== */
 /*  ADB bridge timeouts                                                */
 /* ================================================================== */
 
