@@ -2,14 +2,14 @@
  * Throughput benchmark for the self-built ARM64 interpreter (L0).
  *
  * Zero external deps, so tsx runs it directly:
- *   npx tsx scripts/native-emulator-bench.ts
+ *   npx tsx scripts/dev-probes/native-emulator-bench.ts
  *
  * Constructs a long linear run of `add x0, x0, x1` (0x8b010000) and measures
  * sustained instruction throughput. Reports best-of-N to filter JIT warmup
  * and GC noise. Verifies the final accumulator to guard against an
  * "optimization" that silently breaks semantics.
  */
-import { CpuEngine } from '../src/modules/native-emulator/CpuEngine.ts';
+import { CpuEngine } from '../../src/modules/native-emulator/CpuEngine.ts';
 
 const INSN = new Uint8Array([0x00, 0x00, 0x01, 0x8b]); // add x0, x0, x1
 const COUNT = 50_000;

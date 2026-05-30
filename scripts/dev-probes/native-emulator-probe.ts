@@ -8,15 +8,15 @@
  * ISA fills in, the histogram shrinks. It is NOT a CI test (no real `.so` is
  * committed); it runs only against whatever binaries exist locally.
  *
- *   npx tsx scripts/native-emulator-probe.ts [rootDir]
+ *   npx tsx scripts/dev-probes/native-emulator-probe.ts [rootDir]
  *
  * Default root: .tmp_mcp_artifacts/jadx-apk-test/resources/lib/arm64-v8a
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CpuEngine } from '../src/modules/native-emulator/CpuEngine';
-import { createBionicLibrary } from '../src/modules/native-emulator/bionic';
+import { CpuEngine } from '../../src/modules/native-emulator/CpuEngine';
+import { createBionicLibrary } from '../../src/modules/native-emulator/bionic';
 
 const DEFAULT_ROOT = '.tmp_mcp_artifacts/jadx-apk-test/resources/lib/arm64-v8a';
 const root = process.argv[2] ?? DEFAULT_ROOT;
