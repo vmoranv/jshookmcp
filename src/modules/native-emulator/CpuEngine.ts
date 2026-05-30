@@ -29,6 +29,8 @@ import {
   R_AARCH64_RELATIVE,
 } from './ElfLoader';
 import type { BionicLibrary } from './bionic';
+import type { SimdContext } from './simd';
+import { executeSimdFp, executeSimdLoadStore } from './simd';
 
 const EM_AARCH64 = 183;
 const MASK64 = (1n << 64n) - 1n;
@@ -134,6 +136,15 @@ export class CpuEngine {
   private readonly instructionHooks: InstructionHook[] = [];
   /** Set by exit/exit_group (or a host stub) to halt the run loop at once. */
   private stopRequested = false;
+  /**
+   * The SIMD/FP V register file: 32 × 128-bit vectors (V0..V31), each the
+   * backing store for its Q/D/S/H/B aliases. Held here (not in simd.ts) so a
+   * session snapshots cleanly; a DataView per register gives multi-width lane
+   * access without re-wrapping. AArch64 is little-endian, so byte 0 is least
+   * significant.
+   */
+  private readonly vreg: Uint8Array[] = Array.from({ length: 32 }, () => new Uint8Array(16));
+  private readonly vview: DataView[] = this.vreg.map((b) => new DataView(b.buffer));
 
   /** Self-contained — no external engine to probe. */
   isAvailable(): boolean {
@@ -346,6 +357,112 @@ export class CpuEngine {
     };
   }
 
+  /** Read the 16 bytes of V register `reg` (copy, safe to mutate). */
+  readVReg(reg: number): Uint8Array {
+    return Uint8Array.from(this.vreg[reg] ?? new Uint8Array(16));
+  }
+
+  /** Overwrite V register `reg`; shorter input is zero-padded, longer truncated. */
+  writeVReg(reg: number, bytes: Uint8Array): void {
+    const dst = this.vreg[reg];
+    if (!dst) return;
+    dst.fill(0);
+    dst.set(bytes.subarray(0, 16));
+  }
+
+  /** Read GPR xN as a 64-bit BigInt (index 31 = XZR = 0). Public test/host accessor. */
+  readGprValue(index: number): bigint {
+    return this.readGpr(index);
+  }
+
+  /** Write GPR xN (index 31 = XZR, discarded). Public test/host accessor. */
+  writeGprValue(index: number, value: bigint): void {
+    this.writeGpr(index, value);
+  }
+
+  /** Read V register `reg` as one little-endian 128-bit value. */
+  private vGet128(reg: number): bigint {
+    const view = this.vview[reg];
+    if (!view) return 0n;
+    const lo = view.getBigUint64(0, true);
+    const hi = view.getBigUint64(8, true);
+    return (hi << 64n) | lo;
+  }
+
+  /** Write V register `reg` from one 128-bit value (little-endian). */
+  private vSet128(reg: number, value: bigint): void {
+    const view = this.vview[reg];
+    if (!view) return;
+    const v = BigInt.asUintN(128, value);
+    view.setBigUint64(0, v & MASK64, true);
+    view.setBigUint64(8, (v >> 64n) & MASK64, true);
+  }
+
+  /** Read lane `index` of V[`reg`] at element size 2^`sizeLog2` bytes. */
+  private vGetLane(reg: number, sizeLog2: number, index: number): bigint {
+    const view = this.vview[reg];
+    if (!view) return 0n;
+    const off = index << sizeLog2;
+    if (off < 0 || off + (1 << sizeLog2) > 16) return 0n;
+    switch (sizeLog2) {
+      case 0:
+        return BigInt(view.getUint8(off));
+      case 1:
+        return BigInt(view.getUint16(off, true));
+      case 2:
+        return BigInt(view.getUint32(off, true));
+      default:
+        return view.getBigUint64(off, true);
+    }
+  }
+
+  /** Write lane `index` of V[`reg`] at element size 2^`sizeLog2` bytes. */
+  private vSetLane(reg: number, sizeLog2: number, index: number, value: bigint): void {
+    const view = this.vview[reg];
+    if (!view) return;
+    const off = index << sizeLog2;
+    if (off < 0 || off + (1 << sizeLog2) > 16) return;
+    switch (sizeLog2) {
+      case 0:
+        view.setUint8(off, Number(value & 0xffn));
+        break;
+      case 1:
+        view.setUint16(off, Number(value & 0xffffn), true);
+        break;
+      case 2:
+        view.setUint32(off, Number(value & 0xffff_ffffn), true);
+        break;
+      default:
+        view.setBigUint64(off, value & MASK64, true);
+        break;
+    }
+  }
+
+  /** Build the SimdContext window handed to the SIMD/FP execution layer. */
+  private simdContext(): SimdContext {
+    return {
+      vGetBytes: (reg) => this.readVReg(reg),
+      vSetBytes: (reg, bytes) => this.writeVReg(reg, bytes),
+      vGet128: (reg) => this.vGet128(reg),
+      vSet128: (reg, value) => this.vSet128(reg, value),
+      vGetLane: (reg, sz, idx) => this.vGetLane(reg, sz, idx),
+      vSetLane: (reg, sz, idx, value) => this.vSetLane(reg, sz, idx, value),
+      memRead: (addr, len) => this.readMemory(addr, len),
+      memWrite: (addr, bytes) => this.writeCode(addr, bytes),
+      gprRead: (i) => this.readGpr(i),
+      gprWrite: (i, v) => this.writeGpr(i, BigInt.asUintN(64, v)),
+      gprReadSp: (i) => this.readGprSp(i),
+      setNZCV: (n, z, c, v) => {
+        this.flagN = n;
+        this.flagZ = z;
+        this.flagC = c;
+        this.flagV = v;
+      },
+      conditionHolds: (cond) => this.conditionHolds(cond),
+      getPc: () => this.pc,
+    };
+  }
+
   /** Run a host stub: call JS, store its return in x0 (if any). */
   private invokeHost(fn: HostFunction): void {
     const result = fn(this.hostContext());
@@ -430,7 +547,7 @@ export class CpuEngine {
    *   101x (10,11)       → Branches, Exception Generating, System
    *   x1x0 (4,6,12,14)   → Loads and Stores
    *   x101 (5,13)        → Data Processing -- Register
-   *   x111 (7,15)        → FP / Advanced SIMD (not yet emulated)
+   *   x111 (7,15)        → FP / Advanced SIMD (NEON + crypto-ext + scalar FP)
    */
   private execute(insn: number): void {
     const op0 = (insn >>> 25) & 0b1111;
@@ -444,6 +561,10 @@ export class CpuEngine {
       if (this.execDataProcessingRegister(insn)) return;
     } else if ((op0 & 0b0101) === 0b0100) {
       if (this.execLoadStore(insn)) return;
+    } else if ((op0 & 0b0111) === 0b0111) {
+      // x111 (7, 15) → Data Processing -- Scalar FP & Advanced SIMD. Disjoint
+      // from the masks above, so order among these branches is irrelevant.
+      if (executeSimdFp(this.simdContext(), insn)) return;
     }
 
     throw new Error(
@@ -1201,6 +1322,13 @@ export class CpuEngine {
    * and pre/post-index) and LDP/STP. Returns true when handled.
    */
   private execLoadStore(insn: number): boolean {
+    // FP/SIMD register transfers (V=1, bit 26) split off to the SIMD layer —
+    // LDR/STR/LDP/STP of B/H/S/D/Q move bytes between guest memory and the V
+    // register file, not the GPRs the rest of this method serves.
+    if (((insn >>> 26) & 1) === 1) {
+      return executeSimdLoadStore(this.simdContext(), insn);
+    }
+
     // Load/store exclusive (LDXR/LDAXR/STXR/STLXR, byte/half/word/dword):
     //   size(31:30) | 001000 | o2 | L(22) | o1 | Rs(20:16) | o0 | Rt2 | Rn | Rt
     // The emulator is single-threaded, so an exclusive pair can never be broken

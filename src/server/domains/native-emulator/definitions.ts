@@ -18,7 +18,7 @@ export const nativeEmulatorTools: Tool[] = [
   tool('nemu_capabilities', (t) =>
     t
       .desc(
-        'Report native-emulator backend availability and supported features (self-built ARM64 interpreter, no external dependencies). Emulates the integer AArch64 ISA + ELF relocations + auto-wired bionic libc + JNI; NEON/SIMD/FP and AES/SHA crypto-extension instructions are not yet supported (declared in the response).',
+        'Report native-emulator backend availability and supported features (self-built ARM64 interpreter, no external dependencies). Emulates the integer AArch64 ISA + SIMD/FP load-store + AES/SHA/PMULL crypto-extension (bit-exact vs FIPS-197/180-4/180-1) + scalar IEEE-754 floating-point + NEON integer-lane SIMD (three-same arithmetic/logical/compare/min-max, misc, DUP, MOVI, shift-by-immediate, across-lanes, permute, EXT, TBL) + ELF relocations + auto-wired bionic libc + JNI; long/widening and saturating NEON variants are not yet supported (declared in the response).',
       )
       .query(),
   ),

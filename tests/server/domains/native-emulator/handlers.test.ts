@@ -150,7 +150,7 @@ describe('NativeEmulatorHandlers — happy path', () => {
     expect(data.available).toBe(true);
   });
 
-  it('advertises the post-Phase-5 feature set and an honest ISA boundary', async () => {
+  it('advertises the post-Phase-F feature set and an honest ISA boundary', async () => {
     handlers = new NativeEmulatorHandlers();
     const data = payload(await handlers.handleCapabilities({}));
     const features = data.features as string[];
@@ -160,9 +160,19 @@ describe('NativeEmulatorHandlers — happy path', () => {
     expect(features).toContain('java-mock-field');
     expect(features).toContain('exclusive-load-store');
     expect(features).toContain('system-register-read');
-    // The NEON gap is declared, not hidden.
-    expect(data.isa).toBe('aarch64-integer');
+    // Phase C/D crypto extension is implemented (bit-exact vs FIPS vectors).
+    expect(features).toContain('aes-crypto');
+    expect(features).toContain('sha256-crypto');
+    expect(features).toContain('sha1-crypto');
+    expect(features).toContain('pmull-ghash');
+    // Phase E scalar IEEE-754 floating-point is implemented.
+    expect(features).toContain('scalar-fp');
+    // Phase F NEON integer-lane SIMD is implemented.
+    expect(features).toContain('neon-integer-simd');
+    expect(data.isa).toBe('aarch64-integer+neon+crypto+fp');
+    // The remaining gap (long/widening + saturating NEON variants) is declared, not hidden.
     expect(String(data.note)).toMatch(/NEON/);
+    expect(String(data.note)).toMatch(/saturating|widening/);
   });
 
   it('creates a session and lists it', async () => {

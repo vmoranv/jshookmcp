@@ -52,6 +52,13 @@ export class NativeEmulatorHandlers {
         'getrandom',
         'system-register-read',
         'exclusive-load-store',
+        'simd-fp-load-store',
+        'aes-crypto',
+        'sha1-crypto',
+        'sha256-crypto',
+        'pmull-ghash',
+        'scalar-fp',
+        'neon-integer-simd',
         'call-exported-symbol',
         'call-jni-export',
         'java-mock-callback',
@@ -59,9 +66,9 @@ export class NativeEmulatorHandlers {
         'apk-arm64-extract',
         'instruction-trace',
       ],
-      isa: 'aarch64-integer',
+      isa: 'aarch64-integer+neon+crypto+fp',
       activeSessions: this.sessions.count(),
-      note: 'In-process AArch64 interpreter — integer ISA only. NEON/SIMD/FP and the AES/SHA crypto-extension instructions are not yet emulated, so a `.so` whose hot path is hardware-accelerated will hit an unsupported opcode. libapp.so (Flutter Dart AOT) is not executable here.',
+      note: 'In-process AArch64 interpreter: integer ISA + SIMD/FP load-store + AES/SHA/PMULL crypto-extension (bit-exact vs FIPS-197/180-4/180-1) + scalar IEEE-754 floating-point (FADD/FMUL/FDIV/FSQRT/FCVT/FCMP/FCSEL, float32 via fround) + NEON integer-lane SIMD (three-same ADD/SUB/MUL/logical/compare/min-max, two-register-misc, DUP, MOVI/MVNI, shift-by-immediate, across-lanes reductions, ZIP/UZP/TRN, EXT, TBL/TBX). The long/widening and saturating NEON variants (e.g. SQADD, SADDL) are not yet emulated, so a `.so` relying on those will hit an unsupported opcode (reported with the raw opcode). libapp.so (Flutter Dart AOT) is not executable here.',
     }));
   }
 
