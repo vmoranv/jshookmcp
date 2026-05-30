@@ -48,6 +48,7 @@ export class NativeEmulatorHandlers {
         'elf-relocations',
         'pt-dynamic-symbols',
         'auto-wire-bionic-libc',
+        'bionic-stdio-vfs',
         'android-syscalls',
         'getrandom',
         'system-register-read',

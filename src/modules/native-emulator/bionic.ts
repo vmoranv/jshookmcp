@@ -22,6 +22,26 @@ export interface BionicStubAddresses {
   free?: number;
 }
 
+/**
+ * Injectable behaviour for the stdio/logging stubs. The virtual file system lets
+ * a caller model "what files exist on the device" — exactly the question
+ * anti-tamper code (RootBeer's exists()/fopen, Frida-server path probes) asks. An
+ * empty/absent `files` map means a clean device: every fopen returns NULL.
+ */
+export interface BionicOptions {
+  /**
+   * Virtual file system for fopen/fread: absolute path → file contents. A path
+   * present here "exists" (fopen returns a non-NULL FILE*); any other path fails
+   * (fopen returns NULL), modelling a device where the artifact is absent.
+   */
+  files?: Map<string, Uint8Array>;
+  /**
+   * Sink for __android_log_print: receives (priority, tag, message). Default:
+   * discard. Lets a caller observe what a detection routine logs.
+   */
+  onLog?: (priority: number, tag: string, message: string) => void;
+}
+
 /** Bump-allocator heap base — distinct from typical code/data vaddrs. */
 const HEAP_BASE = 0x100000;
 /** Allocation granularity (bytes); keeps returned pointers naturally aligned. */
@@ -41,7 +61,19 @@ export type BionicLibrary = Map<string, (ctx: HostContext) => bigint | number | 
  * never reclaims). The map is the source of truth both for auto-wiring and for
  * the address-keyed installBionicStubs below.
  */
-export function createBionicLibrary(engine: CpuEngine): BionicLibrary {
+/** Read a NUL-terminated C string from guest memory via a host-call context. */
+function readCString(ctx: HostContext, addr: number): string {
+  if (addr === 0) return '';
+  const out: number[] = [];
+  for (let i = 0; ; i++) {
+    const b = ctx.read(addr + i, 1)[0] ?? 0;
+    if (b === 0) break;
+    out.push(b);
+  }
+  return new TextDecoder().decode(Uint8Array.from(out));
+}
+
+export function createBionicLibrary(engine: CpuEngine, options: BionicOptions = {}): BionicLibrary {
   const lib: BionicLibrary = new Map();
   let bump = HEAP_BASE;
   // Track allocation sizes so realloc can copy the old contents forward.
@@ -55,6 +87,11 @@ export function createBionicLibrary(engine: CpuEngine): BionicLibrary {
     sizes.set(ptr, size);
     return ptr;
   };
+
+  // Open FILE* streams: handle (guest ptr) → { bytes, pos }. The handle is a
+  // small allocation so it's a unique, dereferenceable non-NULL pointer.
+  const streams = new Map<number, { bytes: Uint8Array; pos: number }>();
+  const files = options.files;
 
   lib.set('strlen', (ctx) => {
     const start = Number(ctx.x(0));
@@ -180,6 +217,77 @@ export function createBionicLibrary(engine: CpuEngine): BionicLibrary {
   lib.set('abort', () => {
     throw new Error('bionic: abort() called by emulated code');
   });
+
+  // ── stdio + logging: model "what files exist" for anti-tamper detection ──
+
+  /**
+   * FILE* fopen(const char* path, const char* mode). Returns a non-NULL handle
+   * when `path` is in the virtual file system, else NULL — the exact signal
+   * RootBeer's exists() and similar probes test. Write modes always fail (the
+   * emulated FS is read-only).
+   */
+  lib.set('fopen', (ctx) => {
+    const path = readCString(ctx, Number(ctx.x(0)));
+    const contents = files?.get(path);
+    if (!contents) return 0n; // NULL: file does not exist on this device
+    const handle = alloc(1); // unique, dereferenceable FILE* token
+    streams.set(handle, { bytes: contents, pos: 0 });
+    return BigInt(handle);
+  });
+  /** int fclose(FILE*). Releases the stream; returns 0 (success). */
+  lib.set('fclose', (ctx) => {
+    streams.delete(Number(ctx.x(0)));
+    return 0n;
+  });
+  /** size_t fread(void* ptr, size_t size, size_t nmemb, FILE*). Returns nmemb read. */
+  lib.set('fread', (ctx) => {
+    const dst = Number(ctx.x(0));
+    const size = Number(ctx.x(1));
+    const nmemb = Number(ctx.x(2));
+    const stream = streams.get(Number(ctx.x(3)));
+    if (!stream || size === 0) return 0n;
+    const want = size * nmemb;
+    const slice = stream.bytes.subarray(stream.pos, stream.pos + want);
+    if (slice.length > 0) ctx.write(dst, slice);
+    stream.pos += slice.length;
+    return BigInt(Math.floor(slice.length / size));
+  });
+  /** char* fgets(char* buf, int n, FILE*). Reads one line (incl. \n), NUL-terminated. */
+  lib.set('fgets', (ctx) => {
+    const buf = Number(ctx.x(0));
+    const n = Number(ctx.x(1));
+    const stream = streams.get(Number(ctx.x(2)));
+    if (!stream || n <= 0 || stream.pos >= stream.bytes.length) return 0n; // NULL at EOF
+    const out: number[] = [];
+    while (out.length < n - 1 && stream.pos < stream.bytes.length) {
+      const b = stream.bytes[stream.pos++] ?? 0;
+      out.push(b);
+      if (b === 0x0a) break; // newline ends the line
+    }
+    out.push(0);
+    ctx.write(buf, Uint8Array.from(out));
+    return BigInt(buf);
+  });
+  /** int feof(FILE*). Non-zero once the read cursor reached end-of-file. */
+  lib.set('feof', (ctx) => {
+    const stream = streams.get(Number(ctx.x(0)));
+    return stream && stream.pos >= stream.bytes.length ? 1n : 0n;
+  });
+  /**
+   * int __android_log_print(int prio, const char* tag, const char* fmt, ...).
+   * The variadic format isn't expanded; the raw fmt string is forwarded with its
+   * tag/priority so a caller can observe detection logging. Returns 1.
+   */
+  lib.set('__android_log_print', (ctx) => {
+    const priority = Number(ctx.x(0));
+    const tag = readCString(ctx, Number(ctx.x(1)));
+    const message = readCString(ctx, Number(ctx.x(2)));
+    options.onLog?.(priority, tag, message);
+    return 1n;
+  });
+  // C++ runtime registration hooks the loader emits; no-ops that return success.
+  lib.set('__cxa_atexit', () => 0n);
+  lib.set('__cxa_finalize', () => undefined);
 
   return lib;
 }

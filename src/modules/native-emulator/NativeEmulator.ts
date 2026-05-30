@@ -29,6 +29,7 @@ import {
   createBionicLibrary,
   type BionicStubAddresses,
   type BionicLibrary,
+  type BionicOptions,
 } from './bionic';
 import { installAndroidSyscalls, type AndroidSyscallOptions } from './syscalls';
 
@@ -39,6 +40,13 @@ export interface NativeEmulatorOptions {
    * syscall installation entirely (e.g. for a pure-compute `.so`).
    */
   syscalls?: AndroidSyscallOptions | false;
+  /**
+   * Configure the bionic libc stubs — most usefully a virtual file system for
+   * fopen/fread so anti-tamper code (RootBeer's exists(), Frida-server path
+   * probes) can be evaluated against a chosen "device state". Default: no files
+   * (a clean device where every fopen returns NULL).
+   */
+  bionic?: BionicOptions;
 }
 
 /**
@@ -55,7 +63,7 @@ export class NativeEmulator {
   constructor(options: NativeEmulatorOptions = {}) {
     this.engine = new CpuEngine();
     this.jni = new JniEnvironment(this.engine);
-    this.bionic = createBionicLibrary(this.engine);
+    this.bionic = createBionicLibrary(this.engine, options.bionic ?? {});
     if (options.syscalls !== false) {
       installAndroidSyscalls(this.engine, options.syscalls ?? {});
     }
