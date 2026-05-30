@@ -122,18 +122,52 @@ export async function handleCallTool(
 
   const callMetadata = defaultMetadata;
 
-  // SECURITY: Do NOT auto-activate tools. Require explicit activation first.
-  // Auto-activation bypassed schema validation and the tool registration safety gate.
+  // Auto-activate the tool if it's known but not yet registered.
+  // This bridges the gap for MCP clients that cannot see tools/list_changed
+  // and for search-tier sessions where the tool was discovered via search_tools
+  // but not yet activated (e.g., when search returned 0 results and domain
+  // fallback activation was triggered).
   if (!ctx.router.has(name)) {
-    return asTextResponse(
-      JSON.stringify({
-        success: false,
-        error:
-          `Tool "${name}" is not currently active. Use activate_tools or activate_domain first, then call it ` +
-          `directly.`,
-        ...callMetadata,
-      }),
-    );
+    const { ensureAllDomainsLoaded } = await import('@server/registry/index');
+    await ensureAllDomainsLoaded();
+
+    // Check if the tool exists in the catalog
+    const { getToolByName } = await import('@server/MCPServer.search.helpers');
+    const toolMap = await getToolByName(ctx);
+    const toolDef = toolMap.get(name);
+
+    if (toolDef) {
+      // Auto-activate the tool and its domain
+      const { activateToolNames } = await import('@server/MCPServer.search.handlers.activate');
+      const { getToolDomain } = await import('@server/ToolCatalog');
+      const domain = getToolDomain(name);
+      if (domain && !ctx.enabledDomains.has(domain)) {
+        const { handleActivateDomain } = await import('@server/MCPServer.search.handlers.domain');
+        try {
+          await handleActivateDomain(ctx, {
+            domain,
+            ttlMinutes: (await import('@src/constants')).ACTIVATION_TTL_MINUTES,
+          });
+        } catch {
+          /* fall through to individual activation */
+        }
+      }
+      if (!ctx.router.has(name)) {
+        await activateToolNames(ctx, [name]);
+      }
+      callMetadata.wasAutoActivated = true;
+      callMetadata.activatedTools = [name];
+    } else {
+      return asTextResponse(
+        JSON.stringify({
+          success: false,
+          error:
+            `Tool "${name}" is not currently active and was not found in the tool catalog. ` +
+            `Use search_tools to discover available tools, then call_tool to invoke them.`,
+          ...callMetadata,
+        }),
+      );
+    }
   }
 
   // Dispatch to the actual tool handler via executeToolWithTracking

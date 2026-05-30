@@ -677,13 +677,16 @@ export class ToolSearchEngine {
    * Downweight tools whose domain is not visible under the caller's profile
    * tier. The penalty is a soft multiplier in [0, 1]; 1 disables the feature.
    * Tools without a resolved domain are left untouched.
+   *
+   * When visibleDomains is empty (search tier with no base domains), we still
+   * apply the penalty but clamp scores to a small epsilon so results remain
+   * discoverable — the search → auto-activate pipeline requires results to exist.
    */
   private applyTierPenalty(
     scores: Float64Array,
     visibleDomains: ReadonlySet<string> | undefined,
     profile?: ToolProfile,
   ): void {
-    if (!visibleDomains || visibleDomains.size === 0) return;
     const penalty = profile
       ? profile === 'full'
         ? SEARCH_TIER_PENALTY_FULL
@@ -693,12 +696,20 @@ export class ToolSearchEngine {
       : SEARCH_TIER_PENALTY;
     if (penalty >= 1 || penalty <= 0) return;
 
+    const hasVisibleDomains = visibleDomains && visibleDomains.size > 0;
+
     for (let i = 0; i < this.docCount; i++) {
       if (scores[i]! <= 0) continue;
       const domain = this.docs[i]!.domain;
       if (!domain) continue;
-      if (!visibleDomains.has(domain)) {
+      // If no visible domains (search tier), all domains are "out of tier"
+      const isOutOfTier = hasVisibleDomains ? !visibleDomains.has(domain) : true;
+      if (isOutOfTier) {
         scores[i]! *= penalty;
+        // Clamp to epsilon so penalized results remain discoverable for auto-activation
+        if (scores[i]! <= 0 && penalty > 0) {
+          scores[i] = 1e-6;
+        }
       }
     }
   }
