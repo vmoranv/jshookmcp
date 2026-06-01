@@ -68,14 +68,45 @@ export function isAsarDataOffsetValid(
   files: AsarFileEntry[],
   dataOffset: number,
   totalSize: number,
+  asarBuffer?: Buffer,
 ): boolean {
-  const samples = files.filter((entry) => !entry.unpacked).slice(0, 32);
+  const samples = files.filter((entry) => !entry.unpacked && entry.size > 0).slice(0, 64);
 
   for (const file of samples) {
     const start = dataOffset + file.offset;
     const end = start + file.size;
     if (start < 0 || end < start || end > totalSize) {
       return false;
+    }
+  }
+
+  // Content validation: check that the first file starts with plausible data
+  if (asarBuffer && samples.length > 0) {
+    const first = samples[0]!;
+    const start = dataOffset + first.offset;
+    if (start >= 0 && start < asarBuffer.length) {
+      const firstByte = asarBuffer[start];
+      // Valid file data should not start with JSON structural characters or null
+      // (which would indicate we're reading header content, not file data)
+      if (firstByte === 0x7b || firstByte === 0x7d || firstByte === 0x22 || firstByte === 0x5b) {
+        // Could be a JSON file starting with { } " [ — check if it's inside the header region
+        // by verifying the first file's offset + size doesn't overlap with the header
+        // Heuristic: if all 3 sample files start with JSON characters, likely in header
+        let jsonStartCount = 0;
+        for (const file of samples.slice(0, 4)) {
+          const s = dataOffset + file.offset;
+          if (s < asarBuffer.length) {
+            const b = asarBuffer[s];
+            if (b === 0x7b || b === 0x7d || b === 0x22 || b === 0x5b || b === 0x3a) {
+              jsonStartCount++;
+            }
+          }
+        }
+        // If multiple files start with JSON chars at this offset, we're probably in the header
+        if (jsonStartCount >= 3) return false;
+      }
+      // Definitely in header if first byte is null or a structural JSON char that can't start a file
+      if (firstByte === 0x00) return false;
     }
   }
 
@@ -147,16 +178,22 @@ export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {
 
   const offsetCandidates = Array.from(
     new Set([
+      headerStart + headerLength,
       headerStart + headerLength + padding,
       8 + headerSize,
+      8 + headerStringSize,
+      headerStart + headerContentSize,
       headerStart + headerContentSize + padding,
+      headerStart + headerStringSize,
       headerStart + headerStringSize + padding,
     ]),
-  ).filter((value) => value >= 0 && value <= asarBuffer.length);
+  ).filter((value) => value >= headerStart && value <= asarBuffer.length);
 
   let dataOffset = offsetCandidates[0] ?? headerStart + headerLength;
-  for (const candidate of offsetCandidates) {
-    if (isAsarDataOffsetValid(files, candidate, asarBuffer.length)) {
+  // Try candidates in order; prefer smaller offsets (data follows header closely)
+  const sortedCandidates = offsetCandidates.toSorted((a, b) => a - b);
+  for (const candidate of sortedCandidates) {
+    if (isAsarDataOffsetValid(files, candidate, asarBuffer.length, asarBuffer)) {
       dataOffset = candidate;
       break;
     }
