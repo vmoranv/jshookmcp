@@ -91,7 +91,7 @@ export async function handleElectronCheckFuses(
         exePath,
         fuseWireFound: false,
         fuses: {},
-        note: 'No fuse sentinel found. This may not be an Electron binary, or fuses are not configured.',
+        note: 'No fuse sentinel found. The application is either not built with Electron, or was built with Electron Fuse v1 (no fuse wire). Most Electron apps use default fuse values unless explicitly configured.',
       };
     }
 

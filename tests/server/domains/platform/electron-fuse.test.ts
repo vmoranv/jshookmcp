@@ -68,6 +68,8 @@ describe('electron_check_fuses', () => {
     expect(data.success).toBe(true);
     expect(data.fuseWireFound).toBe(false);
     expect(data.fuses).toEqual({});
+    expect(data.note).toContain('Fuse v1');
+    expect(data.note).not.toContain('may not be an Electron binary');
   });
 
   it('should return success:false for non-existent file', async () => {
