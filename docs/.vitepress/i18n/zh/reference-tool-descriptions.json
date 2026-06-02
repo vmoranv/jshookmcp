@@ -438,5 +438,5 @@
   "nemu_trace": "调用一个导出符号，同时记录执行的每条指令（pc、操作码、步号），可选按步快照指定寄存器。受 maxSteps 限制。用于跟踪混淆 native 函数的控制流/算法。",
   "nemu_setup_java_field": "注册一个模拟 Java 字段，供被仿真的 native 代码经 JNI 回读（GetFieldID/GetStaticFieldID + `Get<Type>Field`）。用 valueInt、valueString 或 valueBytes（base64）声明式指定字段值——即 native 例程会折叠进结果的「Java 世界」常量。不执行任何代码。",
   "get_offloaded_data": "取回此前卸载到磁盘的字段的原始字节（见占位符里的 `_offload.path`）。二进制大块（如解码后的 `data:` URI）默认以 base64 返回；文本用 encoding=\"utf8\"。",
-  "nemu_disassemble": "待补充中文：Disassemble a single instruction without creating an emulator session. Supports arm64/aarch64, x86, x64, riscv32/riscv64, mips/mips32, and mipsel. This is a local lightweight decoder for trace readability, including common SSE/AVX/AVX2/AVX-512 EVEX, RISC-V, and MIPS instructions."
+  "nemu_disassemble": "无需创建仿真器会话即可反汇编单条指令。支持 arm64/aarch64、x86、x64、riscv32/riscv64、mips/mips32 与 mipsel；用于提升 trace 可读性的本地轻量解码器，覆盖常见 SSE/AVX/AVX2/AVX-512 EVEX、RISC-V 和 MIPS 指令。"
 }
