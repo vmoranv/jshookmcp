@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  hono: '>=4.12.18'
+  hono: '>=4.12.21'
   '@hono/node-server': 1.19.13
   express-rate-limit: 8.3.0
   basic-ftp: '>=5.3.1'
@@ -644,7 +644,7 @@ packages:
     resolution: {integrity: sha512-TsQLe4i2gvoTtrHje625ngThGBySOgSK3Xo2XRYOdqGN1teR8+I7vchQC46uLJi8OF62YTYA3AhSpumtkhsaKQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
-      hono: '>=4.12.18'
+      hono: '>=4.12.21'
 
   '@httptoolkit/httpolyglot@3.1.0':
     resolution: {integrity: sha512-Y+1gebmcMZMjDepn2e+9TBM4D+t3jYYbOwbXL9/PKmJEcaN/sbpv/00skN9KLXs43+BQvHTZc+5J0AnC5+9qDg==}
@@ -2735,8 +2735,8 @@ packages:
     resolution: {integrity: sha512-4NjPB0+bAKjPoponSmTOkK58IEF2W22sOJA5O48k/MxbCZgOm+jrU4WVR53Z2I6xFgIPkVrQmKtt1LAbWtfqXw==}
     engines: {node: '>=16.0.0'}
 
-  hono@4.12.18:
-    resolution: {integrity: sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==}
+  hono@4.12.23:
+    resolution: {integrity: sha512-eIaZ9qDgu7XV0pxOCrg7/WhnQ6Ivm22UcxhXx/A3dcbqbbYgBEkc6e/J/s7j2tS96zoB0S9VBdLwQNCWwUo4LA==}
     engines: {node: '>=16.9.0'}
 
   hookable@5.5.3:
@@ -4766,9 +4766,9 @@ snapshots:
     dependencies:
       graphql: 16.14.0
 
-  '@hono/node-server@1.19.13(hono@4.12.18)':
+  '@hono/node-server@1.19.13(hono@4.12.23)':
     dependencies:
-      hono: 4.12.18
+      hono: 4.12.23
 
   '@httptoolkit/httpolyglot@3.1.0':
     dependencies:
@@ -5002,7 +5002,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.29.0(zod@4.4.3)':
     dependencies:
-      '@hono/node-server': 1.19.13(hono@4.12.18)
+      '@hono/node-server': 1.19.13(hono@4.12.23)
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
       content-type: 1.0.5
@@ -5012,7 +5012,7 @@ snapshots:
       eventsource-parser: 3.0.6
       express: 5.2.1
       express-rate-limit: 8.3.0(express@5.2.1)
-      hono: 4.12.18
+      hono: 4.12.23
       jose: 6.2.2
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -6671,7 +6671,7 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  hono@4.12.18: {}
+  hono@4.12.23: {}
 
   hookable@5.5.3: {}
 
