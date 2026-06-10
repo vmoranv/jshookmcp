@@ -1,14 +1,17 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { tool } from '@server/registry/tool-builder';
 import {
-  APK_STATIC_TRIAGE_DEFAULT_ENTRIES,
   BINARY_STRINGS_MAX_RESULTS_DEFAULT,
   BINARY_STRINGS_MIN_LENGTH_DEFAULT,
-  DEX_SCAN_DEFAULT_MAX_HITS,
-  FRIDA_DEX_DUMP_TIMEOUT_MS,
 } from '@src/constants';
+import { getReverseEngineeringConfig } from '@utils/reverseEngineeringConfig';
 import { apkPackerTools } from './apk-packer/definitions';
 import { binarySecretsTools } from './secrets/definitions';
+
+const reverseConfig = getReverseEngineeringConfig();
+const apkConfig = reverseConfig.apk;
+const dexConfig = reverseConfig.dex;
+const fridaConfig = reverseConfig.frida;
 
 export const binaryInstrumentTools: Tool[] = [
   tool('binary_instrument_capabilities', (t) =>
@@ -85,9 +88,33 @@ export const binaryInstrumentTools: Tool[] = [
       .string('outputDir', 'Required output directory for dumped DEX files.')
       .boolean('usb', 'Use USB device mode (-U).', { default: true })
       .number('timeoutMs', 'Optional timeout in milliseconds.', {
-        default: FRIDA_DEX_DUMP_TIMEOUT_MS,
+        default: fridaConfig.dexDumpTimeoutMs,
       })
       .required('outputDir'),
+  ),
+  tool('android_runtime_dump_session', (t) =>
+    t
+      .desc(
+        'Create or inspect a managed Android runtime dump session from Frida/ADB dump artifacts, DEX files, and /proc/PID/maps snapshots.',
+      )
+      .string('action', 'Session action: start, status, or list. Defaults to start.')
+      .string('packageName', 'Android package name for the runtime target.')
+      .number('pid', 'Runtime process id when known.')
+      .string('outputDir', 'Directory containing dumped DEX/CDEX artifacts for action=start.')
+      .string('mapsPath', 'Optional local file containing a /proc/PID/maps snapshot.')
+      .string('sessionId', 'Session id for action=status.')
+      .number('maxDexFiles', 'Maximum dumped DEX/CDEX files to summarize.', {
+        default: dexConfig.artifactDefaultLimit,
+      })
+      .number('maxDexFileBytes', 'Maximum bytes to read from each dumped DEX/CDEX file.', {
+        default: dexConfig.artifactDefaultMaxFileBytes,
+      })
+      .number('maxTotalDexBytes', 'Maximum total dumped DEX/CDEX bytes to read.', {
+        default: dexConfig.artifactDefaultMaxTotalBytes,
+      })
+      .number('maxMapsBytes', 'Maximum bytes to read from the maps snapshot.')
+      .number('maxMapsModules', 'Maximum distinct mapped module paths to return.')
+      .query(),
   ),
   tool('frida_generate_script', (t) =>
     t
@@ -114,9 +141,7 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('jadx_decompile', (t) =>
     t
-      .desc(
-        'Decompile an APK class or method with JADX CLI, auto-resolving likely class matches when possible, or use the legacy plugin bridge when available.',
-      )
+      .desc('Decompile an APK class or method with JADX CLI.')
       .string('apkPath', 'Path to the APK file')
       .string('className', 'Fully qualified class name')
       .string('methodName', 'Method name to decompile')
@@ -143,21 +168,28 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('apk_manifest_dump', (t) =>
     t
-      .desc(
-        'Extract AndroidManifest.xml from an APK for quick inspection; return readable XML when possible, using JADX CLI as a cross-platform decode fallback for binary AXML, otherwise return base64.',
-      )
+      .desc('Extract AndroidManifest.xml from an APK for quick inspection.')
       .string('apkPath', 'Path to the APK file')
       .required('apkPath'),
   ),
   tool('apk_manifest_query', (t) =>
     t
       .desc(
-        'Return a compact structured AndroidManifest summary: package, launcher activity, app class, SDKs, permissions, components, providers, and SDK/vendor hints.',
+        'Return a compact structured AndroidManifest summary: package, launcher activity, app class, SDKs, permissions, components, providers, and SDK/surface hints.',
       )
       .string('apkPath', 'Path to the APK file')
       .boolean('includeRawManifest', 'Include decoded manifest XML in the response.', {
         default: false,
       })
+      .array(
+        'customSurfaceHints',
+        {
+          type: 'object',
+          description:
+            'Caller-supplied literal surface hint rule: {name, patterns:string[], kind?:"protector"|"sdk"}. Patterns are substring matches, not regex.',
+        },
+        'Optional caller-supplied hint rules. No rule table is bundled by this parameter.',
+      )
       .required('apkPath')
       .query(),
   ),
@@ -168,8 +200,50 @@ export const binaryInstrumentTools: Tool[] = [
       )
       .string('apkPath', 'Path to the APK file')
       .number('maxEntries', 'Maximum ZIP entries to summarize.', {
-        default: APK_STATIC_TRIAGE_DEFAULT_ENTRIES,
+        default: apkConfig.staticTriageDefaultEntries,
       })
+      .array(
+        'customSurfaceHints',
+        {
+          type: 'object',
+          description:
+            'Caller-supplied literal surface hint rule: {name, patterns:string[], kind?:"protector"|"sdk"}. Patterns are substring matches, not regex.',
+        },
+        'Optional caller-supplied hint rules. No rule table is bundled by this parameter.',
+      )
+      .required('apkPath')
+      .query(),
+  ),
+  tool('apk_dex_intake', (t) =>
+    t
+      .desc(
+        'Build a cohesive APK/DEX intake evidence packet: ZIP entries, manifest summary, DEX headers, native libraries, generic surface hints, caller-supplied hint matches, and next actions.',
+      )
+      .string('apkPath', 'Path to the APK file')
+      .number('maxEntries', 'Maximum ZIP entries to include in the evidence packet.', {
+        default: apkConfig.staticTriageDefaultEntries,
+      })
+      .number('maxDexFiles', 'Maximum DEX/CDEX entries to read and summarize.', {
+        default: apkConfig.dexIntakeDefaultDexFiles,
+      })
+      .number('maxDexBytes', 'Maximum bytes to read from each DEX/CDEX entry.', {
+        default: dexConfig.artifactDefaultMaxFileBytes,
+      })
+      .number('maxTotalDexBytes', 'Maximum total DEX/CDEX bytes to read from the APK.', {
+        default: dexConfig.artifactDefaultMaxTotalBytes,
+      })
+      .boolean('includeRawManifest', 'Include decoded manifest XML in the response.', {
+        default: false,
+      })
+      .array(
+        'customSurfaceHints',
+        {
+          type: 'object',
+          description:
+            'Caller-supplied literal surface hint rule: {name, patterns:string[], kind?:"protector"|"sdk"}. Patterns are substring matches, not regex.',
+        },
+        'Optional caller-supplied hint rules. No rule table is bundled by this parameter.',
+      )
       .required('apkPath')
       .query(),
   ),
@@ -179,11 +253,11 @@ export const binaryInstrumentTools: Tool[] = [
         'Scan a binary/memory-dump file for DEX or CompactDex magic and optionally extract hits.',
       )
       .string('filePath', 'Path to a binary, memory dump, DEX, CDEX, VDEX, or APK-extracted blob.')
-      .string('outputDir', 'Optional output directory for extracted DEX/CDEX payloads.')
+      .string('outputDir', 'Optional output directory for extracted DEX/CDEX hits.')
       .number('maxHits', 'Maximum DEX/CDEX headers to report.', {
-        default: DEX_SCAN_DEFAULT_MAX_HITS,
+        default: dexConfig.scanDefaultMaxHits,
       })
-      .boolean('extract', 'Write discovered payloads to outputDir when file sizes are plausible.', {
+      .boolean('extract', 'Write discovered hits to outputDir when file sizes are plausible.', {
         default: false,
       })
       .required('filePath')

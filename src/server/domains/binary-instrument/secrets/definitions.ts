@@ -6,7 +6,7 @@ import { tool } from '@server/registry/tool-builder';
  *
  * Single tool: `binary_key_extract` streams a binary file and emits
  * candidate offsets where hardcoded key material may live. The output
- * is purely informational — no decoding, no decryption, no payload.
+ * is purely informational — no decoding, no decryption, no generated artifacts.
  *
  * Naming note: every field name says "candidate" rather than "key" to
  * keep the contract clear — a human must verify before treating any

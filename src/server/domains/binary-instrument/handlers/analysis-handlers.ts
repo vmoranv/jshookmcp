@@ -6,22 +6,19 @@ import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, rm, mkdir, readdir, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, relative } from 'node:path';
-import {
-  open as openZipArchive,
-  type Entry as ZipEntry,
-  type ZipFile as YauzlZipFile,
-} from 'yauzl';
 import { GhidraAnalyzer, HookGenerator, getAvailablePlugins } from '@modules/binary-instrument';
+import { AndroidRuntimeDumpSessionManager } from '@modules/binary-instrument/android-runtime-dump-session';
+import { analyzeApkDexIntake } from '@modules/binary-instrument/apk-dex-intake';
+import {
+  matchApkSurfaceHints,
+  type ApkSurfaceHintRule,
+} from '@modules/binary-instrument/apk-surface-hints';
+import { decodeApkManifest, listZipEntries } from '@modules/binary-instrument/apk-zip-inspection';
 import { JadxSearchEngine } from '@modules/jadx-search';
 import type { JadxSearchOptions } from '@modules/jadx-search';
 import { probeCommand } from '@modules/external/ToolProbe';
 import { ToolError } from '@errors/ToolError';
 import {
-  APK_STATIC_TRIAGE_ASSET_HINT_LIMIT,
-  APK_STATIC_TRIAGE_DEFAULT_ENTRIES,
-  APK_STATIC_TRIAGE_MAX_ENTRIES,
-  APK_STATIC_TRIAGE_MIN_ENTRIES,
-  APK_STATIC_TRIAGE_NATIVE_LIB_LIMIT,
   BINARY_STRINGS_MAX_RESULTS_DEFAULT,
   BINARY_STRINGS_MAX_RESULTS_LIMIT,
   BINARY_STRINGS_MIN_LENGTH_CEILING,
@@ -29,16 +26,9 @@ import {
   BINARY_STRINGS_MIN_LENGTH_FLOOR,
   BINARY_STRINGS_PRINTABLE_ASCII_MAX,
   BINARY_STRINGS_PRINTABLE_ASCII_MIN,
-  CDEX_MAGIC_ASCII,
-  DEX_MAGIC_ASCII,
-  DEX_SCAN_DEFAULT_MAX_HITS,
-  DEX_SCAN_MAX_EXTRACT_BYTES,
-  DEX_SCAN_MAX_HITS,
-  FRIDA_DEX_DUMP_FILE_LIMIT,
-  FRIDA_DEX_DUMP_MAX_BUFFER_BYTES,
-  FRIDA_DEX_DUMP_TIMEOUT_MS,
   UNIDBG_TIMEOUT_MS,
 } from '@src/constants';
+import { getReverseEngineeringConfig } from '@utils/reverseEngineeringConfig';
 import type { BinaryInstrumentState } from './shared';
 import {
   readRequiredString,
@@ -56,32 +46,6 @@ import {
   execFileUtf8,
   invokeLegacyPlugin,
 } from './shared';
-
-const PROTECTOR_HINTS = [
-  {
-    name: 'SecNeo/Bangcle',
-    patterns: [/com\/secneo\/apkwrapper/i, /libDexHelper\.so/i, /libSecShell/i],
-  },
-  { name: 'Qihoo 360', patterns: [/com\/qihoo\/util/i, /libprotectClass\.so/i, /libjiagu/i] },
-  {
-    name: 'Tencent Legu',
-    patterns: [/com\/tencent\/StubShell/i, /libshell/i, /libBugly_Native\.so/i],
-  },
-  { name: 'Baidu Protect', patterns: [/com\/baidu\/protect/i, /libbaiduprotect/i] },
-  { name: 'AliProtect', patterns: [/aliprotect/i, /libsgmain/i, /libsgsecuritybody/i] },
-];
-
-const SDK_HINTS = [
-  { name: 'BeiZis Ads', patterns: [/beizi/i, /bzads/i] },
-  { name: 'Kuaishou/Kwai Ads', patterns: [/kuaishou/i, /kwai/i, /ksad/i] },
-  { name: 'Pangle/Toutiao Ads', patterns: [/pangle/i, /toutiao/i, /bytedance/i, /csj/i] },
-  { name: 'Tencent GDT Ads', patterns: [/gdt/i, /qq\/e\/ads/i] },
-  { name: 'Huawei Services/Ads', patterns: [/huawei/i, /hms/i, /agconnect/i] },
-  { name: 'OPPO/VIVO/Honor Push', patterns: [/oppo/i, /vivo/i, /honor/i, /push/i] },
-  { name: 'Bugly', patterns: [/bugly/i] },
-  { name: 'Agora', patterns: [/agora/i] },
-  { name: 'Baidu Speech', patterns: [/baidu.*speech/i, /BDSpeech/i] },
-];
 
 function uniqueStrings(values: string[], limit = 200): string[] {
   return [...new Set(values.filter(Boolean))].slice(0, limit);
@@ -178,29 +142,89 @@ function summarizeManifestXml(xml: string): Record<string, unknown> {
   };
 }
 
-function matchHints(entries: string[], xml: string): Array<{ name: string; evidence: string[] }> {
-  const haystack = [...entries.slice(0, 5000), xml].join('\n');
-  return SDK_HINTS.map((hint) => ({
-    name: hint.name,
-    evidence: hint.patterns
-      .filter((pattern) => pattern.test(haystack))
-      .map((pattern) => pattern.source)
-      .slice(0, 5),
-  })).filter((hint) => hint.evidence.length > 0);
+function readSurfaceHintOptions(args: Record<string, unknown>): {
+  customSurfaceHints?: ApkSurfaceHintRule[];
+} {
+  const customSurfaceHints = readCustomSurfaceHints(args);
+  return customSurfaceHints ? { customSurfaceHints } : {};
 }
 
-function matchProtectors(
-  entries: string[],
-  xml: string,
-): Array<{ name: string; evidence: string[] }> {
-  const haystack = [...entries.slice(0, 5000), xml].join('\n');
-  return PROTECTOR_HINTS.map((hint) => ({
-    name: hint.name,
-    evidence: hint.patterns
-      .filter((pattern) => pattern.test(haystack))
-      .map((pattern) => pattern.source)
-      .slice(0, 5),
-  })).filter((hint) => hint.evidence.length > 0);
+function readCustomSurfaceHints(args: Record<string, unknown>): ApkSurfaceHintRule[] | undefined {
+  const raw = args['customSurfaceHints'];
+  if (raw === undefined) return undefined;
+  if (!Array.isArray(raw)) {
+    throw new ToolError('VALIDATION', 'customSurfaceHints must be an array of objects');
+  }
+  if (raw.length > 50) {
+    throw new ToolError('VALIDATION', 'customSurfaceHints supports at most 50 rules');
+  }
+
+  const rules: ApkSurfaceHintRule[] = [];
+  raw.forEach((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new ToolError('VALIDATION', `customSurfaceHints[${index}] must be an object`);
+    }
+    const name = entry['name'];
+    const patterns = entry['patterns'];
+    const kind = entry['kind'];
+    if (typeof name !== 'string' || name.trim().length === 0) {
+      throw new ToolError('VALIDATION', `customSurfaceHints[${index}].name is required`);
+    }
+    if (!Array.isArray(patterns) || patterns.length === 0) {
+      throw new ToolError('VALIDATION', `customSurfaceHints[${index}].patterns is required`);
+    }
+    const normalizedPatterns = patterns.map((pattern, patternIndex) => {
+      if (typeof pattern !== 'string' || pattern.trim().length === 0) {
+        throw new ToolError(
+          'VALIDATION',
+          `customSurfaceHints[${index}].patterns[${patternIndex}] must be a non-empty string`,
+        );
+      }
+      if (pattern.length > 256) {
+        throw new ToolError(
+          'VALIDATION',
+          `customSurfaceHints[${index}].patterns[${patternIndex}] exceeds 256 characters`,
+        );
+      }
+      return pattern.trim();
+    });
+    if (kind !== undefined && kind !== 'protector' && kind !== 'sdk') {
+      throw new ToolError(
+        'VALIDATION',
+        `customSurfaceHints[${index}].kind must be protector or sdk`,
+      );
+    }
+    rules.push({
+      name: name.trim(),
+      patterns: normalizedPatterns.slice(0, 50),
+      ...(kind ? { kind } : {}),
+    });
+  });
+  return rules;
+}
+
+function parseUnidbgReturnValue(stdout: string): string | undefined {
+  const lines = stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (const line of lines.toReversed()) {
+    try {
+      const parsed = JSON.parse(line) as unknown;
+      if (!isRecord(parsed)) continue;
+      const value = parsed['returnValue'] ?? parsed['retval'] ?? parsed['result'];
+      if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+      if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    } catch {
+      // Non-JSON trace/log lines are parsed by the text fallback below.
+    }
+  }
+
+  const textMatch = /\b(?:returnValue|retval|return|ret)[=:\s]+(0x[0-9a-fA-F]+|-?\d+)\b/i.exec(
+    stdout,
+  );
+  return textMatch?.[1];
 }
 
 export class AnalysisHandlers {
@@ -505,28 +529,34 @@ export class AnalysisHandlers {
       });
     }
 
-    const entriesResult = await this.listZipEntries(apkPath);
+    const entriesResult = await listZipEntries(apkPath);
     const entries = entriesResult.success ? entriesResult.entries : [];
     const summary = summarizeManifestXml(decodedManifest.manifest);
+    const surfaceHints = matchApkSurfaceHints(
+      entries,
+      decodedManifest.manifest,
+      readSurfaceHintOptions(args),
+    );
     return jsonResponse({
       available: true,
       apkPath,
       format: 'xml',
       decodedBy: decodedManifest.decodedBy,
       summary,
-      sdkHints: matchHints(entries, decodedManifest.manifest),
-      protectorHints: matchProtectors(entries, decodedManifest.manifest),
+      sdkHints: surfaceHints.sdkHints,
+      protectorHints: surfaceHints.protectorHints,
       ...(includeRawManifest ? { manifest: decodedManifest.manifest } : {}),
     });
   }
 
   async handleApkStaticTriage(args: Record<string, unknown>): Promise<unknown> {
     const apkPath = readRequiredString(args, 'apkPath');
+    const config = getReverseEngineeringConfig().apk;
     const maxEntries = Math.max(
-      APK_STATIC_TRIAGE_MIN_ENTRIES,
+      config.staticTriageMinEntries,
       Math.min(
-        readOptionalNumber(args, 'maxEntries') ?? APK_STATIC_TRIAGE_DEFAULT_ENTRIES,
-        APK_STATIC_TRIAGE_MAX_ENTRIES,
+        readOptionalNumber(args, 'maxEntries') ?? config.staticTriageDefaultEntries,
+        config.staticTriageMaxEntries,
       ),
     );
     const apkStat = await stat(apkPath).catch(() => undefined);
@@ -534,7 +564,7 @@ export class AnalysisHandlers {
       return jsonResponse({ available: false, apkPath, error: 'APK path is not a regular file' });
     }
 
-    const entriesResult = await this.listZipEntries(apkPath);
+    const entriesResult = await listZipEntries(apkPath);
     if (!entriesResult.success) {
       return jsonResponse({ available: false, apkPath, error: entriesResult.error });
     }
@@ -555,8 +585,9 @@ export class AnalysisHandlers {
           /(^|\/)(assets|unknown)\//i.test(entry) &&
           /\.(jar|dex|dat|bin|json|txt|dve|y)$/i.test(entry),
       )
-      .slice(0, APK_STATIC_TRIAGE_ASSET_HINT_LIMIT);
-    const protectors = matchProtectors(entries, manifestXml);
+      .slice(0, config.staticTriageAssetHintLimit);
+    const hintOptions = readSurfaceHintOptions(args);
+    const surfaceHints = matchApkSurfaceHints(entries, manifestXml, hintOptions);
 
     return jsonResponse({
       available: true,
@@ -584,14 +615,14 @@ export class AnalysisHandlers {
       nativeLibs: {
         count: nativeLibs.length,
         abis: uniqueStrings(nativeLibs.map((lib) => lib.abi)),
-        libraries: nativeLibs.slice(0, APK_STATIC_TRIAGE_NATIVE_LIB_LIMIT),
+        libraries: nativeLibs.slice(0, config.staticTriageNativeLibLimit),
       },
       dexFiles,
       assetHints,
-      protectorHints: protectors,
-      sdkHints: matchHints(entries, manifestXml),
+      protectorHints: surfaceHints.protectorHints,
+      sdkHints: surfaceHints.sdkHints,
       recommendedNextSteps: [
-        protectors.length > 0
+        surfaceHints.protectorHints.length > 0
           ? 'Packed/protected APK detected: start with adb_app_cold_start_trace/logcat and local APK artifact triage before escalating to device-specific runtime dumping.'
           : 'No strong protector hint found: run jadx_decompile_apk then jadx_search_code for startup/splash logic.',
         nativeLibs.length > 0
@@ -601,12 +632,37 @@ export class AnalysisHandlers {
     });
   }
 
+  async handleApkDexIntake(args: Record<string, unknown>): Promise<unknown> {
+    const apkPath = readRequiredString(args, 'apkPath');
+    const maxEntries = readOptionalNumber(args, 'maxEntries');
+    const includeRawManifest = readOptionalBoolean(args, 'includeRawManifest');
+    const maxDexFiles = readOptionalNumber(args, 'maxDexFiles');
+    const maxDexBytes = readOptionalNumber(args, 'maxDexBytes');
+    const maxTotalDexBytes = readOptionalNumber(args, 'maxTotalDexBytes');
+    const customSurfaceHints = readCustomSurfaceHints(args);
+    const result = await analyzeApkDexIntake({
+      apkPath,
+      ...(maxEntries !== undefined ? { maxEntries } : {}),
+      ...(includeRawManifest !== undefined ? { includeRawManifest } : {}),
+      ...(maxDexFiles !== undefined ? { maxDexFiles } : {}),
+      ...(maxDexBytes !== undefined ? { maxDexBytes } : {}),
+      ...(maxTotalDexBytes !== undefined ? { maxTotalDexBytes } : {}),
+      ...(customSurfaceHints ? { customSurfaceHints } : {}),
+    });
+    return jsonResponse(result);
+  }
+
   async handleDexScanFile(args: Record<string, unknown>): Promise<unknown> {
     const filePath = readRequiredString(args, 'filePath');
     const outputDir = readOptionalString(args, 'outputDir');
+    const config = getReverseEngineeringConfig();
+    const dexConfig = config.dex;
     const maxHits = Math.max(
       1,
-      Math.min(readOptionalNumber(args, 'maxHits') ?? DEX_SCAN_DEFAULT_MAX_HITS, DEX_SCAN_MAX_HITS),
+      Math.min(
+        readOptionalNumber(args, 'maxHits') ?? dexConfig.scanDefaultMaxHits,
+        dexConfig.scanMaxHits,
+      ),
     );
     const extract = readOptionalBoolean(args, 'extract') ?? false;
     const data = await readFile(filePath);
@@ -616,8 +672,8 @@ export class AnalysisHandlers {
 
     const hits: Array<Record<string, unknown>> = [];
     const magics = [
-      { kind: 'dex', magic: Buffer.from(DEX_MAGIC_ASCII, 'ascii') },
-      { kind: 'cdex', magic: Buffer.from(CDEX_MAGIC_ASCII, 'ascii') },
+      { kind: 'dex', magic: Buffer.from(config.binaryMagic.dexMagicAscii, 'ascii') },
+      { kind: 'cdex', magic: Buffer.from(config.binaryMagic.compactDexMagicAscii, 'ascii') },
     ];
     for (let offset = 0; offset < data.length && hits.length < maxHits; offset++) {
       const found = magics.find(
@@ -638,7 +694,7 @@ export class AnalysisHandlers {
         fileSize !== undefined &&
         fileSize > 0x70 &&
         fileSize <= data.length - offset &&
-        fileSize < DEX_SCAN_MAX_EXTRACT_BYTES
+        fileSize < dexConfig.scanMaxExtractBytes
           ? fileSize
           : undefined;
       let extractedPath: string | undefined;
@@ -739,7 +795,7 @@ export class AnalysisHandlers {
 
   async handleApkNativeLibsList(args: Record<string, unknown>): Promise<unknown> {
     const apkPath = readRequiredString(args, 'apkPath');
-    const entriesResult = await this.listZipEntries(apkPath);
+    const entriesResult = await listZipEntries(apkPath);
     if (!entriesResult.success) {
       return jsonResponse({
         available: false,
@@ -814,6 +870,7 @@ export class AnalysisHandlers {
 
     if (!availability.available) {
       return {
+        success: false,
         available: false,
         capability: 'unidbg_jar',
         fix: 'Set UNIDBG_JAR to a reachable Unidbg JAR path.',
@@ -821,7 +878,6 @@ export class AnalysisHandlers {
         functionName,
         args: invokeArgs,
         reason: availability.reason,
-        result: { returnValue: '0x0', stdout: '', stderr: '', trace: ['mock-unidbg-unavailable'] },
       };
     }
 
@@ -830,14 +886,16 @@ export class AnalysisHandlers {
       ['-jar', availability.jarPath, binaryPath, functionName, ...invokeArgs],
       UNIDBG_TIMEOUT_MS,
     );
+    const returnValue = parseUnidbgReturnValue(result.stdout);
 
     return {
+      success: true,
       available: true,
       binaryPath,
       functionName,
       args: invokeArgs,
       result: {
-        returnValue: '0x0',
+        ...(returnValue !== undefined ? { returnValue } : { returnValueKnown: false }),
         stdout: result.stdout.trim(),
         stderr: result.stderr.trim(),
         trace: [],
@@ -915,7 +973,8 @@ export class AnalysisHandlers {
     const target = readOptionalString(args, 'target');
     const pid = readOptionalNumber(args, 'pid');
     const usb = readOptionalBoolean(args, 'usb') ?? true;
-    const timeoutMs = readOptionalNumber(args, 'timeoutMs') ?? FRIDA_DEX_DUMP_TIMEOUT_MS;
+    const config = getReverseEngineeringConfig().frida;
+    const timeoutMs = readOptionalNumber(args, 'timeoutMs') ?? config.dexDumpTimeoutMs;
     if (!pid && !target) {
       throw new ToolError('VALIDATION', 'Either pid or target must be provided for frida_dex_dump');
     }
@@ -948,7 +1007,7 @@ export class AnalysisHandlers {
           encoding: 'utf8',
           windowsHide: true,
           timeout: timeoutMs,
-          maxBuffer: FRIDA_DEX_DUMP_MAX_BUFFER_BYTES,
+          maxBuffer: config.dexDumpMaxBufferBytes,
         },
         (error, stdout, stderr) => {
           resolve({
@@ -969,21 +1028,77 @@ export class AnalysisHandlers {
     const dumpedFiles = await this.findFilesByExtension(
       outputDir,
       ['.dex', '.cdex'],
-      FRIDA_DEX_DUMP_FILE_LIMIT,
+      config.dexDumpFileLimit,
     );
+    const success = result.exitCode === 0 && dumpedFiles.length > 0;
     return jsonResponse({
       available: true,
-      success: result.exitCode === 0,
+      success,
       target,
       pid,
       outputDir,
       dumpedFiles,
       count: dumpedFiles.length,
+      ...(!success && result.exitCode === 0
+        ? { reason: 'No DEX/CDEX artifacts were produced by frida-dexdump.' }
+        : {}),
       stdout: result.stdout,
       stderr: result.stderr,
       exitCode: result.exitCode,
       ...(result.signal ? { signal: result.signal } : {}),
     });
+  }
+
+  async handleAndroidRuntimeDumpSession(args: Record<string, unknown>): Promise<unknown> {
+    const action = readOptionalString(args, 'action') ?? 'start';
+    const manager = this.getAndroidRuntimeDumpManager();
+    if (action === 'start') {
+      const outputDir = readRequiredString(args, 'outputDir');
+      const packageName = readOptionalString(args, 'packageName');
+      const pid = readOptionalNumber(args, 'pid');
+      const mapsPath = readOptionalString(args, 'mapsPath');
+      const maxDexFiles = readOptionalNumber(args, 'maxDexFiles');
+      const maxDexFileBytes = readOptionalNumber(args, 'maxDexFileBytes');
+      const maxTotalDexBytes = readOptionalNumber(args, 'maxTotalDexBytes');
+      const maxMapsBytes = readOptionalNumber(args, 'maxMapsBytes');
+      const maxMapsModules = readOptionalNumber(args, 'maxMapsModules');
+      const session = await manager.start({
+        ...(packageName ? { packageName } : {}),
+        ...(pid !== undefined ? { pid } : {}),
+        outputDir,
+        ...(mapsPath ? { mapsPath } : {}),
+        ...(maxDexFiles !== undefined ? { maxDexFiles } : {}),
+        ...(maxDexFileBytes !== undefined ? { maxDexFileBytes } : {}),
+        ...(maxTotalDexBytes !== undefined ? { maxTotalDexBytes } : {}),
+        ...(maxMapsBytes !== undefined ? { maxMapsBytes } : {}),
+        ...(maxMapsModules !== undefined ? { maxMapsModules } : {}),
+      });
+      const success = session.evidence.dumpedDex.count > 0;
+      return jsonResponse({
+        success,
+        action,
+        ...session,
+        ...(!success ? { reason: 'No DEX/CDEX artifacts were indexed from outputDir.' } : {}),
+      });
+    }
+    if (action === 'status') {
+      const sessionId = readRequiredString(args, 'sessionId');
+      const session = manager.status({ sessionId });
+      if (!session) {
+        return jsonResponse({
+          success: false,
+          action,
+          sessionId,
+          reason: `Unknown Android runtime dump session: ${sessionId}`,
+        });
+      }
+      return jsonResponse({ success: true, action, ...session });
+    }
+    if (action === 'list') {
+      const sessions = manager.list();
+      return jsonResponse({ success: true, action, sessions, count: sessions.length });
+    }
+    throw new ToolError('VALIDATION', 'action must be one of: start, status, list');
   }
 
   private getGhidraAnalyzer(): GhidraAnalyzer {
@@ -994,6 +1109,13 @@ export class AnalysisHandlers {
   private getHookGenerator(): HookGenerator {
     if (!this.state.hookGen) this.state.hookGen = new HookGenerator();
     return this.state.hookGen;
+  }
+
+  private getAndroidRuntimeDumpManager(): AndroidRuntimeDumpSessionManager {
+    if (!this.state.androidRuntimeDumpManager) {
+      this.state.androidRuntimeDumpManager = new AndroidRuntimeDumpSessionManager();
+    }
+    return this.state.androidRuntimeDumpManager;
   }
 
   private handleLegacyGenerateHooks(ghidraOutput: string): Promise<unknown> | unknown {
@@ -1008,111 +1130,6 @@ export class AnalysisHandlers {
     return jsonResponse({ count: hooks.length, hooks });
   }
 
-  private async listZipEntries(
-    apkPath: string,
-  ): Promise<{ success: true; entries: string[] } | { success: false; error: string }> {
-    try {
-      const zipFile = await this.openZipFile(apkPath);
-      const entries = await new Promise<string[]>((resolve, reject) => {
-        const names: string[] = [];
-        let settled = false;
-
-        const onEntry = (entry: ZipEntry) => {
-          names.push(entry.fileName);
-          zipFile.readEntry();
-        };
-        const onEnd = () => finish(() => resolve(names));
-        const onError = (error: Error) => finish(() => reject(error));
-        const finish = (callback: () => void) => {
-          if (settled) return;
-          settled = true;
-          zipFile.removeListener('entry', onEntry);
-          zipFile.removeListener('end', onEnd);
-          zipFile.removeListener('error', onError);
-          callback();
-        };
-
-        zipFile.on('entry', onEntry);
-        zipFile.on('end', onEnd);
-        zipFile.on('error', onError);
-        zipFile.readEntry();
-      });
-
-      return { success: true, entries };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  private async readZipEntryBuffer(
-    apkPath: string,
-    entryName: string,
-  ): Promise<{ success: true; buffer: Buffer } | { success: false; error: string }> {
-    try {
-      const zipFile = await this.openZipFile(apkPath);
-      const buffer = await new Promise<Buffer>((resolve, reject) => {
-        let settled = false;
-
-        const closeZip = () => {
-          try {
-            zipFile.close();
-          } catch {
-            // ignore close errors after early return
-          }
-        };
-        const onEntry = (entry: ZipEntry) => {
-          if (entry.fileName !== entryName) {
-            zipFile.readEntry();
-            return;
-          }
-
-          zipFile.openReadStream(entry, (error, stream) => {
-            if (error || !stream) {
-              finish(() => reject(error ?? new Error(`Unable to read ZIP entry: ${entryName}`)));
-              closeZip();
-              return;
-            }
-
-            this.readStreamToBuffer(stream)
-              .then((content) => {
-                finish(() => resolve(content));
-                closeZip();
-              })
-              .catch((streamError) => {
-                finish(() => reject(streamError));
-                closeZip();
-              });
-          });
-        };
-        const onEnd = () => finish(() => reject(new Error(`ZIP entry not found: ${entryName}`)));
-        const onError = (error: Error) => finish(() => reject(error));
-        const finish = (callback: () => void) => {
-          if (settled) return;
-          settled = true;
-          zipFile.removeListener('entry', onEntry);
-          zipFile.removeListener('end', onEnd);
-          zipFile.removeListener('error', onError);
-          callback();
-        };
-
-        zipFile.on('entry', onEntry);
-        zipFile.on('end', onEnd);
-        zipFile.on('error', onError);
-        zipFile.readEntry();
-      });
-
-      return { success: true, buffer };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
   private async decodeManifest(
     apkPath: string,
   ): Promise<
@@ -1120,40 +1137,14 @@ export class AnalysisHandlers {
     | { success: true; format: 'binary-axml'; decodedBy: 'zip-entry'; buffer: Buffer }
     | { success: false; error: string }
   > {
-    const manifestResult = await this.readZipEntryBuffer(apkPath, 'AndroidManifest.xml');
-    if (!manifestResult.success) {
-      return { success: false, error: manifestResult.error };
-    }
-
-    const manifestText = this.decodeTextEntry(manifestResult.buffer);
-    if (manifestText !== null) {
-      return {
-        success: true,
-        format: 'xml',
-        decodedBy: 'zip-entry',
-        manifest: manifestText,
-      };
-    }
-
-    const jadxProbe = await probeCommand('jadx', ['--version']);
-    if (jadxProbe.available) {
-      const decodedManifest = await this.decodeManifestWithJadx(jadxProbe.path ?? 'jadx', apkPath);
-      if (decodedManifest.success) {
-        return {
-          success: true,
-          format: 'xml',
-          decodedBy: 'jadx_cli',
-          manifest: decodedManifest.manifest,
-        };
-      }
-    }
-
-    return {
-      success: true,
-      format: 'binary-axml',
-      decodedBy: 'zip-entry',
-      buffer: manifestResult.buffer,
-    };
+    return decodeApkManifest(apkPath, {
+      decodeBinaryManifest: async () => {
+        const jadxProbe = await probeCommand('jadx', ['--version']);
+        if (!jadxProbe.available) return undefined;
+        const decoded = await this.decodeManifestWithJadx(jadxProbe.path ?? 'jadx', apkPath);
+        return decoded.success ? decoded.manifest : undefined;
+      },
+    });
   }
 
   private async jadxNativeDecompile(
@@ -1240,59 +1231,6 @@ export class AnalysisHandlers {
     } finally {
       await rm(outDir, { recursive: true, force: true });
     }
-  }
-
-  private openZipFile(apkPath: string): Promise<YauzlZipFile> {
-    return new Promise((resolve, reject) => {
-      openZipArchive(
-        apkPath,
-        {
-          autoClose: true,
-          lazyEntries: true,
-          decodeStrings: true,
-          validateEntrySizes: true,
-          strictFileNames: false,
-        },
-        (error, zipFile) => {
-          if (error || !zipFile) {
-            reject(error ?? new Error(`Unable to open ZIP archive: ${apkPath}`));
-            return;
-          }
-          resolve(zipFile);
-        },
-      );
-    });
-  }
-
-  private readStreamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      stream.on('data', (chunk: string | Buffer) => {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-      });
-      stream.on('end', () => resolve(Buffer.concat(chunks)));
-      stream.on('error', reject);
-    });
-  }
-
-  private decodeTextEntry(buffer: Buffer): string | null {
-    if (buffer.length === 0) return '';
-
-    const sample = buffer.subarray(0, Math.min(buffer.length, 1024));
-    let controlByteCount = 0;
-    for (const byte of sample) {
-      if (byte === 0) return null;
-      if (byte < 0x09 || (byte > 0x0d && byte < 0x20)) {
-        controlByteCount += 1;
-      }
-    }
-
-    if (controlByteCount > sample.length * 0.1) {
-      return null;
-    }
-
-    const text = buffer.toString('utf8');
-    return text.trimStart().startsWith('<') ? text : null;
   }
 
   private async decodeManifestWithJadx(

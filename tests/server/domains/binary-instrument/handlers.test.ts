@@ -58,6 +58,52 @@ describe('BinaryInstrumentHandlers', () => {
     return new BinaryInstrumentHandlers(createMockContext(), ghidra);
   }
 
+  function metadataDexBuffer(): Buffer {
+    const buffer = Buffer.alloc(0x180, 0);
+    buffer.write('dex\n035\0', 0, 'ascii');
+    buffer.writeUInt32LE(buffer.length, 32);
+    buffer.writeUInt32LE(0x70, 36);
+    buffer.writeUInt32LE(0x12345678, 40);
+    buffer.writeUInt32LE(0x70, 52);
+    buffer.writeUInt32LE(3, 56);
+    buffer.writeUInt32LE(0xb0, 60);
+    buffer.writeUInt32LE(1, 64);
+    buffer.writeUInt32LE(0xbc, 68);
+    buffer.writeUInt32LE(1, 96);
+    buffer.writeUInt32LE(0xc0, 100);
+    buffer.writeUInt32LE(0x70, 108);
+    buffer.writeUInt32LE(3, 0x70);
+    buffer.writeUInt16LE(0x0001, 0x74);
+    buffer.writeUInt32LE(3, 0x78);
+    buffer.writeUInt32LE(0xb0, 0x7c);
+    buffer.writeUInt16LE(0x0002, 0x80);
+    buffer.writeUInt32LE(1, 0x84);
+    buffer.writeUInt32LE(0xbc, 0x88);
+    buffer.writeUInt16LE(0x2000, 0x8c);
+    buffer.writeUInt32LE(1, 0x90);
+    buffer.writeUInt32LE(0xc0, 0x94);
+    buffer.writeUInt32LE(0xd8, 0xb0);
+    buffer.writeUInt32LE(0xe7, 0xb4);
+    buffer.writeUInt32LE(0xef, 0xb8);
+    buffer.writeUInt32LE(0, 0xbc);
+    buffer.writeUInt32LE(0, 0xc0);
+    buffer.writeUInt32LE(0, 0xc4);
+    buffer.writeUInt32LE(0xffffffff, 0xc8);
+    buffer.writeUInt32LE(0, 0xcc);
+    buffer.writeUInt32LE(0, 0xd0);
+    buffer.writeUInt32LE(0, 0xd4);
+    writeDexString(buffer, 0xd8, 'Lx/A;');
+    writeDexString(buffer, 0xe7, 'value');
+    writeDexString(buffer, 0xef, 'unused');
+    return buffer;
+  }
+
+  function writeDexString(buffer: Buffer, offset: number, value: string): void {
+    buffer[offset] = value.length;
+    buffer.write(value, offset + 1, 'utf8');
+    buffer[offset + 1 + value.length] = 0;
+  }
+
   function mockZipEntries(entries: Array<{ fileName: string; content?: string | Buffer }>): void {
     openZipMock.mockImplementationOnce(
       (
@@ -94,7 +140,10 @@ describe('BinaryInstrumentHandlers', () => {
             const nextEntry = normalizedEntries[index++];
             queueMicrotask(() => {
               if (nextEntry) {
-                emitter.emit('entry', { fileName: nextEntry.fileName });
+                emitter.emit('entry', {
+                  fileName: nextEntry.fileName,
+                  uncompressedSize: nextEntry.content.length,
+                });
               } else {
                 emitter.emit('end');
               }
@@ -359,7 +408,7 @@ describe('BinaryInstrumentHandlers', () => {
       expect(parsed.manifest).toContain('com.example.app');
     });
 
-    it('handleApkManifestDump returns base64 when manifest payload is binary AXML', async () => {
+    it('handleApkManifestDump returns base64 when manifest body is binary AXML', async () => {
       const binaryManifest = Buffer.from([0x03, 0x00, 0x08, 0x00, 0x24, 0x00, 0x00, 0x00]);
       mockZipEntries([{ fileName: 'AndroidManifest.xml', content: binaryManifest }]);
 
@@ -438,6 +487,141 @@ describe('BinaryInstrumentHandlers', () => {
       expect(parsed.libraries.some((entry: { name: string }) => entry.name === 'libapp.so')).toBe(
         true,
       );
+    });
+
+    it('handleApkDexIntake returns a cohesive APK/DEX evidence packet', async () => {
+      mockZipEntries([
+        {
+          fileName: 'AndroidManifest.xml',
+          content:
+            '<manifest package="com.example.app">' +
+            '<uses-sdk android:minSdkVersion="23" android:targetSdkVersion="35"/>' +
+            '<uses-permission android:name="android.permission.INTERNET"/>' +
+            '<application android:name=".App" android:debuggable="false">' +
+            '<activity android:name=".MainActivity">' +
+            '<intent-filter><action android:name="android.intent.action.MAIN"/>' +
+            '<category android:name="android.intent.category.LAUNCHER"/></intent-filter>' +
+            '</activity></application></manifest>',
+        },
+        { fileName: 'classes.dex', content: metadataDexBuffer() },
+        { fileName: 'classes2.cdex', content: Buffer.from('cdex001\0blob', 'ascii') },
+        { fileName: 'lib/arm64-v8a/libloader.so' },
+        { fileName: 'lib/armeabi-v7a/libfoo.so' },
+        { fileName: 'assets/blob.dat' },
+      ]);
+
+      const handlers = createHandlers();
+      const result = await handlers.handleApkDexIntake({
+        apkPath: '/tmp/app.apk',
+        maxEntries: 10,
+        customSurfaceHints: [
+          {
+            name: 'caller-supplied-surface',
+            kind: 'sdk',
+            patterns: ['assets/blob.dat'],
+          },
+        ],
+      });
+
+      const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
+      const parsed = JSON.parse(text);
+      expect(parsed.success).toBe(true);
+      expect(parsed.artifact.kind).toBe('apk-dex-intake');
+      expect(parsed.artifact.manifest.summary.packageName).toBe('com.example.app');
+      expect(parsed.artifact.manifest.summary.launcherActivity).toBe('.MainActivity');
+      expect(parsed.artifact.dex.files).toMatchObject([
+        {
+          path: 'classes.dex',
+          kind: 'dex',
+          header: { version: '035', fileSize: 0x180, stringIdsSize: 3, classDefsSize: 1 },
+          stringsPreview: ['Lx/A;', 'value', 'unused'],
+          typeDescriptorsPreview: ['Lx/A;'],
+          classDefsPreview: [{ classType: 'Lx/A;' }],
+        },
+        { path: 'classes2.cdex', kind: 'cdex' },
+      ]);
+      expect(parsed.artifact.nativeLibs.abis).toEqual(['arm64-v8a', 'armeabi-v7a']);
+      expect(parsed.artifact.protectorHints).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: 'native-loader-surface' })]),
+      );
+      expect(parsed.artifact.sdkHints).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'caller-supplied-surface',
+            evidence: ['assets/blob.dat'],
+          }),
+        ]),
+      );
+      for (const hint of [...parsed.artifact.protectorHints, ...parsed.artifact.sdkHints] as Array<{
+        name: string;
+      }>) {
+        expect(hint.name).toMatch(/^[a-z0-9-]+-surface$|^[a-z0-9-]+-container$/);
+      }
+      expect(parsed.artifact.recommendedNextSteps).toEqual(
+        expect.arrayContaining([expect.stringContaining('runtime dumping')]),
+      );
+    });
+
+    it('handleApkDexIntake caps DEX bytes and marks partial summaries', async () => {
+      const largeDex = Buffer.concat([metadataDexBuffer(), Buffer.alloc(1024, 0x41)]);
+      mockZipEntries([
+        { fileName: 'AndroidManifest.xml', content: '<manifest package="com.example.app"/>' },
+        { fileName: 'classes.dex', content: largeDex },
+      ]);
+
+      const handlers = createHandlers();
+      const result = await handlers.handleApkDexIntake({
+        apkPath: '/tmp/app.apk',
+        maxDexBytes: 128,
+      });
+
+      const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
+      const parsed = JSON.parse(text);
+      expect(parsed.success).toBe(true);
+      expect(parsed.artifact.dex.files).toMatchObject([
+        {
+          path: 'classes.dex',
+          kind: 'dex',
+          size: 128,
+          sourceSize: largeDex.length,
+          truncated: true,
+          header: { fileSize: 0x180 },
+        },
+      ]);
+    });
+
+    it('handleFridaDexDump does not report success when no DEX artifacts are produced', async () => {
+      vi.mocked(probeCommand).mockResolvedValueOnce({
+        available: true,
+        path: 'frida-dexdump',
+        version: '1.0.0',
+        reason: undefined,
+      } as Awaited<ReturnType<typeof probeCommand>>);
+      vi.mocked(childProcess.execFile).mockImplementation(((
+        _file: string,
+        _args: readonly string[] | null | undefined,
+        _opts: unknown,
+        cb?: ((error: Error | null, stdout: string, stderr: string) => void) | null,
+      ) => {
+        cb?.(null, 'finished without files', '');
+        return {} as never;
+      }) as unknown as typeof childProcess.execFile);
+
+      const handlers = createHandlers();
+      const response = await handlers.handleFridaDexDump({
+        outputDir: join(tmpdir(), `jshook-empty-frida-dump-${Date.now()}`),
+        target: 'com.example.app',
+      });
+      const body = JSON.parse(
+        (response as { content: Array<{ text: string }> }).content[0]?.text ?? '{}',
+      );
+
+      expect(body).toMatchObject({
+        available: true,
+        success: false,
+        count: 0,
+        reason: expect.stringContaining('No DEX/CDEX artifacts'),
+      });
     });
 
     it('handleJadxDecompile resolves a uniquely matched class when requested package is wrong', async () => {
@@ -543,6 +727,45 @@ describe('BinaryInstrumentHandlers', () => {
   });
 
   describe('Unidbg handlers', () => {
+    it('handleUnidbgEmulate parses return values from subprocess stdout', async () => {
+      const originalUnidbgJar = process.env['UNIDBG_JAR'];
+      const jarPath = join(
+        tmpdir(),
+        `jshook-unidbg-${Date.now()}-${Math.random().toString(16).slice(2)}.jar`,
+      );
+      await fsPromises.writeFile(jarPath, 'jar');
+      process.env['UNIDBG_JAR'] = jarPath;
+
+      vi.mocked(childProcess.execFile).mockImplementation(((
+        _file: string,
+        _args: readonly string[] | null | undefined,
+        _opts: unknown,
+        cb?: ((error: Error | null, stdout: string, stderr: string) => void) | null,
+      ) => {
+        cb?.(null, 'booted\nreturn=0x2a\n', '');
+        return {} as never;
+      }) as unknown as typeof childProcess.execFile);
+
+      try {
+        const handlers = createHandlers();
+        const result = (await handlers.handleUnidbgEmulate({
+          binaryPath: '/tmp/libtarget.so',
+          functionName: 'JNI_OnLoad',
+          args: ['env'],
+        })) as { result?: { returnValue?: string; stdout?: string } };
+
+        expect(result.result?.returnValue).toBe('0x2a');
+        expect(result.result?.stdout).toContain('return=0x2a');
+      } finally {
+        if (originalUnidbgJar === undefined) {
+          delete process.env['UNIDBG_JAR'];
+        } else {
+          process.env['UNIDBG_JAR'] = originalUnidbgJar;
+        }
+        await fsPromises.rm(jarPath, { force: true });
+      }
+    });
+
     it('handleUnidbgLaunch returns error when soPath missing', async () => {
       const handlers = createHandlers();
       const result = await handlers.handleUnidbgLaunch({});

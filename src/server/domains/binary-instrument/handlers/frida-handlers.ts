@@ -84,17 +84,19 @@ export class FridaHandlers {
 
     if (!availability.available) {
       return jsonResponse({
+        success: false,
         available: false,
         capability: 'frida_cli',
         fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
         sessionId,
         reason: availability.reason ?? 'Frida CLI is not available',
-        modules: [{ name: 'mock-module', base: '0x0', size: 0, path: '<unavailable>' }],
+        modules: [],
       });
     }
 
     if (!frida.useSession(sessionId)) {
       return jsonResponse({
+        success: false,
         available: false,
         capability: 'frida_session',
         fix: 'Call frida_attach first and reuse the returned sessionId.',
@@ -128,6 +130,7 @@ export class FridaHandlers {
 
     if (!availability.available) {
       return {
+        success: false,
         available: false,
         capability: 'frida_cli',
         fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
@@ -139,6 +142,7 @@ export class FridaHandlers {
 
     if (!frida.useSession(sessionId)) {
       return {
+        success: false,
         available: false,
         capability: 'frida_session',
         fix: 'Call frida_attach first and reuse the returned sessionId.',
@@ -233,6 +237,7 @@ export class FridaHandlers {
 
     if (!availability.available) {
       return {
+        success: false,
         available: false,
         capability: 'frida_cli',
         fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
@@ -245,6 +250,7 @@ export class FridaHandlers {
 
     if (!frida.useSession(sessionId)) {
       return {
+        success: false,
         available: false,
         capability: 'frida_session',
         fix: 'Call frida_attach first and reuse the returned sessionId.',
@@ -286,6 +292,7 @@ export class FridaHandlers {
 
     if (!availability.available) {
       return {
+        success: false,
         available: false,
         capability: 'frida_cli',
         fix: 'Install frida-tools and ensure the frida CLI is on PATH.',
@@ -298,6 +305,7 @@ export class FridaHandlers {
 
     if (!frida.useSession(sessionId)) {
       return {
+        success: false,
         available: false,
         capability: 'frida_session',
         fix: 'Call frida_attach first and reuse the returned sessionId.',

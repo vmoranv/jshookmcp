@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -67,6 +67,17 @@ function createHandlersWithState(
   const handlers = new BinaryInstrumentHandlers();
   Object.assign((handlers as unknown as { state: BinaryInstrumentState }).state, statePatch);
   return handlers;
+}
+
+function dexBuffer(version = '035'): Buffer {
+  const buffer = Buffer.alloc(0x70, 0);
+  buffer.write(`dex\n${version}\0`, 0, 'ascii');
+  buffer.writeUInt32LE(buffer.length, 32);
+  buffer.writeUInt32LE(0x70, 36);
+  buffer.writeUInt32LE(1, 56);
+  buffer.writeUInt32LE(1, 88);
+  buffer.writeUInt32LE(1, 96);
+  return buffer;
 }
 
 class StubFridaSession {
@@ -279,6 +290,63 @@ describe('binary-instrument Frida fallback branches', () => {
     });
   });
 
+  it('reports unavailable module enumeration without synthetic modules', async () => {
+    const handlers = createHandlersWithState({
+      fridaSession: new StubFridaSession({ available: false }) as never,
+    });
+
+    const result = parse(
+      await handlers.handleFridaEnumerateModules({ sessionId: 'mock-frida-1234' }),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      available: false,
+      capability: 'frida_cli',
+      sessionId: 'mock-frida-1234',
+      modules: [],
+    });
+    expect(result.modules).not.toContainEqual(expect.objectContaining({ name: 'mock-module' }));
+  });
+
+  it('marks Frida unavailable action handlers as explicit failures', async () => {
+    const handlers = createHandlersWithState({
+      fridaSession: new StubFridaSession({ available: false }) as never,
+    });
+
+    expect(
+      parse(await handlers.handleFridaRunScript({ sessionId: 'mock-frida-1234', script: '1+1' })),
+    ).toMatchObject({
+      success: false,
+      available: false,
+      capability: 'frida_cli',
+      execution: { error: 'Frida unavailable' },
+    });
+    expect(
+      parse(
+        await handlers.handleFridaEnumerateFunctions({
+          sessionId: 'mock-frida-1234',
+          moduleName: 'libtarget.so',
+        }),
+      ),
+    ).toMatchObject({
+      success: false,
+      available: false,
+      capability: 'frida_cli',
+      functions: [],
+    });
+    expect(
+      parse(
+        await handlers.handleFridaFindSymbols({ sessionId: 'mock-frida-1234', pattern: 'JNI' }),
+      ),
+    ).toMatchObject({
+      success: false,
+      available: false,
+      capability: 'frida_cli',
+      symbols: [],
+    });
+  });
+
   it('covers local Frida session success and diagnostic error paths', async () => {
     const handlers = createHandlersWithState({
       fridaSession: new StubFridaSession({
@@ -407,9 +475,9 @@ describe('binary-instrument analysis coverage branches', () => {
         }),
       ),
     ).toMatchObject({
+      success: false,
       available: false,
       capability: 'unidbg_jar',
-      result: { trace: ['mock-unidbg-unavailable'] },
     });
     expect(
       parse(await handlers.handleUnidbgLaunch({ soPath: '/tmp/libok.so', arch: 'arm64' })),
@@ -434,6 +502,121 @@ describe('binary-instrument analysis coverage branches', () => {
     expect(await handlers.handleUnidbgLaunch({ soPath: '/tmp/bad.so' })).toMatchObject({
       available: false,
       reason: 'launch failed',
+    });
+  });
+
+  it('creates a recoverable Android runtime dump session from maps and dump artifacts', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'jshook-runtime-dump-'));
+    tempRoots.push(root);
+    const outputDir = join(root, 'dumped');
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(join(outputDir, 'classes.dex'), dexBuffer('035'));
+    await writeFile(join(outputDir, 'classes2.cdex'), Buffer.from('cdex001\0blob', 'ascii'));
+    const mapsPath = join(root, 'maps.txt');
+    await writeFile(
+      mapsPath,
+      [
+        '70000000-70012000 r-xp 00000000 fd:01 7 /data/app/lib/arm64/libfoo.so',
+        '71000000-71001000 r--p 00000000 fd:01 8 /data/app/base.apk',
+      ].join('\n'),
+    );
+
+    const handlers = createHandlersWithState({});
+    const started = parse(
+      await handlers.handleAndroidRuntimeDumpSession({
+        action: 'start',
+        packageName: 'com.example.app',
+        pid: 1234,
+        outputDir,
+        mapsPath,
+      }),
+    ) as Record<string, unknown>;
+
+    expect(started).toMatchObject({
+      success: true,
+      action: 'start',
+      target: { packageName: 'com.example.app', pid: 1234 },
+      evidence: {
+        dumpedDex: { count: 2 },
+        maps: { moduleCount: 2 },
+      },
+    });
+    const sessionId = started['sessionId'];
+    expect(typeof sessionId).toBe('string');
+
+    const status = parse(
+      await handlers.handleAndroidRuntimeDumpSession({ action: 'status', sessionId }),
+    ) as Record<string, any>;
+    expect(status).toMatchObject({
+      success: true,
+      action: 'status',
+      sessionId,
+    });
+    expect(status.evidence?.dumpedDex.files).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: 'classes.dex', kind: 'dex' })]),
+    );
+    expect(status.evidence?.maps.modules).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: '/data/app/lib/arm64/libfoo.so' })]),
+    );
+  });
+
+  it('bounds Android runtime maps snapshot ingestion', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'jshook-runtime-dump-maps-cap-'));
+    tempRoots.push(root);
+    const outputDir = join(root, 'dumped');
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(join(outputDir, 'classes.dex'), dexBuffer('035'));
+    const mapsPath = join(root, 'maps.txt');
+    await writeFile(
+      mapsPath,
+      [
+        '70000000-70012000 r-xp 00000000 fd:01 7 /data/app/lib/arm64/libone.so',
+        '71000000-71001000 r--p 00000000 fd:01 8 /data/app/lib/arm64/libtwo.so',
+      ].join('\n'),
+    );
+
+    const handlers = createHandlersWithState({});
+    const started = parse(
+      await handlers.handleAndroidRuntimeDumpSession({
+        action: 'start',
+        outputDir,
+        mapsPath,
+        maxMapsBytes: 72,
+        maxMapsModules: 1,
+      }),
+    ) as Record<string, any>;
+
+    expect(started.success).toBe(true);
+    expect(started.evidence.maps).toMatchObject({
+      moduleCount: 1,
+      truncated: true,
+      bytesRead: 72,
+    });
+    expect(started.evidence.maps.sourceSize).toBeGreaterThan(72);
+  });
+
+  it('marks Android runtime dump session start unsuccessful when no DEX artifacts are indexed', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'jshook-empty-runtime-dump-'));
+    tempRoots.push(root);
+    const outputDir = join(root, 'dumped');
+    await mkdir(outputDir, { recursive: true });
+
+    const handlers = createHandlersWithState({});
+    const started = parse(
+      await handlers.handleAndroidRuntimeDumpSession({
+        action: 'start',
+        packageName: 'com.example.app',
+        outputDir,
+      }),
+    ) as Record<string, unknown>;
+
+    expect(started).toMatchObject({
+      success: false,
+      action: 'start',
+      reason: expect.stringContaining('No DEX/CDEX artifacts'),
+      evidence: {
+        dumpedDex: { count: 0 },
+      },
     });
   });
 });

@@ -70,6 +70,9 @@ export class BinaryInstrumentHandlers {
   handleFridaDexDump(args: Record<string, unknown>) {
     return this.analysis.handleFridaDexDump(args);
   }
+  handleAndroidRuntimeDumpSession(args: Record<string, unknown>) {
+    return this.analysis.handleAndroidRuntimeDumpSession(args);
+  }
   handleFridaGenerateScript(args: Record<string, unknown>) {
     return this.frida.handleFridaGenerateScript(args);
   }
@@ -108,6 +111,9 @@ export class BinaryInstrumentHandlers {
   }
   handleApkStaticTriage(args: Record<string, unknown>) {
     return this.analysis.handleApkStaticTriage(args);
+  }
+  handleApkDexIntake(args: Record<string, unknown>) {
+    return this.analysis.handleApkDexIntake(args);
   }
   handleDexScanFile(args: Record<string, unknown>) {
     return this.analysis.handleDexScanFile(args);

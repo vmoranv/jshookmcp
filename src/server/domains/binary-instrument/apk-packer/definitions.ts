@@ -13,7 +13,7 @@ import { tool } from '@server/registry/tool-builder';
  * The framework ships no built-in fingerprints - every signature used at
  * detection time comes from the caller.
  *
- * No unpacking, no payload, no shellcode - only filename matching.
+ * No unpacking, no code execution, no shellcode - only filename matching.
  */
 export const apkPackerTools: Tool[] = [
   tool('apk_packer_detect', (t) =>
@@ -22,7 +22,7 @@ export const apkPackerTools: Tool[] = [
         'Detect Android APK packers by matching `lib/<abi>/lib*.so` filenames ' +
           'against user-supplied customSignatures (ReDoS-guarded regex compilation). ' +
           'The framework ships no built-in signature table — callers provide their own. ' +
-          '**Does not unpack, execute, or otherwise interact with the packed payload.**',
+          '**Does not unpack, execute, or otherwise interact with packed code.**',
       )
       .string('apkPath', 'Absolute path to the .apk (or .aab) file to inspect')
       .string('dirPath', 'Optional path to a directory containing an already-unpacked APK tree')
