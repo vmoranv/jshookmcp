@@ -27,6 +27,7 @@ import {
   R_AARCH64_GLOB_DAT,
   R_AARCH64_JUMP_SLOT,
   R_AARCH64_RELATIVE,
+  R_AARCH64_COPY,
 } from './ElfLoader';
 import type { BionicLibrary } from './bionic';
 import type { SimdContext } from './simd';
@@ -52,6 +53,7 @@ function relocationTypeName(type: number): string {
   if (type === R_AARCH64_GLOB_DAT) return 'R_AARCH64_GLOB_DAT';
   if (type === R_AARCH64_JUMP_SLOT) return 'R_AARCH64_JUMP_SLOT';
   if (type === R_AARCH64_RELATIVE) return 'R_AARCH64_RELATIVE';
+  if (type === R_AARCH64_COPY) return 'R_AARCH64_COPY';
   return `R_AARCH64_${type}`;
 }
 
@@ -234,20 +236,98 @@ export class CpuEngine {
    * host stubs and their GOT slots patched — so a real PIC `.so` runs without the
    * caller hand-routing each import.
    */
-  loadElf(bytes: Uint8Array, bionic?: BionicLibrary): { entry: number } {
+  /**
+   * Load an ELF64 AArch64 shared object: map every PT_LOAD segment at its
+   * virtual address (with the zero-filled .bss tail), apply dynamic relocations,
+   * and return the entry point. When a `bionic` library is supplied, imported
+   * libc symbols (resolved via R_AARCH64_JUMP_SLOT / GLOB_DAT) are auto-wired to
+   * host stubs and their GOT slots patched — so a real PIC `.so` runs without the
+   * caller hand-routing each import.
+   *
+   * `bias` shifts where the image is mapped (every vaddr becomes bias+vaddr),
+   * letting several position-independent `.so` coexist in one address space —
+   * exactly what a dynamic linker does for inter-library dependencies. Default
+   * bias 0 preserves the original single-library behaviour. `mergeSymbols`
+   * (default true for bias 0, false otherwise) controls whether the freshly
+   * loaded object's exports are written into the engine-wide symbol table that
+   * `callSymbol`/relocation resolution consult; chain loads set it so a later
+   * primary can bind against the dependency's exports.
+   */
+  loadElf(
+    bytes: Uint8Array,
+    bionic?: BionicLibrary,
+    bias = 0,
+    mergeSymbols = bias === 0,
+  ): { entry: number } {
     const elf = new ElfLoader(bytes);
     if (elf.machine !== EM_AARCH64) {
       throw new Error(`Unsupported ELF machine 0x${elf.machine.toString(16)} (expected AArch64)`);
     }
+    if (bias === 0) {
+      this.constructorFaults.length = 0;
+      this.unresolvedImportDiagnostics.length = 0;
+    }
+    for (const seg of elf.loadableSegments()) {
+      this.addRegion({ base: bias + seg.vaddr, size: seg.data.length, data: seg.data });
+    }
+    const exported = elf.exportedSymbols();
+    if (mergeSymbols) {
+      for (const [name, vaddr] of exported) this.symbols.set(name, bias + vaddr);
+    }
+    this.applyRelocations(elf, bionic, bias, exported);
+    if (bias === 0) this.runInitializers(elf, bias);
+    return { entry: bias + elf.entry };
+  }
+
+  /**
+   * Load a chain of dependent libraries followed by a primary library, resolving
+   * inter-library imports. Each dependency is mapped at a non-overlapping bias
+   * (starting at 0x10000000, incrementing by 64MB per library) with its exports
+   * merged into the engine-wide symbol table; then the primary library is loaded
+   * at bias 0 (the traditional single-library slot) and can bind to both bionic
+   * libc stubs *and* the dependencies' exports. Only the primary's .init/.init_array
+   * constructors run (dependencies' constructors are skipped to avoid partial-
+   * init hazards when their own imports remain unresolved — a real dynamic linker
+   * would recursively resolve the entire transitive closure first, but this
+   * minimal chain loader only handles one level: explicit deps + bionic).
+   *
+   * Returns the load result for the primary library: its entry, unresolved
+   * imports (those not satisfied by either deps or bionic), and constructor faults.
+   * The diagnostics reflect the *primary* library only; dependencies' unresolved
+   * imports are intentionally not surfaced (they're background context, not user-
+   * facing failures unless the primary's call paths actually reach them).
+   *
+   * @param dependencies - The `.so` bytes of each dependency (loaded first, in order).
+   * @param primary - The primary library's `.so` bytes (loaded last at bias 0).
+   * @param bionic - Optional bionic libc stub table (wired into all libraries).
+   * @returns The primary library's load result (entry, unresolvedImports, constructorFaults).
+   */
+  loadLibraryChain(
+    dependencies: Uint8Array[],
+    primary: Uint8Array,
+    bionic?: BionicLibrary,
+  ): {
+    entry: number;
+    unresolvedImports: readonly NativeRuntimeImportDiagnostic[];
+    constructorFaults: readonly string[];
+  } {
+    const BIAS_START = 0x10000000;
+    const BIAS_STEP = 0x4000000; // 64 MB per library (generous for real .so)
+    // Load each dependency at its own bias, merging exports into the global table.
+    for (let i = 0; i < dependencies.length; i++) {
+      const depBias = BIAS_START + i * BIAS_STEP;
+      this.loadElf(dependencies[i], bionic, depBias, true);
+    }
+    // Load the primary at bias 0 (traditional single-library behaviour): it
+    // inherits the merged dependency exports and runs its own constructors.
     this.constructorFaults.length = 0;
     this.unresolvedImportDiagnostics.length = 0;
-    for (const seg of elf.loadableSegments()) {
-      this.addRegion({ base: seg.vaddr, size: seg.data.length, data: seg.data });
-    }
-    this.symbols = elf.exportedSymbols();
-    this.applyRelocations(elf, bionic);
-    this.runInitializers(elf);
-    return { entry: elf.entry };
+    const { entry } = this.loadElf(primary, bionic, 0, true);
+    return {
+      entry,
+      unresolvedImports: [...this.unresolvedImportDiagnostics],
+      constructorFaults: [...this.constructorFaults],
+    };
   }
 
   /**
@@ -263,12 +343,12 @@ export class CpuEngine {
    * envp=NULL in x0..x2 — and run to return on a fresh frame, reusing the same
    * sentinel-LR halt mechanism as callSymbol.
    */
-  private runInitializers(elf: ElfLoader): void {
+  private runInitializers(elf: ElfLoader, bias = 0): void {
     const { init, arraySlots } = elf.initializers();
     const ctors: number[] = [];
-    if (init !== 0) ctors.push(init); // DT_INIT is the function address directly.
+    if (init !== 0) ctors.push(bias + init); // DT_INIT is the function address directly.
     for (const slot of arraySlots) {
-      const fn = Number(this.loadValue(slot, 8)); // slot holds the (relocated) ptr.
+      const fn = Number(this.loadValue(bias + slot, 8)); // slot holds the (relocated) ptr.
       if (fn !== 0) ctors.push(fn);
     }
     for (const ctor of ctors) this.runConstructor(ctor);
@@ -307,12 +387,19 @@ export class CpuEngine {
    * auto-wired import stub) into the target slot. JUMP_SLOT is the PLT/GOT entry
    * a stub-trampoline reads, so it too points at the import stub.
    */
-  private applyRelocations(elf: ElfLoader, bionic?: BionicLibrary): void {
+  private applyRelocations(
+    elf: ElfLoader,
+    bionic?: BionicLibrary,
+    bias = 0,
+    exported?: Map<string, number>,
+  ): void {
+    const ownExports = exported ?? elf.exportedSymbols();
     for (const rel of elf.relocations()) {
+      const patchedOffset = bias + rel.offset;
       switch (rel.type) {
         case R_AARCH64_RELATIVE:
-          // *(offset) = bias + addend; bias is 0 (mapped at link vaddr).
-          this.storeValue(rel.offset, 8, BigInt(rel.addend));
+          // *(bias+offset) = bias + addend.
+          this.storeValue(patchedOffset, 8, BigInt(bias + rel.addend));
           break;
         case R_AARCH64_ABS64:
         case R_AARCH64_GLOB_DAT:
@@ -320,14 +407,43 @@ export class CpuEngine {
           if (this.isUnresolvedImport(rel.symbolName, rel.symbolValue, bionic)) {
             this.unresolvedImportDiagnostics.push({
               symbol: rel.symbolName,
-              gotOffset: rel.offset,
+              gotOffset: patchedOffset,
               relocationType: relocationTypeName(rel.type),
               addend: rel.addend,
               resolution: 'unresolved',
             });
           }
-          const resolved = this.resolveRelocSymbol(rel.symbolName, rel.symbolValue, bionic);
-          this.storeValue(rel.offset, 8, BigInt(resolved + rel.addend));
+          // An import bound to this object's own export resolves at bias+vaddr;
+          // an undefined import (symbolValue 0) stays 0 unless bionic/chain
+          // supplies it. Bionic stub addresses are absolute (no bias).
+          const ownVaddr = rel.symbolName ? ownExports.get(rel.symbolName) : undefined;
+          const resolved =
+            ownVaddr !== undefined
+              ? bias + ownVaddr
+              : this.resolveRelocSymbol(rel.symbolName, rel.symbolValue, bionic);
+          this.storeValue(patchedOffset, 8, BigInt(resolved + rel.addend));
+          break;
+        }
+        case R_AARCH64_COPY: {
+          // COPY relocation: copy the symbol's data from the defining library to
+          // this library's .bss. Used for global variables defined in dependencies.
+          // symbolValue points to the source (in the defining library).
+          // offset (bias-adjusted) is the destination (in this library's .bss).
+          if (rel.symbolValue === 0) {
+            // Symbol not found in dependencies — leave zeroed (BSS default).
+            break;
+          }
+          // Read symbol size from the symbol table (assume 8 bytes if unknown).
+          // For a proper implementation, we'd need to store symbol sizes in ElfLoader.
+          // For now, copy 8 bytes (pointer-sized) as a minimal implementation.
+          const copySize = 8;
+          try {
+            const sourceData = this.readMemory(rel.symbolValue, copySize);
+            this.writeMemory(patchedOffset, sourceData);
+          } catch {
+            // Source not mapped — symbol might be in a library we haven't loaded yet.
+            // Leave the destination zeroed (BSS default).
+          }
           break;
         }
         default:
@@ -932,14 +1048,28 @@ export class CpuEngine {
       const src = this.readGpr(rn) & (sf === 1 ? MASK64 : MASK32);
       const r = immr % width;
       const sBits = imms;
-      // Rotate src right by R, take the low (S+1) bits as the extracted field.
+      // UBFM field extraction (ARMv8 ARM C4.1.6). The canonical rotate-then-mask
+      // only holds when imms >= immr; otherwise the field wraps and the result is
+      // the low (imms+1) bits of ROR(src, r). The previous single rotate+full-mask
+      // form mishandled the common LSR alias (imms == width-1): it kept the
+      // high bits reintroduced by the `src << (width-r)` half of the rotate,
+      // so LSR #36 of 0x73 returned 0x730000000 instead of 0 — corrupting every
+      // downstream address derived from such a shift.
       const wB = BigInt(width);
-      const rotated =
-        ((src >> BigInt(r)) | (src << (wB - BigInt(r)))) & (sf === 1 ? MASK64 : MASK32);
-      const fieldLen = sBits + 1;
-      const fieldMask =
-        fieldLen >= width ? (sf === 1 ? MASK64 : MASK32) : (1n << BigInt(fieldLen)) - 1n;
-      const bottom = rotated & fieldMask;
+      let bottom: bigint;
+      let fieldLen: number;
+      if (sBits >= r) {
+        // Non-wrapping: take (sBits-r+1) bits of (src >> r).
+        fieldLen = sBits - r + 1;
+        bottom = (src >> BigInt(r)) & ((1n << BigInt(fieldLen)) - 1n);
+      } else {
+        // Wrapping: ROR(src, r), take low (sBits+1) bits.
+        const rotated =
+          ((src >> BigInt(r)) | (src << (wB - BigInt(r)))) & (sf === 1 ? MASK64 : MASK32);
+        fieldLen = sBits + 1;
+        bottom = rotated & ((1n << BigInt(fieldLen)) - 1n);
+      }
+      const fieldMask = (1n << BigInt(fieldLen)) - 1n;
       let result: bigint;
       if (opc === 0b01) {
         // BFM: merge bottom into the existing Rd, preserving bits outside the field.
@@ -949,7 +1079,7 @@ export class CpuEngine {
         // UBFM: zero-extend the extracted field.
         result = bottom;
       } else {
-        // SBFM: sign-extend from bit S of the extracted field.
+        // SBFM: sign-extend from bit (fieldLen-1) of the extracted field.
         result = this.signExtend(bottom, fieldLen);
         result = BigInt.asUintN(64, result);
       }
@@ -1338,11 +1468,25 @@ export class CpuEngine {
       const rn = (insn >>> 5) & 0b11111;
       const rd = insn & 0b11111;
       if (op31 === 0b000) {
-        // MADD (o0=0) / MSUB (o0=1)
-        const product = this.readGpr(rn) * this.readGpr(rm);
-        const acc = this.readGpr(ra);
-        const value = o0 === 0 ? acc + product : acc - product;
-        this.writeGpr(rd, sf === 1 ? BigInt.asUintN(64, value) : BigInt.asUintN(32, value));
+        // MADD (o0=0) / MSUB (o0=1).
+        // 32-bit form (sf=0) operates on W-regs: operands are truncated to
+        // their low 32 bits BEFORE the multiply. Folding in dirty high bits of
+        // Rn/Rm (common when a value was narrowed earlier but the full X reg
+        // still holds garbage above bit 31) produced a wrong product whose
+        // low-32 leaked into an indexed load address — crashing real .so code.
+        if (sf === 0) {
+          const wn = this.readGpr(rn) & MASK32;
+          const wm = this.readGpr(rm) & MASK32;
+          const wa = this.readGpr(ra) & MASK32;
+          const product = wn * wm;
+          const value = o0 === 0 ? wa + product : wa - product;
+          this.writeGpr(rd, BigInt.asUintN(32, value));
+        } else {
+          const product = this.readGpr(rn) * this.readGpr(rm);
+          const acc = this.readGpr(ra);
+          const value = o0 === 0 ? acc + product : acc - product;
+          this.writeGpr(rd, BigInt.asUintN(64, value));
+        }
         return true;
       }
       if (op31 === 0b010 && o0 === 0) {

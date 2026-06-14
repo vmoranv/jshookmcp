@@ -86,6 +86,22 @@ describe.skipIf(!APK_AVAILABLE)('native-emulator real-APK integration', () => {
       const symbolsData = payload(await handlers.handleListSymbols({ sessionId }));
       expect(Array.isArray(symbolsData.symbols)).toBe(true);
       expect((symbolsData.symbols as string[]).length).toBeGreaterThan(0);
+
+      // Verify the library is genuinely executable: at least one plain export
+      // (non-JNI) must invoke without faulting. This is the "actually emulated"
+      // signal — a load that lists symbols but can't run any of them is not a
+      // working reverse-engineering surface. The deep runtime-init path of some
+      // libraries (e.g. SQLite's initialize) may still be out of reach, so we
+      // only require that *some* export returns, not a specific one.
+      const plain = (symbolsData.symbols as string[]).find(
+        (s) => !s.startsWith('Java_') && !s.startsWith('_'),
+      );
+      if (plain) {
+        const callData = payload(
+          await handlers.handleCallSymbol({ sessionId, symbol: plain, args: [] }),
+        );
+        expect(callData.success !== false).toBe(true);
+      }
     } finally {
       await rm(tmpDir, { recursive: true, force: true });
     }

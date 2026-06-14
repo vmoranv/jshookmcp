@@ -92,6 +92,37 @@ export const fneg = (a: number, isDouble: boolean): number => (isDouble ? -a : f
 export const fsqrt = (a: number, isDouble: boolean): number =>
   isDouble ? Math.sqrt(a) : f32(Math.sqrt(a));
 
+/**
+ * FRINT* family: round FP to integral value, result remains FP.
+ * - FRINTN: round to nearest, ties to even (Math.round uses ties-away, so we implement manually)
+ * - FRINTP: round toward +Inf (Math.ceil)
+ * - FRINTM: round toward -Inf (Math.floor)
+ * - FRINTZ: round toward zero (Math.trunc)
+ * - FRINTA: round to nearest, ties away from zero (Math.round)
+ * - FRINTI: round using current rounding mode (use FRINTN as default)
+ * - FRINTX: round to integral, exact (same as FRINTI but sets inexact flag — we ignore flags)
+ */
+export const frintn = (a: number, isDouble: boolean): number => {
+  // Round to nearest, ties to even (banker's rounding)
+  const rounded = Math.round(a);
+  // Check if we hit a tie (a = n + 0.5 for some integer n)
+  if (Math.abs(a - rounded) === 0.5 && rounded % 2 !== 0) {
+    // Tie case: round to the even integer
+    return isDouble ? rounded - Math.sign(a) : f32(rounded - Math.sign(a));
+  }
+  return isDouble ? rounded : f32(rounded);
+};
+export const frintp = (a: number, isDouble: boolean): number =>
+  isDouble ? Math.ceil(a) : f32(Math.ceil(a));
+export const frintm = (a: number, isDouble: boolean): number =>
+  isDouble ? Math.floor(a) : f32(Math.floor(a));
+export const frintz = (a: number, isDouble: boolean): number =>
+  isDouble ? Math.trunc(a) : f32(Math.trunc(a));
+export const frinta = (a: number, isDouble: boolean): number =>
+  isDouble ? Math.round(a) : f32(Math.round(a));
+export const frinti = frintn; // Use FRINTN as default (ties to even)
+export const frintx = frintn; // Same as FRINTI (ignore inexact flag)
+
 // ── FCMP / FCMPE — produce the four NZCV flags ──
 
 export interface Nzcv {

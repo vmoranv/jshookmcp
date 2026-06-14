@@ -46,6 +46,7 @@ export const R_AARCH64_ABS64 = 257;
 export const R_AARCH64_GLOB_DAT = 1025;
 export const R_AARCH64_JUMP_SLOT = 1026;
 export const R_AARCH64_RELATIVE = 1027;
+export const R_AARCH64_COPY = 1024;
 
 /** One dynamic relocation, resolved against the dynamic symbol table when needed. */
 export interface ElfRelocation {

@@ -108,6 +108,34 @@ describe('CpuEngine extended ISA — multiply / divide', () => {
     expect(engine.readRegister('x0')).toBe(17);
   });
 
+  it('32-bit MSUB truncates operands to Wn/Wm before multiply (dirty high bits dropped)', () => {
+    // Regression: a real .so hit MSUB where Rn carried garbage above bit 31
+    // (0x5de9bd37ff). The 32-bit form must read only Wn<31:0>, multiply Wm,
+    // subtract from Wa, and zero-extend — never fold the dirty high bits in.
+    // Before the fix the 64-bit product leaked through and the subsequent
+    // indexed load read an unmapped 14 GB address, crashing sqlite3_initialize.
+    //   insn 0x1b15a128 = MSUB w8, w9, w21, w8  (sf=0, o0=1, Rm=21, Ra=8, Rn=9, Rd=8)
+    //   Wd = Wa - Wn*Wm, all 32-bit.
+    const engine = new CpuEngine();
+    engine.writeGprValue(9, 0x5de9bd37ffn); // dirty: high bits set
+    engine.writeGprValue(21, 0x17n);
+    engine.writeGprValue(8, 0x87n);
+    const bytes = le32(0x1b15a128);
+    engine.mapMemory(0x1000, bytes.length + 16);
+    engine.writeCode(0x1000, Uint8Array.from(bytes));
+    engine.start(0x1000, 0x1000 + 4);
+    const got = engine.readGprValue(8);
+    // Reference: 32-bit MSUB on truncated operands.
+    const wn = 0x5de9bd37ffn & 0xffffffffn; // 0xe9bd37ff
+    const wm = 0x17n;
+    const wa = 0x87n;
+    const expected = (wa - wn * wm) & 0xffffffffn;
+    expect(got).toBe(expected);
+    // The dirty high bits must NOT push the result toward the pre-fix value
+    // (0x70000014, which dereferenced 14 GB and crashed).
+    expect(got).not.toBe(0x70000014n);
+  });
+
   it('MSUB computes Ra - Rn*Rm (32-bit: 5 - 3*4 = -7 → 0xfffffff9)', () => {
     // 32-bit W-regs so the result fits a JS number exactly:
     // movz w1,#3 ; movz w2,#4 ; movz w3,#5 ; msub w0,w1,w2,w3

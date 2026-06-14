@@ -56,6 +56,13 @@ import {
   fnmul,
   fpToInt,
   type FpRounding,
+  frinta,
+  frinti,
+  frintm,
+  frintn,
+  frintp,
+  frintx,
+  frintz,
   fsqrt,
   fsub,
   intToFp,
@@ -674,6 +681,10 @@ function execScalarFp(ctx: SimdContext, f: SimdFields): boolean {
   const bits13_10 = (f.insn >>> 10) & 0b1111;
   const low11_10 = (f.insn >>> 10) & 0b11;
 
+  // FP immediate: bits[11:10]=00, bits[12]=1 → FMOV (immediate)
+  if (low11_10 === 0b00 && ((f.insn >>> 12) & 1) === 1) {
+    return execFpImmediate(ctx, f, isDouble);
+  }
   // int ⇄ fp conversion: bits[15:10]=000000 (rmode[20:19], opcode[18:16]).
   if (bits15_10 === 0b000000) return execFpIntConv(ctx, f, isDouble);
   // compare: bits[13:10]=1000 (opcode2 in [4:0], op in [15:14]).
@@ -722,6 +733,55 @@ function execFpTwoSource(ctx: SimdContext, f: SimdFields, isDouble: boolean): bo
 }
 
 /**
+ * FP immediate: FMOV Sd/Dd, #imm.
+ * imm8 is encoded in bits[20:13], expanded to IEEE-754 via VFPExpandImm.
+ * Single-precision: aBbbbbbc defgh000 00000000 00000000 (32 bits)
+ * Double-precision: aBbbbbbb bbcdefgh 00000000 ... 00000000 (64 bits)
+ * where a=sign, B=NOT(b), b=exp bit, cdefgh=mantissa.
+ */
+function execFpImmediate(ctx: SimdContext, f: SimdFields, isDouble: boolean): boolean {
+  const imm8 = (f.insn >>> 13) & 0xff;
+  const a = (imm8 >>> 7) & 1; // sign
+  const b = (imm8 >>> 6) & 1;
+  const cdefgh = imm8 & 0b111111;
+
+  if (isDouble) {
+    // Double: aBbbbbbb bbcdefgh 0000... (11 exp bits, 52 frac bits)
+    const B = b ? 0 : 1; // NOT(b)
+    const exp =
+      (a << 10) |
+      (B << 9) |
+      (B << 8) |
+      (B << 7) |
+      (B << 6) |
+      (B << 5) |
+      (B << 4) |
+      (B << 3) |
+      (b << 2) |
+      (cdefgh >>> 4);
+    const frac = (cdefgh & 0b1111) << 48; // low 4 bits → high 4 bits of 52-bit mantissa
+    const bits64 = (BigInt(a) << 63n) | (BigInt(exp) << 52n) | BigInt(frac);
+    const view = new DataView(new ArrayBuffer(8));
+    view.setBigUint64(0, bits64, true);
+    const value = view.getFloat64(0, true);
+    ctx.vSetBytes(f.rd, packFp(value, true));
+  } else {
+    // Single: aBbbbbbc defgh000 00000000 00000000 (8 exp bits, 23 frac bits)
+    const B = b ? 0 : 1;
+    const c = (cdefgh >>> 5) & 1;
+    const defgh = cdefgh & 0b11111;
+    const exp = (a << 7) | (B << 6) | (B << 5) | (B << 4) | (B << 3) | (B << 2) | (B << 1) | c;
+    const frac = defgh << 18; // 5 bits → high 5 bits of 23-bit mantissa
+    const bits32 = (a << 31) | (exp << 23) | frac;
+    const view = new DataView(new ArrayBuffer(4));
+    view.setUint32(0, bits32 >>> 0, true);
+    const value = view.getFloat32(0, true);
+    ctx.vSetBytes(f.rd, packFp(value, false));
+  }
+  return true;
+}
+
+/**
  * One-source, opcode[20:15]: FMOV=0 FABS=1 FNEG=2 FSQRT=3; FCVT to single=000100,
  * to double=000101 (the FCVT opcode encodes the *target* size in bits[16:15]).
  */
@@ -753,6 +813,28 @@ function execFpOneSource(ctx: SimdContext, f: SimdFields, isDouble: boolean): bo
       ctx.vSetBytes(f.rd, packFp(v, true));
       return true;
     }
+    // FRINT* family: round FP to integral value
+    case 0b000110: // FRINTN: round to nearest, ties to even
+      ctx.vSetBytes(f.rd, packFp(frintn(a, isDouble), isDouble));
+      return true;
+    case 0b000111: // FRINTP: round toward +Inf
+      ctx.vSetBytes(f.rd, packFp(frintp(a, isDouble), isDouble));
+      return true;
+    case 0b001000: // FRINTM: round toward -Inf
+      ctx.vSetBytes(f.rd, packFp(frintm(a, isDouble), isDouble));
+      return true;
+    case 0b001001: // FRINTZ: round toward zero
+      ctx.vSetBytes(f.rd, packFp(frintz(a, isDouble), isDouble));
+      return true;
+    case 0b001010: // FRINTA: round to nearest, ties away from zero
+      ctx.vSetBytes(f.rd, packFp(frinta(a, isDouble), isDouble));
+      return true;
+    case 0b001110: // FRINTX: round to integral, exact
+      ctx.vSetBytes(f.rd, packFp(frintx(a, isDouble), isDouble));
+      return true;
+    case 0b001111: // FRINTI: round using current rounding mode
+      ctx.vSetBytes(f.rd, packFp(frinti(a, isDouble), isDouble));
+      return true;
     default:
       return false;
   }

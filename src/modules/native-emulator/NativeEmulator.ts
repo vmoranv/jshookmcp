@@ -108,6 +108,25 @@ export class NativeEmulator {
   }
 
   /**
+   * Load a chain of dependent libraries followed by a primary library, resolving
+   * inter-library imports. Dependencies are mapped at non-overlapping bias
+   * addresses with their exports visible to the primary; the primary loads at the
+   * traditional vaddr 0 slot and can bind to both bionic libc and the dependency
+   * exports. Only the primary's constructors run.
+   *
+   * Use this for FFmpeg-style multi-library loads where libijkplayer.so calls
+   * exports from libijkffmpeg.so: pass [libijkffmpeg bytes] as dependencies and
+   * libijkplayer bytes as primary.
+   *
+   * @param dependencies - Array of `.so` byte buffers (loaded first, in order).
+   * @param primary - The primary library's `.so` bytes (loaded last).
+   * @returns Load result for the primary library (entry, unresolvedImports, constructorFaults).
+   */
+  loadLibraryChain(dependencies: Uint8Array[], primary: Uint8Array): NativeLibraryLoadResult {
+    return this.engine.loadLibraryChain(dependencies, primary, this.bionic);
+  }
+
+  /**
    * Bind bionic libc stubs (malloc/memcpy/strlen/…) at the given guest addresses.
    * Until L3 PLT/GOT relocation lands, callers route a `.so`'s libc imports to
    * these addresses explicitly; the facade just forwards to installBionicStubs.
