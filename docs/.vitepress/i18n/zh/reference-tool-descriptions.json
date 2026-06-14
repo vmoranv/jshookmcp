@@ -458,5 +458,5 @@
   "nemu_write_memory": "通过 base64 数据向客户机内存的指定地址写入原始字节。用于在 call_symbol 调用之间更新输入缓冲区而无需重新分配，或就地修补代码/数据。",
   "transform_workbench": "在 base64 输入上运行可复现的二进制变换工作台：base64 编解码、XOR、RC4、zlib 解压、熵分析、预览与魔数提示。",
   "reverse_session": "创建、检查、列出、预览或运行端到端的逆向工程工作流会话，包含产物根目录、跨域工具调用和证据引用。支持 android、native、web 等平台，按计划步骤依次执行并将结果归入可恢复的会话。",
-  "nemu_load_library_chain": "待补充中文：Load a chain of dependent libraries into a session, resolving inter-library imports. Pass dependency .so paths as dependencyPaths (loaded first in order), then the primary .so path. Each dependency exports are visible to the primary and later dependencies. Use this for FFmpeg-style multi-library loads where libijkplayer.so calls exports from libijkffmpeg.so and libijksdl.so."
+  "nemu_load_library_chain": "加载依赖库链并解析跨库导入符号。先传入依赖库路径数组 dependencyPaths（按序加载），再传入主库路径 primaryPath。各依赖库的导出符号对主库及后续依赖可见。适用于 FFmpeg 风格的多库加载场景，如 libijkplayer.so 调用 libijkffmpeg.so 和 libijksdl.so 的导出函数。"
 }
