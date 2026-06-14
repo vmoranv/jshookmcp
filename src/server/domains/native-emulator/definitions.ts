@@ -166,7 +166,7 @@ export const nativeEmulatorTools: Tool[] = [
       .array(
         'captureRegisters',
         { type: 'string' },
-        'Register names to snapshot each step, e.g. ["x0","x1","sp"] (default: none)',
+        'Register names to snapshot each step. GPR aliases: x0..x30, sp, pc. SIMD/FP vector aliases: v0..v31 (full 128-bit), or qN/dN/sN/hN/bN for the narrower width. Default: none.',
       )
       .number('maxSteps', 'Maximum trace events to return (default: 1000)', { default: 1000 })
       .boolean(

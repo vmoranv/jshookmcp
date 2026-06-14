@@ -3,6 +3,11 @@ import type { TraceEvent } from '@modules/native-emulator/CpuEngine';
 import { disassembleInstruction } from '@modules/native-emulator/disasm';
 import { resolveArtifactPath } from '@utils/artifacts';
 
+// Register names that select a SIMD/FP vector alias (v/q/d/s/h/b) rather than a
+// GPR (x0..x30/sp/pc). Routed through TraceEvent.vector() so a trace can capture
+// the AES/SHA/PMULL/scalar-FP hot path, not just the integer register file.
+const VECTOR_RE = /^[vqdshb]\d{1,2}$/i;
+
 export function traceRow(ev: TraceEvent, captureRegisters: string[]): Record<string, unknown> {
   const row: Record<string, unknown> = {
     step: ev.step,
@@ -11,8 +16,10 @@ export function traceRow(ev: TraceEvent, captureRegisters: string[]): Record<str
     asm: disassembleInstruction('arm64', ev.insn, BigInt(ev.pc)),
   };
   if (captureRegisters.length > 0) {
-    const regs: Record<string, number> = {};
-    for (const name of captureRegisters) regs[name] = ev.reg(name);
+    const regs: Record<string, number | string> = {};
+    for (const name of captureRegisters) {
+      regs[name] = VECTOR_RE.test(name) ? ev.vector(name) : ev.reg(name);
+    }
     row.registers = regs;
   }
   return row;

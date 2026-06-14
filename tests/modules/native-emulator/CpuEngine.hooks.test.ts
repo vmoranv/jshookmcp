@@ -188,6 +188,51 @@ describe('CpuEngine instruction hooks — L6 observability', () => {
     expect(pcs).toEqual([0x1000, 0x1004, 0x1008]);
   });
 
+  it('reads SIMD/FP vector registers via vector() (vN/qN/dN/sN)', () => {
+    const engine = new CpuEngine();
+    engine.loadElf(buildSo(ADD_TWICE, [{ name: 'f', codeOffset: 0 }]));
+    // Seed V0 with a known 128-bit pattern, then read it back through every alias.
+    engine.writeVReg(0, Uint8Array.of(0x10, 0x20, 0x30, 0x40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+
+    let v0 = '';
+    let q0 = '';
+    let d0 = '';
+    let s0 = '';
+    let b0 = '';
+    engine.addInstructionHook((e) => {
+      v0 = e.vector('v0');
+      q0 = e.vector('q0');
+      d0 = e.vector('d0');
+      s0 = e.vector('s0');
+      b0 = e.vector('b0');
+    });
+
+    engine.callSymbol('f', [0]);
+    // The vreg backing array is little-endian: byte 0 is the least significant.
+    // Seeding [0x10,0x20,0x30,0x40,...] therefore renders as "10203040…".
+    expect(v0.startsWith('10203040')).toBe(true);
+    expect(q0.startsWith('10203040')).toBe(true);
+    // Narrower aliases read the low bytes of the same register.
+    expect(d0.startsWith('10203040')).toBe(true);
+    expect(s0.startsWith('10203040')).toBe(true);
+    expect(b0.startsWith('10')).toBe(true);
+  });
+
+  it('reg() throws a clear error for an unknown register name', () => {
+    const engine = new CpuEngine();
+    engine.loadElf(buildSo(ADD_TWICE, [{ name: 'f', codeOffset: 0 }]));
+    let caught: unknown;
+    engine.addInstructionHook((e) => {
+      try {
+        e.reg('garbage');
+      } catch (err) {
+        caught = err;
+      }
+    });
+    engine.callSymbol('f', [0]);
+    expect(caught).toBeInstanceOf(Error);
+  });
+
   it('does not alter execution results when no hook is registered', () => {
     const engine = new CpuEngine();
     engine.loadElf(buildSo(ADD_TWICE, [{ name: 'f', codeOffset: 0 }]));

@@ -135,6 +135,14 @@ export interface TraceEvent {
   x(index: number): bigint;
   /** Read a named register (x0..x30, sp, pc) as a JS number. */
   reg(name: string): number;
+  /**
+   * Read a SIMD/FP vector register (v0..v31, or the q/d/s/h/b width aliases)
+   * as a lowercase hex string of the alias width's bytes (little-endian, no
+   * `0x` prefix). The narrowest alias `b` returns 2 hex chars; the full `v`/`q`
+   * alias returns 32. Throws on any other name so trace consumers fail loudly
+   * rather than silently dropping a capture.
+   */
+  vector(name: string): string;
 }
 
 /**
@@ -429,6 +437,39 @@ export class CpuEngine {
     return Number(this.readNamed(name));
   }
 
+  /**
+   * Read a SIMD/FP vector register alias (`vN`/`qN`/`dN`/`sN`/`hN`/`bN`) as the
+   * alias-width little-endian byte hex string. Exposed to trace hooks so the
+   * SIMD/FP hot path (AES/SHA/PMULL/scalar-FP) is observable, not just the
+   * integer register file. `v` and `q` both return the full 128 bits.
+   */
+  readVectorAlias(name: string): string {
+    const match = /^([vqdshb])(\d{1,2})$/i.exec(name);
+    if (!match) {
+      throw new Error(`Unknown vector register: "${name}" (expected vN/qN/dN/sN/hN/bN)`);
+    }
+    const widthChar = match[1]!.toLowerCase();
+    const reg = Number(match[2]);
+    if (!Number.isInteger(reg) || reg < 0 || reg >= 32) {
+      throw new Error(`Vector register index out of range: "${name}"`);
+    }
+    // Alias → byte width: b=1, h=2, s=4, d=8, q/v=16.
+    const width =
+      widthChar === 'b'
+        ? 1
+        : widthChar === 'h'
+          ? 2
+          : widthChar === 's'
+            ? 4
+            : widthChar === 'd'
+              ? 8
+              : 16;
+    const bytes = this.vreg[reg] ?? new Uint8Array(16);
+    let hex = '';
+    for (let i = 0; i < width; i++) hex += bytes[i]!.toString(16).padStart(2, '0');
+    return hex;
+  }
+
   /** Register a host-function stub at a guest address (e.g. a libc import). */
   registerHostFunction(address: number, fn: HostFunction): void {
     this.hostFns.set(address, fn);
@@ -679,6 +720,7 @@ export class CpuEngine {
       step,
       x: (i) => this.readGpr(i),
       reg: (name) => this.readRegister(name),
+      vector: (name) => this.readVectorAlias(name),
     };
     for (const hook of this.instructionHooks) hook(event);
   }
