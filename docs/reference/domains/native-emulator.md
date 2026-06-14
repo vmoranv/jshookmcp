@@ -20,7 +20,7 @@
 - native-emulator + binary-instrument
 - native-emulator + dart-inspector
 
-## 工具清单（20）
+## 工具清单（21）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -29,6 +29,7 @@
 | `nemu_destroy_session` | 销毁一个仿真器会话并释放其内存（已映射的库、栈、JNI 表）。 |
 | `nemu_list_sessions` | 列出活动的仿真器会话及其创建和最近使用时间。 |
 | `nemu_load_library` | 从文件路径将一个 AArch64 ELF 共享库（.so）加载进会话，映射段并解析导出符号。是 list_symbols / call_symbol / call_jni_export 的前置步骤。 |
+| `nemu_load_library_chain` | 待补充中文：Load a chain of dependent libraries into a session, resolving inter-library imports. Pass dependency .so paths as dependencyPaths (loaded first in order), then the primary .so path. Each dependency exports are visible to the primary and later dependencies. Use this for FFmpeg-style multi-library loads where libijkplayer.so calls exports from libijkffmpeg.so and libijksdl.so. |
 | `nemu_inspect_imports` | 在仿真前检查 AArch64 ELF .so 的动态导入重定位信息，列出导入符号、GOT 偏移，并标注每个导入在内置 bionic 桩中是否有支持。无需手写 readelf/Capstone 脚本即可诊断 PLT/GOT NULL 间接调用失败。 |
 | `nemu_extract_apk_libs` | 列出 APK 中可加载的 arm64-v8a native 库（.so）及其字节大小。libapp.so（Flutter Dart AOT）会被列出但无法在此执行，应交给 Dart 层。 |
 | `nemu_load_apk_library` | 按名称从 APK 中抽取指定的 arm64-v8a .so 并一步加载进会话（无临时文件）。配合 nemu_extract_apk_libs 发现库名。 |

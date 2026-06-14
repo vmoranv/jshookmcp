@@ -20,7 +20,7 @@ In-process, dependency-free self-built ARM64 interpreter for emulating Android `
 - native-emulator + binary-instrument
 - native-emulator + dart-inspector
 
-## Full tool list (20)
+## Full tool list (21)
 
 | Tool | Description |
 | --- | --- |
@@ -29,6 +29,7 @@ In-process, dependency-free self-built ARM64 interpreter for emulating Android `
 | `nemu_destroy_session` | Destroy an emulator session and free its memory (mapped library, stack, JNI tables). |
 | `nemu_list_sessions` | List active emulator sessions with their creation and last-use timestamps. |
 | `nemu_load_library` | Load an AArch64 ELF shared object (.so) from a filesystem path into a session, mapping its segments and resolving exported symbols. Prerequisite for list_symbols / call_symbol / call_jni_export. |
+| `nemu_load_library_chain` | Load a chain of dependent libraries into a session, resolving inter-library imports. Pass dependency .so paths as dependencyPaths (loaded first in order), then the primary .so path. Each dependency exports are visible to the primary and later dependencies. Use this for FFmpeg-style multi-library loads where libijkplayer.so calls exports from libijkffmpeg.so and libijksdl.so. |
 | `nemu_inspect_imports` | Inspect an AArch64 ELF .so before emulation and list imported symbols from dynamic relocations, including GOT offsets and whether each import is backed by the built-in bionic stubs. Use this to diagnose PLT/GOT NULL indirect-call failures without writing ad-hoc readelf/Capstone scripts. |
 | `nemu_extract_apk_libs` | List the loadable arm64-v8a native libraries (.so) packaged inside an APK, with their byte sizes. Use nemu_load_apk_library to load one. Note: libapp.so (Flutter Dart AOT) is listed but is not executable here — route it to the Dart layer. |
 | `nemu_load_apk_library` | Extract a specific arm64-v8a .so from an APK by name and load it into a session in one step (no temp files). Pair with nemu_extract_apk_libs to discover library names. |
