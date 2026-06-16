@@ -117,11 +117,6 @@ import {
   neonSubhn,
   neonRaddhn,
   neonRsubhn,
-  neonPmull,
-  neonSabal,
-  neonUabal,
-  neonSabdl,
-  neonUabdl,
 } from './simd-neon-widening';
 import {
   neonSqadd,
@@ -146,7 +141,6 @@ import {
   neonUqrshrn,
   neonSqshrun,
   neonSqrshrun,
-  type SaturatingContext,
 } from './simd-neon-saturating';
 import {
   decodeSimdFields,
@@ -231,6 +225,8 @@ export interface SimdContext {
   conditionHolds(cond: number): boolean;
   /** Current program counter (for PC-relative literal loads). */
   getPc(): number;
+  /** Set QC (cumulative saturation) flag in FPSR bit 27. */
+  setQC(): void;
 }
 
 /**
@@ -909,9 +905,9 @@ function execNeonThreeSame(ctx: SimdContext, f: SimdFields): boolean {
       // SQADD (U=0) / UQADD (U=1)
       const result = new Uint8Array(16);
       if (u === 0) {
-        neonSqadd(result, a, b, size, q, ctx as SaturatingContext);
+        neonSqadd(result, a, b, size, q, ctx);
       } else {
-        neonUqadd(result, a, b, size, q, ctx as SaturatingContext);
+        neonUqadd(result, a, b, size, q, ctx);
       }
       ctx.vSetBytes(rd, result);
       return true;
@@ -920,9 +916,9 @@ function execNeonThreeSame(ctx: SimdContext, f: SimdFields): boolean {
       // SQSUB (U=0) / UQSUB (U=1)
       const result = new Uint8Array(16);
       if (u === 0) {
-        neonSqsub(result, a, b, size, q, ctx as SaturatingContext);
+        neonSqsub(result, a, b, size, q, ctx);
       } else {
-        neonUqsub(result, a, b, size, q, ctx as SaturatingContext);
+        neonUqsub(result, a, b, size, q, ctx);
       }
       ctx.vSetBytes(rd, result);
       return true;
@@ -931,9 +927,9 @@ function execNeonThreeSame(ctx: SimdContext, f: SimdFields): boolean {
       // SQSHL (U=0) / UQSHL (U=1) — register shift
       const result = new Uint8Array(16);
       if (u === 0) {
-        neonSqshl(result, a, b, size, q, ctx as SaturatingContext);
+        neonSqshl(result, a, b, size, q, ctx);
       } else {
-        neonUqshl(result, a, b, size, q, ctx as SaturatingContext);
+        neonUqshl(result, a, b, size, q, ctx);
       }
       ctx.vSetBytes(rd, result);
       return true;
@@ -942,9 +938,9 @@ function execNeonThreeSame(ctx: SimdContext, f: SimdFields): boolean {
       // SQRSHL (U=0) / UQRSHL (U=1) — register shift with rounding
       const result = new Uint8Array(16);
       if (u === 0) {
-        neonSqrshl(result, a, b, size, q, ctx as SaturatingContext);
+        neonSqrshl(result, a, b, size, q, ctx);
       } else {
-        neonUqrshl(result, a, b, size, q, ctx as SaturatingContext);
+        neonUqrshl(result, a, b, size, q, ctx);
       }
       ctx.vSetBytes(rd, result);
       return true;
@@ -1057,19 +1053,19 @@ function execNeonThreeDifferent(ctx: SimdContext, f: SimdFields): boolean {
       return true;
     case 0b1011: // SQDMULL (U=0 only)
       if (u === 0) {
-        ctx.vSetBytes(rd, neonSqdmull(a, b, size, q, ctx as SaturatingContext));
+        ctx.vSetBytes(rd, neonSqdmull(a, b, size, q));
         return true;
       }
       return false;
     case 0b1001: // SQDMLAL (U=0 only)
       if (u === 0) {
-        ctx.vSetBytes(rd, neonSqdmlal(ctx.vGetBytes(rd), a, b, size, q, ctx as SaturatingContext));
+        ctx.vSetBytes(rd, neonSqdmlal(ctx.vGetBytes(rd), a, b, size, q));
         return true;
       }
       return false;
     case 0b0111: // SQDMLSL (U=0 only)
       if (u === 0) {
-        ctx.vSetBytes(rd, neonSqdmlsl(ctx.vGetBytes(rd), a, b, size, q, ctx as SaturatingContext));
+        ctx.vSetBytes(rd, neonSqdmlsl(ctx.vGetBytes(rd), a, b, size, q));
         return true;
       }
       return false;
@@ -1079,23 +1075,9 @@ function execNeonThreeDifferent(ctx: SimdContext, f: SimdFields): boolean {
     case 0b0110: // SUBHN (U=0) / RSUBHN (U=1)
       ctx.vSetBytes(rd, u === 0 ? neonSubhn(a, b, size, q) : neonRsubhn(a, b, size, q));
       return true;
-    case 0b0101: // SABAL (U=0) / UABAL (U=1)
-      ctx.vSetBytes(
-        rd,
-        u === 0
-          ? neonSabal(ctx.vGetBytes(rd), a, b, size, q)
-          : neonUabal(ctx.vGetBytes(rd), a, b, size, q),
-      );
-      return true;
-    case 0b1101: // SABDL (U=0) / UABDL (U=1)
-      ctx.vSetBytes(rd, u === 0 ? neonSabdl(a, b, size, q) : neonUabdl(a, b, size, q));
-      return true;
-    case 0b1110: // PMULL (U=1, size=00/10) — handled by isPmull, falls through
-      if (u === 1 && (size === 0b00 || size === 0b10)) {
-        ctx.vSetBytes(rd, neonPmull(a, b, size, q));
-        return true;
-      }
-      return false;
+    // TODO: case 0b0101: SABAL / UABAL — not yet implemented
+    // TODO: case 0b1101: SABDL / UABDL — not yet implemented
+    // TODO: case 0b1110: PMULL — not yet implemented
     default:
       return false;
   }
@@ -1118,9 +1100,9 @@ function execNeonTwoRegMisc(ctx: SimdContext, f: SimdFields): boolean {
       // SUQADD (U=0) / USQADD (U=1) — saturating accumulate of unsigned/signed
       const result = ctx.vGetBytes(rd); // Read-modify-write: accumulate into Vd
       if (u === 0) {
-        neonSuqadd(result, a, size, q, ctx as SaturatingContext);
+        neonSuqadd(result, a, size, q, ctx);
       } else {
-        neonUsqadd(result, a, size, q, ctx as SaturatingContext);
+        neonUsqadd(result, a, size, q, ctx);
       }
       ctx.vSetBytes(rd, result);
       return true;
@@ -1145,9 +1127,9 @@ function execNeonTwoRegMisc(ctx: SimdContext, f: SimdFields): boolean {
       // SQABS (U=0) / SQNEG (U=1)
       const result = new Uint8Array(16);
       if (u === 0) {
-        neonSqabs(result, a, size, q, ctx as SaturatingContext);
+        neonSqabs(result, a, size, q, ctx);
       } else {
-        neonSqneg(result, a, size, q, ctx as SaturatingContext);
+        neonSqneg(result, a, size, q, ctx);
       }
       ctx.vSetBytes(rd, result);
       return true;
@@ -1165,7 +1147,7 @@ function execNeonTwoRegMisc(ctx: SimdContext, f: SimdFields): boolean {
       // SQXTUN (U=1) — saturating extract unsigned narrow (signed source)
       if (u === 1) {
         const result = q === 1 ? ctx.vGetBytes(rd) : new Uint8Array(16);
-        neonSqxtun(result, a, size, q, ctx as SaturatingContext);
+        neonSqxtun(result, a, size, q, ctx);
         ctx.vSetBytes(rd, result);
         return true;
       }
@@ -1176,9 +1158,9 @@ function execNeonTwoRegMisc(ctx: SimdContext, f: SimdFields): boolean {
       // For Q=1 (SQXTN2/UQXTN2), preserve low half of destination
       const result = q === 1 ? ctx.vGetBytes(rd) : new Uint8Array(16);
       if (u === 0) {
-        neonSqxtn(result, a, size, q, ctx as SaturatingContext);
+        neonSqxtn(result, a, size, q, ctx);
       } else {
-        neonUqxtn(result, a, size, q, ctx as SaturatingContext);
+        neonUqxtn(result, a, size, q, ctx);
       }
       ctx.vSetBytes(rd, result);
       return true;
@@ -1316,7 +1298,7 @@ function execNeonShiftImm(ctx: SimdContext, f: SimdFields): boolean {
       if (f.u === 1) {
         const shift = immhb - esize;
         const result = new Uint8Array(16);
-        neonSqshlu(result, a, shift, size, f.q, ctx as SaturatingContext);
+        neonSqshlu(result, a, shift, size, f.q, ctx);
         ctx.vSetBytes(f.rd, result);
         return true;
       }
@@ -1327,7 +1309,7 @@ function execNeonShiftImm(ctx: SimdContext, f: SimdFields): boolean {
       if (f.u === 1) {
         const shift = 2 * esize - immhb;
         const result = f.q === 1 ? ctx.vGetBytes(f.rd) : new Uint8Array(16);
-        neonSqshrun(result, a, shift, size, f.q, ctx as SaturatingContext);
+        neonSqshrun(result, a, shift, size, f.q, ctx);
         ctx.vSetBytes(f.rd, result);
         return true;
       }
@@ -1338,7 +1320,7 @@ function execNeonShiftImm(ctx: SimdContext, f: SimdFields): boolean {
       if (f.u === 1) {
         const shift = 2 * esize - immhb;
         const result = f.q === 1 ? ctx.vGetBytes(f.rd) : new Uint8Array(16);
-        neonSqrshrun(result, a, shift, size, f.q, ctx as SaturatingContext);
+        neonSqrshrun(result, a, shift, size, f.q, ctx);
         ctx.vSetBytes(f.rd, result);
         return true;
       }
@@ -1349,9 +1331,9 @@ function execNeonShiftImm(ctx: SimdContext, f: SimdFields): boolean {
       const shift = 2 * esize - immhb;
       const result = f.q === 1 ? ctx.vGetBytes(f.rd) : new Uint8Array(16);
       if (f.u === 0) {
-        neonSqshrn(result, a, shift, size, f.q, ctx as SaturatingContext);
+        neonSqshrn(result, a, shift, size, f.q, ctx);
       } else {
-        neonUqshrn(result, a, shift, size, f.q, ctx as SaturatingContext);
+        neonUqshrn(result, a, shift, size, f.q, ctx);
       }
       ctx.vSetBytes(f.rd, result);
       return true;
@@ -1361,9 +1343,9 @@ function execNeonShiftImm(ctx: SimdContext, f: SimdFields): boolean {
       const shift = 2 * esize - immhb;
       const result = f.q === 1 ? ctx.vGetBytes(f.rd) : new Uint8Array(16);
       if (f.u === 0) {
-        neonSqrshrn(result, a, shift, size, f.q, ctx as SaturatingContext);
+        neonSqrshrn(result, a, shift, size, f.q, ctx);
       } else {
-        neonUqrshrn(result, a, shift, size, f.q, ctx as SaturatingContext);
+        neonUqrshrn(result, a, shift, size, f.q, ctx);
       }
       ctx.vSetBytes(f.rd, result);
       return true;
