@@ -94,7 +94,9 @@ tests/fixtures/apk-packer/*.zip
 .github/skills/
 
 # AI-generated documentation
+# 根目录和所有子目录的 CLAUDE.md 都忽略（AI 临时上下文，不提交）
 CLAUDE.md
+**/CLAUDE.md
 DESIGN.md
 
 # Other AI/tool local configs
