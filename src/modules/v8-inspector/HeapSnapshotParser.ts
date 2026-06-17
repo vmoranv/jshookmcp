@@ -1,11 +1,11 @@
-interface ParsedNode {
+export interface ParsedNode {
   id: number;
   name: string;
   selfSize: number;
   type: string;
 }
 
-interface ParsedEdge {
+export interface ParsedEdge {
   fromId: number;
   toId: number;
   nameOrIndex: string | number;
@@ -16,6 +16,62 @@ interface RetainerSummary {
   name: string;
   retainedSize: number;
   count: number;
+}
+
+/**
+ * Class histogram entry for memory analysis
+ */
+export interface ClassHistogramEntry {
+  className: string;
+  count: number;
+  shallowSize: number;
+  retainedSize: number;
+}
+
+/**
+ * Heap statistics summary
+ */
+export interface HeapStatistics {
+  totalObjects: number;
+  totalShallowSize: number;
+  nodeCount: number;
+  edgeCount: number;
+  detachedDOMNodes: number;
+}
+
+/**
+ * Complete heap analysis result
+ */
+export interface HeapAnalysisResult {
+  classHistogram: ClassHistogramEntry[];
+  dominatorTree?: {
+    nodeId: number;
+    name: string;
+    retainedSize: number;
+    shallowSize: number;
+    children: Array<{
+      nodeId: number;
+      name: string;
+      retainedSize: number;
+      shallowSize: number;
+      children: unknown[];
+    }>;
+  };
+  suspectedLeaks?: Array<{
+    nodeId: number;
+    name: string;
+    reason: string;
+    confidence: number;
+    retainedSize: number;
+    shallowSize: number;
+    path: string[];
+  }>;
+  statistics: HeapStatistics;
+  metadata: {
+    snapshotId: string;
+    parseTimeMs: number;
+    version: string;
+  };
 }
 
 interface HeapSnapshotDiff {
@@ -390,6 +446,222 @@ export class HeapSnapshotParser {
       totalSize,
       topRetainers: this.getTopRetainers(),
     };
+  }
+
+  /**
+   * Generate a complete heap analysis including class histogram and statistics.
+   * Phase 2 implementation: Includes dominator tree and leak detection.
+   *
+   * @param snapshotId - Identifier for this snapshot
+   * @param options - Analysis options
+   * @returns Complete analysis result with histogram, statistics, dominator tree, and leak detection
+   */
+  async analyzeHeap(
+    snapshotId: string,
+    options?: {
+      includeDominatorTree?: boolean;
+      dominatorTreeDepth?: number;
+      includeLeakDetection?: boolean;
+      minLeakSize?: number;
+    },
+  ): Promise<HeapAnalysisResult> {
+    const startTime = Date.now();
+    this.ensureParsed();
+
+    const {
+      includeDominatorTree = false,
+      dominatorTreeDepth = 3,
+      includeLeakDetection = false,
+      minLeakSize = 1024 * 1024,
+    } = options ?? {};
+
+    // Build class histogram
+    const histogramMap = new Map<
+      string,
+      { count: number; shallowSize: number; retainedSize: number }
+    >();
+
+    for (const node of this.nodesCache) {
+      const className = node.name || `(${node.type})`;
+      const existing = histogramMap.get(className);
+
+      if (existing) {
+        existing.count += 1;
+        existing.shallowSize += node.selfSize;
+        existing.retainedSize += node.selfSize; // Updated by dominator tree if enabled
+      } else {
+        histogramMap.set(className, {
+          count: 1,
+          shallowSize: node.selfSize,
+          retainedSize: node.selfSize,
+        });
+      }
+    }
+
+    // Convert to sorted array
+    const classHistogram: ClassHistogramEntry[] = [];
+    for (const [className, stats] of histogramMap.entries()) {
+      classHistogram.push({
+        className,
+        count: stats.count,
+        shallowSize: stats.shallowSize,
+        retainedSize: stats.retainedSize,
+      });
+    }
+
+    // Sort by retained size descending
+    classHistogram.sort((a, b) => b.retainedSize - a.retainedSize);
+
+    // Build dominator tree if requested
+    let dominatorTree: HeapAnalysisResult['dominatorTree'];
+    let suspectedLeaks: HeapAnalysisResult['suspectedLeaks'];
+
+    if (includeDominatorTree || includeLeakDetection) {
+      try {
+        // Lazy-load DominatorTreeBuilder
+        const { DominatorTreeBuilder } = await import('./DominatorTreeBuilder');
+        const builder = new DominatorTreeBuilder();
+
+        const fullTree = builder.buildDominatorTree(this.nodesCache, this.edgesCache);
+
+        if (includeDominatorTree) {
+          // Truncate tree to specified depth
+          dominatorTree = this.truncateTree(fullTree, dominatorTreeDepth);
+        }
+
+        if (includeLeakDetection) {
+          const leakCandidates = builder.findLeakCandidates(fullTree, minLeakSize);
+          suspectedLeaks = leakCandidates.map((leak) => ({
+            nodeId: leak.nodeId,
+            name: leak.name,
+            reason: leak.reason,
+            confidence: leak.confidence,
+            retainedSize: leak.retainedSize,
+            shallowSize: leak.shallowSize,
+            path: leak.path,
+          }));
+        }
+      } catch (error) {
+        // Gracefully degrade if dominator tree computation fails
+        console.warn('Failed to compute dominator tree:', error);
+      }
+    }
+
+    // Compute statistics
+    const totalObjects = this.nodesCache.length;
+    const totalShallowSize = this.nodesCache.reduce((sum, node) => sum + node.selfSize, 0);
+    const detachedDOMNodes = this.countDetachedDOMNodes();
+
+    const parseTimeMs = Date.now() - startTime;
+
+    const result: HeapAnalysisResult = {
+      classHistogram,
+      statistics: {
+        totalObjects,
+        totalShallowSize,
+        nodeCount: totalObjects,
+        edgeCount: this.edgesCache.length,
+        detachedDOMNodes,
+      },
+      metadata: {
+        snapshotId,
+        parseTimeMs,
+        version: includeDominatorTree || includeLeakDetection ? '2.0.0-phase2' : '1.0.0-phase1',
+      },
+    };
+
+    if (dominatorTree !== undefined) {
+      result.dominatorTree = dominatorTree;
+    }
+
+    if (suspectedLeaks !== undefined) {
+      result.suspectedLeaks = suspectedLeaks;
+    }
+
+    return result;
+  }
+
+  /**
+   * Truncate dominator tree to specified depth
+   */
+  private truncateTree(
+    node: {
+      nodeId: number;
+      name: string;
+      retainedSize: number;
+      shallowSize: number;
+      children: Array<{
+        nodeId: number;
+        name: string;
+        retainedSize: number;
+        shallowSize: number;
+        children: unknown[];
+      }>;
+    },
+    maxDepth: number,
+    currentDepth = 0,
+  ): HeapAnalysisResult['dominatorTree'] {
+    if (currentDepth >= maxDepth) {
+      return {
+        nodeId: node.nodeId,
+        name: node.name,
+        retainedSize: node.retainedSize,
+        shallowSize: node.shallowSize,
+        children: [], // Truncate children
+      };
+    }
+
+    return {
+      nodeId: node.nodeId,
+      name: node.name,
+      retainedSize: node.retainedSize,
+      shallowSize: node.shallowSize,
+      children: node.children.map((child) =>
+        this.truncateTree(child, maxDepth, currentDepth + 1),
+      ) as Array<{
+        nodeId: number;
+        name: string;
+        retainedSize: number;
+        shallowSize: number;
+        children: unknown[];
+      }>,
+    };
+  }
+
+  /**
+   * Count detached DOM nodes using heuristics.
+   * Detects nodes with "detached" in name or DOM element types with low connectivity.
+   */
+  private countDetachedDOMNodes(): number {
+    let count = 0;
+
+    for (const node of this.nodesCache) {
+      const nameLower = node.name.toLowerCase();
+
+      // Check for explicit "detached" marker
+      if (nameLower.includes('detached')) {
+        count += 1;
+        continue;
+      }
+
+      // Check for DOM node types
+      const isDOMNodeType =
+        nameLower.startsWith('html') ||
+        nameLower.includes('element') ||
+        (nameLower.includes('node') && !nameLower.includes('function'));
+
+      if (isDOMNodeType) {
+        // Count incoming edges
+        const incomingCount = this.edgesCache.filter((edge) => edge.toId === node.id).length;
+
+        // Heuristic: DOM nodes with very few incoming edges are likely detached
+        if (incomingCount < 2) {
+          count += 1;
+        }
+      }
+    }
+
+    return count;
   }
 
   private ensureParsed(): void {

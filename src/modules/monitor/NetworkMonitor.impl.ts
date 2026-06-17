@@ -44,6 +44,7 @@ interface CDPResponseReceivedPayload {
     fromDiskCache?: boolean;
     fromServiceWorker?: boolean;
     timing?: unknown;
+    protocol?: string;
   };
   timestamp: number;
 }
@@ -238,6 +239,7 @@ export class NetworkMonitor implements NetworkMonitorLike {
           timestamp: params.timestamp,
           fromCache: params.response.fromDiskCache || params.response.fromServiceWorker,
           timing: params.response.timing,
+          protocol: params.response.protocol,
         };
 
         this.responses.set(scopedRequestId, response);

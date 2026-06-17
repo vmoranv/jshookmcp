@@ -21,6 +21,10 @@ import {
   type NetworkAuthorizationInput,
   type ResolvedNetworkTarget,
 } from '@utils/network/ssrf-policy';
+import * as http2 from 'node:http2';
+import * as tls from 'node:tls';
+import * as net from 'node:net';
+import { BufferChain } from '@utils/BufferChain';
 
 const STRIPPED_HEADERS = new Set([
   'host',
@@ -78,6 +82,7 @@ interface BaseRequest {
   method: string;
   headers?: Record<string, string>;
   postData?: string;
+  protocol?: string;
 }
 
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
@@ -99,6 +104,171 @@ function sanitizeHeaders(headers: Record<string, string>): Record<string, string
     }
   }
   return out;
+}
+
+function isHttp2Protocol(protocol?: string): boolean {
+  if (!protocol) return false;
+  const normalized = protocol.toLowerCase().trim();
+  return normalized === 'h2' || normalized === 'h2c' || normalized === 'http/2';
+}
+
+function normalizeHttp2Headers(
+  headers: Record<string, string>,
+): http2.OutgoingHttpHeaders {
+  const output: http2.OutgoingHttpHeaders = {};
+  for (const [name, value] of Object.entries(headers)) {
+    const lowerName = name.toLowerCase();
+    // Skip pseudo-headers from captured traffic (they'll be set by http2 client)
+    if (lowerName.startsWith(':')) continue;
+    output[lowerName] = value;
+  }
+  return output;
+}
+
+function parseHttp2ResponseHeaders(headers: http2.IncomingHttpHeaders): {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+} {
+  const responseHeaders: Record<string, string> = {};
+  let status = 200;
+  let statusText = 'OK';
+
+  for (const [name, value] of Object.entries(headers)) {
+    if (name === ':status') {
+      status = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+      // Map status code to text (simplified)
+      if (status >= 200 && status < 300) statusText = 'OK';
+      else if (status >= 300 && status < 400) statusText = 'Redirect';
+      else if (status >= 400 && status < 500) statusText = 'Client Error';
+      else if (status >= 500) statusText = 'Server Error';
+      continue;
+    }
+    if (name.startsWith(':')) continue; // Skip other pseudo-headers
+    if (Array.isArray(value)) {
+      responseHeaders[name] = value.join(', ');
+    } else if (value !== undefined) {
+      responseHeaders[name] = String(value);
+    }
+  }
+
+  return { status, statusText, headers: responseHeaders };
+}
+
+async function replayHttp2Request(
+  url: URL,
+  method: string,
+  headers: Record<string, string>,
+  body: string | undefined,
+  timeoutMs: number,
+  target: ResolvedNetworkTarget,
+  maxBodyBytes: number,
+): Promise<{
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  body: string;
+  bodyTruncated: boolean;
+}> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      session.close();
+      reject(new Error(`HTTP/2 request timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    let session: http2.ClientHttp2Session | null = null;
+
+    try {
+      const effectivePort = Number.parseInt(
+        url.port || (url.protocol === 'https:' ? '443' : '80'),
+        10,
+      );
+
+      session = http2.connect(url.origin, {
+        createConnection: () => {
+          if (url.protocol === 'https:') {
+            return tls.connect({
+              host: target.resolvedAddress ?? target.hostname,
+              port: effectivePort,
+              servername: target.hostname,
+              ALPNProtocols: ['h2'],
+              rejectUnauthorized: true,
+            });
+          } else {
+            // h2c (HTTP/2 cleartext)
+            return net.connect({
+              host: target.resolvedAddress ?? target.hostname,
+              port: effectivePort,
+            });
+          }
+        },
+      });
+
+      session.once('error', (error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+
+      const normalizedHeaders = normalizeHttp2Headers(headers);
+      normalizedHeaders[':method'] = method;
+      normalizedHeaders[':path'] = url.pathname + url.search;
+      normalizedHeaders[':scheme'] = url.protocol.slice(0, -1);
+      normalizedHeaders[':authority'] = url.host;
+
+      if (body && !normalizedHeaders['content-length']) {
+        normalizedHeaders['content-length'] = String(Buffer.byteLength(body, 'utf8'));
+      }
+
+      const request = session.request(normalizedHeaders);
+      const bodyChain = new BufferChain();
+      let truncated = false;
+      let responseHeaders: http2.IncomingHttpHeaders = {};
+
+      request.on('response', (headers) => {
+        responseHeaders = headers;
+      });
+
+      request.on('data', (chunk: Buffer) => {
+        if (!truncated && bodyChain.length + chunk.length > maxBodyBytes) {
+          truncated = true;
+          const remaining = maxBodyBytes - bodyChain.length;
+          if (remaining > 0) {
+            bodyChain.append(chunk.subarray(0, remaining));
+          }
+        } else if (!truncated) {
+          bodyChain.append(chunk);
+        }
+      });
+
+      request.on('end', () => {
+        clearTimeout(timer);
+        session?.close();
+        const parsed = parseHttp2ResponseHeaders(responseHeaders);
+        resolve({
+          status: parsed.status,
+          statusText: parsed.statusText,
+          headers: parsed.headers,
+          body: bodyChain.toString('utf8'),
+          bodyTruncated: truncated,
+        });
+      });
+
+      request.on('error', (error) => {
+        clearTimeout(timer);
+        session?.close();
+        reject(error);
+      });
+
+      if (body && method !== 'GET' && method !== 'HEAD') {
+        request.write(body, 'utf8');
+      }
+      request.end();
+    } catch (error) {
+      clearTimeout(timer);
+      session?.close();
+      reject(error);
+    }
+  });
 }
 
 export async function replayRequest(
@@ -249,11 +419,44 @@ export async function replayRequest(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), args.timeoutMs ?? 30_000);
   const MAX_REDIRECTS = NETWORK_REPLAY_MAX_REDIRECTS;
+  const useHttp2 = isHttp2Protocol(base.protocol);
 
   try {
     let currentUrl = url;
     let currentMethod = method;
     let currentBody: string | undefined = body;
+
+    if (useHttp2) {
+      // HTTP/2 path - no redirect handling in this version (HTTP/2 doesn't support manual redirect)
+      const { pinnedUrl, originalHost, target } = await resolvePinned(currentUrl);
+      const parsedUrl = new URL(pinnedUrl);
+      const hopHeaders = { ...mergedHeaders };
+      if (target.parsedUrl.protocol === 'http:' && target.resolvedAddress && !target.isIpLiteral) {
+        hopHeaders.Host = originalHost;
+      }
+
+      const result = await replayHttp2Request(
+        parsedUrl,
+        currentMethod,
+        hopHeaders,
+        currentMethod !== 'GET' && currentMethod !== 'HEAD' ? currentBody : undefined,
+        args.timeoutMs ?? 30_000,
+        target,
+        maxBodyBytes,
+      );
+
+      return {
+        dryRun: false,
+        status: result.status,
+        statusText: result.statusText,
+        headers: result.headers,
+        body: result.body,
+        bodyTruncated: result.bodyTruncated,
+        requestId: args.requestId,
+      };
+    }
+
+    // HTTP/1.1 path with fetch
     let resp!: Response;
 
     for (let hop = 0; hop < MAX_REDIRECTS; hop++) {

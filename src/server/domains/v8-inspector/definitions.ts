@@ -7,8 +7,16 @@ export const v8InspectorTools: Tool[] = [
   ),
   tool('v8_heap_snapshot_analyze', (t) =>
     t
-      .desc('Analyze a heap snapshot: retained size, constructor distribution, dominators.')
+      .desc(
+        'Analyze a heap snapshot: class histogram (object count/sizes by constructor), ' +
+          'statistics (total objects, detached DOM nodes), optional dominator tree, and leak detection.',
+      )
       .string('snapshotId', 'Snapshot ID')
+      .number('topN', 'Number of top classes to return in histogram (default: 50)')
+      .boolean('includeDominatorTree', 'Include dominator tree in analysis (default: false)')
+      .number('depth', 'Dominator tree depth limit (default: 3)')
+      .boolean('includeLeakDetection', 'Include memory leak detection (default: false)')
+      .number('minLeakSize', 'Minimum leak size in bytes (default: 1MB)')
       .required('snapshotId')
       .query(),
   ),
@@ -45,6 +53,18 @@ export const v8InspectorTools: Tool[] = [
       .desc('Report JIT compilation status and optimization tier for a script.')
       .string('scriptId', 'CDP scriptId')
       .required('scriptId')
+      .query(),
+  ),
+  tool('v8_heap_find_leaks', (t) =>
+    t
+      .desc(
+        'Find suspected memory leaks in a heap snapshot. Returns leak candidates sorted by confidence, ' +
+          'including detached DOM nodes, large arrays, closure leaks, and unexpectedly large retained objects.',
+      )
+      .string('snapshotId', 'Snapshot ID to analyze')
+      .number('minRetainedSize', 'Minimum retained size in bytes to consider (default: 1MB)')
+      .number('maxResults', 'Maximum number of leak candidates to return (default: 20)')
+      .required('snapshotId')
       .query(),
   ),
 ];

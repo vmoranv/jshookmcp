@@ -33,6 +33,7 @@ export interface NetworkResponse {
   timestamp: number;
   fromCache?: boolean;
   timing?: NetworkTiming;
+  protocol?: string;
 }
 
 export interface NetworkStatus {

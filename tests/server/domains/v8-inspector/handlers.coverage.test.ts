@@ -714,22 +714,46 @@ describe('v8-inspector handler coverage', () => {
       });
 
       it('should return analysis for a stored snapshot', async () => {
+        // Store a valid snapshot with proper V8 heap format
+        const validSnapshot = JSON.stringify({
+          snapshot: {
+            meta: {
+              node_fields: ['type', 'name', 'id', 'self_size', 'edge_count', 'trace_node_id'],
+              node_types: [['object'], 'object'],
+              edge_fields: ['type', 'name_or_index', 'to_node'],
+              edge_types: [['property'], 'property'],
+            },
+            node_count: 2,
+            edge_count: 0,
+          },
+          nodes: [
+            // Root
+            0, 0, 1, 0, 0, 0,
+            // Object
+            0, 1, 2, 1024, 0, 0,
+          ],
+          edges: [],
+          strings: ['(root)', 'Object'],
+        });
+
         storeSnapshot({
           id: 'snap-analyze',
-          chunks: ['c1', 'c2', 'c3'],
+          chunks: [validSnapshot],
           capturedAt: '2026-01-01',
-          sizeBytes: 4096,
+          sizeBytes: Buffer.byteLength(validSnapshot, 'utf8'),
         });
         const handlers = new V8InspectorHandlers(createMockDeps());
 
         const result = await handlers.v8_heap_snapshot_analyze({ snapshotId: 'snap-analyze' });
 
-        expect(result).toEqual({
-          success: true,
-          snapshotId: 'snap-analyze',
-          summary: { chunkCount: 3, sizeBytes: 4096 },
-          objectAddress: '0x1000',
-        });
+        expect(result).toHaveProperty('success', true);
+        expect(result).toHaveProperty('snapshotId', 'snap-analyze');
+        expect(result).toHaveProperty('summary');
+        expect(result).toHaveProperty('classHistogram');
+        expect(result).toHaveProperty('parseTimeMs');
+        expect((result as any).summary.chunkCount).toBe(1);
+        expect((result as any).summary.totalObjects).toBe(2);
+        expect((result as any).classHistogram).toBeInstanceOf(Array);
       });
     });
 

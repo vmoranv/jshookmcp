@@ -34,10 +34,16 @@ const allRegistrations = defineMethodRegistrations<
   depKey: DEP_KEY,
   lookup: t,
   entries: [
-    { tool: 'electron_attach', method: 'handleElectronAttach' },
+    // Core process management
+    { tool: 'process_find', method: 'handleProcessFind' },
+    { tool: 'process_list', method: 'handleProcessFind' },
+    { tool: 'process_get', method: 'handleProcessGet' },
+    { tool: 'process_kill', method: 'handleProcessKill' },
     { tool: 'process_windows', method: 'handleProcessWindows' },
     { tool: 'process_check_debug_port', method: 'handleProcessCheckDebugPort' },
     { tool: 'process_launch_debug', method: 'handleProcessLaunchDebug' },
+    { tool: 'electron_attach', method: 'handleElectronAttach' },
+    // Memory operations
     { tool: 'memory_read', method: 'handleMemoryRead' },
     { tool: 'memory_write', method: 'handleMemoryWrite' },
     { tool: 'memory_scan', method: 'handleMemoryScan' },
@@ -47,6 +53,7 @@ const allRegistrations = defineMethodRegistrations<
     { tool: 'memory_dump_region', method: 'handleMemoryDumpRegion' },
     { tool: 'memory_list_regions', method: 'handleMemoryListRegions' },
     { tool: 'memory_audit_export', method: 'handleMemoryAuditExport' },
+    // Injection (Win32-only)
     { tool: 'inject_dll', method: 'handleInjectDll' },
     { tool: 'inject_shellcode', method: 'handleInjectShellcode' },
     { tool: 'check_debug_port', method: 'handleCheckDebugPort' },

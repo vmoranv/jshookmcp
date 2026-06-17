@@ -81,6 +81,7 @@ export class V8InspectorHandlers {
       v8_bytecode_extract: (toolArgs) => this.v8_bytecode_extract(toolArgs),
       v8_version_detect: (toolArgs) => this.v8_version_detect(toolArgs),
       v8_jit_inspect: (toolArgs) => this.v8_jit_inspect(toolArgs),
+      v8_heap_find_leaks: (toolArgs) => this.v8_heap_find_leaks(toolArgs),
     };
 
     const handler = dispatchTable[toolName];
@@ -124,8 +125,35 @@ export class V8InspectorHandlers {
   async v8_heap_snapshot_analyze(args: ToolArgs): Promise<{
     success: boolean;
     snapshotId: string;
-    summary: { chunkCount: number; sizeBytes: number };
-    objectAddress: string;
+    summary: {
+      chunkCount: number;
+      sizeBytes: number;
+      totalObjects: number;
+      detachedDOMNodes: number;
+    };
+    classHistogram: Array<{
+      className: string;
+      count: number;
+      shallowSize: number;
+      retainedSize: number;
+    }>;
+    dominatorTree?: {
+      nodeId: number;
+      name: string;
+      retainedSize: number;
+      shallowSize: number;
+      children: unknown[];
+    };
+    suspectedLeaks?: Array<{
+      nodeId: number;
+      name: string;
+      reason: string;
+      confidence: number;
+      retainedSize: number;
+      shallowSize: number;
+      path: string[];
+    }>;
+    parseTimeMs: number;
   }> {
     const snapshotId = requireStringArg(args, 'snapshotId');
     const snapshot = getSnapshot(snapshotId);
@@ -133,15 +161,78 @@ export class V8InspectorHandlers {
       throw new Error(`Snapshot ${snapshotId} not found`);
     }
 
-    return {
+    // Parse options
+    const includeDominatorTree = typeof args.includeDominatorTree === 'boolean'
+      ? args.includeDominatorTree
+      : false;
+    const dominatorTreeDepth = typeof args.depth === 'number' && args.depth > 0
+      ? args.depth
+      : 3;
+    const includeLeakDetection = typeof args.includeLeakDetection === 'boolean'
+      ? args.includeLeakDetection
+      : false;
+    const minLeakSize = typeof args.minLeakSize === 'number' && args.minLeakSize > 0
+      ? args.minLeakSize
+      : 1024 * 1024;
+
+    // Lazy-load parser
+    const { HeapSnapshotParser } = await import('@modules/v8-inspector/HeapSnapshotParser');
+    const parser = new HeapSnapshotParser();
+
+    // Feed chunks to parser
+    parser.feedChunk(snapshot.chunks);
+
+    // Analyze heap with options
+    const analysis = await parser.analyzeHeap(snapshotId, {
+      includeDominatorTree,
+      dominatorTreeDepth,
+      includeLeakDetection,
+      minLeakSize,
+    });
+
+    // Return top N entries (default 50)
+    const topN = typeof args.topN === 'number' && args.topN > 0 ? args.topN : 50;
+
+    const result: {
+      success: boolean;
+      snapshotId: string;
+      summary: {
+        chunkCount: number;
+        sizeBytes: number;
+        totalObjects: number;
+        detachedDOMNodes: number;
+      };
+      classHistogram: Array<{
+        className: string;
+        count: number;
+        shallowSize: number;
+        retainedSize: number;
+      }>;
+      dominatorTree?: typeof analysis.dominatorTree;
+      suspectedLeaks?: typeof analysis.suspectedLeaks;
+      parseTimeMs: number;
+    } = {
       success: true,
       snapshotId,
       summary: {
         chunkCount: snapshot.chunks.length,
         sizeBytes: snapshot.sizeBytes,
+        totalObjects: analysis.statistics.totalObjects,
+        detachedDOMNodes: analysis.statistics.detachedDOMNodes,
       },
-      objectAddress: `0x${snapshot.sizeBytes.toString(16)}`,
+      classHistogram: analysis.classHistogram.slice(0, topN),
+      parseTimeMs: analysis.metadata.parseTimeMs,
     };
+
+    if (analysis.dominatorTree) {
+      result.dominatorTree = analysis.dominatorTree;
+    }
+
+    if (analysis.suspectedLeaks) {
+      result.suspectedLeaks = analysis.suspectedLeaks;
+    }
+
+    return result;
   }
 
   async v8_heap_diff(args: ToolArgs): Promise<{
@@ -240,6 +331,65 @@ export class V8InspectorHandlers {
     return handleJitInspect(args, {
       getPage,
     });
+  }
+
+  async v8_heap_find_leaks(args: ToolArgs): Promise<{
+    success: boolean;
+    snapshotId: string;
+    leakCandidates: Array<{
+      nodeId: number;
+      name: string;
+      reason: string;
+      confidence: number;
+      retainedSize: number;
+      shallowSize: number;
+      path: string[];
+    }>;
+    totalCandidates: number;
+  }> {
+    const snapshotId = requireStringArg(args, 'snapshotId');
+    const snapshot = getSnapshot(snapshotId);
+    if (!snapshot) {
+      throw new Error(`Snapshot ${snapshotId} not found`);
+    }
+
+    const minRetainedSize =
+      typeof args.minRetainedSize === 'number' && args.minRetainedSize > 0
+        ? args.minRetainedSize
+        : 1024 * 1024;
+    const maxResults =
+      typeof args.maxResults === 'number' && args.maxResults > 0 ? args.maxResults : 20;
+
+    // Lazy-load parser and builder
+    const { HeapSnapshotParser } = await import('@modules/v8-inspector/HeapSnapshotParser');
+    const { DominatorTreeBuilder } = await import('@modules/v8-inspector/DominatorTreeBuilder');
+
+    const parser = new HeapSnapshotParser();
+    parser.feedChunk(snapshot.chunks);
+
+    const nodes = parser.parseNodes();
+    const edges = parser.parseEdges();
+
+    const builder = new DominatorTreeBuilder();
+    const tree = builder.buildDominatorTree(nodes, edges);
+    const allLeaks = builder.findLeakCandidates(tree, minRetainedSize);
+
+    const leakCandidates = allLeaks.slice(0, maxResults).map((leak) => ({
+      nodeId: leak.nodeId,
+      name: leak.name,
+      reason: leak.reason,
+      confidence: leak.confidence,
+      retainedSize: leak.retainedSize,
+      shallowSize: leak.shallowSize,
+      path: leak.path,
+    }));
+
+    return {
+      success: true,
+      snapshotId,
+      leakCandidates,
+      totalCandidates: allLeaks.length,
+    };
   }
 
   private async inspectObjectViaDebugger(
