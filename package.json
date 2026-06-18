@@ -113,7 +113,7 @@
   },
   "dependencies": {
     "@alexaltea/capstone-js": "^5.0.9",
-    "@babel/generator": "^7.29.1",
+    "@babel/generator": "^8.0.0",
     "@babel/parser": "^7.29.2",
     "@babel/traverse": "^7.29.0",
     "@babel/types": "^7.29.0",
