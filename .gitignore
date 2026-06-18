@@ -34,6 +34,11 @@ tmp/
 .pnpm-store/
 .tmp-*.json
 
+# SQLite databases (exploitdb cache, etc.)
+*.sqlite
+*.sqlite3
+*.db
+
 # IDE
 .vscode/
 .idea/
