@@ -136,7 +136,7 @@
     "cross-env": "^10.1.0",
     "lefthook": "^2.1.8",
     "medium-zoom": "^1.1.0",
-    "oxfmt": "^0.54.0",
+    "oxfmt": "^0.55.0",
     "oxlint": "^1.66.0",
     "rollup-plugin-visualizer": "^7.0.1",
     "tinyglobby": "^0.2.16",
@@ -151,7 +151,7 @@
   "optionalDependencies": {
     "@devicefarmer/adbkit": "^3.3.8",
     "@huggingface/transformers": "^4.0.1",
-    "better-sqlite3": "12.10.0",
+    "better-sqlite3": "12.11.1",
     "camoufox-js": "^0.11.0",
     "playwright-core": "^1.60.0",
     "webcrack": "2.16.0"
