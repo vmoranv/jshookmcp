@@ -6,6 +6,105 @@ import type { MCPServerContext } from '@server/domains/shared/registry';
 import type { WebGPUDomainDependencies, ShaderMetadata } from '../types';
 
 /**
+ * Extract shader metadata from WGSL source code.
+ *
+ * Parses entry points, uniforms/bindings, vertex attributes, and structs.
+ * This is a lightweight parser sufficient for security analysis and reverse
+ * engineering; it does not require an external WGSL grammar dependency.
+ *
+ * @param code - WGSL source code
+ * @returns Structured shader metadata
+ */
+function extractShaderMetadata(code: string): ShaderMetadata {
+  const entryPoints: ShaderMetadata['entryPoints'] = [];
+  const uniforms: NonNullable<ShaderMetadata['uniforms']> = [];
+  const attributes: NonNullable<ShaderMetadata['attributes']> = [];
+  const structs: NonNullable<ShaderMetadata['structs']> = [];
+  const bindingsByType: NonNullable<ShaderMetadata['bindingsByType']> = {};
+
+  // Entry points
+  const vertexMatch = code.match(/@vertex\s+fn\s+(\w+)/);
+  const fragmentMatch = code.match(/@fragment\s+fn\s+(\w+)/);
+  const computeMatch = code.match(/@compute\s+fn\s+(\w+)/);
+
+  if (vertexMatch?.[1]) {
+    entryPoints.push({ name: vertexMatch[1], stage: 'vertex' });
+  }
+  if (fragmentMatch?.[1]) {
+    entryPoints.push({ name: fragmentMatch[1], stage: 'fragment' });
+  }
+  if (computeMatch?.[1]) {
+    entryPoints.push({ name: computeMatch[1], stage: 'compute' });
+  }
+
+  // Structs: `struct Name { field: type, ... }`
+  const structRegex = /struct\s+(\w+)\s*\{([^}]*)\}/g;
+  for (const match of code.matchAll(structRegex)) {
+    const name = match[1];
+    const body = match[2];
+    if (!name || body === undefined) continue;
+    const fields: Array<{ name: string; type: string }> = [];
+    const fieldRegex = /(\w+)\s*:\s*([^,;]+)/g;
+    for (const fieldMatch of body.matchAll(fieldRegex)) {
+      const fieldName = fieldMatch[1];
+      const fieldType = fieldMatch[2];
+      if (fieldName === undefined || fieldType === undefined) continue;
+      fields.push({
+        name: fieldName.trim(),
+        type: fieldType.trim(),
+      });
+    }
+    structs.push({ name, fields });
+  }
+
+  // Uniforms / bindings: `@group(g) @binding(b) var<...> name : type`
+  const bindingRegex =
+    /@group\s*\(\s*(\d+)\s*\)\s*@binding\s*\(\s*(\d+)\s*\)[\s\S]*?var[\s\S]*?(\w+)\s*:\s*([\w\s<>*(),]+)/g;
+  for (const match of code.matchAll(bindingRegex)) {
+    const groupStr = match[1];
+    const bindingStr = match[2];
+    const name = match[3];
+    const type = match[4];
+    if (
+      groupStr === undefined ||
+      bindingStr === undefined ||
+      name === undefined ||
+      type === undefined
+    )
+      continue;
+    const group = Number(groupStr);
+    const binding = Number(bindingStr);
+
+    uniforms.push({ name, binding, group });
+
+    const baseType = type.split('<')[0]?.split('(')[0]?.trim() ?? 'unknown';
+    bindingsByType[baseType] = (bindingsByType[baseType] ?? 0) + 1;
+  }
+
+  // Vertex attributes: `@location(l) name : type` inside function params
+  const attributeRegex = /@location\s*\(\s*(\d+)\s*\)\s*(\w+)\s*:/g;
+  for (const match of code.matchAll(attributeRegex)) {
+    const locationStr = match[1];
+    const name = match[2];
+    if (locationStr === undefined || name === undefined) continue;
+    attributes.push({
+      location: Number(locationStr),
+      name,
+    });
+  }
+
+  const metadata: ShaderMetadata = {
+    entryPoints,
+    uniforms,
+    attributes,
+    structs,
+    bindingsByType,
+  };
+
+  return metadata;
+}
+
+/**
  * Handler for webgpu_shader_compile tool
  * Compiles WGSL shader and extracts metadata (entry points, bindings, attributes)
  */
@@ -15,7 +114,7 @@ export class ShaderCompileHandler {
 
   constructor(
     private ctx: MCPServerContext,
-    private deps: WebGPUDomainDependencies
+    private deps: WebGPUDomainDependencies,
   ) {}
 
   async handle(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -48,54 +147,35 @@ export class ShaderCompileHandler {
 
       // Acquire page lock to prevent concurrent GPU context access
       const result = await this.pageLockManager.withLock(pageId, async () => {
-        return await page.evaluate(
-          async (code: string) => {
-            if (!navigator.gpu) {
-              throw new Error('WebGPU not available');
-            }
+        return await page.evaluate(async (code: string) => {
+          if (!navigator.gpu) {
+            throw new Error('WebGPU not available');
+          }
 
-            const adapter = await navigator.gpu.requestAdapter();
-            if (!adapter) {
-              throw new Error('Failed to request GPU adapter');
-            }
+          const adapter = await navigator.gpu.requestAdapter();
+          if (!adapter) {
+            throw new Error('Failed to request GPU adapter');
+          }
 
-            const device = await adapter.requestDevice();
+          const device = await adapter.requestDevice();
 
-            try {
-              const shaderModule = device.createShaderModule({
-                code,
-              });
+          try {
+            // Compile and validate shader
+            device.createShaderModule({
+              code,
+            });
 
-              // Extract metadata from shader code
-              const entryPoints: Array<{ name: string; stage: string }> = [];
+            // Extract metadata from shader code
+            const metadata = extractShaderMetadata(code);
 
-              // Simple regex-based parsing (real implementation would use proper WGSL parser)
-              const vertexMatch = code.match(/@vertex\s+fn\s+(\w+)/);
-              const fragmentMatch = code.match(/@fragment\s+fn\s+(\w+)/);
-              const computeMatch = code.match(/@compute\s+fn\s+(\w+)/);
-
-              if (vertexMatch) {
-                entryPoints.push({ name: vertexMatch[1], stage: 'vertex' });
-              }
-              if (fragmentMatch) {
-                entryPoints.push({ name: fragmentMatch[1], stage: 'fragment' });
-              }
-              if (computeMatch) {
-                entryPoints.push({ name: computeMatch[1], stage: 'compute' });
-              }
-
-              return {
-                compiled: true,
-                metadata: {
-                  entryPoints,
-                },
-              };
-            } catch (err: any) {
-              throw new Error(`Shader compilation failed: ${err.message}`);
-            }
-          },
-          shaderCode
-        );
+            return {
+              compiled: true,
+              metadata,
+            };
+          } catch (err: any) {
+            throw new Error(`Shader compilation failed: ${err.message}`, { cause: err });
+          }
+        }, shaderCode);
       });
 
       // Cache the result

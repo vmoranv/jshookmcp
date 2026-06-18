@@ -3,12 +3,12 @@ import { argNumber } from '@server/domains/shared/parse-args';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { getPageLockManager } from '@modules/webgpu/PageLockManager';
 import {
-  injectGPUCommandHook,
+  installGPUCommandHook,
   getGPUCommandTrace,
   analyzeCommandTrace,
 } from '@modules/webgpu/CDPIntegration';
 import type { MCPServerContext } from '@server/domains/shared/registry';
-import type { WebGPUDomainDependencies, GPUCommand } from '../types';
+import type { WebGPUDomainDependencies } from '../types';
 
 /**
  * Handler for webgpu_capture_commands tool
@@ -20,7 +20,7 @@ export class CommandCaptureHandler {
 
   constructor(
     private ctx: MCPServerContext,
-    private deps: WebGPUDomainDependencies
+    private deps: WebGPUDomainDependencies,
   ) {
     this.ddm = DetailedDataManager.getInstance();
   }
@@ -41,31 +41,36 @@ export class CommandCaptureHandler {
 
       // Acquire page lock to prevent concurrent GPU context access
       return await this.pageLockManager.withLock(pageId, async () => {
-        // Inject GPUQueue.submit hook
-        await injectGPUCommandHook(page, captureCount);
+        // Install GPUQueue.submit hook (recoverable)
+        const cleanup = await installGPUCommandHook(page, captureCount);
 
-        // Wait for commands to be captured (or timeout after 5 seconds)
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        try {
+          // Wait for commands to be captured (or timeout after 5 seconds)
+          await new Promise((resolve) => setTimeout(resolve, 5000));
 
-        // Retrieve captured commands
-        const trace = await getGPUCommandTrace(page);
+          // Retrieve captured commands
+          const trace = await getGPUCommandTrace(page);
 
-        // Analyze command patterns
-        const analyzed = analyzeCommandTrace(trace);
+          // Analyze command patterns
+          const analyzed = analyzeCommandTrace(trace);
 
-        const result = {
-          commands: analyzed.commands,
-          totalSubmissions: analyzed.totalSubmissions,
-          captureWindow: {
-            start: analyzed.captureStartTime,
-            end: analyzed.captureEndTime,
-            duration: analyzed.captureEndTime - analyzed.captureStartTime,
-          },
-          inferredTypes: analyzed.inferredTypes,
-        };
+          const result = {
+            commands: analyzed.commands,
+            totalSubmissions: analyzed.totalSubmissions,
+            captureWindow: {
+              start: analyzed.captureStartTime,
+              end: analyzed.captureEndTime,
+              duration: analyzed.captureEndTime - analyzed.captureStartTime,
+            },
+            inferredTypes: analyzed.inferredTypes,
+          };
 
-        // Handle large command arrays
-        return this.ddm.smartHandle(result, 25000);
+          // Handle large command arrays
+          return this.ddm.smartHandle(result, 25000);
+        } finally {
+          // Restore original GPUQueue.prototype.submit and createCommandEncoder
+          await cleanup();
+        }
       });
     });
   }

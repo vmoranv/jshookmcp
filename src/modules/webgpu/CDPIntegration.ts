@@ -1,12 +1,13 @@
 /**
  * CDP Integration for WebGPU — Real memory tracking and command capture.
  *
- * **Phase 1 Implementation**: Used placeholders due to lack of CDP integration.
- * **Phase 2 Implementation**: Uses Chrome DevTools Protocol for real data.
+ * **Phase 2 Implementation**: Uses Chrome DevTools Protocol plus page-script
+ * instrumentation for real data.
  *
  * **Capabilities**:
- * 1. GPU Memory Tracking — via Memory.getDOMCounters + Performance.getMetrics
- * 2. Command Queue Capture — via page script injection hooking GPUQueue.submit
+ * 1. GPU Memory Tracking — via `WeakRef` pool of `GPUBuffer`/`GPUTexture` objects
+ * 2. Command Queue Capture — via page script injection hooking `GPUQueue.submit`,
+ *    `GPUDevice.createCommandEncoder`, and pass encoders
  * 3. Resource Tracking — via Page.getResourceTree + target info
  *
  * **Known Limitations**:
@@ -31,12 +32,39 @@ export interface GPUCommandTrace {
   captureEndTime: number;
 }
 
+/** WeakRef-based allocation record kept in the page context. */
+interface PageAllocationRecord {
+  size: number;
+  usage: number;
+  label?: string;
+  type: 'buffer' | 'texture';
+  ref: WeakRef<any>;
+}
+
+/** Hook state stored in the page context for recoverable hooks. */
+interface PageHookState {
+  originalSubmit: typeof GPUQueue.prototype.submit;
+  originalCreateCommandEncoder: typeof GPUDevice.prototype.createCommandEncoder;
+  hooksInstalled: boolean;
+  commandTrace: {
+    commands: any[];
+    totalSubmissions: number;
+    startTime: number;
+  } | null;
+  allocations: PageAllocationRecord[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GPU Memory Tracking
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Get GPU memory statistics via CDP.
+ * Get GPU memory statistics via CDP and page-script tracking.
  *
- * Uses two data sources:
- * 1. Memory.getDOMCounters — for GPU process memory
- * 2. Performance.getMetrics — for GPU resource counts
+ * Uses three data sources:
+ * 1. Performance.getMetrics — for GPU process memory (when available)
+ * 2. Memory.getDOMCounters — baseline counter
+ * 3. Page-script `WeakRef` pool of WebGPU objects — for real allocation list
  *
  * @param page - Puppeteer page
  * @returns Memory stats
@@ -45,7 +73,7 @@ export async function getGPUMemoryStats(page: Page): Promise<GPUMemoryStats> {
   const cdp = await page.createCDPSession();
 
   try {
-    // Enable Memory domain
+    // Enable Memory domain (ensures counters are collected)
     await cdp.send('Memory.getDOMCounters');
 
     // Get performance metrics (includes GPU metrics on some platforms)
@@ -53,21 +81,63 @@ export async function getGPUMemoryStats(page: Page): Promise<GPUMemoryStats> {
 
     // Extract GPU-related metrics
     const gpuMemoryMetric = metrics.metrics.find((m) => m.name === 'GPUMemoryUsedKB');
-    const usedHeapSize = gpuMemoryMetric
-      ? gpuMemoryMetric.value * 1024
-      : 0;
+    const usedHeapSize = gpuMemoryMetric ? gpuMemoryMetric.value * 1024 : 0;
 
-    // Query WebGPU allocations from page context
+    // Ensure page-script allocation tracker is installed
+    await ensureAllocationTracker(page);
+
+    // Query live allocations from page context
     const allocations = await page.evaluate(() => {
-      // @ts-expect-error - accessing internal Chrome API
-      if (typeof window.__webgpuAllocations !== 'undefined') {
-        // @ts-expect-error
-        return window.__webgpuAllocations as GPUMemoryAllocation[];
+      const state = (window as any).webgpuHookState as PageHookState | undefined;
+      if (!state) {
+        return [] as GPUMemoryAllocation[];
       }
-      return [] as GPUMemoryAllocation[];
+
+      const usageNames: Record<number, string> = {
+        0x01: 'MAP_READ',
+        0x02: 'MAP_WRITE',
+        0x04: 'COPY_SRC',
+        0x08: 'COPY_DST',
+        0x10: 'INDEX',
+        0x20: 'VERTEX',
+        0x40: 'UNIFORM',
+        0x80: 'STORAGE',
+        0x100: 'INDIRECT',
+        0x200: 'QUERY_RESOLVE',
+      };
+
+      function decodeBufferUsage(usage: number): string {
+        const parts: string[] = [];
+        for (const [bit, name] of Object.entries(usageNames)) {
+          if (usage & Number(bit)) {
+            parts.push(name);
+          }
+        }
+        return parts.length > 0 ? parts.join(' | ') : String(usage);
+      }
+
+      // Filter dead refs and build allocation list
+      const alive: GPUMemoryAllocation[] = [];
+      for (const record of state.allocations) {
+        const obj = record.ref.deref();
+        if (obj) {
+          alive.push({
+            size: record.size,
+            usage:
+              record.type === 'buffer'
+                ? decodeBufferUsage(record.usage)
+                : `textureUsage:${record.usage}`,
+            label: record.label,
+            type: record.type,
+            alive: true,
+          });
+        }
+      }
+
+      return alive;
     });
 
-    // Estimate total heap size (conservative: 2x used)
+    // Estimate total heap size (conservative: max of 2x used or 256MB)
     const heapSize = Math.max(usedHeapSize * 2, 256 * 1024 * 1024);
 
     return {
@@ -81,59 +151,298 @@ export async function getGPUMemoryStats(page: Page): Promise<GPUMemoryStats> {
 }
 
 /**
- * Inject GPUQueue.submit hook to capture command submissions.
+ * Install the page-script allocation tracker if not already present.
  *
- * **Implementation**: Wraps GPUQueue.submit in page context to intercept
- * command buffers. Stores command metadata in window.__gpuCommandTrace.
+ * Wraps `GPUDevice.createBuffer` and `GPUDevice.createTexture` to keep a
+ * `WeakRef` pool of live GPU resources. The pool is pruned on every read.
+ *
+ * @param page - Puppeteer page
+ */
+async function ensureAllocationTracker(page: Page): Promise<void> {
+  await page.evaluateOnNewDocument(() => {
+    if (typeof (window as any).webgpuHookState !== 'undefined') {
+      return;
+    }
+
+    const state: PageHookState = {
+      originalSubmit: GPUQueue.prototype.submit,
+      originalCreateCommandEncoder: GPUDevice.prototype.createCommandEncoder,
+      hooksInstalled: false,
+      commandTrace: null,
+      allocations: [],
+    };
+
+    (window as any).webgpuHookState = state;
+
+    if (typeof GPUDevice === 'undefined') {
+      return;
+    }
+
+    const originalCreateBuffer = GPUDevice.prototype.createBuffer;
+    GPUDevice.prototype.createBuffer = function (descriptor: any) {
+      const buffer = originalCreateBuffer.call(this, descriptor);
+      state.allocations.push({
+        size: descriptor.size ?? 0,
+        usage: descriptor.usage ?? 0,
+        label: descriptor.label,
+        type: 'buffer',
+        ref: new WeakRef(buffer),
+      });
+      return buffer;
+    };
+
+    const originalCreateTexture = GPUDevice.prototype.createTexture;
+    GPUDevice.prototype.createTexture = function (descriptor: any) {
+      const texture = originalCreateTexture.call(this, descriptor);
+      const size = Array.isArray(descriptor.size)
+        ? descriptor.size.reduce((a: number, b: number) => a * b, 1)
+        : typeof descriptor.size === 'number'
+          ? descriptor.size
+          : 0;
+      state.allocations.push({
+        size,
+        usage: descriptor.usage ?? 0,
+        label: descriptor.label,
+        type: 'texture',
+        ref: new WeakRef(texture),
+      });
+      return texture;
+    };
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Command Queue Capture
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Initialize recoverable hook state in the page context.
+ *
+ * Must run before any other hook installation so the original methods can be
+ * restored later.
+ *
+ * @param page - Puppeteer page
+ */
+async function ensureHookState(page: Page): Promise<void> {
+  await page.evaluateOnNewDocument(() => {
+    if (typeof (window as any).webgpuHookState !== 'undefined') {
+      return;
+    }
+
+    const state: PageHookState = {
+      originalSubmit: GPUQueue.prototype.submit,
+      originalCreateCommandEncoder: GPUDevice.prototype.createCommandEncoder,
+      hooksInstalled: false,
+      commandTrace: null,
+      allocations: [],
+    };
+
+    (window as any).webgpuHookState = state;
+  });
+}
+
+/**
+ * Install GPUQueue.submit and GPUDevice.createCommandEncoder hooks.
+ *
+ * **Recoverable**: stores original methods in `window.webgpuHookState` so
+ * `uninstallGPUCommandHook` can restore them.
+ *
+ * **Structured**: intercepts render/compute/copy pass encoders to record
+ * drawCalls, dispatch dimensions, pipeline labels, and pass labels.
  *
  * @param page - Puppeteer page
  * @param captureCount - Maximum commands to capture
- * @returns Cleanup function
+ * @returns Cleanup function that restores original methods
  */
-export async function injectGPUCommandHook(
+export async function installGPUCommandHook(
   page: Page,
   captureCount: number,
 ): Promise<() => Promise<void>> {
-  await page.evaluateOnNewDocument((maxCommands: number) => {
-    // Initialize capture state
-    (window as any).__gpuCommandTrace = {
-      commands: [] as any[],
+  await ensureHookState(page);
+
+  await page.evaluate((maxCommands: number) => {
+    const state = (window as any).webgpuHookState as PageHookState;
+
+    // If already installed, reset trace but keep hooks
+    state.commandTrace = {
+      commands: [],
       totalSubmissions: 0,
       startTime: performance.now(),
     };
 
-    // Hook GPUQueue.submit
-    const originalSubmit = GPUQueue.prototype.submit;
-    GPUQueue.prototype.submit = function (commandBuffers: GPUCommandBuffer[]) {
-      const trace = (window as any).__gpuCommandTrace;
-      trace.totalSubmissions++;
+    if (state.hooksInstalled) {
+      return;
+    }
 
-      // Capture command metadata (buffer contents are opaque)
-      for (const buffer of commandBuffers) {
-        if (trace.commands.length >= maxCommands) {
-          break;
-        }
+    // Save original methods if not already saved
+    if (!state.originalCreateCommandEncoder) {
+      state.originalCreateCommandEncoder = GPUDevice.prototype.createCommandEncoder;
+    }
+    if (!state.originalSubmit) {
+      state.originalSubmit = GPUQueue.prototype.submit;
+    }
 
-        trace.commands.push({
-          type: 'unknown', // Cannot inspect command buffer type
-          timestamp: performance.now(),
-          bufferLabel: (buffer as any).label || `buffer_${trace.commands.length}`,
-        });
+    function wrapRenderPassEncoder(encoder: any, passLabel: string | undefined): any {
+      let drawCalls = 0;
+      const drawMethods = ['draw', 'drawIndexed', 'drawIndirect', 'drawIndexedIndirect'];
+      for (const method of drawMethods) {
+        const original = (encoder as any)[method];
+        if (typeof original !== 'function') continue;
+        (encoder as any)[method] = function (...args: any[]) {
+          drawCalls++;
+          return original.apply(this, args);
+        };
       }
 
-      // Call original
-      return originalSubmit.call(this, commandBuffers);
+      const originalEnd = encoder.end;
+      encoder.end = function () {
+        const trace = state.commandTrace;
+        if (trace && trace.commands.length < maxCommands && drawCalls > 0) {
+          trace.commands.push({
+            type: 'render',
+            drawCalls,
+            pipelineLabel: encoder.pipelineLabel,
+            passLabel,
+            timestamp: performance.now(),
+          });
+        }
+        return originalEnd.call(this);
+      };
+
+      return encoder;
+    }
+
+    function wrapComputePassEncoder(encoder: any, passLabel: string | undefined): any {
+      let dispatchX = 0;
+      let dispatchY = 0;
+      let dispatchZ = 0;
+
+      const originalDispatch = encoder.dispatchWorkgroups;
+      encoder.dispatchWorkgroups = function (x: number, y?: number, z?: number) {
+        dispatchX = x;
+        dispatchY = y ?? 1;
+        dispatchZ = z ?? 1;
+        return originalDispatch.call(this, x, y, z);
+      };
+
+      const originalDispatchIndirect = encoder.dispatchWorkgroupsIndirect;
+      if (typeof originalDispatchIndirect === 'function') {
+        encoder.dispatchWorkgroupsIndirect = function (...args: any[]) {
+          dispatchX = -1; // indirect: dimension unknown
+          dispatchY = -1;
+          dispatchZ = -1;
+          return originalDispatchIndirect.apply(this, args);
+        };
+      }
+
+      const originalEnd = encoder.end;
+      encoder.end = function () {
+        const trace = state.commandTrace;
+        if (trace && trace.commands.length < maxCommands && dispatchX > 0) {
+          trace.commands.push({
+            type: 'compute',
+            dispatches: { x: dispatchX, y: dispatchY, z: dispatchZ },
+            pipelineLabel: encoder.pipelineLabel,
+            passLabel,
+            timestamp: performance.now(),
+          });
+        }
+        return originalEnd.call(this);
+      };
+
+      return encoder;
+    }
+
+    function wrapCopyEncoder(encoder: any, passLabel: string | undefined): any {
+      let copyOps = 0;
+      const copyMethods = [
+        'copyBufferToBuffer',
+        'copyBufferToTexture',
+        'copyTextureToBuffer',
+        'copyTextureToTexture',
+      ];
+      for (const method of copyMethods) {
+        const original = (encoder as any)[method];
+        if (typeof original !== 'function') continue;
+        (encoder as any)[method] = function (...args: any[]) {
+          copyOps++;
+          return original.apply(this, args);
+        };
+      }
+
+      const originalFinish = encoder.finish;
+      encoder.finish = function () {
+        const trace = state.commandTrace;
+        if (trace && trace.commands.length < maxCommands && copyOps > 0) {
+          trace.commands.push({
+            type: 'copy',
+            drawCalls: copyOps,
+            pipelineLabel: undefined,
+            passLabel,
+            timestamp: performance.now(),
+          });
+        }
+        return originalFinish.call(this);
+      };
+
+      return encoder;
+    }
+
+    // Hook GPUDevice.createCommandEncoder
+    GPUDevice.prototype.createCommandEncoder = function (descriptor: any) {
+      const encoder = state.originalCreateCommandEncoder.call(this, descriptor);
+      const passLabel = descriptor?.label;
+
+      const originalBeginRenderPass = encoder.beginRenderPass;
+      encoder.beginRenderPass = function (desc: any) {
+        const passEncoder = originalBeginRenderPass.call(this, desc);
+        return wrapRenderPassEncoder(passEncoder, desc?.label ?? passLabel);
+      };
+
+      const originalBeginComputePass = encoder.beginComputePass;
+      encoder.beginComputePass = function (desc: any) {
+        const passEncoder = originalBeginComputePass.call(this, desc);
+        return wrapComputePassEncoder(passEncoder, desc?.label ?? passLabel);
+      };
+
+      return wrapCopyEncoder(encoder, passLabel);
     };
+
+    // Hook GPUQueue.submit
+    GPUQueue.prototype.submit = function (commandBuffers: GPUCommandBuffer[]) {
+      const trace = state.commandTrace;
+      if (trace) {
+        trace.totalSubmissions += 1;
+      }
+      return state.originalSubmit.call(this, commandBuffers);
+    };
+
+    state.hooksInstalled = true;
   }, captureCount);
 
-  // Return cleanup function
+  // Return cleanup function that restores original methods
   return async () => {
-    await page.evaluate(() => {
-      // Restore original submit
-      delete (window as any).__gpuCommandTrace;
-      // Cannot restore prototype (hook persists for page lifetime)
-    });
+    await uninstallGPUCommandHook(page);
   };
+}
+
+/**
+ * Uninstall GPU command hooks and restore original prototype methods.
+ *
+ * @param page - Puppeteer page
+ */
+export async function uninstallGPUCommandHook(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const state = (window as any).webgpuHookState as PageHookState | undefined;
+    if (!state || !state.hooksInstalled) {
+      return;
+    }
+
+    GPUQueue.prototype.submit = state.originalSubmit;
+    GPUDevice.prototype.createCommandEncoder = state.originalCreateCommandEncoder;
+    state.commandTrace = null;
+    state.hooksInstalled = false;
+  });
 }
 
 /**
@@ -144,7 +453,7 @@ export async function injectGPUCommandHook(
  */
 export async function getGPUCommandTrace(page: Page): Promise<GPUCommandTrace> {
   const trace = await page.evaluate(() => {
-    const t = (window as any).__gpuCommandTrace;
+    const t = (window as any).webgpuHookState?.commandTrace;
     if (!t) {
       return null;
     }
@@ -177,6 +486,9 @@ export async function getGPUCommandTrace(page: Page): Promise<GPUCommandTrace> {
  * - Low submission rate + long gaps → likely compute
  * - Periodic pattern → likely animation loop
  *
+ * Kept for backward compatibility; with structured capture the `type` field is
+ * already populated.
+ *
  * @param trace - Command trace
  * @returns Enhanced trace with inferred types
  */
@@ -189,7 +501,7 @@ export function analyzeCommandTrace(trace: GPUCommandTrace): GPUCommandTrace & {
   }> = [];
 
   for (let i = 0; i < trace.commands.length; i++) {
-    const cmd = trace.commands[i];
+    const cmd = trace.commands[i]!;
     const nextCmd = trace.commands[i + 1];
 
     // Heuristic: short gaps → render, long gaps → compute
@@ -209,4 +521,25 @@ export function analyzeCommandTrace(trace: GPUCommandTrace): GPUCommandTrace & {
     ...trace,
     inferredTypes,
   };
+}
+
+/**
+ * Reset command trace without uninstalling hooks.
+ *
+ * Useful when starting a new capture window on a page that already has hooks.
+ *
+ * @param page - Puppeteer page
+ */
+export async function resetGPUCommandTrace(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const state = (window as any).webgpuHookState as PageHookState | undefined;
+    if (!state) {
+      return;
+    }
+    state.commandTrace = {
+      commands: [],
+      totalSubmissions: 0,
+      startTime: performance.now(),
+    };
+  });
 }

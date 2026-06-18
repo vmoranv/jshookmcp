@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { MCPServerContext } from '@server/domains/shared/registry';
 import { WebGPUHandlers } from '@server/domains/webgpu/index';
 import { ResponseBuilder } from '@server/domains/shared/ResponseBuilder';
@@ -32,14 +32,22 @@ describe('webgpu_memory_layout', () => {
     });
   });
 
-  it('should return GPU memory allocations', async () => {
+  it('should return live GPU memory allocations', async () => {
     const mockPage = {
-      evaluate: async () => ({
-        heapSize: 1024 * 1024 * 256, // 256MB
-        allocations: [
-          { size: 1024, usage: 'VERTEX' },
-          { size: 4096, usage: 'UNIFORM' },
-        ],
+      url: () => 'https://example.com/',
+      evaluate: vi.fn().mockImplementation(async (fn: any, ..._args: any[]) => {
+        if (typeof fn === 'function' && String(fn).includes('__webgpuHookState')) {
+          return [
+            { size: 1024, usage: 'VERTEX | COPY_DST', label: 'vbuf', type: 'buffer', alive: true },
+            { size: 4096, usage: 'UNIFORM', type: 'buffer', alive: true },
+          ];
+        }
+        return undefined;
+      }),
+      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+      createCDPSession: vi.fn().mockResolvedValue({
+        send: vi.fn().mockResolvedValue({ metrics: [] }),
+        detach: vi.fn().mockResolvedValue(undefined),
       }),
     };
 
@@ -52,20 +60,33 @@ describe('webgpu_memory_layout', () => {
 
     if (result.success === true) {
       expect(result).toHaveProperty('heapSize');
+      expect(result).toHaveProperty('usedHeapSize');
       expect(result).toHaveProperty('allocations');
       expect(result.allocations).toBeInstanceOf(Array);
+      expect(result.allocations.length).toBeGreaterThan(0);
       expect(result.heapSize).toBeGreaterThan(0);
+
+      const aliveAllocations = result.allocations.filter((a: any) => a.alive);
+      expect(aliveAllocations.length).toBeGreaterThan(0);
     }
   });
 
   it('should track buffer usage flags', async () => {
     const mockPage = {
-      evaluate: async () => ({
-        heapSize: 1024 * 1024,
-        allocations: [
-          { size: 1024, usage: 'VERTEX | COPY_DST' },
-          { size: 2048, usage: 'INDEX' },
-        ],
+      url: () => 'https://example.com/',
+      evaluate: vi.fn().mockImplementation(async (fn: any, ..._args: any[]) => {
+        if (typeof fn === 'function' && String(fn).includes('__webgpuHookState')) {
+          return [
+            { size: 1024, usage: 'VERTEX | COPY_DST', type: 'buffer', alive: true },
+            { size: 2048, usage: 'INDEX', type: 'buffer', alive: true },
+          ];
+        }
+        return undefined;
+      }),
+      evaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
+      createCDPSession: vi.fn().mockResolvedValue({
+        send: vi.fn().mockResolvedValue({ metrics: [] }),
+        detach: vi.fn().mockResolvedValue(undefined),
       }),
     };
 

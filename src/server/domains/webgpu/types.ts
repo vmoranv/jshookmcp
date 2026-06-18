@@ -23,12 +23,22 @@ export interface ShaderMetadata {
     name: string;
     location: number;
   }>;
+  structs?: Array<{
+    name: string;
+    fields: Array<{
+      name: string;
+      type: string;
+    }>;
+  }>;
+  bindingsByType?: Record<string, number>;
 }
 
 export interface GPUCommand {
   type: 'render' | 'compute' | 'copy';
   drawCalls?: number;
-  dispatches?: number;
+  dispatches?: { x: number; y: number; z: number };
+  pipelineLabel?: string;
+  passLabel?: string;
   timestamp: number;
 }
 
@@ -36,6 +46,8 @@ export interface GPUMemoryAllocation {
   size: number;
   usage: string;
   label?: string;
+  type?: 'buffer' | 'texture' | 'textureView';
+  alive?: boolean;
 }
 
 export interface TimingStats {

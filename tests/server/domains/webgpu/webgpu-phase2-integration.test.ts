@@ -65,7 +65,7 @@ describe('WebGPU Phase 2 - Integration Tests', () => {
         expect(result1).toEqual(result2);
       } else {
         // If we somehow have WebGPU context
-        expect(result2._cached).toBe(true);
+        expect(result2).toHaveProperty('_cached', true);
       }
     });
 
@@ -107,7 +107,7 @@ describe('WebGPU Phase 2 - Integration Tests', () => {
       expect(result2.success).toBe(true);
 
       if (result2.success) {
-        expect(result2._cached).toBe(true);
+        expect(result2).toHaveProperty('_cached', true);
       }
     });
 
@@ -186,9 +186,7 @@ fn fragment_main() -> @location(0) vec4<f32> {
       // However, progress is only emitted inside page.evaluate in timing_analysis,
       // not in disassembly (which is CPU-bound, not GPU-bound).
       // Disassembly uses reportProgress helper which checks for eventBus.
-      const progressCalls = mockEmit.mock.calls.filter(
-        ([event]) => event === 'tool:progress'
-      );
+      const progressCalls = mockEmit.mock.calls.filter(([event]) => event === 'tool:progress');
 
       // Should have emitted at least 3 progress updates (0.1, 0.5, 1.0)
       expect(progressCalls.length).toBeGreaterThanOrEqual(3);
@@ -231,7 +229,7 @@ fn fragment_main() -> @location(0) vec4<f32> {
 
   describe('Backward Compatibility', () => {
     it('should maintain backward-compatible response structure for adapter_info', async () => {
-      const response = await handlers.webgpu_adapter_info();
+      const response = await handlers.webgpu_adapter_info({});
       const result = ResponseBuilder.parse(response);
 
       // Structure should match Phase 1

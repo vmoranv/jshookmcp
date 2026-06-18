@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Page } from 'rebrowser-puppeteer-core';
 import {
   getGPUMemoryStats,
-  injectGPUCommandHook,
+  installGPUCommandHook,
+  uninstallGPUCommandHook,
   getGPUCommandTrace,
   analyzeCommandTrace,
   type GPUCommandTrace,
@@ -115,38 +116,51 @@ describe('CDPIntegration', () => {
     });
   });
 
-  describe('injectGPUCommandHook', () => {
-    it('should inject command capture hook', async () => {
-      mockPage.evaluateOnNewDocument.mockResolvedValue(undefined);
-
-      const cleanup = await injectGPUCommandHook(mockPage as Page, 100);
-
-      expect(mockPage.evaluateOnNewDocument).toHaveBeenCalled();
-      expect(typeof cleanup).toBe('function');
-
-      // Call should pass captureCount parameter
-      const [fn, maxCommands] = mockPage.evaluateOnNewDocument.mock.calls[0];
-      expect(maxCommands).toBe(100);
-    });
-
-    it('should return cleanup function', async () => {
+  describe('installGPUCommandHook', () => {
+    it('should install command capture hook', async () => {
       mockPage.evaluateOnNewDocument.mockResolvedValue(undefined);
       mockPage.evaluate.mockResolvedValue(undefined);
 
-      const cleanup = await injectGPUCommandHook(mockPage as Page, 100);
+      const cleanup = await installGPUCommandHook(mockPage as Page, 100);
+
+      expect(mockPage.evaluateOnNewDocument).toHaveBeenCalled();
+      expect(mockPage.evaluate).toHaveBeenCalled();
+      expect(typeof cleanup).toBe('function');
+
+      // The install sends captureCount via page.evaluate (not evaluateOnNewDocument)
+      const evalCalls = mockPage.evaluate.mock.calls;
+      const installCall = evalCalls.find((c: any[]) => c.length > 1 && c[1] === 100);
+      expect(installCall).toBeDefined();
+    });
+
+    it('should return cleanup function that uninstalls hooks', async () => {
+      mockPage.evaluateOnNewDocument.mockResolvedValue(undefined);
+      mockPage.evaluate.mockResolvedValue(undefined);
+
+      const cleanup = await installGPUCommandHook(mockPage as Page, 100);
 
       await cleanup();
 
-      expect(mockPage.evaluate).toHaveBeenCalled();
+      expect(mockPage.evaluate).toHaveBeenCalledTimes(2); // install + uninstall
     });
 
     it('should pass capture count to hook', async () => {
       mockPage.evaluateOnNewDocument.mockResolvedValue(undefined);
+      mockPage.evaluate.mockResolvedValue(undefined);
 
-      await injectGPUCommandHook(mockPage as Page, 50);
+      await installGPUCommandHook(mockPage as Page, 50);
 
-      const [, maxCommands] = mockPage.evaluateOnNewDocument.mock.calls[0];
-      expect(maxCommands).toBe(50);
+      const evalCalls = mockPage.evaluate.mock.calls;
+      const installCall = evalCalls.find((c: any[]) => c.length > 1 && c[1] === 50);
+      expect(installCall).toBeDefined();
+    });
+
+    it('should expose uninstallGPUCommandHook helper', async () => {
+      mockPage.evaluate.mockResolvedValue(undefined);
+
+      await uninstallGPUCommandHook(mockPage as Page);
+
+      expect(mockPage.evaluate).toHaveBeenCalled();
     });
   });
 

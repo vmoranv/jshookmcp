@@ -75,7 +75,69 @@ describe('webgpu_shader_compile', () => {
         expect.objectContaining({
           name: 'main',
           stage: 'compute',
-        })
+        }),
+      );
+    }
+  });
+
+  it('should extract uniforms and bindings', async () => {
+    const shaderWithUniforms = `
+      struct Params {
+        color: vec4<f32>,
+      };
+
+      @group(0) @binding(0) var<uniform> params : Params;
+      @group(0) @binding(1) var mySampler : sampler;
+      @group(0) @binding(2) var myTexture : texture_2d<f32>;
+
+      @fragment
+      fn main() -> @location(0) vec4<f32> {
+        return params.color;
+      }
+    `;
+
+    const response = await handlers.webgpu_shader_compile({
+      shaderCode: shaderWithUniforms,
+      format: 'wgsl',
+    });
+    const result = ResponseBuilder.parse(response);
+
+    if (result.success === true) {
+      expect(result.metadata.uniforms?.length).toBeGreaterThanOrEqual(2);
+      expect(result.metadata.uniforms).toContainEqual(
+        expect.objectContaining({ name: 'params', binding: 0, group: 0 }),
+      );
+      expect(result.metadata.bindingsByType).toBeDefined();
+    }
+  });
+
+  it('should extract vertex attributes and structs', async () => {
+    const shaderWithAttributes = `
+      struct VertexInput {
+        @location(0) position : vec3<f32>,
+        @location(1) uv : vec2<f32>,
+      };
+
+      @vertex
+      fn main(input : VertexInput) -> @builtin(position) vec4<f32> {
+        return vec4<f32>(input.position, 1.0);
+      }
+    `;
+
+    const response = await handlers.webgpu_shader_compile({
+      shaderCode: shaderWithAttributes,
+      format: 'wgsl',
+    });
+    const result = ResponseBuilder.parse(response);
+
+    if (result.success === true) {
+      expect(result.metadata.attributes?.length).toBeGreaterThanOrEqual(2);
+      expect(result.metadata.attributes).toContainEqual(
+        expect.objectContaining({ name: 'position', location: 0 }),
+      );
+      expect(result.metadata.structs?.length).toBeGreaterThanOrEqual(1);
+      expect(result.metadata.structs).toContainEqual(
+        expect.objectContaining({ name: 'VertexInput' }),
       );
     }
   });
