@@ -360,7 +360,7 @@ export class NetworkHandlersCore {
         const activity = this.consoleMonitor.getNetworkActivity(reqId);
         const resp = activity?.response;
         if (!resp) return req;
-        const { securityDetails, remoteAddress, ..._rest } = resp;
+        const { securityDetails, remoteAddress } = resp;
         const result: Record<string, unknown> = { ...req };
         if (securityDetails) result.securityDetails = securityDetails;
         if (remoteAddress) result.serverAddr = remoteAddress;

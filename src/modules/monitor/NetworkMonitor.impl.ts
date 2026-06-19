@@ -269,11 +269,13 @@ export class NetworkMonitor implements NetworkMonitorLike {
           fromCache: params.response.fromDiskCache || params.response.fromServiceWorker,
           timing: params.response.timing,
           protocol: params.response.protocol,
-          securityDetails: normalizeSecurityDetails(params.response.securityDetails),
+          securityDetails: normalizeSecurityDetails(
+            params.response.securityDetails,
+          ) as NetworkResponse['securityDetails'],
           remoteAddress: normalizeRemoteAddress(
             params.response.remoteIPAddress,
             params.response.remotePort,
-          ),
+          ) as NetworkResponse['remoteAddress'],
         };
 
         this.responses.set(scopedRequestId, response);
