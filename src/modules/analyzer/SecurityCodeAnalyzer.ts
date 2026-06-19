@@ -7,7 +7,7 @@ import { logger } from '@utils/logger';
 export function getMemberExpressionName(node: t.MemberExpression): string {
   const parts: string[] = [];
 
-  let current: t.Expression | t.PrivateName = node;
+  let current: t.Expression | t.PrivateName | t.Super = node;
   while (t.isMemberExpression(current)) {
     if (t.isIdentifier(current.property)) {
       parts.unshift(current.property.name);

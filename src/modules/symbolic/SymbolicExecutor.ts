@@ -1,5 +1,5 @@
 import * as parser from '@babel/parser';
-import traverse from '@babel/traverse';
+import traverse, { type NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 import { logger } from '@utils/logger';
 import {
@@ -176,7 +176,7 @@ export class SymbolicExecutor {
 
     let nodeIndex = 0;
     traverse(ast, {
-      enter(path) {
+      enter(path: NodePath<t.Node>) {
         if (nodeIndex === state.pc) {
           currentNode = path.node;
           path.stop();

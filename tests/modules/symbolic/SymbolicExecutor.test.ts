@@ -1,5 +1,6 @@
 import * as parser from '@babel/parser';
-import traverse from '@babel/traverse';
+import traverse, { type NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 import { describe, expect, it } from 'vitest';
 import { SymbolicExecutor, type Constraint } from '@modules/symbolic/SymbolicExecutor';
 
@@ -76,7 +77,7 @@ describe('SymbolicExecutor', () => {
 
     const nodes: { type: string; index: number }[] = [];
     traverse(ast, {
-      enter(path) {
+      enter(path: NodePath<t.Node>) {
         nodes.push({ type: path.node.type, index: nodes.length });
       },
     });

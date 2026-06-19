@@ -420,7 +420,7 @@ function extractCryptoParameters(
 function getCalleeFullName(node: t.MemberExpression): string {
   const parts: string[] = [];
 
-  const traverseNode = (n: t.Expression | t.V8IntrinsicIdentifier): void => {
+  const traverseNode = (n: t.Expression | t.V8IntrinsicIdentifier | t.Super): void => {
     if (t.isMemberExpression(n)) {
       traverseNode(n.object);
       if (t.isIdentifier(n.property)) parts.push(n.property.name);

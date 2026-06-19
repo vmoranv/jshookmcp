@@ -153,7 +153,7 @@ export function detectCodePatterns(code: string): {
           if (current.isIfStatement() || current.isForStatement() || current.isWhileStatement()) {
             depth++;
           }
-          current = current.parentPath;
+          current = current.parentPath as typeof path.parentPath;
         }
 
         if (depth > 3) {

@@ -376,7 +376,7 @@ describe('CachedDecorator', () => {
 
       const largeObject = {
         data: Array(1000).fill('x').join(''),
-        nested: { array: Array(100).fill({ value: 42 }) },
+        nested: { array: Array.from({ length: 100 }, () => ({ value: 42 })) },
       };
 
       const getLarge = withCache(

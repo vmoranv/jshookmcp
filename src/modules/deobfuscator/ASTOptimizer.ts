@@ -130,11 +130,7 @@ export class ASTOptimizer {
         }
       },
 
-      enter(path) {
-        if (!path.isIdentifier()) {
-          return;
-        }
-
+      Identifier(path) {
         const name = path.node.name;
         const constant = constants.get(name);
         const isBindingIdentifier = path.isBindingIdentifier();
@@ -237,11 +233,7 @@ export class ASTOptimizer {
     });
 
     traverse(ast, {
-      enter(path) {
-        if (!path.isIdentifier()) {
-          return;
-        }
-
+      Identifier(path) {
         const name = path.node.name;
         const candidate = inlineCandidates.get(name);
         const isBindingIdentifier = path.isBindingIdentifier();
@@ -272,10 +264,10 @@ export class ASTOptimizer {
       ObjectProperty(path) {
         const { key, computed } = path.node;
 
-        if (computed && t.isStringLiteral(key)) {
+        if (computed && t.isStringLiteral(key) && key.value) {
           if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key.value)) {
-            path.node.computed = false;
-            path.node.key = t.identifier(key.value);
+            (path.node as t.ObjectProperty).computed = false;
+            (path.node as t.ObjectProperty).key = t.identifier(key.value);
           }
         }
       },
