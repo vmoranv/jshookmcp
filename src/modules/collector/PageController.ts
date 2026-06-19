@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises';
 import type { CodeCollector } from '@modules/collector/CodeCollector';
 import { logger } from '@utils/logger';
 import { PAGE_FRAME_SELECTOR_TIMEOUT_MS, PAGE_NETWORK_IDLE_TIMEOUT_MS } from '@src/constants';
@@ -463,6 +464,9 @@ export class PageController {
           quality: options?.quality,
           clip: options?.clip,
         });
+        if (options?.path) {
+          await writeFile(options.path, buf);
+        }
         logger.info(`Screenshot taken via CDP${options?.path ? `: ${options.path}` : ''}`);
         return buf;
       }
