@@ -38,6 +38,7 @@
           "__type",
           "__wasmInstances",
           "__wasmModuleStorage",
+          "__webgpuDeviceCache",
           "__workerUrls",
           "__xhrInterceptorInjected",
           "__xhrRequests",

@@ -283,16 +283,29 @@ fn fragment_main() -> @location(0) vec4<f32> {
       expect(result.error).toMatch(/shaderCode/i);
     });
 
-    it('should handle invalid format', async () => {
+    it('should reject unsupported format', async () => {
       const response = await handlers.webgpu_shader_compile({
         shaderCode: 'test',
+        format: 'glsl',
+      });
+
+      const result = ResponseBuilder.parse(response);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Unsupported format|wgsl|spirv/i);
+    });
+
+    it('should reject invalid SPIR-V input with guidance', async () => {
+      const response = await handlers.webgpu_shader_compile({
+        shaderCode: 'not-valid-spirv-or-hex',
         format: 'spirv',
       });
 
       const result = ResponseBuilder.parse(response);
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/WGSL/i);
+      // Either decode failure or magic check failure — both are valid rejections.
+      expect(result.error).toMatch(/SPIR-V|magic|decode/i);
     });
 
     it('should handle invalid iteration count', async () => {

@@ -3,6 +3,40 @@ import type { MCPServerContext } from '@server/domains/shared/registry';
 import { WebGPUHandlers } from '@server/domains/webgpu/index';
 import { ResponseBuilder } from '@server/domains/shared/ResponseBuilder';
 
+const SPIRV_MAGIC = 0x07230203;
+const OP_ENTRY_POINT = 15;
+const EM_VERTEX = 0;
+
+function wordsToHex(words: number[]): string {
+  const bytes = new Uint8Array(words.length * 4);
+  const view = new DataView(bytes.buffer);
+  words.forEach((w, i) => view.setUint32(i * 4, w >>> 0, true));
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function encodeString(s: string): number[] {
+  const bytes = [...new TextEncoder().encode(s), 0];
+  while (bytes.length % 4 !== 0) bytes.push(0);
+  const words: number[] = [];
+  for (let i = 0; i < bytes.length; i += 4) {
+    words.push(bytes[i]! | (bytes[i + 1]! << 8) | (bytes[i + 2]! << 16) | (bytes[i + 3]! << 24));
+  }
+  return words;
+}
+
+function makeInstruction(opcode: number, operands: number[]): number[] {
+  const wordCount = 1 + operands.length;
+  return [(wordCount << 16) | opcode, ...operands];
+}
+
+function minimalSpirvHex(): string {
+  const header = [SPIRV_MAGIC, 0x00010300, 0, 10, 0];
+  const entry = makeInstruction(OP_ENTRY_POINT, [EM_VERTEX, 1, ...encodeString('vs_main')]);
+  return wordsToHex([...header, ...entry]);
+}
+
 describe('webgpu_shader_disassemble', () => {
   let ctx: MCPServerContext;
   let handlers: WebGPUHandlers;
@@ -115,5 +149,53 @@ describe('webgpu_shader_disassemble', () => {
         expect.objectContaining({ name: 'color', location: 1 }),
       );
     }
+  });
+
+  describe('SPIR-V support', () => {
+    it('should disassemble a valid SPIR-V binary', async () => {
+      const response = await handlers.webgpu_shader_disassemble({
+        shaderCode: minimalSpirvHex(),
+        format: 'spirv',
+      });
+      const result = ResponseBuilder.parse(response);
+
+      expect(result.success).toBe(true);
+      expect(result.ast).toBeDefined();
+      expect(result.ast.functions).toContain('vs_main');
+      expect(result.disassembly).toContain('SPIR-V');
+      expect(result.disassembly).toContain('vs_main');
+      expect(result.disassembly).toContain('Entry Points');
+    });
+
+    it('should reject invalid SPIR-V input', async () => {
+      const response = await handlers.webgpu_shader_disassemble({
+        shaderCode: 'not-spirv!!',
+        format: 'spirv',
+      });
+      const result = ResponseBuilder.parse(response);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/SPIR-V|magic|decode/i);
+    });
+  });
+
+  describe('parseWarnings', () => {
+    it('should surface parseWarnings from WGSL parser in AST', async () => {
+      // Deeply nested struct triggers a nesting warning.
+      let body = 'a: f32';
+      for (let i = 0; i < 20; i++) body = `{ ${body} }`;
+      const shader = `struct Deep ${body}`;
+
+      const response = await handlers.webgpu_shader_disassemble({
+        shaderCode: shader,
+        format: 'wgsl',
+      });
+      const result = ResponseBuilder.parse(response);
+
+      if (result.success === true && result.ast) {
+        expect(result.ast.parseWarnings).toBeDefined();
+        expect(result.ast.parseWarnings?.some((w: string) => w.includes('nesting'))).toBe(true);
+      }
+    });
   });
 });

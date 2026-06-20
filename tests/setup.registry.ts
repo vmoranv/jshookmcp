@@ -1,7 +1,6 @@
 // Full per-worker setup: initializes registry + PageController mock.
 // Used by "server" and "native" projects that depend on registry or page evaluate wrappers.
 import { afterEach, vi } from 'vitest';
-process.env.ENABLE_INJECTION_TOOLS = 'true';
 process.env.NODE_ENV = 'test';
 
 if (typeof globalThis.navigator === 'undefined') {

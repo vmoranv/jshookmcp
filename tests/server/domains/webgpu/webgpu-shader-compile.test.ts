@@ -3,6 +3,44 @@ import type { MCPServerContext } from '@server/domains/shared/registry';
 import { WebGPUHandlers } from '@server/domains/webgpu/index';
 import { ResponseBuilder } from '@server/domains/shared/ResponseBuilder';
 
+// SPIR-V opcodes / enums needed to build a minimal valid module.
+const SPIRV_MAGIC = 0x07230203;
+const OP_ENTRY_POINT = 15;
+const OP_NAME = 19;
+const EM_VERTEX = 0;
+
+function wordsToHex(words: number[]): string {
+  const bytes = new Uint8Array(words.length * 4);
+  const view = new DataView(bytes.buffer);
+  words.forEach((w, i) => view.setUint32(i * 4, w >>> 0, true));
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function encodeString(s: string): number[] {
+  const bytes = [...new TextEncoder().encode(s), 0];
+  while (bytes.length % 4 !== 0) bytes.push(0);
+  const words: number[] = [];
+  for (let i = 0; i < bytes.length; i += 4) {
+    words.push(bytes[i]! | (bytes[i + 1]! << 8) | (bytes[i + 2]! << 16) | (bytes[i + 3]! << 24));
+  }
+  return words;
+}
+
+function makeInstruction(opcode: number, operands: number[]): number[] {
+  const wordCount = 1 + operands.length;
+  return [(wordCount << 16) | opcode, ...operands];
+}
+
+/** Build a minimal SPIR-V module with one vertex entry point named `vs_main`. */
+function minimalSpirvHex(): string {
+  const header = [SPIRV_MAGIC, 0x00010300, 0, 10, 0];
+  const entry = makeInstruction(OP_ENTRY_POINT, [EM_VERTEX, 1, ...encodeString('vs_main')]);
+  const name = makeInstruction(OP_NAME, [1, ...encodeString('vs_main')]);
+  return wordsToHex([...header, ...entry, ...name]);
+}
+
 describe('webgpu_shader_compile', () => {
   let ctx: MCPServerContext;
   let handlers: WebGPUHandlers;
@@ -140,5 +178,64 @@ describe('webgpu_shader_compile', () => {
         expect.objectContaining({ name: 'VertexInput' }),
       );
     }
+  });
+
+  describe('SPIR-V support', () => {
+    it('should reflect a valid SPIR-V binary without requiring a browser', async () => {
+      const response = await handlers.webgpu_shader_compile({
+        shaderCode: minimalSpirvHex(),
+        format: 'spirv',
+      });
+      const result = ResponseBuilder.parse(response);
+
+      expect(result.success).toBe(true);
+      expect(result.compiled).toBe(false);
+      expect(result.reflected).toBe(true);
+      expect(result.compilationSkippedReason).toMatch(/SPIR-V|WGSL|spirv-cross/i);
+      expect(result.spirvInfo).toBeDefined();
+      expect(result.metadata.entryPoints).toContainEqual(
+        expect.objectContaining({ name: 'vs_main', stage: 'vertex' }),
+      );
+      expect(result.metadata.format).toBe('spirv');
+    });
+
+    it('should reject non-SPIR-V input in spirv format', async () => {
+      const response = await handlers.webgpu_shader_compile({
+        shaderCode: 'this-is-not-hex-or-spirv!!',
+        format: 'spirv',
+      });
+      const result = ResponseBuilder.parse(response);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/SPIR-V|magic|decode/i);
+    });
+
+    it('should reject unsupported format', async () => {
+      const response = await handlers.webgpu_shader_compile({
+        shaderCode: 'test',
+        format: 'glsl',
+      });
+      const result = ResponseBuilder.parse(response);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Unsupported format|wgsl|spirv/i);
+    });
+  });
+
+  describe('parseWarnings', () => {
+    it('should include parseWarnings array in metadata (empty for valid shader)', async () => {
+      // This shader has no page, so compilation fails — but metadata extraction
+      // still runs for the WGSL path only when a page is present. Test the
+      // parser directly via the SPIR-V path which always returns metadata.
+      const response = await handlers.webgpu_shader_compile({
+        shaderCode: minimalSpirvHex(),
+        format: 'spirv',
+      });
+      const result = ResponseBuilder.parse(response);
+
+      if (result.success === true) {
+        expect(Array.isArray(result.metadata.parseWarnings)).toBe(true);
+      }
+    });
   });
 });

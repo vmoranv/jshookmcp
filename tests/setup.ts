@@ -3,7 +3,6 @@ import { beforeAll, afterEach, vi } from 'vitest';
 import { initRegistry } from '@server/registry/index';
 
 // Set test environment variables
-process.env.ENABLE_INJECTION_TOOLS = 'true';
 process.env.NODE_ENV = 'test';
 
 if (typeof globalThis.navigator === 'undefined') {

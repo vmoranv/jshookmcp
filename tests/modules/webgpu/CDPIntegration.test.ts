@@ -6,6 +6,8 @@ import {
   uninstallGPUCommandHook,
   getGPUCommandTrace,
   analyzeCommandTrace,
+  ensureDevice,
+  releaseDevice,
   type GPUCommandTrace,
 } from '@modules/webgpu/CDPIntegration';
 
@@ -51,6 +53,9 @@ describe('CDPIntegration', () => {
       expect(stats).toHaveProperty('usedHeapSize');
       expect(stats).toHaveProperty('allocations');
       expect(stats.usedHeapSize).toBe(512 * 1024);
+      expect(stats.memorySource).toBe('cdp');
+      // No tracked allocations → trackedBytes is 0, but the CDP metric still wins.
+      expect(stats.trackedBytes).toBe(0);
       expect(mockCDP.detach).toHaveBeenCalled();
     });
 
@@ -70,6 +75,9 @@ describe('CDPIntegration', () => {
 
       expect(stats.usedHeapSize).toBe(0);
       expect(stats.heapSize).toBeGreaterThan(0);
+      // No CDP metric and no tracked allocations → estimated fallback.
+      expect(stats.memorySource).toBe('estimated');
+      expect(stats.trackedBytes).toBe(0);
     });
 
     it('should retrieve allocations from page context', async () => {
@@ -87,6 +95,10 @@ describe('CDPIntegration', () => {
       const stats = await getGPUMemoryStats(mockPage as Page);
 
       expect(stats.allocations).toEqual(mockAllocations);
+      // No CDP metric but allocations present → tracked mode.
+      expect(stats.trackedBytes).toBe(1024 + 2048);
+      expect(stats.memorySource).toBe('tracked');
+      expect(stats.usedHeapSize).toBe(1024 + 2048);
     });
 
     it('should detach CDP session even on error', async () => {
@@ -113,6 +125,94 @@ describe('CDPIntegration', () => {
 
       // Heap size should be at least 2x used size
       expect(stats.heapSize).toBeGreaterThanOrEqual(stats.usedHeapSize * 2);
+      expect(stats.memorySource).toBe('cdp');
+    });
+
+    it('memorySource=cdp when GPUMemoryUsedKB is present', async () => {
+      mockCDP.send.mockImplementation((method: string) => {
+        if (method === 'Performance.getMetrics') {
+          return Promise.resolve({
+            metrics: [{ name: 'GPUMemoryUsedKB', value: 256 }],
+          });
+        }
+        return Promise.resolve({});
+      });
+
+      // Tracked allocations also present — CDP metric should still win.
+      mockPage.evaluate.mockResolvedValue([{ size: 4096, usage: 'UNIFORM', label: 'u1' }]);
+
+      const stats = await getGPUMemoryStats(mockPage as Page);
+
+      expect(stats.memorySource).toBe('cdp');
+      expect(stats.usedHeapSize).toBe(256 * 1024);
+      // trackedBytes is always computed regardless of CDP availability.
+      expect(stats.trackedBytes).toBe(4096);
+    });
+
+    it('memorySource=tracked when CDP metric missing but allocations exist', async () => {
+      mockCDP.send.mockImplementation((method: string) => {
+        if (method === 'Performance.getMetrics') {
+          return Promise.resolve({ metrics: [{ name: 'JSHeapUsedSize', value: 999 }] });
+        }
+        return Promise.resolve({});
+      });
+
+      mockPage.evaluate.mockResolvedValue([
+        { size: 100, usage: 'VERTEX', label: 'a' },
+        { size: 200, usage: 'INDEX', label: 'b' },
+        { size: 300, usage: 'STORAGE', label: 'c' },
+      ]);
+
+      const stats = await getGPUMemoryStats(mockPage as Page);
+
+      expect(stats.memorySource).toBe('tracked');
+      expect(stats.trackedBytes).toBe(600);
+      expect(stats.usedHeapSize).toBe(600);
+      // Heap estimate should be derived from trackedBytes in tracked mode.
+      expect(stats.heapSize).toBeGreaterThanOrEqual(600 * 2);
+    });
+
+    it('memorySource=estimated when neither CDP metric nor allocations', async () => {
+      mockCDP.send.mockImplementation((method: string) => {
+        if (method === 'Performance.getMetrics') {
+          return Promise.resolve({ metrics: [] });
+        }
+        return Promise.resolve({});
+      });
+
+      mockPage.evaluate.mockResolvedValue([]);
+
+      const stats = await getGPUMemoryStats(mockPage as Page);
+
+      expect(stats.memorySource).toBe('estimated');
+      expect(stats.usedHeapSize).toBe(0);
+      expect(stats.trackedBytes).toBe(0);
+      // Conservative 256MB floor still applies.
+      expect(stats.heapSize).toBe(256 * 1024 * 1024);
+    });
+
+    it('trackedBytes sums all live allocation sizes even when CDP metric present', async () => {
+      mockCDP.send.mockImplementation((method: string) => {
+        if (method === 'Performance.getMetrics') {
+          return Promise.resolve({
+            metrics: [{ name: 'GPUMemoryUsedKB', value: 128 }],
+          });
+        }
+        return Promise.resolve({});
+      });
+
+      mockPage.evaluate.mockResolvedValue([
+        { size: 1000, usage: 'VERTEX' },
+        { size: 2000, usage: 'INDEX' },
+        { size: 3000, usage: 'STORAGE' },
+      ]);
+
+      const stats = await getGPUMemoryStats(mockPage as Page);
+
+      // CDP metric wins for usedHeapSize, but trackedBytes still reports the sum.
+      expect(stats.memorySource).toBe('cdp');
+      expect(stats.usedHeapSize).toBe(128 * 1024);
+      expect(stats.trackedBytes).toBe(6000);
     });
   });
 
@@ -161,6 +261,51 @@ describe('CDPIntegration', () => {
       await uninstallGPUCommandHook(mockPage as Page);
 
       expect(mockPage.evaluate).toHaveBeenCalled();
+    });
+
+    it('install script wraps render pass pipeline-state methods (defect #3)', async () => {
+      mockPage.evaluateOnNewDocument.mockResolvedValue(undefined);
+      mockPage.evaluate.mockResolvedValue(undefined);
+
+      await installGPUCommandHook(mockPage as Page, 100);
+
+      // The install page.evaluate call payload is a function source string.
+      // Verify it references the pipeline-state methods we now hook.
+      const evalCalls = mockPage.evaluate.mock.calls;
+      const installCall = evalCalls.find((c: any[]) => c.length > 1 && typeof c[0] === 'function');
+      expect(installCall).toBeDefined();
+
+      const installFn = installCall![0] as Function;
+      const source = installFn.toString();
+
+      // Render-pass pipeline-state hooks
+      expect(source).toContain('setPipeline');
+      expect(source).toContain('setVertexBuffer');
+      expect(source).toContain('setBindGroup');
+      expect(source).toContain('setIndexBuffer');
+      // New command-state fields must be populated in the pushed command object.
+      expect(source).toContain('pipelineSet');
+      expect(source).toContain('vertexBuffers');
+      expect(source).toContain('bindGroups');
+      expect(source).toContain('indexBufferSet');
+    });
+
+    it('install script wraps compute pass setPipeline and setBindGroup (defect #3)', async () => {
+      mockPage.evaluateOnNewDocument.mockResolvedValue(undefined);
+      mockPage.evaluate.mockResolvedValue(undefined);
+
+      await installGPUCommandHook(mockPage as Page, 100);
+
+      const evalCalls = mockPage.evaluate.mock.calls;
+      const installCall = evalCalls.find((c: any[]) => c.length > 1 && typeof c[0] === 'function');
+      const source = (installCall![0] as Function).toString();
+
+      // Compute pass encoder also has setPipeline/setBindGroup; the hook body
+      // references them. Ensure both wrapComputePassEncoder and the field
+      // population path exist.
+      expect(source).toContain('wrapComputePassEncoder');
+      expect(source).toContain('setPipeline');
+      expect(source).toContain('setBindGroup');
     });
   });
 
@@ -305,6 +450,142 @@ describe('CDPIntegration', () => {
       expect(analyzed.totalSubmissions).toBe(trace.totalSubmissions);
       expect(analyzed.captureStartTime).toBe(trace.captureStartTime);
       expect(analyzed.captureEndTime).toBe(trace.captureEndTime);
+    });
+  });
+
+  describe('ensureDevice (defect #5: multi-adapter/device cache)', () => {
+    it('creates a new device on first call (fresh=true)', async () => {
+      const handle = {
+        adapter: { __mock: 'adapter' },
+        device: { __mock: 'device' },
+        fresh: true,
+        adapterInfo: {
+          vendor: 'arm',
+          architecture: 'mali-g78',
+          device: 'Mali-G78',
+          description: 'mock gpu',
+        },
+      };
+      mockPage.evaluate.mockResolvedValue(handle);
+
+      const result = await ensureDevice(mockPage as Page);
+
+      expect(result.fresh).toBe(true);
+      expect(result.adapter).toBe(handle.adapter);
+      expect(result.device).toBe(handle.device);
+      expect(result.adapterInfo.vendor).toBe('arm');
+      // evaluate called with powerPreference default 'none'
+      const evalCall = mockPage.evaluate.mock.calls[0];
+      expect(evalCall).toBeDefined();
+      expect(evalCall![1]).toBe('none');
+    });
+
+    it('reuses cached device on subsequent call (fresh=false)', async () => {
+      const handle = {
+        adapter: { __mock: 'adapter' },
+        device: { __mock: 'device' },
+        fresh: false,
+        adapterInfo: {
+          vendor: 'qualcomm',
+          architecture: 'adreno',
+          device: 'Adreno 740',
+          description: '',
+        },
+      };
+      mockPage.evaluate.mockResolvedValue(handle);
+
+      const result = await ensureDevice(mockPage as Page);
+
+      expect(result.fresh).toBe(false);
+      expect(result.adapterInfo.vendor).toBe('qualcomm');
+    });
+
+    it('throws when navigator.gpu is undefined', async () => {
+      mockPage.evaluate.mockRejectedValue(
+        new Error('WebGPU not available: navigator.gpu is undefined.'),
+      );
+
+      await expect(ensureDevice(mockPage as Page)).rejects.toThrow('WebGPU not available');
+    });
+
+    it('throws when no suitable adapter is available', async () => {
+      mockPage.evaluate.mockRejectedValue(new Error('No suitable GPUAdapter available.'));
+
+      await expect(ensureDevice(mockPage as Page)).rejects.toThrow('No suitable GPUAdapter');
+    });
+
+    it('forwards powerPreference to evaluate', async () => {
+      const handle = {
+        adapter: {},
+        device: {},
+        fresh: true,
+        adapterInfo: { vendor: '', architecture: '', device: '', description: '' },
+      };
+      mockPage.evaluate.mockResolvedValue(handle);
+
+      await ensureDevice(mockPage as Page, { powerPreference: 'high-performance' });
+
+      const evalCall = mockPage.evaluate.mock.calls[0];
+      expect(evalCall![1]).toBe('high-performance');
+    });
+
+    it('forwards low-power powerPreference to evaluate', async () => {
+      const handle = {
+        adapter: {},
+        device: {},
+        fresh: true,
+        adapterInfo: { vendor: '', architecture: '', device: '', description: '' },
+      };
+      mockPage.evaluate.mockResolvedValue(handle);
+
+      await ensureDevice(mockPage as Page, { powerPreference: 'low-power' });
+
+      const evalCall = mockPage.evaluate.mock.calls[0];
+      expect(evalCall![1]).toBe('low-power');
+    });
+
+    it('evaluate body references device.lost recovery + cache identifier', async () => {
+      mockPage.evaluate.mockResolvedValue({
+        adapter: {},
+        device: {},
+        fresh: true,
+        adapterInfo: { vendor: '', architecture: '', device: '', description: '' },
+      });
+
+      await ensureDevice(mockPage as Page);
+
+      const evalCall = mockPage.evaluate.mock.calls[0];
+      const fn = evalCall![0] as Function;
+      const source = fn.toString();
+
+      // Cache identifier must match releaseDevice
+      expect(source).toContain('__webgpuDeviceCache');
+      // device.lost recovery wiring
+      expect(source).toContain('device.lost');
+      expect(source).toContain('lost');
+      // requestAdapter + requestDevice invocation
+      expect(source).toContain('requestAdapter');
+      expect(source).toContain('requestDevice');
+    });
+  });
+
+  describe('releaseDevice (defect #5)', () => {
+    it('clears the device cache in page context', async () => {
+      mockPage.evaluate.mockResolvedValue(undefined);
+
+      await releaseDevice(mockPage as Page);
+
+      expect(mockPage.evaluate).toHaveBeenCalledTimes(1);
+      const evalCall = mockPage.evaluate.mock.calls[0];
+      const fn = evalCall![0] as Function;
+      const source = fn.toString();
+      expect(source).toContain('__webgpuDeviceCache');
+    });
+
+    it('does not throw when cache is already empty', async () => {
+      mockPage.evaluate.mockResolvedValue(undefined);
+
+      await expect(releaseDevice(mockPage as Page)).resolves.toBeUndefined();
     });
   });
 });
