@@ -16,6 +16,10 @@ import {
 import { ProtocolAnalysisPayloadHandlers } from './payload-handlers';
 
 export class ProtocolAnalysisLinkLayerHandlers extends ProtocolAnalysisPayloadHandlers {
+  private formatIpv4(buffer: Buffer): string {
+    return Array.from(buffer.values()).join('.');
+  }
+
   async handleEthernetFrameBuild(args: ToolArgs): Promise<{
     destinationMac: string;
     sourceMac: string;
@@ -112,9 +116,9 @@ export class ProtocolAnalysisLinkLayerHandlers extends ProtocolAnalysisPayloadHa
         byteLength: payload.length,
         payloadHex: payload.toString('hex'),
         senderMac: senderMac.canonical,
-        senderIp: args.senderIp as string,
+        senderIp: this.formatIpv4(senderIp),
         targetMac: targetMac.canonical,
-        targetIp: args.targetIp as string,
+        targetIp: this.formatIpv4(targetIp),
         success: true,
       };
     } catch (error) {

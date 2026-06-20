@@ -399,6 +399,19 @@ describe('ProtocolAnalysisHandlers', () => {
         expect.objectContaining({ operation: 'request', byteLength: 28 }),
       );
     });
+
+    it('returns normalized IPv4 strings in the response', async () => {
+      const result = await handlers.handleArpBuild({
+        operation: 'request',
+        senderMac: '11:22:33:44:55:66',
+        senderIp: ' 192.168.1.10 ',
+        targetIp: '\t192.168.0.1\n',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.senderIp).toBe('192.168.1.10');
+      expect(result.targetIp).toBe('192.168.0.1');
+    });
   });
 
   describe('handleRawIpPacketBuild', () => {
