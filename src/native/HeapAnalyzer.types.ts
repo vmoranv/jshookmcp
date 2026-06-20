@@ -67,13 +67,18 @@ export interface HeapSizeBucket {
   totalBytes: number;
 }
 
-/** Types of heap anomalies */
+/** Types of heap anomalies.
+ *
+ * `high_entropy` is a volatility malfind-style heuristic: a non-free block
+ * whose sampled bytes have Shannon entropy >= 7.0 bits/byte likely contains
+ * shellcode or an encrypted payload (normal data/pointers have low entropy). */
 export type HeapAnomalyType =
   | 'heap_spray_pattern'
   | 'possible_uaf'
   | 'suspicious_size'
   | 'possible_double_free'
-  | 'guard_page_missing';
+  | 'guard_page_missing'
+  | 'high_entropy';
 
 /** Detected heap anomaly */
 export interface HeapAnomaly {

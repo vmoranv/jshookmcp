@@ -30,22 +30,7 @@ describe('SessionHandlers', () => {
 
   describe('handleScanList', () => {
     it('returns success response on happy path', async () => {
-      mocksessionManager.listSessions = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
-      });
+      mocksessionManager.listSessions = vi.fn().mockReturnValue([{ id: 's1' }]);
 
       const response = await handlers.handleScanList(dummyArgs);
       expect(response).toEqual({
@@ -53,6 +38,7 @@ describe('SessionHandlers', () => {
       });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.count).toBe(1);
     });
 
     it('returns error response on failure', async () => {
@@ -61,9 +47,6 @@ describe('SessionHandlers', () => {
       });
 
       const response = await handlers.handleScanList(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
@@ -72,29 +55,13 @@ describe('SessionHandlers', () => {
 
   describe('handleScanDelete', () => {
     it('returns success response on happy path', async () => {
-      mocksessionManager.deleteSession = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
-      });
+      mocksessionManager.deleteSession = vi.fn().mockReturnValue(true);
 
       const response = await handlers.handleScanDelete(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.deleted).toBe(true);
+      expect(mocksessionManager.deleteSession).toHaveBeenCalledWith('test-session');
     });
 
     it('returns error response on failure', async () => {
@@ -103,40 +70,31 @@ describe('SessionHandlers', () => {
       });
 
       const response = await handlers.handleScanDelete(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects missing sessionId', async () => {
+      mocksessionManager.deleteSession = vi.fn();
+      const response = await handlers.handleScanDelete({});
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('memory_scan_session');
+      expect(parsed.error).toContain('sessionId');
+      expect(mocksessionManager.deleteSession).not.toHaveBeenCalled();
     });
   });
 
   describe('handleScanExport', () => {
     it('returns success response on happy path', async () => {
-      mocksessionManager.exportSession = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
-      });
+      mocksessionManager.exportSession = vi.fn().mockReturnValue('exported-blob');
 
       const response = await handlers.handleScanExport(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.exportedData).toBe('exported-blob');
+      expect(mocksessionManager.exportSession).toHaveBeenCalledWith('test-session');
     });
 
     it('returns error response on failure', async () => {
@@ -145,12 +103,18 @@ describe('SessionHandlers', () => {
       });
 
       const response = await handlers.handleScanExport(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects empty sessionId', async () => {
+      mocksessionManager.exportSession = vi.fn();
+      const response = await handlers.handleScanExport({ sessionId: '' });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('memory_scan_session');
+      expect(mocksessionManager.exportSession).not.toHaveBeenCalled();
     });
   });
 });

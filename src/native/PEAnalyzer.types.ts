@@ -86,8 +86,26 @@ export interface InlineHookDetection {
   originalBytes: number[];
   /** Current bytes in memory */
   currentBytes: number[];
-  /** Hook mechanism type */
-  hookType: 'jmp_rel32' | 'jmp_abs64' | 'push_ret' | 'unknown';
+  /** Hook mechanism type.
+   *
+   * Covers the 8 hook patterns recognised by pe-sieve's PatchAnalyzer
+   * (https://github.com/hasherezade/pe-sieve/wiki) plus two non-hook
+   * modification classes. `jmp_rel32`/`jmp_abs64`/`push_ret` are the legacy
+   * set; `call_rel32`/`short_jmp`/`mov_jmp`/`mov_call` were added to close
+   * the detection gap (MOV+JMP in particular is a common modern hook that the
+   * old 3-pattern classifier silently missed). `int3_breakpoint`/`padding`
+   * classify non-hook modifications (debug breakpoints, NOP sleds). */
+  hookType:
+    | 'jmp_rel32'
+    | 'call_rel32'
+    | 'short_jmp'
+    | 'jmp_abs64'
+    | 'mov_jmp'
+    | 'mov_call'
+    | 'push_ret'
+    | 'int3_breakpoint'
+    | 'padding'
+    | 'unknown';
   /** Where the hook redirects (hex) */
   jumpTarget: string;
 }

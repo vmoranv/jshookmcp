@@ -519,28 +519,80 @@ export class PEAnalyzer {
     return -1; // Not found
   }
 
+  /**
+   * Classify a hook pattern from the first bytes of a function in memory.
+   *
+   * Recognises the 8 inline-hook patterns documented in pe-sieve's
+   * PatchAnalyzer (plus INT3/padding non-hook modifications):
+   *   - `jmp_rel32`   E9 disp32          — direct jump
+   *   - `call_rel32`  E8 disp32          — direct call hook
+   *   - `short_jmp`   EB disp8           — short jump hook
+   *   - `jmp_abs64`   FF 25 ...          — indirect jump via [rip+disp32]
+   *   - `mov_jmp`     B8-BF imm32 FF E0-EF — MOV reg,imm32; JMP reg
+   *   - `mov_call`    B8-BF imm32 FF D0-DF — MOV reg,imm32; CALL reg
+   *   - `push_ret`    68 imm32 C3        — PUSH imm32; RET
+   *   - `int3_breakpoint` CC             — debug breakpoint
+   *   - `padding`     any run of identical bytes (e.g. NOP sled 0x90)
+   */
   private classifyHook(memBytes: Buffer): InlineHookDetection['hookType'] {
-    if (memBytes[0] === 0xe9) return 'jmp_rel32';
-    if (memBytes[0] === 0xff && memBytes[1] === 0x25) return 'jmp_abs64';
-    if (memBytes[0] === 0x68 && memBytes[5] === 0xc3) return 'push_ret';
+    if (memBytes.length === 0) return 'unknown';
+    const b0 = memBytes[0]!;
+    // INT3 breakpoint (single or repeated 0xCC).
+    if (b0 === 0xcc) return 'int3_breakpoint';
+    // Padding: all bytes identical (NOP sled, zero-fill). Excludes 0xCC above.
+    if (memBytes.length >= 2 && memBytes.every((b) => b === b0)) return 'padding';
+    if (b0 === 0xe9) return 'jmp_rel32';
+    if (b0 === 0xe8) return 'call_rel32';
+    if (b0 === 0xeb) return 'short_jmp';
+    if (b0 === 0xff && memBytes[1] === 0x25) return 'jmp_abs64';
+    // MOV r32, imm32 (B8-BF) followed by FF E0-EF (JMP r32) or FF D0-DF (CALL r32).
+    // Layout: [B8-BF][imm32 4 bytes][FF][E0-EF | D0-DF] = 7 bytes minimum.
+    if (b0 >= 0xb8 && b0 <= 0xbf && memBytes.length >= 8) {
+      if (memBytes[6] === 0xff) {
+        const reg = memBytes[7]!;
+        if (reg >= 0xe0 && reg <= 0xef) return 'mov_jmp';
+        if (reg >= 0xd0 && reg <= 0xdf) return 'mov_call';
+      }
+    }
+    if (b0 === 0x68 && memBytes[5] === 0xc3) return 'push_ret';
     return 'unknown';
   }
 
+  /**
+   * Decode the jump/call target address for a classified hook.
+   *
+   * Returns `'0x0'` when the pattern has no extractable target
+   * (INT3, padding, unknown). For `mov_jmp`/`mov_call` the target is the
+   * immediate loaded by the MOV instruction (the absolute address the hook
+   * redirects to), matching pe-sieve's `parseMovJmp` extraction.
+   */
   private decodeJumpTarget(memBytes: Buffer, funcAddr: bigint): string {
-    if (memBytes[0] === 0xe9) {
-      // JMP rel32 — target = addr + 5 + rel32
+    if (memBytes.length === 0) return '0x0';
+    const b0 = memBytes[0]!;
+    // JMP rel32 / CALL rel32 — target = funcAddr + 5 + rel32
+    if (b0 === 0xe9 || b0 === 0xe8) {
       const rel32 = memBytes.readInt32LE(1);
       return `0x${(funcAddr + 5n + BigInt(rel32)).toString(16)}`;
     }
-    if (memBytes[0] === 0xff && memBytes[1] === 0x25) {
-      // JMP [rip+disp32] — in x64, followed by 8-byte address
+    // Short JMP rel8 — target = funcAddr + 2 + rel8
+    if (b0 === 0xeb) {
+      const rel8 = memBytes.readInt8(1);
+      return `0x${(funcAddr + 2n + BigInt(rel8)).toString(16)}`;
+    }
+    if (b0 === 0xff && memBytes[1] === 0x25) {
+      // JMP [rip+disp32] — in x64, the 8-byte absolute target follows the 6-byte instruction.
       if (memBytes.length >= 14) {
         const target = memBytes.readBigUInt64LE(6);
         return `0x${target.toString(16)}`;
       }
     }
-    if (memBytes[0] === 0x68) {
-      // PUSH imm32; RET
+    // MOV r32, imm32 (B8-BF) — target is the loaded immediate (mov_jmp / mov_call).
+    if (b0 >= 0xb8 && b0 <= 0xbf) {
+      const imm32 = memBytes.readUInt32LE(1);
+      return `0x${imm32.toString(16)}`;
+    }
+    if (b0 === 0x68) {
+      // PUSH imm32; RET — target = pushed immediate
       const target = memBytes.readUInt32LE(1);
       return `0x${target.toString(16)}`;
     }

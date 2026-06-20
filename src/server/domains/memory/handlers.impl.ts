@@ -34,6 +34,7 @@ import { StructureHandlers } from './handlers/structure';
 import { HookHandlers } from './handlers/hooks';
 import { ReadWriteHandlers } from './handlers/readwrite';
 import { IntegrityHandlers } from './handlers/integrity';
+import { MemoryAuditTrail } from '@modules/process/memory/AuditTrail';
 
 export class MemoryScanHandlers {
   private readonly sessions: SessionHandlers;
@@ -43,6 +44,8 @@ export class MemoryScanHandlers {
   private readonly hooks: HookHandlers;
   private readonly readwrite: ReadWriteHandlers;
   private readonly integrity: IntegrityHandlers;
+  /** Shared audit trail for destructive operations (write/freeze/patch). */
+  readonly auditTrail = new MemoryAuditTrail();
 
   constructor(
     scanner: MemoryScanner,
@@ -64,8 +67,8 @@ export class MemoryScanHandlers {
     this.scans = new ScanHandlers(scanner, eventBus, processManager, ctx);
     this.ptrChains = new PointerChainHandlers(ptrEngine, processManager, ctx);
     this.structures = new StructureHandlers(structAnalyzer, processManager, ctx);
-    this.hooks = new HookHandlers(bpEngine, injector, processManager, ctx);
-    this.readwrite = new ReadWriteHandlers(memCtrl, processManager, ctx);
+    this.hooks = new HookHandlers(bpEngine, injector, processManager, ctx, this.auditTrail);
+    this.readwrite = new ReadWriteHandlers(memCtrl, processManager, ctx, this.auditTrail);
     this.integrity = new IntegrityHandlers(
       speedhackEngine,
       heapAnalyzer,

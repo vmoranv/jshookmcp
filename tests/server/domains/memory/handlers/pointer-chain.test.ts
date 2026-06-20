@@ -4,16 +4,15 @@ import { PointerChainHandlers } from '../../../../../src/server/domains/memory/h
 describe('PointerChainHandlers', () => {
   let handlers: PointerChainHandlers;
   const dummyArgs = {
-    sessionId: 'test-session',
-    pattern: '12 34',
     pid: 1234,
-    structure: '{"fields":[]}',
-    name: 'test',
-    type: 'float',
-    size: 4,
-    value: '1.2',
-    chains: '[]',
-    chain: '{"offsets":[]}',
+    targetAddress: '0x7FF612340000',
+    chains: JSON.stringify([{ id: 'c1', offsets: [0x10] }]),
+    chain: JSON.stringify({ id: 'c1', offsets: [0x10] }),
+    maxDepth: 4,
+    maxOffset: 4096,
+    staticOnly: false,
+    modules: ['kernel32.dll'],
+    maxResults: 1000,
   };
 
   const mockptrEngine = {
@@ -32,29 +31,21 @@ describe('PointerChainHandlers', () => {
 
   describe('handlePointerChainScan', () => {
     it('returns success response on happy path', async () => {
-      mockptrEngine.scan = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
-      });
+      mockptrEngine.scan = vi.fn().mockReturnValue({ totalFound: 0, chains: [] });
 
       const response = await handlers.handlePointerChainScan(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(mockptrEngine.scan).toHaveBeenCalledWith(
+        1234,
+        '0x7FF612340000',
+        expect.objectContaining({
+          maxDepth: 4,
+          maxOffset: 4096,
+          staticOnly: false,
+          modules: ['kernel32.dll'],
+        }),
+      );
     });
 
     it('returns error response on failure', async () => {
@@ -63,12 +54,18 @@ describe('PointerChainHandlers', () => {
       });
 
       const response = await handlers.handlePointerChainScan(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects invalid targetAddress', async () => {
+      mockptrEngine.scan = vi.fn();
+      const response = await handlers.handlePointerChainScan({ pid: 1234, targetAddress: 'xyz' });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('targetAddress must be a hex address');
+      expect(mockptrEngine.scan).not.toHaveBeenCalled();
     });
   });
 
@@ -77,11 +74,13 @@ describe('PointerChainHandlers', () => {
       mockptrEngine.validateChains = vi.fn().mockReturnValue([{ isValid: true }]);
 
       const response = await handlers.handlePointerChainValidate(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.validCount).toBe(1);
+      expect(parsed.totalChecked).toBe(1);
+      expect(mockptrEngine.validateChains).toHaveBeenCalledWith(1234, [
+        { id: 'c1', offsets: [0x10] },
+      ]);
     });
 
     it('returns error response on failure', async () => {
@@ -90,40 +89,45 @@ describe('PointerChainHandlers', () => {
       });
 
       const response = await handlers.handlePointerChainValidate(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects missing chains argument', async () => {
+      mockptrEngine.validateChains = vi.fn();
+      const response = await handlers.handlePointerChainValidate({ pid: 1234 });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('memory_pointer_chain');
+      expect(parsed.error).toContain('chains');
+      expect(mockptrEngine.validateChains).not.toHaveBeenCalled();
+    });
+
+    it('rejects malformed JSON chains', async () => {
+      mockptrEngine.validateChains = vi.fn();
+      const response = await handlers.handlePointerChainValidate({
+        pid: 1234,
+        chains: '{not json',
+      });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('must be valid JSON');
+      expect(mockptrEngine.validateChains).not.toHaveBeenCalled();
     });
   });
 
   describe('handlePointerChainResolve', () => {
     it('returns success response on happy path', async () => {
-      mockptrEngine.resolveChain = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
-      });
+      mockptrEngine.resolveChain = vi.fn().mockReturnValue('0x1234');
 
       const response = await handlers.handlePointerChainResolve(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.resolvedAddress).toBe('0x1234');
+      expect(parsed.isResolvable).toBe(true);
+      expect(parsed.chainId).toBe('c1');
+      expect(mockptrEngine.resolveChain).toHaveBeenCalledWith(1234, { id: 'c1', offsets: [0x10] });
     });
 
     it('returns error response on failure', async () => {
@@ -132,40 +136,31 @@ describe('PointerChainHandlers', () => {
       });
 
       const response = await handlers.handlePointerChainResolve(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects missing chain argument', async () => {
+      mockptrEngine.resolveChain = vi.fn();
+      const response = await handlers.handlePointerChainResolve({ pid: 1234 });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('"chain"');
+      expect(mockptrEngine.resolveChain).not.toHaveBeenCalled();
     });
   });
 
   describe('handlePointerChainExport', () => {
     it('returns success response on happy path', async () => {
-      mockptrEngine.exportChains = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
-      });
+      mockptrEngine.exportChains = vi.fn().mockReturnValue('exported-blob');
 
       const response = await handlers.handlePointerChainExport(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.exportedData).toBe('exported-blob');
+      expect(parsed.chainCount).toBe(1);
+      expect(mockptrEngine.exportChains).toHaveBeenCalledWith([{ id: 'c1', offsets: [0x10] }]);
     });
 
     it('returns error response on failure', async () => {
@@ -174,12 +169,18 @@ describe('PointerChainHandlers', () => {
       });
 
       const response = await handlers.handlePointerChainExport(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects missing chains argument', async () => {
+      mockptrEngine.exportChains = vi.fn();
+      const response = await handlers.handlePointerChainExport({});
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('memory_pointer_chain');
+      expect(mockptrEngine.exportChains).not.toHaveBeenCalled();
     });
   });
 });

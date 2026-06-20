@@ -105,7 +105,7 @@ vi.mock('koffi', () => {
   };
 });
 
-import { HeapAnalyzer } from '@native/HeapAnalyzer';
+import { HeapAnalyzer, computeShannonEntropy } from '@native/HeapAnalyzer';
 
 describe('HeapAnalyzer', () => {
   let analyzer: HeapAnalyzer;
@@ -282,5 +282,133 @@ describe('HeapAnalyzer', () => {
       expect.stringContaining('UAF check failed for PID 1234'),
     );
     expect(anomalies).toHaveLength(0);
+  });
+
+  // ── Shannon entropy (volatility malfind-style heuristic) ────────────
+
+  describe('computeShannonEntropy', () => {
+    it('should return 0 for identical bytes (zero entropy)', () => {
+      const buf = Buffer.alloc(256, 0x90); // all NOP
+      expect(computeShannonEntropy(buf)).toBeCloseTo(0, 2);
+    });
+
+    it('should return 0 for all-zero buffer', () => {
+      const buf = Buffer.alloc(128, 0);
+      expect(computeShannonEntropy(buf)).toBe(0);
+    });
+
+    it('should approach 8.0 for uniform random bytes', () => {
+      // 256 bytes, each value 0-255 appears exactly once → maximum entropy
+      const buf = Buffer.alloc(256);
+      for (let i = 0; i < 256; i++) buf[i] = i;
+      expect(computeShannonEntropy(buf)).toBeCloseTo(8, 1); // exactly 8.0
+    });
+
+    it('should be between 0 and 8 for mixed data', () => {
+      const buf = Buffer.from([0, 1, 0, 1, 0, 1, 0, 1]);
+      // p0=0.5, p1=0.5 → -0.5*log2(0.5) * 2 = 1.0
+      expect(computeShannonEntropy(buf)).toBeCloseTo(1, 1);
+    });
+
+    it('should return 0 for empty buffer', () => {
+      expect(computeShannonEntropy(Buffer.alloc(0))).toBe(0);
+    });
+
+    it('should handle single-byte buffer', () => {
+      expect(computeShannonEntropy(Buffer.from([0x55]))).toBe(0);
+    });
+  });
+
+  // ── High-entropy heap block detection ────────────────────────────────
+
+  describe('detectHighEntropy', () => {
+    it('should flag a block with entropy >= 7.0', async () => {
+      const { ReadProcessMemory } = await import('@native/Win32API');
+      // Return 256 bytes with each value 0-255 (max entropy ~8.0)
+      vi.mocked(ReadProcessMemory).mockImplementation(() => {
+        const buf = Buffer.alloc(256);
+        for (let i = 0; i < 256; i++) buf[i] = i;
+        return buf;
+      });
+
+      const anomalies: any[] = [];
+      await (analyzer as any).detectHighEntropy(
+        1234,
+        [{ address: '0x4000', size: 256, flags: 0x01, heapId: '0x100', isFree: false }],
+        '0x100',
+        anomalies,
+      );
+
+      const highEntropyAnomalies = anomalies.filter((a) => a.type === 'high_entropy');
+      expect(highEntropyAnomalies).toHaveLength(1);
+      expect(highEntropyAnomalies[0]!.severity).toBe('medium');
+      expect(highEntropyAnomalies[0]!.details).toMatch(/entropy/i);
+    });
+
+    it('should not flag low-entropy blocks', async () => {
+      const { ReadProcessMemory } = await import('@native/Win32API');
+      // All NOP sled — very low entropy
+      vi.mocked(ReadProcessMemory).mockImplementation(() => Buffer.alloc(256, 0x90));
+
+      const anomalies: any[] = [];
+      await (analyzer as any).detectHighEntropy(
+        1234,
+        [{ address: '0x4000', size: 256, flags: 0x01, heapId: '0x100', isFree: false }],
+        '0x100',
+        anomalies,
+      );
+
+      expect(anomalies.filter((a) => a.type === 'high_entropy')).toHaveLength(0);
+    });
+
+    it('should skip free blocks', async () => {
+      const { ReadProcessMemory } = await import('@native/Win32API');
+      vi.mocked(ReadProcessMemory).mockImplementation(() => Buffer.alloc(256)); // low entropy
+
+      const anomalies: any[] = [];
+      await (analyzer as any).detectHighEntropy(
+        1234,
+        [{ address: '0x3000', size: 256, flags: 0x02, heapId: '0x100', isFree: true }],
+        '0x100',
+        anomalies,
+      );
+
+      // Free blocks are skipped entirely — no high_entropy detection
+      expect(anomalies.filter((a) => a.type === 'high_entropy')).toHaveLength(0);
+    });
+
+    it('should skip blocks smaller than 64 bytes', async () => {
+      const anomalies: any[] = [];
+      await (analyzer as any).detectHighEntropy(
+        1234,
+        [{ address: '0x1000', size: 32, flags: 0x01, heapId: '0x100', isFree: false }],
+        '0x100',
+        anomalies,
+      );
+
+      expect(anomalies).toHaveLength(0);
+    });
+
+    it('should swallow openProcessForMemory failures gracefully', async () => {
+      const { openProcessForMemory } = await import('@native/Win32API');
+      vi.mocked(openProcessForMemory).mockImplementation(() => {
+        throw new Error('open failed');
+      });
+
+      const anomalies: any[] = [];
+      await expect(
+        (analyzer as any).detectHighEntropy(
+          1234,
+          [{ address: '0x4000', size: 256, flags: 0x01, heapId: '0x100', isFree: false }],
+          '0x100',
+          anomalies,
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(state.logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining('High-entropy check failed for PID 1234'),
+      );
+      expect(anomalies).toHaveLength(0);
+    });
   });
 });

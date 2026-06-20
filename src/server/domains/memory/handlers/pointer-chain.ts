@@ -4,6 +4,10 @@ import type { UnifiedProcessManager } from '@server/domains/shared/modules/nativ
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { resolveMemoryDomainPid } from '@server/domains/memory/pid-resolver';
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';
+import { argBool, argNumber, argStringArray } from '@server/domains/shared/parse-args';
+import { parseJsonArg, validateHexAddress } from './validation';
+
+const TOOL_POINTER_CHAIN = 'memory_pointer_chain';
 
 export class PointerChainHandlers {
   constructor(
@@ -22,12 +26,13 @@ export class PointerChainHandlers {
   async handlePointerChainScan(args: Record<string, unknown>) {
     return handleSafe(async () => {
       const pid = await this.resolvePid(args.pid);
-      const result = await this.ptrEngine.scan(pid, args.targetAddress as string, {
-        maxDepth: args.maxDepth as number | undefined,
-        maxOffset: args.maxOffset as number | undefined,
-        staticOnly: args.staticOnly as boolean | undefined,
-        modules: args.modules as string[] | undefined,
-        maxResults: args.maxResults as number | undefined,
+      const targetAddress = validateHexAddress(args.targetAddress, 'targetAddress');
+      const result = await this.ptrEngine.scan(pid, targetAddress, {
+        maxDepth: argNumber(args, 'maxDepth'),
+        maxOffset: argNumber(args, 'maxOffset'),
+        staticOnly: argBool(args, 'staticOnly', false),
+        modules: argStringArray(args, 'modules'),
+        maxResults: argNumber(args, 'maxResults'),
       });
       return {
         ...result,
@@ -42,7 +47,12 @@ export class PointerChainHandlers {
   async handlePointerChainValidate(args: Record<string, unknown>) {
     return handleSafe(async () => {
       const pid = await this.resolvePid(args.pid);
-      const chains = JSON.parse(args.chains as string) as PointerChain[];
+      const chains = parseJsonArg<PointerChain[]>(args.chains, 'chains', TOOL_POINTER_CHAIN);
+      if (!Array.isArray(chains)) {
+        throw new Error(
+          `${TOOL_POINTER_CHAIN}: argument "chains" must be a JSON array of PointerChain objects, got: ${JSON.stringify(args.chains)}`,
+        );
+      }
       const results = await this.ptrEngine.validateChains(pid, chains);
       return {
         results,
@@ -55,7 +65,7 @@ export class PointerChainHandlers {
   async handlePointerChainResolve(args: Record<string, unknown>) {
     return handleSafe(async () => {
       const pid = await this.resolvePid(args.pid);
-      const chain = JSON.parse(args.chain as string) as PointerChain;
+      const chain = parseJsonArg<PointerChain>(args.chain, 'chain', TOOL_POINTER_CHAIN);
       const resolved = await this.ptrEngine.resolveChain(pid, chain);
       return {
         chainId: chain.id,
@@ -67,7 +77,12 @@ export class PointerChainHandlers {
 
   async handlePointerChainExport(args: Record<string, unknown>) {
     return handleSafe(async () => {
-      const chains = JSON.parse(args.chains as string) as PointerChain[];
+      const chains = parseJsonArg<PointerChain[]>(args.chains, 'chains', TOOL_POINTER_CHAIN);
+      if (!Array.isArray(chains)) {
+        throw new Error(
+          `${TOOL_POINTER_CHAIN}: argument "chains" must be a JSON array of PointerChain objects, got: ${JSON.stringify(args.chains)}`,
+        );
+      }
       return {
         exportedData: this.ptrEngine.exportChains(chains),
         chainCount: chains.length,

@@ -4,6 +4,14 @@ import type { UnifiedProcessManager } from '@server/domains/shared/modules/nativ
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { resolveMemoryDomainPid } from '@server/domains/memory/pid-resolver';
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';
+import { argBool, argNumber, argString, argStringArray } from '@server/domains/shared/parse-args';
+import { parseJsonArg } from './validation';
+import { parseAddressFormula } from './address-formula';
+
+const TOOL_STRUCTURE_ANALYZE = 'memory_structure_analyze';
+const TOOL_VTABLE_PARSE = 'memory_vtable_parse';
+const TOOL_STRUCTURE_EXPORT_C = 'memory_structure_export_c';
+const TOOL_STRUCTURE_COMPARE = 'memory_structure_compare';
 
 const FIELD_TYPE_ALIASES: Record<string, FieldType> = {
   int8_t: 'int8',
@@ -84,10 +92,29 @@ export class StructureHandlers {
   async handleStructureAnalyze(args: Record<string, unknown>) {
     return handleSafe(async () => {
       const pid = await this.resolvePid(args.pid);
-      const result = await this.structAnalyzer.analyzeStructure(pid, args.address as string, {
-        size: args.size as number | undefined,
-        otherInstances: args.otherInstances as string[] | undefined,
-        parseRtti: args.parseRtti as boolean | undefined,
+      const addressRaw = argString(args, 'address');
+      if (!addressRaw) {
+        throw new Error(
+          `${TOOL_STRUCTURE_ANALYZE}: missing or invalid required argument "address" (expected hex or address formula, e.g. "0x7FF612340000 + 0x10")`,
+        );
+      }
+      const formula = parseAddressFormula(addressRaw);
+      if (!formula.address) {
+        throw new Error(`${TOOL_STRUCTURE_ANALYZE}: ${formula.error}`);
+      }
+      const address = formula.address;
+      const size = argNumber(args, 'size');
+      if (size !== undefined && (!Number.isFinite(size) || size <= 0)) {
+        throw new Error(
+          `${TOOL_STRUCTURE_ANALYZE}: argument "size" must be a positive number, got: ${JSON.stringify(args.size)}`,
+        );
+      }
+      const otherInstances = argStringArray(args, 'otherInstances');
+      const parseRtti = argBool(args, 'parseRtti', true);
+      const result = await this.structAnalyzer.analyzeStructure(pid, address, {
+        size,
+        otherInstances,
+        parseRtti,
       });
       return {
         ...result,
@@ -102,27 +129,66 @@ export class StructureHandlers {
   async handleVtableParse(args: Record<string, unknown>) {
     return handleSafe(async () => {
       const pid = await this.resolvePid(args.pid);
-      return { ...(await this.structAnalyzer.parseVtable(pid, args.vtableAddress as string)) };
+      const vtableRaw = argString(args, 'vtableAddress');
+      if (!vtableRaw) {
+        throw new Error(
+          `${TOOL_VTABLE_PARSE}: missing or invalid required argument "vtableAddress"`,
+        );
+      }
+      const formula = parseAddressFormula(vtableRaw);
+      if (!formula.address) {
+        throw new Error(`${TOOL_VTABLE_PARSE}: ${formula.error}`);
+      }
+      const vtableAddress = formula.address;
+      return { ...(await this.structAnalyzer.parseVtable(pid, vtableAddress)) };
     });
   }
 
   async handleStructureExportC(args: Record<string, unknown>) {
     return handleSafe(async () => {
-      const parsed = JSON.parse(args.structure as string);
-      const structure = normalizeStructureForExport(parsed);
-      return { ...this.structAnalyzer.exportToCStruct(structure, args.name as string | undefined) };
+      const structure = argString(args, 'structure');
+      if (!structure) {
+        throw new Error(
+          `${TOOL_STRUCTURE_EXPORT_C}: missing or invalid required argument "structure" (expected JSON string), got: ${JSON.stringify(args.structure)}`,
+        );
+      }
+      const parsed = parseJsonArg(structure, 'structure', TOOL_STRUCTURE_EXPORT_C);
+      const normalized = normalizeStructureForExport(parsed);
+      const name = typeof args.name === 'string' && args.name.length > 0 ? args.name : undefined;
+      return { ...this.structAnalyzer.exportToCStruct(normalized, name) };
     });
   }
 
   async handleStructureCompare(args: Record<string, unknown>) {
     return handleSafe(async () => {
       const pid = await this.resolvePid(args.pid);
-      const result = await this.structAnalyzer.compareInstances(
-        pid,
-        args.address1 as string,
-        args.address2 as string,
-        args.size as number | undefined,
-      );
+
+      const addr1Raw = argString(args, 'address1');
+      if (!addr1Raw) {
+        throw new Error(
+          `${TOOL_STRUCTURE_COMPARE}: missing or invalid required argument "address1"`,
+        );
+      }
+      const f1 = parseAddressFormula(addr1Raw);
+      if (!f1.address) throw new Error(`${TOOL_STRUCTURE_COMPARE}: ${f1.error}`);
+      const address1 = f1.address;
+
+      const addr2Raw = argString(args, 'address2');
+      if (!addr2Raw) {
+        throw new Error(
+          `${TOOL_STRUCTURE_COMPARE}: missing or invalid required argument "address2"`,
+        );
+      }
+      const f2 = parseAddressFormula(addr2Raw);
+      if (!f2.address) throw new Error(`${TOOL_STRUCTURE_COMPARE}: ${f2.error}`);
+      const address2 = f2.address;
+      const size = argNumber(args, 'size');
+      if (size !== undefined && (!Number.isFinite(size) || size <= 0)) {
+        throw new Error(
+          `${TOOL_STRUCTURE_COMPARE}: argument "size" must be a positive number, got: ${JSON.stringify(args.size)}`,
+        );
+      }
+      const result = await this.structAnalyzer.compareInstances(pid, address1, address2, size);
       return {
         matchingFieldCount: result.matching.length,
         differingFieldCount: result.differing.length,

@@ -178,6 +178,9 @@ export class HeapAnalyzer {
 
       // Check for possible UAF (free blocks with non-zero data)
       await this.detectPossibleUaf(pid, blocks, heap.heapId, anomalies);
+
+      // Check for high-entropy blocks (shellcode / encrypted payload heuristic)
+      await this.detectHighEntropy(pid, blocks, heap.heapId, anomalies);
     }
 
     return anomalies;
@@ -346,6 +349,79 @@ export class HeapAnalyzer {
       if (hProcess) CloseHandle(hProcess);
     }
   }
+
+  /**
+   * Detect high-entropy heap blocks (volatility malfind-style heuristic).
+   *
+   * Reads the first `HIGH_ENTROPY_SAMPLE_BYTES` of each non-free block >=
+   * `HIGH_ENTROPY_MIN_BLOCK_SIZE` bytes and computes Shannon entropy. Blocks
+   * with entropy >= `HIGH_ENTROPY_THRESHOLD` bits/byte likely contain
+   * shellcode or encrypted payloads (normal heap data — pointers, structs,
+   * small integers — has low entropy). Sampling is capped to bound runtime on
+   * processes with many large blocks.
+   */
+  private async detectHighEntropy(
+    pid: number,
+    blocks: HeapBlock[],
+    heapId: string,
+    anomalies: HeapAnomaly[],
+  ): Promise<void> {
+    const candidates = blocks.filter((b) => !b.isFree && b.size >= HIGH_ENTROPY_MIN_BLOCK_SIZE);
+    const sampled = candidates.slice(0, HIGH_ENTROPY_MAX_BLOCKS);
+
+    let hProcess: bigint | null = null;
+    try {
+      hProcess = openProcessForMemory(pid);
+      for (const block of sampled) {
+        const addr = BigInt(block.address);
+        const readSize = Math.min(HIGH_ENTROPY_SAMPLE_BYTES, block.size);
+        const data = ReadProcessMemory(hProcess, addr, readSize);
+        if (!data || data.length < 8) continue;
+        const entropy = computeShannonEntropy(data);
+        if (entropy >= HIGH_ENTROPY_THRESHOLD) {
+          anomalies.push({
+            type: 'high_entropy',
+            severity: 'medium',
+            address: block.address,
+            details: `High entropy ${entropy.toFixed(2)} bits/byte in ${data.length}-byte sample — possible shellcode or encrypted payload`,
+            heapId,
+          });
+        }
+      }
+    } catch (e) {
+      logger.debug(`High-entropy check failed for PID ${pid}: ${e}`);
+    } finally {
+      if (hProcess) CloseHandle(hProcess);
+    }
+  }
 }
+
+/**
+ * Compute Shannon entropy (bits/byte) of a byte buffer.
+ *
+ * 0.0 = all bytes identical; 8.0 = perfectly uniform random distribution.
+ * Used by `detectHighEntropy` to flag shellcode/encrypted-payload blocks.
+ */
+export function computeShannonEntropy(data: Buffer): number {
+  if (data.length === 0) return 0;
+  const freq = Array.from({ length: 256 }, () => 0);
+  for (let i = 0; i < data.length; i++) {
+    freq[data[i]!]!++;
+  }
+  let entropy = 0;
+  const len = data.length;
+  for (const count of freq) {
+    if (count === 0) continue;
+    const p = count / len;
+    entropy -= p * Math.log2(p);
+  }
+  return entropy;
+}
+
+// High-entropy detection thresholds (volatility malfind-style heuristic).
+const HIGH_ENTROPY_THRESHOLD = 7.0; // bits/byte (8.0 = perfectly random)
+const HIGH_ENTROPY_MIN_BLOCK_SIZE = 64; // skip tiny blocks (entropy is meaningless on very small samples)
+const HIGH_ENTROPY_SAMPLE_BYTES = 256; // read first 256 bytes per block
+const HIGH_ENTROPY_MAX_BLOCKS = 500; // cap scanned blocks per heap to bound runtime
 
 export const heapAnalyzer = new HeapAnalyzer();

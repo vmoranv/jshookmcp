@@ -286,35 +286,151 @@ describe('PEAnalyzer', () => {
   });
 
   describe('hook classification', () => {
+    // `analyzer` is assigned lazily at module load; capture it per-test.
+    let p: any;
+    beforeEach(() => {
+      p = analyzer as any;
+    });
+
     it('should classify JMP rel32 hook', () => {
-      // Access private method via prototype trick
-      const p = analyzer as any;
       const buf = Buffer.alloc(16);
       buf[0] = 0xe9; // JMP rel32
       buf.writeInt32LE(0x1000, 1);
       expect(p.classifyHook(buf)).toBe('jmp_rel32');
     });
 
+    it('should classify CALL rel32 hook (pe-sieve direct call)', () => {
+      const buf = Buffer.alloc(16);
+      buf[0] = 0xe8; // CALL rel32
+      buf.writeInt32LE(0x1000, 1);
+      expect(p.classifyHook(buf)).toBe('call_rel32');
+    });
+
+    it('should classify short JMP rel8 hook', () => {
+      const buf = Buffer.alloc(16);
+      buf[0] = 0xeb; // JMP rel8
+      buf.writeInt8(0x20, 1);
+      expect(p.classifyHook(buf)).toBe('short_jmp');
+    });
+
     it('should classify JMP abs64 hook', () => {
-      const p = analyzer as any;
       const buf = Buffer.alloc(16);
       buf[0] = 0xff;
       buf[1] = 0x25;
       expect(p.classifyHook(buf)).toBe('jmp_abs64');
     });
 
+    it('should classify MOV+JMP hook (mov reg,imm32; jmp reg)', () => {
+      const buf = Buffer.alloc(16, 0);
+      buf[0] = 0xb8; // MOV EAX, imm32
+      buf.writeUInt32LE(0x401000, 1);
+      buf[6] = 0xff; // JMP r/m32
+      buf[7] = 0xe0; // E0 = JMP EAX
+      expect(p.classifyHook(buf)).toBe('mov_jmp');
+    });
+
+    it('should classify MOV+CALL hook (mov reg,imm32; call reg)', () => {
+      const buf = Buffer.alloc(16, 0);
+      buf[0] = 0xb9; // MOV ECX, imm32
+      buf.writeUInt32LE(0x402000, 1);
+      buf[6] = 0xff;
+      buf[7] = 0xd1; // D1 = CALL ECX
+      expect(p.classifyHook(buf)).toBe('mov_call');
+    });
+
     it('should classify PUSH+RET hook', () => {
-      const p = analyzer as any;
       const buf = Buffer.alloc(16);
       buf[0] = 0x68; // PUSH imm32
       buf[5] = 0xc3; // RET
       expect(p.classifyHook(buf)).toBe('push_ret');
     });
 
-    it('should return unknown for unrecognized pattern', () => {
-      const p = analyzer as any;
-      const buf = Buffer.alloc(16, 0x90); // NOP sled
+    it('should classify INT3 breakpoint', () => {
+      const buf = Buffer.alloc(16, 0x90);
+      buf[0] = 0xcc;
+      expect(p.classifyHook(buf)).toBe('int3_breakpoint');
+    });
+
+    it('should classify padding (NOP sled / zero-fill)', () => {
+      const buf = Buffer.alloc(16, 0x90); // all NOP
+      expect(p.classifyHook(buf)).toBe('padding');
+    });
+
+    it('should return unknown for unrecognized pattern (normal prologue)', () => {
+      // push rbp; mov rbp,rsp — a real function prologue, not a hook.
+      const buf = Buffer.alloc(16, 0);
+      buf[0] = 0x55;
+      buf[1] = 0x48;
+      buf[2] = 0x89;
+      buf[3] = 0xe5;
       expect(p.classifyHook(buf)).toBe('unknown');
+    });
+
+    it('should return unknown for empty buffer', () => {
+      expect(p.classifyHook(Buffer.alloc(0))).toBe('unknown');
+    });
+  });
+
+  describe('hook target decoding', () => {
+    let p: any;
+    beforeEach(() => {
+      p = analyzer as any;
+    });
+
+    it('should decode JMP rel32 target (funcAddr + 5 + rel32)', () => {
+      const buf = Buffer.alloc(16);
+      buf[0] = 0xe9;
+      buf.writeInt32LE(0x1337, 1);
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x233c'); // 0x1000 + 5 + 0x1337
+    });
+
+    it('should decode CALL rel32 target (funcAddr + 5 + rel32)', () => {
+      const buf = Buffer.alloc(16);
+      buf[0] = 0xe8;
+      buf.writeInt32LE(0x1337, 1);
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x233c');
+    });
+
+    it('should decode short JMP rel8 target (funcAddr + 2 + rel8)', () => {
+      const buf = Buffer.alloc(16);
+      buf[0] = 0xeb;
+      buf.writeInt8(0x10, 1);
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x1012'); // 0x1000 + 2 + 0x10
+    });
+
+    it('should decode MOV+JMP target as the MOV immediate', () => {
+      const buf = Buffer.alloc(16, 0);
+      buf[0] = 0xb8;
+      buf.writeUInt32LE(0x401000, 1);
+      buf[6] = 0xff;
+      buf[7] = 0xe0;
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x401000');
+    });
+
+    it('should decode PUSH+RET target as the pushed immediate', () => {
+      const buf = Buffer.alloc(16);
+      buf[0] = 0x68;
+      buf.writeUInt32LE(0x401000, 1);
+      buf[5] = 0xc3;
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x401000');
+    });
+
+    it('should return 0x0 for INT3 breakpoint (no target)', () => {
+      const buf = Buffer.alloc(16, 0x90);
+      buf[0] = 0xcc;
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x0');
+    });
+
+    it('should return 0x0 for padding (no target)', () => {
+      const buf = Buffer.alloc(16, 0x90);
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x0');
+    });
+
+    it('should return 0x0 for unknown pattern', () => {
+      const buf = Buffer.alloc(16, 0);
+      buf[0] = 0x55;
+      buf[1] = 0x48;
+      expect(p.decodeJumpTarget(buf, 0x1000n)).toBe('0x0');
     });
   });
 

@@ -4,14 +4,16 @@ import { StructureHandlers } from '../../../../../src/server/domains/memory/hand
 describe('StructureHandlers', () => {
   let handlers: StructureHandlers;
   const dummyArgs = {
-    sessionId: 'test-session',
-    pattern: '12 34',
     pid: 1234,
-    structure: '{"fields":[]}',
-    name: 'test',
-    type: 'float',
-    size: 4,
-    value: '1.2',
+    address: '0x7FF612340000',
+    address1: '0x7FF612340000',
+    address2: '0x7FF612341000',
+    vtableAddress: '0x7FF612342000',
+    structure: JSON.stringify({ fields: [], baseAddress: '0x0', totalSize: 0 }),
+    name: 'TestStruct',
+    size: 256,
+    parseRtti: true,
+    otherInstances: ['0x7FF612341000'],
   };
 
   const mockstructAnalyzer = {
@@ -31,28 +33,20 @@ describe('StructureHandlers', () => {
   describe('handleStructureAnalyze', () => {
     it('returns success response on happy path', async () => {
       mockstructAnalyzer.analyzeStructure = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
+        className: 'Foo',
         fields: [],
         baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
       });
 
       const response = await handlers.handleStructureAnalyze(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.hint).toContain('Foo');
+      expect(mockstructAnalyzer.analyzeStructure).toHaveBeenCalledWith(
+        1234,
+        '0x7FF612340000',
+        expect.objectContaining({ size: 256, parseRtti: true, otherInstances: ['0x7FF612341000'] }),
+      );
     });
 
     it('returns error response on failure', async () => {
@@ -61,40 +55,42 @@ describe('StructureHandlers', () => {
       });
 
       const response = await handlers.handleStructureAnalyze(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects invalid address', async () => {
+      mockstructAnalyzer.analyzeStructure = vi.fn();
+      const response = await handlers.handleStructureAnalyze({ pid: 1234, address: 'xyz' });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toMatch(/address base|cannot parse/);
+      expect(mockstructAnalyzer.analyzeStructure).not.toHaveBeenCalled();
+    });
+
+    it('rejects non-positive size', async () => {
+      mockstructAnalyzer.analyzeStructure = vi.fn();
+      const response = await handlers.handleStructureAnalyze({
+        pid: 1234,
+        address: '0x1',
+        size: -5,
+      });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('"size" must be a positive number');
+      expect(mockstructAnalyzer.analyzeStructure).not.toHaveBeenCalled();
     });
   });
 
   describe('handleVtableParse', () => {
     it('returns success response on happy path', async () => {
-      mockstructAnalyzer.parseVtable = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
-      });
+      mockstructAnalyzer.parseVtable = vi.fn().mockReturnValue({ entries: [] });
 
       const response = await handlers.handleVtableParse(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(mockstructAnalyzer.parseVtable).toHaveBeenCalledWith(1234, '0x7FF612342000');
     });
 
     it('returns error response on failure', async () => {
@@ -103,40 +99,37 @@ describe('StructureHandlers', () => {
       });
 
       const response = await handlers.handleVtableParse(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects missing vtableAddress', async () => {
+      mockstructAnalyzer.parseVtable = vi.fn();
+      const response = await handlers.handleVtableParse({ pid: 1234 });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toMatch(/vtableAddress|invalid required/);
+      expect(mockstructAnalyzer.parseVtable).not.toHaveBeenCalled();
     });
   });
 
   describe('handleStructureExportC', () => {
     it('returns success response on happy path', async () => {
       mockstructAnalyzer.exportToCStruct = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
+        name: 'TestStruct',
+        definition: 'struct TestStruct {};',
+        size: 0,
+        fieldCount: 0,
       });
 
       const response = await handlers.handleStructureExportC(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(mockstructAnalyzer.exportToCStruct).toHaveBeenCalledWith(
+        expect.objectContaining({ totalSize: 0, fields: [] }),
+        'TestStruct',
+      );
     });
 
     it('normalizes legacy export payloads before delegating to the analyzer', async () => {
@@ -180,40 +173,49 @@ describe('StructureHandlers', () => {
       });
 
       const response = await handlers.handleStructureExportC(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects missing structure argument', async () => {
+      mockstructAnalyzer.exportToCStruct = vi.fn();
+      const response = await handlers.handleStructureExportC({});
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('memory_structure_export_c');
+      expect(parsed.error).toContain('"structure"');
+      expect(mockstructAnalyzer.exportToCStruct).not.toHaveBeenCalled();
+    });
+
+    it('rejects malformed JSON structure', async () => {
+      mockstructAnalyzer.exportToCStruct = vi.fn();
+      const response = await handlers.handleStructureExportC({ structure: '{not json' });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('must be valid JSON');
+      expect(mockstructAnalyzer.exportToCStruct).not.toHaveBeenCalled();
     });
   });
 
   describe('handleStructureCompare', () => {
     it('returns success response on happy path', async () => {
       mockstructAnalyzer.compareInstances = vi.fn().mockReturnValue({
-        dummyObj: true,
-        length: 1,
-        toArray: () => [],
-        fields: [],
-        baseClasses: [],
-        matching: [],
-        differing: [],
-        address: '0x123',
-        name: 'test',
-        protection: '',
-        memoryType: '',
-        region: {},
-        oldMatchCount: 1,
-        newMatchCount: 0,
+        matching: [{ name: 'a' }],
+        differing: [{ name: 'b' }],
       });
 
       const response = await handlers.handleStructureCompare(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(true);
+      expect(parsed.matchingFieldCount).toBe(1);
+      expect(parsed.differingFieldCount).toBe(1);
+      expect(mockstructAnalyzer.compareInstances).toHaveBeenCalledWith(
+        1234,
+        '0x7FF612340000',
+        '0x7FF612341000',
+        256,
+      );
     });
 
     it('returns error response on failure', async () => {
@@ -222,12 +224,21 @@ describe('StructureHandlers', () => {
       });
 
       const response = await handlers.handleStructureCompare(dummyArgs);
-      expect(response).toEqual({
-        content: [expect.objectContaining({ type: 'text' })],
-      });
       const parsed = JSON.parse((response.content[0] as any).text);
       expect(parsed.success).toBe(false);
       expect(parsed.error).toContain('Native error');
+    });
+
+    it('rejects missing address2', async () => {
+      mockstructAnalyzer.compareInstances = vi.fn();
+      const response = await handlers.handleStructureCompare({
+        pid: 1234,
+        address1: '0x1',
+      });
+      const parsed = JSON.parse((response.content[0] as any).text);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toMatch(/address2|invalid required/);
+      expect(mockstructAnalyzer.compareInstances).not.toHaveBeenCalled();
     });
   });
 });

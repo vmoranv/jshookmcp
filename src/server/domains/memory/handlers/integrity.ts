@@ -6,7 +6,14 @@ import type { UnifiedProcessManager } from '@server/domains/shared/modules/nativ
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { resolveMemoryDomainPid } from '@server/domains/memory/pid-resolver';
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';
-import { argNumber } from '@server/domains/shared/parse-args';
+import { argEnum, argNumber, argString } from '@server/domains/shared/parse-args';
+import { requirePositiveNumberArg, validateHexAddress } from './validation';
+
+const TOOL_SPEEDHACK = 'memory_speedhack';
+const TOOL_GUARD_PAGES = 'memory_guard_pages';
+const TOOL_INTEGRITY_CHECK = 'memory_integrity_check';
+
+const PE_TABLE_OPTIONS = new Set<'imports' | 'exports' | 'both'>(['imports', 'exports', 'both']);
 
 export class IntegrityHandlers {
   constructor(
@@ -34,10 +41,11 @@ export class IntegrityHandlers {
         );
       }
       const pid = await this.resolvePid(args.pid);
-      const result = await this.speedhackEngine.apply(pid, args.speed as number);
+      const speed = requirePositiveNumberArg(args.speed, 'speed', TOOL_SPEEDHACK);
+      const result = await this.speedhackEngine.apply(pid, speed);
       return {
         ...result,
-        hint: `Speedhack active (${args.speed}x). Use memory_speedhack({ action: 'set' }) to adjust.`,
+        hint: `Speedhack active (${speed}x). Use memory_speedhack({ action: 'set' }) to adjust.`,
       };
     });
   }
@@ -51,9 +59,10 @@ export class IntegrityHandlers {
         );
       }
       const pid = await this.resolvePid(args.pid);
+      const speed = requirePositiveNumberArg(args.speed, 'speed', TOOL_SPEEDHACK);
       return {
-        updated: await this.speedhackEngine.setSpeed(pid, args.speed as number),
-        newSpeed: args.speed,
+        updated: await this.speedhackEngine.setSpeed(pid, speed),
+        newSpeed: speed,
       };
     });
   }
@@ -118,7 +127,8 @@ export class IntegrityHandlers {
         );
       }
       const pid = await this.resolvePid(args.pid);
-      return { ...(await this.peAnalyzer.parseHeaders(pid, args.moduleBase as string)) };
+      const moduleBase = validateHexAddress(args.moduleBase, 'moduleBase');
+      return { ...(await this.peAnalyzer.parseHeaders(pid, moduleBase)) };
     });
   }
 
@@ -130,8 +140,8 @@ export class IntegrityHandlers {
             'This tool requires Win32 PE format introspection.',
         );
       }
-      const table = (args.table as string) || 'both';
-      const base = args.moduleBase as string;
+      const table = argEnum(args, 'table', PE_TABLE_OPTIONS, 'both');
+      const base = validateHexAddress(args.moduleBase, 'moduleBase');
       const pid = await this.resolvePid(args.pid);
       const result: Record<string, unknown> = {};
       if (table === 'imports' || table === 'both') {
@@ -153,10 +163,8 @@ export class IntegrityHandlers {
         );
       }
       const pid = await this.resolvePid(args.pid);
-      const hooks = await this.peAnalyzer.detectInlineHooks(
-        pid,
-        args.moduleName as string | undefined,
-      );
+      const moduleName = argString(args, 'moduleName');
+      const hooks = await this.peAnalyzer.detectInlineHooks(pid, moduleName);
       return {
         hooks,
         count: hooks.length,
@@ -199,6 +207,11 @@ export class IntegrityHandlers {
       }
       const pid = await this.resolvePid(args.pid);
       const maxRegions = argNumber(args, 'maxRegions', 10000);
+      if (!Number.isFinite(maxRegions) || maxRegions <= 0) {
+        throw new Error(
+          `${TOOL_GUARD_PAGES}: argument "maxRegions" must be a positive number, got: ${JSON.stringify(args.maxRegions)}`,
+        );
+      }
       const result = await this.antiCheatDetector.scanGuardPages(pid);
       const { guardPages, stats } = result;
 
@@ -231,10 +244,13 @@ export class IntegrityHandlers {
       }
       const pid = await this.resolvePid(args.pid);
       const maxSections = argNumber(args, 'maxSections', 100);
-      const result = await this.antiCheatDetector.scanIntegrity(
-        pid,
-        args.moduleName as string | undefined,
-      );
+      if (!Number.isFinite(maxSections) || maxSections <= 0) {
+        throw new Error(
+          `${TOOL_INTEGRITY_CHECK}: argument "maxSections" must be a positive number, got: ${JSON.stringify(args.maxSections)}`,
+        );
+      }
+      const moduleName = argString(args, 'moduleName');
+      const result = await this.antiCheatDetector.scanIntegrity(pid, moduleName);
       const { sections, stats } = result;
 
       // Truncate results if exceeding maxSections
