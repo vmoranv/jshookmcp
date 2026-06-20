@@ -9,6 +9,7 @@
  * 2. Command Queue Capture — via page script injection hooking `GPUQueue.submit`,
  *    `GPUDevice.createCommandEncoder`, and pass encoders
  * 3. Resource Tracking — via Page.getResourceTree + target info
+ * 4. Multi-adapter/device cache — `ensureDevice`/`releaseDevice` with `device.lost` recovery
  *
  * **Known Limitations**:
  * - Chrome DevTools Protocol does not expose all WebGPU internals
@@ -17,13 +18,14 @@
  */
 
 import type { Page } from 'rebrowser-puppeteer-core';
-import type { GPUMemoryAllocation, GPUCommand } from '@server/domains/webgpu/types';
+import type { GPUMemoryAllocation, GPUCommand, GPUAdapterInfo } from '@server/domains/webgpu/types';
 
-export interface GPUMemoryStats {
-  heapSize: number;
-  usedHeapSize: number;
-  allocations: GPUMemoryAllocation[];
-}
+// Re-export GPUMemoryStats from the canonical types module so consumers that
+// import the type from CDPIntegration see the extended (Phase 2) shape with
+// `memorySource` and `trackedBytes`. This avoids a duplicate definition that
+// would drift from the source of truth.
+export type { GPUMemoryStats } from '@server/domains/webgpu/types';
+import type { GPUMemoryStats } from '@server/domains/webgpu/types';
 
 export interface GPUCommandTrace {
   commands: GPUCommand[];
@@ -54,6 +56,14 @@ interface PageHookState {
   allocations: PageAllocationRecord[];
 }
 
+/** Handle returned by `ensureDevice` — adapter/device are page-context objects. */
+export interface DeviceHandle {
+  adapter: any;
+  device: any;
+  fresh: boolean;
+  adapterInfo: GPUAdapterInfo;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GPU Memory Tracking
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,10 +71,13 @@ interface PageHookState {
 /**
  * Get GPU memory statistics via CDP and page-script tracking.
  *
- * Uses three data sources:
- * 1. Performance.getMetrics — for GPU process memory (when available)
- * 2. Memory.getDOMCounters — baseline counter
- * 3. Page-script `WeakRef` pool of WebGPU objects — for real allocation list
+ * Resolves `usedHeapSize` from the most accurate available source:
+ * 1. `Performance.getMetrics` → `GPUMemoryUsedKB` (memorySource='cdp')
+ * 2. Sum of live WeakRef-tracked allocations          (memorySource='tracked')
+ * 3. Conservative zero fallback                       (memorySource='estimated')
+ *
+ * `trackedBytes` is always computed as the sum of tracked allocation sizes,
+ * regardless of whether the CDP metric is available.
  *
  * @param page - Puppeteer page
  * @returns Memory stats
@@ -81,7 +94,8 @@ export async function getGPUMemoryStats(page: Page): Promise<GPUMemoryStats> {
 
     // Extract GPU-related metrics
     const gpuMemoryMetric = metrics.metrics.find((m) => m.name === 'GPUMemoryUsedKB');
-    const usedHeapSize = gpuMemoryMetric ? gpuMemoryMetric.value * 1024 : 0;
+    const cdpUsedBytes = gpuMemoryMetric ? gpuMemoryMetric.value * 1024 : 0;
+    const hasCdpMetric = Boolean(gpuMemoryMetric);
 
     // Ensure page-script allocation tracker is installed
     await ensureAllocationTracker(page);
@@ -137,13 +151,35 @@ export async function getGPUMemoryStats(page: Page): Promise<GPUMemoryStats> {
       return alive;
     });
 
-    // Estimate total heap size (conservative: max of 2x used or 256MB)
-    const heapSize = Math.max(usedHeapSize * 2, 256 * 1024 * 1024);
+    // trackedBytes is always the sum of live tracked allocation sizes.
+    const trackedBytes = allocations.reduce((sum, a) => sum + a.size, 0);
+
+    // Resolve usedHeapSize + memorySource using the precedence ladder.
+    let usedHeapSize: number;
+    let memorySource: GPUMemoryStats['memorySource'];
+    if (hasCdpMetric) {
+      usedHeapSize = cdpUsedBytes;
+      memorySource = 'cdp';
+    } else if (trackedBytes > 0) {
+      usedHeapSize = trackedBytes;
+      memorySource = 'tracked';
+    } else {
+      usedHeapSize = 0;
+      memorySource = 'estimated';
+    }
+
+    // Estimate total heap size (conservative: max of 2x used or 256MB).
+    // In tracked mode the trackedBytes value participates in the estimate so
+    // the heap floor scales with real allocations even when CDP is silent.
+    const heapBase = memorySource === 'tracked' ? trackedBytes : usedHeapSize;
+    const heapSize = Math.max(heapBase * 2, 256 * 1024 * 1024);
 
     return {
       heapSize,
       usedHeapSize,
       allocations,
+      memorySource,
+      trackedBytes,
     };
   } finally {
     await cdp.detach();
@@ -212,6 +248,131 @@ async function ensureAllocationTracker(page: Page): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Multi-adapter / device cache (defect #5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * In-page cache shape stored on `window.__webgpuDeviceCache`.
+ *
+ * Kept as a separate type from `DeviceHandle` because the cache also tracks
+ * the `lost` flag and holds the live adapter/device references between calls.
+ */
+interface PageDeviceCache {
+  adapter: any;
+  device: any;
+  adapterInfo: GPUAdapterInfo;
+  lost: boolean;
+}
+
+/**
+ * Get or create a cached `GPUAdapter` + `GPUDevice` in the page context.
+ *
+ * On a dual-GPU system, repeated `requestAdapter()` calls can return different
+ * adapters depending on power state. This cache pins a single adapter+device
+ * pair for the page lifetime and transparently rebuilds it after `device.lost`.
+ *
+ * **Recovery**: the `device.lost` promise is attached a cleanup callback that
+ * marks the cache `lost=true` and clears the references. The next `ensureDevice`
+ * call sees the stale cache, discards it, and creates a fresh pair.
+ *
+ * @param page - Puppeteer page
+ * @param opts.powerPreference - 'low-power' | 'high-performance' | 'none' (default: don't pass)
+ * @returns DeviceHandle (adapter/device are page-context objects, valid only
+ *          within the evaluate closure that produced them)
+ */
+export async function ensureDevice(
+  page: Page,
+  opts?: { powerPreference?: 'low-power' | 'high-performance' | 'none' },
+): Promise<DeviceHandle> {
+  const pp = opts?.powerPreference ?? 'none';
+
+  const result = await page.evaluate(async (powerPreference: string) => {
+    const gpu = (navigator as any).gpu;
+    if (!gpu) {
+      throw new Error('WebGPU not available: navigator.gpu is undefined.');
+    }
+
+    const w = window as any;
+    const existing: PageDeviceCache | undefined = w.__webgpuDeviceCache;
+    if (existing && !existing.lost && existing.adapter && existing.device) {
+      return {
+        adapter: existing.adapter,
+        device: existing.device,
+        fresh: false,
+        adapterInfo: existing.adapterInfo,
+      };
+    }
+
+    // Stale cache (lost/device lost) — discard before re-requesting.
+    w.__webgpuDeviceCache = undefined;
+
+    const requestAdapterOpts = powerPreference === 'none' ? {} : { powerPreference };
+    const adapter = await gpu.requestAdapter(requestAdapterOpts);
+    if (!adapter) {
+      throw new Error('No suitable GPUAdapter available.');
+    }
+
+    const device = await adapter.requestDevice();
+
+    // adapter.info is the modern accessor (adapter.requestAdapterInfo() is
+    // deprecated in current WebGPU specs). Fall back gracefully.
+    const info =
+      (adapter.info as GPUAdapterInfo | undefined) ??
+      (typeof adapter.requestAdapterInfo === 'function' ? await adapter.requestAdapterInfo() : {});
+    const adapterInfo: GPUAdapterInfo = {
+      vendor: String(info?.vendor ?? ''),
+      architecture: String(info?.architecture ?? ''),
+      device: String(info?.device ?? ''),
+      description: String(info?.description ?? ''),
+    };
+
+    const cache: PageDeviceCache = {
+      adapter,
+      device,
+      adapterInfo,
+      lost: false,
+    };
+
+    // Attach device.lost recovery: clear cache so next ensureDevice rebuilds.
+    if (device && typeof device.lost === 'object' && device.lost !== null) {
+      (device.lost as Promise<any>).then(() => {
+        cache.lost = true;
+        cache.adapter = null;
+        cache.device = null;
+      });
+    }
+
+    w.__webgpuDeviceCache = cache;
+
+    return {
+      adapter,
+      device,
+      fresh: true,
+      adapterInfo,
+    };
+  }, pp);
+
+  return result as DeviceHandle;
+}
+
+/**
+ * Release the cached adapter/device pair in the page context.
+ *
+ * Does not destroy the device (the page may still hold references); it only
+ * clears the cache so the next `ensureDevice` call creates a fresh pair.
+ *
+ * @param page - Puppeteer page
+ */
+export async function releaseDevice(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const w = window as any;
+    if (w.__webgpuDeviceCache) {
+      w.__webgpuDeviceCache = undefined;
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Command Queue Capture
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -256,6 +417,16 @@ async function ensureHookState(page: Page): Promise<void> {
  * **Structured**: intercepts render/compute/copy pass encoders to record
  * drawCalls, dispatch dimensions, pipeline labels, and pass labels.
  *
+ * **Enhanced (defect #3)**: render/compute pass encoders also capture
+ * pipeline-state metadata:
+ *  - `setPipeline(pipeline)` → `pipelineLabel`, `pipelineSet=true`
+ *  - `setVertexBuffer(slot, buffer)` → `vertexBuffers.push(slot)`
+ *  - `setBindGroup(index, ...)` → `bindGroups.push(index)`
+ *  - `setIndexBuffer(...)` (render only) → `indexBufferSet=true`
+ *
+ * These fields ride along on the command object pushed at pass `end()`. Copy
+ * encoders have no pipeline state and are unaffected.
+ *
  * @param page - Puppeteer page
  * @param captureCount - Maximum commands to capture
  * @returns Cleanup function that restores original methods
@@ -290,6 +461,12 @@ export async function installGPUCommandHook(
 
     function wrapRenderPassEncoder(encoder: any, passLabel: string | undefined): any {
       let drawCalls = 0;
+      let pipelineLabel: string | undefined;
+      let pipelineSet = false;
+      let indexBufferSet = false;
+      const vertexBuffers: number[] = [];
+      const bindGroups: number[] = [];
+
       const drawMethods = ['draw', 'drawIndexed', 'drawIndirect', 'drawIndexedIndirect'];
       for (const method of drawMethods) {
         const original = (encoder as any)[method];
@@ -300,6 +477,40 @@ export async function installGPUCommandHook(
         };
       }
 
+      // Pipeline state hooks (defect #3)
+      const originalSetPipeline = encoder.setPipeline;
+      if (typeof originalSetPipeline === 'function') {
+        encoder.setPipeline = function (pipeline: any) {
+          pipelineLabel = pipeline?.label;
+          pipelineSet = true;
+          return originalSetPipeline.call(this, pipeline);
+        };
+      }
+
+      const originalSetVertexBuffer = encoder.setVertexBuffer;
+      if (typeof originalSetVertexBuffer === 'function') {
+        encoder.setVertexBuffer = function (slot: number, ...rest: any[]) {
+          vertexBuffers.push(slot);
+          return originalSetVertexBuffer.apply(this, [slot, ...rest] as any);
+        };
+      }
+
+      const originalSetBindGroup = encoder.setBindGroup;
+      if (typeof originalSetBindGroup === 'function') {
+        encoder.setBindGroup = function (index: number, ...rest: any[]) {
+          bindGroups.push(index);
+          return originalSetBindGroup.apply(this, [index, ...rest] as any);
+        };
+      }
+
+      const originalSetIndexBuffer = encoder.setIndexBuffer;
+      if (typeof originalSetIndexBuffer === 'function') {
+        encoder.setIndexBuffer = function (...args: any[]) {
+          indexBufferSet = true;
+          return originalSetIndexBuffer.apply(this, args);
+        };
+      }
+
       const originalEnd = encoder.end;
       encoder.end = function () {
         const trace = state.commandTrace;
@@ -307,9 +518,13 @@ export async function installGPUCommandHook(
           trace.commands.push({
             type: 'render',
             drawCalls,
-            pipelineLabel: encoder.pipelineLabel,
+            pipelineLabel,
             passLabel,
             timestamp: performance.now(),
+            pipelineSet,
+            vertexBuffers: vertexBuffers.slice(),
+            bindGroups: bindGroups.slice(),
+            indexBufferSet,
           });
         }
         return originalEnd.call(this);
@@ -322,6 +537,9 @@ export async function installGPUCommandHook(
       let dispatchX = 0;
       let dispatchY = 0;
       let dispatchZ = 0;
+      let pipelineLabel: string | undefined;
+      let pipelineSet = false;
+      const bindGroups: number[] = [];
 
       const originalDispatch = encoder.dispatchWorkgroups;
       encoder.dispatchWorkgroups = function (x: number, y?: number, z?: number) {
@@ -341,6 +559,24 @@ export async function installGPUCommandHook(
         };
       }
 
+      // Pipeline state hooks (defect #3) — compute passes have setPipeline/setBindGroup
+      const originalSetPipeline = encoder.setPipeline;
+      if (typeof originalSetPipeline === 'function') {
+        encoder.setPipeline = function (pipeline: any) {
+          pipelineLabel = pipeline?.label;
+          pipelineSet = true;
+          return originalSetPipeline.call(this, pipeline);
+        };
+      }
+
+      const originalSetBindGroup = encoder.setBindGroup;
+      if (typeof originalSetBindGroup === 'function') {
+        encoder.setBindGroup = function (index: number, ...rest: any[]) {
+          bindGroups.push(index);
+          return originalSetBindGroup.apply(this, [index, ...rest] as any);
+        };
+      }
+
       const originalEnd = encoder.end;
       encoder.end = function () {
         const trace = state.commandTrace;
@@ -348,9 +584,11 @@ export async function installGPUCommandHook(
           trace.commands.push({
             type: 'compute',
             dispatches: { x: dispatchX, y: dispatchY, z: dispatchZ },
-            pipelineLabel: encoder.pipelineLabel,
+            pipelineLabel,
             passLabel,
             timestamp: performance.now(),
+            pipelineSet,
+            bindGroups: bindGroups.slice(),
           });
         }
         return originalEnd.call(this);

@@ -2,6 +2,8 @@ import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBu
 import { argString } from '@server/domains/shared/parse-args';
 import { DetailedDataManager } from '@utils/DetailedDataManager';
 import { getShaderDisassemblyCache } from '@modules/webgpu/ShaderCache';
+import { extractShaderAst } from '@modules/webgpu/WgslParser';
+import { isSpirv, decodeSpirvInput, parseSpirv } from '@modules/webgpu/SpirvParser';
 import type { MCPServerContext } from '@server/domains/shared/registry';
 import type { WebGPUDomainDependencies, ShaderMetadata } from '../types';
 
@@ -11,90 +13,15 @@ interface ShaderAst {
   structs: ShaderMetadata['structs'];
   uniforms: ShaderMetadata['uniforms'];
   attributes: ShaderMetadata['attributes'];
-}
-
-/**
- * Extract a lightweight AST from WGSL source code.
- *
- * Captures functions, structs, uniforms/bindings, and vertex attributes.
- * This parser is intentionally dependency-free and robust enough for reverse
- * engineering and security analysis workflows.
- *
- * @param code - WGSL source code
- * @returns Shader AST
- */
-function extractShaderAst(code: string): ShaderAst {
-  const functions: string[] = [];
-  const structs: NonNullable<ShaderMetadata['structs']> = [];
-  const uniforms: NonNullable<ShaderMetadata['uniforms']> = [];
-  const attributes: NonNullable<ShaderMetadata['attributes']> = [];
-
-  // Functions (including entry points)
-  for (const match of code.matchAll(/fn\s+(\w+)/g)) {
-    const name = match[1];
-    if (name === undefined) continue;
-    functions.push(name);
-  }
-
-  // Structs
-  const structRegex = /struct\s+(\w+)\s*\{([^}]*)\}/g;
-  for (const match of code.matchAll(structRegex)) {
-    const name = match[1];
-    const body = match[2];
-    if (!name || body === undefined) continue;
-    const fields: Array<{ name: string; type: string }> = [];
-    const fieldRegex = /(\w+)\s*:\s*([^,;]+)/g;
-    for (const fieldMatch of body.matchAll(fieldRegex)) {
-      const fieldName = fieldMatch[1];
-      const fieldType = fieldMatch[2];
-      if (fieldName === undefined || fieldType === undefined) continue;
-      fields.push({
-        name: fieldName.trim(),
-        type: fieldType.trim(),
-      });
-    }
-    structs.push({ name, fields });
-  }
-
-  // Uniforms / bindings
-  const bindingRegex =
-    /@group\s*\(\s*(\d+)\s*\)\s*@binding\s*\(\s*(\d+)\s*\)[\s\S]*?var[\s\S]*?(\w+)\s*:\s*([\w\s<>*(),]+)/g;
-  for (const match of code.matchAll(bindingRegex)) {
-    const groupStr = match[1];
-    const bindingStr = match[2];
-    const name = match[3];
-    if (groupStr === undefined || bindingStr === undefined || name === undefined) continue;
-    uniforms.push({
-      group: Number(groupStr),
-      binding: Number(bindingStr),
-      name,
-    });
-  }
-
-  // Vertex attributes
-  const attributeRegex = /@location\s*\(\s*(\d+)\s*\)\s*(\w+)\s*:/g;
-  for (const match of code.matchAll(attributeRegex)) {
-    const locationStr = match[1];
-    const name = match[2];
-    if (locationStr === undefined || name === undefined) continue;
-    attributes.push({
-      location: Number(locationStr),
-      name,
-    });
-  }
-
-  return {
-    type: 'Module',
-    functions,
-    structs,
-    uniforms,
-    attributes,
-  };
+  parseWarnings?: string[];
 }
 
 /**
  * Handler for webgpu_shader_disassemble tool
- * Parses WGSL shader into AST and generates human-readable disassembly
+ * Parses WGSL shader into AST and generates human-readable disassembly.
+ *
+ * Supports WGSL (enhanced brace-matching parser) and SPIR-V (binary reflection
+ * with a human-readable disassembly of entry points, bindings, and structs).
  */
 export class ShaderDisassembleHandler {
   private ddm: DetailedDataManager;
@@ -115,9 +42,6 @@ export class ShaderDisassembleHandler {
       }
 
       const format = argString(args, 'format', 'wgsl');
-      if (format !== 'wgsl') {
-        throw new Error('Only WGSL format is currently supported');
-      }
 
       // Check cache first
       const cached = this.disassemblyCache.get(shaderCode);
@@ -136,30 +60,99 @@ export class ShaderDisassembleHandler {
         this.reportProgress(progressToken, 0.1, 'Parsing shader AST...');
       }
 
-      // AST extraction without external parser dependencies
-      const ast = extractShaderAst(shaderCode);
+      let result: { ast: ShaderAst; disassembly: string };
 
-      if (progressToken && shaderCode.length > 10000) {
-        this.reportProgress(progressToken, 0.5, 'Generating disassembly...');
+      if (format === 'spirv') {
+        result = this.disassembleSpirv(shaderCode);
+      } else if (format === 'wgsl') {
+        const ast = extractShaderAst(shaderCode);
+
+        if (progressToken && shaderCode.length > 10000) {
+          this.reportProgress(progressToken, 0.5, 'Generating disassembly...');
+        }
+
+        const disassembly = this.generateDisassembly(shaderCode);
+        result = { ast, disassembly };
+      } else {
+        throw new Error(`Unsupported format: "${format}". Only "wgsl" and "spirv" are supported.`);
       }
-
-      const disassembly = this.generateDisassembly(shaderCode);
 
       if (progressToken && shaderCode.length > 10000) {
         this.reportProgress(progressToken, 1.0, 'Disassembly complete');
       }
-
-      // Check if disassembly is large and should be offloaded
-      const result = {
-        ast,
-        disassembly,
-      };
 
       // Cache the result before offloading
       this.disassemblyCache.set(shaderCode, result);
 
       return this.ddm.smartHandle(result, 25000);
     });
+  }
+
+  /**
+   * Disassemble a SPIR-V binary: reflect metadata and produce a human-readable
+   * text dump of entry points, bindings, structs, and locations.
+   */
+  private disassembleSpirv(input: string): { ast: ShaderAst; disassembly: string } {
+    const decoded = decodeSpirvInput(input);
+    if (decoded.format === 'invalid') {
+      throw new Error(
+        'SPIR-V input could not be decoded. Provide a hex string (e.g. "07230203..."), a base64 string, or raw bytes.',
+      );
+    }
+
+    if (!isSpirv(decoded.bytes)) {
+      throw new Error('Input is not a valid SPIR-V binary: magic 0x07230203 not found.');
+    }
+
+    const reflect = parseSpirv(decoded.bytes);
+
+    const ast: ShaderAst = {
+      type: 'Module',
+      functions: reflect.entryPoints.map((ep) => ep.name),
+      structs: reflect.structs.map((s) => ({ name: s.name, fields: s.fields })),
+      uniforms: reflect.bindings.map((b) => ({ name: b.name, binding: b.binding, group: b.group })),
+      attributes: reflect.locations.map((l) => ({ name: l.name, location: l.location })),
+      parseWarnings: reflect.warnings,
+    };
+
+    const lines: string[] = [];
+    lines.push(`; SPIR-V disassembly (reflection)`);
+    lines.push(`; version: ${reflect.versionMajor}.${reflect.versionMinor}`);
+    lines.push(`; generator: ${reflect.generator}`);
+    lines.push(`; bound: ${reflect.bound}`);
+    lines.push('');
+    lines.push('; Entry Points:');
+    for (const ep of reflect.entryPoints) {
+      lines.push(`  ${ep.stage}: ${ep.name}`);
+    }
+    lines.push('');
+    lines.push('; Bindings:');
+    for (const b of reflect.bindings) {
+      lines.push(`  @group(${b.group}) @binding(${b.binding}) : ${b.name}`);
+    }
+    lines.push('');
+    lines.push('; Locations:');
+    for (const l of reflect.locations) {
+      lines.push(`  @location(${l.location}) : ${l.name}`);
+    }
+    lines.push('');
+    lines.push('; Structs:');
+    for (const s of reflect.structs) {
+      lines.push(`  struct ${s.name} {`);
+      for (const f of s.fields) {
+        lines.push(`    ${f.name} : ${f.type}`);
+      }
+      lines.push(`  }`);
+    }
+    if (reflect.warnings.length > 0) {
+      lines.push('');
+      lines.push('; Warnings:');
+      for (const w of reflect.warnings) {
+        lines.push(`  ; ${w}`);
+      }
+    }
+
+    return { ast, disassembly: lines.join('\n') };
   }
 
   private generateDisassembly(shaderCode: string): string {

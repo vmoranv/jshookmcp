@@ -1,12 +1,18 @@
 import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import { argNumber, argBool, argString } from '@server/domains/shared/parse-args';
 import { getPageLockManager } from '@modules/webgpu/PageLockManager';
+import { ensureDevice } from '@modules/webgpu/CDPIntegration';
 import type { MCPServerContext } from '@server/domains/shared/registry';
 import type { WebGPUDomainDependencies } from '../types';
 
 /**
  * Handler for webgpu_timing_analysis tool
  * GPU timing analysis for side-channel detection (measures variance)
+ *
+ * Uses the cached device from `ensureDevice` (shared with other WebGPU tools)
+ * so that timing analysis does not compete for a fresh adapter/device on
+ * multi-GPU systems. The device is obtained from the page-context cache and
+ * the timing loop runs entirely within a single evaluate closure.
  */
 export class TimingAnalysisHandler {
   private pageLockManager = getPageLockManager();
@@ -36,6 +42,10 @@ export class TimingAnalysisHandler {
 
       // Acquire page lock to prevent concurrent GPU context access
       return await this.pageLockManager.withLock(pageId, async () => {
+        // Ensure a cached adapter/device exists (shared with other WebGPU tools).
+        // The device object lives in the page context and is reused below.
+        await ensureDevice(page);
+
         const stats = await page.evaluate(
           async ({
             _iterations,
@@ -44,16 +54,12 @@ export class TimingAnalysisHandler {
             _iterations: number;
             _detectAnomalies: boolean;
           }) => {
-            if (!navigator.gpu) {
-              throw new Error('WebGPU not available');
+            // Reuse the cached device established by ensureDevice.
+            const cache = (window as any).__webgpuDeviceCache;
+            if (!cache || !cache.device) {
+              throw new Error('WebGPU device cache unavailable. Call ensureDevice first.');
             }
-
-            const adapter = await navigator.gpu.requestAdapter();
-            if (!adapter) {
-              throw new Error('Failed to request GPU adapter');
-            }
-
-            const device = await adapter.requestDevice();
+            const device = cache.device;
             const timings: number[] = [];
 
             for (let i = 0; i < _iterations; i++) {

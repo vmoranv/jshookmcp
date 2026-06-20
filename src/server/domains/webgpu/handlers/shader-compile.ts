@@ -2,111 +2,24 @@ import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBu
 import { argString } from '@server/domains/shared/parse-args';
 import { getPageLockManager } from '@modules/webgpu/PageLockManager';
 import { getShaderCompileCache } from '@modules/webgpu/ShaderCache';
+import { extractShaderMetadata } from '@modules/webgpu/WgslParser';
+import { isSpirv, decodeSpirvInput, parseSpirv } from '@modules/webgpu/SpirvParser';
+import { ensureDevice } from '@modules/webgpu/CDPIntegration';
 import type { MCPServerContext } from '@server/domains/shared/registry';
 import type { WebGPUDomainDependencies, ShaderMetadata } from '../types';
 
 /**
- * Extract shader metadata from WGSL source code.
- *
- * Parses entry points, uniforms/bindings, vertex attributes, and structs.
- * This is a lightweight parser sufficient for security analysis and reverse
- * engineering; it does not require an external WGSL grammar dependency.
- *
- * @param code - WGSL source code
- * @returns Structured shader metadata
- */
-function extractShaderMetadata(code: string): ShaderMetadata {
-  const entryPoints: ShaderMetadata['entryPoints'] = [];
-  const uniforms: NonNullable<ShaderMetadata['uniforms']> = [];
-  const attributes: NonNullable<ShaderMetadata['attributes']> = [];
-  const structs: NonNullable<ShaderMetadata['structs']> = [];
-  const bindingsByType: NonNullable<ShaderMetadata['bindingsByType']> = {};
-
-  // Entry points
-  const vertexMatch = code.match(/@vertex\s+fn\s+(\w+)/);
-  const fragmentMatch = code.match(/@fragment\s+fn\s+(\w+)/);
-  const computeMatch = code.match(/@compute\s+fn\s+(\w+)/);
-
-  if (vertexMatch?.[1]) {
-    entryPoints.push({ name: vertexMatch[1], stage: 'vertex' });
-  }
-  if (fragmentMatch?.[1]) {
-    entryPoints.push({ name: fragmentMatch[1], stage: 'fragment' });
-  }
-  if (computeMatch?.[1]) {
-    entryPoints.push({ name: computeMatch[1], stage: 'compute' });
-  }
-
-  // Structs: `struct Name { field: type, ... }`
-  const structRegex = /struct\s+(\w+)\s*\{([^}]*)\}/g;
-  for (const match of code.matchAll(structRegex)) {
-    const name = match[1];
-    const body = match[2];
-    if (!name || body === undefined) continue;
-    const fields: Array<{ name: string; type: string }> = [];
-    const fieldRegex = /(\w+)\s*:\s*([^,;]+)/g;
-    for (const fieldMatch of body.matchAll(fieldRegex)) {
-      const fieldName = fieldMatch[1];
-      const fieldType = fieldMatch[2];
-      if (fieldName === undefined || fieldType === undefined) continue;
-      fields.push({
-        name: fieldName.trim(),
-        type: fieldType.trim(),
-      });
-    }
-    structs.push({ name, fields });
-  }
-
-  // Uniforms / bindings: `@group(g) @binding(b) var<...> name : type`
-  const bindingRegex =
-    /@group\s*\(\s*(\d+)\s*\)\s*@binding\s*\(\s*(\d+)\s*\)[\s\S]*?var[\s\S]*?(\w+)\s*:\s*([\w\s<>*(),]+)/g;
-  for (const match of code.matchAll(bindingRegex)) {
-    const groupStr = match[1];
-    const bindingStr = match[2];
-    const name = match[3];
-    const type = match[4];
-    if (
-      groupStr === undefined ||
-      bindingStr === undefined ||
-      name === undefined ||
-      type === undefined
-    )
-      continue;
-    const group = Number(groupStr);
-    const binding = Number(bindingStr);
-
-    uniforms.push({ name, binding, group });
-
-    const baseType = type.split('<')[0]?.split('(')[0]?.trim() ?? 'unknown';
-    bindingsByType[baseType] = (bindingsByType[baseType] ?? 0) + 1;
-  }
-
-  // Vertex attributes: `@location(l) name : type` inside function params
-  const attributeRegex = /@location\s*\(\s*(\d+)\s*\)\s*(\w+)\s*:/g;
-  for (const match of code.matchAll(attributeRegex)) {
-    const locationStr = match[1];
-    const name = match[2];
-    if (locationStr === undefined || name === undefined) continue;
-    attributes.push({
-      location: Number(locationStr),
-      name,
-    });
-  }
-
-  const metadata: ShaderMetadata = {
-    entryPoints,
-    uniforms,
-    attributes,
-    structs,
-    bindingsByType,
-  };
-
-  return metadata;
-}
-
-/**
  * Handler for webgpu_shader_compile tool
  * Compiles WGSL shader and extracts metadata (entry points, bindings, attributes)
+ *
+ * Supports two formats:
+ *  - `wgsl`:  Compiled and validated on the real GPU via the browser WebGPU API.
+ *             Metadata is extracted by the enhanced WGSL parser.
+ *  - `spirv`: Static reflection only. Browsers cannot compile SPIR-V directly
+ *             (WebGPU accepts only WGSL), so the SPIR-V binary is parsed for
+ *             metadata and compilation is reported as skipped with a guidance
+ *             note. Use an external tool (e.g. spirv-cross) to convert SPIR-V
+ *             to WGSL when GPU-side validation is required.
  */
 export class ShaderCompileHandler {
   private pageLockManager = getPageLockManager();
@@ -125,9 +38,6 @@ export class ShaderCompileHandler {
       }
 
       const format = argString(args, 'format', 'wgsl');
-      if (format !== 'wgsl') {
-        throw new Error('Only WGSL format is currently supported');
-      }
 
       // Check cache first
       const cached = this.compileCache.get(shaderCode);
@@ -136,6 +46,14 @@ export class ShaderCompileHandler {
           ...cached,
           _cached: true,
         };
+      }
+
+      if (format === 'spirv') {
+        return this.handleSpirv(shaderCode);
+      }
+
+      if (format !== 'wgsl') {
+        throw new Error(`Unsupported format: "${format}". Only "wgsl" and "spirv" are supported.`);
       }
 
       const page = await this.getActivePage();
@@ -147,17 +65,15 @@ export class ShaderCompileHandler {
 
       // Acquire page lock to prevent concurrent GPU context access
       const result = await this.pageLockManager.withLock(pageId, async () => {
+        // Ensure a cached adapter/device exists (shared across WebGPU tools).
+        await ensureDevice(page);
+
         return await page.evaluate(async (code: string) => {
-          if (!navigator.gpu) {
-            throw new Error('WebGPU not available');
+          const cache = (window as any).__webgpuDeviceCache;
+          if (!cache || !cache.device) {
+            throw new Error('WebGPU device cache unavailable. Call ensureDevice first.');
           }
-
-          const adapter = await navigator.gpu.requestAdapter();
-          if (!adapter) {
-            throw new Error('Failed to request GPU adapter');
-          }
-
-          const device = await adapter.requestDevice();
+          const device = cache.device;
 
           try {
             // Compile and validate shader on real GPU
@@ -172,7 +88,7 @@ export class ShaderCompileHandler {
         }, shaderCode);
       });
 
-      // Extract metadata from shader source (pure regex, no GPU needed)
+      // Extract metadata from shader source (pure parsing, no GPU needed)
       const metadata = extractShaderMetadata(shaderCode);
 
       // Cache and return combined result
@@ -180,6 +96,59 @@ export class ShaderCompileHandler {
       this.compileCache.set(shaderCode, combined);
       return combined;
     });
+  }
+
+  /**
+   * SPIR-V path: pure static reflection (browsers cannot compile SPIR-V).
+   * Validates the magic, parses reflection metadata, and reports compilation
+   * as skipped with a conversion hint.
+   */
+  private handleSpirv(input: string): Record<string, unknown> {
+    const decoded = decodeSpirvInput(input);
+    if (decoded.format === 'invalid') {
+      throw new Error(
+        'SPIR-V input could not be decoded. Provide a hex string (e.g. "07230203..."), a base64 string, or ensure the magic number 0x07230203 is present.',
+      );
+    }
+
+    if (!isSpirv(decoded.bytes)) {
+      throw new Error(
+        'Input is not a valid SPIR-V binary: magic 0x07230203 not found at offset 0.',
+      );
+    }
+
+    const reflect = parseSpirv(decoded.bytes);
+
+    // Map SPIR-V reflection into the ShaderMetadata shape so consumers get a
+    // uniform structure regardless of input format. SPIR-V has many more
+    // execution models than WebGPU's three shader stages; collapse the extras
+    // to 'compute' (closest analog) so the WGSL-shaped entry point union holds.
+    const metadata: ShaderMetadata = {
+      entryPoints: reflect.entryPoints.map((ep) => ({
+        name: ep.name,
+        stage: ep.stage === 'vertex' ? 'vertex' : ep.stage === 'fragment' ? 'fragment' : 'compute',
+      })),
+      uniforms: reflect.bindings.map((b) => ({ name: b.name, binding: b.binding, group: b.group })),
+      attributes: reflect.locations.map((l) => ({ name: l.name, location: l.location })),
+      structs: reflect.structs.map((s) => ({ name: s.name, fields: s.fields })),
+      bindingsByType: {},
+      parseWarnings: reflect.warnings,
+      format: 'spirv',
+    };
+
+    return {
+      compiled: false,
+      compilationSkippedReason:
+        'Browsers cannot compile SPIR-V directly (WebGPU accepts only WGSL). Use spirv-cross or spirv-tools to convert SPIR-V to WGSL for GPU-side compilation.',
+      reflected: true,
+      spirvInfo: {
+        versionMajor: reflect.versionMajor,
+        versionMinor: reflect.versionMinor,
+        generator: reflect.generator,
+        bound: reflect.bound,
+      },
+      metadata,
+    };
   }
 
   private async getActivePage(): Promise<any> {

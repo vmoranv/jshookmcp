@@ -1,11 +1,17 @@
 import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import { getPageLockManager } from '@modules/webgpu/PageLockManager';
+import { ensureDevice } from '@modules/webgpu/CDPIntegration';
 import type { MCPServerContext } from '@server/domains/shared/registry';
 import type { WebGPUDomainDependencies } from '../types';
 
 /**
  * Handler for webgpu_adapter_info tool
  * Gets GPU adapter information (vendor, architecture, device)
+ *
+ * Uses the cached adapter/device from `ensureDevice` so that repeated calls
+ * (and concurrent calls from other WebGPU tools) do not trigger redundant
+ * `requestAdapter`/`requestDevice` cycles. On multi-GPU systems this keeps
+ * adapter selection stable across the session.
  */
 export class AdapterInfoHandler {
   private pageLockManager = getPageLockManager();
@@ -26,28 +32,10 @@ export class AdapterInfoHandler {
 
       // Acquire page lock to prevent concurrent GPU context access
       return await this.pageLockManager.withLock(pageId, async () => {
-        const adapterInfo = await page.evaluate(async () => {
-          if (!navigator.gpu) {
-            throw new Error('WebGPU not available in this browser');
-          }
-
-          const adapter = await navigator.gpu.requestAdapter();
-          if (!adapter) {
-            throw new Error('Failed to request GPU adapter');
-          }
-
-          const info = adapter.info ?? (adapter as any).requestAdapterInfo?.();
-
-          return {
-            vendor: info?.vendor ?? 'unknown',
-            architecture: info?.architecture ?? 'unknown',
-            device: info?.device ?? 'unknown',
-            description: info?.description ?? 'unknown',
-          };
-        });
+        const handle = await ensureDevice(page);
 
         return {
-          adapter: adapterInfo,
+          adapter: handle.adapterInfo,
         };
       });
     });

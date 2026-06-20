@@ -24,8 +24,9 @@ export const webgpuTools: Tool[] = [
         },
         format: {
           type: 'string',
-          enum: ['wgsl'],
-          description: 'Shader format (currently only WGSL supported)',
+          enum: ['wgsl', 'spirv'],
+          description:
+            'Shader format. "wgsl": compiled and validated on the real GPU via the browser WebGPU API. "spirv": static reflection only (browsers cannot compile SPIR-V directly; metadata is extracted by a zero-dependency binary parser). Provide SPIR-V as a hex or base64-encoded string.',
         },
       },
       required: ['shaderCode'],
@@ -35,17 +36,18 @@ export const webgpuTools: Tool[] = [
   {
     name: 'webgpu_shader_disassemble',
     description:
-      'Parse WGSL shader into AST and generate human-readable disassembly. Used for reverse engineering shader logic.',
+      'Parse WGSL or SPIR-V shader into AST and generate human-readable disassembly. Used for reverse engineering shader logic. SPIR-V input (hex/base64) is reflected into entry points, bindings, structs, and locations without compilation.',
     inputSchema: {
       type: 'object',
       properties: {
         shaderCode: {
           type: 'string',
-          description: 'WGSL shader source code',
+          description:
+            'Shader source code (WGSL text) or SPIR-V binary (hex/base64-encoded string)',
         },
         format: {
           type: 'string',
-          enum: ['wgsl'],
+          enum: ['wgsl', 'spirv'],
           description: 'Shader format',
         },
       },

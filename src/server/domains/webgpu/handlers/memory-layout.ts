@@ -34,6 +34,12 @@ export class MemoryLayoutHandler {
           heapSize: memoryStats.heapSize,
           usedHeapSize: memoryStats.usedHeapSize,
           allocations: memoryStats.allocations,
+          // Provenance of usedHeapSize so consumers can gauge data quality:
+          // 'cdp' = Performance.getMetrics GPUMemoryUsedKB (most accurate),
+          // 'tracked' = sum of live WeakRef-tracked allocations (lower bound),
+          // 'estimated' = no signal available (conservative fallback).
+          memorySource: memoryStats.memorySource,
+          trackedBytes: memoryStats.trackedBytes,
         };
       });
     });
