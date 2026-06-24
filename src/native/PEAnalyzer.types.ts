@@ -110,6 +110,34 @@ export interface InlineHookDetection {
   jumpTarget: string;
 }
 
+/** Detected IAT (Import Address Table) hook.
+ *
+ * An IAT hook redirects an imported function pointer to an alternate address.
+ * Unlike inline hooks, the function body is untouched — only the IAT entry is
+ * overwritten. This is the detection pioneered by pe-sieve's IAT scan mode
+ * (https://github.com/hasherezade/pe-sieve/wiki/4.7.-Scan-for-IAT-Hooks-(iat)):
+ * each IAT entry's resolved address is checked against the declared source
+ * module's address range; entries pointing outside that range are flagged.
+ *
+ * Note: legitimate forwarded exports can also point outside the source module,
+ * so detections include `actualModule` for operator triage. */
+export interface IATHookDetection {
+  /** Module whose IAT entry was redirected */
+  moduleName: string;
+  /** DLL the function was imported from (declared source) */
+  importDll: string;
+  /** Imported function name (or 'Ordinal#N') */
+  functionName: string;
+  /** IAT entry address (hex) — the pointer that was overwritten */
+  iatAddress: string;
+  /** Expected source module name (where the import should resolve) */
+  expectedModule: string;
+  /** Address the IAT entry actually points to (hex) */
+  actualTarget: string;
+  /** Module containing the actual target, if identifiable within loaded modules */
+  actualModule: string | null;
+}
+
 /** Section anomaly */
 export interface SectionAnomaly {
   sectionName: string;

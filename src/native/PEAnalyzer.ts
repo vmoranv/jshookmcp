@@ -26,6 +26,7 @@ import type {
   ImportFunction,
   ExportEntry,
   InlineHookDetection,
+  IATHookDetection,
   SectionAnomaly,
 } from './PEAnalyzer.types';
 import { IMAGE_SCN, IMAGE_DIRECTORY_ENTRY } from './PEAnalyzer.types';
@@ -340,6 +341,141 @@ export class PEAnalyzer {
   }
 
   /**
+   * Detect IAT (Import Address Table) hooks.
+   *
+   * For each imported function, the resolved IAT entry address is compared
+   * against the declared source module's address range. An entry pointing
+   * outside its source module indicates the IAT was redirected — the hallmark
+   * of an IAT hook (EasyHook/MinHook/Detours style), which leaves the function
+   * body untouched and thus evades {@link detectInlineHooks}.
+   *
+   * Algorithm (pe-sieve 4.7 "iat" mode):
+   *   1. Walk IMAGE_IMPORT_DESCRIPTOR chain.
+   *   2. For each descriptor, read FirstThunk (the IAT) — its entries hold the
+   *      loader-resolved function addresses in memory.
+   *   3. Resolve the declared source DLL's loaded module range.
+   *   4. Flag entries whose address falls outside that range.
+   *
+   * Forwarded exports legitimately point outside the source module; such cases
+   * are still reported (with `actualModule` populated) so the operator can
+   * triage, rather than silently dropped.
+   */
+  async detectIATHooks(pid: number, moduleName?: string): Promise<IATHookDetection[]> {
+    const hProcess = openProcessForMemory(pid);
+    const detections: IATHookDetection[] = [];
+
+    try {
+      const modules = this.enumerateModulesInternal(hProcess);
+      const targets = moduleName
+        ? modules.filter((m) => m.name.toLowerCase().includes(moduleName!.toLowerCase()))
+        : modules;
+
+      for (const mod of targets) {
+        try {
+          const base = BigInt(mod.base);
+          const headers = await this.readCoreHeaders(hProcess, base);
+          const importDir = headers.dataDirectories[IMAGE_DIRECTORY_ENTRY.IMPORT];
+          if (!importDir || importDir.rva === 0) continue;
+
+          const thunkSize = headers.isPE32Plus ? 8 : 4;
+          const IMAGE_ORDINAL_FLAG = headers.isPE32Plus ? 0x8000000000000000n : 0x80000000n;
+          let descOffset = importDir.rva;
+
+          // Walk IMAGE_IMPORT_DESCRIPTOR chain (20 bytes each).
+          for (let i = 0; i < 500; i++) {
+            const desc = ReadProcessMemory(
+              hProcess,
+              base + BigInt(descOffset),
+              IMPORT_DESCRIPTOR_SIZE,
+            );
+            const nameRva = desc.readUInt32LE(12);
+            if (nameRva === 0) break; // Terminator
+
+            const firstThunkRva = desc.readUInt32LE(16); // IAT (loader-filled)
+            const originalFirstThunkRva = desc.readUInt32LE(0); // INT (hint/name)
+
+            // Read DLL name.
+            const nameData = ReadProcessMemory(hProcess, base + BigInt(nameRva), 256);
+            const nullIdx = nameData.indexOf(0);
+            const dllName = nameData.subarray(0, nullIdx > 0 ? nullIdx : 256).toString('ascii');
+
+            // Resolve the declared source module's loaded range.
+            const dllStem = dllName.toLowerCase().replace(/\.dll$/i, '');
+            const sourceMod =
+              modules.find((m) => m.name.toLowerCase() === dllName.toLowerCase()) ??
+              modules.find((m) => m.name.toLowerCase().replace(/\.dll$/i, '') === dllStem);
+            const srcBase = sourceMod ? BigInt(sourceMod.base) : 0n;
+            const srcEnd = sourceMod ? srcBase + BigInt(sourceMod.size) : 0n;
+
+            // Walk IAT thunks.
+            for (let j = 0; j < 2000; j++) {
+              const iatAbs = base + BigInt(firstThunkRva + j * thunkSize);
+              const thunkData = ReadProcessMemory(hProcess, iatAbs, thunkSize);
+              const funcAddr = headers.isPE32Plus
+                ? thunkData.readBigUInt64LE(0)
+                : BigInt(thunkData.readUInt32LE(0));
+              if (funcAddr === 0n) break; // End of IAT
+
+              // Resolve function name from INT (OriginalFirstThunk) if present.
+              let funcName = `Ordinal#0`;
+              const intRva = originalFirstThunkRva || firstThunkRva;
+              if (intRva) {
+                const intData = ReadProcessMemory(
+                  hProcess,
+                  base + BigInt(intRva + j * thunkSize),
+                  thunkSize,
+                );
+                const intValue = headers.isPE32Plus
+                  ? intData.readBigUInt64LE(0)
+                  : BigInt(intData.readUInt32LE(0));
+                if ((intValue & IMAGE_ORDINAL_FLAG) !== 0n) {
+                  funcName = `Ordinal#${Number(intValue & 0xffffn)}`;
+                } else if (intValue !== 0n) {
+                  const hintNameData = ReadProcessMemory(
+                    hProcess,
+                    base + BigInt(Number(intValue)),
+                    258,
+                  );
+                  const ni = hintNameData.indexOf(0, 2);
+                  funcName = hintNameData.subarray(2, ni > 2 ? ni : 258).toString('ascii');
+                }
+              }
+
+              // Flag if the resolved address is outside the source module range.
+              if (sourceMod && (funcAddr < srcBase || funcAddr >= srcEnd)) {
+                let actualModule: string | null = null;
+                for (const m of modules) {
+                  const mb = BigInt(m.base);
+                  if (funcAddr >= mb && funcAddr < mb + BigInt(m.size)) {
+                    actualModule = m.name;
+                    break;
+                  }
+                }
+                detections.push({
+                  moduleName: mod.name,
+                  importDll: dllName,
+                  functionName: funcName,
+                  iatAddress: `0x${iatAbs.toString(16)}`,
+                  expectedModule: sourceMod.name,
+                  actualTarget: `0x${funcAddr.toString(16)}`,
+                  actualModule,
+                });
+              }
+            }
+            descOffset += IMPORT_DESCRIPTOR_SIZE;
+          }
+        } catch (e) {
+          logger.debug(`IAT hook check skipped for ${mod.name}: ${e}`);
+        }
+      }
+    } finally {
+      CloseHandle(hProcess);
+    }
+
+    return detections;
+  }
+
+  /**
    * Analyze sections for anomalies (RWX, writable code, etc.).
    */
   async analyzeSections(pid: number, moduleBase: string): Promise<SectionAnomaly[]> {
@@ -597,6 +733,215 @@ export class PEAnalyzer {
       return `0x${target.toString(16)}`;
     }
     return '0x0';
+  }
+
+  /**
+   * Parse PE headers from a disk file buffer.
+   * Similar to parseHeaders() but reads from memory buffer instead of process memory.
+   */
+  private parsePEFromBuffer(buffer: Buffer): {
+    fileHeader: { machine: number; numberOfSections: number; timeDateStamp: number };
+    sections: Array<{
+      name: string;
+      virtualAddress: number;
+      virtualSize: number;
+      pointerToRawData: number;
+      sizeOfRawData: number;
+    }>;
+  } {
+    // Read DOS header
+    const e_magic = buffer.readUInt16LE(0);
+    if (e_magic !== MZ_MAGIC) {
+      throw new Error(
+        `Invalid DOS header in buffer: expected 0x5A4D, got 0x${e_magic.toString(16)}`,
+      );
+    }
+    const e_lfanew = buffer.readUInt32LE(60);
+
+    // Read NT headers
+    const ntSignature = buffer.readUInt32LE(e_lfanew);
+    if (ntSignature !== PE_SIGNATURE) {
+      throw new Error(
+        `Invalid PE signature in buffer: expected 0x4550, got 0x${ntSignature.toString(16)}`,
+      );
+    }
+
+    // File header (offset = e_lfanew + 4)
+    const fileHeaderOffset = e_lfanew + 4;
+    const machine = buffer.readUInt16LE(fileHeaderOffset);
+    const numberOfSections = buffer.readUInt16LE(fileHeaderOffset + 2);
+    const timeDateStamp = buffer.readUInt32LE(fileHeaderOffset + 4);
+
+    // Optional header magic (offset = e_lfanew + 24)
+    // Note: isPE32Plus determination available for future PE32+ specific handling
+    // const magic = buffer.readUInt16LE(e_lfanew + 24);
+    // const isPE32Plus = magic === PE32PLUS_MAGIC;
+
+    // Section table offset = e_lfanew + 24 + sizeOfOptionalHeader
+    const sizeOfOptionalHeader = buffer.readUInt16LE(fileHeaderOffset + 16);
+    const sectionTableOffset = e_lfanew + 24 + sizeOfOptionalHeader;
+
+    // Parse sections
+    const sections: Array<{
+      name: string;
+      virtualAddress: number;
+      virtualSize: number;
+      pointerToRawData: number;
+      sizeOfRawData: number;
+    }> = [];
+    for (let i = 0; i < numberOfSections; i++) {
+      const offset = sectionTableOffset + i * SECTION_HEADER_SIZE;
+      const nameBytes = buffer.subarray(offset, offset + 8);
+      const name = nameBytes.toString('utf8').split(String.fromCharCode(0))[0]!;
+      const virtualSize = buffer.readUInt32LE(offset + 8);
+      const virtualAddress = buffer.readUInt32LE(offset + 12);
+      const sizeOfRawData = buffer.readUInt32LE(offset + 16);
+      const pointerToRawData = buffer.readUInt32LE(offset + 20);
+
+      sections.push({ name, virtualAddress, virtualSize, pointerToRawData, sizeOfRawData });
+    }
+
+    return { fileHeader: { machine, numberOfSections, timeDateStamp }, sections };
+  }
+
+  /**
+   * Compare process memory PE sections with on-disk PE file.
+   * Used for detecting process hollowing (original code replaced with malicious code).
+   *
+   * @param pid - Process ID
+   * @param moduleBase - Module base address (hex string, e.g., "0x400000")
+   * @param diskPath - Path to the on-disk PE file
+   * @returns Comparison result with confidence score and list of differing sections
+   */
+  async compareMemoryWithDisk(
+    pid: number,
+    moduleBase: string,
+    diskPath: string,
+  ): Promise<{
+    isMatch: boolean;
+    confidence: number;
+    differences: Array<{
+      sectionName: string;
+      offsetStart: number;
+      offsetEnd: number;
+      memoryHash: string;
+      diskHash: string;
+      bytesCompared: number;
+    }>;
+  }> {
+    const base = BigInt(moduleBase.startsWith('0x') ? moduleBase : `0x${moduleBase}`);
+    const hProcess = openProcessForMemory(pid);
+
+    try {
+      // 1. Parse memory PE (we need sections, so use the internal method)
+      // Read DOS header
+      const dosData = ReadProcessMemory(hProcess, base, 64);
+      const e_lfanew = dosData.readUInt32LE(60);
+
+      // Read NT headers to get section count
+      const ntData = ReadProcessMemory(hProcess, base + BigInt(e_lfanew), 264);
+      const fileHeaderOffset = 4;
+      const numberOfSections = ntData.readUInt16LE(fileHeaderOffset + 2);
+      const sizeOfOptionalHeader = ntData.readUInt16LE(fileHeaderOffset + 16);
+      const sectionTableOffset = e_lfanew + 24 + sizeOfOptionalHeader;
+
+      // Parse memory sections
+      const memorySections: Array<{ name: string; virtualAddress: number; virtualSize: number }> =
+        [];
+      for (let i = 0; i < numberOfSections; i++) {
+        const sectionOffset = sectionTableOffset + i * SECTION_HEADER_SIZE;
+        const sectionData = ReadProcessMemory(
+          hProcess,
+          base + BigInt(sectionOffset),
+          SECTION_HEADER_SIZE,
+        );
+        const nameBytes = sectionData.subarray(0, 8);
+        const name = nameBytes.toString('utf8').split(String.fromCharCode(0))[0]!;
+        const virtualSize = sectionData.readUInt32LE(8);
+        const virtualAddress = sectionData.readUInt32LE(12);
+        memorySections.push({ name, virtualAddress, virtualSize });
+      }
+
+      // 2. Read and parse disk PE file
+      const diskBuffer = await fs.readFile(diskPath);
+      const diskPE = this.parsePEFromBuffer(diskBuffer);
+
+      // 3. Compare critical sections (.text, .data, .rdata)
+      const criticalSections = ['.text', '.data', '.rdata'];
+      const differences: Array<{
+        sectionName: string;
+        offsetStart: number;
+        offsetEnd: number;
+        memoryHash: string;
+        diskHash: string;
+        bytesCompared: number;
+      }> = [];
+
+      let totalBytesChecked = 0;
+      let matchingBytes = 0;
+
+      for (const memSection of memorySections) {
+        if (!criticalSections.includes(memSection.name)) continue;
+
+        // Find corresponding section in disk PE
+        const diskSection = diskPE.sections.find((s) => s.name === memSection.name);
+        if (!diskSection) {
+          logger.warn(`Section ${memSection.name} not found in disk PE`);
+          continue;
+        }
+
+        // Read memory section
+        const memoryBytes = ReadProcessMemory(
+          hProcess,
+          base + BigInt(memSection.virtualAddress),
+          Math.min(memSection.virtualSize, diskSection.sizeOfRawData),
+        );
+
+        // Read disk section
+        const diskBytes = diskBuffer.subarray(
+          diskSection.pointerToRawData,
+          diskSection.pointerToRawData + Math.min(diskSection.sizeOfRawData, memoryBytes.length),
+        );
+
+        // Pad if sizes differ
+        const compareSize = Math.min(memoryBytes.length, diskBytes.length);
+        const memorySlice = memoryBytes.subarray(0, compareSize);
+        const diskSlice = diskBytes.subarray(0, compareSize);
+
+        totalBytesChecked += compareSize;
+
+        // Compute hashes
+        const { createHash } = await import('node:crypto');
+        const memoryHash = createHash('sha256').update(memorySlice).digest('hex');
+        const diskHash = createHash('sha256').update(diskSlice).digest('hex');
+
+        if (memoryHash !== diskHash) {
+          differences.push({
+            sectionName: memSection.name,
+            offsetStart: memSection.virtualAddress,
+            offsetEnd: memSection.virtualAddress + compareSize,
+            memoryHash,
+            diskHash,
+            bytesCompared: compareSize,
+          });
+        } else {
+          matchingBytes += compareSize;
+        }
+      }
+
+      // 4. Calculate confidence
+      // confidence = (matching bytes / total bytes) * 100
+      const confidence =
+        totalBytesChecked > 0 ? Math.round((matchingBytes / totalBytesChecked) * 100) : 0;
+
+      return {
+        isMatch: differences.length === 0,
+        confidence,
+        differences,
+      };
+    } finally {
+      CloseHandle(hProcess);
+    }
   }
 }
 

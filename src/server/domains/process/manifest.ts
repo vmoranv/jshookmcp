@@ -23,8 +23,12 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
 
 const IS_WIN32 = EFFECTIVE_PLATFORM === 'win32';
 
-// Win32-only tool names — use CreateRemoteThread / NtQueryInformationProcess
-const WIN32_ONLY_TOOLS = new Set(['check_debug_port']);
+// Win32-only tool names — use CreateRemoteThread / NtQueryInformationProcess / CreateToolhelp32Snapshot
+const WIN32_ONLY_TOOLS = new Set([
+  'check_debug_port',
+  'process_enum_threads',
+  'process_detect_hollowing',
+]);
 
 const allRegistrations = defineMethodRegistrations<
   H,
@@ -58,6 +62,8 @@ const allRegistrations = defineMethodRegistrations<
     { tool: 'inject_shellcode', method: 'handleInjectShellcode' },
     { tool: 'check_debug_port', method: 'handleCheckDebugPort' },
     { tool: 'enumerate_modules', method: 'handleEnumerateModules' },
+    { tool: 'process_enum_threads', method: 'handleProcessEnumThreads' },
+    { tool: 'process_detect_hollowing', method: 'handleDetectHollowing' },
   ],
 });
 

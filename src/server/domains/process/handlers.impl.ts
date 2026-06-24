@@ -14,6 +14,7 @@ import type { ProcessHandlerDeps } from './handlers/shared-types';
 import { ProcessManagementHandlers } from './handlers/process-management';
 import { MemoryOperationHandlers } from './handlers/memory-operations';
 import { InjectionHandlers } from './handlers/injection-handlers';
+import { HollowingDetectionHandlers } from './handlers/hollowing-detection';
 import {
   validatePid,
   requireString,
@@ -145,11 +146,13 @@ export class ProcessHandlersBase {
  */
 export class ProcessToolHandlers extends ProcessHandlersBase {
   private injection: InjectionHandlers;
+  private hollowing: HollowingDetectionHandlers;
 
   constructor(ctx?: import('@server/MCPServer.context').MCPServerContext) {
     super(ctx);
     // Re-use the same deps and processMgmt from the base class
     this.injection = new InjectionHandlers(this.deps, this.processMgmt);
+    this.hollowing = new HollowingDetectionHandlers();
   }
 
   // ── Injection Handlers ──
@@ -170,8 +173,18 @@ export class ProcessToolHandlers extends ProcessHandlersBase {
     return this.injection.handleEnumerateModules(args);
   }
 
+  async handleProcessEnumThreads(args: Record<string, unknown>) {
+    return this.injection.handleProcessEnumThreads(args);
+  }
+
   async handleElectronAttach(args: Record<string, unknown>) {
     return this.injection.handleElectronAttach(args);
+  }
+
+  // ── Hollowing Detection ──
+
+  async handleDetectHollowing(args: Record<string, unknown>) {
+    return this.hollowing.handleDetectHollowing(args);
   }
 }
 
