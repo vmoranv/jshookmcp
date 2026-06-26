@@ -9,6 +9,8 @@ const state = vi.hoisted(() => ({
   existsSync: vi.fn(),
   statSync: vi.fn(),
   readFileSync: vi.fn(),
+  createReadStream: vi.fn(),
+  execSync: vi.fn(),
   digest: vi.fn(() => 'mocked-hash'),
   update: vi.fn(),
   createHash: vi.fn(),
@@ -25,6 +27,11 @@ vi.mock('node:fs', () => ({
   existsSync: state.existsSync,
   statSync: state.statSync,
   readFileSync: state.readFileSync,
+  createReadStream: state.createReadStream,
+}));
+
+vi.mock('node:child_process', () => ({
+  execSync: state.execSync,
 }));
 
 vi.mock('node:crypto', () => ({
@@ -63,6 +70,25 @@ describe('InjectionValidator', () => {
       update: state.update,
       digest: state.digest,
     }));
+
+    // Fake streaming read for computeFileHash: emit one data chunk then end.
+    state.createReadStream.mockImplementation(() => {
+      const listeners: Record<string, Array<(arg?: unknown) => void>> = {};
+      const stream = {
+        on(event: string, cb: (arg?: unknown) => void) {
+          (listeners[event] ??= []).push(cb);
+          return stream;
+        },
+      };
+      queueMicrotask(() => {
+        for (const cb of listeners['data'] ?? []) cb(Buffer.from('dummy'));
+        for (const cb of listeners['end'] ?? []) cb();
+      });
+      return stream;
+    });
+
+    // Default PowerShell signature result: not signed.
+    state.execSync.mockReturnValue('NotSigned|');
 
     config = {
       mode: InjectionValidationMode.BALANCED,

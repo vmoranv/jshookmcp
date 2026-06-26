@@ -23,3 +23,11 @@ export {
   type AllocationResult,
   type PlatformAvailability,
 } from './types.js';
+export { scanGuardPages } from './GuardPageScanner';
+export type { GuardPageResult, GuardPageScanStats, GuardPageScanOutput } from './GuardPageScanner';
+export { scanIntegrity } from './IntegrityScanner';
+export type {
+  IntegritySectionResult,
+  IntegrityScanStats,
+  IntegrityScanOutput,
+} from './IntegrityScanner';

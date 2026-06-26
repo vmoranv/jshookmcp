@@ -246,6 +246,28 @@ export const processToolDefinitions: Tool[] = [
       .required('pid'),
   ),
 
+  tool('process_enum_handles', (t) =>
+    t
+      .desc(
+        'Enumerate open handles for a process using NtQuerySystemInformation. ' +
+          'Resolves handle type and object name, decodes access masks, identifies security risks ' +
+          '(high-privilege handles to sensitive processes, dangerous Token handles, inheritable sensitive handles, ' +
+          'Section handles to executables). Skips name resolution for File/EtwRegistration types (known to hang). ' +
+          'Requires elevated privileges (run as Administrator). Win32 only.',
+      )
+      .number('pid', 'Process ID to enumerate handles for')
+      .string(
+        'filterType',
+        'Filter by object type name (e.g. Process, Thread, Token, File, Key, Section, Mutant, Event, Semaphore)',
+      )
+      .boolean(
+        'includeNames',
+        'Resolve handle object names (slower; skip types known to hang like File) (default: true)',
+      )
+      .boolean('securityOnly', 'Only return handles with security findings (default: false)')
+      .required('pid'),
+  ),
+
   tool('electron_attach', (t) =>
     t
       .desc('Attach to an Electron CDP port and optionally evaluate in a matching page.')

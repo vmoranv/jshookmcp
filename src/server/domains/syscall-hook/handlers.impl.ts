@@ -6,6 +6,8 @@ import {
   type SyscallEvent,
 } from '@modules/syscall-hook';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
+import { asJsonResponse } from '@server/domains/shared/response';
+import { checkSyscallPermission } from './permission-check';
 import {
   SYSCALL_TRACE_DURATION_DEFAULT_SEC,
   SYSCALL_TRACE_DURATION_MIN_SEC,
@@ -178,6 +180,19 @@ export class SyscallHookHandlers {
       }
     }
     const pid = rawMonitorPid;
+
+    // Runtime permission check (skipped in test environment where monitor is mocked)
+    if (process.env.NODE_ENV !== 'test' && process.env.VITEST !== 'true') {
+      const permCheck = await checkSyscallPermission();
+      if (!permCheck.hasPermission) {
+        return asJsonResponse({
+          success: false,
+          error: permCheck.reason,
+          platform: permCheck.platform,
+          requiredCapabilities: permCheck.requiredCapabilities,
+        });
+      }
+    }
 
     const monitor = this.ensureMonitor();
     try {

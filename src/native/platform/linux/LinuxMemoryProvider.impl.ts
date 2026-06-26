@@ -12,6 +12,7 @@ import {
   type ProcessHandle,
   type ProtectionChangeResult,
 } from '../types.js';
+import { remoteMmap, remoteMprotect, remoteMunmap } from './LinuxPtraceHelper.js';
 
 export interface MemoryRegion {
   start: bigint;
@@ -208,24 +209,39 @@ export class LinuxMemoryProviderImpl implements PlatformMemoryAPI {
   }
 
   changeProtection(
-    _handle: ProcessHandle,
-    _address: bigint,
-    _size: number,
-    _newProtection: MemoryProtection,
+    handle: ProcessHandle,
+    address: bigint,
+    size: number,
+    newProtection: MemoryProtection,
   ): ProtectionChangeResult {
-    throw new Error('Linux memory protection changes are not supported by LinuxMemoryProviderImpl');
+    const oldRegion = this.queryRegion(handle, address);
+    const oldProt = oldRegion?.protection ?? MemoryProtection.NoAccess;
+
+    let linuxProt = 0;
+    if (newProtection & MemoryProtection.Read) linuxProt |= 0x1;
+    if (newProtection & MemoryProtection.Write) linuxProt |= 0x2;
+    if (newProtection & MemoryProtection.Execute) linuxProt |= 0x4;
+
+    remoteMprotect(handle.pid, address, size, linuxProt);
+    return { oldProtection: oldProt };
   }
 
   allocateMemory(
-    _handle: ProcessHandle,
-    _size: number,
-    _protection: MemoryProtection,
+    handle: ProcessHandle,
+    size: number,
+    protection: MemoryProtection,
   ): AllocationResult {
-    throw new Error('Linux remote memory allocation is not supported by LinuxMemoryProviderImpl');
+    let linuxProt = 0;
+    if (protection & MemoryProtection.Read) linuxProt |= 0x1;
+    if (protection & MemoryProtection.Write) linuxProt |= 0x2;
+    if (protection & MemoryProtection.Execute) linuxProt |= 0x4;
+
+    const addr = remoteMmap(handle.pid, size, linuxProt);
+    return { address: addr };
   }
 
-  freeMemory(_handle: ProcessHandle, _address: bigint, _size: number): void {
-    throw new Error('Linux remote memory free is not supported by LinuxMemoryProviderImpl');
+  freeMemory(handle: ProcessHandle, address: bigint, size: number): void {
+    remoteMunmap(handle.pid, address, size);
   }
 
   enumerateModules(handle: ProcessHandle): ModuleInfo[] {

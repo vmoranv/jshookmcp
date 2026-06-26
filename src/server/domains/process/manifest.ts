@@ -28,6 +28,7 @@ const WIN32_ONLY_TOOLS = new Set([
   'check_debug_port',
   'process_enum_threads',
   'process_detect_hollowing',
+  'process_enum_handles',
 ]);
 
 const allRegistrations = defineMethodRegistrations<
@@ -64,6 +65,7 @@ const allRegistrations = defineMethodRegistrations<
     { tool: 'enumerate_modules', method: 'handleEnumerateModules' },
     { tool: 'process_enum_threads', method: 'handleProcessEnumThreads' },
     { tool: 'process_detect_hollowing', method: 'handleDetectHollowing' },
+    { tool: 'process_enum_handles', method: 'handleProcessEnumHandles' },
   ],
 });
 

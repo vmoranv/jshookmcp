@@ -3,7 +3,16 @@
  * Prefixes: MEMORY_*, SCAN_*, POINTER_*, STRUCT_*, HEAP_*, BREAKPOINT_*, CODE_CAVE_*, FREEZE_*, WRITE_*, USERSPACE_*, NATIVE_*
  */
 
-import { int } from './helpers.js';
+import { bool, int } from './helpers.js';
+
+/* ================================================================== */
+/*  Windows API call path                                               */
+/* ================================================================== */
+
+/** Enable direct ntdll system-call path for OpenProcess.
+ *  Setting to '1' routes process-handle opens through ntdll exports
+ *  (bypassing the normal userspace API layer).  Default: off. */
+export const MEMORY_SYSCALL_EVASION = bool('JSHOOK_MEMORY_SYSCALL_EVASION', false);
 
 /* ================================================================== */
 /*  Memory operations                                                  */

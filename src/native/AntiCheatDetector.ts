@@ -127,7 +127,15 @@ const DEFAULT_LIMITS = {
   integrityMaxBytes: 16 * 1024 * 1024,
   integrityMaxSectionBytes: 2 * 1024 * 1024,
   integrityTimeoutMs: 3_000,
+  timingMaxModules: 8,
+  timingMaxBytes: 4 * 1024 * 1024,
+  timingTimeoutMs: 2_000,
 } as const;
+
+// Well-known system DLLs whose .text sections legitimately use RDTSC for perf.
+// Skipping them cuts false positives from the timing-instruction scan.
+const SYSTEM_DLL_RE =
+  /^(kernel32|ntdll|kernelbase|win32u|user32|gdi32|advapi32|msvcrt|ucrtbase|shell32|ole32|combase|msvcp)/i;
 
 // ── AntiCheatDetector Class ──
 
@@ -197,12 +205,85 @@ export class AntiCheatDetector {
       CloseHandle(hProcess);
     }
 
+    // Runtime timing-instruction scan: detects embedded RDTSC/RDTSCP in
+    // non-system module .text sections — a common anti-debug technique that
+    // avoids the API imports checked above. Best-effort; low confidence because
+    // legitimate performance code also uses these instructions.
+    detections.push(...(await this.scanTimingInstructions(pid)));
+
     return detections;
   }
 
   /**
-   * Find all guard page regions in the process.
+   * Scan non-system module .text sections for embedded RDTSC (0F 31) and
+   * RDTSCP (0F F9) instructions.
+   *
+   * Modern anti-debug/anti-cheat code frequently reads the timestamp counter
+   * directly via RDTSC to measure instruction-level timing deltas — this evades
+   * the import-table scan in {@link detect} entirely because no API is imported.
+   * This pass surfaces such embedded timing probes as `timing_check` detections
+   * with `low` confidence (RDTSC is also used by legitimate perf code, hence the
+   * conservative rating and a per-module hit cap to avoid flooding).
    */
+  async scanTimingInstructions(pid: number): Promise<AntiCheatDetection[]> {
+    const detections: AntiCheatDetection[] = [];
+    const hProcess = openProcessForMemory(pid);
+    const startedAt = Date.now();
+    let bytesScanned = 0;
+
+    try {
+      const modules = this.enumerateModules(hProcess);
+      const targets = modules
+        .filter((m) => !SYSTEM_DLL_RE.test(m.name))
+        .slice(0, this.options.timingMaxModules);
+
+      for (const mod of targets) {
+        if (this.isTimedOut(startedAt, this.options.timingTimeoutMs)) break;
+        try {
+          const sections = await this.peAnalyzer.listSections(pid, mod.base);
+          let modHits = 0;
+
+          for (const sec of sections) {
+            if (!sec.isExecutable) continue;
+            const secRva = parseInt(sec.virtualAddress, 16);
+            const secSize = Math.min(sec.virtualSize, this.options.timingMaxBytes);
+            if (secSize <= 0) continue;
+            if (bytesScanned + secSize > this.options.timingMaxBytes) break;
+
+            const mem = ReadProcessMemory(hProcess, BigInt(mod.base) + BigInt(secRva), secSize);
+            bytesScanned += secSize;
+
+            for (let i = 0; i < mem.length - 1; i += 1) {
+              if (mem[i] !== 0x0f) continue;
+              const isRdtscp = mem[i + 1] === 0xf9;
+              const isRdtsc = mem[i + 1] === 0x31;
+              if (!isRdtscp && !isRdtsc) continue;
+
+              const addr = BigInt(mod.base) + BigInt(secRva) + BigInt(i);
+              detections.push({
+                mechanism: 'timing_check',
+                confidence: 'low',
+                location: `0x${addr.toString(16)}`,
+                moduleName: mod.name,
+                details: `${isRdtscp ? 'RDTSCP' : 'RDTSC'} instruction in ${sec.name} of ${mod.name} — may be a timing-based anti-debug check or legitimate performance measurement.`,
+                bypassSuggestion:
+                  'RDTSC/RDTSCP timing can be trapped via a VEH or hypervisor RDTSC interception. Verify the surrounding code before patching — may be benign performance instrumentation.',
+              });
+              modHits += 1;
+              if (modHits >= 8) break; // per-module flood cap
+            }
+            if (modHits >= 8) break;
+          }
+        } catch (e) {
+          logger.debug(`Timing instruction scan skipped for ${mod.name}: ${e}`);
+        }
+      }
+    } finally {
+      CloseHandle(hProcess);
+    }
+
+    return detections;
+  }
   async findGuardPages(pid: number): Promise<GuardPageInfo[]> {
     return (await this.scanGuardPages(pid)).guardPages;
   }
@@ -341,8 +422,14 @@ export class AntiCheatDetector {
               break;
             }
 
-            // Only check executable sections
-            if (!sec.isExecutable) continue;
+            // Check executable sections (code — inline hooks) AND read-only
+            // initialized-data sections (.rdata — where the IAT lives). IAT
+            // hooks modify .rdata, not .text, so a .text-only integrity scan
+            // silently misses them. pe-sieve checks all initialized sections;
+            // we include .rdata here to close that gap. Writable sections
+            // (.data) are excluded because they change during normal execution.
+            const isReadOnlyData = sec.isReadable && !sec.isWritable && !sec.isExecutable;
+            if (!sec.isExecutable && !isReadOnlyData) continue;
 
             const secRva = parseInt(sec.virtualAddress, 16);
             const secSize = Math.min(sec.virtualSize, sec.rawSize);

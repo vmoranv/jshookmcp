@@ -129,4 +129,10 @@ export interface AntiCheatDetectorOptions {
   integrityMaxBytes?: number;
   integrityMaxSectionBytes?: number;
   integrityTimeoutMs?: number;
+  /** Max modules to scan for embedded timing instructions (RDTSC/RDTSCP). */
+  timingMaxModules?: number;
+  /** Max bytes to scan per timing-instruction pass. */
+  timingMaxBytes?: number;
+  /** Time budget for the timing-instruction scan. */
+  timingTimeoutMs?: number;
 }

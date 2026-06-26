@@ -304,6 +304,62 @@ export class InjectionHandlers {
     }
   }
 
+  async handleProcessEnumThreads(args: Record<string, unknown>) {
+    try {
+      const pid = validatePid(args.pid);
+      if (this.processMgmt.platformValue !== 'win32') {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: 'process_enum_threads is only available on Windows',
+                platform: this.processMgmt.platformValue,
+              }),
+            },
+          ],
+        };
+      }
+      const { EnumerateProcessThreads } = await import('@native/Win32Debug');
+      const threadIds = EnumerateProcessThreads(pid);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                pid,
+                threadCount: threadIds.length,
+                threadIds,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      logger.error('process_enum_threads failed:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
+  }
+
   async handleElectronAttach(args: Record<string, unknown>) {
     const rawPort = args.port ?? 9229;
     const port = Number(rawPort);

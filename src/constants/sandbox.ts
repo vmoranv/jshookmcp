@@ -3,7 +3,7 @@
  * Prefixes: SANDBOX_*, JSVMP_*, SYMBOLIC_*, PACKER_*
  */
 
-import { int } from './helpers.js';
+import { bool, int } from './helpers.js';
 
 /* ================================================================== */
 /*  Sandbox execution                                                  */
@@ -33,6 +33,46 @@ export const JSVMP_DEOBFUSCATE_TIMEOUT_MS = int('JSVMP_DEOBFUSCATE_TIMEOUT_MS', 
 export const JSVMP_MAX_ITERATIONS = int('JSVMP_MAX_ITERATIONS', 100);
 export const JSVMP_SYMBOLIC_MAX_STEPS = int('JSVMP_SYMBOLIC_MAX_STEPS', 1_000);
 export const JSVMP_SYMBOLIC_TIMEOUT_MS = int('JSVMP_SYMBOLIC_TIMEOUT_MS', 30_000);
+
+/* ================================================================== */
+/*  Z3 SMT solver                                                      */
+/* ================================================================== */
+
+/**
+ * Master switch for the Z3 SMT solver integration.
+ * When disabled (or when the WASM module fails to initialize), callers
+ * fall back to their legacy solvers (greedy ROP heuristics / regex SMT).
+ *
+ * @env Z3_ENABLED
+ * @default true
+ */
+export const Z3_ENABLED = bool('Z3_ENABLED', true);
+
+/**
+ * Timeout for the one-time Z3 WASM `init()` call.
+ *
+ * @env Z3_INIT_TIMEOUT_MS
+ * @default 5000
+ */
+export const Z3_INIT_TIMEOUT_MS = int('Z3_INIT_TIMEOUT_MS', 5_000);
+
+/**
+ * Default per-solve timeout passed to `solver.set('timeout', N)`.
+ * Individual callers may override.
+ *
+ * @env Z3_SOLVE_TIMEOUT_MS
+ * @default 10000
+ */
+export const Z3_SOLVE_TIMEOUT_MS = int('Z3_SOLVE_TIMEOUT_MS', 10_000);
+
+/**
+ * Upper bound on the bounded-model-checking chain length used by the
+ * ROP chain builder. The builder tries K=1..N until Z3 returns sat.
+ *
+ * @env Z3_BMC_MAX_GADGETS
+ * @default 12
+ */
+export const Z3_BMC_MAX_GADGETS = int('Z3_BMC_MAX_GADGETS', 12);
 
 /* ================================================================== */
 /*  Packer sandbox                                                     */

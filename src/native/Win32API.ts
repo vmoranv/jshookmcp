@@ -14,6 +14,15 @@
 
 import koffi, { type LibraryHandle } from 'koffi';
 import { logger } from '@utils/logger';
+import { MEMORY_SYSCALL_EVASION } from '@src/constants';
+import {
+  ntOpenProcess,
+  ntReadVirtualMemory,
+  ntWriteVirtualMemory,
+  ntAllocateVirtualMemory,
+  ntProtectVirtualMemory,
+  ntFreeVirtualMemory,
+} from '@native/syscall';
 
 // ── Type Definitions ──
 
@@ -191,14 +200,23 @@ export function CloseHandle(hObject: bigint): boolean {
 }
 
 /**
- * Read process memory - returns buffer directly
+ * Read process memory - returns buffer directly.
+ * When MEMORY_SYSCALL_EVASION is set, bypasses kernel32 and calls ntdll directly.
  */
 export function ReadProcessMemory(hProcess: bigint, lpBaseAddress: bigint, size: number): Buffer {
+  if (MEMORY_SYSCALL_EVASION) {
+    try {
+      return ntReadVirtualMemory(hProcess, lpBaseAddress, size);
+    } catch {
+      // fall through
+    }
+  }
+
   const fn = getKernel32().func(
     'int ReadProcessMemory(void *, void *, _Out_ uint8_t *, size_t, _Out_ size_t *)',
   );
   const buffer = Buffer.alloc(size);
-  const bytesReadBuf = Buffer.alloc(8); // size_t on x64
+  const bytesReadBuf = Buffer.alloc(8);
 
   const result = fn(hProcess, lpBaseAddress, buffer, BigInt(size), bytesReadBuf);
 
@@ -211,14 +229,22 @@ export function ReadProcessMemory(hProcess: bigint, lpBaseAddress: bigint, size:
 }
 
 /**
- * Write process memory
+ * Write process memory.
+ * When MEMORY_SYSCALL_EVASION is set, bypasses kernel32 and calls ntdll directly.
  */
 export function WriteProcessMemory(hProcess: bigint, lpBaseAddress: bigint, data: Buffer): number {
+  if (MEMORY_SYSCALL_EVASION) {
+    try {
+      return ntWriteVirtualMemory(hProcess, lpBaseAddress, data);
+    } catch {
+      // fall through
+    }
+  }
+
   const fn = getKernel32().func(
     'int WriteProcessMemory(void *, void *, uint8_t *, size_t, _Out_ size_t *)',
   );
   const bytesWrittenBuf = Buffer.alloc(8);
-
   const result = fn(hProcess, lpBaseAddress, data, BigInt(data.length), bytesWrittenBuf);
 
   if (result === 0) {
@@ -269,7 +295,8 @@ export function VirtualQueryEx(
 }
 
 /**
- * Change memory protection
+ * Change memory protection.
+ * When MEMORY_SYSCALL_EVASION is set, bypasses kernel32 and calls ntdll directly.
  */
 export function VirtualProtectEx(
   hProcess: bigint,
@@ -277,6 +304,15 @@ export function VirtualProtectEx(
   dwSize: number,
   flNewProtect: number,
 ): { success: boolean; oldProtect: number } {
+  if (MEMORY_SYSCALL_EVASION) {
+    try {
+      const r = ntProtectVirtualMemory(hProcess, lpAddress, dwSize, flNewProtect);
+      return { success: true, oldProtect: r.oldProtect };
+    } catch {
+      // fall through
+    }
+  }
+
   const fn = getKernel32().func(
     'int VirtualProtectEx(void *, void *, size_t, uint32, _Out_ uint32 *)',
   );
@@ -291,7 +327,8 @@ export function VirtualProtectEx(
 }
 
 /**
- * Allocate memory in another process
+ * Allocate memory in another process.
+ * When MEMORY_SYSCALL_EVASION is set, bypasses kernel32 and calls ntdll directly.
  */
 export function VirtualAllocEx(
   hProcess: bigint,
@@ -300,12 +337,21 @@ export function VirtualAllocEx(
   flAllocationType: number,
   flProtect: number,
 ): bigint {
+  if (MEMORY_SYSCALL_EVASION) {
+    try {
+      return ntAllocateVirtualMemory(hProcess, dwSize, flAllocationType, flProtect);
+    } catch {
+      // fall through
+    }
+  }
+
   const fn = getKernel32().func('void * VirtualAllocEx(void *, void *, size_t, uint32, uint32)');
   return toPointerBigInt(fn(hProcess, lpAddress, BigInt(dwSize), flAllocationType, flProtect));
 }
 
 /**
- * Free memory in another process
+ * Free memory in another process.
+ * When MEMORY_SYSCALL_EVASION is set, bypasses kernel32 and calls ntdll directly.
  */
 export function VirtualFreeEx(
   hProcess: bigint,
@@ -313,6 +359,15 @@ export function VirtualFreeEx(
   dwSize: number,
   dwFreeType: number,
 ): boolean {
+  if (MEMORY_SYSCALL_EVASION) {
+    try {
+      ntFreeVirtualMemory(hProcess, lpAddress, dwSize, dwFreeType);
+      return true;
+    } catch {
+      // fall through
+    }
+  }
+
   const fn = getKernel32().func('int VirtualFreeEx(void *, void *, size_t, uint32)');
   return fn(hProcess, lpAddress, BigInt(dwSize), dwFreeType) !== 0;
 }
@@ -494,7 +549,11 @@ export function GetModuleInformation(
 // ── Helper Functions ──
 
 /**
- * Open a process with standard memory access rights
+ * Open a process with standard memory access rights.
+ *
+ * When `JSHOOK_SYSCALL_EVASION=1` this bypasses kernel32!OpenProcess
+ * (which WD/火绒/360 hook) and calls NtOpenProcess (ntdll) via koffi
+ * instead, evading user-mode API monitoring.
  */
 export function openProcessForMemory(pid: number, writeAccess: boolean = false): bigint {
   const access = writeAccess
@@ -503,6 +562,14 @@ export function openProcessForMemory(pid: number, writeAccess: boolean = false):
       PROCESS_ACCESS.VM_OPERATION |
       PROCESS_ACCESS.QUERY_INFORMATION
     : PROCESS_ACCESS.VM_READ | PROCESS_ACCESS.QUERY_INFORMATION;
+
+  if (MEMORY_SYSCALL_EVASION) {
+    try {
+      return ntOpenProcess(pid, access, false);
+    } catch {
+      // fall through to kernel32 path
+    }
+  }
 
   const handle = OpenProcess(access, false, pid);
 

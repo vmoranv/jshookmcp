@@ -7,7 +7,8 @@
  * - Confirmation requirements (based on validation mode)
  */
 
-import { existsSync, statSync, readFileSync } from 'node:fs';
+import { existsSync, statSync, createReadStream } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { logger } from '@utils/logger';
 
@@ -212,7 +213,7 @@ export class InjectionValidator {
 
       if (options?.expectedHash) {
         result.expectedHash = options.expectedHash;
-        result.actualHash = this.computeFileHash(dllPath);
+        result.actualHash = await this.computeFileHash(dllPath);
         result.hashMatch = result.actualHash === options.expectedHash;
 
         if (!result.hashMatch) {
@@ -368,25 +369,77 @@ export class InjectionValidator {
 
   // ── Private helpers ──
 
-  private computeFileHash(filePath: string): string {
-    try {
-      const fileBuffer = readFileSync(filePath);
+  /**
+   * Compute the SHA-256 hash of a file using a streaming read.
+   *
+   * Streams the file in chunks rather than loading it entirely into memory —
+   * the previous `readFileSync` implementation loaded the full DLL (up to 50MB)
+   * into the Node heap just to hash it, which was wasteful and could pressure
+   * memory on large payloads.
+   *
+   * Returns an empty string on read failure (hash validation then fails closed).
+   */
+  private async computeFileHash(filePath: string): Promise<string> {
+    return new Promise((resolve) => {
       const hash = createHash('sha256');
-      hash.update(fileBuffer);
-      return hash.digest('hex');
-    } catch (error) {
-      logger.debug('Failed to compute file hash:', error);
-      return '';
-    }
+      const stream = createReadStream(filePath);
+      stream.on('data', (chunk: Buffer) => hash.update(chunk));
+      stream.on('end', () => resolve(hash.digest('hex')));
+      stream.on('error', (error) => {
+        logger.debug('Failed to compute file hash:', error);
+        resolve('');
+      });
+    });
   }
 
+  /**
+   * Validate the Windows Authenticode signature of an executable via
+   * `Get-AuthenticodeSignature` (PowerShell).
+   *
+   * Status → { isSigned, isValid } mapping:
+   *   Valid          → signed + valid
+   *   HashMismatch   → signed but tampered (invalid)
+   *   NotTrusted     → signed but untrusted root (invalid)
+   *   NotSigned      → not signed
+   *   UnknownError / (empty) → treat as not signed (fail closed)
+   *
+   * Non-Windows platforms or PowerShell failures resolve to
+   * `{ isSigned: false, isValid: false }` so STRICT mode falls back to
+   * requiring confirmation rather than blindly trusting the payload.
+   */
   private async checkWindowsSignature(
-    _executablePath?: string,
-  ): Promise<{ isSigned: boolean; isValid: boolean }> {
-    // Placeholder for Windows signature validation
-    // Real implementation would use Get-AuthenticodeSignature or similar
-    // For now, return unknown status
-    return { isSigned: false, isValid: false };
+    executablePath?: string,
+  ): Promise<{ isSigned: boolean; isValid: boolean; signer?: string }> {
+    if (!executablePath || process.platform !== 'win32' || !existsSync(executablePath)) {
+      return { isSigned: false, isValid: false };
+    }
+
+    try {
+      // Escape single quotes in the path for the PowerShell string literal.
+      const escaped = executablePath.replace(/'/g, "''");
+      const ps = `(Get-AuthenticodeSignature -LiteralPath '${escaped}') | ForEach-Object { $_.Status.ToString() + '|' + ($_.SignerCertificate.Subject ?? '') }`;
+      const stdout = execSync(ps, {
+        encoding: 'utf8',
+        timeout: 10_000,
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+
+      const [statusRaw, signer] = stdout.split('|');
+      const status = (statusRaw ?? '').trim();
+
+      const isSigned =
+        status !== '' &&
+        status !== 'NotSigned' &&
+        status !== 'UnknownError' &&
+        status !== 'NotSupportedFileFormat';
+      const isValid = status === 'Valid';
+
+      return { isSigned, isValid, signer: (signer ?? '').trim() || undefined };
+    } catch (error) {
+      logger.debug('Windows signature check failed:', error);
+      return { isSigned: false, isValid: false };
+    }
   }
 }
 

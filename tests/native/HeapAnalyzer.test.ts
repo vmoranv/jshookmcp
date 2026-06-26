@@ -284,6 +284,81 @@ describe('HeapAnalyzer', () => {
     expect(anomalies).toHaveLength(0);
   });
 
+  // ── Double-free detection ──────────────────────────────────
+
+  describe('detectDoubleFree', () => {
+    it('should detect duplicate free blocks at same address', () => {
+      const anomalies: any[] = [];
+      const blocks = [
+        { address: '0x3000', size: 64, flags: 2, heapId: '0x100', isFree: true },
+        { address: '0x3000', size: 64, flags: 2, heapId: '0x100', isFree: true }, // duplicate free
+        { address: '0x4000', size: 128, flags: 1, heapId: '0x100', isFree: false },
+      ];
+
+      (analyzer as any).detectDoubleFree(blocks, '0x100', anomalies);
+
+      expect(anomalies).toHaveLength(1);
+      expect(anomalies[0]!.type).toBe('possible_double_free');
+      expect(anomalies[0]!.severity).toBe('high');
+      expect(anomalies[0]!.address).toBe('0x3000');
+      expect(anomalies[0]!.details).toContain('free blocks at same address');
+    });
+
+    it('should not flag unique free blocks', () => {
+      const anomalies: any[] = [];
+      const blocks = [
+        { address: '0x3000', size: 64, flags: 2, heapId: '0x100', isFree: true },
+        { address: '0x4000', size: 128, flags: 2, heapId: '0x100', isFree: true },
+      ];
+
+      (analyzer as any).detectDoubleFree(blocks, '0x100', anomalies);
+
+      expect(anomalies).toHaveLength(0);
+    });
+
+    it('should not flag non-free blocks at same address', () => {
+      const anomalies: any[] = [];
+      const blocks = [
+        { address: '0x5000', size: 256, flags: 1, heapId: '0x100', isFree: false },
+        { address: '0x5000', size: 256, flags: 1, heapId: '0x100', isFree: false },
+      ];
+
+      (analyzer as any).detectDoubleFree(blocks, '0x100', anomalies);
+
+      // Non-free duplicate addresses are not double-free
+      expect(anomalies.filter((a) => a.type === 'possible_double_free')).toHaveLength(0);
+    });
+
+    it('should handle triple-or-more free blocks', () => {
+      const anomalies: any[] = [];
+      const blocks = [
+        { address: '0x3000', size: 64, flags: 2, heapId: '0x100', isFree: true },
+        { address: '0x3000', size: 64, flags: 2, heapId: '0x100', isFree: true },
+        { address: '0x3000', size: 128, flags: 2, heapId: '0x100', isFree: true }, // triple free!
+      ];
+
+      (analyzer as any).detectDoubleFree(blocks, '0x100', anomalies);
+
+      expect(anomalies).toHaveLength(1);
+      expect(anomalies[0]!.details).toContain('3 free blocks');
+      expect(anomalies[0]!.details).toContain('64, 64, 128'); // sizes
+    });
+
+    it('should detect double-free in same heap separately from other heaps', () => {
+      const anomalies: any[] = [];
+      const blocks = [
+        { address: '0x3000', size: 32, flags: 2, heapId: '0x100', isFree: true },
+        { address: '0x3000', size: 32, flags: 2, heapId: '0x100', isFree: true },
+        { address: '0x3000', size: 64, flags: 2, heapId: '0x200', isFree: true }, // different heap, same addr — OK
+      ];
+
+      (analyzer as any).detectDoubleFree(blocks, '0x100', anomalies);
+
+      expect(anomalies).toHaveLength(1);
+      expect(anomalies[0]!.heapId).toBe('0x100');
+    });
+  });
+
   // ── Shannon entropy (volatility malfind-style heuristic) ────────────
 
   describe('computeShannonEntropy', () => {

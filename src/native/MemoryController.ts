@@ -67,51 +67,70 @@ export class MemoryController {
     }
   }
 
-  /** Undo last write */
-  async undo(): Promise<WriteHistoryEntry | null> {
-    // Find last non-undone entry
+  /**
+   * Undo the last write.
+   *
+   * When `pid` is provided, only undoes the most recent non-undone write
+   * belonging to that process — this prevents cross-process interleaving
+   * errors when multiple processes are being written concurrently (the
+   * previous global stack could revert an unrelated process's write).
+   * Omit `pid` for the legacy global-undo behaviour.
+   */
+  async undo(pid?: number): Promise<WriteHistoryEntry | null> {
+    // Find last non-undone entry matching the optional pid filter.
     for (let i = this.writeHistory.length - 1; i >= 0; i--) {
       const entry = this.writeHistory[i]!;
-      if (!entry.undone) {
-        const addr = BigInt(entry.address);
-        const oldBuf = Buffer.from(entry.oldValue);
+      if (entry.undone) continue;
+      if (pid !== undefined && entry.pid !== pid) continue;
 
-        const handle = openProcessForMemory(entry.pid, true);
-        try {
-          const { oldProtect } = VirtualProtectEx(handle, addr, oldBuf.length, PAGE.READWRITE);
-          WriteProcessMemory(handle, addr, oldBuf);
-          VirtualProtectEx(handle, addr, oldBuf.length, oldProtect);
-        } finally {
-          CloseHandle(handle);
-        }
+      const addr = BigInt(entry.address);
+      const oldBuf = Buffer.from(entry.oldValue);
 
-        entry.undone = true;
-        this.undoneStack.push(entry);
-        return entry;
+      const handle = openProcessForMemory(entry.pid, true);
+      try {
+        const { oldProtect } = VirtualProtectEx(handle, addr, oldBuf.length, PAGE.READWRITE);
+        WriteProcessMemory(handle, addr, oldBuf);
+        VirtualProtectEx(handle, addr, oldBuf.length, oldProtect);
+      } finally {
+        CloseHandle(handle);
       }
+
+      entry.undone = true;
+      this.undoneStack.push(entry);
+      return entry;
     }
     return null;
   }
 
-  /** Redo last undone write */
-  async redo(): Promise<WriteHistoryEntry | null> {
-    const entry = this.undoneStack.pop();
-    if (!entry) return null;
+  /**
+   * Redo the last undone write.
+   *
+   * When `pid` is provided, redoes the most recently undone write for that
+   * process (searches the redo stack from the top rather than blindly popping,
+   * so per-PID redo stays correct under interleaving).
+   */
+  async redo(pid?: number): Promise<WriteHistoryEntry | null> {
+    for (let i = this.undoneStack.length - 1; i >= 0; i--) {
+      const entry = this.undoneStack[i]!;
+      if (pid !== undefined && entry.pid !== pid) continue;
+      this.undoneStack.splice(i, 1);
 
-    const addr = BigInt(entry.address);
-    const newBuf = Buffer.from(entry.newValue);
+      const addr = BigInt(entry.address);
+      const newBuf = Buffer.from(entry.newValue);
 
-    const handle = openProcessForMemory(entry.pid, true);
-    try {
-      const { oldProtect } = VirtualProtectEx(handle, addr, newBuf.length, PAGE.READWRITE);
-      WriteProcessMemory(handle, addr, newBuf);
-      VirtualProtectEx(handle, addr, newBuf.length, oldProtect);
-    } finally {
-      CloseHandle(handle);
+      const handle = openProcessForMemory(entry.pid, true);
+      try {
+        const { oldProtect } = VirtualProtectEx(handle, addr, newBuf.length, PAGE.READWRITE);
+        WriteProcessMemory(handle, addr, newBuf);
+        VirtualProtectEx(handle, addr, newBuf.length, oldProtect);
+      } finally {
+        CloseHandle(handle);
+      }
+
+      entry.undone = false;
+      return entry;
     }
-
-    entry.undone = false;
-    return entry;
+    return null;
   }
 
   /** Freeze: continuously write value at interval */

@@ -334,17 +334,17 @@ describe('AntiCheatDetector', () => {
       ]);
     });
 
-    it('skips non-executable, zero-sized, and unmappable sections', async () => {
+    it('skips writable, zero-sized, and unmappable sections', async () => {
       state.readFile.mockResolvedValue(buildPeImage(Buffer.alloc(16, 0x11)));
       (detector as any).peAnalyzer.listSections = vi.fn().mockResolvedValue([
         {
-          name: '.rdata',
+          name: '.data',
           virtualAddress: '0x1000',
           virtualSize: 16,
           rawSize: 16,
-          characteristics: 0x40000040,
+          characteristics: 0xc0000040,
           isExecutable: false,
-          isWritable: false,
+          isWritable: true,
           isReadable: true,
         },
         {
