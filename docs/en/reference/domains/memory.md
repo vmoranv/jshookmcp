@@ -20,7 +20,7 @@ Memory analysis domain for native scans, pointer-chain discovery, structure infe
 - memory + debugger
 - memory + workflow
 
-## Full tool list (30)
+## Full tool list (33)
 
 | Tool | Description |
 | --- | --- |
@@ -54,3 +54,6 @@ Memory analysis domain for native scans, pointer-chain discovery, structure infe
 | `memory_anticheat_detect` | Scan process imports for anti-debug/anti-cheat mechanisms: IsDebuggerPresent, NtQueryInformationProcess, timing checks (QPC, GetTickCount), thread hiding, heap flag checks, and DR register inspection. Each detection includes a bypass suggestion. |
 | `memory_guard_pages` | Find all memory regions with PAGE_GUARD protection in a process. Guard pages are often used as anti-tampering mechanisms or stack overflow detection. |
 | `memory_integrity_check` | Check executable memory regions against their corresponding on-disk PE files (.text sections) to detect modifications like inline hooks or code patches. |
+| `memory_region_enumerate` | Enumerate memory regions in a target process. Cross-platform: Windows (VirtualQueryEx), macOS (mach_vm_region), Linux (/proc/pid/maps). Returns base address, size, protection (r/w/x/rw/rx/rwx), state, type (image/mapped/private), and module name (if module-backed). |
+| `memory_aob_scan` | Array-of-Bytes scan with wildcard support. Search for byte patterns like "48 8B ?? ?? 00 00" across readable memory. Accepts hex bytes (00-FF, optional 0x prefix) and "??" wildcards. Case insensitive. |
+| `memory_find_accesses` | Find what writes to or accesses a memory address (Cheat Engine MWT workflow). Sets a hardware breakpoint on the target address, auto-rearms after each hit, captures the faulting instruction address + context + timestamp, and optionally disassembles the instruction. Returns aggregated hits with per-hit instruction details. |
