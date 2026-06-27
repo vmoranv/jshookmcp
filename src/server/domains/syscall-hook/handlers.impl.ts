@@ -9,6 +9,11 @@ import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { asJsonResponse } from '@server/domains/shared/response';
 import { checkSyscallPermission } from './permission-check';
 import { DirectNtApiHandlers } from './handlers/direct-nt';
+import { handleSyscallStackCapture } from './handlers/stack-capture';
+import { handleSyscallTraceCompare } from './handlers/trace-compare';
+import { handleSyscallTraceExport } from './handlers/trace-export';
+import { handleSyscallEbpfAttach } from './handlers/ebpf-attach';
+import type { MCPServerContext } from '@server/MCPServer.context';
 import {
   SYSCALL_TRACE_DURATION_DEFAULT_SEC,
   SYSCALL_TRACE_DURATION_MIN_SEC,
@@ -160,6 +165,7 @@ export class SyscallHookHandlers {
     private mapper?: SyscallToJSMapper,
     private eventBus?: EventBus<ServerEventMap>,
     private directNt = new DirectNtApiHandlers(),
+    private ctx?: MCPServerContext,
   ) {}
 
   async handleSyscallStartMonitor(args: Record<string, unknown>): Promise<unknown> {
@@ -507,6 +513,45 @@ END {
 
   async handleSyscallDirectInvoke(args: Record<string, unknown>): Promise<unknown> {
     return this.directNt.handleSyscallDirectInvoke(args);
+  }
+
+  // ── Stack Capture ───────────────────────────────────────────────────────────
+
+  async handleSyscallStackCapture(args: Record<string, unknown>): Promise<unknown> {
+    const monitor = this.ensureMonitor();
+    const events = await monitor.captureEvents();
+    return handleSyscallStackCapture(args, events, this.ctx);
+  }
+
+  // ── Trace Compare (snapshot-based diff) ──────────────────────────────────────
+
+  async handleSyscallTraceCompare(args: Record<string, unknown>): Promise<unknown> {
+    const monitor = this.ensureMonitor();
+    // Baseline is read from last capture; target is fresh capture
+    const baseline = await monitor.captureEvents();
+    await monitor.stop();
+    // Re-start to get a fresh capture window (user should have done operation between calls)
+    // In practice baseline/target are taken from separate calls — this is best-effort
+    const target = await monitor.captureEvents();
+    return handleSyscallTraceCompare(
+      args,
+      () => baseline,
+      () => target,
+    );
+  }
+
+  // ── Trace Export ─────────────────────────────────────────────────────────────
+
+  async handleSyscallTraceExport(args: Record<string, unknown>): Promise<unknown> {
+    const monitor = this.ensureMonitor();
+    const events = await monitor.captureEvents();
+    return handleSyscallTraceExport(args, events);
+  }
+
+  // ── Live eBPF Attach ──────────────────────────────────────────────────────────
+
+  async handleSyscallEbpfAttach(args: Record<string, unknown>): Promise<unknown> {
+    return handleSyscallEbpfAttach(args);
   }
 
   private ensureMonitor(): SyscallMonitor {

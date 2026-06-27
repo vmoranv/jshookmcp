@@ -101,4 +101,62 @@ export const syscallHookToolDefinitions: Tool[] = [
       .string('functionName', 'NT function name (e.g. NtOpenProcess, NtAllocateVirtualMemory)')
       .required('functionName'),
   ),
+  tool('syscall_stack_capture', (t) =>
+    t
+      .desc(
+        'Correlate captured syscall events with real JS call stacks via debugger integration. ' +
+          'Goes beyond static heuristics by querying live CDP call stacks for syscall→JS mapping. ' +
+          'Falls back to heuristic-only mode when no debugger is attached.',
+      )
+      .number('maxEvents', 'Maximum number of recent syscall events to correlate (default: 20)', {
+        default: 20,
+        minimum: 1,
+        maximum: 200,
+      })
+      .boolean('useDebugger', 'Attempt CDP call stack capture (default: true)', { default: true })
+      .query(),
+  ),
+  tool('syscall_trace_compare', (t) =>
+    t
+      .desc(
+        'Diff two syscall trace snapshots to find appeared/disappeared syscalls and ' +
+          'frequency changes. Useful for understanding what OS calls a JS operation triggers. ' +
+          'Capture baseline → perform operation → capture target → compare.',
+      )
+      .number('maxDeltas', 'Maximum frequency delta entries to return (default: 30)', {
+        default: 30,
+      })
+      .query(),
+  ),
+  tool('syscall_trace_export', (t) =>
+    t
+      .desc(
+        'Export captured syscall events to portable NDJSON with optional time-range ' +
+          'filtering and deduplication. Returns both structured array and NDJSON string.',
+      )
+      .number('minTimestamp', 'Filter events with timestamp >= this value')
+      .number('maxTimestamp', 'Filter events with timestamp <= this value')
+      .boolean('deduplicate', 'Remove duplicate events within a time window', { default: false })
+      .number('dedupWindowMs', 'Deduplication time window in ms (default: 100)', { default: 100 })
+      .boolean('includeNdjson', 'Include NDJSON string in output (default: true)', {
+        default: true,
+      })
+      .query(),
+  ),
+  tool('syscall_ebpf_attach', (t) =>
+    t
+      .desc(
+        'Live eBPF syscall attach — spawns a bpftrace process, captures syscall events ' +
+          'as structured JSON in real time, and returns them directly. Unlike ' +
+          'syscall_ebpf_trace (script-generator), this tool actually runs bpftrace ' +
+          'and captures output. Falls back to script mode on non-Linux or when bpftrace ' +
+          'is unavailable. Requires bpftrace + CAP_BPF or root on Linux.',
+      )
+      .number('pid', 'Process ID to trace. 0 = trace all.', { default: 0 })
+      .array('syscalls', { type: 'string' }, 'Specific syscall names to trace (empty = all)')
+      .number('durationSec', 'Trace duration in seconds', { default: 10, minimum: 1, maximum: 300 })
+      .boolean('output', 'Return all captured JSON lines in the raw output', { default: false })
+      .boolean('simulate', 'Use synthetic events when bpftrace is unavailable', { default: false })
+      .query(),
+  ),
 ];

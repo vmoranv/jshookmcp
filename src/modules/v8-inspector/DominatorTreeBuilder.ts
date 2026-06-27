@@ -620,4 +620,63 @@ export class DominatorTreeBuilder {
     }
     return result;
   }
+
+  /**
+   * Find all heap objects retained by functions matching a given name pattern.
+   * Walks the dominator tree from the GC root, collecting nodes whose name
+   * matches the pattern, then returns their retainer chains.
+   *
+   * @param pattern - Substring to match against node names (case-insensitive)
+   * @param tree - Dominator tree root
+   * @param maxResults - Maximum number of results (default: 50)
+   * @param minRetainedSize - Minimum retained size filter (default: 0)
+   * @returns Array of matching nodes with retainer chains
+   */
+  getRetainedByFunctionName(
+    pattern: string,
+    tree: DominatorNode,
+    maxResults: number = 50,
+    minRetainedSize: number = 0,
+  ): Array<{
+    nodeId: number;
+    name: string;
+    retainedSize: number;
+    shallowSize: number;
+    retainerChain: Array<{
+      nodeId: number;
+      name: string;
+      className: string;
+      shallowSize: number;
+      retainedSize: number;
+      distance: number;
+    }>;
+    children: number;
+  }> {
+    const patternLower = pattern.toLowerCase();
+    const matches: Array<{ node: DominatorNode }> = [];
+
+    const traverse = (node: DominatorNode): void => {
+      const nameLower = node.name.toLowerCase();
+      if (nameLower.includes(patternLower) && node.retainedSize >= minRetainedSize) {
+        matches.push({ node });
+      }
+      for (const child of node.children) {
+        traverse(child);
+      }
+    };
+
+    traverse(tree);
+
+    // Sort by retained size descending
+    matches.sort((a, b) => b.node.retainedSize - a.node.retainedSize);
+
+    return matches.slice(0, maxResults).map(({ node }) => ({
+      nodeId: node.nodeId,
+      name: node.name,
+      retainedSize: node.retainedSize,
+      shallowSize: node.shallowSize,
+      retainerChain: this.getRetainerChain(node.nodeId, 50),
+      children: node.children.length,
+    }));
+  }
 }

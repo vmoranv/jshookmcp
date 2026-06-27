@@ -186,7 +186,7 @@ export function resolveNtdll(ntdllPath?: string): ResolvedNtdll {
   }
 
   _resolved = {
-    resolvedPath,
+    path: resolvedPath,
     syscalls,
     byName,
     syscallGadgetRva,

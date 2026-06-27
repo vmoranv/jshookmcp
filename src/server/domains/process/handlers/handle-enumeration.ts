@@ -109,7 +109,7 @@ interface HandleInfo {
   securityRisk?: string;
 }
 
-interface EnumHandleResult {
+export interface EnumHandleResult {
   success: boolean;
   pid: number;
   totalSystemHandles?: number;

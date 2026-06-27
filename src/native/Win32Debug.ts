@@ -360,8 +360,8 @@ export function FlushInstructionCache(
  */
 export function EnumerateProcessThreads(pid: number): number[] {
   const fnSnapshot = getKernel32().func('void * CreateToolhelp32Snapshot(uint32, uint32)');
-  const fnFirst = getKernel32().func('int Thread32First(void *, _Inout_ uint8_t[28])');
-  const fnNext = getKernel32().func('int Thread32Next(void *, _Inout_ uint8_t[28])');
+  const fnFirst = getKernel32().func('int Thread32First(void *, _Out_ uint8_t[28])');
+  const fnNext = getKernel32().func('int Thread32Next(void *, _Out_ uint8_t[28])');
 
   const snapshot = fnSnapshot(TH32CS.SNAPTHREAD, 0);
   if (snapshot === 0n || snapshot === BigInt('0xFFFFFFFFFFFFFFFF')) {

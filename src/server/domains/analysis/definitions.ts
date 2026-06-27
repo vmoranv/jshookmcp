@@ -355,4 +355,24 @@ export const coreTools: Tool[] = [
       .required('vulnerability')
       .readOnly(),
   ),
+  tool('analysis_data_flow', (t) =>
+    t
+      .desc(
+        'Trace data flow through JavaScript: identify sources (user input, network, storage), ' +
+          'sinks (XSS, eval, SQL injection, command execution), sanitizer pass-through points, ' +
+          'and tainted variable propagation paths. Useful for finding injection vulnerabilities.',
+      )
+      .string('code', 'JavaScript source code to analyze')
+      .required('code'),
+  ),
+  tool('analysis_security_scan', (t) =>
+    t
+      .desc(
+        'Static security scan of JavaScript: detect hardcoded secrets (API keys, tokens), ' +
+          'dangerous functions (eval, Function constructor), XSS sinks (innerHTML, document.write), ' +
+          'SQL injection patterns, and weak crypto (Math.random). Returns structured risks with severity and recommendations.',
+      )
+      .string('code', 'JavaScript source code to scan')
+      .required('code'),
+  ),
 ];

@@ -88,4 +88,99 @@ export const v8InspectorTools: Tool[] = [
       .required('snapshotId', 'nodeIds')
       .query(),
   ),
+  tool('v8_deopt_trace', (t) =>
+    t
+      .desc(
+        'Trace V8 deoptimization events during a capture window. ' +
+          'Enables %TraceDeoptimizations via natives syntax and captures ' +
+          'deopt events (function name, reason, bailout position). ' +
+          'Requires V8 natives syntax. Falls back gracefully when unavailable.',
+      )
+      .number('durationMs', 'Trace window duration in ms (default: 5000)', {
+        default: 5000,
+        minimum: 100,
+        maximum: 60000,
+      })
+      .number('maxEvents', 'Maximum deopt events to capture (default: 50)', { default: 50 })
+      .boolean('enable', 'Enable deopt tracing (default: true)', { default: true })
+      .query(),
+  ),
+  tool('v8_turbofan_inspect', (t) =>
+    t
+      .desc(
+        'Inspect TurboFan compilation state for functions in a script. ' +
+          'Reports optimization tier (interpreted/maglev/turbofan). ' +
+          'Supports actions: inspect (default), optimize (%OptimizeFunctionOnNextCall), ' +
+          'deoptimize (%DeoptimizeFunction). Requires V8 natives syntax.',
+      )
+      .string('scriptId', 'CDP scriptId to inspect')
+      .string('functionName', 'Optional function name filter (substring match)')
+      .string(
+        'action',
+        'Action: inspect (query status), optimize (force optimize), deoptimize (force deopt)',
+      )
+      .number('topN', 'Maximum functions to inspect (default: 10)', { default: 10 })
+      .required('scriptId')
+      .query(),
+  ),
+  tool('v8_function_retained', (t) =>
+    t
+      .desc(
+        'Find all heap objects retained by functions matching a name pattern. ' +
+          'Walks the dominator tree to find objects whose constructor/class name ' +
+          'matches the given pattern, then returns each with its retainer chain. ' +
+          'Useful for understanding which objects a specific function/class is holding alive.',
+      )
+      .string('snapshotId', 'Snapshot ID taken with v8_heap_snapshot_capture')
+      .string('pattern', 'Substring to match against heap object names (case-insensitive)')
+      .number('maxResults', 'Maximum results to return (default: 50)', { default: 50 })
+      .number('minRetainedSize', 'Minimum retained size filter in bytes (default: 0)', {
+        default: 0,
+      })
+      .required('snapshotId', 'pattern')
+      .query(),
+  ),
+  tool('v8_object_compare', (t) =>
+    t
+      .desc(
+        'Compare heap objects by shallow/retained size, class name, and property count. ' +
+          'Same-snapshot mode (objectIds only) does all-pairs comparison (n-choose-2). ' +
+          'Cross-snapshot mode (anotherSnapshotId + anotherObjectIds) does pairwise A[i]↔B[i] comparison. ' +
+          'Use to track object growth over time, find memory regression candidates, ' +
+          'or compare leaked vs healthy objects of the same class.',
+      )
+      .string('snapshotId', 'Primary snapshot ID')
+      .array('objectIds', { type: 'number' }, 'One or more nodeIds to compare (max 50)')
+      .string(
+        'anotherSnapshotId',
+        'Optional: second snapshot ID for cross-snapshot comparison (requires anotherObjectIds)',
+      )
+      .array(
+        'anotherObjectIds',
+        { type: 'number' },
+        'Optional: matching nodeIds from the second snapshot (must match objectIds length)',
+      )
+      .number('minDeltaBytes', 'Minimum delta in bytes to flag as interesting (default: 1024)', {
+        default: 1024,
+      })
+      .required('snapshotId', 'objectIds')
+      .query(),
+  ),
+  tool('v8_wasm_inspect', (t) =>
+    t
+      .desc(
+        'Inspect WebAssembly modules and garbage-collected WASM objects in the page. ' +
+          'Discovers .wasm script resources, detects WASM GC (struct/array/ref-types) availability, ' +
+          'and enumerates feature flags (gc/threads/simd). Supports optional scriptId filter ' +
+          'to inspect a specific WASM module. Requires browser/page CDP context.',
+      )
+      .string(
+        'scriptId',
+        'Optional: CDP scriptId of a specific WASM module to inspect. Omit for discovery mode.',
+      )
+      .boolean('includeStructs', 'Include struct type enumeration (default: true)', {
+        default: true,
+      })
+      .query(),
+  ),
 ];

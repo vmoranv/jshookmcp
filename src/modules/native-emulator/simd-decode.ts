@@ -112,14 +112,29 @@ export const isCryptoSha2Reg = (f: SimdFields): boolean =>
   f.high8 === 0x5e && f.size === 0 && f.field21_17 === 0b10100 && f.low11_10 === 0b10;
 
 /**
- * PMULL/PMULL2 (polynomial multiply long): high8=0x0E/0x4E, size=00/11 (sizeU encodes
- * .8B/.16B → .8H/.1Q variant), [21]=1, [15:10]=111000.
+ * PMULL/PMULL2 (polynomial multiply long). PMULL has U=1 always.
+ * Encoding: 0 Q 1 01110 size 1 Rm 1110 00 Rn Rd
+ *
+ * Two variants:
+ *   size=00: .8B→.8H — handled by execNeonThreeDifferent (case 0b1110=PMULL)
+ *   size=11: .1Q→.1Q — handled by execPmull (FEAT_PMULL 64→128)
+ *
+ * Only intercept the 64-bit variant here; the 8-bit variant falls through
+ * to isNeonThreeDifferent.
  */
-export const isPmull = (f: SimdFields): boolean =>
-  (f.high8 === 0x0e || f.high8 === 0x4e) &&
-  (f.size === 0 || f.size === 3) &&
-  f.bit21 === 1 &&
-  ((f.insn >>> 10) & 0b111111) === 0b111000;
+export const isPmull = (f: SimdFields): boolean => {
+  const h = f.high8;
+  // 64-bit PMULL: U=1, size=3, [15:10]=111000
+  const is64bit =
+    (h === 0x2e || h === 0x6e) &&
+    f.size === 3 &&
+    f.bit21 === 1 &&
+    ((f.insn >>> 10) & 0b111111) === 0b111000;
+  // Also accept the crypto-extension form: high8=0x0E/0x4E
+  const isCryptoForm =
+    (h === 0x0e || h === 0x4e) && f.bit21 === 1 && ((f.insn >>> 10) & 0b111111) === 0b111000;
+  return is64bit || isCryptoForm;
+};
 
 /**
  * Scalar floating-point (ARM ARM C4.1.8/C4.1.9): M=0, bit30=0, S=0, [28:24]=11110,

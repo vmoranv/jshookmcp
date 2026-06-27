@@ -1012,3 +1012,185 @@ export function neonSqdmlsl(
 
   return packLanes(result, wideSize);
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Absolute Difference Instructions (SABAL/UABAL/SABDL/UABDL) ──
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * SABAL/SABAL2: Signed Absolute difference Accumulate Long
+ * Vd = Vd + |Vn - Vm| (lane-wise, signed narrow → widened result)
+ */
+export function neonSabal(
+  vd: Uint8Array,
+  vn: Uint8Array,
+  vm: Uint8Array,
+  size: number,
+  q: number,
+): Uint8Array<ArrayBuffer> {
+  if (size >= 3) throw new Error('SABAL: invalid size (must be 0-2)');
+
+  const wideSize = size + 1;
+  const laneCount = 8 >> size;
+  const offset = q === 1 ? laneCount : 0;
+
+  const wideLanes = readLanes(vd, wideSize, 1);
+
+  const result: bigint[] = [];
+  for (let i = 0; i < wideLanes.length; i++) {
+    const acc = toSigned(wideLanes[i] ?? 0n, laneBytes(wideSize));
+    const nVal = readLaneSigned(vn, offset + i, size);
+    const mVal = readLaneSigned(vm, offset + i, size);
+    const diff = nVal > mVal ? nVal - mVal : mVal - nVal;
+    const sum = acc + diff;
+    result.push(sum);
+  }
+
+  return packLanes(result, wideSize);
+}
+
+/**
+ * UABAL/UABAL2: Unsigned Absolute difference Accumulate Long
+ * Vd = Vd + |Vn - Vm| (lane-wise, unsigned narrow → widened result)
+ */
+export function neonUabal(
+  vd: Uint8Array,
+  vn: Uint8Array,
+  vm: Uint8Array,
+  size: number,
+  q: number,
+): Uint8Array<ArrayBuffer> {
+  if (size >= 3) throw new Error('UABAL: invalid size (must be 0-2)');
+
+  const wideSize = size + 1;
+  const laneCount = 8 >> size;
+  const offset = q === 1 ? laneCount : 0;
+
+  const wideLanes = readLanes(vd, wideSize, 1);
+
+  const result: bigint[] = [];
+  for (let i = 0; i < wideLanes.length; i++) {
+    const acc = wideLanes[i] ?? 0n;
+    const nVal = readLaneUnsigned(vn, offset + i, size);
+    const mVal = readLaneUnsigned(vm, offset + i, size);
+    const diff = nVal > mVal ? nVal - mVal : mVal - nVal;
+    const sum = acc + diff;
+    result.push(sum);
+  }
+
+  return packLanes(result, wideSize);
+}
+
+/**
+ * SABDL/SABDL2: Signed Absolute difference Long
+ * Vd = |Vn - Vm| (lane-wise, signed narrow → widened result, no accumulate)
+ */
+export function neonSabdl(
+  vn: Uint8Array,
+  vm: Uint8Array,
+  size: number,
+  q: number,
+): Uint8Array<ArrayBuffer> {
+  if (size >= 3) throw new Error('SABDL: invalid size (must be 0-2)');
+
+  const outputSize = size + 1;
+  const laneCount = 8 >> size;
+  const offset = q === 1 ? laneCount : 0;
+
+  const result: bigint[] = [];
+  for (let i = 0; i < laneCount; i++) {
+    const nVal = readLaneSigned(vn, offset + i, size);
+    const mVal = readLaneSigned(vm, offset + i, size);
+    const diff = nVal > mVal ? nVal - mVal : mVal - nVal;
+    result.push(diff);
+  }
+
+  return packLanes(result, outputSize);
+}
+
+/**
+ * UABDL/UABDL2: Unsigned Absolute difference Long
+ * Vd = |Vn - Vm| (lane-wise, unsigned narrow → widened result, no accumulate)
+ */
+export function neonUabdl(
+  vn: Uint8Array,
+  vm: Uint8Array,
+  size: number,
+  q: number,
+): Uint8Array<ArrayBuffer> {
+  if (size >= 3) throw new Error('UABDL: invalid size (must be 0-2)');
+
+  const outputSize = size + 1;
+  const laneCount = 8 >> size;
+  const offset = q === 1 ? laneCount : 0;
+
+  const result: bigint[] = [];
+  for (let i = 0; i < laneCount; i++) {
+    const nVal = readLaneUnsigned(vn, offset + i, size);
+    const mVal = readLaneUnsigned(vm, offset + i, size);
+    const diff = nVal > mVal ? nVal - mVal : mVal - nVal;
+    result.push(diff);
+  }
+
+  return packLanes(result, outputSize);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Polynomial Multiply Long (PMULL/PMULL2) ──
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * PMULL/PMULL2: Polynomial Multiply Long over GF(2).
+ *
+ * Operates on each lane of Vn and Vm as an 8-bit polynomial (size=0, .8B→.8H)
+ * or 64-bit polynomial (size=3, .1Q→.1Q). The product is computed without
+ * carries (XOR-based arithmetic), yielding a double-width result.
+ *
+ * This is the primitive used in GCM (Galois/Counter Mode) for GHASH and other
+ * GF(2^n) cryptographic operations.
+ */
+export function neonPmull(
+  vn: Uint8Array,
+  vm: Uint8Array,
+  size: number,
+  q: number,
+): Uint8Array<ArrayBuffer> {
+  if (size !== 0 && size !== 3) throw new Error('PMULL: size must be 0 (.8B→.8H) or 3 (.1Q→.1Q)');
+
+  if (size === 0) {
+    // .8B input → .8H output (8-bit poly lanes → 16-bit products)
+    const offset = q === 1 ? 8 : 0;
+    const outLanes: bigint[] = [];
+
+    for (let i = 0; i < 8; i++) {
+      const a = readLaneUnsigned(vn, offset + i, 0); // size=0 → 1 byte
+      const b = readLaneUnsigned(vm, offset + i, 0);
+      // Polynomial multiply: for each set bit in a, XOR (b << bit_pos)
+      let product = 0n;
+      for (let bit = 0; bit < 8; bit++) {
+        if ((a >> BigInt(bit)) & 1n) {
+          product ^= b << BigInt(bit);
+        }
+      }
+      outLanes.push(product & 0xffffn); // 16-bit result
+    }
+    return packLanes(outLanes, 1); // size=1 → 2 bytes per lane
+  }
+
+  // size=3: .1Q → .1Q (single 64-bit lane → 128-bit result)
+  const a = q === 1 ? readLaneUnsigned(vn, 1, 3) : readLaneUnsigned(vn, 0, 3);
+  const b = q === 1 ? readLaneUnsigned(vm, 1, 3) : readLaneUnsigned(vm, 0, 3);
+
+  let product = 0n;
+  for (let bit = 0; bit < 64; bit++) {
+    if ((a >> BigInt(bit)) & 1n) {
+      product ^= b << BigInt(bit);
+    }
+  }
+
+  const result = new Uint8Array(16);
+  const dv = new DataView(result.buffer);
+  dv.setBigUint64(0, product & 0xffff_ffff_ffff_ffffn, true);
+  dv.setBigUint64(8, (product >> 64n) & 0xffff_ffff_ffff_ffffn, true);
+  return result;
+}

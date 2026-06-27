@@ -117,6 +117,11 @@ import {
   neonSubhn,
   neonRaddhn,
   neonRsubhn,
+  neonSabal,
+  neonUabal,
+  neonSabdl,
+  neonUabdl,
+  neonPmull,
 } from './simd-neon-widening';
 import {
   neonSqadd,
@@ -1075,9 +1080,29 @@ function execNeonThreeDifferent(ctx: SimdContext, f: SimdFields): boolean {
     case 0b0110: // SUBHN (U=0) / RSUBHN (U=1)
       ctx.vSetBytes(rd, u === 0 ? neonSubhn(a, b, size, q) : neonRsubhn(a, b, size, q));
       return true;
-    // TODO: case 0b0101: SABAL / UABAL — not yet implemented
-    // TODO: case 0b1101: SABDL / UABDL — not yet implemented
-    // TODO: case 0b1110: PMULL — not yet implemented
+    case 0b0101: {
+      // SABAL (U=0) / UABAL (U=1) — Absolute difference Accumulate Long
+      ctx.vSetBytes(
+        rd,
+        u === 0
+          ? neonSabal(ctx.vGetBytes(rd), a, b, size, q)
+          : neonUabal(ctx.vGetBytes(rd), a, b, size, q),
+      );
+      return true;
+    }
+    case 0b1101: {
+      // SABDL (U=0) / UABDL (U=1) — Absolute difference Long
+      ctx.vSetBytes(rd, u === 0 ? neonSabdl(a, b, size, q) : neonUabdl(a, b, size, q));
+      return true;
+    }
+    case 0b1110: {
+      // PMULL (.8B→.8H, U=1 always, size=0)
+      if (u === 1 && size === 0) {
+        ctx.vSetBytes(rd, neonPmull(a, b, size, q));
+        return true;
+      }
+      return false;
+    }
     default:
       return false;
   }

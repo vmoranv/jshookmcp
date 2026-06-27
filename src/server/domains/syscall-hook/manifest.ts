@@ -35,6 +35,10 @@ const registrations = defineMethodRegistrations<
     { tool: 'syscall_ebpf_trace', method: 'handleSyscallEbpfTrace' },
     { tool: 'syscall_resolve_ssn', method: 'handleSyscallResolveSsn' },
     { tool: 'syscall_direct_invoke', method: 'handleSyscallDirectInvoke' },
+    { tool: 'syscall_stack_capture', method: 'handleSyscallStackCapture' },
+    { tool: 'syscall_trace_compare', method: 'handleSyscallTraceCompare' },
+    { tool: 'syscall_trace_export', method: 'handleSyscallTraceExport' },
+    { tool: 'syscall_ebpf_attach', method: 'handleSyscallEbpfAttach' },
   ],
 });
 
@@ -52,7 +56,7 @@ async function ensure(ctx: MCPServerContext): Promise<SyscallHookHandlers> {
     return existing;
   }
 
-  const handlers = new SyscallHookHandlers(undefined, undefined, ctx.eventBus);
+  const handlers = new SyscallHookHandlers(undefined, undefined, ctx.eventBus, undefined, ctx);
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
 }

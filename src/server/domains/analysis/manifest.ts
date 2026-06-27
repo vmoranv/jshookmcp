@@ -268,6 +268,18 @@ const manifest = {
       profiles: ['workflow', 'full'],
       bind: b((h, a) => h.handleAiSuggestExploits(a)),
     },
+    {
+      tool: t('analysis_data_flow'),
+      domain: DOMAIN,
+      profiles: ['workflow', 'full'],
+      bind: b((h, a) => h.handleAnalysisDataFlow(a)),
+    },
+    {
+      tool: t('analysis_security_scan'),
+      domain: DOMAIN,
+      profiles: ['workflow', 'full'],
+      bind: b((h, a) => h.handleAnalysisSecurityScan(a)),
+    },
   ],
 } satisfies DomainManifest<typeof DEP_KEY, H, typeof DOMAIN>;
 

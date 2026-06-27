@@ -1540,4 +1540,9 @@ export {
   neonSqdmull,
   neonSqdmlal,
   neonSqdmlsl,
+  neonSabal,
+  neonUabal,
+  neonSabdl,
+  neonUabdl,
+  neonPmull,
 } from './simd-neon-widening';

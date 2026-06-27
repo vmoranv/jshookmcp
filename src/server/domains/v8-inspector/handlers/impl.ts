@@ -83,6 +83,11 @@ export class V8InspectorHandlers {
       v8_jit_inspect: (toolArgs) => this.v8_jit_inspect(toolArgs),
       v8_heap_find_leaks: (toolArgs) => this.v8_heap_find_leaks(toolArgs),
       v8_heap_retainers: (toolArgs) => this.v8_heap_retainers(toolArgs),
+      v8_object_compare: (toolArgs) => this.v8_object_compare(toolArgs),
+      v8_wasm_inspect: (toolArgs) => this.v8_wasm_inspect(toolArgs),
+      v8_deopt_trace: (toolArgs) => this.v8_deopt_trace(toolArgs),
+      v8_turbofan_inspect: (toolArgs) => this.v8_turbofan_inspect(toolArgs),
+      v8_function_retained: (toolArgs) => this.v8_function_retained(toolArgs),
     };
 
     const handler = dispatchTable[toolName];
@@ -91,6 +96,40 @@ export class V8InspectorHandlers {
     }
     return handler(args);
   }
+
+  // ── Standard dispatch: heap snapshot capture ──
+  async v8_deopt_trace(args: ToolArgs): Promise<unknown> {
+    const { handleDeoptTrace } = await import('@server/domains/v8-inspector/handlers/deopt-trace');
+    return handleDeoptTrace(args);
+  }
+
+  async v8_turbofan_inspect(args: ToolArgs): Promise<unknown> {
+    const { handleTurbofanInspect } =
+      await import('@server/domains/v8-inspector/handlers/turbofan-inspect');
+    return handleTurbofanInspect(args);
+  }
+
+  async v8_function_retained(args: ToolArgs) {
+    const snapshotId = requireStringArg(args, 'snapshotId');
+    const pattern = requireStringArg(args, 'pattern');
+    const maxResults = typeof args.maxResults === 'number' ? args.maxResults : 50;
+    const snapshot = getSnapshot(snapshotId);
+    if (!snapshot) {
+      throw new Error(`Snapshot ${snapshotId} not found`);
+    }
+    const { DominatorTreeBuilder } = await import('@modules/v8-inspector/DominatorTreeBuilder');
+    const builder = new DominatorTreeBuilder();
+    const objects = builder.getRetainedByFunctionName(pattern, snapshot as any, maxResults);
+    return {
+      success: true,
+      snapshotId,
+      pattern,
+      objects,
+      objectCount: objects.length,
+    };
+  }
+
+  // ── Heap snapshot handlers ──
 
   async v8_heap_snapshot_capture(args: ToolArgs): Promise<{
     success: boolean;
@@ -496,6 +535,311 @@ export class V8InspectorHandlers {
       chains,
       chainCount: Object.keys(chains).length,
       totalTraced: totalSteps,
+    };
+  }
+
+  async v8_wasm_inspect(args: ToolArgs): Promise<{
+    success: boolean;
+    modules: Array<{
+      moduleId: number;
+      url: string;
+      usesGC: boolean;
+      features: { gc: boolean; threads: boolean; simd: boolean };
+    }>;
+    totalModules: number;
+    wasmScripts: Array<{ scriptId: string; url: string; byteSize?: number }>;
+    summary: {
+      totalWasmModules: number;
+      gcModules: number;
+      nonGcModules: number;
+      hasGcFeature: boolean;
+      hasThreadsFeature: boolean;
+      hasSimdFeature: boolean;
+    };
+    wasmGcAvailable: boolean;
+    structs?: Array<{
+      moduleId: number;
+      structs: Array<{ typeIndex: number; fieldCount: number; fieldMutability: boolean[] }>;
+    }>;
+  }> {
+    const scriptId =
+      typeof args.scriptId === 'string' && args.scriptId.length > 0 ? args.scriptId : undefined;
+    const includeStructs = typeof args.includeStructs === 'boolean' ? args.includeStructs : true;
+
+    if (!this.deps.ctx.pageController) {
+      return {
+        success: false,
+        modules: [],
+        totalModules: 0,
+        wasmScripts: [],
+        summary: {
+          totalWasmModules: 0,
+          gcModules: 0,
+          nonGcModules: 0,
+          hasGcFeature: false,
+          hasThreadsFeature: false,
+          hasSimdFeature: false,
+        },
+        wasmGcAvailable: false,
+        error: 'PageController not available. Call browser_launch or browser_attach first.',
+      } as any;
+    }
+
+    const getPage = createPageGetter(this.deps.ctx);
+    const page = await getPage();
+    if (!page) {
+      throw new Error('No active page. Call browser_launch or browser_attach first.');
+    }
+
+    const { inspectWasmGc } = await import('@modules/v8-inspector/WasmGcInspector');
+    const result = await inspectWasmGc(page, { scriptId, includeStructs });
+
+    return {
+      success: result.success,
+      modules: result.modules,
+      totalModules: result.totalModules,
+      wasmScripts: result.wasmScripts,
+      summary: result.summary,
+      wasmGcAvailable: result.wasmGcAvailable,
+      ...(includeStructs && result.structs.length > 0 ? { structs: result.structs } : {}),
+    };
+  }
+
+  async v8_object_compare(args: ToolArgs): Promise<{
+    success: boolean;
+    snapshotId: string;
+    anotherSnapshotId?: string;
+    pairs: Array<{
+      objectA: {
+        nodeId: number;
+        name: string;
+        shallowSize: number;
+        retainedSize: number;
+        propertyCount: number;
+      };
+      objectB: {
+        nodeId: number;
+        name: string;
+        shallowSize: number;
+        retainedSize: number;
+        propertyCount: number;
+      };
+      delta: { shallowSize: number; retainedSize: number; propertyCount: number };
+      classMatch: boolean;
+      sameClass: boolean;
+      interesting: boolean;
+    }>;
+    skippedNodes?: number[];
+    pairCount: number;
+  }> {
+    const objectIds: number[] | null = Array.isArray(args.objectIds)
+      ? (args.objectIds.filter(
+          (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0,
+        ) as number[])
+      : null;
+    if (!objectIds || objectIds.length === 0) {
+      throw new Error('objectIds must be a non-empty array of positive integers');
+    }
+    if (objectIds.length > 50) {
+      throw new Error('objectIds must contain at most 50 entries');
+    }
+
+    const anotherSnapshotId: string | undefined =
+      typeof args.anotherSnapshotId === 'string' && args.anotherSnapshotId.length > 0
+        ? args.anotherSnapshotId
+        : undefined;
+
+    const anotherObjectIds: number[] | undefined = anotherSnapshotId
+      ? Array.isArray(args.anotherObjectIds)
+        ? (args.anotherObjectIds.filter(
+            (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0,
+          ) as number[])
+        : undefined
+      : undefined;
+
+    if (anotherSnapshotId && !anotherObjectIds) {
+      throw new Error('anotherObjectIds is required when anotherSnapshotId is provided');
+    }
+    if (anotherObjectIds && anotherObjectIds.length !== objectIds.length) {
+      throw new Error(
+        `anotherObjectIds must have the same length as objectIds (${objectIds.length}), got ${anotherObjectIds.length}`,
+      );
+    }
+
+    const snapshotId = requireStringArg(args, 'snapshotId');
+    const snapshot = getSnapshot(snapshotId);
+    if (!snapshot) {
+      throw new Error(`Snapshot ${snapshotId} not found`);
+    }
+    if (anotherSnapshotId && !getSnapshot(anotherSnapshotId)) {
+      throw new Error(`Snapshot ${anotherSnapshotId} not found`);
+    }
+
+    const minDeltaBytes =
+      typeof args.minDeltaBytes === 'number' && args.minDeltaBytes >= 0 ? args.minDeltaBytes : 1024;
+
+    const { HeapSnapshotParser } = await import('@modules/v8-inspector/HeapSnapshotParser');
+    const { DominatorTreeBuilder } = await import('@modules/v8-inspector/DominatorTreeBuilder');
+
+    // Parse primary
+    const priParser = new HeapSnapshotParser();
+    priParser.feedChunk(snapshot.chunks);
+    const priNodes = priParser.parseNodes();
+    const priEdges = priParser.parseEdges();
+
+    // Node lookup
+    type NodeEntry = { name: string; selfSize: number };
+    const priMap = new Map<number, NodeEntry>();
+    for (const n of priNodes) priMap.set(n.id, { name: n.name, selfSize: n.selfSize });
+
+    // Retained sizes (fail-soft: fallback to selfSize when dominator tree fails)
+    const priRetained = new Map<number, number>();
+    try {
+      const tree = new DominatorTreeBuilder().buildDominatorTree(priNodes, priEdges);
+      (function walk(n: any): void {
+        priRetained.set(n.nodeId, n.retainedSize);
+        if (n.children) for (const c of n.children) walk(c);
+      })(tree);
+    } catch {
+      for (const n of priNodes) priRetained.set(n.id, n.selfSize);
+    }
+
+    // Property counts
+    const priProps = new Map<number, number>();
+    for (const e of priEdges) priProps.set(e.fromId, (priProps.get(e.fromId) ?? 0) + 1);
+
+    // ── Secondary snapshot ──
+    let secNodes: typeof priNodes | undefined;
+    let secRetained: Map<number, number> | undefined;
+    let secProps: Map<number, number> | undefined;
+    let secMap: Map<number, NodeEntry> | undefined;
+
+    if (anotherSnapshotId) {
+      const snap = getSnapshot(anotherSnapshotId)!;
+      const sp = new HeapSnapshotParser();
+      sp.feedChunk(snap.chunks);
+      secNodes = sp.parseNodes();
+      const secEdges = sp.parseEdges();
+
+      secRetained = new Map<number, number>();
+      try {
+        const tree = new DominatorTreeBuilder().buildDominatorTree(secNodes, secEdges);
+        (function walk(n: any): void {
+          secRetained!.set(n.nodeId, n.retainedSize);
+          if (n.children) for (const c of n.children) walk(c);
+        })(tree);
+      } catch {
+        for (const n of secNodes) secRetained.set(n.id, n.selfSize);
+      }
+
+      secProps = new Map<number, number>();
+      for (const e of secEdges) secProps.set(e.fromId, (secProps.get(e.fromId) ?? 0) + 1);
+
+      secMap = new Map<number, NodeEntry>();
+      for (const n of secNodes) secMap.set(n.id, { name: n.name, selfSize: n.selfSize });
+    }
+
+    // ── Resolve + compare ──
+    interface SnapObject {
+      nodeId: number;
+      name: string;
+      shallowSize: number;
+      retainedSize: number;
+      propertyCount: number;
+    }
+    const skipped: number[] = [];
+
+    function resolve(
+      id: number,
+      map: Map<number, NodeEntry>,
+      ret: Map<number, number>,
+      prop: Map<number, number>,
+    ): SnapObject | null {
+      const e = map.get(id);
+      if (!e) {
+        skipped.push(id);
+        return null;
+      }
+      return {
+        nodeId: id,
+        name: e.name,
+        shallowSize: e.selfSize,
+        retainedSize: ret.get(id) ?? e.selfSize,
+        propertyCount: prop.get(id) ?? 0,
+      };
+    }
+
+    interface Pair {
+      objectA: SnapObject;
+      objectB: SnapObject;
+      delta: { shallowSize: number; retainedSize: number; propertyCount: number };
+      classMatch: boolean;
+      sameClass: boolean;
+      interesting: boolean;
+    }
+    const pairs: Pair[] = [];
+
+    if (anotherObjectIds && secNodes && secRetained && secProps && secMap) {
+      for (let i = 0; i < objectIds.length; i++) {
+        const a = resolve(objectIds[i]!, priMap, priRetained, priProps);
+        const b = resolve(anotherObjectIds[i]!, secMap, secRetained, secProps);
+        if (!a || !b) continue;
+        const sc = a.name === b.name;
+        pairs.push({
+          objectA: a,
+          objectB: b,
+          delta: {
+            shallowSize: b.shallowSize - a.shallowSize,
+            retainedSize: b.retainedSize - a.retainedSize,
+            propertyCount: b.propertyCount - a.propertyCount,
+          },
+          classMatch: sc,
+          sameClass: sc,
+          interesting:
+            Math.abs(b.shallowSize - a.shallowSize) >= minDeltaBytes ||
+            Math.abs(b.retainedSize - a.retainedSize) >= minDeltaBytes ||
+            !sc,
+        });
+      }
+    } else {
+      const resolved: SnapObject[] = [];
+      for (const id of objectIds) {
+        const o = resolve(id, priMap, priRetained, priProps);
+        if (o) resolved.push(o);
+      }
+      const includeSelf = resolved.length === 1;
+      for (let i = 0; i < resolved.length; i++) {
+        for (let j = includeSelf ? i : i + 1; j < resolved.length; j++) {
+          const a = resolved[i]!,
+            b = resolved[j]!;
+          const sc = a.name === b.name;
+          const dS = b.shallowSize - a.shallowSize,
+            dR = b.retainedSize - a.retainedSize;
+          pairs.push({
+            objectA: a,
+            objectB: b,
+            delta: {
+              shallowSize: dS,
+              retainedSize: dR,
+              propertyCount: b.propertyCount - a.propertyCount,
+            },
+            classMatch: sc,
+            sameClass: sc,
+            interesting: Math.abs(dS) >= minDeltaBytes || Math.abs(dR) >= minDeltaBytes || !sc,
+          });
+        }
+      }
+    }
+
+    pairs.sort((a, b) => Math.abs(b.delta.retainedSize) - Math.abs(a.delta.retainedSize));
+
+    return {
+      success: true,
+      snapshotId,
+      ...(anotherSnapshotId ? { anotherSnapshotId } : {}),
+      pairs,
+      ...(skipped.length > 0 ? { skippedNodes: skipped } : {}),
+      pairCount: pairs.length,
     };
   }
 

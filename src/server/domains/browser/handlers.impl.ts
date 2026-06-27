@@ -746,6 +746,22 @@ export class BrowserToolHandlers {
     return this.detailedData.handleGetOffloadedData(args);
   }
 
+  // ── Coverage & Script Blocking (P2) ──
+  async handlePageCoverageStart(args: Record<string, unknown>) {
+    const { handlePageCoverageStart } = await import('./handlers/coverage-and-block');
+    return handlePageCoverageStart({ collector: this.collector }, args);
+  }
+
+  async handlePageCoverageStop(args: Record<string, unknown>) {
+    const { handlePageCoverageStop } = await import('./handlers/coverage-and-block');
+    return handlePageCoverageStop({ collector: this.collector }, args);
+  }
+
+  async handlePageBlockScript(args: Record<string, unknown>) {
+    const { handlePageBlockScript } = await import('./handlers/coverage-and-block');
+    return handlePageBlockScript(args);
+  }
+
   // ── Camoufox Helpers ──
   private async handleCamoufoxLaunch(args: Record<string, unknown>) {
     return handleCamoufoxLaunchFlow(

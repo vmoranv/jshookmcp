@@ -35,6 +35,8 @@ import { DataManagementHandlers } from './handlers/data-management';
 import { handleManageHooks } from './handlers/hooks';
 import { handleWebpackEnumerate } from './handlers/webpack';
 import { handleAiSuggestExploits } from './handlers/exploit-suggestion';
+import { handleAnalysisDataFlow } from './handlers/data-flow';
+import { handleAnalysisSecurityScan } from './handlers/security-scan';
 import { JSVMPDeobfuscator } from '@modules/deobfuscator/JSVMPDeobfuscator';
 import { JScramberDeobfuscator } from '@modules/deobfuscator/JScramblerDeobfuscator';
 import { UniversalUnpacker } from '@modules/deobfuscator/PackerDeobfuscator';
@@ -201,5 +203,15 @@ export class CoreAnalysisHandlers {
   // Exploit suggestion (migrated from ai-assist)
   async handleAiSuggestExploits(args: ToolArgs): Promise<ToolResponse> {
     return handleAiSuggestExploits(this.samplingBridge, args);
+  }
+
+  // Data flow analysis
+  async handleAnalysisDataFlow(args: ToolArgs): Promise<ToolResponse> {
+    return handleAnalysisDataFlow(args);
+  }
+
+  // Security scan
+  async handleAnalysisSecurityScan(args: ToolArgs): Promise<ToolResponse> {
+    return handleAnalysisSecurityScan(args);
   }
 }

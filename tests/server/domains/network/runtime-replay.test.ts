@@ -40,6 +40,7 @@ vi.mock('@src/server/domains/network/har', () => ({
 }));
 
 vi.mock('node:fs', () => ({
+  existsSync: vi.fn(() => false), // used by config.ts resolvePackageEnv
   promises: {
     writeFile: (...args: any[]) => fsWriteFileMock(...args),
     lstat: (...args: any[]) => fsLstatMock(...args),
