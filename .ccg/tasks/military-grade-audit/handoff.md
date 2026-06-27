@@ -8,7 +8,8 @@
 > **Round 3 C1 Session 1 完成**: 2026-06-25 22:00 CST (Z3 solver 基础设施)
 > **Round 3 C1 Session 2 完成**: 2026-06-26 19:20 CST (RopBuilder Z3 BMC + verify_rop_chain)
 > **Gap Scan 完成**: 2026-06-27 (memory +3 tools +39 tests, exploit-dev +3 tools +23 tests)
-> **全域评分**: 7.3 → 7.9 → 8.0 → 8.2 → 8.4 → **8.6/10** (+0.2 Gap Scan)
+> **Route C 完成**: 2026-06-27 (exploit-dev 架构级深化: ARM/ARM64 ROP + JOP/COP/COOP + SGN x64)
+> **全域评分**: 7.3 → 7.9 → 8.0 → 8.2 → 8.4 → 8.6 → **8.7/10** (+0.1 Route C)
 
 > **下一位接手第一件事**: `pnpm test && npx tsc --noEmit && pnpm metadata:check` 确认状态 (502/14825+/0新增), 然后读本 handoff §「推荐路线」
 
@@ -25,23 +26,25 @@
   → Round 3 C1 Session 1 (6/25 16:00-22:00) ★ Z3 solver + babel bridge + analysis + 工具
   → Round 3 C1 Session 2 (6/26 18:00-19:20) ★ RopBuilder Z3 BMC + verify_rop_chain + 文档
   → Gap Scan (6/27) ★ memory + exploit-dev 缺口扫描与补漏 (6 tools, +62 tests)
+  → Route C (6/27) ★ exploit-dev 架构级深化 (ARM ROP + JOP/COP/COOP + SGN x64)
 ```
 
 ---
 
 ## 评分变化
 
-| 域 | 前 | Round 1+2 | Round 3 C1 | Gap Scan | Δ |
+| 域 | 前 | Round 1+2 | Round 3 C1 | Gap Scan | Route C | Δ |
 |----|----|-----------|------------|----------|----|
-| exploit-dev | 8.7 | 9.5 | **9.8** | 9.8 | +1.1 |
-| memory | 8.5 | 8.6 | 8.6 | **9.0** | +0.5 |
-| analysis | 7.2 | 8.0 | **8.6** | 8.6 | +1.4 |
+| exploit-dev | 8.7 | 9.5 | 9.8 | 9.8 | **9.8** | +1.1 |
+| memory | 8.5 | 8.6 | 8.6 | **9.0** | 9.0 | +0.5 |
+| analysis | 7.2 | 8.0 | **8.6** | 8.6 | 8.6 | +1.4 |
 | browser | 8.7 | **8.9** | — | — | +0.2 |
 | process | 6.0 | 7.0 | **8.0** | — | +2.0 |
 | debugger | 8.0 | **8.2** | — | — | +0.2 |
 | syscall-hook | 5.5 | **6.0** | — | — | +0.5 |
 | v8-inspector | 1.5 | **3.0** | — | — | +1.5 |
-| **全域** | 7.3 | 7.9 | 8.4 | **8.6** | +1.3 |
+| **全域** | 7.3 | 7.9 | 8.4 | 8.6 | **8.7** | +1.4 |
+| **exploit-dev** | 8.7 | 9.5 | 9.8 | 9.8 | **9.8** | +1.1 |
 
 ---
 
@@ -105,13 +108,16 @@
 | Issue #77 | npx screenshotDir L3 修复 | bug-fix | 2-4h |
 
 ### 🟢 Tier 3: 架构改进 (长期)
-| # | 域 | 缺口 |
-|---|-----|------|
-| E1 | exploit-dev | ARM/ARM64 ROP 约束 |
-| E2 | exploit-dev | JOP/COP/COOP 识别 + one-gadget DB |
-| E3 | exploit-dev | SGN 真多态 x64 |
-| E4 | native-emulator | NEON long/widening/saturating 补全 |
-| E5 | memory | 非 Windows 平台 parity (heap/PE/breakpoint/speedhack) |
+| # | 域 | 缺口 | 状态 |
+|---|-----|------|------|
+| E1 | exploit-dev | ARM/ARM64 ROP | ✅ Route C (2026-06-27) |
+| E2 | exploit-dev | JOP/COP/COOP 识别 | ✅ Route C (2026-06-27) |
+| E3 | exploit-dev | SGN 真多态 x64 | ✅ Route C (2026-06-27) |
+| E4 | native-emulator | NEON long/widening/saturating 补全 | 🟡 进行中 |
+| E5 | memory | 非 Windows 平台 parity (heap/PE/breakpoint/speedhack) | 🟡 backlog |
+| E6 | exploit-dev | **新缺口: JOP 链构建器** (gadget 识别已有, 无链构建) | 🟡 backlog |
+| E7 | exploit-dev | **新缺口: one-gadget 数据库** (libc execve 快捷方式) | 🟡 backlog |
+| E8 | exploit-dev | **新缺口: pwntools 兼容输出** (exploit.py 生成) | 🟡 backlog |
 
 ---
 
@@ -129,6 +135,9 @@
 | `.ccg/tasks/c1-z3-solver/plan.md` | C1 Z3 详细实施计划 + 进度日志 |
 | `.ccg/tasks/c1-z3-solver/task.json` | C1 任务状态机 |
 | `.ccg/tasks/gap-scan-exploit-memory/task.json` | Gap Scan 任务记录 |
+| `.ccg/tasks/archive/2026-06/route-c-exploit-arch/complete.md` | Route C 完成报告 |
+| `.ccg/tasks/archive/2026-06/route-c-exploit-arch/plan.md` | Route C 实施计划 |
+| `.ccg/tasks/archive/2026-06/route-c-exploit-arch/task.json` | Route C 任务状态机 |
 
 ### 分域审计报告 (.ccg/tasks/military-grade-audit/research/domains/)
 | 文件 | 评分 | 状态 |
@@ -159,6 +168,19 @@
 | `tests/server/domains/exploit-dev/stack-pivot.test.ts` | ~200 | 9 tests |
 | `tests/server/domains/exploit-dev/relro-cache.test.ts` | ~150 | 8 tests |
 
+### 本轮新增源码 (Route C)
+| 文件 | 行数 | 说明 |
+|------|------|------|
+| `src/server/domains/exploit-dev/handlers/gadget-search.ts` | +285 | ARM pop 语义提取 + JOP/COP/COOP 分类 |
+| `src/server/domains/exploit-dev/handlers/rop-builder.ts` | +111 | ARM64/ARM32 buildConstraints + svc 检测 |
+| `src/server/domains/exploit-dev/handlers/ShikataGaNaiEncoder.ts` | +177 | x64 LEA[RIP] 解码器桩 + REX 编码 |
+| `src/server/domains/exploit-dev/types.ts` | +10 | GadgetType + confidence/dispatcher/targetReg |
+| `src/server/domains/exploit-dev/definitions.ts` | +9 | type=rop/jop/cop/coop 参数 |
+| `tests/server/domains/exploit-dev/arm64-rop.test.ts` | ~312 | 14 tests |
+| `tests/server/domains/exploit-dev/jop-gadgets.test.ts` | ~229 | 10 tests |
+| `tests/server/domains/exploit-dev/shikata-ga-nai-x64.test.ts` | ~177 | 9 tests |
+| `tests/fixtures/exploit-dev/test-arm64.bin` | 52B | ARM64 ldp/ldr/svc/mov/nop fixture |
+
 ### Issue #77 L3 关键文件
 | 文件 | 行号 | 说明 |
 |------|------|------|
@@ -170,11 +192,11 @@
 
 ## 推荐路线 (下一位接手选择)
 
-### 🟢 Route A: 高分冲击 (2-3 天，全域 8.6→9.0)
+### 🟢 Route A: 高分冲击 (2-3 天，全域 8.7→9.0)
 做最低分域 — 低投入高产出的"低垂果实"：
 - **C8**: syscall-hook DirectNtApi 接入 → 6.0→7.5
 - **D1**: v8-inspector heap 泄漏分析 + bytecode → 3.0→5.0
-- 全域平均拉高 0.4
+- 全域平均拉高 0.3
 
 ### 🟡 Route B: 稳扎稳打 (3-5 天)
 独立任务，适合碎片推进：
@@ -182,11 +204,14 @@
 - **C7**: minidump .dmp 解析 (memory, 8-16h) → 9.0→9.2
 - **Issue #77 L3**: npx screenshotDir 修复 (4h)
 
-### 🔴 Route C: 架构级 (1-2 周)
-exploit-dev 深度增强：
-- ARM/ARM64 ROP 约束 (2-3d)
-- SGN 真多态 x64 (3-5d)
-- JOP/COP/COOP 识别 (2-3d)
+### 🔴 Route C: exploit-dev 深化 (已完成 ✅ 2026-06-27)
+~~ARM/ARM64 ROP + SGN 真多态 + JOP/COP/COOP~~ → **已交付，commit a56601a6**
+
+### 🔵 Route D: exploit-dev 下一阶段 (新，1-3 天)
+基于 Route C 产生的**新缺口**继续推进 exploit-dev：
+- **E6: JOP 链构建器** (gadget 识别已有, 需链编排) → 1-2d
+- **E7: one-gadget 数据库** (libc execve 快捷方式查表) → 1d
+- **E8: pwntools 兼容输出** (exploit.py 生成) → 0.5d
 
 ---
 
@@ -216,6 +241,13 @@ exploit-dev 深度增强：
 | 10 | Buffer.reverse() 是 Node 22 标准惯用 | 加 eslint-disable 注释绕过 |
 | 11 | `.ccg/` 被 gitignore — handoff 等文档不提交 | **别在 .ccg 目录中提交文件** |
 | 12 | `git filter-branch` 会把被删除的文件从所有 commit 中移除 | 修复已在 git 中的文件时，用 `git rm -f` 而非 `filter-branch` |
+| 13 | Buffer.writeUInt32LE() requires `>>> 0` for XOR values that go negative | Node 22 严格检查，XOR 后始终 `>>> 0` 再做写入 |
+| 14 | ARM64 Capstone BigInt 不能 JSON.stringify | 反汇编结果中 address 始终 `Number()` 转 |
+| 15 | Shellcode 缓存键必须包含 arch | x64 encode 不能复用 x86 缓存，反之亦然 |
+| 16 | x64 MOV r8-r15 需 REX.W=1 (0x48) | 缺 REX.W 导致寄存器截断到 32 位 |
+| 17 | oxfmt 自动格式化已编辑文件 | 最终编辑后必跑 `oxfmt --write` 再 commit |
+| 18 | ExploitDevCache 相同输入返回相同输出（非随机） | SGN 多态测试必须 `xorKey` 爆破缓存或清缓存 |
+| 19 | Codex `refresh_token_reused`，Gemini `IneligibleTier` | 双模型不可用时 Claude 独审，降级但完整 |
 
 ---
 
