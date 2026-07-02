@@ -18,7 +18,7 @@ Platform and package analysis domain covering miniapps, ASAR archives, and Elect
 - platform + process
 - platform + core
 
-## Full tool list (14)
+## Full tool list (16)
 
 | Tool | Description |
 | --- | --- |
@@ -36,3 +36,5 @@ Platform and package analysis domain covering miniapps, ASAR archives, and Elect
 | `electron_launch_debug` | Launch Electron with main and renderer CDP ports. |
 | `electron_debug_status` | Check status of dual-CDP debug sessions launched by electron_launch_debug. |
 | `electron_ipc_sniff` | Monitor Electron IPC messages. |
+| `electron_verify_integrity` | Verify Electron ASAR integrity: parse the ElectronAsarIntegrity JSON embedded in the main binary, locate each referenced ASAR, and compare the on-disk SHA256 against the embedded hash. A mismatch means the ASAR was tampered with after build. |
+| `asar_deobfuscate` | Scan every .js file inside an ASAR archive for obfuscation indicators (string-array arrays, webpack bundles, control-flow flattening, dynamic code, minification) and classify each file. Flagged files are optionally extracted to a directory for downstream deobfuscation. |

@@ -18,7 +18,7 @@
 - platform + process
 - platform + core
 
-## 工具清单（14）
+## 工具清单（16）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -36,3 +36,5 @@
 | `electron_launch_debug` | 以调试模式启动 Electron 应用，同时支持主进程和渲染进程的调试。 |
 | `electron_debug_status` | 检查由 electron_launch_debug 启动的双轨 CDP 调试会话状态。 |
 | `electron_ipc_sniff` | 嗅探 Electron 应用的 IPC 通信，捕获 channel 名称和参数。 |
+| `electron_verify_integrity` | 待补充中文：Verify Electron ASAR integrity: parse the ElectronAsarIntegrity JSON embedded in the main binary, locate each referenced ASAR, and compare the on-disk SHA256 against the embedded hash. A mismatch means the ASAR was tampered with after build. |
+| `asar_deobfuscate` | 待补充中文：Scan every .js file inside an ASAR archive for obfuscation indicators (string-array arrays, webpack bundles, control-flow flattening, dynamic code, minification) and classify each file. Flagged files are optionally extracted to a directory for downstream deobfuscation. |
