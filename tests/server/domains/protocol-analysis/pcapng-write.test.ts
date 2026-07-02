@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProtocolAnalysisHandlers } from '@server/domains/protocol-analysis/handlers';
-import { parsePcapng } from '@server/domains/protocol-analysis/handlers/shared/network-packet/pcapng';
+import { parsePcapng } from '@server/domains/protocol-analysis/handlers/shared/network-packet/pcapng-reader';
 
 describe('ProtocolAnalysisHandlers — handlePcapngWrite', () => {
   let handlers: ProtocolAnalysisHandlers;

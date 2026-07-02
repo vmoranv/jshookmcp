@@ -6,10 +6,10 @@ import { ProtocolAnalysisHandlers } from '@server/domains/protocol-analysis/hand
 import {
   PCAPNG_BLOCK_TYPE,
   PCAPNG_BYTE_ORDER_MAGIC,
-  buildPcapng,
-  parsePcapng,
   type PcapngWriteInput,
 } from '@server/domains/protocol-analysis/handlers/shared/network-packet/pcapng';
+import { parsePcapng } from '@server/domains/protocol-analysis/handlers/shared/network-packet/pcapng-reader';
+import { buildPcapng } from '@server/domains/protocol-analysis/handlers/shared/network-packet/pcapng-writer';
 
 describe('ProtocolAnalysisHandlers — handlePcapngRead', () => {
   let handlers: ProtocolAnalysisHandlers;

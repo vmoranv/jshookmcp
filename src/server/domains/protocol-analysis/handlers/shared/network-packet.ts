@@ -3,5 +3,7 @@ export * from './network-packet/addressing';
 export * from './network-packet/packet-build';
 export * from './network-packet/pcap';
 export * from './network-packet/pcapng';
+export * from './network-packet/pcapng-reader';
+export * from './network-packet/pcapng-writer';
 export * from './network-packet/dns';
 export * from './network-packet/http';

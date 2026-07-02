@@ -361,9 +361,11 @@ function decodeRdata(
   switch (type) {
     case 1: // A
       if (rdlength >= 4) {
-        return {
-          address: `${buffer[rdataOffset]!}.${buffer[rdataOffset + 1]!}.${buffer[rdataOffset + 2]!}.${buffer[rdataOffset + 3]!}`,
-        };
+        const a = buffer[rdataOffset]!;
+        const b = buffer[rdataOffset + 1]!;
+        const c = buffer[rdataOffset + 2]!;
+        const d = buffer[rdataOffset + 3]!;
+        return { address: `${a}.${b}.${c}.${d}` };
       }
       return null;
     case 28: // AAAA
