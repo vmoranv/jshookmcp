@@ -127,22 +127,21 @@ function toolByName(name: string) {
 
 // ── Win32-only tool names ──
 const WIN32_ONLY_TOOLS = new Set([
-  // Heap analysis (Toolhelp32 APIs)
+  // Heap analysis (Toolhelp32 APIs — no Linux/macOS parity yet)
   'memory_heap_enumerate',
   'memory_heap_stats',
   'memory_heap_anomalies',
-  // PE / Module introspection
+  // PE / Module introspection (ELF/Mach-O parity pending — E5-C)
   'memory_pe_headers',
   'memory_pe_imports_exports',
   'memory_inline_hook_detect',
-  // Anti-cheat detection
-  'memory_anticheat_detect',
-  'memory_guard_pages',
-  'memory_integrity_check',
-  // Hardware breakpoints (debug registers)
+  // Anti-cheat detection has a cross-platform fallback (returns platformNote),
+  // and integrity_check / guard_pages use PlatformMemoryAPI — all three are
+  // registered on every platform now (E5-A).
+  // Hardware breakpoints (debug registers — ptrace/macOS thread_set_state pending — E5-D)
   'memory_breakpoint',
   'memory_find_accesses',
-  // Speedhack (Win32 timer hooking)
+  // Speedhack (Win32 timer hooking — LD_PRELOAD parity pending — E5-D)
   'memory_speedhack',
 ]);
 
