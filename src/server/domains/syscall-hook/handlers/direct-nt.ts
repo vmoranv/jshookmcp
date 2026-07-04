@@ -9,6 +9,7 @@
  */
 
 import { argString, argStringRequired } from '@server/domains/shared/parse-args';
+import type { SyscallEntry } from '@native/syscall';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -17,9 +18,9 @@ interface ResolveSsnResult {
   error?: string;
   platform?: string;
   path?: string;
-  syscalls?: Array<{ name: string; ssn: number; rva: number }>;
+  syscalls?: SyscallEntry[];
   tableSize?: number;
-  lookup?: Record<string, unknown>;
+  lookup?: Record<string, SyscallEntry>;
   warnings?: string[];
 }
 
@@ -63,7 +64,7 @@ export class DirectNtApiHandlers {
         path: resolved.path,
         syscalls: resolved.syscalls,
         tableSize: resolved.syscalls.length,
-        lookup: resolved.byName as unknown as Record<string, unknown>,
+        lookup: resolved.byName,
         warnings: resolved.warnings.length > 0 ? resolved.warnings : undefined,
       };
     } catch (err) {

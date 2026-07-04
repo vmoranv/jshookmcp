@@ -49,6 +49,27 @@ export interface PESection {
   isReadable: boolean;
 }
 
+/**
+ * Raw PE section as decoded from an on-disk or in-memory buffer — the minimal
+ * fields needed to locate section bytes for comparison/restoration. Returned
+ * by {@link PEAnalyzer.parsePEFromBuffer}.
+ */
+export interface PEParsedSection {
+  name: string;
+  /** Section RVA (Relative Virtual Address) */
+  virtualAddress: number;
+  virtualSize: number;
+  /** File offset to the section's raw bytes */
+  pointerToRawData: number;
+  sizeOfRawData: number;
+}
+
+/** Result of parsing a PE file from a raw buffer. */
+export interface PEParsedBuffer {
+  fileHeader: { machine: number; numberOfSections: number; timeDateStamp: number };
+  sections: PEParsedSection[];
+}
+
 /** Imported DLL and its functions */
 export interface ImportEntry {
   dllName: string;

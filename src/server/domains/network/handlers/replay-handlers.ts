@@ -151,7 +151,7 @@ export class ReplayHandlers {
       return handleSafe(async () => {
         const result = await replayRequest(base, parsedArgs);
 
-        return result as unknown as Record<string, unknown>;
+        return result;
       });
     } catch (error) {
       return R.fail(error).json();

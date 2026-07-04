@@ -28,6 +28,7 @@ import type {
   InlineHookDetection,
   IATHookDetection,
   SectionAnomaly,
+  PEParsedBuffer,
 } from './PEAnalyzer.types';
 import { IMAGE_SCN, IMAGE_DIRECTORY_ENTRY } from './PEAnalyzer.types';
 
@@ -736,19 +737,12 @@ export class PEAnalyzer {
   }
 
   /**
-   * Parse PE headers from a disk file buffer.
-   * Similar to parseHeaders() but reads from memory buffer instead of process memory.
+   * Parse PE headers and section table from a raw on-disk or in-memory buffer.
+   * Public so memory-comparison/restoration handlers (e.g. process hollowing
+   * detection) can resolve section file offsets without re-implementing the
+   * parser or reaching into private state.
    */
-  private parsePEFromBuffer(buffer: Buffer): {
-    fileHeader: { machine: number; numberOfSections: number; timeDateStamp: number };
-    sections: Array<{
-      name: string;
-      virtualAddress: number;
-      virtualSize: number;
-      pointerToRawData: number;
-      sizeOfRawData: number;
-    }>;
-  } {
+  parsePEFromBuffer(buffer: Buffer): PEParsedBuffer {
     // Read DOS header
     const e_magic = buffer.readUInt16LE(0);
     if (e_magic !== MZ_MAGIC) {

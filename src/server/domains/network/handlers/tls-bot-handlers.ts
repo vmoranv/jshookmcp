@@ -159,6 +159,10 @@ export class TlsBotHandlers {
         acceptLanguage,
       );
 
+      // NetworkRequest doesn't declare securityDetails at the type level (it
+      // lives on NetworkResponse), but the ConsoleMonitor/Playwright path may
+      // attach it to the request object at runtime — probe reflectively and
+      // let getSecurityDetails narrow it.
       const secDetails = getSecurityDetails(
         (req as unknown as Record<string, unknown>)['securityDetails'],
       );
@@ -253,6 +257,10 @@ export class TlsBotHandlers {
       const acceptLanguage = headers['accept-language'] || headers['Accept-Language'] || '';
       const httpVersion = normalizeObservedHttpVersion(req.httpVersion);
 
+      // NetworkRequest doesn't declare securityDetails at the type level (it
+      // lives on NetworkResponse), but the ConsoleMonitor/Playwright path may
+      // attach it to the request object at runtime — probe reflectively and
+      // let getSecurityDetails narrow it.
       const secDetails = getSecurityDetails(
         (req as unknown as Record<string, unknown>)['securityDetails'],
       );

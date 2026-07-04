@@ -169,11 +169,11 @@ export class HollowingDetectionHandlers {
     try {
       // Read disk PE file
       const diskBuffer = await fs.readFile(diskPath);
-      const diskPE = (this.peAnalyzer as any).parsePEFromBuffer(diskBuffer);
+      const diskPE = this.peAnalyzer.parsePEFromBuffer(diskBuffer);
 
       // Restore each differing section
       for (const diff of differences) {
-        const diskSection = diskPE.sections.find((s: any) => s.name === diff.sectionName);
+        const diskSection = diskPE.sections.find((s) => s.name === diff.sectionName);
         if (!diskSection) {
           logger.warn(
             `[restoreFromDisk] Section ${diff.sectionName} not found in disk PE, skipping`,

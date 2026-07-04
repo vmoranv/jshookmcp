@@ -124,9 +124,13 @@ export class V8InspectorHandlers {
     if (!snapshot) {
       throw new Error(`Snapshot ${snapshotId} not found`);
     }
+    const { HeapSnapshotParser } = await import('@modules/v8-inspector/HeapSnapshotParser');
     const { DominatorTreeBuilder } = await import('@modules/v8-inspector/DominatorTreeBuilder');
+    const parser = new HeapSnapshotParser();
+    parser.feedChunk(snapshot.chunks);
     const builder = new DominatorTreeBuilder();
-    const objects = builder.getRetainedByFunctionName(pattern, snapshot as any, maxResults);
+    const tree = builder.buildDominatorTree(parser.parseNodes(), parser.parseEdges());
+    const objects = builder.getRetainedByFunctionName(pattern, tree, maxResults);
     return {
       success: true,
       snapshotId,
@@ -547,6 +551,7 @@ export class V8InspectorHandlers {
 
   async v8_wasm_inspect(args: ToolArgs): Promise<{
     success: boolean;
+    error?: string;
     modules: Array<{
       moduleId: number;
       url: string;
@@ -589,7 +594,7 @@ export class V8InspectorHandlers {
         },
         wasmGcAvailable: false,
         error: 'PageController not available. Call browser_launch or browser_attach first.',
-      } as any;
+      };
     }
 
     const getPage = createPageGetter(this.deps.ctx);
