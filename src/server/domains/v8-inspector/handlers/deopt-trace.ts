@@ -2,8 +2,16 @@
  * V8 Deopt Trace Handler — v8_deopt_trace
  *
  * Enables deoptimization tracing via CDP Runtime.evaluate with V8 natives syntax
- * and captures a stream of deopt events for analysis. Each event records the
- * function name, deoptimization reason, and bailout position.
+ * and captures deopt events by subscribing to Runtime.consoleAPICalled. V8 prints
+ * deopt diagnostics ("[deoptimizing (DEOPT …): … <JS Function <name>>…]") to the
+ * console when %TraceDeoptimizations(true) is active — it does NOT raise
+ * Debugger.paused events, so we listen on the console channel and parse the log
+ * lines. Each captured event records the function name, deopt reason, and the
+ * source line of the bailout.
+ *
+ * The listener + tracing + CDP session are torn down in a finally block so no
+ * handle leaks across calls (the previous implementation left a Debugger.paused
+ * listener and a setTimeout orphaned per call).
  *
  * Requires a browser with V8 natives syntax (%DebugTrace, %TraceDeoptimizations).
  * Falls back gracefully when natives are not available.
@@ -80,8 +88,15 @@ export async function handleDeoptTrace(
   args: Record<string, unknown>,
   getPage?: () => Promise<unknown>,
 ): Promise<DeoptTraceResult> {
-  const durationMs = argNumber(args, 'durationMs', 5000);
-  const maxEvents = argNumber(args, 'maxEvents', 50);
+  const durationRaw = argNumber(args, 'durationMs', 5000);
+  // Mirror definitions.ts minimum:100 / maximum:60000 constraints at runtime
+  // (argNumber alone does not enforce schema bounds).
+  const durationMs = Math.min(
+    60000,
+    Math.max(100, Number.isFinite(durationRaw) ? durationRaw : 5000),
+  );
+  const maxEventsRaw = argNumber(args, 'maxEvents', 50);
+  const maxEvents = Math.min(1000, Math.max(1, Number.isFinite(maxEventsRaw) ? maxEventsRaw : 50));
   const enableTracing = argBool(args, 'enable', true);
 
   const session = await createCDPSession(getPage);
@@ -118,9 +133,58 @@ export async function handleDeoptTrace(
   const events: DeoptEvent[] = [];
   const startTime = Date.now();
 
+  // %TraceDeoptimizations prints deopt reasons to the V8 console, it does NOT
+  // raise Debugger.paused events (the previous wiring assumed it did, and so
+  // never captured anything). Subscribe to Runtime.consoleAPICalled and parse
+  // the "deoptimizing" / "deoptimize" log lines that V8 emits.
+  type ConsoleHandler = (params: Record<string, unknown>) => void;
+  const consoleHandler: ConsoleHandler = (params) => {
+    const type = params['type'];
+    const apiArgs = Array.isArray(params['args']) ? params['args'] : [];
+    // V8 deopt logging goes to 'log' / 'verbose' console channels.
+    if (type !== 'log' && type !== 'verbose' && type !== 'info') return;
+    for (const a of apiArgs) {
+      if (typeof a !== 'object' || a === null) continue;
+      const desc = (a as Record<string, unknown>)['description'];
+      if (typeof desc !== 'string') continue;
+      // Lines look like: "[deoptimizing (DEOPT eager): begin 0x... <JS Function <name>...",
+      // "... (opt #...) @...] FP to SP delta: ...", "... : deoptimize at <file>:<line>:<col>"
+      if (!/deoptim/i.test(desc)) continue;
+      // V8 prints "<JS Function NAME (sfi #N)>" or "<JS Function NAME>"; cut at
+      // the first '(' or '<' after the name so the captured name is clean.
+      const fnMatch = desc.match(/<JS Function ([^()<]+)/);
+      const reasonMatch = desc.match(/DEOPT (\w+)/);
+      const posMatch = desc.match(/deoptimize at [^:]+:(\d+):(\d+)/);
+      const fnName = fnMatch?.[1]?.trim() ?? '<anonymous>';
+      const reason = reasonMatch?.[1] ?? 'unknown';
+      const posLine = posMatch?.[1];
+      events.push({
+        timestamp: Date.now() - startTime,
+        functionName: fnName,
+        reason,
+        sourcePosition: posLine ? Number(posLine) : undefined,
+      });
+      if (events.length >= maxEvents) return;
+    }
+  };
+
+  const cdp = session as unknown as {
+    on?: (event: string, handler: ConsoleHandler) => void;
+    off?: (event: string, handler: ConsoleHandler) => void;
+    removeListener?: (event: string, handler: ConsoleHandler) => void;
+  };
+
+  // Register the console listener BEFORE enabling tracing so we do not miss
+  // the first events. try/finally guarantees we tear it down + disable tracing
+  // + detach the session on every path (fixes the previous listener/timer leak
+  // where Debugger.paused listener and the setTimeout were never cleared).
   try {
+    await session.send('Runtime.enable').catch(() => {});
+    if (typeof cdp.on === 'function') {
+      cdp.on('Runtime.consoleAPICalled', consoleHandler);
+    }
+
     if (enableTracing) {
-      // Enable deopt tracing via natives
       await session.send('Runtime.evaluate', {
         expression: `
           (() => {
@@ -136,56 +200,19 @@ export async function handleDeoptTrace(
       });
     }
 
-    // Wait for the collection window
+    // Wait for the collection window. We resolve after durationMs; no orphan
+    // timer is left running (the previous setTimeout was never cleared).
     const elapsed = Date.now() - startTime;
-    const remaining = Math.max(0, durationMs - elapsed);
-
-    // Poll for deopt events using Debugger domain
+    const remaining = Math.max(0, Math.min(durationMs, 10000) - elapsed);
     if (remaining > 0) {
-      await new Promise<void>((resolve) => {
-        const timeout = setTimeout(resolve, Math.min(remaining, 10000));
-        // Collect events via Debugger.paused with reason=other
-        const handler = (params: Record<string, unknown>) => {
-          const reason = params['reason'];
-          const callFrames = Array.isArray(params['callFrames']) ? params['callFrames'] : [];
-
-          if (reason === 'other' || reason === 'OOM') {
-            for (const frame of callFrames) {
-              if (typeof frame !== 'object' || !frame) continue;
-              const fn = frame as Record<string, unknown>;
-              events.push({
-                timestamp: Date.now() - startTime,
-                functionName:
-                  typeof fn['functionName'] === 'string' ? fn['functionName'] : '<anonymous>',
-                reason: String(reason),
-                sourcePosition:
-                  typeof fn['location'] === 'object' && fn['location']
-                    ? ((fn['location'] as Record<string, unknown>)['lineNumber'] as
-                        | number
-                        | undefined)
-                    : undefined,
-              });
-              if (events.length >= maxEvents) break;
-            }
-          }
-        };
-
-        // Set up paused listener
-        const cdp = session as unknown as {
-          on?: (event: string, handler: (params: Record<string, unknown>) => void) => void;
-        };
-        if (typeof cdp.on === 'function') {
-          cdp.on('Debugger.paused', handler);
-        }
-
-        timeout.unref?.();
-      });
+      await new Promise<void>((resolve) => setTimeout(resolve, remaining));
     }
 
-    // Disable deopt tracing
+    // Disable tracing
     if (enableTracing) {
-      await session.send('Runtime.evaluate', {
-        expression: `
+      await session
+        .send('Runtime.evaluate', {
+          expression: `
           (() => {
             if (typeof %TraceDeoptimizations === 'function') {
               %TraceDeoptimizations(false);
@@ -194,13 +221,19 @@ export async function handleDeoptTrace(
             return false;
           })()
         `,
-        returnByValue: true,
-        awaitPromise: false,
-      });
+          returnByValue: true,
+          awaitPromise: false,
+        })
+        .catch(() => {});
     }
   } catch {
     // Best-effort — continue with whatever events we collected
   } finally {
+    if (typeof cdp.off === 'function') {
+      cdp.off('Runtime.consoleAPICalled', consoleHandler);
+    } else if (typeof cdp.removeListener === 'function') {
+      cdp.removeListener('Runtime.consoleAPICalled', consoleHandler);
+    }
     await session.detach().catch(() => {});
   }
 

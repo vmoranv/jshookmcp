@@ -101,7 +101,7 @@ export class V8InspectorHandlers {
   // ── Standard dispatch: heap snapshot capture ──
   async v8_deopt_trace(args: ToolArgs): Promise<unknown> {
     const { handleDeoptTrace } = await import('@server/domains/v8-inspector/handlers/deopt-trace');
-    return handleDeoptTrace(args);
+    return handleDeoptTrace(args, createPageGetter(this.deps.ctx));
   }
 
   async v8_turbofan_inspect(args: ToolArgs): Promise<unknown> {
