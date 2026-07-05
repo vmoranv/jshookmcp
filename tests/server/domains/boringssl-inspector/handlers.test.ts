@@ -16,6 +16,7 @@ import {
 import { describe, expect, it, beforeAll, beforeEach, afterAll, afterEach, vi } from 'vitest';
 import { BoringsslInspectorHandlers } from '@server/domains/boringssl-inspector/index';
 import { disableKeyLog } from '@modules/boringssl-inspector/TLSKeyLogExtractor';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import { TEST_HOSTS } from '@tests/shared/test-urls';
 
 describe('BoringsslInspectorHandlers', () => {
@@ -762,6 +763,31 @@ describe('BoringsslInspectorHandlers', () => {
         sessionId,
         kind: 'websocket',
       });
+    });
+  });
+
+  describe('ToolResponse wrappers', () => {
+    it('preserves cipher suite ToolResponse results without double wrapping', async () => {
+      const body = parseJson<any>(await handlers.handleCipherSuitesTool({ filter: 'TLS_AES' }));
+
+      expect(body.success).toBe(true);
+      expect(body.total).toBeGreaterThan(0);
+      expect(body.content).toBeUndefined();
+    });
+
+    it('converts thrown socket handler errors into structured ToolResponse failures', async () => {
+      vi.spyOn(handlers, 'handleTcpOpen').mockRejectedValueOnce(new Error('tcp failed'));
+
+      const body = parseJson<any>(
+        await handlers.handleTcpOpenTool({
+          host: '127.0.0.1',
+          port: tcpPort,
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('tcp failed');
+      expect(body.message).toBe('tcp failed');
     });
   });
 });

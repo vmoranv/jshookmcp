@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { CoordinationHandlers } from '@server/domains/coordination/index';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 import type {
   CreateTaskHandoffResponse,
   CompleteTaskHandoffResponse,
@@ -149,5 +150,34 @@ describe('CoordinationHandlers', () => {
     expect(contextRes.summary?.totalActive).toBe(1);
     expect(contextRes.summary?.totalCompleted).toBe(1);
     expect(contextRes.summary?.totalInsights).toBe(1);
+  });
+
+  describe('ToolResponse wrappers', () => {
+    it('wraps create_task_handoff without nesting an MCP content block', async () => {
+      const body = parseJson<any>(
+        await handlers.handleCreateTaskHandoffTool({
+          description: 'wrapped handoff',
+          targetDomain: 'browser',
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.taskId).toBeDefined();
+      expect(body.description).toBe('wrapped handoff');
+      expect(body.content).toBeUndefined();
+    });
+
+    it('converts thrown handoff errors into structured ToolResponse failures', async () => {
+      const body = parseJson<any>(
+        await handlers.handleCompleteTaskHandoffTool({
+          taskId: 'missing',
+          summary: 'not found',
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('Task handoff "missing" not found');
+      expect(body.message).toBe(body.error);
+    });
   });
 });

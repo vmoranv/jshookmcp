@@ -10,6 +10,7 @@
 import { randomUUID } from 'node:crypto';
 import { COORDINATION_GOTO_TIMEOUT_MS } from '@src/constants';
 import type { MCPServerContext } from '@server/domains/shared/registry';
+import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 export * from './definitions';
 export { sharedStateBoardTools } from './state-board/definitions';
 export { SharedStateBoardHandlers } from './state-board';
@@ -54,6 +55,10 @@ export class CoordinationHandlers {
   }
 
   // ── create_task_handoff ──
+
+  async handleCreateTaskHandoffTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleCreateTaskHandoff(args));
+  }
 
   async handleCreateTaskHandoff(args: Record<string, unknown>): Promise<unknown> {
     const description = args.description as string;
@@ -109,6 +114,10 @@ export class CoordinationHandlers {
 
   // ── complete_task_handoff ──
 
+  async handleCompleteTaskHandoffTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleCompleteTaskHandoff(args));
+  }
+
   async handleCompleteTaskHandoff(args: Record<string, unknown>): Promise<unknown> {
     const taskId = args.taskId as string;
     const summary = args.summary as string;
@@ -143,6 +152,10 @@ export class CoordinationHandlers {
   }
 
   // ── get_task_context ──
+
+  async handleGetTaskContextTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleGetTaskContext(args));
+  }
 
   async handleGetTaskContext(args: Record<string, unknown>): Promise<unknown> {
     const taskId = args.taskId as string | undefined;
@@ -180,6 +193,10 @@ export class CoordinationHandlers {
   }
 
   // ── append_session_insight ──
+
+  async handleAppendSessionInsightTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleAppendSessionInsight(args));
+  }
 
   async handleAppendSessionInsight(args: Record<string, unknown>): Promise<unknown> {
     const category = args.category as string;
@@ -242,6 +259,10 @@ export class CoordinationHandlers {
   // ── Page Snapshots ──
 
   private readonly snapshots = new Map<string, PageSnapshot>();
+
+  async handleSavePageSnapshotTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleSavePageSnapshot(args));
+  }
 
   async handleSavePageSnapshot(args: Record<string, unknown>): Promise<unknown> {
     const label = args.label as string | undefined;
@@ -318,6 +339,10 @@ export class CoordinationHandlers {
     };
   }
 
+  async handleRestorePageSnapshotTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleRestorePageSnapshot(args));
+  }
+
   async handleRestorePageSnapshot(args: Record<string, unknown>): Promise<unknown> {
     const snapshotId = args.snapshotId as string;
     if (!snapshotId) throw new Error('snapshotId is required');
@@ -383,6 +408,10 @@ export class CoordinationHandlers {
       localStorageKeysRestored: Object.keys(snapshot.localStorage).length,
       sessionStorageKeysRestored: Object.keys(snapshot.sessionStorage).length,
     };
+  }
+
+  async handleListPageSnapshotsTool(): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleListPageSnapshots());
   }
 
   async handleListPageSnapshots(): Promise<unknown> {

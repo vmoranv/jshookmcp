@@ -180,4 +180,38 @@ describe('NativeBridgeHandlers', () => {
       expect(ghidraResult.endpoint).toBe('http://127.0.0.1:18080');
     });
   });
+
+  /* ── ToolResponse wrappers ──────────────────────────────────────── */
+
+  describe('ToolResponse wrappers', () => {
+    it('preserves native status ToolResponse results without double wrapping', async () => {
+      const handlers = new NativeBridgeHandlers();
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          status: 200,
+          json: () => Promise.resolve({ version: '1.0' }),
+        }),
+      );
+
+      const body = parseJson<any>(
+        await handlers.handleNativeBridgeStatusTool({ backend: 'ghidra' }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.backends).toHaveLength(1);
+      expect(body.content).toBeUndefined();
+    });
+
+    it('converts thrown bridge handler errors into structured ToolResponse failures', async () => {
+      const handlers = new NativeBridgeHandlers();
+      vi.spyOn(handlers, 'handleGhidraBridge').mockRejectedValueOnce(new Error('bridge failed'));
+
+      const body = parseJson<any>(await handlers.handleGhidraBridgeTool({ action: 'status' }));
+
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('bridge failed');
+      expect(body.message).toBe('bridge failed');
+    });
+  });
 });

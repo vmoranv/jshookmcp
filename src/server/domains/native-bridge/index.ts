@@ -5,6 +5,7 @@ import {
   IDA_BRIDGE_ENDPOINT,
   NATIVE_BRIDGE_TIMEOUT_MS,
 } from '@src/constants';
+import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import { asJsonResponse, serializeError } from '@server/domains/shared/response';
 export * from './definitions';
 
@@ -95,6 +96,22 @@ export class NativeBridgeHandlers {
 
   private getIdaEndpoint(_args: Record<string, unknown>): string {
     return this.idaEndpoint;
+  }
+
+  handleNativeBridgeStatusTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(() => this.handleNativeBridgeStatus(args));
+  }
+
+  handleGhidraBridgeTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(() => this.handleGhidraBridge(args));
+  }
+
+  handleIdaBridgeTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(() => this.handleIdaBridge(args));
+  }
+
+  handleNativeSymbolSyncTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(() => this.handleNativeSymbolSync(args));
   }
 
   async handleNativeBridgeStatus(args: Record<string, unknown>) {

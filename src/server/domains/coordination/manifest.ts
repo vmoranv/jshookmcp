@@ -18,13 +18,17 @@ const registrations = defineMethodRegistrations<H, (typeof coordinationTools)[nu
   depKey: DEP_KEY,
   lookup: t,
   entries: [
-    { tool: 'create_task_handoff', method: 'handleCreateTaskHandoff', profiles: ['full'] },
-    { tool: 'complete_task_handoff', method: 'handleCompleteTaskHandoff', profiles: ['full'] },
-    { tool: 'get_task_context', method: 'handleGetTaskContext', profiles: ['full'] },
-    { tool: 'append_session_insight', method: 'handleAppendSessionInsight', profiles: ['full'] },
-    { tool: 'save_page_snapshot', method: 'handleSavePageSnapshot', profiles: ['full'] },
-    { tool: 'restore_page_snapshot', method: 'handleRestorePageSnapshot', profiles: ['full'] },
-    { tool: 'list_page_snapshots', method: 'handleListPageSnapshots', profiles: ['full'] },
+    { tool: 'create_task_handoff', method: 'handleCreateTaskHandoffTool', profiles: ['full'] },
+    { tool: 'complete_task_handoff', method: 'handleCompleteTaskHandoffTool', profiles: ['full'] },
+    { tool: 'get_task_context', method: 'handleGetTaskContextTool', profiles: ['full'] },
+    {
+      tool: 'append_session_insight',
+      method: 'handleAppendSessionInsightTool',
+      profiles: ['full'],
+    },
+    { tool: 'save_page_snapshot', method: 'handleSavePageSnapshotTool', profiles: ['full'] },
+    { tool: 'restore_page_snapshot', method: 'handleRestorePageSnapshotTool', profiles: ['full'] },
+    { tool: 'list_page_snapshots', method: 'handleListPageSnapshotsTool', profiles: ['full'] },
   ],
 });
 const stateBoardRegistrations = defineMethodRegistrations<
@@ -35,9 +39,9 @@ const stateBoardRegistrations = defineMethodRegistrations<
   depKey: SSB_DEP_KEY,
   lookup: t,
   entries: [
-    { tool: 'state_board', method: 'handleDispatch' },
-    { tool: 'state_board_watch', method: 'handleWatchDispatch' },
-    { tool: 'state_board_io', method: 'handleIODispatch' },
+    { tool: 'state_board', method: 'handleDispatchTool' },
+    { tool: 'state_board_watch', method: 'handleWatchDispatchTool' },
+    { tool: 'state_board_io', method: 'handleIODispatchTool' },
   ],
 });
 

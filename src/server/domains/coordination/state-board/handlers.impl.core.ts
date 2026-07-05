@@ -12,6 +12,7 @@ import { StoreHandlers } from './handlers/store-handlers';
 import { WatchHandlers } from './handlers/watch-handlers';
 import { IOHandlers } from './handlers/io-handlers';
 import { ToolError } from '@errors/ToolError';
+import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import { asErrorResponse } from '@server/domains/shared/response';
 
 export type { StateEntry, StateChangeRecord, StateWatch, StateBoardStats } from './handlers/shared';
@@ -77,6 +78,9 @@ export class SharedStateBoardHandlers {
   handleClear(args: Record<string, unknown>) {
     return this.storeHandlers.handleClear(args);
   }
+  handleDispatchTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleDispatch(args));
+  }
   handleDispatch(args: Record<string, unknown>) {
     const action = String(args['action'] ?? '');
     switch (action) {
@@ -103,6 +107,12 @@ export class SharedStateBoardHandlers {
           ),
         );
     }
+  }
+  handleWatchDispatchTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleWatchDispatch(args));
+  }
+  handleIODispatchTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleIODispatch(args));
   }
   handleStats() {
     return this.storeHandlers.handleStats();

@@ -65,6 +65,35 @@ describe('WasmToolHandlers', () => {
     expect(body.totalModules).toBe(1);
   });
 
+  describe('ToolResponse wrappers', () => {
+    it('preserves wasm_dump ToolResponse results without double wrapping', async () => {
+      page.evaluate
+        .mockResolvedValueOnce({
+          exports: ['a'],
+          importMods: ['env'],
+          size: 123,
+          moduleCount: 1,
+        })
+        .mockResolvedValueOnce(null);
+
+      const body = parseJson<any>(await handlers.handleWasmDumpTool({ moduleIndex: 0 }));
+
+      expect(body.success).toBe(true);
+      expect(body.totalModules).toBe(1);
+      expect(body.content).toBeUndefined();
+    });
+
+    it('converts thrown wasm handler errors into structured ToolResponse failures', async () => {
+      vi.spyOn(handlers, 'handleWasmDump').mockRejectedValueOnce(new Error('dump failed'));
+
+      const body = parseJson<any>(await handlers.handleWasmDumpTool({ moduleIndex: 0 }));
+
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('dump failed');
+      expect(body.message).toBe('dump failed');
+    });
+  });
+
   it('returns disassemble failure when external tool fails', async () => {
     runMock.mockResolvedValue({
       ok: false,

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProtocolAnalysisHandlers } from '@server/domains/protocol-analysis/handlers';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 
 describe('ProtocolAnalysisHandlers', () => {
   let handlers: ProtocolAnalysisHandlers;
@@ -305,6 +306,35 @@ describe('ProtocolAnalysisHandlers', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('out of range');
       expect(result.hexPayload).toBe('');
+    });
+  });
+
+  describe('ToolResponse wrappers', () => {
+    it('wraps protocol analysis objects without nesting an MCP content block', async () => {
+      const body = parseJson<any>(
+        await handlers.handleAutoDetectTool({
+          payloads: ['deadc0de0100', 'deadc0de0200'],
+          name: 'wrapped_proto',
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.patterns[0].name).toBe('wrapped_proto');
+      expect(body.content).toBeUndefined();
+    });
+
+    it('converts thrown protocol analysis errors into structured ToolResponse failures', async () => {
+      vi.spyOn(handlers, 'handleAutoDetect').mockRejectedValueOnce(new Error('detect failed'));
+
+      const body = parseJson<any>(
+        await handlers.handleAutoDetectTool({
+          payloads: ['aa'],
+        }),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('detect failed');
+      expect(body.message).toBe('detect failed');
     });
   });
 

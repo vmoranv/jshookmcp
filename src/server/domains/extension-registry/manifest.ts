@@ -13,11 +13,11 @@ const registrations = defineMethodRegistrations<H, (typeof extensionRegistryTool
     depKey: DEP_KEY,
     lookup: t,
     entries: [
-      { tool: 'extension_list_installed', method: 'handleListInstalled' },
-      { tool: 'extension_execute_in_context', method: 'handleExecuteInContext' },
-      { tool: 'extension_reload', method: 'handleReload' },
-      { tool: 'extension_uninstall', method: 'handleUninstall' },
-      { tool: 'webhook', method: 'handleWebhookDispatch' },
+      { tool: 'extension_list_installed', method: 'handleListInstalledTool' },
+      { tool: 'extension_execute_in_context', method: 'handleExecuteInContextTool' },
+      { tool: 'extension_reload', method: 'handleReloadTool' },
+      { tool: 'extension_uninstall', method: 'handleUninstallTool' },
+      { tool: 'webhook', method: 'handleWebhookDispatchTool' },
     ],
   },
 );

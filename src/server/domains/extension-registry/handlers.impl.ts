@@ -1,6 +1,7 @@
 import { PluginRegistry, WebhookBridge } from '@modules/extension-registry';
 import { WebhookServer, CommandQueue } from '@server/webhook';
 import { argObject, argString, argStringRequired } from '@server/domains/shared/parse-args';
+import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolArgs, ToolResponse } from '@server/types';
 
@@ -21,11 +22,19 @@ export class ExtensionRegistryHandlers {
     private webhook?: WebhookBridge,
   ) {}
 
+  async handleListInstalledTool(): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleListInstalled());
+  }
+
   async handleListInstalled(): Promise<ToolResponse> {
     return asJsonResponse({
       success: true,
       plugins: this.getRegistry().listInstalled(),
     });
+  }
+
+  async handleExecuteInContextTool(args: ToolArgs): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleExecuteInContext(args));
   }
 
   async handleExecuteInContext(args: ToolArgs): Promise<ToolResponse> {
@@ -50,6 +59,10 @@ export class ExtensionRegistryHandlers {
     });
   }
 
+  async handleReloadTool(args: ToolArgs): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleReload(args));
+  }
+
   async handleReload(args: ToolArgs): Promise<ToolResponse> {
     const pluginId = argStringRequired(args, 'pluginId');
     await this.getRegistry().unloadPlugin(pluginId);
@@ -64,6 +77,10 @@ export class ExtensionRegistryHandlers {
     });
   }
 
+  async handleUninstallTool(args: ToolArgs): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleUninstall(args));
+  }
+
   async handleUninstall(args: ToolArgs): Promise<ToolResponse> {
     const pluginId = argStringRequired(args, 'pluginId');
     await this.getRegistry().unregister(pluginId);
@@ -73,6 +90,10 @@ export class ExtensionRegistryHandlers {
       success: true,
       pluginId,
     });
+  }
+
+  async handleWebhookDispatchTool(args: ToolArgs): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleWebhookDispatch(args));
   }
 
   async handleWebhookCreate(args: ToolArgs): Promise<ToolResponse> {

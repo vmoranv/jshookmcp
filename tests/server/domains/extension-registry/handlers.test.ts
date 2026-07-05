@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExtensionRegistryHandlers } from '@server/domains/extension-registry/handlers.impl';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 
 describe('ExtensionRegistryHandlers', () => {
   let registry: {
@@ -64,5 +65,33 @@ describe('ExtensionRegistryHandlers', () => {
     } as any);
     expect(registry.loadPlugin).toHaveBeenCalledWith('plugin-1');
     expect(result.isError).toBeUndefined();
+  });
+
+  describe('ToolResponse wrappers', () => {
+    it('preserves list_installed ToolResponse results without double wrapping', async () => {
+      registry.listInstalled.mockReturnValue([{ id: 'plugin-1', name: 'test-plugin' }]);
+
+      const body = parseJson<any>(await handlers.handleListInstalledTool());
+
+      expect(body.success).toBe(true);
+      expect(body.plugins).toEqual([{ id: 'plugin-1', name: 'test-plugin' }]);
+      expect(body.content).toBeUndefined();
+    });
+
+    it('converts thrown registry errors into structured ToolResponse failures', async () => {
+      registry.loadPlugin.mockRejectedValue(new Error('load failed'));
+
+      const body = parseJson<any>(
+        await handlers.handleExecuteInContextTool({
+          pluginId: 'plugin-1',
+          contextName: 'default',
+          args: {},
+        } as any),
+      );
+
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('load failed');
+      expect(body.message).toBe('load failed');
+    });
   });
 });

@@ -7,6 +7,7 @@
  */
 import { describe, expect, it, beforeEach } from 'vitest';
 import { SharedStateBoardHandlers } from '@server/domains/coordination/state-board';
+import { parseJson } from '@tests/server/domains/shared/mock-factories';
 
 describe('SharedStateBoardHandlers — dispatch methods (handlers.impl.core coverage)', () => {
   let handler: SharedStateBoardHandlers;
@@ -61,6 +62,33 @@ describe('SharedStateBoardHandlers — dispatch methods (handlers.impl.core cove
         key: 'dispatch-empty-action-key',
       })) as Record<string, unknown>;
       expect(result.watchId).toMatch(/^watch_[a-f0-9]+$/);
+    });
+  });
+
+  // ── ToolResponse wrappers ─────────────────────────────────────────────────
+
+  describe('ToolResponse wrappers', () => {
+    it('wraps state_board dispatch results without nesting an MCP content block', async () => {
+      const body = parseJson<any>(
+        await handler.handleDispatchTool({
+          action: 'set',
+          key: 'wrapped-key',
+          value: 'wrapped-value',
+        }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.key).toBe('wrapped-key');
+      expect(body.content).toBeUndefined();
+    });
+
+    it('preserves existing text ToolResponses from invalid dispatch actions', async () => {
+      const result = await handler.handleDispatchTool({ action: 'invalid' });
+      const first = result.content[0];
+
+      expect(result.isError).toBe(true);
+      expect(first?.type).toBe('text');
+      expect('text' in first! ? first.text : '').toContain('Invalid action: "invalid"');
     });
   });
 

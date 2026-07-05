@@ -1,6 +1,5 @@
 import type { DomainManifest, MCPServerContext } from '@server/domains/shared/registry';
 import { defineMethodRegistrations, toolLookup } from '@server/domains/shared/registry';
-import { asToolResponse } from '@server/domains/shared/response';
 import { protocolAnalysisTools } from './definitions';
 import type { ProtocolAnalysisHandlers } from './handlers';
 
@@ -12,28 +11,27 @@ const registrations = defineMethodRegistrations<H, (typeof protocolAnalysisTools
   domain: DOMAIN,
   depKey: DEP_KEY,
   lookup: t,
-  wrapResult: asToolResponse,
   entries: [
-    { tool: 'proto_define_pattern', method: 'handleDefinePattern' },
-    { tool: 'proto_auto_detect', method: 'handleAutoDetect' },
-    { tool: 'proto_infer_fields', method: 'handleInferFields' },
-    { tool: 'proto_infer_state_machine', method: 'handleInferStateMachine' },
-    { tool: 'proto_export_schema', method: 'handleExportSchema' },
-    { tool: 'proto_visualize_state', method: 'handleVisualizeState' },
-    { tool: 'payload_template_build', method: 'handlePayloadTemplateBuild' },
-    { tool: 'payload_mutate', method: 'handlePayloadMutate' },
-    { tool: 'ethernet_frame_build', method: 'handleEthernetFrameBuild' },
-    { tool: 'arp_build', method: 'handleArpBuild' },
-    { tool: 'raw_ip_packet_build', method: 'handleRawIpPacketBuild' },
-    { tool: 'icmp_echo_build', method: 'handleIcmpEchoBuild' },
-    { tool: 'checksum_apply', method: 'handleChecksumApply' },
-    { tool: 'pcap_write', method: 'handlePcapWrite' },
-    { tool: 'pcap_read', method: 'handlePcapRead' },
-    { tool: 'pcapng_write', method: 'handlePcapngWrite' },
-    { tool: 'pcapng_read', method: 'handlePcapngRead' },
-    { tool: 'proto_dissect_dns', method: 'handleProtoDissectDns' },
-    { tool: 'proto_dissect_http', method: 'handleProtoDissectHttp' },
-    { tool: 'proto_fingerprint', method: 'handleProtoFingerprint' },
+    { tool: 'proto_define_pattern', method: 'handleDefinePatternTool' },
+    { tool: 'proto_auto_detect', method: 'handleAutoDetectTool' },
+    { tool: 'proto_infer_fields', method: 'handleInferFieldsTool' },
+    { tool: 'proto_infer_state_machine', method: 'handleInferStateMachineTool' },
+    { tool: 'proto_export_schema', method: 'handleExportSchemaTool' },
+    { tool: 'proto_visualize_state', method: 'handleVisualizeStateTool' },
+    { tool: 'payload_template_build', method: 'handlePayloadTemplateBuildTool' },
+    { tool: 'payload_mutate', method: 'handlePayloadMutateTool' },
+    { tool: 'ethernet_frame_build', method: 'handleEthernetFrameBuildTool' },
+    { tool: 'arp_build', method: 'handleArpBuildTool' },
+    { tool: 'raw_ip_packet_build', method: 'handleRawIpPacketBuildTool' },
+    { tool: 'icmp_echo_build', method: 'handleIcmpEchoBuildTool' },
+    { tool: 'checksum_apply', method: 'handleChecksumApplyTool' },
+    { tool: 'pcap_write', method: 'handlePcapWriteTool' },
+    { tool: 'pcap_read', method: 'handlePcapReadTool' },
+    { tool: 'pcapng_write', method: 'handlePcapngWriteTool' },
+    { tool: 'pcapng_read', method: 'handlePcapngReadTool' },
+    { tool: 'proto_dissect_dns', method: 'handleProtoDissectDnsTool' },
+    { tool: 'proto_dissect_http', method: 'handleProtoDissectHttpTool' },
+    { tool: 'proto_fingerprint', method: 'handleProtoFingerprintTool' },
   ],
 });
 
