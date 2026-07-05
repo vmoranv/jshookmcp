@@ -17,6 +17,7 @@ import { InjectionHandlers } from './handlers/injection-handlers';
 import { HollowingDetectionHandlers } from './handlers/hollowing-detection';
 import { HandleEnumerationHandlers } from './handlers/handle-enumeration';
 import { ApcDetectionHandlers } from './handlers/apc-detection';
+import { ProcessSuspendHandlers } from './handlers/process-suspend';
 import {
   validatePid,
   requireString,
@@ -151,6 +152,7 @@ export class ProcessToolHandlers extends ProcessHandlersBase {
   private hollowing: HollowingDetectionHandlers;
   private handleEnum: HandleEnumerationHandlers;
   private apcDetection: ApcDetectionHandlers;
+  private processSuspend: ProcessSuspendHandlers;
 
   constructor(ctx?: import('@server/MCPServer.context').MCPServerContext) {
     super(ctx);
@@ -159,6 +161,7 @@ export class ProcessToolHandlers extends ProcessHandlersBase {
     this.hollowing = new HollowingDetectionHandlers(this.processMgmt);
     this.handleEnum = new HandleEnumerationHandlers(this.processMgmt);
     this.apcDetection = new ApcDetectionHandlers(this.deps);
+    this.processSuspend = new ProcessSuspendHandlers(this.processMgmt);
   }
 
   // ── Injection Handlers ──
@@ -203,6 +206,16 @@ export class ProcessToolHandlers extends ProcessHandlersBase {
 
   async handleProcessDetectApc(args: Record<string, unknown>) {
     return this.apcDetection.handleProcessDetectApc(args);
+  }
+
+  // ── Process Suspend/Resume ──
+
+  async handleProcessSuspend(args: Record<string, unknown>) {
+    return this.processSuspend.handleProcessSuspend(args);
+  }
+
+  async handleProcessResume(args: Record<string, unknown>) {
+    return this.processSuspend.handleProcessResume(args);
   }
 }
 

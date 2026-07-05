@@ -28,6 +28,8 @@ const CROSS_PLATFORM_TOOLS = [
   'check_debug_port',
   'process_enum_threads',
   'process_detect_hollowing',
+  'process_suspend',
+  'process_resume',
 ];
 
 async function loadManifestWithPlatform(platform?: 'win32' | 'linux' | 'darwin') {
@@ -58,7 +60,7 @@ describe('process manifest platform filtering', () => {
     const manifest = await loadManifestWithPlatform('linux');
     const registeredNames = new Set(manifest.registrations.map((r) => r.tool.name));
 
-    expect(manifest.registrations.length).toBe(22);
+    expect(manifest.registrations.length).toBe(24);
     for (const tool of CROSS_PLATFORM_TOOLS) {
       if (tool === 'inject_dll' || tool === 'inject_shellcode' || tool === 'check_debug_port') {
         continue;
@@ -69,5 +71,8 @@ describe('process manifest platform filtering', () => {
     // process_enum_threads + process_detect_hollowing are now cross-platform
     expect(registeredNames.has('process_enum_threads')).toBe(true);
     expect(registeredNames.has('process_detect_hollowing')).toBe(true);
+    // process_suspend + process_resume are cross-platform
+    expect(registeredNames.has('process_suspend')).toBe(true);
+    expect(registeredNames.has('process_resume')).toBe(true);
   });
 });

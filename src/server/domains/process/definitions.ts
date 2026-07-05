@@ -291,6 +291,26 @@ export const processToolDefinitions: Tool[] = [
       .string('evaluate', 'Optional JavaScript expression to evaluate in the selected page')
       .string('wsEndpoint', 'Optional browser WebSocket endpoint override'),
   ),
+
+  tool('process_suspend', (t) =>
+    t
+      .desc(
+        'Suspend a process for forensic snapshotting. Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). ' +
+          'Pair with process_resume to restore. Use before memory_scan/dump for a consistent snapshot. ' +
+          'Requires admin/root on most platforms.',
+      )
+      .number('pid', 'Process ID to suspend')
+      .required('pid'),
+  ),
+
+  tool('process_resume', (t) =>
+    t
+      .desc(
+        'Resume a previously suspended process. Cross-platform: NtResumeProcess (Win32), SIGCONT (Linux), task_resume (macOS).',
+      )
+      .number('pid', 'Process ID to resume')
+      .required('pid'),
+  ),
 ];
 
 export type ProcessToolName = (typeof processToolDefinitions)[number]['name'];

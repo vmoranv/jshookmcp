@@ -142,7 +142,7 @@ async function withScopedTaskPort<R>(pid: number, fn: (task: number) => R): Prom
   }
 }
 
-async function suspendProcess(platform: Platform, pid: number): Promise<boolean> {
+export async function suspendProcess(platform: Platform, pid: number): Promise<boolean> {
   try {
     switch (platform) {
       case 'darwin': {
@@ -176,7 +176,7 @@ async function suspendProcess(platform: Platform, pid: number): Promise<boolean>
   }
 }
 
-async function resumeProcess(platform: Platform, pid: number): Promise<void> {
+export async function resumeProcess(platform: Platform, pid: number): Promise<void> {
   try {
     switch (platform) {
       case 'darwin': {

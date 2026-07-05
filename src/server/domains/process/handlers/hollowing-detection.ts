@@ -21,6 +21,7 @@ import {
   EnumProcessModules,
   GetModuleFileNameEx,
   GetModuleInformation,
+  ReadProcessMemory,
 } from '@native/Win32API';
 import { createPlatformProvider } from '@native/platform/factory';
 import { scanIntegrity, type IntegritySectionResult } from '@native/platform/IntegrityScanner';
@@ -42,14 +43,13 @@ export class HollowingDetectionHandlers {
         throw new Error('pid must be a positive integer');
       }
       const autoRestore = argBool(args, 'autoRestore', false);
-      // includeMemoryDump is reserved for future use (e.g., forensic analysis)
-      // const includeMemoryDump = argBool(args, 'includeMemoryDump', false);
+      const includeMemoryDump = argBool(args, 'includeMemoryDump', false);
 
       const platform = this.processMgmt?.platformValue ?? process.platform;
       if (platform !== 'win32') {
         return this.detectHollowingCrossPlatform(pid, platform);
       }
-      return this.detectHollowingWin32(pid, autoRestore);
+      return this.detectHollowingWin32(pid, autoRestore, includeMemoryDump);
     } catch (error) {
       return {
         success: false,
@@ -62,7 +62,11 @@ export class HollowingDetectionHandlers {
 
   // ── Win32 fast path: PE section comparison + optional restore ──
 
-  private async detectHollowingWin32(pid: number, autoRestore: boolean) {
+  private async detectHollowingWin32(
+    pid: number,
+    autoRestore: boolean,
+    includeMemoryDump: boolean,
+  ) {
     // 1. Open process handle
     const hProcess = openProcessForMemory(pid);
 
@@ -149,6 +153,79 @@ export class HollowingDetectionHandlers {
       }
 
       // 7. Build result
+      const diffEntries: Array<{
+        section: string;
+        offset: string;
+        size: number;
+        memoryHash: string;
+        diskHash: string;
+        memoryBytes?: string;
+        diskBytes?: string;
+      }> = comparisonResult.differences.map((d) => ({
+        section: d.sectionName,
+        offset: `0x${d.offsetStart.toString(16)}`,
+        size: d.bytesCompared,
+        memoryHash: d.memoryHash.substring(0, 16) + '...', // Truncate for readability
+        diskHash: d.diskHash.substring(0, 16) + '...',
+      }));
+
+      // 8. Optional: include memory dump for forensic analysis (Win32 only)
+      let memoryDump: { included: true; truncated: boolean; totalBytes: number } | undefined;
+      if (includeMemoryDump && isHollowed && comparisonResult.differences.length > 0) {
+        const MAX_DUMP_SECTIONS = 3;
+        const MAX_BYTES_PER_SECTION = 65536;
+        let totalBytes = 0;
+        let truncated = false;
+
+        try {
+          const { promises: fs } = await import('node:fs');
+          const diskBuffer = await fs.readFile(diskPath);
+          const diskPE = this.peAnalyzer.parsePEFromBuffer(diskBuffer);
+
+          const diffsToDump = comparisonResult.differences.slice(0, MAX_DUMP_SECTIONS);
+          if (comparisonResult.differences.length > MAX_DUMP_SECTIONS) {
+            truncated = true;
+          }
+
+          for (let i = 0; i < diffsToDump.length; i++) {
+            const diff = diffsToDump[i]!;
+            const entry = diffEntries[i]!;
+            const readSize = Math.min(MAX_BYTES_PER_SECTION, diff.bytesCompared);
+            if (diff.bytesCompared > MAX_BYTES_PER_SECTION) {
+              truncated = true;
+            }
+
+            // Read memory bytes from the live process
+            const memoryBuffer = ReadProcessMemory(
+              hProcess,
+              mainModuleHandle + BigInt(diff.offsetStart),
+              readSize,
+            );
+            entry.memoryBytes = memoryBuffer.subarray(0, readSize).toString('hex');
+
+            // Read disk bytes from the on-disk PE file
+            const diskSection = diskPE.sections.find((s) => s.name === diff.sectionName);
+            if (diskSection) {
+              const diskEnd = diskSection.pointerToRawData + readSize;
+              const diskSlice = diskBuffer.subarray(diskSection.pointerToRawData, diskEnd);
+              entry.diskBytes = diskSlice.subarray(0, readSize).toString('hex');
+            } else {
+              entry.diskBytes = '';
+            }
+
+            totalBytes += readSize;
+          }
+
+          memoryDump = { included: true, truncated, totalBytes };
+        } catch (error) {
+          logger.warn(
+            `[process_detect_hollowing] Memory dump collection failed for PID ${pid}:`,
+            error,
+          );
+          memoryDump = { included: true, truncated: false, totalBytes: 0 };
+        }
+      }
+
       return {
         success: true,
         isHollowed,
@@ -156,13 +233,8 @@ export class HollowingDetectionHandlers {
         modulePath: diskPath,
         moduleBase: moduleBaseHex,
         moduleSizeOfImage: moduleInfoResult.info.SizeOfImage,
-        differences: comparisonResult.differences.map((d) => ({
-          section: d.sectionName,
-          offset: `0x${d.offsetStart.toString(16)}`,
-          size: d.bytesCompared,
-          memoryHash: d.memoryHash.substring(0, 16) + '...', // Truncate for readability
-          diskHash: d.diskHash.substring(0, 16) + '...',
-        })),
+        differences: diffEntries,
+        memoryDump,
         restored,
         restoreError,
         warning: autoRestore
