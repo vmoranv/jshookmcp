@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MojoIPCHandlers } from '@server/domains/mojo-ipc/handlers.impl';
+import { ResponseBuilder } from '@server/domains/shared/ResponseBuilder';
 
 // ── mock factories ────────────────────────────────────────────────────────────
 
@@ -726,6 +727,39 @@ describe('MojoIPCHandlers — coverage expansion', () => {
           'totalAvailable',
         ].toSorted(),
       );
+    });
+  });
+
+  // ── MCP-safe wrappers ─────────────────────────────────────────────────────
+
+  describe('MCP-safe tool wrappers', () => {
+    it('wraps successful handler output in a ToolResponse', async () => {
+      const response = await handlers.handleMojoDecodeMessageTool({ hexPayload: '0001' });
+      const payload = ResponseBuilder.parse<Record<string, unknown>>(response);
+      expect(payload).toMatchObject({
+        success: true,
+        decoded: { header: { version: 1 }, fields: {}, handles: 0, raw: '0001' },
+      });
+    });
+
+    it('preserves explicit success:false payloads from direct handlers', async () => {
+      const response = await handlers.handleMojoDecodeMessageTool({});
+      const payload = ResponseBuilder.parse<Record<string, unknown>>(response);
+      expect(payload).toMatchObject({
+        success: false,
+        error: 'hexPayload is required',
+      });
+    });
+
+    it('turns thrown monitor failures into structured tool errors', async () => {
+      monitor.start.mockRejectedValue(new Error('attach failed'));
+      const response = await handlers.handleMojoMonitorDispatchTool({ action: 'start' });
+      const payload = ResponseBuilder.parse<Record<string, unknown>>(response);
+      expect(payload).toMatchObject({
+        success: false,
+        error: 'attach failed',
+        message: 'attach failed',
+      });
     });
   });
 });

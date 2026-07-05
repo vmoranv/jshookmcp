@@ -9,7 +9,7 @@
         "src/server/domains/adb-bridge/handlers.ts"
       ],
       "d4_bareCatch": 3,
-      "d5_handleSafeRefs": 0,
+      "d5_handleSafeRefs": 13,
       "d6_doc": {
         "hasClaude": true,
         "hasScore": true,
@@ -138,7 +138,7 @@
         "src/server/domains/cross-domain/handlers.impl.ts"
       ],
       "d4_bareCatch": 0,
-      "d5_handleSafeRefs": 0,
+      "d5_handleSafeRefs": 7,
       "d6_doc": {
         "hasClaude": true,
         "hasScore": true,
@@ -314,7 +314,7 @@
         "src/server/domains/mojo-ipc/handlers.ts"
       ],
       "d4_bareCatch": 0,
-      "d5_handleSafeRefs": 0,
+      "d5_handleSafeRefs": 6,
       "d6_doc": {
         "hasClaude": true,
         "hasScore": true,
@@ -447,7 +447,7 @@
       "d2_testFiles": 1,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 2,
-      "d5_handleSafeRefs": 0,
+      "d5_handleSafeRefs": 9,
       "d6_doc": {
         "hasClaude": true,
         "hasScore": true,
@@ -518,7 +518,7 @@
       "d2_testFiles": 7,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 2,
-      "d5_handleSafeRefs": 0,
+      "d5_handleSafeRefs": 10,
       "d6_doc": {
         "hasClaude": true,
         "hasScore": true,

@@ -4,6 +4,7 @@ import {
   capabilityReport,
   createStub,
 } from '@server/domains/shared/capabilities';
+import { handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import { argNumber, argString } from '@server/domains/shared/parse-args';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 
@@ -40,6 +41,26 @@ export class MojoIPCHandlers {
     private decoder?: MojoDecoder,
     private eventBus?: EventBus<ServerEventMap>,
   ) {}
+
+  async handleMojoMonitorDispatchTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleMojoMonitorDispatch(args));
+  }
+
+  async handleMojoIpcCapabilitiesTool(): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleMojoIpcCapabilities());
+  }
+
+  async handleMojoDecodeMessageTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleMojoDecodeMessage(args));
+  }
+
+  async handleMojoListInterfacesTool(): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleMojoListInterfaces());
+  }
+
+  async handleMojoMessagesGetTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleMojoMessagesGet(args));
+  }
 
   async handleMojoMonitorDispatch(args: Record<string, unknown>): Promise<unknown> {
     return String(args['action'] ?? '') === 'stop'

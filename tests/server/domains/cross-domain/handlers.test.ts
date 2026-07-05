@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { CrossDomainHandlers } from '@server/domains/cross-domain/handlers';
+import { ResponseBuilder } from '@server/domains/shared/ResponseBuilder';
 import {
   CrossDomainEvidenceBridge,
   resetIdCounter,
@@ -90,6 +91,33 @@ describe('CrossDomainHandlers', () => {
       const data = JSON.parse(result.content[0].text);
       expect(data.evidenceGraph).toBeDefined();
       expect(data.evidenceGraph.version).toBe(1);
+    });
+  });
+
+  describe('MCP-safe tool wrappers', () => {
+    it('returns existing ToolResponse payloads without nesting', async () => {
+      const result = await handlers.handleEvidenceStatsTool();
+      const data = ResponseBuilder.parse<Record<string, unknown>>(result);
+      expect(data).toMatchObject({
+        nodeCount: 0,
+        edgeCount: 0,
+      });
+      expect(data).not.toHaveProperty('content');
+    });
+
+    it('turns thrown evidence bridge failures into structured errors', async () => {
+      const failingHandlers = new CrossDomainHandlers({
+        getStats: () => {
+          throw new Error('stats failed');
+        },
+      } as any);
+      const result = await failingHandlers.handleEvidenceStatsTool();
+      const data = ResponseBuilder.parse<Record<string, unknown>>(result);
+      expect(data).toMatchObject({
+        success: false,
+        error: 'stats failed',
+        message: 'stats failed',
+      });
     });
   });
 });

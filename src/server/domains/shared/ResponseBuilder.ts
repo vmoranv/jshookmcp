@@ -153,16 +153,30 @@ export class ResponseBuilder {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isToolResponse(value: unknown): value is ToolResponse {
+  if (!isRecord(value) || !Array.isArray(value['content'])) {
+    return false;
+  }
+  const [first] = value['content'];
+  return isRecord(first) && typeof first['type'] === 'string';
+}
+
 /** Safely execute an async handler, returning success/error ToolResponse automatically. */
 export function handleSafe(
-  fn: () => Promise<Record<string, unknown>> | Promise<unknown>,
+  fn: () => Promise<Record<string, unknown>> | Promise<ToolResponse> | Promise<unknown>,
 ): Promise<ToolResponse> {
   return fn()
     .then((data) =>
-      new ResponseBuilder()
-        .ok()
-        .merge(data as Record<string, unknown>)
-        .json(),
+      isToolResponse(data)
+        ? data
+        : new ResponseBuilder()
+            .ok()
+            .merge(data as Record<string, unknown>)
+            .json(),
     )
     .catch((error) => new ResponseBuilder().fail(error).json());
 }

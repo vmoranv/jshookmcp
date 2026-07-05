@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ADBBridgeHandlers } from '@server/domains/adb-bridge/handlers.impl';
+import { ResponseBuilder } from '@server/domains/shared/ResponseBuilder';
 import { probeCommand } from '@modules/external/ToolProbe';
 import { execFile } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -70,6 +71,23 @@ describe('ADBBridgeHandlers', () => {
     expect(parsed.count).toBe(1);
     expect(parsed.devices[0].serial).toBe('emulator-5554');
     expect(parsed.devices[0].state).toBe('device');
+  });
+
+  it('keeps wrapper responses un-nested for successful device listing', async () => {
+    mockExecFile([
+      {
+        stdout: [
+          'List of devices attached',
+          'emulator-5554          device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64 device:emu64a',
+          '',
+        ].join('\n'),
+      },
+    ]);
+
+    const result = await handlers.handleDeviceListTool({});
+    const parsed = ResponseBuilder.parse<Record<string, unknown>>(result);
+    expect(parsed).toMatchObject({ success: true, count: 1 });
+    expect(parsed.content).toBeUndefined();
   });
 
   it('runs shell command and returns output', async () => {
@@ -162,5 +180,21 @@ describe('ADBBridgeHandlers', () => {
     });
 
     await expect(handlers.handleDeviceList({})).rejects.toThrow('adb not found');
+  });
+
+  it('turns wrapper prerequisite failures into structured tool responses', async () => {
+    (probeCommand as any).mockResolvedValueOnce({
+      available: false,
+      reason: 'adb not found in PATH',
+    });
+
+    const result = await handlers.handleDeviceListTool({});
+    const parsed = ResponseBuilder.parse<Record<string, unknown>>(result);
+    expect(parsed).toMatchObject({
+      success: false,
+      error: 'adb not found in PATH',
+      message: 'adb not found in PATH',
+    });
+    expect(result.isError).toBeUndefined();
   });
 });

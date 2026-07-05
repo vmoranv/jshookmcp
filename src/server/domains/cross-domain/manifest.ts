@@ -18,12 +18,12 @@ const registrations = defineMethodRegistrations<
   depKey: DEP_KEY,
   lookup: lookupTool,
   entries: [
-    { tool: 'cross_domain_capabilities', method: 'handleCapabilities' },
-    { tool: 'cross_domain_suggest_workflow', method: 'handleSuggestWorkflow' },
-    { tool: 'cross_domain_health', method: 'handleHealth' },
-    { tool: 'cross_domain_correlate_all', method: 'handleCorrelateAll' },
-    { tool: 'cross_domain_evidence_export', method: 'handleEvidenceExport' },
-    { tool: 'cross_domain_evidence_stats', method: 'handleEvidenceStats' },
+    { tool: 'cross_domain_capabilities', method: 'handleCapabilitiesTool' },
+    { tool: 'cross_domain_suggest_workflow', method: 'handleSuggestWorkflowTool' },
+    { tool: 'cross_domain_health', method: 'handleHealthTool' },
+    { tool: 'cross_domain_correlate_all', method: 'handleCorrelateAllTool' },
+    { tool: 'cross_domain_evidence_export', method: 'handleEvidenceExportTool' },
+    { tool: 'cross_domain_evidence_stats', method: 'handleEvidenceStatsTool' },
   ],
 });
 

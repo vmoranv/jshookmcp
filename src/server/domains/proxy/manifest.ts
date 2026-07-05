@@ -12,14 +12,14 @@ const registrations = defineMethodRegistrations<H, (typeof PROXY_TOOLS)[number][
   depKey: DEP_KEY,
   lookup: t,
   entries: [
-    { tool: 'proxy_start', method: 'handleProxyStart' },
-    { tool: 'proxy_stop', method: 'handleProxyStop' },
-    { tool: 'proxy_status', method: 'handleProxyStatus' },
-    { tool: 'proxy_export_ca', method: 'handleProxyExportCa' },
-    { tool: 'proxy_add_rule', method: 'handleProxyAddRule' },
-    { tool: 'proxy_get_requests', method: 'handleProxyGetRequests' },
-    { tool: 'proxy_clear_logs', method: 'handleProxyClearLogs' },
-    { tool: 'proxy_setup_adb_device', method: 'handleProxySetupAdbDevice' },
+    { tool: 'proxy_start', method: 'handleProxyStartTool' },
+    { tool: 'proxy_stop', method: 'handleProxyStopTool' },
+    { tool: 'proxy_status', method: 'handleProxyStatusTool' },
+    { tool: 'proxy_export_ca', method: 'handleProxyExportCaTool' },
+    { tool: 'proxy_add_rule', method: 'handleProxyAddRuleTool' },
+    { tool: 'proxy_get_requests', method: 'handleProxyGetRequestsTool' },
+    { tool: 'proxy_clear_logs', method: 'handleProxyClearLogsTool' },
+    { tool: 'proxy_setup_adb_device', method: 'handleProxySetupAdbDeviceTool' },
   ],
 });
 

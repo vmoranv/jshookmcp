@@ -2,7 +2,7 @@ import { createPrivateKey } from 'node:crypto';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { logger } from '@utils/logger';
-import { R } from '@server/domains/shared/ResponseBuilder';
+import { R, handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import {
   argNumber,
   argBool,
@@ -64,6 +64,38 @@ export class ProxyHandlers {
     // Resolve CA dir without touching disk — actual mkdir happens lazily in ensureCa().
     const home = process.env.HOME || process.env.USERPROFILE || '/tmp';
     this.caPathDir = path.join(home, '.jshookmcp', 'ca');
+  }
+
+  async handleProxyStartTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxyStart(args));
+  }
+
+  async handleProxyStopTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxyStop(args));
+  }
+
+  async handleProxyStatusTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxyStatus(args));
+  }
+
+  async handleProxyExportCaTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxyExportCa(args));
+  }
+
+  async handleProxyAddRuleTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxyAddRule(args));
+  }
+
+  async handleProxyGetRequestsTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxyGetRequests(args));
+  }
+
+  async handleProxyClearLogsTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxyClearLogs(args));
+  }
+
+  async handleProxySetupAdbDeviceTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxySetupAdbDevice(args));
   }
 
   /** Push capture entry with bounded buffer (FIFO). */

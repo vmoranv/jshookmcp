@@ -20,6 +20,10 @@ function parseResponse(res: any) {
   return JSON.parse(res.content[0].text);
 }
 
+function parseAnyResponse(res: any) {
+  return JSON.parse(res.content[0].text);
+}
+
 async function listen(server: http.Server): Promise<number> {
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -254,5 +258,33 @@ describe('ProxyHandlers (Integration)', () => {
     expect(res.content[0].text).toContain('Failed to configure ADB device: adb get-state failed');
 
     await handlers.handleProxyStop({});
+  });
+
+  it('wraps successful proxy tool calls without changing payload shape', async () => {
+    const res = await handlers.handleProxyStatusTool({});
+    const data = parseResponse(res);
+    expect(data).toMatchObject({
+      success: true,
+      running: false,
+      port: null,
+    });
+  });
+
+  it('turns thrown proxy tool failures into structured errors', async () => {
+    (handlers as any).server = {
+      stop: vi.fn().mockRejectedValue(new Error('stop failed')),
+    };
+    try {
+      const res = await handlers.handleProxyStopTool({});
+      const data = parseAnyResponse(res);
+      expect(res.isError).toBeUndefined();
+      expect(data).toMatchObject({
+        success: false,
+        error: 'stop failed',
+        message: 'stop failed',
+      });
+    } finally {
+      (handlers as any).server = null;
+    }
   });
 });

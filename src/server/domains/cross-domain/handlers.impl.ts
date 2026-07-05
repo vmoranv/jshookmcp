@@ -1,5 +1,6 @@
 import type { MCPServerContext } from '@server/domains/shared/registry';
 import { asJsonResponse } from '@server/domains/shared/response';
+import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 import { argBool, argString } from '@server/domains/shared/parse-args';
 import type { ToolResponse } from '@server/types';
 import type { CrossDomainEvidenceBridge } from './handlers/evidence-graph-bridge';
@@ -251,6 +252,30 @@ export class CrossDomainHandlers {
     private readonly evidenceBridge: CrossDomainEvidenceBridge,
     private readonly workflowClassifier?: CrossDomainWorkflowClassifier,
   ) {}
+
+  async handleCapabilitiesTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleCapabilities(args));
+  }
+
+  async handleSuggestWorkflowTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleSuggestWorkflow(args));
+  }
+
+  async handleHealthTool(): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleHealth());
+  }
+
+  async handleCorrelateAllTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleCorrelateAll(args));
+  }
+
+  async handleEvidenceExportTool(): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleEvidenceExport());
+  }
+
+  async handleEvidenceStatsTool(): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleEvidenceStats());
+  }
 
   async handleCapabilities(_args: Record<string, unknown>): Promise<ToolResponse> {
     const capabilities = {

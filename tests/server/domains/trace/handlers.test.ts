@@ -154,6 +154,46 @@ describe('TraceToolHandlers', () => {
 
       expect(result.rows[0]![0]).toBe(1);
     });
+
+    it('wraps successful query tool output without nesting a ToolResponse', async () => {
+      // @ts-expect-error
+      db.insertEvent({
+        timestamp: 1000,
+        category: 'runtime',
+        eventType: 'Runtime.consoleAPICalled',
+        data: '{}',
+      });
+      // @ts-expect-error
+      db.flush();
+      const recorder = new TraceRecorder();
+      vi.spyOn(recorder, 'getDB').mockReturnValue(db);
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = parseToolResponse<{ success: boolean; rowCount: number; content?: unknown }>(
+        await handler.handleQueryTraceSqlTool({ sql: 'SELECT * FROM events' }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.rowCount).toBe(1);
+      expect(result.content).toBeUndefined();
+    });
+
+    it('turns query tool validation errors into structured failure responses', async () => {
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = parseToolResponse<{ success: boolean; error: string; message: string }>(
+        await handler.handleQueryTraceSqlTool({}),
+      );
+
+      expect(result).toMatchObject({
+        success: false,
+        error: 'sql parameter is required',
+        message: 'sql parameter is required',
+      });
+    });
   });
 
   describe('handleSeekToTimestamp', () => {

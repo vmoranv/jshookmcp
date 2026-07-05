@@ -13,11 +13,11 @@ const registrations = defineMethodRegistrations<H, (typeof mojoIpcTools)[number]
   depKey: DEP_KEY,
   lookup: toolByName,
   entries: [
-    { tool: 'mojo_ipc_capabilities', method: 'handleMojoIpcCapabilities' },
-    { tool: 'mojo_monitor', method: 'handleMojoMonitorDispatch' },
-    { tool: 'mojo_decode_message', method: 'handleMojoDecodeMessage' },
-    { tool: 'mojo_list_interfaces', method: 'handleMojoListInterfaces' },
-    { tool: 'mojo_messages_get', method: 'handleMojoMessagesGet' },
+    { tool: 'mojo_ipc_capabilities', method: 'handleMojoIpcCapabilitiesTool' },
+    { tool: 'mojo_monitor', method: 'handleMojoMonitorDispatchTool' },
+    { tool: 'mojo_decode_message', method: 'handleMojoDecodeMessageTool' },
+    { tool: 'mojo_list_interfaces', method: 'handleMojoListInterfacesTool' },
+    { tool: 'mojo_messages_get', method: 'handleMojoMessagesGetTool' },
   ],
 });
 

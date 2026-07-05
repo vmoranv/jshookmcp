@@ -30,6 +30,7 @@ import {
   argBool,
   argStringArray,
 } from '@server/domains/shared/parse-args';
+import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
 import { captureAdbLogcat } from './logcat';
@@ -216,6 +217,54 @@ export class ADBBridgeHandlers {
       if (error instanceof ToolError) throw error;
       throw new ToolError('RUNTIME', getErrorMessage(error), { toolName: _toolName });
     }
+  }
+
+  async handleDeviceListTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleDeviceList(args));
+  }
+
+  async handleShellTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleShell(args));
+  }
+
+  async handleApkPullTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleApkPull(args));
+  }
+
+  async handleAnalyzeApkTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleAnalyzeApk(args));
+  }
+
+  async handlePackageSummaryTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handlePackageSummary(args));
+  }
+
+  async handleLogcatQueryTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleLogcatQuery(args));
+  }
+
+  async handleAppColdStartTraceTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleAppColdStartTrace(args));
+  }
+
+  async handleFilePullTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleFilePull(args));
+  }
+
+  async handleFilePushTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleFilePush(args));
+  }
+
+  async handlePullNativeLibsTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handlePullNativeLibs(args));
+  }
+
+  async handleWebViewListTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleWebViewList(args));
+  }
+
+  async handleWebViewAttachTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleWebViewAttach(args));
   }
 
   async handleDeviceList(_args: Record<string, unknown>): Promise<ToolResponse> {

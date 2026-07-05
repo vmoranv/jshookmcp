@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ResponseBuilder, R } from '@server/domains/shared/ResponseBuilder';
+import { ResponseBuilder, R, handleSafe } from '@server/domains/shared/ResponseBuilder';
 
 describe('ResponseBuilder', () => {
   describe('fluent api', () => {
@@ -104,6 +104,35 @@ describe('ResponseBuilder', () => {
       const res = R.text('str');
       expect((res.content[0] as { text: string }).text).toBe('str');
       expect(res.isError).toBeUndefined();
+    });
+  });
+
+  describe('handleSafe', () => {
+    it('wraps plain objects in a success ToolResponse', async () => {
+      const res = await handleSafe(async () => ({ value: 42 }));
+      expect(ResponseBuilder.parse(res)).toEqual({ success: true, value: 42 });
+    });
+
+    it('returns existing ToolResponse values unchanged', async () => {
+      const existing = R.fail('domain-level failure').mcpError().json();
+      const res = await handleSafe(async () => existing);
+      expect(res).toBe(existing);
+      expect(ResponseBuilder.parse(res)).toMatchObject({
+        success: false,
+        error: 'domain-level failure',
+      });
+      expect(res.isError).toBe(true);
+    });
+
+    it('turns thrown errors into structured failure responses', async () => {
+      const res = await handleSafe(async () => {
+        throw new Error('boom');
+      });
+      expect(ResponseBuilder.parse(res)).toMatchObject({
+        success: false,
+        error: 'boom',
+        message: 'boom',
+      });
     });
   });
 });

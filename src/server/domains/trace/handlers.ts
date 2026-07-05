@@ -12,7 +12,7 @@ import { type TraceRecorder } from '@modules/trace/TraceRecorder';
 import type { CDPSessionLike } from '@modules/trace/TraceRecorder';
 import { resolveArtifactPath } from '@utils/artifacts';
 import { argEnum } from '@server/domains/shared/parse-args';
-import { R } from '@server/domains/shared/ResponseBuilder';
+import { handleSafe, R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 import { ToolError } from '@errors/ToolError';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
 import { getProjectRoot, getSystemTempRoots } from '@utils/outputPaths';
@@ -83,6 +83,42 @@ export class TraceToolHandlers {
     private readonly recorder: TraceRecorder,
     private readonly ctx: MCPServerContext,
   ) {}
+
+  async handleTraceRecordingTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleTraceRecording(args));
+  }
+
+  async handleStartTraceRecordingTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleStartTraceRecording(args));
+  }
+
+  async handleStopTraceRecordingTool(): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleStopTraceRecording());
+  }
+
+  async handleQueryTraceSqlTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleQueryTraceSql(args));
+  }
+
+  async handleSeekToTimestampTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleSeekToTimestamp(args));
+  }
+
+  async handleGetTraceNetworkFlowTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleGetTraceNetworkFlow(args));
+  }
+
+  async handleDiffHeapSnapshotsTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleDiffHeapSnapshots(args));
+  }
+
+  async handleExportTraceTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleExportTrace(args));
+  }
+
+  async handleSummarizeTraceTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleSummarizeTrace(args));
+  }
 
   async handleTraceRecording(args: Record<string, unknown>): Promise<unknown> {
     const action = argEnum(args, 'action', new Set(['start', 'stop'] as const));
