@@ -30,4 +30,14 @@ describe('maintenance domain definitions', () => {
       expect(tool.inputSchema).toBeDefined();
     }
   });
+
+  it('execute_sandbox_script exposes security hardening options', () => {
+    const sandboxTool = sandboxTools.find((tool) => tool.name === 'execute_sandbox_script');
+    const properties = sandboxTool?.inputSchema.properties as Record<string, unknown> | undefined;
+
+    expect(properties).toBeDefined();
+    expect(properties).toHaveProperty('memoryLimitBytes');
+    expect(properties).toHaveProperty('allowedTools');
+    expect(properties).toHaveProperty('redactOutput');
+  });
 });

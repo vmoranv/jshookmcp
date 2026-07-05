@@ -69,6 +69,20 @@ describe('QuickJSSandbox — comprehensive', () => {
       expect(parsed.pending).toBe(true);
       expect(parsed.tool).toBe('tool_a');
     });
+
+    it('mcp.call() rejects tools outside the bridge allowlist', async () => {
+      const ctx = createMockContext(['tool_a', 'tool_b']);
+      const bridge = new MCPBridge(ctx, { allowedTools: ['tool_b'] });
+      sandbox.setBridge(bridge);
+
+      const result = await sandbox.execute('var r = mcp.call("tool_a", {}); JSON.stringify(r)');
+
+      expect(result.ok).toBe(true);
+      const parsed = JSON.parse(result.output as string);
+      expect(parsed.pending).toBe(false);
+      expect(parsed.error).toContain('not in the sandbox allowlist');
+      expect(result.logs.some((l: string) => l.includes('rejected tool_a'))).toBe(true);
+    });
   });
 
   describe('executeWithOrchestration()', () => {

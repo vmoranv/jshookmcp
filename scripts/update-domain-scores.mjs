@@ -22,7 +22,7 @@ const SCORES = {
   'extension-registry': [8.8, '5 tools, Phase 1 routing/doc stale fix + Phase 2 MCP-safe wrappers'],
   graphql: [9.1, '6 tools, Phase 2 MCP-safe wrappers'],
   instrumentation: [8.8, '15 tools, 14 scan-counted tests'],
-  maintenance: [8.5, '13 tools, 6 tests'],
+  maintenance: [9.0, '13 tools, sandbox memory/tool allowlist/redaction hardening, 6 tests'],
   memory: [9.7, '34 tools, E5 parity, Phase 0 find_accesses wired readMemory+capstone+pid'],
   'mojo-ipc': [8.6, '5 tools, Phase 2 MCP-safe wrappers'],
   'native-bridge': [

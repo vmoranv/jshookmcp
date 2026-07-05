@@ -1,11 +1,25 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { SandboxToolHandlers } from '@server/domains/maintenance/handlers.sandbox';
 
+const sandboxTestState = vi.hoisted(() => ({
+  executeMock: vi.fn(),
+  setBridgeMock: vi.fn(),
+  lastOptions: undefined as any,
+  lastBridge: undefined as any,
+}));
+
 vi.mock('@server/sandbox/QuickJSSandbox', () => {
   return {
     QuickJSSandbox: class {
-      setBridge() {}
-      async execute(_exitCodeValue: string, options: any) {
+      setBridge(bridge: any) {
+        sandboxTestState.lastBridge = bridge;
+        sandboxTestState.setBridgeMock(bridge);
+      }
+      async execute(code: string, options: any) {
+        sandboxTestState.lastOptions = options;
+        if (sandboxTestState.executeMock.getMockImplementation()) {
+          return sandboxTestState.executeMock(code, options);
+        }
         const scratch = options.globals?.__scratchpad;
         const hasContent = scratch && Object.keys(scratch).length > 0;
         return {
@@ -35,8 +49,16 @@ describe('SandboxToolHandlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    sandboxTestState.executeMock.mockReset();
+    sandboxTestState.lastOptions = undefined;
+    sandboxTestState.lastBridge = undefined;
     const map = new Map<string, any>();
     const ctx: any = {
+      selectedTools: [
+        { name: 'tool_a', description: '', inputSchema: { type: 'object' } },
+        { name: 'tool_b', description: '', inputSchema: { type: 'object' } },
+      ],
+      executeToolWithTracking: vi.fn(),
       getDomainInstance: (key: string) => map.get(key),
       setDomainInstance: (key: string, inst: any) => map.set(key, inst),
       getToolRegistry: () => ({ getAnnotationsForTool: () => [] }),
@@ -88,12 +110,99 @@ describe('SandboxToolHandlers', () => {
     });
 
     it('should pass timeoutMs to options', async () => {
-      // we just simulate passing it, the mock currently executes fast anyway
       const result = (await handlers.handleExecuteSandboxScript({
         code: 'return 1;',
         timeoutMs: 5000,
       })) as any;
       expect(result.content[0].text).toContain('✓ Success');
+      expect(sandboxTestState.lastOptions.timeoutMs).toBe(5000);
+    });
+
+    it('should clamp memoryLimitBytes and pass it to sandbox options', async () => {
+      await handlers.handleExecuteSandboxScript({
+        code: 'return 1;',
+        memoryLimitBytes: 64,
+      });
+
+      expect(sandboxTestState.lastOptions.memoryLimitBytes).toBe(256 * 1024);
+    });
+
+    it('should reject non-finite timeout and memory limits', async () => {
+      const timeoutResult = (await handlers.handleExecuteSandboxScript({
+        code: 'return 1;',
+        timeoutMs: Number.POSITIVE_INFINITY,
+      })) as any;
+      expect(timeoutResult.content[0].text).toContain('timeoutMs value must be a finite number');
+
+      const memoryResult = (await handlers.handleExecuteSandboxScript({
+        code: 'return 1;',
+        memoryLimitBytes: Number.NaN,
+      })) as any;
+      expect(memoryResult.content[0].text).toContain(
+        'memoryLimitBytes value must be a finite number',
+      );
+    });
+
+    it('should pass allowedTools to the MCP bridge allowlist', async () => {
+      await handlers.handleExecuteSandboxScript({
+        code: 'return 1;',
+        allowedTools: [' tool_a ', 'tool_a'],
+      });
+
+      expect(sandboxTestState.lastBridge.listAvailableTools()).toEqual(['tool_a']);
+    });
+
+    it('should reject invalid allowedTools values', async () => {
+      const result = (await handlers.handleExecuteSandboxScript({
+        code: 'return 1;',
+        allowedTools: ['tool_a', 42],
+      })) as any;
+
+      expect(result.content[0].text).toContain('allowedTools must contain only non-empty strings');
+    });
+
+    it('should redact secrets from logs, output, and error by default', async () => {
+      sandboxTestState.executeMock.mockResolvedValueOnce({
+        ok: false,
+        durationMs: 5,
+        logs: ['Authorization: Bearer very-secret-token'],
+        output: {
+          token: 'plain-token-value',
+          nested: 'sk_123456789012345678901',
+        },
+        error: 'failed with Bearer another-secret-token',
+        timedOut: false,
+      });
+
+      const result = (await handlers.handleExecuteSandboxScript({
+        code: 'return secrets;',
+      })) as any;
+      const text = result.content[0].text;
+
+      expect(text).toContain('[REDACTED]');
+      expect(text).not.toContain('very-secret-token');
+      expect(text).not.toContain('plain-token-value');
+      expect(text).not.toContain('sk_123456789012345678901');
+      expect(text).not.toContain('another-secret-token');
+    });
+
+    it('should preserve raw output when redactOutput is false', async () => {
+      sandboxTestState.executeMock.mockResolvedValueOnce({
+        ok: true,
+        durationMs: 5,
+        logs: ['Authorization: Bearer visible-token'],
+        output: { token: 'plain-token-value' },
+        timedOut: false,
+      });
+
+      const result = (await handlers.handleExecuteSandboxScript({
+        code: 'return secrets;',
+        redactOutput: false,
+      })) as any;
+      const text = result.content[0].text;
+
+      expect(text).toContain('visible-token');
+      expect(text).toContain('plain-token-value');
     });
 
     it('should report failure and error message', async () => {

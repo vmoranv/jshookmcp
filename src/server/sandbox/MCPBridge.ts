@@ -19,6 +19,10 @@ export interface BridgeCallRequest {
   args: Record<string, unknown>;
 }
 
+export interface MCPBridgeOptions {
+  allowedTools?: readonly string[] | null;
+}
+
 // ── MCPBridge ──
 
 export class MCPBridge {
@@ -26,16 +30,33 @@ export class MCPBridge {
   private allowlist: Set<string> | null = null;
   private readonly pendingCalls: BridgeCallRequest[] = [];
 
-  constructor(ctx: MCPServerContext) {
+  constructor(ctx: MCPServerContext, options: MCPBridgeOptions = {}) {
     this.ctx = ctx;
+    if (options.allowedTools !== undefined) {
+      this.setAllowlist(options.allowedTools);
+    }
   }
 
   /**
    * Restrict callable tools to a specific set.
    * Pass `null` to allow all registered tools (default).
    */
-  setAllowlist(toolNames: string[] | null): void {
+  setAllowlist(toolNames: readonly string[] | null): void {
     this.allowlist = toolNames ? new Set(toolNames) : null;
+  }
+
+  /**
+   * Validate that a tool exists and is callable under the current allowlist.
+   */
+  assertCallable(toolName: string): void {
+    const registeredNames = this.ctx.selectedTools?.map((t) => t.name) ?? [];
+    if (!registeredNames.includes(toolName)) {
+      throw new Error(`Tool "${toolName}" is not a registered MCP tool`);
+    }
+
+    if (this.allowlist && !this.allowlist.has(toolName)) {
+      throw new Error(`Tool "${toolName}" is not in the sandbox allowlist`);
+    }
   }
 
   // ── Pending Call Queue (for orchestration loop) ──
@@ -45,16 +66,7 @@ export class MCPBridge {
    * Returns a unique callId that the sandbox can use to look up the result.
    */
   enqueue(toolName: string, args: Record<string, unknown> = {}): string {
-    // Validate tool exists in registry
-    const registeredNames = this.ctx.selectedTools?.map((t) => t.name) ?? [];
-    if (!registeredNames.includes(toolName)) {
-      throw new Error(`Tool "${toolName}" is not a registered MCP tool`);
-    }
-
-    // Validate against allowlist
-    if (this.allowlist && !this.allowlist.has(toolName)) {
-      throw new Error(`Tool "${toolName}" is not in the sandbox allowlist`);
-    }
+    this.assertCallable(toolName);
 
     const id = randomUUID().slice(0, 8);
     this.pendingCalls.push({ id, toolName, args });
@@ -85,16 +97,7 @@ export class MCPBridge {
    * @throws Error if tool does not exist or is not in the allowlist.
    */
   async call(toolName: string, args: Record<string, unknown> = {}): Promise<unknown> {
-    // Validate against allowlist
-    if (this.allowlist && !this.allowlist.has(toolName)) {
-      throw new Error(`Tool "${toolName}" is not in the sandbox allowlist`);
-    }
-
-    // Validate tool exists in the registered set
-    const available = this.listAvailableTools();
-    if (!available.includes(toolName)) {
-      throw new Error(`Tool "${toolName}" is not a registered MCP tool`);
-    }
+    this.assertCallable(toolName);
 
     const response: ToolResponse = await this.ctx.executeToolWithTracking(toolName, args);
 

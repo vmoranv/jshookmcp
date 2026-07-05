@@ -472,6 +472,13 @@ export class QuickJSSandbox {
       (nameHandle: QuickJSHandle, argsHandle: QuickJSHandle) => {
         const name = ctx.getString(nameHandle);
         const args = (ctx.dump(argsHandle) as Record<string, unknown>) ?? {};
+        try {
+          bridge.assertCallable(name);
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          logs.push(`[mcp.call] rejected ${name}: ${errorMsg}`);
+          return marshalToQuickJS(ctx, { pending: false, tool: name, error: errorMsg });
+        }
         logs.push(`[mcp.call] ${name}(${JSON.stringify(args)})`);
         // Return a placeholder — full async bridge requires host orchestration
         return marshalToQuickJS(ctx, { pending: true, tool: name });

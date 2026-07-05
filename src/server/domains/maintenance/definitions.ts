@@ -70,8 +70,20 @@ export const sandboxTools: Tool[] = [
       .string('code', 'JavaScript source code to execute inside the sandbox')
       .string('sessionId', 'Session ID for scratchpad persistence across executions')
       .number('timeoutMs', 'Execution timeout in ms', { default: 1000 })
+      .number(
+        'memoryLimitBytes',
+        'QuickJS heap memory limit in bytes; clamped to configured min/max limits.',
+      )
+      .array(
+        'allowedTools',
+        { type: 'string' },
+        'Optional MCP tool allowlist for sandbox mcp.call/listTools exposure.',
+      )
       .boolean('autoCorrect', 'Retry failed scripts up to 2 times with error context', {
         default: false,
+      })
+      .boolean('redactOutput', 'Redact secrets from logs, result, and error before returning.', {
+        default: true,
       })
       .required('code'),
   ),

@@ -83,6 +83,8 @@ describe('constants barrel export', () => {
 
   test('sandbox constants are exported', ({ expect }) => {
     expect(constants.SANDBOX_EXEC_TIMEOUT_MS).toBeTypeOf('number');
+    expect(constants.SANDBOX_MIN_MEMORY_LIMIT_BYTES).toBeTypeOf('number');
+    expect(constants.SANDBOX_MAX_MEMORY_LIMIT_MB).toBeTypeOf('number');
     expect(constants.JSVMP_DEOBFUSCATE_TIMEOUT_MS).toBeTypeOf('number');
     expect(constants.SYMBOLIC_EXEC_MAX_PATHS).toBeTypeOf('number');
     expect(constants.PACKER_SANDBOX_TIMEOUT_MS).toBeTypeOf('number');

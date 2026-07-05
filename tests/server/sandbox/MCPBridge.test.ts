@@ -59,6 +59,20 @@ describe('MCPBridge', () => {
     expect(bridge.listAvailableTools()).toEqual(['tool_b']);
   });
 
+  it('constructor allowlist filters listAvailableTools', () => {
+    const ctx = createMockContext(['tool_a', 'tool_b', 'tool_c']);
+    const bridge = new MCPBridge(ctx, { allowedTools: ['tool_c'] });
+
+    expect(bridge.listAvailableTools()).toEqual(['tool_c']);
+  });
+
+  it('assertCallable rejects blocked tools', () => {
+    const ctx = createMockContext(['tool_a', 'tool_b']);
+    const bridge = new MCPBridge(ctx, { allowedTools: ['tool_a'] });
+
+    expect(() => bridge.assertCallable('tool_b')).toThrow('not in the sandbox allowlist');
+  });
+
   it('null allowlist allows all tools', async () => {
     const ctx = createMockContext(['tool_a', 'tool_b']);
     const bridge = new MCPBridge(ctx);
