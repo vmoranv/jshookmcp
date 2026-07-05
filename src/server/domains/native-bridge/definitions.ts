@@ -23,6 +23,7 @@ export const nativeBridgeTools: Tool[] = [
           'run_script',
           'get_xrefs',
           'search_strings',
+          'get_segments',
         ],
 
         'Action to perform',
@@ -47,7 +48,9 @@ export const nativeBridgeTools: Tool[] = [
           'decompile_function',
           'run_script',
           'get_xrefs',
+          'search_strings',
           'get_strings',
+          'get_segments',
         ],
 
         'Action to perform',
@@ -56,6 +59,7 @@ export const nativeBridgeTools: Tool[] = [
       .string('functionName', 'Function name or address (for decompile_function, get_xrefs)')
       .string('scriptPath', 'Path to IDAPython script (for run_script)')
       .array('scriptArgs', { type: 'string' }, 'Arguments for the script')
+      .string('searchPattern', 'String pattern to search (for search_strings)')
       .string('endpoint', 'IDA bridge server URL')
       .required('action'),
   ),

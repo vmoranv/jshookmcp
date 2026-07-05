@@ -14,6 +14,31 @@ interface BridgeResponse {
   data: unknown;
 }
 
+const GHIDRA_ACTIONS = [
+  'status',
+  'open_project',
+  'list_functions',
+  'decompile_function',
+  'run_script',
+  'get_xrefs',
+  'search_strings',
+  'get_segments',
+] as const;
+
+const IDA_ACTIONS = [
+  'status',
+  'open_binary',
+  'list_functions',
+  'decompile_function',
+  'run_script',
+  'get_xrefs',
+  'search_strings',
+  'get_strings',
+  'get_segments',
+] as const;
+
+type BridgeBackend = 'ghidra' | 'ida';
+
 // ── Helpers ──
 
 function toErrorResponse(tool: string, error: unknown, extra: Record<string, unknown> = {}) {
@@ -39,15 +64,18 @@ async function bridgeFetch(
 
 async function checkBridgeHealth(
   endpoint: string,
-  label: string,
+  label: BridgeBackend,
 ): Promise<Record<string, unknown>> {
   try {
     const { status, data } = await bridgeFetch(endpoint, '/health');
+    const advertised = await checkBridgeCapabilities(endpoint, label);
     return {
       backend: label,
       available: status === 200,
       endpoint,
       version: data,
+      capabilities: advertised.actions,
+      capabilitySource: advertised.source,
     };
   } catch (error) {
     return {
@@ -55,8 +83,51 @@ async function checkBridgeHealth(
       available: false,
       endpoint,
       error: error instanceof Error ? error.message : String(error),
+      capabilities: getStaticActions(label),
+      capabilitySource: 'static',
     };
   }
+}
+
+async function checkBridgeCapabilities(
+  endpoint: string,
+  backend: BridgeBackend,
+): Promise<{ actions: string[]; source: 'remote' | 'static' }> {
+  try {
+    const { status, data } = await bridgeFetch(endpoint, '/capabilities');
+    if (status >= 200 && status < 300) {
+      const remoteActions = parseCapabilityActions(data);
+      if (remoteActions.length > 0) {
+        return { actions: remoteActions, source: 'remote' };
+      }
+    }
+  } catch (error) {
+    void error;
+    // Older bridge servers may not implement /capabilities.
+  }
+  return { actions: getStaticActions(backend), source: 'static' };
+}
+
+function getStaticActions(backend: BridgeBackend): string[] {
+  return [...(backend === 'ghidra' ? GHIDRA_ACTIONS : IDA_ACTIONS)];
+}
+
+function parseCapabilityActions(data: unknown): string[] {
+  if (Array.isArray(data)) {
+    return data.filter((item): item is string => typeof item === 'string');
+  }
+  if (!data || typeof data !== 'object') {
+    return [];
+  }
+
+  const record = data as Record<string, unknown>;
+  for (const key of ['actions', 'capabilities', 'supportedActions']) {
+    const value = record[key];
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === 'string');
+    }
+  }
+  return [];
 }
 
 // ── Endpoint validation ──
@@ -210,20 +281,17 @@ export class NativeBridgeHandlers {
           return asJsonResponse({ success: status < 300, action, strings: data });
         }
 
+        case 'get_segments': {
+          const { status, data } = await bridgeFetch(endpoint, '/segments');
+          return asJsonResponse({ success: status < 300, action, segments: data });
+        }
+
         default:
           return asJsonResponse({
             success: true,
             guide: {
               what: 'Ghidra is an open-source SRE framework by NSA.',
-              actions: [
-                'status',
-                'open_project',
-                'list_functions',
-                'decompile_function',
-                'run_script',
-                'get_xrefs',
-                'search_strings',
-              ],
+              actions: [...GHIDRA_ACTIONS],
               bridgeSetup: [
                 'pip install ghidra_bridge',
                 'In Ghidra: File → Run Script → ghidra_bridge_server.py',
@@ -310,20 +378,28 @@ export class NativeBridgeHandlers {
           return asJsonResponse({ success: status < 300, action, strings: data });
         }
 
+        case 'search_strings': {
+          const pattern = args.searchPattern as string;
+          const { status, data } = await bridgeFetch(
+            endpoint,
+            '/strings',
+            'POST',
+            JSON.stringify({ pattern: pattern ?? '' }),
+          );
+          return asJsonResponse({ success: status < 300, action, strings: data });
+        }
+
+        case 'get_segments': {
+          const { status, data } = await bridgeFetch(endpoint, '/segments');
+          return asJsonResponse({ success: status < 300, action, segments: data });
+        }
+
         default:
           return asJsonResponse({
             success: true,
             guide: {
               what: 'IDA Pro is a commercial disassembler/decompiler by Hex-Rays.',
-              actions: [
-                'status',
-                'open_binary',
-                'list_functions',
-                'decompile_function',
-                'run_script',
-                'get_xrefs',
-                'get_strings',
-              ],
+              actions: [...IDA_ACTIONS],
               bridgeSetup: [
                 'pip install ida_bridge  // or use idalink',
                 'In IDA: File → Script file → ida_bridge_server.py',

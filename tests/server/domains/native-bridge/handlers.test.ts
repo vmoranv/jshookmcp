@@ -181,6 +181,122 @@ describe('NativeBridgeHandlers', () => {
     });
   });
 
+  /* ── Capability advertisement ───────────────────────────────────── */
+
+  describe('capability advertisement', () => {
+    it('reports remote capabilities when the bridge exposes /capabilities', async () => {
+      const handlers = new NativeBridgeHandlers();
+      const fetchMock = vi.fn((url: string) => {
+        if (url.endsWith('/health')) {
+          return Promise.resolve({
+            status: 200,
+            json: () => Promise.resolve({ version: '1.0' }),
+          });
+        }
+        if (url.endsWith('/capabilities')) {
+          return Promise.resolve({
+            status: 200,
+            json: () => Promise.resolve({ actions: ['status', 'decompile_function'] }),
+          });
+        }
+        return Promise.reject(new Error(`unexpected url: ${url}`));
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = parseJson<any>(await handlers.handleNativeBridgeStatus({ backend: 'ghidra' }));
+
+      expect(result.success).toBe(true);
+      expect(result.backends[0]).toMatchObject({
+        backend: 'ghidra',
+        capabilitySource: 'remote',
+        capabilities: ['status', 'decompile_function'],
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:18080/capabilities',
+        expect.objectContaining({ method: 'GET' }),
+      );
+    });
+
+    it('falls back to static capabilities when /capabilities is unavailable', async () => {
+      const handlers = new NativeBridgeHandlers();
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((url: string) => {
+          if (url.endsWith('/health')) {
+            return Promise.resolve({
+              status: 200,
+              json: () => Promise.resolve({ version: '1.0' }),
+            });
+          }
+          return Promise.reject(new Error('not implemented'));
+        }),
+      );
+
+      const result = parseJson<any>(await handlers.handleNativeBridgeStatus({ backend: 'ida' }));
+
+      expect(result.backends[0].capabilitySource).toBe('static');
+      expect(result.backends[0].capabilities).toEqual(
+        expect.arrayContaining(['search_strings', 'get_segments']),
+      );
+    });
+  });
+
+  /* ── Backend parity actions ─────────────────────────────────────── */
+
+  describe('backend parity actions', () => {
+    it('routes ida search_strings to the filtered strings endpoint', async () => {
+      const handlers = new NativeBridgeHandlers();
+      const fetchMock = vi.fn().mockResolvedValue({
+        status: 200,
+        json: () => Promise.resolve([{ value: 'needle' }]),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = parseJson<any>(
+        await handlers.handleIdaBridge({
+          action: 'search_strings',
+          searchPattern: 'needle',
+        }),
+      );
+
+      expect(result).toMatchObject({
+        success: true,
+        action: 'search_strings',
+        strings: [{ value: 'needle' }],
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:18081/strings',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ pattern: 'needle' }),
+        }),
+      );
+    });
+
+    it('routes segment listing for both Ghidra and IDA bridges', async () => {
+      const handlers = new NativeBridgeHandlers();
+      const fetchMock = vi.fn().mockResolvedValue({
+        status: 200,
+        json: () => Promise.resolve([{ name: '.text' }]),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const ghidra = parseJson<any>(await handlers.handleGhidraBridge({ action: 'get_segments' }));
+      const ida = parseJson<any>(await handlers.handleIdaBridge({ action: 'get_segments' }));
+
+      expect(ghidra.segments).toEqual([{ name: '.text' }]);
+      expect(ida.segments).toEqual([{ name: '.text' }]);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:18080/segments',
+        expect.objectContaining({ method: 'GET' }),
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:18081/segments',
+        expect.objectContaining({ method: 'GET' }),
+      );
+    });
+  });
+
   /* ── ToolResponse wrappers ──────────────────────────────────────── */
 
   describe('ToolResponse wrappers', () => {

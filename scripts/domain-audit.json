@@ -332,10 +332,10 @@
       "d4_bareCatch": 0,
       "d5_handleSafeRefs": 5,
       "d6_doc": {
-        "hasClaude": false,
-        "hasScore": false,
-        "hasPrereq": false,
-        "hasToolDeps": false
+        "hasClaude": true,
+        "hasScore": true,
+        "hasPrereq": true,
+        "hasToolDeps": true
       }
     }
   },

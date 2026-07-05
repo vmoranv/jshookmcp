@@ -25,7 +25,10 @@ const SCORES = {
   maintenance: [8.5, '13 tools, 6 tests'],
   memory: [9.7, '34 tools, E5 parity, Phase 0 find_accesses wired readMemory+capstone+pid'],
   'mojo-ipc': [8.6, '5 tools, Phase 2 MCP-safe wrappers'],
-  'native-bridge': [8.1, '4 tools, legacy Phase 2 wrapper surface, CLAUDE.md/manifest gap remains'],
+  'native-bridge': [
+    8.4,
+    '4 tools, Phase 3 capability advertisement + IDA/Ghidra parity, externalized manifest gap remains',
+  ],
   'native-emulator': [9.0, '21 tools, 64 tests, E4 finale'],
   network: [9.0, '37 tools, 37 scan-counted tests'],
   platform: [9.1, '16 tools, Phase 2 MCP-safe wrappers, M3 work'],
