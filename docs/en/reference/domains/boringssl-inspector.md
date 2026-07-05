@@ -31,7 +31,7 @@ BoringSSL/TLS inspection domain supporting TLS traffic analysis and certificate 
 | `tls_keylog_summarize` | Summarize the contents of an SSLKEYLOGFILE by label distribution. |
 | `tls_keylog_lookup_secret` | Look up a TLS secret by client random hex from the parsed keylog. |
 | `tls_cert_pin_bypass` | Return a certificate pinning bypass strategy for the selected platform. |
-| `tls_parse_handshake` | Parse TLS handshake metadata from raw hex. |
+| `tls_parse_handshake` | Parse TLS handshake metadata from raw hex. For payload decryption, use tls_decrypt_payload with explicit keyHex/nonceHex/authTagHex. |
 | `tls_cipher_suites` | List TLS cipher suites. |
 | `tls_parse_certificate` | Parse a TLS Certificate message from raw hex and extract fingerprints. |
 | `tls_probe_endpoint` | Probe a TLS endpoint and report handshake and certificate details. |

@@ -19,7 +19,7 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 - process + debugger
 - process + platform
 
-## Full tool list (25)
+## Full tool list (27)
 
 | Tool | Description |
 | --- | --- |
@@ -48,3 +48,5 @@ Process, module, memory diagnostics, and controlled injection domain for host-le
 | `process_detect_hollowing` | Detect process hollowing (malware technique that unmaps original process image and injects malicious code). Compares process memory sections (.text, .data, .rdata) with on-disk PE file using SHA-256 hashes. Returns detection result with confidence score and list of differing sections. WARNING: autoRestore=true is HIGH RISK, may crash the target process, and is Win32-only. Cross-platform: Win32 compares PE sections; Linux/macOS compare ELF/Mach-O executable sections via IntegrityScanner (autoRestore unavailable). |
 | `process_enum_handles` | Enumerate open handles for a process using NtQuerySystemInformation. Resolves handle type and object name, decodes access masks, identifies security risks (high-privilege handles to sensitive processes, dangerous Token handles, inheritable sensitive handles, Section handles to executables). Skips name resolution for File/EtwRegistration types (known to hang). Requires elevated privileges (run as Administrator). Win32 only. |
 | `process_detect_apc` | Detect APC (Asynchronous Procedure Call) injection in a process. Enumerates threads, probes each thread APC queue via NtQueryInformationThread(ThreadApcState), and detects threads in alertable wait state (SleepEx/WaitForMultipleObjectsEx). Returns verdict (clean/suspicious/infected), confidence score, and risk reasons. Requires elevated privileges (run as Administrator). Win32 only. |
+| `process_suspend` | Suspend a process for forensic snapshotting. Cross-platform: NtSuspendProcess (Win32), SIGSTOP (Linux), task_suspend (macOS). Pair with process_resume to restore. Use before memory_scan/dump for a consistent snapshot. Requires admin/root on most platforms. |
+| `process_resume` | Resume a previously suspended process. Cross-platform: NtResumeProcess (Win32), SIGCONT (Linux), task_resume (macOS). |

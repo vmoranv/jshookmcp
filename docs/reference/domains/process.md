@@ -19,7 +19,7 @@
 - process + debugger
 - process + platform
 
-## 工具清单（25）
+## 工具清单（27）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -48,3 +48,5 @@
 | `process_detect_hollowing` | 检测进程镂空攻击（恶意软件取消映射原始进程镜像并注入恶意代码）。对比进程内存节区（.text/.data/.rdata）与磁盘 PE 文件的 SHA-256 哈希。Win32 走 PE 比对，Linux/macOS 走 IntegrityScanner ELF/Mach-O 段哈希回退。返回检测结果、置信度和差异节区列表。autoRestore=true 高危，可能导致目标进程崩溃。 |
 | `process_enum_handles` | 使用 NtQuerySystemInformation 枚举进程的打开句柄。解析句柄类型和对象名，解码访问掩码，识别安全风险（对敏感进程的高权限句柄、危险的 Token 句柄、可继承的敏感句柄、指向可执行文件的 Section 句柄）。跳过 File/EtwRegistration 类型的名称解析（已知会挂起）。需要提权（以管理员身份运行）。仅 Win32。 |
 | `process_detect_apc` | 检测进程中的 APC（异步过程调用）注入。枚举线程，通过 NtQueryInformationThread(ThreadApcState) 探测每个线程的 APC 队列，并检测处于可警告等待状态（SleepEx/WaitForMultipleObjectsEx）的线程。返回判定（clean/suspicious/infected）、置信度和风险原因。需要提权（以管理员身份运行）。仅 Win32。 |
+| `process_suspend` | 暂停进程以获取一致的取证快照。跨平台实现：Win32 使用 NtSuspendProcess，Linux 使用 SIGSTOP，macOS 使用 task_suspend。通常与 process_resume 配对使用，可在 memory_scan/dump 前稳定目标状态；多数平台需要管理员/root 权限。 |
+| `process_resume` | 恢复先前暂停的进程。跨平台实现：Win32 使用 NtResumeProcess，Linux 使用 SIGCONT，macOS 使用 task_resume。 |

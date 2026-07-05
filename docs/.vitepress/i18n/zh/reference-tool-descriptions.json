@@ -536,5 +536,7 @@
   "syscall_origin_map": "构建统一的系统调用→JS 来源映射。集成实时 CDP 调用栈（syscall_stack_capture）和静态时序启发式（syscall_correlate_js），按 JavaScript 函数聚合最近的系统调用事件，让调用方看到哪个 JS 函数触发了哪些系统调用及频率。优先使用调试器栈，启发式填补空缺。",
   "syscall_pattern_detect": "扫描捕获的系统调用事件中与逆向工程相关的行为模式：反调试探测（ptrace / IsDebuggerPresent）、系统指纹采集（uname / getuid）、文件系统枚举（openat + getdents）、网络信标（connect / sendto）、进程创建（clone / execve）和 Windows 注册表探测。返回分类的模式及证据。",
   "binary_entropy_profile": "跨定长 chunk 计算二进制文件的香农熵以定位加密/加壳/压缩段。高熵区（≥7.0 bits/byte）疑似加密或压缩；低熵（<4.0）通常是代码或文本。纯计算，无外部工具依赖。",
-  "canvas_scene_search": "在已 dump 的场景树（canvas_scene_dump 输出）中按名称正则和/或类型搜索节点。纯计算——无需浏览器会话。返回匹配节点及其从根的路径、深度和引擎特定属性。"
+  "canvas_scene_search": "在已 dump 的场景树（canvas_scene_dump 输出）中按名称正则和/或类型搜索节点。纯计算——无需浏览器会话。返回匹配节点及其从根的路径、深度和引擎特定属性。",
+  "process_suspend": "暂停进程以获取一致的取证快照。跨平台实现：Win32 使用 NtSuspendProcess，Linux 使用 SIGSTOP，macOS 使用 task_suspend。通常与 process_resume 配对使用，可在 memory_scan/dump 前稳定目标状态；多数平台需要管理员/root 权限。",
+  "process_resume": "恢复先前暂停的进程。跨平台实现：Win32 使用 NtResumeProcess，Linux 使用 SIGCONT，macOS 使用 task_resume。"
 }
