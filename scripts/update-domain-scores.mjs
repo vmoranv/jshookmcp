@@ -12,7 +12,10 @@ const SCORES = {
     9.8,
     '25 tools, Phase 3 interprocedural taint (function summaries + member-chain) + two-pass ordering-bug fix',
   ],
-  'binary-instrument': [8.8, '37 tools, 16 scan-counted tests, Frida/Unidbg/Ghidra/IDA/JADX'],
+  'binary-instrument': [
+    9.5,
+    '40 tools, Frida spawn/resume, real Interceptor.attach generation, Unidbg/Ghidra/IDA/JADX',
+  ],
   'boringssl-inspector': [9.2, '28 tools, Phase 0 honesty fix + Phase 2 MCP-safe wrappers'],
   browser: [8.9, '69 tools, 73 scan-counted tests, prior audit'],
   canvas: [9.4, '8 tools, Phase 0 adapters + Phase 2 MCP-safe wrappers'],

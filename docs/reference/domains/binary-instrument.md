@@ -26,19 +26,19 @@
 | --- | --- |
 | `binary_instrument_capabilities` | 报告二进制插桩后端可用性。 |
 | `frida_attach` | 附加 Frida 到本地进程、PID 或二进制路径，并创建二进制插桩会话。 |
-| `frida_spawn` | 待补充中文：Spawn a target through Frida for early instrumentation before normal execution. |
+| `frida_spawn` | 通过 Frida spawn 模式启动目标，在进程正常执行前建立早期插桩会话，适合抢在反调试、SSL pinning 或加固初始化逻辑之前安装 hook。 |
 | `frida_enumerate_modules` | 枚举已附加 Frida 会话中的模块。 |
 | `ghidra_analyze` | 在 Ghidra headless 可用时运行二进制元数据分析，不可用时返回结构化降级输出。 |
 | `generate_hooks` | 为一组符号生成 Frida interceptor 脚本。 |
 | `unidbg_emulate` | 尝试用 unidbg 模拟原生函数，不可用时返回结构化模拟输出。 |
 | `frida_run_script` | 在已附加的 Frida 会话中执行一段 JavaScript 代码。 |
-| `frida_resume` | 待补充中文：Resume a target previously spawned for early Frida instrumentation. |
+| `frida_resume` | 恢复先前由 frida_spawn 暂停的目标进程。典型流程是先 spawn、安装早期 hook，再用该工具释放进程继续运行。 |
 | `frida_detach` | 从 Frida 会话分离并清理资源。 |
 | `frida_list_sessions` | 列出所有活跃的 Frida 会话。 |
 | `frida_dex_dump` | 以包名/进程名或 PID 运行 frida-dexdump，作为高层 Android DEX dump 助手。 |
 | `android_runtime_dump_session` | 创建或检查托管的 Android 运行时 dump 会话，基于 Frida/ADB dump 产物、DEX 文件与 /proc/PID/maps 快照。 |
 | `frida_generate_script` | 从模板（trace、intercept、replace、log）生成 Frida 拦截脚本。 |
-| `frida_attach_interceptor` | 待补充中文：Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session. |
+| `frida_attach_interceptor` | 为指定符号生成真实的 Frida Interceptor.attach 代码块，并可选择直接安装到已有 Frida 会话。支持 moduleName/address 定位、参数读取模板、自定义 onEnter/onLeave 代码。 |
 | `get_available_plugins` | 列出所有可用的二进制分析插件（frida、ghidra、ida、jadx）。 |
 | `ghidra_decompile` | 使用 Ghidra headless 分析反编译指定函数。 |
 | `ida_decompile` | 通过插件桥接使用 IDA Pro 反编译指定函数。 |
