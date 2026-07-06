@@ -391,6 +391,36 @@ describe('PageController', () => {
     expect(await controller.getPage()).toBe(page);
   });
 
+  it('reads all browser cookies through CDP by default', async () => {
+    const cdp = {
+      send: vi.fn().mockResolvedValue({
+        cookies: [
+          { name: 'root', value: '1', domain: TEST_HOSTS.root },
+          { name: 'cdn', value: '2', domain: TEST_HOSTS.cdn },
+        ],
+      }),
+      detach: vi.fn().mockResolvedValue(undefined),
+    };
+    page.createCDPSession.mockResolvedValueOnce(cdp);
+
+    await expect(controller.getCookies()).resolves.toEqual([
+      { name: 'root', value: '1', domain: TEST_HOSTS.root },
+      { name: 'cdn', value: '2', domain: TEST_HOSTS.cdn },
+    ]);
+    expect(cdp.send).toHaveBeenCalledWith('Network.getAllCookies');
+    expect(cdp.detach).toHaveBeenCalledOnce();
+    expect(page.cookies).not.toHaveBeenCalled();
+  });
+
+  it('uses URL-scoped cookie reads when urls are supplied', async () => {
+    await expect(controller.getCookies({ urls: [TEST_URLS.root] })).resolves.toEqual([
+      { name: 'sid', value: '1' },
+    ]);
+
+    expect(page.cookies).toHaveBeenCalledWith(TEST_URLS.root);
+    expect(page.createCDPSession).not.toHaveBeenCalled();
+  });
+
   it('evaluates inside a resolved frame with the same CDP health check as top-level evaluate', async () => {
     const frame = {
       evaluate: vi.fn().mockResolvedValue('frame-title'),

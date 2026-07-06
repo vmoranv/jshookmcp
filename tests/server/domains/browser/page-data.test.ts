@@ -116,6 +116,23 @@ describe('PageDataHandlers', () => {
     });
   });
 
+  it('returns URL-scoped cookies when urls are supplied', async () => {
+    pageController.getCookies.mockResolvedValue([{ name: 'session', value: 'abc' }]);
+
+    const body = parseJson<BrowserStatusResponse>(
+      await handlers.handlePageGetCookies({ urls: [withPath(TEST_URLS.root, 'account'), ''] }),
+    );
+
+    expect(pageController.getCookies).toHaveBeenCalledWith({
+      urls: [withPath(TEST_URLS.root, 'account')],
+    });
+    expect(body).toEqual({
+      success: true,
+      count: 1,
+      cookies: [{ name: 'session', value: 'abc' }],
+    });
+  });
+
   it('clears cookies and returns success', async () => {
     pageController.clearCookies.mockResolvedValue(undefined);
 

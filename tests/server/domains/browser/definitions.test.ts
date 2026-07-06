@@ -342,7 +342,9 @@ describe('browser tool definitions', () => {
 
     it('page_cookies requires action', async () => {
       const tool = getToolByName(browserPageSystemTools, 'page_cookies');
-      expect(getInputSchema(tool).required).toContain('action');
+      const schema = getInputSchema(tool);
+      expect(schema.required).toContain('action');
+      expect(schema.properties).toHaveProperty('urls');
     });
 
     it('page_local_storage requires action', async () => {

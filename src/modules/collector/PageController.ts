@@ -22,6 +22,12 @@ export interface NavigationOptions {
   timeout?: number;
 }
 
+export interface CookieReadOptions {
+  urls?: string[];
+}
+
+type PageCookie = Awaited<ReturnType<Page['cookies']>>[number];
+
 export interface ClickOptions {
   button?: 'left' | 'right' | 'middle';
   clickCount?: number;
@@ -546,8 +552,34 @@ export class PageController {
     logger.info(`Set ${cookies.length} cookies`);
   }
 
-  async getCookies() {
+  async getCookies(options: CookieReadOptions = {}): Promise<PageCookie[]> {
     const page = await this.collector.getActivePage();
+    const urls = options.urls?.filter((url) => url.length > 0);
+    if (urls && urls.length > 0) {
+      const cookies = await page.cookies(...urls);
+      logger.info(`Retrieved ${cookies.length} cookies for ${urls.length} URL(s)`);
+      return cookies;
+    }
+
+    let cdp: Awaited<ReturnType<Page['createCDPSession']>> | undefined;
+    try {
+      cdp = await page.createCDPSession();
+      const result = (await cdp.send('Network.getAllCookies')) as { cookies?: PageCookie[] };
+      if (Array.isArray(result.cookies)) {
+        logger.info(`Retrieved ${result.cookies.length} cookies across all origins`);
+        return result.cookies;
+      }
+    } catch (error) {
+      logger.warn(
+        `Falling back to page-scoped cookie read: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    } finally {
+      const detach = (cdp as { detach?: () => Promise<void> } | undefined)?.detach;
+      if (typeof detach === 'function') {
+        await detach.call(cdp).catch(() => undefined);
+      }
+    }
+
     const cookies = await page.cookies();
     logger.info(`Retrieved ${cookies.length} cookies`);
     return cookies;
@@ -561,7 +593,7 @@ export class PageController {
       );
     }
     const page = await this.collector.getActivePage();
-    const cookies = await page.cookies();
+    const cookies = await this.getCookies();
     await page.deleteCookie(...cookies);
     logger.info('All cookies cleared');
   }

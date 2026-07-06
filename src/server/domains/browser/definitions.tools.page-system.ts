@@ -45,6 +45,11 @@ export const browserPageSystemTools: Tool[] = [
       .enum('action', ['get', 'set', 'clear'], 'Action')
       .number('expectedCount', 'Required for clear: must match current count')
       .array(
+        'urls',
+        { type: 'string' },
+        'Optional URL scope for action=get; omitted returns all cookies via CDP',
+      )
+      .array(
         'cookies',
         {
           type: 'object',

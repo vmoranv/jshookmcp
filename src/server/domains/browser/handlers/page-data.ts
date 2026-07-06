@@ -19,6 +19,14 @@ interface PageDataHandlersDeps {
   getCamoufoxPage?: () => Promise<unknown>;
 }
 
+function readStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const strings = value.filter(
+    (item): item is string => typeof item === 'string' && item.length > 0,
+  );
+  return strings.length > 0 ? strings : undefined;
+}
+
 export class PageDataHandlers {
   constructor(private deps: PageDataHandlersDeps) {}
 
@@ -142,9 +150,10 @@ export class PageDataHandlers {
     });
   }
 
-  async handlePageGetCookies(_args: Record<string, unknown>): Promise<ToolResponse> {
+  async handlePageGetCookies(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => {
-      const cookies = await this.deps.pageController.getCookies();
+      const urls = readStringArray(args.urls);
+      const cookies = await this.deps.pageController.getCookies(urls ? { urls } : undefined);
       return { count: cookies.length, cookies };
     });
   }

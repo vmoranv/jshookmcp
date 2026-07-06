@@ -17,7 +17,7 @@ const SCORES = {
     '40 tools, Frida spawn/resume, real Interceptor.attach generation, Unidbg/Ghidra/IDA/JADX',
   ],
   'boringssl-inspector': [9.2, '28 tools, Phase 0 honesty fix + Phase 2 MCP-safe wrappers'],
-  browser: [8.9, '69 tools, 73 scan-counted tests, prior audit'],
+  browser: [9.0, '69 tools, 73 scan-counted tests, CDP all-origin cookie reads'],
   canvas: [9.4, '8 tools, Phase 0 adapters + Phase 2 MCP-safe wrappers'],
   coordination: [9.0, '10 tools, persisted handoffs/insights + tagged insight filtering'],
   'cross-domain': [
