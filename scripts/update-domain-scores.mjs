@@ -39,7 +39,10 @@ const SCORES = {
     '7 tools, Phase 3 MCP install/info lifecycle with no-import manifest inspection',
   ],
   graphql: [9.4, '6 tools, Phase 3 Apollo Federation _service.sdl introspection'],
-  instrumentation: [9.0, '16 tools, Phase 3 session snapshot export to artifacts'],
+  instrumentation: [
+    9.1,
+    '16 tools, session snapshot export to artifacts + operation status/stop lifecycle',
+  ],
   maintenance: [9.2, '13 tools, sandbox hardening plus category-aware artifact retention cleanup'],
   memory: [9.7, '34 tools, E5 parity, Phase 0 find_accesses wired readMemory+capstone+pid'],
   'mojo-ipc': [9.0, '6 tools, encode/filter surface, expanded decoder types + v2 header metadata'],

@@ -29,9 +29,20 @@ describe('instrumentation domain definitions', () => {
     );
 
     expect(operationTool?.inputSchema.properties).toHaveProperty('sessionId');
+    expect(operationTool?.inputSchema.properties).toHaveProperty('operationId');
     expect(artifactTool?.inputSchema.properties).toHaveProperty('sessionId');
     expect(exportTool?.inputSchema.properties).toHaveProperty('sessionId');
     expect(hookPresetTool?.inputSchema.properties).toHaveProperty('sessionId');
+  });
+
+  it('declares operation lifecycle actions', async () => {
+    const operationTool = instrumentationTools.find(
+      (tool) => tool.name === 'instrumentation_operation',
+    );
+
+    expect(operationTool?.inputSchema.properties?.action).toMatchObject({
+      enum: ['register', 'list', 'status', 'stop'],
+    });
   });
 
   it('declares session export output directory support', async () => {

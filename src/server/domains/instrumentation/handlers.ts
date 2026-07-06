@@ -51,10 +51,14 @@ export class InstrumentationHandlers {
         return this.handleOperationRegister(args);
       case 'list':
         return this.handleOperationList(args);
+      case 'status':
+        return this.handleOperationStatus(args);
+      case 'stop':
+        return this.handleOperationStop(args);
       default:
         return asJsonResponse({
           success: false,
-          error: `Unknown action: ${action}. Valid: register, list`,
+          error: `Unknown action: ${action}. Valid: register, list, status, stop`,
         });
     }
   }
@@ -153,6 +157,31 @@ export class InstrumentationHandlers {
       const typeFilter = argString(args, 'type');
       if (typeFilter) ops = ops.filter((o) => o.type === typeFilter);
       return { totalOperations: ops.length, operations: ops };
+    });
+  }
+
+  async handleOperationStatus(args: Record<string, unknown>) {
+    return handleSafe(async () => {
+      const sessionId = argString(args, 'sessionId', '');
+      const operationId = argString(args, 'operationId', '');
+      if (!sessionId) throw new Error('sessionId is required');
+      if (!operationId) throw new Error('operationId is required');
+
+      const operation = this.sessionManager.getOperation(sessionId, operationId);
+      if (!operation) throw new Error(`Operation "${operationId}" not found`);
+      return { operation };
+    });
+  }
+
+  async handleOperationStop(args: Record<string, unknown>) {
+    return handleSafe(async () => {
+      const sessionId = argString(args, 'sessionId', '');
+      const operationId = argString(args, 'operationId', '');
+      if (!sessionId) throw new Error('sessionId is required');
+      if (!operationId) throw new Error('operationId is required');
+
+      const operation = this.sessionManager.stopOperation(sessionId, operationId);
+      return { operation, message: 'Operation stopped' };
     });
   }
 

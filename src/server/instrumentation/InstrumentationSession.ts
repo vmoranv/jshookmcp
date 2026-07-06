@@ -180,6 +180,23 @@ export class InstrumentationSessionManager {
     return this.operations.get(sessionId) ?? [];
   }
 
+  getOperation(sessionId: string, operationId: string): InstrumentationOperation | undefined {
+    return this.getSessionOperations(sessionId).find((operation) => operation.id === operationId);
+  }
+
+  stopOperation(sessionId: string, operationId: string): InstrumentationOperation {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Session "${sessionId}" not found`);
+
+    const operation = this.getOperation(sessionId, operationId);
+    if (!operation) throw new Error(`Operation "${operationId}" not found`);
+
+    if (operation.status === 'active' || operation.status === 'paused') {
+      operation.status = 'cancelled';
+    }
+    return operation;
+  }
+
   // ── Artifact recording ──
 
   recordArtifact(operationId: string, data: InstrumentationArtifactData): InstrumentationArtifact {

@@ -261,10 +261,10 @@
       "d2_testFiles": 14,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 0,
-      "d5_handleSafeRefs": 12,
+      "d5_handleSafeRefs": 14,
       "d6_doc": {
         "hasClaude": true,
-        "hasScore": true,
+        "hasScore": false,
         "hasPrereq": false,
         "hasToolDeps": false
       }

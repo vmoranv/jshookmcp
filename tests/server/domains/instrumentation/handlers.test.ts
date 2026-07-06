@@ -159,6 +159,50 @@ describe('InstrumentationHandlers', () => {
     });
   });
 
+  describe('handleOperationStatus and handleOperationStop', () => {
+    it('returns and stops an operation without destroying the session', async () => {
+      const createResult = await handlers.handleSessionCreate({});
+      const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+        .id as string;
+      const opResult = await handlers.handleOperationRegister({
+        sessionId,
+        type: InstrumentationType.RUNTIME_HOOK,
+        target: 'signPayload',
+      });
+      const operationId = (parseResponse(opResult).operation as Record<string, unknown>)
+        .id as string;
+
+      const statusResult = await handlers.handleOperationStatus({ sessionId, operationId });
+      const statusData = parseResponse(statusResult);
+      expect((statusData.operation as Record<string, unknown>).status).toBe('active');
+
+      const stopResult = await handlers.handleOperationStop({ sessionId, operationId });
+      const stopData = parseResponse(stopResult);
+      expect(stopData.success).toBe(true);
+      expect(stopData.message).toBe('Operation stopped');
+      expect((stopData.operation as Record<string, unknown>).status).toBe('cancelled');
+
+      const listResult = await handlers.handleOperationList({ sessionId });
+      const operations = parseResponse(listResult).operations as Array<Record<string, unknown>>;
+      expect(operations[0]?.status).toBe('cancelled');
+
+      const sessionStatus = parseResponse(await handlers.handleSessionStatus({ sessionId }));
+      expect((sessionStatus.session as Record<string, unknown>).status).toBe('active');
+    });
+
+    it('returns an error when stopping a missing operation', async () => {
+      const createResult = await handlers.handleSessionCreate({});
+      const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+        .id as string;
+
+      const result = await handlers.handleOperationStop({ sessionId, operationId: 'missing' });
+      const data = parseResponse(result);
+
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('Operation "missing" not found');
+    });
+  });
+
   describe('handleOperationRegister', () => {
     it('registers an operation and returns operation data', async () => {
       const createResult = await handlers.handleSessionCreate({});

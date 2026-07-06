@@ -28,8 +28,9 @@ export const instrumentationTools: Tool[] = [
   tool('instrumentation_operation', (t) =>
     t
       .desc('Manage operations inside an instrumentation session.')
-      .enum('action', ['register', 'list'], 'Operation')
+      .enum('action', ['register', 'list', 'status', 'stop'], 'Operation')
       .string('sessionId', 'Session ID')
+      .string('operationId', 'Operation ID for status or stop')
       .enum('type', queryTypes, 'Instrumentation type (action=register)')
       .string('target', 'Function name, URL pattern, or script target (action=register)')
       .object('config', {}, 'Operation-specific config (action=register)')

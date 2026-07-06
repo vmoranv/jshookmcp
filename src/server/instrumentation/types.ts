@@ -28,7 +28,7 @@ export interface InstrumentationOperation {
   /** Unix epoch ms when the operation was registered. */
   readonly createdAt: number;
   /** Current lifecycle status. */
-  status: 'active' | 'paused' | 'completed' | 'failed';
+  status: 'active' | 'paused' | 'completed' | 'failed' | 'cancelled';
 }
 
 /** A captured data point produced by an instrumentation operation. */
