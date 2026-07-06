@@ -218,6 +218,22 @@ describe('InstrumentationHandlers', () => {
       expect(data.success).toBe(true);
       expect((data.operation as Record<string, unknown>).target).toBe('signPayload');
     });
+
+    it('rejects invalid operation types', async () => {
+      const createResult = await handlers.handleSessionCreate({});
+      const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+        .id as string;
+
+      const result = await handlers.handleOperationRegister({
+        sessionId,
+        type: 'dom-hook',
+        target: 'fn',
+      });
+      const data = parseResponse(result);
+
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('Invalid instrumentation type: dom-hook');
+    });
   });
 
   describe('handleArtifactQuery', () => {
@@ -254,6 +270,38 @@ describe('InstrumentationHandlers', () => {
       const result = await handlers.handleArtifactQuery({ sessionId, limit: 2 });
       const data = parseResponse(result);
       expect(data.totalArtifacts).toBe(2);
+    });
+
+    it('clamps invalid artifact query limits to the bounded range', async () => {
+      const createResult = await handlers.handleSessionCreate({});
+      const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+        .id as string;
+      const opResult = await handlers.handleOperationRegister({
+        sessionId,
+        type: InstrumentationType.RUNTIME_HOOK,
+        target: 'fn',
+      });
+      const op = parseResponse(opResult).operation as Record<string, unknown>;
+      await handlers.handleArtifactRecord({ operationId: op.id, data: { args: [1] } });
+      await handlers.handleArtifactRecord({ operationId: op.id, data: { args: [2] } });
+      await handlers.handleArtifactRecord({ operationId: op.id, data: { args: [3] } });
+
+      const result = await handlers.handleArtifactQuery({ sessionId, limit: -10 });
+      const data = parseResponse(result);
+
+      expect(data.totalArtifacts).toBe(1);
+    });
+
+    it('rejects invalid artifact type filters', async () => {
+      const createResult = await handlers.handleSessionCreate({});
+      const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+        .id as string;
+
+      const result = await handlers.handleArtifactQuery({ sessionId, type: 'dom-hook' });
+      const data = parseResponse(result);
+
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('Invalid instrumentation type: dom-hook');
     });
   });
 

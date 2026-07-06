@@ -20,6 +20,8 @@ interface InstrumentationHandlerDeps {
   advancedHandlers?: NetworkReplayHandlerLike;
 }
 
+const INSTRUMENTATION_TYPES = new Set<InstrumentationType>(Object.values(InstrumentationType));
+
 export class InstrumentationHandlers {
   constructor(
     private readonly sessionManager: InstrumentationSessionManager,
@@ -188,7 +190,7 @@ export class InstrumentationHandlers {
   async handleOperationRegister(args: Record<string, unknown>) {
     return handleSafe(async () => {
       const sessionId = argString(args, 'sessionId', '');
-      const type = argString(args, 'type', '');
+      const type = readInstrumentationType(args.type);
       const target = argString(args, 'target', '');
       const config =
         args.config && typeof args.config === 'object' && !Array.isArray(args.config)
@@ -198,12 +200,7 @@ export class InstrumentationHandlers {
       if (!type) throw new Error('type is required');
       if (!target) throw new Error('target is required');
 
-      const operation = this.sessionManager.registerOperation(
-        sessionId,
-        type as InstrumentationType,
-        target,
-        config,
-      );
+      const operation = this.sessionManager.registerOperation(sessionId, type, target, config);
       return { operation };
     });
   }
@@ -212,11 +209,10 @@ export class InstrumentationHandlers {
     return handleSafe(async () => {
       const sessionId = argString(args, 'sessionId', '');
       if (!sessionId) throw new Error('sessionId is required');
-      const typeRaw = argString(args, 'type');
-      const type = typeRaw ? (typeRaw as InstrumentationType) : undefined;
-      const limit = typeof args.limit === 'number' ? args.limit : 50;
+      const type = readInstrumentationType(args.type);
+      const limit = readArtifactLimit(args.limit);
       let artifacts = this.sessionManager.getArtifacts(sessionId, type);
-      if (limit > 0) artifacts = artifacts.slice(0, limit);
+      artifacts = artifacts.slice(0, limit);
       return { totalArtifacts: artifacts.length, artifacts };
     });
   }
@@ -278,4 +274,19 @@ export class InstrumentationHandlers {
       };
     });
   }
+}
+
+function readInstrumentationType(value: unknown): InstrumentationType | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value === 'string' && INSTRUMENTATION_TYPES.has(value as InstrumentationType)) {
+    return value as InstrumentationType;
+  }
+  throw new Error(
+    `Invalid instrumentation type: ${String(value)}. Expected one of: ${[...INSTRUMENTATION_TYPES].join(', ')}`,
+  );
+}
+
+function readArtifactLimit(value: unknown): number {
+  const raw = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : 50;
+  return Math.min(500, Math.max(1, raw));
 }

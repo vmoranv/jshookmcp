@@ -43,6 +43,23 @@ describe('instrumentation domain definitions', () => {
     expect(operationTool?.inputSchema.properties?.action).toMatchObject({
       enum: ['register', 'list', 'status', 'stop'],
     });
+    expect(operationTool?.inputSchema.properties?.type).toMatchObject({
+      enum: ['before-load-inject', 'runtime-hook', 'network-intercept', 'function-trace'],
+    });
+  });
+
+  it('bounds artifact query limits and type filters', async () => {
+    const artifactTool = instrumentationTools.find(
+      (tool) => tool.name === 'instrumentation_artifact',
+    );
+
+    expect(artifactTool?.inputSchema.properties?.type).toMatchObject({
+      enum: ['before-load-inject', 'runtime-hook', 'network-intercept', 'function-trace'],
+    });
+    expect(artifactTool?.inputSchema.properties?.limit).toMatchObject({
+      minimum: 1,
+      maximum: 500,
+    });
   });
 
   it('declares session export output directory support', async () => {

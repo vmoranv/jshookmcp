@@ -44,7 +44,11 @@ export const instrumentationTools: Tool[] = [
       .string('operationId', 'Operation ID (action=record)')
       .object('data', {}, 'Captured artifact payload (action=record)')
       .enum('type', queryTypes, 'Optional artifact type filter (action=query)')
-      .number('limit', 'Max artifacts to return (action=query, default: 50)', { default: 50 })
+      .number('limit', 'Max artifacts to return (action=query, default: 50)', {
+        default: 50,
+        minimum: 1,
+        maximum: 500,
+      })
       .required('action', 'sessionId'),
   ),
   tool('instrumentation_hook_preset', (t) =>

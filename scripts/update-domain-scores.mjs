@@ -49,8 +49,8 @@ const SCORES = {
   ],
   graphql: [9.4, '6 tools, Phase 3 Apollo Federation _service.sdl introspection'],
   instrumentation: [
-    9.1,
-    '16 tools, session snapshot export to artifacts + operation status/stop lifecycle',
+    9.2,
+    '16 tools, session snapshot export to artifacts, operation status/stop lifecycle, strict type and artifact limit validation',
   ],
   maintenance: [9.2, '13 tools, sandbox hardening plus category-aware artifact retention cleanup'],
   memory: [9.7, '34 tools, E5 parity, Phase 0 find_accesses wired readMemory+capstone+pid'],
