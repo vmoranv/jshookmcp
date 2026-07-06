@@ -17,6 +17,8 @@ const registrations = defineMethodRegistrations<H, (typeof PROXY_TOOLS)[number][
     { tool: 'proxy_status', method: 'handleProxyStatusTool' },
     { tool: 'proxy_export_ca', method: 'handleProxyExportCaTool' },
     { tool: 'proxy_add_rule', method: 'handleProxyAddRuleTool' },
+    { tool: 'proxy_list_rules', method: 'handleProxyListRulesTool' },
+    { tool: 'proxy_clear_rules', method: 'handleProxyClearRulesTool' },
     { tool: 'proxy_get_requests', method: 'handleProxyGetRequestsTool' },
     { tool: 'proxy_clear_logs', method: 'handleProxyClearLogsTool' },
     { tool: 'proxy_setup_adb_device', method: 'handleProxySetupAdbDeviceTool' },

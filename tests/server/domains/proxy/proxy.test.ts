@@ -160,9 +160,62 @@ describe('ProxyHandlers (Integration)', () => {
     const ruleData = parseResponse(ruleRes);
     expect(ruleData.success).toBe(true);
     expect(ruleData.endpointId).toBeDefined();
+    expect(ruleData.rule).toMatchObject({
+      endpointId: ruleData.endpointId,
+      action: 'mock_response',
+      method: 'GET',
+      urlPattern: withPath(TEST_HTTP_URLS.root, 'api'),
+      mockStatus: 201,
+    });
 
     const logsRes: any = await handlers.handleProxyGetRequests({});
     expect(Array.isArray(parseResponse(logsRes).logs)).toBe(true);
+  });
+
+  it('lists and clears active proxy rules without stopping the server', async () => {
+    await handlers.handleProxyStart({ port: testPort + 9, useHttps: false });
+
+    const ruleRes = await handlers.handleProxyAddRule({
+      action: 'mock_response',
+      method: 'GET',
+      urlPattern: '/rules-test/',
+      mockStatus: 204,
+      mockBody: '',
+    });
+    const ruleData = parseResponse(ruleRes);
+    expect(ruleData.success).toBe(true);
+
+    const listData = parseResponse(await handlers.handleProxyListRules({}));
+    expect(listData.count).toBe(1);
+    expect(listData.rules[0]).toMatchObject({
+      endpointId: ruleData.endpointId,
+      action: 'mock_response',
+      method: 'GET',
+      urlPattern: '/rules-test/',
+      mockStatus: 204,
+    });
+
+    const statusData = parseResponse(await handlers.handleProxyStatus({}));
+    expect(statusData.running).toBe(true);
+    expect(statusData.ruleCount).toBe(1);
+
+    const clearData = parseResponse(await handlers.handleProxyClearRules({}));
+    expect(clearData).toMatchObject({
+      success: true,
+      cleared: 1,
+    });
+
+    const afterList = parseResponse(await handlers.handleProxyListRules({}));
+    expect(afterList.count).toBe(0);
+    expect(afterList.rules).toEqual([]);
+    expect(parseResponse(await handlers.handleProxyStatus({})).running).toBe(true);
+  });
+
+  it('requires a running proxy to clear rules', async () => {
+    const result = await handlers.handleProxyClearRules({});
+    const data = parseAnyResponse(result);
+    expect(result.isError).toBe(true);
+    expect(data.error).toContain('Proxy must be running to clear rules');
   });
 
   it('forwards proxied requests with the upstream response body', async () => {
@@ -367,6 +420,7 @@ describe('ProxyHandlers (Integration)', () => {
       success: true,
       running: false,
       port: null,
+      ruleCount: 0,
     });
   });
 

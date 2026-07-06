@@ -443,11 +443,11 @@
   "proxy": {
     "domain": "proxy",
     "dims": {
-      "d1_toolCount": 8,
-      "d2_testFiles": 1,
+      "d1_toolCount": 10,
+      "d2_testFiles": 3,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 2,
-      "d5_handleSafeRefs": 9,
+      "d5_handleSafeRefs": 11,
       "d6_doc": {
         "hasClaude": true,
         "hasScore": true,

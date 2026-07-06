@@ -25,6 +25,12 @@ export const PROXY_TOOLS: Tool[] = [
       .string('mockBody', 'Response body for mock_response.')
       .required('action'),
   ),
+  tool('proxy_list_rules', (t) =>
+    t.desc('List active proxy interception rules tracked by this handler.').query(),
+  ),
+  tool('proxy_clear_rules', (t) =>
+    t.desc('Clear active proxy interception rules while keeping the proxy running.').resettable(),
+  ),
   tool('proxy_get_requests', (t) =>
     t
       .desc('Read captured proxy request/response metadata, body previews, and timing.')

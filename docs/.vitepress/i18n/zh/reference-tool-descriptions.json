@@ -562,5 +562,7 @@
   "ida_bridge": "向 IDA Pro 插件 bridge 发送命令。",
   "rizin_bridge": "向本地 Rizin/r2 分析 bridge 发送命令。",
   "binary_ninja_bridge": "向本地 Binary Ninja 分析 bridge 发送命令。",
-  "native_symbol_sync": "从已连接的原生分析后端导出并同步符号。"
+  "native_symbol_sync": "从已连接的原生分析后端导出并同步符号。",
+  "proxy_list_rules": "列出当前 handler 跟踪的活动代理拦截规则。",
+  "proxy_clear_rules": "在保持代理运行的情况下清空当前活动拦截规则。"
 }

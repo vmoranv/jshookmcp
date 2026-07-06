@@ -43,7 +43,7 @@ const SCORES = {
     9.6,
     '20 tools, Phase 3 +5 protocol fingerprints: MQTT/STUN/QUIC/SOCKS5/HTTP2',
   ],
-  proxy: [8.6, '8 tools, Phase 2 MCP-safe wrappers + Phase 3 body/timing capture'],
+  proxy: [9.0, '10 tools, Phase 3 body/timing capture + active rule list/clear lifecycle'],
   sourcemap: [9.1, '6 tools, Phase 2 MCP-safe wrappers'],
   streaming: [9.1, '7 tools, Phase 2 MCP-safe wrappers + Phase 3 payload/export/metadata'],
   'syscall-hook': [8.8, '15 tools, Phase 1 PID/returnValue filters + Phase 2 MCP-safe wrappers'],

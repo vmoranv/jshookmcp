@@ -42,6 +42,15 @@ interface CaptureEntry {
   timestamp: number;
 }
 
+interface ProxyRuleRecord {
+  endpointId: string;
+  action: string;
+  method: string;
+  urlPattern: string;
+  mockStatus?: number;
+  createdAt: string;
+}
+
 interface CaptureTiming {
   startedAt?: string;
   startTime?: number;
@@ -186,6 +195,7 @@ export class ProxyHandlers {
   private readonly caPathDir: string;
   private currentPort: number | null = null;
   private captureBuffer: CaptureEntry[] = [];
+  private ruleRecords: ProxyRuleRecord[] = [];
   private mockttpModule: typeof import('mockttp') | null = null;
   private caReady = false;
 
@@ -213,6 +223,14 @@ export class ProxyHandlers {
 
   async handleProxyAddRuleTool(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => await this.handleProxyAddRule(args));
+  }
+
+  async handleProxyListRulesTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxyListRules(args));
+  }
+
+  async handleProxyClearRulesTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleProxyClearRules(args));
   }
 
   async handleProxyGetRequestsTool(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -369,6 +387,7 @@ export class ProxyHandlers {
     await (this.server as { stop: () => Promise<void> }).stop();
     this.server = null;
     this.currentPort = null;
+    this.ruleRecords = [];
     return ResponseBuilder.success({ message: 'Proxy stopped successfully' });
   }
 
@@ -378,6 +397,7 @@ export class ProxyHandlers {
       port: this.currentPort,
       caDir: this.caPathDir,
       caCertPath: path.join(this.caPathDir, 'ca.pem'),
+      ruleCount: this.ruleRecords.length,
     });
   }
 
@@ -440,11 +460,48 @@ export class ProxyHandlers {
       return ResponseBuilder.success({
         message: 'Rule added successfully',
         endpointId: endpoint.id,
+        rule: this.recordRule({
+          endpointId: endpoint.id,
+          action,
+          method,
+          urlPattern,
+          ...(action === 'mock_response'
+            ? { mockStatus: argNumber(args, 'mockStatus') || 200 }
+            : {}),
+        }),
       });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       return ResponseBuilder.error(`Failed to add rule: ${message}`);
     }
+  }
+
+  async handleProxyListRules(_args: Record<string, unknown>) {
+    return ResponseBuilder.success({
+      count: this.ruleRecords.length,
+      rules: this.ruleRecords.map((rule) => ({ ...rule })),
+    });
+  }
+
+  async handleProxyClearRules(_args: Record<string, unknown>) {
+    if (!this.server) {
+      return ResponseBuilder.error('Proxy must be running to clear rules.');
+    }
+
+    const server = this.server as {
+      setRequestRules?: (...rules: unknown[]) => Promise<unknown[]>;
+    };
+    if (typeof server.setRequestRules !== 'function') {
+      return ResponseBuilder.error('Proxy server does not support clearing rules at runtime.');
+    }
+
+    await server.setRequestRules();
+    const cleared = this.ruleRecords.length;
+    this.ruleRecords = [];
+    return ResponseBuilder.success({
+      message: 'Proxy rules cleared.',
+      cleared,
+    });
   }
 
   async handleProxyGetRequests(args: Record<string, unknown>) {
@@ -541,5 +598,14 @@ export class ProxyHandlers {
       const message = e instanceof Error ? e.message : String(e);
       return ResponseBuilder.error(`Failed to configure ADB device: ${message}`);
     }
+  }
+
+  private recordRule(rule: Omit<ProxyRuleRecord, 'createdAt'>): ProxyRuleRecord {
+    const record: ProxyRuleRecord = {
+      ...rule,
+      createdAt: new Date().toISOString(),
+    };
+    this.ruleRecords.push(record);
+    return { ...record };
   }
 }
