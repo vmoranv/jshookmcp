@@ -87,11 +87,17 @@ export class BinaryInstrumentHandlers {
   handleFridaAttach(args: Record<string, unknown>) {
     return this.fridaSession.handleFridaAttach(args);
   }
+  handleFridaSpawn(args: Record<string, unknown>) {
+    return this.fridaSession.handleFridaSpawn(args);
+  }
   handleFridaEnumerateModules(args: Record<string, unknown>) {
     return this.fridaSession.handleFridaEnumerateModules(args);
   }
   handleFridaRunScript(args: Record<string, unknown>) {
     return this.fridaSession.handleFridaRunScript(args);
+  }
+  handleFridaResume(args: Record<string, unknown>) {
+    return this.fridaSession.handleFridaResume(args);
   }
   handleFridaDetach(args: Record<string, unknown>) {
     return this.fridaSession.handleFridaDetach(args);
@@ -101,6 +107,9 @@ export class BinaryInstrumentHandlers {
   }
   handleFridaGenerateScript(args: Record<string, unknown>) {
     return this.fridaSession.handleFridaGenerateScript(args);
+  }
+  handleFridaAttachInterceptor(args: Record<string, unknown>) {
+    return this.fridaSession.handleFridaAttachInterceptor(args);
   }
   handleFridaEnumerateFunctions(args: Record<string, unknown>) {
     return this.fridaSession.handleFridaEnumerateFunctions(args);

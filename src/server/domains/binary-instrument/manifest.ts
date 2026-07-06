@@ -18,16 +18,19 @@ const registrations = defineMethodRegistrations<H, (typeof binaryInstrumentTools
   entries: [
     { tool: 'binary_instrument_capabilities', method: 'handleBinaryInstrumentCapabilities' },
     { tool: 'frida_attach', method: 'handleFridaAttach' },
+    { tool: 'frida_spawn', method: 'handleFridaSpawn' },
     { tool: 'frida_enumerate_modules', method: 'handleFridaEnumerateModules' },
     { tool: 'ghidra_analyze', method: 'handleGhidraAnalyze' },
     { tool: 'generate_hooks', method: 'handleGenerateHooks' },
     { tool: 'unidbg_emulate', method: 'handleUnidbgEmulate' },
     { tool: 'frida_run_script', method: 'handleFridaRunScript' },
+    { tool: 'frida_resume', method: 'handleFridaResume' },
     { tool: 'frida_detach', method: 'handleFridaDetach' },
     { tool: 'frida_list_sessions', method: 'handleFridaListSessions' },
     { tool: 'frida_dex_dump', method: 'handleFridaDexDump' },
     { tool: 'android_runtime_dump_session', method: 'handleAndroidRuntimeDumpSession' },
     { tool: 'frida_generate_script', method: 'handleFridaGenerateScript' },
+    { tool: 'frida_attach_interceptor', method: 'handleFridaAttachInterceptor' },
     { tool: 'get_available_plugins', method: 'handleGetAvailablePlugins' },
     { tool: 'ghidra_decompile', method: 'handleGhidraDecompile' },
     { tool: 'ida_decompile', method: 'handleIdaDecompile' },
@@ -141,6 +144,10 @@ const manifest = {
       'android_runtime_dump_session',
       'binary_strings_extract',
       'apk_native_libs_list',
+      'frida_attach',
+      'frida_spawn',
+      'frida_attach_interceptor',
+      'frida_resume',
       'generate_hooks',
       'unidbg_launch',
     ],
@@ -154,10 +161,29 @@ const manifest = {
         fix: 'Install frida-tools and, for Android/device targets, launch frida-server on the target.',
       },
     ],
+    frida_spawn: [
+      {
+        condition:
+          'Frida CLI must be installed; device targets may also require frida-server and spawn privileges',
+        fix: 'Install frida-tools, start frida-server for device targets, and choose a spawnable package or executable.',
+      },
+    ],
     frida_run_script: [
       {
         condition: 'A Frida session must be active',
         fix: 'Call frida_attach before running a script',
+      },
+    ],
+    frida_resume: [
+      {
+        condition: 'A Frida spawn session must be active',
+        fix: 'Call frida_spawn first, install early hooks, then pass its sessionId to frida_resume.',
+      },
+    ],
+    frida_attach_interceptor: [
+      {
+        condition: 'A Frida session is required when install=true',
+        fix: 'Call frida_attach or frida_spawn first, or omit install to generate the script only.',
       },
     ],
     ghidra_analyze: [

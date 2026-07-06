@@ -33,6 +33,9 @@ interface ParsedToolResponse {
   functions?: unknown[];
   symbols?: unknown[];
   execution?: { output?: string; error?: string };
+  installed?: boolean;
+  resumed?: boolean;
+  script?: string;
   matches?: unknown[];
   filesMatched?: number;
   result?: { stdout?: string; trace?: string[] };
@@ -102,6 +105,17 @@ class StubFridaSession {
     return this.options.sessionId ?? 'session-1';
   }
 
+  async spawn(target: string) {
+    if (target === 'fail') throw new Error('spawn failed');
+    return this.options.sessionId ?? 'session-1';
+  }
+
+  async resume() {
+    return this.options.scriptError
+      ? { output: '', error: this.options.scriptError }
+      : { output: 'resumed' };
+  }
+
   listSessions() {
     const sessionId = this.options.sessionId;
     return sessionId
@@ -111,6 +125,8 @@ class StubFridaSession {
             target: '1234',
             pid: 1234,
             status: this.options.diagnosticsStatus ?? 'attached',
+            mode: 'attach',
+            resumed: true,
           },
         ]
       : [];
@@ -314,6 +330,11 @@ describe('binary-instrument Frida fallback branches', () => {
       fridaSession: new StubFridaSession({ available: false }) as never,
     });
 
+    expect(parse(await handlers.handleFridaSpawn({ target: 'com.example.app' }))).toMatchObject({
+      success: false,
+      available: false,
+      capability: 'frida_cli',
+    });
     expect(
       parse(await handlers.handleFridaRunScript({ sessionId: 'mock-frida-1234', script: '1+1' })),
     ).toMatchObject({
@@ -322,6 +343,13 @@ describe('binary-instrument Frida fallback branches', () => {
       capability: 'frida_cli',
       execution: { error: 'Frida unavailable' },
     });
+    expect(parse(await handlers.handleFridaResume({ sessionId: 'mock-frida-1234' }))).toMatchObject(
+      {
+        success: false,
+        available: false,
+        capability: 'frida_cli',
+      },
+    );
     expect(
       parse(
         await handlers.handleFridaEnumerateFunctions({
@@ -363,6 +391,11 @@ describe('binary-instrument Frida fallback branches', () => {
       available: true,
       count: 1,
     });
+    expect(parse(await handlers.handleFridaSpawn({ target: '1234' }))).toMatchObject({
+      success: true,
+      available: true,
+      mode: 'spawn',
+    });
     expect(
       parse(await handlers.handleFridaEnumerateModules({ sessionId: 'missing' })),
     ).toMatchObject({
@@ -381,6 +414,25 @@ describe('binary-instrument Frida fallback branches', () => {
     ).toMatchObject({
       success: false,
       reason: 'script failed',
+    });
+    expect(parse(await handlers.handleFridaResume({ sessionId: 'session-1' }))).toMatchObject({
+      success: false,
+      resumed: false,
+      reason: 'script failed',
+    });
+    expect(
+      parse(
+        await handlers.handleFridaAttachInterceptor({
+          sessionId: 'session-1',
+          install: true,
+          symbol: 'main',
+        }),
+      ),
+    ).toMatchObject({
+      success: false,
+      installed: false,
+      reason: 'script failed',
+      script: expect.stringContaining('Interceptor.attach'),
     });
     expect(
       parse(

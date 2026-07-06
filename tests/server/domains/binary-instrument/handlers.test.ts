@@ -231,12 +231,40 @@ describe('BinaryInstrumentHandlers', () => {
       const result = await handlers.handleFridaGenerateScript({
         template: 'trace',
         functionName: 'CreateFileW',
+        moduleName: 'kernel32.dll',
+        argSpec: [{ index: 0, name: 'path', type: 'pointer' }],
       });
 
       const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
       const parsed = JSON.parse(text);
       expect(parsed.success).toBe(true);
       expect(parsed.script).toContain('CreateFileW');
+      expect(parsed.script).toContain('Interceptor.attach');
+      expect(parsed.script).toContain('Module.findExportByName("kernel32.dll", "CreateFileW")');
+      expect(parsed.script).toContain('__jshookReadArg(args, 0, "pointer")');
+    });
+
+    it('handleFridaAttachInterceptor generates a parameter-aware Interceptor.attach script', async () => {
+      const handlers = createHandlers();
+      const result = await handlers.handleFridaAttachInterceptor({
+        moduleName: 'libc.so',
+        symbol: 'malloc',
+        argSpec: [{ index: 0, name: 'size', type: 'uint' }],
+        onLeaveBody: 'console.log("retval=" + retval);',
+      });
+
+      const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
+      const parsed = JSON.parse(text);
+      expect(parsed).toMatchObject({
+        success: true,
+        installed: false,
+        moduleName: 'libc.so',
+        symbol: 'malloc',
+      });
+      expect(parsed.script).toContain('Interceptor.attach');
+      expect(parsed.script).toContain('Module.findExportByName("libc.so", "malloc")');
+      expect(parsed.script).toContain('__jshookReadArg(args, 0, "uint")');
+      expect(parsed.script).toContain('console.log("retval=" + retval);');
     });
 
     it('handleGetAvailablePlugins returns empty list when no plugins', async () => {

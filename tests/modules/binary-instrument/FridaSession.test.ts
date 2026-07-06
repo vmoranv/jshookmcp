@@ -44,6 +44,45 @@ describe('FridaSession', () => {
     await expect(session.attach('1234')).rejects.toThrow('Not installed');
   });
 
+  it('spawns a target for early instrumentation', async () => {
+    const execFile = await import('node:child_process').then((m) => m.execFile as any);
+
+    const id = await session.spawn('com.example.app');
+    expect(id).toBeDefined();
+    expect(session.listSessions()[0]).toMatchObject({
+      id,
+      target: 'com.example.app',
+      mode: 'spawn',
+      resumed: false,
+    });
+    expect(execFile.mock.calls.at(-1)?.[1]).toEqual(
+      expect.arrayContaining(['-f', 'com.example.app']),
+    );
+  });
+
+  it('resumes a spawned target and records resumed state', async () => {
+    const execFile = await import('node:child_process').then((m) => m.execFile as any);
+    execFile.mockImplementation((_file: any, args: any[], _options: any, cb: any) => {
+      const script = args.at(-1);
+      cb(
+        null,
+        script.includes('Process.resume') ? '__frida_resume_ok__' : '__frida_spawn_ok__',
+        '',
+      );
+    });
+
+    const id = await session.spawn('com.example.app');
+    const result = await session.resume(id);
+
+    expect(result.output).toBe('__frida_resume_ok__');
+    expect(execFile.mock.calls.at(-1)?.[1]?.at(-1)).toContain('Process.resume');
+    expect(session.listSessions()[0]).toMatchObject({
+      id,
+      mode: 'spawn',
+      resumed: true,
+    });
+  });
+
   it('executes script', async () => {
     const execFile = await import('node:child_process').then((m) => m.execFile as any);
     execFile.mockImplementation((_file: any, _args: any, _options: any, cb: any) => {

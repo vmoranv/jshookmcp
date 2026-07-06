@@ -34,8 +34,12 @@ export class CapabilityHandlers {
           details: {
             tools: [
               'frida_attach',
+              'frida_spawn',
+              'frida_resume',
               'frida_enumerate_modules',
               'frida_run_script',
+              'frida_attach_interceptor',
+              'frida_generate_script',
               'frida_enumerate_functions',
               'frida_find_symbols',
             ],

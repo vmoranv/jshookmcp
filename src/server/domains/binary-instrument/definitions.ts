@@ -23,6 +23,12 @@ export const binaryInstrumentTools: Tool[] = [
       .string('target', 'Process name, PID, or binary path to attach to')
       .required('target'),
   ),
+  tool('frida_spawn', (t) =>
+    t
+      .desc('Spawn a target through Frida for early instrumentation before normal execution.')
+      .string('target', 'Package name or binary path to spawn with Frida -f')
+      .required('target'),
+  ),
   tool('frida_enumerate_modules', (t) =>
     t
       .desc('List loaded modules in an attached Frida session.')
@@ -68,6 +74,12 @@ export const binaryInstrumentTools: Tool[] = [
       .string('sessionId', 'Session id returned by frida_attach')
       .string('script', 'Frida JavaScript to execute')
       .required('sessionId', 'script'),
+  ),
+  tool('frida_resume', (t) =>
+    t
+      .desc('Resume a target previously spawned for early Frida instrumentation.')
+      .string('sessionId', 'Session id returned by frida_spawn')
+      .required('sessionId'),
   ),
   tool('frida_detach', (t) =>
     t
@@ -122,7 +134,43 @@ export const binaryInstrumentTools: Tool[] = [
       .string('target', 'Target binary or module name')
       .string('template', 'Hook template type: trace, intercept, replace, log')
       .string('functionName', 'Function name to generate hook for')
+      .string('moduleName', 'Optional module name for Module.findExportByName')
+      .string('address', 'Optional absolute address expression used as ptr(address)')
+      .array(
+        'argSpec',
+        {
+          type: 'object',
+          description: 'Argument descriptor: {index?:number,name?:string,type?:string}',
+        },
+        'Optional argument descriptors to log in the interceptor body.',
+      )
+      .string('onEnterBody', 'Optional custom Frida JavaScript inserted into onEnter(args)')
+      .string('onLeaveBody', 'Optional custom Frida JavaScript inserted into onLeave(retval)')
       .required('target', 'template'),
+  ),
+  tool('frida_attach_interceptor', (t) =>
+    t
+      .desc(
+        'Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session.',
+      )
+      .string('symbol', 'Exported symbol or function name to intercept')
+      .string('moduleName', 'Optional module name for Module.findExportByName')
+      .string('address', 'Optional absolute address expression used as ptr(address)')
+      .array(
+        'argSpec',
+        {
+          type: 'object',
+          description: 'Argument descriptor: {index?:number,name?:string,type?:string}',
+        },
+        'Optional argument descriptors to log in the interceptor body.',
+      )
+      .string('onEnterBody', 'Optional custom Frida JavaScript inserted into onEnter(args)')
+      .string('onLeaveBody', 'Optional custom Frida JavaScript inserted into onLeave(retval)')
+      .boolean('install', 'Run the generated script in the supplied Frida session.', {
+        default: false,
+      })
+      .string('sessionId', 'Required when install=true; session from frida_attach or frida_spawn')
+      .required('symbol'),
   ),
   tool('get_available_plugins', (t) => t.desc('List installed binary analysis plugins.').query()),
   tool('ghidra_decompile', (t) =>

@@ -3,6 +3,7 @@ export {
   type FridaFunctionInfo,
   type FridaModuleInfo,
   type FridaScriptResult,
+  type FridaSessionMode,
   type FridaSessionInfo,
   type FridaSymbolInfo,
 } from './FridaSession';

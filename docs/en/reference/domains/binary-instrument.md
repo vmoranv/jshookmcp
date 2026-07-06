@@ -20,22 +20,25 @@ Binary instrumentation domain providing binary analysis, runtime instrumentation
 - binary-instrument + memory
 - binary-instrument + process
 
-## Full tool list (37)
+## Full tool list (40)
 
 | Tool | Description |
 | --- | --- |
 | `binary_instrument_capabilities` | Report binary instrumentation backend availability. |
 | `frida_attach` | Attach Frida to a local target and open a session. |
+| `frida_spawn` | Spawn a target through Frida for early instrumentation before normal execution. |
 | `frida_enumerate_modules` | List loaded modules in an attached Frida session. |
 | `ghidra_analyze` | Analyze a binary and return metadata. |
 | `generate_hooks` | Generate a Frida interceptor script for a list of symbols. |
 | `unidbg_emulate` | Emulate a native function with Unidbg when available. |
 | `frida_run_script` | Execute a Frida JavaScript snippet inside an attached Frida session. |
+| `frida_resume` | Resume a target previously spawned for early Frida instrumentation. |
 | `frida_detach` | Detach from a Frida session and clean up resources. |
 | `frida_list_sessions` | List all active Frida attach sessions with target info. |
 | `frida_dex_dump` | Run frida-dexdump as a high-level Android DEX dump helper by package/process name or PID. |
 | `android_runtime_dump_session` | Create or inspect a managed Android runtime dump session from Frida/ADB dump artifacts, DEX files, and /proc/PID/maps snapshots. |
 | `frida_generate_script` | Generate a Frida interceptor or hook script from built-in templates. |
+| `frida_attach_interceptor` | Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session. |
 | `get_available_plugins` | List installed binary analysis plugins. |
 | `ghidra_decompile` | Decompile a function using Ghidra. |
 | `ida_decompile` | Decompile a function using IDA Pro. |

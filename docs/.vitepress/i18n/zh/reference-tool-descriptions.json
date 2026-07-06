@@ -539,5 +539,8 @@
   "canvas_scene_search": "在已 dump 的场景树（canvas_scene_dump 输出）中按名称正则和/或类型搜索节点。纯计算——无需浏览器会话。返回匹配节点及其从根的路径、深度和引擎特定属性。",
   "process_suspend": "暂停进程以获取一致的取证快照。跨平台实现：Win32 使用 NtSuspendProcess，Linux 使用 SIGSTOP，macOS 使用 task_suspend。通常与 process_resume 配对使用，可在 memory_scan/dump 前稳定目标状态；多数平台需要管理员/root 权限。",
   "process_resume": "恢复先前暂停的进程。跨平台实现：Win32 使用 NtResumeProcess，Linux 使用 SIGCONT，macOS 使用 task_resume。",
-  "mojo_encode_message": "待补充中文：Encode a structured Mojo IPC message into a hex payload."
+  "mojo_encode_message": "待补充中文：Encode a structured Mojo IPC message into a hex payload.",
+  "frida_spawn": "待补充中文：Spawn a target through Frida for early instrumentation before normal execution.",
+  "frida_resume": "待补充中文：Resume a target previously spawned for early Frida instrumentation.",
+  "frida_attach_interceptor": "待补充中文：Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session."
 }

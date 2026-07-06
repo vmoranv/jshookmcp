@@ -37,7 +37,7 @@
   "binary-instrument": {
     "domain": "binary-instrument",
     "dims": {
-      "d1_toolCount": 37,
+      "d1_toolCount": 40,
       "d2_testFiles": 16,
       "d3_coverageExcluded": [
         "src/server/domains/binary-instrument/handlers.impl.ts",

@@ -34,6 +34,15 @@ describe('binary-instrument tool definitions', () => {
     expect(getTool('frida_dex_dump').name).toBe('frida_dex_dump');
   });
 
+  it('includes early Frida instrumentation tools', async () => {
+    expect(getTool('frida_spawn').inputSchema.required ?? []).toContain('target');
+    expect(getTool('frida_resume').inputSchema.required ?? []).toContain('sessionId');
+    expect(getTool('frida_attach_interceptor').inputSchema.required ?? []).toContain('symbol');
+    expect(getToolProperty('frida_attach_interceptor', 'argSpec').type).toBe('array');
+    expect(getToolProperty('frida_attach_interceptor', 'install').default).toBe(false);
+    expect(getToolProperty('frida_generate_script', 'argSpec').type).toBe('array');
+  });
+
   it('apktool_decode requires apkPath and exposes force boolean', async () => {
     const tool = getTool('apktool_decode');
     expect(tool.inputSchema.required ?? []).toContain('apkPath');

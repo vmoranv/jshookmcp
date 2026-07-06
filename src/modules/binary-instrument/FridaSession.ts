@@ -32,11 +32,15 @@ export interface FridaSymbolInfo {
   demangled?: string;
 }
 
+export type FridaSessionMode = 'attach' | 'spawn';
+
 export interface FridaSessionInfo {
   id: string;
   target: string;
   pid: number | null;
   status: 'attached' | 'detached' | 'error';
+  mode: FridaSessionMode;
+  resumed?: boolean;
 }
 
 interface FridaSessionRecord extends FridaSessionInfo {
@@ -72,6 +76,38 @@ export class FridaSession {
       target,
       pid: this.resolvePid(target),
       status: 'attached',
+      mode: 'attach',
+      attachedAt: new Date().toISOString(),
+    };
+
+    this.sessions.set(sessionId, record);
+    this.activeSessionId = sessionId;
+    return sessionId;
+  }
+
+  async spawn(target: string): Promise<string> {
+    const availability = await this.getAvailability();
+    if (!availability.available) {
+      throw new PrerequisiteError(availability.reason ?? 'Frida CLI is not available');
+    }
+
+    const probe = await this.runFridaCommandWithArgs(
+      target,
+      this.buildSpawnTargetArgs(target),
+      'console.log("__frida_spawn_ok__");',
+    );
+    if (probe.error) {
+      throw new ToolError('CONNECTION', probe.error);
+    }
+
+    const sessionId = randomUUID();
+    const record: FridaSessionRecord = {
+      id: sessionId,
+      target,
+      pid: null,
+      status: 'attached',
+      mode: 'spawn',
+      resumed: false,
       attachedAt: new Date().toISOString(),
     };
 
@@ -92,7 +128,7 @@ export class FridaSession {
 
   async executeScript(script: string): Promise<FridaScriptResult> {
     const session = this.requireActiveSession();
-    const result = await this.runFridaCommand(session.target, script);
+    const result = await this.runFridaCommandForSession(session, script);
 
     if (result.error) {
       session.status = 'error';
@@ -102,10 +138,39 @@ export class FridaSession {
     return result;
   }
 
+  async resume(sessionId?: string): Promise<FridaScriptResult> {
+    if (sessionId && !this.useSession(sessionId)) {
+      throw new PrerequisiteError(`Unknown Frida session: ${sessionId}`);
+    }
+
+    const session = this.requireActiveSession();
+    const result = await this.runFridaCommandForSession(
+      session,
+      [
+        'const resume = Process.resume;',
+        'if (typeof resume === "function") {',
+        '  resume();',
+        '  console.log("__frida_resume_ok__");',
+        '} else {',
+        '  console.log("__frida_resume_unavailable__");',
+        '}',
+      ].join('\n'),
+    );
+
+    if (result.error) {
+      session.status = 'error';
+      session.lastError = result.error;
+    } else {
+      session.resumed = true;
+    }
+
+    return result;
+  }
+
   async enumerateModules(): Promise<FridaModuleInfo[]> {
     const session = this.requireActiveSession();
-    const result = await this.runFridaCommand(
-      session.target,
+    const result = await this.runFridaCommandForSession(
+      session,
       'console.log(JSON.stringify(Process.enumerateModules()));',
     );
     const parsed = this.parseModuleList(result.output);
@@ -125,8 +190,8 @@ export class FridaSession {
   async enumerateFunctions(moduleName: string): Promise<FridaFunctionInfo[]> {
     const session = this.requireActiveSession();
     const safeModuleName = JSON.stringify(moduleName);
-    const result = await this.runFridaCommand(
-      session.target,
+    const result = await this.runFridaCommandForSession(
+      session,
       [
         `const entries = Process.getModuleByName(${safeModuleName}).enumerateExports()`,
         '.filter(function (entry) { return entry.type === "function"; })',
@@ -159,8 +224,8 @@ export class FridaSession {
         ? `exports:${trimmedPattern}`
         : `exports:*!${trimmedPattern}*`;
     const matchPattern = JSON.stringify(resolvedPattern);
-    const result = await this.runFridaCommand(
-      session.target,
+    const result = await this.runFridaCommandForSession(
+      session,
       [
         'const resolver = new ApiResolver("module");',
         `const matches = resolver.enumerateMatches(${matchPattern});`,
@@ -192,6 +257,8 @@ export class FridaSession {
       target: session.target,
       pid: session.pid,
       status: session.status,
+      mode: session.mode,
+      resumed: session.resumed,
     }));
   }
 
@@ -269,6 +336,25 @@ export class FridaSession {
   }
 
   private async runFridaCommand(target: string, script: string): Promise<FridaScriptResult> {
+    return this.runFridaCommandWithArgs(target, this.buildTargetArgs(target), script);
+  }
+
+  private async runFridaCommandForSession(
+    session: FridaSessionRecord,
+    script: string,
+  ): Promise<FridaScriptResult> {
+    const targetArgs =
+      session.mode === 'spawn' && session.resumed !== true
+        ? this.buildSpawnTargetArgs(session.target)
+        : this.buildTargetArgs(session.target);
+    return this.runFridaCommandWithArgs(session.target, targetArgs, script);
+  }
+
+  private async runFridaCommandWithArgs(
+    target: string,
+    targetArgs: string[],
+    script: string,
+  ): Promise<FridaScriptResult> {
     const availability = await this.getAvailability();
     if (!availability.available) {
       return {
@@ -278,7 +364,7 @@ export class FridaSession {
     }
 
     const command = availability.path ?? 'frida';
-    const args = [...this.buildTargetArgs(target), '--runtime=v8', '-q', '-e', script];
+    const args = [...targetArgs, '--runtime=v8', '-q', '-e', script];
 
     try {
       const result = await this.execFileUtf8(command, args, FRIDA_TIMEOUT_MS);
@@ -293,6 +379,10 @@ export class FridaSession {
         error: message,
       };
     }
+  }
+
+  private buildSpawnTargetArgs(target: string): string[] {
+    return ['-f', target];
   }
 
   private buildTargetArgs(target: string): string[] {
