@@ -8,7 +8,7 @@
  * The handler returns a wrapped ToolResponse (`R.ok().merge(...).json()`),
  * so tests parse the response via {@link R.parse} before asserting.
  */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { resolve } from 'node:path';
 
 import { DartInspectorHandlers } from '@server/domains/dart-inspector/handlers';
@@ -178,6 +178,33 @@ describe('DartInspectorHandlers', () => {
       expect(triple).toBeDefined();
       expect(triple!.offsets.length).toBe(2);
       expect(triple!.truncated).toBe(true);
+    });
+  });
+
+  describe('handleDartSmiScan — validation', () => {
+    it('rejects non-enum width strings before invoking the scanner', async () => {
+      const scanner = {
+        scanFile: vi.fn(async () => ({
+          hits: [],
+          totalHits: 0,
+          truncated: false,
+          width: 8,
+          stride: 8,
+          minValue: 1,
+          maxValue: 100,
+        })),
+      };
+      const isolatedHandlers = new DartInspectorHandlers(undefined, scanner as any);
+
+      const response = await isolatedHandlers.handleDartSmiScan({
+        filePath: FIXTURE_PATH,
+        width: '8junk',
+      });
+      const body = R.parse<{ success: boolean; error: string }>(response);
+
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('width must be "4" or "8"');
+      expect(scanner.scanFile).not.toHaveBeenCalled();
     });
   });
 });

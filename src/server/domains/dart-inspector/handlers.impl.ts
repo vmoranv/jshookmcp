@@ -158,12 +158,11 @@ export class DartInspectorHandlers {
       const filePath = argStringRequired(args, 'filePath');
       const opts: SmiScanOptions = {};
       const widthRaw = argString(args, 'width');
-      const width = widthRaw ? parseInt(widthRaw, 10) : undefined;
-      if (width !== undefined) {
-        if (width !== 4 && width !== 8) {
-          throw new ToolError('VALIDATION', `width must be 4 or 8 (got ${width})`);
+      if (widthRaw !== undefined) {
+        if (widthRaw !== '4' && widthRaw !== '8') {
+          throw new ToolError('VALIDATION', `width must be "4" or "8" (got "${widthRaw}")`);
         }
-        opts.width = width as SmiWidth;
+        opts.width = Number(widthRaw) as SmiWidth;
       }
       const stride = argNumber(args, 'stride');
       if (stride !== undefined) opts.stride = stride;

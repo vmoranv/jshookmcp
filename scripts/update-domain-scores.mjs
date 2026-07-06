@@ -34,8 +34,8 @@ const SCORES = {
     '7 tools, live-state hydration, edge filtering, expanded workflow classifier, evidence queries',
   ],
   'dart-inspector': [
-    9.1,
-    '12 tools, 17 tests, Dart-aware private/qualified/obfuscation classifiers',
+    9.2,
+    '12 tools, 18 tests, Dart-aware classifiers and strict Smi width validation',
   ],
   debugger: [
     9.1,
