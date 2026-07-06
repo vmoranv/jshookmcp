@@ -34,7 +34,7 @@ const SCORES = {
   ],
   'native-emulator': [9.0, '21 tools, 64 tests, E4 finale'],
   network: [9.0, '37 tools, 37 scan-counted tests'],
-  platform: [9.1, '16 tools, Phase 2 MCP-safe wrappers, M3 work'],
+  platform: [9.3, '16 tools, Phase 3 ASAR integrity SHA256/SHA512 algorithm awareness'],
   process: [9.0, '27 tools, Phase 1 suspend/resume + hollowing dumps + Phase 2 MCP-safe wrappers'],
   'protocol-analysis': [
     9.6,

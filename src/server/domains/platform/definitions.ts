@@ -159,8 +159,8 @@ export const platformTools: Tool[] = [
     t
       .desc(
         'Verify Electron ASAR integrity: parse the ElectronAsarIntegrity JSON embedded in the ' +
-          'main binary, locate each referenced ASAR, and compare the on-disk SHA256 against the ' +
-          'embedded hash. A mismatch means the ASAR was tampered with after build.',
+          'main binary, locate each referenced ASAR, and compare the on-disk SHA256/SHA512 hash ' +
+          'against the embedded hash. A mismatch means the ASAR was tampered with after build.',
       )
       .string('exePath', '必填。Electron 可执行文件路径（.exe / 主程序二进制）。')
       .string('asarPath', '可选。显式指定 ASAR 文件路径；不提供时按 resources/app.asar 自动探测。')

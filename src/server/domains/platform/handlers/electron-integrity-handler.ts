@@ -2,7 +2,7 @@
  * electron_verify_integrity — Electron ASAR integrity verification.
  *
  * Electron embeds an `ElectronAsarIntegrity` JSON blob in the main process
- * binary (PE / Mach-O / ELF). Each entry maps an ASAR module path to a SHA256
+ * binary (PE / Mach-O / ELF). Each entry maps an ASAR module path to a declared
  * hash of the ASAR header. At runtime, Electron validates the ASAR header
  * against this hash before loading — so a mismatch means the ASAR was tampered
  * with post-build. This tool parses the embedded JSON and verifies each entry
@@ -19,10 +19,14 @@ import { parseAsarBuffer } from '@server/domains/platform/handlers/electron-asar
 
 const INTEGRITY_KEY = 'ElectronAsarIntegrity';
 const MAX_SCAN_BYTES = 64 * 1024 * 1024; // 64 MiB cap to bound binary scans
+const SUPPORTED_HASH_ALGORITHMS: ReadonlyMap<string, string> = new Map([
+  ['SHA256', 'sha256'],
+  ['SHA512', 'sha512'],
+]);
 
 export interface AsarIntegrityEntry {
   algorithm: string;
-  /** Base64-encoded SHA256 hash embedded in the binary. */
+  /** Base64-encoded hash embedded in the binary. */
   hash: string;
 }
 
@@ -31,11 +35,16 @@ export interface IntegrityVerification {
   asarPath: string | null;
   embeddedAlgorithm: string;
   embeddedHash: string;
-  /** SHA256 of the ASAR header content (the JSON text region). */
+  /** Declared-algorithm hash of the ASAR header content. */
   computedHash: string | null;
-  /** SHA256 of the full ASAR file (fallback region). */
+  /** Declared-algorithm hash of the full ASAR file (fallback region). */
   computedFullFileHash: string | null;
-  verdict: 'verified' | 'mismatch' | 'asar-not-found' | 'header-unparsable';
+  verdict:
+    | 'verified'
+    | 'mismatch'
+    | 'asar-not-found'
+    | 'header-unparsable'
+    | 'unsupported-algorithm';
   note?: string;
 }
 
@@ -94,6 +103,9 @@ export async function handleElectronVerifyIntegrity(
 
     const verifiedCount = verifications.filter((v) => v.verdict === 'verified').length;
     const mismatchCount = verifications.filter((v) => v.verdict === 'mismatch').length;
+    const unsupportedAlgorithmCount = verifications.filter(
+      (v) => v.verdict === 'unsupported-algorithm',
+    ).length;
 
     return {
       exePath,
@@ -102,8 +114,13 @@ export async function handleElectronVerifyIntegrity(
       entries: verifications,
       verifiedCount,
       mismatchCount,
+      unsupportedAlgorithmCount,
       overallVerdict:
-        mismatchCount > 0 ? 'tamper-detected' : verifiedCount > 0 ? 'verified' : 'inconclusive',
+        mismatchCount > 0
+          ? 'tamper-detected'
+          : verifiedCount > 0 && unsupportedAlgorithmCount === 0
+            ? 'verified'
+            : 'inconclusive',
     };
   });
 }
@@ -273,6 +290,23 @@ async function verifyEntry(
     };
   }
 
+  const normalizedAlgorithm = normalizeIntegrityAlgorithm(entry.algorithm);
+  const nodeHashAlgorithm = SUPPORTED_HASH_ALGORITHMS.get(normalizedAlgorithm);
+  if (!nodeHashAlgorithm) {
+    return {
+      modulePath,
+      asarPath,
+      embeddedAlgorithm: entry.algorithm,
+      embeddedHash: entry.hash,
+      computedHash: null,
+      computedFullFileHash: null,
+      verdict: 'unsupported-algorithm',
+      note:
+        `Unsupported ASAR integrity algorithm "${entry.algorithm}". ` +
+        `Supported algorithms: ${[...SUPPORTED_HASH_ALGORITHMS.keys()].join(', ')}.`,
+    };
+  }
+
   let asarBuffer: Buffer;
   try {
     asarBuffer = await readFile(asarPath);
@@ -289,7 +323,7 @@ async function verifyEntry(
     };
   }
 
-  const computedFullFileHash = sha256Base64(asarBuffer);
+  const computedFullFileHash = hashBase64(asarBuffer, nodeHashAlgorithm);
 
   let parsedAsar;
   try {
@@ -325,13 +359,13 @@ async function verifyEntry(
   if (pickleEnd > pickleStart && pickleEnd <= asarBuffer.length) {
     candidateHashes.push({
       label: 'header-pickle',
-      hash: sha256Base64(asarBuffer.subarray(pickleStart, pickleEnd)),
+      hash: hashBase64(asarBuffer.subarray(pickleStart, pickleEnd), nodeHashAlgorithm),
     });
   }
   if (jsonEnd > jsonStart && jsonEnd <= asarBuffer.length) {
     candidateHashes.push({
       label: 'header-json',
-      hash: sha256Base64(asarBuffer.subarray(jsonStart, jsonEnd)),
+      hash: hashBase64(asarBuffer.subarray(jsonStart, jsonEnd), nodeHashAlgorithm),
     });
   }
   candidateHashes.push({ label: 'full-file', hash: computedFullFileHash });
@@ -348,11 +382,15 @@ async function verifyEntry(
     computedFullFileHash,
     verdict: matchedRegion ? 'verified' : 'mismatch',
     note: matchedRegion
-      ? `Header hash matches embedded value (region: ${matchedRegion.label}). ASAR is untampered.`
-      : 'Embedded hash does not match any computed region — ASAR header was modified after build (tamper detected), or the ASAR was replaced.',
+      ? `${normalizedAlgorithm} header hash matches embedded value (region: ${matchedRegion.label}). ASAR is untampered.`
+      : `${normalizedAlgorithm} embedded hash does not match any computed region — ASAR header was modified after build (tamper detected), or the ASAR was replaced.`,
   };
 }
 
-function sha256Base64(buffer: Buffer): string {
-  return createHash('sha256').update(buffer).digest('base64');
+function normalizeIntegrityAlgorithm(algorithm: string): string {
+  return algorithm.trim().toUpperCase().replace(/[-_]/g, '');
+}
+
+function hashBase64(buffer: Buffer, algorithm: string): string {
+  return createHash(algorithm).update(buffer).digest('base64');
 }

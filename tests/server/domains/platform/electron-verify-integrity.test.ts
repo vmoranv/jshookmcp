@@ -24,8 +24,8 @@ function buildAsar(headerObject: Record<string, unknown>, dataChunks: Buffer[] =
   return Buffer.concat([prefix, headerBuf, ...dataChunks]);
 }
 
-function sha256Base64(buffer: Buffer): string {
-  return createHash('sha256').update(buffer).digest('base64');
+function hashBase64(buffer: Buffer, algorithm = 'sha256'): string {
+  return createHash(algorithm).update(buffer).digest('base64');
 }
 
 describe('handleElectronVerifyIntegrity', () => {
@@ -60,7 +60,7 @@ describe('handleElectronVerifyIntegrity', () => {
 
     // Electron hashes the header pickle region (bytes 8..8+headerStringSize).
     const headerStringSize = asar.readUInt32LE(4);
-    const expectedHash = sha256Base64(asar.subarray(8, 8 + headerStringSize));
+    const expectedHash = hashBase64(asar.subarray(8, 8 + headerStringSize));
 
     // Build a synthetic "binary" with the embedded integrity JSON (value layout).
     const integrityValue = JSON.stringify({
@@ -113,6 +113,62 @@ describe('handleElectronVerifyIntegrity', () => {
     expect(entry.verdict).toBe('mismatch');
   });
 
+  it('verifies SHA512 integrity entries without reporting false tampering', async () => {
+    const dir = await makeTempDir();
+    const asar = buildAsar({ files: { 'main.js': { size: 5, offset: '0' } } }, [
+      Buffer.from('hello'),
+    ]);
+    const asarPath = join(dir, 'app.asar');
+    await fsWriteFile(asarPath, asar);
+
+    const headerStringSize = asar.readUInt32LE(4);
+    const expectedHash = hashBase64(asar.subarray(8, 8 + headerStringSize), 'sha512');
+    const integrityValue = JSON.stringify({
+      'app.asar': { algorithm: 'SHA512', hash: expectedHash },
+    });
+    const binary = Buffer.from(`"ElectronAsarIntegrity":${integrityValue}`);
+    const exePath = join(dir, 'app.exe');
+    await fsWriteFile(exePath, binary);
+
+    const result = await handleElectronVerifyIntegrity({ exePath, asarPath });
+    const json = parseJson(result);
+
+    expect(json.verifiedCount).toBe(1);
+    expect(json.mismatchCount).toBe(0);
+    expect(json.overallVerdict).toBe('verified');
+    const entry = (json.entries as Array<Record<string, unknown>>)[0]!;
+    expect(entry.embeddedAlgorithm).toBe('SHA512');
+    expect(entry.verdict).toBe('verified');
+    expect(entry.computedFullFileHash).toBe(hashBase64(asar, 'sha512'));
+  });
+
+  it('reports unsupported algorithms as inconclusive instead of mismatch', async () => {
+    const dir = await makeTempDir();
+    const asar = buildAsar({ files: { 'main.js': { size: 5, offset: '0' } } }, [
+      Buffer.from('hello'),
+    ]);
+    const asarPath = join(dir, 'app.asar');
+    await fsWriteFile(asarPath, asar);
+
+    const integrityValue = JSON.stringify({
+      'app.asar': { algorithm: 'BLAKE3', hash: 'BogusBase64Hash==' },
+    });
+    const binary = Buffer.from(`"ElectronAsarIntegrity":${integrityValue}`);
+    const exePath = join(dir, 'app.exe');
+    await fsWriteFile(exePath, binary);
+
+    const result = await handleElectronVerifyIntegrity({ exePath, asarPath });
+    const json = parseJson(result);
+
+    expect(json.verifiedCount).toBe(0);
+    expect(json.mismatchCount).toBe(0);
+    expect(json.unsupportedAlgorithmCount).toBe(1);
+    expect(json.overallVerdict).toBe('inconclusive');
+    const entry = (json.entries as Array<Record<string, unknown>>)[0]!;
+    expect(entry.verdict).toBe('unsupported-algorithm');
+    expect(entry.note).toContain('Unsupported ASAR integrity algorithm');
+  });
+
   it('handles binaries with no embedded integrity JSON gracefully', async () => {
     const dir = await makeTempDir();
     const exePath = join(dir, 'app.exe');
@@ -143,7 +199,7 @@ describe('handleElectronVerifyIntegrity', () => {
     await fsWriteFile(asarPath, asar);
 
     const headerStringSize = asar.readUInt32LE(4);
-    const expectedHash = sha256Base64(asar.subarray(8, 8 + headerStringSize));
+    const expectedHash = hashBase64(asar.subarray(8, 8 + headerStringSize));
     const integrityValue = JSON.stringify({
       'ElectronAsar.pkg': { algorithm: 'SHA256', hash: expectedHash },
     });
