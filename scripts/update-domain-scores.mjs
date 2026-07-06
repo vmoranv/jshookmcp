@@ -31,7 +31,10 @@ const SCORES = {
     9.1,
     '12 tools, 17 tests, Dart-aware private/qualified/obfuscation classifiers',
   ],
-  debugger: [9.0, '20 tools, run-to-location + breakpoint-hit call stack/scope capture'],
+  debugger: [
+    9.1,
+    '20 tools, run-to-location, breakpoint-hit call stack/scope capture, condition validation',
+  ],
   encoding: [9.6, '5 tools, Phase 3 magic signatures + base32/base58/base85/compression codecs'],
   'exploit-dev': [9.3, '20 tools, Phase 0 capstone x64 one-gadget scan, CLAUDE.md created'],
   'extension-registry': [

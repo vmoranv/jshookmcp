@@ -75,6 +75,36 @@ describe('BreakpointBasicHandlers', () => {
     expect(body.breakpoint.breakpointId).toBe('bp-script');
   });
 
+  it('rejects invalid breakpoint conditions before setting by url', async () => {
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
+
+    await expect(
+      handlers.handleBreakpointSet({
+        url: 'app.js',
+        lineNumber: 10,
+        condition: 'x >',
+      }),
+    ).rejects.toThrow('Invalid breakpoint condition');
+
+    expect(debuggerManager.setBreakpointByUrl).not.toHaveBeenCalled();
+    expect(debuggerManager.setBreakpoint).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid breakpoint conditions before setting by script id', async () => {
+    const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
+
+    await expect(
+      handlers.handleBreakpointSet({
+        scriptId: '42',
+        lineNumber: 8,
+        condition: 'if (ready) true',
+      }),
+    ).rejects.toThrow('Invalid breakpoint condition');
+
+    expect(debuggerManager.setBreakpoint).not.toHaveBeenCalled();
+    expect(debuggerManager.setBreakpointByUrl).not.toHaveBeenCalled();
+  });
+
   it('throws when neither url nor scriptId is provided', async () => {
     const handlers = new BreakpointBasicHandlers({ debuggerManager } as any);
 

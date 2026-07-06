@@ -1,10 +1,32 @@
+import { parseExpression } from '@babel/parser';
 import type { DebuggerManager } from '@server/domains/shared/modules';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import { argString, argNumber } from '@server/domains/shared/parse-args';
 
+const MAX_BREAKPOINT_CONDITION_LENGTH = 50_000;
+
 interface BreakpointBasicHandlersDeps {
   debuggerManager: DebuggerManager;
   eventBus?: EventBus<ServerEventMap>;
+}
+
+function validateBreakpointCondition(condition: string | undefined): void {
+  if (condition === undefined || condition.trim() === '') return;
+  if (condition.length > MAX_BREAKPOINT_CONDITION_LENGTH) {
+    throw new Error(
+      `Invalid breakpoint condition: condition is too long (max ${MAX_BREAKPOINT_CONDITION_LENGTH} chars)`,
+    );
+  }
+
+  try {
+    parseExpression(condition, {
+      sourceType: 'unambiguous',
+      errorRecovery: false,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid breakpoint condition: ${message}`, { cause: error });
+  }
 }
 
 export class BreakpointBasicHandlers {
@@ -17,6 +39,7 @@ export class BreakpointBasicHandlers {
     const columnNumber = argNumber(args, 'columnNumber');
     const condition = argString(args, 'condition');
     const logMessage = argString(args, 'logMessage');
+    validateBreakpointCondition(condition);
 
     let breakpoint;
 
