@@ -3,12 +3,7 @@ import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { logger } from '@utils/logger';
 import { R, handleSafe, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
-import {
-  argNumber,
-  argBool,
-  argStringRequired,
-  argString,
-} from '@server/domains/shared/parse-args';
+import { argNumber, argBool, argString } from '@server/domains/shared/parse-args';
 import {
   PROXY_ADB_MAX_BUFFER_BYTES,
   PROXY_ADB_TIMEOUT_MS,
@@ -22,6 +17,20 @@ const ResponseBuilder = {
   success: (data: Record<string, unknown>) => R.ok().merge(data).json(),
   error: (msg: string) => R.fail(msg).mcpError().json(),
 };
+
+const PROXY_RULE_ACTIONS = new Set(['forward', 'mock_response', 'block'] as const);
+const HTTP_METHOD_RE = /^[A-Z][A-Z0-9_-]*$|^\*$/;
+
+type ProxyRuleAction = 'forward' | 'mock_response' | 'block';
+type ParsedValue<T> =
+  | {
+      ok: true;
+      value: T;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
 
 interface CaptureEntry {
   type: 'request' | 'response';
@@ -103,6 +112,65 @@ function compileUrlPattern(urlPattern: string): RegExp {
     return new RegExp(source, flags);
   }
   return new RegExp(trimmed);
+}
+
+function parseRuleAction(value: unknown): ParsedValue<ProxyRuleAction> {
+  if (typeof value !== 'string' || !PROXY_RULE_ACTIONS.has(value as ProxyRuleAction)) {
+    return {
+      ok: false,
+      error: 'action must be one of: forward, mock_response, block',
+    };
+  }
+  return { ok: true, value: value as ProxyRuleAction };
+}
+
+function parseOptionalString(
+  args: Record<string, unknown>,
+  key: string,
+  fallback: string,
+): ParsedValue<string> {
+  const value = args[key];
+  if (value === undefined || value === null) {
+    return { ok: true, value: fallback };
+  }
+  if (typeof value !== 'string') {
+    return { ok: false, error: `${key} must be a string when provided` };
+  }
+  return { ok: true, value };
+}
+
+function parseRuleMethod(args: Record<string, unknown>): ParsedValue<string> {
+  const parsed = parseOptionalString(args, 'method', 'GET');
+  if (!parsed.ok) return parsed;
+
+  const method = parsed.value.trim().toUpperCase();
+  if (!HTTP_METHOD_RE.test(method)) {
+    return {
+      ok: false,
+      error: 'method must be a valid HTTP method token, ANY, ALL, or *',
+    };
+  }
+  return { ok: true, value: method };
+}
+
+function parseMockStatus(args: Record<string, unknown>): ParsedValue<number> {
+  const value = args['mockStatus'];
+  if (value === undefined || value === null) {
+    return { ok: true, value: 200 };
+  }
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    !Number.isInteger(value) ||
+    value < 100 ||
+    value > 599
+  ) {
+    return {
+      ok: false,
+      error: 'mockStatus must be an integer between 100 and 599 when provided',
+    };
+  }
+  return { ok: true, value };
 }
 
 function normalizeHeaders(headers: Record<string, unknown> | undefined): Record<string, string> {
@@ -420,9 +488,39 @@ export class ProxyHandlers {
       return ResponseBuilder.error('Proxy must be running to add rules.');
     }
 
-    const action = argStringRequired(args, 'action');
-    const method = (argString(args, 'method') || 'GET').toUpperCase();
-    const urlPattern = argString(args, 'urlPattern') || '.*';
+    const parsedAction = parseRuleAction(args['action']);
+    if (!parsedAction.ok) {
+      return ResponseBuilder.error(parsedAction.error);
+    }
+    const action = parsedAction.value;
+
+    const parsedMethod = parseRuleMethod(args);
+    if (!parsedMethod.ok) {
+      return ResponseBuilder.error(parsedMethod.error);
+    }
+    const method = parsedMethod.value;
+
+    const parsedUrlPattern = parseOptionalString(args, 'urlPattern', '.*');
+    if (!parsedUrlPattern.ok) {
+      return ResponseBuilder.error(parsedUrlPattern.error);
+    }
+    const urlPattern = parsedUrlPattern.value;
+
+    let mockStatus: number | undefined;
+    let mockBody: string | undefined;
+    if (action === 'mock_response') {
+      const parsedMockStatus = parseMockStatus(args);
+      if (!parsedMockStatus.ok) {
+        return ResponseBuilder.error(parsedMockStatus.error);
+      }
+      mockStatus = parsedMockStatus.value;
+
+      const parsedMockBody = parseOptionalString(args, 'mockBody', '');
+      if (!parsedMockBody.ok) {
+        return ResponseBuilder.error(parsedMockBody.error);
+      }
+      mockBody = parsedMockBody.value;
+    }
 
     try {
       const matcher = compileUrlPattern(urlPattern);
@@ -454,16 +552,16 @@ export class ProxyHandlers {
       }
 
       let endpoint: { id: string };
-      if (action === 'forward') {
-        endpoint = await builder.thenPassThrough();
-      } else if (action === 'block') {
-        endpoint = await builder.thenCloseConnection();
-      } else if (action === 'mock_response') {
-        const mockStatus = argNumber(args, 'mockStatus') || 200;
-        const mockBody = argString(args, 'mockBody') || '';
-        endpoint = await builder.thenReply(mockStatus, mockBody);
-      } else {
-        return ResponseBuilder.error(`Unknown action: ${action}`);
+      switch (action) {
+        case 'forward':
+          endpoint = await builder.thenPassThrough();
+          break;
+        case 'block':
+          endpoint = await builder.thenCloseConnection();
+          break;
+        case 'mock_response':
+          endpoint = await builder.thenReply(mockStatus ?? 200, mockBody ?? '');
+          break;
       }
 
       return ResponseBuilder.success({
@@ -474,9 +572,7 @@ export class ProxyHandlers {
           action,
           method,
           urlPattern,
-          ...(action === 'mock_response'
-            ? { mockStatus: argNumber(args, 'mockStatus') || 200 }
-            : {}),
+          ...(action === 'mock_response' ? { mockStatus: mockStatus ?? 200 } : {}),
         }),
       });
     } catch (e) {

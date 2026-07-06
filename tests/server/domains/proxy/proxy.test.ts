@@ -63,6 +63,25 @@ async function waitForCapturedLogs(
   throw new Error(`Timed out waiting for captured logs: ${JSON.stringify(finalData.logs)}`);
 }
 
+function installFakeRuleServer(handlers: ProxyHandlers) {
+  const builder = {
+    thenPassThrough: vi.fn(async () => ({ id: 'fake-endpoint' })),
+    thenCloseConnection: vi.fn(async () => ({ id: 'fake-endpoint' })),
+    thenReply: vi.fn(async () => ({ id: 'fake-endpoint' })),
+  };
+  const server = {
+    forGet: vi.fn(() => builder),
+    forPost: vi.fn(() => builder),
+    forPut: vi.fn(() => builder),
+    forDelete: vi.fn(() => builder),
+    forMethod: vi.fn(() => builder),
+    forAnyRequest: vi.fn(() => builder),
+    stop: vi.fn(async () => undefined),
+  };
+  (handlers as any).server = server;
+  return { builder, server };
+}
+
 // mockttp 4.4.x has an asn1.js dependency resolution issue on some Linux CI
 // environments that prevents HTTPS proxy startup. Probe once and skip HTTPS
 // tests when the TLS key parser is broken.
@@ -246,6 +265,57 @@ describe('ProxyHandlers (Integration)', () => {
       method: 'PATCH',
       urlPattern: '/patch-only/',
     });
+  });
+
+  it('rejects invalid rule actions before creating a matcher', async () => {
+    const { builder, server } = installFakeRuleServer(handlers);
+
+    const result = await handlers.handleProxyAddRule({
+      action: 'drop',
+      method: 'GET',
+      urlPattern: '/drop/',
+    });
+    const data = parseAnyResponse(result);
+
+    expect(result.isError).toBe(true);
+    expect(data.error).toContain('action must be one of');
+    expect(server.forGet).not.toHaveBeenCalled();
+    expect(builder.thenPassThrough).not.toHaveBeenCalled();
+    expect(builder.thenCloseConnection).not.toHaveBeenCalled();
+    expect(builder.thenReply).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-string rule methods instead of defaulting to GET', async () => {
+    const { builder, server } = installFakeRuleServer(handlers);
+
+    const result = await handlers.handleProxyAddRule({
+      action: 'block',
+      method: 42,
+      urlPattern: '/invalid-method/',
+    });
+    const data = parseAnyResponse(result);
+
+    expect(result.isError).toBe(true);
+    expect(data.error).toContain('method must be a string');
+    expect(server.forGet).not.toHaveBeenCalled();
+    expect(builder.thenCloseConnection).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid mock response statuses before registering a reply', async () => {
+    const { builder, server } = installFakeRuleServer(handlers);
+
+    const result = await handlers.handleProxyAddRule({
+      action: 'mock_response',
+      method: 'GET',
+      urlPattern: '/bad-status/',
+      mockStatus: 700,
+    });
+    const data = parseAnyResponse(result);
+
+    expect(result.isError).toBe(true);
+    expect(data.error).toContain('mockStatus must be an integer between 100 and 599');
+    expect(server.forGet).not.toHaveBeenCalled();
+    expect(builder.thenReply).not.toHaveBeenCalled();
   });
 
   it('requires a running proxy to clear rules', async () => {
