@@ -74,7 +74,7 @@ const SCORES = {
     '20 tools, Phase 3 +5 protocol fingerprints: MQTT/STUN/QUIC/SOCKS5/HTTP2',
   ],
   proxy: [9.2, '10 tools, body/timing capture, active rule lifecycle, exact HTTP method matching'],
-  sourcemap: [9.1, '6 tools, Phase 2 MCP-safe wrappers'],
+  sourcemap: [9.2, '6 tools, Phase 2 MCP-safe wrappers + shared SSRF private-host policy'],
   streaming: [9.1, '7 tools, Phase 2 MCP-safe wrappers + Phase 3 payload/export/metadata'],
   'syscall-hook': [
     9.1,

@@ -6,6 +6,7 @@ import { evaluateWithTimeout } from '@modules/collector/PageController';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 import type { SourceMapV3, ParsedSourceMapResult } from './shared';
 import { decodeMappings, countMappingsStats, hasProtocol, asRecord, asString } from './shared';
+import { isPrivateHost } from '@utils/network/ssrf-policy';
 
 export function parseSourceMap(
   sourceMapUrl: string,
@@ -137,24 +138,11 @@ function validateFetchUrl(url: string): void {
     throw new Error(`Blocked: unsupported protocol "${parsed.protocol}"`);
   }
   const hostname = parsed.hostname.toLowerCase();
-  const blockedPatterns = [
-    /^127\./,
-    /^10\./,
-    /^172\.(1[6-9]|2\d|3[01])\./,
-    /^192\.168\./,
-    /^0\./,
-    /^169\.254\./,
-    /^\[?::1\]?$/,
-    /^\[?fe80:/i,
-    /^\[?fc00:/i,
-    /^\[?fd/i,
-  ];
   const blockedHostnames = ['localhost', 'metadata.google.internal', 'metadata'];
   if (blockedHostnames.includes(hostname))
     throw new Error(`SSRF blocked: hostname "${hostname}" is not allowed`);
-  for (const pattern of blockedPatterns) {
-    if (pattern.test(hostname))
-      throw new Error(`SSRF blocked: protected/reserved IP "${hostname}" is not allowed`);
+  if (isPrivateHost(hostname)) {
+    throw new Error(`SSRF blocked: protected/reserved IP "${hostname}" is not allowed`);
   }
 }
 

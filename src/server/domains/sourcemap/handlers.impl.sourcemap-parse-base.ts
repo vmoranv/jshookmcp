@@ -1,5 +1,6 @@
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
 import { evaluateWithTimeout } from '@modules/collector/PageController';
+import { isPrivateHost } from '@utils/network/ssrf-policy';
 
 export type JsonRecord = Record<string, unknown>;
 
@@ -376,30 +377,14 @@ export class SourcemapToolHandlersParseBase {
 
     const hostname = parsed.hostname.toLowerCase();
 
-    // Block protected/reserved IP ranges
-    const blockedPatterns = [
-      /^127\./, // loopback IPv4
-      /^10\./, // 10.0.0.0/8
-      /^172\.(1[6-9]|2\d|3[01])\./, // 172.16.0.0/12
-      /^192\.168\./, // 192.168.0.0/16
-      /^0\./, // 0.0.0.0/8
-      /^169\.254\./, // link-local
-      /^\[?::1\]?$/, // IPv6 loopback
-      /^\[?fe80:/i, // IPv6 link-local
-      /^\[?fc00:/i, // IPv6 unique local
-      /^\[?fd/i, // IPv6 unique local
-    ];
-
     const blockedHostnames = ['localhost', 'metadata.google.internal', 'metadata'];
 
     if (blockedHostnames.includes(hostname)) {
       throw new Error(`SSRF blocked: hostname "${hostname}" is not allowed`);
     }
 
-    for (const pattern of blockedPatterns) {
-      if (pattern.test(hostname)) {
-        throw new Error(`SSRF blocked: protected/reserved IP "${hostname}" is not allowed`);
-      }
+    if (isPrivateHost(hostname)) {
+      throw new Error(`SSRF blocked: protected/reserved IP "${hostname}" is not allowed`);
     }
   }
 

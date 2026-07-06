@@ -224,6 +224,18 @@ describe('SourcemapToolHandlers', () => {
       expect(getText(res)).toContain('SSRF blocked');
     });
 
+    it('blocks IPv4-mapped IPv6 loopback source map URLs before fetch fallback', async () => {
+      const res = await handlers.handleSourcemapFetchAndParse({
+        sourceMapUrl: 'http://[::ffff:127.0.0.1]/meta.map',
+      });
+      const parsed = JSON.parse(getText(res) || '{}');
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain('SSRF blocked');
+      expect(globalFetch).not.toHaveBeenCalled();
+      expect(evaluateWithTimeout).not.toHaveBeenCalled();
+    });
+
     it('falls back to evaluateWithTimeout on fetch failure timeout or block', async () => {
       globalFetch.mockRejectedValue(new Error('Fetch failed'));
       const mockMap = { version: 3, sources: ['fallback.ts'], mappings: 'AAAA', names: [] };
