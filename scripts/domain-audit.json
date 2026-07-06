@@ -116,7 +116,7 @@
     "domain": "coordination",
     "dims": {
       "d1_toolCount": 10,
-      "d2_testFiles": 9,
+      "d2_testFiles": 10,
       "d3_coverageExcluded": [],
       "d4_bareCatch": 5,
       "d5_handleSafeRefs": 12,

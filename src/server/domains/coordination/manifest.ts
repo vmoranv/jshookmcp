@@ -51,13 +51,20 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
   if (!ctx.coordinationHandlers) {
     ctx.coordinationHandlers = new CoordinationHandlers(ctx);
   }
+  const scheduler = ctx.getDomainInstance<RuntimeSnapshotScheduler>('snapshotScheduler');
+  const stateDir = ctx.getDomainInstance<string>('snapshotStateDir');
+  ctx.coordinationHandlers.setPersistNotifier(
+    scheduler ? () => scheduler.notifyDirty() : undefined,
+  );
+  if (scheduler && stateDir && !ctx.getDomainInstance<boolean>('coordinationSnapshotRegistered')) {
+    scheduler.register(resolve(stateDir, 'coordination', 'current.json'), ctx.coordinationHandlers);
+    ctx.setDomainInstance('coordinationSnapshotRegistered', true);
+  }
 
   // Shared state board (merged from the former shared-state-board domain)
   if (!ctx.sharedStateBoardHandlers) {
     ctx.sharedStateBoardHandlers = new SharedStateBoardHandlers();
   }
-  const scheduler = ctx.getDomainInstance<RuntimeSnapshotScheduler>('snapshotScheduler');
-  const stateDir = ctx.getDomainInstance<string>('snapshotStateDir');
   ctx.sharedStateBoardHandlers.setPersistNotifier(
     scheduler ? () => scheduler.notifyDirty() : undefined,
   );

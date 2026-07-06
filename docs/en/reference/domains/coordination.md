@@ -24,10 +24,10 @@ Coordination domain for session insights, MCP Task Handoff, and cross-agent shar
 
 | Tool | Description |
 | --- | --- |
-| `create_task_handoff` | Create an in-session task handoff. |
+| `create_task_handoff` | Create a persisted task handoff for cross-tool coordination. |
 | `complete_task_handoff` | Mark a task handoff as completed. |
-| `get_task_context` | Read task handoff context. |
-| `append_session_insight` | Record an insight for the current session. |
+| `get_task_context` | Read persisted task handoff context and session insights. |
+| `append_session_insight` | Record a persisted insight for the current session. |
 | `save_page_snapshot` | Save current page state. |
 | `restore_page_snapshot` | Restore a saved page snapshot. |
 | `list_page_snapshots` | List saved page snapshots. |

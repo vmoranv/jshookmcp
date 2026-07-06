@@ -2,9 +2,8 @@
  * Coordination domain handler — manages Planner/Specialist Agent handoffs
  * and session-level insight accumulation.
  *
- * All state is in-memory for the lifetime of the MCP session.
- * No persistence — handoffs and insights are ephemeral by design
- * (use the knowledge-base plugin repository for cross-session persistence).
+ * Handoffs and insights can be snapshotted by RuntimeSnapshotScheduler so
+ * process restarts do not drop active reverse-engineering context.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -43,15 +42,84 @@ export interface SessionInsight {
   sourceTaskId?: string;
 }
 
+interface CoordinationSnapshot {
+  schemaVersion: 1;
+  savedAt: string;
+  handoffs: [string, TaskHandoff][];
+  insights: SessionInsight[];
+}
+
+type PersistNotifier = () => void;
+
 // ── Handler ──
 
 export class CoordinationHandlers {
   private readonly handoffs = new Map<string, TaskHandoff>();
   private readonly insights: SessionInsight[] = [];
   private readonly ctx: MCPServerContext;
+  private mutationSeq = 0;
+  private lastPersistedSeq = 0;
+  private persistNotifier?: PersistNotifier;
 
   constructor(ctx: MCPServerContext) {
     this.ctx = ctx;
+  }
+
+  setPersistNotifier(notify?: PersistNotifier): void {
+    this.persistNotifier = notify;
+  }
+
+  isPersistDirty(): boolean {
+    return this.mutationSeq !== this.lastPersistedSeq;
+  }
+
+  exportSnapshot(): CoordinationSnapshot {
+    return {
+      schemaVersion: 1,
+      savedAt: new Date().toISOString(),
+      handoffs: [...this.handoffs.entries()].map(([id, handoff]) => [id, cloneHandoff(handoff)]),
+      insights: this.insights.map((insight) => ({ ...insight })),
+    };
+  }
+
+  restoreSnapshot(data: unknown): void {
+    if (!data || typeof data !== 'object') return;
+    const snapshot = data as {
+      schemaVersion?: number;
+      handoffs?: unknown[];
+      insights?: unknown[];
+    };
+    if (snapshot.schemaVersion !== 1) return;
+
+    const restoredHandoffs = new Map<string, TaskHandoff>();
+    for (const entry of snapshot.handoffs ?? []) {
+      if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== 'string') continue;
+      const handoff = entry[1];
+      if (isTaskHandoff(handoff)) {
+        restoredHandoffs.set(handoff.id, cloneHandoff(handoff));
+      }
+    }
+
+    const restoredInsights = (snapshot.insights ?? [])
+      .filter((value): value is SessionInsight => isSessionInsight(value))
+      .map((insight) => ({ ...insight }));
+
+    this.handoffs.clear();
+    for (const [id, handoff] of restoredHandoffs) {
+      this.handoffs.set(id, handoff);
+    }
+    this.insights.splice(0, this.insights.length, ...restoredInsights);
+    this.mutationSeq = this.handoffs.size + this.insights.length;
+    this.lastPersistedSeq = this.mutationSeq;
+  }
+
+  markPersisted(): void {
+    this.lastPersistedSeq = this.mutationSeq;
+  }
+
+  private markDirty(): void {
+    this.mutationSeq++;
+    this.persistNotifier?.();
   }
 
   // ── create_task_handoff ──
@@ -96,6 +164,7 @@ export class CoordinationHandlers {
     };
 
     this.handoffs.set(handoff.id, handoff);
+    this.markDirty();
 
     return {
       taskId: handoff.id,
@@ -140,6 +209,7 @@ export class CoordinationHandlers {
     handoff.summary = summary;
     handoff.keyFindings = keyFindings;
     handoff.artifacts = artifacts;
+    this.markDirty();
 
     return {
       taskId: handoff.id,
@@ -218,6 +288,7 @@ export class CoordinationHandlers {
     };
 
     this.insights.push(insight);
+    this.markDirty();
 
     return {
       insightId: insight.id,
@@ -439,4 +510,56 @@ export interface PageSnapshot {
   sessionStorage: Record<string, string>;
   timestamp: number;
   label?: string;
+}
+
+function cloneHandoff(handoff: TaskHandoff): TaskHandoff {
+  return {
+    ...handoff,
+    constraints: handoff.constraints ? [...handoff.constraints] : undefined,
+    risks: handoff.risks ? [...handoff.risks] : undefined,
+    nextSteps: handoff.nextSteps ? [...handoff.nextSteps] : undefined,
+    keyFindings: handoff.keyFindings ? [...handoff.keyFindings] : undefined,
+    artifacts: handoff.artifacts ? [...handoff.artifacts] : undefined,
+  };
+}
+
+function isTaskHandoff(value: unknown): value is TaskHandoff {
+  if (!value || typeof value !== 'object') return false;
+  const handoff = value as Partial<TaskHandoff>;
+  return (
+    typeof handoff.id === 'string' &&
+    isHandoffStatus(handoff.status) &&
+    typeof handoff.description === 'string' &&
+    typeof handoff.createdAt === 'number' &&
+    isOptionalStringArray(handoff.constraints) &&
+    isOptionalStringArray(handoff.risks) &&
+    isOptionalStringArray(handoff.nextSteps) &&
+    isOptionalStringArray(handoff.keyFindings) &&
+    isOptionalStringArray(handoff.artifacts)
+  );
+}
+
+function isSessionInsight(value: unknown): value is SessionInsight {
+  if (!value || typeof value !== 'object') return false;
+  const insight = value as Partial<SessionInsight>;
+  return (
+    typeof insight.id === 'string' &&
+    typeof insight.category === 'string' &&
+    typeof insight.content === 'string' &&
+    typeof insight.confidence === 'number' &&
+    typeof insight.timestamp === 'number' &&
+    (insight.sourceTaskId === undefined || typeof insight.sourceTaskId === 'string')
+  );
+}
+
+function isHandoffStatus(value: unknown): value is TaskHandoff['status'] {
+  return (
+    value === 'pending' || value === 'in_progress' || value === 'completed' || value === 'failed'
+  );
+}
+
+function isOptionalStringArray(value: unknown): value is string[] | undefined {
+  return (
+    value === undefined || (Array.isArray(value) && value.every((item) => typeof item === 'string'))
+  );
 }

@@ -152,6 +152,51 @@ describe('CoordinationHandlers', () => {
     expect(contextRes.summary?.totalInsights).toBe(1);
   });
 
+  it('exports and restores handoff and insight snapshots', async () => {
+    const notify = vi.fn();
+    handlers.setPersistNotifier(notify);
+    const created = (await handlers.handleCreateTaskHandoff({
+      description: 'persist me',
+      constraints: ['keep context'],
+    })) as unknown as CreateTaskHandoffResponse;
+    await handlers.handleAppendSessionInsight({
+      category: 'finding',
+      content: 'token lives in storage',
+      confidence: 0.8,
+    });
+
+    expect(notify).toHaveBeenCalledTimes(2);
+    expect(handlers.isPersistDirty()).toBe(true);
+    const snapshot = handlers.exportSnapshot();
+    expect(snapshot.handoffs).toHaveLength(1);
+    expect(snapshot.insights).toHaveLength(1);
+
+    handlers.markPersisted();
+    expect(handlers.isPersistDirty()).toBe(false);
+
+    const restored = new CoordinationHandlers(ctx);
+    restored.restoreSnapshot(snapshot);
+    expect(restored.isPersistDirty()).toBe(false);
+    const restoredContext = (await restored.handleGetTaskContext(
+      {},
+    )) as unknown as GetTaskContextResponse;
+
+    expect(restoredContext.active?.[0]?.taskId).toBe(created.taskId);
+    expect(restoredContext.active?.[0]?.description).toBe('persist me');
+    expect(restoredContext.sessionInsights?.[0]?.content).toBe('token lives in storage');
+    expect((restoredContext.sessionInsights?.[0] as any)?.sourceTaskId).toBe(created.taskId);
+  });
+
+  it('ignores incompatible coordination snapshots', async () => {
+    await handlers.handleCreateTaskHandoff({ description: 'keep existing' });
+
+    handlers.restoreSnapshot({ schemaVersion: 99, handoffs: [], insights: [] });
+    const context = (await handlers.handleGetTaskContext({})) as unknown as GetTaskContextResponse;
+
+    expect(context.active?.length).toBe(1);
+    expect(context.active?.[0]?.description).toBe('keep existing');
+  });
+
   describe('ToolResponse wrappers', () => {
     it('wraps create_task_handoff without nesting an MCP content block', async () => {
       const body = parseJson<any>(

@@ -4,7 +4,7 @@ import { tool } from '@server/registry/tool-builder';
 export const coordinationTools: Tool[] = [
   tool('create_task_handoff', (t) =>
     t
-      .desc('Create an in-session task handoff.')
+      .desc('Create a persisted task handoff for cross-tool coordination.')
       .string('description', 'Task description')
       .array('constraints', { type: 'string' }, 'Constraints for the specialist')
       .string('targetDomain', 'Suggested domain for the specialist')
@@ -24,13 +24,13 @@ export const coordinationTools: Tool[] = [
   ),
   tool('get_task_context', (t) =>
     t
-      .desc('Read task handoff context.')
+      .desc('Read persisted task handoff context and session insights.')
       .string('taskId', 'Optional task ID to read a single handoff')
       .query(),
   ),
   tool('append_session_insight', (t) =>
     t
-      .desc('Record an insight for the current session.')
+      .desc('Record a persisted insight for the current session.')
       .string('category', 'Insight category')
       .string('content', 'The insight content')
       .number('confidence', 'Confidence level 0.0-1.0', { minimum: 0, maximum: 1, default: 1 })
