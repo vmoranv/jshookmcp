@@ -42,9 +42,13 @@ export class ShaderDisassembleHandler {
       }
 
       const format = argString(args, 'format', 'wgsl');
+      if (format !== 'wgsl' && format !== 'spirv') {
+        throw new Error(`Unsupported format: "${format}". Only "wgsl" and "spirv" are supported.`);
+      }
 
       // Check cache first
-      const cached = this.disassemblyCache.get(shaderCode);
+      const cacheKey = `${format}:${shaderCode}`;
+      const cached = this.disassemblyCache.get(cacheKey);
       if (cached) {
         return {
           ...cached,
@@ -64,7 +68,7 @@ export class ShaderDisassembleHandler {
 
       if (format === 'spirv') {
         result = this.disassembleSpirv(shaderCode);
-      } else if (format === 'wgsl') {
+      } else {
         const ast = extractShaderAst(shaderCode);
 
         if (progressToken && shaderCode.length > 10000) {
@@ -73,8 +77,6 @@ export class ShaderDisassembleHandler {
 
         const disassembly = this.generateDisassembly(shaderCode);
         result = { ast, disassembly };
-      } else {
-        throw new Error(`Unsupported format: "${format}". Only "wgsl" and "spirv" are supported.`);
       }
 
       if (progressToken && shaderCode.length > 10000) {
@@ -82,7 +84,7 @@ export class ShaderDisassembleHandler {
       }
 
       // Cache the result before offloading
-      this.disassemblyCache.set(shaderCode, result);
+      this.disassemblyCache.set(cacheKey, result);
 
       return this.ddm.smartHandle(result, 25000);
     });

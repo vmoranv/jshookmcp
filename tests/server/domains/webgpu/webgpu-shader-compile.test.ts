@@ -220,6 +220,27 @@ describe('webgpu_shader_compile', () => {
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/Unsupported format|wgsl|spirv/i);
     });
+
+    it('should not reuse a SPIR-V cache entry for a different requested format', async () => {
+      const shaderCode = minimalSpirvHex();
+
+      const firstResponse = await handlers.webgpu_shader_compile({
+        shaderCode,
+        format: 'spirv',
+      });
+      const first = ResponseBuilder.parse(firstResponse);
+      expect(first.success).toBe(true);
+
+      const secondResponse = await handlers.webgpu_shader_compile({
+        shaderCode,
+        format: 'glsl',
+      });
+      const second = ResponseBuilder.parse(secondResponse);
+
+      expect(second.success).toBe(false);
+      expect(second.error).toMatch(/Unsupported format|wgsl|spirv/i);
+      expect(second['_cached']).toBeUndefined();
+    });
   });
 
   describe('parseWarnings', () => {

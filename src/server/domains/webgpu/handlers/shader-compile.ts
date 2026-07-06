@@ -38,9 +38,13 @@ export class ShaderCompileHandler {
       }
 
       const format = argString(args, 'format', 'wgsl');
+      if (format !== 'wgsl' && format !== 'spirv') {
+        throw new Error(`Unsupported format: "${format}". Only "wgsl" and "spirv" are supported.`);
+      }
 
       // Check cache first
-      const cached = this.compileCache.get(shaderCode);
+      const cacheKey = `${format}:${shaderCode}`;
+      const cached = this.compileCache.get(cacheKey);
       if (cached) {
         return {
           ...cached,
@@ -50,10 +54,6 @@ export class ShaderCompileHandler {
 
       if (format === 'spirv') {
         return this.handleSpirv(shaderCode);
-      }
-
-      if (format !== 'wgsl') {
-        throw new Error(`Unsupported format: "${format}". Only "wgsl" and "spirv" are supported.`);
       }
 
       const page = await this.getActivePage();
@@ -93,7 +93,7 @@ export class ShaderCompileHandler {
 
       // Cache and return combined result
       const combined = { ...result, metadata };
-      this.compileCache.set(shaderCode, combined);
+      this.compileCache.set(cacheKey, combined);
       return combined;
     });
   }
