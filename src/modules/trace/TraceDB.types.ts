@@ -80,6 +80,19 @@ export interface NetworkTraceChunk {
   chunkIsBase64: boolean;
 }
 
+/** Aggregated CPU profiler sample for a function/frame near a timestamp. */
+export interface TraceSample {
+  id?: number;
+  timestamp: number;
+  selfTime: number;
+  aggregateTime: number;
+  functionName: string | null;
+  scriptId: string | null;
+  url: string | null;
+  lineNumber: number | null;
+  columnNumber: number | null;
+}
+
 /** A single memory write delta for differential tracing. */
 export interface MemoryDelta {
   id?: number;

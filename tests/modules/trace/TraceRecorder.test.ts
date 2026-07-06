@@ -300,6 +300,61 @@ describe('TraceRecorder', () => {
     }
   });
 
+  it('records CPU profiler samples returned by Profiler.stop', async () => {
+    const mockCdp = createMockCDPSession();
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'Profiler.stop') {
+        return {
+          profile: {
+            nodes: [
+              {
+                id: 1,
+                callFrame: {
+                  functionName: 'hotFn',
+                  scriptId: 'script-1',
+                  url: 'app.js',
+                  lineNumber: 7,
+                  columnNumber: 2,
+                },
+              },
+            ],
+            samples: [1, 1],
+            timeDeltas: [1000, 2000],
+          },
+        };
+      }
+      return {};
+    });
+
+    await recorder.start(eventBus, mockCdp);
+    await recorder.stop();
+
+    const db = new TraceDB({ dbPath: recorder.getSession()!.dbPath });
+    try {
+      const samples = db.querySamplesByFunction('hotFn');
+      expect(samples).toHaveLength(1);
+      expect(samples[0]?.selfTime).toBe(3);
+      expect(samples[0]?.scriptId).toBe('script-1');
+    } finally {
+      db.close();
+    }
+  });
+
+  it('keeps recording when Profiler is unavailable', async () => {
+    const mockCdp = createMockCDPSession();
+    mockCdp.send = vi.fn().mockImplementation(async (method) => {
+      if (method === 'Profiler.enable') {
+        throw new Error('Profiler unavailable');
+      }
+      return {};
+    });
+
+    const session = await recorder.start(eventBus, mockCdp);
+    expect(session.sessionId).toBeTruthy();
+    expect(recorder.getState()).toBe('recording');
+    await recorder.stop();
+  });
+
   it('stop surfaces CDP cleanup failures in the returned session', async () => {
     const mockCdp = createMockCDPSession();
     mockCdp.send = vi.fn().mockImplementation(async (method) => {

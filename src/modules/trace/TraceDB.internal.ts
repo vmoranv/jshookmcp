@@ -1,6 +1,7 @@
 import type {
   NetworkTraceChunk,
   NetworkTraceResource,
+  TraceSample,
   TraceEvent,
 } from '@modules/trace/TraceDB.types';
 
@@ -11,6 +12,7 @@ export interface TraceDBStatements {
   upsertMetadataStmt: import('better-sqlite3').Statement;
   upsertNetworkResourceStmt: import('better-sqlite3').Statement;
   insertNetworkChunkStmt: import('better-sqlite3').Statement;
+  insertSampleStmt: import('better-sqlite3').Statement;
 }
 
 export function initializeTraceSchema(db: import('better-sqlite3').Database): void {
@@ -113,6 +115,20 @@ export function initializeTraceSchema(db: import('better-sqlite3').Database): vo
       ON network_chunks(request_id, sequence);
       CREATE INDEX IF NOT EXISTS idx_network_chunks_timestamp
       ON network_chunks(timestamp);
+
+      CREATE TABLE IF NOT EXISTS samples (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp REAL NOT NULL,
+        self_time REAL NOT NULL,
+        aggregate_time REAL NOT NULL,
+        function_name TEXT,
+        script_id TEXT,
+        url TEXT,
+        line_number INTEGER,
+        column_number INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_samples_timestamp ON samples(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_samples_function ON samples(function_name);
     `);
 
   ensureColumn(db, 'events', 'wall_time', 'REAL');
@@ -240,6 +256,19 @@ export function prepareTraceStatements(db: import('better-sqlite3').Database): T
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `),
+    insertSampleStmt: db.prepare(`
+      INSERT INTO samples (
+        timestamp,
+        self_time,
+        aggregate_time,
+        function_name,
+        script_id,
+        url,
+        line_number,
+        column_number
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
   };
 }
 
@@ -321,6 +350,20 @@ export function mapNetworkResourceRow(
     bodyError: (row['body_error'] as string) ?? null,
     failed: fromSqliteBoolean(row['failed']),
     errorText: (row['error_text'] as string) ?? null,
+  };
+}
+
+export function mapSampleRow(row: Record<string, unknown>): TraceSample {
+  return {
+    id: row['id'] as number,
+    timestamp: row['timestamp'] as number,
+    selfTime: row['self_time'] as number,
+    aggregateTime: row['aggregate_time'] as number,
+    functionName: (row['function_name'] as string) ?? null,
+    scriptId: (row['script_id'] as string) ?? null,
+    url: (row['url'] as string) ?? null,
+    lineNumber: (row['line_number'] as number) ?? null,
+    columnNumber: (row['column_number'] as number) ?? null,
   };
 }
 

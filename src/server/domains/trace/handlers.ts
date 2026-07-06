@@ -348,6 +348,7 @@ export class TraceToolHandlers {
               [timestamp],
             )
           : null;
+      const samplesInWindow = db.getSamplesInWindow(timestamp, windowMs);
 
       return R.ok()
         .merge({
@@ -380,6 +381,7 @@ export class TraceToolHandlers {
             snapshotResult && snapshotResult.rows.length > 0
               ? rowToObject(snapshotResult.columns, snapshotResult.rows[0]!)
               : null,
+          ...(samplesInWindow.length > 0 ? { samplesInWindow } : {}),
           ...(timeDomain === 'monotonic'
             ? {
                 nearestHeapSnapshotOmittedReason:

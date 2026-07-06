@@ -411,6 +411,48 @@ describe('TraceToolHandlers', () => {
       );
       expect(result.events.length).toBeGreaterThanOrEqual(1);
     });
+
+    it('returns profiler samples in the seek window when present', async () => {
+      // @ts-expect-error
+      db.insertEvent({
+        timestamp: 1000,
+        category: 'runtime',
+        eventType: 'Runtime.consoleAPICalled',
+        data: '{}',
+        scriptId: null,
+        lineNumber: null,
+      });
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1010,
+        selfTime: 8,
+        aggregateTime: 10,
+        functionName: 'hotFn',
+        scriptId: 'script-1',
+        url: 'app.js',
+        lineNumber: 3,
+        columnNumber: 1,
+      });
+      // @ts-expect-error
+      db.flush();
+      // @ts-expect-error
+      db.close();
+
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = parseToolResponse<{ samplesInWindow: Array<{ functionName: string }> }>(
+        await handler.handleSeekToTimestamp({
+          timestamp: 1000,
+          dbPath,
+          windowMs: 50,
+        }),
+      );
+
+      expect(result.samplesInWindow).toHaveLength(1);
+      expect(result.samplesInWindow[0]?.functionName).toBe('hotFn');
+    });
   });
 
   describe('handleGetTraceNetworkFlow', () => {

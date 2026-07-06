@@ -13,12 +13,14 @@ import type {
   TraceDBOptions,
   TraceEvent,
   TraceQueryResult,
+  TraceSample,
 } from '@modules/trace/TraceDB.types';
 import {
   initializeTraceSchema,
   mapEventRow,
   mapNetworkChunkRow,
   mapNetworkResourceRow,
+  mapSampleRow,
   prepareTraceStatements,
 } from '@modules/trace/TraceDB.internal';
 import { formatBetterSqlite3Error } from '@utils/betterSqlite3';
@@ -49,6 +51,7 @@ export class TraceDB {
   private upsertMetadataStmt!: import('better-sqlite3').Statement;
   private upsertNetworkResourceStmt!: import('better-sqlite3').Statement;
   private insertNetworkChunkStmt!: import('better-sqlite3').Statement;
+  private insertSampleStmt!: import('better-sqlite3').Statement;
 
   constructor(private readonly options: TraceDBOptions) {
     if (!Database) {
@@ -73,6 +76,7 @@ export class TraceDB {
     this.upsertMetadataStmt = statements.upsertMetadataStmt;
     this.upsertNetworkResourceStmt = statements.upsertNetworkResourceStmt;
     this.insertNetworkChunkStmt = statements.insertNetworkChunkStmt;
+    this.insertSampleStmt = statements.insertSampleStmt;
   }
 
   /** Database file path. */
@@ -104,6 +108,20 @@ export class TraceDB {
     if (this.networkChunkBuffer.length >= this.batchSize) {
       this.flush();
     }
+  }
+
+  insertSample(sample: TraceSample): void {
+    this.ensureOpen();
+    this.insertSampleStmt.run(
+      sample.timestamp,
+      sample.selfTime,
+      sample.aggregateTime,
+      sample.functionName,
+      sample.scriptId,
+      sample.url,
+      sample.lineNumber,
+      sample.columnNumber,
+    );
   }
 
   upsertNetworkResource(resource: NetworkTraceResource): void {
@@ -311,6 +329,38 @@ export class TraceDB {
         : (stmt.all(requestId) as Array<Record<string, unknown>>);
 
     return rows.map((row) => mapNetworkChunkRow(row, this.fromSqliteBoolean));
+  }
+
+  querySamplesByFunction(functionName: string, limit = 50): TraceSample[] {
+    this.ensureOpen();
+    this.flush();
+
+    const stmt = this.db.prepare(`
+      SELECT *
+      FROM samples
+      WHERE function_name = ?
+      ORDER BY self_time DESC, aggregate_time DESC, timestamp DESC
+      LIMIT ?
+    `);
+
+    return (stmt.all(functionName, limit) as Array<Record<string, unknown>>).map(mapSampleRow);
+  }
+
+  getSamplesInWindow(timestamp: number, windowMs: number, limit = 50): TraceSample[] {
+    this.ensureOpen();
+    this.flush();
+
+    const stmt = this.db.prepare(`
+      SELECT *
+      FROM samples
+      WHERE timestamp >= ? AND timestamp <= ?
+      ORDER BY self_time DESC, aggregate_time DESC, timestamp ASC
+      LIMIT ?
+    `);
+
+    return (
+      stmt.all(timestamp - windowMs, timestamp + windowMs, limit) as Array<Record<string, unknown>>
+    ).map(mapSampleRow);
   }
 
   getMemoryDeltasByAddress(address: string): MemoryDelta[] {

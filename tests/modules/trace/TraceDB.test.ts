@@ -62,6 +62,7 @@ describe('TraceDB', () => {
     expect(tableNames).toContain('events');
     expect(tableNames).toContain('network_resources');
     expect(tableNames).toContain('network_chunks');
+    expect(tableNames).toContain('samples');
     expect(tableNames).toContain('memory_deltas');
     expect(tableNames).toContain('heap_snapshots');
     expect(tableNames).toContain('metadata');
@@ -77,6 +78,8 @@ describe('TraceDB', () => {
     expect(indexNames).toContain('idx_events_script_id');
     expect(indexNames).toContain('idx_memory_timestamp');
     expect(indexNames).toContain('idx_memory_address');
+    expect(indexNames).toContain('idx_samples_timestamp');
+    expect(indexNames).toContain('idx_samples_function');
   });
 
   it('inserts and retrieves events after flush', () => {
@@ -123,6 +126,26 @@ describe('TraceDB', () => {
     const result = db.query('SELECT * FROM memory_deltas');
     expect(result.rowCount).toBe(1);
     expect(result.rows[0]![2]).toBe('0xABCD'); // address column
+  });
+
+  it('inserts and queries profiler samples', () => {
+    db.insertSample({
+      timestamp: 1000,
+      selfTime: 4.5,
+      aggregateTime: 7.5,
+      functionName: 'hotFn',
+      scriptId: '12',
+      url: 'app.js',
+      lineNumber: 10,
+      columnNumber: 2,
+    });
+
+    const byFunction = db.querySamplesByFunction('hotFn');
+    const inWindow = db.getSamplesInWindow(1000, 25);
+
+    expect(byFunction).toHaveLength(1);
+    expect(byFunction[0]?.selfTime).toBe(4.5);
+    expect(inWindow[0]?.functionName).toBe('hotFn');
   });
 
   it('inserts heap snapshots immediately (no flush needed)', () => {

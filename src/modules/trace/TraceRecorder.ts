@@ -6,7 +6,7 @@
 
 import { randomUUID } from 'node:crypto';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
-import type { MemoryDelta } from '@modules/trace/TraceDB.types';
+import type { MemoryDelta, TraceSample } from '@modules/trace/TraceDB.types';
 import {
   CDP_EVENTS_BY_DOMAIN,
   DEFAULT_CDP_DOMAINS,
@@ -28,6 +28,26 @@ import { resolveArtifactPath } from '@utils/artifacts';
 
 export type { CDPSessionLike } from '@modules/trace/TraceRecorder.types';
 
+interface CpuProfileCallFrame {
+  functionName?: string;
+  scriptId?: string;
+  url?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+}
+
+interface CpuProfileNode {
+  id?: number;
+  callFrame?: CpuProfileCallFrame;
+  hitCount?: number;
+}
+
+interface CpuProfile {
+  nodes?: CpuProfileNode[];
+  samples?: number[];
+  timeDeltas?: number[];
+}
+
 export class TraceRecorder {
   private db: TraceDB | null = null;
   private state: RecordingState = 'idle';
@@ -37,6 +57,8 @@ export class TraceRecorder {
   private enabledCdpDomains = new Set<string>();
   private cdpSession: CDPSessionLike | null = null;
   private ownsCdpSession = false;
+  private profilerActive = false;
+  private profilerListeners = new Map<string, CDPEventHandler>();
   private eventCount = 0;
   private memoryDeltaCount = 0;
   private heapSnapshotCount = 0;
@@ -85,6 +107,7 @@ export class TraceRecorder {
     this.eventSequence = 0;
     this.pendingOperations.clear();
     this.cdpListeners.clear();
+    this.profilerListeners.clear();
     this.enabledCdpDomains.clear();
     this.cdpSession = cdpSession;
     this.ownsCdpSession = options?.ownsSession ?? false;
@@ -97,6 +120,7 @@ export class TraceRecorder {
           await cdpSession.send(`${domain}.enable`);
           this.enabledCdpDomains.add(domain);
         }
+        await this.startProfilerCapture(cdpSession);
       }
 
       const startedAt = Date.now();
@@ -281,8 +305,10 @@ export class TraceRecorder {
       for (const [event, handler] of this.cdpListeners) {
         this.cdpSession.off(event, handler);
       }
+      await this.stopProfilerCapture(this.cdpSession);
     }
     this.cdpListeners.clear();
+    this.profilerListeners.clear();
 
     await this.waitForPendingOperations();
 
@@ -399,7 +425,11 @@ export class TraceRecorder {
         ),
       );
     }
+    if (this.cdpSession) {
+      await this.stopProfilerCapture(this.cdpSession);
+    }
     this.enabledCdpDomains.clear();
+    this.profilerListeners.clear();
     if (this.cdpSession && this.ownsCdpSession && typeof this.cdpSession.detach === 'function') {
       await this.cdpSession.detach().catch(() => {
         // Best-effort cleanup after failed start
@@ -430,6 +460,135 @@ export class TraceRecorder {
   private nextSequence(): number {
     this.eventSequence += 1;
     return this.eventSequence;
+  }
+
+  private async startProfilerCapture(cdpSession: CDPSessionLike): Promise<void> {
+    try {
+      await cdpSession.send('Profiler.enable');
+      await cdpSession.send('Profiler.start');
+      this.profilerActive = true;
+
+      const handler: CDPEventHandler = (params) => {
+        if (this.state !== 'recording' || !this.db) return;
+        const profile = this.extractProfile(params);
+        if (!profile) return;
+        this.trackOperation(
+          Promise.resolve().then(() => {
+            this.ingestCpuProfile(profile);
+          }),
+        );
+      };
+
+      for (const eventName of [
+        'Profiler.consoleProfileFinished',
+        'Profiler.profileChunk',
+        'Profiler.cpuProfile',
+      ]) {
+        cdpSession.on(eventName, handler);
+        this.profilerListeners.set(eventName, handler);
+      }
+    } catch {
+      this.profilerActive = false;
+      for (const [event, handler] of this.profilerListeners) {
+        cdpSession.off(event, handler);
+      }
+      this.profilerListeners.clear();
+    }
+  }
+
+  private async stopProfilerCapture(cdpSession: CDPSessionLike): Promise<void> {
+    for (const [event, handler] of this.profilerListeners) {
+      cdpSession.off(event, handler);
+    }
+    this.profilerListeners.clear();
+
+    if (!this.profilerActive) return;
+
+    try {
+      const result = await cdpSession.send('Profiler.stop');
+      const profile = this.extractProfile(result);
+      if (profile) {
+        this.ingestCpuProfile(profile);
+      }
+    } catch {
+      // Profiler is best-effort; do not fail trace stop/cleanup.
+    } finally {
+      this.profilerActive = false;
+      await cdpSession.send('Profiler.disable').catch(() => {});
+    }
+  }
+
+  private extractProfile(value: unknown): CpuProfile | null {
+    if (!value || typeof value !== 'object') return null;
+    const record = value as Record<string, unknown>;
+    const profile = record['profile'] ?? value;
+    if (!profile || typeof profile !== 'object') return null;
+    const maybeProfile = profile as CpuProfile;
+    return Array.isArray(maybeProfile.nodes) ? maybeProfile : null;
+  }
+
+  private ingestCpuProfile(profile: CpuProfile): void {
+    if (!this.db) return;
+    const nodes = Array.isArray(profile.nodes) ? profile.nodes : [];
+    if (nodes.length === 0) return;
+
+    const nodeById = new Map<number, CpuProfileNode>();
+    for (const node of nodes) {
+      if (typeof node.id === 'number') {
+        nodeById.set(node.id, node);
+      }
+    }
+
+    const aggregates = new Map<number, { selfTime: number; aggregateTime: number }>();
+    const samples = Array.isArray(profile.samples) ? profile.samples : [];
+    const timeDeltas = Array.isArray(profile.timeDeltas) ? profile.timeDeltas : [];
+
+    if (samples.length > 0) {
+      for (let i = 0; i < samples.length; i++) {
+        const nodeId = samples[i];
+        if (typeof nodeId !== 'number' || !nodeById.has(nodeId)) continue;
+        const deltaMicros =
+          typeof timeDeltas[i] === 'number' && Number.isFinite(timeDeltas[i]!) ? timeDeltas[i]! : 0;
+        const deltaMs = deltaMicros / 1000;
+        const existing = aggregates.get(nodeId) ?? { selfTime: 0, aggregateTime: 0 };
+        existing.selfTime += deltaMs;
+        existing.aggregateTime += deltaMs;
+        aggregates.set(nodeId, existing);
+      }
+    } else {
+      for (const node of nodes) {
+        if (typeof node.id !== 'number') continue;
+        const hitCount =
+          typeof node.hitCount === 'number' && Number.isFinite(node.hitCount) ? node.hitCount : 0;
+        if (hitCount <= 0) continue;
+        aggregates.set(node.id, { selfTime: hitCount, aggregateTime: hitCount });
+      }
+    }
+
+    const timestamp = Date.now();
+    for (const [nodeId, timing] of aggregates) {
+      const node = nodeById.get(nodeId);
+      if (!node) continue;
+      this.db.insertSample(this.nodeToSample(node, timing, timestamp));
+    }
+  }
+
+  private nodeToSample(
+    node: CpuProfileNode,
+    timing: { selfTime: number; aggregateTime: number },
+    timestamp: number,
+  ): TraceSample {
+    const callFrame = node.callFrame ?? {};
+    return {
+      timestamp,
+      selfTime: Number(timing.selfTime.toFixed(3)),
+      aggregateTime: Number(timing.aggregateTime.toFixed(3)),
+      functionName: callFrame.functionName ?? null,
+      scriptId: callFrame.scriptId ?? null,
+      url: callFrame.url ?? null,
+      lineNumber: callFrame.lineNumber ?? null,
+      columnNumber: callFrame.columnNumber ?? null,
+    };
   }
 
   /**
