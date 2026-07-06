@@ -3,11 +3,21 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
   dnsResolve: vi.fn(),
   dnsReverse: vi.fn(),
+  resolverResolve: vi.fn(),
+  resolverReverse: vi.fn(),
+  resolverSetServers: vi.fn(),
 }));
 
 vi.mock('node:dns/promises', () => ({
   resolve: (...args: unknown[]) => state.dnsResolve(...args),
   reverse: (...args: unknown[]) => state.dnsReverse(...args),
+  Resolver: vi.fn(function Resolver() {
+    return {
+      resolve: (...args: unknown[]) => state.resolverResolve(...args),
+      reverse: (...args: unknown[]) => state.resolverReverse(...args),
+      setServers: (...args: unknown[]) => state.resolverSetServers(...args),
+    };
+  }),
 }));
 
 import { RawDnsHttpHandlers } from '@server/domains/network/handlers/raw-dns-http-handlers';
@@ -155,6 +165,23 @@ describe('RawDnsHttpHandlers — DNS primitives', () => {
       await handler.handleDnsProbe({ hostname: 'example.com' });
       expect(state.dnsResolve).toHaveBeenCalledWith('example.com', 'A');
     });
+
+    it('uses an explicit resolver server when provided', async () => {
+      state.resolverResolve.mockResolvedValue(['9.9.9.9']);
+      const res = await handler.handleDnsProbe({
+        hostname: 'example.com',
+        rrType: 'A',
+        server: '9.9.9.9',
+      });
+      const json = parseJson(res);
+
+      expect(json.success).toBe(true);
+      expect(json.server).toBe('9.9.9.9');
+      expect(json.records).toEqual(['9.9.9.9']);
+      expect(state.resolverSetServers).toHaveBeenCalledWith(['9.9.9.9']);
+      expect(state.resolverResolve).toHaveBeenCalledWith('example.com', 'A');
+      expect(state.dnsResolve).not.toHaveBeenCalled();
+    });
   });
 
   // ── dns_cname_chain ──
@@ -241,6 +268,23 @@ describe('RawDnsHttpHandlers — DNS primitives', () => {
       const chain = getChain(res);
       expect(json.depth).toBe(1);
       expect(chain[0]!.target).toBeNull();
+    });
+
+    it('uses an explicit resolver server for every CNAME hop', async () => {
+      state.resolverResolve
+        .mockResolvedValueOnce(['cdn.example.com'])
+        .mockRejectedValueOnce(dnsError('ENODATA', 'cdn.example.com'));
+
+      const res = await handler.handleDnsCnameChain({
+        hostname: 'www.example.com',
+        server: '1.1.1.1',
+      });
+      const json = parseJson(res);
+
+      expect(json.server).toBe('1.1.1.1');
+      expect(state.resolverSetServers).toHaveBeenCalledWith(['1.1.1.1']);
+      expect(state.resolverResolve).toHaveBeenNthCalledWith(1, 'www.example.com', 'CNAME');
+      expect(state.resolverResolve).toHaveBeenNthCalledWith(2, 'cdn.example.com', 'CNAME');
     });
   });
 
@@ -352,6 +396,20 @@ describe('RawDnsHttpHandlers — DNS primitives', () => {
       const results = getResults(res);
       expect(results[0]!.status).toBe('NOERROR');
       expect(results[0]!.records).toEqual([{ exchange: 'mail.example.com', priority: 10 }]);
+    });
+
+    it('uses an explicit resolver server for bulk lookups', async () => {
+      state.resolverResolve.mockResolvedValue(['4.4.4.4']);
+      const res = await handler.handleDnsBulkResolve({
+        hostnames: ['a.example.com', 'b.example.com'],
+        server: '4.4.4.4',
+      });
+      const json = parseJson(res);
+
+      expect(json.server).toBe('4.4.4.4');
+      expect(state.resolverSetServers).toHaveBeenCalledWith(['4.4.4.4']);
+      expect(state.resolverResolve).toHaveBeenCalledWith('a.example.com', 'A');
+      expect(state.resolverResolve).toHaveBeenCalledWith('b.example.com', 'A');
     });
   });
 });

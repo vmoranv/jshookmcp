@@ -133,17 +133,21 @@ export const transportTools: Tool[] = [
   ),
   tool('dns_resolve', (t) =>
     t
-      .desc('Resolve a hostname to DNS records using the system resolver.')
+      .desc(
+        'Resolve a hostname to DNS records using the system resolver or an optional DNS server.',
+      )
       .string('hostname', 'Hostname to resolve (e.g. google.com)')
       .string('rrType', 'DNS record type: A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, SRV, or ANY', {
         default: 'A',
       })
+      .string('server', 'Optional DNS resolver server, for example 1.1.1.1 or 8.8.8.8')
       .requiredOpenWorld('hostname'),
   ),
   tool('dns_reverse', (t) =>
     t
       .desc('Reverse DNS lookup — find hostnames for an IP address.')
       .string('ip', 'IP address to reverse lookup (e.g. 8.8.8.8)')
+      .string('server', 'Optional DNS resolver server, for example 1.1.1.1 or 8.8.8.8')
       .requiredOpenWorld('ip'),
   ),
   tool('dns_probe', (t) =>
@@ -153,6 +157,7 @@ export const transportTools: Tool[] = [
       .string('rrType', 'DNS record type: A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, SRV, or ANY', {
         default: 'A',
       })
+      .string('server', 'Optional DNS resolver server, for example 1.1.1.1 or 8.8.8.8')
       .requiredOpenWorld('hostname'),
   ),
   tool('dns_cname_chain', (t) =>
@@ -164,6 +169,7 @@ export const transportTools: Tool[] = [
         minimum: 1,
         maximum: 30,
       })
+      .string('server', 'Optional DNS resolver server, for example 1.1.1.1 or 8.8.8.8')
       .requiredOpenWorld('hostname'),
   ),
   tool('dns_bulk_resolve', (t) =>
@@ -178,6 +184,7 @@ export const transportTools: Tool[] = [
         minimum: 1,
         maximum: 50,
       })
+      .string('server', 'Optional DNS resolver server, for example 1.1.1.1 or 8.8.8.8')
       .requiredOpenWorld('hostnames'),
   ),
   tool('network_rtt_measure', (t) =>

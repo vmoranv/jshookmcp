@@ -24,6 +24,11 @@ import { emitEvent, parseBooleanArg, parseNumberArg } from './shared';
 const DNS_RR_TYPES = ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME', 'SOA', 'PTR', 'SRV', 'ANY'] as const;
 type DnsRecords = string[] | string[][] | MxRecord[] | SrvRecord[] | SoaRecord | AnyRecord[];
 
+interface DnsClient {
+  resolve(hostname: string, rrType: string): Promise<DnsRecords>;
+  reverse(ip: string): Promise<string[]>;
+}
+
 function classifyDnsStatus(code: string | undefined): string {
   if (!code) return 'ERROR';
   if (code === 'ENOTFOUND') return 'NXDOMAIN';
@@ -37,6 +42,15 @@ function classifyDnsStatus(code: string | undefined): string {
 
 function roundTiming(start: number): number {
   return Math.round((performance.now() - start) * 100) / 100;
+}
+
+function createDnsClient(server: string | undefined): DnsClient {
+  if (!server) {
+    return dns;
+  }
+  const resolver = new dns.Resolver();
+  resolver.setServers([server]);
+  return resolver;
 }
 
 export class RawDnsHttpHandlers {
@@ -55,10 +69,12 @@ export class RawDnsHttpHandlers {
           true,
         );
       }
+      const server = parseOptionalString(args.server, 'server');
+      const resolver = createDnsClient(server);
       const start = performance.now();
-      const records = await dns.resolve(hostname, rrType as never);
+      const records = await resolver.resolve(hostname, rrType);
       const timing = roundTiming(start);
-      return R.ok().json({ hostname, rrType, records, timing });
+      return R.ok().json({ hostname, rrType, records, timing, ...(server ? { server } : {}) });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return R.fail(`DNS resolve failed: ${message}`).json();
@@ -71,10 +87,12 @@ export class RawDnsHttpHandlers {
       if (!ip) {
         return R.text('ip is required', true);
       }
+      const server = parseOptionalString(args.server, 'server');
+      const resolver = createDnsClient(server);
       const start = performance.now();
-      const hostnames = await dns.reverse(ip);
+      const hostnames = await resolver.reverse(ip);
       const timing = roundTiming(start);
-      return R.ok().json({ ip, hostnames, timing });
+      return R.ok().json({ ip, hostnames, timing, ...(server ? { server } : {}) });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return R.fail(`DNS reverse lookup failed: ${message}`).json();
@@ -94,11 +112,20 @@ export class RawDnsHttpHandlers {
           true,
         );
       }
+      const server = parseOptionalString(args.server, 'server');
+      const resolver = createDnsClient(server);
       const start = performance.now();
       try {
-        const records = await dns.resolve(hostname, rrType as never);
+        const records = await resolver.resolve(hostname, rrType);
         const timing = roundTiming(start);
-        return R.ok().json({ hostname, rrType, status: 'NOERROR', records, timing });
+        return R.ok().json({
+          hostname,
+          rrType,
+          status: 'NOERROR',
+          records,
+          timing,
+          ...(server ? { server } : {}),
+        });
       } catch (dnsErr: unknown) {
         const timing = roundTiming(start);
         const code =
@@ -113,6 +140,7 @@ export class RawDnsHttpHandlers {
           records: [],
           timing,
           errorCode: code ?? null,
+          ...(server ? { server } : {}),
         });
       }
     } catch (err) {
@@ -133,6 +161,8 @@ export class RawDnsHttpHandlers {
         max: 30,
         integer: true,
       });
+      const server = parseOptionalString(args.server, 'server');
+      const resolver = createDnsClient(server);
 
       const chain: Array<{
         host: string;
@@ -146,7 +176,7 @@ export class RawDnsHttpHandlers {
       for (let depth = 0; depth < maxDepth; depth++) {
         const start = performance.now();
         try {
-          const records = await dns.resolve(current, 'CNAME');
+          const records = (await resolver.resolve(current, 'CNAME')) as string[];
           const timing = roundTiming(start);
           const target = records[0] ?? null;
           chain.push({ host: current, target, status: 'CNAME', depth, timing });
@@ -168,7 +198,7 @@ export class RawDnsHttpHandlers {
         }
       }
 
-      return R.ok().json({ hostname, chain, depth: chain.length });
+      return R.ok().json({ hostname, chain, depth: chain.length, ...(server ? { server } : {}) });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return R.fail(`CNAME chain trace failed: ${message}`).json();
@@ -197,6 +227,8 @@ export class RawDnsHttpHandlers {
         max: 50,
         integer: true,
       });
+      const server = parseOptionalString(args.server, 'server');
+      const resolver = createDnsClient(server);
 
       const results: Array<{
         hostname: string;
@@ -211,7 +243,7 @@ export class RawDnsHttpHandlers {
           batch.map(async (host) => {
             const start = performance.now();
             try {
-              const records = await dns.resolve(host, rrType as never);
+              const records = await resolver.resolve(host, rrType);
               const timing = roundTiming(start);
               return { hostname: host, status: 'NOERROR', records, timing };
             } catch (dnsErr: unknown) {
@@ -233,7 +265,13 @@ export class RawDnsHttpHandlers {
       }
 
       const errorCount = results.filter((r) => r.status !== 'NOERROR').length;
-      return R.ok().json({ results, total: results.length, errors: errorCount, rrType });
+      return R.ok().json({
+        results,
+        total: results.length,
+        errors: errorCount,
+        rrType,
+        ...(server ? { server } : {}),
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return R.fail(`Bulk DNS resolve failed: ${message}`).json();

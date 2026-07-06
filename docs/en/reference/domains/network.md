@@ -51,7 +51,7 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 | `network_latency_stats` | Measure repeated latency and compute percentile stats. |
 | `network_traceroute` | Run an ICMP traceroute. |
 | `network_icmp_probe` | Run an ICMP echo probe. |
-| `dns_resolve` | Resolve a hostname to DNS records using the system resolver. |
+| `dns_resolve` | Resolve a hostname to DNS records using the system resolver or an optional DNS server. |
 | `dns_reverse` | Reverse DNS lookup — find hostnames for an IP address. |
 | `dns_probe` | Run a DNS query and return structured status instead of throwing. |
 | `dns_cname_chain` | Trace the full CNAME chain for a hostname. |

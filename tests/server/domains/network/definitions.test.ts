@@ -73,6 +73,18 @@ describe('network tool definitions', () => {
     expect(names.has('http_plain_request')).toBe(true);
   });
 
+  it('DNS tools expose optional resolver server', async () => {
+    for (const name of [
+      'dns_resolve',
+      'dns_reverse',
+      'dns_probe',
+      'dns_cname_chain',
+      'dns_bulk_resolve',
+    ]) {
+      expect(getProperties(findTool(name))).toHaveProperty('server');
+    }
+  });
+
   it('contains expected ICMP tools', async () => {
     const names = new Set(advancedTools.map((t) => t.name));
     expect(names.has('network_traceroute')).toBe(true);
