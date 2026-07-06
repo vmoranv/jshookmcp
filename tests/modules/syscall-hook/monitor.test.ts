@@ -153,6 +153,11 @@ describe('SyscallMonitor', () => {
 
     (monitor as any).activeState = { startedAt: Date.now() };
     await (monitor as any).captureWithStrace(4321);
+    expect(mockSpawn).toHaveBeenCalledWith(
+      'strace',
+      ['-p', '4321', '-f', '-yy', '-X', 'verbose', '-e', 'trace=all', '-t'],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    );
     child.emitStderr(
       '4321 14:30:00.123456 openat(AT_FDCWD, "/tmp/foo", O_RDONLY) = 3 <0.000123>\n',
     );
@@ -168,6 +173,29 @@ describe('SyscallMonitor', () => {
       }),
     );
     expect(events[0]?.duration).toBeCloseTo(0.123, 6);
+  });
+
+  it('preserves strace fd path annotations in syscall args', async () => {
+    const child = createFakeChildProcess();
+    mockSpawn.mockImplementationOnce(() => {
+      queueMicrotask(() => child.emit('spawn'));
+      return child as any;
+    });
+
+    (monitor as any).activeState = { startedAt: Date.now() };
+    await (monitor as any).captureWithStrace(4321);
+    child.emitStderr('4321 14:30:00.123456 read(3</tmp/foo>, "abc", 3) = 3 <0.000010>\n');
+
+    const events = await monitor.captureEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual(
+      expect.objectContaining({
+        pid: 4321,
+        syscall: 'read',
+        args: ['3</tmp/foo>', '"abc"', '3'],
+        returnValue: 3,
+      }),
+    );
   });
 
   it('parses ETW stdout lines into captured events', async () => {

@@ -424,9 +424,13 @@ export class SyscallMonitor {
     const { spawn } = await import('node:child_process');
 
     return new Promise<ChildProcess>((resolve, reject) => {
-      const subprocess = spawn('strace', ['-p', String(pid), '-f', '-e', 'trace=all', '-t'], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
+      const subprocess = spawn(
+        'strace',
+        ['-p', String(pid), '-f', '-yy', '-X', 'verbose', '-e', 'trace=all', '-t'],
+        {
+          stdio: ['ignore', 'pipe', 'pipe'],
+        },
+      );
       const ready = createSpawnReadyGuard('strace process', resolve, reject, () =>
         subprocess.kill('SIGTERM'),
       );

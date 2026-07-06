@@ -49,7 +49,10 @@ const SCORES = {
   proxy: [9.0, '10 tools, Phase 3 body/timing capture + active rule list/clear lifecycle'],
   sourcemap: [9.1, '6 tools, Phase 2 MCP-safe wrappers'],
   streaming: [9.1, '7 tools, Phase 2 MCP-safe wrappers + Phase 3 payload/export/metadata'],
-  'syscall-hook': [8.8, '15 tools, Phase 1 PID/returnValue filters + Phase 2 MCP-safe wrappers'],
+  'syscall-hook': [
+    9.0,
+    '15 tools, PID/return filters, MCP-safe wrappers, richer strace fd/path decoding',
+  ],
   trace: [9.0, '9 tools, Phase 1 category thread tracks + Phase 2 MCP-safe wrappers'],
   transform: [9.1, '7 tools, Phase 2 MCP-safe wrappers'],
   'v8-inspector': [9.5, '19 tools, 23 scan-counted tests, Tier A+B+D+C all done'],
