@@ -26,6 +26,13 @@ describe('coordination domain definitions', () => {
     expect(tool?.inputSchema.properties).toHaveProperty('category');
     expect(tool?.inputSchema.properties).toHaveProperty('tag');
     expect(tool?.inputSchema.properties).toHaveProperty('severity');
+    expect((tool?.inputSchema.properties?.severity as any)?.enum).toEqual([
+      'info',
+      'low',
+      'medium',
+      'high',
+      'critical',
+    ]);
     expect(tool?.inputSchema.properties).toHaveProperty('minConfidence');
   });
 
@@ -44,6 +51,13 @@ describe('coordination domain definitions', () => {
     const tool = getTool('append_session_insight');
     expect(tool?.inputSchema.properties).toHaveProperty('tags');
     expect(tool?.inputSchema.properties).toHaveProperty('severity');
+    expect((tool?.inputSchema.properties?.severity as any)?.enum).toEqual([
+      'info',
+      'low',
+      'medium',
+      'high',
+      'critical',
+    ]);
     expect(tool?.inputSchema.properties).toHaveProperty('toolSource');
   });
 });

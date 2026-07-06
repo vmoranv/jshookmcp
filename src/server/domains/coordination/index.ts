@@ -328,7 +328,7 @@ export class CoordinationHandlers {
     const content = args.content as string;
     const confidence = clampConfidence(args.confidence);
     const tags = readStringArray(args.tags);
-    const severity = readSeverity(args.severity);
+    const severity = hasArg(args, 'severity') ? readSeverityArg(args.severity) : undefined;
     const toolSource = typeof args.toolSource === 'string' ? args.toolSource : undefined;
 
     // Find the most recent in-progress handoff as source context
@@ -401,7 +401,7 @@ export class CoordinationHandlers {
   private filterInsights(args: Record<string, unknown>): SessionInsight[] {
     const category = typeof args.category === 'string' ? args.category : undefined;
     const tag = typeof args.tag === 'string' ? args.tag : undefined;
-    const severity = readSeverity(args.severity);
+    const severity = hasArg(args, 'severity') ? readSeverityArg(args.severity) : undefined;
     const sourceTaskId = typeof args.sourceTaskId === 'string' ? args.sourceTaskId : undefined;
     const minConfidence =
       typeof args.minConfidence === 'number' && Number.isFinite(args.minConfidence)
@@ -695,8 +695,9 @@ function clampConfidence(value: unknown): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function readSeverity(value: unknown): SessionInsight['severity'] | undefined {
-  return isInsightSeverity(value) ? value : undefined;
+function readSeverityArg(value: unknown): NonNullable<SessionInsight['severity']> {
+  if (isInsightSeverity(value)) return value;
+  throw new Error('Invalid severity. Expected one of: info, low, medium, high, critical');
 }
 
 function isInsightSeverity(value: unknown): value is NonNullable<SessionInsight['severity']> {

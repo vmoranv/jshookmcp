@@ -236,6 +236,26 @@ describe('CoordinationHandlers', () => {
     );
   });
 
+  it('rejects invalid session insight severity values', async () => {
+    await expect(
+      handlers.handleAppendSessionInsight({
+        category: 'security',
+        content: 'invalid severity',
+        severity: 'urgent',
+      }),
+    ).rejects.toThrow('Invalid severity');
+
+    await handlers.handleAppendSessionInsight({
+      category: 'security',
+      content: 'valid severity',
+      severity: 'high',
+    });
+
+    await expect(handlers.handleGetTaskContext({ severity: 'urgent' })).rejects.toThrow(
+      'Invalid severity',
+    );
+  });
+
   it('handleGetTaskContext returns all handoffs and insights when taskId is omitted', async () => {
     await handlers.handleCreateTaskHandoff({ description: 'active task' });
     const completedTask = (await handlers.handleCreateTaskHandoff({

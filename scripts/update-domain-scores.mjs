@@ -26,8 +26,8 @@ const SCORES = {
   ],
   canvas: [9.4, '8 tools, Phase 0 adapters + Phase 2 MCP-safe wrappers'],
   coordination: [
-    9.1,
-    '11 tools, persisted handoffs/insights, tagged insight filtering, handoff status updates',
+    9.2,
+    '11 tools, persisted handoffs/insights, tagged insight filtering, handoff status updates, strict severity enum validation',
   ],
   'cross-domain': [
     9.1,
