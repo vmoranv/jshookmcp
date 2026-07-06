@@ -24,7 +24,7 @@ const SCORES = {
   'exploit-dev': [9.3, '20 tools, Phase 0 capstone x64 one-gadget scan, CLAUDE.md created'],
   'extension-registry': [8.8, '5 tools, Phase 1 routing/doc stale fix + Phase 2 MCP-safe wrappers'],
   graphql: [9.4, '6 tools, Phase 3 Apollo Federation _service.sdl introspection'],
-  instrumentation: [8.8, '15 tools, 14 scan-counted tests'],
+  instrumentation: [9.0, '16 tools, Phase 3 session snapshot export to artifacts'],
   maintenance: [9.0, '13 tools, sandbox memory/tool allowlist/redaction hardening, 6 tests'],
   memory: [9.7, '34 tools, E5 parity, Phase 0 find_accesses wired readMemory+capstone+pid'],
   'mojo-ipc': [8.6, '5 tools, Phase 2 MCP-safe wrappers'],

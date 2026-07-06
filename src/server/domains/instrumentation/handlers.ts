@@ -4,6 +4,8 @@ import { argString } from '@server/domains/shared/parse-args';
 import { asJsonResponse } from '@server/domains/shared/response';
 import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 import type { ToolResponse } from '@server/types';
+import { resolveArtifactPath } from '@utils/artifacts';
+import { writeTextFileAtomically } from '@utils/safeOutput';
 
 interface HookPresetHandlerLike {
   handleHookPreset(args: Record<string, unknown>): Promise<ToolResponse>;
@@ -102,6 +104,44 @@ export class InstrumentationHandlers {
       if (!session) throw new Error(`Session "${sessionId}" not found`);
       const stats = this.sessionManager.getSessionStats(sessionId);
       return { session, stats };
+    });
+  }
+
+  async handleSessionExport(args: Record<string, unknown>) {
+    return handleSafe(async () => {
+      const sessionId = argString(args, 'sessionId', '');
+      if (!sessionId) throw new Error('sessionId is required');
+
+      const snapshot = this.sessionManager.getSessionSnapshot(sessionId);
+      if (!snapshot) throw new Error(`Session "${sessionId}" not found`);
+
+      const outputDir = argString(args, 'outputDir');
+      const artifactPath = await resolveArtifactPath({
+        category: 'sessions',
+        toolName: 'instrumentation_session_export',
+        target: sessionId,
+        ext: 'json',
+        customDir: outputDir,
+      });
+      const content = JSON.stringify(
+        {
+          schemaVersion: 1,
+          exportedAt: new Date().toISOString(),
+          snapshot,
+        },
+        null,
+        2,
+      );
+      await writeTextFileAtomically(artifactPath.absolutePath, content);
+
+      return {
+        sessionId,
+        exportedPath: artifactPath.absolutePath,
+        displayPath: artifactPath.displayPath,
+        operationCount: snapshot.operations.length,
+        artifactCount: snapshot.artifacts.length,
+        bytesWritten: Buffer.byteLength(content, 'utf8'),
+      };
     });
   }
 

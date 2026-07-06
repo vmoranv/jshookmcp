@@ -21,13 +21,26 @@ describe('instrumentation domain definitions', () => {
     const artifactTool = instrumentationTools.find(
       (tool) => tool.name === 'instrumentation_artifact',
     );
+    const exportTool = instrumentationTools.find(
+      (tool) => tool.name === 'instrumentation_session_export',
+    );
     const hookPresetTool = instrumentationTools.find(
       (tool) => tool.name === 'instrumentation_hook_preset',
     );
 
     expect(operationTool?.inputSchema.properties).toHaveProperty('sessionId');
     expect(artifactTool?.inputSchema.properties).toHaveProperty('sessionId');
+    expect(exportTool?.inputSchema.properties).toHaveProperty('sessionId');
     expect(hookPresetTool?.inputSchema.properties).toHaveProperty('sessionId');
+  });
+
+  it('declares session export output directory support', async () => {
+    const exportTool = instrumentationTools.find(
+      (tool) => tool.name === 'instrumentation_session_export',
+    );
+
+    expect(exportTool?.inputSchema.required).toEqual(['sessionId']);
+    expect(exportTool?.inputSchema.properties).toHaveProperty('outputDir');
   });
 
   it('exposes replay authorization inputs for instrumentation network replay', async () => {

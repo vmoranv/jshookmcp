@@ -18,6 +18,13 @@ export const instrumentationTools: Tool[] = [
       .string('sessionId', 'Session ID (required for destroy/status)')
       .required('action'),
   ),
+  tool('instrumentation_session_export', (t) =>
+    t
+      .desc('Export an instrumentation session snapshot to an artifacts JSON file.')
+      .string('sessionId', 'Session ID to export')
+      .string('outputDir', 'Optional project-relative output directory under the workspace')
+      .required('sessionId'),
+  ),
   tool('instrumentation_operation', (t) =>
     t
       .desc('Manage operations inside an instrumentation session.')

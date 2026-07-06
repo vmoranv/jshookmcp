@@ -553,5 +553,6 @@
   "adb_root_check": "待补充中文：Probe root indicators such as su, Magisk, test-keys, SELinux, and shell uid.",
   "adb_screenshot": "待补充中文：Capture a PNG screenshot through adb exec-out screencap -p.",
   "ws_export_capture": "将已捕获的 WebSocket 帧导出到 artifacts/captures，支持 JSON 或 NDJSON 格式。",
-  "sse_export_capture": "将已捕获的 SSE 事件导出到 artifacts/captures，支持 JSON 或 NDJSON 格式。"
+  "sse_export_capture": "将已捕获的 SSE 事件导出到 artifacts/captures，支持 JSON 或 NDJSON 格式。",
+  "instrumentation_session_export": "待补充中文：Export an instrumentation session snapshot to an artifacts JSON file."
 }

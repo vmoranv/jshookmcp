@@ -43,6 +43,7 @@ const instrumentationRegistrations = defineMethodRegistrations<
   lookup: t,
   entries: [
     { tool: 'instrumentation_session', method: 'handleSessionDispatch' },
+    { tool: 'instrumentation_session_export', method: 'handleSessionExport' },
     { tool: 'instrumentation_operation', method: 'handleOperationDispatch' },
     { tool: 'instrumentation_artifact', method: 'handleArtifactDispatch' },
     { tool: 'instrumentation_hook_preset', method: 'handleHookPreset' },
@@ -183,6 +184,7 @@ const manifest = {
     priority: 95,
     tools: [
       'instrumentation_session',
+      'instrumentation_session_export',
       'instrumentation_operation',
       'instrumentation_artifact',
       'instrumentation_hook_preset',

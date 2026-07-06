@@ -37,6 +37,7 @@ describe('instrumentation manifest', () => {
     const names = manifest.registrations.map((r) => r.tool.name);
     expect(new Set(names).size).toBe(names.length);
     expect(names).toContain('instrumentation_session');
+    expect(names).toContain('instrumentation_session_export');
     expect(names).toContain('instrumentation_operation');
     expect(names).toContain('instrumentation_artifact');
     expect(names).toContain('instrumentation_hook_preset');
@@ -95,6 +96,7 @@ describe('instrumentation manifest', () => {
     expect(typeof handler.handleSessionList).toBe('function');
     expect(typeof handler.handleSessionDestroy).toBe('function');
     expect(typeof handler.handleSessionStatus).toBe('function');
+    expect(typeof handler.handleSessionExport).toBe('function');
     expect(typeof handler.handleOperationRegister).toBe('function');
     expect(typeof handler.handleOperationList).toBe('function');
     expect(typeof handler.handleArtifactRecord).toBe('function');

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFile, rm } from 'node:fs/promises';
 import { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';
 import { InstrumentationType } from '@server/instrumentation/types';
 import { InstrumentationHandlers } from '@server/domains/instrumentation/handlers';
@@ -92,6 +93,52 @@ describe('InstrumentationHandlers', () => {
       const result = await handlers.handleSessionStatus({ sessionId: 'nope' });
       const data = parseResponse(result);
       expect(data.success).toBe(false);
+    });
+  });
+
+  describe('handleSessionExport', () => {
+    it('exports a session snapshot to an artifact JSON file', async () => {
+      const outputDir = `artifacts/tmp/instrumentation-export-${Date.now()}`;
+      try {
+        const createResult = await handlers.handleSessionCreate({ name: 'export-me' });
+        const sessionId = (parseResponse(createResult).session as Record<string, unknown>)
+          .id as string;
+        const opResult = await handlers.handleOperationRegister({
+          sessionId,
+          type: InstrumentationType.RUNTIME_HOOK,
+          target: 'signPayload',
+          config: { captureArgs: true },
+        });
+        const operation = parseResponse(opResult).operation as Record<string, unknown>;
+        await handlers.handleArtifactRecord({
+          operationId: operation.id,
+          data: { returnValue: 'signed' },
+        });
+
+        const result = await handlers.handleSessionExport({ sessionId, outputDir });
+        const data = parseResponse(result);
+
+        expect(data.success).toBe(true);
+        expect(data.sessionId).toBe(sessionId);
+        expect(data.operationCount).toBe(1);
+        expect(data.artifactCount).toBe(1);
+        expect(data.displayPath).toContain(outputDir.replace(/\\/g, '/'));
+
+        const exported = JSON.parse(await readFile(data.exportedPath as string, 'utf8'));
+        expect(exported.schemaVersion).toBe(1);
+        expect(exported.snapshot.session.name).toBe('export-me');
+        expect(exported.snapshot.operations).toHaveLength(1);
+        expect(exported.snapshot.artifacts).toHaveLength(1);
+      } finally {
+        await rm(outputDir, { recursive: true, force: true });
+      }
+    });
+
+    it('returns an error when exporting a missing session', async () => {
+      const result = await handlers.handleSessionExport({ sessionId: 'missing' });
+      const data = parseResponse(result);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('Session "missing" not found');
     });
   });
 
