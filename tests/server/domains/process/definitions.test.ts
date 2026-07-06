@@ -38,4 +38,18 @@ describe('process domain definitions', () => {
       expect(tool?.inputSchema.required).toContain('pid');
     }
   });
+
+  it('declares optional thread details for process_enum_threads', async () => {
+    const tool = processToolDefinitions.find(
+      (candidate) => candidate.name === 'process_enum_threads',
+    );
+
+    expect(tool).toBeDefined();
+    expect(tool?.inputSchema.required).toContain('pid');
+    expect(tool?.inputSchema.properties).toHaveProperty('includeDetails');
+    expect(tool?.inputSchema.properties?.['includeDetails']).toMatchObject({
+      type: 'boolean',
+      default: false,
+    });
+  });
 });

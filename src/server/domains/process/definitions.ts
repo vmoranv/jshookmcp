@@ -223,9 +223,12 @@ export const processToolDefinitions: Tool[] = [
   tool('process_enum_threads', (t) =>
     t
       .desc(
-        'Enumerate all threads in a process. Returns thread IDs. Cross-platform: Win32 uses CreateToolhelp32Snapshot; Linux reads /proc/{pid}/task; macOS uses `ps -M`.',
+        'Enumerate all threads in a process. Returns thread IDs, with optional per-thread context and diagnostics. Cross-platform: Win32 uses CreateToolhelp32Snapshot; Linux reads /proc/{pid}/task; macOS uses `ps -M`.',
       )
       .number('pid', 'Process ID to enumerate threads for')
+      .boolean('includeDetails', 'Include per-thread objects and process diagnostics', {
+        default: false,
+      })
       .required('pid'),
   ),
 

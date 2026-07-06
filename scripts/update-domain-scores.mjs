@@ -62,7 +62,10 @@ const SCORES = {
   'native-emulator': [9.1, '22 tools, 64 tests, E4 finale + session diagnostics'],
   network: [9.1, '37 tools, 37 scan-counted tests, DNS resolver-server override'],
   platform: [9.3, '16 tools, Phase 3 ASAR integrity SHA256/SHA512 algorithm awareness'],
-  process: [9.0, '27 tools, Phase 1 suspend/resume + hollowing dumps + Phase 2 MCP-safe wrappers'],
+  process: [
+    9.1,
+    '27 tools, Phase 1 suspend/resume + hollowing dumps + MCP-safe wrappers + thread diagnostics',
+  ],
   'protocol-analysis': [
     9.6,
     '20 tools, Phase 3 +5 protocol fingerprints: MQTT/STUN/QUIC/SOCKS5/HTTP2',

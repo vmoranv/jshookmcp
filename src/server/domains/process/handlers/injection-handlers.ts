@@ -308,6 +308,14 @@ export class InjectionHandlers {
   async handleProcessEnumThreads(args: Record<string, unknown>) {
     try {
       const pid = validatePid(args.pid);
+      if (
+        args.includeDetails !== undefined &&
+        args.includeDetails !== null &&
+        typeof args.includeDetails !== 'boolean'
+      ) {
+        throw new Error('includeDetails must be a boolean when provided');
+      }
+      const includeDetails = args.includeDetails === true;
       const platform = this.processMgmt.platformValue;
       // Win32 keeps the synchronous koffi fast path (Toolhelp32Snapshot); Linux
       // and macOS fall back to ThreadEnumerator (/proc/{pid}/task / `ps -M`).
@@ -318,6 +326,19 @@ export class InjectionHandlers {
       } else {
         threadIds = await enumerateThreadsByPlatform(platform, pid);
       }
+      const threads = includeDetails
+        ? threadIds.map((threadId, ordinal) => ({
+            threadId,
+            ordinal,
+            isProcessMainThread: threadId === pid,
+          }))
+        : undefined;
+      const diagnostics = includeDetails
+        ? await this.processMgmt.safeBuildMemoryDiagnostics({
+            pid,
+            operation: 'process_enum_threads',
+          })
+        : undefined;
       return {
         content: [
           {
@@ -329,6 +350,7 @@ export class InjectionHandlers {
                 platform,
                 threadCount: threadIds.length,
                 threadIds,
+                ...(includeDetails ? { threads, diagnostics } : {}),
               },
               null,
               2,
