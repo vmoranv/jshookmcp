@@ -289,6 +289,12 @@ function makeMemoryReader(memCtrl: MemoryController): MemoryReaderFn {
  * Architecture defaults to x64 — the overwhelmingly common Win32 target. A
  * WOW64 (32-bit) process will produce wrong mnemonics; this is a known
  * limitation (follow-up: detect IsWow64Process and switch to x86).
+ *
+ * Cross-platform note: capstone-wasm itself runs on any platform (no native
+ * binding required), but this adapter is only reached on Win32 because
+ * find_accesses throws early when `bpEngine` is null on macOS/Linux. The
+ * cross-platform gap is the bpEngine, not the disassembler — see
+ * research/memory.md #3.
  */
 function makeDisassemblerAdapter(): DisassemblerFn {
   let disasmInstance: import('@server/domains/exploit-dev/utils/disasm').Disassembler | null = null;

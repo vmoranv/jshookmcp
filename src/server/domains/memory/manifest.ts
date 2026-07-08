@@ -87,7 +87,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
       scanSessionManager.scanSessionManager,
       pointerChainEngine.pointerChainEngine,
       structureAnalyzer.structureAnalyzer,
-      null, // hardwareBreakpointEngine
+      null, // hardwareBreakpointEngine — Win32 DR0-DR3 only; cross-platform ptrace/mach_vm_protect parity pending (research/memory.md #3)
       codeInjector.codeInjector,
       memoryController.memoryController,
       null, // speedhack
@@ -129,7 +129,9 @@ function toolByName(name: string) {
 const WIN32_ONLY_TOOLS = new Set([
   // Heap analysis now cross-platform: HeapAnalyzer has a region-based fallback
   // (readProcMapsRegions / /proc/pid/maps) and is always wired (E5-D-heap).
-  // Hardware breakpoints (debug registers — ptrace/macOS thread_set_state pending — E5-D)
+  // Hardware breakpoints (debug registers) — Win32 DR0-DR3 only. Cross-platform parity
+  // (Linux ptrace INT3 + SIGTRAP; macOS mach_vm_protect + EXC_BAD_ACCESS) pending —
+  // see research/memory.md #3. find_accesses also needs process_vm_readv/mach_vm_read.
   'memory_breakpoint',
   'memory_find_accesses',
   // Speedhack (Win32 timer hooking — LD_PRELOAD parity pending — E5-D)

@@ -101,8 +101,20 @@ export class FindAccessesHandlers {
     return await resolveMemoryDomainPid(value, this.processManager, this.ctx);
   }
 
+  // NOTE: find_accesses disassembly is only functional on Windows. On macOS/Linux
+  // the tool is filtered out at registration (WIN32_ONLY_TOOLS in manifest.ts) and
+  // `bpEngine` is constructed as null, so this handler throws early below. The capstone
+  // WASM disassembler itself is cross-platform (needs no native binding); the real
+  // cross-platform gap is the hardware-breakpoint engine + the process-memory reader.
+  // macOS/Linux fallback is a raw hex dump only — no instruction decode. Cross-platform
+  // parity tracked at research/memory.md #3.
   async handleFindAccesses(args: Record<string, unknown>) {
     return handleSafe(async () => {
+      // TODO(macOS/Linux): wire a cross-platform hardware-breakpoint engine so this
+      // stub can be removed — Linux needs ptrace(PTRACE_ATTACH) + INT3 (0xCC) injection
+      // + SIGTRAP capture + single-step re-arm; macOS needs mach_vm_protect +
+      // EXC_BAD_ACCESS exception handler. Also requires a process_vm_readv (Linux) /
+      // mach_vm_read (macOS) memory reader for instructionBytes. See research/memory.md #3.
       if (!this.bpEngine) {
         throw new Error(WIN32_UNSUPPORTED_MSG);
       }
