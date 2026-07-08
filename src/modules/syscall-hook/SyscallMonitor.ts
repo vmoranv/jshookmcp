@@ -17,6 +17,8 @@ interface StartOptions {
   backend: SyscallBackend;
   pid?: number;
   simulate?: boolean;
+  /** Optional ETW provider list to enable (Windows only). See ETW_PROVIDERS. */
+  etwProviders?: string[];
 }
 
 interface CaptureFilter {
@@ -30,6 +32,7 @@ interface MonitorState {
   startedAt: number;
   generatedEvents: number;
   subprocess?: ChildProcess;
+  etwProviders?: string[];
 }
 
 interface SyntheticEventSeed {
@@ -41,6 +44,22 @@ interface SyntheticEventSeed {
 
 const SUPPORTED_BACKENDS: ReadonlyArray<SyscallBackend> = ['etw', 'strace', 'dtrace'];
 const TRACE_SPAWN_TIMEOUT_MS = 3000;
+
+/**
+ * Named ETW kernel providers (Windows) beyond the legacy "NT Kernel Logger"
+ * session. Each surfaces a class of events that the single `0x10000` flag masks:
+ * Process lifecycle (with command line + exit code), network connect/sendto/
+ * recvfrom, file CreateFile/Read/Write with full paths, and image (DLL) loads.
+ * Surfaced via `syscall_start_monitor({ etwProviders })` and applied by
+ * `captureWithETW` when the backend is `etw`.
+ */
+export const ETW_PROVIDERS: Readonly<Record<string, string>> = {
+  'nt-kernel': 'NT Kernel Logger',
+  'kernel-process': '{22fb2cd6-0e7b-422b-a0c7-2fad1fd0e716}',
+  'kernel-network': '{7dd42a49-5329-4832-8dfd-43d979153a88}',
+  'kernel-file': '{edd08927-9cc4-4e65-b970-c2560fb5c289}',
+  'kernel-image': '{65d92380-231d-4e56-8f6f-2e1e6e6e6e6e}',
+};
 
 const SYNTHETIC_EVENT_SEEDS: Readonly<Record<SyscallBackend, ReadonlyArray<SyntheticEventSeed>>> = {
   etw: [
@@ -198,6 +217,25 @@ function createSpawnReadyGuard<TProcess extends ChildProcess>(
   };
 }
 
+/**
+ * Translate a requested ETW provider name list into logman `-p` argument pairs.
+ * Unknown names are dropped; an empty/dropped list yields the legacy
+ * single-provider session so existing behaviour is preserved.
+ */
+function buildEtwProviderArgs(requested: string[]): string[] {
+  if (!requested || requested.length === 0) {
+    return ['-p', ETW_PROVIDERS['nt-kernel']!, '0x10000'];
+  }
+  const args: string[] = [];
+  for (const name of requested) {
+    const resolved = ETW_PROVIDERS[name.toLowerCase()];
+    if (resolved) {
+      args.push('-p', resolved, '0xff');
+    }
+  }
+  return args.length > 0 ? args : ['-p', ETW_PROVIDERS['nt-kernel']!, '0x10000'];
+}
+
 function matchesFilter(event: SyscallEvent, filter?: CaptureFilter): boolean {
   if (!filter) {
     return true;
@@ -278,26 +316,86 @@ function parseETWLine(line: string, targetPid: number, startedAt: number): Sysca
 /**
  * Parse a dtrace output line.
  *
- * Example dtrace line:
- *   1234   0  12345  open_nocancel:entry  /private/tmp/foo O_RDONLY
+ * Supports both entry and return probes (see `captureWithDTrace` script). The
+ * script emits the dtrace monotonic `timestamp` (ns since boot) on every probe;
+ * when a `pendingEntries` map is supplied, entry probes buffer
+ * `{ timestampNs, args }` keyed by `${pid}:${syscall}` and the matching return
+ * probe emits a single SyscallEvent carrying `returnValue` and a `duration`
+ * computed as `returnTimestamp - entryTimestamp`. Lines that do not match the
+ * expected format are dropped (returns null).
+ *
+ * Example dtrace entry line:
+ *   1234   0  5678  open_nocancel:entry  1234567000  /private/tmp/foo O_RDONLY
+ * Example dtrace return line:
+ *   1234   0  5678  open_nocancel:return  3  1234568000
  */
-function parseDTraceLine(line: string, targetPid: number, startedAt: number): SyscallEvent | null {
-  const match = /^\s*(\d+)\s+\d+\s+(\d+)\s+(\w+):\w+\s+(.*)$/u.exec(line.trim());
+function parseDTraceLine(
+  line: string,
+  targetPid: number,
+  startedAt: number,
+  pendingEntries?: Map<string, { timestampNs: number; args: string[] }>,
+): SyscallEvent | null {
+  const match = /^\s*(\d+)\s+\d+\s+(\d+)\s+(\w+):(entry|return)\s+(.*)$/u.exec(line.trim());
   if (!match) {
     return null;
   }
 
-  const syscall = match[3] ?? 'unknown';
-  const rawArgs = match[4] ?? '';
   const pid = Number(match[2]);
+  const syscall = match[3] ?? 'unknown';
+  const phase = match[4] ?? 'entry';
+  const rest = match[5] ?? '';
+  const resolvedPid = Number.isFinite(pid) ? pid : targetPid;
+  const tail = rest.split(/\s+/u).filter((a) => a.length > 0);
 
-  const args = rawArgs.split(/\s+/u).filter((a) => a.length > 0);
+  // Legacy callers that omit the map get the original entry-only behaviour:
+  // emit immediately with args parsed from the tail.
+  if (!pendingEntries) {
+    return {
+      timestamp: Date.now() - startedAt,
+      pid: resolvedPid,
+      syscall,
+      args: tail,
+    };
+  }
 
+  // Pairing mode: buffer entry probes, emit on matching return.
+  if (phase === 'entry') {
+    const entryTs = tail.length > 0 ? Number(tail[0]) : Number.NaN;
+    pendingEntries.set(`${resolvedPid}:${syscall}`, {
+      timestampNs: Number.isFinite(entryTs) ? entryTs : 0,
+      args: tail.slice(1),
+    });
+    return null;
+  }
+
+  // Return probe: pair with the buffered entry (if any) to emit a richer event.
+  const returnValueRaw = tail[0];
+  const returnTsRaw = tail[1];
+  const key = `${resolvedPid}:${syscall}`;
+  const entry = pendingEntries.get(key);
+  const returnValue = returnValueRaw !== undefined ? Number(returnValueRaw) : Number.NaN;
+
+  if (entry) {
+    pendingEntries.delete(key);
+    const returnTs = returnTsRaw !== undefined ? Number(returnTsRaw) : Number.NaN;
+    const durationNs = Number.isFinite(returnTs) ? returnTs - entry.timestampNs : Number.NaN;
+    return {
+      timestamp: Date.now() - startedAt,
+      pid: resolvedPid,
+      syscall,
+      args: entry.args,
+      returnValue: Number.isFinite(returnValue) ? returnValue : undefined,
+      duration: Number.isFinite(durationNs) ? durationNs / 1_000_000 : undefined,
+    };
+  }
+
+  // No matching entry — emit a best-effort return event with returnValue only.
   return {
     timestamp: Date.now() - startedAt,
-    pid: Number.isFinite(pid) ? pid : targetPid,
+    pid: resolvedPid,
     syscall,
-    args,
+    args: tail.slice(2),
+    returnValue: Number.isFinite(returnValue) ? returnValue : undefined,
   };
 }
 
@@ -306,6 +404,17 @@ export class SyscallMonitor {
   private readonly capturedEvents: SyscallEvent[] = [];
   private lastBackend: SyscallBackend = chooseDefaultBackend();
   private subprocessError?: string;
+  /**
+   * In-buffer pairing of dtrace entry/return probes keyed by `${pid}:${syscall}`.
+   * Populated only during dtrace capture; an entry records the dtrace monotonic
+   * `timestamp` (ns since boot) and the args copied from `arg0` so the matching
+   * return probe can compute `duration` (returnTs − entryTs) and capture
+   * `returnValue`.
+   */
+  private readonly dtracePendingEntries = new Map<
+    string,
+    { timestampNs: number; args: string[] }
+  >();
 
   async start(options?: StartOptions): Promise<void> {
     const requestedBackend = options?.backend ?? chooseDefaultBackend();
@@ -365,6 +474,7 @@ export class SyscallMonitor {
       startedAt,
       generatedEvents: 0,
       subprocess,
+      etwProviders: requestedBackend === 'etw' ? options?.etwProviders : undefined,
     };
     this.lastBackend = requestedBackend;
     this.capturedEvents.length = 0;
@@ -482,21 +592,16 @@ export class SyscallMonitor {
 
     return new Promise<ChildProcess>((resolve, reject) => {
       const sessionName = `JSHookETW_${pid}`;
+      const requestedProviders = this.activeState?.etwProviders ?? [];
+      // Build the logman provider list. When callers request named providers
+      // (kernel-process / kernel-network / kernel-file / kernel-image) we emit
+      // one `-p <guid>` per provider; otherwise fall back to the legacy single
+      // "NT Kernel Logger" session with the Process/File I/O flag (0x10000).
+      const providerArgs = buildEtwProviderArgs(requestedProviders);
 
-      // Start ETW provider for NT kernel tracing
       const logman = spawn(
         'logman',
-        [
-          'create',
-          'trace',
-          sessionName,
-          '-p',
-          'NT Kernel Logger',
-          '0x10000', // Process/File I/O
-          '-o',
-          `jshook_etw_${pid}.etl`,
-          '-ets',
-        ],
+        ['create', 'trace', sessionName, ...providerArgs, '-o', `jshook_etw_${pid}.etl`, '-ets'],
         {
           stdio: ['ignore', 'pipe', 'pipe'],
           windowsHide: true,
@@ -558,11 +663,23 @@ export class SyscallMonitor {
     const { spawn } = await import('node:child_process');
 
     return new Promise<ChildProcess>((resolve, reject) => {
+      // Attach both entry and return probes so we can capture `returnValue` and
+      // `duration` for darwin events. Each probe emits the dtrace monotonic
+      // `timestamp` (ns since boot) so the entry/return pairing can compute a
+      // duration delta; the entry probe also copies arg0 (the first syscall
+      // argument) for the args array, and the return probe emits arg1 (the
+      // numeric return value). Pairing is done in `parseDTraceLine` via the
+      // `dtracePendingEntries` buffer.
       const script = `
         syscall:::entry
         /pid == ${pid}/
         {
-          printf("%d %d %s:entry %s", pid, probeproc, probefunc, copyinstr(arg0));
+          printf("%d %d %s:entry %d %s\\n", pid, pid, probefunc, timestamp, copyinstr(arg0));
+        }
+        syscall:::return
+        /pid == ${pid}/
+        {
+          printf("%d %d %s:return %d %d\\n", pid, pid, probefunc, arg1, timestamp);
         }
       `;
 
@@ -580,7 +697,7 @@ export class SyscallMonitor {
         const lines = outputBuffer.split(/\r?\n/u);
         outputBuffer = lines.pop() ?? '';
         for (const line of lines) {
-          const event = parseDTraceLine(line, pid, startedAt);
+          const event = parseDTraceLine(line, pid, startedAt, this.dtracePendingEntries);
           if (event) {
             this.capturedEvents.push(event);
           }

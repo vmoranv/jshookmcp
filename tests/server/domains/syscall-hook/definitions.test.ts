@@ -30,4 +30,17 @@ describe('syscall-hook definitions', () => {
       default: true,
     });
   });
+
+  it('declares the etwProviders option for syscall_start_monitor', async () => {
+    const tool = syscallHookToolDefinitions.find(
+      (candidate) => candidate.name === 'syscall_start_monitor',
+    );
+
+    expect(tool).toBeDefined();
+    expect(tool?.inputSchema.properties).toHaveProperty('etwProviders');
+    expect(tool?.inputSchema.properties?.['etwProviders']).toMatchObject({
+      type: 'array',
+      items: { type: 'string' },
+    });
+  });
 });

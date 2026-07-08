@@ -92,8 +92,8 @@ const SCORES = {
   ],
   streaming: [9.2, '7 tools, MCP-safe wrappers + capture cap schema/runtime alignment'],
   'syscall-hook': [
-    9.2,
-    '15 tools, PID/return filters, MCP-safe wrappers, richer strace fd/path decoding, bounded capture summaries, strict capture filter validation',
+    9.4,
+    '15 tools, PID/return filters, MCP-safe wrappers, richer strace fd/path decoding, bounded capture summaries, strict capture filter validation, dtrace entry/return probe pairing (returnValue+duration), ETW multi-provider capture via named kernel GUIDs',
   ],
   trace: [
     9.2,

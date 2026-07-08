@@ -230,16 +230,104 @@ describe('SyscallMonitor', () => {
 
     (monitor as any).activeState = { startedAt: Date.now() };
     await (monitor as any).captureWithDTrace(2468);
-    child.emitStdout('1234   0  5678  open_nocancel:entry  /private/tmp/foo O_RDONLY\n');
+    // A return probe with no buffered entry still emits a best-effort event
+    // carrying returnValue (no duration can be computed).
+    child.emitStdout('1234   0  5678  open_nocancel:return  3  1000\n');
 
     const events = await monitor.captureEvents();
     expect(events).toEqual([
       expect.objectContaining({
         pid: 5678,
         syscall: 'open_nocancel',
-        args: ['/private/tmp/foo', 'O_RDONLY'],
+        returnValue: 3,
       }),
     ]);
+  });
+
+  it('pairs dtrace entry/return probes to capture returnValue and duration', async () => {
+    const child = createFakeChildProcess();
+    mockSpawn.mockImplementationOnce(() => {
+      queueMicrotask(() => child.emit('spawn'));
+      return child as any;
+    });
+
+    (monitor as any).activeState = { startedAt: Date.now() };
+    await (monitor as any).captureWithDTrace(2468);
+    // Entry: <timestampNs> <arg0-copied-tail>; buffered, emits nothing.
+    child.emitStdout('1234   0  5678  open_nocancel:entry  5000000  /private/tmp/foo O_RDONLY\n');
+    let events = await monitor.captureEvents();
+    expect(events).toHaveLength(0);
+
+    // Return: <returnValue> <timestampNs>; pairs against the buffered entry.
+    child.emitStdout('1234   0  5678  open_nocancel:return  3  5500000\n');
+    events = await monitor.captureEvents();
+    expect(events).toEqual([
+      expect.objectContaining({
+        pid: 5678,
+        syscall: 'open_nocancel',
+        args: ['/private/tmp/foo', 'O_RDONLY'],
+        returnValue: 3,
+      }),
+    ]);
+    // duration = (5500000 - 5000000) ns / 1e6 = 0.5 ms
+    expect(events[0]?.duration).toBeCloseTo(0.5, 6);
+  });
+
+  it('emits dtrace return-only events with numeric returnValue parsed from the tail', async () => {
+    const child = createFakeChildProcess();
+    mockSpawn.mockImplementationOnce(() => {
+      queueMicrotask(() => child.emit('spawn'));
+      return child as any;
+    });
+
+    (monitor as any).activeState = { startedAt: Date.now() };
+    await (monitor as any).captureWithDTrace(2468);
+    // Non-numeric returnValue leaves returnValue undefined (best-effort fallback).
+    child.emitStdout('1234   0  5678  getuid:return  ENOTSUP  2000\n');
+
+    const events = await monitor.captureEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]?.returnValue).toBeUndefined();
+  });
+
+  it('passes requested ETW provider names through to logman as GUID flags', async () => {
+    const child = createFakeChildProcess();
+    mockSpawn.mockImplementationOnce(() => {
+      queueMicrotask(() => child.emit('spawn'));
+      return child as any;
+    });
+
+    (monitor as any).activeState = {
+      startedAt: Date.now(),
+      etwProviders: ['kernel-network', 'kernel-file'],
+    };
+    await (monitor as any).captureWithETW(1357);
+
+    const [, logmanArgs] = mockSpawn.mock.calls[mockSpawn.mock.calls.length - 1]!.slice(0, 2);
+    expect(logmanArgs).toEqual(
+      expect.arrayContaining([
+        '-p',
+        '{7dd42a49-5329-4832-8dfd-43d979153a88}',
+        '0xff',
+        '-p',
+        '{edd08927-9cc4-4e65-b970-c2560fb5c289}',
+        '0xff',
+      ]),
+    );
+  });
+
+  it('falls back to the NT Kernel Logger session when no ETW providers are requested', async () => {
+    const child = createFakeChildProcess();
+    mockSpawn.mockImplementationOnce(() => {
+      queueMicrotask(() => child.emit('spawn'));
+      return child as any;
+    });
+
+    (monitor as any).activeState = { startedAt: Date.now(), etwProviders: [] };
+    await (monitor as any).captureWithETW(1357);
+
+    const logmanArgs = mockSpawn.mock.calls[mockSpawn.mock.calls.length - 1]![1];
+    expect(logmanArgs).toEqual(expect.arrayContaining(['-p', 'NT Kernel Logger', '0x10000']));
   });
 
   it('falls back to simulation when tracer readiness times out', async () => {

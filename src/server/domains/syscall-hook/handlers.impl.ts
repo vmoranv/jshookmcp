@@ -322,6 +322,7 @@ export class SyscallHookHandlers {
         backend,
         pid,
         simulate,
+        ...(backend === 'etw' ? { etwProviders: readStringArray(args['etwProviders']) } : {}),
       });
       void this.eventBus?.emit('syscall:trace_started', {
         backend,

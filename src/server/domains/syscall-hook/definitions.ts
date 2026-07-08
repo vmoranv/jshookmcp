@@ -32,6 +32,11 @@ export const syscallHookToolDefinitions: Tool[] = [
       .boolean('simulate', 'Use synthetic events instead of a real system tracer', {
         default: false,
       })
+      .array(
+        'etwProviders',
+        { type: 'string' },
+        'ETW (Windows) named providers to enable beyond the legacy NT Kernel Logger: nt-kernel | kernel-process | kernel-network | kernel-file | kernel-image. Ignored on non-Windows backends.',
+      )
       .required('backend'),
   ),
   tool('syscall_stop_monitor', (t) =>
