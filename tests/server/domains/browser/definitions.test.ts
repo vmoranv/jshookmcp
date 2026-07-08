@@ -308,6 +308,34 @@ describe('browser tool definitions', () => {
       expect(schema.properties).not.toHaveProperty('targetId');
     });
 
+    it('browser_list_workers has three worker-type include flags defaulting to true', async () => {
+      const tool = getToolByName(browserRuntimeTools, 'browser_list_workers');
+      const schema = getInputSchema(tool);
+      expect(schema.required).toBeUndefined();
+      for (const flag of [
+        'includeServiceWorkers',
+        'includeDedicatedWorkers',
+        'includeSharedWorkers',
+      ]) {
+        const prop = getSchemaProperty<Record<string, unknown>>(tool, flag);
+        expect(prop.type).toBe('boolean');
+        expect(prop.default).toBe(true);
+      }
+      expect(schema.properties).toHaveProperty('urlPattern');
+    });
+
+    it('browser_worker_scripts requires targetId and forwards includeSource / maxScripts', async () => {
+      const tool = getToolByName(browserRuntimeTools, 'browser_worker_scripts');
+      const schema = getInputSchema(tool);
+      expect(schema.required).toContain('targetId');
+      const includeSource = getSchemaProperty<Record<string, unknown>>(tool, 'includeSource');
+      expect(includeSource.type).toBe('boolean');
+      expect(includeSource.default).toBe(false);
+      const maxScripts = getSchemaProperty<Record<string, unknown>>(tool, 'maxScripts');
+      expect(maxScripts.type).toBe('number');
+      expect(maxScripts.default).toBe(200);
+    });
+
     it('page_wait_for_selector requires selector', async () => {
       const tool = getToolByName(browserPageCoreTools, 'page_wait_for_selector');
       expect(getInputSchema(tool).required).toContain('selector');
@@ -382,6 +410,21 @@ describe('browser tool definitions', () => {
       const tool = getToolByName(browserSecurityStateTools, 'stealth_set_user_agent');
       const prop = getSchemaProperty<Record<string, unknown>>(tool, 'platform');
       expect(prop.enum).toEqual(['windows', 'mac', 'linux']);
+    });
+
+    it('browser_font_fingerprint exposes useLocalFontApi / spoof / maxFonts with defaults', async () => {
+      const tool = getToolByName(browserSecurityStateTools, 'browser_font_fingerprint');
+      const schema = getInputSchema(tool);
+      expect(schema.required).toBeUndefined();
+      const useLocal = getSchemaProperty<Record<string, unknown>>(tool, 'useLocalFontApi');
+      expect(useLocal.type).toBe('boolean');
+      expect(useLocal.default).toBe(true);
+      const spoof = getSchemaProperty<Record<string, unknown>>(tool, 'spoof');
+      expect(spoof.type).toBe('boolean');
+      expect(spoof.default).toBe(false);
+      const maxFonts = getSchemaProperty<Record<string, unknown>>(tool, 'maxFonts');
+      expect(maxFonts.type).toBe('number');
+      expect(maxFonts.default).toBe(2000);
     });
 
     it('browser_select_tab has index, urlPattern, and titlePattern', async () => {

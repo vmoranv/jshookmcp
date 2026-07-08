@@ -191,6 +191,36 @@ export const browserRuntimeTools: Tool[] = [
       .boolean('stripBase64', 'Strip base64 payloads', { default: false })
       .openWorld(),
   ),
+  tool('browser_list_workers', (t) =>
+    t
+      .desc(
+        'Enumerate Service Worker / Shared Worker / dedicated Web Worker targets via ' +
+          'Target.getTargets. Use browser_worker_scripts(targetId=...) afterwards to dump a ' +
+          "worker's loaded scripts — essential for inspecting PWA / SW-backed auth code.",
+      )
+      .string('urlPattern', 'URL substring filter')
+      .boolean('includeServiceWorkers', 'Include service_worker targets', { default: true })
+      .boolean('includeDedicatedWorkers', 'Include dedicated worker targets', { default: true })
+      .boolean('includeSharedWorkers', 'Include shared_worker targets', { default: true })
+      .query()
+      .openWorld(),
+  ),
+  tool('browser_worker_scripts', (t) =>
+    t
+      .desc(
+        'Attach a CDP session to a worker target and dump its parsed scripts (equivalent to ' +
+          'get_all_scripts, but scoped to a worker). Debugger.scriptParsed is replayed on ' +
+          'Debugger.enable, so already-loaded worker scripts are returned.',
+      )
+      .string('targetId', 'Worker targetId from browser_list_workers')
+      .boolean('includeSource', 'Fetch each script body (byte-capped to protect context)', {
+        default: false,
+      })
+      .number('maxScripts', 'Max scripts returned', { default: 200 })
+      .required('targetId')
+      .query()
+      .openWorld(),
+  ),
   tool('browser_close', (t) =>
     t.desc('Close the browser and release all resources.').destructive(),
   ),

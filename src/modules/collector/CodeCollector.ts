@@ -12,6 +12,7 @@ import { CodeCache } from '@modules/collector/CodeCache';
 import { SmartCodeCollector } from '@modules/collector/SmartCodeCollector';
 import { CodeCompressor } from '@modules/collector/CodeCompressor';
 import { BrowserTargetSessionManager } from '@modules/browser/BrowserTargetSessionManager';
+import type { DumpTargetScriptsResult } from '@modules/browser/BrowserTargetSessionManager';
 import type { BrowserTargetInfo } from '@modules/browser/BrowserTargetSessionManager.shared';
 import type { CDPSessionLike } from '@modules/browser/CDPSessionLike';
 import { collectInnerImpl } from '@modules/collector/CodeCollectorCollectInternal';
@@ -610,6 +611,13 @@ export class CodeCollector {
 
   async attachCdpTarget(targetId: string): Promise<BrowserTargetInfo> {
     return await this.getBrowserTargetSessionManager().attach(targetId);
+  }
+
+  async dumpTargetScripts(
+    targetId: string,
+    options?: { includeSource?: boolean; maxScripts?: number },
+  ): Promise<DumpTargetScriptsResult> {
+    return await this.getBrowserTargetSessionManager().dumpTargetScripts(targetId, options);
   }
 
   async detachCdpTarget(): Promise<boolean> {

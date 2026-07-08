@@ -1,6 +1,7 @@
 import type { CodeCollector, ConsoleMonitor } from '@server/domains/shared/modules/collector';
 import type { TabRegistry } from '@modules/browser/TabRegistry';
-import { argBool, argString, argStringArray } from '@server/domains/shared/parse-args';
+import { argBool, argNumber, argString, argStringArray } from '@server/domains/shared/parse-args';
+import { WORKER_TARGET_TYPES } from '@src/constants/browser';
 import { logger } from '@utils/logger';
 import { R, type ToolResponse } from '@server/domains/shared/ResponseBuilder';
 
@@ -232,6 +233,106 @@ export class TargetControlHandlers {
       });
     } catch (error) {
       logger.error('Failed to detach CDP target:', error);
+      return R.fail(error instanceof Error ? error.message : String(error)).build();
+    }
+  }
+
+  private classifyWorker(type: string): string {
+    switch (type) {
+      case 'service_worker':
+        return 'service_worker';
+      case 'shared_worker':
+        return 'shared_worker';
+      case 'worker':
+        return 'dedicated_worker';
+      default:
+        return type;
+    }
+  }
+
+  async handleBrowserListWorkers(args: Record<string, unknown>): Promise<ToolResponse> {
+    try {
+      const urlPattern = argString(args, 'urlPattern');
+      const includeServiceWorkers = argBool(args, 'includeServiceWorkers', true);
+      const includeDedicatedWorkers = argBool(args, 'includeDedicatedWorkers', true);
+      const includeSharedWorkers = argBool(args, 'includeSharedWorkers', true);
+
+      const requestedTypes = WORKER_TARGET_TYPES.filter((type) => {
+        if (type === 'service_worker') return includeServiceWorkers;
+        if (type === 'shared_worker') return includeSharedWorkers;
+        return includeDedicatedWorkers;
+      });
+
+      if (requestedTypes.length === 0) {
+        return R.fail(
+          'No worker types selected. Enable at least one of includeServiceWorkers / ' +
+            'includeDedicatedWorkers / includeSharedWorkers.',
+        ).build();
+      }
+
+      const targets = await this.deps.collector.listCdpTargets({
+        types: [...requestedTypes],
+        urlPattern: urlPattern ?? undefined,
+        discoverOOPIF: true,
+      });
+
+      const workers = targets.map((target) => ({
+        targetId: target.targetId,
+        category: this.classifyWorker(target.type),
+        type: target.type,
+        title: target.title,
+        url: target.url,
+        attached: target.attached,
+        isServiceWorker: target.type === 'service_worker',
+        openerId: target.openerId ?? null,
+        browserContextId: target.browserContextId ?? null,
+      }));
+
+      return R.ok().build({
+        count: workers.length,
+        filters: {
+          urlPattern: urlPattern ?? null,
+          includeServiceWorkers,
+          includeDedicatedWorkers,
+          includeSharedWorkers,
+        },
+        workers,
+        _nextStepHint:
+          workers.length > 0
+            ? 'Use browser_worker_scripts(targetId="...") to dump a worker\'s loaded scripts.'
+            : 'No worker targets found. Navigate to a PWA / SW-backed page first, then retry.',
+      });
+    } catch (error) {
+      logger.error('Failed to list workers:', error);
+      return R.fail(error instanceof Error ? error.message : String(error)).build();
+    }
+  }
+
+  async handleBrowserWorkerScripts(args: Record<string, unknown>): Promise<ToolResponse> {
+    try {
+      const targetId = argString(args, 'targetId');
+      if (!targetId) {
+        return R.fail(
+          'targetId is required. Call browser_list_workers first to obtain a worker targetId.',
+        ).build();
+      }
+
+      const includeSource = argBool(args, 'includeSource', false);
+      const maxScripts = argNumber(args, 'maxScripts');
+
+      const result = await this.deps.collector.dumpTargetScripts(targetId, {
+        includeSource,
+        maxScripts: maxScripts ?? undefined,
+      });
+
+      return R.ok().build({
+        ...result,
+        _nextStepHint: includeSource
+          ? 'Scripts include source (capped per WORKER_SCRIPT_SOURCE_MAX_BYTES). Analyze with the analysis domain.'
+          : 'Set includeSource=true to dump each script body (source is byte-capped to protect context).',
+      });
+    } catch (error) {
+      logger.error('Failed to dump worker scripts:', error);
       return R.fail(error instanceof Error ? error.message : String(error)).build();
     }
   }

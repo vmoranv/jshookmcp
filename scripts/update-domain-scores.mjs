@@ -21,8 +21,8 @@ const SCORES = {
   ],
   'boringssl-inspector': [9.2, '28 tools, Phase 0 honesty fix + Phase 2 MCP-safe wrappers'],
   browser: [
-    9.2,
-    '69 tools, 78 scan-counted tests, CDP all-origin cookie reads + page-data input hardening + strict launch enum validation',
+    9.5,
+    '72 tools, worker inspection (browser_list_workers + browser_worker_scripts) + browser_font_fingerprint (queryLocalFonts-first, probe fallback) + CDP all-origin cookies + launch enum validation',
   ],
   canvas: [9.4, '8 tools, Phase 0 adapters + Phase 2 MCP-safe wrappers'],
   coordination: [

@@ -76,8 +76,8 @@
   "browser": {
     "domain": "browser",
     "dims": {
-      "d1_toolCount": 69,
-      "d2_testFiles": 73,
+      "d1_toolCount": 72,
+      "d2_testFiles": 74,
       "d3_coverageExcluded": ["src/server/domains/browser/handlers.ts"],
       "d4_bareCatch": 15,
       "d5_handleSafeRefs": 55,

@@ -44,6 +44,22 @@ export const browserSecurityStateTools: Tool[] = [
       .string('locale', 'Locale', { default: 'en-US' }),
   ),
   tool('stealth_verify', (t) => t.desc('Run anti-detection checks.').query()),
+  tool('browser_font_fingerprint', (t) =>
+    t
+      .desc(
+        'Enumerate locally-installed fonts for fingerprint analysis. Primary path is the ' +
+          'Local Font Access API (queryLocalFonts, Chromium 103+); when unavailable or ' +
+          'denied, falls back to a small document.fonts.check probe set. Returns the detected ' +
+          'font set, a stable hash for comparison, and optionally spoofs the font fingerprint.',
+      )
+      .boolean('useLocalFontApi', 'Prefer queryLocalFonts() enumeration (richer)', {
+        default: true,
+      })
+      .boolean('spoof', 'Override document.fonts.check to a spoofed result', { default: false })
+      .number('maxFonts', 'Cap on enumerated local fonts', { default: 2000 })
+      .query()
+      .openWorld(),
+  ),
   tool('browser_list_tabs', (t) =>
     t
       .desc('List open browser tabs with URLs and titles.')

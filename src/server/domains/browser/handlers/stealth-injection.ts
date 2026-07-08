@@ -1,6 +1,7 @@
 import type { PageController } from '@server/domains/shared/modules/collector';
 import { StealthScripts } from '@server/domains/shared/modules';
-import { argString } from '@server/domains/shared/parse-args';
+import { argString, argBool, argNumber } from '@server/domains/shared/parse-args';
+import { FONT_FALLBACK_PROBE_LIST, FONT_LOCAL_ENUMERATE_MAX } from '@src/constants/browser';
 import { createStub } from '@server/domains/shared/capabilities';
 import { CDPTimingProxy } from '@modules/stealth/CDPTimingProxy';
 import type { CDPTimingOptions } from '@modules/stealth/CDPTimingProxy.types';
@@ -24,6 +25,10 @@ const STEALTH_PATCH_MANIFEST = [
   { api: 'Notification.permission', method: 'permission override' },
   { api: 'performance.now / Date.now', method: 'timing offset compensation' },
   { api: 'CDP request timing', method: 'jitter compensation proxy' },
+  {
+    api: 'document.fonts.check',
+    method: 'spoofed local-font availability (browser_font_fingerprint spoof)',
+  },
 ];
 
 interface StealthInjectionHandlersDeps {
@@ -266,6 +271,52 @@ export class StealthInjectionHandlers {
     }
   }
 
+  async handleBrowserFontFingerprint(args: Record<string, unknown>): Promise<ToolResponse> {
+    try {
+      const useLocalFontApi = argBool(args, 'useLocalFontApi', true);
+      const spoof = argBool(args, 'spoof', false);
+      const maxFonts = argNumber(args, 'maxFonts', FONT_LOCAL_ENUMERATE_MAX);
+
+      const code = buildFontFingerprintScript({
+        useLocalFontApi,
+        spoof,
+        maxFonts,
+        probeList: FONT_FALLBACK_PROBE_LIST,
+      });
+      const raw =
+        (await this.deps.pageController.evaluate<Record<string, unknown> | null>(code)) ?? null;
+
+      if (!raw || typeof raw !== 'object') {
+        return R.fail('Font fingerprint probe returned no result.').build();
+      }
+
+      const detected = Array.isArray(raw['detected']) ? (raw['detected'] as unknown[]) : [];
+      const detectedFonts = detected.filter((f): f is string => typeof f === 'string');
+
+      return R.ok().build({
+        count: detectedFonts.length,
+        detected: detectedFonts,
+        hash: typeof raw['hash'] === 'string' ? raw['hash'] : null,
+        source:
+          typeof raw['source'] === 'string'
+            ? raw['source']
+            : useLocalFontApi
+              ? 'unknown'
+              : 'probeFallback',
+        localFontApiAvailable: raw['localFontApiAvailable'] === true,
+        spoofed: raw['spoofed'] === true,
+        spoofError: typeof raw['spoofError'] === 'string' ? raw['spoofError'] : undefined,
+        _nextStepHint: spoof
+          ? 'document.fonts.check is now overridden. Re-run with spoof=false to confirm the real fingerprint, or call stealth_verify to check overall stealth posture.'
+          : 'Set spoof=true to override document.fonts.check and collapse the font fingerprint entropy.',
+      });
+    } catch (err) {
+      return R.fail(
+        `Font fingerprint failed: ${err instanceof Error ? err.message : String(err)}`,
+      ).build();
+    }
+  }
+
   async handleCamoufoxGeolocation(args: Record<string, unknown>): Promise<ToolResponse> {
     try {
       const locale = argString(args, 'locale');
@@ -337,4 +388,100 @@ export function createJitteredSession(session: {
   off: (event: string, handler: (params: unknown) => void) => void;
 }): CDPTimingProxy {
   return new CDPTimingProxy(session, jitterOptions);
+}
+
+const PROBE_FALLBACK = 'probeFallback';
+const PROBE_QUERY = 'queryLocalFonts';
+const PROBE_UNAVAILABLE = 'unavailable';
+
+/**
+ * Build the in-page font-fingerprint probe script. Primary path is the Local Font
+ * Access API (`queryLocalFonts`), which enumerates real installed fonts without a
+ * hard-coded list. When the API is missing or the permission is denied, we fall
+ * back to probing a small OS-discriminating set via `document.fonts.check`. The
+ * `spoof` flag overrides `document.fonts.check` to a fixed result.
+ *
+ * Exported for unit testing; the runtime path evaluates this string in the page.
+ */
+export function buildFontFingerprintScript(options: {
+  useLocalFontApi: boolean;
+  spoof: boolean;
+  maxFonts: number;
+  probeList: readonly string[];
+}): string {
+  const { useLocalFontApi, spoof, maxFonts, probeList } = options;
+  const probeJson = JSON.stringify(probeList);
+  const cap = Math.max(0, Math.floor(maxFonts));
+  const lines: string[] = [];
+  lines.push('(() => {');
+  lines.push('  const probeList = ' + probeJson + ';');
+  lines.push('  const maxFonts = ' + String(cap) + ';');
+  lines.push('  const wantLocalApi = ' + JSON.stringify(useLocalFontApi) + ';');
+  lines.push('  const wantSpoof = ' + JSON.stringify(spoof) + ';');
+  lines.push('  const hashNames = (names) => {');
+  lines.push('    const sorted = names.slice().sort();');
+  lines.push('    let h = 5381;');
+  lines.push('    for (const n of sorted) {');
+  lines.push(
+    '      for (let i = 0; i < n.length; i++) { h = ((h << 5) + h + n.charCodeAt(i)) | 0; }',
+  );
+  lines.push('    }');
+  lines.push("    return (h >>> 0).toString(16).padStart(8, '0');");
+  lines.push('  };');
+  lines.push(
+    "  const fontsApi = typeof document !== 'undefined' && document.fonts && typeof document.fonts.check === 'function';",
+  );
+  lines.push('  const probeFallback = () => {');
+  lines.push('    const detected = [];');
+  lines.push('    if (!fontsApi) return detected;');
+  lines.push('    for (const name of probeList) {');
+  lines.push('      try {');
+  lines.push("        if (document.fonts.check('12px \"' + name + '\"')) detected.push(name);");
+  lines.push('      } catch (_) {}');
+  lines.push('    }');
+  lines.push('    return detected;');
+  lines.push('  };');
+  lines.push('  let localFontApiAvailable = false; let localFontApiError = null;');
+  lines.push('  let spoofed = false; let spoofError = null;');
+  lines.push('  let detected = []; let source = ' + JSON.stringify(PROBE_FALLBACK) + ';');
+  lines.push('  if (wantSpoof && fontsApi) {');
+  lines.push('    try { document.fonts.check = () => true; spoofed = true; }');
+  lines.push('    catch (e) { spoofError = (e && e.message) ? e.message : String(e); }');
+  lines.push('  }');
+  lines.push("  if (wantLocalApi && typeof queryLocalFonts === 'function') {");
+  lines.push('    localFontApiAvailable = true;');
+  lines.push('    source = ' + JSON.stringify(PROBE_QUERY) + ';');
+  lines.push('    return (async () => {');
+  lines.push('      try {');
+  lines.push('        const fonts = await queryLocalFonts();');
+  lines.push('        const seen = new Set();');
+  lines.push('        for (const f of fonts) {');
+  lines.push("          if (f && typeof f.family === 'string') seen.add(f.family);");
+  lines.push('          if (seen.size >= maxFonts) break;');
+  lines.push('        }');
+  lines.push('        detected = Array.from(seen).slice(0, maxFonts);');
+  lines.push('      } catch (e) {');
+  lines.push('        localFontApiAvailable = false;');
+  lines.push('        localFontApiError = (e && e.message) ? e.message : String(e);');
+  lines.push('        source = ' + JSON.stringify(PROBE_FALLBACK) + ';');
+  lines.push('        detected = probeFallback();');
+  lines.push('      }');
+  lines.push(
+    '      return { detected, count: detected.length, hash: hashNames(detected), source, localFontApiAvailable, localFontApiError, spoofed, spoofError };',
+  );
+  lines.push('    })();');
+  lines.push('  }');
+  lines.push(
+    '  source = fontsApi ? ' +
+      JSON.stringify(PROBE_FALLBACK) +
+      ' : ' +
+      JSON.stringify(PROBE_UNAVAILABLE) +
+      ';',
+  );
+  lines.push('  detected = probeFallback();');
+  lines.push(
+    '  return { detected, count: detected.length, hash: hashNames(detected), source, localFontApiAvailable, localFontApiError, spoofed, spoofError };',
+  );
+  lines.push('})()');
+  return lines.join('\n');
 }

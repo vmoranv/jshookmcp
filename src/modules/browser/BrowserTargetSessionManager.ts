@@ -39,6 +39,35 @@ import {
 } from '@modules/monitor/NetworkMonitor.interceptors';
 import { logger } from '@utils/logger';
 import { ManagedSessionRegistry } from '@modules/browser/BrowserTargetSessionManager.ManagedSessionRegistry';
+import {
+  WORKER_SCRIPT_MAX,
+  WORKER_SCRIPT_SOURCE_MAX_BYTES,
+  WORKER_SCRIPT_COLLECT_WAIT_MS,
+} from '@src/constants/browser';
+
+export interface DumpedTargetScript {
+  scriptId: string;
+  url: string;
+  startLine?: number;
+  endLine?: number;
+  length?: number;
+  hash?: string;
+  sourceMapURL?: string;
+  source?: string;
+  sourceBytes?: number;
+  sourceTruncated?: boolean;
+  sourceUnavailable?: boolean;
+}
+
+export interface DumpTargetScriptsResult {
+  targetId: string;
+  targetType: string;
+  borrowedManagedSession: boolean;
+  totalScripts: number;
+  returnedScripts: number;
+  truncated: boolean;
+  scripts: DumpedTargetScript[];
+}
 
 export class BrowserTargetSessionManager implements NetworkMonitorLike {
   private browserSession: CDPSession | null = null;
@@ -218,6 +247,158 @@ export class BrowserTargetSessionManager implements NetworkMonitorLike {
     return options.returnByValue === false
       ? (response.result ?? null)
       : (response.result?.value ?? null);
+  }
+
+  /**
+   * Attach a CDP session to an arbitrary target (typically a Service/Web/Shared
+   * worker) and dump its parsed scripts via `Debugger.enable` replay. Reuses an
+   * already-managed session when available; otherwise attaches a temporary flat
+   * session and detaches it afterwards, leaving the currently-attached target
+   * untouched.
+   */
+  async dumpTargetScripts(
+    targetId: string,
+    options: { includeSource?: boolean; maxScripts?: number } = {},
+  ): Promise<DumpTargetScriptsResult> {
+    const includeSource = options.includeSource ?? false;
+    const maxScripts = Math.max(
+      1,
+      Math.min(options.maxScripts ?? WORKER_SCRIPT_MAX, WORKER_SCRIPT_MAX),
+    );
+
+    const targets = await this.listTargets();
+    const target = targets.find((entry) => entry.targetId === targetId);
+    if (!target) {
+      throw new Error(`CDP target not found: ${targetId}`);
+    }
+
+    const managed = this.registry.getByTargetId(targetId);
+    const borrowedManagedSession = Boolean(managed);
+    let session: CDPSessionLike;
+    let ownsSession = false;
+
+    if (managed) {
+      session = managed.session;
+    } else {
+      const browserSession = await this.ensureBrowserSession();
+      session = await attachToFlatTarget(
+        browserSession as unknown as FlatSessionParentLike,
+        targetId,
+      );
+      ownsSession = true;
+    }
+
+    const collected: DumpedTargetScript[] = [];
+    const onScriptParsed = (payload: unknown): void => {
+      const script = this.readScriptParsedPayload(payload);
+      if (script) {
+        collected.push(script);
+      }
+    };
+
+    session.on('Debugger.scriptParsed', onScriptParsed);
+    try {
+      await session.send('Debugger.enable', {});
+      // Debugger.enable replays scriptParsed for already-loaded scripts.
+      await this.delay(WORKER_SCRIPT_COLLECT_WAIT_MS);
+    } finally {
+      session.off('Debugger.scriptParsed', onScriptParsed);
+    }
+
+    // Dedupe by scriptId (replay can re-emit) and drop the debugger's own eval frames.
+    const uniqueById = new Map<string, DumpedTargetScript>();
+    for (const script of collected) {
+      if (!uniqueById.has(script.scriptId)) {
+        uniqueById.set(script.scriptId, script);
+      }
+    }
+    const allScripts = Array.from(uniqueById.values());
+    const totalScripts = allScripts.length;
+    const selected = allScripts.slice(0, maxScripts);
+
+    if (includeSource) {
+      for (const script of selected) {
+        await this.hydrateScriptSource(session, script);
+      }
+    }
+
+    try {
+      await session.send('Debugger.disable', {});
+    } catch {
+      // Best-effort; some worker targets tear down before disable lands.
+    }
+
+    if (ownsSession) {
+      try {
+        const browserSession = this.browserSession;
+        if (browserSession) {
+          await detachFromFlatTarget(browserSession, session);
+        }
+      } catch (error) {
+        logger.debug(
+          `[BrowserTargetSessionManager] Failed to detach temporary worker session for ${targetId}: ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    return {
+      targetId,
+      targetType: target.type,
+      borrowedManagedSession,
+      totalScripts,
+      returnedScripts: selected.length,
+      truncated: totalScripts > selected.length,
+      scripts: selected,
+    };
+  }
+
+  private readScriptParsedPayload(payload: unknown): DumpedTargetScript | null {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+    const record = payload as Record<string, unknown>;
+    const scriptId = typeof record.scriptId === 'string' ? record.scriptId : null;
+    if (!scriptId) {
+      return null;
+    }
+    const url = typeof record.url === 'string' ? record.url : '';
+    const script: DumpedTargetScript = { scriptId, url };
+    if (typeof record.startLine === 'number') script.startLine = record.startLine;
+    if (typeof record.endLine === 'number') script.endLine = record.endLine;
+    if (typeof record.length === 'number') script.length = record.length;
+    if (typeof record.hash === 'string') script.hash = record.hash;
+    if (typeof record.sourceMapURL === 'string' && record.sourceMapURL.length > 0) {
+      script.sourceMapURL = record.sourceMapURL;
+    }
+    return script;
+  }
+
+  private async hydrateScriptSource(
+    session: CDPSessionLike,
+    script: DumpedTargetScript,
+  ): Promise<void> {
+    try {
+      const response = (await session.send('Debugger.getScriptSource', {
+        scriptId: script.scriptId,
+      })) as { scriptSource?: unknown };
+      const source = typeof response?.scriptSource === 'string' ? response.scriptSource : '';
+      const sourceBytes = Buffer.byteLength(source, 'utf8');
+      script.sourceBytes = sourceBytes;
+      if (sourceBytes > WORKER_SCRIPT_SOURCE_MAX_BYTES) {
+        script.source = source.slice(0, WORKER_SCRIPT_SOURCE_MAX_BYTES);
+        script.sourceTruncated = true;
+      } else {
+        script.source = source;
+        script.sourceTruncated = false;
+      }
+    } catch (error) {
+      script.sourceUnavailable = true;
+      logger.debug(
+        `[BrowserTargetSessionManager] Debugger.getScriptSource failed for ${script.scriptId}: ` +
+          `${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   async captureScreenshot(options?: {

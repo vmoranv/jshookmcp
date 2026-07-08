@@ -411,6 +411,15 @@ export class BrowserToolHandlers {
     return this.targetEvaluation.handleBrowserEvaluateCdpTarget(args);
   }
 
+  // ── Worker inspection (Service / Shared / dedicated Web Workers) ──
+  async handleBrowserListWorkers(args: Record<string, unknown>) {
+    return this.targetControl.handleBrowserListWorkers(args);
+  }
+
+  async handleBrowserWorkerScripts(args: Record<string, unknown>) {
+    return this.targetControl.handleBrowserWorkerScripts(args);
+  }
+
   async handleBrowserAttach(args: Record<string, unknown>) {
     if (this.activeDriver === 'camoufox' && this.camoufoxManager) {
       await this.closeCamoufox();
@@ -665,6 +674,10 @@ export class BrowserToolHandlers {
 
   async handleStealthVerify(args: Record<string, unknown>) {
     return this.stealthInjection.handleStealthVerify(args);
+  }
+
+  async handleBrowserFontFingerprint(args: Record<string, unknown>) {
+    return this.stealthInjection.handleBrowserFontFingerprint(args);
   }
 
   async handleCamoufoxGeolocation(args: Record<string, unknown>) {
