@@ -6,6 +6,24 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Mock node:fs readFileSync so the Linux /proc/pid/maps fallback returns
+// deterministic synthetic data on any platform (fixes CI failures where
+// PID 1234 doesn't exist in the container).
+vi.mock('node:fs', async () => {
+  const actual = (await vi.importActual('node:fs')) as typeof import('node:fs');
+  return {
+    ...actual,
+    readFileSync: (...args: Parameters<typeof actual.readFileSync>) => {
+      const path = String(args[0]);
+      if (path.startsWith('/proc/') && path.endsWith('/maps')) {
+        // Return a single synthetic [heap] region for PID 1234.
+        return `10000000-10002000 rw-p 00000000 00:00 0 [heap]`;
+      }
+      return actual.readFileSync(...args);
+    },
+  };
+});
+
 // ── Mock all native dependencies ──
 
 const state = vi.hoisted(() => ({
