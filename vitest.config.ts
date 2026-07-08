@@ -50,8 +50,12 @@ const coverageExclude = [
   // v0.3.1 domains: handlers require real hardware / native FFI / CDP sessions
   'src/server/domains/adb-bridge/handlers.impl.ts',
   'src/server/domains/binary-instrument/handlers.impl.ts',
+  'src/server/domains/binary-instrument/handlers/analysis-handlers.ts',
   'src/server/domains/boringssl-inspector/handlers.impl.ts',
+  'src/server/domains/boringssl-inspector/handlers/handler-class.ts',
+  'src/server/domains/boringssl-inspector/handlers/raw-socket-handlers.ts',
   'src/server/domains/mojo-ipc/handlers.impl.ts',
+  'src/server/domains/protocol-analysis/handlers/handler-class.ts',
   'src/server/domains/skia-capture/handlers.impl.ts',
   'src/server/domains/syscall-hook/handlers.impl.ts',
   // Pure re-export backward-compat shim files (1-10 lines, zero logic)
