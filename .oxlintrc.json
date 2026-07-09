@@ -25,6 +25,8 @@
           "__getXHRRequests",
           "__jshookElectronCompatPatched",
           "__jshookSSEMonitor",
+          "__jshookFetchStreamMonitor",
+          "__jshookWebRtcMonitor",
           "__more",
           "__networkRequests",
           "__order",

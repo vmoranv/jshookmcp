@@ -124,6 +124,12 @@ export interface StreamingSharedState {
 
   sseConfig: { maxEvents: number; urlFilterRaw?: string };
 
+  /** Config for the fetch()-based stream monitor (re-applied on re-enable). */
+  fetchStreamConfig: { maxEvents: number; urlFilterRaw?: string };
+
+  /** Config for the WebRTC data-channel monitor (re-applied on re-enable). */
+  webrtcConfig: { maxEvents: number; urlFilterRaw?: string };
+
   grpcSession: CdpSessionLike | null;
   grpcListeners: GrpcMonitorListeners | null;
   grpcConfig: {
@@ -148,6 +154,8 @@ export function createStreamingSharedState(collector: CodeCollector): StreamingS
     wsFrameOrder: new RingBuffer<WsFrameOrderEntry>(1000),
     wsConnections: new Map(),
     sseConfig: { maxEvents: 2000 },
+    fetchStreamConfig: { maxEvents: 2000 },
+    webrtcConfig: { maxEvents: 2000 },
     grpcSession: null,
     grpcListeners: null,
     grpcConfig: { enabled: false, maxCalls: 100 },

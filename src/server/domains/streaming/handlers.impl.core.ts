@@ -11,6 +11,7 @@ import { createStreamingSharedState, type StreamingSharedState } from './handler
 import { WsHandlers } from './handlers/ws-handlers';
 import { SseHandlers } from './handlers/sse-handlers';
 import { GrpcHandlers } from './handlers/grpc-handlers';
+import { FetchStreamHandlers } from './handlers/fetch-stream-handlers';
 
 export type {
   TextToolResponse,
@@ -34,6 +35,7 @@ export class StreamingToolHandlers {
   private ws: WsHandlers;
   private sse: SseHandlers;
   private grpc: GrpcHandlers;
+  private fetchStream: FetchStreamHandlers;
 
   // Backward-compat aliases for tests that access (handler as any).xxx
   protected get wsConnections() {
@@ -58,6 +60,7 @@ export class StreamingToolHandlers {
     this.ws = new WsHandlers(this.state);
     this.sse = new SseHandlers(this.state);
     this.grpc = new GrpcHandlers(this.state);
+    this.fetchStream = new FetchStreamHandlers(this.state);
   }
 
   // ── WebSocket ──
@@ -124,4 +127,19 @@ export class StreamingToolHandlers {
       ? this.grpc.handleGrpcMonitorDisable(args)
       : this.grpc.handleGrpcMonitorEnable(args);
   };
+
+  // ── fetch()-based stream ──
+
+  async handleFetchStreamMonitorTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => {
+      const action = String(args['action'] ?? 'enable');
+      return action === 'disable'
+        ? this.fetchStream.handleFetchStreamMonitorDisable(args)
+        : this.fetchStream.handleFetchStreamMonitorEnable(args);
+    });
+  }
+
+  async handleFetchStreamGetEventsTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => this.fetchStream.handleFetchStreamGetEvents(args));
+  }
 }

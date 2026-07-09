@@ -25,6 +25,8 @@ const registrations = defineMethodRegistrations<H, (typeof streamingTools)[numbe
     { tool: 'sse_export_capture', method: 'handleSseExportCaptureTool' },
     { tool: 'grpc_monitor', method: 'handleGrpcMonitorTool' },
     { tool: 'grpc_get_calls', method: 'handleGrpcGetCallsTool' },
+    { tool: 'fetch_stream_monitor', method: 'handleFetchStreamMonitorTool' },
+    { tool: 'fetch_stream_get_events', method: 'handleFetchStreamGetEventsTool' },
   ],
 });
 

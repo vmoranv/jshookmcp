@@ -109,4 +109,36 @@ export const streamingTools: Tool[] = [
       })
       .readOnly(),
   ),
+  tool('fetch_stream_monitor', (t) =>
+    t
+      .desc(
+        'Enable or disable capture of fetch()-based streams. Wraps window.fetch and, for ' +
+          'responses with content-type text/event-stream, clones the body and parses the SSE ' +
+          'frame stream into events. Covers the LLM / GraphQL-subscription streaming that the ' +
+          'EventSource-based sse_monitor_enable misses (fetch + POST + custom headers). Use ' +
+          'fetch_stream_get_events to read captured events.',
+      )
+      .enum('action', ['enable', 'disable'], 'Monitor action', { default: 'enable' })
+      .string('urlFilter', 'Regex filter for the fetched stream URL')
+      .number('maxEvents', 'Maximum events in memory (default: 2000)', {
+        default: 2000,
+        minimum: 1,
+        maximum: 50000,
+      })
+      .boolean('persistent', 'Survive page navigations via evaluateOnNewDocument')
+      .openWorld(),
+  ),
+  tool('fetch_stream_get_events', (t) =>
+    t
+      .desc(
+        'Get events captured by the fetch()-based stream monitor (text/event-stream consumed ' +
+          'via fetch). Set fullData=true to include full event data.',
+      )
+      .string('sourceUrl', 'Filter by the fetched stream URL')
+      .string('eventType', 'Filter by SSE event type')
+      .number('limit', 'Maximum events', { default: 100, minimum: 1, maximum: 5000 })
+      .number('offset', 'Pagination offset', { default: 0, minimum: 0 })
+      .boolean('fullData', 'Include full captured event data when available', { default: false })
+      .readOnly(),
+  ),
 ];
