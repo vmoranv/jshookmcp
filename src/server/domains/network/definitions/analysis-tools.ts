@@ -179,9 +179,26 @@ export const analysisTools: Tool[] = [
   ),
   tool('network_bot_detect_analyze', (t) =>
     t
-      .desc('Analyze captured requests for bot-detection signals.')
+      .desc(
+        'Analyze captured requests for bot-detection signals. Optionally supply a JA3/JA4 TLS fingerprint (from network_tls_fingerprint parse_client_hello) plus user-defined knownBad hash lists; matching hashes raise the bot score. Ships NO hardcoded feature library — the caller decides which hashes are bot-like.',
+      )
       .number('limit', 'Maximum requests to analyze', { default: 50, minimum: 1, maximum: 500 })
       .boolean('includeDetails', 'Include per-request analysis details', { default: false })
+      .string(
+        'ja3',
+        'Captured TLS JA3 hash (MD5, 32 hex) to expose as a signal and match against knownBadJa3',
+      )
+      .string('ja4', 'Captured TLS JA4 hash to expose as a signal and match against knownBadJa4')
+      .array(
+        'knownBadJa3',
+        { type: 'string' },
+        'User-supplied JA3 hashes considered bot-like (matched against ja3). The tool ships no hardcoded list.',
+      )
+      .array(
+        'knownBadJa4',
+        { type: 'string' },
+        'User-supplied JA4 hashes considered bot-like (matched against ja4). The tool ships no hardcoded list.',
+      )
       .query(),
   ),
 ];

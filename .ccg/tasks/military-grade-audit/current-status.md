@@ -39,7 +39,7 @@
 | mojo-ipc | 9.2 | Encode/filter surface, extended decoder/header metadata, and field-name decode context are done. |
 | native-bridge | 9.5 | Runtime DomainManifest registration plus Rizin/Binary Ninja parity are done. |
 | native-emulator | 9.2 | Session diagnostics and strict Java mock value exclusivity are done; SIMD/crypto opcode depth remains. |
-| network | 9.6 | parse_client_hello mode (real JA3 Salesforce MD5 + JA4 FoxIO from captured ClientHello wire bytes) + http2_frame_parse (build+parse symmetric) + extract_auth signing-scheme recognition (AWS SigV4 / Aliyun ACS3 / DPoP / OAuth2 client_assertion + form-urlencoded body) are done; bot-detect integration of JA3/JA4 hashes + DNS resolver override + TLS JA3/JA4 from negotiation data remain. |
+| network | 9.8 | parse_client_hello mode (real JA3 Salesforce MD5 + JA4 FoxIO from captured ClientHello wire bytes) + http2_frame_parse (build+parse symmetric) + extract_auth signing-scheme recognition (AWS SigV4 / Aliyun ACS3 / DPoP / OAuth2 client_assertion + form-urlencoded body) + bot_detect_analyze JA3/JA4 integration (user-supplied knownBad lists, zero hardcoded feature library) are done; DNS resolver override + TLS JA3/JA4 from negotiation data remain. |
 | platform | 9.3 | ASAR SHA256/SHA512 integrity algorithm awareness is done; Authenticode/notarization depth remains. |
 | process | 9.2 | Suspend/resume, hollowing dumps, thread diagnostics, and strict memory pattern validation are done. |
 | protocol-analysis | 9.6 | MQTT/STUN/QUIC/SOCKS5/HTTP2 fingerprint expansion is done. |
@@ -70,13 +70,14 @@
 | 28 | (network parse_client_hello JA3+JA4) | network Phase 3: `parseClientHello` (RFC 5246 §7.4.1.2 ClientHello wire-byte parser, lenient) + `computeJa3` (Salesforce MD5) + `computeJa4FromClientHello` (FoxIO JA4) → new `network_tls_fingerprint` mode `parse_client_hello` (enum 3→4, required `clientHelloHex`). network 9.4→9.6. No new tool count (577 unchanged), 16145→16167 tests. |
 | 29 | (memory cross-platform gap annotation) | memory: annotated `memory_find_accesses` cross-platform disassembly/breakpoint stubs (**annotation only — NOT implementation**). `// TODO(macOS/Linux)` + `// NOTE` added at: `handlers/find-accesses.ts` (handleFindAccesses entry + `bpEngine` null check), `manifest.ts` (`WIN32_ONLY_TOOLS` set + `null, // hardwareBreakpointEngine` else-branch), `handlers.impl.ts` (`makeDisassemblerAdapter` JSDoc). All point to `research/memory.md #3` (Linux ptrace INT3+SIGTRAP / macOS mach_vm_protect+EXC_BAD_ACCESS parity). Corrected handoff's `#1` typo → `#3` (#1 = instruction-bytes bug, already FIXED Phase 0) + corrected "capstone native binding" misconception (capstone is WASM, cross-platform; real gap = bpEngine). Score unchanged (9.7). No tools/tests/logic change. typecheck + lint + metadata(577) green. |
 
+| 30 | (network bot-detect JA3/JA4) | network Phase 3: `detectBotSignals` extended with optional `jaFingerprint` (ja3/ja4 informational + user-supplied knownBadJa3/knownBadJa4; +0.45 on match). `network_bot_detect_analyze` schema adds ja3/ja4/knownBadJa3/knownBadJa4. **Zero hardcoded feature library** — "bad" is caller's judgement. 7 new tests (5 pure + 2 integration). network 9.6→9.8. No new tool count (577 unchanged). |
+
 ## Next 10/10 work
 
 The remaining work is no longer a single wrapper or metadata pass. Treat every
 next increment as a feature-plus-adversarial-test slice:
 
-1. **首选（Session 30）**：network bot-detect JA3/JA4 集成（research #4）——Session 28 已让 `parse_client_hello` 算 JA3/JA4，但 `bot_detect_analyze` 还没纳入。纯补逻辑、Windows 可做、ROI 高。network 9.6→9.8（虽非 9.2 域，属"闭合遗留缺口"例外）。
-   **次选**：Pick one 9.2 domain and close a real missing capability from its research file.
+1. Pick one 9.2 domain and close a real missing capability from its research file. (Session 30 network bot-detect 9.6→9.8 ✅ done — research #4 closed with zero-hardcoded-library design.)
 2. Add strict schema/runtime validation for every new input path.
 3. Add focused success, negative, and boundary tests.
 4. Run targeted tests, `pnpm metadata:check`, `node scripts/scan-domain-audit.mjs`,

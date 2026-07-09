@@ -2,6 +2,12 @@ export function detectBotSignals(
   ua: string,
   headerNames: string[],
   tlsSignals?: { cipherCount: number; extensionCount: number; tlsVersion: string },
+  jaFingerprint?: {
+    ja3?: string;
+    ja4?: string;
+    knownBadJa3?: string[];
+    knownBadJa4?: string[];
+  },
 ): { score: number; signals: string[] } {
   const signals: string[] = [];
   let score = 0;
@@ -94,6 +100,27 @@ export function detectBotSignals(
     if (orderMatchCount === 0) {
       signals.push('header-order-does-not-match-known-browser');
       score += 0.1;
+    }
+  }
+
+  // JA3/JA4 fingerprint signals — informational by default; a bot score is
+  // added ONLY when the caller supplies a knownBad list and the captured
+  // hash matches it. The tool ships NO hardcoded feature library — "bad" is
+  // the caller's judgement (reverse-engineering neutrality).
+  if (jaFingerprint) {
+    if (jaFingerprint.ja3) {
+      signals.push(`tls-ja3: ${jaFingerprint.ja3}`);
+      if (jaFingerprint.knownBadJa3?.includes(jaFingerprint.ja3)) {
+        signals.push(`known-bot-ja3: ${jaFingerprint.ja3.slice(0, 8)}`);
+        score += 0.45;
+      }
+    }
+    if (jaFingerprint.ja4) {
+      signals.push(`tls-ja4: ${jaFingerprint.ja4}`);
+      if (jaFingerprint.knownBadJa4?.includes(jaFingerprint.ja4)) {
+        signals.push(`known-bot-ja4: ${jaFingerprint.ja4.slice(0, 8)}`);
+        score += 0.45;
+      }
     }
   }
 

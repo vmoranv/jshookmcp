@@ -2,6 +2,7 @@ import { createConsoleMonitorMock, parseJson } from '@tests/server/domains/share
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { TlsBotHandlers } from '@server/domains/network/handlers/tls-bot-handlers';
+import { detectBotSignals } from '@server/domains/network/handlers/bot-detection';
 import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 
 describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
@@ -288,6 +289,70 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
     });
   });
 
+  describe('detectBotSignals — JA3/JA4 fingerprint integration', () => {
+    // Zero hardcoded feature library: ja3/ja4 are informational; only a
+    // user-supplied knownBad list produces a known-bot score.
+    it('exposes ja3/ja4 as informational signals without inflating score (no knownBad list)', () => {
+      const ua =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      const headers = ['host', 'user-agent', 'accept', 'accept-language', 'accept-encoding'];
+      const baseline = detectBotSignals(ua, headers);
+      const withJa = detectBotSignals(ua, headers, undefined, {
+        ja3: '773906b0efdefa24a7f2b8eb6985bf36',
+        ja4: 't13d1516h2_8daaf6153504_6b9b2d2b4b4b',
+      });
+      expect(withJa.signals.some((s) => s.includes('tls-ja3: 773906b0'))).toBe(true);
+      expect(withJa.signals.some((s) => s.includes('tls-ja4: t13d1516h2'))).toBe(true);
+      // ja3/ja4 surface as information but must NOT inflate the score
+      expect(withJa.score).toBe(baseline.score);
+      expect(baseline.signals.some((s) => s.includes('tls-ja3'))).toBe(false);
+    });
+
+    it('scores known-bad ja3 match against a user-supplied list (no hardcoded library)', () => {
+      const { score, signals } = detectBotSignals(
+        'python-requests/2.28',
+        ['host', 'user-agent'],
+        undefined,
+        {
+          ja3: '773906b0efdefa24a7f2b8eb6985bf36',
+          knownBadJa3: ['773906b0efdefa24a7f2b8eb6985bf36', 'deadbeefdeadbeefdeadbeefdeadbeef'],
+        },
+      );
+      expect(signals.some((s) => s.includes('known-bot-ja3'))).toBe(true);
+      expect(score).toBeGreaterThan(0.4);
+    });
+
+    it('does not match ja3 absent from the user knownBad list', () => {
+      const { signals } = detectBotSignals(
+        'Mozilla/5.0 Chrome/120',
+        ['host', 'user-agent', 'accept'],
+        undefined,
+        {
+          ja3: '773906b0efdefa24a7f2b8eb6985bf36',
+          knownBadJa3: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+        },
+      );
+      expect(signals.some((s) => s.includes('known-bot-ja3'))).toBe(false);
+    });
+
+    it('scores known-bad ja4 match independently', () => {
+      const { score, signals } = detectBotSignals('curl/8.0', ['host', 'user-agent'], undefined, {
+        ja4: 't13d1516h2_8daaf6153504_6b9b2d2b4b4b',
+        knownBadJa4: ['t13d1516h2_8daaf6153504_6b9b2d2b4b4b'],
+      });
+      expect(signals.some((s) => s.includes('known-bot-ja4'))).toBe(true);
+      expect(score).toBeGreaterThan(0.4);
+    });
+
+    it('leaves score and signals unchanged when jaFingerprint is absent (regression)', () => {
+      const headers = ['host', 'user-agent', 'accept', 'accept-language'];
+      const baseline = detectBotSignals('Mozilla/5.0 Chrome/120', headers);
+      const noJa = detectBotSignals('Mozilla/5.0 Chrome/120', headers, undefined, undefined);
+      expect(noJa.score).toBe(baseline.score);
+      expect(noJa.signals).toEqual(baseline.signals);
+    });
+  });
+
   describe('bot_detect_analyze', () => {
     it('returns diversity analysis for multiple requests', async () => {
       const requests = Array.from({ length: 10 }, (_, i) => ({
@@ -306,6 +371,70 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
       const json = parseJson<Record<string, unknown>>(res);
       expect(json.analyzed).toBe(10);
       expect(json.httpFingerprintSummary).toBeDefined();
+    });
+
+    it('raises bot score when a captured request matches a user-supplied knownBad ja3', async () => {
+      const requests = [
+        {
+          requestId: 'r1',
+          url: TEST_URLS.root,
+          method: 'GET',
+          headers: {
+            'user-agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            accept: '*/*',
+            'accept-language': 'en-US',
+            'accept-encoding': 'gzip',
+          },
+        },
+      ];
+      const monitor = createConsoleMonitorMock({ getNetworkRequests: (() => requests) as any });
+      const h = new TlsBotHandlers({ consoleMonitor: monitor as any });
+      const res = await h.handleNetworkBotDetectAnalyze({
+        limit: 1,
+        includeDetails: true,
+        ja3: '773906b0efdefa24a7f2b8eb6985bf36',
+        knownBadJa3: ['773906b0efdefa24a7f2b8eb6985bf36'],
+      });
+      const json = parseJson<Record<string, unknown>>(res);
+      const details = json.details as Array<Record<string, unknown>>;
+      expect(details).toBeDefined();
+      expect(details.length).toBe(1);
+      const botSignals = details[0]!.signals as string[];
+      expect(botSignals.some((s) => s.includes('known-bot-ja3'))).toBe(true);
+      expect(botSignals.some((s) => s.includes('tls-ja3: 773906b0'))).toBe(true);
+      expect(details[0]!.botScore).toBeGreaterThan(0.4);
+    });
+
+    it('exposes ja3 informationally without scoring when no knownBad list is supplied', async () => {
+      const requests = [
+        {
+          requestId: 'r2',
+          url: TEST_URLS.root,
+          method: 'GET',
+          headers: {
+            'user-agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            accept: '*/*',
+            'accept-language': 'en-US',
+            'accept-encoding': 'gzip',
+          },
+        },
+      ];
+      const monitor = createConsoleMonitorMock({ getNetworkRequests: (() => requests) as any });
+      const h = new TlsBotHandlers({ consoleMonitor: monitor as any });
+      const res = await h.handleNetworkBotDetectAnalyze({
+        limit: 1,
+        includeDetails: true,
+        ja3: '773906b0efdefa24a7f2b8eb6985bf36',
+      });
+      const json = parseJson<Record<string, unknown>>(res);
+      const details = json.details as Array<Record<string, unknown>>;
+      const botSignals = details[0]!.signals as string[];
+      expect(botSignals.some((s) => s.includes('tls-ja3: 773906b0'))).toBe(true);
+      expect(botSignals.some((s) => s.includes('known-bot-ja3'))).toBe(false);
+      // a clean browser request with an informational ja3 stays low-score
+      expect(details[0]!.botScore).toBeLessThan(0.1);
     });
 
     it('returns empty summary when no requests', async () => {

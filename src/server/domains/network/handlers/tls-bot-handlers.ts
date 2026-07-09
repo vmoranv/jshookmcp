@@ -271,6 +271,22 @@ export class TlsBotHandlers {
       Math.min(500, argNumber(args, 'limit', BOT_DETECT_LIMIT_DEFAULT) ?? BOT_DETECT_LIMIT_DEFAULT),
     );
     const includeDetails = argBool(args, 'includeDetails', false);
+    // Optional TLS JA3/JA4 fingerprint (from network_tls_fingerprint
+    // parse_client_hello) plus user-supplied knownBad hash lists. Zero
+    // hardcoded library — the caller decides which hashes are "bot-like".
+    const ja3 = argString(args, 'ja3', '');
+    const ja4 = argString(args, 'ja4', '');
+    const knownBadJa3 = argStringArray(args, 'knownBadJa3');
+    const knownBadJa4 = argStringArray(args, 'knownBadJa4');
+    const jaFingerprint =
+      ja3 || ja4 || knownBadJa3.length || knownBadJa4.length
+        ? {
+            ja3: ja3 || undefined,
+            ja4: ja4 || undefined,
+            knownBadJa3: knownBadJa3.length ? knownBadJa3 : undefined,
+            knownBadJa4: knownBadJa4.length ? knownBadJa4 : undefined,
+          }
+        : undefined;
 
     const requests = this.consoleMonitor.getNetworkRequests();
     const sample = requests.slice(0, limit);
@@ -326,7 +342,7 @@ export class TlsBotHandlers {
               tlsVersion: typeof secDetails['protocol'] === 'string' ? secDetails['protocol'] : '',
             }
           : undefined;
-      const reqSignals = detectBotSignals(ua, headerNames, tlsSignalsForBot);
+      const reqSignals = detectBotSignals(ua, headerNames, tlsSignalsForBot, jaFingerprint);
       const isApiRequest = /\/api\/|\/v\d+\/|\/graphql/i.test(url);
 
       const { http } = computeHttpFingerprint(

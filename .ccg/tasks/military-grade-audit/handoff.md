@@ -1,4 +1,4 @@
-# 全域军工级审计 — Handoff（2026-07-08 · session 29 · memory cross-platform disassembly gap annotation）
+# 全域军工级审计 — Handoff（2026-07-09 · session 30 · network bot-detect JA3/JA4 integration）
 
 > ⚠️ **.ccg/ 在 .gitignore（L120），但核心文档（handoff/current-status/INDEX 等 6 个）已 tracked，修改正常 `git add` 即可；仅新增 research/ 等文件需 `git add -f`。**
 > 本文件是下一位 agent 的入口。所有路径相对项目根 `D:\coding\reverse\jshookmcp\`。
@@ -19,10 +19,10 @@
 | 门禁 | 状态 |
 |------|------|
 | **工具数** | **577**（`pnpm metadata:check` in sync, 2026-07-08） |
-| **测试** | **16167 passed / 30 skipped**（997 files passed；latest full check after network parse_client_hello (JA3+JA4) session） |
+| **测试** | **16209 passed / 30 skipped**（997 files passed；latest full check after Session 30 network bot-detect JA3/JA4 integration） |
 | **typecheck** | 0 errors（root + extension-sdk） |
 | **lint / format** | 全绿 |
-| **git — committed** | Through `4de821b2`（最近 5 个为 Linux CI mock 修复：HeapAnalyzer node:fs mock + hollowing skip）。Session 29 memory src 标注已落地为 `963e44f5`（已 push origin/master）。本轮待 atomic commit：CCG 文档同步 + hollowing-detection Linux test skip 补全 + generated-domains 重生成。 |
+| **git — committed** | Through Session 30 `feat(network): integrate JA3/JA4 known-bad matching into bot detection`。前置 3 个 review-fix atomic commit：`488af23d` fix(process) hollowing Linux skip + `2aee71e0` chore(registry) regenerate + `9d964a1b` docs sync。Session 29 memory 标注 `963e44f5` 已 push origin/master。 |
 | **git — dirty** | 核心文档（handoff/current-status/INDEX 等）已 tracked，正常 `git add`；仅新增 research/ 文件需 `git add -f`（.ccg/ 在 .gitignore L120）。 |
 
 最终验证命令：
@@ -85,25 +85,37 @@ VITEST_MAX_WORKERS=4 pnpm check      # 16145 passed | 30 skipped
 - **gate**：typecheck 0 errors + lint 全绿 + metadata:check 577 in sync。未跑 memory 域测试（handoff 第 7 步：没改逻辑，不必跑）。
 - **commit 格式**（handoff 第 8 步）：`docs(memory): annotate cross-platform disassembly gaps for Mac parity work`
 
-## NEXT PHASE DECISION — Session 30
+## Session 30（2026-07-09）：network Phase 3 — bot_detect_analyze JA3/JA4 integration（零内置特征库）
+
+完成 research #4：把 TLS JA3/JA4 哈希接入 `detectBotSignals`，闭合"TLS 指纹就在隔壁工具算却不用于 bot 检测"的缺口。network 9.6→9.8。
+
+- **设计纠正（用户反馈）**：原 research #4 建议 "add known-bad JA3 hashes (e.g. python-requests default) to the signal list"——预制特征库。用户明确反对："不应该预制硬编码任何特征库和payload"。改为**用户传入** knownBad 列表：工具保持逆向中立，"bad" 是调用者的判断，不是工具预设。
+- **`detectBotSignals`**（`handlers/bot-detection.ts`）：新增可选 `jaFingerprint?: { ja3?, ja4?, knownBadJa3?, knownBadJa4? }`。ja3/ja4 始终作信息性 signal 输出（`tls-ja3: <hash>`）；仅当调用者提供 knownBad 列表且哈希匹配时 +0.45 + signal `known-bot-ja3/ja4: <hash前8位>`。不传列表 = 仅暴露指纹不评分。
+- **`handleNetworkBotDetectAnalyze`**（`handlers/tls-bot-handlers.ts`）：从 args 取 ja3/ja4/knownBadJa3/knownBadJa4（argString/argStringArray），构造 jaFingerprint 透传 detectBotSignals，应用到会话级所有捕获 requests。
+- **schema**（`definitions/analysis-tools.ts`）：`network_bot_detect_analyze` 加 4 个可选参数 + desc 说明 "Ships NO hardcoded feature library"。
+- **接口扩展安全性**：jaFingerprint 是纯加法可选参数（不传时行为完全不变）；现有 28 个 bot-detection 测试全保留通过。
+- **测试**：7 新 case — 5 纯函数（信息性输出 / knownBad ja3 匹配 / 不匹配 / ja4 独立 / 回归）+ 2 handler 集成（knownBad 匹配加分 / 信息性不加分）。network 935/935，全量 16209/30。
+- **工具数** 577 不变（扩展现有工具）；`scripts/update-domain-scores.mjs`：network 9.6→9.8。
+- **诚实缺口**：HTTP/2 SETTINGS fingerprint（Akamai）+ Canvas/WGL fingerprint 信号仍未接入（research #4 更深处，out of scope）。
+
+## NEXT PHASE DECISION — Session 31
+
+### ✅ network bot-detect JA3/JA4 集成（Session 30 已完成）
+
+Session 30 已闭合 research #4：`detectBotSignals` + `network_bot_detect_analyze` 接入 ja3/ja4 + 用户传入 knownBad 列表（**零内置特征库**设计）。network 9.6→9.8。HTTP/2 SETTINGS + Canvas/WGL 信号仍缺（更深，out of scope）。
 
 ### ✅ memory 跨平台 parity stub 标注（Session 29 已完成）
 
 Session 29 已在 4 处标注 `// TODO(macOS/Linux)` + `// NOTE`（find-accesses.ts / manifest.ts / handlers.impl.ts），指向 `research/memory.md #3`。**实现需 Mac 真机**——ptrace(Linux) / mach_vm_protect(macOS) FFI 在 Windows 上无法调试。vmoranv 在 Mac 上 pull 后按 TODO 注释接 native bpEngine + process_vm_readv/mach_vm_read reader，再移除 `WIN32_ONLY_TOOLS` 过滤。**Windows session 不再碰这个**，除非有 Mac 真机环境。
 
-> 注：原 Session 29 约束模板有 2 处笔误已修正——①"see research/memory.md #1"应为 **#3**（#1 是 instruction-bytes bug，Phase 0 已 FIXED）；②"requires real capstone native binding linkage"不准（capstone 是 WASM 跨平台，无需 native binding，真正缺的是 bpEngine）。
-
-### ⭐ network bot-detect JA3/JA4 集成（#4，纯逻辑 Windows 可做）— Session 30 首选
-
-Session 28 已让 `parse_client_hello` 能算 JA3/JA4，但 `bot_detect_analyze` 还没纳入——把 TLS 指纹哈希接入 bot 检测信号集。纯补逻辑，Windows 可做，闭合 network research #4。network 9.6→9.8。
-
-### 其他候选
+### ⭐ Session 31 候选（Windows 可做）
 
 1. **sourcemap 9.4→9.6**：research #1（sourcesContent null 推断 source skeleton）或 #4（sourcemap_diff）。
 2. **browser 9.5→9.7**：research CDP all-origin cookies + launch enum validation。
-3. 其余 9.2 域各自 research 的 P0/P1 真实 gap（见 `domain-10-plan.md`）。
+3. **network 9.8→9.85+**：HTTP/2 SETTINGS fingerprint（Akamai）接入 bot-detect（Session 30 的诚实缺口）。
+4. 其余 9.2 域各自 research 的 P0/P1 真实 gap（见 `domain-10-plan.md`）。
 
-下一位接手：读 `current-status.md` → 选 network bot-detect 或其他域 → TDD/gate/文档/commit。
+下一位接手：读 `current-status.md` → 选上述候选或某个 9.2 域 → TDD/gate/文档/commit。
 
 ---
 

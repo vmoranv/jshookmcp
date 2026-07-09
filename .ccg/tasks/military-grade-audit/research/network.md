@@ -60,7 +60,7 @@ RTT/latency, traceroute, TLS-fingerprint, bot-detection).
 - **Why**: `compute_tls` only re-hashed whatever arrays the caller passed in — the JA3/JA4 of a real captured ClientHello was never derivable. JA3 is the industry-standard (Salesforce/attack-intel) TLS fingerprint; JA4 is the modern sorted/GREASE-stripped successor. Bot-detection and reverse-engineering both depend on matching these against known client hashes.
 - **Status**: 17 parser unit tests (build-helper for typed ClientHello construction + parse/JA3/JA4 assertions, GREASE stripping, truncation rejection, non-ClientHello rejection) + 5 handler integration tests via `TlsBotHandlers.handleNetworkTlsFingerprint`. Tests in `clienthello-parser.test.ts` + `tls-fingerprint.test.ts`. Tool count unchanged (38) — this extends an existing tool rather than adding one.
 
-### 4. `network_bot_detect_analyze` heuristic set is shallow
+### 4. `network_bot_detect_analyze` heuristic set is shallow — ✅ DONE Session 30
 
 - **What**: `detectBotSignals` (handlers/bot-detection.ts:101 lines) scores on UA substring,
   presence of `accept*` headers, header count, and a single hardcoded Chrome-ordering array.
@@ -72,6 +72,7 @@ RTT/latency, traceroute, TLS-fingerprint, bot-detection).
   only the first two are used.
 - **Effort**: M.
 - **Score lift**: +0.2.
+- **Status (Session 30)**: `detectBotSignals` extended with optional `jaFingerprint` {ja3, ja4, knownBadJa3, knownBadJa4}. ja3/ja4 always surface as informational signals (`tls-ja3: <hash>`); a +0.45 bot score is added ONLY when the caller supplies a knownBad list and the captured hash matches. `network_bot_detect_analyze` schema adds ja3/ja4/knownBadJa3/knownBadJa4 params. **Zero hardcoded feature library** — design corrected from the original "add known-bad JA3 hashes" to user-supplied lists (reverse-engineering neutrality: "bad" is the caller's judgement, not the tool's preset). HTTP/2 SETTINGS fingerprint + Canvas/WGL signals remain (out of scope). 7 new tests (5 pure-function + 2 handler integration). network 9.6→9.8.
 
 ### 5. `network_replay_request` cannot replay against the original captured WebSocket / SSE flow
 
