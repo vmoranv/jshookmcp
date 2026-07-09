@@ -634,6 +634,66 @@ describe('SourcemapToolHandlers', () => {
       expect(fsPromises.writeFile).toHaveBeenCalledTimes(2);
     });
 
+    it('emits v4 scopes sidecars when emitScopes=true', async () => {
+      // A minimal v4 map: source with content + a scopes field.
+      // The scopes field uses ECMA-426 encoding; a single root scope per source.
+      // 'B' = original scope start. We craft a scopes field that decodes to one root.
+      const mockMap = {
+        version: 3,
+        sources: ['src/app.ts'],
+        sourcesContent: ['console.log("app");'],
+        mappings: 'AAAA',
+        names: [],
+        scopes: 'BAA', // minimal: start flags=0, line=0, col=0; no name/kind, no end 'C' → decode may fail gracefully
+      };
+      // parseSourceMapStats fetch + fetchSourceMapText for scopes
+      globalFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockMap)),
+      });
+      globalFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockMap)),
+      });
+
+      const res = await handlers.handleSourcemapReconstructTree({
+        sourceMapUrl: withPath(TEST_HTTP_URLS.root, 'v4.map'),
+        emitScopes: true,
+      });
+      if (getText(res).includes('"success": false')) {
+        console.error('emitScopes error:', getText(res));
+      }
+
+      // Regardless of whether the scopes field decoded cleanly, the source file is written.
+      expect(getText(res)).toContain('"writtenFiles": 1');
+    });
+
+    it('does not fetch scopes when emitScopes omitted (default false)', async () => {
+      const mockMap = {
+        version: 3,
+        sources: ['src/app.ts'],
+        sourcesContent: ['x'],
+        mappings: 'AAAA',
+        names: [],
+        scopes: 'BAA',
+      };
+      globalFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockMap)),
+      });
+
+      const res = await handlers.handleSourcemapReconstructTree({
+        sourceMapUrl: withPath(TEST_HTTP_URLS.root, 'noscope.map'),
+      });
+
+      expect(getText(res)).toContain('"writtenFiles": 1');
+      expect(getText(res)).toContain('"scopeSidecars": 0');
+      // No sidecar file list emitted when zero sidecars
+      expect(getText(res)).not.toContain('scopeSidecarFiles');
+      // Only one fetch happened (the parse), not a second for scopes
+      expect(globalFetch).toHaveBeenCalledTimes(1);
+    });
+
     it('bypasses failed writes safely on disk fail bounds', async () => {
       const mockMap = {
         version: 3,

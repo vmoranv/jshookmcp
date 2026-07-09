@@ -20,6 +20,72 @@ import {
 } from './shared';
 import { isPrivateHost } from '@utils/network/ssrf-policy';
 
+/** A single original scope node in a serializable (JSON-friendly) shape. */
+export interface ScopeSidecarNode {
+  name?: string;
+  kind?: string;
+  isStackFrame: boolean;
+  start: { line: number; column: number };
+  end: { line: number; column: number };
+  variables: string[];
+  children: ScopeSidecarNode[];
+}
+
+/** Full sidecar document written next to a reconstructed source file. */
+export interface ScopeSidecar {
+  format: 'sourcemap-v4-scopes';
+  sourcePath: string;
+  scopeCount: number;
+  scopes: ScopeSidecarNode[];
+}
+
+/** Imported lazily to avoid a circular type dependency. */
+type OriginalScopeNodeLike = {
+  name?: string;
+  kind?: string;
+  isStackFrame: boolean;
+  start: { line: number; column: number };
+  end: { line: number; column: number };
+  variables: string[];
+  children: OriginalScopeNodeLike[];
+};
+
+function toSidecarNode(node: OriginalScopeNodeLike): ScopeSidecarNode {
+  return {
+    ...(node.name !== undefined ? { name: node.name } : {}),
+    ...(node.kind !== undefined ? { kind: node.kind } : {}),
+    isStackFrame: node.isStackFrame,
+    start: { line: node.start.line, column: node.start.column },
+    end: { line: node.end.line, column: node.end.column },
+    variables: [...node.variables],
+    children: node.children.map(toSidecarNode),
+  };
+}
+
+function countScopeNodes(node: OriginalScopeNodeLike): number {
+  return 1 + node.children.reduce((sum, child) => sum + countScopeNodes(child), 0);
+}
+
+/**
+ * Serialize a v4 original-scope tree (the per-source entry of
+ * `originalScopes` from `decodeScopesField`) into a JSON-friendly sidecar
+ * document. Pure function — no I/O, no state. Returns `null` when the node
+ * is absent (the source has no decoded v4 scopes).
+ */
+export function serializeScopeSidecar(
+  sourcePath: string,
+  rootNode: OriginalScopeNodeLike | null | undefined,
+): ScopeSidecar | null {
+  if (!rootNode) return null;
+
+  return {
+    format: 'sourcemap-v4-scopes',
+    sourcePath,
+    scopeCount: countScopeNodes(rootNode),
+    scopes: [toSidecarNode(rootNode)],
+  };
+}
+
 export function parseSourceMap(
   sourceMapUrl: string,
   scriptUrl: string | undefined,

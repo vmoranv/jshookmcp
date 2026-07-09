@@ -41,6 +41,7 @@ import {
   safeTarget,
   fetchSourceMapText,
   diffSourceMaps,
+  serializeScopeSidecar,
 } from './sourcemap-parsing';
 
 function countScopeNodes(nodes: Array<OriginalScopeNode | null>): number {
@@ -372,10 +373,35 @@ export class SourcemapHandlers {
       const sourceMapUrl = requiredStringArg(args.sourceMapUrl, 'sourceMapUrl');
       const outputDir = optionalStringArg(args.outputDir);
       const inferMissing = parseBooleanArg(args.inferMissing, false);
+      const emitScopes = parseBooleanArg(args.emitScopes, false);
       const parsed = await parseSourceMapStats(sourceMapUrl, undefined, this.state.collector);
       // When the vendor stripped sourcesContent, infer a name+position skeleton
       // from the decoded mapping segments (opt-in; default keeps the placeholder).
       const decodedMappings = inferMissing ? decodeMappings(parsed.map.mappings) : undefined;
+
+      // ECMA-426 v4 scopes: opt-in. Decode the scopes field once and index the
+      // per-source root nodes so we can emit a sidecar `.scopes.json` next to
+      // each reconstructed source that has scope info. Today the v4 parser is a
+      // dead-end tool; this persists its richest output with the reconstruction.
+      let scopeRoots: Array<OriginalScopeNode | null> | null = null;
+      if (emitScopes) {
+        try {
+          const raw = await fetchSourceMapText(parsed.resolvedUrl, this.state.collector);
+          const rawParsed = JSON.parse(raw) as Record<string, unknown>;
+          const scopesField =
+            typeof rawParsed['scopes'] === 'string'
+              ? (rawParsed['scopes'] as string)
+              : typeof rawParsed['x_scopes'] === 'string'
+                ? (rawParsed['x_scopes'] as string)
+                : undefined;
+          if (scopesField) {
+            const decoded = decodeScopesField(scopesField, parsed.map.names, parsed.map.sources);
+            scopeRoots = decoded.originalScopes;
+          }
+        } catch {
+          // Scope decode failure is non-fatal: reconstruct the tree without sidecars.
+        }
+      }
 
       const artifactTarget = safeTarget(parsed.resolvedUrl);
       const artifactPath = await resolveArtifactPath({
@@ -391,6 +417,7 @@ export class SourcemapHandlers {
       await mkdir(outputRoot, { recursive: true });
 
       const writtenFiles: string[] = [];
+      const sidecarFiles: string[] = [];
       let skippedFiles = 0;
 
       for (let index = 0; index < parsed.map.sources.length; index += 1) {
@@ -425,6 +452,15 @@ export class SourcemapHandlers {
           await mkdir(dirname(absolutePath), { recursive: true });
           await writeFile(absolutePath, fileContent, 'utf-8');
           writtenFiles.push(relativePath);
+
+          if (scopeRoots) {
+            const sidecar = serializeScopeSidecar(sourcePath, scopeRoots[index] ?? null);
+            if (sidecar) {
+              const sidecarPath = `${absolutePath}.scopes.json`;
+              await writeFile(sidecarPath, JSON.stringify(sidecar, null, 2), 'utf-8');
+              sidecarFiles.push(`${relativePath}.scopes.json`);
+            }
+          }
         } catch {
           skippedFiles += 1;
         }
@@ -435,7 +471,9 @@ export class SourcemapHandlers {
         totalSources: parsed.map.sources.length,
         writtenFiles: writtenFiles.length,
         skippedFiles,
+        scopeSidecars: sidecarFiles.length,
         files: writtenFiles,
+        ...(sidecarFiles.length > 0 ? { scopeSidecarFiles: sidecarFiles } : {}),
       });
     } catch (error) {
       return fail('sourcemap_reconstruct_tree', error);
@@ -580,7 +618,7 @@ export class SourcemapHandlers {
 
 // ── ECMA-426 Scope Tree Decoding ──
 
-interface OriginalScopeNode {
+export interface OriginalScopeNode {
   index: number;
   sourceIndex: number;
   start: { line: number; column: number };

@@ -43,13 +43,18 @@ export const sourcemapTools: Tool[] = [
   tool('sourcemap_reconstruct_tree', (t) =>
     t
       .desc(
-        'Reconstruct source files from a source map. When a vendor stripped sourcesContent, set inferMissing=true to emit a best-effort name+position skeleton (from mapping segments) instead of a placeholder.',
+        'Reconstruct source files from a source map. When a vendor stripped sourcesContent, set inferMissing=true to emit a best-effort name+position skeleton (from mapping segments) instead of a placeholder. Set emitScopes=true to also decode the ECMA-426 v4 scopes field and write a `.scopes.json` sidecar (per-source variables, function kind, hidden ranges) next to each reconstructed file.',
       )
       .string('sourceMapUrl', 'Source map URL.')
       .string('outputDir', 'Output directory under the project root.')
       .boolean(
         'inferMissing',
         'For sources with null sourcesContent, infer a name+position skeleton from the decoded mapping segments instead of writing a placeholder comment.',
+        { default: false },
+      )
+      .boolean(
+        'emitScopes',
+        'Decode the v4 ECMA-426 scopes field and write a `.scopes.json` sidecar next to each reconstructed source that has scope info. No-op for v3 maps.',
         { default: false },
       )
       .required('sourceMapUrl'),
