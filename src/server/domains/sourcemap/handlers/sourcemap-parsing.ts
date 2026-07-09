@@ -4,7 +4,12 @@
 
 import { evaluateWithTimeout } from '@modules/collector/PageController';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
-import type { SourceMapV3, ParsedSourceMapResult, IndexedSourceMap } from './shared';
+import type {
+  SourceMapV3,
+  ParsedSourceMapResult,
+  IndexedSourceMap,
+  DecodedMapping,
+} from './shared';
 import {
   decodeMappings,
   countMappingsStats,
@@ -31,6 +36,48 @@ export function parseSourceMap(
       segmentCount: mappings.length,
     };
   });
+}
+
+/**
+ * Best-effort source skeleton for a source whose `sourcesContent` was stripped
+ * by the vendor. Walks the decoded mapping segments that reference this source
+ * index, sorts them by original line:column, and emits the original position
+ * plus the bound name (from the `names` array) for each segment.
+ *
+ * This is NOT real source — it only reveals variable names and their original
+ * positions, enough to orient a reverse-engineer when the vendor stripped
+ * `sourcesContent` (bandwidth / IP protection). No heuristic feature library
+ * is applied; the skeleton is a direct projection of the mapping data.
+ */
+export function inferSourceSkeleton(
+  sourceIndex: number,
+  map: SourceMapV3,
+  mappings: readonly DecodedMapping[],
+): string {
+  const segments = mappings
+    .filter((m) => m.sourceIndex === sourceIndex)
+    .toSorted((a, b) => {
+      const lineDelta = (a.originalLine ?? -1) - (b.originalLine ?? -1);
+      if (lineDelta !== 0) return lineDelta;
+      return (a.originalColumn ?? -1) - (b.originalColumn ?? -1);
+    });
+
+  const lines: string[] = [
+    '/* Inferred source skeleton — sourcesContent was stripped by the vendor.',
+    `   Reconstructed from ${segments.length} mapping segment(s): original line:col + bound name.`,
+    '   This is NOT real source; variable names and positions only. */',
+  ];
+
+  for (const seg of segments) {
+    const loc = `L${seg.originalLine ?? '?'}:${seg.originalColumn ?? '?'}`;
+    const name =
+      typeof seg.nameIndex === 'number' && seg.nameIndex >= 0 && seg.nameIndex < map.names.length
+        ? (map.names[seg.nameIndex] ?? null)
+        : null;
+    lines.push(name ? `${loc}  ${name}` : loc);
+  }
+
+  return lines.join('\n') + '\n';
 }
 
 export function parseSourceMapStats(

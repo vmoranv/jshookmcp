@@ -688,6 +688,58 @@ describe('SourcemapToolHandlers', () => {
       expect(getText(res)).toContain('"skippedFiles": 1');
       normalizeSpy.mockRestore();
     });
+
+    it('writes an inferred skeleton for stripped sourcesContent when inferMissing=true', async () => {
+      const mockMap = {
+        version: 3,
+        sources: ['src/app.ts', 'src/lib.ts'],
+        sourcesContent: ['console.log("app");', null],
+        mappings: 'AAAA',
+        names: [],
+      };
+      globalFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockMap)),
+      });
+
+      const res = await handlers.handleSourcemapReconstructTree({
+        sourceMapUrl: withPath(TEST_HTTP_URLS.root, 'infer.map'),
+        inferMissing: true,
+      });
+
+      expect(getText(res)).toContain('"writtenFiles": 2');
+      expect(fsPromises.writeFile).toHaveBeenCalledTimes(2);
+      // the stripped source (src/lib.ts) gets an inferred skeleton, not the placeholder
+      const strippedContent = vi
+        .mocked(fsPromises.writeFile)
+        .mock.calls.map((c) => c[1])
+        .find((c) => typeof c === 'string' && (c as string).includes('Inferred source skeleton'));
+      expect(strippedContent).toBeDefined();
+    });
+
+    it('keeps the placeholder for stripped sourcesContent when inferMissing is false (default)', async () => {
+      const mockMap = {
+        version: 3,
+        sources: ['src/app.ts', 'src/lib.ts'],
+        sourcesContent: ['console.log("app");', null],
+        mappings: 'AAAA',
+        names: [],
+      };
+      globalFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockMap)),
+      });
+
+      await handlers.handleSourcemapReconstructTree({
+        sourceMapUrl: withPath(TEST_HTTP_URLS.root, 'placeholder.map'),
+      });
+
+      const strippedContent = vi
+        .mocked(fsPromises.writeFile)
+        .mock.calls.map((c) => c[1])
+        .find((c) => typeof c === 'string' && (c as string).includes('source content missing'));
+      expect(strippedContent).toBeDefined();
+    });
   });
 
   describe('handleExtensionListInstalled', () => {

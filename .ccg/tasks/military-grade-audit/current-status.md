@@ -44,7 +44,7 @@
 | process | 9.2 | Suspend/resume, hollowing dumps, thread diagnostics, and strict memory pattern validation are done. |
 | protocol-analysis | 9.6 | MQTT/STUN/QUIC/SOCKS5/HTTP2 fingerprint expansion is done. |
 | proxy | 9.3 | Body/timing capture, active rule lifecycle, arbitrary methods, and strict rule input validation are done. |
-| sourcemap | 9.4 | Indexed (sectioned) source map flattening + sourcemap_lookup reverse (original -> generated) mode are done; MCP-safe wrappers + shared SSRF private-host policy remain. |
+| sourcemap | 9.6 | Indexed (sectioned) source map flattening + sourcemap_lookup reverse (original -> generated) mode + reconstruct_tree inferMissing (sourcesContent-null skeleton) are done; MCP-safe wrappers + shared SSRF private-host policy remain. |
 | streaming | 9.2 | Payload export and capture cap schema/runtime alignment are done; gRPC/fetch/WebRTC depth remains. |
 | syscall-hook | 9.4 | dtrace entry/return probe pairing (returnValue + duration) and ETW multi-provider capture (kernel-process/network/file/image GUIDs) are done; native direct-NT live hook + Frida cross-platform live path remain. |
 | trace | 9.2 | Category thread tracks and runtime console/exception seek context are done; CPU samples/flame depth remains. |
@@ -72,12 +72,14 @@
 
 | 30 | (network bot-detect JA3/JA4) | network Phase 3: `detectBotSignals` extended with optional `jaFingerprint` (ja3/ja4 informational + user-supplied knownBadJa3/knownBadJa4; +0.45 on match). `network_bot_detect_analyze` schema adds ja3/ja4/knownBadJa3/knownBadJa4. **Zero hardcoded feature library** — "bad" is caller's judgement. 7 new tests (5 pure + 2 integration). network 9.6→9.8. No new tool count (577 unchanged). |
 
+| 31 | (sourcemap inferMissing) | sourcemap Phase 3: `sourcemap_reconstruct_tree` gains optional `inferMissing: boolean`. New pure fn `inferSourceSkeleton` walks decoded mapping segments for stripped `sourcesContent`, emits best-effort name+position skeleton (zero heuristic feature library — direct projection). 5 pure + 2 integration tests. sourcemap 9.4→9.6. No new tool count (577 unchanged). |
+
 ## Next 10/10 work
 
 The remaining work is no longer a single wrapper or metadata pass. Treat every
 next increment as a feature-plus-adversarial-test slice:
 
-1. Pick one 9.2 domain and close a real missing capability from its research file. (Session 30 network bot-detect 9.6→9.8 ✅ done — research #4 closed with zero-hardcoded-library design.)
+1. Pick one 9.2 domain and close a real missing capability from its research file. (Session 30 network bot-detect 9.6→9.8 ✅; Session 31 sourcemap 9.4→9.6 ✅ inferMissing — both closed with zero-hardcoded-library design.)
 2. Add strict schema/runtime validation for every new input path.
 3. Add focused success, negative, and boundary tests.
 4. Run targeted tests, `pnpm metadata:check`, `node scripts/scan-domain-audit.mjs`,

@@ -28,11 +28,13 @@ import {
   fail,
   decodeVlqSegment,
   decodeVlqSegmentUnsigned,
+  decodeMappings,
 } from './shared';
 import {
   parseSourceMap,
   parseSourceMapStats,
   resolveSourceMapUrl,
+  inferSourceSkeleton,
   extractSourceMappingUrlFromScript,
   combineSourceRoot,
   normalizeSourcePath,
@@ -368,7 +370,11 @@ export class SourcemapHandlers {
     try {
       const sourceMapUrl = requiredStringArg(args.sourceMapUrl, 'sourceMapUrl');
       const outputDir = optionalStringArg(args.outputDir);
+      const inferMissing = parseBooleanArg(args.inferMissing, false);
       const parsed = await parseSourceMapStats(sourceMapUrl, undefined, this.state.collector);
+      // When the vendor stripped sourcesContent, infer a name+position skeleton
+      // from the decoded mapping segments (opt-in; default keeps the placeholder).
+      const decodedMappings = inferMissing ? decodeMappings(parsed.map.mappings) : undefined;
 
       const artifactTarget = safeTarget(parsed.resolvedUrl);
       const artifactPath = await resolveArtifactPath({
@@ -410,7 +416,9 @@ export class SourcemapHandlers {
         const fileContent =
           typeof sourceContent === 'string'
             ? sourceContent
-            : `/* source content missing in source map: ${sourcePath} */\n`;
+            : inferMissing && decodedMappings
+              ? inferSourceSkeleton(index, parsed.map, decodedMappings)
+              : `/* source content missing in source map: ${sourcePath} */\n`;
 
         try {
           await mkdir(dirname(absolutePath), { recursive: true });

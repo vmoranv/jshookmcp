@@ -42,9 +42,16 @@ export const sourcemapTools: Tool[] = [
   ),
   tool('sourcemap_reconstruct_tree', (t) =>
     t
-      .desc('Reconstruct source files from a source map.')
+      .desc(
+        'Reconstruct source files from a source map. When a vendor stripped sourcesContent, set inferMissing=true to emit a best-effort name+position skeleton (from mapping segments) instead of a placeholder.',
+      )
       .string('sourceMapUrl', 'Source map URL.')
       .string('outputDir', 'Output directory under the project root.')
+      .boolean(
+        'inferMissing',
+        'For sources with null sourcesContent, infer a name+position skeleton from the decoded mapping segments instead of writing a placeholder comment.',
+        { default: false },
+      )
       .required('sourceMapUrl'),
   ),
   tool('sourcemap_parse_v4', (t) =>

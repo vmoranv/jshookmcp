@@ -1,4 +1,4 @@
-# 全域军工级审计 — Handoff（2026-07-09 · session 30 · network bot-detect JA3/JA4 integration）
+# 全域军工级审计 — Handoff（2026-07-09 · session 31 · sourcemap reconstruct_tree inferMissing）
 
 > ⚠️ **.ccg/ 在 .gitignore（L120），但核心文档（handoff/current-status/INDEX 等 6 个）已 tracked，修改正常 `git add` 即可；仅新增 research/ 等文件需 `git add -f`。**
 > 本文件是下一位 agent 的入口。所有路径相对项目根 `D:\coding\reverse\jshookmcp\`。
@@ -19,10 +19,10 @@
 | 门禁 | 状态 |
 |------|------|
 | **工具数** | **577**（`pnpm metadata:check` in sync, 2026-07-08） |
-| **测试** | **16209 passed / 30 skipped**（997 files passed；latest full check after Session 30 network bot-detect JA3/JA4 integration） |
+| **测试** | **16216 passed / 30 skipped**（998 files passed；latest full check after Session 31 sourcemap inferMissing） |
 | **typecheck** | 0 errors（root + extension-sdk） |
 | **lint / format** | 全绿 |
-| **git — committed** | Through Session 30 `feat(network): integrate JA3/JA4 known-bad matching into bot detection`。前置 3 个 review-fix atomic commit：`488af23d` fix(process) hollowing Linux skip + `2aee71e0` chore(registry) regenerate + `9d964a1b` docs sync。Session 29 memory 标注 `963e44f5` 已 push origin/master。 |
+| **git — committed** | Through Session 31 `feat(sourcemap): reconstruct_tree inferMissing`。Session 30 `feat(network): integrate JA3/JA4 known-bad matching`。前置 3 个 review-fix atomic commit：`488af23d` fix(process) hollowing Linux skip + `2aee71e0` chore(registry) regenerate + `9d964a1b` docs sync。Session 29 memory 标注 `963e44f5` 已 push origin/master。 |
 | **git — dirty** | 核心文档（handoff/current-status/INDEX 等）已 tracked，正常 `git add`；仅新增 research/ 文件需 `git add -f`（.ccg/ 在 .gitignore L120）。 |
 
 最终验证命令：
@@ -98,21 +98,38 @@ VITEST_MAX_WORKERS=4 pnpm check      # 16145 passed | 30 skipped
 - **工具数** 577 不变（扩展现有工具）；`scripts/update-domain-scores.mjs`：network 9.6→9.8。
 - **诚实缺口**：HTTP/2 SETTINGS fingerprint（Akamai）+ Canvas/WGL fingerprint 信号仍未接入（research #4 更深处，out of scope）。
 
-## NEXT PHASE DECISION — Session 31
+## Session 31（2026-07-09）：sourcemap Phase 3 — reconstruct_tree inferMissing（零内置特征库）
+
+完成 research #1：当 vendor 剥离 `sourcesContent` 时，`reconstruct_tree` 不再只写占位符——opt-in `inferMissing` 从 decoded mapping segments 推断 best-effort source skeleton。sourcemap 9.4→9.6。
+
+- **设计（延续零内置特征库原则）**：`inferSourceSkeleton` 是 mapping 数据的**直接投影**（original line:col + bound name），不应用任何启发式特征库/猜测。skeleton 是定位辅助（变量名 + 位置），不是真实 source。
+- **`inferSourceSkeleton`**（新纯函数 `handlers/sourcemap-parsing.ts`）：接收 (sourceIndex, map, mappings)，filter 该 source 的 segments，`toSorted` 按 originalLine/originalColumn，每段输出 `L<line>:<col>  <name>`（name 从 `names[nameIndex]`，无 nameIndex 则仅位置）。header 标注 "Inferred source skeleton — sourcesContent was stripped"。
+- **`handleSourcemapReconstructTree`**（`handlers/sourcemap-handlers.ts`）：加 `inferMissing: boolean`（默认 false）。inferMissing 时 `decodeMappings(parsed.map.mappings)` 一次，对 sourcesContent null 的 source 调 inferSourceSkeleton 替代占位符；有 sourcesContent 的 source 不受影响。
+- **schema**（`definitions.ts`）：`sourcemap_reconstruct_tree` 加 `inferMissing` boolean + desc 说明。
+- **接口扩展安全性**：inferMissing 默认 false（不传时行为完全不变）；现有 sourcemap 测试全保留通过。
+- **测试**：7 新 case — 5 纯函数（skeleton 含 names / 零 segment / sourceIndex 过滤 / 排序 / 无 nameIndex）+ 2 handler 集成（inferMissing=true 写 skeleton / 默认写占位符）。sourcemap 260/260，全量 16216/30。
+- **工具数** 577 不变（扩展现有工具）；`scripts/update-domain-scores.mjs`：sourcemap 9.4→9.6。
+- **诚实缺口**：skeleton 是 name+位置投影，不恢复真实 source 代码（需 sourcesContent）；v4 scopes 接入 reconstruct（research #5）仍未做。
+
+## NEXT PHASE DECISION — Session 32
+
+### ✅ sourcemap inferMissing（Session 31 已完成）
+
+Session 31 闭合 research #1：`reconstruct_tree` + `inferSourceSkeleton` 接入 inferMissing（零内置特征库，直接投影 mapping）。sourcemap 9.4→9.6。v4 scopes 接入 reconstruct（#5）仍缺。
 
 ### ✅ network bot-detect JA3/JA4 集成（Session 30 已完成）
 
-Session 30 已闭合 research #4：`detectBotSignals` + `network_bot_detect_analyze` 接入 ja3/ja4 + 用户传入 knownBad 列表（**零内置特征库**设计）。network 9.6→9.8。HTTP/2 SETTINGS + Canvas/WGL 信号仍缺（更深，out of scope）。
+Session 30 闭合 research #4：network 9.6→9.8。HTTP/2 SETTINGS + Canvas/WGL 信号仍缺。
 
 ### ✅ memory 跨平台 parity stub 标注（Session 29 已完成）
 
-Session 29 已在 4 处标注 `// TODO(macOS/Linux)` + `// NOTE`（find-accesses.ts / manifest.ts / handlers.impl.ts），指向 `research/memory.md #3`。**实现需 Mac 真机**——ptrace(Linux) / mach_vm_protect(macOS) FFI 在 Windows 上无法调试。vmoranv 在 Mac 上 pull 后按 TODO 注释接 native bpEngine + process_vm_readv/mach_vm_read reader，再移除 `WIN32_ONLY_TOOLS` 过滤。**Windows session 不再碰这个**，除非有 Mac 真机环境。
+Session 29 已在 4 处标注 `// TODO(macOS/Linux)` + `// NOTE`，指向 `research/memory.md #3`。**实现需 Mac 真机**——ptrace/mach_vm_protect FFI 在 Windows 上无法调试。**Windows session 不再碰**，除非有 Mac 真机环境。
 
-### ⭐ Session 31 候选（Windows 可做）
+### ⭐ Session 32 候选（Windows 可做）
 
-1. **sourcemap 9.4→9.6**：research #1（sourcesContent null 推断 source skeleton）或 #4（sourcemap_diff）。
-2. **browser 9.5→9.7**：research CDP all-origin cookies + launch enum validation。
-3. **network 9.8→9.85+**：HTTP/2 SETTINGS fingerprint（Akamai）接入 bot-detect（Session 30 的诚实缺口）。
+1. **browser 9.5→9.7**：research CDP all-origin cookies + launch enum validation。
+2. **sourcemap 9.6→9.8**：research #4 sourcemap_diff（比较两版 source map）或 #5 v4 scopes 接入 reconstruct。
+3. **network 9.8→9.85+**：HTTP/2 SETTINGS fingerprint（Akamai）接入 bot-detect（Session 30 诚实缺口）。
 4. 其余 9.2 域各自 research 的 P0/P1 真实 gap（见 `domain-10-plan.md`）。
 
 下一位接手：读 `current-status.md` → 选上述候选或某个 9.2 域 → TDD/gate/文档/commit。
