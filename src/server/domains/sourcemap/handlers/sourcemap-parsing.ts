@@ -476,3 +476,125 @@ export function safeTarget(value: string): string {
     .replace(/^_|_$/g, '')
     .slice(0, 48);
 }
+
+// ── Diff types ──
+
+export interface SourceMapDiffResult {
+  sourcesAdded: string[];
+  sourcesRemoved: string[];
+  sourcesUnmodified: string[];
+  namesAdded: string[];
+  namesRemoved: string[];
+  segmentsBefore: number;
+  segmentsAfter: number;
+  segmentDelta: number;
+  perSourceDeltas: Record<
+    string,
+    {
+      segmentsBefore: number;
+      segmentsAfter: number;
+      delta: number;
+      positionsShifted: number;
+    }
+  >;
+}
+
+/**
+ * Compare two parsed source maps and report structural + positional deltas.
+ *
+ * Pure function — no I/O, no state. Both maps must already be parsed via
+ * {@link parseSourceMap}. `positionThreshold` controls how many line-delta is
+ * required for a segment to be flagged as "shifted" (default 1 = any shift).
+ */
+export function diffSourceMaps(
+  parsedA: ParsedSourceMapResult,
+  parsedB: ParsedSourceMapResult,
+  positionThreshold: number = 1,
+): SourceMapDiffResult {
+  const sourcesA = new Set(parsedA.map.sources);
+  const sourcesB = new Set(parsedB.map.sources);
+
+  const sourcesAdded = [...sourcesB].filter((s) => !sourcesA.has(s)).toSorted();
+  const sourcesRemoved = [...sourcesA].filter((s) => !sourcesB.has(s)).toSorted();
+  const sourcesUnmodified = [...sourcesA].filter((s) => sourcesB.has(s)).toSorted();
+
+  const namesA = new Set(parsedA.map.names);
+  const namesB = new Set(parsedB.map.names);
+  const namesAdded = [...namesB].filter((n) => !namesA.has(n)).toSorted();
+  const namesRemoved = [...namesA].filter((n) => !namesB.has(n)).toSorted();
+
+  const segmentsBefore = parsedA.segmentCount;
+  const segmentsAfter = parsedB.segmentCount;
+
+  const segCountBySourceA = new Map<string, number>();
+  const segCountBySourceB = new Map<string, number>();
+  const posBySourceA = new Map<string, Map<string, { line: number; col: number }>>();
+  const posBySourceB = new Map<string, Map<string, { line: number; col: number }>>();
+
+  for (const m of parsedA.mappings) {
+    if (m.sourceIndex === undefined) continue;
+    const name = parsedA.map.sources[m.sourceIndex];
+    if (name === undefined) continue;
+    segCountBySourceA.set(name, (segCountBySourceA.get(name) ?? 0) + 1);
+    if (m.originalLine === undefined) continue;
+    const key = `${m.sourceIndex}:${m.originalLine}:${m.originalColumn ?? 0}`;
+    let map = posBySourceA.get(name);
+    if (!map) {
+      map = new Map();
+      posBySourceA.set(name, map);
+    }
+    map.set(key, { line: m.generatedLine, col: m.generatedColumn });
+  }
+  for (const m of parsedB.mappings) {
+    if (m.sourceIndex === undefined) continue;
+    const name = parsedB.map.sources[m.sourceIndex];
+    if (name === undefined) continue;
+    segCountBySourceB.set(name, (segCountBySourceB.get(name) ?? 0) + 1);
+    if (m.originalLine === undefined) continue;
+    const key = `${m.sourceIndex}:${m.originalLine}:${m.originalColumn ?? 0}`;
+    let map = posBySourceB.get(name);
+    if (!map) {
+      map = new Map();
+      posBySourceB.set(name, map);
+    }
+    map.set(key, { line: m.generatedLine, col: m.generatedColumn });
+  }
+
+  const perSourceDeltas: SourceMapDiffResult['perSourceDeltas'] = {};
+  const allSources = new Set([...sourcesA, ...sourcesB]);
+  for (const source of allSources) {
+    const before = segCountBySourceA.get(source) ?? 0;
+    const after = segCountBySourceB.get(source) ?? 0;
+    const positionsA = posBySourceA.get(source);
+    const positionsB = posBySourceB.get(source);
+    let positionsShifted = 0;
+    if (positionsA && positionsB) {
+      for (const [key, posA] of positionsA) {
+        const posB = positionsB.get(key);
+        if (!posB) continue;
+        const lineDelta = Math.abs(posB.line - posA.line);
+        if (lineDelta >= positionThreshold) {
+          positionsShifted++;
+        }
+      }
+    }
+    perSourceDeltas[source] = {
+      segmentsBefore: before,
+      segmentsAfter: after,
+      delta: after - before,
+      positionsShifted,
+    };
+  }
+
+  return {
+    sourcesAdded,
+    sourcesRemoved,
+    sourcesUnmodified,
+    namesAdded,
+    namesRemoved,
+    segmentsBefore,
+    segmentsAfter,
+    segmentDelta: segmentsAfter - segmentsBefore,
+    perSourceDeltas,
+  };
+}

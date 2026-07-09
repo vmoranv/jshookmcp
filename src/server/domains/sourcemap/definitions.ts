@@ -69,4 +69,22 @@ export const sourcemapTools: Tool[] = [
       })
       .required('sourceMapUrl'),
   ),
+  tool('sourcemap_diff', (t) =>
+    t
+      .desc(
+        'Compare two source map revisions: which sources were added/removed, per-source mapping ' +
+          'segment deltas, and generated-position shifts beyond a configurable threshold (default 1 line).',
+      )
+      .string('sourceMapUrl', 'First source map URL.')
+      .string('sourceMapUrlB', 'Second source map URL.')
+      .string('scriptUrl', 'Script URL for relative map A resolution.')
+      .string('scriptUrlB', 'Script URL for relative map B resolution.')
+      .number(
+        'positionThreshold',
+        'Min generated-line delta to flag a segment as "shifted" (default 1).',
+        { minimum: 1, default: 1 },
+      )
+      .required('sourceMapUrl', 'sourceMapUrlB')
+      .query(),
+  ),
 ];

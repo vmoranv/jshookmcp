@@ -86,4 +86,12 @@ export class SourcemapToolHandlers {
   handleSourcemapParseV4(args: Record<string, unknown>) {
     return this.sourcemap.handleSourcemapParseV4(args);
   }
+
+  async handleSourcemapDiffTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleSourcemapDiff(args));
+  }
+
+  handleSourcemapDiff(args: Record<string, unknown>) {
+    return this.sourcemap.handleSourcemapDiff(args);
+  }
 }

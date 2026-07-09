@@ -18,6 +18,7 @@ const registrations = defineMethodRegistrations<H, (typeof sourcemapTools)[numbe
     { tool: 'sourcemap_lookup', method: 'handleSourcemapLookupTool' },
     { tool: 'sourcemap_reconstruct_tree', method: 'handleSourcemapReconstructTreeTool' },
     { tool: 'sourcemap_parse_v4', method: 'handleSourcemapParseV4Tool' },
+    { tool: 'sourcemap_diff', method: 'handleSourcemapDiffTool' },
   ],
 });
 

@@ -40,6 +40,7 @@ import {
   normalizeSourcePath,
   safeTarget,
   fetchSourceMapText,
+  diffSourceMaps,
 } from './sourcemap-parsing';
 
 function countScopeNodes(nodes: Array<OriginalScopeNode | null>): number {
@@ -438,6 +439,44 @@ export class SourcemapHandlers {
       });
     } catch (error) {
       return fail('sourcemap_reconstruct_tree', error);
+    }
+  }
+
+  async handleSourcemapDiff(args: Record<string, unknown>): Promise<TextToolResponse> {
+    try {
+      const sourceMapUrl = requiredStringArg(args.sourceMapUrl, 'sourceMapUrl');
+      const sourceMapUrlB = requiredStringArg(args.sourceMapUrlB, 'sourceMapUrlB');
+      const scriptUrl = optionalStringArg(args.scriptUrl);
+      const scriptUrlB = optionalStringArg(args.scriptUrlB);
+      const positionThreshold =
+        typeof args.positionThreshold === 'number' && args.positionThreshold >= 1
+          ? args.positionThreshold
+          : 1;
+
+      const [parsedA, parsedB] = await Promise.all([
+        parseSourceMap(sourceMapUrl, scriptUrl, this.state.collector),
+        parseSourceMap(sourceMapUrlB, scriptUrlB, this.state.collector),
+      ]);
+
+      const diff = diffSourceMaps(parsedA, parsedB, positionThreshold);
+
+      return json({
+        mapA: {
+          resolvedUrl: parsedA.resolvedUrl,
+          sources: parsedA.map.sources.length,
+          names: parsedA.map.names.length,
+          segments: parsedA.segmentCount,
+        },
+        mapB: {
+          resolvedUrl: parsedB.resolvedUrl,
+          sources: parsedB.map.sources.length,
+          names: parsedB.map.names.length,
+          segments: parsedB.segmentCount,
+        },
+        diff,
+      });
+    } catch (error) {
+      return fail('sourcemap_diff', error);
     }
   }
 
