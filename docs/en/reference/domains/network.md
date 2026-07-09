@@ -21,7 +21,7 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 - browser + network
 - network + workflow
 
-## Full tool list (38)
+## Full tool list (39)
 
 | Tool | Description |
 | --- | --- |
@@ -48,6 +48,7 @@ Request capture, response extraction, HAR export, safe replay, and performance t
 | `http2_probe` | Probe an HTTP/2 endpoint. |
 | `http2_frame_build` | Build a raw HTTP/2 frame. |
 | `http2_frame_parse` | Decode a raw HTTP/2 frame (hex string) back into its header fields and type-specific payload (SETTINGS entries, PING opaque data, WINDOW_UPDATE increment, RST_STREAM/GOAWAY error codes, GOAWAY debug data). Inverse of http2_frame_build. Lenient: malformed payloads set decodeError but still return payloadHex. |
+| `network_http2_fingerprint` | Compute an Akamai-style HTTP/2 fingerprint from one or more captured HTTP/2 frames (the client connection preface: SETTINGS + stream-0 WINDOW_UPDATE + any PRIORITY frames). Returns the canonical "&lt;settings&gt;\|&lt;window_update&gt;\|&lt;priority&gt;" string, a sha256 hash, and the structured fields (settings entries, window update increment, priorities). Ships NO hardcoded feature library — the structured fields are authoritative; the caller decides what is "bad". Pair with network_tls_fingerprint for full client identity. |
 | `network_rtt_measure` | Measure round-trip time to a target URL. |
 | `network_latency_stats` | Measure repeated latency and compute percentile stats. |
 | `network_traceroute` | Run an ICMP traceroute. |
