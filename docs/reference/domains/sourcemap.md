@@ -27,4 +27,4 @@ SourceMap 发现、抓取、解析与源码树重建。
 | `sourcemap_lookup` | 将生成代码的位置（行号:列号）反向映射到原始源码位置。 |
 | `sourcemap_reconstruct_tree` | 根据 Source Map 重建原始项目文件树并写出 sources 内容。 |
 | `sourcemap_parse_v4` | 解析 Source Map，支持 ECMA-426 v4 scope/debug-id；无 v4 字段时回退 v3。 |
-| `sourcemap_diff` | 待补充中文：Compare two source map revisions: which sources were added/removed, per-source mapping segment deltas, and generated-position shifts beyond a configurable threshold (default 1 line). |
+| `sourcemap_diff` | 对比两个 source map 版本：哪些源文件被新增/移除、每个源的 mapping segment 增减，以及超过可配置阈值（默认 1 行）的生成位置偏移。 |

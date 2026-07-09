@@ -11,6 +11,9 @@ pre-commit:
     block-planning:
       glob: ".planning/**"
       run: "echo '❌ .planning/ files must not be committed' && exit 1"
+    block-ccg:
+      glob: ".ccg/**"
+      run: "echo '❌ .ccg/ files must not be committed (covered by .gitignore L120)' && exit 1"
     docs-generate:
       run: corepack pnpm docs:generate
       stage_fixed: true
