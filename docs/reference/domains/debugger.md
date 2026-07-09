@@ -21,7 +21,7 @@
 - debugger + browser
 - debugger + instrumentation
 
-## 工具清单（20）
+## 工具清单（21）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -32,6 +32,7 @@
 | `debugger_step` | 单步执行代码（进入/跳过/跳出）。 |
 | `breakpoint` | 管理断点：代码断点（行号/脚本）、函数名断点、XHR 断点（URL 模式）、事件监听断点、事件类别断点和异常断点。 |
 | `get_call_stack` | 获取当前调用栈（仅在断点暂停时可用）。 |
+| `debugger_disassemble` | 反汇编当前暂停位置（或指定 scriptId）的 V8 字节码/指令。自动从当前暂停调用帧解析目标 scriptId——在混淆/VM 代码中暂停时很有用，可据此判断是否步入。原生字节码需 V8 natives 语法；当原生提取不可用时，设置 includeSourceFallback 可从源码派生伪字节码。 |
 | `debugger_evaluate` | 在特定上下文（当前调用帧或全局）中求值表达式。 |
 | `debugger_wait_for_paused` | 等待调试器进入暂停状态。 |
 | `debugger_capture_hit` | 等待下一次调试器暂停，并一次性捕获调用栈和可选的顶部调用帧作用域变量。 |

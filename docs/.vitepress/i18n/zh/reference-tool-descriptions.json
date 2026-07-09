@@ -586,5 +586,6 @@
   "fetch_stream_monitor": "启用/停用 fetch() 流捕获。包装 window.fetch，对 content-type 为 text/event-stream 的响应克隆 body 并解析 SSE 帧流为事件。覆盖 EventSource 版 sse_monitor_enable 漏掉的 LLM / GraphQL subscription 流量（fetch + POST + 自定义头）。用 fetch_stream_get_events 读取捕获的事件。",
   "fetch_stream_get_events": "读取 fetch() 流监控捕获的事件（经 fetch 消费的 text/event-stream）。设 fullData=true 返回完整事件数据。",
   "webrtc_monitor": "启用/停用 WebRTC 数据通道流量捕获。在页面内包装 RTCPeerConnection（RTCDataChannel 无 CDP 支持）：拦截 createDataChannel（本地通道）与 datachannel 事件（远端通道），同时捕获出站 send() 与入站 message。用 webrtc_get_events 读取捕获的消息。",
-  "webrtc_get_events": "读取 WebRTC 数据通道监控捕获的消息。设 fullData=true 返回完整消息数据。可按通道 label 与方向（sent/received）过滤。"
+  "webrtc_get_events": "读取 WebRTC 数据通道监控捕获的消息。设 fullData=true 返回完整消息数据。可按通道 label 与方向（sent/received）过滤。",
+  "debugger_disassemble": "反汇编当前暂停位置（或指定 scriptId）的 V8 字节码/指令。自动从当前暂停调用帧解析目标 scriptId——在混淆/VM 代码中暂停时很有用，可据此判断是否步入。原生字节码需 V8 natives 语法；当原生提取不可用时，设置 includeSourceFallback 可从源码派生伪字节码。"
 }

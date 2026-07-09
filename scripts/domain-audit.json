@@ -169,8 +169,8 @@
   "debugger": {
     "domain": "debugger",
     "dims": {
-      "d1_toolCount": 20,
-      "d2_testFiles": 50,
+      "d1_toolCount": 21,
+      "d2_testFiles": 51,
       "d3_coverageExcluded": ["src/server/domains/debugger/handlers.ts"],
       "d4_bareCatch": 1,
       "d5_handleSafeRefs": 8,
