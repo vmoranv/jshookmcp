@@ -41,6 +41,7 @@
       "d2_testFiles": 16,
       "d3_coverageExcluded": [
         "src/server/domains/binary-instrument/handlers.impl.ts",
+        "src/server/domains/binary-instrument/handlers/analysis-handlers.ts",
         "src/server/domains/binary-instrument/handlers.ts"
       ],
       "d4_bareCatch": 11,
@@ -60,6 +61,8 @@
       "d2_testFiles": 4,
       "d3_coverageExcluded": [
         "src/server/domains/boringssl-inspector/handlers.impl.ts",
+        "src/server/domains/boringssl-inspector/handlers/handler-class.ts",
+        "src/server/domains/boringssl-inspector/handlers/raw-socket-handlers.ts",
         "src/server/domains/boringssl-inspector/handlers.ts",
         "src/server/domains/boringssl-inspector/handlers.impl.core.ts"
       ],
@@ -427,6 +430,7 @@
       "d1_toolCount": 20,
       "d2_testFiles": 13,
       "d3_coverageExcluded": [
+        "src/server/domains/protocol-analysis/handlers/handler-class.ts",
         "src/server/domains/protocol-analysis/handlers.ts",
         "src/server/domains/protocol-analysis/handlers.impl.core.ts"
       ],
