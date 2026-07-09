@@ -155,6 +155,7 @@ export class RawHttp2Handlers {
       'WINDOW_UPDATE',
       'RST_STREAM',
       'GOAWAY',
+      'PUSH_PROMISE',
       'RAW',
     ];
     const frameType = frameTypeRaw.toUpperCase();

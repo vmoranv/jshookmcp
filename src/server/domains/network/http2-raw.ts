@@ -3,9 +3,13 @@ const HTTP2_MAX_STREAM_ID = 0x7fff_ffff;
 const HTTP2_MAX_SETTINGS_ID = 0xffff;
 const HTTP2_MAX_UNSIGNED_INT32 = 0xffff_ffff;
 
+// RFC 7540 §6.6 PUSH_PROMISE PADDED flag (END_HEADERS 0x4 is caller-controlled via flags).
+const HTTP2_PADDED_FLAG = 0x8;
+
 export type SupportedHttp2FrameType =
   | 'DATA'
   | 'SETTINGS'
+  | 'PUSH_PROMISE'
   | 'PING'
   | 'WINDOW_UPDATE'
   | 'RST_STREAM'
@@ -33,6 +37,12 @@ export interface Http2FrameBuildInput {
   lastStreamId?: number;
   debugDataText?: string;
   debugDataEncoding?: 'utf8' | 'ascii';
+  /** PUSH_PROMISE: the server-promised stream ID (RFC 7540 §6.6). */
+  promisedStreamId?: number;
+  /** PUSH_PROMISE: HPACK-encoded header block fragment (hex). */
+  headerBlockFragmentHex?: string;
+  /** PUSH_PROMISE / DATA: padding length; setting it enables the PADDED flag. */
+  padLength?: number;
 }
 
 export interface BuiltHttp2Frame {
@@ -50,6 +60,7 @@ const FRAME_TYPE_CODES: Record<Exclude<SupportedHttp2FrameType, 'RAW'>, number> 
   DATA: 0x0,
   RST_STREAM: 0x3,
   SETTINGS: 0x4,
+  PUSH_PROMISE: 0x5,
   PING: 0x6,
   GOAWAY: 0x7,
   WINDOW_UPDATE: 0x8,
@@ -162,6 +173,37 @@ function buildFramePayload(input: Http2FrameBuildInput): {
         flags: input.ack ? flags | 0x1 : flags,
       };
     }
+    case 'PUSH_PROMISE': {
+      // RFC 7540 §6.6: [Pad Length?] + Reserved(1)+Promised Stream ID(31) + Header Block Fragment + Padding.
+      const promisedStreamId = input.promisedStreamId;
+      if (promisedStreamId === undefined) {
+        throw new Error('promisedStreamId is required for PUSH_PROMISE frames');
+      }
+      assertIntegerInRange(promisedStreamId, 'promisedStreamId', 0, HTTP2_MAX_STREAM_ID);
+      const headerBlock = input.headerBlockFragmentHex
+        ? parseHexBytes(input.headerBlockFragmentHex, 'headerBlockFragmentHex')
+        : Buffer.alloc(0);
+      const padded = typeof input.padLength === 'number';
+      if (padded) {
+        assertIntegerInRange(input.padLength!, 'padLength', 0, 0xff);
+      }
+      const promisedWord = Buffer.alloc(4);
+      promisedWord.writeUInt32BE(promisedStreamId >>> 0, 0);
+      promisedWord[0] = promisedWord[0]! & 0x7f; // clear reserved bit
+      const parts: Buffer[] = [];
+      let outFlags = flags;
+      if (padded) {
+        outFlags |= HTTP2_PADDED_FLAG;
+        parts.push(Buffer.from([input.padLength! & 0xff]));
+      }
+      parts.push(promisedWord, headerBlock);
+      if (padded) parts.push(Buffer.alloc(input.padLength!));
+      return {
+        payload: Buffer.concat(parts),
+        typeCode: FRAME_TYPE_CODES.PUSH_PROMISE,
+        flags: outFlags,
+      };
+    }
     case 'WINDOW_UPDATE': {
       const increment = input.windowSizeIncrement;
       if (increment === undefined) {
@@ -222,7 +264,10 @@ function validateFrameTypeStream(frameType: SupportedHttp2FrameType, streamId: n
   ) {
     throw new Error(`${frameType} frames must use streamId 0`);
   }
-  if ((frameType === 'DATA' || frameType === 'RST_STREAM') && streamId === 0) {
+  if (
+    (frameType === 'DATA' || frameType === 'RST_STREAM' || frameType === 'PUSH_PROMISE') &&
+    streamId === 0
+  ) {
     throw new Error(`${frameType} frames must use a non-zero streamId`);
   }
 }
@@ -274,6 +319,12 @@ export interface ParsedHttp2Frame {
   errorCode?: number;
   lastStreamId?: number;
   debugDataHex?: string;
+  /** PUSH_PROMISE: the server-promised stream ID (RFC 7540 §6.6). */
+  promisedStreamId?: number;
+  /** PUSH_PROMISE: HPACK header block fragment (hex). */
+  headerBlockFragmentHex?: string;
+  /** PUSH_PROMISE / DATA: padding length when the PADDED flag was set. */
+  padLength?: number;
   decodeError?: string;
 }
 
@@ -281,6 +332,7 @@ const HTTP2_FRAME_TYPE_BY_CODE: Record<number, SupportedHttp2FrameType> = {
   0x0: 'DATA',
   0x3: 'RST_STREAM',
   0x4: 'SETTINGS',
+  0x5: 'PUSH_PROMISE',
   0x6: 'PING',
   0x7: 'GOAWAY',
   0x8: 'WINDOW_UPDATE',
@@ -352,6 +404,31 @@ export function parseHttp2Frame(frameHex: string): ParsedHttp2Frame {
         break;
       }
       result.pingOpaqueDataHex = payloadHex;
+      break;
+    }
+    case 'PUSH_PROMISE': {
+      // RFC 7540 §6.6: optional pad length, then 4-byte reserved+promised stream id, then header block fragment.
+      const padded = (flags & HTTP2_PADDED_FLAG) !== 0;
+      let body = payload;
+      if (padded) {
+        if (body.length < 1) {
+          result.decodeError = 'PUSH_PROMISE PADDED flag set but payload is empty';
+          break;
+        }
+        const padLen = body[0]!;
+        result.padLength = padLen;
+        if (body.length < 1 + 4 + padLen) {
+          result.decodeError = `PUSH_PROMISE padding length ${String(padLen)} exceeds payload`;
+          break;
+        }
+        body = body.subarray(1, body.length - padLen);
+      }
+      if (body.length < 4) {
+        result.decodeError = `PUSH_PROMISE payload length ${String(body.length)} is less than 4`;
+        break;
+      }
+      result.promisedStreamId = body.readUInt32BE(0) & 0x7fff_ffff;
+      result.headerBlockFragmentHex = body.subarray(4).toString('hex');
       break;
     }
     case 'WINDOW_UPDATE': {

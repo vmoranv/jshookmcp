@@ -186,4 +186,74 @@ describe('network http2-raw frame parser', () => {
 
     expect(() => parseHttp2Frame(frameHex)).toThrow('truncated');
   });
+
+  it('round-trips a PUSH_PROMISE frame (RFC 7540 §6.6)', async () => {
+    const built = buildHttp2Frame({
+      frameType: 'PUSH_PROMISE',
+      streamId: 1,
+      promisedStreamId: 2,
+      headerBlockFragmentHex: '828684418a089d5c0b8170dc641d9f',
+      flags: 0x4, // END_HEADERS
+    });
+    const parsed = parseHttp2Frame(built.frameHex);
+
+    expect(parsed.frameType).toBe('PUSH_PROMISE');
+    expect(parsed.typeCode).toBe(0x5);
+    expect(parsed.streamId).toBe(1);
+    expect(parsed.flags).toBe(0x4);
+    expect(parsed.promisedStreamId).toBe(2);
+    expect(parsed.headerBlockFragmentHex).toBe('828684418a089d5c0b8170dc641d9f');
+    expect(parsed.padLength).toBeUndefined();
+  });
+
+  it('round-trips a padded PUSH_PROMISE frame', async () => {
+    const built = buildHttp2Frame({
+      frameType: 'PUSH_PROMISE',
+      streamId: 3,
+      promisedStreamId: 5,
+      headerBlockFragmentHex: '00',
+      padLength: 4,
+    });
+    const parsed = parseHttp2Frame(built.frameHex);
+
+    expect(parsed.flags & 0x8).toBe(0x8); // PADDED
+    expect(parsed.padLength).toBe(4);
+    expect(parsed.promisedStreamId).toBe(5);
+    expect(parsed.headerBlockFragmentHex).toBe('00');
+  });
+
+  it('clears the reserved high bit on the PUSH_PROMISE promised stream id', async () => {
+    const built = buildHttp2Frame({
+      frameType: 'PUSH_PROMISE',
+      streamId: 1,
+      promisedStreamId: 0x7fff_ffff, // max valid (31-bit)
+    });
+    const parsed = parseHttp2Frame(built.frameHex);
+    expect(parsed.promisedStreamId).toBe(0x7fff_ffff);
+  });
+
+  it('requires non-zero streamId for PUSH_PROMISE', async () => {
+    expect(() =>
+      buildHttp2Frame({ frameType: 'PUSH_PROMISE', streamId: 0, promisedStreamId: 2 }),
+    ).toThrow('non-zero streamId');
+  });
+
+  it('requires promisedStreamId for PUSH_PROMISE', async () => {
+    expect(() => buildHttp2Frame({ frameType: 'PUSH_PROMISE', streamId: 1 })).toThrow(
+      'promisedStreamId is required',
+    );
+  });
+
+  it('flags a malformed PUSH_PROMISE payload (too short)', async () => {
+    // Hand-build a PUSH_PROMISE header claiming a 1-byte payload that's too short for the 4-byte stream id.
+    const header = Buffer.alloc(9);
+    header[2] = 1; // 1-byte payload
+    header[3] = 0x5; // PUSH_PROMISE
+    header.writeUInt32BE(1, 5); // streamId = 1
+    header[5] = header[5]! & 0x7f;
+    const frameHex = Buffer.concat([header, Buffer.from('ff', 'hex')]).toString('hex');
+    const parsed = parseHttp2Frame(frameHex);
+    expect(parsed.frameType).toBe('PUSH_PROMISE');
+    expect(parsed.decodeError).toMatch(/less than 4/);
+  });
 });

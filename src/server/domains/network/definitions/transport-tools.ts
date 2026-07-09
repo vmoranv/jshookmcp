@@ -94,7 +94,7 @@ export const transportTools: Tool[] = [
       .desc('Build a raw HTTP/2 frame.')
       .string(
         'frameType',
-        'HTTP/2 frame type: DATA, SETTINGS, PING, WINDOW_UPDATE, RST_STREAM, GOAWAY, or RAW',
+        'HTTP/2 frame type: DATA, SETTINGS, PING, WINDOW_UPDATE, RST_STREAM, GOAWAY, PUSH_PROMISE, or RAW',
       )
       .number('streamId', 'Stream identifier (0 for connection-level frames). Default: 0', {
         default: 0,
