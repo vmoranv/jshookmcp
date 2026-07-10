@@ -19,12 +19,27 @@ describe('trace tool definitions', () => {
     expect(names.has('query_trace_sql')).toBe(true);
     expect(names.has('seek_to_timestamp')).toBe(true);
     expect(names.has('trace_get_network_flow')).toBe(true);
+    expect(names.has('trace_get_samples')).toBe(true);
     expect(names.has('summarize_trace')).toBe(true);
   });
 
   it('trace_get_network_flow requires requestId', () => {
     const tool = findTool('trace_get_network_flow');
     expect(tool.inputSchema.required).toContain('requestId');
+  });
+
+  it('trace_get_samples exposes mode enum with top default and query inputs', () => {
+    const tool = findTool('trace_get_samples');
+    const properties = (tool.inputSchema.properties ?? {}) as Record<
+      string,
+      { type?: string; enum?: string[]; default?: string }
+    >;
+    expect(properties['mode']?.enum).toEqual(['top', 'function', 'window']);
+    expect(properties['mode']?.default).toBe('top');
+    expect(properties['functionName']?.type).toBe('string');
+    expect(properties['timestamp']?.type).toBe('number');
+    expect(properties['windowMs']?.type).toBe('number');
+    expect(properties['limit']?.type).toBe('number');
   });
 
   it('start_trace_recording exposes network capture controls', () => {

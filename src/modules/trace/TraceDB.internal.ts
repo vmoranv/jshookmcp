@@ -4,6 +4,7 @@ import type {
   TraceConsoleLog,
   TraceException,
   TraceSample,
+  TraceSampleAggregate,
   TraceEvent,
 } from '@modules/trace/TraceDB.types';
 
@@ -435,6 +436,19 @@ export function mapSampleRow(row: Record<string, unknown>): TraceSample {
     selfTime: row['self_time'] as number,
     aggregateTime: row['aggregate_time'] as number,
     functionName: (row['function_name'] as string) ?? null,
+    scriptId: (row['script_id'] as string) ?? null,
+    url: (row['url'] as string) ?? null,
+    lineNumber: (row['line_number'] as number) ?? null,
+    columnNumber: (row['column_number'] as number) ?? null,
+  };
+}
+
+export function mapSampleAggregateRow(row: Record<string, unknown>): TraceSampleAggregate {
+  return {
+    functionName: (row['function_name'] as string) ?? '(anonymous)',
+    selfTime: (row['self_time'] as number) ?? 0,
+    aggregateTime: (row['aggregate_time'] as number) ?? 0,
+    sampleCount: (row['sample_count'] as number) ?? 0,
     scriptId: (row['script_id'] as string) ?? null,
     url: (row['url'] as string) ?? null,
     lineNumber: (row['line_number'] as number) ?? null,

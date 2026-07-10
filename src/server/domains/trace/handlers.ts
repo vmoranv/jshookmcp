@@ -71,6 +71,7 @@ const TRACE_THREAD_NAMES: Record<number, string> = {
   5: 'Runtime',
   6: 'Page',
   7: 'Browser',
+  8: 'CPU Profile',
 };
 
 function deriveTraceTid(category: string | undefined | null): number {
@@ -102,6 +103,10 @@ export class TraceToolHandlers {
 
   async handleSeekToTimestampTool(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => await this.handleSeekToTimestamp(args));
+  }
+
+  async handleGetTraceSamplesTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleGetTraceSamples(args));
   }
 
   async handleGetTraceNetworkFlowTool(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -409,6 +414,78 @@ export class TraceToolHandlers {
     }
   }
 
+  async handleGetTraceSamples(args: Record<string, unknown>): Promise<unknown> {
+    const mode =
+      argEnum(args, 'mode', new Set(['top', 'function', 'window'] as const), 'top') ?? 'top';
+    const functionName = optionalStringArg(args['functionName'], 'functionName');
+    const dbPath = optionalStringArg(args['dbPath'], 'dbPath');
+
+    let tempDb: TraceDB | null = null;
+    try {
+      const db = getDbForReading(this.recorder, dbPath);
+      if (dbPath) tempDb = db;
+
+      if (mode === 'function') {
+        if (!functionName) {
+          throw new ToolError('VALIDATION', 'functionName is required for mode="function"');
+        }
+        const limit = asNumber(args['limit'], {
+          defaultValue: 20,
+          min: 1,
+          max: 1000,
+          integer: true,
+        });
+        const samples = db.querySamplesByFunction(functionName, limit);
+        return R.ok()
+          .merge({ mode, functionName, limit, sampleCount: samples.length, samples })
+          .json();
+      }
+
+      if (mode === 'window') {
+        const timestamp = asNumber(args['timestamp'], { defaultValue: Number.NaN, min: 0 });
+        if (!Number.isFinite(timestamp)) {
+          throw new ToolError('VALIDATION', 'timestamp is required for mode="window"');
+        }
+        const windowMs = asNumber(args['windowMs'], {
+          defaultValue: 100,
+          min: 1,
+          max: 60_000,
+          integer: true,
+        });
+        const limit = asNumber(args['limit'], {
+          defaultValue: 20,
+          min: 1,
+          max: 1000,
+          integer: true,
+        });
+        const samples = db.getSamplesInWindow(timestamp, windowMs, limit);
+        return R.ok()
+          .merge({ mode, timestamp, windowMs, limit, sampleCount: samples.length, samples })
+          .json();
+      }
+
+      // mode === 'top'
+      const limit = asNumber(args['limit'], { defaultValue: 20, min: 1, max: 1000, integer: true });
+      const startTs = optionalNumberArg(args['startTimestamp'], 'startTimestamp');
+      const endTs = optionalNumberArg(args['endTimestamp'], 'endTimestamp');
+      const hasWindow = typeof startTs === 'number' && typeof endTs === 'number';
+      const topFunctions = hasWindow
+        ? db.getTopFunctions(limit, startTs, endTs)
+        : db.getTopFunctions(limit);
+      return R.ok()
+        .merge({
+          mode,
+          limit,
+          ...(hasWindow ? { startTimestamp: startTs, endTimestamp: endTs } : {}),
+          functionCount: topFunctions.length,
+          topFunctions,
+        })
+        .json();
+    } finally {
+      if (tempDb) tempDb.close();
+    }
+  }
+
   async handleGetTraceNetworkFlow(args: Record<string, unknown>): Promise<unknown> {
     const requestId = optionalStringArg(args['requestId'], 'requestId') ?? '';
     const dbPath = optionalStringArg(args['dbPath'], 'dbPath');
@@ -622,9 +699,52 @@ export class TraceToolHandlers {
         };
       });
 
+      // Aggregate CPU profile samples into per-function Chrome Trace "X" complete
+      // events on a dedicated track (tid 8) so flame-graph viewers surface hot
+      // functions alongside the event timeline. Pure data projection — ordering
+      // follows self-time, no heuristic library.
+      const CPU_PROFILE_TID = 8;
+      const samplesResult = db.queryWithParams(
+        `SELECT function_name,
+                SUM(self_time) AS self_time,
+                SUM(aggregate_time) AS aggregate_time,
+                COUNT(*) AS sample_count,
+                MIN(timestamp) AS first_ts,
+                script_id, url, line_number, column_number
+         FROM samples
+         WHERE function_name IS NOT NULL
+         GROUP BY function_name
+         ORDER BY self_time DESC
+         LIMIT 50`,
+        [],
+      );
+      const sampleCols = samplesResult.columns;
+      const sampleCol = (name: string): number => sampleCols.indexOf(name);
+      const cpuProfileEvents = samplesResult.rows.map((row) => {
+        const selfTime = (row[sampleCol('self_time')] as number) ?? 0;
+        const firstTs = (row[sampleCol('first_ts')] as number) ?? 0;
+        return {
+          name: (row[sampleCol('function_name')] as string) ?? '(anonymous)',
+          cat: 'cpu-profile',
+          ph: 'X',
+          ts: firstTs * 1000,
+          dur: Math.max(selfTime * 1000, 1),
+          pid: 1,
+          tid: CPU_PROFILE_TID,
+          args: {
+            selfTimeMs: selfTime,
+            aggregateTimeMs: (row[sampleCol('aggregate_time')] as number) ?? 0,
+            sampleCount: (row[sampleCol('sample_count')] as number) ?? 0,
+            url: row[sampleCol('url')] ?? null,
+            scriptId: row[sampleCol('script_id')] ?? null,
+            lineNumber: row[sampleCol('line_number')] ?? null,
+          },
+        };
+      });
+
       // Prepend thread_name metadata events so chrome://tracing renders friendly
       // track labels (e.g. "Debugger", "Network") instead of bare "Thread N".
-      const usedTids = new Set<number>(traceEvents.map((e) => e.tid));
+      const usedTids = new Set<number>([...traceEvents, ...cpuProfileEvents].map((e) => e.tid));
       const threadNameEvents = [...usedTids]
         .toSorted((a, b) => a - b)
         .map((tid) => ({
@@ -635,7 +755,7 @@ export class TraceToolHandlers {
           tid,
           args: { name: TRACE_THREAD_NAMES[tid] ?? 'Other' },
         }));
-      const outputEvents = [...threadNameEvents, ...traceEvents];
+      const outputEvents = [...threadNameEvents, ...traceEvents, ...cpuProfileEvents];
 
       const allowedRoots = [getProjectRoot(), ...getSystemTempRoots()];
       const finalOutputPath = outputPath
@@ -655,15 +775,19 @@ export class TraceToolHandlers {
         allowedRoots: outputPath ? allowedRoots : undefined,
       });
 
+      const cpuProfileCount = cpuProfileEvents.length;
       return R.ok()
         .merge({
           exportedPath: finalOutputPath,
           eventCount: traceEvents.length,
           threadCount: usedTids.size,
+          ...(cpuProfileCount > 0 ? { cpuProfileFunctions: cpuProfileCount } : {}),
           format: 'Chrome Trace Event JSON',
           message:
-            `Exported ${traceEvents.length} events across ${usedTids.size} thread(s) to ` +
-            `${finalOutputPath}. Open in chrome://tracing or ui.perfetto.dev`,
+            `Exported ${traceEvents.length} events` +
+            `${cpuProfileCount > 0 ? ` and ${cpuProfileCount} CPU profile function(s)` : ''}` +
+            ` across ${usedTids.size} thread(s) to ${finalOutputPath}. ` +
+            `Open in chrome://tracing or ui.perfetto.dev`,
         })
         .json();
     } finally {
@@ -713,6 +837,14 @@ export class TraceToolHandlers {
          FROM network_resources`,
       );
 
+      // Surface the hottest CPU profile functions so the summary answers
+      // "where was time spent" without a separate query. Pure rollup of the
+      // recorded samples — no heuristic hot-function library.
+      const topFunctions = db.getTopFunctions(10);
+      const sampleCountResult = db.query('SELECT COUNT(*) AS cnt FROM samples');
+      const sampleCount =
+        sampleCountResult.rows.length > 0 ? ((sampleCountResult.rows[0]![0] as number) ?? 0) : 0;
+
       return R.ok()
         .merge({
           events: summarizeEvents(events, detail),
@@ -721,6 +853,10 @@ export class TraceToolHandlers {
             networkSummary.rows.length > 0
               ? rowToObject(networkSummary.columns, networkSummary.rows[0]!)
               : { requestCount: 0, chunkCount: 0, bodyCount: 0 },
+          cpuProfile: {
+            sampleCount,
+            topFunctions,
+          },
           metadata: {
             dbPath: dbPath ?? 'active recording',
             generatedAt: new Date().toISOString(),

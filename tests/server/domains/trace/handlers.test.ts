@@ -518,6 +518,219 @@ describe('TraceToolHandlers', () => {
     });
   });
 
+  describe('handleGetTraceSamples', () => {
+    it('returns top hot functions aggregated by self time', async () => {
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1000,
+        selfTime: 5,
+        aggregateTime: 8,
+        functionName: 'warm',
+        scriptId: '1',
+        url: 'a.js',
+        lineNumber: 1,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1010,
+        selfTime: 5,
+        aggregateTime: 8,
+        functionName: 'warm',
+        scriptId: '1',
+        url: 'a.js',
+        lineNumber: 1,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1020,
+        selfTime: 30,
+        aggregateTime: 40,
+        functionName: 'hot',
+        scriptId: '2',
+        url: 'b.js',
+        lineNumber: 9,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.flush();
+      // @ts-expect-error
+      db.close();
+
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = parseToolResponse<{
+        mode: string;
+        functionCount: number;
+        topFunctions: Array<{ functionName: string; selfTime: number; sampleCount: number }>;
+      }>(await handler.handleGetTraceSamples({ dbPath }));
+
+      expect(result.mode).toBe('top');
+      expect(result.functionCount).toBe(2);
+      expect(result.topFunctions[0]?.functionName).toBe('hot');
+      expect(result.topFunctions[0]?.selfTime).toBe(30);
+      expect(result.topFunctions[1]?.functionName).toBe('warm');
+      expect(result.topFunctions[1]?.selfTime).toBe(10);
+      expect(result.topFunctions[1]?.sampleCount).toBe(2);
+    });
+
+    it('returns samples for a single function in function mode', async () => {
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1000,
+        selfTime: 5,
+        aggregateTime: 8,
+        functionName: 'target',
+        scriptId: '1',
+        url: 'a.js',
+        lineNumber: 1,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1010,
+        selfTime: 3,
+        aggregateTime: 4,
+        functionName: 'other',
+        scriptId: '2',
+        url: 'b.js',
+        lineNumber: 2,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.flush();
+      // @ts-expect-error
+      db.close();
+
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = parseToolResponse<{
+        mode: string;
+        functionName: string;
+        sampleCount: number;
+        samples: Array<{ functionName: string }>;
+      }>(
+        await handler.handleGetTraceSamples({
+          dbPath,
+          mode: 'function',
+          functionName: 'target',
+        }),
+      );
+
+      expect(result.mode).toBe('function');
+      expect(result.functionName).toBe('target');
+      expect(result.sampleCount).toBe(1);
+      expect(result.samples[0]?.functionName).toBe('target');
+    });
+
+    it('returns samples within a time window in window mode', async () => {
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1000,
+        selfTime: 5,
+        aggregateTime: 8,
+        functionName: 'in',
+        scriptId: '1',
+        url: 'a.js',
+        lineNumber: 1,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 5000,
+        selfTime: 3,
+        aggregateTime: 4,
+        functionName: 'out',
+        scriptId: '2',
+        url: 'b.js',
+        lineNumber: 2,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.flush();
+      // @ts-expect-error
+      db.close();
+
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = parseToolResponse<{
+        mode: string;
+        sampleCount: number;
+        samples: Array<{ functionName: string }>;
+      }>(
+        await handler.handleGetTraceSamples({
+          dbPath,
+          mode: 'window',
+          timestamp: 1000,
+          windowMs: 50,
+        }),
+      );
+
+      expect(result.mode).toBe('window');
+      expect(result.sampleCount).toBe(1);
+      expect(result.samples[0]?.functionName).toBe('in');
+    });
+
+    it('rejects function mode without functionName', async () => {
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+      // @ts-expect-error
+      db.close();
+
+      await expect(handler.handleGetTraceSamples({ dbPath, mode: 'function' })).rejects.toThrow(
+        /functionName is required/,
+      );
+    });
+
+    it('rejects window mode without timestamp', async () => {
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+      // @ts-expect-error
+      db.close();
+
+      await expect(handler.handleGetTraceSamples({ dbPath, mode: 'window' })).rejects.toThrow(
+        /timestamp is required/,
+      );
+    });
+
+    it('wraps top-mode tool output without nesting a ToolResponse', async () => {
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1000,
+        selfTime: 5,
+        aggregateTime: 8,
+        functionName: 'fn',
+        scriptId: '1',
+        url: 'a.js',
+        lineNumber: 1,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.flush();
+      const recorder = new TraceRecorder();
+      vi.spyOn(recorder, 'getDB').mockReturnValue(db);
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = parseToolResponse<{ success: boolean; mode: string; content?: unknown }>(
+        await handler.handleGetTraceSamplesTool({}),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.mode).toBe('top');
+      expect(result.content).toBeUndefined();
+    });
+  });
+
   describe('handleGetTraceNetworkFlow', () => {
     it('returns request metadata, chunks, events, and summarized body content', async () => {
       // @ts-expect-error
@@ -1022,6 +1235,84 @@ describe('TraceToolHandlers', () => {
       expect(distinctTids.size).toBe(tidByCat.size);
     });
 
+    it('exports CPU profile samples as flame-graph X events on a dedicated track', async () => {
+      // @ts-expect-error
+      db.insertEvent({
+        timestamp: 1000,
+        category: 'debugger',
+        eventType: 'Debugger.paused',
+        data: '{}',
+        scriptId: '1',
+        lineNumber: 1,
+      });
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1000,
+        selfTime: 5,
+        aggregateTime: 8,
+        functionName: 'hotFn',
+        scriptId: '10',
+        url: 'app.js',
+        lineNumber: 42,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1010,
+        selfTime: 3,
+        aggregateTime: 4,
+        functionName: 'hotFn',
+        scriptId: '10',
+        url: 'app.js',
+        lineNumber: 42,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.flush();
+      // @ts-expect-error
+      db.close();
+
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const outputPath = join(tmpdir(), `test-export-cpu-${Date.now()}.json`);
+      cleanupPaths.push(outputPath);
+
+      const result = parseToolResponse<{
+        eventCount: number;
+        cpuProfileFunctions: number;
+        threadCount: number;
+      }>(await handler.handleExportTrace({ dbPath, outputPath }));
+
+      // eventCount stays CDP-event-only; cpu profile counted separately
+      expect(result.eventCount).toBe(1);
+      expect(result.cpuProfileFunctions).toBe(1);
+      // debugger tid 2 + cpu-profile tid 8
+      expect(result.threadCount).toBe(2);
+
+      const { readFileSync } = await import('node:fs');
+      const exported = JSON.parse(readFileSync(outputPath, 'utf-8')) as Array<{
+        name: string;
+        cat: string;
+        ph: string;
+        tid: number;
+        dur?: number;
+        args?: Record<string, unknown>;
+      }>;
+      const cpuEvents = exported.filter((e) => e.cat === 'cpu-profile');
+      expect(cpuEvents).toHaveLength(1);
+      expect(cpuEvents[0]?.ph).toBe('X');
+      expect(cpuEvents[0]?.tid).toBe(8);
+      expect(cpuEvents[0]?.name).toBe('hotFn');
+      // selfTime 5 + 3 = 8ms → 8000µs duration
+      expect(cpuEvents[0]?.dur).toBe(8000);
+      expect(cpuEvents[0]?.args?.sampleCount).toBe(2);
+      // thread_name metadata for the CPU Profile track must be present
+      const cpuThreadName = exported.find((e) => e.ph === 'M' && e.tid === 8);
+      expect(cpuThreadName?.args?.name).toBe('CPU Profile');
+    });
+
     it('exports using automatically resolved artifact path when outputPath is omitted', async () => {
       // @ts-expect-error
       db.close();
@@ -1196,6 +1487,7 @@ describe('TraceToolHandlers', () => {
           }
           return eventsResult;
         }),
+        getTopFunctions: vi.fn(() => []),
       } as unknown as TraceDB;
       vi.spyOn(recorder, 'getDB').mockReturnValue(fakeDb);
       const ctx = createMockContext() as MCPServerContext;
@@ -1262,6 +1554,7 @@ describe('TraceToolHandlers', () => {
           if (sql.includes('memory_deltas')) return memoryResult;
           return eventsResult;
         }),
+        getTopFunctions: vi.fn(() => []),
       } as unknown as TraceDB;
       vi.spyOn(recorder, 'getDB').mockReturnValue(fakeDb);
       const ctx = createMockContext() as MCPServerContext;
@@ -1284,6 +1577,51 @@ describe('TraceToolHandlers', () => {
       await expect(handler.handleSummarizeTrace({ detail: 'verbose' })).rejects.toThrow(
         /Invalid detail/,
       );
+    });
+
+    it('includes cpuProfile top functions in the summary', async () => {
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1000,
+        selfTime: 5,
+        aggregateTime: 8,
+        functionName: 'hot',
+        scriptId: '1',
+        url: 'a.js',
+        lineNumber: 1,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.insertSample({
+        timestamp: 1010,
+        selfTime: 2,
+        aggregateTime: 3,
+        functionName: 'cold',
+        scriptId: '2',
+        url: 'b.js',
+        lineNumber: 2,
+        columnNumber: 0,
+      });
+      // @ts-expect-error
+      db.flush();
+      // @ts-expect-error
+      db.close();
+
+      const recorder = new TraceRecorder();
+      const ctx = createMockContext() as MCPServerContext;
+      const handler = new TraceToolHandlers(recorder, ctx);
+
+      const result = parseToolResponse<{
+        cpuProfile: {
+          sampleCount: number;
+          topFunctions: Array<{ functionName: string; selfTime: number }>;
+        };
+      }>(await handler.handleSummarizeTrace({ dbPath }));
+
+      expect(result.cpuProfile.sampleCount).toBe(2);
+      expect(result.cpuProfile.topFunctions).toHaveLength(2);
+      expect(result.cpuProfile.topFunctions[0]?.functionName).toBe('hot');
+      expect(result.cpuProfile.topFunctions[0]?.selfTime).toBe(5);
     });
   });
 

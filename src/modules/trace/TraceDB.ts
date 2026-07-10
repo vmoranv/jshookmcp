@@ -16,6 +16,7 @@ import type {
   TraceException,
   TraceQueryResult,
   TraceSample,
+  TraceSampleAggregate,
 } from '@modules/trace/TraceDB.types';
 import {
   initializeTraceSchema,
@@ -24,6 +25,7 @@ import {
   mapExceptionRow,
   mapNetworkChunkRow,
   mapNetworkResourceRow,
+  mapSampleAggregateRow,
   mapSampleRow,
   prepareTraceStatements,
 } from '@modules/trace/TraceDB.internal';
@@ -404,6 +406,44 @@ export class TraceDB {
     return (
       stmt.all(timestamp - windowMs, timestamp + windowMs, limit) as Array<Record<string, unknown>>
     ).map(mapSampleRow);
+  }
+
+  /**
+   * Aggregate CPU profile samples into per-function rollups, ordered by
+   * self-time descending — the "top hot functions" view. Pure data projection
+   * (no heuristic library): the caller decides what counts as hot.
+   *
+   * The scriptId/url/line/column of each group is a representative sample
+   * (SQLite picks an arbitrary row from the group); it exists only to help
+   * locate the function, not to imply all samples share that location.
+   */
+  getTopFunctions(limit = 20, startTs?: number, endTs?: number): TraceSampleAggregate[] {
+    this.ensureOpen();
+    this.flush();
+
+    const hasWindow = typeof startTs === 'number' && typeof endTs === 'number';
+    const stmt = this.db.prepare(`
+      SELECT
+        function_name,
+        SUM(self_time) AS self_time,
+        SUM(aggregate_time) AS aggregate_time,
+        COUNT(*) AS sample_count,
+        script_id,
+        url,
+        line_number,
+        column_number
+      FROM samples
+      WHERE function_name IS NOT NULL
+      ${hasWindow ? 'AND timestamp >= ? AND timestamp <= ?' : ''}
+      GROUP BY function_name
+      ORDER BY self_time DESC, aggregate_time DESC, function_name ASC
+      LIMIT ?
+    `);
+
+    const rows = hasWindow
+      ? (stmt.all(startTs, endTs, limit) as Array<Record<string, unknown>>)
+      : (stmt.all(limit) as Array<Record<string, unknown>>);
+    return rows.map(mapSampleAggregateRow);
   }
 
   getConsoleLogsByTimeRange(

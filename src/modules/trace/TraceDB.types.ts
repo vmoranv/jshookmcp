@@ -93,6 +93,18 @@ export interface TraceSample {
   columnNumber: number | null;
 }
 
+/** Per-function rollup of CPU profile samples for "top hot functions" queries. */
+export interface TraceSampleAggregate {
+  functionName: string;
+  selfTime: number;
+  aggregateTime: number;
+  sampleCount: number;
+  scriptId: string | null;
+  url: string | null;
+  lineNumber: number | null;
+  columnNumber: number | null;
+}
+
 /** Structured Runtime.consoleAPICalled entry for timestamp seeks and SQL analysis. */
 export interface TraceConsoleLog {
   id?: number;

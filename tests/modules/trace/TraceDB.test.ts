@@ -157,6 +157,112 @@ describe('TraceDB', () => {
     expect(inWindow[0]?.functionName).toBe('hotFn');
   });
 
+  it('aggregates profiler samples into per-function rollups ordered by self time', () => {
+    db.insertSample({
+      timestamp: 1000,
+      selfTime: 4,
+      aggregateTime: 10,
+      functionName: 'a',
+      scriptId: '1',
+      url: 'a.js',
+      lineNumber: 1,
+      columnNumber: 0,
+    });
+    db.insertSample({
+      timestamp: 1010,
+      selfTime: 6,
+      aggregateTime: 12,
+      functionName: 'a',
+      scriptId: '1',
+      url: 'a.js',
+      lineNumber: 1,
+      columnNumber: 0,
+    });
+    db.insertSample({
+      timestamp: 1020,
+      selfTime: 20,
+      aggregateTime: 30,
+      functionName: 'b',
+      scriptId: '2',
+      url: 'b.js',
+      lineNumber: 5,
+      columnNumber: 0,
+    });
+
+    const top = db.getTopFunctions(10);
+
+    expect(top).toHaveLength(2);
+    // 'b' (selfTime 20) outranks 'a' (selfTime 4 + 6 = 10)
+    expect(top[0]?.functionName).toBe('b');
+    expect(top[0]?.selfTime).toBe(20);
+    expect(top[0]?.sampleCount).toBe(1);
+    expect(top[1]?.functionName).toBe('a');
+    expect(top[1]?.selfTime).toBe(10);
+    expect(top[1]?.aggregateTime).toBe(22);
+    expect(top[1]?.sampleCount).toBe(2);
+  });
+
+  it('filters aggregated samples by an optional time window', () => {
+    db.insertSample({
+      timestamp: 100,
+      selfTime: 1,
+      aggregateTime: 1,
+      functionName: 'early',
+      scriptId: null,
+      url: null,
+      lineNumber: null,
+      columnNumber: null,
+    });
+    db.insertSample({
+      timestamp: 5000,
+      selfTime: 100,
+      aggregateTime: 100,
+      functionName: 'late',
+      scriptId: null,
+      url: null,
+      lineNumber: null,
+      columnNumber: null,
+    });
+
+    const top = db.getTopFunctions(10, 1000, 6000);
+
+    expect(top).toHaveLength(1);
+    expect(top[0]?.functionName).toBe('late');
+  });
+
+  it('omits unnamed samples and respects the limit', () => {
+    // NULL function_name sample must be excluded entirely
+    db.insertSample({
+      timestamp: 1000,
+      selfTime: 5,
+      aggregateTime: 5,
+      functionName: null,
+      scriptId: null,
+      url: null,
+      lineNumber: null,
+      columnNumber: null,
+    });
+    for (let i = 0; i < 3; i++) {
+      db.insertSample({
+        timestamp: 1000,
+        selfTime: i + 1,
+        aggregateTime: i + 1,
+        functionName: `fn${i}`,
+        scriptId: null,
+        url: null,
+        lineNumber: null,
+        columnNumber: null,
+      });
+    }
+
+    const top = db.getTopFunctions(2);
+
+    // NULL excluded → only 3 named functions exist; limit 2 returns hottest two
+    expect(top).toHaveLength(2);
+    expect(top[0]?.functionName).toBe('fn2');
+    expect(top[1]?.functionName).toBe('fn1');
+  });
+
   it('inserts and queries structured runtime console logs and exceptions', () => {
     db.insertConsoleLog({
       timestamp: 2000,

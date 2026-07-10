@@ -124,6 +124,34 @@ export const TRACE_TOOLS: Tool[] = [
       .required('requestId')
       .query(),
   ),
+  tool('trace_get_samples', (t) =>
+    t
+      .desc(
+        'Query recorded CPU profile samples. mode="top" returns the hottest functions by self time (per-function rollup); mode="function" returns samples for one function; mode="window" returns samples near a timestamp. Ships NO hardcoded hot-function library — ordering is pure data projection, the caller decides what counts as hot.',
+      )
+      .enum(
+        'mode',
+        ['top', 'function', 'window'],
+        'Query mode: top (hottest functions by self time), function (samples for one function), window (samples near a timestamp)',
+        { default: 'top' },
+      )
+      .string('functionName', 'Function name to query (required for mode="function")')
+      .number('timestamp', 'Target timestamp in ms (required for mode="window")')
+      .number('windowMs', 'Half-window around timestamp in ms (mode="window")', {
+        default: 100,
+        minimum: 1,
+        maximum: 60000,
+      })
+      .number('startTimestamp', 'Optional window start in ms (mode="top" aggregation filter)')
+      .number('endTimestamp', 'Optional window end in ms (mode="top" aggregation filter)')
+      .number('limit', 'Maximum results to return', {
+        default: 20,
+        minimum: 1,
+        maximum: 1000,
+      })
+      .string('dbPath', 'Path to trace DB file. Uses the active recording if omitted.')
+      .query(),
+  ),
   tool('diff_heap_snapshots', (t) =>
     t
       .desc('Compare two heap snapshots from a trace.')
