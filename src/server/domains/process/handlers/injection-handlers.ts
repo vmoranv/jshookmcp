@@ -5,6 +5,7 @@
 import { logger } from '@utils/logger';
 import { connectPlaywrightCdpFallback } from '@modules/collector/playwright-cdp-fallback';
 import { enumerateThreadsByPlatform } from '@native/platform/ThreadEnumerator';
+import { readThreadStatusSafe } from '@modules/process/threads/thread-status-parser';
 import type { ProcessHandlerDeps } from './shared-types';
 import type { ProcessManagementHandlers } from './process-management';
 import {
@@ -327,11 +328,17 @@ export class InjectionHandlers {
         threadIds = await enumerateThreadsByPlatform(platform, pid);
       }
       const threads = includeDetails
-        ? threadIds.map((threadId, ordinal) => ({
-            threadId,
-            ordinal,
-            isProcessMainThread: threadId === pid,
-          }))
+        ? await Promise.all(
+            threadIds.map(async (threadId, ordinal) => ({
+              threadId,
+              ordinal,
+              isProcessMainThread: threadId === pid,
+              // Linux per-thread state/name/context-switches from /proc. Win32
+              // register context (RIP/RSP) is not exposed without a native
+              // GetThreadContext binding — documented gap.
+              ...(platform !== 'win32' ? await readThreadStatusSafe(pid, threadId) : {}),
+            })),
+          )
         : undefined;
       const diagnostics = includeDetails
         ? await this.processMgmt.safeBuildMemoryDiagnostics({
