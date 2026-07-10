@@ -28,4 +28,4 @@ AST/string transform domain plus crypto extraction, harnessing, and comparison t
 | `crypto_extract_standalone` | Extract crypto/sign/encrypt function from current page and generate standalone runnable code. |
 | `crypto_test_harness` | Run extracted crypto code in worker_threads + vm sandbox and return deterministic test results. |
 | `crypto_compare` | Compare two crypto implementations against identical test vectors. |
-| `transform_workbench` | Run a reproducible binary transform workbench over base64 inputs: base64, XOR, RC4, zlib inflate, entropy, previews, and magic hints. |
+| `transform_workbench` | Run a reproducible binary transform workbench over base64 inputs: base64, hex, XOR, RC4, AES-CBC/ECB decrypt, zlib/gzip inflate, entropy, previews, and magic hints. |

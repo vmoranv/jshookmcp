@@ -1,4 +1,5 @@
-import { inflateSync } from 'node:zlib';
+import { gunzipSync, inflateSync } from 'node:zlib';
+import { createDecipheriv } from 'node:crypto';
 import {
   matchBinaryMagicHints,
   resolveBinaryMagicHints,
@@ -10,6 +11,10 @@ export interface TransformWorkbenchStep {
   op: string;
   key?: string;
   keyHex?: string;
+  /** AES IV (utf8) — required for aes_cbc_decrypt. */
+  iv?: string;
+  /** AES IV (hex) — alternative to `iv` for aes_cbc_decrypt. */
+  ivHex?: string;
 }
 
 export interface TransformWorkbenchOptions {
@@ -119,6 +124,8 @@ function normalizeStep(step: TransformWorkbenchStep): TransformWorkbenchStep {
     op,
     ...(typeof step.key === 'string' ? { key: step.key } : {}),
     ...(typeof step.keyHex === 'string' ? { keyHex: step.keyHex } : {}),
+    ...(typeof step.iv === 'string' ? { iv: step.iv } : {}),
+    ...(typeof step.ivHex === 'string' ? { ivHex: step.ivHex } : {}),
   };
 }
 
@@ -128,23 +135,22 @@ function applyStep(buffer: Buffer, step: TransformWorkbenchStep, maxOutputBytes:
       return Buffer.from(buffer.toString('utf8').trim(), 'base64');
     case 'base64_encode':
       return Buffer.from(buffer.toString('base64'), 'utf8');
+    case 'hex_decode':
+      return hexDecode(buffer);
+    case 'hex_encode':
+      return Buffer.from(buffer.toString('hex'), 'utf8');
     case 'xor':
       return xor(buffer, readKey(step));
     case 'rc4':
       return rc4(buffer, readKey(step));
+    case 'aes_cbc_decrypt':
+      return aesDecrypt(buffer, readKey(step), readIv(step));
+    case 'aes_ecb_decrypt':
+      return aesDecrypt(buffer, readKey(step), null);
     case 'zlib_inflate':
-      try {
-        return inflateSync(buffer, { maxOutputLength: maxOutputBytes });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (/larger than|maxOutputLength|unexpected end/i.test(message)) {
-          throw new Error(
-            `Transform workbench output is too large: exceeds ${maxOutputBytes} bytes`,
-            { cause: error },
-          );
-        }
-        throw error;
-      }
+      return inflateBounded(buffer, 'zlib', maxOutputBytes);
+    case 'gzip_inflate':
+      return inflateBounded(buffer, 'gzip', maxOutputBytes);
     case 'entropy':
       return buffer;
     default:
@@ -180,6 +186,57 @@ function readKey(step: TransformWorkbenchStep): Buffer {
   }
   if (step.key) return Buffer.from(step.key, 'utf8');
   throw new Error(`${step.op} requires key or keyHex`);
+}
+
+function readIv(step: TransformWorkbenchStep): Buffer {
+  if (step.ivHex) {
+    const normalized = step.ivHex.replace(/\s+/g, '');
+    if (!/^(?:[0-9a-fA-F]{2})+$/.test(normalized)) {
+      throw new Error(`${step.op} ivHex must contain an even number of hex bytes`);
+    }
+    return Buffer.from(normalized, 'hex');
+  }
+  if (step.iv) return Buffer.from(step.iv, 'utf8');
+  throw new Error(`${step.op} requires iv or ivHex`);
+}
+
+function aesDecrypt(buffer: Buffer, key: Buffer, iv: Buffer | null): Buffer {
+  const bitLen = key.length * 8;
+  if (bitLen !== 128 && bitLen !== 192 && bitLen !== 256) {
+    throw new Error(`AES key must be 16, 24, or 32 bytes (got ${key.length}) for aes-128/192/256`);
+  }
+  if (iv === null) {
+    const decipher = createDecipheriv(`aes-${bitLen}-ecb`, key, null);
+    return Buffer.concat([decipher.update(buffer), decipher.final()]);
+  }
+  if (iv.length !== 16) {
+    throw new Error(`AES-CBC IV must be 16 bytes (got ${iv.length})`);
+  }
+  const decipher = createDecipheriv(`aes-${bitLen}-cbc`, key, iv);
+  return Buffer.concat([decipher.update(buffer), decipher.final()]);
+}
+
+function hexDecode(buffer: Buffer): Buffer {
+  const hex = buffer.toString('utf8').trim().replace(/\s+/g, '');
+  if (!/^(?:[0-9a-fA-F]{2})+$/.test(hex)) {
+    throw new Error('hex_decode input must be an even number of hex digits');
+  }
+  return Buffer.from(hex, 'hex');
+}
+
+function inflateBounded(buffer: Buffer, mode: 'zlib' | 'gzip', maxOutputBytes: number): Buffer {
+  try {
+    const inflate = mode === 'gzip' ? gunzipSync : inflateSync;
+    return inflate(buffer, { maxOutputLength: maxOutputBytes });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/larger than|maxOutputLength|unexpected end/i.test(message)) {
+      throw new Error(`Transform workbench output is too large: exceeds ${maxOutputBytes} bytes`, {
+        cause: error,
+      });
+    }
+    throw error;
+  }
 }
 
 function xor(buffer: Buffer, key: Buffer): Buffer {

@@ -74,7 +74,7 @@ export const transformTools: Tool[] = [
   tool('transform_workbench', (t) =>
     t
       .desc(
-        'Run a reproducible binary transform workbench over base64 inputs: base64, XOR, RC4, zlib inflate, entropy, previews, and magic hints.',
+        'Run a reproducible binary transform workbench over base64 inputs: base64, hex, XOR, RC4, AES-CBC/ECB decrypt, zlib/gzip inflate, entropy, previews, and magic hints.',
       )
       .string('inputBase64', 'Input bytes encoded as base64.')
       .array(
@@ -82,7 +82,7 @@ export const transformTools: Tool[] = [
         {
           type: 'object',
           description:
-            'Ordered transform steps: {op:"base64_decode|base64_encode|xor|rc4|zlib_inflate|entropy", key?, keyHex?}.',
+            'Ordered transform steps: {op:"base64_decode|base64_encode|hex_decode|hex_encode|xor|rc4|aes_cbc_decrypt|aes_ecb_decrypt|zlib_inflate|gzip_inflate|entropy", key?, keyHex?, iv?, ivHex?}. AES ops require key (16/24/32 bytes); aes_cbc_decrypt also requires iv (16 bytes).',
         },
         'Ordered transform workbench steps.',
       )

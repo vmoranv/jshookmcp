@@ -72,7 +72,9 @@ function readRequiredString(args: Record<string, unknown>, key: string): string 
   return value.trim();
 }
 
-function readSteps(value: unknown): Array<{ op: string; key?: string; keyHex?: string }> {
+function readSteps(
+  value: unknown,
+): Array<{ op: string; key?: string; keyHex?: string; iv?: string; ivHex?: string }> {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error('steps must contain at least one transform step');
   }
@@ -87,6 +89,8 @@ function readSteps(value: unknown): Array<{ op: string; key?: string; keyHex?: s
       op: op.trim(),
       ...(typeof record['key'] === 'string' ? { key: record['key'] } : {}),
       ...(typeof record['keyHex'] === 'string' ? { keyHex: record['keyHex'] } : {}),
+      ...(typeof record['iv'] === 'string' ? { iv: record['iv'] } : {}),
+      ...(typeof record['ivHex'] === 'string' ? { ivHex: record['ivHex'] } : {}),
     };
   });
 }
