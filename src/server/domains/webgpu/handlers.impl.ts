@@ -8,6 +8,7 @@ import {
   TimingAnalysisHandler,
   MemoryLayoutHandler,
   CommandCaptureHandler,
+  ShaderSourceCaptureHandler,
 } from './handlers/index.js';
 
 /**
@@ -21,6 +22,7 @@ export class WebGPUHandlers {
   private timingAnalysisHandler: TimingAnalysisHandler;
   private memoryLayoutHandler: MemoryLayoutHandler;
   private commandCaptureHandler: CommandCaptureHandler;
+  private shaderSourceCaptureHandler: ShaderSourceCaptureHandler;
 
   constructor(_ctx: MCPServerContext, deps?: WebGPUDomainDependencies) {
     const d = deps ?? {
@@ -33,6 +35,7 @@ export class WebGPUHandlers {
     this.timingAnalysisHandler = new TimingAnalysisHandler(_ctx, d);
     this.memoryLayoutHandler = new MemoryLayoutHandler(_ctx, d);
     this.commandCaptureHandler = new CommandCaptureHandler(_ctx, d);
+    this.shaderSourceCaptureHandler = new ShaderSourceCaptureHandler(_ctx, d);
   }
 
   async webgpu_adapter_info(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -57,6 +60,10 @@ export class WebGPUHandlers {
 
   async webgpu_capture_commands(args: Record<string, unknown>): Promise<ToolResponse> {
     return this.commandCaptureHandler.handle(args);
+  }
+
+  async webgpu_shader_source_capture(args: Record<string, unknown>): Promise<ToolResponse> {
+    return this.shaderSourceCaptureHandler.handle(args);
   }
 }
 

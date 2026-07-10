@@ -25,6 +25,7 @@ const registrations = defineMethodRegistrations<H, (typeof toolDefinitions)[numb
     { tool: 'webgpu_timing_analysis', method: 'webgpu_timing_analysis' },
     { tool: 'webgpu_memory_layout', method: 'webgpu_memory_layout' },
     { tool: 'webgpu_capture_commands', method: 'webgpu_capture_commands' },
+    { tool: 'webgpu_shader_source_capture', method: 'webgpu_shader_source_capture' },
   ],
 });
 
@@ -79,6 +80,9 @@ const manifest = {
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
     webgpu_capture_commands: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    webgpu_shader_source_capture: [
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
   },

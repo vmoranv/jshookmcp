@@ -103,4 +103,27 @@ export const webgpuTools: Tool[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'webgpu_shader_source_capture',
+    description:
+      'Capture WGSL shader sources a running app compiles via GPUDevice.createShaderModule — the only artifact revealing what a compute/render pipeline computes (e.g. physics vs. cryptominer). Pairs with webgpu_capture_commands to reconstruct what data each draw/dispatch operated on.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        captureCount: {
+          type: 'number',
+          description: 'Number of shader compilations to capture before returning',
+          minimum: 1,
+        },
+        timeoutMs: {
+          type: 'number',
+          description:
+            'Max wait in ms (returns early once captureCount shaders are captured). Default 5000.',
+          minimum: 100,
+        },
+      },
+      required: ['captureCount'],
+      additionalProperties: false,
+    },
+  },
 ];
