@@ -10,6 +10,7 @@ import {
   enforceSnapshotRetention,
   getHeapSnapshotArtifactDir,
 } from '@server/domains/v8-inspector/handlers/snapshot-persistence';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 // All test snapshots use this prefix so cleanup is deterministic even if the
 // artifact directory is shared with a live capture.
@@ -70,20 +71,21 @@ describe('snapshot-persistence', () => {
 
     it('records simulated + targetUrl when provided', async () => {
       const id = makeId(2);
+      const targetUrl = buildTestUrl('target', { path: 'page' });
       await persistSnapshot({
         id,
         chunks: ['{"simulated":true}'],
         capturedAt: await captureTime(0),
         sizeBytes: 20,
         simulated: true,
-        targetUrl: 'https://example.test/page',
+        targetUrl,
       });
 
       const list = await listPersistedSnapshots();
       const entry = list.find((e) => e.id === id);
       expect(entry).toBeDefined();
       expect(entry!.simulated).toBe(true);
-      expect(entry!.targetUrl).toBe('https://example.test/page');
+      expect(entry!.targetUrl).toBe(targetUrl);
       expect(entry!.sizeBytes).toBe(20);
     });
 

@@ -537,7 +537,7 @@
       "d1_toolCount": 7,
       "d2_testFiles": 15,
       "d3_coverageExcluded": ["src/server/domains/transform/handlers.ts"],
-      "d4_bareCatch": 17,
+      "d4_bareCatch": 20,
       "d5_handleSafeRefs": 8,
       "d6_doc": {
         "hasClaude": true,

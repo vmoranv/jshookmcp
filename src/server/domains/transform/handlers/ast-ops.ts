@@ -157,10 +157,88 @@ function tryDecodeHex(value: string, rawInner: string): string | null {
   }
 }
 
+function isStringLiteralNode(node: t.Node | null | undefined): node is t.StringLiteral {
+  return t.isStringLiteral(node);
+}
+
+function calleeName(node: t.Node | null | undefined): string | null {
+  if (t.isIdentifier(node)) return node.name;
+  if (t.isMemberExpression(node) && !node.computed) {
+    const object = node.object;
+    const property = node.property;
+    if (t.isIdentifier(object) && t.isIdentifier(property)) {
+      return `${object.name}.${property.name}`;
+    }
+  }
+  return null;
+}
+
+function tryUnwrapCall(node: t.CallExpression): string | null {
+  const callee = calleeName(node.callee);
+  if (!callee) return null;
+  const args = node.arguments;
+
+  // atob(<base64 literal>) — browser global, obfuscator.io default.
+  // atob's own semantics IS base64, so we don't apply the 16-char length gate
+  // that guards the speculative StringLiteral decode path; we only require a
+  // valid base64 alphabet and a printable result.
+  if (callee === 'atob' && args.length === 1) {
+    const arg = args[0];
+    if (
+      isStringLiteralNode(arg) &&
+      /^[A-Za-z0-9+/=]*$/.test(arg.value) &&
+      arg.value.length % 4 === 0
+    ) {
+      try {
+        const decoded = Buffer.from(arg.value, 'base64').toString('utf8');
+        return isPrintable(decoded) ? decoded : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // Buffer.from(<hex literal>, "hex")
+  if (callee === 'Buffer.from' && args.length === 2) {
+    const [dataArg, encArg] = args;
+    if (
+      isStringLiteralNode(dataArg) &&
+      isStringLiteralNode(encArg) &&
+      encArg.value.toLowerCase() === 'hex'
+    ) {
+      try {
+        const decoded = Buffer.from(dataArg.value, 'hex').toString('utf8');
+        return isPrintable(decoded) ? decoded : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // String.fromCharCode(<num>, <num>, ...) — charcode join
+  if (callee === 'String.fromCharCode' && args.length >= 1) {
+    const codes: number[] = [];
+    for (const arg of args) {
+      if (!t.isNumericLiteral(arg) || !Number.isInteger(arg.value)) return null;
+      codes.push(arg.value);
+    }
+    try {
+      const decoded = String.fromCharCode(...codes);
+      return isPrintable(decoded) ? decoded : null;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 export function transformStringDecryptAst(code: string): string {
   const ast = parseTransformCode(code);
   if (!ast) return code;
-  let changed = false;
+  let overallChanged = false;
 
   for (const directive of ast.program.directives) {
     const literal = directive.value;
@@ -170,28 +248,51 @@ export function transformStringDecryptAst(code: string): string {
     const cleartext =
       tryDecodeBase64(escapedDecoded) ?? tryDecodeHex(escapedDecoded, rawInner) ?? escapedDecoded;
     if (cleartext !== literal.value || rawInner !== escapedDecoded) {
-      changed = true;
+      overallChanged = true;
       ast.program.body.unshift(t.expressionStatement(t.stringLiteral(cleartext)));
       ast.program.directives = ast.program.directives.filter((item) => item !== directive);
     }
   }
 
-  traverseAst(ast, {
-    StringLiteral(path) {
-      const node = path.node;
-      if (!t.isStringLiteral(node)) return;
-      const rawInner = rawStringInner(node);
-      const escapedDecoded = decodeEscapedString(rawInner);
-      const cleartext =
-        tryDecodeBase64(escapedDecoded) ?? tryDecodeHex(escapedDecoded, rawInner) ?? escapedDecoded;
-      if (cleartext !== node.value || rawInner !== escapedDecoded) {
-        changed = true;
-        path.replaceWith(t.stringLiteral(cleartext));
-        path.skip();
-      }
-    },
-  });
-  if (!changed) return code;
+  // Multi-pass to a fixpoint (bounded at 4 rounds, matching constant_fold).
+  // Nested call wrappers like atob(atob(...)) and atob(Buffer.from(...)) need
+  // this: the outer callee is visited before its (still-call) argument, so a
+  // single pass leaves the outer wrapper in place once the inner is decoded.
+  // Each subsequent pass re-visits the now-literal argument.
+  for (let round = 0; round < 4; round++) {
+    let roundChanged = false;
+    traverseAst(ast, {
+      StringLiteral(path) {
+        const node = path.node;
+        if (!t.isStringLiteral(node)) return;
+        const rawInner = rawStringInner(node);
+        const escapedDecoded = decodeEscapedString(rawInner);
+        const cleartext =
+          tryDecodeBase64(escapedDecoded) ??
+          tryDecodeHex(escapedDecoded, rawInner) ??
+          escapedDecoded;
+        if (cleartext !== node.value || rawInner !== escapedDecoded) {
+          roundChanged = true;
+          overallChanged = true;
+          path.replaceWith(t.stringLiteral(cleartext));
+          path.skip();
+        }
+      },
+      CallExpression(path) {
+        const node = path.node;
+        if (!t.isCallExpression(node)) return;
+        const unwrapped = tryUnwrapCall(node);
+        if (unwrapped !== null) {
+          roundChanged = true;
+          overallChanged = true;
+          path.replaceWith(t.stringLiteral(unwrapped));
+          path.skip();
+        }
+      },
+    });
+    if (!roundChanged) break;
+  }
+  if (!overallChanged) return code;
   return normalizeGeneratedCode(code, ast);
 }
 

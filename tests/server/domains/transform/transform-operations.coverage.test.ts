@@ -105,6 +105,76 @@ describe('transform-operations', () => {
       expect(hex.transformed).toBe("'Hello world!Hello world!'");
     });
 
+    it('unwraps atob(...) base64 call wrappers into decoded literals', async () => {
+      const result = applyTransforms("var s = atob('c3RyaW5n');", ['string_decrypt']);
+      expect(result.transformed).toMatch(/var s = ["']string["'];/);
+      expect(result.transformed).not.toContain('atob(');
+    });
+
+    it('unwraps Buffer.from(..., "hex") call wrappers into decoded literals', async () => {
+      const result = applyTransforms('var s = Buffer.from("48656c6c6f", "hex");', [
+        'string_decrypt',
+      ]);
+      expect(result.transformed).toMatch(/var s = ["']Hello["'];/);
+      expect(result.transformed).not.toContain('Buffer.from');
+    });
+
+    it('unwraps String.fromCharCode(...) charcode-join calls into literals', async () => {
+      const result = applyTransforms('var s = String.fromCharCode(0x48, 0x69);', [
+        'string_decrypt',
+      ]);
+      expect(result.transformed).toMatch(/var s = ["']Hi["'];/);
+      expect(result.transformed).not.toContain('fromCharCode');
+    });
+
+    it('leaves call wrappers untouched when args are not decodable literals', async () => {
+      // dynamic arg, non-printable decode, and unrelated callee all stay verbatim
+      const result = applyTransforms("var a = atob(x); var b = doThing('x');", ['string_decrypt']);
+      expect(result.transformed).toContain('atob(x)');
+      expect(result.transformed).toContain("doThing('x')");
+    });
+
+    it('unwraps nested call wrappers innermost-first', async () => {
+      // atob(atob("...")) — inner decodes first, outer decodes the result literal
+      const inner = Buffer.from('Hi').toString('base64'); // "SGk="
+      const outer = Buffer.from(inner).toString('base64'); // "U0dr"
+      const result = applyTransforms(`var s = atob(atob("${outer}"));`, ['string_decrypt']);
+      expect(result.transformed).toMatch(/var s = ["']Hi["'];/);
+      expect(result.transformed).not.toContain('atob(');
+    });
+
+    it('leaves String.fromCharCode untouched on non-integer code units', async () => {
+      const result = applyTransforms('var s = String.fromCharCode(0x48, 1.5);', ['string_decrypt']);
+      expect(result.transformed).toContain('fromCharCode');
+    });
+
+    it('decodes a mix of wrappers and bare literals in one pass', async () => {
+      const result = applyTransforms("var a = atob('SGVsbG8='); var b = 'SGVsbG8gd29ybGQh';", [
+        'string_decrypt',
+      ]);
+      expect(result.transformed).toMatch(/var a = ["']Hello["'];/);
+      expect(result.transformed).toMatch(/var b = ["']Hello world!["'];/);
+    });
+
+    it('leaves atob of non-base64 literal untouched (fail-soft)', async () => {
+      const result = applyTransforms('var s = atob("not!base64");', ['string_decrypt']);
+      expect(result.transformed).toContain('atob(');
+      expect(result.appliedTransforms).toEqual([]);
+    });
+
+    it('leaves Buffer.from with non-hex encoding untouched (fail-soft)', async () => {
+      const result = applyTransforms('var h = Buffer.from("data", "utf8");', ['string_decrypt']);
+      expect(result.transformed).toContain('Buffer.from(');
+    });
+
+    it('does not throw on lone surrogate in String.fromCharCode (fail-soft)', async () => {
+      const result = applyTransforms('var c = String.fromCharCode(72, 0xd800);', [
+        'string_decrypt',
+      ]);
+      // must not throw; surrogate sequence is not printable -> left untouched
+      expect(result.transformed).toContain('fromCharCode');
+    });
+
     it('flattens array dispatcher variants', async () => {
       const code =
         'var order=["b","a"];var i=0;while(true){switch(order[i++]){case "a":a();continue;case "b":b();continue;}break;}';
