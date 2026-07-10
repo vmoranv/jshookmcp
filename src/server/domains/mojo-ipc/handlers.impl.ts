@@ -22,11 +22,12 @@ function unavailablePayload(reason: string, tool: string): Record<string, unknow
 }
 
 const LIVE_CAPTURE_REASON =
-  'Current Mojo IPC backend only exposes a seeded interface catalog and simulated capture. Live Chromium Mojo ' +
-  'hooks are not implemented in this build.';
+  'Live capture requires Frida attached to a Chromium target whose build exports a Mojo write-path symbol ' +
+  '(MojoWriteMessage/MojoWriteMessageNew). The hook script ships with real Interceptor.attach logic, but the ' +
+  'symbol is Chromium-version-specific and not verified in CI; without a matching target the monitor stays simulated.';
 const LIVE_CAPTURE_FIX =
-  'No user-side fix is available in this build. Treat mojo_monitor/mojo_list_interfaces/mojo_messages_get as ' +
-  'simulation-only until real Frida hooks are implemented.';
+  'Attach Frida to a Chromium process whose Mojo write-path export resolves; the monitor flips out of simulation ' +
+  'once the first real message is captured.';
 
 function getFridaProbeSucceeded(monitor: MojoMonitor): boolean {
   const maybeMonitor = monitor as MojoMonitor & { didFridaProbeSucceed?: () => boolean };
@@ -129,14 +130,15 @@ export class MojoIPCHandlers {
           simulationMode: monitor.isSimulationMode(),
           interfaceCatalogSource: monitor.getInterfaceCatalogSource(),
           observedInterfaceCount: monitor.getObservedInterfaceCount(),
-          liveCaptureImplemented: false,
+          liveCaptureImplemented: true,
+          liveCaptureVerified: false,
         },
       },
       {
         capability: 'mojo_live_capture',
-        status: 'unavailable',
-        reason: LIVE_CAPTURE_REASON,
-        fix: LIVE_CAPTURE_FIX,
+        status: monitor.isLiveCapture() ? 'available' : 'unavailable',
+        reason: monitor.isLiveCapture() ? undefined : LIVE_CAPTURE_REASON,
+        fix: monitor.isLiveCapture() ? undefined : LIVE_CAPTURE_FIX,
         details: {
           tools: ['mojo_monitor', 'mojo_list_interfaces', 'mojo_messages_get'],
           fridaAvailable: availability.fridaAvailable,
@@ -147,7 +149,8 @@ export class MojoIPCHandlers {
           interfaceCatalogSource: monitor.getInterfaceCatalogSource(),
           observedInterfaceCount: monitor.getObservedInterfaceCount(),
           fallbackMode: availability.available ? 'simulation' : 'none',
-          liveCaptureImplemented: false,
+          liveCaptureImplemented: true,
+          liveCaptureVerified: false,
         },
       },
       {

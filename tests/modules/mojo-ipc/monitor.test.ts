@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { execFile, spawn } from 'node:child_process';
-import { MojoMonitor } from '@modules/mojo-ipc/MojoMonitor';
+import { spawn } from 'node:child_process';
+import { MojoMonitor, parseFridaMessage } from '@modules/mojo-ipc/MojoMonitor';
 
 vi.mock('node:child_process', () => ({
   spawn: vi.fn(() => ({
@@ -14,7 +14,6 @@ vi.mock('node:child_process', () => ({
   })),
 }));
 
-const mockExecFile = vi.mocked(execFile);
 const mockSpawn = vi.mocked(spawn);
 
 describe('MojoMonitor', () => {
@@ -118,34 +117,144 @@ describe('MojoMonitor', () => {
     expect(result.messages).toEqual([]);
   });
 
-  it('uses the frida cli probe when available', async () => {
-    mockSpawn.mockImplementationOnce(
-      () =>
-        ({
-          stdout: {
-            on: vi.fn((event: string, cb: (data: Buffer) => void) => {
-              if (event === 'data') cb(Buffer.from('16.0.0'));
+  it('uses the frida cli probe and stays simulated when capture posts no messages', async () => {
+    // 1st spawn = frida --version probe (succeeds); 2nd spawn = capture script (no messages)
+    mockSpawn
+      .mockImplementationOnce(
+        () =>
+          ({
+            stdout: {
+              on: vi.fn((event: string, cb: (data: Buffer) => void) => {
+                if (event === 'data') cb(Buffer.from('16.0.0'));
+              }),
+            },
+            on: vi.fn((event: string, cb: (code?: number) => void) => {
+              if (event === 'close') cb(0);
             }),
-          },
-          on: vi.fn((event: string, cb: (code?: number) => void) => {
-            if (event === 'close') cb(0);
-          }),
-        }) as any,
-    );
-    mockExecFile.mockImplementationOnce(((
-      _file: string,
-      _args: readonly string[] | undefined,
-      _options: { timeout?: number; windowsHide?: boolean } | undefined,
-      callback?: (error: Error | null) => void,
-    ) => {
-      callback?.(null);
-      return {
-        stdin: { end: vi.fn() },
-      } as any;
-    }) as typeof execFile);
+          }) as any,
+      )
+      .mockImplementationOnce(
+        () =>
+          ({
+            stdout: { setEncoding: vi.fn(), on: vi.fn() },
+            stdin: { end: vi.fn() },
+            on: vi.fn((event: string, cb: (code?: number) => void) => {
+              if (event === 'close') cb(0);
+            }),
+            kill: vi.fn(),
+          }) as any,
+      );
     await monitor.start('chrome');
     expect(mockSpawn).toHaveBeenCalled();
-    expect(monitor.didFridaProbeSucceed()).toBe(true);
+    // No mojo-message arrived → still simulated, not live.
     expect(monitor.isSimulationMode()).toBe(true);
+    expect(monitor.isLiveCapture()).toBe(false);
+  });
+
+  it('flips to live capture when the Frida script posts a real mojo message', async () => {
+    (monitor as any).active = true;
+    mockSpawn.mockImplementationOnce(() => {
+      const handlers: Record<string, ((arg: unknown) => void) | undefined> = {};
+      queueMicrotask(() => {
+        handlers['data']?.(
+          Buffer.from(
+            JSON.stringify({
+              type: 'send',
+              payload: { type: 'mojo-message', hex: 'deadbeef', size: 4 },
+            }) + '\n',
+          ),
+        );
+        handlers['close']?.(0);
+      });
+      return {
+        stdout: {
+          setEncoding: vi.fn(),
+          on: vi.fn((event: string, cb: (arg: unknown) => void) => {
+            handlers[event] = cb;
+          }),
+        },
+        stdin: { end: vi.fn() },
+        on: vi.fn((event: string, cb: (arg: unknown) => void) => {
+          handlers[event] = cb;
+        }),
+        kill: vi.fn(),
+      } as any;
+    });
+    await (monitor as any).captureWithFrida('chrome');
+    expect(monitor.isSimulationMode()).toBe(false);
+    expect(monitor.isLiveCapture()).toBe(true);
+    const result = await monitor.getMessages();
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0]).toMatchObject({ payload: 'deadbeef' });
+  });
+
+  it('marks probe succeeded on mojo-hook-attached but stays simulated until a message', async () => {
+    (monitor as any).active = true;
+    mockSpawn.mockImplementationOnce(() => {
+      const handlers: Record<string, ((arg: unknown) => void) | undefined> = {};
+      queueMicrotask(() => {
+        handlers['data']?.(
+          Buffer.from(
+            JSON.stringify({
+              type: 'send',
+              payload: {
+                type: 'mojo-hook-attached',
+                module: 'chrome.dll',
+                symbol: 'MojoWriteMessage',
+              },
+            }) + '\n',
+          ),
+        );
+        handlers['close']?.(0);
+      });
+      return {
+        stdout: {
+          setEncoding: vi.fn(),
+          on: vi.fn((event: string, cb: (arg: unknown) => void) => {
+            handlers[event] = cb;
+          }),
+        },
+        stdin: { end: vi.fn() },
+        on: vi.fn((event: string, cb: (arg: unknown) => void) => {
+          handlers[event] = cb;
+        }),
+        kill: vi.fn(),
+      } as any;
+    });
+    await (monitor as any).captureWithFrida('chrome');
+    expect(monitor.didFridaProbeSucceed()).toBe(true);
+    // Hook attached but no message yet → still simulated, not live.
+    expect(monitor.isSimulationMode()).toBe(true);
+    expect(monitor.isLiveCapture()).toBe(false);
+  });
+});
+
+describe('parseFridaMessage', () => {
+  it('parses CLI-wrapped send payloads', () => {
+    const line = JSON.stringify({
+      type: 'send',
+      payload: { type: 'mojo-message', hex: 'ab', size: 1 },
+    });
+    expect(parseFridaMessage(line)).toMatchObject({ type: 'mojo-message', hex: 'ab', size: 1 });
+  });
+
+  it('parses bare mojo-* payload objects', () => {
+    const line = JSON.stringify({
+      type: 'mojo-hook-attached',
+      module: 'chrome.dll',
+      symbol: 'MojoWriteMessage',
+    });
+    expect(parseFridaMessage(line)).toMatchObject({
+      type: 'mojo-hook-attached',
+      symbol: 'MojoWriteMessage',
+    });
+  });
+
+  it('returns null for non-JSON diagnostic lines', () => {
+    expect(parseFridaMessage('Spawned, resuming main thread!')).toBeNull();
+  });
+
+  it('returns null for unrelated JSON', () => {
+    expect(parseFridaMessage(JSON.stringify({ type: 'other' }))).toBeNull();
   });
 });

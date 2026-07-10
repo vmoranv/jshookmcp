@@ -14,6 +14,7 @@ describe('MojoIPCHandlers', () => {
     getMessages: ReturnType<typeof vi.fn>;
     isSimulationMode: ReturnType<typeof vi.fn>;
     didFridaProbeSucceed: ReturnType<typeof vi.fn>;
+    isLiveCapture: ReturnType<typeof vi.fn>;
     getInterfaceCatalogSource: ReturnType<typeof vi.fn>;
     getObservedInterfaceCount: ReturnType<typeof vi.fn>;
   };
@@ -50,6 +51,7 @@ describe('MojoIPCHandlers', () => {
       }),
       isSimulationMode: vi.fn().mockReturnValue(false),
       didFridaProbeSucceed: vi.fn().mockReturnValue(false),
+      isLiveCapture: vi.fn().mockReturnValue(false),
       getInterfaceCatalogSource: vi.fn().mockReturnValue('seeded-defaults'),
       getObservedInterfaceCount: vi.fn().mockReturnValue(0),
     };
