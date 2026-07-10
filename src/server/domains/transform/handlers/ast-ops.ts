@@ -296,11 +296,26 @@ export function transformStringDecryptAst(code: string): string {
   return normalizeGeneratedCode(code, ast);
 }
 
+function isLiteralFalsy(node: t.Node): boolean {
+  if (t.isBooleanLiteral(node)) return node.value === false;
+  if (t.isNumericLiteral(node)) return node.value === 0;
+  if (t.isStringLiteral(node)) return node.value.length === 0;
+  if (t.isNullLiteral(node)) return true;
+  return false;
+}
+
+function isLiteralTruthy(node: t.Node): boolean {
+  if (t.isBooleanLiteral(node)) return node.value === true;
+  if (t.isNumericLiteral(node)) return node.value !== 0;
+  if (t.isStringLiteral(node)) return node.value.length > 0;
+  return false;
+}
+
 function isAlwaysFalse(node: t.Node): boolean {
-  return (
-    (t.isBooleanLiteral(node) && node.value === false) ||
-    (t.isNumericLiteral(node) && node.value === 0)
-  );
+  if (isLiteralFalsy(node)) return true;
+  // !truthyLiteral -> false  (e.g. !1, !true, !"x") — negated-literal dead guards
+  if (t.isUnaryExpression(node, { operator: '!' }) && isLiteralTruthy(node.argument)) return true;
+  return false;
 }
 
 function replacementStatements(node: t.Statement): t.Statement[] {
@@ -324,7 +339,10 @@ export function transformDeadCodeRemoveAst(code: string): string {
 }
 
 function isAlwaysTrue(node: t.Node): boolean {
-  if (t.isBooleanLiteral(node)) return node.value === true;
+  if (isLiteralTruthy(node)) return true;
+  // !falsyLiteral -> true  (e.g. !0, !false, !"", !null) — negated-literal loop guards
+  if (t.isUnaryExpression(node, { operator: '!' }) && isLiteralFalsy(node.argument)) return true;
+  // !!array -> true  (obfuscator.io canonical while(!![]))
   if (
     t.isUnaryExpression(node, { operator: '!' }) &&
     t.isUnaryExpression(node.argument, { operator: '!' }) &&
@@ -398,13 +416,35 @@ function dispatcherOrder(
   return switchNode.cases.map((caseNode) => literalKey(caseNode.test)).filter(Boolean) as string[];
 }
 
-function extractCaseStatements(switchNode: t.SwitchStatement): Map<string, t.Statement[]> {
+function isCursorMutation(statement: t.Statement, cursorName: string | null): boolean {
+  if (!cursorName) return false;
+  const expr = t.isExpressionStatement(statement) ? statement.expression : null;
+  // i++ / ++i / i-- / --i
+  if (expr && t.isUpdateExpression(expr) && t.isIdentifier(expr.argument, { name: cursorName })) {
+    return true;
+  }
+  // i = ... / i += ... (assignment whose left is the cursor)
+  if (expr && t.isAssignmentExpression(expr) && t.isIdentifier(expr.left, { name: cursorName })) {
+    return true;
+  }
+  return false;
+}
+
+function extractCaseStatements(
+  switchNode: t.SwitchStatement,
+  cursorName: string | null,
+): Map<string, t.Statement[]> {
   const cases = new Map<string, t.Statement[]>();
   for (const caseNode of switchNode.cases) {
     const key = literalKey(caseNode.test);
     if (!key) continue;
     const statements = caseNode.consequent
-      .filter((statement) => !t.isContinueStatement(statement) && !t.isBreakStatement(statement))
+      .filter(
+        (statement) =>
+          !t.isContinueStatement(statement) &&
+          !t.isBreakStatement(statement) &&
+          !isCursorMutation(statement, cursorName),
+      )
       .map((statement) => t.cloneNode(statement, true));
     if (statements.length > 0) cases.set(key, statements);
   }
@@ -437,7 +477,7 @@ function flattenLoop(
   const dispatch = switchDispatcher(switchNode.discriminant);
   if (!dispatch) return;
   const order = dispatcherOrder(path, dispatch.dispatcher, switchNode);
-  const cases = extractCaseStatements(switchNode);
+  const cases = extractCaseStatements(switchNode, dispatch.cursor);
   const rebuilt = order.flatMap((key) => cases.get(key) ?? []);
   if (rebuilt.length === 0) return;
   markChanged();

@@ -182,6 +182,62 @@ describe('transform-operations', () => {
       expect(result.transformed.indexOf('b();')).toBeLessThan(result.transformed.indexOf('a();'));
     });
 
+    it('flattens while(!0) / while(1) / while(!false) truthy-loop dispatchers', async () => {
+      const variants = [
+        `var d='a|b'.split('|');var i=0;while(!0){switch(d[i++]){case'a':a();continue;case'b':b();break;}}`,
+        `var d='a|b'.split('|');var i=0;while(1){switch(d[i++]){case'a':a();continue;case'b':b();break;}}`,
+        `var d='a|b'.split('|');var i=0;while(!false){switch(d[i++]){case'a':a();continue;case'b':b();break;}}`,
+      ];
+      for (const code of variants) {
+        const result = applyTransforms(code, ['control_flow_flatten']);
+        expect(result.transformed, `loop not flattened for: ${code}`).not.toContain('while');
+        expect(result.transformed).toContain('a()');
+        expect(result.transformed).toContain('b()');
+      }
+    });
+
+    it('removes cursor self-increment dead code after flattening (cursor-in-case variant)', async () => {
+      // cursor `i` is advanced inside each case body, not in the switch discriminant;
+      // after flattening the loop is gone so `i` is dead — its increments must not leak
+      const code =
+        "var d='a|b'.split('|');var i=0;while(true){switch(d[i]){case'a':a();i++;continue;case'b':b();i++;break;}}";
+      const result = applyTransforms(code, ['control_flow_flatten']);
+      expect(result.transformed).not.toContain('while');
+      expect(result.transformed).toContain('a()');
+      expect(result.transformed).toContain('b()');
+      expect(result.transformed).not.toContain('i++');
+    });
+
+    it('removes dead branches guarded by if(!1) / if(!true) (negated-literal falsy)', async () => {
+      const r1 = applyTransforms('if(!1){dead();}else{alive();}', ['dead_code_remove']);
+      expect(r1.transformed).not.toContain('dead');
+      expect(r1.transformed).toContain('alive');
+      const r2 = applyTransforms('if(!true){dead();}', ['dead_code_remove']);
+      expect(r2.transformed).not.toContain('dead');
+    });
+
+    it('does NOT flatten falsy-literal loops (symmetry: while(0) / while("") / while(null))', async () => {
+      const variants = [
+        `var d='a|b'.split('|');var i=0;while(0){switch(d[i++]){case'a':a();continue;}}`,
+        `var d='a|b'.split('|');var i=0;while(""){switch(d[i++]){case'a':a();continue;}}`,
+        `var d='a|b'.split('|');var i=0;while(null){switch(d[i++]){case'a':a();continue;}}`,
+      ];
+      for (const code of variants) {
+        const result = applyTransforms(code, ['control_flow_flatten']);
+        expect(result.transformed, `falsy loop must not flatten: ${code}`).toContain('while');
+        expect(result.appliedTransforms).toEqual([]);
+      }
+    });
+
+    it('does NOT remove truthy-literal branches (symmetry: if(1) / if("x")) in dead_code_remove', async () => {
+      expect(applyTransforms('if(1){alive();}', ['dead_code_remove']).transformed).toContain(
+        'alive',
+      );
+      expect(applyTransforms('if("x"){alive();}', ['dead_code_remove']).transformed).toContain(
+        'alive',
+      );
+    });
+
     it('renames _0x bindings without touching property names or template raw text', async () => {
       const code = 'var _0xabc = 1; obj._0xabc = _0xabc; const text = `_0xabc:${_0xabc}`;';
       const result = applyTransforms(code, ['rename_vars']);
