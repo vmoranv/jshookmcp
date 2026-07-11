@@ -126,4 +126,32 @@ export const webgpuTools: Tool[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'webgpu_error_capture',
+    description:
+      'Capture WebGPU validation/out-of-memory/internal errors the target app swallows (via device uncapturederror), plus the current device.lost state. Optionally wraps createBuffer/createTexture in error scopes to attribute failures to specific calls. Surfaces the real diagnostics behind "empty buffer" / "zero draw call" symptoms.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        captureCount: {
+          type: 'number',
+          description: 'Maximum number of errors to capture before returning',
+          minimum: 1,
+        },
+        timeoutMs: {
+          type: 'number',
+          description:
+            'Max wait in ms (returns early once captureCount errors are captured). Default 5000.',
+          minimum: 100,
+        },
+        wrapAllocations: {
+          type: 'boolean',
+          description:
+            'Wrap createBuffer/createTexture in push/pop error scopes to attribute validation failures to specific calls',
+        },
+      },
+      required: ['captureCount'],
+      additionalProperties: false,
+    },
+  },
 ];

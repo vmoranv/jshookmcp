@@ -9,6 +9,7 @@ import {
   MemoryLayoutHandler,
   CommandCaptureHandler,
   ShaderSourceCaptureHandler,
+  ErrorCaptureHandler,
 } from './handlers/index.js';
 
 /**
@@ -23,6 +24,7 @@ export class WebGPUHandlers {
   private memoryLayoutHandler: MemoryLayoutHandler;
   private commandCaptureHandler: CommandCaptureHandler;
   private shaderSourceCaptureHandler: ShaderSourceCaptureHandler;
+  private errorCaptureHandler: ErrorCaptureHandler;
 
   constructor(_ctx: MCPServerContext, deps?: WebGPUDomainDependencies) {
     const d = deps ?? {
@@ -36,6 +38,7 @@ export class WebGPUHandlers {
     this.memoryLayoutHandler = new MemoryLayoutHandler(_ctx, d);
     this.commandCaptureHandler = new CommandCaptureHandler(_ctx, d);
     this.shaderSourceCaptureHandler = new ShaderSourceCaptureHandler(_ctx, d);
+    this.errorCaptureHandler = new ErrorCaptureHandler(_ctx, d);
   }
 
   async webgpu_adapter_info(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -64,6 +67,10 @@ export class WebGPUHandlers {
 
   async webgpu_shader_source_capture(args: Record<string, unknown>): Promise<ToolResponse> {
     return this.shaderSourceCaptureHandler.handle(args);
+  }
+
+  async webgpu_error_capture(args: Record<string, unknown>): Promise<ToolResponse> {
+    return this.errorCaptureHandler.handle(args);
   }
 }
 
