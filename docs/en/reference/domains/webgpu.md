@@ -21,7 +21,7 @@ WebGPU reverse analysis domain supporting GPU adapter info, shader compile/disas
 - webgpu + browser
 - webgpu + instrumentation
 
-## Full tool list (8)
+## Full tool list (9)
 
 | Tool | Description |
 | --- | --- |
@@ -33,3 +33,4 @@ WebGPU reverse analysis domain supporting GPU adapter info, shader compile/disas
 | `webgpu_capture_commands` | Capture GPU command queue submissions (render passes, compute dispatches). Used for analyzing GPU workload and detecting malicious shader behavior. |
 | `webgpu_shader_source_capture` | Capture WGSL shader sources a running app compiles via GPUDevice.createShaderModule — the only artifact revealing what a compute/render pipeline computes (e.g. physics vs. cryptominer). Pairs with webgpu_capture_commands to reconstruct what data each draw/dispatch operated on. |
 | `webgpu_error_capture` | Capture WebGPU validation/out-of-memory/internal errors the target app swallows (via device uncapturederror), plus the current device.lost state. Optionally wraps createBuffer/createTexture in error scopes to attribute failures to specific calls. Surfaces the real diagnostics behind "empty buffer" / "zero draw call" symptoms. |
+| `webgpu_pipeline_dump` | Enumerate active render/compute pipelines, bind-group layouts, and render-pass descriptors by hooking GPUDevice createRenderPipeline / createComputePipeline / createBindGroupLayout (plus async variants). Captures the full descriptor (vertex/fragment entry points, buffer stride/attributes, bind-group layout entries, visibility) so a captured bindGroups index can be resolved to actual resources. |
