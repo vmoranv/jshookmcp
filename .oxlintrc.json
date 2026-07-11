@@ -27,6 +27,8 @@
           "__jshookSSEMonitor",
           "__jshookFetchStreamMonitor",
           "__jshookWebRtcMonitor",
+          "__jshookWsInstances",
+          "__jshookWsInstancesPatched",
           "__jshookPcId",
           "__more",
           "__networkRequests",

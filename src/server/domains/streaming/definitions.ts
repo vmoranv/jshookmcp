@@ -12,6 +12,10 @@ export const streamingTools: Tool[] = [
         minimum: 1,
         maximum: 20000,
       })
+      .boolean(
+        'exposeInstances',
+        'Also install an in-page WebSocket wrapper retaining live WebSocket instances for ws_send_frame replay (action=enable). Only WebSockets created after enable are reachable.',
+      )
       .required('action')
       .destructive(),
   ),
@@ -39,6 +43,20 @@ export const streamingTools: Tool[] = [
       .boolean('includePayload', 'Include full captured payloads in the artifact', {
         default: true,
       })
+      .openWorld(),
+  ),
+  tool('ws_send_frame', (t) =>
+    t
+      .desc(
+        'Send a frame through a live in-page WebSocket instance retained by ws_monitor(exposeInstances=true). ' +
+          'Enables edit-and-resend replay of WebSocket traffic. Only reaches WebSockets created AFTER exposeInstances was enabled (existing sockets are not retroactively reachable).',
+      )
+      .string('url', 'The WebSocket URL of the target instance')
+      .string('payload', 'The frame payload to send (text, or base64 when binary=true)')
+      .boolean('binary', 'Treat payload as base64-encoded binary (decode before send)', {
+        default: false,
+      })
+      .required('url', 'payload')
       .openWorld(),
   ),
   tool('sse_monitor_enable', (t) =>
@@ -109,6 +127,16 @@ export const streamingTools: Tool[] = [
       })
       .readOnly(),
   ),
+  tool('grpc_export_capture', (t) =>
+    t
+      .desc('Export captured gRPC / gRPC-Web calls to artifacts/captures as JSON or NDJSON.')
+      .enum('format', ['json', 'ndjson'], 'Export file format', { default: 'json' })
+      .string('urlFilter', 'Regex filter on the gRPC request URL')
+      .boolean('includeMessages', 'Include parsed message arrays (payloads) for each call', {
+        default: true,
+      })
+      .openWorld(),
+  ),
   tool('fetch_stream_monitor', (t) =>
     t
       .desc(
@@ -141,6 +169,19 @@ export const streamingTools: Tool[] = [
       .boolean('fullData', 'Include full captured event data when available', { default: false })
       .readOnly(),
   ),
+  tool('fetch_stream_export_capture', (t) =>
+    t
+      .desc(
+        'Export events captured by the fetch()-based stream monitor to artifacts/captures as JSON or NDJSON.',
+      )
+      .enum('format', ['json', 'ndjson'], 'Export file format', { default: 'json' })
+      .string('sourceUrl', 'Filter by the fetched stream URL')
+      .string('eventType', 'Filter by SSE event type')
+      .boolean('includeData', 'Include full captured event data in the artifact', {
+        default: true,
+      })
+      .openWorld(),
+  ),
   tool('webrtc_monitor', (t) =>
     t
       .desc(
@@ -171,5 +212,18 @@ export const streamingTools: Tool[] = [
       .number('offset', 'Pagination offset', { default: 0, minimum: 0 })
       .boolean('fullData', 'Include full captured message data when available', { default: false })
       .readOnly(),
+  ),
+  tool('webrtc_export_capture', (t) =>
+    t
+      .desc(
+        'Export messages captured by the WebRTC data-channel monitor to artifacts/captures as JSON or NDJSON.',
+      )
+      .enum('format', ['json', 'ndjson'], 'Export file format', { default: 'json' })
+      .string('label', 'Filter by data-channel label')
+      .enum('direction', ['sent', 'received'], 'Message direction filter')
+      .boolean('includeData', 'Include full captured message data in the artifact', {
+        default: true,
+      })
+      .openWorld(),
   ),
 ];

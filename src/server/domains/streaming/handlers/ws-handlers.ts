@@ -6,6 +6,7 @@ import { writeFile } from 'node:fs/promises';
 import { logger } from '@utils/logger';
 import { RingBuffer } from '@utils/RingBuffer';
 import { resolveArtifactPath } from '@utils/artifacts';
+import { evaluateWithTimeout } from '@modules/collector/PageController';
 import { WS_PAYLOAD_PREVIEW_LIMIT, WS_PAYLOAD_SAMPLE_LIMIT } from '@src/constants';
 import type {
   StreamingSharedState,
@@ -49,6 +50,72 @@ type ExportFormat = 'json' | 'ndjson';
 
 const parseExportFormat = (value: unknown): ExportFormat =>
   value === 'ndjson' ? 'ndjson' : 'json';
+
+/**
+ * Runs in the browser. Wraps window.WebSocket so each new WebSocket instance is
+ * retained in window.__jshookWsInstances keyed by url, enabling ws_send_frame
+ * edit-and-resend replay. Existing sockets (created before this wrapper installs)
+ * are NOT retroactively reachable — only sockets created after. Self-contained
+ * (no closure over module scope) so it survives serialization.
+ */
+function wsInstanceInjectionFn(): unknown {
+  type AnyWs = {
+    readyState: number;
+    send: (d: unknown) => void;
+    addEventListener: (t: string, l: () => void) => void;
+  };
+  const gw = window as Window &
+    typeof globalThis & {
+      __jshookWsInstances?: Record<string, AnyWs[]>;
+      __jshookWsInstancesPatched?: boolean;
+      WebSocket: typeof WebSocket;
+    };
+
+  if (gw.__jshookWsInstancesPatched) {
+    return { success: true, patched: false, alreadyPatched: true };
+  }
+
+  const registry: Record<string, AnyWs[]> = {};
+  gw.__jshookWsInstances = registry;
+
+  const OriginalWS = gw.WebSocket;
+
+  const WrappedWS = function (
+    this: unknown,
+    url: string | URL,
+    protocols?: string | string[],
+  ): WebSocket {
+    const ws = (protocols === undefined
+      ? new OriginalWS(url)
+      : new OriginalWS(url, protocols)) as unknown as WebSocket & AnyWs;
+    const key = String(url);
+    const arr = registry[key] ?? [];
+    arr.push(ws);
+    registry[key] = arr;
+    ws.addEventListener('close', () => {
+      const list = registry[key];
+      if (!list) return;
+      const idx = list.indexOf(ws);
+      if (idx >= 0) list.splice(idx, 1);
+      if (list.length === 0) delete registry[key];
+    });
+    return ws;
+  } as unknown as typeof WebSocket;
+
+  WrappedWS.prototype = OriginalWS.prototype;
+  try {
+    (WrappedWS as { CONNECTING?: number }).CONNECTING = OriginalWS.CONNECTING;
+    (WrappedWS as { OPEN?: number }).OPEN = OriginalWS.OPEN;
+    (WrappedWS as { CLOSING?: number }).CLOSING = OriginalWS.CLOSING;
+    (WrappedWS as { CLOSED?: number }).CLOSED = OriginalWS.CLOSED;
+  } catch {
+    /* static constants are read-only on some platforms */
+  }
+
+  gw.WebSocket = WrappedWS;
+  gw.__jshookWsInstancesPatched = true;
+  return { success: true, patched: true };
+}
 
 export class WsHandlers {
   constructor(private s: StreamingSharedState) {}
@@ -245,6 +312,7 @@ export class WsHandlers {
       integer: true,
     });
     const urlFilterRaw = parseOptionalStringArg(args.urlFilter);
+    const exposeInstances = parseBooleanArg(args.exposeInstances, false);
 
     let urlFilter: RegExp | undefined;
     if (urlFilterRaw) {
@@ -319,10 +387,18 @@ export class WsHandlers {
     this.s.wsListeners = listeners;
     this.s.wsConfig = { enabled: true, maxFrames, urlFilterRaw, urlFilter };
 
+    if (exposeInstances) {
+      try {
+        await evaluateWithTimeout(page, wsInstanceInjectionFn);
+      } catch (e) {
+        logger.debug('[ws-monitor] failed to install instance-exposure wrapper', e);
+      }
+    }
+
     return asJson({
       success: true,
       message: 'WebSocket monitor enabled',
-      config: { maxFrames, urlFilter: urlFilterRaw ?? null },
+      config: { maxFrames, urlFilter: urlFilterRaw ?? null, exposeInstances },
       stats: {
         trackedConnections: this.s.wsConnections.size,
         capturedFrames: this.s.wsFrameOrder.length,
@@ -499,5 +575,77 @@ export class WsHandlers {
       filters: metadata.filters,
       monitor: metadata.monitor,
     });
+  }
+
+  async handleWsSendFrame(args: Record<string, unknown>): Promise<TextToolResponse> {
+    const url = parseOptionalStringArg(args.url);
+    const payloadRaw = args.payload;
+    if (!url) return asJson({ success: false, error: 'url is required' });
+    if (typeof payloadRaw !== 'string')
+      return asJson({ success: false, error: 'payload is required' });
+    const binary = parseBooleanArg(args.binary, false);
+
+    const page = await this.s.collector.getActivePage();
+    const result = await evaluateWithTimeout(
+      page,
+      (query: { url: string; payload: string; binary: boolean }) => {
+        type AnyWs = { readyState: number; send: (d: unknown) => void };
+        const gw = window as Window &
+          typeof globalThis & { __jshookWsInstances?: Record<string, AnyWs[]> };
+        const registry = gw.__jshookWsInstances;
+        if (!registry)
+          return {
+            success: false,
+            message:
+              'WebSocket instance exposure is not enabled. Call ws_monitor with exposeInstances=true first.',
+          };
+        const candidates = registry[query.url];
+        if (!candidates || candidates.length === 0)
+          return {
+            success: false,
+            message:
+              'No reachable WebSocket instance for this url. Only sockets created AFTER exposeInstances=true was enabled are reachable.',
+          };
+        const OPEN = 1;
+        const open = candidates.filter((ws) => {
+          try {
+            return ws.readyState === OPEN;
+          } catch {
+            return false;
+          }
+        });
+        if (open.length === 0)
+          return {
+            success: false,
+            message: `Found ${candidates.length} instance(s) for this url but none in OPEN state (readyState=1).`,
+            readyStates: candidates.map((ws) => {
+              try {
+                return ws.readyState;
+              } catch {
+                return -1;
+              }
+            }),
+          };
+        const ws = open[open.length - 1]!;
+        let bytesSent: number;
+        if (query.binary) {
+          const bin = Uint8Array.from(atob(query.payload), (c) => c.charCodeAt(0));
+          ws.send(bin);
+          bytesSent = bin.length;
+        } else {
+          ws.send(query.payload);
+          bytesSent = query.payload.length;
+        }
+        return {
+          success: true,
+          url: query.url,
+          readyState: ws.readyState,
+          bytesSent,
+          binary: query.binary,
+        };
+      },
+      { url, payload: payloadRaw, binary },
+    );
+    return asJson(result as Record<string, unknown>);
   }
 }

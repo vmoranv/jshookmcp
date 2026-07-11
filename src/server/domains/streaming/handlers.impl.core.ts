@@ -55,6 +55,12 @@ export class StreamingToolHandlers {
   protected get sseConfig() {
     return this.state.sseConfig;
   }
+  protected get grpcCalls() {
+    return this.state.grpcCalls;
+  }
+  protected get grpcCallOrder() {
+    return this.state.grpcCallOrder;
+  }
 
   constructor(collector: CodeCollector) {
     this.collector = collector;
@@ -96,6 +102,12 @@ export class StreamingToolHandlers {
   handleWsGetConnections = (args: Record<string, unknown>) => this.ws.handleWsGetConnections(args);
   handleWsExportCapture = (args: Record<string, unknown>) => this.ws.handleWsExportCapture(args);
 
+  async handleWsSendFrameTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => this.ws.handleWsSendFrame(args));
+  }
+
+  handleWsSendFrame = (args: Record<string, unknown>) => this.ws.handleWsSendFrame(args);
+
   // ── SSE ──
 
   async handleSseMonitorEnableTool(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -124,12 +136,18 @@ export class StreamingToolHandlers {
     return handleSafe(async () => this.grpc.handleGrpcGetCalls(args));
   }
 
+  async handleGrpcExportCaptureTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => this.grpc.handleGrpcExportCapture(args));
+  }
+
   handleGrpcMonitorDispatch = (args: Record<string, unknown>) => {
     const action = String(args['action'] ?? '');
     return action === 'disable'
       ? this.grpc.handleGrpcMonitorDisable(args)
       : this.grpc.handleGrpcMonitorEnable(args);
   };
+  handleGrpcExportCapture = (args: Record<string, unknown>) =>
+    this.grpc.handleGrpcExportCapture(args);
 
   // ── fetch()-based stream ──
 
@@ -146,6 +164,13 @@ export class StreamingToolHandlers {
     return handleSafe(async () => this.fetchStream.handleFetchStreamGetEvents(args));
   }
 
+  async handleFetchStreamExportCaptureTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => this.fetchStream.handleFetchStreamExportCapture(args));
+  }
+
+  handleFetchStreamExportCapture = (args: Record<string, unknown>) =>
+    this.fetchStream.handleFetchStreamExportCapture(args);
+
   // ── WebRTC data channels ──
 
   async handleWebRtcMonitorTool(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -160,4 +185,11 @@ export class StreamingToolHandlers {
   async handleWebRtcGetEventsTool(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => this.webrtc.handleWebRtcGetEvents(args));
   }
+
+  async handleWebRtcExportCaptureTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => this.webrtc.handleWebRtcExportCapture(args));
+  }
+
+  handleWebRtcExportCapture = (args: Record<string, unknown>) =>
+    this.webrtc.handleWebRtcExportCapture(args);
 }

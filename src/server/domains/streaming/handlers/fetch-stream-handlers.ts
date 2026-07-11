@@ -9,6 +9,8 @@
  * frame stream into events — closing the fetch-based SSE gap.
  */
 
+import { writeFile } from 'node:fs/promises';
+import { resolveArtifactPath } from '@utils/artifacts';
 import type { StreamingSharedState, TextToolResponse } from './shared';
 import {
   asJson,
@@ -21,6 +23,11 @@ import {
   evaluateWithTimeout,
   evaluateOnNewDocumentWithTimeout,
 } from '@modules/collector/PageController';
+
+type ExportFormat = 'json' | 'ndjson';
+
+const parseExportFormat = (value: unknown): ExportFormat =>
+  value === 'ndjson' ? 'ndjson' : 'json';
 
 /**
  * Runs in the browser. Wraps window.fetch; for text/event-stream responses it
@@ -409,5 +416,116 @@ export class FetchStreamHandlers {
       { sourceUrl, eventType, limit, offset, fullData },
     );
     return asJson(result as Record<string, unknown>);
+  }
+
+  async handleFetchStreamExportCapture(args: Record<string, unknown>): Promise<TextToolResponse> {
+    const sourceUrl = parseOptionalStringArg(args.sourceUrl);
+    const eventType = parseOptionalStringArg(args.eventType);
+    const includeData = parseBooleanArg(args.includeData, true);
+    const format = parseExportFormat(args.format);
+    const page = await this.s.collector.getActivePage();
+
+    const result = await evaluateWithTimeout(
+      page,
+      (query: { sourceUrl?: string; eventType?: string; includeData: boolean }) => {
+        type FsEvent = {
+          sourceUrl: string;
+          eventType: string;
+          dataPreview: string;
+          data?: string;
+          dataLength: number;
+          lastEventId: string | null;
+          timestamp: number;
+        };
+        const gw = window as Window &
+          typeof globalThis & {
+            __jshookFetchStreamMonitor?: {
+              enabled: boolean;
+              patched: boolean;
+              maxEvents: number;
+              urlFilterRaw?: string;
+              events: FsEvent[];
+              sources: Record<string, unknown>;
+            };
+          };
+        const state = gw.__jshookFetchStreamMonitor;
+        if (!state)
+          return {
+            success: false,
+            message: 'fetch-stream monitor is not enabled. Call fetch_stream_monitor first.',
+          };
+
+        let events = state.events;
+        if (query.sourceUrl) events = events.filter((e) => e.sourceUrl === query.sourceUrl);
+        if (query.eventType) events = events.filter((e) => e.eventType === query.eventType);
+
+        return {
+          success: true,
+          monitor: {
+            enabled: state.enabled,
+            patched: state.patched,
+            maxEvents: state.maxEvents,
+            urlFilter: state.urlFilterRaw ?? null,
+            sourceCount: Object.keys(state.sources).length,
+          },
+          filters: {
+            sourceUrl: query.sourceUrl ?? null,
+            eventType: query.eventType ?? null,
+            includeData: query.includeData,
+          },
+          events: events.map((event) => {
+            if (query.includeData) return event;
+            const { data: _data, ...withoutData } = event;
+            return withoutData;
+          }),
+        };
+      },
+      { sourceUrl, eventType, includeData },
+    );
+
+    const capture = result as {
+      success: boolean;
+      message?: string;
+      monitor?: Record<string, unknown>;
+      filters?: Record<string, unknown>;
+      events?: Array<Record<string, unknown>>;
+    };
+    if (!capture.success) return asJson(capture);
+
+    const events = capture.events ?? [];
+    const metadata = {
+      schema: 'jshookmcp.streaming.fetch-stream.capture.v1',
+      exportedAt: new Date().toISOString(),
+      format,
+      filters: capture.filters ?? { sourceUrl: sourceUrl ?? null, eventType: eventType ?? null },
+      monitor: capture.monitor ?? null,
+      recordCount: events.length,
+    };
+
+    const body =
+      format === 'ndjson'
+        ? [
+            JSON.stringify({ type: 'metadata', ...metadata }),
+            ...events.map((event) => JSON.stringify({ type: 'event', ...event })),
+          ].join('\n') + '\n'
+        : `${JSON.stringify({ ...metadata, events }, null, 2)}\n`;
+
+    const artifact = await resolveArtifactPath({
+      category: 'captures',
+      toolName: 'fetch-stream-capture',
+      target: eventType ?? sourceUrl ?? 'all',
+      ext: format,
+    });
+    await writeFile(artifact.absolutePath, body, 'utf8');
+
+    return asJson({
+      success: true,
+      artifactPath: artifact.displayPath,
+      format,
+      bytes: Buffer.byteLength(body, 'utf8'),
+      recordCount: events.length,
+      filters: metadata.filters,
+      monitor: metadata.monitor,
+    });
   }
 }

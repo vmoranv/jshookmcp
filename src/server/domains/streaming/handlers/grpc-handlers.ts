@@ -9,8 +9,10 @@
  * gRPC decode chain for captured (live) traffic.
  */
 
+import { writeFile } from 'node:fs/promises';
 import { logger } from '@utils/logger';
 import { RingBuffer } from '@utils/RingBuffer';
+import { resolveArtifactPath } from '@utils/artifacts';
 import type {
   CdpSessionLike,
   GrpcCallRecord,
@@ -29,6 +31,11 @@ import {
 import { parseGrpcFrames } from '@server/domains/network/grpc-raw';
 
 type UnknownRecord = Record<string, unknown>;
+
+type ExportFormat = 'json' | 'ndjson';
+
+const parseExportFormat = (value: unknown): ExportFormat =>
+  value === 'ndjson' ? 'ndjson' : 'json';
 
 const asRecord = (value: unknown): UnknownRecord | undefined =>
   typeof value === 'object' && value !== null ? (value as UnknownRecord) : undefined;
@@ -348,6 +355,93 @@ export class GrpcHandlers {
         nextOffset: offset + pageItems.length < all.length ? offset + pageItems.length : null,
       },
       calls: pageItems,
+    });
+  }
+
+  async handleGrpcExportCapture(args: Record<string, unknown>): Promise<TextToolResponse> {
+    const format = parseExportFormat(args.format);
+    const includeMessages = parseBooleanArg(args.includeMessages, true);
+    const urlFilterRaw = parseOptionalStringArg(args.urlFilter);
+
+    let urlFilter: RegExp | undefined;
+    if (urlFilterRaw) {
+      const compiled = compileRegex(urlFilterRaw);
+      if (compiled.error) {
+        return asJson({ success: false, error: `Invalid urlFilter regex: ${compiled.error}` });
+      }
+      urlFilter = compiled.regex;
+    }
+
+    const all = Array.from(this.s.grpcCallOrder.toArray())
+      .map((id) => this.s.grpcCalls.get(id))
+      .filter((c): c is GrpcCallRecord => c !== undefined)
+      .filter((c) => (urlFilter ? urlFilter.test(c.url) : true));
+
+    const records = all.map((call) => {
+      const record: Record<string, unknown> = {
+        requestId: call.requestId,
+        url: call.url,
+        method: call.method,
+        status: call.status,
+        requestContentType: call.requestContentType,
+        responseContentType: call.responseContentType,
+        createdTimestamp: call.createdTimestamp,
+        finishedTimestamp: call.finishedTimestamp,
+        requestBodyBytes: call.requestBodyBytes,
+        responseBodyBytes: call.responseBodyBytes,
+        responseMessageCount: call.responseMessages.length,
+        requestMessageCount: call.requestMessages.length,
+        compressedResponseMessages: call.responseMessages.filter((m) => m.compressed).length,
+        hasTrailer: call.responseMessages.some((m) => m.isTrailer),
+        bodyError: call.bodyError,
+        warningCount: call.warnings.length,
+      };
+      if (includeMessages) {
+        record.responseMessages = call.responseMessages;
+        record.requestMessages = call.requestMessages;
+        record.warnings = call.warnings;
+      }
+      return record;
+    });
+
+    const metadata = {
+      schema: 'jshookmcp.streaming.grpc.capture.v1',
+      exportedAt: new Date().toISOString(),
+      format,
+      filters: { urlFilter: urlFilterRaw ?? null, includeMessages },
+      monitor: {
+        enabled: this.s.grpcConfig.enabled,
+        maxCalls: this.s.grpcConfig.maxCalls,
+        urlFilter: this.s.grpcConfig.urlFilterRaw ?? null,
+        capturedCalls: this.s.grpcCalls.size,
+      },
+      recordCount: records.length,
+    };
+
+    const body =
+      format === 'ndjson'
+        ? [
+            JSON.stringify({ type: 'metadata', ...metadata }),
+            ...records.map((record) => JSON.stringify({ type: 'call', ...record })),
+          ].join('\n') + '\n'
+        : `${JSON.stringify({ ...metadata, calls: records }, null, 2)}\n`;
+
+    const artifact = await resolveArtifactPath({
+      category: 'captures',
+      toolName: 'grpc-capture',
+      target: urlFilterRaw ?? 'all',
+      ext: format,
+    });
+    await writeFile(artifact.absolutePath, body, 'utf8');
+
+    return asJson({
+      success: true,
+      artifactPath: artifact.displayPath,
+      format,
+      bytes: Buffer.byteLength(body, 'utf8'),
+      recordCount: records.length,
+      filters: metadata.filters,
+      monitor: metadata.monitor,
     });
   }
 }
