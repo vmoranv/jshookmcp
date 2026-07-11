@@ -114,7 +114,17 @@ export const dartInspectorTools: Tool[] = [
       .string(
         'obfuscationMapFile',
         'Absolute path to the obfuscation-map.json emitted by `flutter build ... ' +
-          '--extra-gen-snapshot-options=--save-obfuscation-map=FILE`',
+          '--extra-gen-snapshot-options=--save-obfuscation-map=FILE`. Optional: if omitted, ' +
+          'auto-detected from apkPath or searchDir.',
+      )
+      .string(
+        'apkPath',
+        'Absolute path to an APK to auto-scan for an obfuscation-map sidecar ' +
+          '(obfuscation.txt/.map/.json, including under assets/flutter_assets/)',
+      )
+      .string(
+        'searchDir',
+        'Absolute path to a directory tree to auto-scan for an obfuscation-map sidecar',
       )
       .array(
         'obfuscatedNames',
@@ -135,7 +145,7 @@ export const dartInspectorTools: Tool[] = [
       )
       .number('maxMapBytes', 'Cap on map file size in bytes', { default: 16 * 1024 * 1024 })
       .number('maxLookups', 'Cap on number of lookups attempted (extras go to unresolved)')
-      .required('obfuscationMapFile', 'obfuscatedNames')
+      .required('obfuscatedNames')
       .query(),
   ),
   tool('flutter_packages_detect', (t) =>

@@ -17,6 +17,7 @@ import type { PackageDetectOptions } from '@modules/dart-inspector/types.package
 import { SmiScanner } from '@modules/dart-inspector/SmiScanner';
 import type { SmiScanOptions, SmiWidth } from '@modules/dart-inspector/SmiScanner';
 import { Symbolizer } from '@modules/dart-inspector/Symbolizer';
+import { locateObfuscationMap } from '@modules/dart-inspector/ObfuscationMapLocator';
 import type {
   SymbolizeOptions,
   SymbolizerFormat,
@@ -195,7 +196,9 @@ export class DartInspectorHandlers {
 
   handleDartSymbolize(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => {
-      const mapPath = argStringRequired(args, 'obfuscationMapFile');
+      const explicitMapPath = argString(args, 'obfuscationMapFile');
+      const apkPath = argString(args, 'apkPath');
+      const searchDir = argString(args, 'searchDir');
       const rawNames = args['obfuscatedNames'];
       if (!Array.isArray(rawNames)) {
         throw new ToolError('VALIDATION', 'obfuscatedNames must be an array of strings');
@@ -216,8 +219,30 @@ export class DartInspectorHandlers {
       const maxLookups = argNumber(args, 'maxLookups');
       if (maxLookups !== undefined) opts.maxLookups = maxLookups;
 
+      let mapPath: string;
+      let mapSource: string;
+      if (explicitMapPath) {
+        mapPath = explicitMapPath;
+        mapSource = 'user-supplied';
+      } else {
+        if (!apkPath && !searchDir) {
+          throw new ToolError(
+            'VALIDATION',
+            'Provide obfuscationMapFile, or apkPath/searchDir to auto-detect the obfuscation map',
+          );
+        }
+        const located = await locateObfuscationMap({ apkPath, searchDir });
+        if (!located) {
+          throw new ToolError('NOT_FOUND', 'No obfuscation map sidecar found', {
+            details: { apkPath, searchDir },
+          });
+        }
+        mapPath = located.path;
+        mapSource = located.source;
+      }
+
       const result = await this.symbolizer.resolveNames(names, mapPath, opts);
-      return { symbols: result };
+      return { symbols: result, mapSource };
     });
   }
 
