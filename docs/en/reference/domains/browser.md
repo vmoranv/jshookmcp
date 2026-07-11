@@ -21,7 +21,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 - browser + instrumentation
 - browser + workflow
 
-## Full tool list (73)
+## Full tool list (76)
 
 | Tool | Description |
 | --- | --- |
@@ -66,11 +66,14 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `page_cookies` | Manage page cookies; clear requires matching expectedCount. |
 | `page_set_viewport` | Set the browser viewport dimensions. |
 | `page_emulate_device` | Emulate a mobile device profile. |
-| `page_local_storage` | Read, write, or clear localStorage entries for the current origin. |
-| `page_session_storage` | Read, write, or clear sessionStorage entries for the current origin. |
+| `page_local_storage` | Read, write, delete, or clear localStorage entries for the current origin. |
+| `page_session_storage` | Read, write, delete, or clear sessionStorage entries for the current origin. |
+| `page_storage_info` | Query navigator.storage.estimate() for {usage, quota} and navigator.storage.persisted() to inspect the origin storage budget and persistence status (offline/PWA reverse engineering). |
 | `browser_passkey_seed` | Seed a WebAuthn/Passkey credential into the browser for test automation. |
 | `page_press_key` | Simulate a key press by name. |
 | `page_handle_dialog` | Control how JavaScript dialogs (alert/confirm/prompt/beforeunload) are answered. By default installs a persistent handler that auto-dismisses all dialogs. Set dismissAll=false for one-shot handling of the next dialog. |
+| `service_worker_deliver_push` | Deliver a synthetic push message to a service worker via CDP ServiceWorker.deliverPushMessage. Requires an attached CDP session on a SW target. |
+| `service_worker_dispatch_sync` | Dispatch a Background Sync event to a service worker via CDP ServiceWorker.dispatchSyncEvent. Requires an attached CDP session on a SW target. |
 | `captcha_detect` | Detect CAPTCHAs on the current page. |
 | `captcha_wait` | Block until the user manually solves the CAPTCHA. |
 | `captcha_config` | Configure CAPTCHA detection sensitivity and solver backend. |
@@ -82,7 +85,7 @@ Primary browser control and DOM interaction domain; the usual entry point for mo
 | `camoufox_geolocation` | Get geolocation for a locale. |
 | `camoufox_server` | Start, close, or check status of a Camoufox anti-detect server. |
 | `framework_state_extract` | Extract React/Vue/Svelte/Solid component state and meta-framework info. |
-| `indexeddb_dump` | Export all IndexedDB databases and records for offline analysis. |
+| `indexeddb_dump` | Export IndexedDB databases and records. Supports keyRange queries (IDBKeyRange.bound/lower/upper), indexName (query a specific index), count (count-only mode), and cursor pagination (stream large stores in batches). |
 | `js_heap_search` | Search JS heap for strings matching a pattern. |
 | `tab_workflow` | Cross-tab coordination. |
 | `browser_codegen_start` | Start recording browser actions as replayable steps. |

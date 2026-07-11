@@ -21,7 +21,7 @@
 - browser + instrumentation
 - browser + workflow
 
-## 工具清单（73）
+## 工具清单（76）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -68,9 +68,12 @@
 | `page_emulate_device` | 模拟移动设备环境，例如 iPhone、iPad 或 Android 机型。 |
 | `page_local_storage` | 管理 localStorage。操作：get（获取全部项）、set（需提供 key 和 value）。 |
 | `page_session_storage` | 读取、写入或清空当前域名下的 sessionStorage。 |
+| `page_storage_info` | 查询 navigator.storage.estimate() 获取当前源的存储用量与配额，并检查 navigator.storage.persisted() 的持久化状态，用于 PWA / 离线应用的存储预算与持久化分析。 |
 | `browser_passkey_seed` | 向浏览器注入 WebAuthn/Passkey 虚拟凭据，用于 FIDO2 认证自动化测试。 |
 | `page_press_key` | 模拟按下键盘按键，如 Enter、Escape 或 ArrowDown。 |
 | `page_handle_dialog` | 控制 JavaScript 对话框（alert/confirm/prompt/beforeunload）的处理方式。默认安装持久处理器，自动关闭所有后续对话框；设置 dismissAll=false 则改为单次处理下一个对话框（带 30s 超时）。 |
+| `service_worker_deliver_push` | 通过 CDP ServiceWorker.deliverPushMessage 向 Service Worker 投递一条合成的 push 消息，用于测试 push 事件处理逻辑。需先在 SW 目标上挂载 CDP 会话。 |
+| `service_worker_dispatch_sync` | 通过 CDP ServiceWorker.dispatchSyncEvent 向 Service Worker 派发 Background Sync 事件，用于触发并测试后台同步逻辑。需先在 SW 目标上挂载 CDP 会话。 |
 | `captcha_detect` | 使用 AI 视觉分析检测页面上是否有 CAPTCHA 验证码。 |
 | `captcha_wait` | 等待用户手动完成 CAPTCHA 验证码。 |
 | `captcha_config` | 配置 CAPTCHA 验证码的检测和自动处理行为。 |
