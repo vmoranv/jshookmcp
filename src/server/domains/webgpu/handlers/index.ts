@@ -6,3 +6,4 @@ export { MemoryLayoutHandler } from './memory-layout.js';
 export { CommandCaptureHandler } from './command-capture.js';
 export { ShaderSourceCaptureHandler } from './shader-source-capture.js';
 export { ErrorCaptureHandler } from './error-capture.js';
+export { PipelineDumpHandler } from './pipeline-dump.js';

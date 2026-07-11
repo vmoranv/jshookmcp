@@ -10,6 +10,7 @@ import {
   CommandCaptureHandler,
   ShaderSourceCaptureHandler,
   ErrorCaptureHandler,
+  PipelineDumpHandler,
 } from './handlers/index.js';
 
 /**
@@ -25,6 +26,7 @@ export class WebGPUHandlers {
   private commandCaptureHandler: CommandCaptureHandler;
   private shaderSourceCaptureHandler: ShaderSourceCaptureHandler;
   private errorCaptureHandler: ErrorCaptureHandler;
+  private pipelineDumpHandler: PipelineDumpHandler;
 
   constructor(_ctx: MCPServerContext, deps?: WebGPUDomainDependencies) {
     const d = deps ?? {
@@ -39,6 +41,7 @@ export class WebGPUHandlers {
     this.commandCaptureHandler = new CommandCaptureHandler(_ctx, d);
     this.shaderSourceCaptureHandler = new ShaderSourceCaptureHandler(_ctx, d);
     this.errorCaptureHandler = new ErrorCaptureHandler(_ctx, d);
+    this.pipelineDumpHandler = new PipelineDumpHandler(_ctx, d);
   }
 
   async webgpu_adapter_info(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -71,6 +74,10 @@ export class WebGPUHandlers {
 
   async webgpu_error_capture(args: Record<string, unknown>): Promise<ToolResponse> {
     return this.errorCaptureHandler.handle(args);
+  }
+
+  async webgpu_pipeline_dump(args: Record<string, unknown>): Promise<ToolResponse> {
+    return this.pipelineDumpHandler.handle(args);
   }
 }
 

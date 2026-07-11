@@ -27,6 +27,7 @@ const registrations = defineMethodRegistrations<H, (typeof toolDefinitions)[numb
     { tool: 'webgpu_capture_commands', method: 'webgpu_capture_commands' },
     { tool: 'webgpu_shader_source_capture', method: 'webgpu_shader_source_capture' },
     { tool: 'webgpu_error_capture', method: 'webgpu_error_capture' },
+    { tool: 'webgpu_pipeline_dump', method: 'webgpu_pipeline_dump' },
   ],
 });
 
@@ -87,6 +88,9 @@ const manifest = {
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
     webgpu_error_capture: [
+      { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
+    ],
+    webgpu_pipeline_dump: [
       { condition: 'Browser must be launched', fix: 'Call browser_launch or browser_attach first' },
     ],
   },

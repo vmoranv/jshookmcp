@@ -154,4 +154,27 @@ export const webgpuTools: Tool[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'webgpu_pipeline_dump',
+    description:
+      'Enumerate active render/compute pipelines, bind-group layouts, and render-pass descriptors by hooking GPUDevice createRenderPipeline / createComputePipeline / createBindGroupLayout (plus async variants). Captures the full descriptor (vertex/fragment entry points, buffer stride/attributes, bind-group layout entries, visibility) so a captured bindGroups index can be resolved to actual resources.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        captureCount: {
+          type: 'number',
+          description: 'Number of pipeline/layout creations to capture before returning',
+          minimum: 1,
+        },
+        timeoutMs: {
+          type: 'number',
+          description:
+            'Max wait in ms (returns early once captureCount pipelines are captured). Default 5000.',
+          minimum: 100,
+        },
+      },
+      required: ['captureCount'],
+      additionalProperties: false,
+    },
+  },
 ];
