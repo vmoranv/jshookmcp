@@ -27,6 +27,42 @@ function normalizeUrlToPattern(rawUrl: string): string {
   }
 }
 
+/**
+ * Extract the HTTP response status from a captured request payload. The merged
+ * payload carries the CDP/Playwright NetworkRequest shape (response.status) via
+ * its index signature; some captures also surface status at the top level.
+ * Returns undefined when no response status was captured (request in flight or
+ * blocked before headers arrived) — callers filtering by status exclude these.
+ */
+function getRequestStatus(req: NetworkRequestPayload): number | undefined {
+  const response = req.response;
+  if (response !== null && typeof response === 'object') {
+    const status = (response as Record<string, unknown>).status;
+    if (typeof status === 'number') return status;
+  }
+  if (typeof req.status === 'number') return req.status;
+  return undefined;
+}
+
+/**
+ * Match a captured status against a statusCode filter expression.
+ * - Exact: "404" → status === 404
+ * - Class: "4xx" / "5xx" / "2xx" → status in [N00, N00+100)
+ * Unparseable filters match nothing; undefined status never matches.
+ */
+function matchesStatusCode(status: number | undefined, filter: string): boolean {
+  if (status === undefined) return false;
+  const trimmed = filter.trim();
+  const classMatch = /^(\d)xx$/i.exec(trimmed);
+  if (classMatch) {
+    const hundred = Number.parseInt(classMatch[1]!, 10) * 100;
+    return status >= hundred && status < hundred + 100;
+  }
+  const exact = Number.parseInt(trimmed, 10);
+  if (Number.isNaN(exact)) return false;
+  return status === exact;
+}
+
 export function applyRequestFilters(
   requests: NetworkRequestPayload[],
   filters: {
@@ -40,6 +76,7 @@ export function applyRequestFilters(
     offset: number;
     autoEnabled: boolean;
     fields?: string[];
+    statusCode?: string;
     deduplicateUrls?: boolean;
   },
 ) {
@@ -54,6 +91,7 @@ export function applyRequestFilters(
     offset,
     autoEnabled,
     fields,
+    statusCode,
     deduplicateUrls,
   } = filters;
   const originalCount = requests.length;
@@ -65,7 +103,8 @@ export function applyRequestFilters(
     (method && method.toUpperCase() !== 'ALL') ||
     sinceTimestamp ||
     sinceRequestId ||
-    tail
+    tail ||
+    statusCode
   );
 
   // Default type filtering: exclude static resources when no explicit filters are set
@@ -112,6 +151,12 @@ export function applyRequestFilters(
   }
   if (method && method.toUpperCase() !== 'ALL') {
     requests = requests.filter((req) => req.method.toUpperCase() === method.toUpperCase());
+  }
+
+  // statusCode filter: exact ("404") or class ("4xx"/"5xx"). Requests without a
+  // captured response status are excluded when this filter is set.
+  if (statusCode) {
+    requests = requests.filter((req) => matchesStatusCode(getRequestStatus(req), statusCode));
   }
 
   // tail filter
@@ -203,7 +248,17 @@ export function applyRequestFilters(
         truncated: beforeLimit > offset + limit,
       },
       filtered: hasAnyFilter,
-      filters: { url, urlRegex, method, sinceTimestamp, sinceRequestId, tail, limit, offset },
+      filters: {
+        url,
+        urlRegex,
+        method,
+        statusCode,
+        sinceTimestamp,
+        sinceRequestId,
+        tail,
+        limit,
+        offset,
+      },
       monitoring: {
         autoEnabled,
       },
@@ -287,6 +342,7 @@ export async function handleNetworkGetRequests(
     const sinceTimestamp = isFiniteNumber(args.sinceTimestamp) ? args.sinceTimestamp : undefined;
     const sinceRequestId = asOptionalString(args.sinceRequestId);
     const tail = isFiniteNumber(args.tail) && args.tail > 0 ? Math.floor(args.tail) : undefined;
+    const statusCode = asOptionalString(args.statusCode);
     const deduplicateUrls = parseBooleanArg(args.deduplicateUrls, false);
     const rawFields = args.fields;
     const fields: string[] | undefined =
@@ -315,6 +371,7 @@ export async function handleNetworkGetRequests(
       url,
       urlRegex,
       method,
+      statusCode,
       sinceTimestamp,
       sinceRequestId,
       tail,

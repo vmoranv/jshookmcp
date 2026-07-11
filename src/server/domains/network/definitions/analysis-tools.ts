@@ -199,6 +199,17 @@ export const analysisTools: Tool[] = [
         { type: 'string' },
         'User-supplied JA4 hashes considered bot-like (matched against ja4). The tool ships no hardcoded list.',
       )
+      .string(
+        'h2Hash',
+        'Captured HTTP/2 fingerprint sha256 (from network_http2_fingerprint — Akamai-style ' +
+          'SETTINGS/WINDOW_UPDATE/PRIORITY canonical) to expose as a signal and match against knownBadH2.',
+      )
+      .array(
+        'knownBadH2',
+        { type: 'string' },
+        'User-supplied HTTP/2 fingerprint hashes considered bot-like (matched against h2Hash). ' +
+          'The tool ships no hardcoded list.',
+      )
       .query(),
   ),
 ];

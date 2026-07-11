@@ -287,6 +287,18 @@ export class TlsBotHandlers {
             knownBadJa4: knownBadJa4.length ? knownBadJa4 : undefined,
           }
         : undefined;
+    // Optional HTTP/2 fingerprint (Akamai-style SETTINGS/WINDOW_UPDATE/PRIORITY
+    // sha256 from network_http2_fingerprint) plus user-supplied knownBad hash
+    // list. Same zero-hardcoded-library contract as ja3/ja4.
+    const h2Hash = argString(args, 'h2Hash', '');
+    const knownBadH2 = argStringArray(args, 'knownBadH2');
+    const h2Fingerprint =
+      h2Hash || knownBadH2.length
+        ? {
+            hash: h2Hash || undefined,
+            knownBadH2: knownBadH2.length ? knownBadH2 : undefined,
+          }
+        : undefined;
 
     const requests = this.consoleMonitor.getNetworkRequests();
     const sample = requests.slice(0, limit);
@@ -342,7 +354,13 @@ export class TlsBotHandlers {
               tlsVersion: typeof secDetails['protocol'] === 'string' ? secDetails['protocol'] : '',
             }
           : undefined;
-      const reqSignals = detectBotSignals(ua, headerNames, tlsSignalsForBot, jaFingerprint);
+      const reqSignals = detectBotSignals(
+        ua,
+        headerNames,
+        tlsSignalsForBot,
+        jaFingerprint,
+        h2Fingerprint,
+      );
       const isApiRequest = /\/api\/|\/v\d+\/|\/graphql/i.test(url);
 
       const { http } = computeHttpFingerprint(

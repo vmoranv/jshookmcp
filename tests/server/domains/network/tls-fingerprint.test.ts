@@ -353,6 +353,93 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
     });
   });
 
+  describe('detectBotSignals — HTTP/2 fingerprint integration', () => {
+    // Zero hardcoded feature library: the h2 hash is informational; only a
+    // user-supplied knownBadH2 list produces a known-bot score. Mirrors ja3/ja4.
+    const H2_HASH = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
+    const cleanBrowserHeaders = [
+      'host',
+      'user-agent',
+      'accept',
+      'accept-language',
+      'accept-encoding',
+    ];
+    const cleanBrowserUa =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+    it('exposes h2 hash as an informational signal without inflating score (no knownBad list)', () => {
+      const baseline = detectBotSignals(cleanBrowserUa, cleanBrowserHeaders);
+      const withH2 = detectBotSignals(cleanBrowserUa, cleanBrowserHeaders, undefined, undefined, {
+        hash: H2_HASH,
+      });
+      expect(withH2.signals.some((s) => s.includes('http2-fingerprint: a1b2c3d4'))).toBe(true);
+      // h2 hash surfaces as information but must NOT inflate the score
+      expect(withH2.score).toBe(baseline.score);
+      expect(baseline.signals.some((s) => s.includes('http2-fingerprint'))).toBe(false);
+    });
+
+    it('scores known-bad h2 match against a user-supplied list (no hardcoded library)', () => {
+      const { score, signals } = detectBotSignals(
+        'python-requests/2.28',
+        ['host', 'user-agent'],
+        undefined,
+        undefined,
+        {
+          hash: H2_HASH,
+          knownBadH2: [H2_HASH, 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'],
+        },
+      );
+      expect(signals.some((s) => s.includes('known-bot-h2'))).toBe(true);
+      expect(score).toBeGreaterThan(0.4);
+    });
+
+    it('does not match h2 hash absent from the user knownBadH2 list', () => {
+      const { signals } = detectBotSignals(
+        'Mozilla/5.0 Chrome/120',
+        ['host', 'user-agent', 'accept'],
+        undefined,
+        undefined,
+        {
+          hash: H2_HASH,
+          knownBadH2: ['0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'],
+        },
+      );
+      expect(signals.some((s) => s.includes('known-bot-h2'))).toBe(false);
+    });
+
+    it('combines h2 and ja3 knownBad matches additively (clamped to 1.0)', () => {
+      const { score } = detectBotSignals(
+        'python-requests/2.28',
+        ['host', 'user-agent'],
+        undefined,
+        {
+          ja3: '773906b0efdefa24a7f2b8eb6985bf36',
+          knownBadJa3: ['773906b0efdefa24a7f2b8eb6985bf36'],
+        },
+        {
+          hash: H2_HASH,
+          knownBadH2: [H2_HASH],
+        },
+      );
+      // Both knownBad matches (0.45 + 0.45) on top of bot-ua (0.5) → clamped to 1.0
+      expect(score).toBeGreaterThanOrEqual(0.9);
+      expect(score).toBeLessThanOrEqual(1.0);
+    });
+
+    it('leaves score and signals unchanged when h2Fingerprint is absent (regression)', () => {
+      const baseline = detectBotSignals('Mozilla/5.0 Chrome/120', cleanBrowserHeaders);
+      const noH2 = detectBotSignals(
+        'Mozilla/5.0 Chrome/120',
+        cleanBrowserHeaders,
+        undefined,
+        undefined,
+        undefined,
+      );
+      expect(noH2.score).toBe(baseline.score);
+      expect(noH2.signals).toEqual(baseline.signals);
+    });
+  });
+
   describe('bot_detect_analyze', () => {
     it('returns diversity analysis for multiple requests', async () => {
       const requests = Array.from({ length: 10 }, (_, i) => ({
@@ -434,6 +521,70 @@ describe('TlsBotHandlers — TLS/HTTP fingerprint/Bot behavioral tests', () => {
       expect(botSignals.some((s) => s.includes('tls-ja3: 773906b0'))).toBe(true);
       expect(botSignals.some((s) => s.includes('known-bot-ja3'))).toBe(false);
       // a clean browser request with an informational ja3 stays low-score
+      expect(details[0]!.botScore).toBeLessThan(0.1);
+    });
+
+    it('raises bot score when a captured request matches a user-supplied knownBad h2 hash', async () => {
+      const requests = [
+        {
+          requestId: 'r1',
+          url: TEST_URLS.root,
+          method: 'GET',
+          headers: {
+            'user-agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            accept: '*/*',
+            'accept-language': 'en-US',
+            'accept-encoding': 'gzip',
+          },
+        },
+      ];
+      const monitor = createConsoleMonitorMock({ getNetworkRequests: (() => requests) as any });
+      const h = new TlsBotHandlers({ consoleMonitor: monitor as any });
+      const res = await h.handleNetworkBotDetectAnalyze({
+        limit: 1,
+        includeDetails: true,
+        h2Hash: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
+        knownBadH2: ['a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2'],
+      });
+      const json = parseJson<Record<string, unknown>>(res);
+      const details = json.details as Array<Record<string, unknown>>;
+      expect(details).toBeDefined();
+      expect(details.length).toBe(1);
+      const botSignals = details[0]!.signals as string[];
+      expect(botSignals.some((s) => s.includes('known-bot-h2'))).toBe(true);
+      expect(botSignals.some((s) => s.includes('http2-fingerprint: a1b2c3d4'))).toBe(true);
+      expect(details[0]!.botScore).toBeGreaterThan(0.4);
+    });
+
+    it('exposes h2 hash informationally without scoring when no knownBadH2 list is supplied', async () => {
+      const requests = [
+        {
+          requestId: 'r2',
+          url: TEST_URLS.root,
+          method: 'GET',
+          headers: {
+            'user-agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            accept: '*/*',
+            'accept-language': 'en-US',
+            'accept-encoding': 'gzip',
+          },
+        },
+      ];
+      const monitor = createConsoleMonitorMock({ getNetworkRequests: (() => requests) as any });
+      const h = new TlsBotHandlers({ consoleMonitor: monitor as any });
+      const res = await h.handleNetworkBotDetectAnalyze({
+        limit: 1,
+        includeDetails: true,
+        h2Hash: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
+      });
+      const json = parseJson<Record<string, unknown>>(res);
+      const details = json.details as Array<Record<string, unknown>>;
+      const botSignals = details[0]!.signals as string[];
+      expect(botSignals.some((s) => s.includes('http2-fingerprint: a1b2c3d4'))).toBe(true);
+      expect(botSignals.some((s) => s.includes('known-bot-h2'))).toBe(false);
+      // a clean browser request with an informational h2 hash stays low-score
       expect(details[0]!.botScore).toBeLessThan(0.1);
     });
 

@@ -8,6 +8,10 @@ export function detectBotSignals(
     knownBadJa3?: string[];
     knownBadJa4?: string[];
   },
+  h2Fingerprint?: {
+    hash?: string;
+    knownBadH2?: string[];
+  },
 ): { score: number; signals: string[] } {
   const signals: string[] = [];
   let score = 0;
@@ -119,6 +123,22 @@ export function detectBotSignals(
       signals.push(`tls-ja4: ${jaFingerprint.ja4}`);
       if (jaFingerprint.knownBadJa4?.includes(jaFingerprint.ja4)) {
         signals.push(`known-bot-ja4: ${jaFingerprint.ja4.slice(0, 8)}`);
+        score += 0.45;
+      }
+    }
+  }
+
+  // HTTP/2 fingerprint signal — the Akamai-style SETTINGS/WINDOW_UPDATE/PRIORITY
+  // sha256 produced by network_http2_fingerprint. Same zero-hardcoded-library
+  // contract as ja3/ja4: the hash is always surfaced as an informational
+  // signal, and a bot score is added ONLY when the caller supplies a
+  // knownBadH2 list and the captured hash matches it. Closes the fourth
+  // bot-detection dimension (UA + header order + TLS + HTTP/2).
+  if (h2Fingerprint) {
+    if (h2Fingerprint.hash) {
+      signals.push(`http2-fingerprint: ${h2Fingerprint.hash}`);
+      if (h2Fingerprint.knownBadH2?.includes(h2Fingerprint.hash)) {
+        signals.push(`known-bot-h2: ${h2Fingerprint.hash.slice(0, 8)}`);
         score += 0.45;
       }
     }

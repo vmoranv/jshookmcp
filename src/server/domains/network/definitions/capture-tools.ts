@@ -24,6 +24,10 @@ export const captureTools: Tool[] = [
       .string('url', 'Filter by URL substring')
       .string('urlRegex', 'Filter by URL regex pattern')
       .string('method', 'Filter by HTTP method (GET, POST, PUT, DELETE)')
+      .string(
+        'statusCode',
+        'Filter by response status code. Exact ("404") or class ("4xx"/"5xx"/"2xx" matches the N00-N99 range). Requests without a captured response status are excluded when this filter is set.',
+      )
       .number(
         'sinceTimestamp',
         'Only return requests after this epoch timestamp (milliseconds). Useful for incremental polling.',
