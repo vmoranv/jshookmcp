@@ -596,5 +596,9 @@
   "v8_heap_snapshot_export": "将堆快照导出为完整的 .heapsnapshot JSON 文件，存入 artifacts/heap-snapshots/，可由 Chrome DevTools Memory 面板加载。返回文件路径，快照内容写入磁盘而非注入响应（文件可能很大）。",
   "wasm_diff": "待补充中文：Patch-diff two .wasm binaries (original vs. patched) for vulnerability research: disassembles both via wasm2wat and emits a structured function-level diff (added/removed/changed) plus a per-function WAT line-level unified diff. The full diff is written to an artifact; the response carries summaries and previews.",
   "webgpu_error_capture": "待补充中文：Capture WebGPU validation/out-of-memory/internal errors the target app swallows (via device uncapturederror), plus the current device.lost state. Optionally wraps createBuffer/createTexture in error scopes to attribute failures to specific calls. Surfaces the real diagnostics behind \"empty buffer\" / \"zero draw call\" symptoms.",
-  "webgpu_pipeline_dump": "待补充中文：Enumerate active render/compute pipelines, bind-group layouts, and render-pass descriptors by hooking GPUDevice createRenderPipeline / createComputePipeline / createBindGroupLayout (plus async variants). Captures the full descriptor (vertex/fragment entry points, buffer stride/attributes, bind-group layout entries, visibility) so a captured bindGroups index can be resolved to actual resources."
+  "webgpu_pipeline_dump": "待补充中文：Enumerate active render/compute pipelines, bind-group layouts, and render-pass descriptors by hooking GPUDevice createRenderPipeline / createComputePipeline / createBindGroupLayout (plus async variants). Captures the full descriptor (vertex/fragment entry points, buffer stride/attributes, bind-group layout entries, visibility) so a captured bindGroups index can be resolved to actual resources.",
+  "ws_send_frame": "通过 ws_monitor(exposeInstances=true) 保留的页内 WebSocket 实例发送帧，支持编辑后重发的流量回放。仅能触达 exposeInstances 启用后创建的 WebSocket（已存在的连接无法回溯触达）。",
+  "grpc_export_capture": "将捕获的 gRPC / gRPC-Web 调用导出为 artifacts/captures 下的 JSON 或 NDJSON 工件。",
+  "fetch_stream_export_capture": "将 fetch() 流监控捕获的事件导出为 artifacts/captures 下的 JSON 或 NDJSON 工件。",
+  "webrtc_export_capture": "将 WebRTC 数据通道监控捕获的消息导出为 artifacts/captures 下的 JSON 或 NDJSON 工件。"
 }
