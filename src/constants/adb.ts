@@ -30,6 +30,9 @@ export const ADB_FILE_TRANSFER_TIMEOUT_MS = int('ADB_FILE_TRANSFER_TIMEOUT_MS', 
 /** Maximum component names emitted per package summary section. */
 export const ADB_PACKAGE_COMPONENT_LIMIT = int('ADB_PACKAGE_COMPONENT_LIMIT', 500);
 
+/** Maximum parsed properties returned by adb_getprop (full getprop dump ~500-1500). */
+export const ADB_GETPROP_MAX_PROPERTIES = int('ADB_GETPROP_MAX_PROPERTIES', 5_000);
+
 /** ZIP/APK header magic values accepted by adb_apk_pull validation, encoded as hex. */
 export const APK_ZIP_MAGIC_HEX_HEADERS = csv('APK_ZIP_MAGIC_HEX_HEADERS', [
   '504b0304',

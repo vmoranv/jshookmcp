@@ -105,6 +105,20 @@ export const adbBridgeTools = [
       .query(),
   ),
 
+  tool('adb_getprop', (t) =>
+    t
+      .desc(
+        'Dump and parse Android system properties (getprop) into a structured map with a curated device fingerprint (model, SDK, ABI, build fingerprint, security patch, bootloader lock).',
+      )
+      .string('serial', 'Required. Android device serial or emulator id.')
+      .string(
+        'pattern',
+        'Optional JavaScript regex applied to property keys (e.g. "ro.build" keeps only build properties).',
+      )
+      .requiredOpenWorld('serial')
+      .query(),
+  ),
+
   tool('adb_screenshot', (t) =>
     t
       .desc('Capture a PNG screenshot through adb exec-out screencap -p.')

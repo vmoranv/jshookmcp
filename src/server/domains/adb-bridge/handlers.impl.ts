@@ -20,6 +20,7 @@ import {
   ADB_LOGCAT_TAIL_MAX,
   ADB_MAX_BUFFER_BYTES,
   ADB_PACKAGE_COMPONENT_LIMIT,
+  ADB_GETPROP_MAX_PROPERTIES,
   ADB_SHELL_TIMEOUT_MS,
   ADB_WEBVIEW_HOST_PORT_DEFAULT,
   APK_ZIP_MAGIC_HEX_HEADERS,
@@ -38,6 +39,7 @@ import { asJsonResponse } from '@server/domains/shared/response';
 import type { ToolResponse } from '@server/types';
 import { captureAdbLogcat } from './logcat';
 import { parseLogcatLine, parsePriorityArg, priorityPredicate } from './logcat-parser';
+import { buildFingerprintSummary, parseGetprop } from './getprop-parser';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -371,6 +373,10 @@ export class ADBBridgeHandlers {
 
   async handleRootCheckTool(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSafe(async () => await this.handleRootCheck(args));
+  }
+
+  async handleGetpropTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleGetprop(args));
   }
 
   async handleScreenshotTool(args: Record<string, unknown>): Promise<ToolResponse> {
@@ -745,6 +751,52 @@ export class ADBBridgeHandlers {
         rooted: indicators.length > 0,
         confidence,
         indicators,
+      };
+    });
+  }
+
+  async handleGetprop(args: Record<string, unknown>): Promise<ToolResponse> {
+    return this.run('adb_getprop', async () => {
+      const serial = argStringRequired(args, 'serial');
+      const pattern = argString(args, 'pattern');
+      const adb = await this.resolveAdb();
+      const { stdout, stderr, exitCode } = await execAdb(
+        adb,
+        [...serialArgs(serial), 'shell', 'getprop'],
+        {
+          allowNonZero: true,
+          timeoutMs: ADB_SHELL_TIMEOUT_MS,
+          maxBufferBytes: ADB_LARGE_OUTPUT_MAX_BUFFER_BYTES,
+        },
+      );
+
+      const allEntries = parseGetprop(stdout);
+      const regex = pattern ? new RegExp(pattern, 'i') : undefined;
+      const filteredEntries = regex
+        ? allEntries.filter((entry) => regex.test(entry.key))
+        : allEntries;
+      const capped = filteredEntries.slice(0, ADB_GETPROP_MAX_PROPERTIES);
+      const properties: Record<string, string> = {};
+      for (const entry of capped) {
+        properties[entry.key] = entry.value;
+      }
+      // Fingerprint is always curated from the full dump so it stays complete
+      // even when a key-pattern filter narrows the returned properties map.
+      const fullMap: Record<string, string> = {};
+      for (const entry of allEntries) {
+        fullMap[entry.key] = entry.value;
+      }
+      const fingerprint = buildFingerprintSummary(fullMap);
+      return {
+        success: exitCode === 0,
+        serial,
+        ...(pattern ? { pattern } : {}),
+        count: capped.length,
+        truncated: filteredEntries.length > capped.length,
+        properties,
+        fingerprint,
+        stderr,
+        exitCode,
       };
     });
   }
