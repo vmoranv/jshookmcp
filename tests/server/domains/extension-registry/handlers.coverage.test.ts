@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { buildTestUrl } from '@tests/shared/test-urls';
 
 const mockListInstalled = vi.fn().mockReturnValue([]);
 const mockLoadPlugin = vi.fn().mockResolvedValue({
@@ -152,6 +153,29 @@ describe('ExtensionRegistryHandlers', () => {
       const result = await handlers.handleWebhookCreate({ name: 'hook', path: '/w' });
       expect(parseBody(result).success).toBe(true);
       expect(parseBody(result).url).toContain('/w');
+    });
+
+    it('registers external callback URL when provided', async () => {
+      mockRegisterEndpoint.mockReturnValueOnce('ep-ext');
+      const externalUrl = buildTestUrl('api', { path: '/callback' });
+      const result = await handlers.handleWebhookCreate({
+        name: 'hook',
+        path: '/w',
+        url: externalUrl,
+      });
+      const body = parseBody(result);
+      expect(body.success).toBe(true);
+      expect(body.externalUrl).toBe(externalUrl);
+      expect(mockRegisterCallback).toHaveBeenCalledWith('ep-ext', externalUrl);
+    });
+
+    it('does not register external callback when no url provided', async () => {
+      mockRegisterEndpoint.mockReturnValueOnce('ep-noext');
+      const result = await handlers.handleWebhookCreate({ name: 'hook', path: '/w' });
+      const body = parseBody(result);
+      expect(body.success).toBe(true);
+      expect(body.externalUrl).toBeUndefined();
+      expect(mockRegisterCallback).not.toHaveBeenCalled();
     });
 
     it('handles events array', async () => {

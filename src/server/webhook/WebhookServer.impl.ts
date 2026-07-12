@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import http from 'node:http';
 import { CommandQueueImpl } from './CommandQueue.impl.js';
@@ -49,6 +51,52 @@ function parseJsonBody(rawBody: string): unknown {
   } catch {
     return { rawBody };
   }
+}
+
+const REPLAY_WINDOW_MS = 5 * 60 * 1000; // ±5 minutes
+
+/**
+ * Verify an HMAC-SHA256 webhook signature.
+ *
+ * Supports two header styles:
+ * 1. Raw hex digest: `X-Webhook-Signature: <hex>`
+ * 2. GitHub-style prefix: `X-Webhook-Signature: sha256=<hex>`
+ *
+ * Anti-replay: when `X-Webhook-Timestamp` is present the timestamp must
+ * be within ±5 minutes of the server clock.
+ */
+function verifySignature(
+  rawBody: string,
+  signatureHeader: string,
+  timestampHeader: string | undefined,
+  secret: string,
+): { valid: false; error: string } | { valid: true } {
+  const provided = signatureHeader.replace(/^sha256=/, '');
+
+  // Anti-replay guard
+  if (timestampHeader !== undefined) {
+    const ts = Number(timestampHeader);
+    if (Number.isNaN(ts) || ts <= 0) {
+      return { valid: false, error: 'invalid timestamp' };
+    }
+    if (Math.abs(Date.now() - ts) > REPLAY_WINDOW_MS) {
+      return { valid: false, error: 'timestamp expired' };
+    }
+  }
+
+  const expected = createHmac('sha256', secret).update(rawBody, 'utf8').digest('hex');
+
+  // Constant-time comparison
+  const expectedBuf = Buffer.from(expected, 'utf8');
+  const providedBuf = Buffer.from(provided, 'utf8');
+  if (expectedBuf.length !== providedBuf.length) {
+    return { valid: false, error: 'invalid signature' };
+  }
+  if (!timingSafeEqual(expectedBuf, providedBuf)) {
+    return { valid: false, error: 'invalid signature' };
+  }
+
+  return { valid: true };
 }
 
 export class WebhookServerImpl extends EventEmitter {
@@ -177,15 +225,7 @@ export class WebhookServerImpl extends EventEmitter {
       return;
     }
 
-    if (endpoint.secret) {
-      const secret = request.headers['x-webhook-secret'];
-      if (secret !== endpoint.secret) {
-        response.statusCode = 401;
-        response.end('unauthorized');
-        return;
-      }
-    }
-
+    // Read body before HMAC verification (signature covers the raw body)
     const chunks: string[] = [];
     await new Promise<void>((resolve, reject) => {
       request.setEncoding('utf8');
@@ -200,7 +240,34 @@ export class WebhookServerImpl extends EventEmitter {
       });
     });
 
-    const payload = parseJsonBody(chunks.join(''));
+    const rawBody = chunks.join('');
+
+    // HMAC-SHA256 signature verification with optional anti-replay
+    if (endpoint.secret) {
+      const signature = request.headers['x-webhook-signature'];
+      if (!signature || typeof signature !== 'string') {
+        response.statusCode = 401;
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify({ error: 'missing signature header' }));
+        return;
+      }
+
+      const timestamp = request.headers['x-webhook-timestamp'];
+      const result = verifySignature(
+        rawBody,
+        signature,
+        typeof timestamp === 'string' ? timestamp : undefined,
+        endpoint.secret,
+      );
+      if (!result.valid) {
+        response.statusCode = 401;
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify({ error: result.error }));
+        return;
+      }
+    }
+
+    const payload = parseJsonBody(rawBody);
     if (this.commandQueue) {
       this.commandQueue.enqueue({
         endpointId: endpoint.id,

@@ -236,12 +236,16 @@ export class ExtensionRegistryHandlers {
 
     const bridge = this.getWebhook();
     const baseUrl = `http://localhost:${server.getPort()}${webhookPath}`;
-    bridge.registerExternalCallback(endpointId, baseUrl);
+    const externalUrl = argString(args, 'url');
+    if (externalUrl) {
+      bridge.registerExternalCallback(endpointId, externalUrl);
+    }
 
     return asJsonResponse({
       success: true,
       endpointId,
       url: baseUrl,
+      ...(externalUrl ? { externalUrl } : {}),
       name,
       events,
     });

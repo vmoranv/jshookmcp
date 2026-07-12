@@ -217,7 +217,7 @@ describe('WebhookServerImpl coverage', () => {
     }
   });
 
-  it('rejects webhook requests with the wrong secret', async () => {
+  it('rejects webhook requests with an invalid HMAC signature', async () => {
     const server = new WebhookServerImpl({ port: 0 });
     server.registerEndpoint({ path: '/secure', secret: 'expected-secret' });
     const port = await startServer(server);
@@ -225,10 +225,123 @@ describe('WebhookServerImpl coverage', () => {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/secure`, {
         method: 'POST',
-        headers: { 'x-webhook-secret': 'wrong-secret' },
+        headers: { 'x-webhook-signature': 'deadbeef' },
+        body: '{}',
       });
       expect(response.status).toBe(401);
-      await expect(response.text()).resolves.toBe('unauthorized');
+      await expect(response.json()).resolves.toMatchObject({ error: 'invalid signature' });
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it('rejects webhook requests missing the signature header', async () => {
+    const server = new WebhookServerImpl({ port: 0 });
+    server.registerEndpoint({ path: '/secure', secret: 's3cret' });
+    const port = await startServer(server);
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/secure`, {
+        method: 'POST',
+        body: '{}',
+      });
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toMatchObject({ error: 'missing signature header' });
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it('accepts HMAC signature with sha256= prefix', async () => {
+    const { createHmac } = await import('node:crypto');
+    const queue = { enqueue: vi.fn() };
+    const server = new WebhookServerImpl({ port: 0, commandQueue: queue as any });
+    server.registerEndpoint({ path: '/hook', secret: 's3cret' });
+    const port = await startServer(server);
+
+    try {
+      const body = '{"event":"tool_called"}';
+      const sig = createHmac('sha256', 's3cret').update(body, 'utf8').digest('hex');
+      const response = await fetch(`http://127.0.0.1:${port}/hook`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-webhook-signature': `sha256=${sig}`,
+        },
+        body,
+      });
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({ ok: true });
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it('rejects expired timestamp even with valid signature', async () => {
+    const { createHmac } = await import('node:crypto');
+    const server = new WebhookServerImpl({ port: 0 });
+    server.registerEndpoint({ path: '/timed', secret: 's3cret' });
+    const port = await startServer(server);
+
+    try {
+      const body = '{}';
+      const sig = createHmac('sha256', 's3cret').update(body, 'utf8').digest('hex');
+      const oldTimestamp = String(Date.now() - 10 * 60 * 1000); // 10 min ago
+      const response = await fetch(`http://127.0.0.1:${port}/timed`, {
+        method: 'POST',
+        headers: {
+          'x-webhook-signature': sig,
+          'x-webhook-timestamp': oldTimestamp,
+        },
+        body,
+      });
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toMatchObject({ error: 'timestamp expired' });
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it('accepts valid signature with recent timestamp', async () => {
+    const { createHmac } = await import('node:crypto');
+    const queue = { enqueue: vi.fn() };
+    const server = new WebhookServerImpl({ port: 0, commandQueue: queue as any });
+    server.registerEndpoint({ path: '/timed', secret: 's3cret' });
+    const port = await startServer(server);
+
+    try {
+      const body = '{"event":"tool_called"}';
+      const sig = createHmac('sha256', 's3cret').update(body, 'utf8').digest('hex');
+      const now = String(Date.now());
+      const response = await fetch(`http://127.0.0.1:${port}/timed`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-webhook-signature': sig,
+          'x-webhook-timestamp': now,
+        },
+        body,
+      });
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({ ok: true });
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it('skips HMAC verification when endpoint has no secret', async () => {
+    const queue = { enqueue: vi.fn() };
+    const server = new WebhookServerImpl({ port: 0, commandQueue: queue as any });
+    server.registerEndpoint({ path: '/open' });
+    const port = await startServer(server);
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/open`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{"event":"tool_called"}',
+      });
+      expect(response.status).toBe(200);
     } finally {
       await server.stop();
     }
@@ -261,7 +374,8 @@ describe('WebhookServerImpl coverage', () => {
     }
   });
 
-  it('invokes registered event handlers and tracks sent webhooks', async () => {
+  it('invokes registered event handlers with valid HMAC signature', async () => {
+    const { createHmac } = await import('node:crypto');
     const queue = { enqueue: vi.fn() };
     const handler = vi.fn();
     const server = new WebhookServerImpl({ port: 0, commandQueue: queue as any });
@@ -271,13 +385,15 @@ describe('WebhookServerImpl coverage', () => {
     const originalFetch = global.fetch;
 
     try {
+      const body = JSON.stringify({ event: 'tool_called', payload: { id: 1 } });
+      const signature = createHmac('sha256', 'top-secret').update(body, 'utf8').digest('hex');
       const response = await originalFetch(`http://127.0.0.1:${port}/events`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-webhook-secret': 'top-secret',
+          'x-webhook-signature': signature,
         },
-        body: JSON.stringify({ event: 'tool_called', payload: { id: 1 } }),
+        body,
       });
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toMatchObject({ ok: true, endpointId: 'ep-1' });
