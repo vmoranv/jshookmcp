@@ -692,4 +692,122 @@ export class ThreeJsCanvasAdapter implements CanvasEngineAdapter {
       hitTestMethod: result.hitTestMethod,
     } as CanvasPickResult;
   }
+
+  async dumpGpuResources(
+    env: CanvasProbeEnv,
+    _opts: DumpOpts,
+  ): Promise<{
+    textures: Array<{ name?: string; width: number; height: number; format: string; type: string }>;
+    programs: Array<{
+      name?: string;
+      vertexShader: string;
+      fragmentShader: string;
+      uniforms: Record<string, { type: string }>;
+    }>;
+    geometries: Array<{
+      name?: string;
+      vertexCount: number;
+      triangleCount: number;
+      attributes: string[];
+    }>;
+  } | null> {
+    const payload = buildThreeGpuResourcesPayload();
+    const result = await env.pageController.evaluate<{
+      textures: Array<{
+        name?: string;
+        width: number;
+        height: number;
+        format: string;
+        type: string;
+      }>;
+      programs: Array<{
+        name?: string;
+        vertexShader: string;
+        fragmentShader: string;
+        uniforms: Record<string, { type: string }>;
+      }>;
+      geometries: Array<{
+        name?: string;
+        vertexCount: number;
+        triangleCount: number;
+        attributes: string[];
+      }>;
+    } | null>(payload);
+    return result;
+  }
+}
+
+/** In-page script: walk THREE.WebGLRenderer for programs/textures + scene for geometry attributes. */
+function buildThreeGpuResourcesPayload(): string {
+  return `(function(){
+  var THREE=window.THREE; if(!THREE) return null;
+
+  function findScene(){
+    try{ if(window.__threeScene&&window.__threeScene.isScene===true) return window.__threeScene; }catch(e){}
+    try{ var dev=window.__THREE_DEVTOOLS__; if(dev&&dev.scenes&&dev.scenes.length>0&&dev.scenes[0].isScene===true) return dev.scenes[0]; }catch(e){}
+    var keys=Object.keys(window);
+    for(var i=0;i<keys.length;i++){
+      try{ var v=window[keys[i]]; if(v&&v.isScene===true) return v; }catch(e){}
+    }
+    return null;
+  }
+
+  function findRenderer(){
+    try{ if(window.__threeRenderer&&window.__threeRenderer.isWebGLRenderer===true) return window.__threeRenderer; }catch(e){}
+    var keys=Object.keys(window);
+    for(var i=0;i<keys.length;i++){
+      try{ var v=window[keys[i]]; if(v&&v.isWebGLRenderer===true) return v; }catch(e){}
+    }
+    return null;
+  }
+
+  var textures=[],programs=[],geometries=[];
+  var renderer=findRenderer();
+
+  if(renderer&&renderer.info&&renderer.info.programs){
+    var progs=renderer.info.programs;
+    for(var i=0;i<Math.min(progs.length,200);i++){
+      var p=progs[i];
+      var pData={ name: p.name||undefined, vertexShader:'', fragmentShader:'', uniforms:{} };
+      try{
+        var gl=renderer.getContext();
+        var dbg=gl.getExtension('WEBGL_debug_shaders');
+        if(dbg&&p.program){
+          try{ pData.vertexShader=dbg.getTranslatedShaderSource(p.vertexShader)||''; }catch(e){}
+          try{ pData.fragmentShader=dbg.getTranslatedShaderSource(p.fragmentShader)||''; }catch(e){}
+        }
+      } catch(e){}
+      programs.push(pData);
+    }
+  }
+
+  if(renderer&&renderer.info&&renderer.info.textures){
+    var texs=renderer.info.textures;
+    for(var i=0;i<Math.min(texs.length,200);i++){
+      var t=texs[i];
+      textures.push({ name:t.name||undefined, width:t.width||0, height:t.height||0, format:'rgba', type:'unsigned_byte' });
+    }
+  }
+
+  var scene=findScene();
+  if(scene){
+    (function walk(obj){
+      if(!obj) return;
+      if(obj.isMesh&&obj.geometry){
+        var g=obj.geometry, attrs=[];
+        if(g.attributes){
+          if(g.attributes.position) attrs.push('position');
+          if(g.attributes.normal) attrs.push('normal');
+          if(g.attributes.uv) attrs.push('uv');
+        }
+        var vc=g.attributes&&g.attributes.position?g.attributes.position.count:0;
+        var tc=g.index?Math.floor(g.index.count/3):Math.floor(vc/3);
+        geometries.push({ name:obj.name||undefined, vertexCount:vc, triangleCount:tc, attributes:attrs });
+      }
+      if(obj.children) for(var j=0;j<obj.children.length;j++) walk(obj.children[j]);
+    })(scene);
+  }
+
+  return { textures:textures, programs:programs, geometries:geometries };
+})()`;
 }

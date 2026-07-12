@@ -350,8 +350,8 @@ describe('canvas domain manifest', () => {
   // ── 4. Tool registrations ────────────────────────────────────────────────
 
   describe('registrations', () => {
-    it('has exactly 8 tool registrations (5 canvas + 3 skia)', async () => {
-      expect(manifest.registrations).toHaveLength(8);
+    it('has exactly 9 tool registrations (6 canvas + 3 skia)', async () => {
+      expect(manifest.registrations).toHaveLength(9);
     });
 
     it('all registrations reference domain "canvas"', async () => {
@@ -510,8 +510,8 @@ describe('canvas domain ensure()', () => {
 // ── 6. Tool definitions match manifest ──────────────────────────────────────
 
 describe('canvas tool definitions', () => {
-  it('canvasTools has exactly 5 tools', async () => {
-    expect(canvasTools).toHaveLength(5);
+  it('canvasTools has exactly 6 tools', async () => {
+    expect(canvasTools).toHaveLength(6);
   });
 
   it('canvas_engine_fingerprint tool is defined correctly', async () => {

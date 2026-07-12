@@ -9,8 +9,8 @@ describe('canvas domain definitions', () => {
     expect(canvasTools.length).toBeGreaterThan(0);
   });
 
-  it('defines exactly 5 tools', async () => {
-    expect(canvasTools).toHaveLength(5);
+  it('defines exactly 6 tools', async () => {
+    expect(canvasTools).toHaveLength(6);
   });
 
   it('has unique tool names', async () => {

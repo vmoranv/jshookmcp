@@ -48,6 +48,12 @@ export async function handleTraceClick(
   await debuggerManager.ensureAdvancedFeatures();
   const eventMgr = debuggerManager.getEventManager() as EventBreakpointManagerLike;
   const breakpointId = await eventMgr.setEventListenerBreakpoint(breakpointType);
+  // Defensive settle: allow the CDP session to acknowledge the armed listener
+  // breakpoint before we dispatch the click. Without this, the pointer/mouse
+  // event chain can fire-and-settle before the breakpoint is live server-side,
+  // producing empty handlerFrames intermittently (the dispatch click races the
+  // setEventListenerBreakpoint round-trip).
+  await new Promise((resolve) => setTimeout(resolve, 50));
   let cleanupToken: string | undefined;
   let pendingDispatch: Promise<void> | undefined;
   let primaryError: unknown;

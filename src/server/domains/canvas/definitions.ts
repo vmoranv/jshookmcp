@@ -14,6 +14,11 @@ export const canvasTools: Tool[] = [
         default: false,
       })
       .boolean('onlyVisible', 'Only include visible nodes', { default: false })
+      .boolean(
+        'includeGPUResources',
+        'Include GPU resources (textures/programs/geometries) in the dump (WebGL engines only)',
+        { default: false },
+      )
       .query(),
   ),
   tool('canvas_pick_object_at_point', (t) =>
@@ -54,12 +59,56 @@ export const canvasTools: Tool[] = [
       })
       .string('namePattern', 'Optional regex matched against node name (case-insensitive)')
       .string('typeFilter', 'Optional exact node type to match (e.g. "Sprite", "Container")')
+      .prop('propertyFilter', {
+        type: 'object',
+        description:
+          'Match nodes whose property at key satisfies op vs value. op: eq (equal), contains (substring), gt (greater-than), lt (less-than). Key may be any node field including x/y/width/height.',
+        properties: {
+          key: { type: 'string' },
+          op: { type: 'string', enum: ['eq', 'contains', 'gt', 'lt'] },
+          value: {
+            description:
+              'Comparison value (string / number / boolean — coerced per op: eq/contains stringify, gt/lt numeric)',
+          },
+        },
+        required: ['key', 'op', 'value'],
+        additionalProperties: false,
+      })
+      .prop('bounds', {
+        type: 'object',
+        description:
+          'Rectangle (x, y, width, height) in scene coordinates; matches nodes whose x/y/width/height intersect it.',
+        properties: {
+          x: { type: 'number' },
+          y: { type: 'number' },
+          width: { type: 'number' },
+          height: { type: 'number' },
+        },
+        required: ['x', 'y', 'width', 'height'],
+        additionalProperties: false,
+      })
       .number('maxResults', 'Maximum matches to return', {
         default: 100,
         minimum: 1,
         maximum: 1000,
       })
       .required('sceneTree')
+      .query(),
+  ),
+  tool('canvas_inject_draw_hook', (t) =>
+    t
+      .desc(
+        'Intercept Canvas 2D (drawImage/fillText/strokeText) and WebGL (drawArrays/drawElements) draw calls into a ring buffer on the page. ' +
+          'Actions: install (wrap prototypes), read (dump captured calls), uninstall (restore).',
+      )
+      .enum('action', ['install', 'read', 'uninstall'], 'Hook action', { default: 'install' })
+      .boolean('persistent', 'Re-inject on every navigation (install only)', { default: false })
+      .number('maxEntries', 'Ring-buffer capacity before older entries evict (install only)', {
+        default: 1000,
+        minimum: 1,
+        maximum: 100000,
+      })
+      .boolean('clear', 'Clear the buffer after reading (read only)', { default: false })
       .query(),
   ),
 ];

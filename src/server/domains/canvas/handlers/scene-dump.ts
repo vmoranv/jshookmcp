@@ -16,8 +16,9 @@ export async function handleSceneDump(
   const maxDepth = (args['maxDepth'] as number | undefined) ?? 20;
   const onlyInteractive = (args['onlyInteractive'] as boolean | undefined) ?? false;
   const onlyVisible = (args['onlyVisible'] as boolean | undefined) ?? false;
+  const includeGPUResources = (args['includeGPUResources'] as boolean | undefined) ?? false;
 
-  const opts: DumpOpts = { canvasId, maxDepth, onlyInteractive, onlyVisible };
+  const opts: DumpOpts = { canvasId, maxDepth, onlyInteractive, onlyVisible, includeGPUResources };
 
   const detection = await fingerprintCanvas(pageController, canvasId);
   if (!detection) {
@@ -29,7 +30,16 @@ export async function handleSceneDump(
     return partialSceneDump(pageController, canvasId, detection);
   }
 
-  return adapter.dumpScene(buildEnv(pageController), opts);
+  const dump = await adapter.dumpScene(buildEnv(pageController), opts);
+
+  if (includeGPUResources && adapter.dumpGpuResources) {
+    const gpu = await adapter.dumpGpuResources(buildEnv(pageController), opts);
+    if (gpu) {
+      dump.gpuResources = gpu;
+    }
+  }
+
+  return dump;
 }
 
 /**

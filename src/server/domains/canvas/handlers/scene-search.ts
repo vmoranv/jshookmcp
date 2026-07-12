@@ -1,6 +1,6 @@
 /**
  * canvas_scene_search — search a previously-dumped scene tree for nodes
- * matching a name / type / property query.
+ * matching a name / type / property / bounds query.
  *
  * Pure-compute: takes the JSON output of canvas_scene_dump (or any scene tree
  * shaped like { name, type, children }) and walks it without a browser. Useful
@@ -17,6 +17,21 @@ interface SceneNode {
   id?: unknown;
   children?: unknown;
   [key: string]: unknown;
+}
+
+type PropertyOp = 'eq' | 'contains' | 'gt' | 'lt';
+
+interface PropertyFilter {
+  key: string;
+  op: PropertyOp;
+  value: unknown;
+}
+
+interface BoundsFilter {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 interface SearchMatch {
@@ -48,6 +63,8 @@ const META_KEYS = new Set([
   'width',
   'height',
 ]);
+
+const VALID_OPS = new Set<PropertyOp>(['eq', 'contains', 'gt', 'lt']);
 
 function asString(value: unknown): string {
   return typeof value === 'string'
@@ -97,6 +114,84 @@ function buildProperties(node: SceneNode): Record<string, unknown> {
   return props;
 }
 
+function parsePropertyFilter(raw: unknown): PropertyFilter | null | { error: string } {
+  if (raw === undefined || raw === null) return null;
+  if (!isSceneNode(raw)) {
+    return { error: 'propertyFilter must be an object' };
+  }
+  const key = raw.key;
+  const op = raw.op;
+  const value = raw.value;
+  if (typeof key !== 'string' || key.length === 0) {
+    return { error: 'propertyFilter.key must be a non-empty string' };
+  }
+  if (typeof op !== 'string' || !VALID_OPS.has(op as PropertyOp)) {
+    return { error: `propertyFilter.op must be one of: ${[...VALID_OPS].join(', ')}` };
+  }
+  if (value === undefined) {
+    return { error: 'propertyFilter.value is required' };
+  }
+  return { key, op: op as PropertyOp, value };
+}
+
+function matchProperty(node: SceneNode, filter: PropertyFilter): boolean {
+  // Look at the raw node so meta keys (x/y/width/height) are queryable too.
+  const candidate = node[filter.key];
+  if (candidate === undefined) return false;
+  if (filter.op === 'eq') {
+    return candidate === filter.value || String(candidate) === String(filter.value);
+  }
+  if (filter.op === 'contains') {
+    return String(candidate).includes(String(filter.value));
+  }
+  const num = Number(candidate);
+  const target = Number(filter.value);
+  if (!Number.isFinite(num) || !Number.isFinite(target)) return false;
+  return filter.op === 'gt' ? num > target : num < target;
+}
+
+function parseBounds(raw: unknown): BoundsFilter | null | { error: string } {
+  if (raw === undefined || raw === null) return null;
+  if (!isSceneNode(raw)) {
+    return { error: 'bounds must be an object' };
+  }
+  const x = raw.x;
+  const y = raw.y;
+  const width = raw.width;
+  const height = raw.height;
+  if (![x, y, width, height].every((v) => typeof v === 'number' && Number.isFinite(v))) {
+    return { error: 'bounds requires numeric x, y, width, height' };
+  }
+  return {
+    x: x as number,
+    y: y as number,
+    width: width as number,
+    height: height as number,
+  };
+}
+
+function getNumeric(node: SceneNode, key: string): number | undefined {
+  const v = node[key];
+  return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+}
+
+function matchBounds(node: SceneNode, bounds: BoundsFilter): boolean {
+  const nx = getNumeric(node, 'x');
+  const ny = getNumeric(node, 'y');
+  const nw = getNumeric(node, 'width');
+  const nh = getNumeric(node, 'height');
+  if (nx === undefined || ny === undefined || nw === undefined || nh === undefined) {
+    return false;
+  }
+  // Axis-aligned rectangle intersection.
+  return (
+    nx < bounds.x + bounds.width &&
+    nx + nw > bounds.x &&
+    ny < bounds.y + bounds.height &&
+    ny + nh > bounds.y
+  );
+}
+
 export async function handleSceneSearch(args: Record<string, unknown>): Promise<ToolResponse> {
   const tree = args['sceneTree'];
   if (tree === undefined || tree === null) {
@@ -110,6 +205,18 @@ export async function handleSceneSearch(args: Record<string, unknown>): Promise<
   const typeFilter = typeof args['typeFilter'] === 'string' ? args['typeFilter'] : undefined;
   const maxResults =
     typeof args['maxResults'] === 'number' && args['maxResults'] > 0 ? args['maxResults'] : 100;
+
+  const propertyFilterRaw = parsePropertyFilter(args['propertyFilter']);
+  if (propertyFilterRaw && 'error' in propertyFilterRaw) {
+    return asJsonResponse({ success: false, error: propertyFilterRaw.error });
+  }
+  const propertyFilter = propertyFilterRaw as PropertyFilter | null;
+
+  const boundsRaw = parseBounds(args['bounds']);
+  if (boundsRaw && 'error' in boundsRaw) {
+    return asJsonResponse({ success: false, error: boundsRaw.error });
+  }
+  const bounds = boundsRaw as BoundsFilter | null;
 
   let nameRegex: RegExp | undefined;
   if (namePattern) {
@@ -141,7 +248,10 @@ export async function handleSceneSearch(args: Record<string, unknown>): Promise<
 
     const nameMatch = !nameRegex || nameRegex.test(name);
     const typeMatch = !typeFilter || type.toLowerCase() === typeFilter.toLowerCase();
-    if (nameMatch && typeMatch && (nameRegex || typeFilter)) {
+    const propMatch = !propertyFilter || matchProperty(node, propertyFilter);
+    const boundsMatch = !bounds || matchBounds(node, bounds);
+    const hasAnyFilter = Boolean(nameRegex || typeFilter || propertyFilter || bounds);
+    if (nameMatch && typeMatch && propMatch && boundsMatch && hasAnyFilter) {
       matches.push({
         name,
         type,

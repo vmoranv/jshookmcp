@@ -13,6 +13,7 @@ import { handleSceneDump } from './handlers/scene-dump';
 import { handlePick } from './handlers/pick';
 import { handleTraceClick } from './handlers/trace';
 import { handleSceneSearch } from './handlers/scene-search';
+import { handleDrawHook } from './handlers/draw-hook';
 
 export class CanvasToolHandlers {
   private readonly pageController;
@@ -45,6 +46,10 @@ export class CanvasToolHandlers {
     return handleSafe(async () => await this.handleSceneSearch(args));
   }
 
+  async handleDrawHookTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleDrawHook(args));
+  }
+
   async handleFingerprint(args: Record<string, unknown>): Promise<ToolResponse> {
     const result = await handleFingerprint(this.pageController, args);
     return asJsonResponse(result);
@@ -74,5 +79,9 @@ export class CanvasToolHandlers {
 
   async handleSceneSearch(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleSceneSearch(args);
+  }
+
+  async handleDrawHook(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleDrawHook(this.pageController, args);
   }
 }

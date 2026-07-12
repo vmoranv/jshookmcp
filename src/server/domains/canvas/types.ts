@@ -27,6 +27,7 @@ export interface CanvasEngineAdapter {
     opts: TraceOpts,
     services: TraceServices,
   ): Promise<CanvasTraceResult>;
+  dumpGpuResources?(env: CanvasProbeEnv, opts: DumpOpts): Promise<CanvasGpuResources | null>;
 }
 
 /**
@@ -52,6 +53,7 @@ export interface DumpOpts {
   maxDepth?: number;
   onlyInteractive?: boolean;
   onlyVisible?: boolean;
+  includeGPUResources?: boolean;
 }
 
 export interface PickOpts {
@@ -117,6 +119,35 @@ export interface CanvasSceneDump {
   totalNodes: number;
   completeness: CanvasDumpCompleteness;
   partialReason?: string;
+  gpuResources?: CanvasGpuResources;
+}
+
+export interface CanvasGpuTexture {
+  name?: string;
+  width: number;
+  height: number;
+  format: string;
+  type: string;
+}
+
+export interface CanvasGpuProgram {
+  name?: string;
+  vertexShader: string;
+  fragmentShader: string;
+  uniforms: Record<string, { type: string }>;
+}
+
+export interface CanvasGpuGeometry {
+  name?: string;
+  vertexCount: number;
+  triangleCount: number;
+  attributes: string[];
+}
+
+export interface CanvasGpuResources {
+  textures: CanvasGpuTexture[];
+  programs: CanvasGpuProgram[];
+  geometries: CanvasGpuGeometry[];
 }
 
 export interface CanvasPickResult {

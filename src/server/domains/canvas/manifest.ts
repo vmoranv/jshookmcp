@@ -27,6 +27,7 @@ const registrations = defineMethodRegistrations<H, (typeof canvasTools)[number][
     { tool: 'canvas_pick_object_at_point', method: 'handlePickTool', profiles: ['full'] },
     { tool: 'canvas_trace_click_handler', method: 'handleTraceClickTool', profiles: ['full'] },
     { tool: 'canvas_scene_search', method: 'handleSceneSearchTool', profiles: ['full'] },
+    { tool: 'canvas_inject_draw_hook', method: 'handleDrawHookTool', profiles: ['full'] },
   ],
 });
 const skiaRegistrations = defineMethodRegistrations<SK, (typeof skiaTools)[number]['name']>({
@@ -96,6 +97,7 @@ const manifest = {
       'canvas_scene_dump',
       'canvas_pick_object_at_point',
       'canvas_trace_click_handler',
+      'canvas_inject_draw_hook',
       'skia_detect_renderer',
       'skia_extract_scene',
       'skia_correlate_objects',
@@ -126,6 +128,12 @@ const manifest = {
       {
         condition: 'Debugger must be enabled',
         fix: "Call debugger_lifecycle({ action: 'enable' }) first",
+      },
+    ],
+    canvas_inject_draw_hook: [
+      {
+        condition: 'Browser must be running',
+        fix: 'Call browser_launch or browser_attach first',
       },
     ],
     skia_detect_renderer: [
