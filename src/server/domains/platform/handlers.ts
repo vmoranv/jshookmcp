@@ -18,6 +18,8 @@ import { handleElectronIPCSniff } from '@server/domains/platform/handlers/electr
 import { handlePlatformCapabilities } from '@server/domains/platform/handlers/capabilities';
 import { handleElectronVerifyIntegrity } from '@server/domains/platform/handlers/electron-integrity-handler';
 import { handleAsarDeobfuscate } from '@server/domains/platform/handlers/asar-deobfuscate-handler';
+import { handleAsarRepack } from '@server/domains/platform/handlers/asar-repack-handler';
+import { handleElectronVerifySignature } from '@server/domains/platform/handlers/electron-signature-handler';
 
 export class PlatformToolHandlers {
   private miniapp: MiniappHandlers;
@@ -158,5 +160,21 @@ export class PlatformToolHandlers {
 
   handleAsarDeobfuscate(args: Record<string, unknown>) {
     return handleAsarDeobfuscate(args);
+  }
+
+  handleAsarRepackTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleAsarRepack(args));
+  }
+
+  handleAsarRepack(args: Record<string, unknown>) {
+    return handleAsarRepack(args);
+  }
+
+  handleElectronVerifySignatureTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleElectronVerifySignature(args));
+  }
+
+  handleElectronVerifySignature(args: Record<string, unknown>) {
+    return handleElectronVerifySignature(args);
   }
 }

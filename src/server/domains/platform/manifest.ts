@@ -28,6 +28,8 @@ const registrations = defineMethodRegistrations<H, (typeof platformTools)[number
     { tool: 'electron_ipc_sniff', method: 'handleElectronIPCSniffTool' },
     { tool: 'electron_verify_integrity', method: 'handleElectronVerifyIntegrityTool' },
     { tool: 'asar_deobfuscate', method: 'handleAsarDeobfuscateTool' },
+    { tool: 'asar_repack', method: 'handleAsarRepackTool' },
+    { tool: 'electron_verify_signature', method: 'handleElectronVerifySignatureTool' },
   ],
 });
 

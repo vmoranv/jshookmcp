@@ -191,4 +191,31 @@ export const platformTools: Tool[] = [
       .required('inputPath')
       .query(),
   ),
+  tool('asar_repack', (t) =>
+    t
+      .desc(
+        'Pack a directory tree into an Electron ASAR archive (inverse of asar_extract). ' +
+          'Walks the input directory and writes a valid .asar (4xUInt32LE pickle prefix + ' +
+          'JSON header + data segment) that parseAsarBuffer and Electron accept. Closes the ' +
+          'unpack → patch → repack → retest loop without leaving jshookmcp.',
+      )
+      .string('inputDir', '必填。要打包的源目录。')
+      .string('outputPath', '可选。输出 .asar 文件路径；不提供时自动生成 artifacts 临时路径。')
+      .required('inputDir')
+      .query(),
+  ),
+  tool('electron_verify_signature', (t) =>
+    t
+      .desc(
+        "Inspect a packaged Electron binary's own code signature (PE Authenticode on Windows, " +
+          'Mach-O embedded code signature on macOS). Pure-TS structural parse: locates the ' +
+          'WIN_CERTIFICATE / SuperBlob, decodes the PKCS#7 SignedData, and surfaces the cert ' +
+          'chain, signer, digest algorithm, and (macOS) the CodeDirectory ident + best-effort ' +
+          'cdhash. No codesign/signtool dependency (runs in any CI). Cryptographic signature ' +
+          'validity and timestamp counter-signatures are out of scope (verified:false).',
+      )
+      .string('exePath', '必填。Electron 可执行文件路径（.exe / macOS app binary）。')
+      .required('exePath')
+      .query(),
+  ),
 ];

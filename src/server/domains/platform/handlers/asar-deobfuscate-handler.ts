@@ -27,7 +27,9 @@ export type ObfuscationClassification =
   | 'minified'
   | 'webpack-bundle'
   | 'obfuscated'
-  | 'heavy-obfuscation';
+  | 'heavy-obfuscation'
+  | 'packed'
+  | 'encrypted';
 
 export interface AsarFileObfuscationReport {
   path: string;
@@ -87,9 +89,11 @@ export async function handleAsarDeobfuscate(args: Record<string, unknown>): Prom
     const parsedAsar = parseAsarBuffer(asarBuffer);
 
     const globExt = fileGlob.startsWith('*.') ? fileGlob.slice(1).toLowerCase() : null;
+    const matchAll = fileGlob === '*';
 
     const jsEntries = parsedAsar.files.filter((entry) => {
       if (entry.unpacked || entry.size <= 0) return false;
+      if (matchAll) return true;
       if (globExt) return extname(entry.path).toLowerCase() === globExt;
       return extname(entry.path).toLowerCase() === '.js';
     });
@@ -103,20 +107,24 @@ export async function handleAsarDeobfuscate(args: Record<string, unknown>): Prom
       const end = start + entry.size;
       if (start < 0 || end > asarBuffer.length || end < start) continue;
 
-      const content = asarBuffer.subarray(start, end).toString('utf-8');
-      reports.push(analyzeFile(entry.path, entry.size, content));
+      const bytes = asarBuffer.subarray(start, end);
+      reports.push(analyzeFile(entry.path, entry.size, bytes.toString('utf-8'), bytes));
       scanned += 1;
     }
 
     // Flag files that warrant extraction: anything that is not clean or merely
-    // minified. Webpack bundles, obfuscated, and heavy-obfuscation files are
-    // extracted even at low numeric scores so they reach downstream deobf tools.
+    // minified. Webpack bundles, obfuscated, heavy-obfuscation, packed and
+    // encrypted files are extracted even at low numeric scores so they reach
+    // downstream deobf tools. Packed/encrypted payloads in particular score ~0
+    // on the code-shape heuristics but must still be surfaced.
     const flagged = reports.filter(
       (report) =>
         report.score >= MIN_FLAG_SCORE ||
         report.classification === 'webpack-bundle' ||
         report.classification === 'obfuscated' ||
-        report.classification === 'heavy-obfuscation',
+        report.classification === 'heavy-obfuscation' ||
+        report.classification === 'packed' ||
+        report.classification === 'encrypted',
     );
     flagged.sort((a, b) => b.score - a.score);
 
@@ -150,6 +158,8 @@ export async function handleAsarDeobfuscate(args: Record<string, unknown>): Prom
       'webpack-bundle': 0,
       obfuscated: 0,
       'heavy-obfuscation': 0,
+      packed: 0,
+      encrypted: 0,
     };
     for (const report of reports) {
       summary[report.classification] += 1;
@@ -178,9 +188,20 @@ export async function handleAsarDeobfuscate(args: Record<string, unknown>): Prom
  * counting heuristics — they flag files for deeper analysis, not produce a
  * deobfuscated output directly.
  */
-function analyzeFile(path: string, size: number, content: string): AsarFileObfuscationReport {
+function analyzeFile(
+  path: string,
+  size: number,
+  content: string,
+  bytes: Buffer,
+): AsarFileObfuscationReport {
   const indicators: Record<string, number | boolean | string> = {};
   let score = 0;
+
+  // Shannon entropy over the raw byte slice (high entropy ⇒ packed / encrypted
+  // payload; plain JS code sits around 4.5–5.0 bits/byte). Computed from bytes
+  // rather than the utf-8 string so binary / non-UTF-8 payloads score correctly.
+  const entropy = computeShannonEntropy(bytes);
+  indicators.entropy = Number(entropy.toFixed(3));
 
   // String-array obfuscation: high density of _0x[0-9a-f]{4,} identifiers.
   // Reset lastIndex because the regex is module-scoped (shared state) and
@@ -260,11 +281,39 @@ function classify(
   score: number,
   indicators: Record<string, number | boolean | string>,
 ): ObfuscationClassification {
+  const entropy = typeof indicators.entropy === 'number' ? indicators.entropy : 0;
+  // Near-uniform random byte distribution almost never occurs in valid JS — it
+  // signals an encrypted / opaque blob. Override before code-shape checks.
+  if (entropy >= 7.5) return 'encrypted';
   if (score >= 60) return 'heavy-obfuscation';
   if (score >= 30) return 'obfuscated';
   if ((indicators.webpackRequireCount as number) > 0) return 'webpack-bundle';
+  // Compressed / packed payloads (gzip, eval-packed base64) land here: high but
+  // not uniform entropy and no JS-shape signal.
+  if (entropy >= 6.5) return 'packed';
   if (indicators.minified === true) return 'minified';
   return 'clean';
+}
+
+/**
+ * Shannon entropy over a byte slice, in bits/byte (0–8). A plain-text / source
+ * file sits around 4–5; compressed data around 6.5–7.5; encrypted or random
+ * data approaches 8. Single-pass byte histogram — O(n) with a 256-entry table.
+ */
+function computeShannonEntropy(bytes: Buffer): number {
+  if (bytes.length === 0) return 0;
+  const histogram = Array.from({ length: 256 }, () => 0);
+  for (let i = 0; i < bytes.length; i += 1) {
+    histogram[bytes[i]!] = (histogram[bytes[i]!] ?? 0) + 1;
+  }
+  let entropy = 0;
+  const total = bytes.length;
+  for (const count of histogram) {
+    if (count === 0) continue;
+    const p = count / total;
+    entropy -= p * Math.log2(p);
+  }
+  return entropy;
 }
 
 function countOccurrences(haystack: string, needle: string): number {

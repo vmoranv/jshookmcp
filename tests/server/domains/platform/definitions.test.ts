@@ -26,7 +26,7 @@ describe('platform tool definitions', () => {
     });
 
     it('tool count matches snapshot (run with --update to sync)', async () => {
-      expect(platformTools.length).toMatchInlineSnapshot(`16`);
+      expect(platformTools.length).toMatchInlineSnapshot(`18`);
     });
 
     it('has unique tool names', async () => {

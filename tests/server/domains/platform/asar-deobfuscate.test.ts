@@ -1,4 +1,5 @@
 import { mkdtemp, rm, readFile as fsReadFile, writeFile as fsWriteFile } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -13,13 +14,19 @@ function parseJson(res: ToolResponse): Record<string, unknown> {
 
 /** Build a minimal valid ASAR buffer with named JS files. */
 function buildAsar(files: Record<string, string>): Buffer {
+  return buildAsarFromBuffers(
+    Object.fromEntries(Object.entries(files).map(([k, v]) => [k, Buffer.from(v, 'utf-8')])),
+  );
+}
+
+/** Build an ASAR from raw byte buffers (for high-entropy / non-UTF-8 payloads). */
+function buildAsarFromBuffers(files: Record<string, Buffer>): Buffer {
   const entries = Object.entries(files);
   const headerFiles: Record<string, unknown> = {};
   let offset = 0;
   const dataChunks: Buffer[] = [];
 
-  for (const [name, content] of entries) {
-    const buf = Buffer.from(content, 'utf-8');
+  for (const [name, buf] of entries) {
     headerFiles[name] = { size: buf.length, offset: String(offset) };
     dataChunks.push(buf);
     offset += buf.length;
@@ -169,7 +176,9 @@ describe('handleAsarDeobfuscate', () => {
       (summary['heavy-obfuscation'] ?? 0) +
       (summary.clean ?? 0) +
       (summary.minified ?? 0) +
-      (summary['webpack-bundle'] ?? 0);
+      (summary['webpack-bundle'] ?? 0) +
+      (summary.packed ?? 0) +
+      (summary.encrypted ?? 0);
     expect(totalClassified).toBe(json.filesScanned);
   });
 
@@ -209,5 +218,107 @@ describe('handleAsarDeobfuscate', () => {
 
     expect(json.success).toBe(false);
     expect(json.error).toContain('must be a non-empty string');
+  });
+
+  // ── Entropy / packer / encryption detection ─────────────────
+
+  it('classifies a high-entropy random payload as encrypted', async () => {
+    const dir = await makeTempDir();
+    // 4 KiB of cryptographic random → byte Shannon entropy ≈ 8.0 (uniform).
+    const encrypted = randomBytes(4096);
+    const asar = buildAsarFromBuffers({
+      'clean.js': Buffer.from(CLEAN_JS, 'utf-8'),
+      'payload.bin': encrypted,
+    });
+    const asarPath = join(dir, 'app.asar');
+    await fsWriteFile(asarPath, asar);
+
+    const result = await handleAsarDeobfuscate({
+      inputPath: asarPath,
+      extract: false,
+      fileGlob: '*',
+    });
+    const json = parseJson(result);
+
+    expect(json.success).toBe(true);
+    expect(json.filesScanned).toBe(2);
+    const flagged = json.flaggedFiles as Array<Record<string, unknown>>;
+    const byPath = Object.fromEntries(flagged.map((f) => [f.path, f]));
+    const payload = byPath['payload.bin']!;
+    expect(payload.classification).toBe('encrypted');
+    expect(payload.indicators.entropy).toBeGreaterThan(7.5);
+    const summary = json.summary as Record<string, number>;
+    expect(summary.encrypted).toBeGreaterThanOrEqual(1);
+  });
+
+  it('classifies a high-entropy non-uniform blob as packed', async () => {
+    const dir = await makeTempDir();
+    // 4 KiB with the low bit cleared → 128 distinct byte values, uniformly spread.
+    // Byte entropy ≈ log2(128) = 7.0 bits/byte: high (packed-class) but below the
+    // 7.5 encrypted floor. Models packer / compressed-payload output.
+    const raw = randomBytes(4096);
+    const packed = Buffer.alloc(raw.length);
+    for (let i = 0; i < raw.length; i += 1) {
+      packed[i] = raw[i]! & 0xfe;
+    }
+    const asar = buildAsarFromBuffers({
+      'bundle.packed': packed,
+    });
+    const asarPath = join(dir, 'app.asar');
+    await fsWriteFile(asarPath, asar);
+
+    const result = await handleAsarDeobfuscate({
+      inputPath: asarPath,
+      extract: false,
+      fileGlob: '*',
+    });
+    const json = parseJson(result);
+
+    expect(json.success).toBe(true);
+    const flagged = json.flaggedFiles as Array<Record<string, unknown>>;
+    const byPath = Object.fromEntries(flagged.map((f) => [f.path, f]));
+    const bundle = byPath['bundle.packed']!;
+    expect(['packed', 'encrypted']).toContain(bundle.classification);
+    expect(bundle.indicators.entropy).toBeGreaterThan(6.5);
+  });
+
+  it('reports entropy on clean low-entropy files without reclassifying them', async () => {
+    const dir = await makeTempDir();
+    const asar = buildAsar({ 'clean.js': CLEAN_JS });
+    const asarPath = join(dir, 'app.asar');
+    await fsWriteFile(asarPath, asar);
+
+    const result = await handleAsarDeobfuscate({ inputPath: asarPath, extract: false });
+    const json = parseJson(result);
+
+    expect(json.success).toBe(true);
+    // clean.js is not flagged (below MIN_FLAG_SCORE and not in flag classifications),
+    // so we read it from the full report via summary: it stays clean, not packed/encrypted.
+    const summary = json.summary as Record<string, number>;
+    expect(summary.clean).toBe(1);
+    expect(summary.packed ?? 0).toBe(0);
+    expect(summary.encrypted ?? 0).toBe(0);
+  });
+
+  it('preserves code-shape classification for hex-flooded code regardless of entropy', async () => {
+    const dir = await makeTempDir();
+    // OBFUSCATED_JS triggers score >= 30 (obfuscated) via hex-name flood;
+    // classify must keep it on the code-shape ladder instead of reclassifying
+    // to packed/encrypted (ASCII code entropy stays below the 6.5 packed floor).
+    const asar = buildAsar({ 'obf.js': OBFUSCATED_JS });
+    const asarPath = join(dir, 'app.asar');
+    await fsWriteFile(asarPath, asar);
+
+    const result = await handleAsarDeobfuscate({ inputPath: asarPath, extract: false });
+    const json = parseJson(result);
+
+    const flagged = json.flaggedFiles as Array<Record<string, unknown>>;
+    const byPath = Object.fromEntries(flagged.map((f) => [f.path, f]));
+    const obf = byPath['obf.js']!;
+    expect(obf.classification).toBe('obfuscated');
+    expect(['packed', 'encrypted']).not.toContain(obf.classification);
+    // entropy indicator is always present and stays below the packed floor.
+    expect(obf.indicators.entropy).toBeDefined();
+    expect(obf.indicators.entropy).toBeLessThan(6.5);
   });
 });

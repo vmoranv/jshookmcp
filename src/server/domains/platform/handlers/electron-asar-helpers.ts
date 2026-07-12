@@ -105,8 +105,21 @@ export function isAsarDataOffsetValid(
         // If multiple files start with JSON chars at this offset, we're probably in the header
         if (jsonStartCount >= 3) return false;
       }
-      // Definitely in header if first byte is null or a structural JSON char that can't start a file
-      if (firstByte === 0x00) return false;
+      // A header padding region is a run of null bytes spanning many file slots.
+      // Require several sampled files to ALL start with 0x00 before rejecting;
+      // a single binary payload (e.g. a .node / packed blob) legitimately may
+      // start with a null byte, so the old single-sample 0x00 reject was a
+      // false negative that broke repacked archives containing such files.
+      if (samples.length >= 3) {
+        let nullStartCount = 0;
+        for (const file of samples.slice(0, 4)) {
+          const s = dataOffset + file.offset;
+          if (s >= 0 && s < asarBuffer.length && asarBuffer[s] === 0x00) {
+            nullStartCount += 1;
+          }
+        }
+        if (nullStartCount >= 3) return false;
+      }
     }
   }
 
@@ -292,4 +305,124 @@ export async function findFilesystemPreloadScripts(rootDir: string): Promise<str
   });
 
   return Array.from(matches).toSorted().slice(0, 100);
+}
+
+// ── ASAR encoder (inverse of parseAsarBuffer) ─────────────────────────────
+
+export interface AsarPackEntry {
+  /** Archive-relative path using forward slashes, e.g. "src/lib/util.js". */
+  path: string;
+  /** File content bytes. */
+  data: Buffer;
+  /**
+   * When true the entry is recorded in the header with `unpacked: true` and
+   * omitted from the embedded data segment (mirrors @electron/asar's
+   * `--unpack` semantics). Repack callers normally leave this false.
+   */
+  unpacked?: boolean;
+}
+
+export interface AsarPackResult {
+  buffer: Buffer;
+  fileCount: number;
+  totalDataSize: number;
+}
+
+/**
+ * Serialize a flat list of file entries into an ASAR archive buffer. Produces the
+ * standard 4×UInt32LE pickle prefix + JSON header + concatenated data segment,
+ * matching the layout that {@link parseAsarBuffer} (and Electron's own reader)
+ * decode. Directory nesting is derived from the entry paths.
+ *
+ * The output is structurally compatible with Electron's ASAR loader (headerSize /
+ * headerStringSize / headerContentSize are emitted exactly as @electron/asar
+ * emits them for the no-padding case); it is not guaranteed byte-identical to a
+ * specific @electron/asar version (which may insert 4-byte alignment padding),
+ * but round-trips losslessly through `parseAsarBuffer` and every ASAR consumer
+ * in this domain.
+ */
+export function buildAsarBuffer(entries: readonly AsarPackEntry[]): AsarPackResult {
+  const filesRoot: Record<string, unknown> = {};
+  const dataChunks: Buffer[] = [];
+  let offset = 0;
+  let totalDataSize = 0;
+  let fileCount = 0;
+
+  for (const entry of entries) {
+    const cleanPath = sanitizeArchiveRelativePath(entry.path);
+    if (cleanPath.length === 0) continue;
+
+    if (entry.unpacked) {
+      // Unpacked entries are header-only; they carry size + unpacked flag and do
+      // not occupy space in the embedded data segment.
+      setNestedFile(filesRoot, cleanPath, {
+        size: entry.data.length,
+        unpacked: true,
+      });
+      fileCount += 1;
+      continue;
+    }
+
+    setNestedFile(filesRoot, cleanPath, {
+      size: entry.data.length,
+      offset: String(offset),
+    });
+    dataChunks.push(entry.data);
+    offset += entry.data.length;
+    totalDataSize += entry.data.length;
+    fileCount += 1;
+  }
+
+  const headerJson = JSON.stringify({ files: filesRoot });
+  const headerBuf = Buffer.from(headerJson, 'utf-8');
+  const jsonLen = headerBuf.length;
+
+  // Emit the standard @electron/asar on-disk pickle layout so the archive is
+  // loadable by Electron's own runtime reader (not just parseAsarBuffer):
+  //   [sizePickle: 8 B] [headerPickle: 8 + jsonLen + pad] [data...]
+  //   sizePickle   = { payloadSize=4, value=headerBufLen }
+  //   headerPickle = { payloadSize=4+jsonLen+pad, stringLen=jsonLen, json, pad\0 }
+  // `pad` 4-byte-aligns the headerPickle payload (Chromium pickle convention).
+  // parseAsarBuffer recovers dataOffset via the `8 + headerStringSize` candidate,
+  // which equals 16 + jsonLen + pad here — the true data start.
+  const pad = (4 - (jsonLen % 4)) % 4;
+  const headerBufLen = 8 + jsonLen + pad; // 4 (payloadSize) + 4 (stringLen) + jsonLen + pad
+
+  const sizeBuf = Buffer.alloc(8);
+  sizeBuf.writeUInt32LE(4, 0); // sizePickle payloadSize (always 4: one UInt32)
+  sizeBuf.writeUInt32LE(headerBufLen, 4); // = headerPickle.toBuffer().length
+
+  const headerPickle = Buffer.alloc(8 + jsonLen + pad);
+  headerPickle.writeUInt32LE(4 + jsonLen + pad, 0); // headerPickle payloadSize
+  headerPickle.writeUInt32LE(jsonLen, 4); // stringLength
+  headerBuf.copy(headerPickle, 8); // JSON bytes; trailing `pad` bytes stay zero
+
+  const buffer = Buffer.concat([sizeBuf, headerPickle, ...dataChunks]);
+  return { buffer, fileCount, totalDataSize };
+}
+
+/**
+ * Place a file metadata node at its nested path inside the header tree, creating
+ * intermediate `{ files: {} }` directory nodes as needed. Mutates `root`.
+ */
+function setNestedFile(
+  root: Record<string, unknown>,
+  relativePath: string,
+  meta: Record<string, unknown>,
+): void {
+  const segments = sanitizeArchiveRelativePath(relativePath).split('/');
+  let cursor = root;
+  for (let i = 0; i < segments.length - 1; i += 1) {
+    const segment = segments[i]!;
+    const existing = cursor[segment];
+    if (isRecord(existing) && isRecord(existing.files)) {
+      cursor = existing.files as Record<string, unknown>;
+    } else {
+      const directory: Record<string, unknown> = { files: {} };
+      cursor[segment] = directory;
+      cursor = directory.files as Record<string, unknown>;
+    }
+  }
+  const fileName = segments[segments.length - 1]!;
+  cursor[fileName] = meta;
 }
