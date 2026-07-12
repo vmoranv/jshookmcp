@@ -30,4 +30,4 @@ Native analysis bridge domain for local loopback HTTP bridges to Ghidra, IDA, Ri
 | `ida_bridge` | Send a command to an IDA Pro plugin bridge. |
 | `rizin_bridge` | Send a command to a local Rizin/r2 analysis bridge. |
 | `binary_ninja_bridge` | Send a command to a local Binary Ninja analysis bridge. |
-| `native_symbol_sync` | Export native symbols to connected analysis backends. |
+| `native_symbol_sync` | Export native symbols to connected analysis backends. Supports json/csv/idc/sqlite output; an optional sinceHash requests an incremental export (only changed symbols) from backends that support it. |

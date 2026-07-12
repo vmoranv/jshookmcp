@@ -469,6 +469,51 @@ describe('NativeBridgeHandlers', () => {
         expect.objectContaining({ method: 'POST' }),
       );
     });
+
+    it('forwards sinceHash and sqlite format to the export endpoint', async () => {
+      const handlers = new NativeBridgeHandlers();
+      const fetchMock = vi.fn().mockResolvedValue({
+        status: 200,
+        json: () => Promise.resolve({ symbols: [{ name: 'main' }], nextSinceHash: 'abc123' }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = parseJson<any>(
+        await handlers.handleNativeSymbolSync({
+          source: 'ghidra',
+          exportFormat: 'sqlite',
+          sinceHash: 'prev-hash',
+        }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.format).toBe('sqlite');
+      expect(result.sinceHash).toBe('prev-hash');
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:18080/symbols/export',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ filter: '', format: 'sqlite', sinceHash: 'prev-hash' }),
+        }),
+      );
+    });
+
+    it('omits sinceHash from the body when not provided', async () => {
+      const handlers = new NativeBridgeHandlers();
+      const fetchMock = vi.fn().mockResolvedValue({
+        status: 200,
+        json: () => Promise.resolve([{ name: 'main' }]),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      await handlers.handleNativeSymbolSync({ source: 'ghidra' });
+
+      const call = fetchMock.mock.calls[0];
+      const init = call?.[1] as { body?: string } | undefined;
+      const body = JSON.parse(init?.body ?? '{}');
+      expect(body).not.toHaveProperty('sinceHash');
+      expect(body.format).toBe('json');
+    });
   });
 
   /* ── ToolResponse wrappers ──────────────────────────────────────── */

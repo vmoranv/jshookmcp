@@ -128,14 +128,22 @@ export const nativeBridgeTools: Tool[] = [
   ),
   tool('native_symbol_sync', (t) =>
     t
-      .desc('Export native symbols to connected analysis backends.')
+      .desc(
+        'Export native symbols to connected analysis backends. Supports json/csv/idc/sqlite output; an optional sinceHash requests an incremental export (only changed symbols) from backends that support it.',
+      )
       .enum(
         'source',
         ['ghidra', 'ida', 'rizin', 'binaryninja'],
         'Which tool to export symbols from',
       )
       .string('filter', 'Regex pattern to filter symbol names')
-      .enum('exportFormat', ['json', 'csv', 'idc'], 'Output format', { default: 'json' })
+      .enum('exportFormat', ['json', 'csv', 'idc', 'sqlite'], 'Output format', {
+        default: 'json',
+      })
+      .string(
+        'sinceHash',
+        'Optional content hash from a previous sync. When the backend supports incremental export, only symbols changed since this hash are returned; unsupported backends return the full set.',
+      )
       .string('endpoint', 'Bridge server URL')
       .required('source'),
   ),

@@ -748,21 +748,36 @@ export class NativeBridgeHandlers {
             ? this.getRizinEndpoint(args)
             : this.getBinaryNinjaEndpoint(args);
 
+    const sinceHash =
+      typeof args.sinceHash === 'string' && args.sinceHash.trim().length > 0
+        ? args.sinceHash.trim()
+        : '';
+
     try {
+      // Only forward sinceHash when provided so legacy backends see the same
+      // body shape they always have (incremental export is opt-in per sync).
+      const body: Record<string, unknown> = {
+        filter: args.filter ?? '',
+        format: args.exportFormat ?? 'json',
+      };
+      if (sinceHash) {
+        body.sinceHash = sinceHash;
+      }
+
       const { status, data } = await bridgeFetch(
         endpoint,
         '/symbols/export',
         'POST',
-        JSON.stringify({
-          filter: args.filter ?? '',
-          format: args.exportFormat ?? 'json',
-        }),
+        JSON.stringify(body),
       );
 
+      // Echo the requested sinceHash; callers persist data.nextSinceHash (or
+      // data.hash) returned by the sidecar for the next incremental sync.
       return asJsonResponse({
         success: status < 300,
         source,
         format: args.exportFormat ?? 'json',
+        ...(sinceHash ? { sinceHash } : {}),
         symbols: data,
       });
     } catch (error) {
