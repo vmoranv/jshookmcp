@@ -41,6 +41,11 @@ import {
   sha256h2,
   sha256su0,
   sha256su1,
+  sm3ss1,
+  sm3partw1,
+  sm3partw2,
+  sm4e,
+  sm4ekey,
   type Sha1Func,
 } from './simd-crypto';
 import {
@@ -171,6 +176,7 @@ import {
   isCryptoAes,
   isCryptoSha3Reg,
   isCryptoSha2Reg,
+  isCryptoSm3Sm4,
   isPmull,
   isScalarFp,
   isNeonThreeSame,
@@ -533,6 +539,7 @@ export function executeSimdFp(ctx: SimdContext, insn: number): boolean {
   if (isCryptoAes(f)) return execCryptoAes(ctx, f);
   if (isCryptoSha3Reg(f)) return execCryptoSha3Reg(ctx, f);
   if (isCryptoSha2Reg(f)) return execCryptoSha2Reg(ctx, f);
+  if (isCryptoSm3Sm4(f)) return execCryptoSm3Sm4(ctx, f);
   if (isPmull(f)) return execPmull(ctx, f);
   if (isScalarFp(f)) return execScalarFp(ctx, f);
   if (isNeonThreeSame(f)) return execNeonThreeSame(ctx, f);
@@ -650,6 +657,69 @@ function execPmull(ctx: SimdContext, f: SimdFields): boolean {
   const vm = ctx.vGetBytes(f.rm);
   ctx.vSetBytes(f.rd, f.q === 1 ? pmull2(vn, vm) : pmull(vn, vm));
   return true;
+}
+
+// ── Cryptographic SM3/SM4 (ARMv8.2 FEAT_SM3 + FEAT_SM4) ─────────────────────
+//
+// SM3/SM4 use the "Crypto three-register SHA 512" encoding (high8=0xCE,
+// size=01, bit21=1). Three-register opcode in bits[15:10]; SM4E uses the
+// two-register form.
+
+/**
+ * Unified SM3/SM4 dispatch (ARMv8.2 FEAT_SM3 + FEAT_SM4). All share high8=0xCE
+ * and size=01. Sub-dispatch on bit21 + bits[15:10]:
+ *
+ *   bit21=1 (three-register SM3/SM4):
+ *     SM3PARTW1  op15_10=0b011000
+ *     SM3PARTW2  op15_10=0b011010
+ *     SM4EKEY    op15_10=0b001110
+ *   bit21=0 (two-register):
+ *     SM3SS1     bit15=0, low11_10=01  → three-register actually! Rn, Rm, Rd
+ *     SM4E       bit15=1, low11_10=00  → op16_12=0b01000
+ *
+ * SM3SS1 is a three-register instruction despite bit21=0; ARM ARM §C4.1
+ * classifies it under "Crypto three-register SHA 512" with bit21=0 for this
+ * specific opcode.
+ */
+function execCryptoSm3Sm4(ctx: SimdContext, f: SimdFields): boolean {
+  const op15_10 = (f.insn >>> 10) & 0b111111;
+
+  if (f.bit21 === 1) {
+    // Three-register: SM3PARTW1, SM3PARTW2, SM4EKEY
+    switch (op15_10) {
+      case 0b011000: // SM3PARTW1 Vd.4S, Vn.4S, Vm.4S
+        ctx.vSetBytes(
+          f.rd,
+          sm3partw1(ctx.vGetBytes(f.rd), ctx.vGetBytes(f.rn), ctx.vGetBytes(f.rm)),
+        );
+        return true;
+      case 0b011010: // SM3PARTW2 Vd.4S, Vn.4S, Vm.4S
+        ctx.vSetBytes(
+          f.rd,
+          sm3partw2(ctx.vGetBytes(f.rd), ctx.vGetBytes(f.rn), ctx.vGetBytes(f.rm)),
+        );
+        return true;
+      case 0b001110: // SM4EKEY Vd.4S, Vn.4S, Vm.4S
+        ctx.vSetBytes(f.rd, sm4ekey(ctx.vGetBytes(f.rd), ctx.vGetBytes(f.rn), ctx.vGetBytes(f.rm)));
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  // bit21=0: SM3SS1 (three-register, bit15=0) or SM4E (two-register, bit15=1)
+  if (f.bit15 === 1 && f.op16_12 === 0b01000) {
+    // SM4E Vd.4S, Vn.4S — 4 encryption rounds
+    ctx.vSetBytes(f.rd, sm4e(ctx.vGetBytes(f.rd), ctx.vGetBytes(f.rn)));
+    return true;
+  }
+  if (f.bit15 === 0 && op15_10 === 0b010001) {
+    // SM3SS1 Vd.4S, Vn.4S, Vm.4S
+    ctx.vSetBytes(f.rd, sm3ss1(ctx.vGetBytes(f.rd), ctx.vGetBytes(f.rn), ctx.vGetBytes(f.rm)));
+    return true;
+  }
+
+  return false;
 }
 
 // ── Scalar floating-point (ARM ARM C4.1.8/C4.1.9) ──────────────────────────

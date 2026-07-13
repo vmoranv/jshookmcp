@@ -112,6 +112,24 @@ export const isCryptoSha2Reg = (f: SimdFields): boolean =>
   f.high8 === 0x5e && f.size === 0 && f.field21_17 === 0b10100 && f.low11_10 === 0b10;
 
 /**
+ * Cryptographic SM3/SM4 (ARMv8.2 FEAT_SM3 + FEAT_SM4). All SM3/SM4
+ * instructions share high8=0xCE (bits[31:24]), size=01 (bits[23:22]),
+ * and bits[28:24]=01110. The sub-encoding varies:
+ *
+ * Three-register (bit21=1): SM3PARTW1 (low11_10=00), SM3PARTW2 (10),
+ *   SM4EKEY (10).  Opcode in bits[15:10].
+ * Two-register (bit21=0): SM3SS1 (bit15=0, low11_10=01),
+ *   SM4E (bit15=1, low11_10=00).
+ *
+ * Single broad predicate; fine-grained dispatch in execCryptoSm3Sm4.
+ */
+export const isCryptoSm3Sm4 = (f: SimdFields): boolean => f.high8 === 0xce && f.size === 1;
+
+/** SM4E two-register form: high8=0xCE, size=01, bit21=0, bit15=1, low11_10=00. */
+export const isCryptoSm4e = (f: SimdFields): boolean =>
+  f.high8 === 0xce && f.size === 1 && f.bit21 === 0 && f.bit15 === 1 && f.low11_10 === 0;
+
+/**
  * PMULL/PMULL2 (polynomial multiply long). PMULL has U=1 always.
  * Encoding: 0 Q 1 01110 size 1 Rm 1110 00 Rn Rd
  *
@@ -285,6 +303,8 @@ export type SimdFpClass =
   | 'crypto-aes'
   | 'crypto-sha3'
   | 'crypto-sha2'
+  | 'crypto-sm3-sm4'
+  | 'crypto-sm4e'
   | 'pmull'
   | 'scalar-fp'
   | 'neon-three-same'
@@ -306,6 +326,8 @@ export function classifySimdFp(f: SimdFields): SimdFpClass | null {
   if (isCryptoAes(f)) return 'crypto-aes';
   if (isCryptoSha3Reg(f)) return 'crypto-sha3';
   if (isCryptoSha2Reg(f)) return 'crypto-sha2';
+  if (isCryptoSm3Sm4(f)) return 'crypto-sm3-sm4';
+  if (isCryptoSm4e(f)) return 'crypto-sm4e';
   if (isPmull(f)) return 'pmull';
   if (isScalarFp(f)) return 'scalar-fp';
   if (isNeonThreeSame(f)) return 'neon-three-same';
