@@ -21,7 +21,12 @@ import {
 } from '@server/workflows/WorkflowContract';
 import { executeExtensionWorkflow } from '@server/workflows/WorkflowEngine';
 import type { MCPServerContext } from '@server/MCPServer.context';
-import type { MacroDefinition, MacroResult, MacroStepProgress } from '@server/macros/types';
+import type {
+  MacroDefinition,
+  MacroNodeSummary,
+  MacroResult,
+  MacroStepProgress,
+} from '@server/macros/types';
 import { MACRO_DEFAULT_TIMEOUT_MS } from '@src/constants';
 
 export class MacroRunner {
@@ -139,6 +144,71 @@ export class MacroRunner {
         toolBuilder.inputFrom(step.inputFrom);
       }
     });
+  }
+
+  /**
+   * Build a serializable node-tree projection of a macro without executing any tools.
+   *
+   * Routes through the real `buildNodeFromStep` so schema errors (e.g. a step that
+   * defines zero or multiple node kinds) surface here instead of at run time, and so
+   * `optional` wrapping is reflected exactly as the engine will see it.
+   */
+  summarizeDefinition(def: MacroDefinition): {
+    macroId: string;
+    displayName: string;
+    timeoutMs: number;
+    nodes: MacroNodeSummary[];
+  } {
+    const nodes = def.steps.map((step) => this.summarizeNode(this.buildNodeFromStep(step)));
+    return {
+      macroId: def.id,
+      displayName: def.displayName,
+      timeoutMs: def.timeoutMs ?? MACRO_DEFAULT_TIMEOUT_MS,
+      nodes,
+    };
+  }
+
+  private summarizeNode(node: WorkflowNode): MacroNodeSummary {
+    switch (node.kind) {
+      case 'tool':
+        return {
+          id: node.id,
+          kind: 'tool',
+          toolName: node.toolName,
+          retry: node.retry,
+          timeoutMs: node.timeoutMs,
+          inputFrom: node.inputFrom,
+        };
+      case 'sequence':
+        return {
+          id: node.id,
+          kind: 'sequence',
+          children: node.steps.map((child) => this.summarizeNode(child)),
+        };
+      case 'parallel':
+        return {
+          id: node.id,
+          kind: 'parallel',
+          maxConcurrency: node.maxConcurrency,
+          failFast: node.failFast,
+          children: node.steps.map((child) => this.summarizeNode(child)),
+        };
+      case 'branch':
+        return {
+          id: node.id,
+          kind: 'branch',
+          predicateId: node.predicateId,
+          whenTrue: this.summarizeNode(node.whenTrue),
+          whenFalse: node.whenFalse ? this.summarizeNode(node.whenFalse) : undefined,
+        };
+      case 'fallback':
+        return {
+          id: node.id,
+          kind: 'fallback',
+          primary: this.summarizeNode(node.primary),
+          fallback: this.summarizeNode(node.fallback),
+        };
+    }
   }
 
   /**

@@ -29,13 +29,26 @@ export class ScriptHandlers {
       return jsonTextResult({ success: false, error: 'name and code are required' });
     }
 
+    // Explicit `protected` arg wins; otherwise inherit from an existing entry (update case).
+    const protectedArg = typeof args.protected === 'boolean' ? args.protected : undefined;
+
     const isUpdate = this.state.scriptRegistry.has(name);
     if (!isUpdate && this.state.scriptRegistry.size >= WORKFLOW_CONSTANTS.MAX_SCRIPTS) {
+      // LRU eviction: drop the non-protected entry with the oldest lastUsedAt.
+      // Never-run entries (lastUsedAt undefined) are treated as oldest; Map insertion
+      // order is the natural tiebreaker among ties, so FIFO holds for never-run scripts.
+      let victimName: string | undefined;
+      let victimLastUsed = Infinity;
       for (const [scriptName, entry] of this.state.scriptRegistry) {
-        if (!entry.protectedFromEviction) {
-          this.state.scriptRegistry.delete(scriptName);
-          break;
+        if (entry.protectedFromEviction) continue;
+        const lastUsed = entry.lastUsedAt ?? -Infinity;
+        if (lastUsed < victimLastUsed) {
+          victimLastUsed = lastUsed;
+          victimName = scriptName;
         }
+      }
+      if (victimName !== undefined) {
+        this.state.scriptRegistry.delete(victimName);
       }
     }
     const existingEntry = this.state.scriptRegistry.get(name);
@@ -43,7 +56,8 @@ export class ScriptHandlers {
       code,
       description,
       source: existingEntry?.source ?? 'user',
-      protectedFromEviction: existingEntry?.protectedFromEviction ?? false,
+      protectedFromEviction: protectedArg ?? existingEntry?.protectedFromEviction ?? false,
+      lastUsedAt: existingEntry?.lastUsedAt,
     });
 
     return jsonTextResult({
@@ -51,6 +65,7 @@ export class ScriptHandlers {
       action: isUpdate ? 'updated' : 'registered',
       name,
       description,
+      protected: this.state.scriptRegistry.get(name)?.protectedFromEviction ?? false,
       totalScripts: this.state.scriptRegistry.size,
       available: Array.from(this.state.scriptRegistry.keys()),
     });
@@ -65,6 +80,10 @@ export class ScriptHandlers {
       const available = Array.from(this.state.scriptRegistry.keys());
       return jsonTextResult({ success: false, error: `Script "${name}" not found`, available });
     }
+
+    // Mark access for LRU eviction. Built-in scripts are protected so this is a no-op
+    // for them in practice, but tracking is uniform and cheap.
+    entry.lastUsedAt = Date.now();
 
     let codeToRun: string;
     if (params !== undefined) {

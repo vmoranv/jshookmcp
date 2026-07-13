@@ -51,6 +51,9 @@ describe('Workflow Domain Manifest', () => {
     vi.spyOn(WorkflowHandlers.prototype, 'handleReverseSession').mockResolvedValue(
       undefined as any,
     );
+    vi.spyOn(WorkflowHandlers.prototype, 'handleWorkflowRunInspect').mockResolvedValue(
+      undefined as any,
+    );
     vi.spyOn(MacroToolHandlers.prototype, 'handleRunMacro').mockResolvedValue(undefined as any);
     vi.spyOn(MacroToolHandlers.prototype, 'handleListMacros').mockResolvedValue(undefined as any);
 
@@ -101,6 +104,7 @@ describe('Workflow Domain Manifest', () => {
           list_extension_workflows: 'handleListExtensionWorkflows',
           run_extension_workflow: 'handleRunExtensionWorkflow',
           reverse_session: 'handleReverseSession',
+          workflow_run_inspect: 'handleWorkflowRunInspect',
           run_macro: 'handleRunMacro',
           list_macros: 'handleListMacros',
         };

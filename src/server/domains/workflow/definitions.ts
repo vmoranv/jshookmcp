@@ -74,6 +74,12 @@ export const workflowToolDefinitions: Tool[] = [
       .boolean('cacheBundle', 'Cache the bundle for 5 minutes to avoid re-downloads', {
         default: true,
       })
+      .boolean(
+        'forceRefresh',
+        'Bypass the warm cache and re-fetch the bundle even when a fresh cached copy exists. ' +
+          'Useful when a signed URL rotated or the CDN churned the content. The fresh copy is still written back to the cache.',
+        { default: false },
+      )
       .boolean('stripNoise', 'Skip matches inside SVG path data or base64 blobs', { default: true })
       .number('maxMatches', 'Maximum matches to return per pattern', {
         default: 10,
@@ -95,6 +101,11 @@ export const workflowToolDefinitions: Tool[] = [
           'safely access runtime parameters.',
       )
       .string('description', 'Optional human-readable description of the script')
+      .boolean(
+        'protected',
+        'Pin this script so it is never chosen as the LRU eviction victim when the registry is full. ' +
+          'Defaults to the existing entry value on update, or false on first register.',
+      )
       .required('name', 'code'),
   ),
   tool('page_script_run', (t) =>
@@ -149,6 +160,21 @@ export const workflowToolDefinitions: Tool[] = [
         'Auto-inject Bearer token from localStorage (token / active_token / access_token).',
         { default: true },
       )
+      .number('concurrency', 'Max in-browser concurrent probes (1-32, default 6)', {
+        default: 6,
+        minimum: 1,
+        maximum: 32,
+      })
+      .number(
+        'delayMs',
+        'Fixed pause in ms before each probe (0-60000, default 0). Use with jitterMs to throttle.',
+        { default: 0, minimum: 0, maximum: 60000 },
+      )
+      .number(
+        'jitterMs',
+        'Random extra delay in ms (0 to jitterMs) added before each probe (0-60000, default 0).',
+        { default: 0, minimum: 0, maximum: 60000 },
+      )
       .prop('networkPolicy', workflowNetworkPolicySchema)
       .requiredOpenWorld('baseUrl', 'paths'),
   ),
@@ -198,6 +224,26 @@ export const workflowToolDefinitions: Tool[] = [
       .boolean('includeResults', 'Include parsed tool results in action=run execution records.', {
         default: false,
       })
+      .query(),
+  ),
+  tool('workflow_run_inspect', (t) =>
+    t
+      .desc(
+        'Inspect the global workflow run store: list recent run_extension_workflow / run_macro runs, ' +
+          'get a run entry by runId, or fetch the last successful full result (stepResults, spans, metrics) for a workflow or macro id.',
+      )
+      .enum(
+        'action',
+        ['list', 'get', 'lastSuccess'],
+        'Inspection action. "list" returns recent runs (optionally filtered by workflowId); ' +
+          '"get" returns one run entry by runId; "lastSuccess" returns the last ok result for a workflowId.',
+        { default: 'list' },
+      )
+      .string('runId', 'Run id to fetch (action=get).')
+      .string(
+        'workflowId',
+        'Workflow or macro id; filters "list" results or selects the "lastSuccess" workflow.',
+      )
       .query(),
   ),
 ];

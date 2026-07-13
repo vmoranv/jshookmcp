@@ -52,6 +52,28 @@ export interface MacroFallbackStepDefinition {
   fallback: MacroStepDefinition;
 }
 
+/**
+ * Serializable projection of a built WorkflowNode — the dry-run shape of a macro.
+ * Reflects post-optional-wrapping runtime structure (an `optional` step appears as
+ * a `fallback` node whose primary is the step and whose fallback is an empty skip).
+ */
+export interface MacroNodeSummary {
+  id: string;
+  kind: 'tool' | 'sequence' | 'parallel' | 'branch' | 'fallback';
+  toolName?: string;
+  retry?: RetryPolicy;
+  timeoutMs?: number;
+  inputFrom?: Record<string, string>;
+  maxConcurrency?: number;
+  failFast?: boolean;
+  children?: MacroNodeSummary[];
+  predicateId?: string;
+  whenTrue?: MacroNodeSummary;
+  whenFalse?: MacroNodeSummary;
+  primary?: MacroNodeSummary;
+  fallback?: MacroNodeSummary;
+}
+
 /** A single step within a macro definition. */
 export interface MacroStepDefinition {
   id: string;

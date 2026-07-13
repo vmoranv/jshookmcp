@@ -234,7 +234,38 @@ describe('WorkflowHandlers', () => {
       unknown
     >;
     expect(String(payload.code)).toContain('Promise.all');
-    expect(String(payload.code)).toContain('maxConcurrency');
+    expect(String(payload.code)).toContain('concurrency');
+    // probeSleep is always injected as a utility fn; with defaults (0)
+    // it is defined but the `if (jitterMs > 0)` guard keeps it uncalled.
+    expect(String(payload.code)).toContain('probeSleep');
+  });
+
+  it('injects concurrency/delayMs/jitterMs throttle knobs into api_probe_batch page code', async () => {
+    (deps.browserHandlers.handlePageEvaluate as any).mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ success: true, probed: 1, results: {} }) }],
+    });
+
+    await handlers.handleApiProbeBatch({
+      baseUrl: TEST_URLS.root,
+      paths: ['/a'],
+      concurrency: 2,
+      delayMs: 150,
+      jitterMs: 50,
+    });
+
+    const payload = (deps.browserHandlers.handlePageEvaluate as any).mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    const code = String(payload.code);
+    expect(code).toContain('var concurrency');
+    expect(code).toContain('var delayMs');
+    expect(code).toContain('var jitterMs');
+    expect(code).toContain('Math.min(paths.length, 2)');
+    expect(code).toContain('delayMs = 150');
+    expect(code).toContain('jitterMs = 50');
+    expect(code).toContain('probeSleep');
+    expect(code).toContain('Math.random()');
   });
 
   it('lists loaded extension workflows', async () => {

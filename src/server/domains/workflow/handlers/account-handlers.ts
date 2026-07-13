@@ -42,6 +42,7 @@ export class AccountHandlers {
     const cacheBundle = argBool(args, 'cacheBundle', true);
     const stripNoise = argBool(args, 'stripNoise', true);
     const maxMatches = argNumber(args, 'maxMatches', 10);
+    const forceRefresh = argBool(args, 'forceRefresh', false);
     const policyResult = parseWorkflowNetworkPolicy(args);
 
     if (!url || !patterns || patterns.length === 0) {
@@ -83,7 +84,11 @@ export class AccountHandlers {
     try {
       if (cacheBundle) {
         const cached = this.state.bundleCache.get(url);
-        if (cached && Date.now() - cached.cachedAt < WORKFLOW_CONSTANTS.BUNDLE_CACHE_TTL_MS) {
+        if (
+          cached &&
+          !forceRefresh &&
+          Date.now() - cached.cachedAt < WORKFLOW_CONSTANTS.BUNDLE_CACHE_TTL_MS
+        ) {
           bundleText = cached.text;
           fromCache = true;
         } else {

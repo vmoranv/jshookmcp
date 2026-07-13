@@ -59,6 +59,15 @@ export class ApiHandlers {
       Math.min(argNumber(args, 'maxBodySnippetLength', 500), 10000),
     );
     const autoInjectAuth = argBool(args, 'autoInjectAuth', true);
+    // Throttle knobs. concurrency caps the in-browser fetch pool (default 6 preserves prior
+    // behaviour); delayMs + jitterMs add a randomized pause before each probe so a tight loop
+    // over one origin does not trip WAF rate limits and poison subsequent probes.
+    const concurrency = Math.max(
+      1,
+      Math.min(Math.trunc(argNumber(args, 'concurrency', 6) || 6), 32),
+    );
+    const delayMs = Math.max(0, Math.min(argNumber(args, 'delayMs', 0) || 0, 60_000));
+    const jitterMs = Math.max(0, Math.min(argNumber(args, 'jitterMs', 0) || 0, 60_000));
 
     if (!paths || paths.length === 0) {
       return R.fail('paths array is required and must not be empty').json();
@@ -74,6 +83,10 @@ export class ApiHandlers {
   var autoInjectAuth = ${JSON.stringify(autoInjectAuth)};
   var bodyTemplate = ${JSON.stringify(bodyTemplate)};
   var authHeaders = ${JSON.stringify(authorizationHeaders)};
+  var concurrency = Math.min(paths.length, ${JSON.stringify(concurrency)});
+  var delayMs = ${JSON.stringify(delayMs)};
+  var jitterMs = ${JSON.stringify(jitterMs)};
+  function probeSleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
   var headers = Object.assign({'Content-Type':'application/json'}, extraHeaders, authHeaders);
   if (autoInjectAuth) {
     var token = localStorage.getItem('token') || localStorage.getItem('active_token') || localStorage.getItem('access_token');
@@ -103,16 +116,19 @@ export class ApiHandlers {
     }
   }
   var nextIndex = 0;
-  var maxConcurrency = Math.min(paths.length, 6);
-  await Promise.all(Array.from({ length: maxConcurrency }, async function() {
+  await Promise.all(Array.from({ length: concurrency }, async function() {
     while (nextIndex < paths.length) {
       var currentIndex = nextIndex++;
       var currentPath = paths[currentIndex];
+      if (delayMs > 0 || jitterMs > 0) {
+        var wait = delayMs + (jitterMs > 0 ? Math.random() * jitterMs : 0);
+        await probeSleep(wait);
+      }
       var entry = await probePath(currentPath);
       results[entry[0]] = entry[1];
     }
   }));
-  return {probed: paths.length, method: method, baseUrl: baseUrl, results: results};
+  return {probed: paths.length, method: method, baseUrl: baseUrl, concurrency: concurrency, delayMs: delayMs, jitterMs: jitterMs, results: results};
 })()`;
 
     try {

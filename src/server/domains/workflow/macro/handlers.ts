@@ -65,6 +65,7 @@ export class MacroToolHandlers {
     const inputOverrides = args.inputOverrides as
       | Record<string, Record<string, unknown>>
       | undefined;
+    const dryRun = args.dryRun === true;
 
     if (!macroId || typeof macroId !== 'string') {
       return {
@@ -90,6 +91,36 @@ export class MacroToolHandlers {
               error: `Macro "${macroId}" not found`,
               available: Array.from(macros.keys()),
             }),
+          },
+        ],
+      };
+    }
+
+    if (dryRun) {
+      // Plan-preview: build the node tree (validates schema) without executing tools.
+      let summary: ReturnType<MacroRunner['summarizeDefinition']>;
+      try {
+        summary = this.runner.summarizeDefinition(def);
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                ok: false,
+                dryRun: true,
+                macroId,
+                error: err instanceof Error ? err.message : String(err),
+              }),
+            },
+          ],
+        };
+      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ ok: true, dryRun: true, inputOverrides, ...summary }),
           },
         ],
       };

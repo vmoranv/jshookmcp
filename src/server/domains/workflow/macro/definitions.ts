@@ -13,6 +13,13 @@ export const macroTools: Tool[] = [
         description: 'Per-step input overrides keyed by step ID',
         additionalProperties: { type: 'object', additionalProperties: true },
       })
+      .boolean(
+        'dryRun',
+        'Plan-preview: build the macro node tree and return the effective structure (with optional ' +
+          'wrapping, retry, timeout, inputFrom refs) without executing any tools. Surfaces schema ' +
+          'errors (e.g. a step with zero or multiple node kinds) before run time.',
+        { default: false },
+      )
       .required('macroId'),
   ),
   tool('list_macros', (t) => t.desc('List all available macros.').query()),

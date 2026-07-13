@@ -36,6 +36,8 @@ export interface ScriptEntry {
   description: string;
   source: 'core' | 'user' | 'plugin';
   protectedFromEviction: boolean;
+  /** Epoch ms of the last page_script_run access; undefined when never run. Drives LRU eviction. */
+  lastUsedAt?: number;
 }
 
 interface BundleCacheEntry {
