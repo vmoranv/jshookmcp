@@ -300,6 +300,57 @@ describe('search/ReRanker', () => {
     expect(reRanked[0]?.toolName).toBe('page_navigate');
   });
 
+  it('preserves strong retrieval-score gaps: a clearly top-scored tool stays first even with weak lexical match', () => {
+    const reRanker = makeReRankerWithSampleTools();
+    const results: ReRankInput[] = [
+      // High retrieval score but name/domain only loosely match the query.
+      makeInput({
+        toolName: 'network_capture_all',
+        score: 50,
+        domain: 'network',
+        description: 'Capture all network traffic broadly',
+      }),
+      // Low retrieval score but a near-exact lexical match on the query.
+      makeInput({
+        toolName: 'unrelated_thing',
+        score: 1,
+        domain: 'misc',
+        description: 'navigate navigate navigate navigate',
+      }),
+    ];
+
+    const reRanked = reRanker.reRank('navigate', results);
+
+    // The 50→1 retrieval gap normalises to 1.0 vs 0.0; with retrieval weight
+    // 0.6 the gap should keep the strong-retrieval tool on top rather than
+    // letting the 0.4 lexical signal flip the order purely on keyword count.
+    expect(reRanked[0]?.toolName).toBe('network_capture_all');
+  });
+
+  it('respects equal retrieval scores: ties defer to lexical reRank score', () => {
+    const reRanker = makeReRankerWithSampleTools();
+    const results: ReRankInput[] = [
+      makeInput({
+        toolName: 'network_monitor_requests',
+        score: 10,
+        domain: 'network',
+        description: 'Monitor network requests and responses',
+      }),
+      makeInput({
+        toolName: 'memory_scan_allocations',
+        score: 10,
+        domain: 'memory',
+        description: 'Scan memory allocation regions',
+      }),
+    ];
+
+    const reRanked = reRanker.reRank('monitor capture network', results);
+
+    // Equal retrieval scores → both normalise to 1.0 → ordering is driven
+    // purely by the lexical reRank score (network monitor wins on overlap).
+    expect(reRanked[0]?.toolName).toBe('network_monitor_requests');
+  });
+
   it('rounds reRankedScore to 4 decimal places', () => {
     const reRanker = makeReRankerWithSampleTools();
     const results: ReRankInput[] = [

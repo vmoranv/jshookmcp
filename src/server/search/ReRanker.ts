@@ -24,6 +24,19 @@ interface ReRankWeights {
   intentAlignment: number;
 }
 
+/**
+ * ReRank blend weights between the upstream retrieval score (BM25 + RRF +
+ * graph/tier boosts) and the local lexical-similarity reRank score.
+ *
+ * Both components are normalised to [0, 1] before blending (see reRank), so
+ * the upstream absolute-scale score — which can reach tens after RRF + graph
+ * expansion — no longer dominates or is dominated by the 0–1 lexical score.
+ * 0.6 / 0.4 keeps retrieval relevance as the primary signal while letting
+ * name-match / keyword-overlap break ties and reorder near-misses.
+ */
+const RETRIEVAL_WEIGHT = 0.6;
+const LEXICAL_WEIGHT = 0.4;
+
 const DEFAULT_WEIGHTS: Readonly<ReRankWeights> = {
   queryToolNameMatch: 0.35,
   descriptionKeywordOverlap: 0.25,
@@ -141,6 +154,20 @@ export class ReRanker {
 
     const targetDomains = this.inferTargetDomain(queryTokens);
 
+    // Min-max normalise the upstream retrieval scores so the blend with the
+    // [0,1] lexical reRank score is dimensionally consistent. Without this,
+    // a BM25+RRF score in the tens would either swamp the lexical signal or
+    // (when all scores cluster near a small floor) be swamped by it, making
+    // the 0.3/0.7 weights meaningless. Degenerate all-equal / single-item
+    // cases collapse to a flat 1.0, deferring ordering to the lexical score.
+    let minScore = Infinity;
+    let maxScore = -Infinity;
+    for (const r of results) {
+      if (r.score < minScore) minScore = r.score;
+      if (r.score > maxScore) maxScore = r.score;
+    }
+    const scoreRange = maxScore - minScore;
+
     const scored: Array<{ result: ReRankInput; originalRank: number; reRankScore: number }> = [];
 
     for (let i = 0; i < results.length; i++) {
@@ -158,13 +185,14 @@ export class ReRanker {
 
       const intentAlign = this.computeIntentAlignment(queryTokens, r.description);
 
-      const reRankScore =
+      const lexicalScore =
         this.weights.queryToolNameMatch * nameMatch +
         this.weights.descriptionKeywordOverlap * descriptionOverlap +
         this.weights.domainRelevance * domainRel +
         this.weights.intentAlignment * intentAlign;
 
-      const finalScore = r.score * 0.3 + reRankScore * 0.7;
+      const normalizedRetrieval = scoreRange > 0 ? (r.score - minScore) / scoreRange : 1;
+      const finalScore = RETRIEVAL_WEIGHT * normalizedRetrieval + LEXICAL_WEIGHT * lexicalScore;
 
       scored.push({ result: r, originalRank: i, reRankScore: finalScore });
     }

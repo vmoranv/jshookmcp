@@ -168,6 +168,12 @@ export class ToolSearchEngine {
   // ── Dense vector search (Phase 8) ──
   private readonly embeddingEngine: EmbeddingEngine | null;
   private toolEmbeddings: Float32Array[] | null = null;
+  /**
+   * In-flight prewarm promise guard. Ensures at most one embedBatch runs at a
+   * time across the constructor fire-and-forget and any lazy re-trigger after
+   * a failure. Reset to null on rejection so the next trigger can retry.
+   */
+  private prewarmPromise: Promise<void> | null = null;
   /** Feedback tracking for adaptive vector weight adjustment. */
   private readonly feedbackTracker: FeedbackTracker;
   /** Per-tool recency tracker for frequency / recency boosts. */
@@ -301,6 +307,19 @@ export class ToolSearchEngine {
 
     // ── Query result cache (§4.3 CSAPC) ──
     this.queryCache = new LRUCache<string, CachedSearchEntry>(SEARCH_QUERY_CACHE_CAPACITY);
+
+    // ── Background embedding prewarm (Phase 8) ──
+    // Compute all tool embeddings off the hot path so the first user-facing
+    // search isn't blocked on ~600 ONNX inferences (cold-start: seconds).
+    // Until prewarm completes, computeVectorCosineScores falls back to pure
+    // BM25 + trigram — the engine stays correct, just without the vector
+    // signal. Fire-and-forget: failure is swallowed by the existing try/catch
+    // in computeVectorCosineScores.
+    if (this.embeddingEngine) {
+      void this.ensureToolEmbeddings().catch(() => {
+        // Swallowed — computeVectorCosineScores retries lazily on next search.
+      });
+    }
   }
 
   async search(
@@ -860,34 +879,74 @@ export class ToolSearchEngine {
   // ── Dense vector search methods (Phase 8) ──
 
   /**
+   * Resolve once the background embedding prewarm has settled (success or
+   * failure). Production code never needs to await this — the first search
+   * degrades gracefully to BM25 + trigram until embeddings land. Exposed for
+   * tests and callers that want the vector signal guaranteed before a query.
+   */
+  waitForEmbeddings(): Promise<void> {
+    return this.prewarmPromise ?? Promise.resolve();
+  }
+
+  /**
    * Lazy-compute and cache tool description embeddings.
    * Called once on first search; subsequent searches reuse cached embeddings.
    */
-  private async ensureToolEmbeddings(): Promise<void> {
-    if (this.toolEmbeddings || !this.embeddingEngine) return;
+  /**
+   * Lazy-compute and cache tool description embeddings.
+   * Deduped via `prewarmPromise`: concurrent callers share one embedBatch run
+   * instead of racing multiple ONNX jobs. On success `toolEmbeddings` is
+   * populated; on failure the promise is cleared so the next call can retry.
+   */
+  private ensureToolEmbeddings(): Promise<void> {
+    if (this.toolEmbeddings || !this.embeddingEngine) {
+      return Promise.resolve();
+    }
+    if (this.prewarmPromise) {
+      return this.prewarmPromise;
+    }
 
     const descriptions = this.docs.map(
       (doc) => `${doc.name.replace(/_/g, ' ')}: ${doc.description}`,
     );
-    this.toolEmbeddings = await this.embeddingEngine.embedBatch(descriptions);
+    const run = this.embeddingEngine
+      .embedBatch(descriptions)
+      .then((embeddings) => {
+        this.toolEmbeddings = embeddings;
+      })
+      .catch(() => {
+        // Swallowed: embedding failure is an expected graceful degradation,
+        // not a condition callers should handle. toolEmbeddings stays null and
+        // computeVectorCosineScores returns empty — the engine keeps serving
+        // BM25 + trigram results. Resolve (don't reject) so waitForEmbeddings
+        // reflects "settled" without forcing an error path on every waiter.
+      })
+      .then(() => {
+        this.prewarmPromise = null;
+      });
+    this.prewarmPromise = run;
+    return run;
   }
 
   /**
    * Compute dense vector cosine similarity scores for query vs all tools.
    * Returns Map<docIndex, cosineScore>.
-   * If the embedding engine is not ready or disabled, returns an empty Map (graceful fallback).
+   *
+   * Prewarm-in-progress fast path: when the background embedding job hasn't
+   * finished seeding `toolEmbeddings` yet, return an empty Map immediately
+   * rather than awaiting the in-flight prewarm (which would block the search
+   * for the full cold-start duration). The engine falls back to BM25 + trigram
+   * for this query; subsequent queries pick up the vector signal once prewarm
+   * lands. If the embedding engine is disabled or fails, also returns empty.
    */
   private async computeVectorCosineScores(query: string): Promise<Map<number, number>> {
     if (!this.embeddingEngine) return new Map();
 
-    try {
-      await this.ensureToolEmbeddings();
-    } catch {
-      // Model not loaded yet — graceful fallback to 3-signal RRF
+    // Prewarm race: another in-flight prewarm owns the work; don't double-spawn
+    // and don't block — let this query degrade gracefully.
+    if (!this.toolEmbeddings) {
       return new Map();
     }
-
-    if (!this.toolEmbeddings) return new Map();
 
     let queryEmbedding: Float32Array;
     try {

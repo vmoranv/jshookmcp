@@ -102,9 +102,25 @@ describe('EmbeddingWorker', () => {
   });
 
   describe('embed_batch message type', () => {
-    it('processes batch of texts and returns array of embeddings', async () => {
-      const fakeEmbedding = new Float32Array([1, 0, 0]);
-      const embedderFn = vi.fn().mockResolvedValue({ data: fakeEmbedding });
+    it('processes batch of texts via batched pipeline call and returns sliced embeddings', async () => {
+      // Transformers.js returns a single flat Float32Array for a batched call:
+      // data length = batchSize × dim, with dims describing the shape.
+      const dim = 4;
+      const flat = new Float32Array([
+        1,
+        0,
+        0,
+        0, // row 0
+        0,
+        1,
+        0,
+        0, // row 1
+        0,
+        0,
+        1,
+        0, // row 2
+      ]);
+      const embedderFn = vi.fn().mockResolvedValue({ data: flat, dims: [3, dim] });
       mockPipeline.mockResolvedValue(embedderFn);
 
       await loadWorker();
@@ -115,7 +131,12 @@ describe('EmbeddingWorker', () => {
         texts: ['text1', 'text2', 'text3'],
       });
 
-      expect(embedderFn).toHaveBeenCalledTimes(3);
+      // One batched forward pass, not one call per text.
+      expect(embedderFn).toHaveBeenCalledTimes(1);
+      expect(embedderFn).toHaveBeenCalledWith(['text1', 'text2', 'text3'], {
+        pooling: 'mean',
+        normalize: true,
+      });
       expect(mockParentPort.postMessage).toHaveBeenCalledWith({
         type: 'result',
         id: 4,
@@ -125,6 +146,14 @@ describe('EmbeddingWorker', () => {
       // @ts-expect-error
       const resultArg = mockParentPort.postMessage.mock.calls[0][0];
       expect(resultArg.embedding).toHaveLength(3);
+      for (const emb of resultArg.embedding as Float32Array[]) {
+        expect(emb).toBeInstanceOf(Float32Array);
+        expect(emb.length).toBe(dim);
+      }
+      // Each row sliced in order, then L2-normalised.
+      expect(Array.from(resultArg.embedding[0] as Float32Array)[0]).toBeCloseTo(1, 5);
+      expect(Array.from(resultArg.embedding[1] as Float32Array)[1]).toBeCloseTo(1, 5);
+      expect(Array.from(resultArg.embedding[2] as Float32Array)[2]).toBeCloseTo(1, 5);
     });
 
     it('handles empty batch', async () => {
@@ -147,11 +176,11 @@ describe('EmbeddingWorker', () => {
       });
     });
 
-    it('handles batch errors gracefully', async () => {
+    it('falls back to per-item inference when the batched call rejects, then errors if per-item also fails', async () => {
       const embedderFn = vi
         .fn()
-        .mockResolvedValueOnce({ data: new Float32Array([1, 0]) })
-        .mockRejectedValueOnce(new Error('Batch item failed'));
+        .mockRejectedValueOnce(new Error('batch OOM')) // batched call fails
+        .mockRejectedValueOnce(new Error('Batch item failed')); // per-item fallback fails
       mockPipeline.mockResolvedValue(embedderFn);
 
       await loadWorker();
@@ -167,6 +196,33 @@ describe('EmbeddingWorker', () => {
         id: 6,
         message: 'Batch item failed',
       });
+    });
+
+    it('recovers via per-item fallback when the batched call rejects but per-item succeeds', async () => {
+      const single = new Float32Array([1, 0, 0]);
+      const embedderFn = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('batch shape mismatch')) // batch fails
+        .mockResolvedValueOnce({ data: single }) // per-item 1
+        .mockResolvedValueOnce({ data: single }); // per-item 2
+      mockPipeline.mockResolvedValue(embedderFn);
+
+      await loadWorker();
+
+      await messageHandler!({
+        type: 'embed_batch',
+        id: 7,
+        texts: ['a', 'b'],
+      });
+
+      expect(mockParentPort.postMessage).toHaveBeenCalledWith({
+        type: 'result',
+        id: 7,
+        embedding: expect.any(Array),
+      });
+      // @ts-expect-error
+      const resultArg = mockParentPort.postMessage.mock.calls[0][0];
+      expect(resultArg.embedding).toHaveLength(2);
     });
   });
 

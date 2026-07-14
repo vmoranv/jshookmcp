@@ -351,6 +351,11 @@ describe('search/ToolSearchEngineImpl', () => {
       } satisfies SearchConfig,
     );
 
+    // Let the background embedBatch prewarm complete before searching, so the
+    // vector signal is live for both queries (the prewarm now runs off the
+    // search hot path; without awaiting it the first search degrades to BM25).
+    await engine.waitForEmbeddings();
+
     const first = await engine.search('navigate', 5);
     engine.recordToolCallFeedback('page_navigate', 'navigate');
     const second = await engine.search('navigate', 5);
@@ -382,6 +387,10 @@ describe('search/ToolSearchEngineImpl', () => {
       } satisfies SearchConfig,
     );
 
+    // The prewarm embedBatch now runs in the background and fails there;
+    // settle it so the failure is observed before we assert call counts.
+    await engine.waitForEmbeddings();
+
     const results = await engine.search('navigate', 5);
 
     expect(results[0]?.name).toBe('page_navigate');
@@ -406,6 +415,10 @@ describe('search/ToolSearchEngineImpl', () => {
         vectorCosineWeight: 0.4,
       } satisfies SearchConfig,
     );
+
+    // Let the background prewarm finish seeding tool embeddings so the
+    // search path actually reaches the query-embed step we want to fail.
+    await engine.waitForEmbeddings();
 
     const results = await engine.search('navigate', 5);
 
