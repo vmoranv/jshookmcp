@@ -156,4 +156,22 @@ export const artifactTools: Tool[] = [
       .boolean('includeBridgeHealth', 'Probe native-bridge / Burp endpoints')
       .readOnly(),
   ),
+  tool('maintenance_detect_gpu', (t) =>
+    t
+      .desc(
+        'Detect GPU family from WebGL/WebGPU renderer strings. ' +
+          'Classifies into NVIDIA, AMD, Intel, Apple, Mali, Adreno, PowerVR, Vivante, Broadcom, Qualcomm, Microsoft. ' +
+          'Pure-TS classifier — no browser needed. Provide at least one of webglRenderer, webgpuDescription, or deviceName.',
+      )
+      .string(
+        'webglRenderer',
+        'WebGL RENDERER string (e.g. from gl.getParameter(gl.RENDERER)), typically ANGLE-wrapped on Windows.',
+      )
+      .string(
+        'webgpuDescription',
+        'WebGPU adapter.info.description (e.g. "NVIDIA GeForce RTX 4090").',
+      )
+      .string('deviceName', 'Free-form GPU device name (e.g. "Mali-G78").')
+      .readOnly(),
+  ),
 ];

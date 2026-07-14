@@ -5,6 +5,7 @@ import { handleSafe } from '@server/domains/shared/ResponseBuilder';
 import { cleanupArtifacts } from '@utils/artifactRetention';
 import type { ArtifactCategory } from '@utils/artifacts';
 import { runEnvironmentDoctor } from '@utils/environmentDoctor';
+import { classifyGpuInputs } from '@server/domains/maintenance/gpu-detect';
 
 interface CoreMaintenanceHandlerDeps {
   tokenBudget: TokenBudgetManager;
@@ -107,6 +108,17 @@ export class CoreMaintenanceHandlers {
   async handleEnvironmentDoctor(args: { includeBridgeHealth?: boolean }): Promise<ToolResponse> {
     return handleSafe(async () =>
       this.environmentDoctor({ includeBridgeHealth: args.includeBridgeHealth }),
+    );
+  }
+
+  async handleDetectGpu(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () =>
+      classifyGpuInputs({
+        webglRenderer: typeof args.webglRenderer === 'string' ? args.webglRenderer : undefined,
+        webgpuDescription:
+          typeof args.webgpuDescription === 'string' ? args.webgpuDescription : undefined,
+        deviceName: typeof args.deviceName === 'string' ? args.deviceName : undefined,
+      }),
     );
   }
 }

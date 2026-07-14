@@ -80,6 +80,11 @@ const coreRegistrations = defineMethodRegistrations<
         },
       ],
     },
+    {
+      tool: 'maintenance_detect_gpu',
+      method: 'handleDetectGpu',
+      profiles: ['workflow', 'full'],
+    },
   ],
 });
 const extensionRegistrations = defineMethodRegistrations<
