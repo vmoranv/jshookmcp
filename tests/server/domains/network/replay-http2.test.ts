@@ -9,6 +9,11 @@ import { replayRequest } from '@server/domains/network/replay';
 import type { ReplayArgs } from '@server/domains/network/replay';
 
 const lookupMock = vi.fn();
+// Captures outgoing headers passed to the mocked http2 session.request(),
+// so tests can assert HTTP/2 pseudo-header translation without a live server.
+const h2RequestHeaders = vi.hoisted<{ value: Record<string, unknown> | null }>(() => ({
+  value: null,
+}));
 vi.mock('node:dns/promises', () => ({
   lookup: (...args: unknown[]) => lookupMock(...args),
 }));
@@ -24,7 +29,8 @@ vi.mock('node:http2', async (importOriginal) => {
       const session = new EventEmitter() as import('node:http2').ClientHttp2Session;
       (session as any).close = vi.fn(() => session.emit('close'));
       (session as any).destroy = vi.fn(() => session.emit('close'));
-      (session as any).request = vi.fn(() => {
+      (session as any).request = vi.fn((hdrs: Record<string, unknown>) => {
+        h2RequestHeaders.value = hdrs;
         throw new Error('mocked http2 request error');
       });
       process.nextTick(() => session.emit('error', new Error('mocked http2 error')));
@@ -39,6 +45,7 @@ const TEST_PUBLIC_IP = '192.0.2.10';
 describe('replayRequest - HTTP/2 support', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    h2RequestHeaders.value = null;
   });
 
   describe('protocol detection', () => {
@@ -196,7 +203,23 @@ describe('replayRequest - HTTP/2 support', () => {
       };
 
       await expect(replayRequest(base, args)).rejects.toThrow();
-      // TODO: Verify pseudo-headers are correctly translated
+
+      // Verify HTTP/2 pseudo-headers are correctly translated: captured
+      // pseudo-headers are stripped (normalizeHttp2Headers) and re-derived
+      // from the request URL/method — never passed through verbatim.
+      const sent = h2RequestHeaders.value;
+      expect(sent).not.toBeNull();
+      expect(sent?.[':method']).toBe('POST');
+      expect(sent?.[':path']).toBe('/api/data');
+      expect(sent?.[':scheme']).toBe('https');
+      expect(sent?.[':authority']).toBe('example.com');
+      expect(sent?.['content-type']).toBe('application/json');
+      // Only the four canonical pseudo-headers survive — no leaked duplicates.
+      expect(
+        Object.keys(sent ?? {})
+          .filter((k) => k.startsWith(':'))
+          .toSorted(),
+      ).toEqual([':authority', ':method', ':path', ':scheme']);
     });
 
     it('preserves HTTP/2 header case sensitivity', async () => {
