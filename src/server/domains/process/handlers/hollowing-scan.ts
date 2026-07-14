@@ -1021,7 +1021,8 @@ export function scanHollowingIndicators(input: HollowingScanInput): HollowingSca
       'PEB path mismatch, IAT hook scan, VAD protection anomaly. ' +
       'Live memory comparison (process_detect_hollowing) is the gold standard ' +
       'for process hollowing detection and requires native OS APIs on Win32 ' +
-      '(TODO: Win32 live detection needs native API bridge). ' +
+      '(process_detect_hollowing provides that live native-API comparison — ' +
+      'see hollowing-detection.ts). ' +
       'IAT hook detection via import table parsing requires IAT dump data ' +
       'not available in static scan mode — use process_detect_hollowing ' +
       'for live IAT analysis. ' +
