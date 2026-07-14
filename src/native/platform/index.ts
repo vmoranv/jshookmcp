@@ -31,3 +31,7 @@ export type {
   IntegrityScanStats,
   IntegrityScanOutput,
 } from './IntegrityScanner';
+// Access-breakpoint engines (non-Win32 analogue of HardwareBreakpointEngine).
+export type { AccessBreakpointEngine } from './AccessBreakpointEngine';
+export { LinuxInt3AccessBreakpoint } from './linux/LinuxInt3AccessBreakpoint';
+export { DarwinMachAccessBreakpoint } from './darwin/DarwinMachAccessBreakpoint';

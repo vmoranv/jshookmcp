@@ -430,6 +430,382 @@ export function taskResume(task: number): number {
   return fn(task);
 }
 
+// ── Mach Exception Ports ──
+//
+// Exception-port primitives used by DarwinMachAccessBreakpoint to receive
+// EXC_BAD_ACCESS traps when a VM_PROT_NONE page is touched. The kernel RPCs
+// here are real FFI, including the mach_msg receive + decode + reply loop
+// below that dequeues EXC_BAD_ACCESS raise messages and tells the kernel to
+// resume the target. See receiveException() / decodeExceptionRaiseMsg() /
+// sendExceptionReply().
+
+/**
+ * Exception mask bits for `task_set_exception_ports`.
+ *
+ * EXC_MASK_BAD_ACCESS (bit 1) is the one DarwinMachAccessBreakpoint arms: it
+ * fires on access to an unmapped / protected page (our VM_PROT_NONE guard).
+ */
+export const EXC_MASK = {
+  BAD_ACCESS: 1 << 1, // 0x02 — SIGSEGV / SIGBUS source
+  BAD_INSTRUCTION: 1 << 2,
+  ARITHMETIC: 1 << 3,
+  EMULATION: 1 << 4,
+  SOFTWARE: 1 << 5,
+  BREAKPOINT: 1 << 6, // 0x40 — SIGTRAP source
+  SYSCALL: 1 << 7,
+  MACH_SYSCALL: 1 << 8,
+  RPC_ALERT: 1 << 9,
+  CRASH: 1 << 10,
+  CORPSE_NOTIFY: 1 << 6, // overlaps BREAKPOINT per xnu headers (documented)
+  ALL: 0x7ffe, // standard EXC_MASK_ALL
+} as const;
+
+/**
+ * Exception behaviors for `task_set_exception_ports`.
+ * EXCEPTION_DEFAULT delivers { code, codeCnt } to the exception port.
+ */
+export const EXCEPTION_BEHAVIOR = {
+  DEFAULT: 1,
+  STATE: 2,
+  STATE_IDENTITY: 3,
+  /** MACH_EXCEPTION_CODES OR'd into a behavior => 64-bit code payloads. */
+  MACH_CODES: 0x20000000,
+} as const;
+
+/**
+ * Thread-state flavors for the `new_flavor` arg of `task_set_exception_ports`
+ * (and for `thread_get_state`).
+ *
+ * x86_THREAD_STATE64 (4) is the x86-64 full GP register set used to read rip
+ * and friends on a hit. THREAD_STATE_NONE (13) tells the kernel not to embed
+ * thread state in the exception message (caller must then thread_get_state
+ * explicitly). We export x86_THREAD_STATE64 as the default for DarwinMach.
+ */
+export const THREAD_FLAVOR = {
+  NONE: 13,
+  x86_THREAD_STATE32: 1,
+  x86_THREAD_STATE64: 4,
+  x86_FLOAT_STATE64: 8,
+  x86_THREAD_STATE: 7, // generic x86 thread state
+  ARM_THREAD_STATE64: 6, // Apple Silicon GP register set (arm_thread_state64)
+} as const;
+
+/**
+ * mach_msg_type_name_t dispostions (mach/message.h) — used by mach_port_insert_right.
+ */
+export const MACH_MSG_DISPOSITION = {
+  MOVE_RECEIVE: 16,
+  MOVE_SEND: 17,
+  MOVE_SEND_ONCE: 18,
+  COPY_SEND: 19,
+  MAKE_SEND: 20, // create a send right from a receive right you hold
+  MAKE_SEND_ONCE: 21,
+  COPY_RECEIVE: 22,
+} as const;
+
+/**
+ * mach_msg ids for the exception subsystem (mig subsystem 24xx).
+ * mach_exception_raise (64-bit code, requires MACH_EXCEPTION_CODES) = 2405;
+ * exception_raise (32-bit code, DEFAULT behavior) = 2401. The reply ids are +100.
+ */
+export const EXC_RAISE_MSG_IDS = {
+  RAISE_32: 2401, // exception_raise
+  RAISE_64: 2405, // mach_exception_raise
+  REPLY_32: 2501,
+  REPLY_64: 2505,
+} as const;
+
+/**
+ * The GP thread-state flavor for the running host arch. task_set_exception_ports
+ * rejects THREAD_STATE_NONE (13) on Apple Silicon, and thread_get_state needs the
+ * arch-correct flavor to read registers.
+ */
+export function threadStateFlavor(): number {
+  return process.arch === 'arm64'
+    ? THREAD_FLAVOR.ARM_THREAD_STATE64
+    : THREAD_FLAVOR.x86_THREAD_STATE64;
+}
+
+/**
+ * Arm a Mach exception handler on `task`.
+ *
+ * Wraps the xnu RPC `task_set_exception_ports(task, exception_mask,
+ * exception_port, behavior, new_flavor)`. All Mach ports / masks / flavors are
+ * uint32 on the libSystem ABI, so the koffi signature is five uint32 args.
+ *
+ * To capture EXC_BAD_ACCESS from a VM_PROT_NONE guard page:
+ *   taskSetExceptionPorts(task, EXC_MASK.BAD_ACCESS, exceptionPort,
+ *                         EXCEPTION_BEHAVIOR.DEFAULT, THREAD_FLAVOR.x86_THREAD_STATE64)
+ *
+ * The caller must have previously allocated `exceptionPort` as a Mach receive
+ * right (mach_port_allocate) — that receive right is where the kernel will
+ * enqueue `mach_exception_raise` messages. The mach_msg receive + decode loop
+ * for dequeuing those messages is provided below (receiveException /
+ * decodeExceptionRaiseMsg); DarwinMachAccessBreakpoint.waitForHit uses them.
+ *
+ * @returns kern_return_t (0 = KERN_SUCCESS)
+ */
+export function taskSetExceptionPorts(
+  task: number,
+  exceptionMask: number,
+  exceptionPort: number,
+  behavior: number,
+  flavor: number,
+): number {
+  const fn = getLibSystem().func(
+    'int32 task_set_exception_ports(uint32, uint32, uint32, uint32, uint32)',
+  );
+  return fn(task, exceptionMask, exceptionPort, behavior, flavor);
+}
+
+/**
+ * Host VM page size in bytes, via sysctlbyname("hw.pagesize"). Returns 4096 on
+ * Intel macOS, 16384 on Apple Silicon. DarwinMachAccessBreakpoint uses this to
+ * page-align VM_PROT_NONE guards for the running host (replaces the former
+ * hardcoded 4096). Falls back to 4096 if the sysctl call fails.
+ */
+export function hostPageSize(): number {
+  const nameBuf = Buffer.from('hw.pagesize\0', 'ascii');
+  const valBuf = Buffer.alloc(4);
+  const lenBuf = Buffer.alloc(8); // size_t
+  lenBuf.writeBigUInt64LE(4n, 0);
+  const fn = getLibSystem().func(
+    'int32 sysctlbyname(_In_ const char *, _Out_ void *, _Inout_ size_t *, _In_ const void *, size_t)',
+  );
+  const kr = fn(
+    koffi.address(nameBuf),
+    koffi.address(valBuf),
+    koffi.address(lenBuf),
+    0,
+    0,
+  ) as number;
+  if (kr !== 0) return 4096;
+  return valBuf.readUInt32LE(0);
+}
+
+// ── mach_msg exception receive loop ──
+//
+// Primitives for the EXC_BAD_ACCESS capture path. A Darwin access-breakpoint
+// allocates a Mach receive right, hands it to task_set_exception_ports, then
+// mach_msg-receives mach_exception_raise messages on it, decodes the fault
+// address + thread, reads GP registers via thread_get_state, and replies with
+// RetCode=KERN_SUCCESS so the kernel resumes the target.
+
+export const MACH_MSG_OPTION = {
+  SEND_MSG: 0x00000001,
+  RCV_MSG: 0x00000004,
+  RCV_INTERRUPT: 0x00000040,
+  SEND_INTERRUPT: 0x00000040,
+  RCV_TIMEOUT: 0x00000100,
+} as const;
+
+/** mach_msg_return_t success. */
+export const MACH_MSG_SUCCESS = 0;
+/** RCV-side error codes occupy the 0x10004xxx range (osfmk/mach/message.h):
+ *  MACH_RCV_INVALID_NAME=0x10004001, MACH_RCV_IN_SET=0x10004002,
+ *  MACH_RCV_TIMED_OUT=0x10004003, MACH_RCV_INTERRUPTED=0x10004004, ... */
+export const MACH_RCV_ERROR_BASE = 0x10004000;
+
+/** Reply sends back the MOVE_SEND_ONCE right the kernel carried in the raise. */
+export const MACH_MSG_TYPE_MOVE_SEND_ONCE = 5;
+
+/** mach_exception_raise_reply mig message id (raise=2405 → reply=2505). */
+export const EXC_RAISE_REPLY_ID = 2505;
+
+export interface DecodedException {
+  thread: number; // faulting thread port
+  task: number;
+  exception: number; // exception_type_t (1 = EXC_BAD_ACCESS)
+  code0: bigint; // mach_exception_data_type_t[0] (kern return for BAD_ACCESS)
+  code1: bigint; // [1] = faulting virtual address for EXC_BAD_ACCESS
+  remotePort: number; // Head.msgh_remote_port
+  localPort: number; // Head.msgh_local_port (send-once right for our reply)
+  msgId: number;
+}
+
+/**
+ * mach_msg — the kernel RPC primitive.
+ *   mach_msg_return_t mach_msg(mach_msg_header_t *msg, option_t option,
+ *       mach_msg_size_t send_size, mach_msg_size_t rcv_size,
+ *       mach_port_t rcv_name, timeout_t timeout, mach_port_t notify)
+ * All args are uint32 on the libSystem ABI.
+ */
+export function machMsg(
+  msg: Buffer,
+  option: number,
+  sendSize: number,
+  rcvSize: number,
+  rcvName: number,
+  timeout: number,
+  notify: number,
+): number {
+  const fn = getLibSystem().func(
+    'int32 mach_msg(void *, uint32, uint32, uint32, uint32, uint32, uint32)',
+  );
+  return fn(koffi.address(msg), option, sendSize, rcvSize, rcvName, timeout, notify) as number;
+}
+
+/** mach_port_allocate(self, MACH_PORT_RIGHT_RECEIVE, &name) → receive right name.
+ *  MACH_PORT_RIGHT_RECEIVE = 1 (mach/port.h: SEND=0, RECEIVE=1, SEND_ONCE=2,
+ *  PORT_SET=3, DEAD_NAME=4). Passing 0 (SEND) returns KERN_INVALID_VALUE because
+ *  a bare send right cannot be allocated without an existing receive right. */
+export function machPortAllocateReceive(): number {
+  const MACH_PORT_RIGHT_RECEIVE = 1;
+  const nameBuf = Buffer.alloc(4);
+  const fn = getLibSystem().func('int32 mach_port_allocate(uint32, uint32, _Out_ uint32 *)');
+  const kr = fn(machTaskSelf(), MACH_PORT_RIGHT_RECEIVE, koffi.address(nameBuf)) as number;
+  if (kr !== KERN.SUCCESS) {
+    throw new Error(`mach_port_allocate(MACH_PORT_RIGHT_RECEIVE) failed: kern_return_t=${kr}`);
+  }
+  return nameBuf.readUInt32LE(0);
+}
+
+/**
+ * mach_port_insert_right(self, name, name, MAKE_SEND) — create a send right for
+ * a receive right you own. REQUIRED before passing the port to
+ * task_set_exception_ports: the kernel must hold a send right to deliver
+ * exceptions, and without one task_set_exception_ports returns
+ * MACH_SEND_INVALID_NOTIFY (0x1000000a). Returns kern_return_t.
+ */
+export function machPortInsertSendRight(name: number): number {
+  const fn = getLibSystem().func('int32 mach_port_insert_right(uint32, uint32, uint32, uint32)');
+  return fn(machTaskSelf(), name, name, MACH_MSG_DISPOSITION.MAKE_SEND) as number;
+}
+
+/**
+ * mach_port_mod_refs(self, name, MACH_PORT_RIGHT_RECEIVE, -1) — the correct way
+ * to release a receive right. mach_port_deallocate is for SEND rights and returns
+ * KERN_INVALID_RIGHT (17) on a receive right. Returns kern_return_t.
+ */
+export function machPortReleaseReceive(name: number): number {
+  const MACH_PORT_RIGHT_RECEIVE = 1;
+  const fn = getLibSystem().func('int32 mach_port_mod_refs(uint32, uint32, uint32, int32)');
+  return fn(machTaskSelf(), name, MACH_PORT_RIGHT_RECEIVE, -1) as number;
+}
+
+/** mach_port_deallocate(self, name) — release a port right. */
+export function machPortDeallocateRecv(name: number): number {
+  return machPortDeallocate(machTaskSelf(), name);
+}
+
+/**
+ * thread_get_state(thread, flavor, old_state, *count) — read GP registers.
+ * For x86-64 use flavor x86_THREAD_STATE64 (4); `state` is 168 bytes but we pass
+ * a 216-byte buffer for headroom (count in uint32 words). Returns kern_return_t.
+ */
+export function threadGetState(thread: number, flavor: number, state: Buffer): number {
+  const countBuf = Buffer.alloc(4);
+  countBuf.writeUInt32LE(state.length / 4, 0);
+  const fn = getLibSystem().func(
+    'int32 thread_get_state(uint32, uint32, _Out_ uint8_t *, _Inout_ uint32 *)',
+  );
+  return fn(thread, flavor, koffi.address(state), koffi.address(countBuf)) as number;
+}
+
+/**
+ * Decode a mach_exception_raise message (behavior EXCEPTION_DEFAULT |
+ * MACH_EXCEPTION_CODES) into the fields the engine needs.
+ *
+ * On-wire layout (MIG, offsets from xnu osfmk/mach/exc.defs):
+ *   +0  mach_msg_header_t Head (24)
+ *   +24 NDR_record_t NDR (8)
+ *   +32 mach_port_t thread (4)
+ *   +36 mach_port_t task (4)
+ *   +40 exception_type_t exception (4)
+ *   +44 mach_msg_type_number_t codeCnt (4)
+ *   +48 mach_exception_data_type_t code[0] (8, int64 LE)
+ *   +56 mach_exception_data_type_t code[1] (8) ← faulting vaddr for EXC_BAD_ACCESS
+ * (no flavor/old_state embedded for EXCEPTION_DEFAULT.)
+ *
+ * Runtime-unverified on this host (needs macOS debugger entitlement + a faulting
+ * target); offsets derived from the xnu mig layout.
+ */
+export function decodeExceptionRaiseMsg(msg: Buffer): DecodedException {
+  if (msg.length < 64) {
+    throw new Error(`mach_exception_raise message truncated (${msg.length} < 64 bytes)`);
+  }
+  const msgId = msg.readUInt32LE(20);
+  // msgId distinguishes the two layouts: mach_exception_raise (2405, 64-bit
+  // mach_exception_data_type_t code[] at @48/@56) vs exception_raise (2401,
+  // 32-bit exception_data_type_t code[] at @48/@52). The latter is what hosts
+  // that reject MACH_EXCEPTION_CODES deliver — its code[1] is only the low 32
+  // bits of the fault address.
+  const is64 = msgId === EXC_RAISE_MSG_IDS.RAISE_64;
+  return {
+    remotePort: msg.readUInt32LE(8),
+    localPort: msg.readUInt32LE(12),
+    msgId,
+    thread: msg.readUInt32LE(32),
+    task: msg.readUInt32LE(36),
+    exception: msg.readInt32LE(40),
+    code0: is64 ? msg.readBigInt64LE(48) : BigInt(msg.readInt32LE(48)),
+    code1: is64 ? msg.readBigInt64LE(56) : BigInt(msg.readUInt32LE(52)),
+  };
+}
+
+/**
+ * Build the mach_exception_raise_reply carrying RetCode, addressed to the
+ * send-once right carried in the raise's msgh_local_port. RetCode=KERN_SUCCESS
+ * tells the kernel the exception was handled and the target may resume.
+ */
+export function buildExceptionReply(localPort: number, retCode: number, replyId: number): Buffer {
+  // Head(24) + NDR(8) + RetCode(4) = 36 bytes
+  const reply = Buffer.alloc(36);
+  // msgh_bits = remote_type | (local_type<<8); reply remote = MOVE_SEND_ONCE.
+  reply.writeUInt32LE(MACH_MSG_TYPE_MOVE_SEND_ONCE, 0);
+  reply.writeUInt32LE(36, 4); // msgh_size
+  reply.writeUInt32LE(localPort, 8); // msgh_remote_port = raise's local (send-once)
+  reply.writeUInt32LE(0, 12); // msgh_local_port = null
+  reply.writeUInt32LE(0, 16); // msgh_voucher_port
+  reply.writeUInt32LE(replyId, 20); // msgh_id (2505 64-bit / 2501 32-bit)
+  reply.writeBigInt64LE(0n, 24); // NDR (zeros ok on LE/IEEE host)
+  reply.writeInt32LE(retCode, 32); // RetCode (KERN_SUCCESS = 0)
+  return reply;
+}
+
+/**
+ * Receive one mach_exception_raise on `receivePort`, decoding fault address +
+ * thread. Returns null on timeout/interrupt (no hit in the window). Throws on
+ * fatal mach_msg errors. Does NOT send the reply — the caller does after
+ * reading thread state, via sendExceptionReply().
+ */
+export function receiveException(receivePort: number, timeoutMs: number): DecodedException | null {
+  const rcvBuf = Buffer.alloc(256);
+  const kr = machMsg(
+    rcvBuf,
+    MACH_MSG_OPTION.RCV_MSG | MACH_MSG_OPTION.RCV_TIMEOUT | MACH_MSG_OPTION.RCV_INTERRUPT,
+    0,
+    rcvBuf.length,
+    receivePort,
+    timeoutMs,
+    0,
+  );
+  if (kr === MACH_MSG_SUCCESS) return decodeExceptionRaiseMsg(rcvBuf);
+  if (kr >= MACH_RCV_ERROR_BASE) return null; // timeout / interrupt / transient
+  throw new Error(`mach_msg(MACH_RCV_MSG) failed: mach_msg_return_t=0x${(kr >>> 0).toString(16)}`);
+}
+
+/** Send the mach_exception_raise_reply so the kernel resumes the target.
+ *  replyId follows the received msgId: 2505 for 64-bit, 2501 for 32-bit. */
+export function sendExceptionReply(localPort: number, retCode: number, msgId?: number): void {
+  const replyId =
+    msgId === EXC_RAISE_MSG_IDS.RAISE_64 ? EXC_RAISE_MSG_IDS.REPLY_64 : EXC_RAISE_MSG_IDS.REPLY_32;
+  const reply = buildExceptionReply(localPort, retCode, replyId);
+  const kr = machMsg(
+    reply,
+    MACH_MSG_OPTION.SEND_MSG | MACH_MSG_OPTION.SEND_INTERRUPT,
+    reply.length,
+    0,
+    0,
+    0,
+    0,
+  );
+  if (kr !== MACH_MSG_SUCCESS) {
+    // Non-fatal: failing to reply leaves the target stopped; caller decides.
+    logger.debug(`sendExceptionReply: mach_msg(SEND) = 0x${(kr >>> 0).toString(16)}`);
+  }
+}
+
 // ── dyld Image Enumeration ──
 
 /**
