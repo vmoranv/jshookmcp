@@ -109,6 +109,22 @@ export async function writeTextFileAtomically(
   content: string,
   options?: { rejectSymbolicLink?: boolean; allowedRoots?: string[] },
 ): Promise<void> {
+  await writeFileAtomically(absolutePath, content, options);
+}
+
+export async function writeBinaryFileAtomically(
+  absolutePath: string,
+  content: Uint8Array,
+  options?: { rejectSymbolicLink?: boolean; allowedRoots?: string[] },
+): Promise<void> {
+  await writeFileAtomically(absolutePath, content, options);
+}
+
+async function writeFileAtomically(
+  absolutePath: string,
+  content: string | Uint8Array,
+  options?: { rejectSymbolicLink?: boolean; allowedRoots?: string[] },
+): Promise<void> {
   const parentDir = dirname(absolutePath);
   await mkdir(parentDir, { recursive: true });
 
@@ -156,7 +172,11 @@ export async function writeTextFileAtomically(
   let handle: FileHandle | null = null;
   try {
     handle = await open(tempPath, 'wx');
-    await handle.writeFile(content, 'utf8');
+    if (typeof content === 'string') {
+      await handle.writeFile(content, 'utf8');
+    } else {
+      await handle.writeFile(content);
+    }
     await handle.sync();
     await closeHandle(handle);
     handle = null;
