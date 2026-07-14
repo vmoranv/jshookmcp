@@ -251,6 +251,24 @@ export const processToolDefinitions: Tool[] = [
       .required('pid'),
   ),
 
+  tool('process_hollowing_scan', (t) =>
+    t
+      .desc(
+        'Pure-TS static hollowing indicator scan. ' +
+          'Analyses /proc/pid/maps (RWX regions), /proc/pid/exe (deleted backing file), ' +
+          'and PE headers (suspicious section names, RWX sections, entry point anomalies, mismatched binary path) ' +
+          'without requiring native OS APIs. Complements process_detect_hollowing (which does live memory comparison). ' +
+          'Provide at least one of: mapsContent, exeLink, peHex, or expectedImagePath. ' +
+          'Honest boundary: Win32 live detection needs native API — use process_detect_hollowing for confirmed detection.',
+      )
+      .number('pid', 'Process ID (for reference in output)')
+      .string('mapsContent', 'Raw /proc/{pid}/maps content (Linux)')
+      .string('exeLink', 'Raw /proc/{pid}/exe readlink target (Linux)')
+      .string('peHex', 'Raw PE file bytes as hex string for header analysis')
+      .string('expectedImagePath', 'Expected process image path for binary-path mismatch detection')
+      .readOnly(),
+  ),
+
   tool('process_enum_handles', (t) =>
     t
       .desc(

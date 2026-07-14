@@ -68,6 +68,7 @@ const allRegistrations = defineMethodRegistrations<
     { tool: 'enumerate_modules', method: 'handleEnumerateModulesTool' },
     { tool: 'process_enum_threads', method: 'handleProcessEnumThreadsTool' },
     { tool: 'process_detect_hollowing', method: 'handleDetectHollowingTool' },
+    { tool: 'process_hollowing_scan', method: 'handleHollowingScanTool' },
     { tool: 'process_enum_handles', method: 'handleProcessEnumHandlesTool' },
     { tool: 'process_detect_apc', method: 'handleProcessDetectApcTool' },
     // Cross-platform process suspend/resume (Win32 NtSuspendProcess / Linux SIGSTOP / macOS task_suspend)

@@ -14,6 +14,10 @@
  */
 
 import { argNumber, argBool } from '@server/domains/shared/parse-args';
+import {
+  PROCESS_HOLLOWING_MAX_DUMP_SECTIONS,
+  PROCESS_HOLLOWING_MAX_BYTES_PER_SECTION,
+} from '@src/constants';
 import { PEAnalyzer } from '@native/PEAnalyzer';
 import {
   openProcessForMemory,
@@ -172,8 +176,8 @@ export class HollowingDetectionHandlers {
       // 8. Optional: include memory dump for forensic analysis (Win32 only)
       let memoryDump: { included: true; truncated: boolean; totalBytes: number } | undefined;
       if (includeMemoryDump && isHollowed && comparisonResult.differences.length > 0) {
-        const MAX_DUMP_SECTIONS = 3;
-        const MAX_BYTES_PER_SECTION = 65536;
+        const maxDumpSections = PROCESS_HOLLOWING_MAX_DUMP_SECTIONS;
+        const maxBytesPerSection = PROCESS_HOLLOWING_MAX_BYTES_PER_SECTION;
         let totalBytes = 0;
         let truncated = false;
 
@@ -182,16 +186,16 @@ export class HollowingDetectionHandlers {
           const diskBuffer = await fs.readFile(diskPath);
           const diskPE = this.peAnalyzer.parsePEFromBuffer(diskBuffer);
 
-          const diffsToDump = comparisonResult.differences.slice(0, MAX_DUMP_SECTIONS);
-          if (comparisonResult.differences.length > MAX_DUMP_SECTIONS) {
+          const diffsToDump = comparisonResult.differences.slice(0, maxDumpSections);
+          if (comparisonResult.differences.length > maxDumpSections) {
             truncated = true;
           }
 
           for (let i = 0; i < diffsToDump.length; i++) {
             const diff = diffsToDump[i]!;
             const entry = diffEntries[i]!;
-            const readSize = Math.min(MAX_BYTES_PER_SECTION, diff.bytesCompared);
-            if (diff.bytesCompared > MAX_BYTES_PER_SECTION) {
+            const readSize = Math.min(maxBytesPerSection, diff.bytesCompared);
+            if (diff.bytesCompared > maxBytesPerSection) {
               truncated = true;
             }
 

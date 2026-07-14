@@ -19,6 +19,7 @@ import { HollowingDetectionHandlers } from './handlers/hollowing-detection';
 import { HandleEnumerationHandlers } from './handlers/handle-enumeration';
 import { ApcDetectionHandlers } from './handlers/apc-detection';
 import { ProcessSuspendHandlers } from './handlers/process-suspend';
+import { scanHollowingIndicators } from './handlers/hollowing-scan';
 import {
   validatePid,
   requireString,
@@ -283,6 +284,23 @@ export class ProcessToolHandlers extends ProcessHandlersBase {
 
   async handleDetectHollowing(args: Record<string, unknown>) {
     return this.hollowing.handleDetectHollowing(args);
+  }
+
+  // ── Hollowing Scan (pure-TS static) ──
+
+  async handleHollowingScanTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => this.handleHollowingScan(args));
+  }
+
+  async handleHollowingScan(args: Record<string, unknown>) {
+    return scanHollowingIndicators({
+      pid: typeof args.pid === 'number' ? args.pid : undefined,
+      mapsContent: typeof args.mapsContent === 'string' ? args.mapsContent : undefined,
+      exeLink: typeof args.exeLink === 'string' ? args.exeLink : undefined,
+      peHex: typeof args.peHex === 'string' ? args.peHex : undefined,
+      expectedImagePath:
+        typeof args.expectedImagePath === 'string' ? args.expectedImagePath : undefined,
+    });
   }
 
   // ── Handle Enumeration ──
