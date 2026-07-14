@@ -1,7 +1,9 @@
 /**
  * E4: NEON missing instructions — SABAL, UABAL, SABDL, UABDL, PMULL
  *
- * These are the 3 TODO gaps in simd.ts execNeonThreeDifferent():
+ * These cases are implemented in simd.ts execNeonThreeDifferent()
+ * (cases 0b0101 / 0b1101 / 0b1110) and verified below — they previously
+ * carried TODO markers that have since been resolved:
  *   - case 0b0101: SABAL / UABAL (signed/unsigned absolute diff accumulate long)
  *   - case 0b1101: SABDL / UABDL (signed/unsigned absolute diff long)
  *   - case 0b1110: PMULL (polynomial multiply long)
