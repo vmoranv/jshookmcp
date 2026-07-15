@@ -143,6 +143,31 @@ export const SEARCH_VECTOR_LEARN_TOP_N = int('SEARCH_VECTOR_LEARN_TOP_N', 3);
  */
 export const SEARCH_VECTOR_BM25_SKIP_THRESHOLD = float('SEARCH_VECTOR_BM25_SKIP_THRESHOLD', 8);
 
+/**
+ * SEARCH_VECTOR_PREWARM: when true, ToolSearchEngine constructor fire-and-forgets
+ * a full-catalog embedBatch as soon as the engine is built (first search_tools).
+ * Default false — ONNX / transformers stays unloaded until a search actually
+ * needs the vector signal (and BM25-skip can avoid it entirely). Reduces peak
+ * RSS when many MCP hosts each spawn their own jshook process.
+ */
+export const SEARCH_VECTOR_PREWARM = bool('SEARCH_VECTOR_PREWARM', false);
+
+/**
+ * SEARCH_VECTOR_WORKER_IDLE_MS: after an embed/embedBatch finishes with no
+ * pending work, release the embedding worker thread (and ONNX model) after
+ * this idle window. 0 = keep the worker alive for the process lifetime.
+ * Default 15s — short enough to reclaim hundreds of MB between agent turns,
+ * long enough to reuse across a burst of searches.
+ */
+export const SEARCH_VECTOR_WORKER_IDLE_MS = int('SEARCH_VECTOR_WORKER_IDLE_MS', 15_000);
+
+/**
+ * SEARCH_VECTOR_CACHE_ENABLED: persist full-catalog tool embeddings under
+ * ~/.jshookmcp/cache so subsequent process starts skip ONNX catalog inference.
+ * Query embeddings are still computed live (but the worker is idle-released).
+ */
+export const SEARCH_VECTOR_CACHE_ENABLED = bool('SEARCH_VECTOR_CACHE_ENABLED', true);
+
 /* ================================================================== */
 /*  Profile tier-aware ranking                                         */
 /* ================================================================== */

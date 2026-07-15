@@ -307,6 +307,8 @@ describe('constants barrel export', () => {
     test('boolean flags have boolean type', ({ expect }) => {
       const booleanConstants = [
         'SEARCH_VECTOR_ENABLED',
+        'SEARCH_VECTOR_PREWARM',
+        'SEARCH_VECTOR_CACHE_ENABLED',
         'SEARCH_RERANK_WORKFLOW_TOOLS',
         'SEARCH_AFFINITY_BOOST_ENABLED',
       ];

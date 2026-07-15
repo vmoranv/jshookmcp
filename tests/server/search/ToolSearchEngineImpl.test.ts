@@ -47,6 +47,10 @@ vi.mock('@server/search/EmbeddingEngine', () => ({
       }
       return vectorFor(text);
     }
+
+    async terminate(): Promise<void> {
+      // no-op in mock
+    }
   },
 }));
 
@@ -78,6 +82,9 @@ vi.mock('@src/constants', () => ({
   SEARCH_VECTOR_MODEL_ID: 'Xenova/bge-micro-v2',
   SEARCH_VECTOR_COSINE_WEIGHT: 0.4,
   SEARCH_VECTOR_DYNAMIC_WEIGHT: false,
+  SEARCH_VECTOR_PREWARM: true,
+  SEARCH_VECTOR_WORKER_IDLE_MS: 0,
+  SEARCH_VECTOR_CACHE_ENABLED: false,
   SEARCH_VECTOR_LEARN_UP: 0.05,
   SEARCH_VECTOR_LEARN_DOWN: 0.03,
   SEARCH_VECTOR_LEARN_TOP_N: 5,
@@ -404,14 +411,15 @@ describe('search/ToolSearchEngineImpl', () => {
       } satisfies SearchConfig,
     );
 
-    // The prewarm embedBatch now runs in the background and fails there;
-    // settle it so the failure is observed before we assert call counts.
+    // The prewarm embedBatch runs in the background and fails there; settle
+    // it, then search may attempt one lazy retry (also failing). Either way
+    // the engine must still return BM25 results without throwing.
     await engine.waitForEmbeddings();
 
     const results = await engine.search('navigate', 5);
 
     expect(results[0]?.name).toBe('page_navigate');
-    expect(vectorState.embedBatchCalls).toBe(1);
+    expect(vectorState.embedBatchCalls).toBeGreaterThanOrEqual(1);
     expect(vectorState.embedCalls).toBe(0);
   });
 

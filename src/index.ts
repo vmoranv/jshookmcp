@@ -10,6 +10,7 @@ import {
   getArtifactRetentionConfig,
   startArtifactRetentionScheduler,
 } from '@utils/artifactRetention';
+import { registerServerInstance } from '@utils/InstanceRegistry';
 import {
   SHUTDOWN_TIMEOUT_MS,
   RUNTIME_ERROR_WINDOW_MS,
@@ -112,6 +113,11 @@ export async function main(): Promise<void> {
       explicitProfile === 'full' || explicitProfile === 'workflow' || explicitProfile === 'search'
         ? explicitProfile
         : 'search';
+
+    // Multi-instance awareness: each MCP host that uses stdio spawns its own
+    // process. Warn (or hard-fail via JSHOOK_MAX_INSTANCES) when peers pile up.
+    await registerServerInstance({ transport: transportMode, profile });
+
     await initRegistry(profile);
     const server = new MCPServer(config);
     const stopArtifactRetentionScheduler = startArtifactRetentionScheduler();

@@ -129,4 +129,29 @@ describe('search/EmbeddingEngine', () => {
     await engine.terminate();
     expect(engine.isReady()).toBe(false);
   });
+
+  it('releases the worker after the configured idle window', async () => {
+    // Real timers: the mock worker replies via setTimeout(5); keep idle short.
+    const engine = new EmbeddingEngine({ idleMs: 40 });
+    await engine.embed('warm');
+    expect(engine.isWorkerAlive()).toBe(true);
+
+    await new Promise((r) => setTimeout(r, 80));
+    expect(engine.isWorkerAlive()).toBe(false);
+    expect(engine.isReady()).toBe(false);
+
+    // Lazy re-spawn still works
+    const again = await engine.embed('again');
+    expect(again).toBeInstanceOf(Float32Array);
+    expect(engine.isWorkerAlive()).toBe(true);
+    await engine.terminate();
+  });
+
+  it('idleMs=0 keeps the worker alive', async () => {
+    const engine = new EmbeddingEngine({ idleMs: 0 });
+    await engine.embed('warm');
+    await new Promise((r) => setTimeout(r, 60));
+    expect(engine.isWorkerAlive()).toBe(true);
+    await engine.terminate();
+  });
 });
