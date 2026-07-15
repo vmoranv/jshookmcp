@@ -334,6 +334,13 @@ export function computeJa3(parsed: ParsedClientHello): { ja3: string; ja3_raw: s
   const ecpf = stripGrease(parsed.ecPointFormats).join('-');
   const ec = stripGrease(parsed.ellipticCurves).join('-');
   const raw = `${version},${ciphers},${extensions},${ecpf},${ec}`;
+  // CodeQL flags this as js/weak-cryptographic-algorithm (MD5 keyed by "sensitive" sessionId
+  // data). Intentional and required by the JA3 specification (Salesforce format): JA3 is DEFINED
+  // as the MD5 digest of the pre-hash string above. The MD5 output is a public, comparable
+  // fingerprint, not a secrecy/integrity primitive — switching algorithms would produce a value
+  // that matches no published JA3 dataset (ja3er, Censys, Shodan). The sessionId hop in the
+  // alert is a false-positive taint edge: JA3's raw input never includes sessionId (only the
+  // five fields above), so no sensitive data reaches this hash. Safe by design; dismissed.
   const ja3 = createHash('md5').update(raw).digest('hex');
   return { ja3, ja3_raw: raw };
 }

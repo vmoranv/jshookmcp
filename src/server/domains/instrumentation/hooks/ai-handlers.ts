@@ -34,6 +34,14 @@ export function buildUnhookGuardBootstrap(hookId: string, opts: UnhookGuardOptio
     return '';
   }
   const maxMatchesLit = typeof opts.maxMatches === 'number' ? String(opts.maxMatches) : 'undefined';
+  // CodeQL flags this `new Function('value', src)` as js/bad-code-sanitization, treating
+  // `unhookPredicate` as unsanitized user input flowing into an eval sink. That flow is the
+  // tool's explicit, intended semantics: `ai_hook` exists to inject *arbitrary* caller-authored
+  // JS into the page, and `unhookPredicate` is an opt-in callback expression the caller supplies
+  // to decide when to unhook. There is no remote/untrusted input here — the MCP caller is the
+  // trusted operator authoring the hook, and the predicate runs inside the same page already
+  // running the caller's hook body. Sanitizing the expression would defeat the feature. Safe
+  // by design; dismissed as a false positive (not bypassable build-side, so documented here).
   const predicateCompile = opts.unhookPredicate
     ? `__m.unhookPredicate = new Function('value', ${JSON.stringify(opts.unhookPredicate)});`
     : '';
