@@ -131,7 +131,6 @@ describe('search/EmbeddingEngine', () => {
   });
 
   it('releases the worker after the configured idle window', async () => {
-    // Real timers: the mock worker replies via setTimeout(5); keep idle short.
     const engine = new EmbeddingEngine({ idleMs: 40 });
     await engine.embed('warm');
     expect(engine.isWorkerAlive()).toBe(true);
@@ -140,7 +139,6 @@ describe('search/EmbeddingEngine', () => {
     expect(engine.isWorkerAlive()).toBe(false);
     expect(engine.isReady()).toBe(false);
 
-    // Lazy re-spawn still works
     const again = await engine.embed('again');
     expect(again).toBeInstanceOf(Float32Array);
     expect(engine.isWorkerAlive()).toBe(true);

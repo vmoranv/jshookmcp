@@ -36,8 +36,6 @@ describe('utils/InstanceRegistry', () => {
     expect(result.liveCount).toBe(1);
     expect(result.livePeers).toEqual([]);
     expect(result.warned).toBe(false);
-
-    // Our own pid is excluded from peer list.
     expect(await listLiveInstances(process.pid)).toEqual([]);
 
     await unregisterServerInstance(process.pid);
@@ -73,11 +71,9 @@ describe('utils/InstanceRegistry', () => {
       };
     });
 
-    // getStateDir joins homedir with JSHOOK_STATE_DIR when set — write under that path.
     const { getStateDir } = await import('@server/persistence/RuntimeSnapshotScheduler');
     const dir = join(getStateDir(), 'instances');
     await mkdir(dir, { recursive: true });
-    // PID 1 is usually alive on Unix; use a very high unlikely PID.
     const deadPid = 2_147_483_646;
     await writeFile(
       join(dir, `${deadPid}.json`),
@@ -107,20 +103,9 @@ describe('utils/InstanceRegistry', () => {
       };
     });
 
-    // Plant a live peer record for the current process under a fake pid that is alive:
-    // we cannot fake another real pid easily, so plant peer as a different live pid by
-    // registering twice logic: first call succeeds (count=1), second process would see
-    // first as peer. Simulate by writing a record for a known-alive pid (our own) under
-    // a different check path — listLiveInstances excludes selfPid, so write process.pid
-    // as peer when self is a different value.
     const { getStateDir } = await import('@server/persistence/RuntimeSnapshotScheduler');
     const dir = join(getStateDir(), 'instances');
     await mkdir(dir, { recursive: true });
-    // Use a sibling fake: write our pid as a peer, then register with a synthetic self
-    // by calling list + throw path via max=1 when one live peer exists.
-    // registerServerInstance always uses process.pid as self, so plant an alive peer
-    // using a child-like approach: if we write process.pid, listLiveInstances(self)
-    // excludes it. So plant ppid which is usually alive.
     const peerPid = process.ppid;
     await writeFile(
       join(dir, `${peerPid}.json`),

@@ -114,8 +114,6 @@ export async function main(): Promise<void> {
         ? explicitProfile
         : 'search';
 
-    // Multi-instance awareness: each MCP host that uses stdio spawns its own
-    // process. Warn (or hard-fail via JSHOOK_MAX_INSTANCES) when peers pile up.
     await registerServerInstance({ transport: transportMode, profile });
 
     await initRegistry(profile);

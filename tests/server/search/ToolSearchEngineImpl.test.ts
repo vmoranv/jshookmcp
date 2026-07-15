@@ -48,9 +48,7 @@ vi.mock('@server/search/EmbeddingEngine', () => ({
       return vectorFor(text);
     }
 
-    async terminate(): Promise<void> {
-      // no-op in mock
-    }
+    async terminate(): Promise<void> {}
   },
 }));
 
@@ -411,9 +409,6 @@ describe('search/ToolSearchEngineImpl', () => {
       } satisfies SearchConfig,
     );
 
-    // The prewarm embedBatch runs in the background and fails there; settle
-    // it, then search may attempt one lazy retry (also failing). Either way
-    // the engine must still return BM25 results without throwing.
     await engine.waitForEmbeddings();
 
     const results = await engine.search('navigate', 5);

@@ -174,11 +174,6 @@ export class ToolSearchEngine {
   private readonly embeddingEngine: EmbeddingEngine | null;
   private readonly vectorModelId: string;
   private toolEmbeddings: Float32Array[] | null = null;
-  /**
-   * In-flight embedding load promise guard. Ensures at most one catalog
-   * embedBatch / cache load runs at a time across constructor prewarm and
-   * lazy first-use. Reset to null after settle so a failed load can retry.
-   */
   private prewarmPromise: Promise<void> | null = null;
   /** Feedback tracking for adaptive vector weight adjustment. */
   private readonly feedbackTracker: FeedbackTracker;
@@ -315,17 +310,8 @@ export class ToolSearchEngine {
     // ── Query result cache (§4.3 CSAPC) ──
     this.queryCache = new LRUCache<string, CachedSearchEntry>(SEARCH_QUERY_CACHE_CAPACITY);
 
-    // ── Optional background embedding prewarm (Phase 8) ──
-    // Default OFF (SEARCH_VECTOR_PREWARM=false): do not spawn the ONNX worker
-    // until a search actually needs the vector signal. Multi-host MCP setups
-    // otherwise pay hundreds of MB of RSS per idle process on first search.
-    // When prewarm is enabled, fire-and-forget: first searches may still fall
-    // back to BM25 + trigram until the catalog embeddings land (or load from
-    // disk cache). Failure is swallowed; ensureToolEmbeddings retries lazily.
     if (this.embeddingEngine && SEARCH_VECTOR_PREWARM) {
-      void this.ensureToolEmbeddings().catch(() => {
-        // Swallowed — computeVectorCosineScores retries lazily on next search.
-      });
+      void this.ensureToolEmbeddings().catch(() => {});
     }
   }
 
@@ -917,21 +903,10 @@ export class ToolSearchEngine {
 
   // ── Dense vector search methods (Phase 8) ──
 
-  /**
-   * Resolve once catalog embeddings are available (or the load has failed).
-   * Triggers a lazy load when prewarm was disabled. Exposed for tests and
-   * callers that want the vector signal guaranteed before a query.
-   */
   waitForEmbeddings(): Promise<void> {
     return this.ensureToolEmbeddings();
   }
 
-  /**
-   * Lazy-load catalog tool embeddings: disk cache first, then ONNX embedBatch.
-   * Deduped via `prewarmPromise`. On success `toolEmbeddings` is populated and
-   * the embedding worker is free to idle-release (host keeps only Float32Arrays).
-   * On failure the promise clears so the next call can retry.
-   */
   private ensureToolEmbeddings(): Promise<void> {
     if (this.toolEmbeddings || !this.embeddingEngine) {
       return Promise.resolve();
@@ -956,13 +931,8 @@ export class ToolSearchEngine {
 
         const embeddings = await engine.embedBatch(descriptions);
         this.toolEmbeddings = embeddings;
-        // Persist for sibling MCP processes; worker idle-release reclaims ONNX RSS.
         await saveToolEmbeddingsCache(modelId, descriptions, embeddings);
       } catch {
-        // Swallowed: embedding failure is an expected graceful degradation,
-        // not a condition callers should handle. toolEmbeddings stays null and
-        // computeVectorCosineScores returns empty — the engine keeps serving
-        // BM25 + trigram results.
       } finally {
         this.prewarmPromise = null;
       }
@@ -972,22 +942,10 @@ export class ToolSearchEngine {
     return run;
   }
 
-  /**
-   * Compute dense vector cosine similarity scores for query vs all tools.
-   * Returns Map<docIndex, cosineScore>.
-   *
-   * When catalog embeddings are not yet loaded:
-   *  - if a background prewarm is already in flight, return empty immediately
-   *    (do not block the search hot path for a multi-second ONNX cold start);
-   *  - otherwise await a lazy load once (disk cache is usually instant; cold
-   *    ONNX only happens on first uncached need).
-   * If the embedding engine is disabled or fails, returns empty.
-   */
   private async computeVectorCosineScores(query: string): Promise<Map<number, number>> {
     if (!this.embeddingEngine) return new Map();
 
     if (!this.toolEmbeddings) {
-      // Background prewarm already owns the work — degrade this query.
       if (this.prewarmPromise) {
         return new Map();
       }

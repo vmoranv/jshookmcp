@@ -12,22 +12,7 @@ import { int, float, bool, list, str } from './helpers.js';
 /** Maximum time allowed for graceful shutdown before force-exiting. */
 export const SHUTDOWN_TIMEOUT_MS = int('SHUTDOWN_TIMEOUT_MS', 20_000);
 
-/* ================================================================== */
-/*  Multi-instance guard (stdio MCP process pile-up)                   */
-/* ================================================================== */
-
-/**
- * JSHOOK_INSTANCE_WARN_AT: log a warning when this many live jshook processes
- * (including the current one) are registered. Default 2 — a single host is
- * normal; concurrent Claude/Codex/Grok/Hermes sessions commonly pile up.
- */
 export const JSHOOK_INSTANCE_WARN_AT = int('JSHOOK_INSTANCE_WARN_AT', 2);
-
-/**
- * JSHOOK_MAX_INSTANCES: hard cap on concurrent jshook server processes.
- * 0 = unlimited (default). When exceeded, startup exits with a clear error
- * so hosts do not silently spawn more multi-GB processes.
- */
 export const JSHOOK_MAX_INSTANCES = int('JSHOOK_MAX_INSTANCES', 0);
 
 /** Sliding window (ms) for counting runtime errors before entering degraded mode. */

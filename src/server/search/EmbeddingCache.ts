@@ -1,11 +1,3 @@
-/**
- * Disk cache for full-catalog tool embeddings.
- *
- * Persists under ~/.jshookmcp/cache so each newly spawned MCP stdio process
- * can skip re-running ~600 ONNX inferences when the tool catalog fingerprint
- * matches. Query embeddings are intentionally not cached — they are tiny and
- * query-specific; the worker is idle-released instead.
- */
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -22,7 +14,6 @@ export interface EmbeddingCachePayload {
   fingerprint: string;
   dim: number;
   count: number;
-  /** Concatenated Float32 embeddings, base64-encoded. */
   data: string;
 }
 
@@ -47,7 +38,6 @@ export function getEmbeddingCachePath(modelId: string = SEARCH_VECTOR_MODEL_ID):
   const base = overridden
     ? resolve(overridden)
     : resolve(homedir(), '.jshookmcp', 'cache', 'embeddings');
-  // Sanitize model id for filesystem use (Xenova/bge-micro-v2 → Xenova_bge-micro-v2)
   const safeModel = modelId.replace(/[^a-zA-Z0-9._-]+/g, '_');
   return resolve(base, `${safeModel}.json`);
 }
@@ -80,7 +70,6 @@ export function decodeEmbeddings(data: string, count: number, dim: number): Floa
   const buf = Buffer.from(data, 'base64');
   const expectedBytes = count * dim * 4;
   if (buf.byteLength !== expectedBytes) return null;
-  // Copy into a fresh ArrayBuffer so each row can be sliced independently.
   const copy = new Float32Array(count * dim);
   copy.set(new Float32Array(buf.buffer, buf.byteOffset, count * dim));
   const out: Float32Array[] = [];

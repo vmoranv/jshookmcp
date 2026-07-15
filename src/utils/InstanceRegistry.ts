@@ -1,13 +1,3 @@
-/**
- * Tracks live jshook MCP server processes so multi-host stdio pile-ups
- * (Claude + Codex + Grok + Hermes each spawning their own process) are
- * visible and optionally hard-capped.
- *
- * Each process writes `~/.jshookmcp/state/instances/<pid>.json` and reaps
- * stale files whose PIDs are no longer alive. Registration is best-effort —
- * failure never blocks server startup except when JSHOOK_MAX_INSTANCES is set
- * and the live count would exceed the cap.
- */
 import { unlinkSync } from 'node:fs';
 import { mkdir, readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -27,7 +17,6 @@ export interface InstanceRecord {
 export interface InstanceRegistrationResult {
   self: InstanceRecord;
   livePeers: InstanceRecord[];
-  /** livePeers.length + 1 (includes self after registration). */
   liveCount: number;
   warned: boolean;
   blocked: boolean;
@@ -47,7 +36,6 @@ function isProcessAlive(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (err) {
-    // ESRCH = gone. EPERM = exists but we cannot signal it (still live).
     return (
       typeof err === 'object' &&
       err !== null &&
@@ -75,9 +63,6 @@ async function readRecord(filePath: string): Promise<InstanceRecord | null> {
   }
 }
 
-/**
- * Reap stale instance files and return live peer records (excluding `selfPid`).
- */
 export async function listLiveInstances(selfPid: number = process.pid): Promise<InstanceRecord[]> {
   const dir = instancesDir();
   let names: string[];
@@ -115,10 +100,6 @@ function formatRssMb(): string {
   }
 }
 
-/**
- * Register this process as a live jshook instance.
- * Throws when JSHOOK_MAX_INSTANCES is set and the cap would be exceeded.
- */
 export async function registerServerInstance(options?: {
   transport?: string;
   profile?: string;
@@ -178,14 +159,10 @@ export async function registerServerInstance(options?: {
     );
   }
 
-  // Best-effort cleanup. `exit` is synchronous so use unlinkSync there;
-  // signal handlers may still have a turn to await async unlink.
   const cleanupSync = () => {
     try {
       unlinkSync(recordPath(self.pid));
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
   process.once('exit', cleanupSync);
   process.once('SIGINT', () => {
@@ -207,7 +184,5 @@ export async function registerServerInstance(options?: {
 export async function unregisterServerInstance(pid: number = process.pid): Promise<void> {
   try {
     await unlink(recordPath(pid));
-  } catch {
-    // ignore missing / already removed
-  }
+  } catch {}
 }

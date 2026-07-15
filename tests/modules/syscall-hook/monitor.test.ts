@@ -374,7 +374,6 @@ describe('SyscallMonitor', () => {
   // ── Session 61: getStats session-config introspection ───────────────────────
 
   it('exposes pid/simulate/etwProviders in getStats for an active etw session', async () => {
-    // Backend must be platform-native: etw (win32) / strace (linux) / dtrace (darwin).
     const backend =
       process.platform === 'win32' ? 'etw' : process.platform === 'linux' ? 'strace' : 'dtrace';
     await monitor.start({
