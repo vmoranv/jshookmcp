@@ -80,7 +80,7 @@ pnpm daemon
 下面的内置能力快照由运行时 registry 动态生成，并在 CI 中校验。
 
 <!-- metadata-sync:start -->
-- 包版本：`0.3.3`
+- 包版本：`0.3.4`
 - 内置工具数：`636`
 - 域列表：`adb-bridge`, `binary-instrument`, `boringssl-inspector`, `browser`, `canvas`, `coordination`, `core`, `cross-domain`, `dart-inspector`, `debugger`, `encoding`, `exploit-dev`, `extension-registry`, `graphql`, `instrumentation`, `maintenance`, `memory`, `mojo-ipc`, `native-bridge`, `native-emulator`, `network`, `platform`, `process`, `protocol-analysis`, `proxy`, `sourcemap`, `streaming`, `syscall-hook`, `trace`, `transform`, `v8-inspector`, `wasm`, `webgpu`, `workflow`
 - 说明：以上数据由运行时 registry 动态生成，不要手改计数。
