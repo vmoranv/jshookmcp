@@ -19,10 +19,23 @@ vi.mock('@utils/artifactRetention', () => ({
   getArtifactRetentionConfig: vi.fn(),
   startArtifactRetentionScheduler: vi.fn(),
 }));
+vi.mock('@utils/InstanceRegistry', () => ({
+  registerServerInstance: vi.fn().mockResolvedValue({
+    self: { pid: 1 },
+    livePeers: [],
+    liveCount: 1,
+    warned: false,
+    blocked: false,
+  }),
+  unregisterServerInstance: vi.fn().mockResolvedValue(undefined),
+  listLiveInstances: vi.fn().mockResolvedValue([]),
+}));
 vi.mock('@src/constants', () => ({
   SHUTDOWN_TIMEOUT_MS: 10,
   RUNTIME_ERROR_WINDOW_MS: 100,
   RUNTIME_ERROR_THRESHOLD: 2,
+  JSHOOK_INSTANCE_WARN_AT: 99,
+  JSHOOK_MAX_INSTANCES: 0,
 }));
 
 import { MCPServer } from '@server/MCPServer';

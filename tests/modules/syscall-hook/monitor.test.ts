@@ -374,15 +374,18 @@ describe('SyscallMonitor', () => {
   // ── Session 61: getStats session-config introspection ───────────────────────
 
   it('exposes pid/simulate/etwProviders in getStats for an active etw session', async () => {
+    // Backend must be platform-native: etw (win32) / strace (linux) / dtrace (darwin).
+    const backend =
+      process.platform === 'win32' ? 'etw' : process.platform === 'linux' ? 'strace' : 'dtrace';
     await monitor.start({
-      backend: process.platform === 'win32' ? 'etw' : 'strace',
+      backend,
       pid: 5555,
       simulate: true,
       etwProviders: ['kernel-network'],
     });
     const stats = monitor.getStats();
     expect(stats).toMatchObject({
-      backend: process.platform === 'win32' ? 'etw' : 'strace',
+      backend,
       pid: 5555,
       simulate: true,
     });
@@ -405,8 +408,10 @@ describe('SyscallMonitor', () => {
       queueMicrotask(() => child.emit('spawn'));
       return child as any;
     });
+    const backend =
+      process.platform === 'win32' ? 'etw' : process.platform === 'linux' ? 'strace' : 'dtrace';
     await monitor.start({
-      backend: process.platform === 'win32' ? 'etw' : 'strace',
+      backend,
       pid: 7777,
       simulate: false,
     });
@@ -416,8 +421,10 @@ describe('SyscallMonitor', () => {
   });
 
   it('clears session config after stop()', async () => {
+    const backend =
+      process.platform === 'win32' ? 'etw' : process.platform === 'linux' ? 'strace' : 'dtrace';
     await monitor.start({
-      backend: process.platform === 'win32' ? 'etw' : 'strace',
+      backend,
       pid: 5555,
       simulate: true,
     });
