@@ -3,7 +3,9 @@
  *
  * koffi is mocked so no real syscalls are issued. A hand-crafted Buffer that
  * mimics RTL_PROCESS_MODULES is fed through the mocked NtQuerySystemInformation
- * to validate parsing logic only (host is macOS; runtime requires Windows).
+ * to validate parsing logic. The crafted buffer uses the verified x64 layout
+ * (296-byte records, Modules[0] @8) — see NtModuleEnumerator.runtime.test.ts
+ * for the real-buffer integration test on a Windows host.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -28,34 +30,38 @@ function setPlatform(value: string): void {
 }
 
 // Layout constants mirrored from NtModuleEnumerator (kept local for crafting).
-const MODULE_RECORD_SIZE = 288;
-const FULL_PATH_OFFSET = 32;
+// x64 layout: Modules[0] starts at offset 8 (ULONG NumberOfModules + 4-byte
+// pointer-alignment padding); each record is 296 bytes.
+const FIRST_RECORD_OFFSET = 8;
+const MODULE_RECORD_SIZE = 296;
+const FULL_PATH_OFFSET = 40;
 
 /**
  * Build a hand-crafted RTL_PROCESS_MODULES buffer containing exactly one module:
  * ntoskrnl.exe at ImageBase 0xfffff80012340000.
  */
 function buildSingleModuleBuffer(): Buffer {
-  const buf = Buffer.alloc(4 + MODULE_RECORD_SIZE);
+  const buf = Buffer.alloc(FIRST_RECORD_OFFSET + MODULE_RECORD_SIZE);
 
   // ULONG ModulesCount = 1
   buf.writeUInt32LE(1, 0);
+  // bytes 4..7 are the 8-byte-alignment padding (left zero).
 
-  const rec = 4; // first record starts right after ModulesCount
+  const rec = FIRST_RECORD_OFFSET; // first record starts at offset 8
 
-  // PVOID ImageBase @ offset 8
-  buf.writeBigUInt64LE(0xfffff80012340000n, rec + 8);
+  // PVOID ImageBase @ record offset 16
+  buf.writeBigUInt64LE(0xfffff80012340000n, rec + 16);
 
-  // ULONG ImageSize @ offset 16
-  buf.writeUInt32LE(0x800000, rec + 16);
+  // ULONG ImageSize @ record offset 24
+  buf.writeUInt32LE(0x800000, rec + 24);
 
-  // FullPathName @ offset 32
+  // FullPathName @ record offset 40
   const fullPath = '\\SystemRoot\\system32\\ntoskrnl.exe';
   buf.write(fullPath, rec + FULL_PATH_OFFSET, 'ascii');
 
   // OffsetToFileName: offset of 'ntoskrnl.exe' within FullPathName
   const slashIdx = fullPath.lastIndexOf('\\');
-  buf.writeUInt16LE(slashIdx + 1, rec + 30);
+  buf.writeUInt16LE(slashIdx + 1, rec + 38);
 
   return buf;
 }

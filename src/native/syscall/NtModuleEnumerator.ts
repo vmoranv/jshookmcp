@@ -5,10 +5,13 @@
  * Complements SyscallResolver (which does static on-disk ntdll parsing) by
  * listing the modules actually loaded in kernel address space at runtime.
  *
- * Win32-only: ntdll.dll is lazy-loaded via koffi. The host for this project is
- * macOS, so runtime verification requires a Windows host. The accompanying stub
- * test (tests/native/syscall/NtModuleEnumerator.test.ts) validates the
- * RTL_PROCESS_MODULES parsing logic only, with koffi mocked.
+ * Win32-only: ntdll.dll is lazy-loaded via koffi. Two test layers:
+ *   - NtModuleEnumerator.test.ts — koffi mocked; validates RTL_PROCESS_MODULES
+ *     parsing against a hand-crafted buffer.
+ *   - NtModuleEnumerator.runtime.test.ts — real FFI on a Windows host (gated
+ *     by JSHOOK_NATIVE_RUNTIME=1). This is what caught the x64 layout bug
+ *     (288→296-byte records, Modules[0] @8) that left every imageBase reading
+ *     0 on a real host while the mocked test stayed green.
  *
  * Note: SystemModuleInformation (class 11) is generally accessible to
  * administrator-level processes; some other information classes additionally
@@ -26,33 +29,41 @@ const STATUS_SUCCESS = 0x00000000;
 const STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 
 /**
- * RTL_PROCESS_MODULE_INFORMATION layout on Win x64 (288 bytes total):
+ * RTL_PROCESS_MODULE_INFORMATION layout on Win x64 (296 bytes total):
  *
  *   offset  size  field
  *   ------  ----  -------------------------------
- *      0      2   USHORT Section
- *      2      2   USHORT MappedBase  (deprecated)
- *      4      4   (implicit alignment padding)
- *      8      8   PVOID  ImageBase
- *     16      4   ULONG  ImageSize
- *     20      4   ULONG  Flags
- *     24      2   USHORT LoadOrderIndex
- *     26      2   USHORT InitOrderIndex
- *     28      2   USHORT LoadCount
- *     30      2   USHORT OffsetToFileName
- *     32    256   UCHAR  FullPathName[256]
+ *      0      8   ULONG_PTR Section     (pointer-width on x64)
+ *      8      8   PVOID     MappedBase
+ *     16      8   PVOID     ImageBase
+ *     24      4   ULONG     ImageSize
+ *     28      4   ULONG     Flags
+ *     32      2   USHORT    LoadOrderIndex
+ *     34      2   USHORT    InitOrderIndex
+ *     36      2   USHORT    LoadCount
+ *     38      2   USHORT    OffsetToFileName
+ *     40    256   UCHAR     FullPathName[256]
  *
  * RTL_PROCESS_MODULES layout:
  *   offset  size  field
  *   ------  ----  -------------------------------
- *      0      4   ULONG ModulesCount
- *      4   var   RTL_PROCESS_MODULE_INFORMATION Modules[]
+ *      0      4   ULONG NumberOfModules
+ *      4      4   (alignment padding — the record struct is 8-byte aligned
+ *                because it holds pointer-width fields, so Modules[0] is @8,
+ *                NOT @4. This was the pre-runtime-test bug: parsing assumed
+ *                base=4 + 32-bit offsets and read garbage on a real x64 host.)
+ *      8   var    RTL_PROCESS_MODULE_INFORMATION Modules[]
  *
- * ImageBase is read with Buffer#readBigUInt64LE at record offset 8. The short
- * module name is derived from FullPathName[OffsetToFileName].
+ * Verified against a real NtQuerySystemInformation(SystemModuleInformation)
+ * buffer on Windows 11 x64 by NtModuleEnumerator.runtime.test.ts: 254 modules,
+ * record 0 = ntoskrnl.exe @ ImageBase 0xfffff803'29400000, ImageSize ~16 MB.
  */
-const MODULE_RECORD_SIZE = 288;
-const FULL_PATH_OFFSET = 32;
+const FIRST_RECORD_OFFSET = 8; // ULONG NumberOfModules + 4-byte align padding
+const MODULE_RECORD_SIZE = 296;
+const IMAGE_BASE_OFFSET = 16;
+const IMAGE_SIZE_OFFSET = 24;
+const OFFSET_TO_FILENAME = 38;
+const FULL_PATH_OFFSET = 40;
 const FULL_PATH_SIZE = 256;
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -110,12 +121,12 @@ function parseModules(buf: Buffer): KernelModule[] {
   const count = buf.readUInt32LE(0);
   const modules: KernelModule[] = [];
   for (let i = 0; i < count; i++) {
-    const base = 4 + i * MODULE_RECORD_SIZE;
+    const base = FIRST_RECORD_OFFSET + i * MODULE_RECORD_SIZE;
     if (base + MODULE_RECORD_SIZE > buf.length) break;
 
-    const imageBase = buf.readBigUInt64LE(base + 8);
-    const imageSize = buf.readUInt32LE(base + 16);
-    const offsetToFileName = buf.readUInt16LE(base + 30);
+    const imageBase = buf.readBigUInt64LE(base + IMAGE_BASE_OFFSET);
+    const imageSize = buf.readUInt32LE(base + IMAGE_SIZE_OFFSET);
+    const offsetToFileName = buf.readUInt16LE(base + OFFSET_TO_FILENAME);
 
     const pathStart = base + FULL_PATH_OFFSET;
     const pathBuf = buf.subarray(pathStart, pathStart + FULL_PATH_SIZE);
