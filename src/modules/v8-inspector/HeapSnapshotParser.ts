@@ -1,4 +1,4 @@
-import type { DominatorNode } from './DominatorTreeBuilder';
+import { DominatorTreeBuilder, type DominatorNode } from './DominatorTreeBuilder';
 
 export interface ParsedNode {
   id: number;
@@ -240,10 +240,6 @@ function nodeKey(node: ParsedNode): string {
   return `${node.type}\u0000${node.name}\u0000${node.selfSize}`;
 }
 
-function incrementCount(map: Map<number, number>, key: number): void {
-  map.set(key, (map.get(key) ?? 0) + 1);
-}
-
 function parseSnapshotMeta(meta: SnapshotMetaLike): {
   strings: string[];
   nodeTypes: string[];
@@ -346,57 +342,18 @@ export class HeapSnapshotParser {
 
   computeRetainedSizes(): Map<number, number> {
     this.ensureParsed();
+    const retainedSizes = new Map(this.nodesCache.map((node) => [node.id, node.selfSize]));
+    if (this.nodesCache.length === 0) return retainedSizes;
 
-    const selfSizes = new Map<number, number>();
-    const inboundCounts = new Map<number, number>();
-    const ownedChildren = new Map<number, number[]>();
-
-    for (const node of this.nodesCache) {
-      selfSizes.set(node.id, node.selfSize);
-      inboundCounts.set(node.id, 0);
+    const tree = new DominatorTreeBuilder().buildDominatorTree(this.nodesCache, this.edgesCache);
+    const pending = [tree];
+    while (pending.length > 0) {
+      const node = pending.pop();
+      if (!node) continue;
+      retainedSizes.set(node.nodeId, node.retainedSize);
+      pending.push(...node.children);
     }
-
-    for (const edge of this.edgesCache) {
-      incrementCount(inboundCounts, edge.toId);
-    }
-
-    for (const edge of this.edgesCache) {
-      if ((inboundCounts.get(edge.toId) ?? 0) !== 1) {
-        continue;
-      }
-      const children = ownedChildren.get(edge.fromId) ?? [];
-      children.push(edge.toId);
-      ownedChildren.set(edge.fromId, children);
-    }
-
-    const memo = new Map<number, number>();
-    const walk = (nodeId: number, trail: Set<number>): number => {
-      const cached = memo.get(nodeId);
-      if (cached !== undefined) {
-        return cached;
-      }
-      if (trail.has(nodeId)) {
-        return selfSizes.get(nodeId) ?? 0;
-      }
-
-      const nextTrail = new Set(trail);
-      nextTrail.add(nodeId);
-
-      let total = selfSizes.get(nodeId) ?? 0;
-      const children = ownedChildren.get(nodeId) ?? [];
-      for (const childId of children) {
-        total += walk(childId, nextTrail);
-      }
-
-      memo.set(nodeId, total);
-      return total;
-    };
-
-    for (const node of this.nodesCache) {
-      walk(node.id, new Set<number>());
-    }
-
-    return memo;
+    return retainedSizes;
   }
 
   getTopRetainers(n: number = 10): RetainerSummary[] {
@@ -549,8 +506,6 @@ export class HeapSnapshotParser {
 
     if (includeDominatorTree || includeLeakDetection) {
       try {
-        // Lazy-load DominatorTreeBuilder
-        const { DominatorTreeBuilder } = await import('./DominatorTreeBuilder');
         const builder = new DominatorTreeBuilder();
 
         const fullTree = builder.buildDominatorTree(this.nodesCache, this.edgesCache);

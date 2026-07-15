@@ -136,6 +136,32 @@ describe('HeapSnapshotParser — real 2-node snapshot (deep parse)', () => {
     expect(obj?.retainedSize).toBe(32);
   });
 
+  it('attributes a multiply referenced node to its immediate dominator', () => {
+    const diamond = JSON.stringify({
+      snapshot: {
+        meta: {
+          node_fields: ['type', 'name', 'id', 'self_size', 'edge_count'],
+          node_types: [['hidden', 'array', 'string', 'object']],
+          edge_fields: ['type', 'name_or_index', 'to_node'],
+          edge_types: [['context', 'element', 'property']],
+        },
+      },
+      nodes: [0, 0, 1, 10, 2, 3, 1, 2, 20, 1, 3, 2, 3, 30, 1, 3, 3, 4, 40, 0],
+      edges: [1, 0, 5, 1, 0, 10, 1, 0, 15, 1, 0, 15],
+      strings: ['Root', 'Left', 'Right', 'Shared'],
+    });
+    const sizes = new Map(
+      new HeapSnapshotParser(diamond)
+        .getAllRetainedSizes()
+        .map(({ id, retainedSize }) => [id, retainedSize]),
+    );
+
+    expect(sizes.get(1)).toBe(100);
+    expect(sizes.get(2)).toBe(20);
+    expect(sizes.get(3)).toBe(30);
+    expect(sizes.get(4)).toBe(40);
+  });
+
   it('getTopRetainers returns sorted retainers', () => {
     const p = new HeapSnapshotParser(TWO_NODES);
     const top = p.getTopRetainers(5);
