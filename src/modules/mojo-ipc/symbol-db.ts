@@ -198,6 +198,21 @@ const SYMBOL_DB: ChromiumSymbolEntry[] = [
 // ── Frida script builder ──
 
 /**
+ * Serialize a symbol entry into a JS object literal embedded in the generated
+ * Frida script. String fields go through `JSON.stringify`, which emits a
+ * double-quoted JS string literal that fully escapes backslashes, quotes,
+ * newlines and control characters — keeping the generated script parseable no
+ * matter what `notes`/`symbol`/`module` contain. A previous `'`-only escape left
+ * the string-literal open to injection via a stray backslash
+ * (CodeQL js/incomplete-sanitization).
+ */
+export function formatProbeEntry(
+  e: Pick<ChromiumSymbolEntry, 'symbol' | 'module' | 'versionMin' | 'notes'>,
+): string {
+  return `{ symbol: ${JSON.stringify(e.symbol)}, module: ${JSON.stringify(e.module)}, versionMin: ${e.versionMin ?? 0}, notes: ${JSON.stringify(e.notes ?? '')} }`;
+}
+
+/**
  * Generate a Frida verification script that probes the target process
  * for all known Mojo symbols matching the given platform/version criteria.
  */
@@ -232,11 +247,10 @@ export function buildVerifyLiveScript(input: VerifyLiveInput): VerifyLiveResult 
     }
   }
 
-  // Build the probe list as a JS array literal
-  const probeEntries = deduped.map(
-    (e) =>
-      `  { symbol: '${e.symbol}', module: '${e.module}', versionMin: ${e.versionMin ?? 0}, notes: '${(e.notes ?? '').replace(/'/g, "\\'")}' }`,
-  );
+  // Build the probe list as a JS array literal. formatProbeEntry fully escapes
+  // every string field, so entries with backslashes/quotes/newlines cannot
+  // break out of the generated string literals.
+  const probeEntries = deduped.map((e) => `  ${formatProbeEntry(e)}`);
 
   // Build the Frida script
   const fridaScript = `'use strict';

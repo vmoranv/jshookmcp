@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildVerifyLiveScript, getKnownSymbols } from '@modules/mojo-ipc/symbol-db';
+import { runInNewContext } from 'node:vm';
+import {
+  buildVerifyLiveScript,
+  getKnownSymbols,
+  formatProbeEntry,
+} from '@modules/mojo-ipc/symbol-db';
 
 describe('getKnownSymbols', () => {
   it('returns symbols for win32', () => {
@@ -81,7 +86,7 @@ describe('buildVerifyLiveScript', () => {
     });
 
     // Wildcard entries are in the generated script even though probedSymbols is deduplicated
-    expect(result.fridaScript).toContain("module: '*'");
+    expect(result.fridaScript).toContain('module: "*"');
   });
 
   it('all fields are populated', () => {
@@ -109,5 +114,49 @@ describe('buildVerifyLiveScript', () => {
     const symbols = nonWildcard.map((s) => s.symbol);
     const uniqueSymbols = new Set(symbols);
     expect(symbols.length).toBe(uniqueSymbols.size);
+  });
+});
+
+describe('formatProbeEntry', () => {
+  const base = { symbol: 'MojoWriteMessage', module: 'chrome.dll', versionMin: 100, notes: '' };
+
+  it('round-trips a plain entry through JS evaluation', () => {
+    const literal = formatProbeEntry({ ...base, notes: 'x64-only' });
+    const parsed = runInNewContext(`(${literal})`) as typeof base;
+    expect(parsed).toEqual({ ...base, notes: 'x64-only' });
+  });
+
+  it('fully escapes backslashes, quotes, newlines and tabs in notes (alert 88)', () => {
+    const notes = 'C:\\path\\\'x"line\none\ttwo';
+    const literal = formatProbeEntry({ ...base, notes });
+    const parsed = runInNewContext(`(${literal})`) as { notes: string };
+    expect(parsed.notes).toBe(notes);
+    // No raw newline leaks into the generated Frida script body
+    expect(literal).not.toContain('\n');
+  });
+
+  it('escapes quotes in symbol/module and defaults missing notes + versionMin', () => {
+    const literal = formatProbeEntry({
+      symbol: "sy'm",
+      module: 'mo"d',
+      versionMin: undefined,
+      notes: undefined,
+    });
+    const parsed = runInNewContext(`(${literal})`) as {
+      symbol: string;
+      module: string;
+      notes: string;
+      versionMin: number;
+    };
+    expect(parsed.symbol).toBe("sy'm");
+    expect(parsed.module).toBe('mo"d');
+    expect(parsed.notes).toBe('');
+    expect(parsed.versionMin).toBe(0);
+  });
+
+  it('emits JSON double-quoted string literals (no raw single-quote escape hack)', () => {
+    const literal = formatProbeEntry({ ...base, notes: "it's fine" });
+    expect(literal).toContain('notes: "it\'s fine"');
+    expect(literal).not.toContain("notes: '");
   });
 });
