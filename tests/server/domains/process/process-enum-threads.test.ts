@@ -22,6 +22,10 @@ vi.mock('@src/modules/process/index', () => ({
   },
 }));
 
+vi.mock('@modules/process/threads/thread-status-parser', () => ({
+  readThreadStatusSafe: vi.fn(() => Promise.resolve({})),
+}));
+
 vi.mock('@native/platform/ThreadEnumerator', () => ({
   enumerateThreadsByPlatform: mocks.enumerateThreadsByPlatform,
 }));
