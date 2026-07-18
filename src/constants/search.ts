@@ -128,7 +128,8 @@ export const SEARCH_BM25_B = float('SEARCH_BM25_B', 0.75);
  *   for stability.
  * SEARCH_VECTOR_LEARN_TOP_N: rank threshold that separates "hit" from "miss".
  */
-export const SEARCH_VECTOR_ENABLED = bool('SEARCH_VECTOR_ENABLED', true);
+const sharedHttpTransport = process.env.MCP_TRANSPORT?.trim().toLowerCase() === 'http';
+export const SEARCH_VECTOR_ENABLED = bool('SEARCH_VECTOR_ENABLED', sharedHttpTransport);
 export const SEARCH_VECTOR_MODEL_ID = str('SEARCH_VECTOR_MODEL_ID', 'Xenova/bge-micro-v2');
 export const SEARCH_VECTOR_COSINE_WEIGHT = float('SEARCH_VECTOR_COSINE_WEIGHT', 0.53);
 export const SEARCH_VECTOR_DYNAMIC_WEIGHT = bool('SEARCH_VECTOR_DYNAMIC_WEIGHT', true);
@@ -147,7 +148,13 @@ export const SEARCH_VECTOR_BM25_SKIP_THRESHOLD = float('SEARCH_VECTOR_BM25_SKIP_
 export const SEARCH_VECTOR_PREWARM = bool('SEARCH_VECTOR_PREWARM', false);
 
 /** Release the ONNX worker after this idle window. Set to 0 to keep it resident. */
-export const SEARCH_VECTOR_WORKER_IDLE_MS = int('SEARCH_VECTOR_WORKER_IDLE_MS', 15_000);
+export const SEARCH_VECTOR_WORKER_IDLE_MS = int(
+  'SEARCH_VECTOR_WORKER_IDLE_MS',
+  sharedHttpTransport ? 300_000 : 15_000,
+);
+
+/** Per-request timeout for remote model/tokenizer downloads inside the worker. */
+export const SEARCH_VECTOR_FETCH_TIMEOUT_MS = int('SEARCH_VECTOR_FETCH_TIMEOUT_MS', 15_000);
 
 /** Back off after an embedding load failure instead of restarting ONNX on every search. */
 export const SEARCH_VECTOR_RETRY_COOLDOWN_MS = int('SEARCH_VECTOR_RETRY_COOLDOWN_MS', 60_000);

@@ -38,6 +38,7 @@ import { FeedbackTracker } from './FeedbackTracker';
 import { QueryNormalizer } from './QueryNormalizer';
 import { ReRanker, type ReRankInput, type ToolMetadata } from './ReRanker';
 import { SearchQualityTracker } from './SearchQualityTracker';
+import { logger } from '@utils/logger';
 import {
   applyGraphExpansionToScores,
   buildAffinityGraph,
@@ -322,9 +323,7 @@ export class ToolSearchEngine {
     // A shared daemon should not load ONNX until vector scoring is actually needed.
     // Operators can opt back into background prewarm for latency-sensitive deployments.
     if (this.embeddingEngine && SEARCH_VECTOR_PREWARM) {
-      void this.ensureToolEmbeddings().catch(() => {
-        // Swallowed — computeVectorCosineScores retries lazily on next search.
-      });
+      void this.ensureToolEmbeddings();
     }
   }
 
@@ -953,9 +952,13 @@ export class ToolSearchEngine {
         this.toolEmbeddings = embeddings;
         this.embeddingRetryAfterMs = 0;
         await saveToolEmbeddingsCache(modelId, descriptions, embeddings);
-      } catch {
+      } catch (error) {
         // Embeddings are optional; BM25 and trigram remain available.
         this.embeddingRetryAfterMs = Date.now() + Math.max(0, SEARCH_VECTOR_RETRY_COOLDOWN_MS);
+        logger.warn(
+          `[search] vector embeddings unavailable; using lexical search for ${Math.max(0, SEARCH_VECTOR_RETRY_COOLDOWN_MS)}ms: ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        );
       } finally {
         this.prewarmPromise = null;
       }
@@ -987,7 +990,10 @@ export class ToolSearchEngine {
     let queryEmbedding: Float32Array;
     try {
       queryEmbedding = await this.embeddingEngine.embed(query);
-    } catch {
+    } catch (error) {
+      logger.warn(
+        `[search] query embedding unavailable; using lexical ranking: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return new Map();
     }
 

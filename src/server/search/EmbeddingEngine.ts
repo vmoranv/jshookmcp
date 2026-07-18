@@ -27,7 +27,15 @@ export class EmbeddingEngine {
   private readonly modelId: string;
 
   constructor(options?: EmbeddingEngineOptions) {
-    const configuredIdleMs = options?.idleMs ?? SEARCH_VECTOR_WORKER_IDLE_MS;
+    const rawIdleMs = process.env.SEARCH_VECTOR_WORKER_IDLE_MS;
+    const parsedIdleMs =
+      rawIdleMs === undefined || rawIdleMs === '' ? Number.NaN : Number(rawIdleMs);
+    const transportDefault =
+      process.env.MCP_TRANSPORT?.trim().toLowerCase() === 'http'
+        ? 300_000
+        : SEARCH_VECTOR_WORKER_IDLE_MS;
+    const runtimeIdleMs = Number.isFinite(parsedIdleMs) ? parsedIdleMs : transportDefault;
+    const configuredIdleMs = options?.idleMs ?? runtimeIdleMs;
     this.idleMs = Number.isFinite(configuredIdleMs) ? Math.max(0, configuredIdleMs) : 0;
     this.modelId = options?.modelId?.trim() || SEARCH_VECTOR_MODEL_ID;
   }

@@ -392,6 +392,8 @@ describe('search/ToolSearchEngineImpl', () => {
 
   it('falls back when vector embeddings fail to load', async () => {
     vectorState.failEmbedBatch = true;
+    const { logger } = await import('@utils/logger');
+    const warn = vi.spyOn(logger, 'warn');
 
     const { ToolSearchEngine } = await import('@server/search/ToolSearchEngineImpl');
     const engine = new ToolSearchEngine(
@@ -411,12 +413,14 @@ describe('search/ToolSearchEngineImpl', () => {
     // The prewarm embedBatch now runs in the background and fails there;
     // settle it so the failure is observed before we assert call counts.
     await engine.waitForEmbeddings();
+    await engine.waitForEmbeddings();
 
     const results = await engine.search('navigate', 5);
 
     expect(results[0]?.name).toBe('page_navigate');
     expect(vectorState.embedBatchCalls).toBe(1);
     expect(vectorState.embedCalls).toBe(0);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('using lexical search for 60000ms'));
   });
 
   it('falls back when query embedding fails', async () => {

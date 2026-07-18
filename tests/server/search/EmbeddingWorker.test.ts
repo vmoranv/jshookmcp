@@ -18,8 +18,10 @@ vi.mock('node:worker_threads', () => ({
 }));
 
 const mockPipeline = vi.fn();
+const mockTransformerEnv = { fetch: vi.fn() };
 vi.mock('@huggingface/transformers', () => ({
   pipeline: mockPipeline,
+  env: mockTransformerEnv,
 }));
 
 describe('EmbeddingWorker', () => {
@@ -27,6 +29,7 @@ describe('EmbeddingWorker', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockTransformerEnv.fetch = vi.fn();
     messageHandler = null;
 
     // Capture the message handler registered by the module
@@ -38,7 +41,37 @@ describe('EmbeddingWorker', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
     vi.resetModules();
+  });
+
+  it('aborts remote model fetches at the configured timeout', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('SEARCH_VECTOR_FETCH_TIMEOUT_MS', '5');
+    mockTransformerEnv.fetch = vi.fn(
+      (_input: unknown, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('fetch aborted')), {
+            once: true,
+          });
+        }),
+    );
+    mockPipeline.mockImplementation(async () => {
+      await mockTransformerEnv.fetch('model-fetch');
+      return async () => ({ data: new Float32Array([1]) });
+    });
+
+    await loadWorker();
+    const pending = messageHandler!({ type: 'embed', id: 99, text: 'timeout' });
+    await vi.advanceTimersByTimeAsync(6);
+    await pending;
+
+    expect(mockParentPort.postMessage).toHaveBeenCalledWith({
+      type: 'error',
+      id: 99,
+      message: 'fetch aborted',
+    });
   });
 
   async function loadWorker() {

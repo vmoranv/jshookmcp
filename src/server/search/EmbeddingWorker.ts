@@ -23,6 +23,10 @@ type EmbedderPipeline = (
 let embedder: EmbedderPipeline | null = null;
 let loadedModelId: string | null = null;
 const DEFAULT_MODEL_ID = 'Xenova/bge-micro-v2';
+const FETCH_TIMEOUT_MS = Math.max(
+  1,
+  Number.parseInt(process.env.SEARCH_VECTOR_FETCH_TIMEOUT_MS ?? '15000', 10) || 15_000,
+);
 
 /**
  * Output dimension of bge-micro-v2. Used to slice the flattened batch tensor
@@ -46,7 +50,24 @@ async function getEmbedder(modelId: string): Promise<EmbedderPipeline> {
     );
   }
   if (!embedder) {
-    const { pipeline } = await import('@huggingface/transformers');
+    const { pipeline, env } = await import('@huggingface/transformers');
+    const transformerEnv = env as unknown as {
+      fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+    };
+    const originalFetch = transformerEnv.fetch ?? globalThis.fetch;
+    transformerEnv.fetch = async (input, init = {}) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      const upstreamSignal = init.signal;
+      const abortUpstream = () => controller.abort();
+      upstreamSignal?.addEventListener('abort', abortUpstream, { once: true });
+      try {
+        return await originalFetch(input, { ...init, signal: controller.signal });
+      } finally {
+        clearTimeout(timeout);
+        upstreamSignal?.removeEventListener('abort', abortUpstream);
+      }
+    };
     embedder = (await pipeline('feature-extraction', modelId, {
       quantized: true,
     } as Record<string, unknown>)) as unknown as EmbedderPipeline;

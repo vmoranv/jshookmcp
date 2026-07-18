@@ -508,16 +508,34 @@ function cloneSearchConfig(search: SearchConfig): SearchConfig {
         bonus: boost.bonus,
       })),
     })),
+    vectorEnabled: search.vectorEnabled,
+    vectorModelId: search.vectorModelId,
+    vectorCosineWeight: search.vectorCosineWeight,
+    vectorDynamicWeight: search.vectorDynamicWeight,
   };
 }
 
 function buildSearchConfig(): SearchConfig {
   const defaults = cloneSearchConfig(DEFAULT_SEARCH_CONFIG);
+  const httpTransport = process.env.MCP_TRANSPORT?.trim().toLowerCase() === 'http';
 
   return {
     queryCategoryProfiles: parseSearchQueryCategoryProfiles() ?? defaults.queryCategoryProfiles,
     cjkQueryAliases: parseCjkQueryAliases() ?? defaults.cjkQueryAliases,
     intentToolBoostRules: parseIntentToolBoostRules() ?? defaults.intentToolBoostRules,
+    vectorEnabled: coerceBooleanEnv(process.env.SEARCH_VECTOR_ENABLED, httpTransport),
+    vectorModelId: stringEnv(
+      process.env.SEARCH_VECTOR_MODEL_ID,
+      defaults.vectorModelId ?? 'Xenova/bge-micro-v2',
+    ),
+    vectorCosineWeight: coerceFloatEnv(
+      process.env.SEARCH_VECTOR_COSINE_WEIGHT,
+      defaults.vectorCosineWeight ?? 0.53,
+    ),
+    vectorDynamicWeight: coerceBooleanEnv(
+      process.env.SEARCH_VECTOR_DYNAMIC_WEIGHT,
+      defaults.vectorDynamicWeight ?? true,
+    ),
   };
 }
 
