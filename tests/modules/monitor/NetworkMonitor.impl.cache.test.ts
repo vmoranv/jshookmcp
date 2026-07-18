@@ -279,6 +279,45 @@ describe('NetworkMonitor.impl – response body cache and persistence', () => {
       expect(getBodyCalls.length).toBeGreaterThan(0);
     });
 
+    it('evicts by total bytes before reaching the entry limit', async () => {
+      const { session, send, emit } = createMockSession();
+      const monitor = new NetworkMonitor(session);
+      (monitor as any).MAX_BODY_CACHE_BYTES = 10;
+      (monitor as any).MAX_SINGLE_BODY_CACHE_BYTES = 10;
+      await monitor.enable();
+
+      for (const [id, body] of [
+        ['r1', '123456'],
+        ['r2', '78901'],
+      ] as const) {
+        emit('Network.requestWillBeSent', {
+          requestId: id,
+          request: { url: withPath(TEST_URLS.root, id), method: 'GET' },
+          timestamp: 1,
+        });
+        emit('Network.responseReceived', {
+          requestId: id,
+          response: {
+            url: withPath(TEST_URLS.root, id),
+            status: 200,
+            statusText: 'OK',
+            mimeType: 'text/plain',
+          },
+          timestamp: 2,
+        });
+        send.mockResolvedValueOnce({ body, base64Encoded: false });
+        emit('Network.loadingFinished', { requestId: id });
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+
+      expect((monitor as any).responseBodyCache.has('r1')).toBe(false);
+      expect((monitor as any).responseBodyCache.has('r2')).toBe(true);
+      expect((monitor as any).responseBodyCacheBytes).toBe(5);
+
+      monitor.clearRecords();
+      expect((monitor as any).responseBodyCacheBytes).toBe(0);
+    });
+
     it('handles auto-capture CDP failure gracefully', async () => {
       const { session, send, emit } = createMockSession();
       const monitor = new NetworkMonitor(session);

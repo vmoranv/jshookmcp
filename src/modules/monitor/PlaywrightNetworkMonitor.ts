@@ -8,6 +8,11 @@ import {
 import { detectHttpVersion } from './PlaywrightNetworkMonitor.utils';
 import { ResponseBodyCache, isTextMimeType } from './PlaywrightNetworkMonitor.body-cache';
 import {
+  NETWORK_BODY_CACHE_MAX_BODY_BYTES,
+  NETWORK_BODY_CACHE_MAX_ENTRIES,
+  NETWORK_BODY_CACHE_MAX_TOTAL_BYTES,
+} from '@src/constants';
+import {
   injectXHRInterceptor,
   injectFetchInterceptor,
   getXHRRequests,
@@ -43,7 +48,11 @@ export class PlaywrightNetworkMonitor {
   private boundOnResponse: ((res: unknown) => void) | null = null;
 
   constructor(private page: PlaywrightLikePage | null) {
-    this.responseBodyCache = new ResponseBodyCache(200);
+    this.responseBodyCache = new ResponseBodyCache(
+      NETWORK_BODY_CACHE_MAX_ENTRIES,
+      NETWORK_BODY_CACHE_MAX_TOTAL_BYTES,
+      NETWORK_BODY_CACHE_MAX_BODY_BYTES,
+    );
   }
 
   setPage(page: PlaywrightLikePage | null): void {

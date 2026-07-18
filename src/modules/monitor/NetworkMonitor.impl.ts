@@ -12,6 +12,11 @@ import {
   CLEAR_INJECTED_BUFFERS_EXPRESSION,
   RESET_INJECTED_INTERCEPTORS_EXPRESSION,
 } from '@modules/monitor/NetworkMonitor.interceptors';
+import {
+  NETWORK_BODY_CACHE_MAX_BODY_BYTES,
+  NETWORK_BODY_CACHE_MAX_ENTRIES,
+  NETWORK_BODY_CACHE_MAX_TOTAL_BYTES,
+} from '@src/constants';
 
 export type { NetworkRequest, NetworkResponse } from '@modules/monitor/NetworkMonitor.types';
 
@@ -162,7 +167,11 @@ export class NetworkMonitor implements NetworkMonitorLike {
 
   /** LRU cache for response bodies, auto-captured on loadingFinished. */
   private responseBodyCache = new Map<string, { body: string; base64Encoded: boolean }>();
-  private readonly MAX_BODY_CACHE_ENTRIES = 200;
+  private responseBodyCacheBytes = 0;
+  private readonly responseBodyCacheSizes = new Map<string, number>();
+  private MAX_BODY_CACHE_ENTRIES = NETWORK_BODY_CACHE_MAX_ENTRIES;
+  private MAX_BODY_CACHE_BYTES = NETWORK_BODY_CACHE_MAX_TOTAL_BYTES;
+  private MAX_SINGLE_BODY_CACHE_BYTES = NETWORK_BODY_CACHE_MAX_BODY_BYTES;
 
   private networkListeners: {
     requestWillBeSent?: (params: unknown) => void;
@@ -350,19 +359,24 @@ export class NetworkMonitor implements NetworkMonitorLike {
 
       if (!isResponseBodyPayload(rawResult)) return;
 
-      // Skip bodies larger than 1MB to prevent memory bloat
-      if (rawResult.body.length > 1_048_576) {
-        logger.debug(
-          `[BodyCache] Skipping oversized body for ${requestId} (${rawResult.body.length} chars)`,
-        );
+      const bodyBytes = rawResult.base64Encoded
+        ? Buffer.byteLength(rawResult.body, 'base64')
+        : Buffer.byteLength(rawResult.body, 'utf8');
+      if (bodyBytes > this.MAX_SINGLE_BODY_CACHE_BYTES || bodyBytes > this.MAX_BODY_CACHE_BYTES) {
+        logger.debug(`[BodyCache] Skipping oversized body for ${requestId} (${bodyBytes} bytes)`);
         return;
       }
 
-      // LRU eviction: remove oldest entry if at capacity
-      if (this.responseBodyCache.size >= this.MAX_BODY_CACHE_ENTRIES) {
+      while (
+        this.responseBodyCache.size > 0 &&
+        (this.responseBodyCache.size >= this.MAX_BODY_CACHE_ENTRIES ||
+          this.responseBodyCacheBytes + bodyBytes > this.MAX_BODY_CACHE_BYTES)
+      ) {
         const oldestKey = this.responseBodyCache.keys().next().value;
         if (oldestKey) {
           this.responseBodyCache.delete(oldestKey);
+          this.responseBodyCacheBytes -= this.responseBodyCacheSizes.get(oldestKey) ?? 0;
+          this.responseBodyCacheSizes.delete(oldestKey);
         }
       }
 
@@ -370,6 +384,8 @@ export class NetworkMonitor implements NetworkMonitorLike {
         body: rawResult.body,
         base64Encoded: rawResult.base64Encoded,
       });
+      this.responseBodyCacheSizes.set(requestId, bodyBytes);
+      this.responseBodyCacheBytes += bodyBytes;
 
       logger.debug(
         `[BodyCache] Cached body for ${requestId} (${rawResult.body.length} chars, url=${response.url})`,
@@ -615,6 +631,8 @@ export class NetworkMonitor implements NetworkMonitorLike {
     this.requests.clear();
     this.responses.clear();
     this.responseBodyCache.clear();
+    this.responseBodyCacheSizes.clear();
+    this.responseBodyCacheBytes = 0;
     logger.info('Network records cleared');
   }
 

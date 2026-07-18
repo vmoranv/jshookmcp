@@ -14,6 +14,17 @@ export const NETWORK_REPLAY_MAX_BODY_BYTES = int('NETWORK_REPLAY_MAX_BODY_BYTES'
 export const NETWORK_REPLAY_MAX_REDIRECTS = int('NETWORK_REPLAY_MAX_REDIRECTS', 5);
 export const NETWORK_HAR_BODY_CONCURRENCY = int('NETWORK_HAR_BODY_CONCURRENCY', 4);
 
+/** Response-body cache budgets shared by CDP and Playwright monitors. */
+export const NETWORK_BODY_CACHE_MAX_ENTRIES = int('NETWORK_BODY_CACHE_MAX_ENTRIES', 200);
+export const NETWORK_BODY_CACHE_MAX_BODY_BYTES = int(
+  'NETWORK_BODY_CACHE_MAX_BODY_BYTES',
+  1024 * 1024,
+);
+export const NETWORK_BODY_CACHE_MAX_TOTAL_BYTES = int(
+  'NETWORK_BODY_CACHE_MAX_TOTAL_BYTES',
+  64 * 1024 * 1024,
+);
+
 /* ================================================================== */
 /*  ICMP probe                                                         */
 /* ================================================================== */
