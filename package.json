@@ -137,7 +137,7 @@
     "@types/babel__traverse": "^7.28.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/jsdom": "^28.0.3",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.9",
     "cross-env": "^10.1.0",
     "lefthook": "^2.1.9",
