@@ -10,46 +10,121 @@ permissions:
   pull-requests: write
 
 jobs:
-  anti-slop:
-    name: Detect low-quality PRs
+  # 硬信号层：命中即自动关闭。只保留与"恶意 / 灌水 / 注入历史"
+  # 强相关的 signal，阈值在 action 默认基础上保留 action 内置默认值
+  # （repo 自身历史和无意义注释量与此层无关，故不在此层检查）。
+  hard-signals:
+    name: Hard signals (auto-close)
     runs-on: ubuntu-latest
     steps:
-      - name: Run anti-slop checks
+      - name: Run anti-slop hard-signal checks
         uses: peakoss/anti-slop@v0.3.0
         with:
+          # 单条硬信号命中即关闭。
           max-failures: 1
 
+          # 分支：禁止从 master/main 等主干分支直接提 PR（fork-supmaster 历史注入）。
+          blocked-source-branches: |
+            master
+            main
+            trunk
+            develop
+            dev
+
+          # 蜜罐：PR 模板里的 honeypot token，命中说明 contributor 没读模板。
+          blocked-terms: |
+            JSHOOKMCP_HONEYPOT_9F3C
+
+          # 大规模改动：明显超出正常 PR 范围的历史注入。
+          max-changed-files: 100
+          max-changed-lines: 50000
+
+          # 异常新增注释量：AI slop 常用海量注释撑体积。
+          max-added-comments: 500
+
+          # commit 作者必须与 PR 作者一致 —— 否则是把别人的历史塞进来。
+          require-commit-author-match: true
+
+          # blocked 路径：保护根级关键文件不被外部 PR 篡改。
+          blocked-paths: |
+            .github/workflows/
+            .github/workflows
+            LICENSE
+            package.json
+            pnpm-workspace.yaml
+            server.json
+            tsconfig.json
+            vitest.config.ts
+            biome.json
+
+          # 账号年龄与 fork 频次：新号 / 批量 fork 是 spam 强信号。
+          min-account-age: 30
+          max-daily-forks: 6
+          detect-spam-usernames: true
+          require-public-profile: true
+
+          exempt-draft-prs: true
+
+          failure-pr-message: >-
+            This PR was automatically closed because it matched a hard
+            spam/abuse signal (blocked source branch, honeypot token,
+            oversized diff, commit-author mismatch, tampering with
+            protected paths, or a suspicious account). 这个 PR 因命中
+            硬性滥用信号（违规源分支 / 蜜罐 token / 超大改动 / commit 作者不匹配 /
+            篡改受保护路径 / 可疑账号）被自动关闭；如属误判，请在收窄改动范围、
+            改用特性分支并补全说明后重新打开。
+          close-pr: true
+
+  # 软信号层：命中只评论提醒 + 打标签，不自动关闭。
+  # maintainer 可据此手动 review 后决定，避免真实贡献被误杀。
+  soft-signals:
+    name: Soft signals (warn only)
+    runs-on: ubuntu-latest
+    needs: hard-signals
+    if: always()
+    steps:
+      - name: Run anti-slop soft-signal checks
+        uses: peakoss/anti-slop@v0.3.0
+        with:
+          # 软信号阈值：允许较多 fail，这只用于提醒。
+          max-failures: 8
+
+          # PR 规模下限（相对宽松，欢迎大家提小 PR）。
           max-changed-files: 35
           max-changed-lines: 2000
 
+          # 标题 / 描述 / 模板：格式类软要求。
           require-maintainer-can-modify: true
           require-conventional-title: true
           require-description: true
-          max-description-length: 2000
+          max-description-length: 4000
           max-code-references: 8
-          blocked-terms: |
-            JSHOOKMCP_HONEYPOT_9F3C
 
           require-pr-template: true
           strict-pr-template-sections: 'Checklist'
           max-additional-pr-template-sections: 2
 
-          max-added-comments: 20
-          blocked-paths: ''
+          # 文件卫生：末尾换行。
+          require-final-newline: true
 
-          min-account-age: 30
-          max-daily-forks: 6
-          require-public-profile: true
+          # commit message 长度。
+          max-commit-message-length: 1000
+
+          # 账号信任类：作为软信号，只提醒不关闭。
           min-profile-completeness: 4
           min-global-merge-ratio: 25
           global-merge-ratio-exclude-own: true
 
           exempt-draft-prs: true
 
+          success-add-pr-labels: 'needs-review'
+          failure-add-pr-labels: 'needs-author-attention'
+
           failure-pr-message: >-
-            This PR was automatically closed because it matched multiple
-            low-quality or spam signals. If this looks like a false positive,
-            reopen it after restoring the PR template, tightening the scope,
-            and explaining the validation you ran. 这个 PR 因命中多个低质量 /
-            灌水信号被自动关闭；如果是误判，请按模板补全说明、收窄改动范围并写清验证步骤后再重新打开。
-          close-pr: true
+            This PR triggered some soft quality signals (scope, title
+            format, template checklist, profile completeness, etc.).
+            It will NOT be auto-closed. A maintainer will review it;
+            please address the items below when convenient. 该 PR 触发
+            了若干软性质量信号（改动范围 / 标题格式 / 模板勾选 / 账号资料完整度等），
+            不会被自动关闭，maintainer 会人工 review；请在方便时按下方提示完善。
+          close-pr: false
