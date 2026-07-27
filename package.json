@@ -125,7 +125,7 @@
     "dotenv": "^17.4.2",
     "jsdom": "^29.1.1",
     "koffi": "^3.0.2",
-    "mockttp": "^4.4.2",
+    "mockttp": "4.4.2",
     "protobufjs": "8.6.6",
     "quickjs-emscripten": "^0.32.0",
     "rebrowser-puppeteer-core": "^24.8.1",

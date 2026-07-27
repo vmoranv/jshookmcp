@@ -60,7 +60,7 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       mockttp:
-        specifier: ^4.4.2
+        specifier: 4.4.2
         version: 4.4.2
       protobufjs:
         specifier: 8.6.6
