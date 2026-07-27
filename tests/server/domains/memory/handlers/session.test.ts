@@ -14,9 +14,7 @@ describe('SessionHandlers', () => {
     value: '1.2',
   };
 
-  const mocksessionManager = {
-    /* mock */
-  } as any;
+  const mocksessionManager = {/* mock */} as any;
 
   beforeEach(() => {
     vi.clearAllMocks();

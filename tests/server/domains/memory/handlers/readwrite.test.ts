@@ -14,9 +14,7 @@ describe('ReadWriteHandlers', () => {
     freezeId: 'freeze-1',
   };
 
-  const mockmemCtrl = {
-    /* mock */
-  } as any;
+  const mockmemCtrl = {/* mock */} as any;
   let auditTrail: MemoryAuditTrail;
 
   beforeEach(() => {

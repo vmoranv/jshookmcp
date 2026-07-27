@@ -15,9 +15,7 @@ describe('PointerChainHandlers', () => {
     maxResults: 1000,
   };
 
-  const mockptrEngine = {
-    /* mock */
-  } as any;
+  const mockptrEngine = {/* mock */} as any;
 
   beforeEach(() => {
     vi.clearAllMocks();

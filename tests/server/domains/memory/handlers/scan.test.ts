@@ -20,9 +20,7 @@ describe('ScanHandlers', () => {
     ],
   };
 
-  const mockscanner = {
-    /* mock */
-  } as any;
+  const mockscanner = {/* mock */} as any;
 
   beforeEach(() => {
     vi.clearAllMocks();

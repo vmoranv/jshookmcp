@@ -16,9 +16,7 @@ describe('StructureHandlers', () => {
     otherInstances: ['0x7FF612341000'],
   };
 
-  const mockstructAnalyzer = {
-    /* mock */
-  } as any;
+  const mockstructAnalyzer = {/* mock */} as any;
 
   beforeEach(() => {
     vi.clearAllMocks();

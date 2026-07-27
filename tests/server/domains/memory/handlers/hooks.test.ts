@@ -18,12 +18,8 @@ describe('HookHandlers', () => {
     timeoutMs: 10000,
   };
 
-  const mockbpEngine = {
-    /* mock */
-  } as any;
-  const mockinjector = {
-    /* mock */
-  } as any;
+  const mockbpEngine = {/* mock */} as any;
+  const mockinjector = {/* mock */} as any;
   let auditTrail: MemoryAuditTrail;
 
   beforeEach(() => {

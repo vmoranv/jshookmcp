@@ -12,18 +12,10 @@ describe('IntegrityHandlers', () => {
     maxSections: 100,
   };
 
-  const mockspeedhackEngine = {
-    /* mock */
-  } as any;
-  const mockheapAnalyzer = {
-    /* mock */
-  } as any;
-  const mockpeAnalyzer = {
-    /* mock */
-  } as any;
-  const mockantiCheatDetector = {
-    /* mock */
-  } as any;
+  const mockspeedhackEngine = {/* mock */} as any;
+  const mockheapAnalyzer = {/* mock */} as any;
+  const mockpeAnalyzer = {/* mock */} as any;
+  const mockantiCheatDetector = {/* mock */} as any;
 
   beforeEach(() => {
     vi.clearAllMocks();
