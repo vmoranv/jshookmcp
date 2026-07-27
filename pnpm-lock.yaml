@@ -150,10 +150,10 @@ importers:
         version: 130.0.0
       camoufox-js:
         specifier: ^0.11.1
-        version: 0.11.3(playwright-core@1.61.0)
+        version: 0.11.3(playwright-core@1.62.0)
       playwright-core:
         specifier: ^1.61.0
-        version: 1.61.0
+        version: 1.62.0
       webcrack:
         specifier: 2.16.0
         version: 2.16.0
@@ -3322,9 +3322,9 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  playwright-core@1.61.0:
-    resolution: {integrity: sha512-caX7TrY3Ml6egyDX0WUcTHDxodl/b51y5wJOdCEA36QviK/s2g081hvmGs8eaE3DWb6NYZQ6BjO/QkNRPenoPA==}
-    engines: {node: '>=18'}
+  playwright-core@1.62.0:
+    resolution: {integrity: sha512-nsNRyq0r2zsG8AcRHWknc9QRA5XCueC7gWMrs+Gx2tlZn9hcl8zudfh00lhJPY1DE7NmZ6bDsT9g2yey8mXljA==}
+    engines: {node: '>=20'}
     hasBin: true
 
   postcss@8.5.15:
@@ -5915,7 +5915,7 @@ snapshots:
   callsites@3.1.0:
     optional: true
 
-  camoufox-js@0.11.3(playwright-core@1.61.0):
+  camoufox-js@0.11.3(playwright-core@1.62.0):
     dependencies:
       adm-zip: 0.5.18
       better-sqlite3: 13.0.1
@@ -5926,7 +5926,7 @@ snapshots:
       impit: 0.14.3
       language-tags: 2.1.0
       maxmind: 5.0.6
-      playwright-core: 1.61.0
+      playwright-core: 1.62.0
       pretty-bytes: 7.1.1
       ua-parser-js: 2.0.10
       xml2js: 0.6.2
@@ -7116,7 +7116,7 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  playwright-core@1.61.0:
+  playwright-core@1.62.0:
     optional: true
 
   postcss@8.5.15:
