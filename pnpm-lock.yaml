@@ -158,8 +158,8 @@ importers:
         specifier: 2.16.0
         version: 2.16.0
       z3-solver:
-        specifier: ^4.16.0
-        version: 4.16.0
+        specifier: ^5.0.0
+        version: 5.0.0
 
   packages/extension-sdk:
     dependencies:
@@ -4138,8 +4138,8 @@ packages:
   yuku-parser@0.8.0:
     resolution: {integrity: sha512-obrazyE8Cyh79xTQS9wv44khnhvkXG1CDSSy0bg+Pjjla+iXkKXK2b6+LTYXSN3qvVfQxc0MN5qhNKYr9sl3Zw==}
 
-  z3-solver@4.16.0:
-    resolution: {integrity: sha512-vWT+I5Yz0dXtseLVZsnkwAIrRmbxw0rCX5a6Xglc6n1CyPESNMnHB3iAWh7XTQQHZRlpWYnKJXTJ0ahTTNHZEg==}
+  z3-solver@5.0.0:
+    resolution: {integrity: sha512-EvhfLFl5Vn2YfvLIRfpEPugJ9yKC6WgE5aF6IuybTGKurO+N/pMwTfvEPJ1ufnWa2pUj7V1pEpDBdIUl/NXgMA==}
     engines: {node: '>=16'}
 
   zod-to-json-schema@3.25.2:
@@ -8111,7 +8111,7 @@ snapshots:
       '@yuku-parser/binding-win32-arm64': 0.8.0
       '@yuku-parser/binding-win32-x64': 0.8.0
 
-  z3-solver@4.16.0:
+  z3-solver@5.0.0:
     dependencies:
       async-mutex: 0.3.2
     optional: true
