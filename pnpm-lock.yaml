@@ -37,7 +37,7 @@ importers:
         version: 8.0.0
       '@babel/parser':
         specifier: ^8.0.0
-        version: 8.0.0
+        version: 8.0.4
       '@babel/traverse':
         specifier: ^8.0.0
         version: 8.0.4
@@ -340,11 +340,6 @@ packages:
   '@babel/parser@7.29.7':
     resolution: {integrity: sha512-hnORnjP/1P/zFEndoeX+n+t1RwWRJiJpM/jO7FW32Kn9r5+sJB2JWOdYo4L6k78j15eCwY3Gm/7364B1EMwtNg==}
     engines: {node: '>=6.0.0'}
-    hasBin: true
-
-  '@babel/parser@8.0.0':
-    resolution: {integrity: sha512-aLxAE+imI9bCcyaPrUDjBv3uSkWieifjLe0kuFOZF0zli0L6GCsTmsePnTr55adbIAgYz2zhN1vnFimCBUYcRQ==}
-    engines: {node: ^22.18.0 || >=24.11.0}
     hasBin: true
 
   '@babel/parser@8.0.4':
@@ -4321,7 +4316,7 @@ snapshots:
       '@babel/generator': 8.0.0
       '@babel/helper-compilation-targets': 8.0.0
       '@babel/helpers': 8.0.0
-      '@babel/parser': 8.0.0
+      '@babel/parser': 8.0.4
       '@babel/template': 8.0.0
       '@babel/traverse': 8.0.4
       '@babel/types': 8.0.4
@@ -4346,7 +4341,7 @@ snapshots:
 
   '@babel/generator@8.0.0':
     dependencies:
-      '@babel/parser': 8.0.0
+      '@babel/parser': 8.0.4
       '@babel/types': 8.0.4
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
@@ -4391,10 +4386,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.7
 
-  '@babel/parser@8.0.0':
-    dependencies:
-      '@babel/types': 8.0.4
-
   '@babel/parser@8.0.4':
     dependencies:
       '@babel/types': 8.0.4
@@ -4416,7 +4407,7 @@ snapshots:
   '@babel/template@8.0.0':
     dependencies:
       '@babel/code-frame': 8.0.0
-      '@babel/parser': 8.0.0
+      '@babel/parser': 8.0.4
       '@babel/types': 8.0.4
 
   '@babel/traverse@7.29.7':
