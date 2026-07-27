@@ -1,5 +1,7 @@
 # @jshookmcp/jshook
 
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.vmoranv%2Fjshookmcp.svg)](https://mcptoplist.com/server/io.github.vmoranv%2Fjshookmcp)
+
 [![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-red.svg)](LICENSE)
 [![Node.js 22.12+](https://img.shields.io/badge/node-22.12%2B-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg)](https://www.typescriptlang.org/)
