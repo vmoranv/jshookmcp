@@ -38,6 +38,7 @@ function gte(version: string, floor: string): boolean {
 
 // The CVE-patched floor for hono (Dependabot #57-#60).
 const HONO_PATCHED_FLOOR = '4.12.21';
+const PROTOBUFJS_PATCHED_FLOOR = '8.6.6';
 
 describe('security overrides — hono CVE pin (Dependabot #57-#60)', () => {
   it('package.json pins hono override at or above the patched floor', () => {
@@ -76,6 +77,44 @@ describe('security overrides — hono CVE pin (Dependabot #57-#60)', () => {
     expect(
       vulnerable,
       `lockfile resolves vulnerable hono version(s): ${vulnerable.join(', ')} (need >= ${HONO_PATCHED_FLOOR})`,
+    ).toEqual([]);
+  });
+});
+
+describe('security overrides — protobufjs CVE pin (Dependabot #75-#77)', () => {
+  it('package.json keeps the direct dependency and override at the patched floor', () => {
+    const pkg = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'));
+    const pins: Record<string, string | undefined> = {
+      'dependencies.protobufjs': pkg?.dependencies?.protobufjs,
+      'pnpm.overrides.protobufjs': pkg?.pnpm?.overrides?.protobufjs,
+    };
+
+    for (const [location, pin] of Object.entries(pins)) {
+      expect(pin, `${location} must exist to keep protobufjs patched`).toBeTruthy();
+      const floor = String(pin).replace(/^[^\d]*/, '');
+      expect(
+        gte(floor, PROTOBUFJS_PATCHED_FLOOR),
+        `${location} "${pin}" must be >= ${PROTOBUFJS_PATCHED_FLOOR}`,
+      ).toBe(true);
+    }
+  });
+
+  it('pnpm-lock.yaml resolves every protobufjs instance at or above the patched floor', () => {
+    const lock = readFileSync(resolve(repoRoot, 'pnpm-lock.yaml'), 'utf8');
+    const resolved = new Set<string>();
+    for (const match of lock.matchAll(/^  protobufjs@(\d+\.\d+\.\d+):$/gm)) {
+      resolved.add(match[1]!);
+    }
+
+    expect(
+      resolved.size,
+      'expected at least one resolved protobufjs version in lockfile',
+    ).toBeGreaterThan(0);
+
+    const vulnerable = [...resolved].filter((version) => !gte(version, PROTOBUFJS_PATCHED_FLOOR));
+    expect(
+      vulnerable,
+      `lockfile resolves vulnerable protobufjs version(s): ${vulnerable.join(', ')} (need >= ${PROTOBUFJS_PATCHED_FLOOR})`,
     ).toEqual([]);
   });
 });

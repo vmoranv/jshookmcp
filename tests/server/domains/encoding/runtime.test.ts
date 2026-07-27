@@ -627,6 +627,24 @@ describe('EncodingToolHandlers (handlers.impl.core.runtime)', () => {
       expect(body.decoded.age).toBe(30);
     });
 
+    it('preserves unknown enum values during typed schema decoding', async () => {
+      const schema = `
+        syntax = "proto3";
+        message Event {
+          enum Status { UNKNOWN = 0; READY = 1; }
+          Status status = 1;
+        }
+      `;
+      const data = Buffer.from([0x08, 0x63]).toString('base64');
+
+      const body = parseJson<any>(
+        await handlers.handleProtobufDecodeRaw({ data, schemaText: schema, messageName: 'Event' }),
+      );
+
+      expect(body.success).toBe(true);
+      expect(body.decoded.status).toBe(99);
+    });
+
     it('falls back to raw wire-format when no schema/messageName given', async () => {
       const data = Buffer.from([0x08, 0x96, 0x01]).toString('base64');
       const body = parseJson<any>(await handlers.handleProtobufDecodeRaw({ data }));
