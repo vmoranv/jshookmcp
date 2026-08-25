@@ -164,7 +164,7 @@
   "optionalDependencies": {
     "@devicefarmer/adbkit": "^3.3.8",
     "better-sqlite3": "13.0.1",
-    "binaryen": "^130.0.0",
+    "binaryen": "^132.0.0",
     "camoufox-js": "^0.11.1",
     "koffi": "^3.0.2",
     "playwright-core": "^1.61.0",
