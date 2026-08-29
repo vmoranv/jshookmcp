@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ElicitationBridge } from '@server/ElicitationBridge';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { TEST_URLS, withPath } from '@tests/shared/test-urls';
 import { runWithToolRequestContext } from '@server/runtime/ToolRequestContext';
 
@@ -151,7 +151,7 @@ describe('ElicitationBridge', () => {
       });
       const bridge = new ElicitationBridge(server);
       await runWithToolRequestContext(
-        { sessionId: 'session-b', requestId: 'http:session-b:9' },
+        { sessionId: 'session-b', mcpReq: { id: 'http:session-b:9' } },
         () =>
           bridge.requestFormInput({
             message: 'test',

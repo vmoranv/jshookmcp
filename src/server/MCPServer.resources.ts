@@ -1,4 +1,4 @@
-import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ResourceTemplate } from '@modelcontextprotocol/server';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ReverseEvidenceGraph } from '@server/evidence/ReverseEvidenceGraph';
 import type { InstrumentationSessionManager } from '@server/instrumentation/InstrumentationSession';

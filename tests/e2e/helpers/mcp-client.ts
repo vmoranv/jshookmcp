@@ -1,6 +1,5 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
+import { Client } from '@modelcontextprotocol/client';
 import type { ToolPerformanceMetrics, ToolResult, ToolStatus } from '@tests/e2e/helpers/types';
 
 const KNOWN_EXPECTED_LIMITATION_PATTERNS = [
@@ -265,7 +264,6 @@ export class MCPTestClient {
       const resp = await withTimeout(
         this.client.callTool(
           { name, arguments: args ?? {}, ...(meta ? { _meta: meta } : {}) },
-          CallToolResultSchema,
           // Per-request timeout overrides the MCP SDK default 60s
           // (DEFAULT_REQUEST_TIMEOUT_MSEC) so slow tools (e.g. worker
           // HeapProfiler captures) can complete instead of -32001 timing out.
@@ -308,7 +306,6 @@ export class MCPTestClient {
               _meta: meta,
             },
           },
-          CallToolResultSchema,
           { timeout: timeoutMs },
         ),
         timeoutMs,

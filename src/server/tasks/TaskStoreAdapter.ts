@@ -1,110 +1,126 @@
 /**
- * Adapter bridging our internal {@link TaskManager} to the MCP SDK's
- * {@link TaskStore} interface (SDK 1.30+ experimental tasks protocol).
+ * Adapter bridging our internal {@link TaskManager} to the 2025-11-25 task
+ * wire methods (legacy-era interoperability surface).
  *
- * Supplying this store via `ServerOptions.taskStore` makes the SDK's Protocol
- * base class auto-install the `tasks/get`, `tasks/result`, `tasks/list` and
- * `tasks/cancel` JSON-RPC handlers — no manual `setRequestHandler` calls needed.
+ * v2 removed the SDK's experimental taskStore integration (SEP-2663 — tasks
+ * moved to the Extensions Track), so the four legacy methods are installed
+ * explicitly via `setRequestHandler` with the deprecated-but-exported wire
+ * schemas from `@modelcontextprotocol/core`. On 2026-07-28 connections the
+ * protocol layer answers inbound `tasks/*` with `-32601` before these handlers
+ * matter; Phase E adds the `io.modelcontextprotocol/tasks` extension for the
+ * modern era.
  *
  * @module TaskStoreAdapter
  */
+import type { Server, Task } from '@modelcontextprotocol/server';
+import {
+  CancelTaskResultSchema,
+  GetTaskPayloadResultSchema,
+  GetTaskResultSchema,
+  ListTasksResultSchema,
+} from '@modelcontextprotocol/core';
+import { z } from 'zod';
 
-import type { Task, Result } from '@modelcontextprotocol/sdk/types.js';
-import type {
-  CreateTaskOptions,
-  TaskStore,
-} from '@modelcontextprotocol/sdk/experimental/tasks/interfaces.js';
+// The 2025-11-25 task request schemas bundle the method literal into the
+// params object, which does not fit the custom-method (params-only) form.
+// The wire params are minimal, so restate them locally.
+const TaskIdParamsSchema = z.object({ taskId: z.string() });
+const ListTasksParamsSchema = z.object({ cursor: z.string().optional() });
 import type { TaskManager, TaskRecord } from './TaskManager';
 
 /**
- * Adapts a {@link TaskManager} to the SDK {@link TaskStore} contract.
+ * Adapts a {@link TaskManager} to the legacy (2025-11-25) task method surface.
  *
- * Tasks created here are store-driven: they stay `working` until the SDK's
- * task flow settles them via `storeTaskResult` / `updateTaskStatus`. Tasks
- * created internally by long-running tools (with an executor) settle
- * themselves and are surfaced through the same read paths.
+ * Tasks created here are store-driven: they stay `working` until the task
+ * flow settles them via `storeTaskResult` / `updateTaskStatus`. Tasks created
+ * internally by long-running tools (with an executor) settle themselves and
+ * are surfaced through the same read paths.
  */
-export class TaskStoreAdapter implements TaskStore {
+export class TaskStoreAdapter {
   private readonly taskManager: TaskManager;
 
   constructor(taskManager: TaskManager) {
     this.taskManager = taskManager;
   }
 
-  async createTask(
-    taskParams: CreateTaskOptions,
-    requestId: RequestIdLike,
-    _request: unknown,
-    _sessionId?: string,
-  ): Promise<Task> {
-    const task = await this.taskManager.createTask({
-      name: `sdk_task:${requestId}`,
-      ttlMs: taskParams.ttl ?? undefined,
-      pollIntervalMs: taskParams.pollInterval,
-      // No executor — the SDK's task flow drives lifecycle via storeTaskResult.
-    });
-    return this.toSdkTask(task);
+  /**
+   * Install the legacy `tasks/get | tasks/result | tasks/list | tasks/cancel`
+   * handlers onto the low-level protocol server (explicit-schema custom-method
+   * form — the typed method maps exclude task methods by design).
+   */
+  install(protocol: Pick<Server, 'setRequestHandler'>): void {
+    protocol.setRequestHandler(
+      'tasks/get',
+      { params: TaskIdParamsSchema, result: GetTaskResultSchema },
+      // Task result schemas are flat — the task fields sit at the result top level.
+      (params) => this.getTaskOrThrow(params.taskId),
+    );
+
+    protocol.setRequestHandler(
+      'tasks/result',
+      { params: TaskIdParamsSchema, result: GetTaskPayloadResultSchema },
+      (params) => {
+        const payload = this.taskManager.getTaskPayload(params.taskId);
+        if (!payload) {
+          throw new Error(`Task not found: ${params.taskId}`);
+        }
+        if (payload.status === 'failed') {
+          throw new Error(payload.error ?? 'Task failed');
+        }
+        return {
+          status: payload.status,
+          ...(payload.result !== undefined ? { result: payload.result } : {}),
+        };
+      },
+    );
+
+    protocol.setRequestHandler(
+      'tasks/list',
+      { params: ListTasksParamsSchema, result: ListTasksResultSchema },
+      () => ({
+        tasks: this.taskManager.listTasks().map((r) => this.toSdkTask(r)),
+        // No pagination — all tasks fit in a single page for our use case.
+      }),
+    );
+
+    protocol.setRequestHandler(
+      'tasks/cancel',
+      { params: TaskIdParamsSchema, result: CancelTaskResultSchema },
+      async (params) => {
+        await this.taskManager.cancelTask(params.taskId);
+        // CancelTaskResult is flat — the task fields sit at the result top level.
+        return this.toSdkTask(this.taskManager.getTask(params.taskId)!);
+      },
+    );
   }
 
-  async getTask(taskId: string, _sessionId?: string): Promise<Task | null> {
-    const record = this.taskManager.getTask(taskId);
-    if (!record) return null;
-    return this.toSdkTask(record);
+  /** Store-driven settle hooks — used by future tool-task integrations. */
+
+  storeTaskResult(taskId: string, status: 'completed' | 'failed', result: unknown): boolean {
+    return this.taskManager.setTaskResult(taskId, status, result);
   }
 
-  async storeTaskResult(
-    taskId: string,
-    status: 'completed' | 'failed',
-    result: Result,
-    _sessionId?: string,
-  ): Promise<void> {
-    this.taskManager.setTaskResult(taskId, status, result);
-  }
-
-  async getTaskResult(taskId: string, _sessionId?: string): Promise<Result> {
+  getTaskResult(taskId: string): {
+    status: TaskRecord['status'];
+    result?: unknown;
+    error?: string;
+  } {
     const payload = this.taskManager.getTaskPayload(taskId);
     if (!payload) {
       throw new Error(`Task not found: ${taskId}`);
     }
-    if (payload.status === 'failed') {
-      throw new Error(payload.error ?? 'Task failed');
-    }
-    return payload.result as Result;
+    return payload;
   }
 
-  async updateTaskStatus(
-    taskId: string,
-    status: Task['status'],
-    statusMessage?: string,
-    _sessionId?: string,
-  ): Promise<void> {
-    if (status === 'cancelled') {
-      await this.taskManager.cancelTask(taskId);
-      return;
+  private getTaskOrThrow(taskId: string): Task {
+    const record = this.taskManager.getTask(taskId);
+    if (!record) {
+      throw new Error(`Task not found: ${taskId}`);
     }
-    if (status === 'failed' && statusMessage) {
-      this.taskManager.setTaskResult(taskId, 'failed', undefined, statusMessage);
-    }
-    // 'completed' results arrive via storeTaskResult (SDK calls both; the
-    // result-carrying call is the authoritative settlement).
+    return this.toSdkTask(record);
   }
 
-  async listTasks(
-    _cursor?: string,
-    _sessionId?: string,
-  ): Promise<{
-    tasks: Task[];
-    nextCursor?: string;
-  }> {
-    const records = this.taskManager.listTasks();
-    return {
-      tasks: records.map((r) => this.toSdkTask(r)),
-      // No pagination yet — all tasks fit in a single page for our use case.
-      nextCursor: undefined,
-    };
-  }
-
-  /** Convert our {@link TaskRecord} to the SDK's {@link Task} shape. */
+  /** Convert our {@link TaskRecord} to the wire {@link Task} shape. */
   private toSdkTask<T>(record: TaskRecord<T>): Task {
     return {
       taskId: record.taskId,
@@ -117,6 +133,3 @@ export class TaskStoreAdapter implements TaskStore {
     };
   }
 }
-
-/** JSON-RPC request id — number | string per the protocol. */
-type RequestIdLike = number | string;

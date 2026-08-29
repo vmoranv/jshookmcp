@@ -1,4 +1,4 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { PAGE_EVAL_MAX_SIZE_BYTES } from '@src/constants/browser';
 import { tool } from '@server/registry/tool-builder';
 import { PAGE_NAVIGATION_WAIT_UNTIL_VALUES } from '@modules/browser/navigation-wait-until';

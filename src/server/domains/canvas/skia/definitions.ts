@@ -1,13 +1,13 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { JSONValue, Tool } from '@modelcontextprotocol/server';
 
-const emptyProperties: Record<string, object> = {};
-const extractSceneProperties: Record<string, object> = {
+const emptyProperties: Record<string, JSONValue> = {};
+const extractSceneProperties: Record<string, JSONValue> = {
   canvasId: {
     type: 'string',
     description: 'Optional canvas element ID to target for extraction.',
   },
 };
-const correlateProperties: Record<string, object> = {
+const correlateProperties: Record<string, JSONValue> = {
   canvasId: {
     type: 'string',
     description: 'Optional canvas element ID to target for correlation.',

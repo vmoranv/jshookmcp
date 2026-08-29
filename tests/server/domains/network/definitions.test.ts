@@ -1,4 +1,4 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { describe, expect, it } from 'vitest';
 
 import { advancedTools } from '@server/domains/network/definitions';

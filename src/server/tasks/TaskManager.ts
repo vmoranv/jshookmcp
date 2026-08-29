@@ -10,7 +10,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { TaskStatus } from '@modelcontextprotocol/sdk/types.js';
+import type { TaskStatus } from '@modelcontextprotocol/server';
 import { logger } from '@utils/logger';
 
 export type { TaskStatus };

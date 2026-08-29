@@ -9,7 +9,7 @@
  *
  * Requirements addressed: BOOST-01, BOOST-02, BOOST-03, BOOST-04
  */
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import type { EventBus, ServerEventMap } from '@server/EventBus';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { handleActivateDomain } from '@server/MCPServer.search.handlers.domain';

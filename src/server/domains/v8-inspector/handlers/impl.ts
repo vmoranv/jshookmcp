@@ -1,4 +1,4 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { DomainManifest, ToolRegistration } from '@server/registry/contracts';
 import type { ToolArgs } from '@server/types';

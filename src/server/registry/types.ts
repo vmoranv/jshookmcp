@@ -4,7 +4,7 @@
  * ToolDomain is now `string` (dynamically discovered, not a fixed union).
  * ToolHandlerMapDependencies is now ToolHandlerDeps (dynamic key-value map).
  */
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 
 // Re-export canonical types from contracts
 export type {

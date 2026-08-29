@@ -1,8 +1,7 @@
 /**
  * ToolRouter.probe - Runtime state probing and tool accessors.
  */
-
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { allTools, getToolDomain } from '@server/ToolCatalog';
 import { normalizeToolName } from '@server/MCPServer.search.validation';

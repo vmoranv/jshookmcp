@@ -1,8 +1,8 @@
 /**
  * Full E2E sequence with detailed timing - find exact hanging test
  */
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
+import { Client } from '@modelcontextprotocol/client';
 import { findBrowserExecutable } from '@utils/browserExecutable';
 import { E2E_DEFAULT_TARGET_URL } from '@tests/shared/test-urls';
 

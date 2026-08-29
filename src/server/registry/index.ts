@@ -1,3 +1,5 @@
+import type { Tool } from '@modelcontextprotocol/server';
+
 /**
  * Central tool registry — single source of truth with lazy domain loading.
  *
@@ -9,7 +11,6 @@ function isSubset(a: string[], b: string[]): boolean {
   return a.every((x) => bSet.has(x));
 }
 
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type {
   DomainManifest,
   ToolHandlerDeps,

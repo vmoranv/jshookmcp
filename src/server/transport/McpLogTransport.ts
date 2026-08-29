@@ -6,7 +6,7 @@
  * logger (`src/utils/logger.ts`). Structured events are sent only when
  * `MCP_LOG_ENABLED` is true (default: false).
  */
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 

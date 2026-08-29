@@ -11,7 +11,7 @@ const state = vi.hoisted(() => ({
   closeTransport: vi.fn(async () => undefined),
 }));
 
-vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
+vi.mock('@modelcontextprotocol/client', () => ({
   Client: class MockClient {
     connect = state.connect;
     listTools = state.listTools;
@@ -19,7 +19,7 @@ vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
   },
 }));
 
-vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
+vi.mock('@modelcontextprotocol/client/stdio', () => ({
   StdioClientTransport: class MockStdioClientTransport {
     ['_process'] = { pid: 4321 };
     close = state.closeTransport;

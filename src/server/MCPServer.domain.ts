@@ -10,7 +10,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { logger } from '@utils/logger';
 import { getToolDomain } from '@server/ToolCatalog';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { ToolError } from '@errors/ToolError';
 import type { MCPServerContext } from '@server/MCPServer.context';
 

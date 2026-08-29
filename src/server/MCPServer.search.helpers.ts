@@ -5,7 +5,7 @@
  * and domain description generation.
  */
 import { getProfileDomains, getToolDomain, getToolsForProfile } from '@server/ToolCatalog';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import type { ToolProfile } from '@server/ToolCatalog';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { ToolSearchEngine } from '@server/ToolSearch';

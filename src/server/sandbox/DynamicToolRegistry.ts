@@ -12,8 +12,7 @@
  */
 
 import type { MCPServerContext } from '@server/MCPServer.context';
-import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { RegisteredTool, Tool } from '@modelcontextprotocol/server';
 import { logger } from '@utils/logger';
 import { deactivateToolCore } from '@server/tool-lifecycle';
 

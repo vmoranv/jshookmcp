@@ -11,7 +11,7 @@
  * project-wide convention used by binary-instrument; byte payloads to/from
  * JNI byte arrays and raw guest memory cross the tool boundary as base64.
  */
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { tool } from '@server/registry/tool-builder';
 
 export const nativeEmulatorTools: Tool[] = [

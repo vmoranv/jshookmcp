@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { JSONValue, Tool } from '@modelcontextprotocol/server';
 
 const state = vi.hoisted(() => ({
   allTools: [] as Tool[],
@@ -61,7 +61,7 @@ vi.mock('@src/constants', () => ({
   SEARCH_SELF_RAG_ENABLED: false,
 }));
 
-function makeTool(name: string, description: string, params?: Record<string, object>): Tool {
+function makeTool(name: string, description: string, params?: Record<string, JSONValue>): Tool {
   return {
     name,
     description,

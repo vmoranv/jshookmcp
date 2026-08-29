@@ -1,7 +1,6 @@
 import { TaskManager } from '@server/tasks/TaskManager';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-import type { McpServer, RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer, RegisteredTool } from '@modelcontextprotocol/server';
 import type { Config } from '@internal-types/index';
 import type { TokenBudgetManager } from '@utils/TokenBudgetManager';
 import type { UnifiedCacheManager } from '@utils/UnifiedCacheManager';

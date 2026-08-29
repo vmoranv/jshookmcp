@@ -46,7 +46,7 @@ vi.mock('@utils/toolLatency', () => ({
   createToolLatencyTracker: mocks.createToolLatencyTracker,
 }));
 
-vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
+vi.mock('@modelcontextprotocol/server', () => {
   class ResourceTemplate {
     public readonly uriTemplate: string;
     private readonly options: {
@@ -102,6 +102,10 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
       return { remove: vi.fn() };
     }
 
+    registerPrompt(_name: string, _config: any, _handler: (...args: any[]) => unknown) {
+      return { remove: vi.fn() };
+    }
+
     registerResource(
       name: string,
       target: unknown,
@@ -125,12 +129,12 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
   };
 });
 
-vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
+vi.mock('@modelcontextprotocol/server/stdio', () => ({
   StdioServerTransport: MockStdioServerTransport,
 }));
 
-vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
-  StreamableHTTPServerTransport: class StreamableHTTPServerTransport {
+vi.mock('@modelcontextprotocol/node', () => ({
+  NodeStreamableHTTPServerTransport: class StreamableHTTPServerTransport {
     handleRequest = vi.fn();
   },
 }));

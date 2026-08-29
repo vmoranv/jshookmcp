@@ -1,5 +1,4 @@
-import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { RegisteredTool, Tool } from '@modelcontextprotocol/server';
 import type {
   ExtensionBuilder,
   PluginLifecycleContext,

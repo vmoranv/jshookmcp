@@ -4,7 +4,7 @@ import { ElicitationBridge } from '@server/ElicitationBridge';
 import { R } from '@server/domains/shared/ResponseBuilder';
 import { buildTestUrl } from '@tests/shared/test-urls';
 import type { CodeCollector } from '@server/domains/shared/modules/collector';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 
 function parse(res: Parameters<typeof R.parse>[0]): Record<string, unknown> {
   return R.parse<Record<string, unknown>>(res);

@@ -3,7 +3,7 @@
  *   - tests/server/search/SearchQuality.test.ts (regression)
  *   - scripts/search-tune/ (offline parameter tuning)
  */
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import type { ToolProfile } from '@server/ToolCatalog';
 
 // ── public types ──

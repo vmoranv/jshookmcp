@@ -13,7 +13,7 @@ import type { ElicitationBridge } from '@server/ElicitationBridge';
 import type {
   ElicitRequestFormParams,
   PrimitiveSchemaDefinition,
-} from '@modelcontextprotocol/sdk/types.js';
+} from '@modelcontextprotocol/server';
 import { readEnvNullableString, readEnvString } from '@src/config/environment';
 import {
   CAPTCHA_SOLVER_BASE_URL,

@@ -1,7 +1,7 @@
-import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
+import type { RegisteredTool, Tool } from '@modelcontextprotocol/server';
 import type { Server } from 'node:http';
 import type { Socket } from 'node:net';
-import { CompleteRequestSchema, type Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Config } from '@internal-types/index';
 import { logger } from '@utils/logger';
 import { CacheManager } from '@utils/cache';
@@ -409,18 +409,18 @@ export class MCPServer implements MCPServerContext {
           logging: {},
           completions: {},
           prompts: { listChanged: true },
-          // MCP 2.0 Tasks protocol: the SDK's Protocol base class installs the
-          // tasks/get, tasks/result, tasks/list and tasks/cancel handlers when
-          // a taskStore is supplied (ServerOptions.taskStore).
+          // Legacy (2025-11-25) tasks capability. The handlers themselves are
+          // installed explicitly below — v2 has no taskStore option
+          // (SEP-2663 moved tasks to the Extensions Track).
           tasks: {
             list: {},
             cancel: {},
             requests: { tools: { call: {} } },
           },
         },
-        taskStore: new TaskStoreAdapter(this.taskManager),
       },
     );
+    new TaskStoreAdapter(this.taskManager).install(this.server.server);
 
     // Attach structured MCP log transport
     const loggingConfig = config.server?.logging;
@@ -562,7 +562,7 @@ export class MCPServer implements MCPServerContext {
       });
     });
 
-    this.server.server.setRequestHandler(CompleteRequestSchema, async (request) => {
+    this.server.server.setRequestHandler('completion/complete', async (request) => {
       try {
         const refName = (request.params.ref as { name?: string }).name;
         if (!refName) {
