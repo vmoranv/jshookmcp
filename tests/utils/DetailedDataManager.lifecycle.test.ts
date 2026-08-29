@@ -31,10 +31,22 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Poll `cond` until it returns true, failing after `timeoutMs`. */
+/**
+ * Poll `cond` until it returns true, failing after `timeoutMs`.
+ * A throwing cond (e.g. ENOENT while the manager's fire-and-forget init()
+ * is still creating the metadata file — the Linux CI timing) counts as
+ * "not yet" and keeps polling instead of failing the test.
+ */
 async function waitFor(cond: () => boolean, timeoutMs = 4000): Promise<void> {
   const start = Date.now();
-  while (!cond()) {
+  for (;;) {
+    let satisfied = false;
+    try {
+      satisfied = cond();
+    } catch {
+      satisfied = false;
+    }
+    if (satisfied) return;
     if (Date.now() - start > timeoutMs) {
       throw new Error('waitFor timed out');
     }
