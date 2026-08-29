@@ -8,6 +8,10 @@ import {
   collectTypedEnvironmentReaders,
 } from './env-example-contract';
 
+// Every test in this file Babel-parses the whole src/ corpus; under coverage
+// instrumentation the scan roughly doubles and exceeds the 30s default.
+vi.setConfig({ testTimeout: 180_000 });
+
 interface EnvExampleEntry {
   key: string;
   rawValue: string;
