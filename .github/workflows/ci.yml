@@ -84,6 +84,11 @@ jobs:
           pnpm run typecheck
 
       - name: Run Unit Tests with Coverage
+        # Cap vitest workers: the smart runner otherwise picks ~10 workers and
+        # the v8 coverage instrumentation OOMs the hosted runner (linux-full
+        # died with "out of memory OS dump" — see PR #128 discussion).
+        env:
+          VITEST_MAX_WORKERS: 4
         run: pnpm run test:coverage
 
       - name: Build project
