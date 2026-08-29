@@ -82,6 +82,26 @@ describe('ResponseBuilder', () => {
       expect((res.content[1] as any).resource.text).toBe('test content');
       expect((res.content[1] as any).resource.mimeType).toBe('text/plain');
     });
+
+    it('should support .blobResource() binary blocks (MCP 2.0 BlobResourceContents)', async () => {
+      const res = new ResponseBuilder()
+        .blobResource('jshook://capture.pcap', 'dGVzdGJsb2I=', 'application/vnd.tcpdump.pcap')
+        .json();
+      expect(res.content).toHaveLength(2);
+      expect((res.content[1] as any).resource.uri).toBe('jshook://capture.pcap');
+      expect((res.content[1] as any).resource.blob).toBe('dGVzdGJsb2I=');
+      expect((res.content[1] as any).resource.mimeType).toBe('application/vnd.tcpdump.pcap');
+    });
+
+    it('should support .audio() content blocks (MCP 2.0 AudioContent)', async () => {
+      const res = new ResponseBuilder().audio('YXVkaW9kYXRh', 'audio/wav').json();
+      expect(res.content).toHaveLength(2);
+      expect(res.content[1]).toEqual({
+        type: 'audio',
+        data: 'YXVkaW9kYXRh',
+        mimeType: 'audio/wav',
+      });
+    });
   });
 
   describe('R shorthand', () => {

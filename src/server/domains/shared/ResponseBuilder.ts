@@ -1,11 +1,19 @@
 import type { ToolResponse } from '@server/types';
 import type {
-  ImageContent,
+  AudioContent,
+  BlobResourceContents,
   EmbeddedResource,
+  ImageContent,
   TextContent,
 } from '@modelcontextprotocol/sdk/types.js';
 
 export type { ToolResponse };
+
+export type AdditionalContentBlock =
+  | ImageContent
+  | AudioContent
+  | EmbeddedResource
+  | { type: 'resource'; resource: BlobResourceContents };
 
 /**
  * Fluent builder for MCP tool responses.
@@ -23,7 +31,7 @@ export type { ToolResponse };
 export class ResponseBuilder {
   private payload: Record<string, unknown> = {};
   private hasMcpError = false;
-  private additionalContent: (ImageContent | EmbeddedResource)[] = [];
+  private additionalContent: AdditionalContentBlock[] = [];
   private useStructuredContent = false;
 
   /** Mark as success (sets `success: true`). */
@@ -78,6 +86,29 @@ export class ResponseBuilder {
         text,
         mimeType,
       },
+    });
+    return this;
+  }
+
+  /** Push a binary blob resource block (MCP 2.0 / 2025-11-25 BlobResourceContents). */
+  blobResource(uri: string, base64Blob: string, mimeType = 'application/octet-stream'): this {
+    this.additionalContent.push({
+      type: 'resource',
+      resource: {
+        uri,
+        blob: base64Blob,
+        mimeType,
+      },
+    });
+    return this;
+  }
+
+  /** Push an audio content block (MCP 2.0 / 2025-11-25 AudioContent). */
+  audio(base64Data: string, mimeType = 'audio/wav'): this {
+    this.additionalContent.push({
+      type: 'audio',
+      data: base64Data,
+      mimeType,
     });
     return this;
   }
