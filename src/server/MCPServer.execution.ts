@@ -15,6 +15,7 @@
 import { logger } from '@utils/logger';
 import { asErrorResponse } from '@server/domains/shared/response';
 import { getToolDomain } from '@server/ToolCatalog';
+import { fastValidateToolArgs } from '@server/registry/compiled-validators';
 import { refreshDomainTtlForTool } from '@server/MCPServer.activation.ttl';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import type { ToolArgs } from '@server/types';
@@ -124,6 +125,27 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
               error: `Circuit breaker open for tool "${name}"`,
               reason: `Tool has failed consecutively ${state?.failureCount ?? 0} times`,
               retryAfterSeconds: retryAfter,
+            }),
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    // Level-2 fast validation (JIT compiled validator pool): rejects
+    // unambiguously invalid arguments without a Zod pass. Conservative by
+    // design — unknown/complex tools validate as OK and fall through to the
+    // SDK's strict Zod validation on MCP-envelope calls.
+    const fastArgError = fastValidateToolArgs(name, args);
+    if (fastArgError) {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: `Invalid arguments for tool "${name}": ${fastArgError}`,
             }),
           },
         ],

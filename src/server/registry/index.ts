@@ -17,6 +17,7 @@ import type {
   ToolProfileId,
 } from '@server/registry/contracts';
 import type { ToolHandler } from '@server/types';
+import { registerCompiledValidator } from '@server/registry/compiled-validators';
 import {
   discoverDomainManifests,
   loadSingleManifest,
@@ -80,6 +81,7 @@ async function init(profile?: ToolProfileId): Promise<void> {
         } else {
           registrationsByName.set(registration.tool.name, registration);
         }
+        registerCompiledValidator(registration.tool);
       }
     }
     registrationsCache = [...registrationsByName.values()];
@@ -124,6 +126,7 @@ export async function ensureDomainLoaded(domainName: string): Promise<DomainMani
     if (!registrationsByName!.has(registration.tool.name)) {
       registrationsByName!.set(registration.tool.name, registration);
     }
+    registerCompiledValidator(registration.tool);
   }
   registrationsCache = [...registrationsByName!.values()];
 
