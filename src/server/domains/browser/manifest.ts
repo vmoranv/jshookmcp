@@ -139,6 +139,7 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
         getRuntimeState(ctx)?.setBrowserAttach(snapshot);
       },
       getDomainInstance?.<BrowserFleetRouter>('browserFleetRouter'),
+      ctx.elicitationBridge,
     );
   }
   return ctx.browserHandlers;
