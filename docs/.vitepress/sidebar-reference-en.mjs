@@ -31,6 +31,7 @@ export const referenceSidebarItems = [
   { text: 'SourceMap', link: '/en/reference/domains/sourcemap' },
   { text: 'Streaming', link: '/en/reference/domains/streaming' },
   { text: 'Syscall Hook', link: '/en/reference/domains/syscall-hook' },
+  { text: 'Background Tasks', link: '/en/reference/domains/tasks' },
   { text: 'Trace', link: '/en/reference/domains/trace' },
   { text: 'Transform', link: '/en/reference/domains/transform' },
   { text: 'V8 Inspector', link: '/en/reference/domains/v8-inspector' },

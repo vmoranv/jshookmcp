@@ -48,6 +48,12 @@ export interface MemoryScanOptions {
   address?: string;
   size?: number;
   max?: number;
+  /**
+   * Per-invocation CLI timeout in milliseconds. Defaults to FRIDA_TIMEOUT_MS
+   * (15s). Task-mode callers pass a larger value so broad memory scans
+   * survive past the interactive timeout (MCP 2.0 Tasks retrofit).
+   */
+  timeoutMs?: number;
 }
 
 export type FridaSessionMode = 'attach' | 'spawn';
@@ -144,9 +150,12 @@ export class FridaSession {
     this.activeSessionId = undefined;
   }
 
-  async executeScript(script: string): Promise<FridaScriptResult> {
+  async executeScript(
+    script: string,
+    options: { timeoutMs?: number } = {},
+  ): Promise<FridaScriptResult> {
     const session = this.requireActiveSession();
-    const result = await this.runFridaCommandForSession(session, script);
+    const result = await this.runFridaCommandForSession(session, script, options.timeoutMs);
 
     if (result.error) {
       session.status = 'error';
@@ -313,6 +322,7 @@ export class FridaSession {
         '}',
         'console.log(JSON.stringify(results));',
       ].join('\n'),
+      options.timeoutMs,
     );
     const parsed = this.parseMemoryMatchList(result.output);
 
@@ -451,18 +461,20 @@ export class FridaSession {
   private async runFridaCommandForSession(
     session: FridaSessionRecord,
     script: string,
+    timeoutMs?: number,
   ): Promise<FridaScriptResult> {
     const targetArgs =
       session.mode === 'spawn' && session.resumed !== true
         ? this.buildSpawnTargetArgs(session.target)
         : this.buildTargetArgs(session.target);
-    return this.runFridaCommandWithArgs(session.target, targetArgs, script);
+    return this.runFridaCommandWithArgs(session.target, targetArgs, script, timeoutMs);
   }
 
   private async runFridaCommandWithArgs(
     target: string,
     targetArgs: string[],
     script: string,
+    timeoutMs?: number,
   ): Promise<FridaScriptResult> {
     const availability = await this.getAvailability();
     if (!availability.available) {
@@ -476,7 +488,7 @@ export class FridaSession {
     const args = [...targetArgs, '--runtime=v8', '-q', '-e', script];
 
     try {
-      const result = await this.execFileUtf8(command, args, FRIDA_TIMEOUT_MS);
+      const result = await this.execFileUtf8(command, args, timeoutMs ?? FRIDA_TIMEOUT_MS);
       const output = result.stdout.trim();
       const error = result.stderr.trim();
       return error ? { output, error } : { output };

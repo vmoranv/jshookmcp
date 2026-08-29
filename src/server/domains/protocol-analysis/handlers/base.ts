@@ -20,6 +20,8 @@ export class ProtocolAnalysisBaseHandlers {
   protected engine?: ProtocolPatternEngine;
   protected inferrer?: StateMachineInferrer;
   protected eventBus?: EventBus<ServerEventMap>;
+  /** MCP 2.0 Tasks scheduler — set via manifest ensure() for task-aware tools (pcapng_read). */
+  protected taskManager?: import('@server/tasks/TaskManager').TaskManager;
   /** Shared large-response sink; lazy-init via getInstance() so tests can reset it. */
   protected readonly detailedDataManager: DetailedDataManager = DetailedDataManager.getInstance();
 
@@ -27,10 +29,12 @@ export class ProtocolAnalysisBaseHandlers {
     engine?: ProtocolPatternEngine,
     inferrer?: StateMachineInferrer,
     eventBus?: EventBus<ServerEventMap>,
+    taskManager?: import('@server/tasks/TaskManager').TaskManager,
   ) {
     this.engine = engine;
     this.inferrer = inferrer;
     this.eventBus = eventBus;
+    this.taskManager = taskManager;
   }
 
   protected emitEvent<K extends ProtocolAtomicEvent>(

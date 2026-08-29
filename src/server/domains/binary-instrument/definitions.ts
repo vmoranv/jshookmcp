@@ -70,9 +70,22 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('frida_run_script', (t) =>
     t
-      .desc('Execute a Frida JavaScript snippet inside an attached Frida session.')
+      .desc(
+        'Execute a Frida JavaScript snippet inside an attached Frida session. Pass async:true to run in a ' +
+          'background task (MCP 2.0 Tasks) and poll with tasks_get/tasks_result — useful for long-running or ' +
+          'persistent instrumentation scripts that would otherwise hit the CLI timeout.',
+      )
       .string('sessionId', 'Session id returned by frida_attach')
       .string('script', 'Frida JavaScript to execute')
+      .boolean(
+        'async',
+        'Run as a background task and return a taskId immediately (poll with tasks_get/tasks_result)',
+        { default: false },
+      )
+      .number(
+        'timeoutMs',
+        'CLI timeout in milliseconds for async mode (default 300000, capped at 600000)',
+      )
       .required('sessionId', 'script'),
   ),
   tool('frida_resume', (t) =>
@@ -424,7 +437,7 @@ export const binaryInstrumentTools: Tool[] = [
   tool('frida_memory_scan', (t) =>
     t
       .desc(
-        'Scan process memory for a byte pattern via Frida Memory.scanSync. Searches a named module, an explicit address range, or all readable ranges by default.',
+        'Scan process memory for a byte pattern via Frida Memory.scanSync. Searches a named module, an explicit address range, or all readable ranges by default. Pass async:true to scan in a background task (MCP 2.0 Tasks) and poll with tasks_get/tasks_result — broad scans survive past the default 15s CLI timeout.',
       )
       .string('sessionId', 'Session id returned by frida_attach')
       .string('pattern', 'Frida byte pattern, e.g. "DE AD BE EF" or "cafebabe"')
@@ -435,6 +448,15 @@ export const binaryInstrumentTools: Tool[] = [
       )
       .number('size', 'Optional number of bytes to scan when address is given.')
       .number('max', 'Maximum matches to return (default 1000, capped at 10000).')
+      .boolean(
+        'async',
+        'Run as a background task and return a taskId immediately (poll with tasks_get/tasks_result)',
+        { default: false },
+      )
+      .number(
+        'timeoutMs',
+        'CLI timeout in milliseconds for async mode (default 300000, capped at 600000)',
+      )
       .required('sessionId', 'pattern')
       .query(),
   ),

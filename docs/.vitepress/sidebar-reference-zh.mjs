@@ -31,6 +31,7 @@ export const referenceSidebarItems = [
   { text: '源映射', link: '/reference/domains/sourcemap' },
   { text: '流式', link: '/reference/domains/streaming' },
   { text: '系统调用挂钩', link: '/reference/domains/syscall-hook' },
+  { text: '后台任务', link: '/reference/domains/tasks' },
   { text: '追踪', link: '/reference/domains/trace' },
   { text: '变换', link: '/reference/domains/transform' },
   { text: 'V8 检查器', link: '/reference/domains/v8-inspector' },

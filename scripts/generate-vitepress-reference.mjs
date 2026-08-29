@@ -573,6 +573,17 @@ const META = {
     ],
     enCombos: ['webgpu + browser', 'webgpu + instrumentation'],
   },
+  tasks: {
+    zhTitle: '后台任务',
+    zhSummary: 'MCP 2.0 Tasks 协议域：查询、轮询、取消由长耗时工具创建的后台任务。',
+    zhScenarios: ['长任务状态查询', '后台任务结果获取', '任务取消'],
+    zhCombos: ['tasks + binary-instrument', 'tasks + protocol-analysis'],
+    enTitle: 'Background Tasks',
+    enSummary:
+      'MCP 2.0 Tasks protocol domain for querying, polling and cancelling background tasks created by long-running tools.',
+    enScenarios: ['Task status polling', 'Background task results', 'Task cancellation'],
+    enCombos: ['tasks + binary-instrument', 'tasks + protocol-analysis'],
+  },
 };
 
 async function main() {

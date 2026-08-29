@@ -1,3 +1,4 @@
+import { TaskManager } from '@server/tasks/TaskManager';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import type { McpServer, RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -71,6 +72,7 @@ describe('MCPServer.context types and composition', () => {
         isElicitationSupported: () => false,
         requestFormInput: async () => null,
       } as any,
+      taskManager: new TaskManager(),
       mcpLog: {
         log: vi.fn(),
         debug: vi.fn(),

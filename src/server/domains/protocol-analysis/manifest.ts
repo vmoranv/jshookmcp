@@ -42,7 +42,12 @@ async function ensure(ctx: MCPServerContext): Promise<H> {
     return existing;
   }
 
-  const handlers = new ProtocolAnalysisHandlers(undefined, undefined, ctx.eventBus);
+  const handlers = new ProtocolAnalysisHandlers(
+    undefined,
+    undefined,
+    ctx.eventBus,
+    ctx.taskManager,
+  );
   ctx.setDomainInstance(DEP_KEY, handlers);
   return handlers;
 }

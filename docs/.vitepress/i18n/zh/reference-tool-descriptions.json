@@ -710,5 +710,9 @@
   "memory_freeze_export": "导出所有活跃冻结条目为 JSON。返回 freezeId、地址、值、类型、间隔、状态。供扩展或 trainer 消费。",
   "memory_antidetection": "反检测加固工具集。check（只读扫描：内核回调、插桩回调、AMSI/ETW 状态、混沌模式）、harden（应用 AMSI/ETW 补丁 + 进程伪装 + 自防御）、status（当前保护状态）。ProcessBreakOnTermination 已永久禁用。非 Windows 返回平台信息。",
   "memory_antidetection_check": "反检测预检审计（只读）。检查 ETW/AMSI 状态、调试器附加、HVCI/VBS 状态、已知反作弊进程（100+ 签名）。返回 0-100 分评级和处置建议。",
-  "memory_list_regions": "列出进程中所有内存区域及其保护标志。若省略 pid，则从当前浏览器会话自动发现活跃的浏览器渲染进程 PID。"
+  "memory_list_regions": "列出进程中所有内存区域及其保护标志。若省略 pid，则从当前浏览器会话自动发现活跃的浏览器渲染进程 PID。",
+  "tasks_get": "待补充中文：Get the current state of a background task (MCP 2.0 Tasks protocol). Returns status (working/completed/failed/cancelled), progress and message.",
+  "tasks_result": "待补充中文：Fetch the payload/result of a background task (MCP 2.0 Tasks protocol). Optionally waits (polls) up to waitMs for the task to reach a terminal state.",
+  "tasks_cancel": "待补充中文：Request cancellation of a background task (MCP 2.0 Tasks protocol). Only tasks in the working state can be cancelled; the tool-defined cancel handler runs if present.",
+  "tasks_list": "待补充中文：List recent background tasks tracked by the server (MCP 2.0 Tasks protocol). Expired tasks are pruned automatically based on their TTL."
 }

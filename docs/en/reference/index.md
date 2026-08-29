@@ -40,6 +40,7 @@ The following tool domains are available:
 | `sourcemap` | SourceMap | full | Source map discovery, fetching, parsing, and source tree reconstruction. |
 | `streaming` | Streaming | workflow, full | WebSocket and SSE monitoring domain. |
 | `syscall-hook` | Syscall Hook | full | System call hooking domain providing system call monitoring and mapping capabilities. |
+| `tasks` | Background Tasks | workflow, full | MCP 2.0 Tasks protocol domain for querying, polling and cancelling background tasks created by long-running tools. |
 | `trace` | Trace | full | Time-travel debugging domain that records CDP events into SQLite for SQL-based querying and heap snapshot comparison. |
 | `transform` | Transform | full | AST/string transform domain plus crypto extraction, harnessing, and comparison tooling. |
 | `v8-inspector` | V8 Inspector | workflow, full | V8 inspector domain providing heap snapshot analysis, CPU profiling, and memory inspection. |

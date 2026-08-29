@@ -20,21 +20,78 @@ import { ProtocolAnalysisFingerprintHandlers } from './fingerprint-handlers';
 
 const HEX_RE = /^[0-9a-f]*$/iu;
 
+export interface PcapngReadPayload {
+  path: string;
+  endianness: string | null;
+  blockCount: number;
+  sections: PcapngReadResult['sections'];
+  interfaces: PcapngReadResult['interfaces'];
+  packets: PcapngPacketSummary[];
+  nameResolutionRecords: PcapngReadResult['nameResolutionRecords'];
+  interfaceStatistics: PcapngReadResult['interfaceStatistics'];
+  unknownBlocks: PcapngReadResult['unknownBlocks'];
+  warnings: string[];
+  success?: boolean;
+  error?: string;
+}
+
+/** Extra fields carried by the MCP 2.0 Tasks (async) branch of handlePcapngRead. */
+export interface PcapngReadTaskFields {
+  taskId?: string;
+  taskStatus?: string;
+  async?: boolean;
+}
+
 export class ProtocolAnalysisPcapngHandlers extends ProtocolAnalysisFingerprintHandlers {
-  async handlePcapngRead(args: ToolArgs): Promise<{
-    path: string;
-    endianness: string | null;
-    blockCount: number;
-    sections: PcapngReadResult['sections'];
-    interfaces: PcapngReadResult['interfaces'];
-    packets: PcapngPacketSummary[];
-    nameResolutionRecords: PcapngReadResult['nameResolutionRecords'];
-    interfaceStatistics: PcapngReadResult['interfaceStatistics'];
-    unknownBlocks: PcapngReadResult['unknownBlocks'];
-    warnings: string[];
-    success?: boolean;
-    error?: string;
-  }> {
+  /**
+   * Core pcapng parse — shared by the synchronous path and the MCP 2.0 Tasks
+   * background executor. Reads the file, parses blocks and offloads oversized
+   * packet payloads to the DetailedDataManager sink.
+   */
+  private async readPcapngCore(
+    path: string,
+    options: {
+      maxPackets?: number;
+      maxBytesPerPacket?: number;
+      interfaceFilter?: number;
+      offloadPacket?: (hex: string, packetIndex: number) => Promise<string>;
+    },
+  ): Promise<PcapngReadPayload> {
+    const buffer = await readFile(path);
+    if (buffer.length < 12) {
+      throw new Error('PCAPNG file is too small to contain a Section Header Block');
+    }
+    // Offload any packet payload whose hex exceeds 64 KiB to the shared
+    // DetailedDataManager sink — the summary then carries `dataRef` (a
+    // retrievable detailId) instead of inline `dataHex`, keeping multi-MB
+    // captures out of the LLM context window (matches the project's
+    // response-offload pipeline, issue #62).
+    const offloadPacket = (hex: string, packetIndex: number): Promise<string> => {
+      const detailId = this.detailedDataManager.store({ packetIndex, hex });
+      return detailId;
+    };
+    const result = await parsePcapng(buffer, { ...options, offloadPacket });
+    this.emitEvent('protocol:pcapng_read', {
+      path,
+      blockCount: result.blockCount,
+      packetCount: result.packets.length,
+    });
+    return {
+      path,
+      endianness: result.endianness,
+      blockCount: result.blockCount,
+      sections: result.sections,
+      interfaces: result.interfaces,
+      packets: result.packets,
+      nameResolutionRecords: result.nameResolutionRecords,
+      interfaceStatistics: result.interfaceStatistics,
+      unknownBlocks: result.unknownBlocks,
+      warnings: result.warnings,
+      success: true,
+    };
+  }
+
+  async handlePcapngRead(args: ToolArgs): Promise<PcapngReadPayload & PcapngReadTaskFields> {
     try {
       const path = this.parseRequiredPath(args);
       const maxPackets =
@@ -50,43 +107,45 @@ export class ProtocolAnalysisPcapngHandlers extends ProtocolAnalysisFingerprintH
           ? undefined
           : parseNonNegativeInteger(args.interfaceFilter, 'interfaceFilter');
 
-      const buffer = await readFile(path);
-      if (buffer.length < 12) {
-        throw new Error('PCAPNG file is too small to contain a Section Header Block');
+      // Task mode: parse in the background and return a taskId immediately
+      // (MCP 2.0 Tasks retrofit — multi-MB captures no longer block the caller).
+      if (args.async === true && this.taskManager) {
+        const task = await this.taskManager.createTask({
+          name: 'pcapng_read',
+          executor: async (ctx) => {
+            ctx.updateProgress(5, 100, `Reading ${path}...`);
+            const result = await this.readPcapngCore(path, {
+              maxPackets,
+              maxBytesPerPacket,
+              interfaceFilter,
+            });
+            ctx.updateProgress(100, 100, `Parsed ${result.blockCount} block(s)`);
+            return result;
+          },
+        });
+        return {
+          path,
+          endianness: null,
+          blockCount: 0,
+          sections: [],
+          interfaces: [],
+          packets: [],
+          nameResolutionRecords: [],
+          interfaceStatistics: [],
+          unknownBlocks: [],
+          warnings: [],
+          success: true,
+          taskId: task.taskId,
+          taskStatus: task.status,
+          async: true,
+        };
       }
-      // Offload any packet payload whose hex exceeds 64 KiB to the shared
-      // DetailedDataManager sink — the summary then carries `dataRef` (a
-      // retrievable detailId) instead of inline `dataHex`, keeping multi-MB
-      // captures out of the LLM context window (matches the project's
-      // response-offload pipeline, issue #62).
-      const offloadPacket = (hex: string, packetIndex: number): Promise<string> => {
-        const detailId = this.detailedDataManager.store({ packetIndex, hex });
-        return detailId;
-      };
-      const result = await parsePcapng(buffer, {
+
+      return await this.readPcapngCore(path, {
         maxPackets,
         maxBytesPerPacket,
         interfaceFilter,
-        offloadPacket,
       });
-      this.emitEvent('protocol:pcapng_read', {
-        path,
-        blockCount: result.blockCount,
-        packetCount: result.packets.length,
-      });
-      return {
-        path,
-        endianness: result.endianness,
-        blockCount: result.blockCount,
-        sections: result.sections,
-        interfaces: result.interfaces,
-        packets: result.packets,
-        nameResolutionRecords: result.nameResolutionRecords,
-        interfaceStatistics: result.interfaceStatistics,
-        unknownBlocks: result.unknownBlocks,
-        warnings: result.warnings,
-        success: true,
-      };
     } catch (error) {
       return {
         path: typeof args.path === 'string' ? args.path : '',

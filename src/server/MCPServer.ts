@@ -14,6 +14,8 @@ import type { ToolProfile } from '@server/ToolCatalog';
 import { ToolExecutionRouter } from '@server/ToolExecutionRouter';
 import { ToolCallContextGuard } from '@server/ToolCallContextGuard';
 import { ToolCircuitBreaker } from '@server/security/ToolCircuitBreaker';
+import { TaskManager } from '@server/tasks/TaskManager';
+import { TaskStoreAdapter } from '@server/tasks/TaskStoreAdapter';
 import { LargeDataOffloader } from '@server/ToolResponseOffloader';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { ToolArgs } from '@server/types';
@@ -104,6 +106,8 @@ export class MCPServer implements MCPServerContext {
   public readonly router: ToolExecutionRouter;
   public readonly contextGuard: ToolCallContextGuard;
   public readonly circuitBreaker = new ToolCircuitBreaker();
+  /** MCP 2.0 Tasks protocol — background scheduler for long-running tool operations. */
+  public readonly taskManager = new TaskManager();
   private readonly circuitBrokenTools = new Set<string>();
   private readonly searchQualityTracker = new SearchQualityTracker();
   /** Offloads large response data (>512KB) to disk / DetailedDataManager to keep context lean. */
@@ -361,6 +365,8 @@ export class MCPServer implements MCPServerContext {
       }
     }
     this.handlerDeps = Object.fromEntries(depsEntries) as ToolHandlerDeps;
+    // Expose the task scheduler to domain bind closures (deps.taskManager).
+    (this.handlerDeps as Record<string, unknown>)['taskManager'] = this.taskManager;
 
     const selectedToolNames = new Set(this.selectedTools.map((t) => t.name));
     this.router = new ToolExecutionRouter(
@@ -403,7 +409,16 @@ export class MCPServer implements MCPServerContext {
           logging: {},
           completions: {},
           prompts: { listChanged: true },
+          // MCP 2.0 Tasks protocol: the SDK's Protocol base class installs the
+          // tasks/get, tasks/result, tasks/list and tasks/cancel handlers when
+          // a taskStore is supplied (ServerOptions.taskStore).
+          tasks: {
+            list: {},
+            cancel: {},
+            requests: { tools: { call: {} } },
+          },
         },
+        taskStore: new TaskStoreAdapter(this.taskManager),
       },
     );
 

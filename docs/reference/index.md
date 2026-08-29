@@ -40,6 +40,7 @@
 | `sourcemap` | 源映射 | full | SourceMap 发现、抓取、解析与源码树重建。 |
 | `streaming` | 流式 | workflow, full | WebSocket 与 SSE 监控域。 |
 | `syscall-hook` | 系统调用挂钩 | full | 系统调用挂钩域，提供系统调用监控和映射能力。 |
+| `tasks` | 后台任务 | workflow, full | MCP 2.0 Tasks 协议域：查询、轮询、取消由长耗时工具创建的后台任务。 |
 | `trace` | 追踪 | full | 时间旅行调试域，录制 CDP 事件并写入 SQLite，支持 SQL 查询与堆快照对比。 |
 | `transform` | 变换 | full | AST/字符串变换与加密实现抽取、测试、对比域。 |
 | `v8-inspector` | V8 检查器 | workflow, full | V8 检查器域，提供堆快照分析、CPU 分析和内存检查。 |

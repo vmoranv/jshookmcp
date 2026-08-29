@@ -48,6 +48,8 @@ export interface ServerCore {
   samplingBridge: import('@server/LLMSamplingBridge').LLMSamplingBridge;
   /** Elicitation bridge — allows tools to request interactive user input from the client */
   elicitationBridge: import('@server/ElicitationBridge').ElicitationBridge;
+  /** MCP 2.0 Tasks protocol scheduler — runs long operations (frida scan, pcapng parse) in background tasks */
+  taskManager: import('@server/tasks/TaskManager').TaskManager;
   /** Structured log transport for MCP `notifications/message` */
   mcpLog: import('@server/transport/McpLogTransport').McpLogTransport;
 }

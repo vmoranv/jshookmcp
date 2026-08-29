@@ -309,7 +309,8 @@ export const protocolAnalysisTools: Tool[] = [
       .desc(
         'Read a PCAPNG (pcap-ng) capture file and return structured Section/Interface/Packet blocks. Supports ' +
           'Section Header, Interface Description, Enhanced/Simple Packet, Name Resolution, and Interface Statistics ' +
-          'blocks; unknown block types are surfaced as warnings.',
+          'blocks; unknown block types are surfaced as warnings. For multi-MB captures pass async:true to parse in a ' +
+          'background task (MCP 2.0 Tasks) and poll with tasks_get/tasks_result instead of blocking this call.',
       )
       .string('path', 'Path to the PCAPNG file to parse')
       .number('maxPackets', 'Maximum number of packet records to decode')
@@ -320,6 +321,11 @@ export const protocolAnalysisTools: Tool[] = [
       .number(
         'interfaceFilter',
         'When set, only Enhanced Packet Blocks matching this interface ID are returned (Simple Packet Blocks pass through)',
+      )
+      .boolean(
+        'async',
+        'Run the parse as a background task and return a taskId immediately (poll with tasks_get/tasks_result)',
+        { default: false },
       )
       .required('path')
       .query(),

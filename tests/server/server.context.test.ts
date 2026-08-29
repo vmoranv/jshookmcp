@@ -7,6 +7,7 @@
  * - DomainInstances can be populated with domain handlers
  * - All named domain accessors are optional
  */
+import { TaskManager } from '@server/tasks/TaskManager';
 import { describe, it, expect, vi } from 'vitest';
 
 import type {
@@ -37,6 +38,7 @@ describe('MCPServer.context — interface coverage', () => {
         isElicitationSupported: () => false,
         requestFormInput: async () => null,
       } as any,
+      taskManager: new TaskManager(),
       mcpLog: {
         log: vi.fn(),
         debug: vi.fn(),
@@ -100,10 +102,11 @@ describe('MCPServer.context — interface coverage', () => {
       eventBus: ctx.eventBus,
       samplingBridge: ctx.samplingBridge,
       elicitationBridge: ctx.elicitationBridge,
+      taskManager: ctx.taskManager,
       mcpLog: ctx.mcpLog,
     };
     expect(core).toBeDefined();
-    expect(Object.keys(core)).toHaveLength(9);
+    expect(Object.keys(core)).toHaveLength(10);
   });
 
   it('ToolRegistryState holds tools and routing', () => {

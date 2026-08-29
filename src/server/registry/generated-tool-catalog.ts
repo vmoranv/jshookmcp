@@ -24274,6 +24274,120 @@ export const GENERATED_TOOL_CATALOG = [
   },
   {
     tool: {
+      name: 'tasks_cancel',
+      description:
+        'Request cancellation of a background task (MCP 2.0 Tasks protocol). Only tasks in the working state can be cancelled; the tool-defined cancel handler runs if present.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          taskId: {
+            type: 'string',
+            description: 'Task identifier returned by the originating long-running tool call',
+          },
+        },
+        required: ['taskId'],
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    domain: 'tasks',
+  },
+  {
+    tool: {
+      name: 'tasks_get',
+      description:
+        'Get the current state of a background task (MCP 2.0 Tasks protocol). Returns status (working/completed/failed/cancelled), progress and message.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          taskId: {
+            type: 'string',
+            description: 'Task identifier returned by the originating long-running tool call',
+          },
+        },
+        required: ['taskId'],
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    domain: 'tasks',
+  },
+  {
+    tool: {
+      name: 'tasks_list',
+      description:
+        'List recent background tasks tracked by the server (MCP 2.0 Tasks protocol). Expired tasks are pruned automatically based on their TTL.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            description: 'Optional status filter: working, completed, failed or cancelled',
+          },
+          name: {
+            type: 'string',
+            description: 'Optional exact-name filter (e.g. frida_memory_scan)',
+          },
+          limit: {
+            type: 'number',
+            description: 'Maximum number of tasks to return (most recent first)',
+            default: 50,
+            minimum: 1,
+            maximum: 500,
+          },
+        },
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    domain: 'tasks',
+  },
+  {
+    tool: {
+      name: 'tasks_result',
+      description:
+        'Fetch the payload/result of a background task (MCP 2.0 Tasks protocol). Optionally waits (polls) up to waitMs for the task to reach a terminal state.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          taskId: {
+            type: 'string',
+            description: 'Task identifier returned by the originating long-running tool call',
+          },
+          waitMs: {
+            type: 'number',
+            description:
+              'Maximum time in milliseconds to wait for a terminal state before returning current status',
+            default: 5000,
+            minimum: 0,
+            maximum: 30000,
+          },
+        },
+        required: ['taskId'],
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    domain: 'tasks',
+  },
+  {
+    tool: {
       name: 'tcp_close',
       description: 'Close an open TCP session.',
       inputSchema: {
