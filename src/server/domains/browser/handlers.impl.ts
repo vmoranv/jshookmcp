@@ -123,6 +123,8 @@ export class BrowserToolHandlers {
   private readonly getCurrentSessionId?: () => string | null;
   private readonly sessionCoordinator?: BrowserSessionCoordinator;
   private readonly fleetRouter?: BrowserFleetRouter;
+  /** Elicitation bridge — powers the CAPTCHA manual-solve suspend/resume flow. */
+  private readonly elicitationBridge?: import('@server/ElicitationBridge').ElicitationBridge;
   private readonly onBrowserAttachStateChanged?: (
     snapshot: Partial<BrowserAttachRuntimeSnapshot>,
   ) => void;
@@ -140,6 +142,7 @@ export class BrowserToolHandlers {
     sessionCoordinator?: BrowserSessionCoordinator,
     onBrowserAttachStateChanged?: (snapshot: Partial<BrowserAttachRuntimeSnapshot>) => void,
     fleetRouter?: BrowserFleetRouter,
+    elicitationBridge?: import('@server/ElicitationBridge').ElicitationBridge,
   ) {
     this.collector = collector;
     this.pageController = pageController;
@@ -151,6 +154,7 @@ export class BrowserToolHandlers {
     this.sessionCoordinator = sessionCoordinator;
     this.fleetRouter = fleetRouter;
     this.onBrowserAttachStateChanged = onBrowserAttachStateChanged;
+    this.elicitationBridge = elicitationBridge;
 
     const screenshotDir = resolveOutputDirectory(
       getConfig().paths.captchaScreenshotDir,
@@ -907,7 +911,7 @@ export class BrowserToolHandlers {
 
   // ── CAPTCHA Solving ──
   async handleCaptchaVisionSolve(args: Record<string, unknown>) {
-    return handleCaptchaVisionSolve(args, this.collector);
+    return handleCaptchaVisionSolve(args, this.collector, this.elicitationBridge);
   }
 
   async handleWidgetChallengeSolve(args: Record<string, unknown>) {
