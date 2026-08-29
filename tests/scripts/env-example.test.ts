@@ -226,48 +226,54 @@ describe('.env.example runtime contract', () => {
     expect([...dynamicReaders].toSorted()).toEqual([...dynamicReaderContracts.keys()].toSorted());
   });
 
-  it('keeps statically evaluable runtime defaults aligned with the template', () => {
-    const { defaults } = collectTypedEnvironmentReaders(sourcePaths, projectRoot);
-    const centralDefaults = collectCentralConfigDefaults(configPath, projectRoot);
-    const grouped = new Map<string, (typeof defaults)[number][]>();
-    for (const row of [...defaults, ...centralDefaults]) {
-      const rows = grouped.get(row.key) ?? [];
-      rows.push(row);
-      grouped.set(row.key, rows);
-    }
-    const templateValues = new Map(
-      entries.map(({ key, rawValue }) => [key, normalizedExampleValue(rawValue)]),
-    );
-    const mismatches: string[] = [];
-    const conflicts: string[] = [];
-    let compared = 0;
-
-    for (const [key, rows] of grouped) {
-      if (key === 'NODE_ENV') continue;
-      const central = rows.filter(({ reader }) => reader === 'ConfigSchema');
-      const candidates = central.length > 0 ? central : rows.filter(({ nullable }) => !nullable);
-      const resolved = new Set(
-        candidates.flatMap(({ value }) => (value === undefined ? [] : [value])),
-      );
-      const contextualDefault = contextualTypedDefaults.get(key);
-      if (resolved.size === 0 && contextualDefault !== undefined) resolved.add(contextualDefault);
-      if (resolved.size === 0) continue;
-
-      compared += 1;
-      if (resolved.size > 1) {
-        conflicts.push(`${key}: ${[...resolved].join(' | ')}`);
-        continue;
+  // Babel-parses the whole src/ corpus — needs a generous timeout under
+  // coverage instrumentation (the transform pass roughly doubles the scan).
+  it(
+    'keeps statically evaluable runtime defaults aligned with the template',
+    { timeout: 180_000 },
+    () => {
+      const { defaults } = collectTypedEnvironmentReaders(sourcePaths, projectRoot);
+      const centralDefaults = collectCentralConfigDefaults(configPath, projectRoot);
+      const grouped = new Map<string, (typeof defaults)[number][]>();
+      for (const row of [...defaults, ...centralDefaults]) {
+        const rows = grouped.get(row.key) ?? [];
+        rows.push(row);
+        grouped.set(row.key, rows);
       }
-      const expected = [...resolved][0]!;
-      const actual = templateValues.get(key);
-      if (actual !== expected)
-        mismatches.push(`${key}: template=${actual ?? '<missing>'} runtime=${expected}`);
-    }
+      const templateValues = new Map(
+        entries.map(({ key, rawValue }) => [key, normalizedExampleValue(rawValue)]),
+      );
+      const mismatches: string[] = [];
+      const conflicts: string[] = [];
+      let compared = 0;
 
-    expect(conflicts).toEqual([]);
-    expect(mismatches).toEqual([]);
-    expect(compared).toBeGreaterThan(600);
-  });
+      for (const [key, rows] of grouped) {
+        if (key === 'NODE_ENV') continue;
+        const central = rows.filter(({ reader }) => reader === 'ConfigSchema');
+        const candidates = central.length > 0 ? central : rows.filter(({ nullable }) => !nullable);
+        const resolved = new Set(
+          candidates.flatMap(({ value }) => (value === undefined ? [] : [value])),
+        );
+        const contextualDefault = contextualTypedDefaults.get(key);
+        if (resolved.size === 0 && contextualDefault !== undefined) resolved.add(contextualDefault);
+        if (resolved.size === 0) continue;
+
+        compared += 1;
+        if (resolved.size > 1) {
+          conflicts.push(`${key}: ${[...resolved].join(' | ')}`);
+          continue;
+        }
+        const expected = [...resolved][0]!;
+        const actual = templateValues.get(key);
+        if (actual !== expected)
+          mismatches.push(`${key}: template=${actual ?? '<missing>'} runtime=${expected}`);
+      }
+
+      expect(conflicts).toEqual([]);
+      expect(mismatches).toEqual([]);
+      expect(compared).toBeGreaterThan(600);
+    },
+  );
 
   it('contains only runtime-consumed application keys', () => {
     const unused = [...entryKeys].filter((key) => !srcCorpus.includes(key)).toSorted();
