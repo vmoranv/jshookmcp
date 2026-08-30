@@ -850,6 +850,33 @@ export class BrowserToolHandlers {
     return handleV8TypeProfile({ collector: this.collector }, args);
   }
 
+  // ── Phase 2: split action-enum tools + migrated perf metrics ──
+
+  async handleBrowserGetMetrics(args: Record<string, unknown>) {
+    const { handleBrowserGetMetrics } = await import('./handlers/performance-tools');
+    return handleBrowserGetMetrics({ collector: this.collector }, args);
+  }
+
+  async handleBrowserTraceStart(args: Record<string, unknown>) {
+    const { handleBrowserTraceStart } = await import('./handlers/performance-tools');
+    return handleBrowserTraceStart({ collector: this.collector }, args);
+  }
+
+  async handleBrowserTraceStop(args: Record<string, unknown>) {
+    const { handleBrowserTraceStop } = await import('./handlers/performance-tools');
+    return handleBrowserTraceStop({ collector: this.collector }, args);
+  }
+
+  async handleBrowserCpuProfileStart(args: Record<string, unknown>) {
+    const { handleBrowserCpuProfileStart } = await import('./handlers/performance-tools');
+    return handleBrowserCpuProfileStart({ collector: this.collector }, args);
+  }
+
+  async handleBrowserCpuProfileStop(args: Record<string, unknown>) {
+    const { handleBrowserCpuProfileStop } = await import('./handlers/performance-tools');
+    return handleBrowserCpuProfileStop({ collector: this.collector }, args);
+  }
+
   // ── Coverage & Script Blocking (P2) ──
   async handlePageCoverageStart(args: Record<string, unknown>) {
     const { handlePageCoverageStart } = await import('./handlers/coverage-and-block');

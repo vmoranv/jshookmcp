@@ -2,13 +2,16 @@ import type { Tool } from '@modelcontextprotocol/server';
 import { tool } from '@server/registry/tool-builder';
 
 /**
- * Atomic performance primitives (P0).
+ * Atomic performance primitives (P0 + Phase 2).
  *
  * Each tool is a single CDP / Web API primitive — no pipeline orchestration:
  * - browser_performance_observer     → in-page PerformanceObserver subscription
  * - browser_resource_timing          → Resource Timing API decomposition
  * - browser_cdp_performance_metrics  → CDP Performance.getMetrics()
  * - v8_type_profile                  → CDP Profiler type profile (start/stop)
+ * - browser_get_metrics              → Web Vitals + memory + engine counters
+ * - browser_trace_start / _stop      → Chrome performance trace (split pair)
+ * - browser_cpu_profile_start / _stop → CDP CPU profiling (split pair)
  */
 export const browserPerformanceToolDefinitions: Tool[] = [
   tool('browser_performance_observer', (t) =>
@@ -53,7 +56,7 @@ export const browserPerformanceToolDefinitions: Tool[] = [
         'Atomic primitive: fetch browser runtime metrics via CDP Performance.getMetrics() on ' +
           'the active page. Returns raw CDP-level counters (LayoutCount, RecalcStyleCount, ' +
           'ScriptDuration, TaskDuration, JSHeapUsedSize, Nodes, Documents, Frames, ...) — ' +
-          'not Web Vitals (use network domain performance_get_metrics for those).',
+          'not Web Vitals (use browser_get_metrics for those).',
       )
       .query(),
   ),
@@ -77,6 +80,75 @@ export const browserPerformanceToolDefinitions: Tool[] = [
         minimum: 1,
       })
       .required('action')
+      .query(),
+  ),
+  // ── Phase 2: split action-enum tools + migrated perf metrics ──
+  tool('browser_get_metrics', (t) =>
+    t
+      .desc(
+        'Atomic primitive: collect page performance metrics via PerformanceMonitor — ' +
+          'Web Vitals (FCP, LCP, CLS, TTFB), DOM timing (domContentLoaded, loadComplete), ' +
+          'engine-level counters (scriptDuration, layoutDuration, recalcStyleDuration) and ' +
+          'JS heap sizes (usedJSHeapSize / totalJSHeapSize / jsHeapSizeLimit). ' +
+          'Optionally include the raw performance timeline entries. Replaces the legacy ' +
+          'network-domain performance_get_metrics (still working as a backward-compat alias).',
+      )
+      .boolean('includeTimeline', 'Include raw performance timeline entries', {
+        default: false,
+      })
+      .query(),
+  ),
+  tool('browser_trace_start', (t) =>
+    t
+      .desc(
+        'Atomic primitive: begin a Chrome performance trace on the active page via ' +
+          'page.tracing.start(). Pair with browser_trace_stop to save the trace to disk. ' +
+          'Use a sensible categories list when you have a specific hypothesis (e.g. ' +
+          '["devtools.timeline","v8.execute","blink.user_timing"]); the default set covers ' +
+          'most profiling needs.',
+      )
+      .array('categories', { type: 'string' }, 'Trace categories to capture (omit = default set)')
+      .boolean('screenshots', 'Capture screenshots during tracing', { default: false })
+      .idempotent(),
+  ),
+  tool('browser_trace_stop', (t) =>
+    t
+      .desc(
+        'Atomic primitive: stop the Chrome performance trace started by browser_trace_start ' +
+          'and persist it to artifacts/traces/ (or to a custom path). Returns event count, ' +
+          'file size, and a Chrome DevTools hint. Fails clearly if tracing was never started ' +
+          'or has already been stopped.',
+      )
+      .string('artifactPath', 'Custom output path (omit = auto path under artifacts/traces/)')
+      .query(),
+  ),
+  tool('browser_cpu_profile_start', (t) =>
+    t
+      .desc(
+        'Atomic primitive: begin CDP CPU profiling on the active page (Profiler.start). ' +
+          'Pair with browser_cpu_profile_stop to save the .cpuprofile. Set samplingInterval ' +
+          'to 30-100 µs for high-resolution profiles (default 1000 µs / 1 ms).',
+      )
+      .number(
+        'samplingInterval',
+        'Sampling interval in microseconds. Default: 1000 (1ms). 30-100 for high-res. Range: 30-10000',
+        { minimum: 30, maximum: 10000 },
+      )
+      .idempotent(),
+  ),
+  tool('browser_cpu_profile_stop', (t) =>
+    t
+      .desc(
+        'Atomic primitive: stop CDP CPU profiling, rank hot functions by sample count, ' +
+          'and persist the raw profile to artifacts/profiles/ (or a custom path). The hot ' +
+          'function list is derived from the samples array — modern Chrome profiles do not ' +
+          'populate hitCount. Fails clearly if profiling was never started.',
+      )
+      .string('artifactPath', 'Custom output path (omit = auto path under artifacts/profiles/)')
+      .number('topN', 'Cap the hot-functions list to N entries (default 20)', {
+        default: 20,
+        minimum: 1,
+      })
       .query(),
   ),
 ];
