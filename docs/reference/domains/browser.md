@@ -21,7 +21,7 @@
 - browser + instrumentation
 - browser + workflow
 
-## 工具清单（80）
+## 工具清单（85）
 
 | 工具 | 说明 |
 | --- | --- |
@@ -94,6 +94,11 @@
 | `browser_resource_timing` | 原子原语：读取活跃页面的 Resource Timing API 条目，将每个资源拆解为 dns / connect / tls / ttfb / download 各阶段耗时，以及传输和响应体大小。可选包含 Server-Timing 响应头并按 URL 子串过滤。只读快照——不安装任何 observer 或监听器。 |
 | `browser_cdp_performance_metrics` | 原子原语：通过 CDP Performance.getMetrics() 获取活跃页面的浏览器运行时指标。返回原始 CDP 级计数器（LayoutCount、RecalcStyleCount、ScriptDuration、TaskDuration、JSHeapUsedSize、Nodes、Documents、Frames 等）——不是 Web Vitals（需要 Web Vitals 请用 network 域的 performance_get_metrics）。 |
 | `v8_type_profile` | 原子原语：通过 CDP Profiler.startTypeProfile() / takeTypeProfile() / stopTypeProfile() 启动或停止 V8 类型剖析。类型剖析记录流经每个函数入口的运行时类型（type:Array、type:Object、type:number 等）——是反混淆 VM 分发器或多态调用点的原始素材。action="stop" 返回按脚本分类的条目，并可选地将原始剖析数据持久化为 JSON 产物（artifacts/profiles/）。 |
+| `browser_get_metrics` | 待补充中文：Atomic primitive: collect page performance metrics via PerformanceMonitor — Web Vitals (FCP, LCP, CLS, TTFB), DOM timing (domContentLoaded, loadComplete), engine-level counters (scriptDuration, layoutDuration, recalcStyleDuration) and JS heap sizes (usedJSHeapSize / totalJSHeapSize / jsHeapSizeLimit). Optionally include the raw performance timeline entries. Replaces the legacy network-domain performance_get_metrics (still working as a backward-compat alias). |
+| `browser_trace_start` | 待补充中文：Atomic primitive: begin a Chrome performance trace on the active page via page.tracing.start(). Pair with browser_trace_stop to save the trace to disk. Use a sensible categories list when you have a specific hypothesis (e.g. ["devtools.timeline","v8.execute","blink.user_timing"]); the default set covers most profiling needs. |
+| `browser_trace_stop` | 待补充中文：Atomic primitive: stop the Chrome performance trace started by browser_trace_start and persist it to artifacts/traces/ (or to a custom path). Returns event count, file size, and a Chrome DevTools hint. Fails clearly if tracing was never started or has already been stopped. |
+| `browser_cpu_profile_start` | 待补充中文：Atomic primitive: begin CDP CPU profiling on the active page (Profiler.start). Pair with browser_cpu_profile_stop to save the .cpuprofile. Set samplingInterval to 30-100 µs for high-resolution profiles (default 1000 µs / 1 ms). |
+| `browser_cpu_profile_stop` | 待补充中文：Atomic primitive: stop CDP CPU profiling, rank hot functions by sample count, and persist the raw profile to artifacts/profiles/ (or a custom path). The hot function list is derived from the samples array — modern Chrome profiles do not populate hitCount. Fails clearly if profiling was never started. |
 | `human_mouse` | 模拟真人移动鼠标，带随机轨迹和抖动。 |
 | `human_scroll` | 模拟真人滚动页面，带变速和停顿。 |
 | `human_typing` | 模拟真人打字，带变速和偶尔打错再修正。 |
