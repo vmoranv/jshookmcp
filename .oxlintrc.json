@@ -106,7 +106,10 @@
           "_SuspendThread",
           "_ResumeThread",
           "_GetThreadContext",
-          "_ReadProcessMemory"
+          "_ReadProcessMemory",
+          "_performanceMonitor",
+          "_tracingActive",
+          "_cpuProfilingActive"
         ]
       }
     ],
