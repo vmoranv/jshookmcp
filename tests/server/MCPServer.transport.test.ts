@@ -560,6 +560,24 @@ describe('MCPServer.transport', () => {
     expect(transport.handleRequest).toHaveBeenCalledWith(req, res, '{"ok":true}');
   });
 
+  it('applies the configured body limit to chunked modern requests', async () => {
+    const ctx = createCtx({
+      config: {
+        server: { host: '127.0.0.1', port: 3000, http: { maxBodyBytes: 2048 } },
+      },
+    });
+    await startHttpTransport(ctx);
+    const server = mocks.httpServers[0];
+    const req = { url: '/mcp/v2', method: 'POST', headers: {} };
+    const res = createRes();
+    mocks.readBodyWithLimit.mockReturnValueOnce(new Promise(() => undefined));
+
+    server.requestHandlerForTest(req, res);
+    await Promise.resolve();
+
+    expect(mocks.readBodyWithLimit).toHaveBeenCalledWith(req, res, 2048);
+  });
+
   it('returns 405 for unsupported HTTP methods', async () => {
     const ctx = createCtx();
     await startHttpTransport(ctx);

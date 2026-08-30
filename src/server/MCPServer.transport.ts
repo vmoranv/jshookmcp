@@ -205,40 +205,45 @@ export async function startHttpTransport(ctx: MCPServerContext): Promise<void> {
       const authenticated = checkAuth(req, res, authConfig);
       if (!authenticated) return;
       if (!checkRateLimit(req, res, authenticated, rateLimitConfig)) return;
-      const contentLength = Number(req.headers['content-length'] ?? 0);
-      const maxBodyBytes = httpConfig?.maxBodyBytes;
-      if (
-        maxBodyBytes !== undefined &&
-        Number.isFinite(contentLength) &&
-        contentLength > maxBodyBytes
-      ) {
-        res.writeHead(413, { 'Content-Type': 'text/plain' });
-        res.end('Payload Too Large');
-        return;
+      const dispatch = (parsedBody?: unknown) => {
+        modernHandlerPromise ??= (async () => {
+          const [{ createMcpHandler }, { toNodeHandler }, { createModernMcpServer }] =
+            await Promise.all([
+              import('@modelcontextprotocol/server'),
+              import('@modelcontextprotocol/node'),
+              import('@server/MCPServer.modern'),
+            ]);
+          const mcp = createMcpHandler(
+            (requestContext) => createModernMcpServer(ctx, requestContext),
+            {
+              legacy: 'reject',
+              onerror: (error) => logger.warn('[http/v2] MCP handler error:', error),
+            },
+          );
+          ctx.setDomainInstance?.('modernHttpHandler', mcp);
+          return { node: toNodeHandler(mcp), mcp };
+        })();
+        void modernHandlerPromise
+          .then(({ node }) => node(req, res, parsedBody))
+          .catch((error) => {
+            modernHandlerPromise = undefined;
+            logger.warn('[http/v2] failed to initialize MCP handler:', error);
+          });
+      };
+
+      // Parse every POST through the bounded streaming reader. This enforces
+      // maxBodyBytes for chunked requests as well as requests with a declared
+      // Content-Length; the parsed JSON is passed to toNodeHandler so the
+      // adapter does not need to consume the request stream a second time.
+      if (req.method === 'POST') {
+        const bodyPromise =
+          httpConfig?.maxBodyBytes === undefined
+            ? readBodyWithLimit(req, res)
+            : readBodyWithLimit(req, res, httpConfig.maxBodyBytes);
+        bodyPromise.then(dispatch).catch(() => undefined);
+      } else {
+        dispatch();
       }
-      modernHandlerPromise ??= (async () => {
-        const [{ createMcpHandler }, { toNodeHandler }, { createModernMcpServer }] =
-          await Promise.all([
-            import('@modelcontextprotocol/server'),
-            import('@modelcontextprotocol/node'),
-            import('@server/MCPServer.modern'),
-          ]);
-        const mcp = createMcpHandler(
-          (requestContext) => createModernMcpServer(ctx, requestContext),
-          {
-            legacy: 'reject',
-            onerror: (error) => logger.warn('[http/v2] MCP handler error:', error),
-          },
-        );
-        ctx.setDomainInstance?.('modernHttpHandler', mcp);
-        return { node: toNodeHandler(mcp), mcp };
-      })();
-      void modernHandlerPromise
-        .then(({ node }) => node(req, res))
-        .catch((error) => {
-          modernHandlerPromise = undefined;
-          logger.warn('[http/v2] failed to initialize MCP handler:', error);
-        });
       return;
     }
 
