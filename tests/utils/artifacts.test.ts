@@ -258,4 +258,78 @@ describe('writeArtifactContent', () => {
     await writeArtifactContent(resolve(ROOT, 'artifacts/dumps/bin.dat'), bytes, { encrypt: true });
     expect(writeFile).toHaveBeenCalledTimes(1);
   });
+
+  it('auto-encrypts content for dumps, traces, profiles, captures, sessions, har categories', async () => {
+    const sensitiveCategories = [
+      'dumps',
+      'traces',
+      'profiles',
+      'captures',
+      'sessions',
+      'har',
+    ] as const;
+    for (const category of sensitiveCategories) {
+      vi.mocked(writeFile).mockClear();
+      const result = await writeArtifactContent(
+        resolve(ROOT, `artifacts/${category}/auto.txt`),
+        'sensitive payload',
+        { category },
+      );
+      expect(result.encryptionKeyHex, `category=${category} should default-encrypt`).toMatch(
+        /^[0-9a-f]{64}$/,
+      );
+      const [, writtenContent, writeOptions] = vi.mocked(writeFile).mock.calls[0]!;
+      expect(writeOptions, `category=${category} should write with 0o600`).toEqual({ mode: 0o600 });
+      const envelope = JSON.parse(writtenContent as string);
+      expect(envelope.algorithm, `category=${category} envelope`).toBe('aes-256-gcm');
+      expect(envelope.payload, `category=${category} ciphertext`).not.toContain(
+        'sensitive payload',
+      );
+    }
+  });
+
+  it('keeps plaintext for non-sensitive categories (reports, tmp, offloaded, wasm)', async () => {
+    const nonSensitiveCategories = ['reports', 'tmp', 'offloaded', 'wasm'] as const;
+    for (const category of nonSensitiveCategories) {
+      vi.mocked(writeFile).mockClear();
+      const result = await writeArtifactContent(
+        resolve(ROOT, `artifacts/${category}/plain.txt`),
+        'plain text',
+        { category },
+      );
+      expect(
+        result.encryptionKeyHex,
+        `category=${category} should NOT default-encrypt`,
+      ).toBeUndefined();
+      const [, writtenContent, writeOptions] = vi.mocked(writeFile).mock.calls[0]!;
+      expect(writeOptions, `category=${category} should write without mode`).toBeUndefined();
+      expect(writtenContent, `category=${category} content`).toEqual(
+        Buffer.from('plain text', 'utf8'),
+      );
+    }
+  });
+
+  it('keeps heap-snapshots plaintext for Chrome DevTools Memory panel compatibility', async () => {
+    const result = await writeArtifactContent(
+      resolve(ROOT, 'artifacts/heap-snapshots/snap.heapsnapshot'),
+      'binary heap data',
+      { category: 'heap-snapshots' },
+    );
+    expect(result.encryptionKeyHex).toBeUndefined();
+    const [, writtenContent, writeOptions] = vi.mocked(writeFile).mock.calls[0]!;
+    expect(writeOptions).toBeUndefined();
+    expect(writtenContent).toEqual(Buffer.from('binary heap data', 'utf8'));
+  });
+
+  it('allows explicit encrypt:false to opt out of default encryption on sensitive category', async () => {
+    const result = await writeArtifactContent(
+      resolve(ROOT, 'artifacts/dumps/override.bin'),
+      'overridden',
+      { category: 'dumps', encrypt: false },
+    );
+    expect(result.encryptionKeyHex).toBeUndefined();
+    const [, writtenContent, writeOptions] = vi.mocked(writeFile).mock.calls[0]!;
+    expect(writeOptions).toBeUndefined();
+    expect(writtenContent).toEqual(Buffer.from('overridden', 'utf8'));
+  });
 });
