@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { JSONRPCRequest, JSONRPCResponse } from '@modelcontextprotocol/sdk/types.js';
+import type { JSONRPCRequest, JSONRPCResultResponse } from '@modelcontextprotocol/server';
 
 const mocks = vi.hoisted(() => {
   const innerTransports: any[] = [];
@@ -20,8 +20,8 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
-  StreamableHTTPServerTransport: class MockStreamableHTTPServerTransport {
+vi.mock('@modelcontextprotocol/node', () => ({
+  NodeStreamableHTTPServerTransport: class MockStreamableHTTPServerTransport {
     private readonly options: { sessionIdGenerator: () => string; enableJsonResponse?: boolean };
     public sessionId?: string;
     // eslint-disable-next-line unicorn/prefer-add-event-listener
@@ -524,12 +524,12 @@ describe('MultiplexedStreamableHttpTransport', () => {
     expect(seenMessages[0]!.params._meta.sessionId).toBe(sessionA.sessionId);
     expect(seenMessages[1]!.params._meta.sessionId).toBe(sessionB.sessionId);
 
-    const responseA: JSONRPCResponse = {
+    const responseA: JSONRPCResultResponse = {
       jsonrpc: '2.0',
       id: seenMessages[0]!.id,
       result: { ok: true },
     };
-    const responseB: JSONRPCResponse = {
+    const responseB: JSONRPCResultResponse = {
       jsonrpc: '2.0',
       id: seenMessages[1]!.id,
       result: { ok: true },

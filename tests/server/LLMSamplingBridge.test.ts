@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LLMSamplingBridge } from '@server/LLMSamplingBridge';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { runWithToolRequestContext } from '@server/runtime/ToolRequestContext';
 
 function createMockServer(capabilities?: { sampling?: object }): McpServer {
@@ -163,7 +163,7 @@ describe('LLMSamplingBridge', () => {
 
       const bridge = new LLMSamplingBridge(mockServer);
       await runWithToolRequestContext(
-        { sessionId: 'session-a', requestId: 'http:session-a:4' },
+        { sessionId: 'session-a', mcpReq: { id: 'http:session-a:4' } },
         () => bridge.sampleText({ systemPrompt: 'test', userMessage: 'test' }),
       );
 

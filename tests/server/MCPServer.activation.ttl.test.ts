@@ -30,9 +30,9 @@ import {
   clearDomainTtl,
   deactivateDomainOnExpiry,
 } from '@server/MCPServer.activation.ttl';
+import type { RegisteredTool } from '@modelcontextprotocol/server';
 import type { DomainTtlEntry } from '@server/MCPServer.activation.ttl';
 import type { MCPServerContext } from '@server/MCPServer.context';
-import type { RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ExtensionToolRecord } from '@server/extensions/types';
 
 type MockCtx = MCPServerContext & {

@@ -2,7 +2,7 @@
  * Dataset loader for search-quality fixture.
  * Re-exports fixture data for worker consumption.
  */
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import type { SearchEvalCase } from '../../../tests/server/search/fixtures/search-quality.fixture';
 import { buildSearchQualityFixture } from '../../../tests/server/search/fixtures/search-quality.fixture';
 

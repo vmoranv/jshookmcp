@@ -28,7 +28,7 @@ describe('tool-request-meta helpers', () => {
     };
 
     const merged = attachToolRequestMeta(args, {
-      _meta: ['invalid-meta'],
+      mcpReq: { _meta: ['invalid-meta'] },
       sessionId: 'session-2',
     });
 
@@ -58,8 +58,10 @@ describe('tool-request-meta helpers', () => {
       attachToolRequestMeta(
         { tool: 'example' },
         {
-          _meta: {
-            requestId: 'r1',
+          mcpReq: {
+            _meta: {
+              requestId: 'r1',
+            },
           },
         },
       ),
@@ -75,7 +77,15 @@ describe('tool-request-meta helpers', () => {
     expect(
       attachToolRequestMeta(
         { tool: 'example' },
-        { requestInfo: { headers: { 'mcp-session-id': 'http-session' } } },
+        {
+          http: {
+            req: {
+              headers: {
+                get: (n: string) => (n.toLowerCase() === 'mcp-session-id' ? 'http-session' : null),
+              },
+            },
+          },
+        },
       ),
     ).toEqual({
       tool: 'example',

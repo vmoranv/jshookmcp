@@ -24,7 +24,7 @@ MCP 2.0 Tasks 协议域：查询、轮询、取消由长耗时工具创建的后
 
 | 工具 | 说明 |
 | --- | --- |
-| `tasks_get` | 待补充中文：Get the current state of a background task (MCP 2.0 Tasks protocol). Returns status (working/completed/failed/cancelled), progress and message. |
-| `tasks_result` | 待补充中文：Fetch the payload/result of a background task (MCP 2.0 Tasks protocol). Optionally waits (polls) up to waitMs for the task to reach a terminal state. |
-| `tasks_cancel` | 待补充中文：Request cancellation of a background task (MCP 2.0 Tasks protocol). Only tasks in the working state can be cancelled; the tool-defined cancel handler runs if present. |
-| `tasks_list` | 待补充中文：List recent background tasks tracked by the server (MCP 2.0 Tasks protocol). Expired tasks are pruned automatically based on their TTL. |
+| `tasks_get` | 查询后台任务的当前状态（MCP 2.0 Tasks 协议）。返回状态（working/completed/failed/cancelled）、进度与消息。 |
+| `tasks_result` | 获取后台任务的结果载荷（MCP 2.0 Tasks 协议）。可选择等待最多 waitMs 毫秒直至任务进入终态。 |
+| `tasks_cancel` | 请求取消一个后台任务（MCP 2.0 Tasks 协议）。仅 working 状态的任务可被取消；若工具定义了取消处理器则会执行。 |
+| `tasks_list` | 列出服务器追踪的近期后台任务（MCP 2.0 Tasks 协议）。过期任务会按 TTL 自动清理。 |

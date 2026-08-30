@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { readFile, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { Client } from '@modelcontextprotocol/client';
 
 export async function runSourcemapAttachSyscallPhase(ctx) {
   const { report, server, clients, state, helpers, constants } = ctx;

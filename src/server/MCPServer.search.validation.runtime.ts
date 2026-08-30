@@ -1,5 +1,5 @@
 import { z, ZodError } from 'zod';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { buildZodShape } from '@server/MCPServer.schema';
 
 function normalizeMessage(error: ZodError): string {

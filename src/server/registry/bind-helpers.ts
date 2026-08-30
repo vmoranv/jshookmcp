@@ -4,7 +4,7 @@
  * Usage in manifest:
  *   bind: bindByDepKey<MyHandlers>(DEP_KEY, (h, a) => h.handleFoo(a))
  */
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import type { ToolArgs } from '@server/types';
 import type { ToolHandlerDeps, ToolProfileId, ToolRegistration } from '@server/registry/contracts';
 

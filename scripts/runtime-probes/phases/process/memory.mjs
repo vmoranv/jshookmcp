@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { Client } from '@modelcontextprotocol/client';
 
 export async function runProcessMemoryPhase(ctx) {
   const { report, state, clients, helpers } = ctx;

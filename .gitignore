@@ -123,3 +123,4 @@ AGENTS.md
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 .ace-tool/
+.mimosa/

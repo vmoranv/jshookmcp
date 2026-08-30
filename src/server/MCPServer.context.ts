@@ -1,7 +1,6 @@
-import type { McpServer, RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer, RegisteredTool, Tool } from '@modelcontextprotocol/server';
 import type { Server } from 'node:http';
 import type { Socket } from 'node:net';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Config } from '@internal-types/index';
 import type { ToolArgs, ToolResponse } from '@server/types';
 import type { ToolProfile } from '@server/ToolCatalog';

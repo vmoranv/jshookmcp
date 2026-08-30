@@ -31,7 +31,7 @@ Binary instrumentation domain providing binary analysis, runtime instrumentation
 | `ghidra_analyze` | Analyze a binary and return metadata. |
 | `generate_hooks` | Generate a Frida interceptor script for a list of symbols. |
 | `unidbg_emulate` | Emulate a native function with Unidbg when available. |
-| `frida_run_script` | Execute a Frida JavaScript snippet inside an attached Frida session. |
+| `frida_run_script` | Execute a Frida JavaScript snippet inside an attached Frida session. Pass async:true to run in a background task (MCP 2.0 Tasks) and poll with tasks_get/tasks_result — useful for long-running or persistent instrumentation scripts that would otherwise hit the CLI timeout. |
 | `frida_resume` | Resume a target previously spawned for early Frida instrumentation. |
 | `frida_detach` | Detach from a Frida session and clean up resources. |
 | `frida_list_sessions` | List all active Frida attach sessions with target info. |
@@ -62,7 +62,7 @@ Binary instrumentation domain providing binary analysis, runtime instrumentation
 | `export_hook_script` | Export generated hook templates as a complete, runnable Frida script. |
 | `frida_enumerate_functions` | Enumerate exported functions for a specific module in a Frida session. |
 | `frida_find_symbols` | Search for symbols matching a pattern in a Frida session. |
-| `frida_memory_scan` | Scan process memory for a byte pattern via Frida Memory.scanSync. Searches a named module, an explicit address range, or all readable ranges by default. |
+| `frida_memory_scan` | Scan process memory for a byte pattern via Frida Memory.scanSync. Searches a named module, an explicit address range, or all readable ranges by default. Pass async:true to scan in a background task (MCP 2.0 Tasks) and poll with tasks_get/tasks_result — broad scans survive past the default 15s CLI timeout. |
 | `frida_memory_read` | Read raw bytes from a Frida session via ptr(address).readByteArray. Returns hex; capped at 65536 bytes per call. |
 | `apk_packer_detect` | Detect Android APK packers by matching `lib/&lt;abi&gt;/lib*.so` filenames against user-supplied customSignatures (ReDoS-guarded regex compilation). The framework ships no built-in signature table — callers provide their own. **Does not unpack, execute, or otherwise interact with packed code.** |
 | `apk_packer_list_signatures` | List the in-process signature table used by `apk_packer_detect`. Empty by default; reflects caller-managed state at request time. Optionally filter by case-insensitive category substring. |

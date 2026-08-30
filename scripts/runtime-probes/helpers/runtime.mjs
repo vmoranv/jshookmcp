@@ -6,7 +6,7 @@ import { chmod, lstat, readdir, rm } from 'node:fs/promises';
 import net from 'node:net';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 
 export const execFileAsync = promisify(execFile);
 

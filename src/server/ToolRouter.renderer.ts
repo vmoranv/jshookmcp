@@ -2,8 +2,7 @@
  * ToolRouter.renderer - Recommendation text rendering, command building,
  * and example argument generation.
  */
-
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { normalizeToolName } from '@server/MCPServer.search.validation';
 import { getToolInputSchema, getToolDescription } from '@server/ToolRouter.probe';

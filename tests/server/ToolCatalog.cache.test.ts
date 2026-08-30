@@ -7,7 +7,7 @@
  * view (null domain / missing tool).
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 
 const mocks = vi.hoisted(() => ({
   buildToolGroups: vi.fn<() => Record<string, Tool[]>>(),

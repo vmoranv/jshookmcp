@@ -5,7 +5,7 @@ import type {
   EmbeddedResource,
   ImageContent,
   TextContent,
-} from '@modelcontextprotocol/sdk/types.js';
+} from '@modelcontextprotocol/server';
 
 export type { ToolResponse };
 

@@ -1,4 +1,4 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { analysisTools } from './definitions/analysis-tools';
 import { captureTools } from './definitions/capture-tools';
 import { consoleTools } from './definitions/console-tools';

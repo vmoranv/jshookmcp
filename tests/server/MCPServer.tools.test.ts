@@ -37,7 +37,6 @@ vi.mock('@errors/ToolError', () => ({
 }));
 
 import { registerSingleTool, installCachedToolListHandler } from '@server/MCPServer.tools';
-import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { TEST_URLS } from '@tests/shared/test-urls';
 
 function createCtx(overrides: Record<string, unknown> = {}) {
@@ -214,10 +213,7 @@ describe('installCachedToolListHandler', () => {
 
     installCachedToolListHandler(server);
 
-    expect(innerServer.setRequestHandler).toHaveBeenCalledWith(
-      ListToolsRequestSchema,
-      expect.any(Function),
-    );
+    expect(innerServer.setRequestHandler).toHaveBeenCalledWith('tools/list', expect.any(Function));
 
     const handler = getInstalledHandler()!;
     const first = await handler({ method: 'tools/list', params: {} });

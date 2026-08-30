@@ -1,4 +1,4 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { tool, type ToolBuilder } from '@server/registry/tool-builder';
 
 // Shared schema for webcrack mappings

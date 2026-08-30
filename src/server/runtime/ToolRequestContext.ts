@@ -1,14 +1,30 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
+import type { RequestId } from '@modelcontextprotocol/server';
 
+/**
+ * Normalized view over the v2 handler context (ServerContext). Every field is
+ * optional so the SDK's context is structurally assignable to it; handlers
+ * read per-request state from here instead of touching the SDK type directly.
+ * v2 nesting: requestId → mcpReq.id, metadata → mcpReq._meta, signal →
+ * mcpReq.signal; sessionId stays top-level (transport-provided).
+ */
 export interface ToolRequestExtra {
-  _meta?: unknown;
   sessionId?: string;
-  requestId?: RequestId;
-  requestInfo?: {
-    headers?: Record<string, string | string[] | undefined>;
+  mcpReq?: {
+    id?: RequestId;
+    method?: string;
+    _meta?: unknown;
+    signal?: AbortSignal;
   };
-  signal?: AbortSignal;
+  http?: {
+    req?: {
+      // Minimal structural view of the web-standard Request.headers — no
+      // index signature, so the SDK's Headers instance stays assignable.
+      headers?: {
+        get?: (name: string) => string | null | undefined;
+      };
+    };
+  };
 }
 
 export interface ToolRequestContextValue {
@@ -31,13 +47,16 @@ export function resolveToolRequestSessionId(extra?: ToolRequestExtra): string | 
     return extra.sessionId.trim();
   }
 
-  const headers = extra?.requestInfo?.headers;
-  const headerSessionId = headers
-    ? firstHeaderValue(headers['mcp-session-id'] ?? headers['Mcp-Session-Id'])
-    : null;
-  if (headerSessionId) return headerSessionId;
+  // v2 exposes the original HTTP request with Web-standard Headers.
+  const headerSessionId =
+    extra?.http?.req?.headers?.get?.('mcp-session-id') ??
+    extra?.http?.req?.headers?.get?.('Mcp-Session-Id') ??
+    null;
+  if (typeof headerSessionId === 'string' && headerSessionId.trim().length > 0) {
+    return headerSessionId.trim();
+  }
 
-  const meta = extra?._meta;
+  const meta = extra?.mcpReq?._meta;
   if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) return null;
   return firstHeaderValue((meta as Record<string, unknown>)['sessionId'] as string | undefined);
 }
@@ -49,8 +68,8 @@ export function runWithToolRequestContext<T>(
   return requestContext.run(
     {
       sessionId: resolveToolRequestSessionId(extra),
-      requestId: extra?.requestId ?? null,
-      ...(extra?.signal ? { signal: extra.signal } : {}),
+      requestId: extra?.mcpReq?.id ?? null,
+      ...(extra?.mcpReq?.signal ? { signal: extra.mcpReq.signal } : {}),
     },
     callback,
   );

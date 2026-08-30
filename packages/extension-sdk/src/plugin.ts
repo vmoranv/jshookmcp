@@ -1,4 +1,4 @@
-import type { CallToolResult, Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult, JSONValue, Tool } from '@modelcontextprotocol/server';
 import { toTextResponse, toErrorResponse } from '@extension-sdk/bridges/shared';
 import type { WorkflowContract } from './workflow.js';
 
@@ -189,7 +189,7 @@ export class ExtensionBuilder {
   tool(
     name: string,
     desc: string,
-    schema: Record<string, object>,
+    schema: Record<string, JSONValue>,
     handler: ExtensionToolHandler,
     profiles?: ToolProfileId[],
   ): this {

@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import type { Socket } from 'node:net';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import {
   HTTP_CAPACITY_RETRY_AFTER_MS,
   MCP_BROWSER_FLEET_LEASE_TTL_MS,

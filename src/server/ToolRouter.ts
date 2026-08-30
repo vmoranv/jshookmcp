@@ -9,8 +9,7 @@
  *
  * Only the orchestration logic and public types live here.
  */
-
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { logger } from '@utils/logger';
 import { type ToolSearchEngine, type ToolSearchResult } from '@server/ToolSearch';
 import { ensureWorkflowsLoaded } from '@server/extensions/ExtensionManager';

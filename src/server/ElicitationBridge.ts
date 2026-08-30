@@ -10,12 +10,11 @@
  *
  * @module ElicitationBridge
  */
-
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {
+  McpServer,
   ElicitRequestFormParams,
   PrimitiveSchemaDefinition,
-} from '@modelcontextprotocol/sdk/types.js';
+} from '@modelcontextprotocol/server';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { logger } from '@utils/logger';
 import { getToolRequestContext } from '@server/runtime/ToolRequestContext';

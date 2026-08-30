@@ -1,4 +1,4 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { fridaTools } from './definitions/frida-tools';
 import { rawSocketTools } from './definitions/raw-socket-tools';
 import { sessionTools } from './definitions/session-tools';

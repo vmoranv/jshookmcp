@@ -1,16 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
 import { createToolHandlerMap } from '@server/ToolHandlerMap';
 import type { MCPServerContext } from '@server/MCPServer.context';
-import type { DeepPartial } from './domains/shared/mock-factories';
 
 function tool(name: string, description = `desc_${name}`): Tool {
+  // Cast: the v2 Tool inputSchema type is a deep Zod-derived union; a minimal
+  // literal against it triggers TS2589. The shape here is wire-correct.
   return {
     name,
     description,
     inputSchema: { type: 'object', properties: {} },
-  };
+  } as unknown as Tool;
 }
 
 const state = vi.hoisted(() => ({
@@ -250,7 +251,10 @@ interface MockContext extends MCPServerContext {
   registeredToolsForTest: Map<string, RegisteredToolInfo>;
 }
 
-function createCtx(overrides: DeepPartial<MCPServerContext> = {}): MockContext {
+// Record overrides (not DeepPartial<MCPServerContext>): instantiating a deep
+// partial of the v2 context (Zod-derived Tool schema unions) blows the TS2589
+// instantiation-depth budget for no test benefit — this is a loose mock.
+function createCtx(overrides: Record<string, unknown> = {}): MockContext {
   const registered = new Map<string, RegisteredToolInfo>();
   const ctx = {
     baseTier: 'search',

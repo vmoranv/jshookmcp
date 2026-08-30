@@ -1,21 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type {
-  Transport,
-  TransportSendOptions,
-} from '@modelcontextprotocol/sdk/shared/transport.js';
-import type {
-  JSONRPCMessage,
-  MessageExtraInfo,
-  RequestId,
-} from '@modelcontextprotocol/sdk/types.js';
 import {
   isJSONRPCErrorResponse,
   isJSONRPCNotification,
   isJSONRPCRequest,
   isJSONRPCResultResponse,
-} from '@modelcontextprotocol/sdk/types.js';
+} from '@modelcontextprotocol/server';
+import type {
+  Transport,
+  TransportSendOptions,
+  JSONRPCMessage,
+  MessageExtraInfo,
+  RequestId,
+} from '@modelcontextprotocol/server';
+import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { logger } from '@utils/logger';
 import { HTTP_CAPACITY_RETRY_AFTER_MS, MCP_HTTP_JSON_RESPONSE } from '@src/constants';
 import { readEnvInteger } from '@src/config/environment';
@@ -44,7 +42,7 @@ const DEFAULT_MAX_SSE_INFLIGHT = 8;
 
 interface SessionRecord {
   sessionId: string;
-  transport: StreamableHTTPServerTransport;
+  transport: NodeStreamableHTTPServerTransport;
   lastTouchedAt: number;
   inFlight: number;
   sseInFlight: number;
@@ -53,7 +51,7 @@ interface SessionRecord {
 interface RequestRouteRecord {
   sessionId: string;
   originalId: RequestId;
-  transport: StreamableHTTPServerTransport;
+  transport: NodeStreamableHTTPServerTransport;
 }
 
 export interface MultiplexedStreamableHttpTransportOptions {
@@ -322,7 +320,7 @@ export class MultiplexedStreamableHttpTransport implements Transport {
     this.pendingSessionAdmissions += 1;
     let admissionClaimed = false;
     let registered = false;
-    let transport: StreamableHTTPServerTransport | null = null;
+    let transport: NodeStreamableHTTPServerTransport | null = null;
     try {
       try {
         if (this.options.onSessionOpened) {
@@ -399,8 +397,8 @@ export class MultiplexedStreamableHttpTransport implements Transport {
     };
   }
 
-  private createInnerTransport(sessionId: string): StreamableHTTPServerTransport {
-    const transport = new StreamableHTTPServerTransport({
+  private createInnerTransport(sessionId: string): NodeStreamableHTTPServerTransport {
+    const transport = new NodeStreamableHTTPServerTransport({
       sessionIdGenerator: () => sessionId,
       // MCP_HTTP_JSON_RESPONSE switches the SDK into "JSON response" mode
       // (application/json body instead of an SSE stream). Two documented
@@ -446,7 +444,7 @@ export class MultiplexedStreamableHttpTransport implements Transport {
 
   private rewriteInboundMessage(
     sessionId: string,
-    transport: StreamableHTTPServerTransport,
+    transport: NodeStreamableHTTPServerTransport,
     message: JSONRPCMessage,
   ): JSONRPCMessage {
     if (isJSONRPCRequest(message)) {

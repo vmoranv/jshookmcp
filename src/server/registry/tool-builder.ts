@@ -5,8 +5,7 @@
  * every builder method returns a new builder snapshot instead of mutating
  * instance fields in place.
  */
-
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { JSONValue, Tool } from '@modelcontextprotocol/server';
 
 export type BuiltTool = Tool & {
   autocompleteHandlers?: Record<string, (value: string) => string[] | Promise<string[]>>;
@@ -150,7 +149,7 @@ function buildTool(state: BuilderState): BuiltTool {
     description: state.description,
     inputSchema: {
       type: 'object' as const,
-      properties: state.properties as unknown as Record<string, object>,
+      properties: state.properties as unknown as Record<string, JSONValue>,
       ...(state.required.length > 0 ? { required: [...state.required] } : {}),
     },
     annotations: {

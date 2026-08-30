@@ -64,7 +64,7 @@ vi.mock('node:http', () => ({
   createServer: mocks.createServer,
 }));
 
-vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
+vi.mock('@modelcontextprotocol/server/stdio', () => ({
   // StdioServerTransport uses `onclose` as a callback property, not addEventListener.
   // eslint-disable-next-line unicorn/prefer-add-event-listener
   StdioServerTransport: function MockStdioServerTransport(this: {

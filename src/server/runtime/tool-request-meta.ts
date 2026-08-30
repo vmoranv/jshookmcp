@@ -40,8 +40,8 @@ export function attachToolRequestMeta(
   if (existing) {
     Object.assign(nextMeta, existing);
   }
-  if (isRecord(extra?._meta)) {
-    Object.assign(nextMeta, extra?._meta as Record<string, unknown>);
+  if (isRecord(extra?.mcpReq?._meta)) {
+    Object.assign(nextMeta, extra?.mcpReq?._meta as Record<string, unknown>);
   }
   const sessionId = resolveToolRequestSessionId(extra);
   if (sessionId) {

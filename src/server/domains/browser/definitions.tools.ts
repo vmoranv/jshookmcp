@@ -1,4 +1,4 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { advancedBrowserToolDefinitions } from '@server/domains/browser/definitions.tools.advanced';
 import { browserPageCoreTools } from '@server/domains/browser/definitions.tools.page-core';
 import { browserPageSystemTools } from '@server/domains/browser/definitions.tools.page-system';

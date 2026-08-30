@@ -2,7 +2,7 @@
  * Dataset loader for profile-tier tuning cases.
  * Provides cross-tier escape / in-tier protect scenarios.
  */
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import type { ToolProfile } from '../../../src/server/ToolCatalog';
 import { buildSearchQualityFixture } from '../../../tests/server/search/fixtures/search-quality.fixture';
 

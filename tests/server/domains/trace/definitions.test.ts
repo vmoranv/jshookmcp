@@ -1,4 +1,4 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { describe, expect, it } from 'vitest';
 
 import { TRACE_TOOLS } from '@server/domains/trace/definitions.tools';

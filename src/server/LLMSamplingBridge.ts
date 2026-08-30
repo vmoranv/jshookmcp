@@ -15,8 +15,7 @@
  *
  * @module LLMSamplingBridge
  */
-
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { logger } from '@utils/logger';
 import { getToolRequestContext } from '@server/runtime/ToolRequestContext';
 

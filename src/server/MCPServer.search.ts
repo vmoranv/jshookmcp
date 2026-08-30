@@ -18,13 +18,13 @@
  *   MCPServer.search.handlers.route.ts
  *   MCPServer.search.handlers.extensions.ts
  */
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Tool } from '@modelcontextprotocol/server';
 import { logger } from '@utils/logger';
 import { asErrorResponse } from '@server/domains/shared/response';
 import type { MCPServerContext } from '@server/MCPServer.context';
 import { getAllDomains } from '@server/registry/index';
 import { buildZodShape } from '@server/MCPServer.schema';
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { ToolResponse } from '@server/types';
 
 // ── re-exports (public API) ──
@@ -303,7 +303,7 @@ export function registerSearchMetaTools(ctx: MCPServerContext): void {
       def.name,
       {
         description: def.description,
-        inputSchema: shape as Record<string, z.ZodAny>,
+        inputSchema: shape as unknown as Record<string, z.ZodType>,
       },
       async (args: Record<string, unknown>, extra?: ToolRequestExtra) => {
         return runWithToolRequestContext(extra, async () => {
