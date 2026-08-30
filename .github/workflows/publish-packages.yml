@@ -6,8 +6,24 @@ on:
     tags:
       - 'v*'
 
+# SLSA Phase 1 (npm Trusted Publishing):
+#   - `id-token: write` is REQUIRED to let `npm publish --provenance` obtain
+#     a GitHub OIDC token and request a Sigstore Fulcio signing certificate.
+#   - `contents: read` stays for checkout/tag validation.
+#   - Both jobs below inherit this block — no per-job override needed.
+#
+# REMAINING MANUAL STEP (NOT in code):
+#   Configure the Trusted Publisher on npmjs.com for both
+#     @jshookmcp/jshook          https://www.npmjs.com/package/@jshookmcp/jshook/settings
+#     @jshookmcp/extension-sdk   https://www.npmjs.com/package/@jshookmcp/extension-sdk/settings
+#   Add a GitHub Actions trusted publisher pointing at
+#     org: vmoranv, repo: jshookmcp, workflow: publish-packages.yml.
+#   Until that UI step is done, OIDC auth will fail and the publish job will
+#   fall back to NODE_AUTH_TOKEN below (kept intentionally as a bootstrap
+#   safety net during the migration window).
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish-root:
@@ -57,8 +73,13 @@ jobs:
         run: |
           ROOT_TARBALL="$(find .release-artifacts -maxdepth 1 -name '*.tgz' -print -quit)"
           test -n "$ROOT_TARBALL"
-          pnpm publish "$ROOT_TARBALL" --no-git-checks
+          # `--provenance` enables npm SLSA Build L1 attestation via Sigstore Fulcio.
+          # Requires `id-token: write` permission (set at workflow level above).
+          pnpm publish "$ROOT_TARBALL" --provenance --no-git-checks
         env:
+          # Bootstrap-only fallback. Once the Trusted Publisher UI is configured
+          # on npmjs.com (see file header), this env becomes redundant — npm CLI
+          # will use the OIDC token from the runner instead.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-extension-sdk:
@@ -113,6 +134,11 @@ jobs:
         run: |
           SDK_TARBALL="$(find .release-artifacts-sdk -maxdepth 1 -name '*.tgz' -print -quit)"
           test -n "$SDK_TARBALL"
-          pnpm publish "$SDK_TARBALL" --no-git-checks
+          # `--provenance` enables npm SLSA Build L1 attestation via Sigstore Fulcio.
+          # Requires `id-token: write` permission (set at workflow level above).
+          pnpm publish "$SDK_TARBALL" --provenance --no-git-checks
         env:
+          # Bootstrap-only fallback. Once the Trusted Publisher UI is configured
+          # on npmjs.com (see file header), this env becomes redundant — npm CLI
+          # will use the OIDC token from the runner instead.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
