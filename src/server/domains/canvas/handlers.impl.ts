@@ -14,6 +14,8 @@ import { handlePick } from './handlers/pick';
 import { handleTraceClick } from './handlers/trace';
 import { handleSceneSearch } from './handlers/scene-search';
 import { handleDrawHook } from './handlers/draw-hook';
+import { handleDumpShaders } from './handlers/shader-dump';
+import { handleMemoryInvariants } from './handlers/memory-invariants';
 
 export class CanvasToolHandlers {
   private readonly pageController;
@@ -50,6 +52,14 @@ export class CanvasToolHandlers {
     return handleSafe(async () => await this.handleDrawHook(args));
   }
 
+  async handleDumpShadersTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleDumpShaders(args));
+  }
+
+  async handleMemoryInvariantsTool(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleSafe(async () => await this.handleMemoryInvariants(args));
+  }
+
   async handleFingerprint(args: Record<string, unknown>): Promise<ToolResponse> {
     const result = await handleFingerprint(this.pageController, args);
     return asJsonResponse(result);
@@ -83,5 +93,13 @@ export class CanvasToolHandlers {
 
   async handleDrawHook(args: Record<string, unknown>): Promise<ToolResponse> {
     return handleDrawHook(this.pageController, args);
+  }
+
+  async handleDumpShaders(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleDumpShaders(this.pageController, args);
+  }
+
+  async handleMemoryInvariants(args: Record<string, unknown>): Promise<ToolResponse> {
+    return handleMemoryInvariants(this.pageController, args);
   }
 }

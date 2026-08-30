@@ -133,4 +133,36 @@ export const canvasTools: Tool[] = [
       )
       .query(),
   ),
+  tool('canvas_dump_shaders', (t) =>
+    t
+      .desc(
+        'Dump the linked shader programs (vertex + fragment source, uniforms) running on the target canvas. ' +
+          'Uses engine introspection where available (Three.js renderer.info.programs, BABYLON.Effect.ShadersStore, Laya.Shader registry) and the ' +
+          'WEBGL_debug_shaders extension to recover source where the driver allows. Returns programs[] + an honest `reason` ' +
+          'when the engine / driver refuses to expose source. Academic basis: WGPULens arXiv 2606.26412 + DarthShader arXiv 2409.01824.',
+      )
+      .string('canvasId', 'Canvas element ID or index to target')
+      .boolean('includeUniforms', 'Include uniform declarations on each program', { default: true })
+      .number('maxPrograms', 'Cap on programs returned (after engine enumeration)', {
+        default: 200,
+        minimum: 1,
+        maximum: 5000,
+      })
+      .string(
+        'engine',
+        'Skip auto-detect and force a specific engine path (three|babylon|laya|unknown)',
+      )
+      .query(),
+  ),
+  tool('canvas_memory_invariants', (t) =>
+    t
+      .desc(
+        'Assert runtime invariants about WebGL context lifetime, engine state consistency, and texture/program leaks. ' +
+          'Reports checks[], violations[] (with severity + safe-cleanup fix), and a recommendations[] block. ' +
+          'Honest scope: only JS-observable metrics (DOM canvas count vs live WebGL contexts, renderer.info.memory counts, contextLoss events). ' +
+          'Full GC sweep / native-heap inspection is out of scope. Academic basis: JSidentify-V2 arXiv 2508.01655.',
+      )
+      .string('canvasId', 'Canvas element ID or index to target')
+      .query(),
+  ),
 ];

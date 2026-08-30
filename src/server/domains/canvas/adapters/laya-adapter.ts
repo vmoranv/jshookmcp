@@ -4,6 +4,26 @@
  * Supports LayaAir 2.x and 3.x. Detection differentiates versions by presence of
  * Laya.MouseManager (2.x) vs Laya.InputManager (3.x). The dump and pick payloads are
  * self-contained JavaScript strings executed in the page context via pageController.evaluate().
+ *
+ * ── LayaAir 3.x verification status (B-segment audit, 2026-08-30) ─────────────
+ * This adapter deliberately distinguishes paths verified against public docs
+ * from paths verified only against a real LayaAir 2.8 runtime. The full table
+ * lives in tests/server/domains/canvas/laya-3x-verify.test.ts (treated as a
+ * living manifest); the summary is:
+ *
+ *   VERIFIED (docs):
+ *     - detect via Laya.InputManager (3.x) / Laya.MouseManager (2.x)
+ *     - clientScaleX / clientScaleY on Stage
+ *     - children / _children / numChildren fallback chain
+ *
+ *   UNVERIFIED (real 3.x runtime required):
+ *     - stage.hitTest plain {x,y} literal branch (lines below)
+ *     - localToGlobal / globalToLocal argument shape on 3.x
+ *     - shader pipeline / Shader registry for 3.x (relevant to canvas_dump_shaders)
+ *
+ *   Per lesson #51 (honest-boundary): DO NOT promote UNVERIFIED → VERIFIED
+ *   without first running a real LayaAir 3.x engine test fixture.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 import type {
   CanvasDetection,
@@ -337,6 +357,12 @@ export function buildLayaHitTestPayload(opts: PickOpts): string {
       // whose localToGlobal/globalToLocal need a Laya.Point; whether 3.x's
       // hitTest likewise expects a Point is unverified, so this engine path
       // deliberately skips toPt and relies on the plain literal.
+      //
+      // VERIFY STATUS (per lesson #51 honest-boundary): UNVERIFIED.
+      // Codified in tests/server/domains/canvas/laya-3x-verify.test.ts —
+      // do NOT promote to "verified" without a real LayaAir 3.x runtime
+      // test that asserts the in-page payload still returns the picked node.
+      // See that test's fixture suggestion for how to add the runtime test.
       var nativeHit = stage.hitTest({ x: stageX, y: stageY });
       if (nativeHit) {
         // Map the raw Laya node into a CanvasSceneNode so downstream consumers
