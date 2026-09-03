@@ -23,6 +23,30 @@ export type ArtifactCategory =
   | 'tmp'
   | 'heap-snapshots';
 
+/**
+ * Categories whose default artifact body is treated as sensitive and written
+ * with an AES-256-GCM envelope unless the caller explicitly opts out
+ * (`encrypt: false`). The list is the OPSEC-driven subset of `ArtifactCategory`
+ * — traces, profiles, dumps, captures, sessions, and HAR all routinely contain
+ * secrets, PII, or session-internal state that should never reach disk in
+ * plaintext form.
+ *
+ * `heap-snapshots` is intentionally excluded even though it is sensitive in
+ * the same sense: `v8_heap_snapshot_export` writes `.heapsnapshot` files so
+ * Chrome DevTools' Memory panel can load them directly, and forcing
+ * encryption would break that contract. Callers writing heap snapshots must
+ * use `heap-snapshots` (no auto-encryption) or pass `encrypt: true` explicitly
+ * for a sealed backup.
+ */
+const SENSITIVE_CATEGORIES: ReadonlySet<ArtifactCategory> = new Set([
+  'dumps',
+  'traces',
+  'profiles',
+  'captures',
+  'sessions',
+  'har',
+]);
+
 const ARTIFACT_BASE = 'artifacts';
 
 /**
@@ -209,27 +233,32 @@ export function getArtifactDir(category: ArtifactCategory): string {
 
 /**
  * Write artifact content to a path already reserved by resolveArtifactPath().
- * When `encrypt` is set, the content is wrapped in an AES-256-GCM envelope
- * (see @utils/crypto/ephemeralCipher) instead of written as plaintext, and
- * the caller gets back the hex key needed to decrypt it later — nothing is
- * persisted that would let a disk-forensics pass recover the key on its own.
  *
- * Deliberately opt-in per call rather than defaulted by category: some
- * categories that hold sensitive content (e.g. heap-snapshots) are also
- * consumed by external tools in plaintext form by design — v8_heap_snapshot_export
- * writes a .heapsnapshot file specifically so Chrome DevTools' Memory panel
- * can load it directly, so forcing encryption there would break that tool's
- * stated contract. Callers that hold genuinely sensitive artifacts (memory
- * dumps, captured secrets) should pass `encrypt: true` explicitly.
+ * Encryption policy:
+ * - `encrypt: true`  → always write an AES-256-GCM envelope (mode 0o600).
+ * - `encrypt: false` → always write plaintext, even for sensitive categories
+ *                      (explicit override; callers must justify the choice).
+ * - omitted + `category` in `SENSITIVE_CATEGORIES` → encrypt by default
+ *                      (OPSEC default; covers dumps/traces/profiles/captures/
+ *                      sessions/har).
+ * - omitted + non-sensitive category or no category → write plaintext.
+ *
+ * The encryption key is returned in hex form to the caller; it is never
+ * persisted to disk, so a disk-forensics pass on the artifact alone cannot
+ * recover the plaintext.
  */
 export async function writeArtifactContent(
   absolutePath: string,
   content: string | Uint8Array,
-  options?: { encrypt?: boolean },
+  options?: { encrypt?: boolean; category?: ArtifactCategory },
 ): Promise<{ encryptionKeyHex?: string }> {
   const buffer = typeof content === 'string' ? Buffer.from(content, 'utf8') : Buffer.from(content);
 
-  if (!options?.encrypt) {
+  const shouldEncrypt =
+    options?.encrypt ??
+    (options?.category !== undefined && SENSITIVE_CATEGORIES.has(options.category));
+
+  if (!shouldEncrypt) {
     await writeFile(absolutePath, buffer);
     return {};
   }
