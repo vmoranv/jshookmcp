@@ -172,7 +172,7 @@ importers:
         version: 130.0.0
       camoufox-js:
         specifier: ^0.11.1
-        version: 0.11.3(playwright-core@1.62.0)
+        version: 0.11.5(playwright-core@1.62.0)
       koffi:
         specifier: ^3.0.2
         version: 3.0.2
@@ -786,6 +786,13 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@napi-rs/wasm-runtime@1.2.3':
+    resolution: {integrity: sha512-UMduMbqO5s5zF2NkNacMT/yK5Y5QiKvWr2+50bzIIxFDwVJ2h49b+oyjaCGPhJxd2/gC2x39EHv/gHVuu36x2Q==}
+    engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
+    peerDependencies:
+      '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
+      '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
 
   '@oxc-project/types@0.127.0':
     resolution: {integrity: sha512-aIYXQBo4lCbO4z0R3FHeucQHpF46l2LbMdxRvqvuRuW2OxdnSkcng5B8+K12spgLDj93rtN3+J2Vac/TIO+ciQ==}
@@ -2158,6 +2165,11 @@ packages:
     resolution: {integrity: sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ==}
     engines: {node: '>= 0.6.0'}
 
+  baseline-browser-mapping@2.11.20:
+    resolution: {integrity: sha512-H0ulySigv6icDJ1F7SjtdCD6PrhTpdYCmP0CactWy1+ekh0AFd0o1Wn5T8b+hnTmdBx19u9yhL6wvCylXMY7zw==}
+    engines: {node: '>=6.0.0'}
+    hasBin: true
+
   baseline-browser-mapping@2.11.4:
     resolution: {integrity: sha512-s4+sLr9mZ/CyqeRritFeYV/Zx73OAtmaHn6kkBS1XRoJn1hrg3xIDUcpicAEX68tkcIN0iBCgti31C8zxtkhsQ==}
     engines: {node: '>=6.0.0'}
@@ -2201,6 +2213,11 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
 
+  browserslist@4.28.8:
+    resolution: {integrity: sha512-V2NpofLblG64mfOtSgDhOJESZEGogzDMBv/q+W6oc4LXWP/q75eOXoOaaOu1EOadB9U4Bwx/e0yzbvwKH8zalA==}
+    engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
+    hasBin: true
+
   buffer-crc32@0.2.13:
     resolution: {integrity: sha512-VO9Ht/+p3SN7SKWqcrgEzjGbRSJYTx+Q1pTQC0wrWqHx0vpJraQ6GtHx8tvcg1rlK1byhU5gccxgOgj7B0TDkQ==}
 
@@ -2232,8 +2249,8 @@ packages:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
     engines: {node: '>=6'}
 
-  camoufox-js@0.11.3:
-    resolution: {integrity: sha512-KoJY4i5aHwIqsNQL8gqywgg0UQ8r2/7zMZKzRU/RE3RDbBm4taVVPIkm8cg4Vl8oB++wKkp7G3LQYTjzwEDYXQ==}
+  camoufox-js@0.11.5:
+    resolution: {integrity: sha512-N7lZazKop9V+KZNcNlCa6unhachjXOSD4ZVo8L8dQ+PULMV810/8p1F3fu8wRWX4fvcsee1kUFyXRv3GxSzg0w==}
     engines: {node: '>= 22'}
     hasBin: true
     peerDependencies:
@@ -2241,6 +2258,9 @@ packages:
 
   caniuse-lite@1.0.30001806:
     resolution: {integrity: sha512-72Cuvd95zbSYPKq6Fhg8eDJRlzgWDf7/mtoZv6Qe/DYNCEBdNxoA3+rZAU2ZhGCpZlns3EssFavaZomckT5Uuw==}
+
+  caniuse-lite@1.0.30001810:
+    resolution: {integrity: sha512-TITQPUkaz+aVk5GL6NhOdwk1aEaNTSDPsGFWrTuhKGtjTF70jL/Oht2W4c6rXUe5fu7Ie19VIahAXHIIiWWNeg==}
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
@@ -2467,6 +2487,9 @@ packages:
   electron-to-chromium@1.5.396:
     resolution: {integrity: sha512-yHiw2Y3C3H9U6TMbOfoWK/BPreiOPXRfTWPBwQBoZG6/8TB6eOPnsy5oaRYuatR7Fw2SJ4kKforgufeo7fq0EQ==}
 
+  electron-to-chromium@1.5.416:
+    resolution: {integrity: sha512-K6bvB2BjnNrugtIih6ewlbBI9DXa976jIdiIlRLHhBoEI9a4JaQjjHyF+A1IQI543aQYR4LnmOrT/K5fZj0aPA==}
+
   emoji-regex@10.6.0:
     resolution: {integrity: sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A==}
 
@@ -2616,8 +2639,8 @@ packages:
     resolution: {integrity: sha512-S8KoZgRZN+a5rNwqTxlZZePjT/4cnm0ROV70LedRHZ0p8u9fRID0hJUZQpkKLzro8LfmC8sx23bY6tVNxv8pQA==}
     engines: {node: '>= 18.0.0'}
 
-  fingerprint-generator@2.1.86:
-    resolution: {integrity: sha512-glgFzkpjS+zR5yTpCK43Amm6kialJIZ0RjPhCiFVXjHseRi7aXqDBXenOay7W9PVqmQupKIG2DJBCoqhf1HCQw==}
+  fingerprint-generator@2.1.88:
+    resolution: {integrity: sha512-rwYKE/UZTAnfu3DoBgFH+otrRewvkscG8TkiDY8xw7QBga0evHoL7H70HrtP/CBqjspVrfqE7ZYt7qDM3dYk+g==}
     engines: {node: '>=16.0.0'}
 
   focus-trap@8.2.2:
@@ -2639,8 +2662,8 @@ packages:
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
-  generative-bayesian-network@2.1.86:
-    resolution: {integrity: sha512-4+cZAUH6khje/EUKRlTlO+HpjA7aqvDlVBnBSJKZqC6qiJ3EitNZ97//xYrBbawZCHe1S1PGLza6knQTFpWCgw==}
+  generative-bayesian-network@2.1.88:
+    resolution: {integrity: sha512-kxbW6CCsiEAVdBYPont/6ZVOa47Pyfv5ldYFIvj8wmOx9uQOZ4c8wdR0jEf2pE6DeVuIAfmolm+91bYne6/3uA==}
 
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
@@ -2725,8 +2748,8 @@ packages:
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
 
-  header-generator@2.1.86:
-    resolution: {integrity: sha512-Nj+glwXBEU3PvvAT1WiC3FBhX1ReZZY+ADXIo2iTRqMzamLW0olJk7q/EJ6N3qJBqQWZJDJonAJRtAlzEFynLQ==}
+  header-generator@2.1.88:
+    resolution: {integrity: sha512-12GkTL1CDaPTQ6gkd8TPwxNtn7t3wSExnWU9qgWfEDh8IqpD1NAVcvzfHphIzULez8WP2DK9YQsDegajjDdTKQ==}
     engines: {node: '>=16.0.0'}
 
   hono@4.12.32:
@@ -2773,60 +2796,60 @@ packages:
     resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
     engines: {node: '>=0.10.0'}
 
-  impit-darwin-arm64@0.14.3:
-    resolution: {integrity: sha512-kMoQB+CR+a954pnhe4kf1O2RyJCsqGRE95jIXfgqNOiIMS5O1z0cOMzG/sohJk/nodZVSJ5VdWEV4BKhRWPFSA==}
+  impit-darwin-arm64@0.14.4:
+    resolution: {integrity: sha512-i9fkPXXCB/1qBTGIlS26Z2krmE0wk/1UUlDUFeE1bMtihoUIe8TbeslSnx6pgaSY5ai9H0seUAgS9D4i66Kscg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  impit-darwin-x64@0.14.3:
-    resolution: {integrity: sha512-ft9+kjz1pR8H5xbbf5U1EgwaaIea5iXHxBf2Q3NoinPpiV7KgyzYSr83pCSrAY6evWk+smG9shHgzhQtgbj1Rg==}
+  impit-darwin-x64@0.14.4:
+    resolution: {integrity: sha512-p+W0enCZDCsnSwEWOMImpHq71jmVR7J9CjYvqgiFtQD3W+rQb7ilFLYYRalQ0rmrrH8imLRm2skG6V7YQkPwOg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  impit-linux-arm64-gnu@0.14.3:
-    resolution: {integrity: sha512-+mwta93S6Ndfpca3DDblvrqV1g8Bg6gZFOlEiJHfGJZpiUIQE+A/Pjg2e+inV+WrTtlnLsvff8lgwFvkIGnRug==}
+  impit-linux-arm64-gnu@0.14.4:
+    resolution: {integrity: sha512-9VVb905sNSPh0dF2sDFbbjSz5JqXCoMPxTery77PyqMCEuxybtW+Yv3U1tCM+CFKSuC39wXmueW+FLwOCS+zIw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  impit-linux-arm64-musl@0.14.3:
-    resolution: {integrity: sha512-wYhfH1J8laWkpSN2SAFCKx9npY4vXrk23ex+tOzTGf2xBBqIhpMUff2wa6dOFb0or6EhZHBssoRf0HK3h/htXQ==}
+  impit-linux-arm64-musl@0.14.4:
+    resolution: {integrity: sha512-PajwrCPCWPey4wjLSWSVFS/mRQXbh8WVrxXdgo6Ej530dyplxIiqcDh0Gr9fWYPriOC8pkcOpRqQ4O+1mH1xfQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  impit-linux-x64-gnu@0.14.3:
-    resolution: {integrity: sha512-hAYnutJDGQO5bPvTPKBBFkHgbB7QL7QLDse8c4s21VSzC/EqGliSS3UqR5ZUUwaFdm3t8DJsXOr+gboAUwDR7w==}
+  impit-linux-x64-gnu@0.14.4:
+    resolution: {integrity: sha512-Ly8CweOZ9Qj6BZNhvglJMo56i7tCF7Nw33OdXLZLZRxnBzxd2kI/LXpFsd1LiMkTDaiuLvqLGo7ZpxVt08LdwA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  impit-linux-x64-musl@0.14.3:
-    resolution: {integrity: sha512-wXBeHiqCjuyqxg4u5eY4OBNVzsS4Karz/ms/0mjB8aqVZLNER1NaUTeE4J3eZCdytFaJRaAeQvKTH8HfjpPsQg==}
+  impit-linux-x64-musl@0.14.4:
+    resolution: {integrity: sha512-dS9wj2phkB+o8OFdWBIFYx23ExH+pcsFMiXmoOwRVdDfUX9reZTmZL4KaiPuhSEBysN/wd46dxB/OzNbnn5hnQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  impit-win32-arm64-msvc@0.14.3:
-    resolution: {integrity: sha512-XiF8MYpm4tF8TMbtsWrcEDDs6NxRNeirfiHM/AyKcr2jiN34hZwbZDM0EseD30PDwb2Pny2JWB+zTxpE1P5CZg==}
+  impit-win32-arm64-msvc@0.14.4:
+    resolution: {integrity: sha512-Nga0z+Hmp/HmxEKX0jv1wy2vaT4J44nE6+Z+CNZvvyVWiodWCG9+FvVn4McivgXix7UerspeyPvc174QBHwXEw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
 
-  impit-win32-x64-msvc@0.14.3:
-    resolution: {integrity: sha512-HIaLSpU5SGVx3UDH/R3ZaGMURVgyRVjmalqXj65ABxVUqfXiBo1t5ZObDPPjqvLT3klPnrya1+xF1DQ4dfT+og==}
+  impit-win32-x64-msvc@0.14.4:
+    resolution: {integrity: sha512-v15fn/kcjLEzALB4z+VWTeG1UrtqZQq9n2HNsRUfUgfcgzM1i+KKtKP2RCJ1Fg1YeojQ7B6XGhRtpVVTjh8u+A==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
 
-  impit@0.14.3:
-    resolution: {integrity: sha512-SbCLoeW0YDRox5kQoy71jtpjZE+BwjWO411OdgfbLMbNmSX79s5Y0Y2vCE7AO6zQSq9F4Fu8SJTCKnp8rXQzpg==}
+  impit@0.14.4:
+    resolution: {integrity: sha512-XXAafVQpWIYIchSxT6UufZgVNLewKVg9BJSwQYom7b1VWt/l0m+GPMhc4agK9O7QlAnEiFm1QQcX2RpsmLV6gQ==}
     engines: {node: '>= 20'}
 
   import-meta-resolve@4.2.0:
@@ -3127,8 +3150,8 @@ packages:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
 
-  maxmind@5.0.6:
-    resolution: {integrity: sha512-5bvd/u+kIaTqaGM+xkXjatzQw1dQfSmlLggr2W1EKMyMxSgx2woZyusLpNpZ4DdPmL+1bbJWeo4LXsi6bC0Iew==}
+  maxmind@5.0.7:
+    resolution: {integrity: sha512-+w637dwfv01MKjkrp4sKDBTEKHLPvWLYb647QTjiz3wG/teSemqudIKNShaS6eqZ7ffxC9oZlQQgIqY0rGojog==}
     engines: {node: '>=12', npm: '>=6'}
 
   mdast-util-to-hast@13.2.1:
@@ -3189,8 +3212,8 @@ packages:
   mitt@3.0.1:
     resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
 
-  mmdb-lib@3.0.2:
-    resolution: {integrity: sha512-7e87vk0DdWT647wjcfEtWeMtjm+zVGqNohN/aeIymbUfjHQ2T4Sx5kM+1irVDBSloNC3CkGKxswdMoo8yhqTDg==}
+  mmdb-lib@3.0.3:
+    resolution: {integrity: sha512-xQPoBXcNjjHiOvOraFBKtA++uNWF6aCVHL9dRKFXEov8eI3QJwtgiw3qApsonFT5SpoqsEVISUTg3HIDs2DiXw==}
     engines: {node: '>=10', npm: '>=6'}
 
   mockttp@4.4.2:
@@ -3234,6 +3257,10 @@ packages:
 
   node-releases@2.0.51:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
+    engines: {node: '>=18'}
+
+  node-releases@2.0.54:
+    resolution: {integrity: sha512-YHs7BmmcsdAI5Ozuf8JZo6PT0mv2GIWC9vMfvUC3dp65M8hn7Ux8CPL+2oBI7juNuj9d0ndhTcznq2ODBps9cQ==}
     engines: {node: '>=18'}
 
   object-assign@4.1.1:
@@ -3369,8 +3396,8 @@ packages:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
     engines: {node: '>=20'}
 
-  pretty-bytes@7.1.1:
-    resolution: {integrity: sha512-X+vn9z8nOFZQlxOLmfJ0iKDdMD7jYTsTW12OAlCpdoE3Igik6L37pugIZi+N3usuyp5McfgKPWi12q3zvHLeGQ==}
+  pretty-bytes@7.1.2:
+    resolution: {integrity: sha512-spZIOSORH9joSPGN0L/tYfvINH+xbOpnI3kdcEkq0mzGMjFvDZzyRVbqEOV0wACF0gggdKE9RWO2mosGsBh/Rg==}
     engines: {node: '>=20'}
 
   process-nextick-args@2.0.1:
@@ -3875,6 +3902,12 @@ packages:
 
   update-browserslist-db@1.2.3:
     resolution: {integrity: sha512-Js0m9cx+qOgDxo0eMiFGEueWztz+d4+M3rGlmKPT+T4IS/jP4ylw3Nwpu6cpTTP8R1MAC1kF4VbdLt3ARf209w==}
+    hasBin: true
+    peerDependencies:
+      browserslist: '>= 4.21.0'
+
+  update-browserslist-db@1.3.2:
+    resolution: {integrity: sha512-UQ+MSxlhRm1bzjhU+DcuXfjFO1FzNtqhK5+9Yvlp90ItDLk5vT932A0rFu619nf7RVS+Y/VeaUW1jaRDqZ8VJw==}
     hasBin: true
     peerDependencies:
       browserslist: '>= 4.21.0'
@@ -4710,13 +4743,6 @@ snapshots:
 
   '@msgpack/msgpack@3.1.3': {}
 
-  '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
-    dependencies:
-      '@emnapi/core': 1.10.0
-      '@emnapi/runtime': 1.10.0
-      '@tybys/wasm-util': 0.10.3
-    optional: true
-
   '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
       '@emnapi/core': 1.11.1
@@ -4728,6 +4754,13 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.2
+      '@tybys/wasm-util': 0.10.3
+    optional: true
+
+  '@napi-rs/wasm-runtime@1.2.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
+    dependencies:
+      '@emnapi/core': 1.10.0
+      '@emnapi/runtime': 1.10.0
       '@tybys/wasm-util': 0.10.3
     optional: true
 
@@ -5119,7 +5152,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.10.0
       '@emnapi/runtime': 1.10.0
-      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
+      '@napi-rs/wasm-runtime': 1.2.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
     optional: true
 
   '@rolldown/binding-wasm32-wasi@1.1.5':
@@ -5752,6 +5785,9 @@ snapshots:
 
   base64-arraybuffer@1.0.2: {}
 
+  baseline-browser-mapping@2.11.20:
+    optional: true
+
   baseline-browser-mapping@2.11.4:
     optional: true
 
@@ -5804,6 +5840,15 @@ snapshots:
       update-browserslist-db: 1.2.3(browserslist@4.28.7)
     optional: true
 
+  browserslist@4.28.8:
+    dependencies:
+      baseline-browser-mapping: 2.11.20
+      caniuse-lite: 1.0.30001810
+      electron-to-chromium: 1.5.416
+      node-releases: 2.0.54
+      update-browserslist-db: 1.3.2(browserslist@4.28.8)
+    optional: true
+
   buffer-crc32@0.2.13: {}
 
   bundle-name@4.1.0:
@@ -5829,24 +5874,27 @@ snapshots:
   callsites@3.1.0:
     optional: true
 
-  camoufox-js@0.11.3(playwright-core@1.62.0):
+  camoufox-js@0.11.5(playwright-core@1.62.0):
     dependencies:
       adm-zip: 0.6.0
       better-sqlite3: 13.0.1
       cli-progress: 3.12.0
       commander: 14.0.3
-      fingerprint-generator: 2.1.86
+      fingerprint-generator: 2.1.88
       glob: 13.0.6
-      impit: 0.14.3
+      impit: 0.14.4
       language-tags: 2.1.0
-      maxmind: 5.0.6
+      maxmind: 5.0.7
       playwright-core: 1.62.0
-      pretty-bytes: 7.1.1
+      pretty-bytes: 7.1.2
       ua-parser-js: 2.0.10
       xml2js: 0.6.2
     optional: true
 
   caniuse-lite@1.0.30001806:
+    optional: true
+
+  caniuse-lite@1.0.30001810:
     optional: true
 
   ccount@2.0.1: {}
@@ -6039,6 +6087,9 @@ snapshots:
   electron-to-chromium@1.5.396:
     optional: true
 
+  electron-to-chromium@1.5.416:
+    optional: true
+
   emoji-regex@10.6.0: {}
 
   emoji-regex@8.0.0: {}
@@ -6225,10 +6276,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  fingerprint-generator@2.1.86:
+  fingerprint-generator@2.1.88:
     dependencies:
-      generative-bayesian-network: 2.1.86
-      header-generator: 2.1.86
+      generative-bayesian-network: 2.1.88
+      header-generator: 2.1.88
       tslib: 2.8.1
     optional: true
 
@@ -6245,7 +6296,7 @@ snapshots:
 
   function-bind@1.1.2: {}
 
-  generative-bayesian-network@2.1.86:
+  generative-bayesian-network@2.1.88:
     dependencies:
       adm-zip: 0.6.0
       tslib: 2.8.1
@@ -6345,10 +6396,10 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.4
 
-  header-generator@2.1.86:
+  header-generator@2.1.88:
     dependencies:
-      browserslist: 4.28.7
-      generative-bayesian-network: 2.1.86
+      browserslist: 4.28.8
+      generative-bayesian-network: 2.1.88
       ow: 0.28.2
       tslib: 2.8.1
     optional: true
@@ -6406,40 +6457,40 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
-  impit-darwin-arm64@0.14.3:
+  impit-darwin-arm64@0.14.4:
     optional: true
 
-  impit-darwin-x64@0.14.3:
+  impit-darwin-x64@0.14.4:
     optional: true
 
-  impit-linux-arm64-gnu@0.14.3:
+  impit-linux-arm64-gnu@0.14.4:
     optional: true
 
-  impit-linux-arm64-musl@0.14.3:
+  impit-linux-arm64-musl@0.14.4:
     optional: true
 
-  impit-linux-x64-gnu@0.14.3:
+  impit-linux-x64-gnu@0.14.4:
     optional: true
 
-  impit-linux-x64-musl@0.14.3:
+  impit-linux-x64-musl@0.14.4:
     optional: true
 
-  impit-win32-arm64-msvc@0.14.3:
+  impit-win32-arm64-msvc@0.14.4:
     optional: true
 
-  impit-win32-x64-msvc@0.14.3:
+  impit-win32-x64-msvc@0.14.4:
     optional: true
 
-  impit@0.14.3:
+  impit@0.14.4:
     optionalDependencies:
-      impit-darwin-arm64: 0.14.3
-      impit-darwin-x64: 0.14.3
-      impit-linux-arm64-gnu: 0.14.3
-      impit-linux-arm64-musl: 0.14.3
-      impit-linux-x64-gnu: 0.14.3
-      impit-linux-x64-musl: 0.14.3
-      impit-win32-arm64-msvc: 0.14.3
-      impit-win32-x64-msvc: 0.14.3
+      impit-darwin-arm64: 0.14.4
+      impit-darwin-x64: 0.14.4
+      impit-linux-arm64-gnu: 0.14.4
+      impit-linux-arm64-musl: 0.14.4
+      impit-linux-x64-gnu: 0.14.4
+      impit-linux-x64-musl: 0.14.4
+      impit-win32-arm64-msvc: 0.14.4
+      impit-win32-x64-msvc: 0.14.4
     optional: true
 
   import-meta-resolve@4.2.0:
@@ -6699,9 +6750,9 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  maxmind@5.0.6:
+  maxmind@5.0.7:
     dependencies:
-      mmdb-lib: 3.0.2
+      mmdb-lib: 3.0.3
       tiny-lru: 13.0.0
     optional: true
 
@@ -6762,7 +6813,7 @@ snapshots:
 
   mitt@3.0.1: {}
 
-  mmdb-lib@3.0.2:
+  mmdb-lib@3.0.3:
     optional: true
 
   mockttp@4.4.2:
@@ -6841,6 +6892,9 @@ snapshots:
     optional: true
 
   node-releases@2.0.51:
+    optional: true
+
+  node-releases@2.0.54:
     optional: true
 
   object-assign@4.1.1: {}
@@ -6996,7 +7050,7 @@ snapshots:
 
   powershell-utils@0.1.0: {}
 
-  pretty-bytes@7.1.1:
+  pretty-bytes@7.1.2:
     optional: true
 
   process-nextick-args@2.0.1: {}
@@ -7640,6 +7694,13 @@ snapshots:
   update-browserslist-db@1.2.3(browserslist@4.28.7):
     dependencies:
       browserslist: 4.28.7
+      escalade: 3.2.0
+      picocolors: 1.1.1
+    optional: true
+
+  update-browserslist-db@1.3.2(browserslist@4.28.8):
+    dependencies:
+      browserslist: 4.28.8
       escalade: 3.2.0
       picocolors: 1.1.1
     optional: true
