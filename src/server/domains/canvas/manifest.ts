@@ -30,6 +30,8 @@ const registrations = defineMethodRegistrations<H, (typeof canvasTools)[number][
     { tool: 'canvas_trace_click_handler', method: 'handleTraceClickTool', profiles: ['full'] },
     { tool: 'canvas_scene_search', method: 'handleSceneSearchTool', profiles: ['full'] },
     { tool: 'canvas_inject_draw_hook', method: 'handleDrawHookTool', profiles: ['full'] },
+    { tool: 'canvas_dump_shaders', method: 'handleDumpShadersTool', profiles: ['full'] },
+    { tool: 'canvas_memory_invariants', method: 'handleMemoryInvariantsTool', profiles: ['full'] },
   ],
 });
 const skiaRegistrations = defineMethodRegistrations<SK, (typeof skiaTools)[number]['name']>({
@@ -99,11 +101,13 @@ const manifest = {
       'canvas_pick_object_at_point',
       'canvas_trace_click_handler',
       'canvas_inject_draw_hook',
+      'canvas_dump_shaders',
+      'canvas_memory_invariants',
       'skia_detect_renderer',
       'skia_extract_scene',
       'skia_correlate_objects',
     ],
-    hint: 'Canvas/Skia reverse: fingerprint engine → dump scene tree → pick object at point → trace click; or detect Skia GPU backend → extract scene → correlate with JS objects.',
+    hint: 'Canvas/Skia reverse: fingerprint engine → dump scene tree → pick object at point → trace click; or detect Skia GPU backend → extract scene → correlate with JS objects. For shader introspection (Three/Babylon/Laya) use canvas_dump_shaders; for WebGL texture/program leak checks use canvas_memory_invariants.',
   },
 
   prerequisites: {
@@ -132,6 +136,18 @@ const manifest = {
       },
     ],
     canvas_inject_draw_hook: [
+      {
+        condition: 'Browser must be running',
+        fix: 'Call browser_launch or browser_attach first',
+      },
+    ],
+    canvas_dump_shaders: [
+      {
+        condition: 'Browser must be running',
+        fix: 'Call browser_launch or browser_attach first',
+      },
+    ],
+    canvas_memory_invariants: [
       {
         condition: 'Browser must be running',
         fix: 'Call browser_launch or browser_attach first',
