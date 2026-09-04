@@ -112,7 +112,7 @@ function buildMetadataBlock(summary, language) {
   return [
     README_SYNC_START,
     `- Package version: \`${summary.packageVersion}\``,
-    `- Built-in Tools: \`${summary.toolCount}\``,
+    `- Built-in tools: \`${summary.toolCount}\``,
     `- Domains: ${summary.domains.map((domain) => `\`${domain}\``).join(', ')}`,
     '- Note: this snapshot is generated from the runtime registry; do not edit the counts by hand.',
     README_SYNC_END,
