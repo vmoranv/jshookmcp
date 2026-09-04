@@ -124,3 +124,6 @@ docs/.vitepress/dist/
 docs/.vitepress/cache/
 .ace-tool/
 .mimosa/
+
+# Codacy CLI local cache and config
+.codacy/
