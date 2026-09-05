@@ -1,6 +1,6 @@
 /** Tracks live jshook server processes to make stdio process pile-ups visible and controllable. */
 import { unlinkSync } from 'node:fs';
-import { mkdir, readdir, readFile, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { JSHOOK_INSTANCE_WARN_AT, JSHOOK_MAX_INSTANCES } from '@src/constants';
@@ -35,9 +35,15 @@ function recordPath(pid: number): string {
 
 const registrationLockPath = () => resolve(instancesDir(), '.register-lock');
 
+/** Acquire-wait ceiling for the registration lock (ops-adjustable, tests shrink it). */
+function registrationLockTimeoutMs(): number {
+  const raw = Number(readEnvString('JSHOOK_REGISTRATION_LOCK_TIMEOUT_MS', ''));
+  return Number.isFinite(raw) && raw > 0 ? raw : 5_000;
+}
+
 async function withRegistrationLock<T>(callback: () => Promise<T>): Promise<T> {
   await mkdir(instancesDir(), { recursive: true });
-  const deadline = Date.now() + 5_000;
+  const deadline = Date.now() + registrationLockTimeoutMs();
 
   while (true) {
     try {
@@ -53,7 +59,18 @@ async function withRegistrationLock<T>(callback: () => Promise<T>): Promise<T> {
       try {
         const lockInfo = await stat(registrationLockPath());
         if (Date.now() - lockInfo.mtimeMs > 30_000) {
-          await rm(registrationLockPath(), { recursive: true, force: true });
+          // Stale takeover must be atomic: two waiters can both observe the
+          // same stale lock, and a plain rm would let the slower waiter
+          // delete the lock the faster one just re-created (double
+          // ownership). rename() only succeeds for exactly one waiter; the
+          // losers get ENOENT and re-enter the acquire loop.
+          const stalePath = `${registrationLockPath()}.stale-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          try {
+            await rename(registrationLockPath(), stalePath);
+          } catch {
+            continue;
+          }
+          await rm(stalePath, { recursive: true, force: true }).catch(() => {});
           continue;
         }
       } catch {
@@ -61,7 +78,14 @@ async function withRegistrationLock<T>(callback: () => Promise<T>): Promise<T> {
       }
 
       if (Date.now() >= deadline) {
-        throw new Error('timed out waiting for the instance registration lock', { cause: error });
+        // Fail open: registration is best-effort telemetry, and a held-up
+        // lock (crashed holder inside the rename window, AV scanner holding
+        // the dir on Windows) must not stop the server from booting. Run
+        // unlocked and say so loudly.
+        logger.warn(
+          '[instances] timed out waiting for the instance registration lock — registering without it',
+        );
+        return await callback();
       }
       await delay(25);
     }
@@ -70,7 +94,10 @@ async function withRegistrationLock<T>(callback: () => Promise<T>): Promise<T> {
   try {
     return await callback();
   } finally {
-    await rm(registrationLockPath(), { recursive: true, force: true });
+    // Best-effort release: on Windows a concurrent scanner can hold the dir
+    // (EBUSY/EPERM). Swallowing this leaves the lock to the 30s stale
+    // reaper instead of failing a registration that already succeeded.
+    await rm(registrationLockPath(), { recursive: true, force: true }).catch(() => {});
   }
 }
 
