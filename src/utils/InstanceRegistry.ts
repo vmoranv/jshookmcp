@@ -37,7 +37,7 @@ const registrationLockPath = () => resolve(instancesDir(), '.register-lock');
 
 /** Acquire-wait ceiling for the registration lock (ops-adjustable, tests shrink it). */
 function registrationLockTimeoutMs(): number {
-  const raw = Number(readEnvString('JSHOOK_REGISTRATION_LOCK_TIMEOUT_MS', ''));
+  const raw = Number(readEnvString('JSHOOK_REGISTRATION_LOCK_TIMEOUT_MS', '5000'));
   return Number.isFinite(raw) && raw > 0 ? raw : 5_000;
 }
 
