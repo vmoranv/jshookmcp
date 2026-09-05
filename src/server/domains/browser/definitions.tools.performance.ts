@@ -108,8 +108,7 @@ export const browserPerformanceToolDefinitions: Tool[] = [
           'most profiling needs.',
       )
       .array('categories', { type: 'string' }, 'Trace categories to capture (omit = default set)')
-      .boolean('screenshots', 'Capture screenshots during tracing', { default: false })
-      .idempotent(),
+      .boolean('screenshots', 'Capture screenshots during tracing', { default: false }),
   ),
   tool('browser_trace_stop', (t) =>
     t
@@ -133,8 +132,7 @@ export const browserPerformanceToolDefinitions: Tool[] = [
         'samplingInterval',
         'Sampling interval in microseconds. Default: 1000 (1ms). 30-100 for high-res. Range: 30-10000',
         { minimum: 30, maximum: 10000 },
-      )
-      .idempotent(),
+      ),
   ),
   tool('browser_cpu_profile_stop', (t) =>
     t

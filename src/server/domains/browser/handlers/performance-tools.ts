@@ -85,7 +85,11 @@ interface PerformanceMonitorDeps {
   };
 }
 
-let _performanceMonitor: PerformanceMonitor | null = null;
+// Monitors are keyed on the collector that backs them: ensure-browser-core
+// replaces ctx.collector on close/relaunch, and a monitor bound to a dead
+// collector would keep serving the stale session. A WeakMap drops the old
+// monitor once nothing references the replaced collector.
+const performanceMonitors = new WeakMap<PerformanceMonitorDeps['collector'], PerformanceMonitor>();
 
 // Per-facade start/stop pairing state — the underlying PerformanceMonitor
 // tracks this on its own instance, but vi.fn() mocks don't replicate that
@@ -95,28 +99,34 @@ let _tracingActive = false;
 let _cpuProfilingActive = false;
 
 function getPerformanceMonitor(collector: PerformanceMonitorDeps['collector']): PerformanceMonitor {
-  if (!_performanceMonitor) {
+  let monitor = performanceMonitors.get(collector);
+  if (!monitor) {
     // Some test mocks use vi.fn(() => mockMethods) — vi.fn() returns an
     // arrow-function-shaped callable that throws "is not a constructor"
     // when invoked with `new`. Try `new` first (production / class-mock
     // path); fall back to a plain call when the target isn't constructable.
     try {
-      _performanceMonitor = new PerformanceMonitor(collector as unknown as CodeCollector);
+      monitor = new PerformanceMonitor(collector as unknown as CodeCollector);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes('not a constructor')) {
         throw err;
       }
-      _performanceMonitor = (
-        PerformanceMonitor as unknown as (c: typeof collector) => PerformanceMonitor
-      )(collector);
+      monitor = (PerformanceMonitor as unknown as (c: typeof collector) => PerformanceMonitor)(
+        collector,
+      );
     }
+    performanceMonitors.set(collector, monitor);
+    // A fresh collector means a fresh browser session: a trace/profile that
+    // was "in progress" on the old one is gone, and the pairing flags must
+    // not block new starts.
+    _tracingActive = false;
+    _cpuProfilingActive = false;
   }
-  return _performanceMonitor;
+  return monitor;
 }
 
 export function resetPerformanceMonitorForTest(): void {
-  _performanceMonitor = null;
   _tracingActive = false;
   _cpuProfilingActive = false;
 }

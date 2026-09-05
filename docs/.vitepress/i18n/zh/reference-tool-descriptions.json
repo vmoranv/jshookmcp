@@ -72,7 +72,7 @@
   "browse_extension_registry": "浏览远程 jshookmcp 扩展注册表以发现可用插件和工作流。",
   "browser_attach": "通过 CDP 连接到一个正在运行的浏览器。",
   "browser_attach_cdp_target": "连接到浏览器中的特定目标，如某个 iframe 或 Worker。",
-  "browser_cdp_performance_metrics": "原子原语：通过 CDP Performance.getMetrics() 获取活跃页面的浏览器运行时指标。返回原始 CDP 级计数器（LayoutCount、RecalcStyleCount、ScriptDuration、TaskDuration、JSHeapUsedSize、Nodes、Documents、Frames 等）——不是 Web Vitals（需要 Web Vitals 请用 network 域的 performance_get_metrics）。",
+  "browser_cdp_performance_metrics": "原子原语：通过 CDP Performance.getMetrics() 获取活跃页面的浏览器运行时指标。返回原始 CDP 级计数器（LayoutCount、RecalcStyleCount、ScriptDuration、TaskDuration、JSHeapUsedSize、Nodes、Documents、Frames 等）——不是 Web Vitals（需要 Web Vitals 请用 browser_get_metrics）。",
   "browser_close": "关闭浏览器。",
   "browser_codegen_start": "开始录制浏览器操作，将页面交互转化为可回放的步骤序列。",
   "browser_codegen_stop": "停止录制浏览器操作，返回经过清洗和合并的可回放步骤列表。",

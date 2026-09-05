@@ -90,7 +90,7 @@ pnpm daemon
 
 <!-- metadata-sync:start -->
 - 包版本：`0.3.5`
-- 内置工具数：`716`
+- 内置工具数：`721`
 - 域列表：`adb-bridge`, `binary-instrument`, `boringssl-inspector`, `browser`, `canvas`, `coordination`, `core`, `cross-domain`, `dart-inspector`, `debugger`, `encoding`, `exploit-dev`, `extension-registry`, `graphql`, `instrumentation`, `maintenance`, `memory`, `mojo-ipc`, `native-bridge`, `native-emulator`, `network`, `platform`, `process`, `protocol-analysis`, `proxy`, `sourcemap`, `streaming`, `syscall-hook`, `tasks`, `trace`, `transform`, `v8-inspector`, `wasm`, `webgpu`, `workflow`
 - 说明：以上数据由运行时 registry 动态生成，不要手改计数。
 <!-- metadata-sync:end -->
