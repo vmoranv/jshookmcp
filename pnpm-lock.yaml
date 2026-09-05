@@ -14,7 +14,7 @@ overrides:
   brace-expansion: 5.0.8
   qs: '>=6.16.0'
   minimatch: 10.2.4
-  better-sqlite3: 13.0.1
+  better-sqlite3: 13.0.3
   esbuild: '>=0.28.1'
   isolated-vm: 6.1.2
   flatted: '>=3.4.2'
@@ -165,8 +165,8 @@ importers:
         specifier: ^3.3.8
         version: 3.3.9
       better-sqlite3:
-        specifier: 13.0.1
-        version: 13.0.1
+        specifier: 13.0.3
+        version: 13.0.3
       binaryen:
         specifier: ^132.0.0
         version: 132.0.0
@@ -2196,8 +2196,8 @@ packages:
     resolution: {integrity: sha512-3ilxa3n4276wGQp/ImRAuz4ALdsj/2Wd3FqoZBZlajDYnByCZ0JMb4+26Rde0wGXIbM0G2HWSfr/Fi8b21KX8g==}
     engines: {node: '>=10.0.0'}
 
-  better-sqlite3@13.0.1:
-    resolution: {integrity: sha512-LYpmOXdkpQYf4wmlxkdzW01XGlOXNIbjLg45yNkh0FQ4814VbK9PdOFmhZpYbej+EZtR/i3FDdhEG98HqZdgnA==}
+  better-sqlite3@13.0.3:
+    resolution: {integrity: sha512-RbOBxmLBG8uvFUc15X9+9SFemKcQ0WBuISBVkpuiaUB2qblC8UWlHEjdWVoZ8AdhSwmoEgsiXKfopX0CQxaACQ==}
     engines: {node: '>=22'}
 
   bidi-js@1.0.3:
@@ -3265,8 +3265,8 @@ packages:
     resolution: {integrity: sha512-eonl3sLUha+S1GzTPxychyhnUzKyeQkZ7jLjKrBagJgPla13F+uQ71HgpFefyHgqrjEbCPkDArxYsjY8/+gLKA==}
     engines: {node: '>= 0.4.0'}
 
-  node-addon-api@8.9.0:
-    resolution: {integrity: sha512-ekZMeaaIzSQTSpr7X2X3iJM7lTzgnx8ahAG9pJfT/7+14mlEM8ZYQ9cgCDvSSRbReFK0oHli3WrZdCiRsgAT9Q==}
+  node-addon-api@8.9.2:
+    resolution: {integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==}
     engines: {node: ^18 || ^20 || >= 21}
 
   node-forge@1.4.0:
@@ -5833,9 +5833,9 @@ snapshots:
 
   basic-ftp@6.0.1: {}
 
-  better-sqlite3@13.0.1:
+  better-sqlite3@13.0.3:
     dependencies:
-      node-addon-api: 8.9.0
+      node-addon-api: 8.9.2
     optional: true
 
   bidi-js@1.0.3:
@@ -5917,7 +5917,7 @@ snapshots:
   camoufox-js@0.11.5(playwright-core@1.62.0):
     dependencies:
       adm-zip: 0.6.0
-      better-sqlite3: 13.0.1
+      better-sqlite3: 13.0.3
       cli-progress: 3.12.0
       commander: 14.0.3
       fingerprint-generator: 2.1.88
@@ -6925,7 +6925,7 @@ snapshots:
 
   netmask@2.1.1: {}
 
-  node-addon-api@8.9.0:
+  node-addon-api@8.9.2:
     optional: true
 
   node-forge@1.4.0:
