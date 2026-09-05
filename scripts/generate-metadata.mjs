@@ -130,7 +130,7 @@ function updateEnglishReadme(readme, summary) {
   const intro =
     'An MCP (Model Context Protocol) server with a runtime-registry-driven catalog of built-in tools for AI-assisted JavaScript analysis and security analysis. It combines browser automation, Chrome DevTools Protocol debugging, network monitoring, intelligent JavaScript hooks, LLM-powered code analysis, process and memory inspection, WASM tooling, source-map reconstruction, AST transforms, and composite workflows in a single server.';
   const snapshotSection = [
-    '## Registry Snapshot',
+    '## Registry snapshot',
     '',
     'The built-in surface below is generated from the runtime registry and checked in CI.',
     '',
@@ -142,10 +142,12 @@ function updateEnglishReadme(readme, summary) {
   let next = readme;
   // One-time legacy badge migration was removed: README badges (Node.js 22.12+)
   // no longer match the old `node->=20` pattern, so the replaces were dead no-ops.
+  // The `i` flags absorb the old title-case headers ("Registry Snapshot" /
+  // "Project Stats") so pre-restructure READMEs keep updating too.
   next = replaceSection(next, /An MCP[\s\S]*?(?=\n## What makes jshook different\n)/, `${intro}\n`);
   next = replaceSection(
     next,
-    /## (Tool Domains|Registry Snapshot)[\s\S]*?(?=\n---\n|\n## Project Stats\n)/,
+    /## (Tool Domains|Registry Snapshot)[\s\S]*?(?=\n---\n|\n## Project Stats\n)/i,
     `${snapshotSection}\n`,
   );
   return `${next.trimEnd()}\n`;
