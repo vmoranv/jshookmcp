@@ -7,7 +7,10 @@ exclude = [
   "^ws://localhost",
   # star-history.com image API intermittently returns 503 (external service
   # flakiness, not a real broken link) — exclude to keep Repo Hygiene stable.
-  "^https://api\\.star-history\\.com"
+  "^https://api\\.star-history\\.com",
+  # github.com/stargazers intermittently 404s for token-less scans (GitHub
+  # anonymous rate limiting) — the page itself is fine.
+  "^https://github\\.com/vmoranv/jshookmcp/stargazers"
 ]
 exclude_path = [
   "docs/.vitepress/dist/assets/**",
