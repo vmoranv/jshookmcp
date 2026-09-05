@@ -82,7 +82,7 @@
 
 大多数面向 JS 分析的 MCP 服务器只暴露少量手写工具，或者只封装一个浏览器引擎。jshook 更接近 **面向前端逆向工程的操作系统**——34 个自发现域、搜索优先的元工具控制 token 开销、以及能在页面崩溃和会话中断时恢复的运行时：
 
-- **搜索优先、档位可调。** `search` 档加载约 3K token 的工具元数据；`full` 档一次性暴露全部 716 个工具，约 40K token。智能体按任务复杂度逐级提升：`search` → `workflow` → `full`，避免在第一轮就淹没在 schema 海洋里。
+- **搜索优先、档位可调。** `search` 档加载约 3K token 的工具元数据；`full` 档一次性暴露全部 723 个工具，约 40K token。智能体按任务复杂度逐级提升：`search` → `workflow` → `full`，避免在第一轮就淹没在 schema 海洋里。
 - **运行时恢复与会话隔离。** Streamable HTTP 会话在重连后恢复已激活域、浏览器 attach 状态、coverage 状态；浏览器侧会话状态按客户端隔离，两个智能体不会互相踩对方的 CDP 会话。
 - **全栈浏览器自动化。** Chromium 与 Camoufox 通过 CDP 控制，内置反检测；显式输入驱动的 CAPTCHA 求解（不内置页面/特征探测）；按需生成自签名 HTTPS 拦截 CA；HTTP/2 帧级构造。
 - **真正的逆向工程，不是字符串搜索。** Binaryen WASM 反汇编、Frida/Ghidra/IDA 桥接、原生 FFI 扫描、硬件断点、PE 内省、GraphQL/Burp Suite 代理桥接、AST 变换——而不是把单条正则塞进工具里。
@@ -96,7 +96,7 @@
 
 | 能力域 | 亮点 |
 | --- | --- |
-| **工具档位** | `search`（约 3K token，BM25 + 混合向量排序）· `workflow`（复合脚本）· `full`（全部 716 工具） |
+| **工具档位** | `search`（约 3K token，BM25 + 混合向量排序）· `workflow`（复合脚本）· `full`（全部 723 工具） |
 | **浏览器自动化** | Chromium 与 Camoufox · CDP 附着已有目标 · 反检测预设 · 显式输入 CAPTCHA 求解 · 弹窗、下载、权限、协议拦截器 |
 | **网络拦截** | HTTP/1.1 + HTTP/2 帧级构造 · MITM 代理自动生成 CA · WebSocket 抓包 · GraphQL 自省辅助 · Burp Suite 桥接 |
 | **JS Hook 与分析** | LLM 驱动的反混淆 · 加密逻辑识别 · AST 深度理解 · Source Map 重建 · 脚本提取与回放 |
@@ -235,7 +235,7 @@ pnpm daemon
 - **延迟初始化** — Handler 在首次调用时实例化，而非启动时预加载。
 - **BM25 + 向量搜索** — `search_tools` 混合排序 + 自适应权重。
 - **MCP `ToolAnnotations`** — 每个工具携带 `readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`。
-- **档位阶梯** — `search`（约 3K token）→ `workflow`（复合脚本）→ `full`（全部 716 工具）。
+- **档位阶梯** — `search`（约 3K token）→ `workflow`（复合脚本）→ `full`（全部 723 工具）。
 - **传输对称** — stdio 与 Streamable HTTP 暴露相同工具面；按客户端隔离会话。
 
 详见 [架构指南](https://vmoranv.github.io/jshookmcp/guide/best-practices.html) 与 [配置参考](https://vmoranv.github.io/jshookmcp/guide/configuration.html)。

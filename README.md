@@ -84,7 +84,7 @@ English · [中文](./README.zh.md)
 
 Most MCP servers for JS analysis expose a handful of hand-rolled tools or wrap a single browser engine. jshook is closer to an **operating system for front-end reverse engineering** — 34 self-discovered domains, a search-first meta-tool that keeps token cost under control, and runtime recovery that survives broken pages and dropped sessions:
 
-- **Search-first, profile-aware.** The `search` profile loads about 3K tokens of tool metadata; the `full` profile exposes all 716 tools at around 40K tokens. Agents move between them as the task grows — `search` → `workflow` → `full` — instead of drowning in schemas from the first turn.
+- **Search-first, profile-aware.** The `search` profile loads about 3K tokens of tool metadata; the `full` profile exposes all 723 tools at around 40K tokens. Agents move between them as the task grows — `search` → `workflow` → `full` — instead of drowning in schemas from the first turn.
 - **Runtime recovery and session isolation.** Streamable HTTP sessions restore activated domains, browser attach state, and coverage state after reconnects; per-client browser-side state stays isolated so two agents cannot trample each other's CDP sessions.
 - **Full-stack browser automation.** Chromium and Camoufox via CDP with anti-detection, an explicit-input CAPTCHA solver (no built-in page/feature probing), a self-signed HTTPS interception CA on demand, and HTTP/2 frame building.
 - **Real reverse engineering, not string searches.** WASM disassembly via Binaryen, Frida/Ghidra/IDA bridges, native FFI scanning, hardware breakpoints, PE introspection, GraphQL/Burp Suite proxy bridges, and AST transforms — not a single regex call wrapped as a tool.
@@ -98,7 +98,7 @@ A scan of what's in the box. Each row links to the detailed [Feature map](#full-
 
 | Area | Highlights |
 | --- | --- |
-| **Tool profiles** | `search` (~3K tokens, BM25 + hybrid vector ranking) · `workflow` (composite scripts) · `full` (all 716 tools) |
+| **Tool profiles** | `search` (~3K tokens, BM25 + hybrid vector ranking) · `workflow` (composite scripts) · `full` (all 723 tools) |
 | **Browser automation** | Chromium and Camoufox · CDP attach to existing targets · anti-detection presets · explicit-input CAPTCHA solver · popup, download, permission, and protocol interceptors |
 | **Network interception** | HTTP/1.1 + HTTP/2 frame building · MITM proxy with auto-generated CA · WebSocket capture · GraphQL introspection helpers · Burp Suite bridge |
 | **JS hooks and analysis** | LLM-powered deobfuscation · crypto routine detection · AST comprehension · source-map reconstruction · script/scriptlet extraction and replay |
@@ -245,7 +245,7 @@ The built-in surface below is generated from the runtime registry and checked in
 - **Lazy initialization** — handlers instantiated on first call, not at startup.
 - **BM25 + vector search** — `search_tools` meta-tool with hybrid ranking and adaptive weights.
 - **MCP `ToolAnnotations`** — every tool carries `readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`.
-- **Profile ladder** — `search` (~3K tokens) → `workflow` (composite scripts) → `full` (all 716 tools).
+- **Profile ladder** — `search` (~3K tokens) → `workflow` (composite scripts) → `full` (all 723 tools).
 - **Transport symmetry** — stdio and Streamable HTTP expose the same surface; sessions are isolated per client.
 
 See the [Architecture guide](https://vmoranv.github.io/jshookmcp/guide/best-practices.html) and [Configuration reference](https://vmoranv.github.io/jshookmcp/guide/configuration.html) for the canonical details.
