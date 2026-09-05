@@ -54,9 +54,9 @@ describe('handleMemoryInvariants', () => {
       webglContexts: 3, // but three live WebGL contexts — one off-screen is allowed, two are orphaned
       textures: 100,
       programs: 10,
-      buffers: 50,
+      drawCalls: 50,
       sceneNodes: 200,
-      engineInfo: { textureMemoryMB: 12, programCount: 10, geometryCount: 5 },
+      engineInfo: { programCount: 10, geometryCount: 5 },
       contextLossEvents: 0,
     });
 
@@ -75,9 +75,9 @@ describe('handleMemoryInvariants', () => {
       webglContexts: 1,
       textures: 5,
       programs: 10,
-      buffers: 5,
+      drawCalls: 5,
       sceneNodes: 0, // nothing in scene yet
-      engineInfo: { textureMemoryMB: 1, programCount: 10, geometryCount: 0 },
+      engineInfo: { programCount: 10, geometryCount: 0 },
       contextLossEvents: 0,
     });
 
@@ -95,9 +95,9 @@ describe('handleMemoryInvariants', () => {
       webglContexts: 1,
       textures: 100,
       programs: 20,
-      buffers: 50,
+      drawCalls: 50,
       sceneNodes: 100,
-      engineInfo: { textureMemoryMB: 50, programCount: 20, geometryCount: 30 },
+      engineInfo: { programCount: 20, geometryCount: 30 },
       contextLossEvents: 3,
     });
 
@@ -115,9 +115,9 @@ describe('handleMemoryInvariants', () => {
       webglContexts: 1,
       textures: 50,
       programs: 5,
-      buffers: 20,
+      drawCalls: 20,
       sceneNodes: 80,
-      engineInfo: { textureMemoryMB: 32, programCount: 5, geometryCount: 12 },
+      engineInfo: { programCount: 5, geometryCount: 600 },
       contextLossEvents: 0,
     });
 
@@ -125,7 +125,7 @@ describe('handleMemoryInvariants', () => {
 
     expect(json.violationCount).toBe(0);
     expect(json.violations).toEqual([]);
-    // Still surfaces safe-cleanup recommendation when GPU memory is non-trivial.
+    // Still surfaces safe-cleanup recommendation when live geometry count is high.
     const recommendations = json.recommendations as Array<{ kind: string }>;
     expect(recommendations.some((r) => r.kind === 'consider-cache-eviction')).toBe(true);
   });
@@ -138,9 +138,9 @@ describe('handleMemoryInvariants', () => {
       webglContexts: 2, // but two live WebGL contexts — one allowed, one orphaned
       textures: 200,
       programs: 15,
-      buffers: 80,
+      drawCalls: 80,
       sceneNodes: 0,
-      engineInfo: { textureMemoryMB: 64, programCount: 15, geometryCount: 25 },
+      engineInfo: { programCount: 15, geometryCount: 25 },
       contextLossEvents: 0,
     });
 

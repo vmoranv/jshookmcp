@@ -1,0 +1,32 @@
+# Extension Registry
+
+Domain: `extension-registry`
+
+Extension registry domain for managing and discovering community extensions.
+
+## Profiles
+
+- full
+
+## Typical scenarios
+
+- Extension browsing
+- Extension installation
+- Extension version management
+
+## Common combinations
+
+- extension-registry + workflow
+- extension-registry + maintenance
+
+## Full tool list (7)
+
+| Tool | Description |
+| --- | --- |
+| `extension_install` | Install/register an extension from a manifest, local package directory, local module file, or remote module URL. |
+| `extension_list_installed` | List installed extensions from the local registry. |
+| `extension_info` | Read installed extension manifest details without importing plugin code. |
+| `extension_execute_in_context` | Load an extension and execute a named exported context function. |
+| `extension_reload` | Reload an installed extension by unloading and loading it again. |
+| `extension_uninstall` | Uninstall an extension from the local registry. |
+| `webhook` | Manage webhook endpoints for external callbacks. Actions: create, list, delete, commands. |

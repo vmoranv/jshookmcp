@@ -1,0 +1,65 @@
+# 网络
+
+域名：`network`
+
+请求捕获、响应体读取、HAR 导出、请求重放与性能追踪。
+
+## Profile
+
+- workflow
+- full
+
+## 典型场景
+
+- 抓包
+- 认证提取
+- 请求重放
+- 性能 trace
+
+## 常见组合
+
+- browser + network
+- network + workflow
+
+## 工具清单（38）
+
+| 工具 | 说明 |
+| --- | --- |
+| `network_enable` | 启用网络请求监控；必须在 page_navigate 之前调用才能捕获请求。 |
+| `network_disable` | 禁用网络请求监控。 |
+| `network_get_status` | 获取网络监控状态，包括是否启用、请求数和响应数。 |
+| `network_monitor` | 管理网络请求监控。启用/禁用监控或查看状态，需在 page_navigate 前启用以捕获请求。 |
+| `network_get_requests` | 查看已捕获的网络请求。数据量大时仅返回摘要，可通过 get_detailed_data 获取完整内容。 |
+| `network_get_response_body` | 查看某个请求的响应内容；大响应会自动截断或摘要化。 |
+| `network_get_stats` | 查看网络流量统计，包括请求量、响应量、错误率与时序信息。 |
+| `performance_get_metrics` | 查看页面性能指标，如 FCP、LCP、FID、CLS。 |
+| `performance_trace` | Chrome Performance Trace 录制。start 开始捕获，stop 结束并保存跟踪文件。 |
+| `profiler_cpu` | CDP CPU 性能分析。start 开始录制，stop 结束并保存含热点函数的 Profile。 |
+| `console_get_exceptions` | 获取页面中已捕获的未处理异常。 |
+| `console_inject` | 注入页面内监控器/拦截器，支持 script_monitor、xhr_interceptor、fetch_interceptor、function_tracer 等类型。 |
+| `console_inject_fetch_interceptor` | 直接注入 fetch() 拦截器。 |
+| `console_inject_xhr_interceptor` | 直接注入 XMLHttpRequest 拦截器。 |
+| `console_buffers` | 管理已注入拦截器的状态，支持清空缓冲区或重置拦截器。 |
+| `http_request_build` | 构建原始 HTTP/1.x 请求载荷（CRLF 行尾）。用于为 http_plain_request 或其他原始套接字工具准备确定性请求文本。 |
+| `http_plain_request` | 通过原始 TCP 发送 HTTP 请求，使用确定性服务端逻辑，包含 DNS 固定、响应解析和有界捕获。非回环 HTTP 目标需要显式请求级授权。 |
+| `http2_probe` | 使用 Node http2 探测 HTTP/2 端点，带确定性 DNS 固定和有界响应捕获。报告协商协议、ALPN 结果、响应头、状态码和响应体片段。非回环明文 h2c 目标需要显式请求级授权。 |
+| `http2_frame_build` | 构建任意支持类型（DATA、SETTINGS、PING、WINDOW_UPDATE、RST_STREAM、GOAWAY、RAW）的原始 HTTP/2 二进制帧。返回 9 字节帧头和完整帧的十六进制字符串，可通过 tcp_write 或 tls_write 发送，用于协议级模糊测试与注入。 |
+| `http2_frame_parse` | 解码原始 HTTP/2 帧（hex 字符串），还原头部字段与按类型解码的载荷（SETTINGS 条目、PING opaque data、WINDOW_UPDATE 窗口增量、RST_STREAM/GOAWAY 错误码、GOAWAY debug data）。是 http2_frame_build 的逆操作。宽松模式：畸形载荷会设置 decodeError 但仍返回 payloadHex。 |
+| `network_http2_fingerprint` | 从捕获的 HTTP/2 客户端连接前言（SETTINGS 帧 + stream-0 WINDOW_UPDATE + 任意 PRIORITY 帧）计算 Akamai 风格的 HTTP/2 指纹。返回规范字符串 "&lt;settings&gt;\|&lt;window_update&gt;\|&lt;priority&gt;"、sha256 哈希及结构化字段。自动检测并跳过 24 字节连接前言魔数。零内置特征库——结构化字段为权威输出，"坏"由调用者判断。 |
+| `grpc_frame_parse` | 把捕获的 gRPC / gRPC-Web body 拆成长度前缀的消息流。每条消息 = 1 字节压缩标志 + 4 字节大端长度 + 载荷。检测 gRPC-Web trailer 帧（标志位 7）与压缩标志（位 0）。宽松模式：截断的尾部消息仍会带 warning 输出。每条消息同时给出 payloadHex 与 payloadBase64——把 payloadBase64 直接喂给 protobuf_decode_raw 即可完成 gRPC 解码链（捕获 body → grpc_frame_parse → protobuf_decode_raw）。 |
+| `grpc_frame_build` | 把一条或多条消息编码为 gRPC / gRPC-Web 长度前缀 body。是 grpc_frame_parse 的逆操作，用于构造测试或重放 body。每条消息接收 payloadHex 及可选的 compressed / isTrailer 标志。 |
+| `network_rtt_measure` | 测量到目标主机的网络往返时间（RTT），支持 TCP、TLS 和 HTTP 三种探测模式。多次迭代平滑抖动，返回 min/max/avg/p50/p95 统计数据。非回环目标需要显式授权。 |
+| `network_latency_stats` | 重复探测目标 URL 并计算延迟百分位统计（p50/p90/p95/p99）。 |
+| `network_traceroute` | 基于 ICMP 的路由追踪，逐跳返回 RTT 与错误分类。Windows 无需管理员权限；Linux/macOS 需要 root 或 CAP_NET_RAW。 |
+| `network_icmp_probe` | ICMP 探测，支持 TTL 控制与错误分类。Windows 无需管理员权限；Linux/macOS 需要 root 或 CAP_NET_RAW。 |
+| `dns_resolve` | 通过系统解析器将主机名解析为 DNS 记录（A/AAAA/CNAME/MX/TXT 等）。 |
+| `dns_reverse` | 反向 DNS 查询——根据 IP 地址查找对应的主机名。 |
+| `dns_probe` | 执行 DNS 查询并返回结构化状态码，不抛异常（NXDOMAIN/SERVFAIL/TIMEOUT 等）。 |
+| `dns_cname_chain` | 追踪主机名的完整 CNAME 解析链，支持配置最大追踪深度。 |
+| `dns_bulk_resolve` | 并发解析大量主机名，返回每个主机的独立解析状态。 |
+| `network_extract_auth` | 从网络请求中提取认证凭据（Token、Cookie、API Key、签名等）。 |
+| `network_export_har` | 将网络请求记录导出为 HAR 文件。 |
+| `network_replay_request` | 重新发送某个已捕获的网络请求，支持按需修改请求内容。可通过 sessionProfile 注入浏览器会话的 Cookie、User-Agent 和 Accept-Language。 |
+| `network_intercept` | 管理基于 CDP Fetch 域的响应拦截规则。操作：add（创建规则）、list（显示活跃规则）、disable（移除规则）。 |
+| `network_tls_fingerprint` | 计算 TLS/HTTP 指纹哈希，用于机器人检测。 |
+| `network_bot_detect_analyze` | 分析已捕获请求的机器人检测信号（TLS 指纹、Header 顺序、时序模式）。 |

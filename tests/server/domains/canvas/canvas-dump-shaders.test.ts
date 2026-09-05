@@ -168,3 +168,69 @@ describe('handleDumpShaders', () => {
     expect(pc.evaluate).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('canvas_dump_shaders in-page payload (executed, not mocked)', () => {
+  it('returns Babylon shader sources from Effect.ShadersStore (regression: store values are GLSL source strings)', async () => {
+    const pc = makePageController();
+    pc.evaluate.mockResolvedValue({
+      programs: [],
+      engine: 'babylon',
+      totalPrograms: 0,
+      reason: null,
+    });
+    await handleDumpShaders(pc, { engine: 'babylon' });
+    const payload = pc.evaluate.mock.calls[0]![0] as string;
+
+    const fakeCanvas = {
+      getContext: (_t: string) => ({ getExtension: () => null }),
+    };
+    const stubWindow = {
+      BABYLON: {
+        Effect: {
+          ShadersStore: {
+            myShader: 'void main() { gl_Position = vec4(1.0); }',
+            myShaderFragment: 'void main() { gl_FragColor = vec4(0.0); }',
+            helperFragment: 'void main() {}',
+          },
+        },
+      },
+    };
+    const stubDocument = {
+      querySelectorAll: () => [fakeCanvas],
+      getElementById: () => null,
+    };
+
+    const raw = new Function('window', 'document', `return (${payload});`)(
+      stubWindow,
+      stubDocument,
+    ) as {
+      engine: string;
+      totalPrograms: number;
+      programs: Array<{ name: string; vertexShader: string; fragmentShader: string }>;
+      reason: string | null;
+    };
+
+    expect(raw.engine).toBe('babylon');
+    // "myShader" + "myShaderFragment" pair into one program entry;
+    // the Fragment-suffixed keys must not be skipped as non-programs.
+    expect(raw.totalPrograms).toBe(1);
+    expect(raw.programs).toHaveLength(1);
+    expect(raw.programs[0]!.name).toBe('myShader');
+    expect(raw.programs[0]!.vertexShader).toContain('gl_Position');
+    expect(raw.programs[0]!.fragmentShader).toContain('gl_FragColor');
+  });
+
+  it('honors maxPrograms in the in-page enumeration (not a hard-coded 200)', async () => {
+    const pc = makePageController();
+    pc.evaluate.mockResolvedValue({
+      programs: [],
+      engine: 'babylon',
+      totalPrograms: 0,
+      reason: null,
+    });
+    await handleDumpShaders(pc, { engine: 'babylon', maxPrograms: 2 });
+    const payload = pc.evaluate.mock.calls[0]![0] as string;
+    expect(payload).toContain('var maxPrograms = 2;');
+    expect(payload).not.toContain('Math.min(names.length, 200)');
+  });
+});

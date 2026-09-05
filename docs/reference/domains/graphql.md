@@ -1,0 +1,32 @@
+# 图查询
+
+域名：`graphql`
+
+GraphQL 发现、提取、重放与 introspection 能力。
+
+## Profile
+
+- workflow
+- full
+
+## 典型场景
+
+- Schema 枚举
+- 网络中提取 query/mutation
+- GraphQL 重放
+
+## 常见组合
+
+- network + graphql
+
+## 工具清单（7）
+
+| 工具 | 说明 |
+| --- | --- |
+| `call_graph_analyze` | 分析页面运行时函数调用图并返回节点、边与统计信息。 |
+| `script_replace_persist` | 持久替换匹配脚本的响应内容，并在新文档中注册元数据。 |
+| `graphql_introspect` | 对目标端点执行 GraphQL introspection 并返回模式数据。 |
+| `graphql_extract_queries` | 从页面内捕获的网络轨迹中提取 GraphQL 查询与变更。 |
+| `graphql_replay` | 通过页面内 fetch 重放 GraphQL 操作，支持变量与请求头覆盖。 |
+| `graphql_subscribe` | 打开 GraphQL subscription 的 WebSocket，完成 graphql-transport-ws（或旧版 graphql-ws）握手，发送 subscribe 帧并在 collectMs 内收集返回帧。在页面内执行，以保留浏览器会话凭据（cookies + connectionPayload）。配合 graphql_replay 用于仅通过已认证 WebSocket 会话暴露 query/mutation 的目标。 |
+| `graphql_enum_schema` | 利用服务端建议错误枚举 GraphQL 字段，introspection 不可用时自动回退探测。 |

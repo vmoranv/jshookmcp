@@ -715,14 +715,11 @@
   "tasks_result": "获取后台任务的结果载荷（MCP 2.0 Tasks 协议）。可选择等待最多 waitMs 毫秒直至任务进入终态。",
   "tasks_cancel": "请求取消一个后台任务（MCP 2.0 Tasks 协议）。仅 working 状态的任务可被取消；若工具定义了取消处理器则会执行。",
   "tasks_list": "列出服务器追踪的近期后台任务（MCP 2.0 Tasks 协议）。过期任务会按 TTL 自动清理。",
-<<<<<<< HEAD
   "browser_get_metrics": "原子原语：通过 PerformanceMonitor 采集页面性能指标——Web Vitals（FCP、LCP、CLS、TTFB）、DOM 时序（domContentLoaded、loadComplete）、引擎级计数器（scriptDuration、layoutDuration、recalcStyleDuration）以及 JS 堆大小（usedJSHeapSize / totalJSHeapSize / jsHeapSizeLimit）。可选择性包含原始性能时间线条目。替代旧 network 域的 performance_get_metrics（仍作为向后兼容别名保留）。",
   "browser_trace_start": "原子原语：通过 page.tracing.start() 在活动页面上开始一次 Chrome 性能追踪。配合 browser_trace_stop 将追踪数据落盘。当有明确假设时使用恰当的类别列表（如 [\"devtools.timeline\",\"v8.execute\",\"blink.user_timing\"]）；默认集合已覆盖多数性能分析场景。",
   "browser_trace_stop": "原子原语：停止由 browser_trace_start 启动的 Chrome 性能追踪，并将其持久化到 artifacts/traces/（或自定义路径）。返回事件数量、文件大小以及 Chrome DevTools 提示。若追踪从未启动或已停止，则明确报错。",
   "browser_cpu_profile_start": "原子原语：在活动页面上开始 CDP CPU 性能分析（Profiler.start）。配合 browser_cpu_profile_stop 将 .cpuprofile 落盘。将 samplingInterval 设为 30–100 微秒可获得高分辨率性能分析（默认 1000 微秒 / 1 毫秒）。",
-  "browser_cpu_profile_stop": "原子原语：停止 CDP CPU 性能分析，按采样数对热点函数排序，并将原始性能分析数据持久化到 artifacts/profiles/（或自定义路径）。热点函数列表由 samples 数组推导得出——现代 Chrome 性能分析不再填充 hitCount。若从未启动性能分析则明确报错。"
-=======
+  "browser_cpu_profile_stop": "原子原语：停止 CDP CPU 性能分析，按采样数对热点函数排序，并将原始性能分析数据持久化到 artifacts/profiles/（或自定义路径）。热点函数列表由 samples 数组推导得出——现代 Chrome 性能分析不再填充 hitCount。若从未启动性能分析则明确报错。",
   "canvas_dump_shaders": "导出目标 canvas 上正在运行的着色器程序（顶点 + 片段源码、uniform）。在引擎支持时通过引擎内省（Three.js 的 renderer.info.programs、BABYLON.Effect.ShadersStore、Laya.Shader 注册表）以及 WEBGL_debug_shaders 扩展恢复源码（受驱动限制）。返回 programs[]，并在引擎/驱动拒绝暴露源码时附上诚实的 `reason`。理论依据：WGPULens arXiv 2606.26412 与 DarthShader arXiv 2409.01824。",
   "canvas_memory_invariants": "断言 WebGL 上下文生命周期、引擎状态一致性以及纹理/程序泄漏等运行时不变量。报告 checks[]、violations[]（含严重级别与安全清理修复）以及 recommendations[] 建议块。诚实声明范围：仅覆盖 JS 可观测指标（DOM canvas 数量 vs 活动 WebGL 上下文数、renderer.info.memory 计数、contextLoss 事件）；完整的 GC 扫描/原生堆检查不在范围内。理论依据：JSidentify-V2 arXiv 2508.01655。"
->>>>>>> 3f8bd381 (fix(canvas): add zh translations for canvas_dump_shaders and canvas_memory_invariants)
 }

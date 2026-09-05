@@ -1,0 +1,42 @@
+# Platform
+
+Domain: `platform`
+
+Platform and package analysis domain covering miniapps, ASAR archives, and Electron apps.
+
+## Profiles
+
+- full
+
+## Typical scenarios
+
+- Inspect miniapp packages
+- Analyze Electron application structure
+
+## Common combinations
+
+- platform + process
+- platform + core
+
+## Full tool list (18)
+
+| Tool | Description |
+| --- | --- |
+| `platform_capabilities` | Report platform tool backend availability. |
+| `miniapp_pkg_scan` | Scan local directories for miniapp package files. |
+| `miniapp_pkg_unpack` | Unpack a miniapp package. |
+| `miniapp_pkg_analyze` | Analyze an unpacked miniapp package. |
+| `asar_extract` | Extract and list files from an Electron ASAR package. |
+| `electron_inspect_app` | Analyze Electron app structure: main/renderer entry, preload, IPC. |
+| `electron_scan_userdata` | Scan a directory for Electron JSON userdata files. |
+| `asar_search` | Grep text patterns inside ASAR archive contents without extraction. |
+| `electron_check_fuses` | Read Electron fuse states. |
+| `electron_patch_fuses` | Patch Electron fuse states. |
+| `v8_bytecode_decompile` | Decompile or extract strings from V8 bytecode files. |
+| `electron_launch_debug` | Launch Electron with main and renderer CDP ports. |
+| `electron_debug_status` | Check status of dual-CDP debug sessions launched by electron_launch_debug. |
+| `electron_ipc_sniff` | Monitor Electron IPC messages. |
+| `electron_verify_integrity` | Verify Electron ASAR integrity: parse the ElectronAsarIntegrity JSON embedded in the main binary, locate each referenced ASAR, and compare the on-disk SHA256/SHA512 hash against the embedded hash. A mismatch means the ASAR was tampered with after build. |
+| `asar_deobfuscate` | Scan every .js file inside an ASAR archive for obfuscation indicators (string-array arrays, webpack bundles, control-flow flattening, dynamic code, minification) and classify each file. Flagged files are optionally extracted to a directory for downstream deobfuscation. |
+| `asar_repack` | Pack a directory tree into an Electron ASAR archive (inverse of asar_extract). Walks the input directory and writes a valid .asar (4xUInt32LE pickle prefix + JSON header + data segment) that parseAsarBuffer and Electron accept. Closes the unpack → patch → repack → retest loop without leaving jshookmcp. |
+| `electron_verify_signature` | Inspect a packaged Electron binary's own code signature (PE Authenticode on Windows, Mach-O embedded code signature on macOS). Pure-TS structural parse: locates the WIN_CERTIFICATE / SuperBlob, decodes the PKCS#7 SignedData, and surfaces the cert chain, signer, digest algorithm, and (macOS) the CodeDirectory ident + best-effort cdhash. No codesign/signtool dependency (runs in any CI). Cryptographic signature validity and timestamp counter-signatures are out of scope (verified:false). |

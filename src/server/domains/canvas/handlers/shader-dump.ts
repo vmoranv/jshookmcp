@@ -60,16 +60,20 @@ export interface CanvasDumpShadersResult {
  * @param canvasId - optional canvas element ID / index to scope to
  * @param includeUniforms - whether to walk and report uniform metadata
  * @param engineHint - explicit engine override (skips auto-detect)
+ * @param maxPrograms - in-page enumeration cap (mirrors the tool argument)
  */
 export function buildDumpShadersPayload(
   canvasId?: string,
   includeUniforms: boolean = true,
   engineHint?: string,
+  maxPrograms: number = 200,
 ): string {
+  const cap = Math.max(1, Math.floor(maxPrograms));
   return `(function() {
   function safe(name) { try { return typeof window[name]; } catch(e) { return 'undefined'; } }
   function arr(n) { return Array.prototype.slice.call(n || []); }
 
+  var maxPrograms = ${cap};
   var canvasId = ${JSON.stringify(canvasId ?? null)};
   var includeUniforms = ${includeUniforms ? 'true' : 'false'};
   var engineHint = ${JSON.stringify(engineHint ?? null)};
@@ -108,6 +112,15 @@ export function buildDumpShadersPayload(
   var programs = [];
   var reason = null;
 
+  // GL active-uniform type ids → readable names (gl.getActiveUniform().type)
+  var GL_TYPE_NAMES = {
+    5126: 'float', 35664: 'vec2', 35665: 'vec3', 35666: 'vec4',
+    35667: 'ivec2', 35668: 'ivec3', 35669: 'ivec4', 35670: 'bool',
+    35671: 'bvec2', 35672: 'bvec3', 35673: 'bvec4', 35674: 'mat2',
+    35675: 'mat3', 35676: 'mat4', 35678: 'sampler2D', 35680: 'samplerCube'
+  };
+  function glTypeName(t) { return GL_TYPE_NAMES[t] || ('gl-0x' + Number(t).toString(16)); }
+
   // ── Three.js path ─────────────────────────────────────────────────────
   // renderer.info.programs[] is Three's internal program registry. Each
   // entry has a vertexShader and fragmentShader WebGLShader handle; the
@@ -130,7 +143,7 @@ export function buildDumpShadersPayload(
         var gl = renderer.getContext ? renderer.getContext() : getGL(targetCanvas);
         var dbg = gl ? gl.getExtension('WEBGL_debug_shaders') : null;
         var progs = renderer.info.programs;
-        for (var i = 0; i < Math.min(progs.length, 200); i++) {
+        for (var i = 0; i < Math.min(progs.length, maxPrograms); i++) {
           var p = progs[i];
           if (!p) continue;
           var pData = {
@@ -151,7 +164,7 @@ export function buildDumpShadersPayload(
               var info = [];
               for (var j = 0; j < uniforms; j++) {
                 var ai = gl.getActiveUniform(p.program, j);
-                if (ai) info.push({ name: ai.name, type: 'unknown' });
+                if (ai) info.push({ name: ai.name, type: glTypeName(ai.type) });
               }
               for (var k = 0; k < info.length; k++) {
                 pData.uniforms[info[k].name] = { type: info[k].type };
@@ -169,31 +182,28 @@ export function buildDumpShadersPayload(
   }
 
   // ── Babylon.js path ───────────────────────────────────────────────────
-  // Babylon stores compiled shaders in Effect.ShadersStore (string → compiled
-  // WebGLProgram map). Effect.ShadersStore is on the BABYLON namespace in 4.x.
+  // Effect.ShadersStore maps a shader name to its GLSL SOURCE STRING — the
+  // fragment twin of "name" is stored under "nameFragment" (Babylon store
+  // convention). There is no WebGLProgram handle here, so WEBGL_debug_shaders
+  // cannot translate further; the store itself IS the source.
   else if (engine === 'babylon') {
     try {
       var B = window.BABYLON;
       if (B && B.Effect && B.Effect.ShadersStore) {
         var names = Object.keys(B.Effect.ShadersStore);
-        var gl = getGL(targetCanvas);
-        var dbg = gl ? gl.getExtension('WEBGL_debug_shaders') : null;
-        for (var i = 0; i < Math.min(names.length, 200); i++) {
+        for (var i = 0; i < Math.min(names.length, maxPrograms); i++) {
           var name = names[i];
-          var prog = B.Effect.ShadersStore[name];
-          if (!prog || !prog.program) continue;
-          var pData = {
+          if (name.slice(-8) === 'Fragment') continue; // paired with its base entry
+          var vsSrc = B.Effect.ShadersStore[name] || '';
+          var fsSrc = B.Effect.ShadersStore[name + 'Fragment'] || '';
+          if (!vsSrc && !fsSrc) continue;
+          programs.push({
             name: name,
-            vertexShader: '',
-            fragmentShader: '',
+            vertexShader: vsSrc,
+            fragmentShader: fsSrc,
             uniforms: {},
             source: 'engine-introspection'
-          };
-          if (dbg) {
-            try { pData.vertexShader = dbg.getTranslatedShaderSource(prog.vertexShader) || ''; } catch(e) {}
-            try { pData.fragmentShader = dbg.getTranslatedShaderSource(prog.fragmentShader) || ''; } catch(e) {}
-          }
-          programs.push(pData);
+          });
         }
       } else {
         reason = 'BABYLON.Effect.ShadersStore not accessible';
@@ -306,7 +316,7 @@ export async function handleDumpShaders(
   };
 
   try {
-    const payload = buildDumpShadersPayload(canvasId, includeUniforms, engineHint);
+    const payload = buildDumpShadersPayload(canvasId, includeUniforms, engineHint, cap);
     raw = await pageController.evaluate<typeof raw>(payload);
   } catch (error) {
     return asJsonResponse({

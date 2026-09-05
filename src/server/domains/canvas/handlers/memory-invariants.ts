@@ -61,10 +61,9 @@ export interface CanvasMemoryMetrics {
   webglContexts: number;
   textures: number;
   programs: number;
-  buffers: number;
+  drawCalls: number;
   sceneNodes: number;
   engineInfo: {
-    textureMemoryMB?: number;
     programCount?: number;
     geometryCount?: number;
   } | null;
@@ -129,7 +128,7 @@ export function buildMemoryInvariantsPayload(canvasId?: string): string {
   var sceneNodes = 0;
   var programs = 0;
   var textures = 0;
-  var buffers = 0;
+  var drawCalls = 0;
   var contextLossEvents = 0;
 
   if (safe('THREE') !== 'undefined') {
@@ -148,14 +147,15 @@ export function buildMemoryInvariantsPayload(canvasId?: string): string {
       if (renderer && renderer.info) {
         var mem = renderer.info.memory || {};
         var render = renderer.info.render || {};
+        // renderer.info only exposes COUNTS (never bytes) — report them as
+        // counts; any byte-sized claim would be fabricated.
         engineInfo = {
-          textureMemoryMB: Math.round((mem.geometries || 0) / 1024),
           programCount: (renderer.info.programs || []).length,
           geometryCount: mem.geometries || 0
         };
         programs = engineInfo.programCount;
-        textures = (renderer.info.textures || []).length;
-        buffers = render.calls || 0;
+        textures = mem.textures || 0;
+        drawCalls = render.calls || 0;
       }
       // sceneNodes: walk the scene tree if we can find one
       try {
@@ -193,7 +193,7 @@ export function buildMemoryInvariantsPayload(canvasId?: string): string {
             if (s && s.transformNodes) sceneNodes += s.transformNodes.length;
           }
           engineInfo = {
-            programCount: last._compiledEffects ? last._compiledEffects.length : 0,
+            programCount: last._compiledEffects ? Object.keys(last._compiledEffects).length : 0,
             geometryCount: 0
           };
           programs = engineInfo.programCount;
@@ -239,7 +239,7 @@ export function buildMemoryInvariantsPayload(canvasId?: string): string {
     webglContexts: webglContexts,
     textures: textures,
     programs: programs,
-    buffers: buffers,
+    drawCalls: drawCalls,
     sceneNodes: sceneNodes,
     engineInfo: engineInfo,
     contextLossEvents: contextLossEvents
@@ -385,20 +385,17 @@ export function evaluateInvariants(metrics: CanvasMemoryMetrics): {
     });
   }
 
-  // Generic safe-cleanup recommendations when memory is non-trivial but no
-  // hard violation fired. We surface them only when there's something
-  // meaningful to suggest.
-  if (
-    metrics.engineInfo?.textureMemoryMB !== undefined &&
-    metrics.engineInfo.textureMemoryMB > 16
-  ) {
+  // Generic safe-cleanup recommendation when the engine tracks a large number
+  // of live geometries. renderer.info exposes only counts (never bytes), so
+  // the trigger is count-based rather than a fabricated MB figure.
+  if (metrics.engineInfo?.geometryCount !== undefined && metrics.engineInfo.geometryCount > 500) {
     recommendations.push({
       kind: 'consider-cache-eviction',
       description:
-        'GPU texture memory is at ' +
-        metrics.engineInfo.textureMemoryMB +
-        ' MB. ' +
-        'Consider evicting unused textures to keep the GPU heap predictable.',
+        'Renderer tracks ' +
+        metrics.engineInfo.geometryCount +
+        ' live geometries (renderer.info.memory.geometries). ' +
+        'Consider disposing geometries/materials without live references to keep the JS and GPU heaps predictable.',
       engine: metrics.engine ?? undefined,
     });
   }

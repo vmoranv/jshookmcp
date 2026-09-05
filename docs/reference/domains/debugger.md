@@ -1,0 +1,48 @@
+# 调试器
+
+域名：`debugger`
+
+基于 CDP 的断点、单步、调用栈、watch、调试会话管理与反反调试域。
+
+## Profile
+
+- workflow
+- full
+
+## 典型场景
+
+- 断点调试
+- 调用帧求值
+- 调试会话保存/恢复
+- 反调试绕过
+
+## 常见组合
+
+- debugger + browser
+- debugger + instrumentation
+
+## 工具清单（21）
+
+| 工具 | 说明 |
+| --- | --- |
+| `debugger_lifecycle` | 管理调试器生命周期（启用或禁用）。 |
+| `debugger_pause` | 在下一条语句处暂停执行。 |
+| `debugger_resume` | 恢复执行。 |
+| `debugger_run_to_location` | 通过设置临时代码断点并恢复执行，等待调试器在指定源码位置暂停，随后自动移除该断点。 |
+| `debugger_step` | 单步执行代码（进入/跳过/跳出）。 |
+| `breakpoint` | 管理断点：代码断点（行号/脚本）、函数名断点、XHR 断点（URL 模式）、事件监听断点、事件类别断点和异常断点。 |
+| `get_call_stack` | 获取当前调用栈（仅在断点暂停时可用）。 |
+| `debugger_disassemble` | 反汇编当前暂停位置（或指定 scriptId）的 V8 字节码/指令。自动从当前暂停调用帧解析目标 scriptId——在混淆/VM 代码中暂停时很有用，可据此判断是否步入。原生字节码需 V8 natives 语法；当原生提取不可用时，设置 includeSourceFallback 可从源码派生伪字节码。 |
+| `debugger_evaluate` | 在特定上下文（当前调用帧或全局）中求值表达式。 |
+| `debugger_wait_for_paused` | 等待调试器进入暂停状态。 |
+| `debugger_capture_hit` | 等待下一次调试器暂停，并一次性捕获调用栈和可选的顶部调用帧作用域变量。 |
+| `debugger_get_paused_state` | 获取当前暂停状态及原因。 |
+| `get_object_properties` | 获取对象的全部属性。 |
+| `get_scope_variables_enhanced` | 增强查看作用域变量，支持深度对象遍历。 |
+| `debugger_session` | 管理调试会话（保存/加载/导出/列表）。 |
+| `watch` | 管理监视表达式，用于调试时跟踪变量值。 |
+| `blackbox_add` | 将脚本加入黑盒列表，调试时自动跳过。 |
+| `blackbox_add_common` | 一键将常见第三方库加入黑盒列表。 |
+| `blackbox_list` | 列出全部黑盒脚本匹配规则。 |
+| `antidebug_bypass` | 绕过指定类型的反调试保护。 |
+| `antidebug_detect_protections` | 检测当前页面的反调试机制并给出绕过建议。 |
