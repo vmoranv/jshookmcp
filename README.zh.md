@@ -10,7 +10,7 @@
 [![MCP](https://img.shields.io/badge/MCP-current-8A2BE2.svg)](https://modelcontextprotocol.io/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-F69220.svg)](https://pnpm.io/)
 
-### 一个为 AI 智能体打造的搜索优先、档位可调的前端逆向工程工作台。
+**一个为 AI 智能体打造的搜索优先、档位可调的前端逆向工程工作台。**
 
 [English](./README.md) · 中文
 
@@ -21,7 +21,7 @@
   <a href="https://github.com/vmoranv/jshookmcp/network/members">
     <img src="https://img.shields.io/github/forks/vmoranv/jshookmcp?style=for-the-badge" alt="Forks" />
   </a>
-  <a href="https://github.com/vmoranv/jshookmcp/releases/tag/v0.3.5">
+  <a href="https://github.com/vmoranv/jshookmcp/releases">
     <img src="https://img.shields.io/github/v/tag/vmoranv/jshookmcp?style=for-the-badge&sort=semver" alt="最新版本" />
   </a>
   <a href="LICENSE">
@@ -30,11 +30,9 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@jshookmcp/jshook">
-    <img src="https://img.shields.io/npm/v/@jshookmcp/jshook?style=for-the-badge&logo=npm" alt="npm version" />
-  </a>
+  <!-- npm badge: re-add once @jshookmcp/jshook is published -->
   <a href="https://nodejs.org/">
-    <img src="https://img.shields.io/badge/node-22.12%2B-brightgreen?style=for-the-badge&logo=node.js" alt="Node.js 22.12+" />
+    <img src="https://img.shields.io/badge/node-22.22.2%2B-brightgreen?style=for-the-badge&logo=node.js" alt="Node.js 22.22.2+" />
   </a>
   <a href="https://www.typescriptlang.org/">
     <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript strict" />
@@ -92,7 +90,7 @@
 
 ## 能力概览
 
-下面是开箱即用能力的快速扫描。每一行都链向下方的 [完整功能图](#完整功能图)。
+下面是开箱即用能力的快速扫描。每一行都链向下方的 [能力概览](#能力概览)。
 
 | 能力域 | 亮点 |
 | --- | --- |

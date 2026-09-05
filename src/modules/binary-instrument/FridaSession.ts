@@ -732,8 +732,9 @@ export class FridaSession {
           encoding: 'utf8',
           // POSIX: lead a new process group so cancellation can signal the
           // whole tree — in spawn mode the instrumented target is a
-          // grandchild of the frida CLI.
-          detached: process.platform !== 'win32',
+          // grandchild of the frida CLI. ExecFileOptions omits `detached`;
+          // execFile forwards spawn options at runtime, hence the spread.
+          ...(process.platform !== 'win32' ? { detached: true as const } : {}),
         },
         (error, stdout, stderr) => {
           signal?.removeEventListener('abort', onAbort);
@@ -772,14 +773,15 @@ export class FridaSession {
           );
           return;
         }
+        const pid = child.pid;
         try {
-          process.kill(-child.pid, 'SIGTERM');
+          process.kill(-pid, 'SIGTERM');
         } catch {
           child.kill('SIGTERM');
         }
         escalationTimer = setTimeout(() => {
           try {
-            process.kill(-child.pid, 'SIGKILL');
+            process.kill(-pid, 'SIGKILL');
           } catch {
             child.kill('SIGKILL');
           }

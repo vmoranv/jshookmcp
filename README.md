@@ -10,7 +10,7 @@
 [![MCP](https://img.shields.io/badge/MCP-current-8A2BE2.svg)](https://modelcontextprotocol.io/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-F69220.svg)](https://pnpm.io/)
 
-### A search-first, profile-aware reverse-engineering workspace for AI agents.
+**A search-first, profile-aware reverse-engineering workspace for AI agents.**
 
 **Hook the page, capture the network, deobfuscate the bundle, disassemble the WASM, instrument the process — and let one MCP server keep the whole attack surface in reach without drowning the model in schemas.**
 
@@ -23,7 +23,7 @@ English · [中文](./README.zh.md)
   <a href="https://github.com/vmoranv/jshookmcp/network/members">
     <img src="https://img.shields.io/github/forks/vmoranv/jshookmcp?style=for-the-badge" alt="Forks" />
   </a>
-  <a href="https://github.com/vmoranv/jshookmcp/releases/tag/v0.3.5">
+  <a href="https://github.com/vmoranv/jshookmcp/releases">
     <img src="https://img.shields.io/github/v/tag/vmoranv/jshookmcp?style=for-the-badge&sort=semver" alt="Latest Release" />
   </a>
   <a href="LICENSE">
@@ -32,11 +32,9 @@ English · [中文](./README.zh.md)
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@jshookmcp/jshook">
-    <img src="https://img.shields.io/npm/v/@jshookmcp/jshook?style=for-the-badge&logo=npm" alt="npm version" />
-  </a>
+  <!-- npm badge: re-add once @jshookmcp/jshook is published -->
   <a href="https://nodejs.org/">
-    <img src="https://img.shields.io/badge/node-22.12%2B-brightgreen?style=for-the-badge&logo=node.js" alt="Node.js 22.12+" />
+    <img src="https://img.shields.io/badge/node-22.22.2%2B-brightgreen?style=for-the-badge&logo=node.js" alt="Node.js 22.22.2+" />
   </a>
   <a href="https://www.typescriptlang.org/">
     <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript strict" />
@@ -94,7 +92,7 @@ Most MCP servers for JS analysis expose a handful of hand-rolled tools or wrap a
 
 ## Capability overview
 
-A scan of what's in the box. Each row links to the detailed [Feature map](#full-feature-map) below.
+A scan of what's in the box. Each row links to the detailed [Capability overview](#capability-overview) below.
 
 | Area | Highlights |
 | --- | --- |
