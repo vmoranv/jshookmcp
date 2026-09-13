@@ -47,18 +47,22 @@ function getContextWindow(
 ): string {
   const startLine = Math.max(0, lineIndex - halfWidth);
   const endLine = Math.min(lines.length - 1, lineIndex + halfWidth);
-  let context = lines.slice(startLine, endLine + 1).join('\n');
-
-  if (context.length > truncateChars) {
-    const snippetStart = Math.max(0, matchIndex - snippetHalfWidth);
-    const snippetEnd = Math.min(line.length, matchIndex + snippetHalfWidth);
-    context =
-      (snippetStart > 0 ? '...' : '') +
-      line.substring(snippetStart, snippetEnd) +
-      (snippetEnd < line.length ? '...' : '');
+  let contextLength = endLine - startLine;
+  for (let i = startLine; i <= endLine && contextLength <= truncateChars; i++) {
+    contextLength += lines[i]!.length;
   }
 
-  return context;
+  if (contextLength > truncateChars) {
+    const snippetStart = Math.max(0, matchIndex - snippetHalfWidth);
+    const snippetEnd = Math.min(line.length, matchIndex + snippetHalfWidth);
+    return (
+      (snippetStart > 0 ? '...' : '') +
+      line.substring(snippetStart, snippetEnd) +
+      (snippetEnd < line.length ? '...' : '')
+    );
+  }
+
+  return lines.slice(startLine, endLine + 1).join('\n');
 }
 
 export interface ScriptInfo {
@@ -109,6 +113,8 @@ export class ScriptManager {
   private initPromise?: Promise<void>;
 
   private keywordIndex: Map<string, KeywordIndexEntry[]> = new Map();
+  private indexedScripts = new Map<ScriptInfo, Promise<void>>();
+  private indexGeneration = 0;
   private scriptChunks: Map<string, ScriptChunk[]> = new Map();
   private readonly CHUNK_SIZE = 100 * 1024;
   private readonly MAX_KEYWORD_INDEX_ENTRIES = 50000;
@@ -186,7 +192,6 @@ export class ScriptManager {
       script.source = scriptSource;
       script.sourceLength = scriptSource.length;
 
-      this.buildKeywordIndex(script.scriptId, script.url, scriptSource);
       this.chunkScript(script.scriptId, scriptSource);
       return true;
     } catch (error) {
@@ -255,6 +260,8 @@ export class ScriptManager {
         this.scripts.clear();
         this.scriptsByUrl.clear();
         this.keywordIndex.clear();
+        this.indexedScripts.clear();
+        this.indexGeneration++;
         this.scriptChunks.clear();
         await this.init();
       }
@@ -396,6 +403,8 @@ export class ScriptManager {
       caseSensitive?: boolean;
       contextLines?: number;
       maxMatches?: number;
+      signal?: AbortSignal;
+      timeoutMs?: number;
     } = {},
   ): Promise<{
     keyword: string;
@@ -409,6 +418,12 @@ export class ScriptManager {
       context: string;
     }>;
   }> {
+    const deadline = performance.now() + (options.timeoutMs ?? 30_000);
+    const checkCancellation = () => {
+      options.signal?.throwIfAborted();
+      if (performance.now() >= deadline) throw new Error('Script search execution timed out');
+    };
+    checkCancellation();
     await this.ensureCdpSession();
 
     const { isRegex = false, caseSensitive = false, contextLines = 3, maxMatches = 100 } = options;
@@ -426,22 +441,26 @@ export class ScriptManager {
       context: string;
     }> = [];
 
-    const scripts = await this.getAllScripts(true, SEARCH_RESULT_LIMIT);
+    const scripts = await this.getAllScripts(false, SEARCH_RESULT_LIMIT);
 
     for (const [scriptIndex, script] of scripts.entries()) {
-      if (!script.source) continue;
+      checkCancellation();
       if (matches.length >= maxMatches) break;
+      if (!script.source && !(await this.loadScriptSourceInternal(script))) continue;
+      checkCancellation();
 
-      const lines = script.source.split('\n');
+      const lines = script.source!.split('\n');
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         if (!line) continue;
 
-        const lineMatches = Array.from(line.matchAll(searchRegex));
-
-        for (const match of lineMatches) {
+        for (const match of line.matchAll(searchRegex)) {
           if (matches.length >= maxMatches) break;
+          if (matches.length % 256 === 0) {
+            await waitForImmediate();
+            checkCancellation();
+          }
 
           const context = getContextWindow(
             lines,
@@ -461,10 +480,14 @@ export class ScriptManager {
             matchText: match[0],
             context,
           });
+          if (matches.length >= maxMatches) break;
         }
+
+        if (matches.length >= maxMatches) break;
 
         if ((i + 1) % ScriptManager.SEARCH_LINE_YIELD_INTERVAL === 0) {
           await waitForImmediate();
+          checkCancellation();
         }
       }
 
@@ -473,6 +496,7 @@ export class ScriptManager {
       }
     }
 
+    checkCancellation();
     logger.info(`searchInScripts: "${keyword}" - found ${matches.length} matches`);
 
     return {
@@ -498,6 +522,8 @@ export class ScriptManager {
     this.scripts.clear();
     this.scriptsByUrl.clear();
     this.keywordIndex.clear();
+    this.indexedScripts.clear();
+    this.indexGeneration++;
     this.scriptChunks.clear();
     logger.info(' ScriptManager cleared - ready for new website');
   }
@@ -540,17 +566,17 @@ export class ScriptManager {
     };
   }
 
-  private buildKeywordIndex(scriptId: string, url: string, content: string): void {
+  private async buildKeywordIndex(scriptId: string, url: string, content: string): Promise<void> {
     const lines = content.split('\n');
     const keywordRegex = /\b[a-zA-Z_$][a-zA-Z0-9_$]{2,}\b/g;
+    let indexedCount = 0;
+    const generation = this.indexGeneration;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (!line) continue;
 
-      const matches = Array.from(line.matchAll(keywordRegex));
-
-      for (const match of matches) {
+      for (const match of line.matchAll(keywordRegex)) {
         const keyword = match[0].toLowerCase();
 
         const context = getContextWindow(
@@ -575,6 +601,10 @@ export class ScriptManager {
           this.keywordIndex.set(keyword, []);
         }
         this.keywordIndex.get(keyword)!.push(entry);
+        if (++indexedCount % 256 === 0) {
+          await waitForImmediate();
+          if (generation !== this.indexGeneration) return;
+        }
       }
     }
 
@@ -659,6 +689,17 @@ export class ScriptManager {
     }> = [];
 
     if (!isRegex) {
+      // Index only already-loaded sources, preserving the enhanced search scope.
+      for (const script of this.scripts.values()) {
+        if (script.source) {
+          let indexing = this.indexedScripts.get(script);
+          if (!indexing) {
+            indexing = this.buildKeywordIndex(script.scriptId, script.url, script.source);
+            this.indexedScripts.set(script, indexing);
+          }
+          await indexing;
+        }
+      }
       for (const [indexedKeyword, entries] of this.keywordIndex.entries()) {
         if (indexedKeyword.includes(searchTerm)) {
           for (const entry of entries) {

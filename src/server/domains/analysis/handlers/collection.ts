@@ -19,6 +19,7 @@ import {
   ANALYSIS_MAX_SAFE_RESPONSE_BYTES,
 } from '@src/constants';
 import { logger } from '@utils/logger';
+import { getToolRequestContext } from '@server/runtime/ToolRequestContext';
 
 const SMART_MODES = new Set(['summary', 'priority', 'incremental', 'full'] as const);
 
@@ -167,6 +168,8 @@ export class CollectionHandlers {
       caseSensitive: argBool(args, 'caseSensitive'),
       contextLines: argNumber(args, 'contextLines'),
       maxMatches,
+      signal: getToolRequestContext()?.signal,
+      timeoutMs: argNumber(args, 'timeoutMs', 30_000),
     });
     type ScriptSearchMatch = {
       scriptId?: string | number;

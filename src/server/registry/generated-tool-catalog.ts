@@ -22880,6 +22880,13 @@ export const GENERATED_TOOL_CATALOG = [
             minimum: 1,
             maximum: 10000,
           },
+          timeoutMs: {
+            type: 'number',
+            description: 'Cooperative search execution deadline in milliseconds',
+            default: 30000,
+            minimum: 1,
+            maximum: 300000,
+          },
           returnSummary: {
             type: 'boolean',
             description: 'Return summary instead of full payload',

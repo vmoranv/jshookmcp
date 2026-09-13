@@ -454,7 +454,9 @@ describe('ScriptManager.impl.class comprehensive tests', () => {
 
       expect(stats.totalScripts).toBe(2);
       expect(stats.totalUrls).toBe(2);
-      expect(stats.indexedKeywords).toBeGreaterThan(0);
+      expect(stats.indexedKeywords).toBe(0);
+      await manager.searchInScriptsEnhanced('hello');
+      expect(manager.getStats().indexedKeywords).toBeGreaterThan(0);
       expect(stats.totalChunks).toBeGreaterThan(0);
     });
   });

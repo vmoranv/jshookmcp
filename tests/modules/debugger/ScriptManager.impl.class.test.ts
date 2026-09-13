@@ -296,11 +296,11 @@ describe('ScriptManager core class internals', () => {
     expect((manager as any).cdpSession).toBeNull();
   });
 
-  it('indexes keywords in lowercase and chunks scripts for later retrieval', () => {
+  it('indexes keywords in lowercase and chunks scripts for later retrieval', async () => {
     const manager = new ScriptManager({ getActivePage: vi.fn() } as never);
     (manager as any).CHUNK_SIZE = 5;
 
-    (manager as any).buildKeywordIndex(
+    await (manager as any).buildKeywordIndex(
       'script-1',
       buildTestUrl('site', { suffix: 'bare', path: 'app.js' }),
       'line1\nLine2 tokenValue\nline3\nline4\nline5',

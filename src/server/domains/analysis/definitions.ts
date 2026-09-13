@@ -83,6 +83,11 @@ export const coreTools: Tool[] = [
         maximum: 50,
       })
       .number('maxMatches', 'Maximum matches', { default: 100, minimum: 1, maximum: 10000 })
+      .number('timeoutMs', 'Cooperative search execution deadline in milliseconds', {
+        default: 30000,
+        minimum: 1,
+        maximum: 300000,
+      })
       .boolean('returnSummary', 'Return summary instead of full payload', { default: false })
       .number('maxContextSize', 'Max response size before summary fallback', {
         default: 50000,

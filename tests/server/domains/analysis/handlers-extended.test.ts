@@ -364,12 +364,27 @@ describe('CoreAnalysisHandlers — extended coverage', () => {
 
       expect(deps.scriptManager.init).toHaveBeenCalledOnce();
       expect(deps.scriptManager.searchInScripts).toHaveBeenCalledWith('var', {
+        signal: undefined,
+        timeoutMs: 30000,
         isRegex: true,
         caseSensitive: true,
         contextLines: 5,
         maxMatches: 50,
       });
       expect(body.matches).toHaveLength(1);
+    });
+
+    it('forwards the MCP cancellation signal and execution deadline', async () => {
+      const { runWithToolRequestContext } = await import('@server/runtime/ToolRequestContext');
+      const controller = new AbortController();
+      deps.scriptManager.searchInScripts.mockResolvedValue({ matches: [] });
+      await runWithToolRequestContext({ mcpReq: { signal: controller.signal } }, () =>
+        handlers.handleSearchInScripts({ keyword: 'needle', timeoutMs: 1234 }),
+      );
+      expect(deps.scriptManager.searchInScripts).toHaveBeenCalledWith(
+        'needle',
+        expect.objectContaining({ signal: controller.signal, timeoutMs: 1234 }),
+      );
     });
 
     it('returns summary when returnSummary is true', async () => {
