@@ -151,7 +151,7 @@
     "@types/dns-packet": "^5.6.5",
     "@types/jsdom": "^30.0.0",
     "@types/node": "^26.4.1",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^5.0.1",
     "cross-env": "^10.1.0",
     "lefthook": "^2.1.9",
     "medium-zoom": "^1.1.0",
