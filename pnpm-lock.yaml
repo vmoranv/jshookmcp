@@ -57,7 +57,7 @@ importers:
         version: 2.0.0
       '@modelcontextprotocol/core':
         specifier: ^2.0.0
-        version: 2.0.0
+        version: 2.1.0
       '@modelcontextprotocol/node':
         specifier: ^2.0.0
         version: 2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.13.5)
@@ -819,6 +819,10 @@ packages:
 
   '@modelcontextprotocol/core@2.0.0':
     resolution: {integrity: sha512-pJCEwGG7Lfr/+PQp9ZTwKXNeO5wzbfKL7H3MYpCorM4oFBoQrdjnBgEoqG+RjhsvS1FKrDbKux+M1HhlnGWqcA==}
+    engines: {node: '>=20'}
+
+  '@modelcontextprotocol/core@2.1.0':
+    resolution: {integrity: sha512-YdFj5gMRHr0gYNAhTbQDgjLHiEJdIAUYxomhKseUNye7ZGlISQmUoLh2sveFFCiQ7j2YMffT1kgSND0FSfIFjQ==}
     engines: {node: '>=20'}
 
   '@modelcontextprotocol/node@2.0.0':
@@ -4577,6 +4581,10 @@ snapshots:
       zod: 4.5.4
 
   '@modelcontextprotocol/core@2.0.0':
+    dependencies:
+      zod: 4.5.4
+
+  '@modelcontextprotocol/core@2.1.0':
     dependencies:
       zod: 4.5.4
 
