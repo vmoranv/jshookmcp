@@ -78,7 +78,7 @@ importers:
         version: 18.0.4
       fast-uri:
         specifier: '>=4.1.3'
-        version: 4.1.4
+        version: 4.2.1
       jsdom:
         specifier: ^30.0.1
         version: 30.0.1
@@ -2504,8 +2504,8 @@ packages:
   fast-json-patch@3.1.1:
     resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
 
-  fast-uri@4.1.4:
-    resolution: {integrity: sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ==}
+  fast-uri@4.2.1:
+    resolution: {integrity: sha512-TmHQgewjHtMq1E5QKA0tOE0yeYGQs25KZC/ziJpubRtWI15W92e6vPFydWOeZBVROSHBYw/QhD9d5OefdD6LDg==}
 
   fdir@6.5.0:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
@@ -5963,7 +5963,7 @@ snapshots:
 
   fast-json-patch@3.1.1: {}
 
-  fast-uri@4.1.4: {}
+  fast-uri@4.2.1: {}
 
   fdir@6.5.0(picomatch@4.0.4):
     optionalDependencies:
