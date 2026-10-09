@@ -98,15 +98,21 @@ jobs:
         # describes" class of bug: registry metadata, the openapi surface, domain
         # integrity, event contracts, and the tool audit. All five are read-only.
         #
+        # `metadata:check` guards BOTH copies of the tool count: the generated
+        # registry block and the hand-written README prose. The prose copy is the
+        # one that drifted unnoticed from 2026-10-04 to 2026-10-09 — see
+        # scripts/audit-readme-counts.mjs for the guard and why it exists.
+        #
         # Four of these five previously ran only through `pnpm run check`, which
         # is invoked solely by publish-packages.yml, a tag-triggered workflow —
         # so on a pull request they never executed at all, and a desync surfaced
         # only at release time. The fifth, `audit:tools`, was not in `check` at
         # all and had never run in CI; it is listed here on its own merit.
         #
-        # Deliberately NOT included: `audit:events:selftest`. It writes to src/ by
-        # design, to prove the audit can actually fail; a CI job that mutates
-        # source is a hazard rather than a check (see its own header comment).
+        # Deliberately NOT included: `audit:events:selftest` and
+        # `audit:readme-counts:selftest`. Both write to the tree by design, to
+        # prove the audit can actually fail; a CI job that mutates source is a
+        # hazard rather than a check (see their own header comments).
         run: |
           pnpm run metadata:check
           pnpm run openapi:check
