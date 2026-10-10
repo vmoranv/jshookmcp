@@ -26,7 +26,7 @@ Native analysis bridge domain for local loopback HTTP bridges to Ghidra, IDA, Ri
 | Tool | Description |
 | --- | --- |
 | `native_bridge_status` | Check native bridge backend health. |
-| `ghidra_bridge` | Send a command to a Ghidra headless analysis bridge. |
+| `ghidra_bridge` | Send a command to a Ghidra bridge. Two backends: the pip ghidra_bridge server (TCP 127.0.0.1:4768 — pip install ghidra_bridge, then in Ghidra run ghidra_bridge_server.py) or a REST bridge (HTTP 18080). Auto mode prefers the pip TCP server when it answers. |
 | `ida_bridge` | Send a command to an IDA Pro plugin bridge. |
 | `rizin_bridge` | Send a command to a local Rizin/r2 analysis bridge. |
 | `binary_ninja_bridge` | Send a command to a local Binary Ninja analysis bridge. |
