@@ -1,40 +1,22 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.vmoranv/jshookmcp",
-  "description": "MCP server with built-in tools across multiple domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration",
+  "description": "Search-first MCP server for JavaScript reverse engineering: 735 tools across 36 domains.",
   "version": "0.4.2",
-  "homepage": "https://github.com/vmoranv/jshookmcp",
-  "license": "AGPL-3.0-only",
-  "keywords": [
-    "mcp",
-    "javascript",
-    "javascript-analysis",
-    "security-analysis",
-    "browser-automation",
-    "debugging",
-    "deobfuscation",
-    "crypto-detection",
-    "hook",
-    "ai-powered",
-    "puppeteer",
-    "chrome-devtools",
-    "network-monitoring",
-    "anti-detection",
-    "captcha"
-  ],
+  "websiteUrl": "https://vmoranv.github.io/jshookmcp/",
+  "repository": {
+    "id": "1163421451",
+    "source": "github",
+    "url": "https://github.com/vmoranv/jshookmcp"
+  },
   "packages": [
     {
-      "registry_type": "npm",
+      "registryType": "npm",
       "identifier": "@jshookmcp/jshook",
-      "version": "0.4.2"
+      "version": "0.4.2",
+      "transport": {
+        "type": "stdio"
+      }
     }
-  ],
-  "author": {
-    "name": "vmoranv",
-    "url": "https://github.com/vmoranv"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/vmoranv/jshookmcp.git"
-  }
+  ]
 }

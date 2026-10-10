@@ -99,6 +99,30 @@ export function buildDescription() {
   return `MCP server with built-in tools across multiple domains for AI-assisted JavaScript analysis and security analysis — browser automation, CDP debugging, network monitoring, JS hooks, code analysis, and workflow orchestration`;
 }
 
+/**
+ * The MCP Registry caps `description` at 100 characters, while npm does not.
+ * `buildDescription()` is 221 characters, so feeding it to both consumers made
+ * every registry publish fail with HTTP 422 (`expected length <= 100`) — which
+ * went unnoticed because nothing validated server.json against the registry
+ * schema. Registry copy therefore gets its own budgeted builder.
+ *
+ * @see https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json
+ */
+export const REGISTRY_DESCRIPTION_MAX = 100;
+
+export function buildRegistryDescription(summary) {
+  const text = `Search-first MCP server for JavaScript reverse engineering: ${summary.toolCount} tools across ${summary.domainCount} domains.`;
+  if (text.length > REGISTRY_DESCRIPTION_MAX) {
+    // Throw instead of truncating: a silently shortened description is how this
+    // drifted in the first place. Grow the counts and this fails loudly instead.
+    throw new Error(
+      `Registry description is ${text.length} chars, over the MCP Registry limit of ${REGISTRY_DESCRIPTION_MAX}. ` +
+        `Shorten buildRegistryDescription() in scripts/generate-metadata.mjs.`,
+    );
+  }
+  return text;
+}
+
 function buildMetadataBlock(summary, language) {
   if (language === 'zh') {
     return [
@@ -198,26 +222,46 @@ function updatePackageJson(packageJson) {
   return next;
 }
 
-function updateServerJson(serverJson, packageJson) {
+/**
+ * The registry schema requires camelCase `registryType` and a `transport`
+ * object; earlier revisions of this generator wrote snake_case `registry_type`
+ * and omitted `transport`, so the registry dropped the type and rejected every
+ * publish with `expected length >= 1`. Normalising on every pass (not just when
+ * appending a new entry) means `metadata:check` — which diffs the file on disk
+ * against this generator's output — also catches and repairs hand edits.
+ */
+function normalizeRegistryPackage(entry) {
+  const next = { ...entry };
+  if (next.registryType === undefined && typeof next.registry_type === 'string') {
+    next.registryType = next.registry_type;
+  }
+  delete next.registry_type;
+  next.registryType ??= 'npm';
+  next.transport ??= { type: 'stdio' };
+  return next;
+}
+
+function updateServerJson(serverJson, packageJson, summary) {
   const packages = Array.isArray(serverJson.packages)
-    ? serverJson.packages.map((entry) => ({ ...entry }))
+    ? serverJson.packages.map((entry) => normalizeRegistryPackage(entry))
     : [];
 
   const packageEntry = packages.find((entry) => entry.identifier === packageJson.name);
   if (packageEntry) {
     packageEntry.version = packageJson.version;
   } else {
-    packages.push({
-      registry_type: 'npm',
-      identifier: packageJson.name,
-      version: packageJson.version,
-    });
+    packages.push(
+      normalizeRegistryPackage({
+        identifier: packageJson.name,
+        version: packageJson.version,
+      }),
+    );
   }
 
   return {
     ...serverJson,
     name: packageJson.mcpName ?? serverJson.name,
-    description: buildDescription(),
+    description: buildRegistryDescription(summary),
     version: packageJson.version,
     packages,
   };
@@ -231,7 +275,7 @@ export async function computeMetadataState() {
   const readmeZh = await readText(readmeZhPath);
 
   const expectedPackageJson = updatePackageJson(packageJson);
-  const expectedServerJson = updateServerJson(serverJson, expectedPackageJson);
+  const expectedServerJson = updateServerJson(serverJson, expectedPackageJson, summary);
   const expectedReadme = updateEnglishReadme(readme, summary);
   const expectedReadmeZh = updateChineseReadme(readmeZh, summary);
 
