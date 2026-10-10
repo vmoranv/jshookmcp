@@ -1,0 +1,81 @@
+name: Publish MCP Registry
+
+# Manually triggered. Publishes the current release to the official MCP Registry
+# (https://registry.modelcontextprotocol.io) so MCP clients can discover it.
+#
+# Why this exists
+# ---------------
+# The registry entry (io.github.vmoranv/jshookmcp) was published once on 2026-05-03
+# and never updated again, so the registry was serving version 0.3.0 while npm was
+# already on 0.4.2 — a five-month-old version, and the registry is what MCP clients
+# query for discovery. `server.json` in the repo was correct the whole time; the
+# publish step simply never re-ran, because nothing automated it.
+#
+# This is a NEW, isolated workflow on purpose: it does not touch
+# publish-packages.yml, which carries the dual-use staging and approval gates.
+# To undo, delete this file.
+#
+# It uses the OFFICIAL publisher (modelcontextprotocol/registry release binary)
+# rather than a third-party action, and it publishes the repo's own server.json —
+# so there is exactly one source of truth and no OIDC-capable third-party code
+# in the release pipeline.
+#
+# Ordering
+# --------
+# Run this AFTER the npm version is actually live. The root package uses
+# `npm stage publish`, which requires human approval before the version appears
+# on npm — so publishing to the registry before that would point at nothing.
+# The step below enforces this.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish to the MCP Registry (must already be live on npm)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish-mcp-registry:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for GitHub OIDC auth to the registry
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Verify server.json agrees with the requested version
+        run: |
+          set -euo pipefail
+          SJ=$(node -p "require('./server.json').version")
+          if [ "$SJ" != "${{ inputs.version }}" ]; then
+            echo "::error::server.json says '${SJ}' but you asked to publish '${{ inputs.version }}'. Update server.json first (pnpm run metadata:sync)."
+            exit 1
+          fi
+          echo "server.json agrees: ${SJ}"
+
+      - name: Verify the version is live on npm
+        run: |
+          set -euo pipefail
+          V="${{ inputs.version }}"
+          LIVE=$(npm view "@jshookmcp/jshook@${V}" version 2>/dev/null || true)
+          if [ "$LIVE" != "$V" ]; then
+            echo "::error::@jshookmcp/jshook@${V} is not live on npm (npm returned '${LIVE}'). Approve the staged release first."
+            exit 1
+          fi
+          echo "npm has ${V} — proceeding."
+
+      - name: Install mcp-publisher
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --version
+
+      - name: Authenticate to the MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server.json to the MCP Registry
+        run: ./mcp-publisher publish
