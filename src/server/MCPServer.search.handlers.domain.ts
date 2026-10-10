@@ -11,9 +11,11 @@ import { registerExtensionToolRecord } from '@server/extensions/ExtensionManager
 import { getAllKnownDomains, ensureDomainLoaded } from '@server/registry/index';
 import {
   createActivationBudgetTracker,
+  estimateToolTokens,
   getActiveToolNames,
   summarizeActivationBudget,
 } from '@server/MCPServer.search.helpers';
+import { evictForBudget, precheckActivation } from '@server/MCPServer.search.handlers.activate';
 import { startDomainTtl } from '@server/MCPServer.activation.ttl';
 import { getRuntimeState } from '@server/runtime/ServerRuntimeState';
 import { ACTIVATION_TTL_MINUTES } from '@src/constants';
@@ -56,9 +58,21 @@ export async function handleActivateDomain(
   const activeNames = getActiveToolNames(ctx);
   const activated: string[] = [];
   const budgetExceeded: string[] = [];
+  const evicted: string[] = [];
   const budget = await createActivationBudgetTracker(ctx);
 
   ctx.enabledDomains.add(domain);
+
+  // Budget precheck (kimi-cu report P2-4): dry-run the whole domain batch
+  // without touching state, so agents can see what would be evicted first.
+  if (args.precheck === true) {
+    const names = domainTools.map((t) => t.name);
+    const pre = await precheckActivation(ctx, names);
+    return asTextResponse(JSON.stringify({ success: true, domain, ...pre }));
+  }
+
+  // Tools owned by this domain must survive LRU eviction while it activates.
+  const protectedNames = new Set(domainTools.map((t) => t.name));
 
   for (const toolDef of domainTools) {
     if (activeNames.has(toolDef.name)) continue;
@@ -66,14 +80,30 @@ export async function handleActivateDomain(
     const extensionRecord = ctx.extensionToolsByName.get(toolDef.name);
     if (extensionRecord) {
       if (!budget.admit(extensionRecord.tool)) {
-        budgetExceeded.push(toolDef.name);
-        continue;
+        evicted.push(
+          ...(await evictForBudget(ctx, budget, protectedNames, {
+            tools: 1,
+            tokens: estimateToolTokens(extensionRecord.tool),
+          })),
+        );
+        if (!budget.admit(extensionRecord.tool)) {
+          budgetExceeded.push(toolDef.name);
+          continue;
+        }
       }
       registerExtensionToolRecord(ctx, extensionRecord, 'activate_domain');
     } else {
       if (!budget.admit(toolDef)) {
-        budgetExceeded.push(toolDef.name);
-        continue;
+        evicted.push(
+          ...(await evictForBudget(ctx, budget, protectedNames, {
+            tools: 1,
+            tokens: estimateToolTokens(toolDef),
+          })),
+        );
+        if (!budget.admit(toolDef)) {
+          budgetExceeded.push(toolDef.name);
+          continue;
+        }
       }
       const registeredTool = ctx.registerSingleTool(toolDef);
       ctx.activatedToolNames.add(toolDef.name);
@@ -129,6 +159,7 @@ export async function handleActivateDomain(
       activated: activated.length,
       activatedTools: activated,
       budgetExceeded,
+      evicted,
       budget: budgetSummary,
       totalDomainTools: domainTools.length,
       ttlMinutes: ttlMinutes > 0 ? ttlMinutes : 'no expiry',

@@ -134,6 +134,7 @@ describe('MCPServer.search.handlers.activate', () => {
       alreadyActive: [],
       notFound: [],
       budgetExceeded: [],
+      evicted: [],
       totalActive: 2,
       budget: {
         usedTokens: estimateToolTokens(tool('page_navigate')),
@@ -197,6 +198,7 @@ describe('MCPServer.search.handlers.activate', () => {
       alreadyActive: ['page_navigate'],
       notFound: ['missing_tool'],
       budgetExceeded: [],
+      evicted: [],
       totalActive: 2,
       budget: {
         usedTokens: estimateToolTokens(tool('page_navigate')),
@@ -219,6 +221,7 @@ describe('MCPServer.search.handlers.activate', () => {
       alreadyActive: ['deactivate_tools', 'coverage_report'],
       notFound: [],
       budgetExceeded: [],
+      evicted: [],
       totalActive: 1,
       budget: {
         // browser_launch sits in selectedTools (base profile) and never counts.
@@ -282,6 +285,7 @@ describe('MCPServer.search.handlers.activate', () => {
       alreadyActive: [],
       notFound: [],
       budgetExceeded: [],
+      evicted: [],
       totalActive: 2,
       budget: {
         usedTokens: estimateToolTokens(tool('page_navigate')),
@@ -485,7 +489,7 @@ describe('MCPServer.search.handlers.activate', () => {
       expect(result.budget).toMatchObject({ activeTools: 1, maxTools: 1 });
     });
 
-    it('counts pre-activated tools toward the budget', async () => {
+    it('LRU-evicts a stale pre-activated tool instead of bouncing the activation (kimi-cu P2-4)', async () => {
       const pageTokens = estimateToolTokens(tool('page_navigate'));
       const networkTokens = estimateToolTokens(tool('network_get_requests'));
       const ctx = budgetCtx({
@@ -500,9 +504,85 @@ describe('MCPServer.search.handlers.activate', () => {
 
       const result = await activateToolNames(ctx, ['network_get_requests']);
 
+      // The pre-activated page_navigate counts toward the budget, but instead
+      // of a hard budgetExceeded the LRU path deactivates it to make room.
+      expect(result.budgetExceeded).toEqual([]);
+      expect(result.evicted).toEqual(['page_navigate']);
+      expect(result.activated).toEqual(['network_get_requests']);
+      expect(ctx.activatedToolNames.has('network_get_requests')).toBe(true);
+      expect(ctx.activatedToolNames.has('page_navigate')).toBe(false);
+      expect(result.budget.usedTokens).toBe(networkTokens);
+    });
+
+    it('keeps every tool armed when eviction cannot free enough room (atomicity)', async () => {
+      const pageTokens = estimateToolTokens(tool('page_navigate'));
+      const networkTokens = estimateToolTokens(tool('network_get_requests'));
+      // Hopeless: even evicting page_navigate leaves network over budget.
+      const ctx = budgetCtx({
+        activatedToolNames: new Set(['page_navigate']),
+        config: {
+          mcp: {
+            toolActivationBudgetTokens: Math.min(pageTokens, networkTokens),
+            toolActivationMaxTools: 10,
+          },
+        },
+      });
+
+      const result = await activateToolNames(ctx, ['network_get_requests']);
+
+      expect(result.evicted).toEqual([]);
       expect(result.budgetExceeded).toEqual(['network_get_requests']);
-      expect(result.budget.usedTokens).toBe(pageTokens);
-      expect(result.activated).toEqual([]);
+      expect(ctx.activatedToolNames.has('page_navigate')).toBe(true);
+    });
+
+    it('protects tools named in the same request from LRU eviction', async () => {
+      const pageTokens = estimateToolTokens(tool('page_navigate'));
+      const ctx = budgetCtx({
+        activatedToolNames: new Set(['page_navigate']),
+        config: {
+          mcp: {
+            toolActivationBudgetTokens: pageTokens,
+            toolActivationMaxTools: 1,
+          },
+        },
+      });
+
+      // page_navigate is active AND part of the request — it must survive.
+      const result = await activateToolNames(ctx, ['page_navigate', 'network_get_requests']);
+
+      expect(result.alreadyActive).toEqual(['page_navigate']);
+      expect(result.evicted).toEqual([]);
+      expect(result.budgetExceeded).toEqual(['network_get_requests']);
+      expect(ctx.activatedToolNames.has('page_navigate')).toBe(true);
+    });
+
+    it('precheck reports wouldEvict without touching state', async () => {
+      const pageTokens = estimateToolTokens(tool('page_navigate'));
+      const networkTokens = estimateToolTokens(tool('network_get_requests'));
+      const ctx = budgetCtx({
+        activatedToolNames: new Set(['page_navigate']),
+        config: {
+          mcp: {
+            toolActivationBudgetTokens: pageTokens + networkTokens - 1,
+            toolActivationMaxTools: 10,
+          },
+        },
+      });
+
+      const response = parseResponse(
+        await handleActivateTools(ctx, { names: ['network_get_requests'], precheck: true }),
+      );
+
+      expect(response.precheck).toBe(true);
+      expect(response.wouldActivate).toEqual(['network_get_requests']);
+      expect(response.alreadyActive).toEqual([]);
+      expect(response.wouldEvict).toEqual(['page_navigate']);
+      expect(response.fits).toBe(true);
+      expect(response.afterEvict).toMatchObject({ activeTools: 1 });
+      // Dry-run: nothing was activated or deactivated.
+      expect(ctx.activatedToolNames.has('page_navigate')).toBe(true);
+      expect(ctx.activatedToolNames.has('network_get_requests')).toBe(false);
+      expect(ctx.registerSingleTool).not.toHaveBeenCalled();
     });
 
     it('does not enforce the budget outside the search profile', async () => {

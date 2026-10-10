@@ -19,6 +19,7 @@ import { getToolDomain } from '@server/ToolCatalog';
 import { classifyErrorKind } from '@server/observability/ToolCallTraceRecorder';
 import { fastValidateToolArgs } from '@server/registry/compiled-validators';
 import { refreshDomainTtlForTool } from '@server/MCPServer.activation.ttl';
+import { recordToolUse } from '@server/MCPServer.search.helpers';
 import { emitBusEvent } from '@server/EventBus';
 import {
   MetricNames,
@@ -189,6 +190,9 @@ function checkToolExecutionGate(
  * This is the main execution pipeline for all tool calls.
  */
 export async function executeToolWithTracking(ctx: MCPServerContext, name: string, args: ToolArgs) {
+  // LRU input (kimi-cu report P2-4): budget eviction orders candidates by
+  // this timestamp, so freshly used tools survive activation pressure.
+  recordToolUse(ctx, name);
   let timeoutTimer: NodeJS.Timeout | undefined;
   const timeoutMs = TOOL_EXEC_HANG_WATCHDOG_MS;
   const collectExecutionMetrics = shouldCollectExecutionMetrics();

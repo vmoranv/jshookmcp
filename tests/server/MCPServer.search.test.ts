@@ -635,6 +635,7 @@ describe('MCPServer.search', () => {
       alreadyActive: [],
       notFound: [],
       budgetExceeded: [],
+      evicted: [],
       totalActive: 3,
       budget: {
         usedTokens:
@@ -952,6 +953,7 @@ describe('MCPServer.search', () => {
       alreadyActive: ['page_navigate'],
       notFound: ['missing_tool'],
       budgetExceeded: [],
+      evicted: [],
       totalActive: 4,
       budget: {
         usedTokens:
@@ -1069,6 +1071,7 @@ describe('MCPServer.search', () => {
       activated: 2,
       activatedTools: ['page_navigate', 'custom_tool'],
       budgetExceeded: [],
+      evicted: [],
       budget: {
         usedTokens:
           estimateToolTokens(tool('page_navigate', 'Navigate a page')) +
@@ -1087,6 +1090,7 @@ describe('MCPServer.search', () => {
       activated: 0,
       activatedTools: [],
       budgetExceeded: [],
+      evicted: [],
       budget: {
         usedTokens:
           estimateToolTokens(tool('page_navigate', 'Navigate a page')) +
@@ -1138,6 +1142,7 @@ describe('MCPServer.search', () => {
       activated: 1,
       activatedTools: ['custom_tool'],
       budgetExceeded: [],
+      evicted: [],
       budget: {
         usedTokens: estimateToolTokens(tool('custom_tool', 'Custom extension tool')),
         maxTokens: MCP_TOOL_ACTIVATION_BUDGET_TOKENS,

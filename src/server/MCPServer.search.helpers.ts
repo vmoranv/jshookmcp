@@ -213,6 +213,36 @@ export interface ActivationBudgetTracker extends ActivationBudgetLimits {
    * enforcement is off so summaries stay accurate.
    */
   admit(def: ToolTokenEstimateInput): boolean;
+  /**
+   * Return a previously admitted tool's footprint to the tracker (LRU
+   * eviction path) so the running counts stay accurate after a deactivate.
+   */
+  release(def: ToolTokenEstimateInput): void;
+}
+
+// ── tool last-use tracking (LRU eviction input) ──
+
+/**
+ * Per-context map of tool name → epoch ms of the last executeToolWithTracking
+ * call. A WeakMap keyed on the context keeps server and test contexts
+ * isolated without growing the MCPServerContext interface. Tools missing
+ * from the map count as oldest (never used).
+ */
+const toolLastUsedByContext = new WeakMap<MCPServerContext, Map<string, number>>();
+
+/** Record a tool invocation for LRU eviction ordering. Called on every tool execution. */
+export function recordToolUse(ctx: MCPServerContext, toolName: string): void {
+  let map = toolLastUsedByContext.get(ctx);
+  if (!map) {
+    map = new Map();
+    toolLastUsedByContext.set(ctx, map);
+  }
+  map.set(toolName, Date.now());
+}
+
+/** Read the last-use timestamps for a context (shared map, do not mutate). */
+export function getToolLastUsedAt(ctx: MCPServerContext): Map<string, number> {
+  return toolLastUsedByContext.get(ctx) ?? new Map();
 }
 
 /** Sum estimated tokens of the dynamically activated tools (never base profile tools). */
@@ -263,6 +293,10 @@ export async function createActivationBudgetTracker(
       activeTools += 1;
       usedTokens += tokens;
       return true;
+    },
+    release(def: ToolTokenEstimateInput): void {
+      activeTools = Math.max(0, activeTools - 1);
+      usedTokens = Math.max(0, usedTokens - estimateToolTokens(def));
     },
   };
 }

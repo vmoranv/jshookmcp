@@ -172,6 +172,7 @@ describe('MCPServer.search.handlers.domain', () => {
       activated: 2,
       activatedTools: ['page_navigate', 'browser_custom'],
       budgetExceeded: [],
+      evicted: [],
       budget: {
         usedTokens:
           estimateToolTokens(tool('page_navigate', 'Navigate page')) +
@@ -224,6 +225,7 @@ describe('MCPServer.search.handlers.domain', () => {
       activated: 1,
       activatedTools: ['custom_tool'],
       budgetExceeded: [],
+      evicted: [],
       budget: {
         usedTokens: estimateToolTokens(tool('custom_tool', 'Custom workflow')),
         maxTokens: MCP_TOOL_ACTIVATION_BUDGET_TOKENS,
@@ -262,6 +264,7 @@ describe('MCPServer.search.handlers.domain', () => {
       activated: 0,
       activatedTools: [],
       budgetExceeded: [],
+      evicted: [],
       budget: {
         usedTokens: estimateToolTokens(tool('browser_custom', 'Browser custom')),
         maxTokens: MCP_TOOL_ACTIVATION_BUDGET_TOKENS,

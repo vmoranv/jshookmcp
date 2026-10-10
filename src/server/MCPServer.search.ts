@@ -211,6 +211,12 @@ const META_TOOL_DEFINITIONS: MetaToolDef[] = [
           description:
             'Array of tool names to activate (from search_tools results). Also accepts a JSON stringified array for clients that serialize arrays as strings.',
         },
+        precheck: {
+          type: 'boolean',
+          description:
+            'Dry-run mode: report wouldActivate / wouldEvict (LRU candidates that must be deactivated to make budget room) ' +
+            'and the projected afterEvict budget, without activating or deactivating anything.',
+        },
       },
       required: ['names'],
     },
@@ -253,6 +259,12 @@ const META_TOOL_DEFINITIONS: MetaToolDef[] = [
         ttlMinutes: {
           type: 'number',
           description: 'Auto-deactivate after N minutes (default: 30, set 0 for no expiry)',
+        },
+        precheck: {
+          type: 'boolean',
+          description:
+            'Dry-run mode: report wouldActivate / wouldEvict (LRU candidates that must be deactivated to make budget room) ' +
+            'and the projected afterEvict budget, without activating or deactivating anything.',
         },
       },
       required: ['domain'],

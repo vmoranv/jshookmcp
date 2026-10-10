@@ -91,7 +91,7 @@ export interface ServerEventMap {
     timestamp: string;
   };
   'tool.activation.changed': {
-    action: 'activated' | 'deactivated' | 'budget-rejected';
+    action: 'activated' | 'deactivated' | 'budget-rejected' | 'lru-evicted';
     toolNames: string[];
     timestamp: string;
   };
