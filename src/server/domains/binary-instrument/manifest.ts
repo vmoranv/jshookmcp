@@ -212,6 +212,12 @@ const manifest = {
         fix: 'Install Ghidra and ensure analyzeHeadless is on PATH.',
       },
     ],
+    ghidra_decompile: [
+      {
+        condition: 'Ghidra analyzeHeadless must be installed and reachable on PATH',
+        fix: 'Install Ghidra and ensure analyzeHeadless is on PATH.',
+      },
+    ],
     ida_decompile: [
       {
         condition: 'plugin_ida_bridge must be installed',

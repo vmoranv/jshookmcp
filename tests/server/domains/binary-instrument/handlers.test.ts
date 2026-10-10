@@ -187,9 +187,17 @@ describe('BinaryInstrumentHandlers', () => {
       ).toBe(true);
       expect(
         parsed.capabilities.some(
-          (entry: { capability: string }) => entry.capability === 'plugin_ghidra_bridge',
+          (entry: { capability: string }) => entry.capability === 'ghidra_headless',
         ),
       ).toBe(true);
+      // The plugin_ghidra_bridge capability is gone: ghidra_decompile moved to
+      // the stateless headless path (kimi-cu report P2-6) and no longer
+      // depends on an HTTP bridge server.
+      expect(
+        parsed.capabilities.some(
+          (entry: { capability: string }) => entry.capability === 'plugin_ghidra_bridge',
+        ),
+      ).toBe(false);
     });
 
     it('handleFridaAttach pid-only attaches natively via -p when the CLI is available', async () => {
@@ -566,12 +574,67 @@ describe('BinaryInstrumentHandlers', () => {
       }
     });
 
-    it('handleGhidraDecompile returns error when plugin not installed', async () => {
-      const handlers = createHandlers();
-      const result = await handlers.handleGhidraDecompile({ functionName: 'main' });
+    it('handleGhidraDecompile reports the headless capability when Ghidra is unavailable', async () => {
+      const ghidra = new StubGhidraAnalyzer({ available: false, reason: 'not on PATH' });
+      const handlers = createHandlers(ghidra);
 
-      const text = (result as { content: Array<{ text: string }> }).content[0]?.text ?? '';
-      expect(text).toContain('not installed');
+      const result = (await handlers.handleGhidraDecompile({
+        binaryPath: 'D:/bin/target.exe',
+        functionName: 'main',
+      })) as Record<string, unknown>;
+
+      expect(result.available).toBe(false);
+      expect(result.capability).toBe('ghidra_headless');
+      expect(result.fix).toContain('Install Ghidra');
+      expect(ghidra.decompileCalls).toEqual([]);
+    });
+
+    it('handleGhidraDecompile returns found:false with an actionable hint on name miss', async () => {
+      const ghidra = new StubGhidraAnalyzer({
+        available: true,
+        decompile: { found: false, functions: [], rawOutput: 'some ghidra noise' },
+      });
+      const handlers = createHandlers(ghidra);
+
+      const result = (await handlers.handleGhidraDecompile({
+        binaryPath: 'D:/bin/target.exe',
+        functionName: 'definitely_missing',
+      })) as Record<string, unknown>;
+
+      expect(result.found).toBe(false);
+      expect(String(result.reason)).toContain('definitely_missing');
+      expect(String(result.reason)).toContain('ghidra_analyze');
+      expect(result.ghidraOutputTail).toBe('some ghidra noise');
+    });
+
+    it('handleGhidraDecompile delegates to the stateless headless analyzer with timeout passthrough', async () => {
+      const functions = [
+        {
+          name: 'main',
+          address: '0x401000',
+          signature: 'int main(void)',
+          decompiled: 'int main() {}',
+        },
+      ] as unknown as [];
+      const ghidra = new StubGhidraAnalyzer({
+        available: true,
+        decompile: { found: true, functions },
+      });
+      const handlers = createHandlers(ghidra);
+
+      const result = (await handlers.handleGhidraDecompile({
+        binaryPath: 'D:/bin/target.exe',
+        functionName: 'main',
+        timeout: 600_000,
+      })) as Record<string, unknown>;
+
+      expect(result.available).toBe(true);
+      expect(result.found).toBe(true);
+      expect(result.count).toBe(1);
+      expect(result.functions).toEqual(functions);
+      expect(ghidra.decompileCalls).toEqual([
+        { binaryPath: 'D:/bin/target.exe', functionName: 'main', options: { timeout: 600_000 } },
+      ]);
     });
 
     it('handleIdaDecompile returns error when plugin not installed', async () => {
@@ -1258,13 +1321,20 @@ class StubGhidraAnalyzer extends GhidraAnalyzer {
     available: boolean;
     reason?: string;
     analysis?: Awaited<ReturnType<GhidraAnalyzer['analyze']>>;
+    decompile?: { found: boolean; functions: []; rawOutput?: string };
   };
   analyzeCalls: Array<{ binaryPath: string; options: { timeout?: number } | undefined }> = [];
+  decompileCalls: Array<{
+    binaryPath: string;
+    functionName: string;
+    options: { timeout?: number } | undefined;
+  }> = [];
 
   constructor(stub: {
     available: boolean;
     reason?: string;
     analysis?: Awaited<ReturnType<GhidraAnalyzer['analyze']>>;
+    decompile?: { found: boolean; functions: []; rawOutput?: string };
   }) {
     super({ discoveryPaths: [] });
     this.stub = stub;
@@ -1274,6 +1344,15 @@ class StubGhidraAnalyzer extends GhidraAnalyzer {
     return this.stub.available
       ? { available: true, path: 'mock-analyzeHeadless', version: 'mock' }
       : { available: false, reason: this.stub.reason ?? 'mock unavailable' };
+  }
+
+  override async decompileFunction(
+    binaryPath: string,
+    functionName: string,
+    options?: { timeout?: number },
+  ) {
+    this.decompileCalls.push({ binaryPath, functionName, options });
+    return this.stub.decompile ?? { found: true, functions: [], rawOutput: undefined };
   }
 
   override async analyze(binaryPath: string, options?: { timeout?: number }) {

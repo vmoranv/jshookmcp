@@ -10,6 +10,30 @@ const FRIDA_MAX_BUFFER_BYTES = 5 * 1024 * 1024;
 /** Grace period between the SIGTERM and SIGKILL escalation on cancellation. */
 const FRIDA_KILL_ESCALATION_MS = 1_500;
 
+/**
+ * Idempotent compatibility shim prepended to every script handed to the
+ * frida CLI. frida 17 removed the static Module.findExportByName /
+ * Process.getCurrentPid APIs (Process became instance-shaped); on frida <=16
+ * the originals exist and the fallbacks stay dormant. Scripts that define
+ * their own `Module.findExportByName` after the shim win — this only fills
+ * the holes.
+ *
+ * Not shimmed: `new File(path, mode)` throws on Windows in frida 17 for
+ * native reasons — scripts must use `send()` and persist host-side instead.
+ */
+const FRIDA_COMPAT_SHIM = [
+  'var __jshookShim = globalThis.__jshookShim;',
+  'if (!__jshookShim) {',
+  '  globalThis.__jshookShim = true;',
+  '  if (typeof Module !== "undefined" && !Module.findExportByName && typeof Process.getModuleByName === "function") {',
+  '    Module.findExportByName = function (m, n) { return Process.getModuleByName(m).findExportByName(n); };',
+  '  }',
+  '  if (!Process.getCurrentPid && typeof Process.id !== "undefined") {',
+  '    Process.getCurrentPid = function () { return Process.id; };',
+  '  }',
+  '}',
+].join('\n');
+
 function abortError(message: string): Error {
   const error = new Error(message);
   error.name = 'AbortError';
@@ -19,6 +43,17 @@ function abortError(message: string): Error {
 export interface FridaScriptResult {
   output: string;
   error?: string;
+  /**
+   * Exit code of the frida CLI process on non-zero exits (spawn-level
+   * failures like ENOENT leave it undefined). Preserved so tool responses
+   * can tell a script crash apart from a CLI timeout kill.
+   */
+  exitCode?: number;
+  /**
+   * Raw stderr from the frida CLI, untrimmed so script stack traces
+   * (e.g. TypeError from an injected script) survive to the tool response.
+   */
+  stderr?: string;
 }
 
 export interface FridaModuleInfo {
@@ -215,14 +250,26 @@ export class FridaSession {
 
   async executeScript(
     script: string,
-    options: { timeoutMs?: number; signal?: AbortSignal } = {},
+    options: { timeoutMs?: number; signal?: AbortSignal; keepAlive?: boolean } = {},
   ): Promise<FridaScriptResult> {
     const session = this.requireActiveSession();
+    // Long hooks: the frida CLI tears down the moment the -e script returns,
+    // so timer callbacks (setTimeout/setInterval) never fire and their output
+    // is lost. Appending the recv().wait() latch parks the script so hooks
+    // stay armed while the CLI keeps draining console output, until the
+    // execFile timeout or an abort signal tears the session down. Skipped
+    // when the script already manages its own lifecycle via rpc.exports —
+    // the author owns the blocking logic in that case.
+    const effectiveScript =
+      options.keepAlive === true && !/\brpc\s*\.\s*exports\b/.test(script)
+        ? `${script}\nrecv(function () {}).wait();`
+        : script;
     const result = await this.runFridaCommandForSession(
       session,
-      script,
+      effectiveScript,
       options.timeoutMs,
       options.signal,
+      options.keepAlive === true,
     );
 
     if (result.error) {
@@ -654,6 +701,7 @@ export class FridaSession {
     script: string,
     timeoutMs?: number,
     signal?: AbortSignal,
+    holdStdin?: boolean,
   ): Promise<FridaScriptResult> {
     const targetArgs =
       session.mode === 'spawn' && session.resumed !== true
@@ -666,6 +714,7 @@ export class FridaSession {
       session.device,
       timeoutMs,
       signal,
+      holdStdin,
     );
   }
 
@@ -676,6 +725,7 @@ export class FridaSession {
     device: FridaDevice = { type: 'local' },
     timeoutMs?: number,
     signal?: AbortSignal,
+    holdStdin?: boolean,
   ): Promise<FridaScriptResult> {
     const availability = await this.getAvailability();
     if (!availability.available) {
@@ -693,20 +743,43 @@ export class FridaSession {
       '--runtime=v8',
       '-q',
       '-e',
-      script,
+      `${FRIDA_COMPAT_SHIM}\n${script}`,
     ];
 
     try {
-      const result = await this.execFileUtf8(command, args, timeoutMs ?? FRIDA_TIMEOUT_MS, signal);
+      const result = await this.execFileUtf8(
+        command,
+        args,
+        timeoutMs ?? FRIDA_TIMEOUT_MS,
+        signal,
+        holdStdin,
+      );
       const output = result.stdout.trim();
       const error = result.stderr.trim();
-      return error ? { output, error } : { output };
+      return error ? { output, error, stderr: result.stderr } : { output };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logger.warn('[binary-instrument] Frida command failed', { target, message });
+      // Non-zero exits reject here and Node's execFile error carries the
+      // captured stdout/stderr plus the exit code. Preserve all three — the
+      // script's own diagnostics (TypeError stacks) used to vanish at this
+      // spot, leaving tool responses with an empty output and only the
+      // "Command failed: ..." echo.
+      const execError = error as { code?: unknown; stdout?: unknown; stderr?: unknown };
+      const stdout = typeof execError.stdout === 'string' ? execError.stdout : '';
+      const stderr = typeof execError.stderr === 'string' ? execError.stderr : '';
+      const rawCode = execError.code;
+      const exitCode =
+        typeof rawCode === 'number'
+          ? rawCode
+          : typeof rawCode === 'string' && /^[0-9]+$/.test(rawCode)
+            ? Number(rawCode)
+            : undefined;
       return {
-        output: '',
-        error: message,
+        output: stdout.trim(),
+        error: stderr.trim() || message,
+        stderr: stderr || undefined,
+        exitCode,
       };
     }
   }
@@ -906,6 +979,7 @@ export class FridaSession {
     args: string[],
     timeoutMs: number,
     signal?: AbortSignal,
+    holdStdin?: boolean,
   ): Promise<CommandResult> {
     return new Promise((resolve, reject) => {
       // The task may already be cancelled between the caller's check and
@@ -924,11 +998,16 @@ export class FridaSession {
       // stdio: stdin '/dev/null' gives the frida REPL an immediate EOF so -e
       // one-shot scripts exit deterministically; a piped stdin that never
       // closes would hang Windows non-TTY runs until the timeout fires.
+      // holdStdin inverts that for parked scripts (keepAlive recv().wait()):
+      // an immediate stdin EOF makes the CLI tear the session down and the
+      // buffered console output is lost — verified against frida 17.12.0 on
+      // Windows where the recv-latch run returned an EMPTY stdout with
+      // stdin:'ignore' but delivered every line with a held-open stdin.
       // POSIX: lead a new process group so cancellation can signal the
       // whole tree — in spawn mode the instrumented target is a
       // grandchild of the frida CLI.
       const spawnExtras = {
-        stdio: ['ignore', 'pipe', 'pipe'] as const,
+        stdio: [holdStdin ? 'pipe' : 'ignore', 'pipe', 'pipe'] as const,
         ...(process.platform !== 'win32' ? { detached: true as const } : {}),
       };
 
@@ -940,6 +1019,13 @@ export class FridaSession {
           windowsHide: true,
           maxBuffer: FRIDA_MAX_BUFFER_BYTES,
           encoding: 'utf8',
+          // The frida CLI on this host is a Python console script; with piped
+          // stdout Python switches to full (8KB block) buffering, so console
+          // output from a parked script (keepAlive recv().wait()) sits in the
+          // CLI's buffer and is lost when the run times out or gets killed —
+          // exactly the "empty output" the kimi-cu report hit. Unbuffered
+          // Python stdout makes every console.log reach the pipe immediately.
+          env: { ...process.env, PYTHONUNBUFFERED: '1' },
           ...spawnExtras,
         },
         (error, stdout, stderr) => {
@@ -948,6 +1034,20 @@ export class FridaSession {
             clearTimeout(escalationTimer);
           }
           if (error) {
+            // On timeout kills (and on this Node/Windows combo generally) the
+            // captured streams travel via the callback parameters while
+            // error.stdout/error.stderr stay empty — verified against
+            // frida 17.12.0: a recv-latched script returned the full output
+            // as the callback stdout but "" as error.stdout. Attach the
+            // captured streams so the runFridaCommandWithArgs catch branch
+            // can surface the script's own output instead of an empty one.
+            const captured = error as { stdout?: unknown; stderr?: unknown };
+            if (typeof stdout === 'string' && typeof captured.stdout !== 'string') {
+              captured.stdout = stdout;
+            }
+            if (typeof stderr === 'string' && typeof captured.stderr !== 'string') {
+              captured.stderr = stderr;
+            }
             reject(error);
             return;
           }

@@ -37,6 +37,39 @@ interface InterceptorScriptOptions {
 /** Ceiling for task-mode CLI timeouts; stays inside TaskManager's 10-minute default TTL. */
 const FRIDA_TASK_MAX_TIMEOUT_MS = 10 * 60_000;
 const FRIDA_TASK_DEFAULT_TIMEOUT_MS = 5 * 60_000;
+/**
+ * Ceiling for the synchronous keepAliveMs window. The frida CLI enforces a
+ * ~30s script load timeout, so sync windows must stay below it; async mode
+ * (keepAlive) or a direct `frida -l` run is the path for longer hooks.
+ */
+const FRIDA_KEEP_ALIVE_MAX_MS = 25_000;
+/** Floor for the keepAliveMs window — Node treats an execFile timeout of 0 as "no timeout". */
+const FRIDA_KEEP_ALIVE_MIN_MS = 1_000;
+
+/**
+ * Heuristic path classification for module-diff workflows (display grouping
+ * only — not a detection library): Windows system roots and Android/Linux
+ * system library roots count as "system".
+ */
+function isSystemModulePath(path: string): boolean {
+  const lower = path.toLowerCase();
+  if (lower.startsWith('c:\\windows\\') || lower.startsWith('\\device\\harddiskvolume')) {
+    return true;
+  }
+  return (
+    lower.startsWith('/system/') ||
+    lower.startsWith('/apex/') ||
+    lower.startsWith('/vendor/') ||
+    lower.startsWith('/usr/lib')
+  );
+}
+
+/** Resolve the module filter; unrecognized values fall back to "all". */
+function readModuleFilter(args: Record<string, unknown>): 'all' | 'system' | 'non-system' {
+  const raw = readOptionalString(args, 'filter');
+  if (raw === 'system' || raw === 'non-system') return raw;
+  return 'all';
+}
 
 /**
  * Resolve the task-mode CLI timeout from tool args. Returns undefined for the
@@ -223,6 +256,21 @@ export class FridaHandlers {
     }
 
     const modules = await frida.enumerateModules();
+    // Tag + summarize so module-diff workflows (broker vs agent) can skip
+    // the 100+ system DLLs without a manual eyeball pass. `summary.total`
+    // always reports the unfiltered count; `modules` honors the filter.
+    const filter = readModuleFilter(args);
+    const tagged = modules.map((m) => ({ ...m, isSystem: isSystemModulePath(m.path) }));
+    const systemCount = tagged.filter((m) => m.isSystem).length;
+    const summary = {
+      total: modules.length,
+      system: systemCount,
+      nonSystem: modules.length - systemCount,
+      filter,
+    };
+    const modules2 =
+      filter === 'all' ? tagged : tagged.filter((m) => m.isSystem === (filter === 'system'));
+
     const diagnostics = frida.getSessionDiagnostics(sessionId);
     if (diagnostics?.status === 'error' && diagnostics.lastError) {
       return jsonResponse({
@@ -230,11 +278,12 @@ export class FridaHandlers {
         available: true,
         sessionId,
         reason: diagnostics.lastError,
-        modules,
+        modules: modules2,
+        summary,
       });
     }
 
-    return jsonResponse({ success: true, available: true, sessionId, modules });
+    return jsonResponse({ success: true, available: true, sessionId, modules: modules2, summary });
   }
 
   async handleFridaRunScript(args: Record<string, unknown>): Promise<unknown> {
@@ -270,6 +319,31 @@ export class FridaHandlers {
 
     // Task mode: run the script in the background and return a taskId immediately
     // (MCP 2.0 Tasks retrofit — long/hanging scripts no longer hit the CLI timeout).
+    const notes: string[] = [];
+    // keepAliveMs (sync) / keepAlive (async): park the script with a
+    // recv().wait() latch so timer callbacks and long-lived hooks actually
+    // fire instead of dying with the CLI. Sync windows clamp below the
+    // frida CLI's ~30s script-load timeout; longer windows need async mode.
+    const requestedKeepAliveMs = readOptionalNumber(args, 'keepAliveMs');
+    const keepAliveMs =
+      requestedKeepAliveMs === undefined
+        ? undefined
+        : Math.max(
+            FRIDA_KEEP_ALIVE_MIN_MS,
+            Math.min(requestedKeepAliveMs, FRIDA_KEEP_ALIVE_MAX_MS),
+          );
+    if (requestedKeepAliveMs !== undefined && keepAliveMs !== requestedKeepAliveMs) {
+      notes.push(
+        `keepAliveMs clamped from ${requestedKeepAliveMs} to ${keepAliveMs}ms — the frida CLI enforces a ~30s script load timeout. Use async:true with keepAlive:true for longer windows.`,
+      );
+    }
+    const residentKeepAlive = readOptionalBoolean(args, 'keepAlive') === true;
+    if (residentKeepAlive) {
+      notes.push(
+        'keepAlive parks the script with recv().wait(); the frida CLI script-load timeout (~30s) still bounds each window. For multi-minute hooks, run `frida -p <pid> -q -l <file>` directly and read the output file.',
+      );
+    }
+
     const taskTimeoutMs = readTaskTimeoutMs(args);
     if (taskTimeoutMs !== undefined) {
       const taskManager = this.state.context?.taskManager;
@@ -281,6 +355,7 @@ export class FridaHandlers {
             const execution = await frida.executeScript(script, {
               timeoutMs: taskTimeoutMs,
               signal: ctx.signal,
+              keepAlive: residentKeepAlive,
             });
             ctx.updateProgress(100, 100, 'Script execution finished');
             return execution;
@@ -293,13 +368,18 @@ export class FridaHandlers {
           sessionId,
           taskId: task.taskId,
           status: task.status,
+          keepAlive: residentKeepAlive,
           pollWith: ['tasks_get', 'tasks_result'],
           cancelWith: 'tasks_cancel',
+          ...(notes.length > 0 ? { notes } : {}),
         });
       }
     }
 
-    const execution = await frida.executeScript(script);
+    const execution = await frida.executeScript(script, {
+      keepAlive: keepAliveMs !== undefined,
+      timeoutMs: keepAliveMs,
+    });
     if (execution.error) {
       return jsonResponse({
         success: false,
@@ -307,10 +387,17 @@ export class FridaHandlers {
         sessionId,
         reason: execution.error,
         execution,
+        ...(notes.length > 0 ? { notes } : {}),
       });
     }
 
-    return jsonResponse({ success: true, available: true, sessionId, execution });
+    return jsonResponse({
+      success: true,
+      available: true,
+      sessionId,
+      execution,
+      ...(notes.length > 0 ? { notes } : {}),
+    });
   }
 
   async handleFridaResume(args: Record<string, unknown>): Promise<unknown> {

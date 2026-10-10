@@ -50,8 +50,11 @@ export const binaryInstrumentTools: Tool[] = [
   ),
   tool('frida_enumerate_modules', (t) =>
     t
-      .desc('List loaded modules in an attached Frida session.')
+      .desc(
+        'List loaded modules in an attached Frida session, with an isSystem tag and a summary (total/system/nonSystem). Use filter to focus on non-system modules for broker-vs-agent diffing.',
+      )
       .string('sessionId', 'Session id returned by frida_attach')
+      .enum('filter', ['all', 'system', 'non-system'], 'Module filter (default: all)')
       .required('sessionId')
       .query(),
   ),
@@ -90,7 +93,7 @@ export const binaryInstrumentTools: Tool[] = [
   tool('frida_run_script', (t) =>
     t
       .desc(
-        'Execute a Frida JavaScript snippet inside an attached Frida session. Each call spawns a fresh frida CLI, so hooks do NOT survive the call — for persistent hooks that must stay alive while you interact with the target, pass async:true to run in a background task (MCP 2.0 Tasks) and poll with tasks_get/tasks_result until the workflow is done.',
+        'Execute a Frida JavaScript snippet inside an attached Frida session. By default each call spawns a fresh frida CLI that tears down when the script returns, so hooks and timer callbacks do NOT survive — pass keepAliveMs (sync, clamped to 25s) or async:true + keepAlive:true (background task) to park the script with recv().wait() so hooks stay armed for the window. A frida 17 API compatibility shim (Module.findExportByName, Process.getCurrentPid) is injected automatically; scripts that need file writes on Windows must use send() instead of new File().',
       )
       .string('sessionId', 'Session id returned by frida_attach')
       .string('script', 'Frida JavaScript to execute')
@@ -102,6 +105,14 @@ export const binaryInstrumentTools: Tool[] = [
       .number(
         'timeoutMs',
         'CLI timeout in milliseconds for async mode (default 300000, capped at 600000)',
+      )
+      .number(
+        'keepAliveMs',
+        'Sync mode only: park the script with recv().wait() for this window (1000-25000ms) so setTimeout/hook callbacks actually fire; the CLI kill captures all console output. Clamped to 25s — the frida CLI script-load timeout bounds sync windows.',
+      )
+      .boolean(
+        'keepAlive',
+        'Async mode only: park the script with recv().wait() so hooks stay armed until the task timeout/cancel; poll tasks_get for captured output.',
       )
       .required('sessionId', 'script'),
   ),
@@ -233,9 +244,19 @@ export const binaryInstrumentTools: Tool[] = [
   tool('get_available_plugins', (t) => t.desc('List installed binary analysis plugins.').query()),
   tool('ghidra_decompile', (t) =>
     t
-      .desc('Decompile a function using Ghidra.')
+      .desc(
+        'Decompile a single named function via a stateless Ghidra headless run (no bridge server or plugin needed; ~5-10s per call). ' +
+          'Run ghidra_analyze first to list function names — the name must match exactly.',
+      )
       .string('binaryPath', 'Path to the binary file')
-      .string('functionName', 'Function name to decompile')
+      .string(
+        'functionName',
+        'Function name to decompile (exact match, from ghidra_analyze output)',
+      )
+      .number(
+        'timeout',
+        'Headless timeout in milliseconds (default 120000; use 600000 for large/complex functions)',
+      )
       .required('binaryPath', 'functionName'),
   ),
   tool('ida_decompile', (t) =>

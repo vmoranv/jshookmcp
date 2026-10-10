@@ -67,16 +67,9 @@ export class CapabilityHandlers {
             ? undefined
             : 'Install Ghidra and ensure analyzeHeadless is on PATH.',
           details: {
-            tools: ['ghidra_analyze'],
+            tools: ['ghidra_analyze', 'ghidra_decompile'],
             ...(ghidraAvailability.path ? { path: ghidraAvailability.path } : {}),
             ...(ghidraAvailability.version ? { version: ghidraAvailability.version } : {}),
-          },
-        },
-        {
-          capability: 'plugin_ghidra_bridge',
-          ...getLegacyPluginStatus(this.state.context, 'plugin_ghidra_bridge'),
-          details: {
-            tools: ['ghidra_decompile'],
           },
         },
         {

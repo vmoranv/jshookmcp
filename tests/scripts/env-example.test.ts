@@ -90,6 +90,7 @@ const contextualTypedDefaults = new Map<string, string>([
 ]);
 
 const allowedRawProcessEnvironment = new Set([
+  'src/modules/binary-instrument/FridaSession.ts:<all>',
   'src/modules/binary-instrument/GhidraAnalyzer.ts:HOME',
   'src/modules/binary-instrument/GhidraAnalyzer.ts:ProgramFiles',
   'src/modules/binary-instrument/GhidraAnalyzer.ts:ProgramFiles(x86)',

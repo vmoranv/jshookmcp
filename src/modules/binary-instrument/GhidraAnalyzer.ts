@@ -135,8 +135,7 @@ export class GhidraAnalyzer {
    * Batch-analyze multiple binaries in sequence.
    * Returns a map of binaryPath → GhidraAnalysisResult.
    * Failed analyses get an empty result (not an exception).
-   */
-  async analyzeBatch(
+   */ async analyzeBatch(
     binaryPaths: string[],
     options?: { timeout?: number; forceRefresh?: boolean },
   ): Promise<Map<string, GhidraAnalysisResult>> {
@@ -152,6 +151,52 @@ export class GhidraAnalyzer {
       }
     }
     return results;
+  }
+
+  /**
+   * Decompile a single named function via a fresh headless run (kimi-cu
+   * report P2-6: replaces the plugin_ghidra_bridge HTTP dependency with the
+   * stateless analyzeHeadless path — no bridge server, no plugin, ~5-10s
+   * per call). `found: false` means the function name matched nothing in
+   * the binary; agents should run ghidra_analyze first to list names.
+   */
+  async decompileFunction(
+    binaryPath: string,
+    functionName: string,
+    options?: { timeout?: number },
+  ): Promise<{ found: boolean; functions: DecompiledFunction[]; rawOutput?: string }> {
+    await access(binaryPath);
+    const availability = await this.getAvailability();
+    if (!availability.available) {
+      throw new PrerequisiteError(
+        [
+          `Ghidra analyzeHeadless is not available: ${availability.reason || 'not found on PATH'}`,
+          'Install Ghidra and add analyzeHeadless to your PATH.',
+        ].join(' '),
+      );
+    }
+
+    const timeoutMs =
+      typeof options?.timeout === 'number' && Number.isFinite(options.timeout)
+        ? options.timeout
+        : GHIDRA_TIMEOUT_MS;
+
+    const scriptDirectory = await mkdtemp(join(tmpdir(), 'jshook-ghidra-script-'));
+    const scriptPath = join(scriptDirectory, 'BinaryInstrumentDecompileOne.java');
+    try {
+      await writeFile(scriptPath, this.buildFunctionDecompileScript(functionName), 'utf8');
+      const output = await this.headlessAnalyze(scriptPath, binaryPath, timeoutMs);
+      if (output.includes('FUNCTION_NOT_FOUND:')) {
+        return { found: false, functions: [] };
+      }
+      const functions = this.parseDecompiledOutput(output);
+      if (functions.length === 0) {
+        return { found: false, functions: [], rawOutput: output.slice(0, 2_000) };
+      }
+      return { found: true, functions };
+    } finally {
+      await rm(scriptDirectory, { recursive: true, force: true });
+    }
   }
 
   /**
@@ -356,6 +401,92 @@ export class GhidraAnalyzer {
       path: normalized,
       version: `analyzeHeadless (${source})`,
     };
+  }
+
+  /**
+   * Escape a user-supplied name for embedding in a Java string literal so a
+   * crafted functionName cannot break out of the generated postScript.
+   */
+  private escapeJavaStringLiteral(value: string): string {
+    return value
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/[\r\n]/g, '');
+  }
+
+  /**
+   * Single-function dump script for decompileFunction: emits the same
+   * FUNCTION_START/.../FUNCTION_END markers parseDecompiledOutput expects,
+   * or a FUNCTION_NOT_FOUND marker when the name matches nothing.
+   */
+  private buildFunctionDecompileScript(functionName: string): string {
+    const target = this.escapeJavaStringLiteral(functionName);
+    return [
+      '// @category BinaryInstrument',
+      'import ghidra.app.decompiler.DecompInterface;',
+      'import ghidra.app.decompiler.DecompileResults;',
+      'import ghidra.app.script.GhidraScript;',
+      'import ghidra.program.model.listing.Function;',
+      'import ghidra.program.model.listing.FunctionIterator;',
+      '',
+      'public class BinaryInstrumentDecompileOne extends GhidraScript {',
+      '  @Override',
+      '  public void run() throws Exception {',
+      `    String target = "${target}";`,
+      '    DecompInterface decompiler = new DecompInterface();',
+      '    decompiler.openProgram(currentProgram);',
+      '',
+      '    try {',
+      '      FunctionIterator functions = currentProgram.getFunctionManager().getFunctions(true);',
+      '      boolean found = false;',
+      '      while (functions.hasNext()) {',
+      '        Function function = functions.next();',
+      '        if (!target.equals(function.getName())) {',
+      '          continue;',
+      '        }',
+      '        found = true;',
+      '        emit("FUNCTION_START");',
+      '        emit("NAME:" + function.getName());',
+      '        emit("ADDRESS:" + function.getEntryPoint().toString());',
+      '        emit("SIGNATURE:" + getSignature(function));',
+      '        emit("DECOMPILED_START");',
+      '        emit(decompileFunction(decompiler, function));',
+      '        emit("DECOMPILED_END");',
+      '        emit("FUNCTION_END");',
+      '      }',
+      '      if (!found) {',
+      '        emit("FUNCTION_NOT_FOUND:" + target);',
+      '      }',
+      '    } finally {',
+      '      decompiler.dispose();',
+      '    }',
+      '  }',
+      '',
+      '  private void emit(String value) {',
+      '    System.out.println(value);',
+      '  }',
+      '',
+      '  private String getSignature(Function function) {',
+      '    try {',
+      '      return function.getSignature().toString();',
+      '    } catch (Exception ignored) {',
+      '      return function.getName() + "()";',
+      '    }',
+      '  }',
+      '',
+      '  private String decompileFunction(DecompInterface decompiler, Function function) {',
+      '    try {',
+      '      DecompileResults results = decompiler.decompileFunction(function, 60, monitor);',
+      '      if (results != null && results.decompileCompleted() && results.getDecompiledFunction() != null) {',
+      '        return results.getDecompiledFunction().getC();',
+      '      }',
+      '      return "// no decompiled output";',
+      '    } catch (Exception error) {',
+      '      return "// decompile failed: " + error.getMessage();',
+      '    }',
+      '  }',
+      '}',
+    ].join('\n');
   }
 
   private buildDefaultScript(): string {

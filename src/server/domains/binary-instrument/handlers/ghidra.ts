@@ -46,8 +46,53 @@ export class GhidraHandlers {
   }
 
   async handleGhidraDecompile(args: Record<string, unknown>): Promise<unknown> {
-    const { invokeLegacyPlugin } = await import('./shared');
-    return invokeLegacyPlugin(this.state.context, 'plugin_ghidra_bridge', 'ghidra_decompile', args);
+    const binaryPath = readRequiredString(args, 'binaryPath');
+    const functionName = readRequiredString(args, 'functionName');
+    const timeout = readOptionalNumber(args, 'timeout');
+    const ghidra = this.getGhidraAnalyzer();
+    const availability = await ghidra.getAvailability();
+
+    // Stateless headless path (kimi-cu report P2-6): the previous
+    // plugin_ghidra_bridge delegation expected an HTTP bridge server that
+    // nothing in the ecosystem ships — this runs analyzeHeadless directly.
+    if (!availability.available) {
+      return {
+        available: false,
+        capability: 'ghidra_headless',
+        fix: 'Install Ghidra and ensure analyzeHeadless is on PATH.',
+        binaryPath,
+        functionName,
+        reason: availability.reason ?? 'Ghidra analyzeHeadless is not available',
+      };
+    }
+
+    const result = await ghidra.decompileFunction(
+      binaryPath,
+      functionName,
+      timeout !== undefined ? { timeout } : undefined,
+    );
+
+    if (!result.found) {
+      return {
+        available: true,
+        found: false,
+        binaryPath,
+        functionName,
+        reason:
+          `No function named "${functionName}" in ${binaryPath} (or decompilation produced no output). ` +
+          'Run ghidra_analyze first and pick the name from its function list.',
+        ...(result.rawOutput ? { ghidraOutputTail: result.rawOutput } : {}),
+      };
+    }
+
+    return {
+      available: true,
+      found: true,
+      binaryPath,
+      functionName,
+      count: result.functions.length,
+      functions: result.functions,
+    };
   }
 
   private getGhidraAnalyzer(): GhidraAnalyzer {
