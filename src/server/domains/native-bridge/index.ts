@@ -12,6 +12,12 @@ import {
   MetricNames,
   SpanNames,
 } from '@server/observability/InstrumentationContract';
+import {
+  describeGhidraBridgeTcpError,
+  ghidraBridgePing,
+  logGhidraBridgeTcpWarning,
+} from './ghidra-bridge-tcp';
+import { dispatchTcpAction, tcpStatus } from './ghidra-bridge-tcp-actions';
 export * from './definitions';
 export { default } from './manifest';
 
@@ -316,10 +322,43 @@ export class NativeBridgeHandlers {
       return toErrorResponse('ghidra_bridge', new Error('action is required'));
     }
 
+    // Backend routing (kimi-cu report P2-6): 'ghidra-bridge-py' targets the
+    // pip ghidra_bridge TCP server (127.0.0.1:4768, jfx-bridge v5 wire
+    // protocol), 'http' targets a REST bridge server (default 18080).
+    // Unset = auto: prefer the pip TCP server when it answers a ping.
+    const backend = args.backend as string | undefined;
+    if (backend === 'ghidra-bridge-py') {
+      return this.handleGhidraBridgeTcp(args, action);
+    }
+
     try {
+      if (backend === undefined) {
+        const tcpReachable = await ghidraBridgePing().then(
+          () => true,
+          () => false,
+        );
+        if (tcpReachable) {
+          return this.handleGhidraBridgeTcp(args, action);
+        }
+      }
+
       switch (action) {
-        case 'status':
-          return asJsonResponse(await checkBridgeHealth(endpoint, 'ghidra'));
+        case 'status': {
+          const http = await checkBridgeHealth(endpoint, 'ghidra');
+          if (backend !== undefined) {
+            return asJsonResponse(http);
+          }
+          // Auto mode: also probe the pip TCP server so one status call
+          // reports both bridge options.
+          const tcp = await tcpStatus().catch((e: unknown) => ({
+            success: true,
+            action: 'status',
+            backend: 'ghidra-bridge-py' as const,
+            reachable: false,
+            reason: describeGhidraBridgeTcpError(e).reason,
+          }));
+          return asJsonResponse({ ...http, tcpBackend: tcp });
+        }
 
         case 'open_project': {
           const binaryPath = args.binaryPath as string;
@@ -397,17 +436,55 @@ export class NativeBridgeHandlers {
             guide: {
               what: 'Ghidra is an open-source SRE framework by NSA.',
               actions: [...GHIDRA_ACTIONS],
-              bridgeSetup: [
-                'pip install ghidra_bridge',
-                'In Ghidra: File → Run Script → ghidra_bridge_server.py',
-                'Default endpoint: http://127.0.0.1:18080',
-              ],
+              backends: {
+                'ghidra-bridge-py (recommended, pip)':
+                  'pip install ghidra_bridge, then in Ghidra: File → Run Script → ghidra_bridge_server.py — listens on 127.0.0.1:4768 (TCP)',
+                'http (REST bridge)':
+                  'Run a REST bridge server on http://127.0.0.1:18080 (GHIDRA_BRIDGE_URL to override)',
+              },
               links: ['https://ghidra-sre.org/', 'https://github.com/justfoxing/ghidra_bridge'],
             },
           });
       }
     } catch (error) {
       return toErrorResponse('ghidra_bridge', error, { action, endpoint });
+    }
+  }
+
+  /**
+   * pip ghidra_bridge TCP backend (kimi-cu report P2-6): the tool used to
+   * advertise `pip install ghidra_bridge` while speaking REST only — the pip
+   * server is a TCP server on 4768, so the advertised setup never worked.
+   * This path speaks the actual jfx-bridge v5 wire protocol.
+   */
+  private async handleGhidraBridgeTcp(
+    args: Record<string, unknown>,
+    action: string,
+  ): Promise<ReturnType<typeof asJsonResponse>> {
+    try {
+      const result = await dispatchTcpAction(action, args);
+      if (!result) {
+        return asJsonResponse({
+          success: false,
+          action,
+          backend: 'ghidra-bridge-py',
+          reason: `action "${action}" is not available on the pip ghidra_bridge TCP backend`,
+          ...(action === 'open_project'
+            ? { fix: 'Open the project in the Ghidra GUI first, then re-run this tool.' }
+            : {}),
+        });
+      }
+      return asJsonResponse(result);
+    } catch (error) {
+      logGhidraBridgeTcpWarning(action, error);
+      return asJsonResponse({
+        ...serializeError(error),
+        tool: 'ghidra_bridge',
+        action,
+        backend: 'ghidra-bridge-py',
+        reason: describeGhidraBridgeTcpError(error).reason,
+        fix: 'pip install ghidra_bridge, then in Ghidra: File → Run Script → ghidra_bridge_server.py (listens on 127.0.0.1:4768)',
+      });
     }
   }
 

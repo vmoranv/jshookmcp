@@ -18,7 +18,11 @@ export const nativeBridgeTools: Tool[] = [
   ),
   tool('ghidra_bridge', (t) =>
     t
-      .desc('Send a command to a Ghidra headless analysis bridge.')
+      .desc(
+        'Send a command to a Ghidra bridge. Two backends: the pip ghidra_bridge server ' +
+          '(TCP 127.0.0.1:4768 — pip install ghidra_bridge, then in Ghidra run ghidra_bridge_server.py) ' +
+          'or a REST bridge (HTTP 18080). Auto mode prefers the pip TCP server when it answers.',
+      )
       .enum(
         'action',
         [
@@ -34,12 +38,17 @@ export const nativeBridgeTools: Tool[] = [
 
         'Action to perform',
       )
+      .enum(
+        'backend',
+        ['ghidra-bridge-py', 'http'],
+        'Bridge backend: ghidra-bridge-py (pip TCP server on 4768) or http (REST bridge). Default: auto (pip first, then REST).',
+      )
       .string('binaryPath', 'Path to binary file (for open_project)')
       .string('functionName', 'Function name or address (for decompile_function, get_xrefs)')
       .string('scriptPath', 'Path to Ghidra script (for run_script)')
       .array('scriptArgs', { type: 'string' }, 'Arguments for the script')
       .string('searchPattern', 'String pattern to search (for search_strings)')
-      .string('endpoint', 'Ghidra bridge server URL')
+      .string('endpoint', 'Ghidra bridge server URL (http backend only)')
       .required('action'),
   ),
   tool('ida_bridge', (t) =>
