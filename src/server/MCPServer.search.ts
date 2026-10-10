@@ -246,8 +246,16 @@ const META_TOOL_DEFINITIONS: MetaToolDef[] = [
   {
     name: 'activate_domain',
     description: () =>
-      `Activate all tools in a domain at once. ` +
+      `Register every tool in a single domain at once. ` +
+      `Use this when a task needs a whole capability area; prefer search_tools or activate_tools when you ` +
+      `only need a few specific tools, because activating a domain costs far more context. ` +
       `Domains: ${[...getAllDomains()].join(', ')}. ` +
+      `Activated tools appear in the tool list immediately; if your client does not refresh its tool list, ` +
+      `invoke them with call_tool. ` +
+      `Activation draws on the session context budget: when the budget is full, least-recently-used tools are ` +
+      `evicted to make room, and the response reports what was activated and what was evicted. ` +
+      `Pass precheck: true to preview wouldActivate / wouldEvict without changing anything. ` +
+      `Activated tools auto-deactivate after ttlMinutes (default 30; pass 0 for no expiry). ` +
       `Use reload_extensions first to include external plugin/workflow domains.`,
     inputSchema: {
       type: 'object',
