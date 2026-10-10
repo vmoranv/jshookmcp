@@ -23,7 +23,7 @@ Extension registry domain for managing and discovering community extensions.
 
 | Tool | Description |
 | --- | --- |
-| `extension_install` | Install/register an extension from a manifest, local package directory, local module file, or remote module URL. |
+| `extension_install` | Install/register an extension from a manifest, local package directory, local module file, or remote module URL. Directory mode is zero-config: pass source=&lt;plugin dir&gt; after `pnpm build` and the tool reads id/name/version from package.json and discovers dist/manifest.js (or dist/index.js) automatically when no entry pointer exists. |
 | `extension_list_installed` | List installed extensions from the local registry. |
 | `extension_info` | Read installed extension manifest details without importing plugin code. |
 | `extension_execute_in_context` | Load an extension and execute a named exported context function. |

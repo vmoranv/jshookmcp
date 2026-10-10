@@ -160,6 +160,7 @@ describe('ExtensionManagementHandlers', () => {
 
   describe('handleReloadExtensions', () => {
     it('returns success', async () => {
+      ctx.extensionToolsByName = new Map();
       ctx.reloadExtensions.mockResolvedValue({
         addedTools: 1,
         autoActivatedTools: ['tool-a'],
@@ -175,6 +176,33 @@ describe('ExtensionManagementHandlers', () => {
       const data = JSON.parse(res.content[0].text);
       expect(data.success).toBe(true);
       expect(data.addedTools).toBe(1);
+      expect(data.capabilityFixed).toBeUndefined();
+    });
+
+    it('reports capabilityFixed for tools that only became available (kimi-cu P2-6/P2-7)', async () => {
+      // Before the reload: ghidra_bridge is missing (plugin not installed).
+      ctx.extensionToolsByName = new Map([['old_tool', {}]]);
+      ctx.reloadExtensions.mockImplementation(async () => {
+        // The reload registers the previously-missing plugin tool.
+        ctx.extensionToolsByName.set('ghidra_bridge', {});
+        return {
+          addedTools: 1,
+          autoActivatedTools: ['ghidra_bridge'],
+          pluginCount: 1,
+          workflowCount: 0,
+          toolCount: 2,
+          activeToolCount: 2,
+          currentProfile: 'full',
+          errors: [],
+          warnings: [],
+        };
+      });
+
+      const res = (await handlers.handleReloadExtensions()) as any;
+      const data = JSON.parse(res.content[0].text);
+
+      expect(data.success).toBe(true);
+      expect(data.capabilityFixed).toEqual(['ghidra_bridge']);
     });
 
     it('handles errors', async () => {

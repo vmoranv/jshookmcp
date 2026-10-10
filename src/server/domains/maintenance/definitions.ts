@@ -33,7 +33,8 @@ export const extensionTools: Tool[] = [
   tool('reload_extensions', (t) =>
     t
       .desc(
-        'Reload plugins and workflows from configured directories, and directly register extension tools visible in the current profile.',
+        'Reload plugins and workflows from configured directories, and directly register extension tools visible in the current profile. ' +
+          'The response includes capabilityFixed — tools that only became available through this reload (previously blocked on a missing plugin).',
       )
       .openWorld(),
   ),

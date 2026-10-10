@@ -27,11 +27,11 @@ Binary instrumentation domain providing binary analysis, runtime instrumentation
 | `binary_instrument_capabilities` | Report binary instrumentation backend availability. |
 | `frida_attach` | Attach Frida to a target and open a session. Defaults to the local device; pass device+host for USB/remote devices. On Android the frida process name is the App Label (not the package name) — use frida_list_processes and attach by pid to avoid name mismatches. |
 | `frida_spawn` | Spawn a target through Frida for early instrumentation before normal execution. Until frida_resume succeeds, every tool call on a spawn session re-spawns the target (restarts the app on remote Android). |
-| `frida_enumerate_modules` | List loaded modules in an attached Frida session. |
+| `frida_enumerate_modules` | List loaded modules in an attached Frida session, with an isSystem tag and a summary (total/system/nonSystem). Use filter to focus on non-system modules for broker-vs-agent diffing. |
 | `ghidra_analyze` | Analyze a binary and return metadata. |
 | `generate_hooks` | Generate a Frida interceptor script for a list of symbols. |
 | `unidbg_emulate` | Emulate a native function with Unidbg when available. |
-| `frida_run_script` | Execute a Frida JavaScript snippet inside an attached Frida session. Each call spawns a fresh frida CLI, so hooks do NOT survive the call — for persistent hooks that must stay alive while you interact with the target, pass async:true to run in a background task (MCP 2.0 Tasks) and poll with tasks_get/tasks_result until the workflow is done. |
+| `frida_run_script` | Execute a Frida JavaScript snippet inside an attached Frida session. By default each call spawns a fresh frida CLI that tears down when the script returns, so hooks and timer callbacks do NOT survive — pass keepAliveMs (sync, clamped to 25s) or async:true + keepAlive:true (background task) to park the script with recv().wait() so hooks stay armed for the window. A frida 17 API compatibility shim (Module.findExportByName, Process.getCurrentPid) is injected automatically; scripts that need file writes on Windows must use send() instead of new File(). |
 | `frida_resume` | Resume a target previously spawned for early Frida instrumentation. |
 | `frida_detach` | Detach from a Frida session and clean up resources. |
 | `frida_list_sessions` | List all active Frida attach sessions with target info. |
@@ -42,7 +42,7 @@ Binary instrumentation domain providing binary analysis, runtime instrumentation
 | `frida_generate_script` | Generate a Frida interceptor or hook script from built-in templates. |
 | `frida_attach_interceptor` | Generate a real Frida Interceptor.attach block for a symbol and optionally install it in a session. |
 | `get_available_plugins` | List installed binary analysis plugins. |
-| `ghidra_decompile` | Decompile a function using Ghidra. |
+| `ghidra_decompile` | Decompile a single named function via a stateless Ghidra headless run (no bridge server or plugin needed; ~5-10s per call). Run ghidra_analyze first to list function names — the name must match exactly. |
 | `ida_decompile` | Decompile a function using IDA Pro. |
 | `jadx_decompile` | Decompile an APK class or method with JADX CLI. |
 | `jadx_decompile_apk` | High-level JADX APK decompile: decompile the whole APK to a stable output directory and return sourcesDir for jadx_search_code. |

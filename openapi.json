@@ -10059,6 +10059,42 @@
           "minLength": null,
           "type": "string"
         },
+        "precheck": {
+          "def": {
+            "innerType": {
+              "def": {
+                "in": {
+                  "def": {
+                    "type": "transform"
+                  },
+                  "type": "transform"
+                },
+                "out": {
+                  "def": {
+                    "type": "boolean"
+                  },
+                  "type": "boolean"
+                },
+                "type": "pipe"
+              },
+              "in": {
+                "def": {
+                  "type": "transform"
+                },
+                "type": "transform"
+              },
+              "out": {
+                "def": {
+                  "type": "boolean"
+                },
+                "type": "boolean"
+              },
+              "type": "pipe"
+            },
+            "type": "optional"
+          },
+          "type": "optional"
+        },
         "ttlMinutes": {
           "def": {
             "innerType": {
@@ -10185,6 +10221,42 @@
             }
           ],
           "type": "union"
+        },
+        "precheck": {
+          "def": {
+            "innerType": {
+              "def": {
+                "in": {
+                  "def": {
+                    "type": "transform"
+                  },
+                  "type": "transform"
+                },
+                "out": {
+                  "def": {
+                    "type": "boolean"
+                  },
+                  "type": "boolean"
+                },
+                "type": "pipe"
+              },
+              "in": {
+                "def": {
+                  "type": "transform"
+                },
+                "type": "transform"
+              },
+              "out": {
+                "def": {
+                  "type": "boolean"
+                },
+                "type": "boolean"
+              },
+              "type": "pipe"
+            },
+            "type": "optional"
+          },
+          "type": "optional"
         },
         "type": "object"
       },

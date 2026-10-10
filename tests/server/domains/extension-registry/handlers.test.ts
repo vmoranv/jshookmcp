@@ -114,6 +114,66 @@ describe('ExtensionRegistryHandlers', () => {
     expect(registry.loadPlugin).not.toHaveBeenCalled();
   });
 
+  it('discovers dist/manifest.js when package.json has no entry pointer (kimi-cu P2-7)', async () => {
+    tempDir = await mkdtemp(path.join(tmpdir(), 'jshook-extension-install-'));
+    const pluginDir = path.join(tempDir, 'ghidra-bridge');
+    await mkdir(path.join(pluginDir, 'dist'), { recursive: true });
+    await writeFile(path.join(pluginDir, 'dist', 'manifest.js'), 'export default {};', 'utf8');
+    // The extension-sdk plugin template: package.json carries name/version and
+    // build scripts, but no main/module/exports/jshookmcp.entry pointer.
+    await writeFile(
+      path.join(pluginDir, 'package.json'),
+      JSON.stringify({ name: 'plugin-ghidra-bridge', version: '0.1.0', scripts: {} }),
+      'utf8',
+    );
+
+    await handlers.handleInstall({ source: pluginDir } as any);
+
+    expect(registry.register).toHaveBeenCalledWith({
+      id: 'plugin-ghidra-bridge',
+      name: 'plugin-ghidra-bridge',
+      version: '0.1.0',
+      entry: pathToFileURL(path.join(pluginDir, 'dist', 'manifest.js')).href,
+      permissions: [],
+    });
+  });
+
+  it('falls back to dist/index.js when dist/manifest.js is absent', async () => {
+    tempDir = await mkdtemp(path.join(tmpdir(), 'jshook-extension-install-'));
+    const pluginDir = path.join(tempDir, 'plugin');
+    await mkdir(path.join(pluginDir, 'dist'), { recursive: true });
+    await writeFile(path.join(pluginDir, 'dist', 'index.js'), 'export default {};', 'utf8');
+    await writeFile(
+      path.join(pluginDir, 'package.json'),
+      JSON.stringify({ name: 'index-plugin', version: '1.2.3' }),
+      'utf8',
+    );
+
+    await handlers.handleInstall({ source: pluginDir } as any);
+
+    expect(registry.register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entry: pathToFileURL(path.join(pluginDir, 'dist', 'index.js')).href,
+      }),
+    );
+  });
+
+  it('still fails with a actionable error when no entry exists anywhere', async () => {
+    tempDir = await mkdtemp(path.join(tmpdir(), 'jshook-extension-install-'));
+    const pluginDir = path.join(tempDir, 'empty-plugin');
+    await mkdir(pluginDir, { recursive: true });
+    await writeFile(
+      path.join(pluginDir, 'package.json'),
+      JSON.stringify({ name: 'empty-plugin', version: '0.0.1' }),
+      'utf8',
+    );
+
+    const body = parseJson<any>(await handlers.handleInstallTool({ source: pluginDir } as any));
+
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('requires name and entry');
+  });
+
   it('installs from a JSON manifest source with top-level entry', async () => {
     tempDir = await mkdtemp(path.join(tmpdir(), 'jshook-extension-manifest-'));
     await writeFile(path.join(tempDir, 'plugin.mjs'), 'export default {};', 'utf8');

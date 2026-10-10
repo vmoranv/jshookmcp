@@ -80,8 +80,20 @@ export class ExtensionManagementHandlers {
 
   async handleReloadExtensions(): Promise<ToolResponse> {
     try {
+      // Capability diff (kimi-cu report P2-6/P2-7): tools that only now become
+      // available were previously blocked on a missing plugin — surface them
+      // so agents see the reload actually fixed a capability gap. The optional
+      // chain keeps bare test contexts (no extension registry) working.
+      const before = new Set(this.ctx.extensionToolsByName?.keys() ?? []);
       const result = await this.ctx.reloadExtensions();
-      return asJsonResponse({ success: true, ...result });
+      const capabilityFixed = [...(this.ctx.extensionToolsByName?.keys() ?? [])]
+        .filter((name) => !before.has(name))
+        .toSorted();
+      return asJsonResponse({
+        success: true,
+        ...result,
+        ...(capabilityFixed.length > 0 ? { capabilityFixed } : {}),
+      });
     } catch (error) {
       logger.error('Failed to reload extensions:', error);
       return asJsonResponse(serializeError(error));

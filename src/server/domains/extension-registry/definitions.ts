@@ -5,7 +5,9 @@ export const extensionRegistryTools: Tool[] = [
   tool('extension_install', (t) =>
     t
       .desc(
-        'Install/register an extension from a manifest, local package directory, local module file, or remote module URL.',
+        'Install/register an extension from a manifest, local package directory, local module file, or remote module URL. ' +
+          'Directory mode is zero-config: pass source=<plugin dir> after `pnpm build` and the tool reads id/name/version from ' +
+          'package.json and discovers dist/manifest.js (or dist/index.js) automatically when no entry pointer exists.',
       )
       .string('source', 'Local directory, package.json, module file, or http(s) module URL')
       .object(

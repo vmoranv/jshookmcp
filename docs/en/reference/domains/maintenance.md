@@ -38,7 +38,7 @@ Operations and maintenance domain covering cache hygiene, token budget, environm
 | `snapshot_list` | List shadow-git snapshots recorded for a directory, newest first. |
 | `snapshot_restore` | Restore a directory to a recorded shadow-git snapshot. DESTRUCTIVE: files modified after the snapshot are overwritten, files created after it are DELETED, and files deleted after it are written back (full revert semantics). The isolated store never touches the project .git. Create a fresh snapshot_create first if you may need the current state. |
 | `list_extensions` | List all loaded plugins, workflows, and extension tools. |
-| `reload_extensions` | Reload plugins and workflows from configured directories, and directly register extension tools visible in the current profile. |
+| `reload_extensions` | Reload plugins and workflows from configured directories, and directly register extension tools visible in the current profile. The response includes capabilityFixed — tools that only became available through this reload (previously blocked on a missing plugin). |
 | `browse_extension_registry` | Browse the online extension registry for installable plugins and workflows. |
 | `install_extension` | Install an extension from the remote registry. |
 | `execute_sandbox_script` | Execute JavaScript in an isolated sandbox. |

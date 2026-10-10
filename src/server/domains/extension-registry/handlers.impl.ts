@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -442,7 +443,20 @@ export class ExtensionRegistryHandlers {
     packageDir: string,
   ): Promise<Partial<RegisteredPluginManifest>> {
     const pkg = await readJsonFile(packageJsonPath);
-    const entry = extractPackageEntry(pkg);
+    let entry = extractPackageEntry(pkg);
+    // Built-artifact fallback (kimi-cu report P2-7): the extension-sdk plugin
+    // template emits dist/manifest.js, and its package.json often carries no
+    // main/module/exports pointer. Discover the conventional build output so
+    // `extension_install {source: <plugin dir>}` works zero-config after
+    // `pnpm build` instead of failing with "requires name and entry".
+    if (!entry) {
+      const buildArtifact = ['dist/manifest.js', 'dist/index.js']
+        .map((rel) => path.join(packageDir, rel))
+        .find((candidate) => existsSync(candidate));
+      if (buildArtifact) {
+        entry = pathToFileURL(buildArtifact).href;
+      }
+    }
     const resolvedEntry = entry
       ? isHttpUrl(entry) || entry.startsWith('file://')
         ? entry
