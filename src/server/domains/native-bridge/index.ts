@@ -14,6 +14,7 @@ import {
 } from '@server/observability/InstrumentationContract';
 import {
   describeGhidraBridgeTcpError,
+  GhidraBridgeTcpError,
   ghidraBridgePing,
   logGhidraBridgeTcpWarning,
 } from './ghidra-bridge-tcp';
@@ -325,40 +326,71 @@ export class NativeBridgeHandlers {
     // Backend routing (kimi-cu report P2-6): 'ghidra-bridge-py' targets the
     // pip ghidra_bridge TCP server (127.0.0.1:4768, jfx-bridge v5 wire
     // protocol), 'http' targets a REST bridge server (default 18080).
-    // Unset = auto: prefer the pip TCP server when it answers a ping.
+    // Unset = auto: status reports both bridges in one call; every other
+    // action prefers the pip TCP server when it answers a ping, and falls
+    // back to the REST bridge for actions the TCP backend does not map
+    // (open_project) instead of failing just because the TCP server runs.
     const backend = args.backend as string | undefined;
+    if (backend === undefined && action === 'status') {
+      return this.handleGhidraBridgeStatusAuto(endpoint);
+    }
     if (backend === 'ghidra-bridge-py') {
       return this.handleGhidraBridgeTcp(args, action);
     }
+    if (backend === 'http') {
+      return this.handleGhidraBridgeHttp(args, action, endpoint);
+    }
 
-    try {
-      if (backend === undefined) {
-        const tcpReachable = await ghidraBridgePing().then(
-          () => true,
-          () => false,
-        );
-        if (tcpReachable) {
-          return this.handleGhidraBridgeTcp(args, action);
-        }
-      }
+    const tcpReachable = await ghidraBridgePing().then(
+      () => true,
+      () => false,
+    );
+    if (tcpReachable) {
+      return this.handleGhidraBridgeTcp(args, action, () =>
+        this.handleGhidraBridgeHttp(args, action, endpoint),
+      );
+    }
+    return this.handleGhidraBridgeHttp(args, action, endpoint);
+  }
 
-      switch (action) {
-        case 'status': {
-          const http = await checkBridgeHealth(endpoint, 'ghidra');
-          if (backend !== undefined) {
-            return asJsonResponse(http);
-          }
-          // Auto mode: also probe the pip TCP server so one status call
-          // reports both bridge options.
-          const tcp = await tcpStatus().catch((e: unknown) => ({
+  /**
+   * Auto-mode status: one call reports both bridges so agents can see which
+   * is wired up without running two probes.
+   */
+  private async handleGhidraBridgeStatusAuto(
+    endpoint: string,
+  ): Promise<ReturnType<typeof asJsonResponse>> {
+    const [http, tcp] = await Promise.allSettled([
+      checkBridgeHealth(endpoint, 'ghidra'),
+      tcpStatus(),
+    ]);
+    const httpResult =
+      http.status === 'fulfilled'
+        ? (http.value as Record<string, unknown>)
+        : { success: false, reason: String(http.reason) };
+    const tcpResult =
+      tcp.status === 'fulfilled'
+        ? (tcp.value as Record<string, unknown>)
+        : {
             success: true,
             action: 'status',
-            backend: 'ghidra-bridge-py' as const,
+            backend: 'ghidra-bridge-py',
             reachable: false,
-            reason: describeGhidraBridgeTcpError(e).reason,
-          }));
-          return asJsonResponse({ ...http, tcpBackend: tcp });
-        }
+            reason: describeGhidraBridgeTcpError(tcp.reason).reason,
+          };
+    return asJsonResponse({ ...httpResult, tcpBackend: tcpResult });
+  }
+
+  /** REST bridge backend (default 18080). */
+  private async handleGhidraBridgeHttp(
+    args: Record<string, unknown>,
+    action: string,
+    endpoint: string,
+  ): Promise<ReturnType<typeof asJsonResponse>> {
+    try {
+      switch (action) {
+        case 'status':
+          return asJsonResponse(await checkBridgeHealth(endpoint, 'ghidra'));
 
         case 'open_project': {
           const binaryPath = args.binaryPath as string;
@@ -455,15 +487,22 @@ export class NativeBridgeHandlers {
    * pip ghidra_bridge TCP backend (kimi-cu report P2-6): the tool used to
    * advertise `pip install ghidra_bridge` while speaking REST only — the pip
    * server is a TCP server on 4768, so the advertised setup never worked.
-   * This path speaks the actual jfx-bridge v5 wire protocol.
+   * This path speaks the actual jfx-bridge v5 wire protocol. `httpFallback`
+   * (auto mode) takes over for actions with no TCP mapping.
    */
   private async handleGhidraBridgeTcp(
     args: Record<string, unknown>,
     action: string,
+    httpFallback?: () => Promise<ReturnType<typeof asJsonResponse>>,
   ): Promise<ReturnType<typeof asJsonResponse>> {
     try {
       const result = await dispatchTcpAction(action, args);
       if (!result) {
+        // Auto mode: an HTTP-only action (open_project) must not fail just
+        // because the pip TCP server happens to be running.
+        if (httpFallback) {
+          return httpFallback();
+        }
         return asJsonResponse({
           success: false,
           action,
@@ -483,7 +522,14 @@ export class NativeBridgeHandlers {
         action,
         backend: 'ghidra-bridge-py',
         reason: describeGhidraBridgeTcpError(error).reason,
-        fix: 'pip install ghidra_bridge, then in Ghidra: File → Run Script → ghidra_bridge_server.py (listens on 127.0.0.1:4768)',
+        // Install guidance only for transport-level failures — an argument
+        // validation error ("functionName is required") is not fixed by
+        // installing anything.
+        ...(error instanceof GhidraBridgeTcpError
+          ? {
+              fix: 'pip install ghidra_bridge, then in Ghidra: File → Run Script → ghidra_bridge_server.py (listens on 127.0.0.1:4768)',
+            }
+          : {}),
       });
     }
   }
