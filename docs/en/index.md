@@ -64,7 +64,7 @@ Modern security challenges (Web SPAs, Electron desktop apps, hybrid Android apps
 
 Single-purpose tools leave AI agents blind across system boundaries. JSHookMCP provides a **unified, cross-domain causal evidence graph**:
 
-```
+```text
 [Network: HTTP/2 / gRPC / Protobuf / TLS Keylog]
        ↓
 [DOM / UI: Camoufox CDP / Canvas / WebGL Interception]

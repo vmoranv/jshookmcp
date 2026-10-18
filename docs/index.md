@@ -64,7 +64,7 @@ features:
 
 JSHookMCP 为 AI Agent 提供了**端到端闭环的跨域因果证据图谱**：
 
-```
+```text
 [网络层: HTTP/2 / gRPC / Protobuf / TLS Keylog]
        ↓
 [DOM / UI 交互层: Camoufox CDP / Canvas / WebGL]
