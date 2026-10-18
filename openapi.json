@@ -10961,12 +10961,17 @@
             ],
             "type": "string"
           },
+          "backend": {
+            "description": "Bridge backend: ghidra-bridge-py (pip TCP server on 4768) or http (REST bridge). Default: auto (pip first, then REST).",
+            "enum": ["ghidra-bridge-py", "http"],
+            "type": "string"
+          },
           "binaryPath": {
             "description": "Path to binary file (for open_project)",
             "type": "string"
           },
           "endpoint": {
-            "description": "Ghidra bridge server URL",
+            "description": "Ghidra bridge server URL (http backend only)",
             "type": "string"
           },
           "functionName": {
@@ -32047,7 +32052,7 @@
     },
     "/native-bridge/ghidra_bridge": {
       "post": {
-        "description": "Send a command to a Ghidra headless analysis bridge.",
+        "description": "Send a command to a Ghidra bridge. Two backends: the pip ghidra_bridge server (TCP 127.0.0.1:4768 — pip install ghidra_bridge, then in Ghidra run ghidra_bridge_server.py) or a REST bridge (HTTP 18080). Auto mode prefers the pip TCP server when it answers.",
         "operationId": "ghidra_bridge",
         "requestBody": {
           "content": {
@@ -32071,7 +32076,7 @@
             "description": "Tool execution result returned as MCP tool result text content."
           }
         },
-        "summary": "Send a command to a Ghidra headless analysis bridge.",
+        "summary": "Send a command to a Ghidra bridge.",
         "tags": ["native-bridge"],
         "x-domain": "native-bridge"
       }
