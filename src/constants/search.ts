@@ -165,11 +165,15 @@ export const SEARCH_BM25_B = float('SEARCH_BM25_B', 0.75);
  * Dense vector search (Phase 8 — Hybrid Semantic Routing).
  *
  * SEARCH_VECTOR_ENABLED: master switch for embedding-based search signal.
- *   Defaults follow the transport: per-client stdio processes default to false
- *   (lexical-only keeps cold-start latency and per-process model memory low),
- *   while a shared HTTP daemon defaults to true (one process amortizes the
- *   model load across requests). Set SEARCH_VECTOR_ENABLED=true to enable
- *   vector search on stdio explicitly.
+ *   Enabled by default on every transport — vector recall is part of the
+ *   retrieval quality the engine is tuned for, so it should not silently
+ *   depend on how the client connects. The cost is bounded rather than
+ *   resident: the checkpoint is a lightweight static Model2Vec model, catalog
+ *   embeddings persist to disk (SEARCH_VECTOR_CACHE_ENABLED), and the worker
+ *   is released after SEARCH_VECTOR_WORKER_IDLE_MS. A model that cannot be
+ *   loaded degrades the query to lexical search for
+ *   SEARCH_VECTOR_RETRY_COOLDOWN_MS instead of failing it. Set
+ *   SEARCH_VECTOR_ENABLED=false for lexical-only operation (lowest cold start).
  * SEARCH_VECTOR_MODEL_ID: Hugging Face ID of a Model2Vec-compatible static embedding model.
  * SEARCH_VECTOR_COSINE_WEIGHT: initial weight of the vector cosine signal in RRF fusion.
  * SEARCH_VECTOR_DYNAMIC_WEIGHT: when true, vector weight self-tunes based on tool-call feedback.
@@ -179,7 +183,7 @@ export const SEARCH_BM25_B = float('SEARCH_BM25_B', 0.75);
  * SEARCH_VECTOR_LEARN_TOP_N: rank threshold that separates "hit" from "miss".
  */
 const sharedHttpTransport = str('MCP_TRANSPORT', 'stdio').trim().toLowerCase() === 'http';
-export const SEARCH_VECTOR_ENABLED = bool('SEARCH_VECTOR_ENABLED', sharedHttpTransport);
+export const SEARCH_VECTOR_ENABLED = bool('SEARCH_VECTOR_ENABLED', true);
 export const SEARCH_VECTOR_MODEL_ID = str('SEARCH_VECTOR_MODEL_ID', DEFAULT_SEARCH_VECTOR_MODEL_ID);
 export const SEARCH_VECTOR_COSINE_WEIGHT = float('SEARCH_VECTOR_COSINE_WEIGHT', 0.53);
 export const SEARCH_VECTOR_DYNAMIC_WEIGHT = bool('SEARCH_VECTOR_DYNAMIC_WEIGHT', true);

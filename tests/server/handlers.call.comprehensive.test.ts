@@ -201,9 +201,12 @@ describe('MCPServer.search.handlers.call — comprehensive edge cases', () => {
       const response = await handleCallTool(ctx, { name: 'test_tool' });
       // @ts-expect-error
       const parsed = JSON.parse(response.content[0].text);
-      // SECURITY: Auto-activation was removed. Inactive tools should return an error.
+      // SECURITY: Auto-activation was removed. An unknown name must report
+      // itself as unknown — not as "inactive", which would send the caller to
+      // activate_tools for a tool that can never activate.
       expect(parsed.success).toBe(false);
-      expect(parsed.error).toContain('not currently active');
+      expect(parsed.error).toContain('does not exist');
+      expect(parsed.error).toContain('search_tools');
     });
   });
 

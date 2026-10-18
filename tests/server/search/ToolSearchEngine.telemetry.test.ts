@@ -9,6 +9,7 @@
  * global and assert the span/metric shapes the lakehouse analysis relies on.
  */
 import { afterEach, describe, expect, it } from 'vitest';
+import { DEFAULT_SEARCH_CONFIG } from '@src/config/search-defaults';
 import { ToolSearchEngine } from '@server/search/ToolSearchEngineImpl';
 import type {
   InstrumentationContract,
@@ -87,7 +88,18 @@ function makeEngine(): ToolSearchEngine {
     ['probe_hook_fetch', 'probe'],
     ['probe_decode_base64', 'probe'],
   ]);
-  return new ToolSearchEngine(makeTools(), domainOverrides);
+  // Pin vector OFF explicitly. This file asserts telemetry SHAPE, and
+  // DEFAULT_SEARCH_CONFIG is the lexical-only baseline — passing it keeps the
+  // test independent of the process-wide SEARCH_VECTOR_ENABLED default, which
+  // is now on for every transport. Left implicit, the engine spawned a real
+  // embedding worker and reported vector_participated=true.
+  return new ToolSearchEngine(
+    makeTools(),
+    domainOverrides,
+    undefined,
+    undefined,
+    DEFAULT_SEARCH_CONFIG,
+  );
 }
 
 describe('ToolSearchEngine telemetry', () => {

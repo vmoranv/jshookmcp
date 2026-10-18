@@ -164,8 +164,9 @@ pnpm build
 pnpm daemon
 ```
 
-Vector search defaults to off for per-client stdio processes and on (lazy-loaded) for the shared
-HTTP daemon. Set `SEARCH_VECTOR_ENABLED=false` when lexical search is sufficient.
+Vector search is on by default on every transport — a lightweight static model whose catalog
+embeddings persist to disk, loaded lazily and released when idle. Set `SEARCH_VECTOR_ENABLED=false`
+when lexical search is sufficient.
 
 Then point every MCP client at `http://127.0.0.1:3000/mcp` using its HTTP/URL server
 configuration. Each client receives its own MCP session and response route while heavyweight

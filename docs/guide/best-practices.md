@@ -132,8 +132,9 @@ CACHE_TTL=3600
 # 限制网络响应体的常驻总字节
 NETWORK_BODY_CACHE_MAX_TOTAL_BYTES=67108864
 
-# 每客户端 stdio 默认只用词法搜索；HTTP 默认启用向量
-SEARCH_VECTOR_ENABLED=false
+# 向量搜索在所有传输下默认开启（静态模型，工具目录 embedding 落盘缓存）。
+# 只需词法搜索时设为 false。
+SEARCH_VECTOR_ENABLED=true
 
 # 多 stdio 进程告警；需要时可设置硬上限
 JSHOOK_INSTANCE_WARN_AT=2

@@ -35,19 +35,25 @@ afterEach(() => {
 });
 
 describe('constants env parsing', () => {
-  it('defaults vector search off for stdio and on for shared HTTP transport', async () => {
+  it('defaults vector search on for every transport and honors explicit overrides', async () => {
     expect(
       (await loadConstants({ MCP_TRANSPORT: undefined, SEARCH_VECTOR_ENABLED: undefined }))
         .SEARCH_VECTOR_ENABLED,
-    ).toBe(false);
+    ).toBe(true);
     expect(
       (await loadConstants({ MCP_TRANSPORT: 'http', SEARCH_VECTOR_ENABLED: undefined }))
         .SEARCH_VECTOR_ENABLED,
     ).toBe(true);
     expect(
-      (await loadConstants({ MCP_TRANSPORT: 'stdio', SEARCH_VECTOR_ENABLED: 'true' }))
+      (await loadConstants({ MCP_TRANSPORT: 'stdio', SEARCH_VECTOR_ENABLED: undefined }))
         .SEARCH_VECTOR_ENABLED,
     ).toBe(true);
+    // The opt-out must still work on stdio — that is the documented escape
+    // hatch now that the transport no longer decides the default.
+    expect(
+      (await loadConstants({ MCP_TRANSPORT: 'stdio', SEARCH_VECTOR_ENABLED: 'false' }))
+        .SEARCH_VECTOR_ENABLED,
+    ).toBe(false);
   });
 
   it('uses a short stdio worker idle timeout and a longer HTTP timeout by default', async () => {

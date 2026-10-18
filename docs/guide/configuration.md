@@ -89,7 +89,7 @@ Clone 仓库后，在项目根目录创建 `.env` 文件（参考 `.env.example`
 | `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | 用 JSON 自定义”意图 -> 工具”加权规则。                | 无默认值                  |
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | plugin 在 boost 时自动注册的默认档位。                | `full`                    |
 | `SEARCH_AUTO_ACTIVATE_DOMAINS`            | 搜索到某域的工具时自动激活该域。                      | `true`                    |
-| `SEARCH_VECTOR_ENABLED`                   | 向量搜索信号总开关（默认使用静态轻量模型）。stdio 每客户端进程默认关闭（压低冷启动与内存），HTTP 共享 daemon 默认开启；stdio 需向量检索时显式设 `true`。 | stdio：`false`；HTTP：`true` |
+| `SEARCH_VECTOR_ENABLED`                   | 向量搜索信号总开关（默认使用静态轻量模型）。所有传输下默认开启；模型按需加载、worker 空闲即释放，代价是一次有界的冷启动而非常驻内存。只需词法搜索时设为 `false`。 | `true` |
 | `SEARCH_VECTOR_MODEL_ID`                  | Model2Vec 兼容的 HuggingFace 静态嵌入模型 ID。         | `minishlab/potion-code-16M-v2` |
 | `SEARCH_VECTOR_COSINE_WEIGHT`             | 向量余弦信号在 RRF 融合中的初始权重。                 | `0.53`                    |
 | `SEARCH_VECTOR_DYNAMIC_WEIGHT`            | 根据工具调用反馈自动调节向量权重。                    | `true`                    |

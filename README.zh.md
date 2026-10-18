@@ -161,7 +161,7 @@ pnpm build
 pnpm daemon
 ```
 
-每客户端 stdio 进程默认关闭向量搜索；共享 HTTP daemon 默认按需开启。只需词法搜索时可设置 `SEARCH_VECTOR_ENABLED=false`。
+向量搜索在所有传输下默认开启：轻量静态模型，工具目录 embedding 落盘缓存，按需加载、空闲释放。只需词法搜索时可设置 `SEARCH_VECTOR_ENABLED=false`。
 
 然后在各 MCP 客户端的 HTTP/URL server 配置中统一指向 `http://127.0.0.1:3000/mcp`。每个客户端拥有独立的 MCP 会话和响应路由，重量级运行时资源只保留一份。建议保持默认的本机回环监听；如需对外暴露，必须先设置 `MCP_AUTH_TOKEN`。
 

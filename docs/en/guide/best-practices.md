@@ -132,8 +132,9 @@ CACHE_TTL=3600
 # Bound retained network response bodies
 NETWORK_BODY_CACHE_MAX_TOTAL_BYTES=67108864
 
-# Per-client stdio processes default to lexical search; HTTP defaults to vectors
-SEARCH_VECTOR_ENABLED=false
+# Vector search is on for every transport by default (static model, catalog
+# embeddings cached on disk). Set false for lexical-only search.
+SEARCH_VECTOR_ENABLED=true
 
 # Warn on duplicate stdio processes; optionally hard-cap them
 JSHOOK_INSTANCE_WARN_AT=2

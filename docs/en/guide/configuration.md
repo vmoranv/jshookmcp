@@ -89,7 +89,7 @@ Runtime configuration is defined by `src/utils/config.ts`. The current runtime d
 | `SEARCH_INTENT_TOOL_BOOST_RULES_JSON`     | JSON override for explicit intent-to-tool ranking boosts.         | no default                       |
 | `MCP_DEFAULT_PLUGIN_BOOST_TIER`           | Default tier for plugin auto-registration during boost.           | `full`                           |
 | `SEARCH_AUTO_ACTIVATE_DOMAINS`            | Auto-activate a domain when its tool is searched.                 | `true`                           |
-| `SEARCH_VECTOR_ENABLED`                   | Master switch for embedding-based search using a lightweight static model by default. Off by default for per-client stdio processes (lower cold-start and memory); on for the shared HTTP daemon. Set `true` explicitly to enable vectors on stdio. | stdio: `false`; HTTP: `true` |
+| `SEARCH_VECTOR_ENABLED`                   | Master switch for embedding-based search using a lightweight static model. On for every transport by default; the model loads lazily and the worker is released when idle, so the cost is a bounded cold start rather than a resident model. Set `false` for lexical-only search. | `true` |
 | `SEARCH_VECTOR_MODEL_ID`                  | HuggingFace ID of a Model2Vec-compatible static embedding model.  | `minishlab/potion-code-16M-v2`   |
 | `SEARCH_VECTOR_COSINE_WEIGHT`             | Initial weight of the vector cosine signal in RRF fusion.         | `0.53`                           |
 | `SEARCH_VECTOR_DYNAMIC_WEIGHT`            | Self-tune vector weight based on tool-call feedback.              | `true`                           |

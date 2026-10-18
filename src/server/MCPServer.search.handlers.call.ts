@@ -232,17 +232,132 @@ function resolveCallToolArgs(args: Record<string, unknown>): {
   return { toolArgs, wrapperError };
 }
 
+/** Levenshtein distance with two rolling rows (no full matrix allocation). */
+function editDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  let previous = new Uint32Array(b.length + 1);
+  let current = new Uint32Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) previous[j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    current[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const substitution = previous[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1);
+      current[j] = Math.min(previous[j]! + 1, current[j - 1]! + 1, substitution);
+    }
+    const swap = previous;
+    previous = current;
+    current = swap;
+  }
+
+  return previous[b.length]!;
+}
+
+/** A candidate must be at least this similar (1 - normalized edit distance). */
+const MIN_SUGGESTION_SIMILARITY = 0.6;
+
+/** Length ratios beyond this cannot be a typo of each other — prune before the DP. */
+const MAX_SUGGESTION_LENGTH_DELTA = 0.4;
+
+/** Longest name we will score; beyond this the query is not a plausible typo. */
+const MAX_SUGGESTION_NAME_LENGTH = 64;
+
 /**
- * Activate a known-but-unregistered tool so clients that cannot see
- * tools/list_changed (and search-tier sessions) can still call it. Returns
- * false when the tool is absent from the catalog or the registry is down.
+ * Near-miss candidates for a tool name that is absent from the catalog.
+ *
+ * A hallucinated or misspelled name is the most recoverable failure on this
+ * path — the caller usually meant a real tool one edit away — so the error
+ * should name candidates rather than only pointing at search_tools. The metric
+ * is normalized edit distance, not token overlap: token overlap happily
+ * "matches" two unrelated names that share a generic word (`test_tool` vs
+ * `crypto_test_harness`), and a wrong "Did you mean" is its own misleading
+ * error. Reading the catalog map the caller already holds means no
+ * search-engine construction, because this runs on the error path.
  */
+function suggestSimilarToolNames(name: string, candidates: Iterable<string>, limit = 3): string[] {
+  const target = name.toLowerCase();
+  if (target.length === 0 || target.length > MAX_SUGGESTION_NAME_LENGTH) return [];
+
+  const scored: Array<{ name: string; similarity: number }> = [];
+  for (const candidate of candidates) {
+    if (candidate === name) continue;
+    const other = candidate.toLowerCase();
+    const longest = Math.max(target.length, other.length);
+    if (Math.abs(target.length - other.length) > longest * MAX_SUGGESTION_LENGTH_DELTA) continue;
+
+    const similarity = 1 - editDistance(target, other) / longest;
+    if (similarity < MIN_SUGGESTION_SIMILARITY) continue;
+    scored.push({ name: candidate, similarity });
+  }
+
+  return scored
+    .toSorted((a, b) => b.similarity - a.similarity || a.name.localeCompare(b.name))
+    .slice(0, limit)
+    .map((entry) => entry.name);
+}
+
 /** Why auto-activation did (or did not) put the tool within reach. */
 type AutoActivateOutcome =
   | { status: 'ok' }
-  | { status: 'not-found' }
+  /** The name is absent from the search catalog — no such tool exists. */
+  | { status: 'unknown-tool'; suggestions: string[] }
+  /** The tool exists but activation did not land, and was not a budget skip. */
+  | { status: 'not-activated' }
+  /** Activation threw — the registry was unavailable or the handler failed. */
+  | { status: 'activation-failed'; reason: string }
+  /** The tool exists but the activation budget silently skipped it. */
   | { status: 'budget-exceeded'; hint: string };
 
+/**
+ * Turn an auto-activation outcome into an error the caller can act on.
+ *
+ * These used to collapse into a single message ("is not currently active")
+ * that conflated three different situations — a name that does not exist, a
+ * tool that exists but was not activated, and an activation failure — and
+ * pointed the caller at activate_tools for a tool that can never activate.
+ * Naming the actual situation is what makes the failure recoverable.
+ */
+function formatAutoActivationError(
+  name: string,
+  outcome: Exclude<AutoActivateOutcome, { status: 'ok' }>,
+): string {
+  switch (outcome.status) {
+    case 'budget-exceeded':
+      return `Tool "${name}" could not be auto-activated: ${outcome.hint}`;
+    case 'unknown-tool': {
+      const suggestion =
+        outcome.suggestions.length > 0
+          ? `Did you mean ${outcome.suggestions.map((candidate) => `"${candidate}"`).join(', ')}? `
+          : '';
+      return (
+        `Tool "${name}" does not exist in this server. ` +
+        suggestion +
+        `Use search_tools({ query: "<action> <target>" }) to find the correct name.`
+      );
+    }
+    case 'not-activated':
+      return (
+        `Tool "${name}" exists but is not active. ` +
+        `Use activate_tools({ names: ["${name}"] }) or activate_domain({ domain: "<domain>" }), ` +
+        `then call it directly.`
+      );
+    case 'activation-failed':
+      return (
+        `Tool "${name}" could not be activated: ${outcome.reason}. ` +
+        `Retry once the server has finished initialising.`
+      );
+  }
+}
+
+/**
+ * Activate a known-but-unregistered tool so clients that cannot see
+ * tools/list_changed (and search-tier sessions) can still call it. The
+ * outcome distinguishes "no such tool", "exists but did not activate" and
+ * "activation threw", so the caller can report the real reason.
+ */
 async function autoActivateCallTool(
   ctx: MCPServerContext,
   name: string,
@@ -251,7 +366,12 @@ async function autoActivateCallTool(
 ): Promise<AutoActivateOutcome> {
   try {
     const catalogEntry = searchCatalog.entryByName.get(name);
-    if (!catalogEntry) return { status: 'not-found' };
+    if (!catalogEntry) {
+      return {
+        status: 'unknown-tool',
+        suggestions: suggestSimilarToolNames(name, searchCatalog.entryByName.keys()),
+      };
+    }
     const { activateToolNames } = await import('@server/MCPServer.search.handlers.activate');
     const domain = catalogEntry.domain;
     if (domain && !ctx.enabledDomains.has(domain)) {
@@ -280,7 +400,7 @@ async function autoActivateCallTool(
             await import('@server/MCPServer.search.handlers.activate');
           return { status: 'budget-exceeded', hint: formatActivationBudgetHint(activation) };
         }
-        return { status: 'not-found' };
+        return { status: 'not-activated' };
       }
       callMetadata.wasAutoActivated = true;
       callMetadata.activatedTools = activation.activated.includes(name) ? [name] : [];
@@ -291,9 +411,14 @@ async function autoActivateCallTool(
       callMetadata.activatedTools = [name];
     }
     return { status: 'ok' };
-  } catch {
-    /* registry not initialised — fall through to error */
-    return { status: 'not-found' };
+  } catch (error) {
+    // Activation itself failed (registry not initialised, import failure, or a
+    // throwing activation handler). Distinct from "no such tool": the caller
+    // should retry, not go looking for a different name.
+    return {
+      status: 'activation-failed',
+      reason: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
@@ -348,18 +473,18 @@ export async function handleCallTool(
     const autoActivation = await autoActivateCallTool(ctx, name, searchCatalog, callMetadata);
 
     if (autoActivation.status !== 'ok') {
-      // Budget-blocked: the tool exists but the activation budget silently
-      // skipped it — say THAT, with the same remediation hint
-      // activate_tools reports, instead of the old misleading pair
-      // (activatedTools=[name] + "Unknown tool").
-      const error =
-        autoActivation.status === 'budget-exceeded'
-          ? `Tool "${name}" could not be auto-activated: ${autoActivation.hint}`
-          : `Tool "${name}" is not currently active. Use activate_tools or activate_domain first, then call it directly.`;
+      // Report the actual reason. These used to collapse into a single message
+      // that told the caller to activate a tool that may not exist — see
+      // formatAutoActivationError for the situations now distinguished.
       return asTextResponse(
         JSON.stringify({
           success: false,
-          error,
+          error: formatAutoActivationError(name, autoActivation),
+          // Machine-readable near-misses for a name that is not in the catalog,
+          // so an agent can retry without a second round trip.
+          ...(autoActivation.status === 'unknown-tool' && autoActivation.suggestions.length > 0
+            ? { suggestions: autoActivation.suggestions }
+            : {}),
           ...callMetadata,
         }),
       );

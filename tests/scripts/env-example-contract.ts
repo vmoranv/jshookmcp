@@ -38,7 +38,7 @@ const CONFIG_EFFECTIVE_DEFAULTS = new Map<string, string>([
   ['MCP_LOG_LEVEL', 'info'],
   ['MCP_TOOL_PROFILE', 'search'],
   ['MCP_BROWSER_FLEET_WORKERS_JSON', '[{"id":"local"}]'],
-  ['SEARCH_VECTOR_ENABLED', 'false'],
+  ['SEARCH_VECTOR_ENABLED', 'true'],
   ['SEARCH_VECTOR_MODEL_ID', 'minishlab/potion-code-16M-v2'],
   ['MCP_PLUGIN_SIGNATURE_REQUIRED', 'false'],
   ['MCP_PLUGIN_STRICT_LOAD', 'false'],

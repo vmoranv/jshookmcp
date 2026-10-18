@@ -773,7 +773,6 @@ function cloneSearchConfig(search: SearchConfig): SearchConfig {
 
 function buildSearchConfig(env: ParsedConfigEnvironment): SearchConfig {
   const defaults = cloneSearchConfig(DEFAULT_SEARCH_CONFIG);
-  const httpTransport = env.MCP_TRANSPORT === 'http';
 
   return {
     queryCategoryProfiles:
@@ -784,7 +783,10 @@ function buildSearchConfig(env: ParsedConfigEnvironment): SearchConfig {
     intentToolBoostRules:
       parseIntentToolBoostRules(env.SEARCH_INTENT_TOOL_BOOST_RULES_JSON) ??
       defaults.intentToolBoostRules,
-    vectorEnabled: env.SEARCH_VECTOR_ENABLED ?? httpTransport,
+    // Enabled by default on every transport, mirroring SEARCH_VECTOR_ENABLED in
+    // src/constants/search.ts — the retrieval quality target is transport-
+    // independent. Opt out with SEARCH_VECTOR_ENABLED=false.
+    vectorEnabled: env.SEARCH_VECTOR_ENABLED ?? true,
     vectorModelId: env.SEARCH_VECTOR_MODEL_ID ?? DEFAULT_SEARCH_VECTOR_MODEL_ID,
     vectorCosineWeight: env.SEARCH_VECTOR_COSINE_WEIGHT,
     vectorDynamicWeight: env.SEARCH_VECTOR_DYNAMIC_WEIGHT,

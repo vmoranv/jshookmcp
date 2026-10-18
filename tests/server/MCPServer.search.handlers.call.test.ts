@@ -74,10 +74,19 @@ vi.mock('@server/MCPServer.search.handlers.activate', async (importOriginal) => 
 vi.mock('@server/registry/SearchCatalog', () => ({
   // The real catalog depends on registry state that this suite mocks away;
   // the call handler only needs entryByName lookups for auto-activation.
+  // `crypto_test_harness` is deliberately here to keep the near-miss
+  // suggestions honest: it shares the generic token "test" with `test_tool`
+  // but is not a typo of it, so it must never be suggested.
   loadSearchCatalog: vi.fn(async () => ({
-    entryByName: new Map([['binary_decode', { name: 'binary_decode', domain: 'encoding' }]]),
+    entryByName: new Map([
+      ['binary_decode', { name: 'binary_decode', domain: 'encoding' }],
+      ['crypto_test_harness', { name: 'crypto_test_harness', domain: 'core' }],
+    ]),
     toolByName: new Map(),
-    domainByToolName: new Map([['binary_decode', 'encoding']]),
+    domainByToolName: new Map([
+      ['binary_decode', 'encoding'],
+      ['crypto_test_harness', 'core'],
+    ]),
     tools: [],
     sceneKeywordsByToolName: new Map(),
   })),
@@ -303,7 +312,11 @@ describe('MCPServer.search.handlers.call', () => {
     expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
   });
 
-  it('returns error when tool is not in router (auto-activation disabled)', async () => {
+  it('reports a name absent from the catalog as non-existent, not as inactive', async () => {
+    // Regression: an unknown name used to report "is not currently active",
+    // which sends the caller to activate_tools for a tool that can never
+    // activate. "does not exist" and "exists but inactive" must read
+    // differently, because the recovery is different.
     const ctx = createCtx({
       router: { has: vi.fn(() => false) },
     });
@@ -311,9 +324,62 @@ describe('MCPServer.search.handlers.call', () => {
     const response = await handleCallTool(ctx, { name: 'test_tool' });
     const result = parseResponse(response);
 
-    // Auto-activation is disabled for security. Tools must be explicitly activated.
     expect(result.success).toBe(false);
-    expect(result.error).toContain('not currently active');
+    expect(result.error).toContain('does not exist');
+    expect(result.error).toContain('search_tools');
+    expect(result.error).not.toContain('not currently active');
+    expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
+  });
+
+  it('suggests near-miss catalog names for an unknown tool', async () => {
+    // 'binary_decod' is one character away from the only catalog entry,
+    // 'binary_decode' — the error should name it instead of dead-ending.
+    const ctx = createCtx({
+      router: { has: vi.fn(() => false) },
+    });
+
+    const response = await handleCallTool(ctx, { name: 'binary_decod' });
+    const result = parseResponse(response);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Did you mean');
+    expect(result.suggestions).toContain('binary_decode');
+    expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
+  });
+
+  it('does not suggest a candidate that only shares a generic token', async () => {
+    // Regression: token-overlap scoring suggested `crypto_test_harness` for
+    // `test_tool` because both contain "test". A wrong "Did you mean" is its
+    // own misleading error, so similarity is gated on edit distance instead.
+    const ctx = createCtx({
+      router: { has: vi.fn(() => false) },
+    });
+
+    const response = await handleCallTool(ctx, { name: 'test_tool' });
+    const result = parseResponse(response);
+
+    expect(result.success).toBe(false);
+    expect(result.error).not.toContain('Did you mean');
+    expect(result.suggestions).toBeUndefined();
+    expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
+  });
+
+  it('reports an activation failure distinctly from an unknown tool', async () => {
+    // A throwing activation is an infrastructure failure, not a bad name: the
+    // caller should retry rather than go hunting for a different tool.
+    state.activateToolNames.mockRejectedValue(new Error('registry offline'));
+    const ctx = createCtx({
+      router: { has: vi.fn(() => false) },
+      enabledDomains: new Set(['encoding']),
+    });
+
+    const response = await handleCallTool(ctx, { name: 'binary_decode' });
+    const result = parseResponse(response);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('could not be activated');
+    expect(result.error).toContain('registry offline');
+    expect(result.error).not.toContain('does not exist');
     expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
   });
 
@@ -362,15 +428,33 @@ describe('MCPServer.search.handlers.call', () => {
     expect(result.error).toContain('some_fancy_tool');
   });
 
-  it('suggests activate_tools or activate_domain when tool is not active', async () => {
+  it('suggests activate_tools or activate_domain when a known tool is not active', async () => {
+    // 'binary_decode' is the only name in the mocked catalog, so it reaches
+    // the activation branch instead of the unknown-name early return. Its
+    // domain is pre-enabled to skip domain activation and hit individual
+    // activation directly.
+    state.activateToolNames.mockResolvedValue({
+      activated: [],
+      alreadyActive: [],
+      notFound: [],
+      budgetExceeded: [],
+      totalActive: 0,
+      budget: { usedTokens: 0, maxTokens: 30_000, activeTools: 0, maxTools: 50 },
+    });
     const ctx = createCtx({
       router: { has: vi.fn(() => false) },
+      enabledDomains: new Set(['encoding']),
     });
 
-    const response = await handleCallTool(ctx, { name: 'test_tool' });
+    const response = await handleCallTool(ctx, { name: 'binary_decode' });
     const result = parseResponse(response);
 
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('binary_decode');
+    expect(result.error).toContain('exists but is not active');
     expect(result.error).toContain('activate_tools');
+    expect(result.error).toContain('activate_domain');
+    expect(ctx.executeToolWithTracking).not.toHaveBeenCalled();
   });
 
   it('returns error for inactive tool even if activation is configured', async () => {

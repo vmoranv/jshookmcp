@@ -127,15 +127,24 @@ describe('config utilities', () => {
     expect(config.search.queryCategoryProfiles.length).toBeGreaterThan(0);
     expect(config.search.cjkQueryAliases.length).toBeGreaterThan(0);
     expect(config.search.intentToolBoostRules.length).toBeGreaterThan(0);
-    expect(config.search.vectorEnabled).toBe(false);
+    expect(config.search.vectorEnabled).toBe(true);
     expect(config.search.vectorModelId).toBe('minishlab/potion-code-16M-v2');
   });
 
-  it('resolves transport-sensitive vector defaults after environment loading', async () => {
+  it('keeps the vector default independent of the transport', async () => {
+    // The retrieval quality target does not depend on how the client connects,
+    // so stdio and HTTP must agree — the old transport-derived default made
+    // the same query behave differently per transport.
     process.env.MCP_TRANSPORT = 'http';
-    const { getConfig } = await import('@utils/config');
+    const http = await import('@utils/config');
+    const httpEnabled = http.getConfig().search.vectorEnabled;
 
-    expect(getConfig().search.vectorEnabled).toBe(true);
+    vi.resetModules();
+    process.env.MCP_TRANSPORT = 'stdio';
+    const stdio = await import('@utils/config');
+
+    expect(httpEnabled).toBe(true);
+    expect(stdio.getConfig().search.vectorEnabled).toBe(true);
   });
 
   it('honors explicit vector search overrides in runtime configuration', async () => {

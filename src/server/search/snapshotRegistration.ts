@@ -4,10 +4,8 @@
  * The trackers live inside the ToolSearchEngine instance, which is built lazily
  * by getSearchEngine() only when a search actually runs (see
  * MCPServer.search.helpers). That makes registration inherently conditional:
- * under the stdio transport SEARCH_VECTOR_ENABLED is false and the engine is
- * still constructed on first search, but in profiles that never issue a search
- * the engine never exists and there is nothing to persist — registration is
- * simply skipped.
+ * a profile that never issues a search never builds the engine, so there is
+ * nothing to persist — registration is simply skipped.
  *
  * Both trackers implement the SnapshotSource contract
  * (src/server/persistence/RuntimeSnapshotScheduler.ts); the scheduler owns the
