@@ -206,6 +206,18 @@ describe('NativeBridgeHandlers', () => {
       expect(result.guide).toBeDefined();
       expect(result.guide.actions).toBeInstanceOf(Array);
     });
+
+    it('blames only http when the backend was pinned explicitly', async () => {
+      // Pinned to http, the TCP backend was never tried, so the error must not
+      // claim it was. Otherwise a caller who pinned the wrong backend is told
+      // to give up instead of switching.
+      const result = parseJson<any>(
+        await handlers.handleGhidraBridge({ action: 'help', backend: 'http' }),
+      );
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('Ghidra REST (http) backend');
+      expect(result.triedBackends).toBeUndefined();
+    });
   });
 
   /* ── IDA action routing ───────────────────────────────────────────── */
@@ -635,6 +647,24 @@ describe('NativeBridgeHandlers', () => {
       // The REST bridge actually served the HTTP-only action.
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/project/open');
+    });
+
+    it('auto mode names both backends when neither maps the action', async () => {
+      // Reachable TCP bridge declined the action, then the REST bridge hit its
+      // default branch too. The caller must not read this as "the other
+      // backend might work" — both were tried.
+      vi.mocked(ghidraBridgePing).mockResolvedValue(true);
+      vi.mocked(dispatchTcpAction).mockResolvedValue(undefined);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ status: 200, json: () => Promise.resolve({}) }),
+      );
+
+      const body = parseJson<any>(await handlers.handleGhidraBridge({ action: 'help' }));
+
+      expect(body.success).toBe(false);
+      expect(body.triedBackends).toEqual(['ghidra-bridge-py', 'http']);
+      expect(body.reason).toContain('either Ghidra backend');
     });
 
     it('explicit ghidra-bridge-py reports unsupported for HTTP-only actions (no silent fallback)', async () => {

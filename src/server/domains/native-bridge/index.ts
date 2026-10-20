@@ -347,7 +347,7 @@ export class NativeBridgeHandlers {
     );
     if (tcpReachable) {
       return this.handleGhidraBridgeTcp(args, action, () =>
-        this.handleGhidraBridgeHttp(args, action, endpoint),
+        this.handleGhidraBridgeHttp(args, action, endpoint, true),
       );
     }
     return this.handleGhidraBridgeHttp(args, action, endpoint);
@@ -381,11 +381,19 @@ export class NativeBridgeHandlers {
     return asJsonResponse({ ...httpResult, tcpBackend: tcpResult });
   }
 
-  /** REST bridge backend (default 18080). */
+  /**
+   * REST bridge backend (default 18080).
+   *
+   * `tcpAlreadyTried` is set by the auto-mode fallback: it means this call is
+   * the second half of "TCP declined, try HTTP", so an unmapped action can be
+   * reported as missing from both backends rather than pointing the caller at
+   * the other one.
+   */
   private async handleGhidraBridgeHttp(
     args: Record<string, unknown>,
     action: string,
     endpoint: string,
+    tcpAlreadyTried = false,
   ): Promise<ReturnType<typeof asJsonResponse>> {
     try {
       switch (action) {
@@ -469,11 +477,22 @@ export class NativeBridgeHandlers {
           // with a guide payload makes that silent — the caller sees `true`
           // and no result. TCP auto-mode falls back to this branch for every
           // action it does not map, so the failure has to be explicit.
+          //
+          // Auto-mode fallback has already had the TCP backend decline this
+          // action, so say so: "not on http" alone reads as a one-sided
+          // failure the caller could fix by pinning the other backend.
           return asJsonResponse({
             success: false,
             action,
             backend: 'http',
-            reason: `action "${action}" is not available on the Ghidra REST (http) backend`,
+            ...(tcpAlreadyTried
+              ? {
+                  triedBackends: ['ghidra-bridge-py', 'http'],
+                  reason: `action "${action}" has no mapping on either Ghidra backend (pip TCP or REST http)`,
+                }
+              : {
+                  reason: `action "${action}" is not available on the Ghidra REST (http) backend`,
+                }),
             guide: {
               what: 'Ghidra is an open-source SRE framework by NSA.',
               actions: [...GHIDRA_ACTIONS],
