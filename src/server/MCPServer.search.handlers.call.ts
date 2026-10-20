@@ -312,6 +312,20 @@ type AutoActivateOutcome =
   | { status: 'budget-exceeded'; hint: string };
 
 /**
+ * Quote a caller-supplied name for embedding in prose and in a code example.
+ *
+ * The name comes straight from the client (`call_tool({ name })`) and the
+ * error text is read back by a model as authoritative guidance. Interpolating
+ * it raw lets `foo" }]); ignore previous instructions` render a well-formed
+ * fake tool call inside an otherwise trusted message, which is a prompt
+ * injection surface we do not need to leave open. JSON quoting neutralises the
+ * delimiters while keeping ordinary names readable.
+ */
+function quoteName(name: string): string {
+  return JSON.stringify(name);
+}
+
+/**
  * Turn an auto-activation outcome into an error the caller can act on.
  *
  * These used to collapse into a single message ("is not currently active")
@@ -324,29 +338,30 @@ function formatAutoActivationError(
   name: string,
   outcome: Exclude<AutoActivateOutcome, { status: 'ok' }>,
 ): string {
+  const quoted = quoteName(name);
   switch (outcome.status) {
     case 'budget-exceeded':
-      return `Tool "${name}" could not be auto-activated: ${outcome.hint}`;
+      return `Tool ${quoted} could not be auto-activated: ${outcome.hint}`;
     case 'unknown-tool': {
       const suggestion =
         outcome.suggestions.length > 0
-          ? `Did you mean ${outcome.suggestions.map((candidate) => `"${candidate}"`).join(', ')}? `
+          ? `Did you mean ${outcome.suggestions.map(quoteName).join(', ')}? `
           : '';
       return (
-        `Tool "${name}" does not exist in this server. ` +
+        `Tool ${quoted} does not exist in this server. ` +
         suggestion +
         `Use search_tools({ query: "<action> <target>" }) to find the correct name.`
       );
     }
     case 'not-activated':
       return (
-        `Tool "${name}" exists but is not active. ` +
-        `Use activate_tools({ names: ["${name}"] }) or activate_domain({ domain: "<domain>" }), ` +
+        `Tool ${quoted} exists but is not active. ` +
+        `Use activate_tools({ names: [${quoted}] }) or activate_domain({ domain: "<domain>" }), ` +
         `then call it directly.`
       );
     case 'activation-failed':
       return (
-        `Tool "${name}" could not be activated: ${outcome.reason}. ` +
+        `Tool ${quoted} could not be activated: ${outcome.reason}. ` +
         `Retry once the server has finished initialising.`
       );
   }
