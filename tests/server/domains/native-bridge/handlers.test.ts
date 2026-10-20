@@ -194,8 +194,15 @@ describe('NativeBridgeHandlers', () => {
       expect(result.error).toContain('functionName');
     });
 
-    it('unknown action returns guide', async () => {
+    it('unknown action returns guide and reports failure', async () => {
+      // The guide is still emitted so the caller can see the real action
+      // list, but `success` must be false: auto mode routes every action the
+      // TCP backend does not map into this branch, and a `success: true` with
+      // no result would look like a completed call.
       const result = parseJson<any>(await handlers.handleGhidraBridge({ action: 'help' }));
+      expect(result.success).toBe(false);
+      expect(result.backend).toBe('http');
+      expect(result.reason).toContain('"help"');
       expect(result.guide).toBeDefined();
       expect(result.guide.actions).toBeInstanceOf(Array);
     });

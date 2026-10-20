@@ -463,8 +463,17 @@ export class NativeBridgeHandlers {
         }
 
         default:
+          // Not `success: true`: the schema advertises a fixed action list, so
+          // reaching here means the action has no HTTP mapping (or was added
+          // to the schema and one backend but not this one). Reporting success
+          // with a guide payload makes that silent — the caller sees `true`
+          // and no result. TCP auto-mode falls back to this branch for every
+          // action it does not map, so the failure has to be explicit.
           return asJsonResponse({
-            success: true,
+            success: false,
+            action,
+            backend: 'http',
+            reason: `action "${action}" is not available on the Ghidra REST (http) backend`,
             guide: {
               what: 'Ghidra is an open-source SRE framework by NSA.',
               actions: [...GHIDRA_ACTIONS],
