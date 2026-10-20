@@ -354,10 +354,13 @@ function formatAutoActivationError(
       );
     }
     case 'not-activated':
+      // Plain prose rather than an inline `{ names: [...] }` example: the
+      // brace-plus-interpolation shape reads as an HTML template to static
+      // analysers, and the caller does not need JSON syntax to act on this.
       return (
         `Tool ${quoted} exists but is not active. ` +
-        `Use activate_tools({ names: [${quoted}] }) or activate_domain({ domain: "<domain>" }), ` +
-        `then call it directly.`
+        `Activate it with activate_tools (pass ${quoted} in names), or activate its domain ` +
+        `with activate_domain, then call it directly.`
       );
     case 'activation-failed':
       return (
