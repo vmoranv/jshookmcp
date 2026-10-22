@@ -10071,9 +10071,6 @@
           "def": {
             "type": "string"
           },
-          "format": null,
-          "maxLength": null,
-          "minLength": null,
           "type": "string"
         },
         "precheck": {
@@ -10127,11 +10124,7 @@
                     "checks": [],
                     "type": "number"
                   },
-                  "format": null,
                   "isFinite": true,
-                  "isInt": false,
-                  "maxValue": null,
-                  "minValue": null,
                   "type": "number"
                 },
                 "type": "pipe"
@@ -10147,11 +10140,7 @@
                   "checks": [],
                   "type": "number"
                 },
-                "format": null,
                 "isFinite": true,
-                "isInt": false,
-                "maxValue": null,
-                "minValue": null,
                 "type": "number"
               },
               "type": "pipe"
@@ -10172,9 +10161,6 @@
                     "def": {
                       "type": "string"
                     },
-                    "format": null,
-                    "maxLength": null,
-                    "minLength": null,
                     "type": "string"
                   },
                   "type": "array"
@@ -10183,9 +10169,6 @@
                   "def": {
                     "type": "string"
                   },
-                  "format": null,
-                  "maxLength": null,
-                  "minLength": null,
                   "type": "string"
                 },
                 "type": "array"
@@ -10194,9 +10177,6 @@
                 "def": {
                   "type": "string"
                 },
-                "format": null,
-                "maxLength": null,
-                "minLength": null,
                 "type": "string"
               }
             ],
@@ -10209,9 +10189,6 @@
                   "def": {
                     "type": "string"
                   },
-                  "format": null,
-                  "maxLength": null,
-                  "minLength": null,
                   "type": "string"
                 },
                 "type": "array"
@@ -10220,9 +10197,6 @@
                 "def": {
                   "type": "string"
                 },
-                "format": null,
-                "maxLength": null,
-                "minLength": null,
                 "type": "string"
               },
               "type": "array"
@@ -10231,9 +10205,6 @@
               "def": {
                 "type": "string"
               },
-              "format": null,
-              "maxLength": null,
-              "minLength": null,
               "type": "string"
             }
           ],
@@ -10286,9 +10257,6 @@
                   "def": {
                     "type": "string"
                   },
-                  "format": null,
-                  "maxLength": null,
-                  "minLength": null,
                   "type": "string"
                 },
                 "type": "record",
@@ -10303,9 +10271,6 @@
                 "def": {
                   "type": "string"
                 },
-                "format": null,
-                "maxLength": null,
-                "minLength": null,
                 "type": "string"
               },
               "type": "record",
@@ -10326,9 +10291,6 @@
               "def": {
                 "type": "string"
               },
-              "format": null,
-              "maxLength": null,
-              "minLength": null,
               "type": "string"
             },
             "type": "optional"
@@ -10339,9 +10301,6 @@
           "def": {
             "type": "string"
           },
-          "format": null,
-          "maxLength": null,
-          "minLength": null,
           "type": "string"
         },
         "parameters": {
@@ -10350,9 +10309,6 @@
               "def": {
                 "type": "string"
               },
-              "format": null,
-              "maxLength": null,
-              "minLength": null,
               "type": "string"
             },
             "type": "optional"
@@ -10374,9 +10330,6 @@
                     "def": {
                       "type": "string"
                     },
-                    "format": null,
-                    "maxLength": null,
-                    "minLength": null,
                     "type": "string"
                   },
                   "type": "array"
@@ -10385,9 +10338,6 @@
                   "def": {
                     "type": "string"
                   },
-                  "format": null,
-                  "maxLength": null,
-                  "minLength": null,
                   "type": "string"
                 },
                 "type": "array"
@@ -10396,9 +10346,6 @@
                 "def": {
                   "type": "string"
                 },
-                "format": null,
-                "maxLength": null,
-                "minLength": null,
                 "type": "string"
               }
             ],
@@ -10411,9 +10358,6 @@
                   "def": {
                     "type": "string"
                   },
-                  "format": null,
-                  "maxLength": null,
-                  "minLength": null,
                   "type": "string"
                 },
                 "type": "array"
@@ -10422,9 +10366,6 @@
                 "def": {
                   "type": "string"
                 },
-                "format": null,
-                "maxLength": null,
-                "minLength": null,
                 "type": "string"
               },
               "type": "array"
@@ -10433,9 +10374,6 @@
               "def": {
                 "type": "string"
               },
-              "format": null,
-              "maxLength": null,
-              "minLength": null,
               "type": "string"
             }
           ],
@@ -10448,9 +10386,6 @@
           "def": {
             "type": "string"
           },
-          "format": null,
-          "maxLength": null,
-          "minLength": null,
           "type": "string"
         },
         "type": "object"
@@ -10512,11 +10447,7 @@
                               "checks": [],
                               "type": "number"
                             },
-                            "format": null,
                             "isFinite": true,
-                            "isInt": false,
-                            "maxValue": null,
-                            "minValue": null,
                             "type": "number"
                           },
                           "type": "pipe"
@@ -10532,11 +10463,7 @@
                             "checks": [],
                             "type": "number"
                           },
-                          "format": null,
                           "isFinite": true,
-                          "isInt": false,
-                          "maxValue": null,
-                          "minValue": null,
                           "type": "number"
                         },
                         "type": "pipe"
@@ -10551,9 +10478,6 @@
                         "def": {
                           "type": "string"
                         },
-                        "format": null,
-                        "maxLength": null,
-                        "minLength": null,
                         "type": "string"
                       },
                       "type": "optional"
@@ -10573,9 +10497,6 @@
           "def": {
             "type": "string"
           },
-          "format": null,
-          "maxLength": null,
-          "minLength": null,
           "type": "string"
         },
         "type": "object"
@@ -10621,9 +10542,6 @@
           "def": {
             "type": "string"
           },
-          "format": null,
-          "maxLength": null,
-          "minLength": null,
           "type": "string"
         },
         "top_k": {
@@ -10641,11 +10559,7 @@
                     "checks": [],
                     "type": "number"
                   },
-                  "format": null,
                   "isFinite": true,
-                  "isInt": false,
-                  "maxValue": null,
-                  "minValue": null,
                   "type": "number"
                 },
                 "type": "pipe"
@@ -10661,11 +10575,7 @@
                   "checks": [],
                   "type": "number"
                 },
-                "format": null,
                 "isFinite": true,
-                "isInt": false,
-                "maxValue": null,
-                "minValue": null,
                 "type": "number"
               },
               "type": "pipe"
