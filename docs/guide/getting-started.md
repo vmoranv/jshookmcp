@@ -32,6 +32,11 @@
 该轻量安装会省略可选的 ONNX、Z3、Binaryen、Camoufox 和 Playwright 包；需要这些运行时
 时移除 `npm_config_omit`。
 
+### Windows 进程调试
+
+Windows 上的进程探测和调试启动会隐藏额外的控制台窗口；图形应用自身的窗口仍由应用控制。
+使用 `process_launch_debug` 时，请选择支持远程调试接口的程序。隐藏控制台不代表任意可执行文件都支持远程调试。
+
 ## 3. 重启并验证
 
 重启客户端，确认 `jshook` 工具已加载。发送测试语：
