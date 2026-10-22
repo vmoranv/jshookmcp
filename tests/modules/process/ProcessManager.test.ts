@@ -164,6 +164,7 @@ describe('ProcessManager', () => {
     expect(state.spawn).toHaveBeenCalledWith('C:/app.exe', ['--remote-debugging-port=9222'], {
       detached: true,
       stdio: 'ignore',
+      windowsHide: true,
     });
     expect(result?.pid).toBe(5000);
 
@@ -171,7 +172,7 @@ describe('ProcessManager', () => {
     // (a missing space would concatenate the -ErrorAction value with Select-Object).
     const [command, options] = state.execAsync.mock.calls[0] as [string, unknown];
     expect(command).toContain('-State Listen -ErrorAction SilentlyContinue Select-Object -First 1');
-    expect(options).toEqual({ maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES });
+    expect(options).toEqual({ maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES, windowsHide: true });
     vi.useRealTimers();
   });
 
@@ -189,7 +190,51 @@ describe('ProcessManager', () => {
     const [command, options] = state.execAsync.mock.calls[0] as [string, unknown];
     expect(command).toContain('-ErrorAction SilentlyContinue Select-Object LocalPort');
     expect(command).toContain('Get-NetTCPConnection -OwningProcess 77');
-    expect(options).toEqual({ maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES });
+    expect(options).toEqual({ maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES, windowsHide: true });
+  });
+
+  it.each([
+    {
+      operation: 'process listing',
+      run: (manager: ProcessManager) => manager.findProcesses('app'),
+      stdout: '[{"Id":1234,"ProcessName":"app","Path":"C:/app.exe"}]',
+      expected: [{ pid: 1234, name: 'app', executablePath: 'C:/app.exe' }],
+    },
+    {
+      operation: 'PID lookup',
+      run: (manager: ProcessManager) => manager.getProcessByPid(1234),
+      stdout: '{"Id":1234,"ProcessName":"app","Path":"C:/app.exe"}',
+      expected: { pid: 1234, name: 'app', executablePath: 'C:/app.exe' },
+    },
+    {
+      operation: 'window enumeration',
+      run: (manager: ProcessManager) => manager.getProcessWindows(1234),
+      stdout: '{"Handle":"0x100","Title":"App","ClassName":"AppWindow","ProcessId":1234}',
+      expected: [
+        { handle: '0x100', title: 'App', className: 'AppWindow', processId: 1234, threadId: 0 },
+      ],
+    },
+    {
+      operation: 'command-line lookup',
+      run: (manager: ProcessManager) => manager.getProcessCommandLine(1234),
+      stdout: '{"CommandLine":"app.exe","ParentProcessId":12}',
+      expected: { commandLine: 'app.exe', parentPid: 12 },
+    },
+    {
+      operation: 'process termination',
+      run: (manager: ProcessManager) => manager.killProcess(1234),
+      stdout: 'Process 1234 killed',
+      expected: true,
+    },
+  ])('hides the PowerShell console during $operation', async ({ run, stdout, expected }) => {
+    state.execAsync.mockResolvedValue({ stdout, stderr: '' });
+    const result = await run(new ProcessManager());
+
+    expect(result).toEqual(expected);
+    expect(state.execAsync).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining('powershell.exe -NoProfile'),
+      expect.objectContaining({ windowsHide: true }),
+    );
   });
 
   it('delegates browser discovery APIs', async () => {

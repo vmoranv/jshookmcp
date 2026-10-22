@@ -98,7 +98,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES },
+        { maxBuffer: PROCESS_LIST_MAX_BUFFER_BYTES, windowsHide: true },
       );
 
       const lines = stdout.trim();
@@ -188,7 +188,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES },
+        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES, windowsHide: true },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {
@@ -221,7 +221,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}" -TargetPid ${pid}`,
-        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES },
+        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES, windowsHide: true },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {
@@ -287,7 +287,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES },
+        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES, windowsHide: true },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {
@@ -327,7 +327,7 @@ export class ProcessManager {
 
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES },
+        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES, windowsHide: true },
       );
 
       if (stdout.trim() && stdout.trim() !== 'null') {
@@ -359,7 +359,7 @@ export class ProcessManager {
         'Select-Object -First 1 OwningProcess | ConvertTo-Json -Compress';
       const { stdout } = await execAsync(
         `${this.powershellPath} -NoProfile -Command "${psCommand}"`,
-        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES },
+        { maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES, windowsHide: true },
       );
 
       if (!stdout.trim() || stdout.trim() === 'null') {
@@ -390,6 +390,7 @@ export class ProcessManager {
       const child = spawn(executablePath, debugArgs, {
         detached: true,
         stdio: 'ignore',
+        windowsHide: true,
       });
 
       child.unref();
@@ -498,6 +499,7 @@ export class ProcessManager {
 
       await execAsync(`${this.powershellPath} -NoProfile -Command "${psCommand}"`, {
         maxBuffer: PROCESS_EXEC_MAX_BUFFER_BYTES,
+        windowsHide: true,
       });
 
       logger.info(`Process ${normalizedPid} killed successfully`);
