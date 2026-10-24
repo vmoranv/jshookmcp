@@ -22,6 +22,7 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 import type { CapabilityStatus } from '@server/domains/shared/capabilities';
 import { capabilityFailure } from '@server/domains/shared/capabilities';
 import { readEnvString } from '@src/config/environment';
+import { toExecFileCommand } from '@modules/external/WindowsCommand';
 
 const UNIDBG_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
 
@@ -293,12 +294,15 @@ export function execFileUtf8(
   timeoutMs: number,
 ): Promise<CommandResult> {
   return new Promise((resolve, reject) => {
+    // apktool ships as apktool.bat on Windows, which execFile cannot start without cmd.exe.
+    const command = toExecFileCommand(file, args);
     execFile(
-      file,
-      args,
+      command.file,
+      command.args,
       {
         timeout: timeoutMs,
         windowsHide: true,
+        windowsVerbatimArguments: command.windowsVerbatimArguments,
         maxBuffer: UNIDBG_MAX_BUFFER_BYTES,
         encoding: 'utf8',
       },

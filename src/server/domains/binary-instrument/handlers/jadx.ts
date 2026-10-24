@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { probeCommand } from '@modules/external/ToolProbe';
+import { toExecFileCommand } from '@modules/external/WindowsCommand';
 import { JadxSearchEngine } from '@modules/jadx-search';
 import type { JadxSearchOptions } from '@modules/jadx-search';
 import { analyzeApkDexIntake } from '@modules/binary-instrument/apk-dex-intake';
@@ -591,15 +592,26 @@ export class JadxHandlers {
 
   private async runJadx(jadx: string, args: string[], timeoutMs = 120_000): Promise<void> {
     await new Promise<void>((resolve, reject) => {
-      const child = execFile(jadx, args, { encoding: 'utf8', windowsHide: true }, (error) => {
-        clearTimeout(timer);
-        // JADX exits with code 1 on partial decompilation errors but still produces usable output.
-        if (error && (error as { code?: number }).code !== 1) {
-          reject(error);
-          return;
-        }
-        resolve();
-      });
+      // jadx ships as jadx.bat on Windows, which execFile cannot start without cmd.exe.
+      const command = toExecFileCommand(jadx, args);
+      const child = execFile(
+        command.file,
+        command.args,
+        {
+          encoding: 'utf8',
+          windowsHide: true,
+          windowsVerbatimArguments: command.windowsVerbatimArguments,
+        },
+        (error) => {
+          clearTimeout(timer);
+          // JADX exits with code 1 on partial decompilation errors but still produces usable output.
+          if (error && (error as { code?: number }).code !== 1) {
+            reject(error);
+            return;
+          }
+          resolve();
+        },
+      );
 
       const timer = setTimeout(() => {
         // Force-kill: Node's built-in timeout sends SIGTERM which Java ignores on Windows.

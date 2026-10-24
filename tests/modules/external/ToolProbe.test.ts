@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => {
   const execFileAsync = vi.fn();
@@ -25,9 +25,74 @@ vi.mock('@src/utils/logger', () => ({
 
 import { probeAll, probeCommand } from '@modules/external/ToolProbe';
 
+const originalPlatform = process.platform;
+
+function setPlatform(platform: NodeJS.Platform): void {
+  Object.defineProperty(process, 'platform', { value: platform });
+}
+
 describe('ToolProbe', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // POSIX `which` output below; Windows `where` selection has its own tests.
+    setPlatform('linux');
+  });
+
+  afterEach(() => {
+    setPlatform(originalPlatform);
+  });
+
+  it('on Windows skips an extensionless where hit and runs the version check via cmd.exe', async () => {
+    setPlatform('win32');
+    state.execFileAsync
+      .mockResolvedValueOnce({
+        stdout: 'C:\\tools\\jadx\\bin\\jadx\r\nC:\\tools\\jadx\\bin\\jadx.bat\r\n',
+        stderr: '',
+      })
+      .mockResolvedValueOnce({ stdout: '1.5.6\r\n', stderr: '' });
+
+    const result = await probeCommand('jadx', ['--version'], 1000);
+
+    expect(result).toEqual({
+      available: true,
+      path: 'C:\\tools\\jadx\\bin\\jadx.bat',
+      version: '1.5.6',
+    });
+    expect(state.execFileAsync).toHaveBeenNthCalledWith(1, 'where', ['jadx'], expect.any(Object));
+    expect(state.execFileAsync).toHaveBeenNthCalledWith(
+      2,
+      process.env.ComSpec || 'cmd.exe',
+      ['/d', '/s', '/c', '"C:\\tools\\jadx\\bin\\jadx.bat ^^^"--version^^^""'],
+      expect.objectContaining({ windowsVerbatimArguments: true, windowsHide: true }),
+    );
+  });
+
+  it('on Windows runs an .exe where hit directly', async () => {
+    setPlatform('win32');
+    state.execFileAsync
+      .mockResolvedValueOnce({ stdout: 'C:\\sdk\\adb.exe\r\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: 'Android Debug Bridge 1.0.41\r\n', stderr: '' });
+
+    const result = await probeCommand('adb', ['version'], 1000);
+
+    expect(result.path).toBe('C:\\sdk\\adb.exe');
+    expect(state.execFileAsync).toHaveBeenNthCalledWith(
+      2,
+      'C:\\sdk\\adb.exe',
+      ['version'],
+      expect.objectContaining({ windowsVerbatimArguments: false }),
+    );
+  });
+
+  it('on Windows reports unavailable when no where hit is runnable', async () => {
+    setPlatform('win32');
+    state.execFileAsync.mockResolvedValueOnce({ stdout: 'C:\\tools\\jadx\\bin\\jadx\r\n' });
+
+    const result = await probeCommand('jadx');
+
+    expect(result.available).toBe(false);
+    expect(result.reason).toContain('no runnable PATHEXT match');
+    expect(state.execFileAsync).toHaveBeenCalledTimes(1);
   });
 
   it('returns available=true with path and version when both probes succeed', async () => {
@@ -104,26 +169,19 @@ describe('ToolProbe', () => {
   });
 
   it('uses which on non-win32 platforms', async () => {
-    const originalPlatform = process.platform;
-    Object.defineProperty(process, 'platform', { value: 'linux' });
-    try {
-      state.execFileAsync.mockResolvedValueOnce({ stdout: '/bin/tool\n', stderr: '' });
-      state.execFileAsync.mockRejectedValueOnce(new Error('no version'));
-      const result = await probeCommand('tool');
-      expect(state.execFileAsync).toHaveBeenCalledWith('which', ['tool'], expect.any(Object));
-      expect(result.path).toBe('/bin/tool');
-    } finally {
-      Object.defineProperty(process, 'platform', { value: originalPlatform });
-    }
+    state.execFileAsync.mockResolvedValueOnce({ stdout: '/bin/tool\n', stderr: '' });
+    state.execFileAsync.mockRejectedValueOnce(new Error('no version'));
+    const result = await probeCommand('tool');
+    expect(state.execFileAsync).toHaveBeenCalledWith('which', ['tool'], expect.any(Object));
+    expect(result.path).toBe('/bin/tool');
   });
 
   it('probes all commands and returns map keyed by command name', async () => {
-    const whichCmd = process.platform === 'win32' ? 'where' : 'which';
     state.execFileAsync.mockImplementation(async (cmd: string, args: string[]) => {
-      if (cmd === whichCmd && args[0] === 'tool-a') return { stdout: '/bin/tool-a\n', stderr: '' };
-      if (cmd === whichCmd && args[0] === 'tool-b') return { stdout: '/bin/tool-b\n', stderr: '' };
-      if (cmd === 'tool-a') return { stdout: 'a v1\n', stderr: '' };
-      if (cmd === 'tool-b') throw new Error('no version');
+      if (cmd === 'which' && args[0] === 'tool-a') return { stdout: '/bin/tool-a\n', stderr: '' };
+      if (cmd === 'which' && args[0] === 'tool-b') return { stdout: '/bin/tool-b\n', stderr: '' };
+      if (cmd === '/bin/tool-a') return { stdout: 'a v1\n', stderr: '' };
+      if (cmd === '/bin/tool-b') throw new Error('no version');
       throw new Error('unexpected call');
     });
 

@@ -659,6 +659,51 @@ describe('BinaryInstrumentHandlers', () => {
       expect(text).toContain('not installed');
     });
 
+    it('handleJadxDecompileApk runs jadx.bat through an escaped cmd.exe line on Windows', async () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+      try {
+        vi.mocked(probeCommand).mockResolvedValueOnce({
+          available: true,
+          path: 'C:\\tools\\jadx\\bin\\jadx.bat',
+        } as Awaited<ReturnType<typeof probeCommand>>);
+        vi.mocked(childProcess.execFile).mockImplementation(((
+          _file: string,
+          _args: readonly string[] | null | undefined,
+          _opts: unknown,
+          cb?: ((error: Error | null, stdout: string, stderr: string) => void) | null,
+        ) => {
+          // Real execFile calls back asynchronously; runJadx relies on that.
+          setImmediate(() => cb?.(null, '', ''));
+          return {} as never;
+        }) as unknown as typeof childProcess.execFile);
+
+        const handlers = createHandlers();
+        const result = await handlers.handleJadxDecompileApk({
+          apkPath: 'C:\\apks\\sample app.apk',
+          outputDir: 'C:\\out',
+          threadsCount: 2,
+        });
+
+        const body = JSON.parse((result as { content: Array<{ text: string }> }).content[0]!.text);
+        expect(body.error).toBeUndefined();
+        expect(childProcess.execFile).toHaveBeenCalledWith(
+          process.env.ComSpec || 'cmd.exe',
+          [
+            '/d',
+            '/s',
+            '/c',
+            '"C:\\tools\\jadx\\bin\\jadx.bat ^^^"--no-debug-info^^^" ^^^"-j^^^" ^^^"2^^^" ' +
+              '^^^"-d^^^" ^^^"C:\\out^^^" ^^^"C:\\apks\\sample^^^ app.apk^^^""',
+          ],
+          expect.objectContaining({ windowsVerbatimArguments: true, windowsHide: true }),
+          expect.any(Function),
+        );
+      } finally {
+        Object.defineProperty(process, 'platform', { value: originalPlatform });
+      }
+    });
+
     it('handleApktoolDecode reports unavailable when apktool is missing', async () => {
       vi.mocked(probeCommand).mockResolvedValueOnce({
         available: false,

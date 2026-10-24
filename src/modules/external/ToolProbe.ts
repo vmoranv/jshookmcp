@@ -8,6 +8,7 @@ import { EXTERNAL_TOOL_PROBE_TIMEOUT_MS } from '@src/constants';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { logger } from '@utils/logger';
+import { pickWindowsExecutable, toExecFileCommand } from '@modules/external/WindowsCommand';
 
 const execFileAsync = promisify(execFile);
 
@@ -33,15 +34,31 @@ export async function probeCommand(
       timeout: timeoutMs,
       windowsHide: true,
     });
-    const resolvedPath = pathOutput.trim().split(/\r?\n/)[0];
+    // `where` may list an extensionless launcher first; only PATHEXT hits are runnable.
+    const resolvedPath =
+      process.platform === 'win32'
+        ? pickWindowsExecutable(pathOutput)
+        : pathOutput.trim().split(/\r?\n/)[0];
+    if (!resolvedPath) {
+      return {
+        available: false,
+        reason: `Command '${command}' has no runnable PATHEXT match in PATH`,
+      };
+    }
 
     // Try to get version
     let version: string | undefined;
     try {
-      const { stdout: versionOutput } = await execFileAsync(command, versionArgs, {
-        timeout: timeoutMs,
-        windowsHide: true,
-      });
+      const versionCommand = toExecFileCommand(resolvedPath, versionArgs);
+      const { stdout: versionOutput } = await execFileAsync(
+        versionCommand.file,
+        versionCommand.args,
+        {
+          timeout: timeoutMs,
+          windowsHide: true,
+          windowsVerbatimArguments: versionCommand.windowsVerbatimArguments,
+        },
+      );
       const firstLine = versionOutput.trim().split(/\r?\n/)[0];
       version = firstLine ? firstLine.substring(0, 100) : undefined;
     } catch {

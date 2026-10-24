@@ -5,6 +5,7 @@ import { basename, dirname, isAbsolute, join, normalize, resolve as resolvePath 
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { probeCommand, type ProbeResult } from '@modules/external/ToolProbe';
+import { toExecFileCommand } from '@modules/external/WindowsCommand';
 import { logger } from '@utils/logger';
 import { GHIDRA_TIMEOUT_MS } from '@src/constants';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
@@ -639,14 +640,17 @@ export class GhidraAnalyzer {
 
   protected execFileUtf8(file: string, args: string[], timeoutMs: number): Promise<CommandResult> {
     return new Promise((resolve, reject) => {
+      // analyzeHeadless ships as analyzeHeadless.bat on Windows; run it through an escaped
+      // cmd.exe line rather than shell: true, which passes arguments unescaped.
+      const command = toExecFileCommand(file, args);
       const child = execFile(
-        file,
-        args,
+        command.file,
+        command.args,
         {
           windowsHide: true,
+          windowsVerbatimArguments: command.windowsVerbatimArguments,
           maxBuffer: GHIDRA_MAX_BUFFER_BYTES,
           encoding: 'utf8',
-          shell: shouldUseShellForCommand(file),
         },
         (error, stdout, stderr) => {
           clearTimeout(timer);
@@ -732,10 +736,6 @@ function defaultGhidraDiscoveryRoots(): string[] {
   }
 
   return Array.from(roots);
-}
-
-function shouldUseShellForCommand(command: string): boolean {
-  return process.platform === 'win32' && /\.(?:bat|cmd)$/i.test(command);
 }
 
 function stripGhidraLogPrefixes(output: string): string {
