@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { probeCommand } from '@modules/external/ToolProbe';
-import { toExecFileCommand } from '@modules/external/WindowsCommand';
+import { killProcessTree, toExecFileCommand } from '@modules/external/WindowsCommand';
 import { JadxSearchEngine } from '@modules/jadx-search';
 import type { JadxSearchOptions } from '@modules/jadx-search';
 import { analyzeApkDexIntake } from '@modules/binary-instrument/apk-dex-intake';
@@ -614,13 +614,8 @@ export class JadxHandlers {
       );
 
       const timer = setTimeout(() => {
-        // Force-kill: Node's built-in timeout sends SIGTERM which Java ignores on Windows.
-        child.kill('SIGKILL');
-        // pid > 0 proves the interpolated value is a positive integer —
-        // taskkill cannot see an option-terminator-escaped flag.
-        if (child.pid !== undefined && child.pid > 0) {
-          execFile('taskkill', ['/F', '/T', '/PID', String(child.pid)], () => {});
-        }
+        // Force-kill the tree: Node's built-in timeout sends SIGTERM which Java ignores on Windows.
+        killProcessTree(child);
         reject(new Error(`JADX timed out after ${timeoutMs}ms`));
       }, timeoutMs);
     });

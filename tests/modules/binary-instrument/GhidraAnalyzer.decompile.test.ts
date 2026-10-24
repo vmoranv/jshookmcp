@@ -161,6 +161,45 @@ describe('GhidraAnalyzer — decompileFunction headless backend', () => {
     expect(execFile).not.toHaveBeenCalled();
   });
 
+  it('on Windows runs analyzeHeadless.bat via cmd.exe and kills its process tree on timeout', async () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    try {
+      (probeCommand as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        available: true,
+        path: 'C:\\ghidra\\support\\analyzeHeadless.bat',
+      });
+      const events: string[] = [];
+      execFile.mockImplementation(
+        (file: string, args: string[], opts: { windowsVerbatimArguments?: boolean }, cb) => {
+          if (file === 'taskkill') {
+            events.push(`taskkill ${args.join(' ')}`);
+            setTimeout(() => cb(null, '', ''), 0);
+            return {};
+          }
+          events.push(
+            `start ${args.slice(0, 3).join(' ')} verbatim=${opts.windowsVerbatimArguments}`,
+          );
+          return { pid: 4242, kill: (signal: string) => events.push(`kill ${signal}`) };
+        },
+      );
+      const binaryPath = await writeTempBinary();
+
+      await expect(
+        new GhidraAnalyzer().decompileFunction(binaryPath, 'main', { timeout: 20 }),
+      ).rejects.toThrow('timed out after 20ms');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(events).toEqual([
+        'start /d /s /c verbatim=true',
+        'taskkill /F /T /PID 4242',
+        'kill SIGKILL',
+      ]);
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    }
+  });
+
   it('does not blow up when the headless run rejects (timeout/kill path surfaces the error)', async () => {
     execFile.mockImplementation(
       (

@@ -22,7 +22,7 @@ import type { MCPServerContext } from '@server/MCPServer.context';
 import type { CapabilityStatus } from '@server/domains/shared/capabilities';
 import { capabilityFailure } from '@server/domains/shared/capabilities';
 import { readEnvString } from '@src/config/environment';
-import { toExecFileCommand } from '@modules/external/WindowsCommand';
+import { killProcessTree, toExecFileCommand } from '@modules/external/WindowsCommand';
 
 const UNIDBG_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
 
@@ -296,17 +296,20 @@ export function execFileUtf8(
   return new Promise((resolve, reject) => {
     // apktool ships as apktool.bat on Windows, which execFile cannot start without cmd.exe.
     const command = toExecFileCommand(file, args);
-    execFile(
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let settled = false;
+    const child = execFile(
       command.file,
       command.args,
       {
-        timeout: timeoutMs,
         windowsHide: true,
         windowsVerbatimArguments: command.windowsVerbatimArguments,
         maxBuffer: UNIDBG_MAX_BUFFER_BYTES,
         encoding: 'utf8',
       },
       (error, stdout, stderr) => {
+        settled = true;
+        clearTimeout(timer);
         if (error) {
           reject(error);
           return;
@@ -317,6 +320,14 @@ export function execFileUtf8(
         });
       },
     );
+    // Manual timeout: execFile's own timeout would only kill the cmd.exe wrapper of a batch file
+    // and leave its JVM running.
+    if (!settled) {
+      timer = setTimeout(() => {
+        killProcessTree(child);
+        reject(new Error(`${file} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }
   });
 }
 

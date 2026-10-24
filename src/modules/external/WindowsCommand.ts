@@ -9,7 +9,13 @@
  * (lib/util/escape.js), so arguments cannot inject cmd.exe syntax.
  */
 
+import { execFile, type ChildProcess } from 'node:child_process';
+
 const DEFAULT_PATHEXT = '.COM;.EXE;.BAT;.CMD';
+
+// What execFile can start, directly or through toExecFileCommand. Other PATHEXT entries (.js,
+// .vbs, ...) need their script host and fail with spawn EFTYPE.
+const STARTABLE_EXTENSIONS = new Set(['.com', '.exe', '.bat', '.cmd']);
 
 // cmd.exe metacharacters, as in cross-spawn (lib/util/escape.js).
 const CMD_META_CHARS = /([()\][%!^"`<>&|;, *?])/g;
@@ -28,8 +34,8 @@ function extensionOf(file: string): string {
 }
 
 /**
- * Pick the first `where` output line whose extension is listed in PATHEXT.
- * Returns undefined when no line is runnable.
+ * Pick the first `where` output line whose extension is listed in PATHEXT and can be started
+ * (.com, .exe, .bat, .cmd). Returns undefined when no line is runnable.
  */
 export function pickWindowsExecutable(
   whereOutput: string,
@@ -39,7 +45,7 @@ export function pickWindowsExecutable(
     pathExt
       .split(';')
       .map((ext) => ext.trim().toLowerCase())
-      .filter((ext) => ext.startsWith('.')),
+      .filter((ext) => STARTABLE_EXTENSIONS.has(ext)),
   );
   return whereOutput
     .split(/\r?\n/)
@@ -94,4 +100,23 @@ export function toExecFileCommand(
     args: ['/d', '/s', '/c', `"${line}"`],
     windowsVerbatimArguments: true,
   };
+}
+
+/**
+ * Force-kill a child and, on Windows, everything it started. taskkill /T walks the tree from the
+ * child's PID, so it must run while the child is still alive: killing the cmd.exe wrapper first
+ * would leave the batch file's own child (the JVM for jadx, apktool, Ghidra) running.
+ */
+export function killProcessTree(
+  child: ChildProcess,
+  platform: NodeJS.Platform = process.platform,
+): void {
+  // pid > 0 proves the interpolated value is a positive integer, never an option for taskkill.
+  if (platform !== 'win32' || child.pid === undefined || child.pid <= 0) {
+    child.kill('SIGKILL');
+    return;
+  }
+  execFile('taskkill', ['/F', '/T', '/PID', String(child.pid)], { windowsHide: true }, () => {
+    child.kill('SIGKILL');
+  });
 }

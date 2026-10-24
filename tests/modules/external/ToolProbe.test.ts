@@ -168,6 +168,15 @@ describe('ToolProbe', () => {
     expect(result.version).toBeUndefined();
   });
 
+  it('reports not found without mentioning PATHEXT when which prints nothing', async () => {
+    state.execFileAsync.mockResolvedValueOnce({ stdout: '\n', stderr: '' });
+
+    const result = await probeCommand('tool');
+
+    expect(result).toEqual({ available: false, reason: "Command 'tool' not found in PATH" });
+    expect(state.execFileAsync).toHaveBeenCalledTimes(1);
+  });
+
   it('uses which on non-win32 platforms', async () => {
     state.execFileAsync.mockResolvedValueOnce({ stdout: '/bin/tool\n', stderr: '' });
     state.execFileAsync.mockRejectedValueOnce(new Error('no version'));

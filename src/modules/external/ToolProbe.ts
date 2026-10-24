@@ -42,7 +42,10 @@ export async function probeCommand(
     if (!resolvedPath) {
       return {
         available: false,
-        reason: `Command '${command}' has no runnable PATHEXT match in PATH`,
+        reason:
+          process.platform === 'win32'
+            ? `Command '${command}' has no runnable PATHEXT match in PATH`
+            : `Command '${command}' not found in PATH`,
       };
     }
 

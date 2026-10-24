@@ -5,7 +5,7 @@ import { basename, dirname, isAbsolute, join, normalize, resolve as resolvePath 
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { probeCommand, type ProbeResult } from '@modules/external/ToolProbe';
-import { toExecFileCommand } from '@modules/external/WindowsCommand';
+import { killProcessTree, toExecFileCommand } from '@modules/external/WindowsCommand';
 import { logger } from '@utils/logger';
 import { GHIDRA_TIMEOUT_MS } from '@src/constants';
 import { PrerequisiteError } from '@errors/PrerequisiteError';
@@ -678,12 +678,7 @@ export class GhidraAnalyzer {
       // Manual timeout with force-kill. Node's built-in execFile timeout sends
       // SIGTERM which Java-based tools (Ghidra, apktool, JADX) ignore on Windows.
       const timer = setTimeout(() => {
-        child.kill('SIGKILL');
-        // pid > 0 proves the interpolated value is a positive integer —
-        // taskkill cannot see an option-terminator-escaped flag.
-        if (child.pid !== undefined && child.pid > 0) {
-          execFile('taskkill', ['/F', '/T', '/PID', String(child.pid)], () => {});
-        }
+        killProcessTree(child);
         reject(new Error(`${file} timed out after ${timeoutMs}ms`));
       }, timeoutMs);
     });
