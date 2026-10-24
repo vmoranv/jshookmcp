@@ -52,15 +52,21 @@ export function escapeCmdCommand(command: string): string {
   return command.replace(CMD_META_CHARS, '^$1');
 }
 
-/** Escape one argument for a cmd.exe command line (cross-spawn `escape.argument`). */
-export function escapeCmdArgument(arg: string, doubleEscapeMetaChars: boolean): string {
+/**
+ * Escape one argument for a cmd.exe command line (cross-spawn `escape.argument`, single level).
+ *
+ * cmd.exe consumes the carets, so the batch file receives each argument wrapped in plain quotes.
+ * Because toExecFileCommand refuses arguments that contain a quote, every later re-parse inside
+ * the batch file (`%*`, `set ARGS=%*`, `if "x%~1" == "x"`) sees the metacharacters inside quotes.
+ * cross-spawn's second caret level is not applied: it breaks Gradle-style launchers such as
+ * jadx.bat, whose `if "x%~1" == "x"` check then fails with a syntax error.
+ */
+export function escapeCmdArgument(arg: string): string {
   // Backslashes before a quote are doubled and the quote is escaped; backslashes at the end are
   // doubled because a closing quote follows. Other backslashes stay literal.
   let escaped = arg.replace(/(?=(\\+?)?)\1"/g, '$1$1\\"');
   escaped = escaped.replace(/(?=(\\+?)?)\1$/, '$1$1');
-  escaped = `"${escaped}"`.replace(CMD_META_CHARS, '^$1');
-  // A batch file re-parses its forwarded arguments, which consumes a second level of carets.
-  return doubleEscapeMetaChars ? escaped.replace(CMD_META_CHARS, '^$1') : escaped;
+  return `"${escaped}"`.replace(CMD_META_CHARS, '^$1');
 }
 
 /**
@@ -82,9 +88,7 @@ export function toExecFileCommand(
   if (unsafe !== undefined) {
     throw new Error(`Refusing to pass an argument containing a quote or line break to ${file}`);
   }
-  const line = [escapeCmdCommand(file), ...args.map((arg) => escapeCmdArgument(arg, true))].join(
-    ' ',
-  );
+  const line = [escapeCmdCommand(file), ...args.map((arg) => escapeCmdArgument(arg))].join(' ');
   return {
     file: process.env.ComSpec || 'cmd.exe',
     args: ['/d', '/s', '/c', `"${line}"`],

@@ -693,8 +693,8 @@ describe('BinaryInstrumentHandlers', () => {
             '/d',
             '/s',
             '/c',
-            '"C:\\tools\\jadx\\bin\\jadx.bat ^^^"--no-debug-info^^^" ^^^"-j^^^" ^^^"2^^^" ' +
-              '^^^"-d^^^" ^^^"C:\\out^^^" ^^^"C:\\apks\\sample^^^ app.apk^^^""',
+            '"C:\\tools\\jadx\\bin\\jadx.bat ^"--no-debug-info^" ^"-j^" ^"2^" ' +
+              '^"-d^" ^"C:\\out^" ^"C:\\apks\\sample^ app.apk^""',
           ],
           expect.objectContaining({ windowsVerbatimArguments: true, windowsHide: true }),
           expect.any(Function),

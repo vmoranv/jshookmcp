@@ -62,7 +62,7 @@ describe('ToolProbe', () => {
     expect(state.execFileAsync).toHaveBeenNthCalledWith(
       2,
       process.env.ComSpec || 'cmd.exe',
-      ['/d', '/s', '/c', '"C:\\tools\\jadx\\bin\\jadx.bat ^^^"--version^^^""'],
+      ['/d', '/s', '/c', '"C:\\tools\\jadx\\bin\\jadx.bat ^"--version^""'],
       expect.objectContaining({ windowsVerbatimArguments: true, windowsHide: true }),
     );
   });

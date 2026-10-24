@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   escapeCmdArgument,
@@ -17,8 +21,8 @@ describe('pickWindowsExecutable', () => {
   });
 
   it('keeps the first hit when it is already runnable', () => {
-    const where = 'C:\\sdk\\adb.exe\r\nC:\\other\\adb.exe\r\n';
-    expect(pickWindowsExecutable(where, PATHEXT)).toBe('C:\\sdk\\adb.exe');
+    const where = 'C:\\platform-tools\\adb.exe\r\nC:\\other\\adb.exe\r\n';
+    expect(pickWindowsExecutable(where, PATHEXT)).toBe('C:\\platform-tools\\adb.exe');
   });
 
   it('matches PATHEXT case-insensitively and ignores dots in directory names', () => {
@@ -34,31 +38,26 @@ describe('pickWindowsExecutable', () => {
 
 describe('escapeCmdArgument', () => {
   it('quotes and caret-escapes spaces and cmd metacharacters', () => {
-    expect(escapeCmdArgument('a b', false)).toBe('^"a^ b^"');
-    expect(escapeCmdArgument('x&y|z', false)).toBe('^"x^&y^|z^"');
-    expect(escapeCmdArgument('100%', false)).toBe('^"100^%^"');
-    expect(escapeCmdArgument('c^d', false)).toBe('^"c^^d^"');
-    expect(escapeCmdArgument('<a>(b)!', false)).toBe('^"^<a^>^(b^)^!^"');
+    expect(escapeCmdArgument('a b')).toBe('^"a^ b^"');
+    expect(escapeCmdArgument('x&y|z')).toBe('^"x^&y^|z^"');
+    expect(escapeCmdArgument('100%')).toBe('^"100^%^"');
+    expect(escapeCmdArgument('%PATH%')).toBe('^"^%PATH^%^"');
+    expect(escapeCmdArgument('c^d')).toBe('^"c^^d^"');
+    expect(escapeCmdArgument('<a>(b)!')).toBe('^"^<a^>^(b^)^!^"');
   });
 
   it('escapes embedded quotes and the backslashes before them', () => {
-    expect(escapeCmdArgument('say "hi"', false)).toBe('^"say^ \\^"hi\\^"^"');
-    expect(escapeCmdArgument('a\\"b', false)).toBe('^"a\\\\\\^"b^"');
+    expect(escapeCmdArgument('say "hi"')).toBe('^"say^ \\^"hi\\^"^"');
+    expect(escapeCmdArgument('a\\"b')).toBe('^"a\\\\\\^"b^"');
   });
 
   it('doubles trailing backslashes so they do not escape the closing quote', () => {
-    expect(escapeCmdArgument('C:\\out dir\\', false)).toBe('^"C:\\out^ dir\\\\^"');
-    expect(escapeCmdArgument('C:\\a\\b', false)).toBe('^"C:\\a\\b^"');
-  });
-
-  it('double-escapes metacharacters for batch files', () => {
-    expect(escapeCmdArgument('a b', true)).toBe('^^^"a^^^ b^^^"');
-    expect(escapeCmdArgument('x&y', true)).toBe('^^^"x^^^&y^^^"');
-    expect(escapeCmdArgument('%PATH%', true)).toBe('^^^"^^^%PATH^^^%^^^"');
+    expect(escapeCmdArgument('C:\\out dir\\')).toBe('^"C:\\out^ dir\\\\^"');
+    expect(escapeCmdArgument('C:\\a\\b')).toBe('^"C:\\a\\b^"');
   });
 
   it('escapes an empty argument to an empty quoted string', () => {
-    expect(escapeCmdArgument('', true)).toBe('^^^"^^^"');
+    expect(escapeCmdArgument('')).toBe('^"^"');
   });
 });
 
@@ -83,7 +82,7 @@ describe('toExecFileCommand', () => {
         '/d',
         '/s',
         '/c',
-        '"C:\\tools\\jadx\\bin\\jadx.bat ^^^"-d^^^" ^^^"C:\\out^^^ ^^^&^^^ more\\\\^^^" ^^^"sample.apk^^^""',
+        '"C:\\tools\\jadx\\bin\\jadx.bat ^"-d^" ^"C:\\out^ ^&^ more\\\\^" ^"sample.apk^""',
       ],
       windowsVerbatimArguments: true,
     });
@@ -96,8 +95,8 @@ describe('toExecFileCommand', () => {
   });
 
   it('leaves .exe files and non-Windows platforms unchanged', () => {
-    expect(toExecFileCommand('C:\\sdk\\adb.exe', ['devices'], 'win32')).toEqual({
-      file: 'C:\\sdk\\adb.exe',
+    expect(toExecFileCommand('C:\\platform-tools\\adb.exe', ['devices'], 'win32')).toEqual({
+      file: 'C:\\platform-tools\\adb.exe',
       args: ['devices'],
       windowsVerbatimArguments: false,
     });
@@ -115,5 +114,63 @@ describe('toExecFileCommand', () => {
     expect(() => toExecFileCommand('C:\\t\\tool.bat', ['a\r\ncalc'], 'win32')).toThrow(
       /quote or line break/,
     );
+  });
+});
+
+describe.runIf(process.platform === 'win32')('toExecFileCommand through real batch files', () => {
+  let dir = '';
+  const tricky = [
+    '--version',
+    'a b',
+    'x&y',
+    'p|q',
+    '100%',
+    '%PATH%',
+    'c^d',
+    'trail\\',
+    'C:\\dir with space\\',
+    '(paren)',
+    '!bang!',
+    '<lt>gt',
+    'semi;colon',
+    'comma,',
+    'star*?',
+    '`tick`',
+    '&calc',
+  ];
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), 'jshook winbat & (x) 100% '));
+    writeFileSync(join(dir, 'argv.js'), 'console.log(JSON.stringify(process.argv.slice(2)))\n');
+    const node = `"${process.execPath}" "%~dp0argv.js"`;
+    // Plain %* forwarding, and the Gradle start-script pattern used by jadx.bat.
+    writeFileSync(join(dir, 'forward.bat'), `@${node} %*\r\n`);
+    writeFileSync(
+      join(dir, 'gradle.bat'),
+      [
+        '@echo off',
+        'set CMD_LINE_ARGS=',
+        'if "x%~1" == "x" goto execute',
+        'set CMD_LINE_ARGS=%*',
+        ':execute',
+        `${node} %CMD_LINE_ARGS%`,
+        '',
+      ].join('\r\n'),
+    );
+  });
+
+  afterAll(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+  });
+
+  it.each(['forward.bat', 'gradle.bat'])('passes every argument through %s unchanged', (bat) => {
+    const command = toExecFileCommand(join(dir, bat), tricky);
+    const { stdout, status } = spawnSync(command.file, command.args, {
+      encoding: 'utf8',
+      windowsHide: true,
+      windowsVerbatimArguments: command.windowsVerbatimArguments,
+    });
+    expect(status).toBe(0);
+    expect(JSON.parse(stdout.trim())).toEqual(tricky);
   });
 });
