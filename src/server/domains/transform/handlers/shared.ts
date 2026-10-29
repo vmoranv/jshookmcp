@@ -94,7 +94,8 @@ export const CRYPTO_KEYWORDS = [
 
 const QUICKJS_MODULE_URL = import.meta.resolve('quickjs-emscripten');
 const QUICKJS_MEMORY_LIMIT_BYTES = TRANSFORM_CRYPTO_POOL_MAX_OLD_GEN_MB * 1024 * 1024;
-const QUICKJS_STACK_LIMIT_BYTES = 8 * 1024 * 1024;
+// Keep below QuickJS's fixed WebAssembly stack so evaluation cannot overflow it.
+const QUICKJS_STACK_LIMIT_BYTES = 1 * 1024 * 1024;
 const QUICKJS_TIMEOUT_MS = Math.max(1000, WORKER_TIMEOUT_MS - 1000);
 
 /**
