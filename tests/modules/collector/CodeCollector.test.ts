@@ -53,7 +53,6 @@ class TestCodeCollector extends CodeCollector {
 }
 
 interface BrowserMock extends Browser {
-  isConnected: any;
   on: any;
   pages: any;
   targets: any;
@@ -66,7 +65,7 @@ interface BrowserMock extends Browser {
 
 function createBrowserMock(): BrowserMock {
   return {
-    isConnected: vi.fn().mockReturnValue(true),
+    connected: true,
     on: vi.fn(),
     pages: vi.fn().mockResolvedValue([]),
     targets: vi.fn().mockReturnValue([]),

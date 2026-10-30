@@ -185,7 +185,9 @@ describe('BrowserModeManager private callback coverage', () => {
         oldBrowserConnected = false;
         throw new Error('old browser close failed');
       }),
-      isConnected: vi.fn(() => oldBrowserConnected),
+      get connected() {
+        return oldBrowserConnected;
+      },
     } as unknown as Browser;
     const newPage = {
       goto: vi.fn(async () => undefined),
@@ -205,7 +207,7 @@ describe('BrowserModeManager private callback coverage', () => {
     const newBrowser = {
       newPage: vi.fn(async () => newPage),
       process: vi.fn().mockReturnValue({ pid: 4444 }),
-      isConnected: vi.fn(() => true),
+      connected: true,
     } as unknown as Browser;
     launchMock.mockResolvedValue(newBrowser);
     waitForCompletionMock.mockResolvedValue(true);

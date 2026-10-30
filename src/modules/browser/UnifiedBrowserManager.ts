@@ -168,7 +168,7 @@ export class UnifiedBrowserManager implements IBrowserManager {
 
     // Early return if browser already connected (cache reference to avoid repeated calls)
     const existingBrowser = this.chromeManager?.getBrowser();
-    if (existingBrowser?.isConnected()) {
+    if (existingBrowser?.connected) {
       return existingBrowser;
     }
 
@@ -419,7 +419,8 @@ export class UnifiedBrowserManager implements IBrowserManager {
 
   getStatus(): BrowserStatus {
     const browser = this.getBrowser();
-    const running = browser !== null && browser.isConnected();
+    const running =
+      browser !== null && ('connected' in browser ? browser.connected : browser.isConnected());
 
     return {
       driver: this.driver,

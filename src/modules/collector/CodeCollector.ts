@@ -702,7 +702,7 @@ export class CodeCollector {
     if (
       requestKey === this.currentConnectRequestKey &&
       existingBrowser &&
-      existingBrowser.isConnected()
+      existingBrowser.connected
     ) {
       this.lifecycleManager.touch();
       return;

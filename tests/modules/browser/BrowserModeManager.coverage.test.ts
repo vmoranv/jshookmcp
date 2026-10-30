@@ -119,7 +119,7 @@ describe('BrowserModeManager coverage', () => {
     const browser = {
       newPage: vi.fn(),
       close: vi.fn(),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 1111 }),
     } as unknown as Browser;
     launchMock.mockResolvedValue(browser);
@@ -138,7 +138,7 @@ describe('BrowserModeManager coverage', () => {
     const browser = {
       newPage: vi.fn(),
       close: vi.fn(),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 2222 }),
     } as unknown as Browser;
     launchMock.mockResolvedValue(browser);
@@ -159,7 +159,7 @@ describe('BrowserModeManager coverage', () => {
     const browser = {
       newPage: vi.fn(),
       close: vi.fn(),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 3333 }),
     } as unknown as Browser;
 
@@ -183,7 +183,7 @@ describe('BrowserModeManager coverage', () => {
     const browser = {
       newPage: vi.fn(),
       close: vi.fn(async () => {}),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 7777 }),
     } as unknown as Browser;
 
@@ -456,7 +456,7 @@ describe('BrowserModeManager coverage', () => {
     const browser = {
       newPage: vi.fn(),
       close: vi.fn(async () => new Promise<void>(() => {})),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 4444 }),
     } as unknown as Browser;
     launchMock.mockResolvedValue(browser);
@@ -488,7 +488,7 @@ describe('BrowserModeManager coverage', () => {
     const browser = {
       newPage: vi.fn(),
       close: vi.fn(),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 5555 }),
     } as unknown as Browser;
     launchMock.mockResolvedValue(browser);
@@ -506,7 +506,7 @@ describe('BrowserModeManager coverage', () => {
     const browser = {
       newPage: vi.fn(),
       close: vi.fn(),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 6666 }),
     } as unknown as Browser;
     launchMock.mockResolvedValue(browser);
@@ -545,7 +545,9 @@ describe('BrowserModeManager coverage', () => {
       close: vi.fn(async () => {
         oldBrowserConnected = false;
       }),
-      isConnected: vi.fn(() => oldBrowserConnected),
+      get connected() {
+        return oldBrowserConnected;
+      },
       newPage: vi.fn(),
       process: vi.fn().mockReturnValue({ pid: 1111 }),
     } as unknown as Browser;
@@ -569,7 +571,7 @@ describe('BrowserModeManager coverage', () => {
     const headedBrowser = {
       newPage: vi.fn(async () => newPage),
       close: vi.fn(async () => undefined),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 2222 }),
     } as unknown as Browser;
 
@@ -659,7 +661,9 @@ describe('BrowserModeManager coverage', () => {
       close: vi.fn(async () => {
         oldBrowserConnected = false;
       }),
-      isConnected: vi.fn(() => oldBrowserConnected),
+      get connected() {
+        return oldBrowserConnected;
+      },
       newPage: vi.fn(),
       process: vi.fn().mockReturnValue({ pid: 3333 }),
     } as unknown as Browser;
@@ -683,7 +687,7 @@ describe('BrowserModeManager coverage', () => {
     const headedBrowser = {
       newPage: vi.fn(async () => newPage),
       close: vi.fn(async () => undefined),
-      isConnected: vi.fn(() => true),
+      connected: true,
       process: vi.fn().mockReturnValue({ pid: 4444 }),
     } as unknown as Browser;
 
