@@ -22,8 +22,10 @@ import type { BionicOptions } from '@modules/native-emulator/bionic';
 import { extractArm64LibsDetailed } from '@modules/native-emulator/apk';
 import { inspectElfImports } from '@modules/native-emulator/import-inspector';
 import { dumpGot } from '@modules/native-emulator/got-inspector';
-import { UnsupportedOpcodeError } from '@modules/native-emulator/CpuEngine';
+import { UnsupportedOpcodeError, type CpuEngine } from '@modules/native-emulator/CpuEngine';
 import type { PacKeys } from '@modules/native-emulator/decoder/PointerAuth';
+import type { HostContext } from '@modules/native-emulator/host-context';
+import type { TraceEvent } from '@modules/native-emulator/CpuEngine';
 import { handleSafe, R } from '@server/domains/shared/ResponseBuilder';
 import {
   disassembleInstruction,
@@ -65,6 +67,7 @@ import {
   traceFilterMatch,
   traceRow,
   type TraceMode,
+  type TraceRowContext,
 } from './handler-trace';
 import {
   getOrCreateGdbServer,
@@ -75,6 +78,120 @@ import {
 
 /** Cap on instruction-trace events returned, regardless of requested maxSteps. */
 const TRACE_HARD_CAP = 100_000;
+
+/** Parsed options for nemu_trace (extracted from handleTrace to stay under the
+ * complexity gate; field semantics are unchanged). */
+interface TraceCallOptions {
+  debug: boolean | undefined;
+  codeProtect: boolean;
+  symbol: string | undefined;
+  address: number | undefined;
+  callArgs: number[];
+  captureRegisters: string[];
+  persistArtifact: boolean;
+  inlineLimitArg: number | undefined;
+  injectJni: boolean | undefined;
+  mode: TraceMode;
+  profileMode: boolean;
+  maxSteps: number;
+  topN: number;
+  tableReg: number | undefined;
+  captureBlArgs: boolean;
+  registerDiff: boolean;
+}
+
+/** Mutable per-run aggregation state shared by the trace instruction hook. */
+interface TraceRunState {
+  profileMode: boolean;
+  maxSteps: number;
+  pcCounts: Map<number, { count: number; insn: number }>;
+  callNodeByAddr: Map<number, ProfileCallNode>;
+  callStack: number[];
+  profileRoot?: ProfileCallNode;
+  profileTotal: number;
+  events: Array<Record<string, unknown>>;
+  truncated: boolean;
+  traceCtx: TraceRowContext;
+  prevRegs?: Record<string, unknown>;
+  captureRegisters: string[];
+  mode: TraceMode;
+  tableReg: number | undefined;
+  captureBlArgs: boolean;
+  registerDiff: boolean;
+  engine: CpuEngine;
+  recordCall: (target: number) => void;
+}
+
+/** Compile a guest-provided JS body into a safe bigint-returning host wrapper. */
+function compileGuestHostFn(fnBody: string): (ctx: Record<string, unknown>) => bigint {
+  return new Function(
+    'ctx',
+    `
+              try {
+                const result = (function(ctx) { ${fnBody} })(ctx);
+                if (result === undefined || result === null) return 0n;
+                if (typeof result === 'bigint') return result;
+                return BigInt(Math.trunc(Number(result)));
+              } catch (e) {
+                return 0n;
+              }
+            `,
+  ) as (ctx: Record<string, unknown>) => bigint;
+}
+
+function parseTraceCallOptions(args: ToolArgs): TraceCallOptions {
+  // debug mode: auto-prepare TLS (applied by the caller)
+  const debug = argBool(args, 'debug');
+  // codeProtect: write-protect SO text segment to prevent self-modifying stores
+  const codeProtect = argBool(args, 'codeProtect', false);
+  const symbol = argString(args, 'symbol');
+  const address = argNumber(args, 'address');
+  if (!symbol && address === undefined) {
+    throw new Error('Either "symbol" or "address" must be provided');
+  }
+  const callArgs = argNumberArray(args, 'args');
+  const captureRegisters = argStringArray(args, 'captureRegisters');
+  const persistArtifact = argBool(args, 'persistArtifact', false);
+  const inlineLimitArg = argNumber(args, 'traceInlineLimit');
+  const injectJni = argBool(args, 'injectJni'); // undefined → auto-detect (matches call_symbol)
+  const mode: TraceMode =
+    (argEnum(
+      args,
+      'mode',
+      new Set(['full', 'profile', 'calls', 'branches', 'memory']),
+      'full',
+    ) as TraceMode) ?? 'full';
+  const profileMode = mode === 'profile';
+  // Profile mode trades per-step rows for volume: a much larger default budget.
+  const maxSteps = Math.min(
+    argNumber(args, 'maxSteps', profileMode ? NEMU_PROFILE_MAX_STEPS : 1000),
+    profileMode ? NEMU_PROFILE_MAX_STEPS : TRACE_HARD_CAP,
+  );
+  const topN = Math.min(Math.max(Math.trunc(argNumber(args, 'topN', 20) || 20), 1), 1000);
+  const tableRegRaw = argNumber(args, 'tableReg');
+  const tableReg: number | undefined =
+    tableRegRaw !== undefined && tableRegRaw >= 0 && tableRegRaw <= 30 ? tableRegRaw : undefined;
+  const captureBlArgs = argBool(args, 'captureBlArgs', false);
+  const registerDiff = argBool(args, 'registerDiff', false);
+  return {
+    debug,
+    codeProtect,
+    symbol,
+    address,
+    callArgs,
+    captureRegisters,
+    persistArtifact,
+    inlineLimitArg,
+    injectJni,
+    mode,
+    profileMode,
+    maxSteps,
+    topN,
+    tableReg,
+    captureBlArgs,
+    registerDiff,
+  };
+}
 const DISASM_ARCHITECTURES = new Set(SUPPORTED_DISASSEMBLY_ARCHITECTURES);
 
 /**
@@ -727,213 +844,210 @@ export class NativeEmulatorHandlers {
         const toolName = String(entry.tool ?? '');
         const a = (entry.args ?? {}) as Record<string, unknown>;
         a.sessionId = session.id; // override with current session
-        switch (toolName) {
-          case 'nemu_write_regions': {
-            const regions = a.regions as Array<Record<string, unknown>> | undefined;
-            if (!regions) throw new Error('write_regions: missing regions array');
-            this.writeRegionsRaw(session, regions);
-            steps.push(`write_regions: ${regions.length} regions`);
-            break;
-          }
-          case 'nemu_prepare_tls':
-            session.emulator.prepareTls();
-            steps.push('prepare_tls');
-            break;
-          case 'nemu_call_address': {
-            const addr = a.address as number | undefined;
-            if (addr === undefined) throw new Error('call_address: missing address');
-            const callArgs = (a.args as number[] | undefined) ?? [];
-            session.emulator.callAddress(addr, callArgs);
-            steps.push(`call_address: 0x${addr.toString(16)}`);
-            break;
-          }
-          case 'nemu_call_symbol': {
-            const sym = a.symbol as string | undefined;
-            if (!sym) throw new Error('call_symbol: missing symbol');
-            const callArgs = (a.args as number[] | undefined) ?? [];
-            session.emulator.call(sym, callArgs);
-            steps.push(`call_symbol: ${sym}`);
-            break;
-          }
-          case 'nemu_alloc_memory': {
-            const size = (a.size as number | undefined) ?? 4096;
-            const addr = session.emulator.allocGuestMemory(size);
-            steps.push(`alloc_memory: ${size}B @ 0x${addr.toString(16)}`);
-            break;
-          }
-          case 'nemu_map_memory': {
-            const mapAddr = a.address as number | undefined;
-            const mapSize = (a.size as number | undefined) ?? 4096;
-            if (mapAddr === undefined) throw new Error('map_memory: missing address');
-            session.emulator.engine.mapMemory(mapAddr, mapSize);
-            steps.push(`map_memory: 0x${mapAddr.toString(16)} +${mapSize}`);
-            break;
-          }
-          case 'nemu_setup_java_mocks': {
-            const mocks = a.mocks as Array<Record<string, unknown>> | undefined;
-            if (!mocks) throw new Error('setup_java_mocks: missing mocks array');
-            for (const m of mocks) {
-              const impl = buildJavaMockImpl(m as Record<string, unknown>);
-              session.emulator.setupJava(
-                String(m.className ?? ''),
-                String(m.methodName ?? ''),
-                String(m.signature ?? ''),
-                impl.fn,
-              );
-            }
-            steps.push(`setup_java_mocks: ${mocks.length} mocks`);
-            break;
-          }
-          case 'nemu_bind_host_fn': {
-            const addr = a.address as number | undefined;
-            const fnBody = a.fn as string | undefined;
-            if (addr === undefined || !fnBody)
-              throw new Error('bind_host_fn: missing address or fn');
-            // Create a safe wrapper function
-            const wrapper = new Function(
-              'ctx',
-              `
-              try {
-                const result = (function(ctx) { ${fnBody} })(ctx);
-                if (result === undefined || result === null) return 0n;
-                if (typeof result === 'bigint') return result;
-                return BigInt(Math.trunc(Number(result)));
-              } catch (e) {
-                return 0n;
-              }
-            `,
-            ) as (ctx: Record<string, unknown>) => bigint;
-            let callIdx = 0;
-            const hostFn = (
-              hctx: import('@modules/native-emulator/host-context').HostContext,
-            ): bigint => {
-              const idx = ++callIdx;
-              const ctx = {
-                callIndex: idx,
-                x: (n: number) => hctx.x(n),
-                setX: (n: number, v: bigint | number) => hctx.setX(n, BigInt(v)),
-                setD: (n: number, v: number) => hctx.setD(n, v),
-                setCarry: (v: boolean) => hctx.setCarry?.(v),
-                saveRegs: () => hctx.saveRegs?.(),
-                restoreRegs: (h: number) => hctx.restoreRegs?.(h),
-                read: (guestAddr: number, l: number) => hctx.read(guestAddr, l),
-                readU64: (guestAddr: number) =>
-                  new DataView(hctx.read(guestAddr, 8).buffer, 0, 8).getBigUint64(0, true),
-                readU32: (guestAddr: number) =>
-                  new DataView(hctx.read(guestAddr, 4).buffer, 0, 4).getUint32(0, true),
-                write: (guestAddr: number, b: Uint8Array) => hctx.write(guestAddr, b),
-                writeU64: (guestAddr: number, v: bigint | number) => {
-                  const buf8 = new Uint8Array(8);
-                  new DataView(buf8.buffer).setBigUint64(0, BigInt(v), true);
-                  hctx.write(guestAddr, buf8);
-                },
-                writeU32: (guestAddr: number, v: number) => {
-                  const buf4 = new Uint8Array(4);
-                  new DataView(buf4.buffer).setUint32(0, v, true);
-                  hctx.write(guestAddr, buf4);
-                },
-                sp: hctx.sp,
-              };
-              return wrapper(ctx);
-            };
-            session.emulator.engine.registerHostFunction(addr, hostFn);
-            steps.push(`bind_host_fn: 0x${addr.toString(16)}`);
-            break;
-          }
-          case 'nemu_bind_all_imports': {
-            const fnBody = a.fn as string | undefined;
-            if (!fnBody) throw new Error('bind_all_imports: missing fn');
-            const gotStart = (a.gotStart as number | undefined) ?? 0x74000;
-            const gotEnd = (a.gotEnd as number | undefined) ?? 0x74a90;
-
-            const wrapper = new Function(
-              'ctx',
-              `
-              try {
-                const result = (function(ctx) { ${fnBody} })(ctx);
-                if (result === undefined || result === null) return 0n;
-                if (typeof result === 'bigint') return result;
-                return BigInt(Math.trunc(Number(result)));
-              } catch (e) {
-                return 0n;
-              }
-            `,
-            ) as (ctx: Record<string, unknown>) => bigint;
-
-            const eng = session.emulator.engine;
-            const mem = (
-              eng as unknown as { memory: { readMemory(addr: number, len: number): Uint8Array } }
-            ).memory;
-            const seen = new Set<number>();
-            let count = 0;
-            for (let addr = gotStart; addr < gotEnd; addr += 256) {
-              const chunkSize = Math.min(256, gotEnd - addr);
-              const data = mem.readMemory(addr, chunkSize);
-              for (let off = 0; off + 8 <= data.length; off += 8) {
-                const stubAddr = Number(
-                  new DataView(data.buffer, data.byteOffset + off, 8).getBigUint64(0, true),
-                );
-                if (stubAddr >= 0x68000000 && stubAddr < 0x68100000 && !seen.has(stubAddr)) {
-                  seen.add(stubAddr);
-                  const hostFn = (
-                    hctx: import('@modules/native-emulator/host-context').HostContext,
-                  ): bigint => {
-                    const ctx = {
-                      x: (n: number) => hctx.x(n),
-                      setX: (n: number, v: bigint | number) => hctx.setX(n, BigInt(v)),
-                      setD: (n: number, v: number) => hctx.setD(n, v),
-                      read: (guestAddr: number, l: number) => hctx.read(guestAddr, l),
-                      readU64: (guestAddr: number) =>
-                        new DataView(hctx.read(guestAddr, 8).buffer, 0, 8).getBigUint64(0, true),
-                      readU32: (guestAddr: number) =>
-                        new DataView(hctx.read(guestAddr, 4).buffer, 0, 4).getUint32(0, true),
-                      write: (guestAddr: number, b: Uint8Array) => hctx.write(guestAddr, b),
-                      writeU64: (guestAddr: number, v: bigint | number) => {
-                        const buf8 = new Uint8Array(8);
-                        new DataView(buf8.buffer).setBigUint64(0, BigInt(v), true);
-                        hctx.write(guestAddr, buf8);
-                      },
-                      writeU32: (guestAddr: number, v: number) => {
-                        const buf4 = new Uint8Array(4);
-                        new DataView(buf4.buffer).setUint32(0, v, true);
-                        hctx.write(guestAddr, buf4);
-                      },
-                      sp: hctx.sp,
-                    };
-                    return wrapper(ctx);
-                  };
-                  eng.registerHostFunction(stubAddr, hostFn);
-                  count++;
-                }
-              }
-            }
-            steps.push(
-              `bind_all_imports: ${count} stubs (got 0x${gotStart.toString(16)}-0x${gotEnd.toString(16)})`,
-            );
-            break;
-          }
-          case 'nemu_set_registers': {
-            const regs = a.registers as Record<string, number | bigint> | undefined;
-            if (!regs) throw new Error('set_registers: missing registers object');
-            const eng = session.emulator.engine;
-            const set: string[] = [];
-            for (const [key, val] of Object.entries(regs)) {
-              const rn = Number(key);
-              if (isNaN(rn)) continue;
-              if (rn >= 0 && rn <= 30) {
-                eng['registerFile'].writeGpr(rn, BigInt(val));
-                set.push(`x${rn}=0x${BigInt(val).toString(16)}`);
-              }
-            }
-            steps.push(`set_registers: ${set.join(', ')}`);
-            break;
-          }
-          default:
-            throw new Error(`Unknown tool in plan: "${toolName}"`);
-        }
+        this.applySessionLoadStep(session, toolName, a, steps);
       }
       return { sessionId: session.id, steps, count: steps.length };
     });
+  }
+
+  /** Execute one plan step of nemu_session_load (dispatch by tool name). */
+  private applySessionLoadStep(
+    session: EmulatorSession,
+    toolName: string,
+    a: Record<string, unknown>,
+    steps: string[],
+  ): void {
+    switch (toolName) {
+      case 'nemu_write_regions': {
+        const regions = a.regions as Array<Record<string, unknown>> | undefined;
+        if (!regions) throw new Error('write_regions: missing regions array');
+        this.writeRegionsRaw(session, regions);
+        steps.push(`write_regions: ${regions.length} regions`);
+        break;
+      }
+      case 'nemu_prepare_tls':
+        session.emulator.prepareTls();
+        steps.push('prepare_tls');
+        break;
+      case 'nemu_call_address': {
+        const addr = a.address as number | undefined;
+        if (addr === undefined) throw new Error('call_address: missing address');
+        const callArgs = (a.args as number[] | undefined) ?? [];
+        session.emulator.callAddress(addr, callArgs);
+        steps.push(`call_address: 0x${addr.toString(16)}`);
+        break;
+      }
+      case 'nemu_call_symbol': {
+        const sym = a.symbol as string | undefined;
+        if (!sym) throw new Error('call_symbol: missing symbol');
+        const callArgs = (a.args as number[] | undefined) ?? [];
+        session.emulator.call(sym, callArgs);
+        steps.push(`call_symbol: ${sym}`);
+        break;
+      }
+      case 'nemu_alloc_memory': {
+        const size = (a.size as number | undefined) ?? 4096;
+        const addr = session.emulator.allocGuestMemory(size);
+        steps.push(`alloc_memory: ${size}B @ 0x${addr.toString(16)}`);
+        break;
+      }
+      case 'nemu_map_memory': {
+        const mapAddr = a.address as number | undefined;
+        const mapSize = (a.size as number | undefined) ?? 4096;
+        if (mapAddr === undefined) throw new Error('map_memory: missing address');
+        session.emulator.engine.mapMemory(mapAddr, mapSize);
+        steps.push(`map_memory: 0x${mapAddr.toString(16)} +${mapSize}`);
+        break;
+      }
+      case 'nemu_setup_java_mocks': {
+        const mocks = a.mocks as Array<Record<string, unknown>> | undefined;
+        if (!mocks) throw new Error('setup_java_mocks: missing mocks array');
+        for (const m of mocks) {
+          const impl = buildJavaMockImpl(m as Record<string, unknown>);
+          session.emulator.setupJava(
+            String(m.className ?? ''),
+            String(m.methodName ?? ''),
+            String(m.signature ?? ''),
+            impl.fn,
+          );
+        }
+        steps.push(`setup_java_mocks: ${mocks.length} mocks`);
+        break;
+      }
+      case 'nemu_bind_host_fn':
+        this.stepBindHostFn(session, a, steps);
+        break;
+      case 'nemu_bind_all_imports':
+        this.stepBindAllImports(session, a, steps);
+        break;
+      case 'nemu_set_registers': {
+        const regs = a.registers as Record<string, number | bigint> | undefined;
+        if (!regs) throw new Error('set_registers: missing registers object');
+        const eng = session.emulator.engine;
+        const set: string[] = [];
+        for (const [key, val] of Object.entries(regs)) {
+          const rn = Number(key);
+          if (isNaN(rn)) continue;
+          if (rn >= 0 && rn <= 30) {
+            eng['registerFile'].writeGpr(rn, BigInt(val));
+            set.push(`x${rn}=0x${BigInt(val).toString(16)}`);
+          }
+        }
+        steps.push(`set_registers: ${set.join(', ')}`);
+        break;
+      }
+      default:
+        throw new Error(`Unknown tool in plan: "${toolName}"`);
+    }
+  }
+
+  /** nemu_bind_host_fn plan step: compile the guest-provided JS body into a
+   * safe host wrapper and register it at the given address. */
+  private stepBindHostFn(
+    session: EmulatorSession,
+    a: Record<string, unknown>,
+    steps: string[],
+  ): void {
+    const addr = a.address as number | undefined;
+    const fnBody = a.fn as string | undefined;
+    if (addr === undefined || !fnBody) throw new Error('bind_host_fn: missing address or fn');
+    const wrapper = compileGuestHostFn(fnBody);
+    let callIdx = 0;
+    const hostFn = (hctx: HostContext): bigint => {
+      const idx = ++callIdx;
+      const ctx = {
+        callIndex: idx,
+        x: (n: number) => hctx.x(n),
+        setX: (n: number, v: bigint | number) => hctx.setX(n, BigInt(v)),
+        setD: (n: number, v: number) => hctx.setD(n, v),
+        setCarry: (v: boolean) => hctx.setCarry?.(v),
+        saveRegs: () => hctx.saveRegs?.(),
+        restoreRegs: (h: number) => hctx.restoreRegs?.(h),
+        read: (guestAddr: number, l: number) => hctx.read(guestAddr, l),
+        readU64: (guestAddr: number) =>
+          new DataView(hctx.read(guestAddr, 8).buffer, 0, 8).getBigUint64(0, true),
+        readU32: (guestAddr: number) =>
+          new DataView(hctx.read(guestAddr, 4).buffer, 0, 4).getUint32(0, true),
+        write: (guestAddr: number, b: Uint8Array) => hctx.write(guestAddr, b),
+        writeU64: (guestAddr: number, v: bigint | number) => {
+          const buf8 = new Uint8Array(8);
+          new DataView(buf8.buffer).setBigUint64(0, BigInt(v), true);
+          hctx.write(guestAddr, buf8);
+        },
+        writeU32: (guestAddr: number, v: number) => {
+          const buf4 = new Uint8Array(4);
+          new DataView(buf4.buffer).setUint32(0, v, true);
+          hctx.write(guestAddr, buf4);
+        },
+        sp: hctx.sp,
+      };
+      return wrapper(ctx);
+    };
+    session.emulator.engine.registerHostFunction(addr, hostFn);
+    steps.push(`bind_host_fn: 0x${addr.toString(16)}`);
+  }
+
+  /** nemu_bind_all_imports plan step: scan the GOT range and register the
+   * guest-provided JS body as a host stub for each unresolved PLT entry. */
+  private stepBindAllImports(
+    session: EmulatorSession,
+    a: Record<string, unknown>,
+    steps: string[],
+  ): void {
+    const fnBody = a.fn as string | undefined;
+    if (!fnBody) throw new Error('bind_all_imports: missing fn');
+    const gotStart = (a.gotStart as number | undefined) ?? 0x74000;
+    const gotEnd = (a.gotEnd as number | undefined) ?? 0x74a90;
+
+    const wrapper = compileGuestHostFn(fnBody);
+    const eng = session.emulator.engine;
+    const mem = (
+      eng as unknown as { memory: { readMemory(addr: number, len: number): Uint8Array } }
+    ).memory;
+    const seen = new Set<number>();
+    let count = 0;
+    for (let addr = gotStart; addr < gotEnd; addr += 256) {
+      const chunkSize = Math.min(256, gotEnd - addr);
+      const data = mem.readMemory(addr, chunkSize);
+      for (let off = 0; off + 8 <= data.length; off += 8) {
+        const stubAddr = Number(
+          new DataView(data.buffer, data.byteOffset + off, 8).getBigUint64(0, true),
+        );
+        if (stubAddr >= 0x68000000 && stubAddr < 0x68100000 && !seen.has(stubAddr)) {
+          seen.add(stubAddr);
+          const hostFn = (hctx: HostContext): bigint => {
+            const ctx = {
+              x: (n: number) => hctx.x(n),
+              setX: (n: number, v: bigint | number) => hctx.setX(n, BigInt(v)),
+              setD: (n: number, v: number) => hctx.setD(n, v),
+              read: (guestAddr: number, l: number) => hctx.read(guestAddr, l),
+              readU64: (guestAddr: number) =>
+                new DataView(hctx.read(guestAddr, 8).buffer, 0, 8).getBigUint64(0, true),
+              readU32: (guestAddr: number) =>
+                new DataView(hctx.read(guestAddr, 4).buffer, 0, 4).getUint32(0, true),
+              write: (guestAddr: number, b: Uint8Array) => hctx.write(guestAddr, b),
+              writeU64: (guestAddr: number, v: bigint | number) => {
+                const buf8 = new Uint8Array(8);
+                new DataView(buf8.buffer).setBigUint64(0, BigInt(v), true);
+                hctx.write(guestAddr, buf8);
+              },
+              writeU32: (guestAddr: number, v: number) => {
+                const buf4 = new Uint8Array(4);
+                new DataView(buf4.buffer).setUint32(0, v, true);
+                hctx.write(guestAddr, buf4);
+              },
+              sp: hctx.sp,
+            };
+            return wrapper(ctx);
+          };
+          eng.registerHostFunction(stubAddr, hostFn);
+          count++;
+        }
+      }
+    }
+    steps.push(
+      `bind_all_imports: ${count} stubs (got 0x${gotStart.toString(16)}-0x${gotEnd.toString(16)})`,
+    );
   }
 
   handleLoadApkLibrary(args: ToolArgs): Promise<ToolResponse> {
@@ -1165,66 +1279,231 @@ export class NativeEmulatorHandlers {
     });
   }
 
+  /** Profile mode: seed the call tree with the traced entry as its root. */
+  private seedProfileCallTree(
+    session: EmulatorSession,
+    symbol: string | undefined,
+    address: number | undefined,
+    st: TraceRunState,
+    symbolNameAt: (addr: number) => string | undefined,
+    callNodeByAddr: Map<number, ProfileCallNode>,
+  ): void {
+    const entryAddr = address ?? session.emulator.engine.lookupSymbol(symbol!) ?? 0;
+    st.callStack = [entryAddr];
+    st.profileRoot = { address: hexAddr(entryAddr), count: 1, callees: [] };
+    const rootSym = symbolNameAt(entryAddr);
+    if (rootSym !== undefined) st.profileRoot.symbolName = rootSym;
+    callNodeByAddr.set(entryAddr, st.profileRoot);
+  }
+
+  /** Run the traced call, converting faults into a partial capture. */
+  private executeTraceCall(
+    session: EmulatorSession,
+    args: ToolArgs,
+    opts: TraceCallOptions,
+    st: TraceRunState,
+  ): { result: number; aborted: { pc: number; insn: number } | undefined } {
+    const { symbol, address, callArgs, injectJni, profileMode } = opts;
+    let result = 0;
+    let aborted: { pc: number; insn: number } | undefined;
+    try {
+      // Parse initRegisters (same as handleCallSymbol)
+      const initRegsRaw = args.initRegisters as Record<string, number> | undefined;
+      const initRegs = initRegsRaw
+        ? Object.fromEntries(Object.entries(initRegsRaw).map(([k, v]) => [Number(k), BigInt(v)]))
+        : undefined;
+      if (address !== undefined) {
+        result = session.emulator.callAddress(address, callArgs);
+      } else {
+        result = session.emulator.call(symbol!, callArgs, {
+          injectJni,
+          initRegisters: initRegs,
+        });
+      }
+    } catch (e) {
+      const err = e instanceof Error ? e.message : String(e);
+      result = 0;
+      st.truncated = true;
+      if (e instanceof UnsupportedOpcodeError) {
+        aborted = { pc: e.pc, insn: e.insn };
+        if (!profileMode && st.events.length < st.maxSteps) {
+          st.events.push({
+            step: st.events.length + 1,
+            pc: `0x${e.pc.toString(16)}`,
+            insn: `0x${e.insn.toString(16).padStart(8, '0')}`,
+            asm: disassembleInstruction('arm64', e.insn, BigInt(e.pc)),
+            error: 'unsupported opcode — trace aborted',
+          });
+        }
+      } else {
+        // Any other runtime fault (unmapped memory, null call, etc.) also
+        // returns partial trace instead of surfacing nothing. call_symbol
+        // still throws — an explicit call on an unmapped region is a real
+        // gap worth surfacing, but trace is an exploration tool.
+        const faultPc = session.emulator.engine.readRegister('pc');
+        aborted = { pc: faultPc, insn: 0 };
+        if (!profileMode && st.events.length < st.maxSteps) {
+          st.events.push({
+            step: st.events.length + 1,
+            pc: `0x${faultPc.toString(16)}`,
+            error: `execution fault — trace aborted: ${err}`,
+          });
+        }
+      }
+    }
+    return { result, aborted };
+  }
+
+  /** Assemble the profile-mode trace response (hot PCs + call tree). */
+  private buildProfileTraceResult(
+    session: EmulatorSession,
+    opts: TraceCallOptions,
+    st: TraceRunState,
+    extras: {
+      result: number;
+      abortError?: string;
+      jniDiag?: readonly string[];
+      pacDiag?: readonly unknown[];
+    },
+  ): Record<string, unknown> {
+    const { address, symbol, topN } = opts;
+    const total = st.profileTotal;
+    const hot = [...st.pcCounts.entries()]
+      .toSorted((a, b) => b[1].count - a[1].count || a[0] - b[0])
+      .slice(0, topN)
+      .map(([pc, rec]) => ({
+        pc: hexAddr(pc),
+        count: rec.count,
+        percentage: pct(rec.count, total),
+        asm: disassembleInstruction('arm64', rec.insn, BigInt(pc)),
+      }));
+    return {
+      sessionId: session.id,
+      ...(address !== undefined ? { address: hexAddr(address) } : { symbol: symbol! }),
+      result: extras.result,
+      mode: 'profile',
+      totalInstructions: total,
+      uniqueInstructions: st.pcCounts.size,
+      hotInstructions: hot,
+      callTree: st.profileRoot ? [st.profileRoot] : [],
+      summary: {
+        totalInstructions: total,
+        uniqueInstructions: st.pcCounts.size,
+        ...(hot[0] ? { topHotPc: hot[0].pc, topHotAsm: hot[0].asm } : {}),
+      },
+      steps: total,
+      truncated: st.truncated,
+      ...(extras.abortError ? { error: extras.abortError } : {}),
+      ...(extras.jniDiag ? { jniCalls: extras.jniDiag } : {}),
+      ...(extras.pacDiag && extras.pacDiag.length > 0 ? { pacMismatches: extras.pacDiag } : {}),
+    };
+  }
+
+  /** Profile-mode hook arm: frequency counting + BL/BLR call-edge tracking. */
+  private recordProfileInstruction(ev: TraceEvent, st: TraceRunState): void {
+    if (st.profileTotal >= st.maxSteps) {
+      st.truncated = true;
+      st.engine.requestStop(); // hard-stop execution when budget exceeded
+      return;
+    }
+    st.profileTotal += 1;
+    const rec = st.pcCounts.get(ev.pc);
+    if (rec) rec.count += 1;
+    else st.pcCounts.set(ev.pc, { count: 1, insn: ev.insn });
+    const insn = ev.insn;
+    if ((insn & 0xfc000000) >>> 0 === 0x94000000) {
+      // BL imm26 — sign-extended 26-bit word offset
+      st.recordCall(ev.pc + (((insn & 0x03ffffff) << 6) >> 6) * 4);
+    } else if ((insn & 0xfffff1ff) >>> 0 === 0xd63f0000) {
+      // BLR family (BLR + PAC variants BLRAA/BLRAAZ/BLRAB/BLRABZ) — target
+      // is Rn (bits[9:5]). Mask 0xfffff1ff zeroes bits[11:10] (PAC op3
+      // discriminators) so all BLR variants are recorded as call edges.
+      try {
+        st.recordCall(Number(ev.x((insn >>> 5) & 0b11111)));
+      } catch {
+        /* register read may fault — skip this call edge */
+      }
+    } else if (insn === 0xd65f03c0 && st.callStack.length > 1) {
+      st.callStack.pop(); // RET — pop the current frame (never the entry frame)
+    }
+  }
+
+  /** Row-mode hook arm: build the trace row, apply registerDiff, filter, emit. */
+  private appendTraceRow(ev: TraceEvent, st: TraceRunState): void {
+    if (st.events.length >= st.maxSteps) {
+      st.truncated = true;
+      st.engine.requestStop(); // hard-stop execution when trace budget exceeded
+      return;
+    }
+    const row = traceRow(
+      ev,
+      st.captureRegisters,
+      st.mode,
+      st.tableReg,
+      st.captureBlArgs,
+      st.traceCtx,
+    );
+    // registerDiff: only emit if at least one captured register changed
+    if (st.registerDiff && st.captureRegisters && st.prevRegs) {
+      const cur = row.registers as Record<string, unknown> | undefined;
+      if (cur) {
+        let changed = false;
+        for (const r of st.captureRegisters) {
+          if (cur[r] !== st.prevRegs[r]) {
+            changed = true;
+            break;
+          }
+        }
+        if (!changed) return; // skip — no register changed
+      }
+    }
+    // Update prevRegs for next comparison
+    if (st.registerDiff && st.captureRegisters && row.registers) {
+      st.prevRegs = { ...(row.registers as Record<string, unknown>) };
+    }
+    // Apply filter AFTER row is built (so memory details are populated
+    // even in filtered modes; filtering just omits non-matching rows).
+    if (traceFilterMatch(ev.insn, String(row.asm ?? ''), st.mode, st.tableReg)) {
+      st.events.push(row);
+    }
+  }
+
   handleTrace(args: ToolArgs): Promise<ToolResponse> {
     return handleSafe(async () => {
       const session = this.requireSession(args);
+      const opts = parseTraceCallOptions(args);
       // debug mode: auto-prepare TLS
-      if (argBool(args, 'debug')) {
+      if (opts.debug) {
         session.emulator.prepareTls();
       }
       // codeProtect: write-protect SO text segment to prevent self-modifying stores
-      if (argBool(args, 'codeProtect', false)) {
+      if (opts.codeProtect) {
         session.emulator.protectCodeSection();
       }
-      const symbol = argString(args, 'symbol');
-      const address = argNumber(args, 'address');
-      if (!symbol && address === undefined) {
-        throw new Error('Either "symbol" or "address" must be provided');
-      }
-      const callArgs = argNumberArray(args, 'args');
-      const captureRegisters = argStringArray(args, 'captureRegisters');
-      const persistArtifact = argBool(args, 'persistArtifact', false);
-      const inlineLimitArg = argNumber(args, 'traceInlineLimit');
-      const injectJni = argBool(args, 'injectJni'); // undefined → auto-detect (matches call_symbol)
-      const mode: TraceMode =
-        (argEnum(
-          args,
-          'mode',
-          new Set(['full', 'profile', 'calls', 'branches', 'memory']),
-          'full',
-        ) as TraceMode) ?? 'full';
-      const profileMode = mode === 'profile';
-      // Profile mode trades per-step rows for volume: a much larger default budget.
-      const maxSteps = Math.min(
-        argNumber(args, 'maxSteps', profileMode ? NEMU_PROFILE_MAX_STEPS : 1000),
-        profileMode ? NEMU_PROFILE_MAX_STEPS : TRACE_HARD_CAP,
-      );
-      const topN = Math.min(Math.max(Math.trunc(argNumber(args, 'topN', 20) || 20), 1), 1000);
-      const tableRegRaw = argNumber(args, 'tableReg');
-      const tableReg: number | undefined =
-        tableRegRaw !== undefined && tableRegRaw >= 0 && tableRegRaw <= 30
-          ? tableRegRaw
-          : undefined;
-      const captureBlArgs = argBool(args, 'captureBlArgs', false);
-      const registerDiff = argBool(args, 'registerDiff', false);
+      const {
+        symbol,
+        address,
+        captureRegisters,
+        persistArtifact,
+        inlineLimitArg,
+        mode,
+        profileMode,
+        maxSteps,
+        tableReg,
+        registerDiff,
+      } = opts;
 
       const events: Array<Record<string, unknown>> = [];
-      let truncated = false;
       // Per-trace-call disassembly cache: a VMP dispatch loop that re-executes
       // the same handful of PCs thousands of times pays disassembleArm64 once
       // per unique PC, not once per instruction.
       const traceCtx = createTraceRowContext();
-      // For registerDiff: track previous register snapshot (keyed by register name)
-      let prevRegs: Record<string, unknown> | undefined;
       const engine = session.emulator.engine;
       // ── Profile-mode aggregation state (mode === 'profile') ────────
       // Per-pc frequency counters; the insn is kept so hot entries can be
       // disassembled after execution (top-N only — no per-step rows).
       const pcCounts = new Map<number, { count: number; insn: number }>();
       const callNodeByAddr = new Map<number, ProfileCallNode>();
-      let callStack: number[] = [];
-      let profileRoot: ProfileCallNode | undefined;
-      let profileTotal = 0;
       // Best-effort address → exported-symbol resolution (nearest preceding vaddr).
       const symbolByAddr = new Map<number, string>();
       if (profileMode) {
@@ -1254,70 +1533,38 @@ export class NativeEmulatorHandlers {
           callNodeByAddr.set(target, node);
         }
         node.count += 1;
-        const parent = callNodeByAddr.get(callStack[callStack.length - 1]!);
+        const parent = callNodeByAddr.get(traceState.callStack[traceState.callStack.length - 1]!);
         if (parent && parent !== node && !parent.callees.includes(node)) {
           parent.callees.push(node);
         }
-        callStack.push(target);
+        traceState.callStack.push(target);
+      };
+      const traceState: TraceRunState = {
+        profileMode,
+        maxSteps,
+        pcCounts,
+        callNodeByAddr,
+        callStack: [],
+        profileRoot: undefined,
+        profileTotal: 0,
+        events,
+        truncated: false,
+        traceCtx,
+        prevRegs: undefined,
+        captureRegisters,
+        mode,
+        tableReg,
+        captureBlArgs: opts.captureBlArgs,
+        registerDiff,
+        engine,
+        recordCall,
       };
       const unsubscribe = engine.addInstructionHook((ev) => {
-        if (profileMode) {
-          if (profileTotal >= maxSteps) {
-            truncated = true;
-            engine.requestStop(); // hard-stop execution when budget exceeded
-            return;
-          }
-          profileTotal += 1;
-          const rec = pcCounts.get(ev.pc);
-          if (rec) rec.count += 1;
-          else pcCounts.set(ev.pc, { count: 1, insn: ev.insn });
-          const insn = ev.insn;
-          if ((insn & 0xfc000000) >>> 0 === 0x94000000) {
-            // BL imm26 — sign-extended 26-bit word offset
-            recordCall(ev.pc + (((insn & 0x03ffffff) << 6) >> 6) * 4);
-          } else if ((insn & 0xfffff1ff) >>> 0 === 0xd63f0000) {
-            // BLR family (BLR + PAC variants BLRAA/BLRAAZ/BLRAB/BLRABZ) — target
-            // is Rn (bits[9:5]). Mask 0xfffff1ff zeroes bits[11:10] (PAC op3
-            // discriminators) so all BLR variants are recorded as call edges.
-            try {
-              recordCall(Number(ev.x((insn >>> 5) & 0b11111)));
-            } catch {
-              /* register read may fault — skip this call edge */
-            }
-          } else if (insn === 0xd65f03c0 && callStack.length > 1) {
-            callStack.pop(); // RET — pop the current frame (never the entry frame)
-          }
+        if (traceState.profileMode) {
+          this.recordProfileInstruction(ev, traceState);
           return;
         }
-        if (events.length >= maxSteps) {
-          truncated = true;
-          engine.requestStop(); // hard-stop execution when trace budget exceeded
-          return;
-        }
-        const row = traceRow(ev, captureRegisters, mode, tableReg, captureBlArgs, traceCtx);
-        // registerDiff: only emit if at least one captured register changed
-        if (registerDiff && captureRegisters && prevRegs) {
-          const cur = row.registers as Record<string, unknown> | undefined;
-          if (cur) {
-            let changed = false;
-            for (const r of captureRegisters) {
-              if (cur[r] !== prevRegs[r]) {
-                changed = true;
-                break;
-              }
-            }
-            if (!changed) return; // skip — no register changed
-          }
-        }
-        // Update prevRegs for next comparison
-        if (registerDiff && captureRegisters && row.registers) {
-          prevRegs = { ...(row.registers as Record<string, unknown>) };
-        }
-        // Apply filter AFTER row is built (so memory details are populated
-        // even in filtered modes; filtering just omits non-matching rows).
-        if (traceFilterMatch(ev.insn, String(row.asm ?? ''), mode, tableReg)) {
-          events.push(row);
-        }
+        this.appendTraceRow(ev, traceState);
       });
       try {
         // Clear stale JNI diag from prior calls so only THIS trace's
@@ -1325,62 +1572,16 @@ export class NativeEmulatorHandlers {
         session.emulator.clearJniDiag?.();
         // Profile mode: seed the call tree with the traced entry as its root.
         if (profileMode) {
-          const entryAddr = address ?? engine.lookupSymbol(symbol!) ?? 0;
-          callStack = [entryAddr];
-          profileRoot = { address: hexAddr(entryAddr), count: 1, callees: [] };
-          const rootSym = symbolNameAt(entryAddr);
-          if (rootSym !== undefined) profileRoot.symbolName = rootSym;
-          callNodeByAddr.set(entryAddr, profileRoot);
+          this.seedProfileCallTree(
+            session,
+            symbol,
+            address,
+            traceState,
+            symbolNameAt,
+            callNodeByAddr,
+          );
         }
-        let result = 0;
-        let aborted: { pc: number; insn: number } | undefined;
-        try {
-          // Parse initRegisters (same as handleCallSymbol)
-          const initRegsRaw = args.initRegisters as Record<string, number> | undefined;
-          const initRegs = initRegsRaw
-            ? Object.fromEntries(
-                Object.entries(initRegsRaw).map(([k, v]) => [Number(k), BigInt(v)]),
-              )
-            : undefined;
-          if (address !== undefined) {
-            result = session.emulator.callAddress(address, callArgs);
-          } else {
-            result = session.emulator.call(symbol!, callArgs, {
-              injectJni,
-              initRegisters: initRegs,
-            });
-          }
-        } catch (e) {
-          const err = e instanceof Error ? e.message : String(e);
-          result = 0;
-          truncated = true;
-          if (e instanceof UnsupportedOpcodeError) {
-            aborted = { pc: e.pc, insn: e.insn };
-            if (!profileMode && events.length < maxSteps) {
-              events.push({
-                step: events.length + 1,
-                pc: `0x${e.pc.toString(16)}`,
-                insn: `0x${e.insn.toString(16).padStart(8, '0')}`,
-                asm: disassembleInstruction('arm64', e.insn, BigInt(e.pc)),
-                error: 'unsupported opcode — trace aborted',
-              });
-            }
-          } else {
-            // Any other runtime fault (unmapped memory, null call, etc.) also
-            // returns partial trace instead of surfacing nothing. call_symbol
-            // still throws — an explicit call on an unmapped region is a real
-            // gap worth surfacing, but trace is an exploration tool.
-            const faultPc = engine.readRegister('pc');
-            aborted = { pc: faultPc, insn: 0 };
-            if (!profileMode && events.length < maxSteps) {
-              events.push({
-                step: events.length + 1,
-                pc: `0x${faultPc.toString(16)}`,
-                error: `execution fault — trace aborted: ${err}`,
-              });
-            }
-          }
-        }
+        const { result, aborted } = this.executeTraceCall(session, args, opts, traceState);
         // Snapshot JNI diag AFTER execution (non-destructive).
         const jniDiag = session.emulator.jniDiagSnapshot?.();
         const pacDiag = session.emulator.pacDiagSnapshot?.();
@@ -1388,36 +1589,12 @@ export class NativeEmulatorHandlers {
           ? `Unsupported ARM64 opcode 0x${aborted.insn.toString(16).padStart(8, '0')} at pc=0x${aborted.pc.toString(16)} — trace aborted with partial capture`
           : undefined;
         if (profileMode) {
-          const total = profileTotal;
-          const hot = [...pcCounts.entries()]
-            .toSorted((a, b) => b[1].count - a[1].count || a[0] - b[0])
-            .slice(0, topN)
-            .map(([pc, rec]) => ({
-              pc: hexAddr(pc),
-              count: rec.count,
-              percentage: pct(rec.count, total),
-              asm: disassembleInstruction('arm64', rec.insn, BigInt(pc)),
-            }));
-          return {
-            sessionId: session.id,
-            ...(address !== undefined ? { address: hexAddr(address) } : { symbol: symbol! }),
+          return this.buildProfileTraceResult(session, opts, traceState, {
             result,
-            mode: 'profile',
-            totalInstructions: total,
-            uniqueInstructions: pcCounts.size,
-            hotInstructions: hot,
-            callTree: profileRoot ? [profileRoot] : [],
-            summary: {
-              totalInstructions: total,
-              uniqueInstructions: pcCounts.size,
-              ...(hot[0] ? { topHotPc: hot[0].pc, topHotAsm: hot[0].asm } : {}),
-            },
-            steps: total,
-            truncated,
-            ...(abortError ? { error: abortError } : {}),
-            ...(jniDiag ? { jniCalls: jniDiag } : {}),
-            ...(pacDiag && pacDiag.length > 0 ? { pacMismatches: pacDiag } : {}),
-          };
+            abortError,
+            jniDiag,
+            pacDiag,
+          });
         }
         const traceInlineLimit =
           inlineLimitArg === undefined
@@ -1425,7 +1602,7 @@ export class NativeEmulatorHandlers {
             : Math.max(0, Math.min(Math.trunc(inlineLimitArg), events.length));
         const traceLabel = address !== undefined ? `0x${address.toString(16)}` : symbol!;
         const traceArtifact = persistArtifact
-          ? await persistTraceArtifact(session.id, traceLabel, result, events, truncated)
+          ? await persistTraceArtifact(session.id, traceLabel, result, events, traceState.truncated)
           : undefined;
         return {
           sessionId: session.id,
@@ -1434,7 +1611,7 @@ export class NativeEmulatorHandlers {
             : { symbol: symbol! }),
           result,
           steps: events.length,
-          truncated,
+          truncated: traceState.truncated,
           traceInlineLimit,
           ...(traceArtifact ? { traceArtifact } : {}),
           ...(jniDiag ? { jniCalls: jniDiag } : {}),
@@ -1754,6 +1931,47 @@ export class NativeEmulatorHandlers {
     });
   }
 
+  /** Summarize one JNI handle value by kind (extracted from handleJniHandles). */
+  private summarizeJniHandle(
+    kind: string,
+    val:
+      | {
+          kind?: string;
+          name?: string;
+          value?: unknown;
+          cls?: string;
+          desc?: string;
+          sig?: string;
+        }
+      | undefined,
+    rawValue: unknown,
+  ): string {
+    switch (kind) {
+      case 'class':
+        return val?.name ?? '?';
+      case 'string':
+      case 'mock-string':
+        return typeof val?.value === 'string' ? `"${(val.value as string).slice(0, 80)}"` : '?';
+      case 'bytes':
+        return val?.value instanceof Uint8Array ? `${val.value.length} bytes` : '?';
+      case 'method':
+        return `${val?.cls ?? '?'}.${val?.name ?? '?'}${val?.sig ?? ''}`;
+      case 'field':
+        return `${val?.cls ?? '?'}.${val?.name ?? '?'} (${val?.sig ?? '?'})`;
+      case 'objarray': {
+        const arr = val?.value as bigint[] | undefined;
+        return arr ? `[${arr.length} elements]` : '?';
+      }
+      case 'auto-object':
+        return val?.desc ?? val?.cls ?? '?';
+      case 'mock-int':
+      case 'mock-boolean':
+        return String(val?.value ?? '?');
+      default:
+        return JSON.stringify(rawValue).slice(0, 120);
+    }
+  }
+
   /** nemu_jni_handles — list all JNI object handles. */
   async handleJniHandles(args: ToolArgs): Promise<ToolResponse> {
     return handleSafe(async () => {
@@ -1775,44 +1993,11 @@ export class NativeEmulatorHandlers {
         };
         const kind = val?.kind ?? 'unknown';
         if (kindFilter && kind !== kindFilter) continue;
-
-        let summary: string;
-        switch (kind) {
-          case 'class':
-            summary = val?.name ?? '?';
-            break;
-          case 'string':
-          case 'mock-string':
-            summary =
-              typeof val?.value === 'string' ? `"${(val.value as string).slice(0, 80)}"` : '?';
-            break;
-          case 'bytes':
-            summary = val?.value instanceof Uint8Array ? `${val.value.length} bytes` : '?';
-            break;
-          case 'method':
-            summary = `${val?.cls ?? '?'}.${val?.name ?? '?'}${val?.sig ?? ''}`;
-            break;
-          case 'field':
-            summary = `${val?.cls ?? '?'}.${val?.name ?? '?'} (${val?.sig ?? '?'})`;
-            break;
-          case 'objarray': {
-            const arr = val?.value as bigint[] | undefined;
-            summary = arr ? `[${arr.length} elements]` : '?';
-            break;
-          }
-          case 'auto-object':
-            summary = val?.desc ?? val?.cls ?? '?';
-            break;
-          case 'mock-int':
-            summary = String(val?.value ?? '?');
-            break;
-          case 'mock-boolean':
-            summary = String(val?.value ?? '?');
-            break;
-          default:
-            summary = JSON.stringify(value).slice(0, 120);
-        }
-        handles.push({ handle: `0x${handleNum.toString(16)}`, kind, summary });
+        handles.push({
+          handle: `0x${handleNum.toString(16)}`,
+          kind,
+          summary: this.summarizeJniHandle(kind, val, value),
+        });
       }
 
       return { sessionId: session.id, handles, count: handles.length };

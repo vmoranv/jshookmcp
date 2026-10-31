@@ -63,71 +63,30 @@ export interface FpExceptionFlags {
  * @param b - Second operand (optional for unary ops)
  * @returns True if IOC should be set
  */
+/** Per-operation IOC predicates (extracted from the former switch to stay
+ * under the complexity gate; conditions are copied verbatim). */
+const IOC_BY_OP: Record<string, (result: number, a: number, b?: number) => boolean> = {
+  add: (_r, a, b) => (a === Infinity && b === -Infinity) || (a === -Infinity && b === Infinity),
+  sub: (_r, a, b) => !Number.isFinite(a) && !Number.isFinite(b) && a === b,
+  mul: (_r, a, b) =>
+    (a === 0 && !Number.isFinite(b!)) ||
+    (!Number.isFinite(a) && b === 0) ||
+    ((a === 0 || Object.is(a, -0)) && !Number.isFinite(b!)) ||
+    (!Number.isFinite(a) && (b === 0 || Object.is(b, -0))),
+  div: (_r, a, b) =>
+    ((a === 0 || Object.is(a, -0)) && (b === 0 || Object.is(b, -0))) ||
+    (!Number.isFinite(a) && !Number.isFinite(b!)),
+  sqrt: (_r, a) => a < 0 && !Object.is(a, -0),
+  cvt: (result, a) => Number.isNaN(result) && !Number.isNaN(a),
+};
+
 export function detectInvalidOperation(result: number, op: string, a: number, b?: number): boolean {
-  // If result is NaN, check if it's due to an invalid operation
-  // (JS produces NaN for all invalid ops, so we validate inputs)
-  if (Number.isNaN(result)) {
-    // NaN propagates through any operation (not invalid unless source is invalid)
-    // But we need to detect operations that PRODUCE a new NaN from valid inputs
-    const aIsNaN = Number.isNaN(a);
-    const bIsNaN = b !== undefined ? Number.isNaN(b) : false;
-
-    // If inputs are already NaN, this is NaN propagation, not IOC
-    // (unless the operation itself is invalid)
-    if (aIsNaN || bIsNaN) {
-      // For operations that are always invalid with Inf inputs even if one is NaN
-      // we still check the specific invalid patterns below
-    }
+  const predicate = IOC_BY_OP[op];
+  if (predicate) {
+    return predicate(result, a, b);
   }
-
-  // Check operation-specific invalid conditions
-  switch (op) {
-    case 'add':
-      // +Inf + (-Inf) or (-Inf) + (+Inf) is invalid
-      if (a === Infinity && b === -Infinity) return true;
-      if (a === -Infinity && b === Infinity) return true;
-      break;
-
-    case 'sub':
-      // Inf - Inf (same sign) is invalid
-      if (!Number.isFinite(a) && !Number.isFinite(b) && a === b) return true;
-      break;
-
-    case 'mul':
-      // 0 × Inf or Inf × 0 is invalid
-      if ((a === 0 && !Number.isFinite(b!)) || (!Number.isFinite(a) && b === 0)) return true;
-      // Also check for signed zero
-      if ((a === 0 || Object.is(a, -0)) && !Number.isFinite(b!)) return true;
-      if (!Number.isFinite(a) && (b === 0 || Object.is(b, -0))) return true;
-      break;
-
-    case 'div':
-      // 0 / 0 is invalid (NaN result)
-      if ((a === 0 || Object.is(a, -0)) && (b === 0 || Object.is(b, -0))) return true;
-      // Inf / Inf is invalid
-      if (!Number.isFinite(a) && !Number.isFinite(b!)) return true;
-      break;
-
-    case 'sqrt':
-      // sqrt(negative non-zero) is invalid
-      // sqrt(-0) is valid (returns -0)
-      if (a < 0 && !Object.is(a, -0)) return true;
-      break;
-
-    case 'cvt':
-      // Conversion overflow (float to int when out of range)
-      // This would be handled by caller; we just check for NaN result from valid input
-      if (Number.isNaN(result) && !Number.isNaN(a)) return true;
-      break;
-
-    default:
-      // Unknown operation: check if result is NaN from non-NaN inputs
-      if (Number.isNaN(result) && !Number.isNaN(a) && (b === undefined || !Number.isNaN(b))) {
-        return true;
-      }
-  }
-
-  return false;
+  // Unknown operation: check if result is NaN from non-NaN inputs
+  return Number.isNaN(result) && !Number.isNaN(a) && (b === undefined || !Number.isNaN(b));
 }
 
 /**
