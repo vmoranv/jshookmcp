@@ -176,6 +176,146 @@ const phaseHelpers = {
   removePathRobust,
 };
 
+/** Resolve the JSON output path from --json-out CLI, then env, else null. */
+function resolveJsonOutputPath() {
+  const cliValue = getCliValue('--json-out');
+  if (typeof cliValue === 'string' && cliValue.trim().length > 0) {
+    return pathResolve(cliValue.trim());
+  }
+  const envValue = process.env.RUNTIME_AUDIT_JSON_PATH?.trim();
+  if (typeof envValue === 'string' && envValue.length > 0) {
+    return pathResolve(envValue);
+  }
+  return null;
+}
+
+/** Best-effort external resource teardown (browsers, spawned procs, clients). */
+async function closeRuntimeResources(state, report) {
+  const {
+    attachClient,
+    attachTransport,
+    isolatedBinaryClient,
+    isolatedBinaryTransport,
+    externalBrowserProc,
+    externalBrowserUserDataDir,
+    processLaunchUserDataDir,
+    processLaunchPid,
+    memoryProbeProc,
+    electronDebugPid,
+    electronDebugUserDataDir,
+  } = state.runtimeResources;
+
+  if (attachClient && attachTransport) {
+    try {
+      report.browser.attachExternalClose = await callTool(attachClient, 'browser_close', {}, 15000);
+    } catch (error) {
+      report.browser.attachExternalCloseError =
+        error instanceof Error ? error.message : String(error);
+    }
+  }
+  try {
+    await attachTransport?.close();
+  } catch {}
+  try {
+    await attachClient?.close();
+  } catch {}
+  try {
+    await isolatedBinaryTransport?.close();
+  } catch {}
+  try {
+    await isolatedBinaryClient?.close();
+  } catch {}
+  await terminateProcessTree(externalBrowserProc);
+  await terminateProcessTree(memoryProbeProc);
+  if (externalBrowserUserDataDir) {
+    try {
+      await removePathRobust(externalBrowserUserDataDir);
+    } catch {}
+  }
+  await terminateProcessId(processLaunchPid);
+  await terminateProcessId(electronDebugPid);
+  if (processLaunchUserDataDir) {
+    try {
+      await removePathRobust(processLaunchUserDataDir);
+    } catch {}
+  }
+  if (electronDebugUserDataDir) {
+    try {
+      await removePathRobust(electronDebugUserDataDir);
+    } catch {}
+  }
+}
+
+/** Close clients/transport/server and remove temporary artifacts. */
+async function cleanupProbeArtifacts(paths, state, clients, server, report) {
+  const { client, metaClient } = clients;
+  try {
+    report.proxy.stop = await callTool(client, 'proxy_stop', {}, 15000);
+  } catch (error) {
+    report.proxy.stopError = error instanceof Error ? error.message : String(error);
+  }
+  try {
+    report.browser.close = await callTool(client, 'browser_close', {}, 15000);
+  } catch (error) {
+    report.browser.closeError = error instanceof Error ? error.message : String(error);
+  }
+  try {
+    await clients.transport.close();
+  } catch {}
+  try {
+    await client.close();
+  } catch {}
+  try {
+    await clients.metaTransport.close();
+  } catch {}
+  try {
+    await metaClient.close();
+  } catch {}
+  await server.close();
+  try {
+    await removePathRobust(paths.runtimeMacroPath);
+  } catch {}
+  try {
+    await removePathRobust(paths.runtimeExtensionPath);
+  } catch {}
+  if (paths.extensionRegistryFile) {
+    try {
+      if (state.extensionRegistryExisted) {
+        await writeFile(paths.extensionRegistryFile, state.extensionRegistryBackup ?? '', 'utf8');
+      } else {
+        await removePathRobust(paths.extensionRegistryFile);
+      }
+    } catch {}
+  }
+  try {
+    await removePathRobust(paths.extensionRegistryRoot);
+  } catch {}
+  try {
+    await removePathRobust(paths.runtimeWorkflowRoot);
+  } catch {}
+  try {
+    await removePathRobust(paths.runtimePluginRoot);
+  } catch {}
+  if (state.platformProbeDir) {
+    try {
+      await removePathRobust(state.platformProbeDir);
+    } catch {}
+  }
+}
+
+async function emitReport(report, { jsonOnly, jsonOutputPath }) {
+  report.runtimeCoverage = buildRuntimeCoverage(report.tools);
+  if (jsonOutputPath) {
+    await mkdir(dirname(jsonOutputPath), { recursive: true });
+    await writeFile(jsonOutputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  }
+  if (jsonOnly && !jsonOutputPath) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    console.log(summarizeReport(report));
+  }
+}
+
 async function main() {
   const tlsFixture = await resolveTlsFixtureConstants();
   phaseConstants.TEST_CERT_PEM = tlsFixture.certPem;
@@ -183,17 +323,7 @@ async function main() {
   serverConstants.TEST_KEY_PEM = tlsFixture.keyPem;
 
   const jsonOnly = process.argv.includes('--json');
-  const jsonOutputPath = (() => {
-    const cliValue = getCliValue('--json-out');
-    if (typeof cliValue === 'string' && cliValue.trim().length > 0) {
-      return pathResolve(cliValue.trim());
-    }
-    const envValue = process.env.RUNTIME_AUDIT_JSON_PATH?.trim();
-    if (typeof envValue === 'string' && envValue.length > 0) {
-      return pathResolve(envValue);
-    }
-    return null;
-  })();
+  const jsonOutputPath = resolveJsonOutputPath();
 
   const server = await createProbeServer(serverConstants);
   const runtimeArtifactDir = join(process.cwd(), '.tmp_mcp_artifacts');
@@ -285,130 +415,17 @@ async function main() {
     report.error = error instanceof Error ? error.message : String(error);
     failure = error;
   } finally {
-    const {
-      attachClient,
-      attachTransport,
-      isolatedBinaryClient,
-      isolatedBinaryTransport,
-      externalBrowserProc,
-      externalBrowserUserDataDir,
-      processLaunchUserDataDir,
-      processLaunchPid,
-      memoryProbeProc,
-      electronDebugPid,
-      electronDebugUserDataDir,
-    } = state.runtimeResources;
-
-    if (attachClient && attachTransport) {
-      try {
-        report.browser.attachExternalClose = await callTool(
-          attachClient,
-          'browser_close',
-          {},
-          15000,
-        );
-      } catch (error) {
-        report.browser.attachExternalCloseError =
-          error instanceof Error ? error.message : String(error);
-      }
-    }
-    try {
-      await attachTransport?.close();
-    } catch {}
-    try {
-      await attachClient?.close();
-    } catch {}
-    try {
-      await isolatedBinaryTransport?.close();
-    } catch {}
-    try {
-      await isolatedBinaryClient?.close();
-    } catch {}
-    await terminateProcessTree(externalBrowserProc);
-    await terminateProcessTree(memoryProbeProc);
-    if (externalBrowserUserDataDir) {
-      try {
-        await removePathRobust(externalBrowserUserDataDir);
-      } catch {}
-    }
-    await terminateProcessId(processLaunchPid);
-    await terminateProcessId(electronDebugPid);
-    if (processLaunchUserDataDir) {
-      try {
-        await removePathRobust(processLaunchUserDataDir);
-      } catch {}
-    }
-    if (electronDebugUserDataDir) {
-      try {
-        await removePathRobust(electronDebugUserDataDir);
-      } catch {}
-    }
-    try {
-      report.proxy.stop = await callTool(client, 'proxy_stop', {}, 15000);
-    } catch (error) {
-      report.proxy.stopError = error instanceof Error ? error.message : String(error);
-    }
-    try {
-      report.browser.close = await callTool(client, 'browser_close', {}, 15000);
-    } catch (error) {
-      report.browser.closeError = error instanceof Error ? error.message : String(error);
-    }
-    try {
-      await transport.close();
-    } catch {}
-    try {
-      await client.close();
-    } catch {}
-    try {
-      await metaTransport.close();
-    } catch {}
-    try {
-      await metaClient.close();
-    } catch {}
-    await server.close();
-    try {
-      await removePathRobust(runtimeMacroPath);
-    } catch {}
-    try {
-      await removePathRobust(paths.runtimeExtensionPath);
-    } catch {}
-    if (paths.extensionRegistryFile) {
-      try {
-        if (state.extensionRegistryExisted) {
-          await writeFile(paths.extensionRegistryFile, state.extensionRegistryBackup ?? '', 'utf8');
-        } else {
-          await removePathRobust(paths.extensionRegistryFile);
-        }
-      } catch {}
-    }
-    try {
-      await removePathRobust(paths.extensionRegistryRoot);
-    } catch {}
-    try {
-      await removePathRobust(paths.runtimeWorkflowRoot);
-    } catch {}
-    try {
-      await removePathRobust(paths.runtimePluginRoot);
-    } catch {}
-    if (state.platformProbeDir) {
-      try {
-        await removePathRobust(state.platformProbeDir);
-      } catch {}
-    }
+    await closeRuntimeResources(state, report);
+    await cleanupProbeArtifacts(
+      paths,
+      state,
+      { client, metaClient, transport, metaTransport },
+      server,
+      report,
+    );
   }
 
-  report.runtimeCoverage = buildRuntimeCoverage(report.tools);
-
-  if (jsonOutputPath) {
-    await mkdir(dirname(jsonOutputPath), { recursive: true });
-    await writeFile(jsonOutputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  }
-
-  if (jsonOnly && !jsonOutputPath) {
-    console.log(JSON.stringify(report, null, 2));
-  } else {
-    console.log(summarizeReport(report));
-  }
+  await emitReport(report, { jsonOnly, jsonOutputPath });
 
   if (failure) {
     throw failure;

@@ -608,182 +608,195 @@ async function runTrials(
 
 // ── main orchestrator ──
 
-async function orchestrate(): Promise<void> {
-  const options = parseOptions();
-  const outFile = pathResolve(options.outDir, 'trials.jsonl');
-  await mkdir(options.outDir, { recursive: true });
+type SearchSpaceDefs = Awaited<ReturnType<typeof loadSearchSpace>>;
+type TuneOptions = ReturnType<typeof parseOptions>;
 
-  // Realtime dataset (--dataset realtime): verify usable traffic exists BEFORE
-  // spawning any trials — evaluating zero cases would make every trial score 0
-  // and auto-apply garbage params to .env.
-  if (options.dataset === 'realtime') {
-    const { loadRealtimeDataset } = await import('./datasets/realtime');
-    const realtime = await loadRealtimeDataset();
-    if (realtime.cases.length === 0) {
-      console.error(
-        `[realtime] no usable evaluation cases in ${realtime.sourceFile} — ` +
-          'the snapshot is missing or contains no SearchQueryRecord with usedTool+usedToolRank. ' +
-          'Run the server to accumulate search traffic, then retry, or drop --dataset to use the synthetic fixture.',
-      );
-      process.exit(1);
-    }
-    console.log(
-      `[realtime] evaluating against ${realtime.cases.length} real-traffic cases from ${realtime.sourceFile}`,
+/** Shared context threaded through the per-phase functions. */
+interface TunePhaseContext {
+  options: TuneOptions;
+  outFile: string;
+  defs: SearchSpaceDefs;
+  phase1Defs: SearchSpaceDefs;
+  phase3Defs: SearchSpaceDefs;
+  phase4Defs: SearchSpaceDefs;
+  sampleFresh: (phaseDefs: SearchSpaceDefs, seed: number) => TrialParams;
+  rankScore: (t: { params: Record<string, number>; metrics: { objectiveScore: number } }) => number;
+}
+
+/** Mutable pruner state — frozen params are written after phase 1. */
+interface FrozenParamsRef {
+  current: Partial<Record<TunableParamKey, number>>;
+}
+
+function datasetArg(options: TuneOptions, dataset: string): string {
+  return options.dataset === 'realtime' ? 'realtime' : dataset;
+}
+
+/** Verify usable realtime traffic exists before spending any trial budget. */
+async function verifyRealtimeDataset(options: TuneOptions): Promise<void> {
+  if (options.dataset !== 'realtime') return;
+  const { loadRealtimeDataset } = await import('./datasets/realtime');
+  const realtime = await loadRealtimeDataset();
+  if (realtime.cases.length === 0) {
+    console.error(
+      `[realtime] no usable evaluation cases in ${realtime.sourceFile} — ` +
+        'the snapshot is missing or contains no SearchQueryRecord with usedTool+usedToolRank. ' +
+        'Run the server to accumulate search traffic, then retry, or drop --dataset to use the synthetic fixture.',
     );
+    process.exit(1);
   }
-
-  // Clear old results
-  await writeFile(outFile, '', 'utf-8');
-
-  const defs = await loadSearchSpace();
-  const phase1Defs = getPhaseParams(defs, 1, { vectorEnabled: options.vector });
-  const phase3Defs = getPhaseParams(defs, 3, { vectorEnabled: options.vector });
-  const phase4Defs = getPhaseParams(defs, 4, { vectorEnabled: options.vector });
   console.log(
-    `Search tuning: ${defs.length} params (${phase1Defs.length} lexical, ${phase3Defs.length} profile, ${phase4Defs.length} rerank)`,
+    `[realtime] evaluating against ${realtime.cases.length} real-traffic cases from ${realtime.sourceFile}`,
+  );
+}
+
+function logTuningPlan(ctx: TunePhaseContext): void {
+  console.log(
+    `Search tuning: ${ctx.defs.length} params (${ctx.phase1Defs.length} lexical, ${ctx.phase3Defs.length} profile, ${ctx.phase4Defs.length} rerank)`,
   );
   console.log(
-    options.vector
+    ctx.options.vector
       ? 'Vector signal: ENABLED (workers run SEARCH_VECTOR_ENABLED=true; vector-scoring params join phase 1)'
       : 'Vector signal: disabled (lexical run; vector-scoring params excluded from sampling)',
   );
-  console.log(`Using ${options.concurrency} CPU cores, seed=${options.seed}`);
+  console.log(`Using ${ctx.options.concurrency} CPU cores, seed=${ctx.options.seed}`);
+}
 
-  // RRSI regression history: parameter regions a previous run already rejected.
-  // Resampling them spends a full trial budget to relearn the same rejection,
-  // so candidates landing inside a rejected region are redrawn (bounded, so a
-  // history that blankets the space degrades to plain sampling instead of
-  // looping forever).
-  const rejectionHistory = await loadHistory();
-  // Pruner state: params frozen to shipped defaults after phase 1 (empty
-  // during phase 1 itself, so freezing never biases its own sensitivity data).
-  let frozenParams: Partial<Record<TunableParamKey, number>> = {};
+function createRejectionAvoidingSampler(
+  ctx: TunePhaseContext,
+  rejectionHistory: Awaited<ReturnType<typeof loadHistory>>,
+  frozenRef: FrozenParamsRef,
+): TunePhaseContext['sampleFresh'] {
   const applyFrozen = (params: TrialParams): TrialParams =>
-    Object.keys(frozenParams).length === 0
+    Object.keys(frozenRef.current).length === 0
       ? params
-      : normalizeParams({ ...params, ...frozenParams } as TrialParams);
-  const sampleFresh = (phaseDefs: typeof phase1Defs, seed: number): TrialParams => {
+      : normalizeParams({ ...params, ...frozenRef.current } as TrialParams);
+  return (phaseDefs: SearchSpaceDefs, seed: number): TrialParams => {
     let params = sampleRandomParams(phaseDefs, seed);
     for (let attempt = 1; attempt <= 8; attempt++) {
       const verdict = isDuplicateRegion(params, rejectionHistory, {
         tolerance: DEFAULT_TOLERANCE_STEPS,
-        defs,
+        defs: ctx.defs,
       });
       if (!verdict.duplicate) return applyFrozen(params);
       params = sampleRandomParams(phaseDefs, seed + attempt * 1000003);
     }
     return applyFrozen(params);
   };
-  if (rejectionHistory.length > 0) {
-    console.log(
-      `[RRSI] ${rejectionHistory.length} rejected region(s) loaded — resampling avoids them`,
-    );
-  }
+}
 
-  // Phase 1: Random search
-  const p1Specs: TrialSpec[] = [];
-  for (let i = 0; i < options.phase1Trials; i++) {
-    const params = sampleFresh(phase1Defs, options.seed + i);
-    p1Specs.push({
+function buildPhase1Specs(ctx: TunePhaseContext): TrialSpec[] {
+  const specs: TrialSpec[] = [];
+  for (let i = 0; i < ctx.options.phase1Trials; i++) {
+    const params = ctx.sampleFresh(ctx.phase1Defs, ctx.options.seed + i);
+    specs.push({
       trialId: `p1-${String(i).padStart(4, '0')}`,
       phase: 1,
-      dataset: options.dataset === 'realtime' ? 'realtime' : 'search-quality',
+      dataset: datasetArg(ctx.options, 'search-quality'),
       params: params as Record<string, number>,
-      seed: options.seed + i,
-      vectorEnabled: options.vector || undefined,
+      seed: ctx.options.seed + i,
+      vectorEnabled: ctx.options.vector || undefined,
     });
   }
-  const p1Results = await runTrials(p1Specs, options.concurrency, 'Phase 1 — Random', outFile);
+  return specs;
+}
 
-  // ── Pruner: freeze low-sensitivity params to shipped defaults ──
-  // Complements the RRSI gates from the other side: instead of rejecting an
-  // overfit winner, it stops spending trial budget on dimensions that
-  // provably do not move the objective and pins them to the defaults (which
-  // also minimizes the regularization penalty for the final .env params).
-  if (options.prune) {
-    const pruned = deriveFrozenParams(
-      p1Results.map((t) => ({ params: t.params, objectiveScore: t.metrics.objectiveScore })),
-    );
-    frozenParams = pruned.frozen;
-    if (pruned.rationale.length > 0) {
-      console.log(
-        `  [pruner] froze ${pruned.rationale.length} low-sensitivity param(s) to shipped defaults:`,
-      );
-      for (const entry of pruned.rationale) {
-        console.log(
-          `    ${entry.key} → ${entry.frozenTo} (spread ${entry.spread.toFixed(4)}, ${entry.buckets} buckets)`,
-        );
-      }
-    } else {
-      console.log('  [pruner] nothing froze (no param met the low-sensitivity threshold)');
-    }
-  }
-  const frozenKeySet = new Set(Object.keys(frozenParams) as TunableParamKey[]);
-
-  // Ranking uses the regularized score: objective − λ·(default drift). This
-  // discounts candidates that win by drifting many params far from the
-  // shipped defaults — the continuous counterpart of the binary holdout gate.
-  const rankScore = (t: { params: Record<string, number>; metrics: { objectiveScore: number } }) =>
-    regularizedScore(
-      { params: t.params, objectiveScore: t.metrics.objectiveScore },
-      options.regularization,
-    );
-  const sortedP1 = [...p1Results].toSorted((a, b) => rankScore(b) - rankScore(a));
-  const bestP1 = sortedP1[0];
-  if (bestP1) {
+/**
+ * Pruner: freeze low-sensitivity params to shipped defaults after phase 1.
+ * Complements the RRSI gates from the other side: instead of rejecting an
+ * overfit winner, it stops spending trial budget on dimensions that
+ * provably do not move the objective and pins them to the defaults (which
+ * also minimizes the regularization penalty for the final .env params).
+ * Empty during phase 1 itself, so freezing never biases its own sensitivity
+ * data. Returns the frozen key set for phase 2 grid exclusion.
+ */
+function freezeLowSensitivityParams(
+  ctx: TunePhaseContext,
+  p1Results: TrialResult[],
+  frozenRef: FrozenParamsRef,
+): Set<TunableParamKey> {
+  if (!ctx.options.prune) return new Set();
+  const pruned = deriveFrozenParams(
+    p1Results.map((t) => ({ params: t.params, objectiveScore: t.metrics.objectiveScore })),
+  );
+  frozenRef.current = pruned.frozen;
+  if (pruned.rationale.length > 0) {
     console.log(
-      `  Best: ${bestP1.trialId} score=${bestP1.metrics.objectiveScore.toFixed(4)} MRR=${bestP1.metrics.mrrAt10.toFixed(3)} P@1=${bestP1.metrics.pAt1.toFixed(3)}`,
+      `  [pruner] froze ${pruned.rationale.length} low-sensitivity param(s) to shipped defaults:`,
     );
+    for (const entry of pruned.rationale) {
+      console.log(
+        `    ${entry.key} → ${entry.frozenTo} (spread ${entry.spread.toFixed(4)}, ${entry.buckets} buckets)`,
+      );
+    }
+  } else {
+    console.log('  [pruner] nothing froze (no param met the low-sensitivity threshold)');
   }
+  return new Set(Object.keys(frozenRef.current) as TunableParamKey[]);
+}
 
-  // Phase 2: Local refinement around top-N
-  const topN = sortedP1.slice(0, options.phase2TopN);
-  const p2Specs: TrialSpec[] = [];
-  let p2idx = 0;
+function logBestTrial(prefix: string, trial: TrialResult | undefined, extended: boolean): void {
+  if (!trial) return;
+  if (extended) {
+    console.log(
+      `  ${prefix}: ${trial.trialId} score=${trial.metrics.objectiveScore.toFixed(4)} MRR=${trial.metrics.mrrAt10.toFixed(3)} P@1=${trial.metrics.pAt1.toFixed(3)}`,
+    );
+  } else {
+    console.log(`  ${prefix}: ${trial.trialId} score=${trial.metrics.objectiveScore.toFixed(4)}`);
+  }
+}
+
+/** Phase 2: Local refinement around top-N. */
+async function runPhase2Refinement(
+  ctx: TunePhaseContext,
+  sortedP1: TrialResult[],
+  frozenKeySet: Set<TunableParamKey>,
+): Promise<TrialResult[]> {
+  const topN = sortedP1.slice(0, ctx.options.phase2TopN);
+  const specs: TrialSpec[] = [];
+  let idx = 0;
   for (const base of topN) {
     // Frozen params keep their pinned value — the grid never proposes ±step
     // variants for a dimension the pruner retired.
-    const grid = buildLocalRefinementGrid(base.params as TrialParams, phase1Defs, frozenKeySet);
+    const grid = buildLocalRefinementGrid(base.params as TrialParams, ctx.phase1Defs, frozenKeySet);
     for (const params of grid) {
-      p2Specs.push({
-        trialId: `p2-${String(p2idx).padStart(4, '0')}`,
+      specs.push({
+        trialId: `p2-${String(idx).padStart(4, '0')}`,
         phase: 2,
-        dataset: options.dataset === 'realtime' ? 'realtime' : 'search-quality',
+        dataset: datasetArg(ctx.options, 'search-quality'),
         params: params as Record<string, number>,
-        seed: options.seed + 10000 + p2idx,
-        vectorEnabled: options.vector || undefined,
+        seed: ctx.options.seed + 10000 + idx,
+        vectorEnabled: ctx.options.vector || undefined,
       });
-      p2idx++;
+      idx++;
     }
   }
-  const p2Results = await runTrials(p2Specs, options.concurrency, 'Phase 2 — Refinement', outFile);
-  const allLexical = [...p1Results, ...p2Results].toSorted((a, b) => rankScore(b) - rankScore(a));
-  let bestLexical = allLexical[0];
-  if (bestLexical) {
-    console.log(
-      `  Best lexical: ${bestLexical.trialId} score=${bestLexical.metrics.objectiveScore.toFixed(4)}`,
-    );
-  } else {
-    console.error('[search-tune] no lexical trials succeeded — aborting before .env is touched');
-    process.exit(1);
-  }
+  return runTrials(specs, ctx.options.concurrency, 'Phase 2 — Refinement', ctx.outFile);
+}
 
-  // RRSI gate: the evolve winner is not trusted until it survives the held-out
-  // slice. Re-score the top candidates with evaluateHoldout, run the critic
-  // (gap / regression / noise-floor), and write rejections into the
-  // regression history so re-sampling a dead region is blocked. A candidate
-  // that wins evolve but stalls on holdout is overfit — RRSI's whole point —
-  // and must not reach .env.
+/**
+ * RRSI gate: the evolve winner is not trusted until it survives the held-out
+ * slice. Re-score the top candidates with evaluateHoldout, run the critic
+ * (gap / regression / noise-floor), and write rejections into the
+ * regression history so re-sampling a dead region is blocked. A candidate
+ * that wins evolve but stalls on holdout is overfit — RRSI's whole point —
+ * and must not reach .env.
+ * Returns the holdout-verified best, or null when nothing passed.
+ */
+async function runRrsiHoldoutVerification(
+  ctx: TunePhaseContext,
+  allLexical: TrialResult[],
+): Promise<TrialResult | null> {
   const holdoutVerifyCount = 5;
   const holdoutSpecs: TrialSpec[] = allLexical.slice(0, holdoutVerifyCount).map((trial, i) => ({
     trialId: `h${String(i).padStart(2, '0')}`,
     phase: 2,
     dataset: 'search-quality',
     params: trial.params,
-    seed: options.seed + 40000 + i,
+    seed: ctx.options.seed + 40000 + i,
     evaluateHoldout: true,
     sourceTrialId: trial.trialId,
-    vectorEnabled: options.vector || undefined,
+    vectorEnabled: ctx.options.vector || undefined,
   }));
   const sourceByHoldoutId = new Map(holdoutSpecs.map((s) => [s.trialId, s.sourceTrialId] as const));
   const evolveScoreByTrialId = new Map(
@@ -791,9 +804,9 @@ async function orchestrate(): Promise<void> {
   );
   const holdoutResults = await runTrials(
     holdoutSpecs,
-    Math.max(1, Math.floor(options.concurrency / 2)),
+    Math.max(1, Math.floor(ctx.options.concurrency / 2)),
     'RRSI holdout verification',
-    outFile,
+    ctx.outFile,
   );
   const { appendRejection, buildRejectionEntry, DEFAULT_HISTORY_PATH } =
     await import('./regression-history');
@@ -833,137 +846,143 @@ async function orchestrate(): Promise<void> {
       acceptScores.push({ ...trial, params: trial.params });
     }
   }
-  if (acceptScores.length > 0) {
-    // Pick the accepted candidate with the best HOLDOUT score, not the first
-    // to finish — runTrials returns results in completion order.
-    const verifiedBest = acceptScores.toSorted(
-      (a, b) => (b.holdoutMetrics?.objectiveScore ?? 0) - (a.holdoutMetrics?.objectiveScore ?? 0),
-    )[0]!;
-    bestLexical = verifiedBest;
-    console.log(
-      `  RRSI verified best: ${verifiedBest.trialId} (evolve score ${verifiedBest.metrics.objectiveScore.toFixed(4)} accepted on holdout)`,
-    );
-  } else {
+  if (acceptScores.length === 0) {
     console.warn(
       `  [RRSI] no candidate passed holdout verification; keeping raw evolve best — rejections logged to ${DEFAULT_HISTORY_PATH}`,
     );
+    return null;
   }
+  // Pick the accepted candidate with the best HOLDOUT score, not the first
+  // to finish — runTrials returns results in completion order.
+  const verifiedBest = acceptScores.toSorted(
+    (a, b) => (b.holdoutMetrics?.objectiveScore ?? 0) - (a.holdoutMetrics?.objectiveScore ?? 0),
+  )[0]!;
+  console.log(
+    `  RRSI verified best: ${verifiedBest.trialId} (evolve score ${verifiedBest.metrics.objectiveScore.toFixed(4)} accepted on holdout)`,
+  );
+  return verifiedBest;
+}
 
-  // OOD confirmation: the winning candidate is scored on domains the evolve
-  // split never trained it on (v8-inspector / webgpu / dart-inspector). This is
-  // the benchmark-disjoint check — a candidate that only wins inside the
-  // domains it was tuned against shows up here as a drop. Reported, not gated:
-  // with three domains the slice is too small to reject on.
-  if (options.dataset !== 'realtime' && bestLexical) {
-    const { loadDomainHoldoutDataset } = await import('./datasets/domain-holdout');
-    const ood = await loadDomainHoldoutDataset({
-      holdOutTags: ['v8-inspector', 'webgpu', 'dart-inspector'],
-    });
-    if (ood.cases.length > 0) {
-      const oodResult = await runTrials(
-        [
-          {
-            trialId: 'ood-0',
-            phase: 2,
-            dataset: 'search-quality',
-            params: bestLexical.params,
-            seed: options.seed + 50000,
-            onlyTags: [...ood.heldOutTags],
-            vectorEnabled: options.vector || undefined,
-          },
-        ],
-        1,
-        'RRSI OOD domain holdout',
-        outFile,
-      );
-      const oodScore = oodResult[0]?.metrics.objectiveScore;
-      if (oodScore !== undefined) {
-        console.log(
-          `  [RRSI] OOD domain holdout (${ood.cases.length} cases, ${ood.heldOutTags.join('/')}): ${oodScore.toFixed(4)} vs in-split ${bestLexical.metrics.objectiveScore.toFixed(4)}`,
-        );
-      }
-    }
+/**
+ * OOD confirmation: the winning candidate is scored on domains the evolve
+ * split never trained it on (v8-inspector / webgpu / dart-inspector). This is
+ * the benchmark-disjoint check — a candidate that only wins inside the
+ * domains it was tuned against shows up here as a drop. Reported, not gated:
+ * with three domains the slice is too small to reject on.
+ */
+async function logOodConfirmation(ctx: TunePhaseContext, bestLexical: TrialResult): Promise<void> {
+  if (ctx.options.dataset === 'realtime') return;
+  const { loadDomainHoldoutDataset } = await import('./datasets/domain-holdout');
+  const ood = await loadDomainHoldoutDataset({
+    holdOutTags: ['v8-inspector', 'webgpu', 'dart-inspector'],
+  });
+  if (ood.cases.length === 0) return;
+  const oodResult = await runTrials(
+    [
+      {
+        trialId: 'ood-0',
+        phase: 2,
+        dataset: 'search-quality',
+        params: bestLexical.params,
+        seed: ctx.options.seed + 50000,
+        onlyTags: [...ood.heldOutTags],
+        vectorEnabled: ctx.options.vector || undefined,
+      },
+    ],
+    1,
+    'RRSI OOD domain holdout',
+    ctx.outFile,
+  );
+  const oodScore = oodResult[0]?.metrics.objectiveScore;
+  if (oodScore !== undefined) {
+    console.log(
+      `  [RRSI] OOD domain holdout (${ood.cases.length} cases, ${ood.heldOutTags.join('/')}): ${oodScore.toFixed(4)} vs in-split ${bestLexical.metrics.objectiveScore.toFixed(4)}`,
+    );
   }
+}
 
-  // Phase 3: Profile penalty tuning (profile-tier includes rerank-state cases
-  // so rerank params also get partial signal here)
-  const p3Specs: TrialSpec[] = [];
-  const p3Count = 80;
-  for (let i = 0; i < p3Count; i++) {
-    const penaltyParams = sampleFresh(phase3Defs, options.seed + 20000 + i);
+/** Phase 3: Profile penalty tuning (profile-tier includes rerank-state cases
+ * so rerank params also get partial signal here). */
+async function runPhase3Profile(
+  ctx: TunePhaseContext,
+  bestLexical: TrialResult,
+): Promise<TrialResult[]> {
+  const count = 80;
+  const specs: TrialSpec[] = [];
+  for (let i = 0; i < count; i++) {
+    const penaltyParams = ctx.sampleFresh(ctx.phase3Defs, ctx.options.seed + 20000 + i);
     const merged = normalizeParams({
       ...bestLexical.params,
       ...penaltyParams,
     } as TrialParams);
-    p3Specs.push({
+    specs.push({
       trialId: `p3-${String(i).padStart(4, '0')}`,
       phase: 3,
-      dataset: options.dataset === 'realtime' ? 'realtime' : 'profile-tier',
+      dataset: datasetArg(ctx.options, 'profile-tier'),
       params: merged as Record<string, number>,
-      seed: options.seed + 20000 + i,
-      vectorEnabled: options.vector || undefined,
+      seed: ctx.options.seed + 20000 + i,
+      vectorEnabled: ctx.options.vector || undefined,
     });
   }
-  const p3Results = await runTrials(p3Specs, options.concurrency, 'Phase 3 — Profile', outFile);
-  const bestProfile = [...p3Results].toSorted((a, b) => rankScore(b) - rankScore(a))[0];
+  return runTrials(specs, ctx.options.concurrency, 'Phase 3 — Profile', ctx.outFile);
+}
 
-  // Phase 4: Rerank-specific tuning — uses rerank-state dataset with varied
-  // runtime states to directly optimize rerank multipliers.
-  const bestPhase3Params = bestProfile?.params ?? bestLexical?.params ?? {};
-  const p4Specs: TrialSpec[] = [];
-  const p4Count = 60;
-  for (let i = 0; i < p4Count; i++) {
-    const rerankParams = sampleFresh(phase4Defs, options.seed + 30000 + i);
+/** Phase 4: Rerank-specific tuning — rerank-state dataset with varied runtime
+ * states to directly optimize rerank multipliers. */
+async function runPhase4Rerank(
+  ctx: TunePhaseContext,
+  bestPhase3Params: Record<string, number>,
+): Promise<TrialResult[]> {
+  const count = 60;
+  const specs: TrialSpec[] = [];
+  for (let i = 0; i < count; i++) {
+    const rerankParams = ctx.sampleFresh(ctx.phase4Defs, ctx.options.seed + 30000 + i);
     const merged = normalizeParams({
       ...bestPhase3Params,
       ...rerankParams,
     } as TrialParams);
-    p4Specs.push({
+    specs.push({
       trialId: `p4-${String(i).padStart(4, '0')}`,
       phase: 4,
-      dataset: options.dataset === 'realtime' ? 'realtime' : 'rerank-state',
+      dataset: datasetArg(ctx.options, 'rerank-state'),
       params: merged as Record<string, number>,
-      seed: options.seed + 30000 + i,
-      vectorEnabled: options.vector || undefined,
+      seed: ctx.options.seed + 30000 + i,
+      vectorEnabled: ctx.options.vector || undefined,
     });
   }
-  const p4Results = await runTrials(p4Specs, options.concurrency, 'Phase 4 — Rerank', outFile);
-  const bestRerank = [...p4Results].toSorted((a, b) => rankScore(b) - rankScore(a))[0];
+  return runTrials(specs, ctx.options.concurrency, 'Phase 4 — Rerank', ctx.outFile);
+}
 
-  // ── Summary ──
-  const totalTrials = p1Results.length + p2Results.length + p3Results.length + p4Results.length;
-  console.log('\n═══ Optimization Summary ═══');
-  console.log(`Total trials: ${totalTrials}`);
-
-  if (bestLexical) {
-    console.log(`\nBest lexical (score=${bestLexical.metrics.objectiveScore.toFixed(4)}):`);
-    for (const [k, v] of Object.entries(bestLexical.params).toSorted()) {
-      if (v !== undefined) console.log(`  ${k} = ${v}`);
-    }
+function logPhaseParams(label: string, trial: TrialResult | undefined, metrics: boolean): void {
+  if (!trial) return;
+  console.log(`\n${label} (score=${trial.metrics.objectiveScore.toFixed(4)}):`);
+  for (const [k, v] of Object.entries(trial.params).toSorted()) {
+    if (v !== undefined) console.log(`  ${k} = ${v}`);
+  }
+  if (metrics) {
     console.log(
-      `  MRR@10=${bestLexical.metrics.mrrAt10.toFixed(3)} NDCG@10=${bestLexical.metrics.ndcgAt10.toFixed(3)} P@1=${bestLexical.metrics.pAt1.toFixed(3)} P@3=${bestLexical.metrics.pAt3.toFixed(3)}`,
+      `  MRR@10=${trial.metrics.mrrAt10.toFixed(3)} NDCG@10=${trial.metrics.ndcgAt10.toFixed(3)} P@1=${trial.metrics.pAt1.toFixed(3)} P@3=${trial.metrics.pAt3.toFixed(3)}`,
     );
   }
-  if (bestProfile) {
-    console.log(`\nBest profile (score=${bestProfile.metrics.objectiveScore.toFixed(4)}):`);
-    for (const [k, v] of Object.entries(bestProfile.params).toSorted()) {
-      if (v !== undefined) console.log(`  ${k} = ${v}`);
-    }
-  }
-  if (bestRerank) {
-    console.log(`\nBest rerank (score=${bestRerank.metrics.objectiveScore.toFixed(4)}):`);
-    for (const [k, v] of Object.entries(bestRerank.params).toSorted()) {
-      if (v !== undefined) console.log(`  ${k} = ${v}`);
-    }
-  }
-  console.log(`\nResults: ${outFile}`);
+}
 
-  // Auto-apply best params to .env.
-  // Merge by phase rather than taking one trial's full param set: lexical
-  // params come from the best lexical trial, then profile/rerank overrides
-  // are layered on top.  This prevents the small profile/rerank datasets
-  // from silently degrading the lexical defaults through cross-phase param
-  // spill (e.g. SEARCH_RRF_BM25_BLEND being pulled from a profile trial).
+/**
+ * Auto-apply best params to .env.
+ * Merge by phase rather than taking one trial's full param set: lexical
+ * params come from the best lexical trial, then profile/rerank overrides
+ * are layered on top.  This prevents the small profile/rerank datasets
+ * from silently degrading the lexical defaults through cross-phase param
+ * spill (e.g. SEARCH_RRF_BM25_BLEND being pulled from a profile trial).
+ */
+async function applyBestParamsToEnv(
+  options: TuneOptions,
+  outFile: string,
+  bestLexical: TrialResult | undefined,
+  bestProfile: TrialResult | undefined,
+  bestRerank: TrialResult | undefined,
+  frozenParams: Partial<Record<TunableParamKey, number>>,
+): Promise<void> {
+  console.log(`\nResults: ${outFile}`);
   const mergedParams: Record<string, number> = {
     ...bestLexical?.params,
   };
@@ -980,6 +999,98 @@ async function orchestrate(): Promise<void> {
   } else {
     await applyToEnv(envPath, mergedParams, bestLexical?.metrics.objectiveScore ?? 0);
   }
+}
+
+async function orchestrate(): Promise<void> {
+  const options = parseOptions();
+  const outFile = pathResolve(options.outDir, 'trials.jsonl');
+  await mkdir(options.outDir, { recursive: true });
+  await verifyRealtimeDataset(options);
+
+  // Clear old results
+  await writeFile(outFile, '', 'utf-8');
+
+  const defs = await loadSearchSpace();
+  const frozenRef: FrozenParamsRef = { current: {} };
+  const rankScore = (t: { params: Record<string, number>; metrics: { objectiveScore: number } }) =>
+    regularizedScore(
+      { params: t.params, objectiveScore: t.metrics.objectiveScore },
+      options.regularization,
+    );
+  const rejectionHistory = await loadHistory();
+  const ctx: TunePhaseContext = {
+    options,
+    outFile,
+    defs,
+    phase1Defs: getPhaseParams(defs, 1, { vectorEnabled: options.vector }),
+    phase3Defs: getPhaseParams(defs, 3, { vectorEnabled: options.vector }),
+    phase4Defs: getPhaseParams(defs, 4, { vectorEnabled: options.vector }),
+    sampleFresh: () => ({}) as TrialParams, // replaced below (needs frozenRef)
+    rankScore,
+  };
+  ctx.sampleFresh = createRejectionAvoidingSampler(ctx, rejectionHistory, frozenRef);
+  logTuningPlan(ctx);
+  if (rejectionHistory.length > 0) {
+    console.log(
+      `[RRSI] ${rejectionHistory.length} rejected region(s) loaded — resampling avoids them`,
+    );
+  }
+
+  // Phase 1: Random search
+  const p1Results = await runTrials(
+    buildPhase1Specs(ctx),
+    options.concurrency,
+    'Phase 1 — Random',
+    outFile,
+  );
+
+  const frozenKeySet = freezeLowSensitivityParams(ctx, p1Results, frozenRef);
+  const sortedP1 = [...p1Results].toSorted((a, b) => rankScore(b) - rankScore(a));
+  const bestP1 = sortedP1[0];
+  logBestTrial('Best', bestP1, true);
+
+  // Phase 2: Local refinement around top-N
+  const p2Results = await runPhase2Refinement(ctx, sortedP1, frozenKeySet);
+  const allLexical = [...p1Results, ...p2Results].toSorted((a, b) => rankScore(b) - rankScore(a));
+  let bestLexical = allLexical[0];
+  logBestTrial('Best lexical', bestLexical, false);
+  if (!bestLexical) {
+    console.error('[search-tune] no lexical trials succeeded — aborting before .env is touched');
+    process.exit(1);
+  }
+
+  const verifiedBest = await runRrsiHoldoutVerification(ctx, allLexical);
+  if (verifiedBest) {
+    bestLexical = verifiedBest;
+  }
+
+  await logOodConfirmation(ctx, bestLexical);
+
+  // Phase 3: Profile penalty tuning
+  const p3Results = await runPhase3Profile(ctx, bestLexical);
+  const bestProfile = [...p3Results].toSorted((a, b) => rankScore(b) - rankScore(a))[0];
+
+  // Phase 4: Rerank-specific tuning
+  const bestPhase3Params = bestProfile?.params ?? bestLexical?.params ?? {};
+  const p4Results = await runPhase4Rerank(ctx, bestPhase3Params);
+  const bestRerank = [...p4Results].toSorted((a, b) => rankScore(b) - rankScore(a))[0];
+
+  // ── Summary ──
+  const totalTrials = p1Results.length + p2Results.length + p3Results.length + p4Results.length;
+  console.log('\n═══ Optimization Summary ═══');
+  console.log(`Total trials: ${totalTrials}`);
+  logPhaseParams('Best lexical', bestLexical, true);
+  logPhaseParams('Best profile', bestProfile, false);
+  logPhaseParams('Best rerank', bestRerank, false);
+
+  await applyBestParamsToEnv(
+    options,
+    outFile,
+    bestLexical,
+    bestProfile,
+    bestRerank,
+    frozenRef.current,
+  );
 }
 
 async function applyToEnv(
