@@ -85,45 +85,63 @@ export function isAsarDataOffsetValid(
     const first = samples[0]!;
     const start = dataOffset + first.offset;
     if (start >= 0 && start < asarBuffer.length) {
-      const firstByte = asarBuffer[start];
-      // Valid file data should not start with JSON structural characters or null
-      // (which would indicate we're reading header content, not file data)
-      if (firstByte === 0x7b || firstByte === 0x7d || firstByte === 0x22 || firstByte === 0x5b) {
-        // Could be a JSON file starting with { } " [ — check if it's inside the header region
-        // by verifying the first file's offset + size doesn't overlap with the header
-        // Heuristic: if all 3 sample files start with JSON characters, likely in header
-        let jsonStartCount = 0;
-        for (const file of samples.slice(0, 4)) {
-          const s = dataOffset + file.offset;
-          if (s < asarBuffer.length) {
-            const b = asarBuffer[s];
-            if (b === 0x7b || b === 0x7d || b === 0x22 || b === 0x5b || b === 0x3a) {
-              jsonStartCount++;
-            }
-          }
-        }
-        // If multiple files start with JSON chars at this offset, we're probably in the header
-        if (jsonStartCount >= 3) return false;
-      }
-      // A header padding region is a run of null bytes spanning many file slots.
-      // Require several sampled files to ALL start with 0x00 before rejecting;
-      // a single binary payload (e.g. a .node / packed blob) legitimately may
-      // start with a null byte, so the old single-sample 0x00 reject was a
-      // false negative that broke repacked archives containing such files.
-      if (samples.length >= 3) {
-        let nullStartCount = 0;
-        for (const file of samples.slice(0, 4)) {
-          const s = dataOffset + file.offset;
-          if (s >= 0 && s < asarBuffer.length && asarBuffer[s] === 0x00) {
-            nullStartCount += 1;
-          }
-        }
-        if (nullStartCount >= 3) return false;
-      }
+      if (looksLikeHeaderRegion(samples, dataOffset, asarBuffer)) return false;
     }
   }
 
   return true;
+}
+
+/** Sampled start bytes of the first ≤4 files (only where in bounds). */
+function sampledStartBytes(
+  samples: AsarFileEntry[],
+  dataOffset: number,
+  asarBuffer: Buffer,
+): number[] {
+  const bytes: number[] = [];
+  for (const file of samples.slice(0, 4)) {
+    const s = dataOffset + file.offset;
+    if (s >= 0 && s < asarBuffer.length) {
+      bytes.push(asarBuffer[s]!);
+    }
+  }
+  return bytes;
+}
+
+const JSON_START_BYTES = new Set([0x7b, 0x7d, 0x22, 0x5b, 0x3a]);
+
+/** Content validation: reject offsets that read header content as file data.
+ *  - Many sampled files starting with JSON structural characters → header.
+ *  - A header padding region is a run of null bytes spanning many file slots.
+ *    Require several sampled files to ALL start with 0x00 before rejecting;
+ *    a single binary payload (e.g. a .node / packed blob) legitimately may
+ *    start with a null byte, so the old single-sample 0x00 reject was a
+ *    false negative that broke repacked archives containing such files. */
+function looksLikeHeaderRegion(
+  samples: AsarFileEntry[],
+  dataOffset: number,
+  asarBuffer: Buffer,
+): boolean {
+  const first = samples[0]!;
+  const start = dataOffset + first.offset;
+  const firstByte = asarBuffer[start];
+  // Valid file data should not start with JSON structural characters or null
+  // (which would indicate we're reading header content, not file data)
+  if (firstByte === 0x7b || firstByte === 0x7d || firstByte === 0x22 || firstByte === 0x5b) {
+    // Heuristic: if all 3 sample files start with JSON characters, likely in header
+    const jsonStartCount = sampledStartBytes(samples, dataOffset, asarBuffer).filter((b) =>
+      JSON_START_BYTES.has(b),
+    ).length;
+    // If multiple files start with JSON chars at this offset, we're probably in the header
+    if (jsonStartCount >= 3) return true;
+  }
+  if (samples.length >= 3) {
+    const nullStartCount = sampledStartBytes(samples, dataOffset, asarBuffer).filter(
+      (b) => b === 0x00,
+    ).length;
+    if (nullStartCount >= 3) return true;
+  }
+  return false;
 }
 
 export function parseAsarBuffer(asarBuffer: Buffer): ParsedAsar {

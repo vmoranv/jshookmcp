@@ -181,6 +181,79 @@ export interface BuildHarParams {
   creatorVersion?: string;
 }
 
+type HarBodyResult = {
+  text?: string;
+  encoding?: 'base64';
+  _bodyUnavailable?: boolean;
+  _bodyTruncated?: boolean;
+  _originalBodySize?: number;
+};
+
+/** Fetch response bodies for the given requests with a bounded-concurrency
+ * batch loop (avoids overwhelming CDP). Failures/unavailable bodies are
+ * recorded as `_bodyUnavailable` markers. */
+async function fetchHarBodies(
+  requests: Array<{ requestId: string }>,
+  getResponseBody: (requestId: string) => Promise<{ body: string; base64Encoded: boolean } | null>,
+): Promise<Map<string, HarBodyResult>> {
+  const bodyResults = new Map<string, HarBodyResult>();
+  const BODY_CONCURRENCY = NETWORK_HAR_BODY_CONCURRENCY;
+  for (let i = 0; i < requests.length; i += BODY_CONCURRENCY) {
+    const batch = requests.slice(i, i + BODY_CONCURRENCY);
+    const settled = await Promise.allSettled(
+      batch.map(async (req) => {
+        try {
+          const bodyResult = await getResponseBody(req.requestId);
+          if (bodyResult) {
+            // HAR 1.2 requires content.encoding='base64' for base64-encoded
+            // bodies, otherwise viewers decode the raw base64 as UTF-8 text.
+            // Cap each body to the byte budget so one huge response cannot
+            // inflate the retained HAR memory; mark truncation on the entry.
+            // For base64 the budget is measured in decoded bytes, so convert
+            // to a 4-char-aligned character budget (3 decoded bytes / 4 chars).
+            const isBase64 = bodyResult.base64Encoded;
+            const originalSize = isBase64
+              ? Math.floor((bodyResult.body.length * 3) / 4)
+              : Buffer.byteLength(bodyResult.body, 'utf8');
+            const { text, truncated } = isBase64
+              ? capBodyBase64(bodyResult.body, NETWORK_HAR_BODY_MAX_BYTES)
+              : capBodyText(bodyResult.body, NETWORK_HAR_BODY_MAX_BYTES);
+            return {
+              requestId: req.requestId,
+              text,
+              ...(bodyResult.base64Encoded ? { encoding: 'base64' as const } : {}),
+              ...(truncated
+                ? { _bodyTruncated: true as const, _originalBodySize: originalSize }
+                : {}),
+            };
+          }
+          return { requestId: req.requestId, _bodyUnavailable: true as const };
+        } catch {
+          return { requestId: req.requestId, _bodyUnavailable: true as const };
+        }
+      }),
+    );
+    for (const result of settled) {
+      if (result.status === 'fulfilled') {
+        const val = result.value;
+        if ('_bodyUnavailable' in val) {
+          bodyResults.set(val.requestId, { _bodyUnavailable: true });
+        } else {
+          bodyResults.set(val.requestId, {
+            text: val.text,
+            ...(val.encoding !== undefined && { encoding: val.encoding }),
+            ...(val._bodyTruncated !== undefined && { _bodyTruncated: val._bodyTruncated }),
+            ...(val._originalBodySize !== undefined && {
+              _originalBodySize: val._originalBodySize,
+            }),
+          });
+        }
+      }
+    }
+  }
+  return bodyResults;
+}
+
 export async function buildHar(params: BuildHarParams): Promise<Har> {
   const {
     requests,
@@ -191,73 +264,9 @@ export async function buildHar(params: BuildHarParams): Promise<Har> {
   } = params;
   const entries: HarEntry[] = [];
 
-  // Parallel body fetching with concurrency limit to avoid overwhelming CDP
-  const bodyResults = new Map<
-    string,
-    {
-      text?: string;
-      encoding?: 'base64';
-      _bodyUnavailable?: boolean;
-      _bodyTruncated?: boolean;
-      _originalBodySize?: number;
-    }
-  >();
-  if (includeBodies) {
-    const BODY_CONCURRENCY = NETWORK_HAR_BODY_CONCURRENCY;
-    for (let i = 0; i < requests.length; i += BODY_CONCURRENCY) {
-      const batch = requests.slice(i, i + BODY_CONCURRENCY);
-      const settled = await Promise.allSettled(
-        batch.map(async (req) => {
-          try {
-            const bodyResult = await getResponseBody(req.requestId);
-            if (bodyResult) {
-              // HAR 1.2 requires content.encoding='base64' for base64-encoded
-              // bodies, otherwise viewers decode the raw base64 as UTF-8 text.
-              // Cap each body to the byte budget so one huge response cannot
-              // inflate the retained HAR memory; mark truncation on the entry.
-              // For base64 the budget is measured in decoded bytes, so convert
-              // to a 4-char-aligned character budget (3 decoded bytes / 4 chars).
-              const isBase64 = bodyResult.base64Encoded;
-              const originalSize = isBase64
-                ? Math.floor((bodyResult.body.length * 3) / 4)
-                : Buffer.byteLength(bodyResult.body, 'utf8');
-              const { text, truncated } = isBase64
-                ? capBodyBase64(bodyResult.body, NETWORK_HAR_BODY_MAX_BYTES)
-                : capBodyText(bodyResult.body, NETWORK_HAR_BODY_MAX_BYTES);
-              return {
-                requestId: req.requestId,
-                text,
-                ...(bodyResult.base64Encoded ? { encoding: 'base64' as const } : {}),
-                ...(truncated
-                  ? { _bodyTruncated: true as const, _originalBodySize: originalSize }
-                  : {}),
-              };
-            }
-            return { requestId: req.requestId, _bodyUnavailable: true as const };
-          } catch {
-            return { requestId: req.requestId, _bodyUnavailable: true as const };
-          }
-        }),
-      );
-      for (const result of settled) {
-        if (result.status === 'fulfilled') {
-          const val = result.value;
-          if ('_bodyUnavailable' in val) {
-            bodyResults.set(val.requestId, { _bodyUnavailable: true });
-          } else {
-            bodyResults.set(val.requestId, {
-              text: val.text,
-              ...(val.encoding !== undefined && { encoding: val.encoding }),
-              ...(val._bodyTruncated !== undefined && { _bodyTruncated: val._bodyTruncated }),
-              ...(val._originalBodySize !== undefined && {
-                _originalBodySize: val._originalBodySize,
-              }),
-            });
-          }
-        }
-      }
-    }
-  }
+  const bodyResults = includeBodies
+    ? await fetchHarBodies(requests, getResponseBody)
+    : new Map<string, HarBodyResult>();
 
   for (const req of requests) {
     const res = getResponse(req.requestId);

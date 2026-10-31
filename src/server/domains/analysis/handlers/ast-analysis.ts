@@ -159,80 +159,20 @@ export async function handleAnalysisDeflatControlFlow(args: ToolArgs): Promise<T
     traverseAst(ast, {
       WhileStatement: (path: NodePath) => {
         if (!path.isWhileStatement()) return;
-        const node = path.node;
-        const test = node.test;
-        if (test.type !== 'BooleanLiteral' || test.value !== true) return;
+        const shape = matchControlFlowFlattening(path.node);
+        if (!shape) return;
+        const elements = resolveDispatcherArray(path, shape.arrayName);
+        if (!elements) return;
+        const dispatchOrder = extractDispatchOrder(elements);
+        if (dispatchOrder.length === 0) return;
 
-        const body = node.body;
-        if (body.type !== 'BlockStatement') return;
-
-        const switchStmt = body.body.find(
-          (s): s is t.SwitchStatement => s.type === 'SwitchStatement',
-        );
-        if (!switchStmt) return;
-
-        const discriminant = switchStmt.discriminant;
-        if (discriminant.type !== 'MemberExpression' || !discriminant.computed) return;
-        const objExpr = discriminant.object;
-        if (objExpr.type !== 'Identifier') return;
-
-        const arrayName = objExpr.name;
-
-        // Accept index as Identifier or UpdateExpression(Identifier++)
-        let indexName: string | undefined;
-        const propExpr = discriminant.property;
-        if (propExpr.type === 'Identifier') {
-          indexName = propExpr.name;
-        } else if (
-          propExpr.type === 'UpdateExpression' &&
-          propExpr.argument.type === 'Identifier'
-        ) {
-          indexName = propExpr.argument.name;
-        }
-        if (!indexName) return;
-
-        const cases = switchStmt.cases;
-        if (cases.length === 0) return;
-
-        const caseMap = new Map<string, t.Statement[]>();
-        for (const c of cases) {
-          if (!c.test || c.test.type !== 'StringLiteral') continue;
-          caseMap.set(c.test.value, c.consequent as t.Statement[]);
-        }
-
-        const arrayBinding = path.scope.getBinding(arrayName);
-        const indexBinding = path.scope.getBinding(indexName);
+        const arrayBinding = path.scope.getBinding(shape.arrayName);
+        const indexBinding = path.scope.getBinding(shape.indexName);
         if (!arrayBinding || !indexBinding) return;
 
-        const elements = resolveDispatcherArray(path, arrayName);
-        if (!elements) return;
-
-        const order: string[] = [];
-        if (elements.type === 'ArrayExpression') {
-          for (const el of elements.elements) {
-            if (el && el.type === 'StringLiteral') {
-              order.push(el.value);
-            }
-          }
-        } else if (
-          elements.type === 'CallExpression' &&
-          elements.callee.type === 'MemberExpression' &&
-          elements.callee.property.type === 'Identifier' &&
-          elements.callee.property.name === 'split' &&
-          elements.arguments[0]?.type === 'StringLiteral'
-        ) {
-          const separator = elements.arguments[0].value;
-          const strNode = elements.callee.object;
-          if (strNode.type === 'StringLiteral') {
-            order.push(...strNode.value.split(separator));
-          }
-        }
-
-        if (order.length === 0) return;
-
         const reordered: t.Statement[] = [];
-        for (const key of order) {
-          const stmts = caseMap.get(key);
+        for (const key of dispatchOrder) {
+          const stmts = shape.caseMap.get(key);
           if (stmts) {
             for (const s of stmts) {
               if (s.type === 'BreakStatement') continue;
@@ -324,4 +264,79 @@ function resolveDispatcherArray(
   }
 
   return null;
+}
+
+/** Shape of a control-flow-flattening dispatcher matched inside a
+ * `while (true) { switch (...) { ... } }`. */
+interface DispatcherShape {
+  arrayName: string;
+  indexName: string;
+  caseMap: Map<string, t.Statement[]>;
+}
+
+/** Match `while (true) { switch (arr[idx++]) {...} }` dispatchers. Returns
+ * null for anything else (conditions verbatim from the former visitor). */
+function matchControlFlowFlattening(node: t.Node): DispatcherShape | null {
+  if (node.type !== 'WhileStatement') return null;
+  const whileNode = node as t.WhileStatement;
+  const test = whileNode.test;
+  if (test.type !== 'BooleanLiteral' || test.value !== true) return null;
+
+  const body = whileNode.body;
+  if (body.type !== 'BlockStatement') return null;
+
+  const switchStmt = body.body.find((s): s is t.SwitchStatement => s.type === 'SwitchStatement');
+  if (!switchStmt) return null;
+
+  const discriminant = switchStmt.discriminant;
+  if (discriminant.type !== 'MemberExpression' || !discriminant.computed) return null;
+  const objExpr = discriminant.object;
+  if (objExpr.type !== 'Identifier') return null;
+
+  // Accept index as Identifier or UpdateExpression(Identifier++)
+  let indexName: string | undefined;
+  const propExpr = discriminant.property;
+  if (propExpr.type === 'Identifier') {
+    indexName = propExpr.name;
+  } else if (propExpr.type === 'UpdateExpression' && propExpr.argument.type === 'Identifier') {
+    indexName = propExpr.argument.name;
+  }
+  if (!indexName) return null;
+
+  const cases = switchStmt.cases;
+  if (cases.length === 0) return null;
+
+  const caseMap = new Map<string, t.Statement[]>();
+  for (const c of cases) {
+    if (!c.test || c.test.type !== 'StringLiteral') continue;
+    caseMap.set(c.test.value, c.consequent as t.Statement[]);
+  }
+
+  return { arrayName: objExpr.name, indexName, caseMap };
+}
+
+/** Extract the dispatch order from the array initializer: either a
+ * StringLiteral[] or `'a|b|c'.split('|')`. */
+function extractDispatchOrder(elements: t.Expression): string[] {
+  const order: string[] = [];
+  if (elements.type === 'ArrayExpression') {
+    for (const el of elements.elements) {
+      if (el && el.type === 'StringLiteral') {
+        order.push(el.value);
+      }
+    }
+  } else if (
+    elements.type === 'CallExpression' &&
+    elements.callee.type === 'MemberExpression' &&
+    elements.callee.property.type === 'Identifier' &&
+    elements.callee.property.name === 'split' &&
+    elements.arguments[0]?.type === 'StringLiteral'
+  ) {
+    const separator = elements.arguments[0].value;
+    const strNode = elements.callee.object;
+    if (strNode.type === 'StringLiteral') {
+      order.push(...strNode.value.split(separator));
+    }
+  }
+  return order;
 }
