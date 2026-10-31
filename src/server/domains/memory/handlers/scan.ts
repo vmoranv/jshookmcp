@@ -291,45 +291,9 @@ export class ScanHandlers {
       const value = typeof args.value === 'string' ? args.value : undefined;
       const value2 = typeof args.value2 === 'string' ? args.value2 : undefined;
 
-      // Parse delta for delta modes
-      let delta: number | undefined;
-      if (DELTA_REQUIRED_MODES.has(mode)) {
-        const rawDelta = argNumber(args, 'delta');
-        if (rawDelta === undefined || !Number.isFinite(rawDelta)) {
-          throw new Error(
-            `${TOOL_NEXT_SCAN}: mode "${mode}" requires argument "delta" (a finite number)`,
-          );
-        }
-        if (NON_NEGATIVE_DELTA_MODES.has(mode) && rawDelta < 0) {
-          throw new Error(
-            `${TOOL_NEXT_SCAN}: mode "${mode}" requires a non-negative "delta", got: ${rawDelta}`,
-          );
-        }
-        delta = rawDelta;
-      }
+      const delta = parseNextScanDelta(args, mode);
 
-      // Parse tolerance for float/double valueType
-      let tolerance: number | undefined;
-      if (args.tolerance !== undefined) {
-        const rawTol = argNumber(args, 'tolerance');
-        if (rawTol === undefined || !Number.isFinite(rawTol)) {
-          throw new Error(
-            `${TOOL_NEXT_SCAN}: "tolerance" must be a finite number, got: ${JSON.stringify(args.tolerance)}`,
-          );
-        }
-        if (rawTol < 0) {
-          throw new Error(`${TOOL_NEXT_SCAN}: "tolerance" must be non-negative, got: ${rawTol}`);
-        }
-        // Validate that the session valueType is float/double
-        const { scanSessionManager } = await import('@native/MemoryScanSession');
-        const session = scanSessionManager.getSession(sessionId);
-        if (!FLOAT_TYPES.has(session.valueType)) {
-          throw new Error(
-            `${TOOL_NEXT_SCAN}: "tolerance" is only valid with float or double valueType (session valueType is "${session.valueType}")`,
-          );
-        }
-        tolerance = rawTol;
-      }
+      const tolerance = await parseNextScanTolerance(args, sessionId);
 
       // "between" requires both bounds — enforce here so the native layer never
       // receives an undefined upper bound and produce a cryptic comparator error.
@@ -351,39 +315,7 @@ export class ScanHandlers {
       );
 
       // Post-filter: excludeValues (handler-level filter, no native change needed)
-      const excludeValuesRaw = args.excludeValues;
-      if (
-        Array.isArray(excludeValuesRaw) &&
-        excludeValuesRaw.length > 0 &&
-        result.addresses.length > 0
-      ) {
-        const excludeSet = new Set(excludeValuesRaw.map((v) => String(v).toLowerCase()));
-        const { scanSessionManager: mgr } = await import('@native/MemoryScanSession');
-        const { parseAddress } = await import('@native/formatAddress');
-        const sess = mgr.getSession(sessionId);
-        const filtered: string[] = [];
-        let excludedCount = 0;
-        for (const addrStr of result.addresses) {
-          let keep = true;
-          try {
-            const addrBig = parseAddress(addrStr);
-            const buf = sess.previousValues.get(addrBig);
-            if (buf) {
-              const hexVal = buf.toString('hex').toLowerCase();
-              if (excludeSet.has(hexVal)) {
-                keep = false;
-                excludedCount++;
-              }
-            }
-          } catch {
-            // If address parsing fails, keep the address (fail-safe)
-          }
-          if (keep) filtered.push(addrStr);
-        }
-        result.addresses = filtered;
-        result.totalMatches = filtered.length;
-        (result as unknown as Record<string, unknown>).excludedCount = excludedCount;
-      }
+      await applyExcludeValuesFilter(result, sessionId, args.excludeValues);
 
       return {
         ...result,
@@ -1057,5 +989,89 @@ function computeEncryptedValue(value: string, valueType: string, xorKey: number)
     }
   } catch {
     return null;
+  }
+}
+
+/** Parse and validate the `delta` argument for delta comparison modes. */
+function parseNextScanDelta(args: Record<string, unknown>, mode: string): number | undefined {
+  if (!DELTA_REQUIRED_MODES.has(mode)) return undefined;
+  const rawDelta = argNumber(args, 'delta');
+  if (rawDelta === undefined || !Number.isFinite(rawDelta)) {
+    throw new Error(
+      `${TOOL_NEXT_SCAN}: mode "${mode}" requires argument "delta" (a finite number)`,
+    );
+  }
+  if (NON_NEGATIVE_DELTA_MODES.has(mode) && rawDelta < 0) {
+    throw new Error(
+      `${TOOL_NEXT_SCAN}: mode "${mode}" requires a non-negative "delta", got: ${rawDelta}`,
+    );
+  }
+  return rawDelta;
+}
+
+/** Parse and validate `tolerance` (float/double sessions only). */
+async function parseNextScanTolerance(
+  args: Record<string, unknown>,
+  sessionId: string,
+): Promise<number | undefined> {
+  if (args.tolerance === undefined) return undefined;
+  const rawTol = argNumber(args, 'tolerance');
+  if (rawTol === undefined || !Number.isFinite(rawTol)) {
+    throw new Error(
+      `${TOOL_NEXT_SCAN}: "tolerance" must be a finite number, got: ${JSON.stringify(args.tolerance)}`,
+    );
+  }
+  if (rawTol < 0) {
+    throw new Error(`${TOOL_NEXT_SCAN}: "tolerance" must be non-negative, got: ${rawTol}`);
+  }
+  // Validate that the session valueType is float/double
+  const { scanSessionManager } = await import('@native/MemoryScanSession');
+  const session = scanSessionManager.getSession(sessionId);
+  if (!FLOAT_TYPES.has(session.valueType)) {
+    throw new Error(
+      `${TOOL_NEXT_SCAN}: "tolerance" is only valid with float or double valueType (session valueType is "${session.valueType}")`,
+    );
+  }
+  return rawTol;
+}
+
+/** Drop result addresses whose previous value is in the caller's
+ * excludeValues list (handler-level filter; no native change needed). */
+async function applyExcludeValuesFilter(
+  result: { addresses: string[]; totalMatches: number },
+  sessionId: string,
+  excludeValuesRaw: unknown,
+): Promise<void> {
+  if (
+    Array.isArray(excludeValuesRaw) &&
+    excludeValuesRaw.length > 0 &&
+    result.addresses.length > 0
+  ) {
+    const excludeSet = new Set(excludeValuesRaw.map((v) => String(v).toLowerCase()));
+    const { scanSessionManager: mgr } = await import('@native/MemoryScanSession');
+    const { parseAddress } = await import('@native/formatAddress');
+    const sess = mgr.getSession(sessionId);
+    const filtered: string[] = [];
+    let excludedCount = 0;
+    for (const addrStr of result.addresses) {
+      let keep = true;
+      try {
+        const addrBig = parseAddress(addrStr);
+        const buf = sess.previousValues.get(addrBig);
+        if (buf) {
+          const hexVal = buf.toString('hex').toLowerCase();
+          if (excludeSet.has(hexVal)) {
+            keep = false;
+            excludedCount++;
+          }
+        }
+      } catch {
+        // If address parsing fails, keep the address (fail-safe)
+      }
+      if (keep) filtered.push(addrStr);
+    }
+    result.addresses = filtered;
+    result.totalMatches = filtered.length;
+    (result as unknown as Record<string, unknown>).excludedCount = excludedCount;
   }
 }
