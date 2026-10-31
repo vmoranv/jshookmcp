@@ -252,46 +252,15 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     if (gateResponse) return gateResponse;
 
     if (ctx.circuitBreaker.shouldBlock(name)) {
-      const state = ctx.circuitBreaker.getState(name);
-      const retryAfter = state
-        ? Math.ceil(
-            (ctx.circuitBreaker.getRecoveryMs() - (Date.now() - state.lastFailureTime)) / 1000,
-          )
-        : DEFAULT_RETRY_AFTER_SEC;
       if (timeoutTimer) clearTimeout(timeoutTimer);
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: false,
-              error: `Circuit breaker open for tool "${name}"`,
-              reason: `Tool has failed consecutively ${state?.failureCount ?? 0} times`,
-              retryAfterSeconds: retryAfter,
-            }),
-          },
-        ],
-        isError: true,
-      };
+      return circuitBreakerBlockedResponse(ctx, name);
     }
 
     // Level-2 fast validation (JIT compiled validator pool): rejects
     // unambiguously invalid arguments without a Zod pass. Conservative by
     // design — unknown/complex tools validate as OK and fall through to the
     // SDK's strict Zod validation on MCP-envelope calls.
-    const validationSpan = instrumentation.startSpan(SpanNames.toolValidateInput, {
-      toolName: name,
-      domain: getToolDomain(name) ?? null,
-    });
-    const fastArgError = fastValidateToolArgs(name, args);
-    // Ended before the early return below, so a rejected tool still gets a
-    // timed span rather than an unterminated one.
-    //
-    // `!fastArgError`, mirroring the `if (fastArgError)` early return exactly:
-    // the validator's contract is `string | null`, where NULL means valid. An
-    // earlier `=== undefined` here compiled cleanly and reported `valid: false`
-    // for every successful validation — a span attribute that always lied.
-    validationSpan.end({ valid: !fastArgError });
+    const fastArgError = runFastValidationSpan(instrumentation, name, args);
     if (fastArgError) {
       if (timeoutTimer) clearTimeout(timeoutTimer);
       return {
@@ -471,103 +440,12 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     if (ctx.activatedToolNames.has(name)) {
       refreshDomainTtlForTool(ctx, name);
     }
-    let toolResultSuccess = !enriched.isError;
-    const successFlag = enriched?.success;
-    if (typeof successFlag === 'boolean') {
-      // ResponseBuilder carries the payload's `success` boolean on the envelope,
-      // so we can read it without a full JSON.parse of the text content.
-      toolResultSuccess = successFlag;
-    } else if (enriched?.structuredContent && typeof enriched.structuredContent === 'object') {
-      const resultPayload = enriched.structuredContent as Record<string, unknown>;
-      toolResultSuccess = resultPayload.success !== false;
-    } else if (enriched?.content?.[0]?.type === 'text' && 'text' in enriched.content[0]) {
-      // Fallback for raw (non-ResponseBuilder) handlers that still encode
-      // `success` inside the text payload.
-      try {
-        const parsed = JSON.parse(enriched.content[0].text) as Record<string, unknown>;
-        toolResultSuccess = parsed.success !== false;
-      } catch {
-        toolResultSuccess = !enriched.isError;
-      }
-    }
-    // Circuit breaker: record success or failure
-    if (toolResultSuccess) {
-      ctx.circuitBreaker.recordSuccess(name);
-    } else {
-      ctx.circuitBreaker.recordFailure(name);
-    }
-    // Duration is computed ONCE and shared by the event and the metric below.
-    // Two clocks for the same interval is exactly how an event stream and a
-    // metrics backend drift apart, after which neither is trustworthy.
+    const toolResultSuccess = computeToolResultSuccess(enriched);
     const toolDurationMs = Number((performance.now() - executionStartTime).toFixed(2));
-    // Emit tool:called event for ActivationController
-    void ctx.eventBus.emit('tool:called', {
-      toolName: name,
-      domain: getToolDomain(name) ?? null,
-      sessionId:
-        typeof (args['_meta'] as { sessionId?: unknown } | undefined)?.sessionId === 'string'
-          ? (args['_meta'] as { sessionId: string }).sessionId.trim() || null
-          : (getToolRequestContext()?.sessionId ?? null),
-      timestamp: new Date().toISOString(),
-      success: toolResultSuccess,
-      durationMs: toolDurationMs,
-      errorKind: classifyErrorKind({
-        isError: enriched.isError === true,
-        successFlag: toolResultSuccess,
-      }),
-      args,
-      result: {
-        success: toolResultSuccess,
-        isError: enriched.isError === true,
-      },
-    });
-    // Metadata-only execution telemetry for the unified event stream (GET /events).
-    emitBusEvent(ctx.eventBus, 'tool.execution.finished', {
-      toolName: name,
-      domain: getToolDomain(name) ?? null,
-      sessionId: resolveCallSessionId(args),
-      durationMs: toolDurationMs,
-      ok: toolResultSuccess,
-      timestamp: new Date().toISOString(),
-    });
-    // One observation, two sinks: the event stream stays in-process, these go to
-    // whichever instrumentation backend is configured. Emitted from the same
-    // point so the two can never disagree about what happened.
-    instrumentation.emitMetric(MetricNames.toolCallsTotal, 1, 'counter', {
-      tool: name,
-      success: toolResultSuccess,
-    });
-    if (!toolResultSuccess) {
-      instrumentation.emitMetric(MetricNames.toolErrorsTotal, 1, 'counter', { tool: name });
-    }
-    instrumentation.emitMetric(MetricNames.toolDurationMs, toolDurationMs, 'histogram', {
-      tool: name,
-      success: toolResultSuccess,
-    });
-    const searchQualityTracker =
-      ctx.getDomainInstance<import('@server/search/SearchQualityTracker').SearchQualityTracker>(
-        'searchQualityTracker',
-      );
-    searchQualityTracker?.associateLastSearch(name);
-    // Learning signal for the search engine (adaptive vector weight +
-    // recency boost) fires on the direct-call path too, not just the
-    // call_tool proxy — this is the common path for agents invoking an
-    // already-active tool. Registered by getSearchEngine; absent until the
-    // first search builds the engine (no signal to learn from before that).
-    try {
-      const searchEngine =
-        ctx.getDomainInstance<import('@server/search/ToolSearchEngine').ToolSearchEngine>(
-          'searchEngine',
-        );
-      searchEngine?.recordToolCallFeedback(name, '');
-    } catch {
-      /* non-critical — feedback must never fail a tool call */
-    }
-    ctx.mcpLog.info('jshookmcp', {
-      event: 'tool_called',
-      toolName: name,
-      domain: getToolDomain(name) ?? null,
-      success: toolResultSuccess,
+    emitToolCallTelemetry(ctx, instrumentation, name, args, enriched, {
+      toolResultSuccess,
+      toolDurationMs,
+      executionStartTime,
     });
     // Commit pending resource updates to prevent stream flooding
     ctx
@@ -697,4 +575,176 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
   } finally {
     if (timeoutTimer) clearTimeout(timeoutTimer);
   }
+}
+
+/** Circuit-breaker open rejection (extracted from the execute pipeline). */
+function circuitBreakerBlockedResponse(ctx: MCPServerContext, name: string) {
+  const state = ctx.circuitBreaker.getState(name);
+  const retryAfter = state
+    ? Math.ceil((ctx.circuitBreaker.getRecoveryMs() - (Date.now() - state.lastFailureTime)) / 1000)
+    : DEFAULT_RETRY_AFTER_SEC;
+  return {
+    content: [
+      {
+        type: 'text' as const,
+        text: JSON.stringify({
+          success: false,
+          error: `Circuit breaker open for tool "${name}"`,
+          reason: `Tool has failed consecutively ${state?.failureCount ?? 0} times`,
+          retryAfterSeconds: retryAfter,
+        }),
+      },
+    ],
+    isError: true,
+  };
+}
+
+/** Level-2 fast validation wrapped in its timed span (see inline comments in
+ * the pipeline for the `!fastArgError` contract). Returns the error string or
+ * null when the arguments validate. */
+function runFastValidationSpan(
+  instrumentation: ReturnType<typeof resolveInstrumentation>,
+  name: string,
+  args: ToolArgs,
+): string | null {
+  const validationSpan = instrumentation.startSpan(SpanNames.toolValidateInput, {
+    toolName: name,
+    domain: getToolDomain(name) ?? null,
+  });
+  const fastArgError = fastValidateToolArgs(name, args);
+  // Ended before the early return below, so a rejected tool still gets a
+  // timed span rather than an unterminated one.
+  //
+  // `!fastArgError`, mirroring the `if (fastArgError)` early return exactly:
+  // the validator's contract is `string | null`, where NULL means valid. An
+  // earlier `=== undefined` here compiled cleanly and reported `valid: false`
+  // for every successful validation — a span attribute that always lied.
+  validationSpan.end({ valid: !fastArgError });
+  return fastArgError;
+}
+
+/** Determine response-level success from the enriched envelope: the
+ * ResponseBuilder `success` flag, then structuredContent, then the raw text
+ * payload fallback for non-ResponseBuilder handlers. */
+function computeToolResultSuccess(enriched: unknown): boolean {
+  const envelope = enriched as {
+    isError?: boolean;
+    success?: unknown;
+    structuredContent?: unknown;
+    content?: Array<{ type: string; text?: string }>;
+  };
+  let toolResultSuccess = !envelope.isError;
+  const successFlag = envelope?.success;
+  if (typeof successFlag === 'boolean') {
+    // ResponseBuilder carries the payload's `success` boolean on the envelope,
+    // so we can read it without a full JSON.parse of the text content.
+    toolResultSuccess = successFlag;
+  } else if (envelope?.structuredContent && typeof envelope.structuredContent === 'object') {
+    const resultPayload = envelope.structuredContent as Record<string, unknown>;
+    toolResultSuccess = resultPayload.success !== false;
+  } else if (envelope?.content?.[0]?.type === 'text' && 'text' in envelope.content[0]) {
+    // Fallback for raw (non-ResponseBuilder) handlers that still encode
+    // `success` inside the text payload.
+    try {
+      const parsed = JSON.parse(envelope.content[0].text!) as Record<string, unknown>;
+      toolResultSuccess = parsed.success !== false;
+    } catch {
+      toolResultSuccess = !envelope.isError;
+    }
+  }
+  return toolResultSuccess;
+}
+
+/** Emit the full post-execution telemetry tail: circuit breaker, tool:called
+ * event, execution-finished event, instrumentation metrics, search-quality
+ * association + learning feedback, and the mcpLog record. */
+function emitToolCallTelemetry(
+  ctx: MCPServerContext,
+  instrumentation: ReturnType<typeof resolveInstrumentation>,
+  name: string,
+  args: ToolArgs,
+  enriched: unknown,
+  timing: { toolResultSuccess: boolean; toolDurationMs: number; executionStartTime: number },
+): void {
+  const toolResultSuccess = timing.toolResultSuccess;
+  const toolDurationMs = timing.toolDurationMs;
+  void timing.executionStartTime;
+  // Circuit breaker: record success or failure
+  if (toolResultSuccess) {
+    ctx.circuitBreaker.recordSuccess(name);
+  } else {
+    ctx.circuitBreaker.recordFailure(name);
+  }
+  // Duration is computed ONCE and shared by the event and the metric below.
+  // Two clocks for the same interval is exactly how an event stream and a
+  // metrics backend drift apart, after which neither is trustworthy.
+  // Emit tool:called event for ActivationController
+  void ctx.eventBus.emit('tool:called', {
+    toolName: name,
+    domain: getToolDomain(name) ?? null,
+    sessionId:
+      typeof (args['_meta'] as { sessionId?: unknown } | undefined)?.sessionId === 'string'
+        ? (args['_meta'] as { sessionId: string }).sessionId.trim() || null
+        : (getToolRequestContext()?.sessionId ?? null),
+    timestamp: new Date().toISOString(),
+    success: toolResultSuccess,
+    durationMs: toolDurationMs,
+    errorKind: classifyErrorKind({
+      isError: (enriched as { isError?: boolean }).isError === true,
+      successFlag: toolResultSuccess,
+    }),
+    args,
+    result: {
+      success: toolResultSuccess,
+      isError: (enriched as { isError?: boolean }).isError === true,
+    },
+  });
+  // Metadata-only execution telemetry for the unified event stream (GET /events).
+  emitBusEvent(ctx.eventBus, 'tool.execution.finished', {
+    toolName: name,
+    domain: getToolDomain(name) ?? null,
+    sessionId: resolveCallSessionId(args),
+    durationMs: toolDurationMs,
+    ok: toolResultSuccess,
+    timestamp: new Date().toISOString(),
+  });
+  // One observation, two sinks: the event stream stays in-process, these go to
+  // whichever instrumentation backend is configured. Emitted from the same
+  // point so the two can never disagree about what happened.
+  instrumentation.emitMetric(MetricNames.toolCallsTotal, 1, 'counter', {
+    tool: name,
+    success: toolResultSuccess,
+  });
+  if (!toolResultSuccess) {
+    instrumentation.emitMetric(MetricNames.toolErrorsTotal, 1, 'counter', { tool: name });
+  }
+  instrumentation.emitMetric(MetricNames.toolDurationMs, toolDurationMs, 'histogram', {
+    tool: name,
+    success: toolResultSuccess,
+  });
+  const searchQualityTracker =
+    ctx.getDomainInstance<import('@server/search/SearchQualityTracker').SearchQualityTracker>(
+      'searchQualityTracker',
+    );
+  searchQualityTracker?.associateLastSearch(name);
+  // Learning signal for the search engine (adaptive vector weight +
+  // recency boost) fires on the direct-call path too, not just the
+  // call_tool proxy — this is the common path for agents invoking an
+  // already-active tool. Registered by getSearchEngine; absent until the
+  // first search builds the engine (no signal to learn from before that).
+  try {
+    const searchEngine =
+      ctx.getDomainInstance<import('@server/search/ToolSearchEngine').ToolSearchEngine>(
+        'searchEngine',
+      );
+    searchEngine?.recordToolCallFeedback(name, '');
+  } catch {
+    /* non-critical — feedback must never fail a tool call */
+  }
+  ctx.mcpLog.info('jshookmcp', {
+    event: 'tool_called',
+    toolName: name,
+    domain: getToolDomain(name) ?? null,
+    success: toolResultSuccess,
+  });
 }

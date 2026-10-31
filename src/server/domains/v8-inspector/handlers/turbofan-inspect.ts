@@ -106,108 +106,12 @@ export async function handleTurbofanInspect(
     supportsNatives = nativeCheck?.result?.value === true;
 
     if (supportsNatives) {
-      // Get function names from script coverage
-      await session.send('Profiler.enable');
-      await session.send('Profiler.startPreciseCoverage', { callCount: true, detailed: true });
-      const covResp = await session.send<{ result?: unknown }>('Profiler.takePreciseCoverage');
-
-      const targetFunctions: string[] = [];
-
-      if (Array.isArray(covResp?.result)) {
-        for (const entry of covResp.result as Array<Record<string, unknown>>) {
-          if (entry.scriptId !== scriptId) continue;
-          const funcs = Array.isArray(entry.functions) ? entry.functions : [];
-          for (const fn of funcs) {
-            if (typeof fn !== 'object' || !fn) continue;
-            const name =
-              typeof (fn as Record<string, unknown>).functionName === 'string'
-                ? ((fn as Record<string, unknown>).functionName as string)
-                : 'anonymous';
-            if (functionName && !name.includes(functionName)) continue;
-            if (!targetFunctions.includes(name)) {
-              targetFunctions.push(name);
-            }
-          }
-        }
-      }
-
-      await session.send('Profiler.stopPreciseCoverage').catch(() => {});
-      await session.send('Profiler.disable').catch(() => {});
-
-      // Limit to topN
-      const selected = targetFunctions.slice(0, topN || targetFunctions.length);
-
-      // Inspect each function
+      const selected = await collectNativeTargetFunctions(session, scriptId, functionName, topN);
       for (const fnName of selected) {
-        // Apply action if requested
-        if (action === 'optimize') {
-          await session.send('Runtime.evaluate', {
-            expression: `
-              (() => {
-                try {
-                  const f = globalThis[${JSON.stringify(fnName)}];
-                  if (typeof f === 'function') %OptimizeFunctionOnNextCall(f);
-                } catch(e) {}
-              })()
-            `,
-          });
-        } else if (action === 'deoptimize') {
-          await session.send('Runtime.evaluate', {
-            expression: `
-              (() => {
-                try {
-                  const f = globalThis[${JSON.stringify(fnName)}];
-                  if (typeof f === 'function') %DeoptimizeFunction(f);
-                } catch(e) {}
-              })()
-            `,
-          });
-        }
-
-        // Query optimization status
-        const statusResp = await session.send<{ result?: { value?: unknown } }>(
-          'Runtime.evaluate',
-          {
-            expression: `
-            (() => {
-              try {
-                const f = globalThis[${JSON.stringify(fnName)}];
-                if (typeof f !== 'function') return null;
-                return %GetOptimizationStatus(f);
-              } catch(e) { return null; }
-            })()
-          `,
-            returnByValue: true,
-          },
-        );
-        const statusCode =
-          typeof statusResp?.result?.value === 'number' ? statusResp.result.value : undefined;
-
-        const { optimized, tier } =
-          statusCode !== undefined
-            ? mapTier(statusCode)
-            : { optimized: false, tier: 'unknown' as const };
-
-        functions.push({
-          functionName: fnName,
-          statusCode,
-          tier,
-          optimized,
-        });
+        functions.push(await inspectNativeFunction(session, fnName, action));
       }
     } else {
-      // Heuristic mode — use JITInspector for basic info
-      const { JITInspector } = await import('@modules/v8-inspector');
-      const inspector = new JITInspector(resolver.getPage);
-      const inspection = await inspector.inspectJIT(scriptId);
-
-      for (const info of inspection.functions) {
-        functions.push({
-          functionName: info.functionName,
-          tier: info.tier as FunctionOptStatus['tier'],
-          optimized: info.optimized,
-        });
-      }
+      await collectHeuristicFunctions(resolver, scriptId, functions);
     }
   } catch (err) {
     return {
@@ -240,4 +144,118 @@ export async function handleTurbofanInspect(
         }
       : {}),
   };
+}
+
+type TurbofanSession = NonNullable<Awaited<ReturnType<typeof resolveTargetSession>>['session']>;
+
+/** Natives path phase 1: precise-coverage pass to pick target function names. */
+async function collectNativeTargetFunctions(
+  session: TurbofanSession,
+  scriptId: string,
+  functionName: string,
+  topN: number,
+): Promise<string[]> {
+  await session.send('Profiler.enable');
+  await session.send('Profiler.startPreciseCoverage', { callCount: true, detailed: true });
+  const covResp = await session.send<{ result?: unknown }>('Profiler.takePreciseCoverage');
+
+  const targetFunctions: string[] = [];
+
+  if (Array.isArray(covResp?.result)) {
+    for (const entry of covResp.result as Array<Record<string, unknown>>) {
+      if (entry.scriptId !== scriptId) continue;
+      const funcs = Array.isArray(entry.functions) ? entry.functions : [];
+      for (const fn of funcs) {
+        if (typeof fn !== 'object' || !fn) continue;
+        const name =
+          typeof (fn as Record<string, unknown>).functionName === 'string'
+            ? ((fn as Record<string, unknown>).functionName as string)
+            : 'anonymous';
+        if (functionName && !name.includes(functionName)) continue;
+        if (!targetFunctions.includes(name)) {
+          targetFunctions.push(name);
+        }
+      }
+    }
+  }
+
+  await session.send('Profiler.stopPreciseCoverage').catch(() => {});
+  await session.send('Profiler.disable').catch(() => {});
+
+  // Limit to topN
+  return targetFunctions.slice(0, topN || targetFunctions.length);
+}
+
+/** Apply the optimize/deoptimize action to a function, if requested. */
+async function applyTurbofanAction(
+  session: TurbofanSession,
+  fnName: string,
+  action: string,
+): Promise<void> {
+  if (action !== 'optimize' && action !== 'deoptimize') return;
+  const intrinsic = action === 'optimize' ? '%OptimizeFunctionOnNextCall' : '%DeoptimizeFunction';
+  await session.send('Runtime.evaluate', {
+    expression: `
+              (() => {
+                try {
+                  const f = globalThis[${JSON.stringify(fnName)}];
+                  if (typeof f === 'function') ${intrinsic}(f);
+                } catch(e) {}
+              })()
+            `,
+  });
+}
+
+/** Natives path phase 2: apply the action and read %GetOptimizationStatus. */
+async function inspectNativeFunction(
+  session: TurbofanSession,
+  fnName: string,
+  action: string,
+): Promise<FunctionOptStatus> {
+  await applyTurbofanAction(session, fnName, action);
+
+  // Query optimization status
+  const statusResp = await session.send<{ result?: { value?: unknown } }>('Runtime.evaluate', {
+    expression: `
+            (() => {
+              try {
+                const f = globalThis[${JSON.stringify(fnName)}];
+                if (typeof f !== 'function') return null;
+                return %GetOptimizationStatus(f);
+              } catch(e) { return null; }
+            })()
+          `,
+    returnByValue: true,
+  });
+  const statusCode =
+    typeof statusResp?.result?.value === 'number' ? statusResp.result.value : undefined;
+
+  const { optimized, tier } =
+    statusCode !== undefined ? mapTier(statusCode) : { optimized: false, tier: 'unknown' as const };
+
+  return {
+    functionName: fnName,
+    statusCode,
+    tier,
+    optimized,
+  };
+}
+
+/** Heuristic mode — use JITInspector for basic info. */
+async function collectHeuristicFunctions(
+  resolver: ReturnType<typeof normalizeSessionSource>,
+  scriptId: string,
+  functions: FunctionOptStatus[],
+): Promise<void> {
+  const { JITInspector } = await import('@modules/v8-inspector');
+  const inspector = new JITInspector(resolver.getPage);
+  const inspection = await inspector.inspectJIT(scriptId);
+
+  for (const info of inspection.functions) {
+    functions.push({
+      functionName: info.functionName,
+      tier: info.tier as FunctionOptStatus['tier'],
+      optimized: info.optimized,
+    });
+  }
 }

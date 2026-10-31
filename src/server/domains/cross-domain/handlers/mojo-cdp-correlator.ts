@@ -110,111 +110,26 @@ export function correlateMojoToCDP(
     graphNodeIds.push(node.id);
   }
 
+  const state: CorrelationState = {
+    matchedPairs,
+    matchedMojoIds,
+    matchedCdpEvents,
+    matchedRequestIds,
+  };
+
   // Pass 1: Match by interface name pattern → CDP event
-  for (const msg of mojoMessages) {
-    if (matchedMojoIds.has(msg.messageId)) {
-      continue;
-    }
-
-    for (const pattern of INTERFACE_TO_CDP_PATTERNS) {
-      if (!pattern.mojoPattern.test(msg.interface)) {
-        continue;
-      }
-
-      const matchingCdp = cdpEvents.find(
-        (evt) => pattern.cdpPattern.test(evt.eventType) && !matchedCdpEvents.has(evt),
-      );
-      if (matchingCdp) {
-        matchedPairs.push({
-          mojoMessageId: msg.messageId,
-          matchType: 'interface',
-          cdpEventType: matchingCdp.eventType,
-        });
-        matchedMojoIds.add(msg.messageId);
-        matchedCdpEvents.add(matchingCdp);
-        break;
-      }
-    }
-  }
-
+  matchByInterfacePattern(mojoMessages, cdpEvents, state);
   // Pass 2: Match URLLoader Mojo messages → network requests by timestamp
-  for (const msg of mojoMessages) {
-    if (matchedMojoIds.has(msg.messageId)) {
-      continue;
-    }
-
-    if (/URLLoader/i.test(msg.interface)) {
-      // Closest-timestamp within the window, like Pass 3 — a plain find()
-      // would pick the first request in the window even when a nearer one
-      // exists (bursty network activity).
-      let closestDelta = Infinity;
-      let matchingReq: NetworkRequest | undefined;
-      if (msg.timestamp > 0) {
-        for (const req of networkRequests) {
-          if (req.timestamp <= 0 || matchedRequestIds.has(req.requestId)) continue;
-          const delta = Math.abs(req.timestamp - msg.timestamp);
-          if (delta <= TIMESTAMP_PROXIMITY_MS && delta < closestDelta) {
-            closestDelta = delta;
-            matchingReq = req;
-          }
-        }
-      }
-      if (matchingReq) {
-        const requestNodeId = requestNodeIds.get(matchingReq.requestId);
-        const mojoNodeId = mojoNodeMap.get(msg.messageId);
-        if (requestNodeId && mojoNodeId) {
-          bridge.getGraph().addEdge(requestNodeId, mojoNodeId, 'mojo-routed-to', {
-            domain: 'cross-domain',
-            relation: 'network-request-correlates-to-mojo',
-            matchType: 'urlloader',
-            timestampDelta: Math.abs(matchingReq.timestamp - msg.timestamp),
-          });
-        }
-        matchedPairs.push({
-          mojoMessageId: msg.messageId,
-          matchType: 'urlloader',
-          networkRequestId: matchingReq.requestId,
-          timestampDelta: Math.abs(matchingReq.timestamp - msg.timestamp),
-        });
-        matchedMojoIds.add(msg.messageId);
-        matchedRequestIds.add(matchingReq.requestId);
-      }
-    }
-  }
-
+  matchUrlLoaderToRequests(
+    mojoMessages,
+    networkRequests,
+    state,
+    bridge,
+    requestNodeIds,
+    mojoNodeMap,
+  );
   // Pass 3: Fallback timestamp proximity match for remaining unmatched
-  for (const msg of mojoMessages) {
-    if (matchedMojoIds.has(msg.messageId)) {
-      continue;
-    }
-
-    // Check CDP events by timestamp. A zero timestamp means the field was
-    // missing from the source data — proximity matching on it would correlate
-    // everything to everything, so skip messages/events without timestamps.
-    let closestDelta = Infinity;
-    let closestCdp: CDPEvent | undefined;
-    if (msg.timestamp > 0) {
-      for (const evt of cdpEvents) {
-        if (matchedCdpEvents.has(evt) || evt.timestamp <= 0) continue;
-        const delta = Math.abs(evt.timestamp - msg.timestamp);
-        if (delta <= TIMESTAMP_PROXIMITY_MS && delta < closestDelta) {
-          closestDelta = delta;
-          closestCdp = evt;
-        }
-      }
-    }
-
-    if (closestCdp) {
-      matchedPairs.push({
-        mojoMessageId: msg.messageId,
-        matchType: 'timestamp',
-        cdpEventType: closestCdp.eventType,
-        timestampDelta: closestDelta,
-      });
-      matchedMojoIds.add(msg.messageId);
-      matchedCdpEvents.add(closestCdp);
-    }
-  }
+  matchByTimestampProximity(mojoMessages, cdpEvents, state);
 
   const unmatchedMojo = mojoMessages
     .filter((msg) => !matchedMojoIds.has(msg.messageId))
@@ -229,4 +144,149 @@ export function correlateMojoToCDP(
     confidence,
     graphNodeIds,
   };
+}
+
+/** Mutable match bookkeeping shared by the three correlation passes. */
+interface CorrelationState {
+  matchedPairs: MatchedPair[];
+  matchedMojoIds: Set<string>;
+  matchedCdpEvents: Set<CDPEvent>;
+  matchedRequestIds: Set<string>;
+}
+
+/** Pass 1: interface-name pattern → unconsumed CDP event of a matching type. */
+function matchByInterfacePattern(
+  mojoMessages: MojoMessage[],
+  cdpEvents: CDPEvent[],
+  state: CorrelationState,
+): void {
+  for (const msg of mojoMessages) {
+    if (state.matchedMojoIds.has(msg.messageId)) {
+      continue;
+    }
+
+    for (const pattern of INTERFACE_TO_CDP_PATTERNS) {
+      if (!pattern.mojoPattern.test(msg.interface)) {
+        continue;
+      }
+
+      const matchingCdp = cdpEvents.find(
+        (evt) => pattern.cdpPattern.test(evt.eventType) && !state.matchedCdpEvents.has(evt),
+      );
+      if (matchingCdp) {
+        state.matchedPairs.push({
+          mojoMessageId: msg.messageId,
+          matchType: 'interface',
+          cdpEventType: matchingCdp.eventType,
+        });
+        state.matchedMojoIds.add(msg.messageId);
+        state.matchedCdpEvents.add(matchingCdp);
+        break;
+      }
+    }
+  }
+}
+
+/** Pass 2: URLLoader messages → network requests. Closest-timestamp within
+ * the window — a plain find() would pick the first request in the window
+ * even when a nearer one exists (bursty network activity). */
+function matchUrlLoaderToRequests(
+  mojoMessages: MojoMessage[],
+  networkRequests: NetworkRequest[],
+  state: CorrelationState,
+  bridge: CrossDomainEvidenceBridge,
+  requestNodeIds: Map<string, string>,
+  mojoNodeMap: Map<string, string>,
+): void {
+  for (const msg of mojoMessages) {
+    if (state.matchedMojoIds.has(msg.messageId)) {
+      continue;
+    }
+
+    if (!/URLLoader/i.test(msg.interface)) continue;
+
+    let closestDelta = Infinity;
+    let matchingReq: NetworkRequest | undefined;
+    if (msg.timestamp > 0) {
+      for (const req of networkRequests) {
+        if (req.timestamp <= 0 || state.matchedRequestIds.has(req.requestId)) continue;
+        const delta = Math.abs(req.timestamp - msg.timestamp);
+        if (delta <= TIMESTAMP_PROXIMITY_MS && delta < closestDelta) {
+          closestDelta = delta;
+          matchingReq = req;
+        }
+      }
+    }
+    if (matchingReq) {
+      recordUrlLoaderMatch(bridge, state, msg, matchingReq, requestNodeIds, mojoNodeMap);
+    }
+  }
+}
+
+function recordUrlLoaderMatch(
+  bridge: CrossDomainEvidenceBridge,
+  state: CorrelationState,
+  msg: MojoMessage,
+  matchingReq: NetworkRequest,
+  requestNodeIds: Map<string, string>,
+  mojoNodeMap: Map<string, string>,
+): void {
+  const requestNodeId = requestNodeIds.get(matchingReq.requestId);
+  const mojoNodeId = mojoNodeMap.get(msg.messageId);
+  if (requestNodeId && mojoNodeId) {
+    bridge.getGraph().addEdge(requestNodeId, mojoNodeId, 'mojo-routed-to', {
+      domain: 'cross-domain',
+      relation: 'network-request-correlates-to-mojo',
+      matchType: 'urlloader',
+      timestampDelta: Math.abs(matchingReq.timestamp - msg.timestamp),
+    });
+  }
+  state.matchedPairs.push({
+    mojoMessageId: msg.messageId,
+    matchType: 'urlloader',
+    networkRequestId: matchingReq.requestId,
+    timestampDelta: Math.abs(matchingReq.timestamp - msg.timestamp),
+  });
+  state.matchedMojoIds.add(msg.messageId);
+  state.matchedRequestIds.add(matchingReq.requestId);
+}
+
+/** Pass 3: fallback timestamp proximity for the remaining unmatched messages.
+ * A zero timestamp means the field was missing from the source data —
+ * proximity matching on it would correlate everything to everything, so
+ * messages/events without timestamps are skipped. */
+function matchByTimestampProximity(
+  mojoMessages: MojoMessage[],
+  cdpEvents: CDPEvent[],
+  state: CorrelationState,
+): void {
+  for (const msg of mojoMessages) {
+    if (state.matchedMojoIds.has(msg.messageId)) {
+      continue;
+    }
+
+    let closestDelta = Infinity;
+    let closestCdp: CDPEvent | undefined;
+    if (msg.timestamp > 0) {
+      for (const evt of cdpEvents) {
+        if (state.matchedCdpEvents.has(evt) || evt.timestamp <= 0) continue;
+        const delta = Math.abs(evt.timestamp - msg.timestamp);
+        if (delta <= TIMESTAMP_PROXIMITY_MS && delta < closestDelta) {
+          closestDelta = delta;
+          closestCdp = evt;
+        }
+      }
+    }
+
+    if (closestCdp) {
+      state.matchedPairs.push({
+        mojoMessageId: msg.messageId,
+        matchType: 'timestamp',
+        cdpEventType: closestCdp.eventType,
+        timestampDelta: closestDelta,
+      });
+      state.matchedMojoIds.add(msg.messageId);
+      state.matchedCdpEvents.add(closestCdp);
+    }
+  }
 }
