@@ -315,48 +315,11 @@ export class BrowserControlHandlers {
       const sessionId = this.getCurrentSessionId();
       const lease = this.deps.sessionCoordinator?.getBrowserLease(sessionId);
 
-      if (mode === 'launch' && lease && lease.otherOwners > 0) {
-        return R.fail(
-          `browser_launch is blocked while ${lease.otherOwners} other browser session(s) are active. ` +
-            'Use browser_attach to share the existing Chrome connection without replacing it.',
-        ).json();
-      }
-      if (mode === 'connect' && lease && !lease.owned && lease.otherOwners > 0) {
-        return R.fail(
-          'browser_launch(mode="connect") cannot join a browser owned by another session because it does not ' +
-            'allocate an isolated tab. Use browser_attach instead.',
-        ).json();
-      }
+      const leaseBlock = browserLaunchLeaseBlock(mode, lease);
+      if (leaseBlock) return leaseBlock;
 
       if (driver === 'camoufox') {
-        if (mode === 'connect') {
-          const wsEndpoint = argString(args, 'wsEndpoint');
-          if (!wsEndpoint) {
-            return R.fail(
-              'wsEndpoint is required for connect mode. Use camoufox_server({ action: "launch" }) first to get a ' +
-                'wsEndpoint.',
-            ).json();
-          }
-          return R.ok()
-            .merge({
-              driver: 'camoufox',
-              mode: 'connect',
-              wsEndpoint,
-              message: 'Connected to Camoufox server. Use page_navigate to begin.',
-            })
-            .json();
-        }
-
-        return R.ok()
-          .merge({
-            driver: 'camoufox',
-            mode: 'launch',
-            message: 'Camoufox (Firefox) browser launched',
-            note:
-              'Use page_navigate to begin. CDP debugger is limited in Firefox; network_enable and console_monitor({ ' +
-              'action: "enable" }) use Playwright events and are fully supported.',
-          })
-          .json();
+        return camoufoxLaunchResponse(mode, args);
       }
 
       if (mode === 'connect') {
@@ -818,4 +781,57 @@ export class BrowserControlHandlers {
         .json();
     }
   }
+}
+
+/** Refuse launch/connect combinations that would steal or hijack another
+ * session's browser lease. Returns the failure response or null when allowed. */
+function browserLaunchLeaseBlock(
+  mode: string,
+  lease: { owned?: boolean; otherOwners: number } | null | undefined,
+): ReturnType<typeof R.fail>['json'] extends () => infer T ? T | null : never {
+  if (mode === 'launch' && lease && lease.otherOwners > 0) {
+    return R.fail(
+      `browser_launch is blocked while ${lease.otherOwners} other browser session(s) are active. ` +
+        'Use browser_attach to share the existing Chrome connection without replacing it.',
+    ).json();
+  }
+  if (mode === 'connect' && lease && !lease.owned && lease.otherOwners > 0) {
+    return R.fail(
+      'browser_launch(mode="connect") cannot join a browser owned by another session because it does not ' +
+        'allocate an isolated tab. Use browser_attach instead.',
+    ).json();
+  }
+  return null;
+}
+
+/** Camoufox launch/connect responses (no Chrome session coordination). */
+function camoufoxLaunchResponse(mode: string, args: Record<string, unknown>) {
+  if (mode === 'connect') {
+    const wsEndpoint = argString(args, 'wsEndpoint');
+    if (!wsEndpoint) {
+      return R.fail(
+        'wsEndpoint is required for connect mode. Use camoufox_server({ action: "launch" }) first to get a ' +
+          'wsEndpoint.',
+      ).json();
+    }
+    return R.ok()
+      .merge({
+        driver: 'camoufox',
+        mode: 'connect',
+        wsEndpoint,
+        message: 'Connected to Camoufox server. Use page_navigate to begin.',
+      })
+      .json();
+  }
+
+  return R.ok()
+    .merge({
+      driver: 'camoufox',
+      mode: 'launch',
+      message: 'Camoufox (Firefox) browser launched',
+      note:
+        'Use page_navigate to begin. CDP debugger is limited in Firefox; network_enable and console_monitor({ ' +
+        'action: "enable" }) use Playwright events and are fully supported.',
+    })
+    .json();
 }

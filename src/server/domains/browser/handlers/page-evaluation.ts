@@ -157,18 +157,7 @@ export class PageEvaluationHandlers {
         | { x: number; y: number; width: number; height: number }
         | undefined;
 
-      // Normalise selector: string | string[] | undefined
-      const rawSelector = args.selector;
-      const selectors: string[] = [];
-      if (Array.isArray(rawSelector)) {
-        for (const s of rawSelector) {
-          const trimmed = typeof s === 'string' ? s.trim() : '';
-          if (trimmed.length > 0 && trimmed.toLowerCase() !== 'all') selectors.push(trimmed);
-        }
-      } else if (typeof rawSelector === 'string') {
-        const trimmed = rawSelector.trim();
-        if (trimmed.length > 0 && trimmed.toLowerCase() !== 'all') selectors.push(trimmed);
-      }
+      const selectors = normalizeScreenshotSelectors(args.selector);
 
       // ── Batch mode: multiple selectors ──
       if (selectors.length > 1) {
@@ -368,4 +357,20 @@ export class PageEvaluationHandlers {
       return R.fail(e).build();
     }
   }
+}
+
+/** Normalise the `selector` argument (string | string[] | undefined); drops
+ * empty entries and the "all" alias. */
+function normalizeScreenshotSelectors(rawSelector: unknown): string[] {
+  const selectors: string[] = [];
+  const push = (value: unknown): void => {
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+    if (trimmed.length > 0 && trimmed.toLowerCase() !== 'all') selectors.push(trimmed);
+  };
+  if (Array.isArray(rawSelector)) {
+    for (const s of rawSelector) push(s);
+  } else if (typeof rawSelector === 'string') {
+    push(rawSelector);
+  }
+  return selectors;
 }
