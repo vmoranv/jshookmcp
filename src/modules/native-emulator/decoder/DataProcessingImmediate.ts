@@ -18,12 +18,10 @@ const MASK64 = (1n << 64n) - 1n;
 const MASK32 = (1n << 32n) - 1n;
 
 /**
- * Try to execute a Data Processing -- Immediate instruction.
- * Returns true if handled, false if the instruction doesn't belong to this family.
+ * Per-block decoders for execDataProcessingImmediate. Extracted verbatim from the former
+ * single function so each stays under the complexity gate. Block evaluation order matches the former if-chain.
  */
-export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number): boolean {
-  const op2829 = (insn >>> 29) & 0b11;
-
+function tryAdrAdrp(ctx: ExecutionContext, insn: number): boolean {
   // ADR / ADRP: op | immlo(2) | 10000 | immhi(19) | Rd
   //   ADR (op=0): Rd = PC + SignExtend(immhi:immlo). ADRP (op=1): Rd = (PC &
   //   ~0xfff) + SignExtend(immhi:immlo) << 12. The workhorse of PIC addressing.
@@ -39,7 +37,11 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     ctx.writeGpr(rd, BigInt.asUintN(64, value));
     return true;
   }
+  return false;
+}
 
+function tryAddImmediate(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // ADD (immediate): sf | 0 | 0 | 100010 | sh | imm12 | Rn | Rd  (Rn/Rd use SP semantics)
   if (op2829 === 0b00 && ((insn >>> 23) & 0b111111) === 0b100010) {
     const sf = insn >>> 31;
@@ -52,7 +54,11 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     ctx.writeGprSp(rd, sf === 1 ? BigInt.asUintN(64, sum) : BigInt.asUintN(32, sum));
     return true;
   }
+  return false;
+}
 
+function tryAddsImmediate(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // ADDS (immediate): sf | 0 | 1 | 100010 | sh | imm12 | Rn | Rd  (S=1 sets flags)
   //   CMN is ADDS with Rd=XZR. Rn uses SP semantics.
   if (op2829 === 0b01 && ((insn >>> 23) & 0b111111) === 0b100010) {
@@ -66,7 +72,11 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     ctx.writeGpr(rd, result);
     return true;
   }
+  return false;
+}
 
+function trySubImmediate(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // SUB (immediate): sf | 1 | 0 | 100010 | sh | imm12 | Rn | Rd
   if (op2829 === 0b10 && ((insn >>> 23) & 0b111111) === 0b100010) {
     const sf = insn >>> 31;
@@ -80,7 +90,11 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     ctx.writeGprSp(rd, sf === 1 ? BigInt.asUintN(64, diff) : BigInt.asUintN(32, diff));
     return true;
   }
+  return false;
+}
 
+function tryMovn(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // MOVN (move wide immediate, inverted): sf | 00 | 100101 | hw | imm16 | Rd
   if (op2829 === 0b00 && ((insn >>> 23) & 0b111111) === 0b100101) {
     const sf = insn >>> 31;
@@ -91,7 +105,11 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     ctx.writeGpr(rd, sf === 1 ? BigInt.asUintN(64, value) : BigInt.asUintN(32, value));
     return true;
   }
+  return false;
+}
 
+function tryMovz(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // MOVZ (move wide immediate): sf | 10 | 100101 | hw | imm16 | Rd
   if (op2829 === 0b10 && ((insn >>> 23) & 0b111111) === 0b100101) {
     const sf = insn >>> 31;
@@ -102,7 +120,11 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     ctx.writeGpr(rd, sf === 1 ? BigInt.asUintN(64, value) : BigInt.asUintN(32, value));
     return true;
   }
+  return false;
+}
 
+function tryMovk(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // MOVK (move wide immediate, keep): sf | 11 | 100101 | hw | imm16 | Rd
   //   Insert imm16 into the hw-th 16-bit lane, preserving the other bits.
   if (op2829 === 0b11 && ((insn >>> 23) & 0b111111) === 0b100101) {
@@ -117,7 +139,11 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     ctx.writeGpr(rd, sf === 1 ? BigInt.asUintN(64, value) : BigInt.asUintN(32, value));
     return true;
   }
+  return false;
+}
 
+function trySubsImmediate(ctx: ExecutionContext, insn: number): boolean {
+  const op2829 = (insn >>> 29) & 0b11;
   // SUBS/CMP (immediate): sf | 1 | 1 | 100010 | sh | imm12 | Rn | Rd  (S=1 sets flags)
   //   CMP is SUBS with Rd=XZR. Rn uses SP semantics.
   if (op2829 === 0b11 && ((insn >>> 23) & 0b111111) === 0b100010) {
@@ -131,7 +157,10 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     ctx.writeGpr(rd, result); // Rd=31 → XZR, write discarded
     return true;
   }
+  return false;
+}
 
+function tryLogicalImmediate(ctx: ExecutionContext, insn: number): boolean {
   // Logical (immediate): sf | opc(2) | 100100 | N | immr(6) | imms(6) | Rn | Rd
   //   opc: 00 AND, 01 ORR, 10 EOR, 11 ANDS. AND/ORR/EOR write Rd with SP
   //   semantics (enc 31 = SP); ANDS uses XZR and sets NZCV (C=V=0).
@@ -172,7 +201,10 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     }
     return true;
   }
+  return false;
+}
 
+function tryBitfield(ctx: ExecutionContext, insn: number): boolean {
   // Bitfield: sf | opc(2) | 100110 | N | immr(6) | imms(6) | Rn | Rd
   //   opc: 00 SBFM, 01 BFM, 10 UBFM. Covers LSL/LSR/ASR imm, [SU]XT[BHW],
   //   [SU]BFX, BFI/BFXIL via the standard immr/imms field algorithm.
@@ -226,7 +258,10 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     ctx.writeGpr(rd, sf === 1 ? BigInt.asUintN(64, result) : BigInt.asUintN(32, result));
     return true;
   }
+  return false;
+}
 
+function tryExtr(ctx: ExecutionContext, insn: number): boolean {
   // EXTR: sf | 00 | 100111 | N | 0 | Rm | imms(6) | Rn | Rd  (ROR alias when Rn==Rm)
   if (((insn >>> 23) & 0b111111) === 0b100111) {
     const sf = insn >>> 31;
@@ -243,5 +278,32 @@ export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number)
     return true;
   }
 
+  return false;
+}
+
+const execDataProcessingImmediate_DECODERS: Array<
+  (ctx: ExecutionContext, insn: number) => boolean
+> = [
+  tryAdrAdrp,
+  tryAddImmediate,
+  tryAddsImmediate,
+  trySubImmediate,
+  tryMovn,
+  tryMovz,
+  tryMovk,
+  trySubsImmediate,
+  tryLogicalImmediate,
+  tryBitfield,
+  tryExtr,
+];
+
+/**
+ * Try to execute a Data Processing -- Immediate instruction.
+ * Ordering is load-bearing and matches the former if-chain exactly.
+ */
+export function execDataProcessingImmediate(ctx: ExecutionContext, insn: number): boolean {
+  for (const decode of execDataProcessingImmediate_DECODERS) {
+    if (decode(ctx, insn)) return true;
+  }
   return false;
 }

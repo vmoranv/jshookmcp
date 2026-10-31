@@ -180,6 +180,37 @@ export class FpContext {
     return is32bit ? QNAN_F32 : QNAN_F64;
   }
 
+  /**
+   * Flush a single denormal input to zero when FZ=1.
+   * Returns [flushedValue, flags] (flags is FPSR_IDC or 0).
+   */
+  private flushDenormalInput(value: number, is32bit: boolean): [number, number] {
+    if (!this.isFlushToZero()) return [value, 0];
+    const minNormal = is32bit ? FLOAT32_MIN_NORMAL : FLOAT64_MIN_NORMAL;
+    if (value !== 0 && Math.abs(value) < minNormal && Number.isFinite(value)) {
+      // Preserve sign of zero
+      return [Object.is(value, -0) || value < 0 ? -0 : 0, 1 << FPSR_IDC];
+    }
+    return [value, 0];
+  }
+
+  /**
+   * Commit slow-path exception flags to FPSR and raise the first enabled trap
+   * in the listed order. Extracted from the formerly-inlined per-op blocks
+   * (slow path only — the FPCR=0 fast path stays branch-free).
+   */
+  private commitFlagsAndTraps(flags: number, traps: Array<[number, string]>): void {
+    if (flags !== 0) {
+      this.fpsr |= flags;
+      const trapMask = (this.fpcr >> 8) & FPCR_TRAP_MASK_FPSR_ALIGNED;
+      if (flags & trapMask) {
+        for (const [bit, message] of traps) {
+          if (flags & bit) throw new Error(message);
+        }
+      }
+    }
+  }
+
   // ── Core FP Arithmetic Operations ──
 
   /**
@@ -205,23 +236,12 @@ export class FpContext {
       return result;
     }
 
-    // ── Slow path: fully inlined exception handling ──
-
-    let a2 = a;
-    let b2 = b;
-    let flags = 0;
-
-    if (this.isFlushToZero()) {
-      const minNormal = is32bit ? FLOAT32_MIN_NORMAL : FLOAT64_MIN_NORMAL;
-      if (a !== 0 && Math.abs(a) < minNormal && Number.isFinite(a)) {
-        a2 = Object.is(a, -0) || a < 0 ? -0 : 0;
-        flags |= 1 << FPSR_IDC;
-      }
-      if (b !== 0 && Math.abs(b) < minNormal && Number.isFinite(b)) {
-        b2 = Object.is(b, -0) || b < 0 ? -0 : 0;
-        flags |= 1 << FPSR_IDC;
-      }
-    }
+    // ── Slow path ──
+    const [fa, idcA] = this.flushDenormalInput(a, is32bit);
+    const [fb, idcB] = this.flushDenormalInput(b, is32bit);
+    const a2 = fa;
+    const b2 = fb;
+    let flags = idcA | idcB;
 
     if (a2 !== a || b2 !== b) {
       result = a2 + b2;
@@ -238,14 +258,10 @@ export class FpContext {
       flags |= 1 << FPSR_IOC;
     }
 
-    if (flags !== 0) {
-      this.fpsr |= flags;
-      const trapMask = (this.fpcr >> 8) & FPCR_TRAP_MASK_FPSR_ALIGNED;
-      if (flags & trapMask) {
-        if (flags & (1 << FPSR_IOC)) throw new Error('FP Invalid Operation');
-        if (flags & (1 << FPSR_IDC)) throw new Error('FP Input Denormal');
-      }
-    }
+    this.commitFlagsAndTraps(flags, [
+      [1 << FPSR_IOC, 'FP Invalid Operation'],
+      [1 << FPSR_IDC, 'FP Input Denormal'],
+    ]);
 
     if (flags & (1 << FPSR_IOC)) return is32bit ? QNAN_F32 : QNAN_F64;
     return result;
@@ -268,23 +284,12 @@ export class FpContext {
       return result;
     }
 
-    // ── Slow path: fully inlined exception handling ──
-
-    let a2 = a;
-    let b2 = b;
-    let flags = 0;
-
-    if (this.isFlushToZero()) {
-      const minNormal = is32bit ? FLOAT32_MIN_NORMAL : FLOAT64_MIN_NORMAL;
-      if (a !== 0 && Math.abs(a) < minNormal && Number.isFinite(a)) {
-        a2 = Object.is(a, -0) || a < 0 ? -0 : 0;
-        flags |= 1 << FPSR_IDC;
-      }
-      if (b !== 0 && Math.abs(b) < minNormal && Number.isFinite(b)) {
-        b2 = Object.is(b, -0) || b < 0 ? -0 : 0;
-        flags |= 1 << FPSR_IDC;
-      }
-    }
+    // ── Slow path ──
+    const [fa, idcA] = this.flushDenormalInput(a, is32bit);
+    const [fb, idcB] = this.flushDenormalInput(b, is32bit);
+    const a2 = fa;
+    const b2 = fb;
+    let flags = idcA | idcB;
 
     if (a2 !== a || b2 !== b) {
       result = a2 - b2;
@@ -301,14 +306,10 @@ export class FpContext {
       flags |= 1 << FPSR_IOC;
     }
 
-    if (flags !== 0) {
-      this.fpsr |= flags;
-      const trapMask = (this.fpcr >> 8) & FPCR_TRAP_MASK_FPSR_ALIGNED;
-      if (flags & trapMask) {
-        if (flags & (1 << FPSR_IOC)) throw new Error('FP Invalid Operation');
-        if (flags & (1 << FPSR_IDC)) throw new Error('FP Input Denormal');
-      }
-    }
+    this.commitFlagsAndTraps(flags, [
+      [1 << FPSR_IOC, 'FP Invalid Operation'],
+      [1 << FPSR_IDC, 'FP Input Denormal'],
+    ]);
 
     if (flags & (1 << FPSR_IOC)) return is32bit ? QNAN_F32 : QNAN_F64;
     return result;
@@ -319,6 +320,36 @@ export class FpContext {
    *
    * Agent 8 inline optimization: Fully inlined exception handling.
    */
+  /**
+   * Invalid-operation flags for multiplication (0/Inf mixes), shared by fmul.
+   */
+  private mulInvalidOpFlags(a2: number, b2: number, result: number): number {
+    if (!Number.isNaN(result)) return 0;
+    if (!Number.isNaN(a2) && !Number.isNaN(b2)) {
+      const aIsZero = a2 === 0 || Object.is(a2, -0);
+      const bIsZero = b2 === 0 || Object.is(b2, -0);
+      if ((aIsZero && !Number.isFinite(b2)) || (!Number.isFinite(a2) && bIsZero)) {
+        return 1 << FPSR_IOC;
+      }
+      return 0;
+    }
+    return 1 << FPSR_IOC;
+  }
+
+  /**
+   * Overflow result saturation for fmul (ARM semantics: ±Inf or ±max per RZ).
+   */
+  private mulOverflowResult(a2: number, b2: number, is32bit: boolean): number {
+    const sign = Math.sign(a2 * b2);
+    const mode = this.getRoundingMode();
+    if (mode === RoundingMode.RZ) {
+      const max = is32bit ? FLOAT32_MAX : FLOAT64_MAX;
+      const saturated = sign < 0 ? -max : max;
+      return is32bit ? Math.fround(saturated) : saturated;
+    }
+    return sign < 0 ? -Infinity : Infinity;
+  }
+
   fmul(a: number, b: number, is32bit = false): number {
     let result = a * b;
     if (is32bit) result = Math.fround(result);
@@ -340,40 +371,19 @@ export class FpContext {
       return result;
     }
 
-    // ── Slow path: fully inlined exception handling ──
-
-    let a2 = a;
-    let b2 = b;
-    let flags = 0;
-
-    if (this.isFlushToZero()) {
-      const minNormal = is32bit ? FLOAT32_MIN_NORMAL : FLOAT64_MIN_NORMAL;
-      if (a !== 0 && Math.abs(a) < minNormal && Number.isFinite(a)) {
-        a2 = Object.is(a, -0) || a < 0 ? -0 : 0;
-        flags |= 1 << FPSR_IDC;
-      }
-      if (b !== 0 && Math.abs(b) < minNormal && Number.isFinite(b)) {
-        b2 = Object.is(b, -0) || b < 0 ? -0 : 0;
-        flags |= 1 << FPSR_IDC;
-      }
-    }
+    // ── Slow path ──
+    const [fa, idcA] = this.flushDenormalInput(a, is32bit);
+    const [fb, idcB] = this.flushDenormalInput(b, is32bit);
+    const a2 = fa;
+    const b2 = fb;
+    let flags = idcA | idcB;
 
     if (a2 !== a || b2 !== b) {
       result = a2 * b2;
       if (is32bit) result = Math.fround(result);
     }
 
-    if (Number.isNaN(result)) {
-      if (!Number.isNaN(a2) && !Number.isNaN(b2)) {
-        const aIsZero = a2 === 0 || Object.is(a2, -0);
-        const bIsZero = b2 === 0 || Object.is(b2, -0);
-        if ((aIsZero && !Number.isFinite(b2)) || (!Number.isFinite(a2) && bIsZero)) {
-          flags |= 1 << FPSR_IOC;
-        }
-      } else {
-        flags |= 1 << FPSR_IOC;
-      }
-    }
+    flags |= this.mulInvalidOpFlags(a2, b2, result);
 
     if (
       !Number.isNaN(result) &&
@@ -391,27 +401,16 @@ export class FpContext {
       }
     }
 
-    if (flags !== 0) {
-      this.fpsr |= flags;
-      const trapMask = (this.fpcr >> 8) & FPCR_TRAP_MASK_FPSR_ALIGNED;
-      if (flags & trapMask) {
-        if (flags & (1 << FPSR_IOC)) throw new Error('FP Invalid Operation');
-        if (flags & (1 << FPSR_OFC)) throw new Error('FP Overflow');
-        if (flags & (1 << FPSR_UFC)) throw new Error('FP Underflow');
-        if (flags & (1 << FPSR_IDC)) throw new Error('FP Input Denormal');
-      }
-    }
+    this.commitFlagsAndTraps(flags, [
+      [1 << FPSR_IOC, 'FP Invalid Operation'],
+      [1 << FPSR_OFC, 'FP Overflow'],
+      [1 << FPSR_UFC, 'FP Underflow'],
+      [1 << FPSR_IDC, 'FP Input Denormal'],
+    ]);
 
     if (flags & (1 << FPSR_IOC)) return is32bit ? QNAN_F32 : QNAN_F64;
     if (flags & (1 << FPSR_OFC)) {
-      const sign = Math.sign(a2 * b2);
-      const mode = this.getRoundingMode();
-      if (mode === RoundingMode.RZ) {
-        const max = is32bit ? FLOAT32_MAX : FLOAT64_MAX;
-        const saturated = sign < 0 ? -max : max;
-        return is32bit ? Math.fround(saturated) : saturated;
-      }
-      return sign < 0 ? -Infinity : Infinity;
+      return this.mulOverflowResult(a2, b2, is32bit);
     }
     if (flags & (1 << FPSR_UFC)) {
       if (this.isFlushToZero()) {
@@ -446,24 +445,17 @@ export class FpContext {
       }
       return result;
     }
+    return this.fdivSlowPath(a, b, result, is32bit);
+  }
 
-    // ── Slow path: fully inlined exception handling ──
-
-    let a2 = a;
-    let b2 = b;
-    let flags = 0;
-
-    if (this.isFlushToZero()) {
-      const minNormal = is32bit ? FLOAT32_MIN_NORMAL : FLOAT64_MIN_NORMAL;
-      if (a !== 0 && Math.abs(a) < minNormal && Number.isFinite(a)) {
-        a2 = Object.is(a, -0) || a < 0 ? -0 : 0;
-        flags |= 1 << FPSR_IDC;
-      }
-      if (b !== 0 && Math.abs(b) < minNormal && Number.isFinite(b)) {
-        b2 = Object.is(b, -0) || b < 0 ? -0 : 0;
-        flags |= 1 << FPSR_IDC;
-      }
-    }
+  /** Slow path for fdiv (non-default FPCR): FZ flush + full exception detection. */
+  private fdivSlowPath(a: number, b: number, initialResult: number, is32bit: boolean): number {
+    let result = initialResult;
+    const [fa, idcA] = this.flushDenormalInput(a, is32bit);
+    const [fb, idcB] = this.flushDenormalInput(b, is32bit);
+    const a2 = fa;
+    const b2 = fb;
+    let flags = idcA | idcB;
 
     if (a2 !== a || b2 !== b) {
       result = a2 / b2;
@@ -504,16 +496,12 @@ export class FpContext {
       }
     }
 
-    if (flags !== 0) {
-      this.fpsr |= flags;
-      const trapMask = (this.fpcr >> 8) & FPCR_TRAP_MASK_FPSR_ALIGNED;
-      if (flags & trapMask) {
-        if (flags & (1 << FPSR_IOC)) throw new Error('FP Invalid Operation');
-        if (flags & (1 << FPSR_DZC)) throw new Error('FP Divide by Zero');
-        if (flags & (1 << FPSR_IXC)) throw new Error('FP Inexact');
-        if (flags & (1 << FPSR_IDC)) throw new Error('FP Input Denormal');
-      }
-    }
+    this.commitFlagsAndTraps(flags, [
+      [1 << FPSR_IOC, 'FP Invalid Operation'],
+      [1 << FPSR_DZC, 'FP Divide by Zero'],
+      [1 << FPSR_IXC, 'FP Inexact'],
+      [1 << FPSR_IDC, 'FP Input Denormal'],
+    ]);
 
     if (flags & (1 << FPSR_IOC)) return is32bit ? QNAN_F32 : QNAN_F64;
     return result;
@@ -541,18 +529,10 @@ export class FpContext {
       return result;
     }
 
-    // ── Slow path: fully inlined exception handling ──
-
-    let a2 = a;
-    let flags = 0;
-
-    if (this.isFlushToZero()) {
-      const minNormal = is32bit ? FLOAT32_MIN_NORMAL : FLOAT64_MIN_NORMAL;
-      if (a !== 0 && Math.abs(a) < minNormal && Number.isFinite(a)) {
-        a2 = Object.is(a, -0) || a < 0 ? -0 : 0;
-        flags |= 1 << FPSR_IDC;
-      }
-    }
+    // ── Slow path ──
+    const [fa, idc] = this.flushDenormalInput(a, is32bit);
+    const a2 = fa;
+    let flags = idc;
 
     if (a2 !== a) {
       result = Math.sqrt(a2);
@@ -578,15 +558,11 @@ export class FpContext {
       }
     }
 
-    if (flags !== 0) {
-      this.fpsr |= flags;
-      const trapMask = (this.fpcr >> 8) & FPCR_TRAP_MASK_FPSR_ALIGNED;
-      if (flags & trapMask) {
-        if (flags & (1 << FPSR_IOC)) throw new Error('FP Invalid Operation');
-        if (flags & (1 << FPSR_IXC)) throw new Error('FP Inexact');
-        if (flags & (1 << FPSR_IDC)) throw new Error('FP Input Denormal');
-      }
-    }
+    this.commitFlagsAndTraps(flags, [
+      [1 << FPSR_IOC, 'FP Invalid Operation'],
+      [1 << FPSR_IXC, 'FP Inexact'],
+      [1 << FPSR_IDC, 'FP Input Denormal'],
+    ]);
 
     if (flags & (1 << FPSR_IOC)) return is32bit ? QNAN_F32 : QNAN_F64;
     return result;
