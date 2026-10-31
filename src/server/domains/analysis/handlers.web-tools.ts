@@ -22,60 +22,11 @@ export async function runWebpackEnumerate(
       async (opts: { searchKeyword: string; forceRequireAll: boolean; maxResults: number }) => {
         const w = window as unknown as Record<string, unknown>;
 
-        // Locate __webpack_require__
-        let requireFn: ((id: string) => unknown) | null = null;
-        if (typeof w['__webpack_require__'] === 'function') {
-          requireFn = w['__webpack_require__'] as (id: string) => unknown;
-        }
-
-        // Collect all known module IDs from webpackChunk* / webpackJsonp* arrays
         const chunkKeys = Object.keys(w).filter(
           (k) => k.startsWith('webpackChunk') || k.startsWith('webpackJsonp'),
         );
-
-        const moduleIdSet = new Set<string>();
-
-        for (const key of chunkKeys) {
-          const arr = w[key];
-          if (!Array.isArray(arr)) continue;
-          const arrWithM = arr as unknown as { m?: Record<string, unknown> };
-          if (arrWithM.m && typeof arrWithM.m === 'object') {
-            for (const id of Object.keys(arrWithM.m)) moduleIdSet.add(id);
-          }
-          for (const chunk of arr as unknown[]) {
-            if (Array.isArray(chunk) && chunk[1] && typeof chunk[1] === 'object') {
-              for (const id of Object.keys(chunk[1] as Record<string, unknown>)) {
-                moduleIdSet.add(id);
-              }
-            }
-          }
-        }
-
-        // Fallback: __webpack_modules__
-        if (typeof w['__webpack_modules__'] === 'object' && w['__webpack_modules__']) {
-          for (const id of Object.keys(w['__webpack_modules__'] as Record<string, unknown>)) {
-            moduleIdSet.add(id);
-          }
-        }
-
-        // Try to find require via .m property on chunk arrays
-        if (!requireFn) {
-          for (const key of chunkKeys) {
-            const arr = w[key] as unknown as { m?: Record<string, unknown> };
-            if (arr?.m && typeof arr.m === 'object') {
-              const mods = arr.m;
-              requireFn = (id: string) => {
-                try {
-                  const fn = mods[id];
-                  return typeof fn === 'function' ? (fn as () => unknown)() : fn;
-                } catch {
-                  return undefined;
-                }
-              };
-              break;
-            }
-          }
-        }
+        const moduleIdSet = collectWebpackModuleIds(w, chunkKeys);
+        const requireFn = locateWebpackRequire(w, chunkKeys);
 
         const allIds = Array.from(moduleIdSet);
 
@@ -89,38 +40,100 @@ export async function runWebpackEnumerate(
           };
         }
 
-        // Search exports
-        const fn = requireFn;
-        const matches: Array<{ id: string; preview: string }> = [];
-        for (const id of allIds) {
-          if (matches.length >= opts.maxResults) break;
-          try {
-            const mod = fn(id);
-            if (mod === undefined || mod === null) continue;
-            let str: string;
-            try {
-              str = JSON.stringify(mod);
-            } catch {
-              str = String(mod);
-            }
-            if (
-              !opts.searchKeyword ||
-              str.toLowerCase().includes(opts.searchKeyword.toLowerCase())
-            ) {
-              matches.push({ id, preview: str.slice(0, 600) });
-            }
-          } catch {
-            // module threw on require
-          }
-        }
-
         return {
           total: allIds.length,
           requireFound: true,
           chunkKeys,
           moduleIds: allIds.slice(0, 200),
-          matches,
+          matches: searchWebpackExports(requireFn, allIds, opts),
         };
+
+        /** Collect all known module IDs from chunk arrays + __webpack_modules__. */
+        // eslint-disable-next-line unicorn/consistent-function-scoping -- injected into the page
+        function collectWebpackModuleIds(
+          scope: Record<string, unknown>,
+          keys: string[],
+        ): Set<string> {
+          const ids = new Set<string>();
+          for (const key of keys) {
+            const arr = scope[key];
+            if (!Array.isArray(arr)) continue;
+            const arrWithM = arr as unknown as { m?: Record<string, unknown> };
+            if (arrWithM.m && typeof arrWithM.m === 'object') {
+              for (const id of Object.keys(arrWithM.m)) ids.add(id);
+            }
+            for (const chunk of arr as unknown[]) {
+              if (Array.isArray(chunk) && chunk[1] && typeof chunk[1] === 'object') {
+                for (const id of Object.keys(chunk[1] as Record<string, unknown>)) {
+                  ids.add(id);
+                }
+              }
+            }
+          }
+          // Fallback: __webpack_modules__
+          if (typeof scope['__webpack_modules__'] === 'object' && scope['__webpack_modules__']) {
+            for (const id of Object.keys(scope['__webpack_modules__'] as Record<string, unknown>)) {
+              ids.add(id);
+            }
+          }
+          return ids;
+        }
+
+        /** Locate __webpack_require__ directly or synthesize one from a chunk
+         * array's .m module table. */
+        // eslint-disable-next-line unicorn/consistent-function-scoping -- injected into the page
+        function locateWebpackRequire(
+          scope: Record<string, unknown>,
+          keys: string[],
+        ): ((id: string) => unknown) | null {
+          if (typeof scope['__webpack_require__'] === 'function') {
+            return scope['__webpack_require__'] as (id: string) => unknown;
+          }
+          for (const key of keys) {
+            const arr = scope[key] as unknown as { m?: Record<string, unknown> };
+            if (arr?.m && typeof arr.m === 'object') {
+              const mods = arr.m;
+              return (id: string) => {
+                try {
+                  const mod = mods[id];
+                  return typeof mod === 'function' ? (mod as () => unknown)() : mod;
+                } catch {
+                  return undefined;
+                }
+              };
+            }
+          }
+          return null;
+        }
+
+        /** Require every module and collect keyword matches with previews. */
+        // eslint-disable-next-line unicorn/consistent-function-scoping -- injected into the page
+        function searchWebpackExports(
+          requireIt: (id: string) => unknown,
+          ids: string[],
+          o: { searchKeyword: string; maxResults: number },
+        ): Array<{ id: string; preview: string }> {
+          const matches: Array<{ id: string; preview: string }> = [];
+          for (const id of ids) {
+            if (matches.length >= o.maxResults) break;
+            try {
+              const mod = requireIt(id);
+              if (mod === undefined || mod === null) continue;
+              let str: string;
+              try {
+                str = JSON.stringify(mod);
+              } catch {
+                str = String(mod);
+              }
+              if (!o.searchKeyword || str.toLowerCase().includes(o.searchKeyword.toLowerCase())) {
+                matches.push({ id, preview: str.slice(0, 600) });
+              }
+            } catch {
+              // module threw on require
+            }
+          }
+          return matches;
+        }
       },
       { searchKeyword, forceRequireAll, maxResults },
     );
