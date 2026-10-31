@@ -169,8 +169,8 @@ importers:
         version: 3.5.43(typescript@7.0.2)
     optionalDependencies:
       '@devicefarmer/adbkit':
-        specifier: ^3.3.8
-        version: 3.3.9
+        specifier: ^4.0.0
+        version: 4.0.0
       '@opentelemetry/api':
         specifier: ^1.9.1
         version: 1.9.1
@@ -405,17 +405,17 @@ packages:
     resolution: {integrity: sha512-OoKoR0f76dCY666JlcbhmVTs2drYj1GUXZTYTcbUgJjh9Nv41aFfZ21bPQTERm5+L5cBDo466NltB2lplS5GBw==}
     engines: {node: '>=20.19.0'}
 
-  '@devicefarmer/adbkit-logcat@2.1.3':
-    resolution: {integrity: sha512-yeaGFjNBc/6+svbDeul1tNHtNChw6h8pSHAt5D+JsedUrMTN7tla7B15WLDyekxsuS2XlZHRxpuC6m92wiwCNw==}
-    engines: {node: '>= 4'}
+  '@devicefarmer/adbkit-logcat@3.0.0':
+    resolution: {integrity: sha512-J8cUertmcDKrGmJswjiGEt9aYpB2vttLTuG9hzIUcCV666if2PIVLQOdWemfm7fKTjOlghKE83uYW7em35TKgw==}
+    engines: {node: '>= 22'}
 
-  '@devicefarmer/adbkit-monkey@1.2.1':
-    resolution: {integrity: sha512-ZzZY/b66W2Jd6NHbAhLyDWOEIBWC11VizGFk7Wx7M61JZRz7HR9Cq5P+65RKWUU7u6wgsE8Lmh9nE4Mz+U2eTg==}
-    engines: {node: '>= 0.10.4'}
+  '@devicefarmer/adbkit-monkey@2.0.0':
+    resolution: {integrity: sha512-lG0vEFDN6v6UQAwxVLzzRSC5z9su1Z7T02B0BHYFGh06DUAja/N42hWztJ63zsF0cNTJuUze8fNnWgpVUL5tLA==}
+    engines: {node: '>= 22'}
 
-  '@devicefarmer/adbkit@3.3.9':
-    resolution: {integrity: sha512-AYxk5G/b2BPEfubcuxVEZEOpsLf0isqrPNJnnwAlUjZAiLdFg/uvLNRDuBhsC/Ar62X+rUhVlvlL+tKp9HCjfQ==}
-    engines: {node: '>= 0.10.4'}
+  '@devicefarmer/adbkit@4.0.0':
+    resolution: {integrity: sha512-PW812CAN6n2OapLIWVSxYuciLE1RTpFKuINKxPHA/4lN12e2ibmRl9m69URGJFtv2U8Jq9FklogYQd6ToRySFA==}
+    engines: {node: '>= 22.12'}
     hasBin: true
 
   '@docsearch/css@4.7.0':
@@ -2312,9 +2312,6 @@ packages:
   birpc@2.9.0:
     resolution: {integrity: sha512-KrayHS5pBi69Xi9JmvoqrIgYGDkD6mcSe/i6YKi3w5kekCLzrX4+nawcXqrj2tIp50Kw/mT/s3p+GVK0A0sKxw==}
 
-  bluebird@3.7.2:
-    resolution: {integrity: sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==}
-
   body-parser@2.3.0:
     resolution: {integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==}
     engines: {node: '>=18'}
@@ -2411,9 +2408,9 @@ packages:
     resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
     engines: {node: '>=20'}
 
-  commander@9.5.0:
-    resolution: {integrity: sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ==}
-    engines: {node: ^12.20.0 || >=14}
+  commander@15.0.0:
+    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+    engines: {node: '>=22.12.0'}
 
   common-tags@1.8.2:
     resolution: {integrity: sha512-gk/Z852D2Wtb//0I+kRFNKKE9dIIVirjoqPoA1wJU+XePVXZfGeBpk45+A1rKO4Q43prqWBNY/MiIeRLbPWUaA==}
@@ -2483,15 +2480,6 @@ packages:
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
-    peerDependencies:
-      supports-color: '*'
-    peerDependenciesMeta:
-      supports-color:
-        optional: true
-
-  debug@4.3.7:
-    resolution: {integrity: sha512-Er2nc/H7RrMXZBFCEim6TCmMk02Z8vLC2Rbi1KEBggpo0fS6l0S1nnapwmIi3yW/+GOJap1Krg4w0Hg80oCqgQ==}
-    engines: {node: '>=6.0'}
     peerDependencies:
       supports-color: '*'
     peerDependenciesMeta:
@@ -3330,8 +3318,8 @@ packages:
     resolution: {integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==}
     engines: {node: ^18 || ^20 || >= 21}
 
-  node-forge@1.4.0:
-    resolution: {integrity: sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==}
+  node-forge@1.4.1:
+    resolution: {integrity: sha512-w5/MfWaeMrpR/5ba6fZyAUTLSuE6aYz7H/3cYrqwZEmf5eQS3IaaLgJt4MBv7HglGFWmV22K8h4U18RJQmw/ow==}
     engines: {node: '>= 6.13.0'}
 
   node-gyp-build@4.8.4:
@@ -4448,20 +4436,19 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.2': {}
 
-  '@devicefarmer/adbkit-logcat@2.1.3':
+  '@devicefarmer/adbkit-logcat@3.0.0':
     optional: true
 
-  '@devicefarmer/adbkit-monkey@1.2.1':
+  '@devicefarmer/adbkit-monkey@2.0.0':
     optional: true
 
-  '@devicefarmer/adbkit@3.3.9':
+  '@devicefarmer/adbkit@4.0.0':
     dependencies:
-      '@devicefarmer/adbkit-logcat': 2.1.3
-      '@devicefarmer/adbkit-monkey': 1.2.1
-      bluebird: 3.7.2
-      commander: 9.5.0
-      debug: 4.3.7
-      node-forge: 1.4.0
+      '@devicefarmer/adbkit-logcat': 3.0.0
+      '@devicefarmer/adbkit-monkey': 2.0.0
+      commander: 15.0.0
+      debug: 4.4.3
+      node-forge: 1.4.1
       split: 1.0.1
     transitivePeerDependencies:
       - supports-color
@@ -5874,9 +5861,6 @@ snapshots:
 
   birpc@2.9.0: {}
 
-  bluebird@3.7.2:
-    optional: true
-
   body-parser@2.3.0:
     dependencies:
       bytes: 3.1.2
@@ -5992,7 +5976,7 @@ snapshots:
   commander@14.0.3:
     optional: true
 
-  commander@9.5.0:
+  commander@15.0.0:
     optional: true
 
   common-tags@1.8.2: {}
@@ -6059,11 +6043,6 @@ snapshots:
   debug@2.6.9:
     dependencies:
       ms: 2.0.0
-
-  debug@4.3.7:
-    dependencies:
-      ms: 2.1.3
-    optional: true
 
   debug@4.4.3:
     dependencies:
@@ -6934,7 +6913,7 @@ snapshots:
   node-addon-api@8.9.2:
     optional: true
 
-  node-forge@1.4.0:
+  node-forge@1.4.1:
     optional: true
 
   node-gyp-build@4.8.4:
