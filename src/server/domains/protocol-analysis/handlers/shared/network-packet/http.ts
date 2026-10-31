@@ -57,27 +57,11 @@ const CRLF = Buffer.from('\r\n');
 const DOUBLE_CRLF = Buffer.from('\r\n\r\n');
 const LF = Buffer.from('\n');
 
-export function parseHttpMessage(payload: Buffer): ParsedHttpMessage {
-  const warnings: string[] = [];
-  const separatorEnd = indexOfSequence(payload, DOUBLE_CRLF);
-  let headEnd: number;
-  if (separatorEnd !== -1) {
-    headEnd = separatorEnd + 2; // include trailing CRLF of last header
-  } else {
-    const lfEnd = indexOfSequence(payload, LF);
-    if (lfEnd === -1) {
-      throw new Error('HTTP payload missing a complete start line');
-    }
-    headEnd = lfEnd;
-    warnings.push('malformed message: start line not terminated by CRLF');
-  }
-
-  const headText = payload.subarray(0, headEnd).toString('utf8');
-  const body = payload.subarray(separatorEnd !== -1 ? separatorEnd + 4 : headEnd + 1);
-
-  const lines = headText.split(/\r\n/u);
-  const startLine = lines.shift()?.trim() ?? '';
-
+/** Parse head lines into header records plus a lowercase lookup map. */
+function parseHttpHeadLines(
+  lines: string[],
+  warnings: string[],
+): { headers: HttpHeader[]; headersByKey: Record<string, string> } {
   const headers: HttpHeader[] = [];
   for (const line of lines) {
     if (line.length === 0) continue;
@@ -99,6 +83,69 @@ export function parseHttpMessage(payload: Buffer): ParsedHttpMessage {
   for (const header of headers) {
     headersByKey[header.name.toLowerCase()] = header.value;
   }
+  return { headers, headersByKey };
+}
+
+/** Extract HTTP version from a token ("HTTP/1.1" -> "1.1", verbatim otherwise). */
+function httpVersionFromToken(token: string): string {
+  return /^HTTP\/\d+(\.\d+)?$/iu.test(token) ? token.slice(5) : token;
+}
+
+function parseHttpRequestLine(
+  startLine: string,
+  result: ParsedHttpMessage,
+  warnings: string[],
+): void {
+  const parts = startLine.split(/\s+/u);
+  if (parts.length < 3) {
+    warnings.push('malformed request line: expected "METHOD SP target SP HTTP-version"');
+    return;
+  }
+  result.method = parts[0];
+  result.requestTarget = parts.slice(1, -1).join(' ');
+  result.httpVersion = httpVersionFromToken(parts[parts.length - 1]!);
+}
+
+function parseHttpStatusLine(
+  startLine: string,
+  result: ParsedHttpMessage,
+  warnings: string[],
+): void {
+  const parts = startLine.split(/\s+/u);
+  if (parts.length < 2) {
+    warnings.push('malformed status line: expected "HTTP-version SP status-code [reason]"');
+    return;
+  }
+  result.httpVersion = httpVersionFromToken(parts[0]!);
+  const status = Number.parseInt(parts[1]!, 10);
+  if (Number.isFinite(status)) {
+    result.statusCode = status;
+  }
+  result.reasonPhrase = parts.slice(2).join(' ');
+}
+
+export function parseHttpMessage(payload: Buffer): ParsedHttpMessage {
+  const warnings: string[] = [];
+  const separatorEnd = indexOfSequence(payload, DOUBLE_CRLF);
+  let headEnd: number;
+  if (separatorEnd !== -1) {
+    headEnd = separatorEnd + 2; // include trailing CRLF of last header
+  } else {
+    const lfEnd = indexOfSequence(payload, LF);
+    if (lfEnd === -1) {
+      throw new Error('HTTP payload missing a complete start line');
+    }
+    headEnd = lfEnd;
+    warnings.push('malformed message: start line not terminated by CRLF');
+  }
+
+  const headText = payload.subarray(0, headEnd).toString('utf8');
+  const body = payload.subarray(separatorEnd !== -1 ? separatorEnd + 4 : headEnd + 1);
+
+  const lines = headText.split(/\r\n/u);
+  const startLine = lines.shift()?.trim() ?? '';
+
+  const { headers, headersByKey } = parseHttpHeadLines(lines, warnings);
 
   const kind: HttpMessageKind = /^HTTP\/\d/u.test(startLine) ? 'response' : 'request';
   const base: Omit<
@@ -143,36 +190,9 @@ export function parseHttpMessage(payload: Buffer): ParsedHttpMessage {
   }
 
   if (kind === 'request') {
-    const parts = startLine.split(/\s+/u);
-    if (parts.length < 3) {
-      warnings.push('malformed request line: expected "METHOD SP target SP HTTP-version"');
-    } else {
-      result.method = parts[0];
-      result.requestTarget = parts.slice(1, -1).join(' ');
-      const last = parts[parts.length - 1]!;
-      if (/^HTTP\/\d+(\.\d+)?$/iu.test(last)) {
-        result.httpVersion = last.slice(5);
-      } else {
-        result.httpVersion = last;
-      }
-    }
+    parseHttpRequestLine(startLine, result, warnings);
   } else {
-    const parts = startLine.split(/\s+/u);
-    if (parts.length < 2) {
-      warnings.push('malformed status line: expected "HTTP-version SP status-code [reason]"');
-    } else {
-      const versionToken = parts[0]!;
-      if (/^HTTP\/\d+(\.\d+)?$/iu.test(versionToken)) {
-        result.httpVersion = versionToken.slice(5);
-      } else {
-        result.httpVersion = versionToken;
-      }
-      const status = Number.parseInt(parts[1]!, 10);
-      if (Number.isFinite(status)) {
-        result.statusCode = status;
-      }
-      result.reasonPhrase = parts.slice(2).join(' ');
-    }
+    parseHttpStatusLine(startLine, result, warnings);
   }
 
   // Chunked transfer-encoding unwinding.
