@@ -148,40 +148,7 @@ export class AccountHandlers {
       return R.fail(fetchError).merge({ url }).json();
     }
 
-    const results: Record<string, Array<{ match: string; index: number; context: string }>> = {};
-    for (const pattern of patterns) {
-      const contextBefore = pattern.contextBefore ?? 80;
-      const contextAfter = pattern.contextAfter ?? 80;
-      let re: RegExp;
-      try {
-        re = new RegExp(pattern.regex, 'g');
-      } catch (e) {
-        results[pattern.name] = [
-          {
-            match: '',
-            index: -1,
-            context: `Invalid regex: ${e instanceof Error ? e.message : String(e)}`,
-          },
-        ];
-        continue;
-      }
-      const matches: Array<{ match: string; index: number; context: string }> = [];
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(bundleText)) !== null) {
-        const s = Math.max(0, m.index - contextBefore);
-        const e = Math.min(bundleText.length, m.index + m[0].length + contextAfter);
-        const ctx = bundleText.slice(s, e);
-        if (stripNoise) {
-          if (/[Mm]\d{1,6}(?:\.\d+)?[, ]\d{1,6}(?:\.\d+)?[CLHVSQTAZclhvsqtaz]/.test(ctx)) continue;
-          if (/data:[a-z+-]+\/[a-z+-]+;base64,/i.test(ctx)) continue;
-          if (ctx.replace(/[^A-Za-z0-9+/=]/g, '').length > ctx.length * 0.85 && ctx.length > 200)
-            continue;
-        }
-        matches.push({ match: m[0], index: m.index, context: ctx });
-        if (matches.length >= maxMatches) break;
-      }
-      results[pattern.name] = matches;
-    }
+    const results = runBundlePatternSearch(bundleText, patterns, { stripNoise, maxMatches });
 
     return R.ok()
       .merge({
@@ -193,4 +160,66 @@ export class AccountHandlers {
       })
       .json();
   }
+}
+
+interface BundlePattern {
+  name: string;
+  regex: string;
+  contextBefore?: number;
+  contextAfter?: number;
+}
+
+/** Run every pattern against the bundle text with context windows and
+ * optional minified-noise filtering. */
+function runBundlePatternSearch(
+  bundleText: string,
+  patterns: BundlePattern[],
+  opts: { stripNoise: boolean; maxMatches: number },
+): Record<string, Array<{ match: string; index: number; context: string }>> {
+  const results: Record<string, Array<{ match: string; index: number; context: string }>> = {};
+  for (const pattern of patterns) {
+    results[pattern.name] = searchOneBundlePattern(bundleText, pattern, opts);
+  }
+  return results;
+}
+
+function searchOneBundlePattern(
+  bundleText: string,
+  pattern: BundlePattern,
+  opts: { stripNoise: boolean; maxMatches: number },
+): Array<{ match: string; index: number; context: string }> {
+  const contextBefore = pattern.contextBefore ?? 80;
+  const contextAfter = pattern.contextAfter ?? 80;
+  let re: RegExp;
+  try {
+    re = new RegExp(pattern.regex, 'g');
+  } catch (e) {
+    return [
+      {
+        match: '',
+        index: -1,
+        context: `Invalid regex: ${e instanceof Error ? e.message : String(e)}`,
+      },
+    ];
+  }
+
+  const matches: Array<{ match: string; index: number; context: string }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(bundleText)) !== null) {
+    const s = Math.max(0, m.index - contextBefore);
+    const e = Math.min(bundleText.length, m.index + m[0].length + contextAfter);
+    const ctx = bundleText.slice(s, e);
+    if (opts.stripNoise && isMinifiedNoise(ctx)) continue;
+    matches.push({ match: m[0], index: m.index, context: ctx });
+    if (matches.length >= opts.maxMatches) break;
+  }
+  return matches;
+}
+
+/** Heuristic minified-noise filter: media-codec coordinate dumps, data: URIs,
+ * and long base64-dominant spans. */
+function isMinifiedNoise(ctx: string): boolean {
+  if (/[Mm]\d{1,6}(?:\.\d+)?[, ]\d{1,6}(?:\.\d+)?[CLHVSQTAZclhvsqtaz]/.test(ctx)) return true;
+  if (/data:[a-z+-]+\/[a-z+-]+;base64,/i.test(ctx)) return true;
+  return ctx.replace(/[^A-Za-z0-9+/=]/g, '').length > ctx.length * 0.85 && ctx.length > 200;
 }

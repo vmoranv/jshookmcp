@@ -47,75 +47,7 @@ export async function handleSearchTools(
 
   // Auto-activate top inactive results so they are immediately usable.
   if (autoActivate && topK > 0 && SEARCH_AUTO_ACTIVATE_DOMAINS) {
-    const inactiveResults = results.filter((r) => !r.isActive);
-    if (inactiveResults.length > 0) {
-      // Collect unique domains from inactive results
-      const domainsToActivate = new Set<string>();
-      const toolsWithoutDomain: string[] = [];
-
-      for (const r of inactiveResults) {
-        if (r.domain && !ctx.enabledDomains.has(r.domain)) {
-          domainsToActivate.add(r.domain);
-        } else if (!r.domain) {
-          toolsWithoutDomain.push(r.name);
-        }
-      }
-
-      // Activate entire domains with TTL
-      const { handleActivateDomain } = await import('@server/MCPServer.search.handlers.domain');
-      for (const domain of domainsToActivate) {
-        try {
-          await handleActivateDomain(ctx, { domain, ttlMinutes: ACTIVATION_TTL_MINUTES });
-        } catch {
-          /* fall through to individual activation */
-        }
-      }
-
-      // Activate tools without a domain or that belong to already-enabled domains
-      const domainsEnabledSet = new Set(domainsToActivate);
-      const remainingInactive = inactiveResults
-        .filter((r) => !domainsEnabledSet.has(r.domain ?? ''))
-        .map((r) => r.name);
-      const names = [...new Set([...remainingInactive, ...toolsWithoutDomain])];
-      if (names.length > 0) {
-        await activateToolNames(ctx, names);
-      }
-    } else if (results.length === 0) {
-      // No results at all — try fuzzy domain name matching from query tokens
-      const queryLower = query.toLowerCase();
-      const queryTokens = queryLower.split(/[\s\-_.,;:|/(){}[\]]+/).filter((t) => t.length >= 2);
-      const allDomains = [...getAllKnownDomains()];
-      const matchedDomains = allDomains.filter((d) =>
-        queryTokens.some(
-          (t) =>
-            d.includes(t) || t.includes(d.replace(/-/g, '')) || d.replace(/-/g, '').includes(t),
-        ),
-      );
-
-      if (matchedDomains.length > 0) {
-        const { handleActivateDomain } = await import('@server/MCPServer.search.handlers.domain');
-        for (const domain of matchedDomains) {
-          try {
-            await handleActivateDomain(ctx, { domain, ttlMinutes: ACTIVATION_TTL_MINUTES });
-          } catch {
-            /* fall through */
-          }
-        }
-        // Re-run search after domain activation to pick up newly available tools
-        const activeNamesAfter = getActiveToolNames(ctx);
-        const visibleDomainsAfter = getVisibleDomainsForTier(ctx);
-        const retryResults = await engine.search(
-          query,
-          topK,
-          activeNamesAfter,
-          visibleDomainsAfter,
-          getBaseTier(ctx),
-        );
-        if (retryResults.length > 0) {
-          results = retryResults;
-        }
-      }
-    }
+    results = await autoActivateSearchResults(ctx, engine, query, topK, results);
   }
 
   // Refresh activeNames to reflect post-activation state for response accuracy
@@ -198,4 +130,101 @@ export async function handleSearchTools(
   }
 
   return asTextResponse(responseText);
+}
+
+/** Extract query tokens (≥2 chars) for fuzzy domain matching. */
+function queryTokensOf(query: string): string[] {
+  return query
+    .toLowerCase()
+    .split(/[\s\-_.,;:|/(){}[\]]+/)
+    .filter((t) => t.length >= 2);
+}
+
+/** Fuzzy-match query tokens against known domain names. */
+function matchDomainsFromTokens(query: string): string[] {
+  const queryTokens = queryTokensOf(query);
+  const allDomains = [...getAllKnownDomains()];
+  return allDomains.filter((d) =>
+    queryTokens.some(
+      (t) => d.includes(t) || t.includes(d.replace(/-/g, '')) || d.replace(/-/g, '').includes(t),
+    ),
+  );
+}
+
+async function activateDomains(ctx: MCPServerContext, domains: Iterable<string>): Promise<void> {
+  const { handleActivateDomain } = await import('@server/MCPServer.search.handlers.domain');
+  for (const domain of domains) {
+    try {
+      await handleActivateDomain(ctx, { domain, ttlMinutes: ACTIVATION_TTL_MINUTES });
+    } catch {
+      /* fall through */
+    }
+  }
+}
+
+/** Auto-activate top inactive results so they are immediately usable. When the
+ * query returned nothing, retry with fuzzy domain activation first. */
+async function autoActivateSearchResults(
+  ctx: MCPServerContext,
+  engine: Awaited<ReturnType<typeof getSearchEngine>>,
+  query: string,
+  topK: number,
+  results: Awaited<ReturnType<typeof engine.search>>,
+): Promise<Awaited<ReturnType<typeof engine.search>>> {
+  const inactiveResults = results.filter((r) => !r.isActive);
+  if (inactiveResults.length === 0) {
+    return retrySearchWithFuzzyDomains(ctx, engine, query, topK, results);
+  }
+
+  // Collect unique domains from inactive results
+  const domainsToActivate = new Set<string>();
+  const toolsWithoutDomain: string[] = [];
+
+  for (const r of inactiveResults) {
+    if (r.domain && !ctx.enabledDomains.has(r.domain)) {
+      domainsToActivate.add(r.domain);
+    } else if (!r.domain) {
+      toolsWithoutDomain.push(r.name);
+    }
+  }
+
+  await activateDomains(ctx, domainsToActivate);
+
+  // Activate tools without a domain or that belong to already-enabled domains
+  const domainsEnabledSet = new Set(domainsToActivate);
+  const remainingInactive = inactiveResults
+    .filter((r) => !domainsEnabledSet.has(r.domain ?? ''))
+    .map((r) => r.name);
+  const names = [...new Set([...remainingInactive, ...toolsWithoutDomain])];
+  if (names.length > 0) {
+    await activateToolNames(ctx, names);
+  }
+  return results;
+}
+
+/** No results at all — try fuzzy domain name matching from query tokens,
+ * activate the matches, and re-run the search. */
+async function retrySearchWithFuzzyDomains(
+  ctx: MCPServerContext,
+  engine: Awaited<ReturnType<typeof getSearchEngine>>,
+  query: string,
+  topK: number,
+  results: Awaited<ReturnType<typeof engine.search>>,
+): Promise<Awaited<ReturnType<typeof engine.search>>> {
+  if (results.length !== 0) return results;
+  const matchedDomains = matchDomainsFromTokens(query);
+  if (matchedDomains.length === 0) return results;
+
+  await activateDomains(ctx, matchedDomains);
+  // Re-run search after domain activation to pick up newly available tools
+  const activeNamesAfter = getActiveToolNames(ctx);
+  const visibleDomainsAfter = getVisibleDomainsForTier(ctx);
+  const retryResults = await engine.search(
+    query,
+    topK,
+    activeNamesAfter,
+    visibleDomainsAfter,
+    getBaseTier(ctx),
+  );
+  return retryResults.length > 0 ? retryResults : results;
 }

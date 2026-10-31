@@ -43,103 +43,23 @@ const TLS_VERSION_ORDER: ProbeTlsVersion[] = ['TLSv1', 'TLSv1.1', 'TLSv1.2', 'TL
 
 export class TlsInspectorWebSocketHandlers extends TlsInspectorWebSocketFrameHandlers {
   async handleWebSocketOpen(args: Record<string, unknown>): Promise<unknown> {
-    const rawUrl = argString(args, 'url')?.trim() ?? null;
-    const rawHost = argString(args, 'host')?.trim() ?? null;
-    const rawPath = argString(args, 'path')?.trim() ?? null;
-    const rawPort = argNumber(args, 'port');
-    const rawScheme = argString(args, 'scheme')?.trim() ?? null;
-    if (rawUrl && (rawHost || rawPath || rawPort !== undefined || rawScheme)) {
-      return {
-        ok: false,
-        error: 'url is mutually exclusive with explicit scheme/host/port/path inputs',
-      };
-    }
+    const targetOrError = resolveWebSocketTargetArgs(args);
+    if ('error' in targetOrError) return { ok: false, error: targetOrError.error };
+    const { scheme, host, port, path, url } = targetOrError;
 
-    let scheme: WebSocketScheme = 'ws';
-    let host = rawHost;
-    let port = rawPort ?? undefined;
-    let path = normalizeWebSocketPath(rawPath);
-    let url: string;
-
-    if (rawUrl) {
-      let parsedUrl: URL;
-      try {
-        parsedUrl = new URL(rawUrl);
-      } catch (error) {
-        return { ok: false, error: `Invalid url: ${errorMessage(error)}` };
-      }
-      if (parsedUrl.protocol !== 'ws:' && parsedUrl.protocol !== 'wss:') {
-        return { ok: false, error: 'url must use ws:// or wss:// protocol' };
-      }
-      scheme = parsedUrl.protocol === 'wss:' ? 'wss' : 'ws';
-      host = parsedUrl.hostname;
-      port = parsedUrl.port.length > 0 ? Number(parsedUrl.port) : scheme === 'wss' ? 443 : 80;
-      path = normalizeWebSocketPath(`${parsedUrl.pathname}${parsedUrl.search}`);
-      url = `${scheme}://${parsedUrl.host}${path}`;
-    } else {
-      if (!host) {
-        return { ok: false, error: 'host or url is required' };
-      }
-      if (rawScheme) {
-        if (rawScheme !== 'ws' && rawScheme !== 'wss') {
-          return { ok: false, error: 'scheme must be ws or wss' };
-        }
-        scheme = rawScheme;
-      }
-      port ??= scheme === 'wss' ? 443 : 80;
-      const authority = port === (scheme === 'wss' ? 443 : 80) ? host : `${host}:${String(port)}`;
-      url = `${scheme}://${authority}${path}`;
-    }
-
-    if (!host || !port || !Number.isInteger(port) || port < 1 || port > 65535) {
-      return { ok: false, error: 'port must be an integer between 1 and 65535' };
-    }
-
-    const timeoutMs = argNumber(args, 'timeoutMs') ?? 5000;
-    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-      return { ok: false, error: 'timeoutMs must be a positive number' };
-    }
-
-    const subprotocols = [
-      ...new Set(argStringArray(args, 'subprotocols').map((value) => value.trim())),
-    ].filter((value) => value.length > 0);
-
-    const ssrfCheck = validateNetworkTarget(host);
-    if (ssrfCheck) {
-      return ssrfCheck;
-    }
-
-    const allowInvalidCertificates = argBool(args, 'allowInvalidCertificates') ?? false;
-    const skipHostnameCheck = argBool(args, 'skipHostnameCheck') ?? false;
-    const servernameArg = argString(args, 'servername')?.trim() ?? null;
-    const alpnProtocols = [
-      ...new Set(argStringArray(args, 'alpnProtocols').map((value) => value.trim())),
-    ].filter((value) => value.length > 0);
-
-    let minVersion: ProbeTlsVersion | undefined;
-    let maxVersion: ProbeTlsVersion | undefined;
-    try {
-      minVersion = argEnum(args, 'minVersion', TLS_VERSION_SET);
-      maxVersion = argEnum(args, 'maxVersion', TLS_VERSION_SET);
-    } catch (error) {
-      return { ok: false, error: errorMessage(error) };
-    }
-
-    if (
-      minVersion &&
-      maxVersion &&
-      TLS_VERSION_ORDER.indexOf(minVersion) > TLS_VERSION_ORDER.indexOf(maxVersion)
-    ) {
-      return { ok: false, error: 'minVersion must not be greater than maxVersion' };
-    }
-
-    const caBundle =
-      scheme === 'wss'
-        ? await loadProbeCaBundle(args)
-        : { ok: true as const, ca: undefined, source: null, path: null, bytes: null };
-    if (!caBundle.ok) {
-      return { ok: false, error: caBundle.error };
-    }
+    const optsOrError = await parseWebSocketOpenOptions(args, scheme, host);
+    if ('error' in optsOrError) return { ok: false, error: optsOrError.error };
+    const {
+      timeoutMs,
+      subprotocols,
+      allowInvalidCertificates,
+      skipHostnameCheck,
+      servernameArg,
+      alpnProtocols,
+      minVersion,
+      maxVersion,
+      caBundle,
+    } = optsOrError;
 
     const target: WebSocketTargetSummary = {
       scheme,
@@ -501,4 +421,151 @@ export class TlsInspectorWebSocketHandlers extends TlsInspectorWebSocketFrameHan
       args,
     });
   }
+}
+
+type WsArgsResult<T> = T | { error: string };
+
+/** Phase 1: resolve the ws/wss target from either a URL or explicit parts.
+ * Returns `{ error }` on invalid input. */
+function resolveWebSocketTargetArgs(args: Record<string, unknown>):
+  | WsArgsResult<{
+      scheme: WebSocketScheme;
+      host: string;
+      port: number;
+      path: string;
+      url: string;
+    }>
+  | { error: string } {
+  const rawUrl = argString(args, 'url')?.trim() ?? null;
+  const rawHost = argString(args, 'host')?.trim() ?? null;
+  const rawPath = argString(args, 'path')?.trim() ?? null;
+  const rawPort = argNumber(args, 'port');
+  const rawScheme = argString(args, 'scheme')?.trim() ?? null;
+  if (rawUrl && (rawHost || rawPath || rawPort !== undefined || rawScheme)) {
+    return {
+      error: 'url is mutually exclusive with explicit scheme/host/port/path inputs',
+    };
+  }
+
+  let scheme: WebSocketScheme = 'ws';
+  let host = rawHost;
+  let port = rawPort ?? undefined;
+  let path = normalizeWebSocketPath(rawPath);
+  let url: string;
+
+  if (rawUrl) {
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(rawUrl);
+    } catch (error) {
+      return { error: `Invalid url: ${errorMessage(error)}` };
+    }
+    if (parsedUrl.protocol !== 'ws:' && parsedUrl.protocol !== 'wss:') {
+      return { error: 'url must use ws:// or wss:// protocol' };
+    }
+    scheme = parsedUrl.protocol === 'wss:' ? 'wss' : 'ws';
+    host = parsedUrl.hostname;
+    port = parsedUrl.port.length > 0 ? Number(parsedUrl.port) : scheme === 'wss' ? 443 : 80;
+    path = normalizeWebSocketPath(`${parsedUrl.pathname}${parsedUrl.search}`);
+    url = `${scheme}://${parsedUrl.host}${path}`;
+  } else {
+    if (!host) {
+      return { error: 'host or url is required' };
+    }
+    if (rawScheme) {
+      if (rawScheme !== 'ws' && rawScheme !== 'wss') {
+        return { error: 'scheme must be ws or wss' };
+      }
+      scheme = rawScheme;
+    }
+    port ??= scheme === 'wss' ? 443 : 80;
+    const authority = port === (scheme === 'wss' ? 443 : 80) ? host : `${host}:${String(port)}`;
+    url = `${scheme}://${authority}${path}`;
+  }
+
+  if (!host || !port || !Number.isInteger(port) || port < 1 || port > 65535) {
+    return { error: 'port must be an integer between 1 and 65535' };
+  }
+  return { scheme, host, port, path, url };
+}
+
+/** Phase 2: timeout/TLS/handshake options + SSRF gate + CA bundle load. */
+async function parseWebSocketOpenOptions(
+  args: Record<string, unknown>,
+  scheme: WebSocketScheme,
+  host: string,
+): Promise<
+  | WsArgsResult<{
+      timeoutMs: number;
+      subprotocols: string[];
+      allowInvalidCertificates: boolean;
+      skipHostnameCheck: boolean;
+      servernameArg: string | null;
+      alpnProtocols: string[];
+      minVersion: ProbeTlsVersion | undefined;
+      maxVersion: ProbeTlsVersion | undefined;
+      caBundle: { ok: true; ca: Buffer | undefined; source: null; path: null; bytes: null };
+    }>
+  | { error: string }
+> {
+  const timeoutMs = argNumber(args, 'timeoutMs') ?? 5000;
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return { error: 'timeoutMs must be a positive number' };
+  }
+
+  const subprotocols = [
+    ...new Set(argStringArray(args, 'subprotocols').map((value) => value.trim())),
+  ].filter((value) => value.length > 0);
+
+  const ssrfCheck = validateNetworkTarget(host);
+  if (ssrfCheck) return { error: ssrfCheck.error };
+
+  const allowInvalidCertificates = argBool(args, 'allowInvalidCertificates') ?? false;
+  const skipHostnameCheck = argBool(args, 'skipHostnameCheck') ?? false;
+  const servernameArg = argString(args, 'servername')?.trim() ?? null;
+  const alpnProtocols = [
+    ...new Set(argStringArray(args, 'alpnProtocols').map((value) => value.trim())),
+  ].filter((value) => value.length > 0);
+
+  let minVersion: ProbeTlsVersion | undefined;
+  let maxVersion: ProbeTlsVersion | undefined;
+  try {
+    minVersion = argEnum(args, 'minVersion', TLS_VERSION_SET);
+    maxVersion = argEnum(args, 'maxVersion', TLS_VERSION_SET);
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+
+  if (
+    minVersion &&
+    maxVersion &&
+    TLS_VERSION_ORDER.indexOf(minVersion) > TLS_VERSION_ORDER.indexOf(maxVersion)
+  ) {
+    return { error: 'minVersion must not be greater than maxVersion' };
+  }
+
+  const caBundle =
+    scheme === 'wss'
+      ? await loadProbeCaBundle(args)
+      : { ok: true as const, ca: undefined, source: null, path: null, bytes: null };
+  if (!caBundle.ok) {
+    return { error: caBundle.error };
+  }
+  return {
+    timeoutMs,
+    subprotocols,
+    allowInvalidCertificates,
+    skipHostnameCheck,
+    servernameArg,
+    alpnProtocols,
+    minVersion,
+    maxVersion,
+    caBundle: caBundle as {
+      ok: true;
+      ca: Buffer | undefined;
+      source: null;
+      path: null;
+      bytes: null;
+    },
+  };
 }
