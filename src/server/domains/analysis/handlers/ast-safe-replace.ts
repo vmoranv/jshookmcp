@@ -157,82 +157,104 @@ function isRegexOpener(code: string, pos: number): boolean {
   );
 }
 
-function insideStringLiteralOrComment(code: string, offset: number): boolean {
-  let inStr: "'" | '"' | '`' | null = null;
-  let inBlockComment = false;
-  let inLineComment = false;
-  let inRegex = false;
+/** Mutable scanner state shared by the state-machine step functions. */
+interface LexicalScanState {
+  inStr: "'" | '"' | '`' | null;
+  inBlockComment: boolean;
+  inLineComment: boolean;
+  inRegex: boolean;
+}
 
-  for (let index = 0; index < offset; index++) {
-    const char = code[index]!;
-    if (inBlockComment) {
-      if (char === '*' && code[index + 1] === '/') {
-        inBlockComment = false;
-        index++;
-      }
-      continue;
-    }
-    if (inLineComment) {
-      if (char === '\n') {
-        inLineComment = false;
-      }
-      continue;
-    }
-    if (inRegex) {
-      if (char === '\\') {
-        index++;
-        continue;
-      }
-      if (char === '/') {
-        inRegex = false;
-        index++;
-        while (index < offset && /[gimsuy]/.test(code[index]!)) {
-          index++;
-        }
-        continue;
-      }
-      if (char === '[') {
-        index++;
-        while (index < offset && code[index] !== ']') {
-          if (code[index] === '\\') {
-            index++;
-          }
-          index++;
-        }
-        continue;
-      }
-      continue;
-    }
-    if (inStr) {
-      if (char === '\\') {
-        index++;
-        continue;
-      }
-      if (char === inStr) {
-        inStr = null;
-      }
-      continue;
-    }
-    if (char === '/' && code[index + 1] === '/') {
-      inLineComment = true;
-      index++;
-      continue;
-    }
-    if (char === '/' && code[index + 1] === '*') {
-      inBlockComment = true;
-      index++;
-      continue;
-    }
-    if (char === '/' && isRegexOpener(code, index)) {
-      inRegex = true;
-      continue;
-    }
-    if (char === "'" || char === '"' || char === '`') {
-      inStr = char;
-    }
+function insideStringLiteralOrComment(code: string, offset: number): boolean {
+  const st: LexicalScanState = {
+    inStr: null,
+    inBlockComment: false,
+    inLineComment: false,
+    inRegex: false,
+  };
+
+  let index = 0;
+  while (index < offset) {
+    index = stepLexicalScan(code, offset, index, st);
   }
 
-  return inStr !== null || inBlockComment || inLineComment || inRegex;
+  return st.inStr !== null || st.inBlockComment || st.inLineComment || st.inRegex;
+}
+
+/** Advance `index` past a regex body + flags; returns the new index. */
+function skipRegexBody(code: string, offset: number, index: number): number {
+  index++;
+  while (index < offset && /[gimsuy]/.test(code[index]!)) {
+    index++;
+  }
+  return index;
+}
+
+/** Advance `index` past a regex character class ([...]); returns the new index. */
+function skipRegexClass(code: string, offset: number, index: number): number {
+  index++;
+  while (index < offset && code[index] !== ']') {
+    if (code[index] === '\\') {
+      index++;
+    }
+    index++;
+  }
+  return index;
+}
+
+/** One state-machine step of the lexical scanner (comment/string/regex). */
+function stepLexicalScan(
+  code: string,
+  offset: number,
+  index: number,
+  st: LexicalScanState,
+): number {
+  const char = code[index]!;
+  if (st.inBlockComment) {
+    if (char === '*' && code[index + 1] === '/') {
+      st.inBlockComment = false;
+      return index + 2;
+    }
+    return index + 1;
+  }
+  if (st.inLineComment) {
+    if (char === '\n') {
+      st.inLineComment = false;
+    }
+    return index + 1;
+  }
+  if (st.inRegex) {
+    if (char === '\\') return index + 2;
+    if (char === '/') {
+      st.inRegex = false;
+      return skipRegexBody(code, offset, index);
+    }
+    if (char === '[') return skipRegexClass(code, offset, index);
+    return index + 1;
+  }
+  if (st.inStr) {
+    if (char === '\\') return index + 2;
+    if (char === st.inStr) {
+      st.inStr = null;
+    }
+    return index + 1;
+  }
+  if (char === '/' && code[index + 1] === '/') {
+    st.inLineComment = true;
+    return index + 2;
+  }
+  if (char === '/' && code[index + 1] === '*') {
+    st.inBlockComment = true;
+    return index + 2;
+  }
+  if (char === '/' && isRegexOpener(code, index)) {
+    st.inRegex = true;
+    return index + 1;
+  }
+  if (char === "'" || char === '"' || char === '`') {
+    st.inStr = char;
+  }
+  return index + 1;
 }
 
 /**
@@ -262,6 +284,73 @@ function isOffsetInRanges(offset: number, ranges: ProtectedRange[]): boolean {
  * `isProtected` can binary-search them instead of re-running the O(n) scanner
  * per match. Mirrors the state machine in {@link insideStringLiteralOrComment}.
  */
+/** Line comment: `//` through the newline (exclusive) or EOF. */
+function scanLineCommentRange(code: string, length: number, start: number): ProtectedRange {
+  let index = start + 2;
+  while (index < length && code[index] !== '\n') index += 1;
+  return { start, end: index };
+}
+
+/** Block comment: `/*` through `*` + `/` (inclusive) or EOF. */
+function scanBlockCommentRange(code: string, length: number, start: number): ProtectedRange {
+  let index = start + 2;
+  while (index < length && !(code[index] === '*' && code[index + 1] === '/')) index += 1;
+  index = Math.min(index + 2, length);
+  return { start, end: index };
+}
+
+/** String literal: quote through the matching close (respecting escapes). */
+function scanStringRange(
+  code: string,
+  length: number,
+  start: number,
+  quote: string,
+): ProtectedRange {
+  let index = start + 1;
+  while (index < length) {
+    if (code[index] === '\\') {
+      index += 2;
+      continue;
+    }
+    if (code[index] === quote) {
+      index += 1;
+      break;
+    }
+    index += 1;
+  }
+  return { start, end: index };
+}
+
+/** Regex literal body + flags (only where a regex is syntactically valid). */
+function scanRegexRange(code: string, length: number, start: number): ProtectedRange {
+  let index = start + 1;
+  let inClass = false;
+  while (index < length) {
+    const c = code[index]!;
+    if (c === '\\') {
+      index += 2;
+      continue;
+    }
+    if (inClass) {
+      if (c === ']') inClass = false;
+      index += 1;
+      continue;
+    }
+    if (c === '[') {
+      inClass = true;
+      index += 1;
+      continue;
+    }
+    if (c === '/') {
+      index += 1;
+      while (index < length && /[gimsuy]/.test(code[index]!)) index += 1;
+      break;
+    }
+    index += 1;
+  }
+  return { start, end: index };
+}
+
 function collectProtectedRangesLexical(code: string): ProtectedRange[] {
   const ranges: ProtectedRange[] = [];
   const length = code.length;
@@ -270,74 +359,31 @@ function collectProtectedRangesLexical(code: string): ProtectedRange[] {
   while (index < length) {
     const char = code[index]!;
 
-    // Line comment: `//` through the newline (exclusive) or EOF.
     if (char === '/' && code[index + 1] === '/') {
-      const start = index;
-      index += 2;
-      while (index < length && code[index] !== '\n') index += 1;
-      ranges.push({ start, end: index });
+      const range = scanLineCommentRange(code, length, index);
+      ranges.push(range);
+      index = range.end;
       continue;
     }
 
-    // Block comment: `/*` through `*/` (inclusive) or EOF.
     if (char === '/' && code[index + 1] === '*') {
-      const start = index;
-      index += 2;
-      while (index < length && !(code[index] === '*' && code[index + 1] === '/')) index += 1;
-      index = Math.min(index + 2, length);
-      ranges.push({ start, end: index });
+      const range = scanBlockCommentRange(code, length, index);
+      ranges.push(range);
+      index = range.end;
       continue;
     }
 
-    // String literal: quote through the matching close (respecting escapes).
     if (char === "'" || char === '"' || char === '`') {
-      const quote = char;
-      const start = index;
-      index += 1;
-      while (index < length) {
-        if (code[index] === '\\') {
-          index += 2;
-          continue;
-        }
-        if (code[index] === quote) {
-          index += 1;
-          break;
-        }
-        index += 1;
-      }
-      ranges.push({ start, end: index });
+      const range = scanStringRange(code, length, index, char);
+      ranges.push(range);
+      index = range.end;
       continue;
     }
 
-    // Regex literal: only where a regex is syntactically valid.
     if (char === '/' && isRegexOpener(code, index)) {
-      const start = index;
-      index += 1;
-      let inClass = false;
-      while (index < length) {
-        const c = code[index]!;
-        if (c === '\\') {
-          index += 2;
-          continue;
-        }
-        if (inClass) {
-          if (c === ']') inClass = false;
-          index += 1;
-          continue;
-        }
-        if (c === '[') {
-          inClass = true;
-          index += 1;
-          continue;
-        }
-        if (c === '/') {
-          index += 1;
-          while (index < length && /[gimsuy]/.test(code[index]!)) index += 1;
-          break;
-        }
-        index += 1;
-      }
-      ranges.push({ start, end: index });
+      const range = scanRegexRange(code, length, index);
+      ranges.push(range);
+      index = range.end;
       continue;
     }
 

@@ -41,143 +41,227 @@ export class ProtocolAnalysisFingerprintHandlers extends ProtocolAnalysisPacketH
       return asJsonResponse({ success: false, error: 'hexPayloads is required' });
     }
 
-    const results = hexPayloads.map((hex, index) => {
-      const clean = hex.replace(/\s/g, '');
-      const matches: Array<{ protocol: string; layer: string; confidence: number }> = [];
-      const actualBytes = clean.length / 2;
-      const tlsRecordLen = actualBytes >= 5 ? readU16(clean, 3) : -1;
-      const hasCompleteTlsRecord =
-        Number.isFinite(tlsRecordLen) && tlsRecordLen >= 0 && actualBytes >= 5 + tlsRecordLen;
-      const isTlsClientHello =
-        hasCompleteTlsRecord &&
-        tlsRecordLen >= PROTO_TLS_MIN_RECORD_LEN &&
-        readU8(clean, 0) === 0x16 &&
-        readU8(clean, 5) === 0x01;
-      const isDns = isLikelyDnsHeader(clean);
-      const isHttp = Object.keys(HTTP_METHODS).some((method) =>
-        clean.toUpperCase().startsWith(method),
-      );
-      const isSsh = clean.toUpperCase().startsWith('5353482D');
-      const isWs = clean.length >= 4 && looksLikeWebSocket(clean);
-
-      let deepParse: Record<string, unknown> | null = null;
-
-      if (isTlsClientHello) {
-        matches.push({
-          protocol: 'TLS ClientHello',
-          layer: 'L6-TLS',
-          confidence: PROTO_TLS_CONFIDENCE,
-        });
-        if (includeHints) {
-          deepParse = parseTlsClientHello(clean);
-        }
-      } else if (isHttp) {
-        matches.push({
-          protocol: 'HTTP/1.x',
-          layer: 'L7-HTTP',
-          confidence: PROTO_HTTP_CONFIDENCE,
-        });
-        if (includeHints) {
-          deepParse = describeHttp(clean);
-        }
-      } else if (isSsh) {
-        matches.push({ protocol: 'SSH', layer: 'L7-SSH', confidence: PROTO_SSH_CONFIDENCE });
-        if (includeHints && clean.length >= 20) {
-          deepParse = {
-            banner: Buffer.from(clean.substring(0, Math.min(clean.length, 80)), 'hex').toString(
-              'ascii',
-            ),
-          };
-        }
-      } else if (isWs) {
-        matches.push({ protocol: 'WebSocket', layer: 'L7-WS', confidence: PROTO_WS_CONFIDENCE });
-        if (includeHints && clean.length >= 4) {
-          deepParse = describeWebSocket(clean);
-        }
-      } else if (actualBytes >= 20 && looksLikeStun(clean, actualBytes)) {
-        matches.push({ protocol: 'STUN', layer: 'L5-STUN', confidence: PROTO_STUN_CONFIDENCE });
-        if (includeHints) {
-          deepParse = describeStun(clean);
-        }
-      } else if (actualBytes >= 6 && readU8(clean, 0) === 0xc0 && looksLikeQuic(clean)) {
-        const version = quicVersion(clean);
-        matches.push({ protocol: 'QUIC', layer: 'L4-QUIC', confidence: PROTO_QUIC_CONFIDENCE });
-        if (includeHints && actualBytes >= 6) {
-          const destConnIdLen = readU8(clean, 5);
-          deepParse = {
-            headerForm: 'long',
-            version:
-              version === 0x00000001
-                ? 'v1'
-                : version === 0x00000000
-                  ? 'version-negotiation'
-                  : `0x${version.toString(16)}`,
-            destConnIdLen,
-          };
-        }
-      } else if (actualBytes >= 3 && readU8(clean, 0) === 0x05 && looksLikeSocks5(clean)) {
-        matches.push({
-          protocol: 'SOCKS5',
-          layer: 'L5-SOCKS5',
-          confidence: PROTO_SOCKS5_CONFIDENCE,
-        });
-        if (includeHints) {
-          deepParse = describeSocks5(clean);
-        }
-      } else if (isDns) {
-        matches.push({ protocol: 'DNS', layer: 'L7-DNS', confidence: PROTO_DNS_CONFIDENCE });
-        if (includeHints) {
-          deepParse = parseDnsHeader(clean);
-        }
-      } else if (actualBytes >= 2 && looksLikeMqtt(clean, actualBytes)) {
-        matches.push({ protocol: 'MQTT', layer: 'L7-MQTT', confidence: PROTO_MQTT_CONFIDENCE });
-        if (includeHints) {
-          deepParse = describeMqtt(clean);
-        }
-      } else if (actualBytes >= 9 && looksLikeH2Frame(clean, actualBytes)) {
-        matches.push({ protocol: 'HTTP/2', layer: 'L5-HTTP2', confidence: PROTO_H2_CONFIDENCE });
-        if (includeHints) {
-          deepParse = describeH2Frame(clean);
-        }
-      }
-
-      if (includeKnown && matches.length === 0) {
-        if (hasCompleteTlsRecord && /^160301|^160302|^160303/i.test(clean.substring(0, 8))) {
-          matches.push({
-            protocol: 'TLS Record',
-            layer: 'L6-TLS',
-            confidence: PROTO_TLS_RECORD_CONFIDENCE,
-          });
-        }
-        if (clean.substring(0, 8).startsWith('50524920')) {
-          matches.push({
-            protocol: 'HTTP/2 PRI',
-            layer: 'L7-HTTP2',
-            confidence: PROTO_H2_PRI_CONFIDENCE,
-          });
-        }
-      }
-
-      const fieldHints: Array<{ offset: number; hint: string }> = [];
-      if (includeHints && !deepParse && clean.length >= 8) {
-        const first2 = readU16(clean, 0);
-        if (first2 > 0 && first2 < clean.length / 2) {
-          fieldHints.push({ offset: 0, hint: `possible length field (${first2} bytes)` });
-        }
-      }
-
-      return {
-        index,
-        size: actualBytes,
-        protocolMatches:
-          matches.length > 0 ? matches : [{ protocol: 'unknown', layer: 'unknown', confidence: 0 }],
-        ...(deepParse ? { parsedFields: deepParse } : {}),
-        ...(fieldHints.length > 0 ? { fieldHints } : {}),
-      };
-    });
+    const results = hexPayloads.map((hex, index) =>
+      fingerprintPayload(hex, index, { includeHints, includeKnown }),
+    );
 
     return asJsonResponse({ success: true, fingerprints: results });
   }
+}
+
+/** Per-payload probe context (precomputed TLS prefix info). */
+interface FingerprintContext {
+  clean: string;
+  actualBytes: number;
+  tlsRecordLen: number;
+  hasCompleteTlsRecord: boolean;
+}
+
+interface ProtocolHit {
+  protocol: string;
+  layer: string;
+  confidence: number;
+  /** Deep-parse builder; only invoked when field hints are enabled. */
+  parse?: (clean: string) => Record<string, unknown> | null;
+}
+
+/** Protocol probe table — evaluation order matches the former if/else chain
+ * exactly (first hit wins). */
+const PAYLOAD_PROBES: Array<(ctx: FingerprintContext) => ProtocolHit | null> = [
+  ({ clean, tlsRecordLen, hasCompleteTlsRecord }) => {
+    if (
+      !(
+        hasCompleteTlsRecord &&
+        tlsRecordLen >= PROTO_TLS_MIN_RECORD_LEN &&
+        readU8(clean, 0) === 0x16 &&
+        readU8(clean, 5) === 0x01
+      )
+    ) {
+      return null;
+    }
+    return {
+      protocol: 'TLS ClientHello',
+      layer: 'L6-TLS',
+      confidence: PROTO_TLS_CONFIDENCE,
+      parse: parseTlsClientHello,
+    };
+  },
+  ({ clean }) => {
+    if (!Object.keys(HTTP_METHODS).some((method) => clean.toUpperCase().startsWith(method))) {
+      return null;
+    }
+    return {
+      protocol: 'HTTP/1.x',
+      layer: 'L7-HTTP',
+      confidence: PROTO_HTTP_CONFIDENCE,
+      parse: describeHttp,
+    };
+  },
+  ({ clean }) =>
+    clean.toUpperCase().startsWith('5353482D')
+      ? {
+          protocol: 'SSH',
+          layer: 'L7-SSH',
+          confidence: PROTO_SSH_CONFIDENCE,
+          parse: describeSshBanner,
+        }
+      : null,
+  ({ clean }) =>
+    clean.length >= 4 && looksLikeWebSocket(clean)
+      ? {
+          protocol: 'WebSocket',
+          layer: 'L7-WS',
+          confidence: PROTO_WS_CONFIDENCE,
+          parse: describeWebSocket,
+        }
+      : null,
+  ({ clean, actualBytes }) =>
+    actualBytes >= 20 && looksLikeStun(clean, actualBytes)
+      ? {
+          protocol: 'STUN',
+          layer: 'L5-STUN',
+          confidence: PROTO_STUN_CONFIDENCE,
+          parse: describeStun,
+        }
+      : null,
+  ({ clean, actualBytes }) =>
+    actualBytes >= 6 && readU8(clean, 0) === 0xc0 && looksLikeQuic(clean)
+      ? {
+          protocol: 'QUIC',
+          layer: 'L4-QUIC',
+          confidence: PROTO_QUIC_CONFIDENCE,
+          parse: describeQuic,
+        }
+      : null,
+  ({ clean, actualBytes }) =>
+    actualBytes >= 3 && readU8(clean, 0) === 0x05 && looksLikeSocks5(clean)
+      ? {
+          protocol: 'SOCKS5',
+          layer: 'L5-SOCKS5',
+          confidence: PROTO_SOCKS5_CONFIDENCE,
+          parse: describeSocks5,
+        }
+      : null,
+  ({ clean }) =>
+    isLikelyDnsHeader(clean)
+      ? {
+          protocol: 'DNS',
+          layer: 'L7-DNS',
+          confidence: PROTO_DNS_CONFIDENCE,
+          parse: parseDnsHeader,
+        }
+      : null,
+  ({ clean, actualBytes }) =>
+    actualBytes >= 2 && looksLikeMqtt(clean, actualBytes)
+      ? {
+          protocol: 'MQTT',
+          layer: 'L7-MQTT',
+          confidence: PROTO_MQTT_CONFIDENCE,
+          parse: describeMqtt,
+        }
+      : null,
+  ({ clean, actualBytes }) =>
+    actualBytes >= 9 && looksLikeH2Frame(clean, actualBytes)
+      ? {
+          protocol: 'HTTP/2',
+          layer: 'L5-HTTP2',
+          confidence: PROTO_H2_CONFIDENCE,
+          parse: describeH2Frame,
+        }
+      : null,
+];
+
+/** Fallback tags for known-but-incomplete protocol prefixes (TLS Record / H2 PRI). */
+function appendKnownPrefixMatches(
+  clean: string,
+  hasCompleteTlsRecord: boolean,
+  matches: Array<{ protocol: string; layer: string; confidence: number }>,
+): void {
+  if (hasCompleteTlsRecord && /^160301|^160302|^160303/i.test(clean.substring(0, 8))) {
+    matches.push({
+      protocol: 'TLS Record',
+      layer: 'L6-TLS',
+      confidence: PROTO_TLS_RECORD_CONFIDENCE,
+    });
+  }
+  if (clean.substring(0, 8).startsWith('50524920')) {
+    matches.push({
+      protocol: 'HTTP/2 PRI',
+      layer: 'L7-HTTP2',
+      confidence: PROTO_H2_PRI_CONFIDENCE,
+    });
+  }
+}
+
+function describeSshBanner(clean: string): Record<string, unknown> {
+  if (clean.length < 20) return {};
+  return {
+    banner: Buffer.from(clean.substring(0, Math.min(clean.length, 80)), 'hex').toString('ascii'),
+  };
+}
+
+function describeQuic(clean: string): Record<string, unknown> {
+  const version = quicVersion(clean);
+  return {
+    headerForm: 'long',
+    version:
+      version === 0x00000001
+        ? 'v1'
+        : version === 0x00000000
+          ? 'version-negotiation'
+          : `0x${version.toString(16)}`,
+    destConnIdLen: readU8(clean, 5),
+  };
+}
+
+/** Fingerprint one hex payload: protocol detection + optional deep parse. */
+function fingerprintPayload(
+  hex: string,
+  index: number,
+  opts: { includeHints: boolean; includeKnown: boolean },
+): Record<string, unknown> {
+  const { includeHints, includeKnown } = opts;
+  const clean = hex.replace(/\s/g, '');
+  const actualBytes = clean.length / 2;
+  const tlsRecordLen = actualBytes >= 5 ? readU16(clean, 3) : -1;
+  const hasCompleteTlsRecord =
+    Number.isFinite(tlsRecordLen) && tlsRecordLen >= 0 && actualBytes >= 5 + tlsRecordLen;
+  const ctx: FingerprintContext = { clean, actualBytes, tlsRecordLen, hasCompleteTlsRecord };
+
+  const matches: Array<{ protocol: string; layer: string; confidence: number }> = [];
+  let deepParse: Record<string, unknown> | null = null;
+
+  for (const probe of PAYLOAD_PROBES) {
+    const hit = probe(ctx);
+    if (hit === null) continue;
+    const { parse, ...match } = hit;
+    matches.push(match);
+    if (includeHints && parse !== undefined) {
+      deepParse = parse(clean);
+    }
+    break;
+  }
+
+  if (includeKnown && matches.length === 0) {
+    appendKnownPrefixMatches(clean, hasCompleteTlsRecord, matches);
+  }
+
+  const fieldHints: Array<{ offset: number; hint: string }> = [];
+  if (includeHints && !deepParse && clean.length >= 8) {
+    const first2 = readU16(clean, 0);
+    if (first2 > 0 && first2 < actualBytes) {
+      fieldHints.push({ offset: 0, hint: `possible length field (${first2} bytes)` });
+    }
+  }
+
+  return {
+    index,
+    size: actualBytes,
+    protocolMatches:
+      matches.length > 0 ? matches : [{ protocol: 'unknown', layer: 'unknown', confidence: 0 }],
+    ...(deepParse ? { parsedFields: deepParse } : {}),
+    ...(fieldHints.length > 0 ? { fieldHints } : {}),
+  };
 }
 
 /** Detect a plausible WebSocket frame header (verbatim from the former inline
