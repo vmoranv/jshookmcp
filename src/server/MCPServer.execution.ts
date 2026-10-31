@@ -234,7 +234,6 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
   // LRU input (kimi-cu report P2-4): budget eviction orders candidates by
   // this timestamp, so freshly used tools survive activation pressure.
   recordToolUse(ctx, name);
-  let timeoutTimer: NodeJS.Timeout | undefined;
   const timeoutMs = TOOL_EXEC_HANG_WATCHDOG_MS;
   const collectExecutionMetrics = shouldCollectExecutionMetrics();
   const executionStartedAt = collectExecutionMetrics ? new Date().toISOString() : null;
@@ -252,7 +251,6 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     if (gateResponse) return gateResponse;
 
     if (ctx.circuitBreaker.shouldBlock(name)) {
-      if (timeoutTimer) clearTimeout(timeoutTimer);
       return circuitBreakerBlockedResponse(ctx, name);
     }
 
@@ -262,7 +260,6 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     // SDK's strict Zod validation on MCP-envelope calls.
     const fastArgError = runFastValidationSpan(instrumentation, name, args);
     if (fastArgError) {
-      if (timeoutTimer) clearTimeout(timeoutTimer);
       return {
         content: [
           {
@@ -286,133 +283,14 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
       timestamp: new Date().toISOString(),
     });
 
-    let enriched;
-    try {
-      const toolDomain = getToolDomain(name);
-      const browserCoordinator =
-        toolDomain === 'browser' || ctx.contextGuard.isContextSensitive(name)
-          ? ctx.getDomainInstance<BrowserSessionCoordinator>('browserSessionCoordinator')
-          : null;
-      const explicitSessionId = (args['_meta'] as { sessionId?: unknown } | undefined)?.sessionId;
-      const sessionId =
-        typeof explicitSessionId === 'string' && explicitSessionId.trim().length > 0
-          ? explicitSessionId.trim()
-          : (getToolRequestContext()?.sessionId ?? null);
-      const fleetRouter = browserCoordinator
-        ? ctx.getDomainInstance<BrowserFleetRouter>('browserFleetRouter')
-        : null;
-      let fleetRoute: BrowserFleetRoute | null = null;
-      if (browserCoordinator && fleetRouter) {
-        fleetRoute = await fleetRouter.admitLocalSession(sessionId?.trim() || 'default');
-      }
-      const executeInContext = async () => {
-        timeoutTimer = setTimeout(() => {
-          try {
-            const safeArgs = JSON.stringify(args).slice(0, ARGS_PREVIEW_MAX_CHARS);
-            logger.warn(
-              `Telemetry Alert [ERR-03]: Tool execution hung (${Math.round(timeoutMs / 1000)}s) for '${name}'. ` +
-                `Args preview: ${safeArgs}...`,
-            );
-          } catch {
-            logger.warn(
-              `Telemetry Alert [ERR-03]: Tool execution hung (${Math.round(timeoutMs / 1000)}s) for '${name}'.`,
-            );
-          }
-        }, timeoutMs);
-        timeoutTimer.unref();
-        try {
-          const executeTool = async () => {
-            // Covers the real handler call only — not the whole request. The
-            // gate, validation and admission above are measured by their own
-            // span, and `tool:called`'s durationMs already covers the full
-            // interval, so this span is the one that isolates handler cost.
-            const executeSpan = instrumentation.startSpan(SpanNames.toolExecute, {
-              toolName: name,
-              domain: toolDomain,
-            });
-            // `handlerReturned` means "did not throw" — a narrow mechanical
-            // fact, NOT the span's success status. The span's `ok` below is
-            // the response-level verdict (same semantics as toolCallsTotal's
-            // `success`): a soft-fail response (isError/success:false, no
-            // throw) reports ok:false WITH its reason, where the comment's
-            // older "that distinction belongs to the metrics, not to this
-            // span" claim no longer holds — the span and the metric must
-            // agree, which is the whole point of the paired emission.
-            let handlerReturned = false;
-            // Truncated error message for the span's END attributes. The OTLP
-            // worker persists only `span.attributes` — span events are dropped
-            // in transit — so a message that lives solely on addEvent() is
-            // invisible downstream. Soft-fail responses (R.fail(), no throw)
-            // carry their reason only in the payload, so both paths funnel
-            // through this one variable.
-            let spanErrorMessage: string | null = null;
-            try {
-              if (browserCoordinator) {
-                await browserCoordinator.restoreSessionContext(sessionId);
-              }
-              const response = await ctx.router.execute(name, args);
+    let enriched = await executeWithSessionScope(ctx, {
+      name,
+      args,
+      timeoutMs,
+      instrumentation,
+      startAt: executionStartTime,
+    });
 
-              // Keep browser-derived state reads inside the session AsyncLocalStorage scope.
-              await ctx.largeDataOffloader.offload(name, response);
-              if (toolDomain === 'browser') {
-                browserCoordinator?.noteToolResult(
-                  sessionId,
-                  name,
-                  parseBrowserSessionSnapshot(response),
-                );
-              }
-              ctx.contextGuard.recordCall(name);
-              const enrichedResponse = ctx.contextGuard.enrichResponse(name, response);
-              handlerReturned = true;
-              spanErrorMessage = extractResponseErrorMessage(enrichedResponse);
-              return enrichedResponse;
-            } catch (error) {
-              spanErrorMessage = truncateErrorSummary(error);
-              // Recorded as a span event rather than a second end(): keeping a
-              // single end path in `finally` is what keeps the duration honest.
-              executeSpan.addEvent('error', {
-                message: spanErrorMessage,
-              });
-              throw error;
-            } finally {
-              executeSpan.end({
-                // "ok" = handler ran AND the response reports success. A soft
-                // fail (R.fail without a throw) previously left ok:true here
-                // while the paired toolCallsTotal metric said success:false —
-                // the two sinks disagreeing is exactly the drift the paired
-                // emission was built to prevent. soft-fail error message rides
-                // the same extract below.
-                ok: handlerReturned && spanErrorMessage === null,
-                // Always emitted on failure (soft or thrown); never on success.
-                ...(spanErrorMessage !== null ? { error: spanErrorMessage } : {}),
-                // Argument capture per the global tool-args policy: default
-                // records ONLY key names (shape) — values need an explicit
-                // JSHOOK_OTLP_TOOL_ARGS opt-in and are credential-scrubbed.
-                ...renderToolArgsAttrs(args),
-              });
-            }
-          };
-          if (fleetRouter && fleetRoute) {
-            const execution = await fleetRouter.runWithLeaseKeepAlive(fleetRoute, executeTool);
-            fleetRoute = execution.route;
-            return execution.value;
-          }
-          return await executeTool();
-        } finally {
-          if (timeoutTimer) clearTimeout(timeoutTimer);
-          timeoutTimer = undefined;
-        }
-      };
-      enriched = browserCoordinator
-        ? await browserCoordinator.runExclusive(sessionId, executeInContext, {
-            toolName: name,
-            costHintMs: estimateBrowserSessionToolCostMs(name, args),
-            signal: getToolRequestContext()?.signal,
-          })
-        : await executeInContext();
-    } finally {
-      if (timeoutTimer) clearTimeout(timeoutTimer);
-    }
     ctx.getDomainInstance<ServerRuntimeState>('serverRuntimeState')?.recordToolCall(name, args);
     if (
       collectExecutionMetrics &&
@@ -572,8 +450,6 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     // otherwise be the last trace of the failure.
     logger.error(`Tool execution failed for '${name}':`, error);
     throw error;
-  } finally {
-    if (timeoutTimer) clearTimeout(timeoutTimer);
   }
 }
 
@@ -747,4 +623,150 @@ function emitToolCallTelemetry(
     domain: getToolDomain(name) ?? null,
     success: toolResultSuccess,
   });
+}
+/** Per-call state threaded through the session-scoped execution helpers. */
+interface SessionScopeParams {
+  name: string;
+  args: ToolArgs;
+  timeoutMs: number;
+  instrumentation: ReturnType<typeof resolveInstrumentation>;
+  startAt: number;
+}
+
+/** Execute the tool inside the browser session scope (coordinator
+ * runExclusive / fleet lease when applicable), with the hang watchdog and
+ * handler-cost span. Returns the enriched response. The watchdog timer is
+ * tracked by a per-invocation timer slot (concurrent executions each own
+ * their watchdog). */
+async function executeWithSessionScope(ctx: MCPServerContext, P: SessionScopeParams) {
+  const { name, args } = P;
+  const timeoutMs = P.timeoutMs;
+  const instrumentation = P.instrumentation;
+  let activeWatchdogTimer: NodeJS.Timeout | undefined;
+  try {
+    const toolDomain = getToolDomain(name);
+    const browserCoordinator =
+      toolDomain === 'browser' || ctx.contextGuard.isContextSensitive(name)
+        ? ctx.getDomainInstance<BrowserSessionCoordinator>('browserSessionCoordinator')
+        : null;
+    const explicitSessionId = (args['_meta'] as { sessionId?: unknown } | undefined)?.sessionId;
+    const sessionId =
+      typeof explicitSessionId === 'string' && explicitSessionId.trim().length > 0
+        ? explicitSessionId.trim()
+        : (getToolRequestContext()?.sessionId ?? null);
+    const fleetRouter = browserCoordinator
+      ? ctx.getDomainInstance<BrowserFleetRouter>('browserFleetRouter')
+      : null;
+    let fleetRoute: BrowserFleetRoute | null = null;
+    if (browserCoordinator && fleetRouter) {
+      fleetRoute = await fleetRouter.admitLocalSession(sessionId?.trim() || 'default');
+    }
+    const executeInContext = async () => {
+      activeWatchdogTimer = setTimeout(() => {
+        try {
+          const safeArgs = JSON.stringify(args).slice(0, ARGS_PREVIEW_MAX_CHARS);
+          logger.warn(
+            `Telemetry Alert [ERR-03]: Tool execution hung (${Math.round(timeoutMs / 1000)}s) for '${name}'. ` +
+              `Args preview: ${safeArgs}...`,
+          );
+        } catch {
+          logger.warn(
+            `Telemetry Alert [ERR-03]: Tool execution hung (${Math.round(timeoutMs / 1000)}s) for '${name}'.`,
+          );
+        }
+      }, timeoutMs);
+      activeWatchdogTimer!.unref();
+      try {
+        const executeTool = async () => {
+          // Covers the real handler call only — not the whole request. The
+          // gate, validation and admission above are measured by their own
+          // span, and `tool:called`'s durationMs already covers the full
+          // interval, so this span is the one that isolates handler cost.
+          const executeSpan = instrumentation.startSpan(SpanNames.toolExecute, {
+            toolName: name,
+            domain: toolDomain,
+          });
+          // `handlerReturned` means "did not throw" — a narrow mechanical
+          // fact, NOT the span's success status. The span's `ok` below is
+          // the response-level verdict (same semantics as toolCallsTotal's
+          // `success`): a soft-fail response (isError/success:false, no
+          // throw) reports ok:false WITH its reason, where the comment's
+          // older "that distinction belongs to the metrics, not to this
+          // span" claim no longer holds — the span and the metric must
+          // agree, which is the whole point of the paired emission.
+          let handlerReturned = false;
+          // Truncated error message for the span's END attributes. The OTLP
+          // worker persists only `span.attributes` — span events are dropped
+          // in transit — so a message that lives solely on addEvent() is
+          // invisible downstream. Soft-fail responses (R.fail(), no throw)
+          // carry their reason only in the payload, so both paths funnel
+          // through this one variable.
+          let spanErrorMessage: string | null = null;
+          try {
+            if (browserCoordinator) {
+              await browserCoordinator.restoreSessionContext(sessionId);
+            }
+            const response = await ctx.router.execute(name, args);
+
+            // Keep browser-derived state reads inside the session AsyncLocalStorage scope.
+            await ctx.largeDataOffloader.offload(name, response);
+            if (toolDomain === 'browser') {
+              browserCoordinator?.noteToolResult(
+                sessionId,
+                name,
+                parseBrowserSessionSnapshot(response),
+              );
+            }
+            ctx.contextGuard.recordCall(name);
+            const enrichedResponse = ctx.contextGuard.enrichResponse(name, response);
+            handlerReturned = true;
+            spanErrorMessage = extractResponseErrorMessage(enrichedResponse);
+            return enrichedResponse;
+          } catch (error) {
+            spanErrorMessage = truncateErrorSummary(error);
+            // Recorded as a span event rather than a second end(): keeping a
+            // single end path in `finally` is what keeps the duration honest.
+            executeSpan.addEvent('error', {
+              message: spanErrorMessage,
+            });
+            throw error;
+          } finally {
+            executeSpan.end({
+              // "ok" = handler ran AND the response reports success. A soft
+              // fail (R.fail without a throw) previously left ok:true here
+              // while the paired toolCallsTotal metric said success:false —
+              // the two sinks disagreeing is exactly the drift the paired
+              // emission was built to prevent. soft-fail error message rides
+              // the same extract below.
+              ok: handlerReturned && spanErrorMessage === null,
+              // Always emitted on failure (soft or thrown); never on success.
+              ...(spanErrorMessage !== null ? { error: spanErrorMessage } : {}),
+              // Argument capture per the global tool-args policy: default
+              // records ONLY key names (shape) — values need an explicit
+              // JSHOOK_OTLP_TOOL_ARGS opt-in and are credential-scrubbed.
+              ...renderToolArgsAttrs(args),
+            });
+          }
+        };
+        if (fleetRouter && fleetRoute) {
+          const execution = await fleetRouter.runWithLeaseKeepAlive(fleetRoute, executeTool);
+          fleetRoute = execution.route;
+          return execution.value;
+        }
+        return await executeTool();
+      } finally {
+        if (activeWatchdogTimer) clearTimeout(activeWatchdogTimer);
+        activeWatchdogTimer = undefined;
+      }
+    };
+    return browserCoordinator
+      ? await browserCoordinator.runExclusive(sessionId, executeInContext, {
+          toolName: name,
+          costHintMs: estimateBrowserSessionToolCostMs(name, args),
+          signal: getToolRequestContext()?.signal,
+        })
+      : await executeInContext();
+  } finally {
+    if (activeWatchdogTimer) clearTimeout(activeWatchdogTimer);
+  }
 }
