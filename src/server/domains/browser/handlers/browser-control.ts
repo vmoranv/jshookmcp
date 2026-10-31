@@ -662,45 +662,12 @@ export class BrowserControlHandlers {
       const existingLease = this.deps.sessionCoordinator?.getBrowserLease(sessionId);
       await this.deps.collector.connect(connectRequest);
 
-      const rawPageIndex = args.pageIndex;
-      const pageIndexProvided =
-        rawPageIndex !== undefined &&
-        rawPageIndex !== null &&
-        !(typeof rawPageIndex === 'string' && rawPageIndex.trim() === '');
-      const pageIndex =
-        typeof rawPageIndex === 'number'
-          ? rawPageIndex
-          : typeof rawPageIndex === 'string' && rawPageIndex.trim() !== ''
-            ? Number(rawPageIndex)
-            : 0;
-      const requestedIndex = Number.isFinite(pageIndex) ? pageIndex : 0;
-
-      let pages = await this.deps.collector.listPages();
-      let isolatedTabCreated = false;
-      if (
-        !pageIndexProvided &&
-        existingLease &&
-        !existingLease.owned &&
-        existingLease.otherOwners > 0
-      ) {
-        await this.deps.collector.createPage();
-        pages = await this.deps.collector.listPages();
-        isolatedTabCreated = pages.length > 0;
-      }
-      const preferred = isolatedTabCreated
-        ? { selectedIndex: pages.length - 1, selected: pages.at(-1) ?? null }
-        : this.pickPreferredAttachPage(pages, pageIndexProvided ? requestedIndex : null);
-      const selectedIndex = preferred.selectedIndex;
-
-      if (pages.length > 0) {
-        await this.deps.collector.selectPage(selectedIndex);
-        if (requestedIndex !== selectedIndex) {
-          logger.warn(
-            `[browser_attach] requested pageIndex ${requestedIndex} resolved to ${selectedIndex}; ` +
-              `preferred non-blank target when available`,
-          );
-        }
-      }
+      const { pageIndexProvided, requestedIndex } = parseAttachPageIndex(args);
+      const { pages, isolatedTabCreated, selectedIndex } = await this.selectAttachPage(
+        pageIndexProvided,
+        requestedIndex,
+        existingLease,
+      );
 
       const registry = this.deps.getTabRegistry();
       const syncedPageId = await this.syncTabRegistryWithCollectorPages('browser_attach');
@@ -750,11 +717,11 @@ export class BrowserControlHandlers {
           currentTitle: selected?.title ?? null,
           totalPages: pages.length,
           connectionReused: Boolean(existingLease?.owned || existingLease?.otherOwners),
-          sessionIsolation: isolatedTabCreated
-            ? 'dedicated-tab'
-            : pageIndexProvided && existingLease?.otherOwners
-              ? 'explicit-shared-tab'
-              : 'existing-tab',
+          sessionIsolation: resolveSessionIsolation(
+            isolatedTabCreated,
+            pageIndexProvided,
+            existingLease,
+          ),
           browserSessionOwners: claim?.totalOwners ?? 1,
           contextSwitched: pages.length > 0,
           detachedCdpTarget: clearedTarget.detached,
@@ -780,6 +747,45 @@ export class BrowserControlHandlers {
         .set('approvalHint', this.getAutoConnectApprovalHint(connectRequest ?? {}))
         .json();
     }
+  }
+  /** Attach target selection: isolated tab when joining a shared browser, else
+   * the preferred page. Returns the fresh page list plus the selected index. */
+  private async selectAttachPage(
+    pageIndexProvided: boolean,
+    requestedIndex: number,
+    existingLease: { owned?: boolean; otherOwners?: number } | null | undefined,
+  ): Promise<{
+    pages: Awaited<ReturnType<CodeCollector['listPages']>>;
+    isolatedTabCreated: boolean;
+    selectedIndex: number;
+  }> {
+    let pages = await this.deps.collector.listPages();
+    let isolatedTabCreated = false;
+    if (
+      !pageIndexProvided &&
+      existingLease &&
+      !existingLease.owned &&
+      (existingLease.otherOwners ?? 0) > 0
+    ) {
+      await this.deps.collector.createPage();
+      pages = await this.deps.collector.listPages();
+      isolatedTabCreated = pages.length > 0;
+    }
+    const preferred = isolatedTabCreated
+      ? { selectedIndex: pages.length - 1, selected: pages.at(-1) ?? null }
+      : this.pickPreferredAttachPage(pages, pageIndexProvided ? requestedIndex : null);
+    const selectedIndex = preferred.selectedIndex;
+
+    if (pages.length > 0) {
+      await this.deps.collector.selectPage(selectedIndex);
+      if (requestedIndex !== selectedIndex) {
+        logger.warn(
+          `[browser_attach] requested pageIndex ${requestedIndex} resolved to ${selectedIndex}; ` +
+            `preferred non-blank target when available`,
+        );
+      }
+    }
+    return { pages, isolatedTabCreated, selectedIndex };
   }
 }
 
@@ -834,4 +840,34 @@ function camoufoxLaunchResponse(mode: string, args: Record<string, unknown>) {
         'action: "enable" }) use Playwright events and are fully supported.',
     })
     .json();
+}
+
+/** Parse `pageIndex`: reports whether it was supplied and the numeric value. */
+function parseAttachPageIndex(args: Record<string, unknown>): {
+  pageIndexProvided: boolean;
+  requestedIndex: number;
+} {
+  const rawPageIndex = args.pageIndex;
+  const pageIndexProvided =
+    rawPageIndex !== undefined &&
+    rawPageIndex !== null &&
+    !(typeof rawPageIndex === 'string' && rawPageIndex.trim() === '');
+  const pageIndex =
+    typeof rawPageIndex === 'number'
+      ? rawPageIndex
+      : typeof rawPageIndex === 'string' && rawPageIndex.trim() !== ''
+        ? Number(rawPageIndex)
+        : 0;
+  return { pageIndexProvided, requestedIndex: Number.isFinite(pageIndex) ? pageIndex : 0 };
+}
+
+/** How the attach shares the browser: dedicated → explicit shared → existing. */
+function resolveSessionIsolation(
+  isolatedTabCreated: boolean,
+  pageIndexProvided: boolean,
+  existingLease: { otherOwners?: number } | null | undefined,
+): string {
+  if (isolatedTabCreated) return 'dedicated-tab';
+  if (pageIndexProvided && existingLease?.otherOwners) return 'explicit-shared-tab';
+  return 'existing-tab';
 }
