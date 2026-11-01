@@ -696,6 +696,59 @@ export class HeapSnapshotParser {
     this.parsed = true;
   }
 
+  /**
+   * One `tag === 0` record → a node. The compact encoding packs name and id
+   * into fixed positions: with a string in slot 1 the record is
+   * `[0, name, id, selfSize]`, otherwise `[0, typeIdx, name, id, selfSize]`.
+   * A numeric name is an index into `strings`.
+   */
+  private buildLineNode(
+    typeIdx: number,
+    nameValue: unknown,
+    idValue: unknown,
+    selfSizeValue: unknown,
+    nodeTypes: string[],
+    strings: string[],
+    fallbackId: number,
+  ): ParsedNode {
+    const id = typeof idValue === 'number' ? idValue : fallbackId;
+    const selfSize = typeof selfSizeValue === 'number' ? selfSizeValue : 0;
+    const resolvedName =
+      typeof nameValue === 'string'
+        ? nameValue
+        : resolveNodeName(strings, typeof nameValue === 'number' ? nameValue : 0);
+
+    return {
+      id,
+      name: resolvedName,
+      selfSize,
+      type: lookupTypeName(nodeTypes, typeIdx, 'node'),
+    };
+  }
+
+  /** One `tag === 1` record → a pending edge, attributed to the current node. */
+  private buildLineEdge(
+    record: unknown[],
+    fromId: number,
+    edgeTypes: string[],
+    strings: string[],
+  ): PendingLineEdge {
+    const typeIdx = typeof record[1] === 'number' ? record[1] : 0;
+    const nameOrIdx = record[2] ?? 0;
+    const toNodeIdx = typeof record[3] === 'number' ? record[3] : 0;
+    const edgeType = lookupTypeName(edgeTypes, typeIdx, 'edge');
+
+    return {
+      fromId,
+      toNodeIndex: toNodeIdx,
+      nameOrIndex:
+        typeof nameOrIdx === 'number'
+          ? resolveEdgeName(strings, edgeType, nameOrIdx)
+          : String(nameOrIdx),
+      type: edgeType,
+    };
+  }
+
   private parseLineSnapshot(snapshotText: string): void {
     const lines = snapshotText
       .split(/\r?\n/u)
@@ -728,23 +781,15 @@ export class HeapSnapshotParser {
         if (tag === 0) {
           const compactRecord = typeof record[1] === 'string';
           const typeIdx = compactRecord ? 0 : typeof record[1] === 'number' ? record[1] : 0;
-          const nameValue = compactRecord ? record[1] : record[2];
-          const idValue = compactRecord ? record[2] : record[3];
-          const selfSizeValue = compactRecord ? record[3] : record[4];
-          const id = typeof idValue === 'number' ? idValue : nodeIdsByIndex.length;
-          const selfSize = typeof selfSizeValue === 'number' ? selfSizeValue : 0;
-
-          const resolvedName =
-            typeof nameValue === 'string'
-              ? nameValue
-              : resolveNodeName(strings, typeof nameValue === 'number' ? nameValue : 0);
-
-          const node: ParsedNode = {
-            id,
-            name: resolvedName,
-            selfSize,
-            type: lookupTypeName(nodeTypes, typeIdx, 'node'),
-          };
+          const node = this.buildLineNode(
+            typeIdx,
+            compactRecord ? record[1] : record[2],
+            compactRecord ? record[2] : record[3],
+            compactRecord ? record[3] : record[4],
+            nodeTypes,
+            strings,
+            nodeIdsByIndex.length,
+          );
 
           this.nodesCache.push(node);
           nodeIdsByIndex.push(node.id);
@@ -753,20 +798,7 @@ export class HeapSnapshotParser {
         }
 
         if (tag === 1 && currentNodeId !== null) {
-          const typeIdx = typeof record[1] === 'number' ? record[1] : 0;
-          const nameOrIdx = record[2] ?? 0;
-          const toNodeIdx = typeof record[3] === 'number' ? record[3] : 0;
-          const edgeType = lookupTypeName(edgeTypes, typeIdx, 'edge');
-
-          pendingEdges.push({
-            fromId: currentNodeId,
-            toNodeIndex: toNodeIdx,
-            nameOrIndex:
-              typeof nameOrIdx === 'number'
-                ? resolveEdgeName(strings, edgeType, nameOrIdx)
-                : String(nameOrIdx),
-            type: edgeType,
-          });
+          pendingEdges.push(this.buildLineEdge(record, currentNodeId, edgeTypes, strings));
         }
       }
     }

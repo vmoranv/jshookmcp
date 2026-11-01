@@ -136,129 +136,157 @@ try {
   `.trim();
 }
 
-export async function checkMemoryProtection(
-  platform: Platform,
+/** Linux: look the address up in /proc/<pid>/maps. */
+async function checkProtectionLinux(
   pid: number,
   address: string,
+  addrNum: bigint,
 ): Promise<MemoryProtectionInfo> {
-  // Parse address once for all platforms
-  const addrNum = BigInt(address.startsWith('0x') ? address : `0x${address}`);
+  try {
+    const mapsContent = await fsAsync.readFile(`/proc/${pid}/maps`, 'utf-8');
+    const regions = parseProcMaps(mapsContent);
+    const region = regions.find((r) => addrNum >= r.start && addrNum < r.end);
+    if (!region) {
+      return { success: false, error: `Address ${address} not found in any memory region` };
+    }
+    return {
+      success: true,
+      protection: formatLinuxProtection(region.permissions),
+      isReadable: region.permissions.read,
+      isWritable: region.permissions.write,
+      isExecutable: region.permissions.exec,
+      regionStart: `0x${region.start.toString(16)}`,
+      regionSize: Number(region.end - region.start),
+    };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
 
-  // Linux: synchronous /proc/pid/maps read
-  if (platform === 'linux') {
+/**
+ * Darwin native fast-path: mach_vm_region through the platform provider.
+ * Returns null when the provider is unavailable or the region is missing, so
+ * the caller can fall back to `vmmap`.
+ */
+async function checkProtectionDarwinNative(
+  pid: number,
+  address: string,
+  addrNum: bigint,
+): Promise<MemoryProtectionInfo | null> {
+  try {
+    const { createPlatformProvider } = await import('@native/platform/factory.js');
+    const provider = createPlatformProvider();
+    const avail = await provider.checkAvailability();
+    if (!avail.available) {
+      return null;
+    }
+    const handle = provider.openProcess(pid, false);
     try {
-      const mapsContent = await fsAsync.readFile(`/proc/${pid}/maps`, 'utf-8');
-      const regions = parseProcMaps(mapsContent);
-      const region = regions.find((r) => addrNum >= r.start && addrNum < r.end);
+      const region = provider.queryRegion(handle, addrNum);
       if (!region) {
         return { success: false, error: `Address ${address} not found in any memory region` };
       }
+      const protStr = [
+        region.isReadable ? 'r' : '-',
+        region.isWritable ? 'w' : '-',
+        region.isExecutable ? 'x' : '-',
+      ].join('');
       return {
         success: true,
-        protection: formatLinuxProtection(region.permissions),
-        isReadable: region.permissions.read,
-        isWritable: region.permissions.write,
-        isExecutable: region.permissions.exec,
-        regionStart: `0x${region.start.toString(16)}`,
-        regionSize: Number(region.end - region.start),
+        protection: protStr,
+        isReadable: region.isReadable,
+        isWritable: region.isWritable,
+        isExecutable: region.isExecutable,
+        regionStart: `0x${region.baseAddress.toString(16)}`,
+        regionSize: region.size,
       };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    } finally {
+      provider.closeProcess(handle);
     }
+  } catch {
+    // Fall through to the vmmap fallback.
+    return null;
   }
+}
 
-  if (platform === 'darwin') {
-    // ── Native fast-path: mach_vm_region (no subprocess) ──
-    try {
-      const { createPlatformProvider } = await import('@native/platform/factory.js');
-      const provider = createPlatformProvider();
-      const avail = await provider.checkAvailability();
-      if (avail.available) {
-        const handle = provider.openProcess(pid, false);
-        try {
-          const region = provider.queryRegion(handle, addrNum);
-          if (region) {
-            const protStr = [
-              region.isReadable ? 'r' : '-',
-              region.isWritable ? 'w' : '-',
-              region.isExecutable ? 'x' : '-',
-            ].join('');
-            return {
-              success: true,
-              protection: protStr,
-              isReadable: region.isReadable,
-              isWritable: region.isWritable,
-              isExecutable: region.isExecutable,
-              regionStart: `0x${region.baseAddress.toString(16)}`,
-              regionSize: region.size,
-            };
-          }
-          return { success: false, error: `Address ${address} not found in any memory region` };
-        } finally {
-          provider.closeProcess(handle);
-        }
-      }
-    } catch {
-      // Fall through to vmmap fallback
-    }
+const VMMAP_REGION_RE =
+  /^(\S[^\t]*?)\s{2,}([0-9a-f]+)-([0-9a-f]+)\s+\[.*?\]\s+([a-z-]+)\/([a-z-]+)/;
 
-    // ── Fallback: vmmap subprocess ──
-    try {
-      const darwinAddr = parseInt(address, 16);
-      if (isNaN(darwinAddr)) return { success: false, error: 'Invalid address format' };
-      const { stdout } = await execAsync(`vmmap -v ${pid}`, {
-        timeout: MEMORY_PROTECTION_QUERY_TIMEOUT_MS,
-        maxBuffer: 1024 * 1024 * 5,
-      });
-      const regionRe = /^(\S[^\t]*?)\s{2,}([0-9a-f]+)-([0-9a-f]+)\s+\[.*?\]\s+([a-z-]+)\/([a-z-]+)/;
-      for (const line of stdout.split('\n')) {
-        const m = line.match(regionRe);
-        if (!m) continue;
-        const start = parseInt(m[2]!, 16);
-        const end = parseInt(m[3]!, 16);
-        if (darwinAddr >= start && darwinAddr < end) {
-          const prot = m[4]!;
-          return {
-            success: true,
-            protection: prot,
-            isReadable: prot.includes('r'),
-            isWritable: prot.includes('w'),
-            isExecutable: prot.includes('x'),
-            regionStart: `0x${m[2]!}`,
-            regionSize: end - start,
-          };
-        }
+/** Darwin fallback: parse `vmmap -v <pid>` output. */
+async function checkProtectionDarwinVmmap(
+  pid: number,
+  address: string,
+): Promise<MemoryProtectionInfo> {
+  try {
+    const darwinAddr = parseInt(address, 16);
+    if (isNaN(darwinAddr)) return { success: false, error: 'Invalid address format' };
+    const { stdout } = await execAsync(`vmmap -v ${pid}`, {
+      timeout: MEMORY_PROTECTION_QUERY_TIMEOUT_MS,
+      maxBuffer: 1024 * 1024 * 5,
+    });
+    for (const line of stdout.split('\n')) {
+      const m = line.match(VMMAP_REGION_RE);
+      if (!m) continue;
+      const start = parseInt(m[2]!, 16);
+      const end = parseInt(m[3]!, 16);
+      if (darwinAddr >= start && darwinAddr < end) {
+        const prot = m[4]!;
+        return {
+          success: true,
+          protection: prot,
+          isReadable: prot.includes('r'),
+          isWritable: prot.includes('w'),
+          isExecutable: prot.includes('x'),
+          regionStart: `0x${m[2]!}`,
+          regionSize: end - start,
+        };
       }
-      return { success: false, error: `Address ${address} not found in any memory region` };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
+    return { success: false, error: `Address ${address} not found in any memory region` };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
+}
 
-  // Windows: try native first, fall back to PowerShell
-  if (isKoffiAvailable()) {
-    try {
-      const nativeResult = await nativeMemoryManager.checkMemoryProtection(pid, address);
-      if (nativeResult.success) {
-        return nativeResult;
-      }
-
-      logger.warn('Native Windows memory protection check failed, falling back to PowerShell', {
-        pid,
-        address,
-        error: nativeResult.error,
-        nativeAvailable: isKoffiAvailable(),
-      });
-    } catch (error) {
-      logger.warn('Native Windows memory protection check threw, falling back to PowerShell', {
-        pid,
-        address,
-        error: error instanceof Error ? error.message : String(error),
-        nativeAvailable: isKoffiAvailable(),
-      });
-    }
+/**
+ * Windows native attempt. Returns a result when the native manager answers
+ * successfully, otherwise null so the caller falls back to PowerShell. Both
+ * failure modes (resolved false, thrown) log but do not abort.
+ */
+async function checkProtectionWindowsNative(
+  pid: number,
+  address: string,
+): Promise<MemoryProtectionInfo | null> {
+  if (!isKoffiAvailable()) {
+    return null;
   }
+  try {
+    const nativeResult = await nativeMemoryManager.checkMemoryProtection(pid, address);
+    if (nativeResult.success) {
+      return nativeResult;
+    }
+    logger.warn('Native Windows memory protection check failed, falling back to PowerShell', {
+      pid,
+      address,
+      error: nativeResult.error,
+      nativeAvailable: isKoffiAvailable(),
+    });
+  } catch (error) {
+    logger.warn('Native Windows memory protection check threw, falling back to PowerShell', {
+      pid,
+      address,
+      error: error instanceof Error ? error.message : String(error),
+      nativeAvailable: isKoffiAvailable(),
+    });
+  }
+  return null;
+}
 
+/** Windows fallback: PowerShell `ProtectionChecker`. */
+async function checkProtectionWindowsPowerShell(
+  pid: number,
+  address: string,
+): Promise<MemoryProtectionInfo> {
   try {
     const winAddr = parseInt(address, 16);
     if (isNaN(winAddr)) {
@@ -291,4 +319,26 @@ export async function checkMemoryProtection(
       error: error instanceof Error ? error.message : 'PowerShell execution failed',
     };
   }
+}
+
+export async function checkMemoryProtection(
+  platform: Platform,
+  pid: number,
+  address: string,
+): Promise<MemoryProtectionInfo> {
+  // Parse address once for all platforms
+  const addrNum = BigInt(address.startsWith('0x') ? address : `0x${address}`);
+
+  if (platform === 'linux') {
+    return checkProtectionLinux(pid, address, addrNum);
+  }
+
+  if (platform === 'darwin') {
+    const native = await checkProtectionDarwinNative(pid, address, addrNum);
+    return native ?? checkProtectionDarwinVmmap(pid, address);
+  }
+
+  // Windows: try native first, fall back to PowerShell
+  const native = await checkProtectionWindowsNative(pid, address);
+  return native ?? checkProtectionWindowsPowerShell(pid, address);
 }

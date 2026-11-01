@@ -78,11 +78,23 @@ describe('script search work bounds', () => {
 
   it('checks the deadline after a source read before loading another script', async () => {
     const { manager, send } = await fixture(['needle', 'later']);
-    send.mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 15));
+    // The deadline must survive the FIRST check (which runs before any script
+    // is read) and only elapse while the source read is in flight. A 1 ms
+    // timeout does not express that: on a loaded CI worker the clock can tick
+    // past 1 ms before the initial check, so zero scripts are read and the
+    // assertion below flips to 0. Use a timeout comfortably larger than the
+    // pre-read work but smaller than the simulated read latency.
+    const READ_DELAY_MS = 300;
+    const TIMEOUT_MS = 100;
+    send.mockImplementation(async (method: string) => {
+      // Only the source read is slow; enabling debugger stays fast so the
+      // deadline cannot elapse before the first read.
+      if (method === 'Debugger.getScriptSource') {
+        await new Promise((resolve) => setTimeout(resolve, READ_DELAY_MS));
+      }
       return { scriptSource: 'needle' };
     });
-    await expect(manager.searchInScripts('needle', { timeoutMs: 1 })).rejects.toThrow(
+    await expect(manager.searchInScripts('needle', { timeoutMs: TIMEOUT_MS })).rejects.toThrow(
       'Script search execution timed out',
     );
     expect(

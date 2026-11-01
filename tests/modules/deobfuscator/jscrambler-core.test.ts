@@ -122,3 +122,86 @@ describe('jscrambler-core confidence', () => {
     expect(calculateConfidence(9)).toBe(1);
   });
 });
+
+/**
+ * Static-evaluator branch coverage.
+ *
+ * `evalCall` decides whether a decrypt call can be folded to a literal. Each
+ * supported callee shape (global constructor, `String.fromCharCode`, and the
+ * string-instance methods) has its own guard that turns an unresolvable
+ * argument into "leave the call in place" rather than folding it to a wrong
+ * value. The end-to-end fixtures above only exercise one or two of these, so a
+ * structural split of `evalCall` could reorder or drop a guard and stay green.
+ *
+ * Each case reaches a specific branch through `decryptStrings`: the wrapper
+ * `dec` is recognised as a decryptor, and its single `return` expression is
+ * evaluated statically. A folded integer/string result proves the branch ran.
+ */
+describe('jscrambler-core static evaluator branches', () => {
+  // Shape that actually reaches `evalCall`:
+  //   - `dec` is registered as a decryptor because its body indexes the
+  //     module-level array `_s` (`looksLikeDecryptFunction`).
+  //   - `evalBlock` only accepts `var` declarations, assignments and `return`,
+  //     so the body holds a single declaration plus the return under test.
+  // The folded value is read from `const __out = <value>;`. Asserting on that
+  // exact literal (not a substring of the whole program) is what makes these
+  // cases fail if a guard is dropped: e.g. without the fromCharCode arity/type
+  // guard, `String.fromCharCode("A")` folds to a NUL character instead of staying put.
+  const fold = (returnExpr: string): string => {
+    const code = `
+var _s = ["alpha"];
+function dec(){ var _k = _s[0]; return ${returnExpr}; }
+const __out = dec();
+`;
+    const result = core.deobfuscate(code, {
+      removeDeadCode: false,
+      restoreControlFlow: false,
+      decryptStrings: true,
+      simplifyExpressions: false,
+    });
+    const match = /const __out = ([^;]+);/.exec(result.code);
+    return match?.[1] ?? '<missing>';
+  };
+
+  const FOLD_CASES: Array<[name: string, expr: string, expected: string]> = [
+    ['String over a single numeric literal', 'String(12345)', '"12345"'],
+    ['String refuses a non-single argument count', 'String(1, 2)', 'dec()'],
+    ['Number over a numeric string', 'Number("12345")', '12345'],
+    ['Number refuses booleans that JS would coerce to 0/1', 'Number(true)', 'dec()'],
+    ['parseInt with an explicit radix', 'parseInt("ff", 16)', '255'],
+    ['parseInt with the default radix', 'parseInt("42")', '42'],
+    ['parseFloat', 'parseFloat("1.5")', '1.5'],
+    ['String.fromCharCode over numeric arguments', 'String.fromCharCode(65, 66)', '"AB"'],
+    [
+      'String.fromCharCode refuses a non-numeric argument instead of folding to NUL',
+      'String.fromCharCode("A")',
+      'dec()',
+    ],
+    ['string charCodeAt', '"A".charCodeAt(0)', '65'],
+    ['string charAt', '"abc".charAt(1)', '"b"'],
+    ['string substr', '"abcdef".substr(1, 2)', '"bc"'],
+    ['string substring', '"abcdef".substring(1, 3)', '"bc"'],
+    ['string slice', '"abcdef".slice(1, 3)', '"bc"'],
+    ['string concat', '"a".concat("b", "c")', '"abc"'],
+    [
+      'string concat refuses non-string arguments instead of collapsing to the receiver',
+      '"a".concat(1)',
+      'dec()',
+    ],
+    ['string indexOf', '"abcdef".indexOf("cd")', '2'],
+    ['toLowerCase', '"AB".toLowerCase()', '"ab"'],
+    ['toUpperCase', '"ab".toUpperCase()', '"AB"'],
+    ['trim', '"  x  ".trim()', '"x"'],
+    ['zero-argument string methods refuse arguments', '"AB".toLowerCase(1)', 'dec()'],
+    ['replace folds to a literal split/join', '"a-b".replace("-", "+")', '"a+b"'],
+    ['replace refuses a non-string replacement', '"a-b".replace("-", 1)', 'dec()'],
+    ['unknown string method is left in place', '"ab".padStart(4)', 'dec()'],
+    ['unknown global callee is left in place', 'decodeURI("x")', 'dec()'],
+  ];
+
+  for (const [name, expr, expected] of FOLD_CASES) {
+    it(`${name}: ${expr}`, () => {
+      expect(fold(expr)).toBe(expected);
+    });
+  }
+});

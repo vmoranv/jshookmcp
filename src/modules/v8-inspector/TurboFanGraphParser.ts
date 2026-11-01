@@ -197,6 +197,72 @@ function buildOpcodeHistogram(phases: TurboFanGraphPhase[]): Record<string, numb
   return histogram;
 }
 
+/** `sources` map: every entry that yields function metadata. */
+function parseSources(rawSources: unknown): Record<string, TurboFanFunctionMeta> {
+  const sources: Record<string, TurboFanFunctionMeta> = {};
+  if (!rawSources || typeof rawSources !== 'object') {
+    return sources;
+  }
+  for (const [key, value] of Object.entries(rawSources as Record<string, unknown>)) {
+    if (typeof value === 'object' && value !== null) {
+      const meta = parseFunctionMeta(value as Record<string, unknown>);
+      if (meta) sources[key] = meta;
+    }
+  }
+  return sources;
+}
+
+/** `inlinings` map, defaulting each numeric field and the position object. */
+function parseInlinings(rawInlinings: unknown): Record<string, TurboFanInliningEntry> {
+  const inlinings: Record<string, TurboFanInliningEntry> = {};
+  if (!rawInlinings || typeof rawInlinings !== 'object') {
+    return inlinings;
+  }
+  for (const [key, value] of Object.entries(rawInlinings as Record<string, unknown>)) {
+    if (typeof value === 'object' && value !== null) {
+      const entry = value as Record<string, unknown>;
+      inlinings[key] = {
+        inliningId: typeof entry['inliningId'] === 'number' ? entry['inliningId'] : 0,
+        sourceId: typeof entry['sourceId'] === 'number' ? entry['sourceId'] : 0,
+        inliningPosition:
+          typeof entry['inliningPosition'] === 'object' && entry['inliningPosition'] !== null
+            ? (entry['inliningPosition'] as Record<string, unknown>)
+            : {},
+      };
+    }
+  }
+  return inlinings;
+}
+
+/**
+ * One phase entry. `graph` phases parse their `data` into nodes/edges; other
+ * types keep `data` as-is, stringifying non-string payloads so the shape stays
+ * comparable across phase kinds.
+ */
+function parsePhase(rawPhase: unknown): TurboFanGraphPhase | null {
+  if (typeof rawPhase !== 'object' || rawPhase === null) {
+    return null;
+  }
+  const phase = rawPhase as Record<string, unknown>;
+  const name = typeof phase['name'] === 'string' ? phase['name'] : '';
+  const type = typeof phase['type'] === 'string' ? phase['type'] : '';
+  const data = phase['data'];
+
+  if (type === 'graph') {
+    return data && typeof data === 'object'
+      ? parseGraphPhase(name, data as Record<string, unknown>)
+      : null;
+  }
+  if (type === 'schedule') {
+    return { name, type: 'schedule', data: typeof data === 'string' ? data : '' };
+  }
+  return {
+    name,
+    type: type as TurboFanGraphPhase['type'],
+    data: typeof data === 'string' ? data : JSON.stringify(data),
+  };
+}
+
 /**
  * Parse a single turbo-*.json file content into a structured TurboFanIRGraph.
  */
@@ -208,69 +274,18 @@ export function parseTurboFanJSON(raw: string): TurboFanIRGraph | null {
     return null;
   }
 
-  // Parse function metadata
   const functionMeta = parseFunctionMeta(parsed['function'] as Record<string, unknown> | undefined);
   if (!functionMeta) return null;
 
-  // Parse sources
-  const sources: Record<string, TurboFanFunctionMeta> = {};
-  const rawSources = parsed['sources'];
-  if (rawSources && typeof rawSources === 'object') {
-    for (const [key, value] of Object.entries(rawSources as Record<string, unknown>)) {
-      if (typeof value === 'object' && value !== null) {
-        const meta = parseFunctionMeta(value as Record<string, unknown>);
-        if (meta) sources[key] = meta;
-      }
-    }
-  }
+  const sources = parseSources(parsed['sources']);
+  const inlinings = parseInlinings(parsed['inlinings']);
 
-  // Parse inlinings
-  const inlinings: Record<string, TurboFanInliningEntry> = {};
-  const rawInlinings = parsed['inlinings'];
-  if (rawInlinings && typeof rawInlinings === 'object') {
-    for (const [key, value] of Object.entries(rawInlinings as Record<string, unknown>)) {
-      if (typeof value === 'object' && value !== null) {
-        const entry = value as Record<string, unknown>;
-        inlinings[key] = {
-          inliningId: typeof entry['inliningId'] === 'number' ? entry['inliningId'] : 0,
-          sourceId: typeof entry['sourceId'] === 'number' ? entry['sourceId'] : 0,
-          inliningPosition:
-            typeof entry['inliningPosition'] === 'object' && entry['inliningPosition'] !== null
-              ? (entry['inliningPosition'] as Record<string, unknown>)
-              : {},
-        };
-      }
-    }
-  }
-
-  // Parse phases
   const phases: TurboFanGraphPhase[] = [];
   const rawPhases = parsed['phases'];
   if (Array.isArray(rawPhases)) {
     for (const rawPhase of rawPhases) {
-      if (typeof rawPhase !== 'object' || rawPhase === null) continue;
-      const phase = rawPhase as Record<string, unknown>;
-      const name = typeof phase['name'] === 'string' ? phase['name'] : '';
-      const type = typeof phase['type'] === 'string' ? phase['type'] : '';
-
-      if (type === 'graph') {
-        const data = phase['data'];
-        if (data && typeof data === 'object') {
-          phases.push(parseGraphPhase(name, data as Record<string, unknown>));
-        }
-      } else if (type === 'schedule') {
-        phases.push({
-          name,
-          type: 'schedule',
-          data: typeof phase['data'] === 'string' ? phase['data'] : '',
-        });
-      } else {
-        phases.push({
-          name,
-          type: type as TurboFanGraphPhase['type'],
-          data: typeof phase['data'] === 'string' ? phase['data'] : JSON.stringify(phase['data']),
-        });
-      }
+      const phase = parsePhase(rawPhase);
+      if (phase) phases.push(phase);
     }
   }
 

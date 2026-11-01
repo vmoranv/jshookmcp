@@ -89,6 +89,125 @@ function comparable(value: string | number | boolean | null): string | number {
   return value;
 }
 
+/**
+ * Resolved argument values of a call.
+ *
+ * An argument that cannot be evaluated makes the whole list collapse to `[]`.
+ * That is deliberate and load-bearing, not an oversight: the callers detect the
+ * collapse by comparing `args.length` against the syntactic argument count, and
+ * the zero-argument string methods (`toLowerCase` / `toUpperCase` / `trim`)
+ * legitimately fold when the list is empty. Replacing `[]` with a distinct
+ * "unresolvable" sentinel changes observable behaviour for
+ * `"abc".toLowerCase(null)`, which folds today.
+ */
+type EvalArgs = Array<string | number | boolean | null>;
+type EvalResult = string | number | boolean | null | EvalValue[] | undefined;
+
+/**
+ * Global callees that fold over statically known arguments. Membership is
+ * checked before the arguments are evaluated so that an unknown identifier
+ * never triggers side-effecting evaluation, matching the original arm order.
+ */
+const GLOBAL_CALLEES: ReadonlySet<string> = new Set(['String', 'Number', 'parseInt', 'parseFloat']);
+
+/** Global callees that fold over statically known arguments. */
+function evalGlobalCallee(name: string, args: Array<string | number | boolean | null>): EvalResult {
+  if (name === 'String') {
+    return args.length === 1 ? String(args[0]) : undefined;
+  }
+  if (name === 'Number') {
+    // A boolean would coerce to 0/1, which is never a decoded string.
+    return args.length === 1 && typeof args[0] !== 'boolean' ? Number(args[0]) : undefined;
+  }
+  if (name === 'parseInt' || name === 'parseFloat') {
+    if (args.length === 0) {
+      return undefined;
+    }
+    return name === 'parseInt'
+      ? Number.parseInt(
+          String(args[0]),
+          typeof args[1] === 'number' ? args[1] : DEFAULT_PARSE_INT_RADIX,
+        )
+      : Number.parseFloat(String(args[0]));
+  }
+  return undefined;
+}
+
+/** `String.fromCharCode(...)` over numeric arguments. */
+function evalFromCharCode(args: EvalArgs, argCount: number): EvalResult {
+  // A collapsed argument list (length !== argCount) must not fold: that would
+  // decrypt to an empty string and silently drop the call.
+  if (args.length !== argCount || args.some((v) => typeof v !== 'number')) {
+    return undefined;
+  }
+  return String.fromCharCode(...(args as number[]));
+}
+
+/** One string-instance method over an already-resolved receiver and arguments. */
+function evalStringMethod(
+  receiver: string,
+  method: string,
+  args: EvalArgs,
+  argCount: number,
+): EvalResult {
+  switch (method) {
+    case 'charCodeAt': {
+      const idx = args[0];
+      return typeof idx === 'number' ? receiver.charCodeAt(idx) : undefined;
+    }
+    case 'charAt': {
+      const idx = args[0];
+      return typeof idx === 'number' ? receiver.charAt(idx) : undefined;
+    }
+    case 'split': {
+      const sep = args[0];
+      return typeof sep === 'string' ? receiver.split(sep) : undefined;
+    }
+    case 'substr':
+    case 'substring':
+    case 'slice': {
+      const from = args[0];
+      const to = args[1];
+      if (typeof from !== 'number' || (to !== undefined && typeof to !== 'number')) {
+        return undefined;
+      }
+      return method === 'substr'
+        ? receiver.substr(from, to as number | undefined)
+        : method === 'substring'
+          ? receiver.substring(from, to as number | undefined)
+          : receiver.slice(from, to as number | undefined);
+    }
+    case 'concat': {
+      // Same guard as fromCharCode: unresolvable arguments must not silently
+      // collapse the concatenation to the receiver.
+      if (args.length !== argCount || args.some((v) => typeof v !== 'string')) {
+        return undefined;
+      }
+      return receiver.concat(...(args as string[]));
+    }
+    case 'indexOf': {
+      const needle = args[0];
+      return typeof needle === 'string'
+        ? receiver.indexOf(needle, typeof args[1] === 'number' ? args[1] : undefined)
+        : undefined;
+    }
+    case 'toLowerCase':
+      return args.length === 0 ? receiver.toLowerCase() : undefined;
+    case 'toUpperCase':
+      return args.length === 0 ? receiver.toUpperCase() : undefined;
+    case 'trim':
+      return args.length === 0 ? receiver.trim() : undefined;
+    case 'replace': {
+      if (args.length !== 2 || typeof args[0] !== 'string' || typeof args[1] !== 'string') {
+        return undefined;
+      }
+      return receiver.split(args[0]).join(args[1]);
+    }
+    default:
+      return undefined;
+  }
+}
+
 /** Public surface of the core — mirrors the former `JScramberDeobfuscator` methods. */
 export interface JscramblerCore {
   deobfuscate(
@@ -313,7 +432,8 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
     env: Map<string, EvalValue>,
     arrays: Map<string, t.ArrayExpression>,
   ): EvalValue | undefined {
-    const evalArgs = (): Array<string | number | boolean | null> => {
+    const argCount = node.arguments.length;
+    const evalArgs = (): EvalArgs => {
       const values: Array<string | number | boolean | null> = [];
       for (const arg of node.arguments) {
         if (!types.isExpression(arg)) {
@@ -330,29 +450,12 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
 
     const callee = node.callee;
     if (types.isIdentifier(callee)) {
-      if (callee.name === 'String') {
-        const values = evalArgs();
-        return values.length === 1 ? String(values[0]) : undefined;
+      // Only the four known globals resolve arguments; any other identifier
+      // must NOT evaluate them (the original switch arms were lazy too).
+      if (!GLOBAL_CALLEES.has(callee.name)) {
+        return undefined;
       }
-      if (callee.name === 'Number') {
-        const values = evalArgs();
-        return values.length === 1 && typeof values[0] !== 'boolean'
-          ? Number(values[0])
-          : undefined;
-      }
-      if (callee.name === 'parseInt' || callee.name === 'parseFloat') {
-        const values = evalArgs();
-        if (values.length === 0) {
-          return undefined;
-        }
-        return callee.name === 'parseInt'
-          ? Number.parseInt(
-              String(values[0]),
-              typeof values[1] === 'number' ? values[1] : DEFAULT_PARSE_INT_RADIX,
-            )
-          : Number.parseFloat(String(values[0]));
-      }
-      return undefined;
+      return evalGlobalCallee(callee.name, evalArgs()) as EvalValue | undefined;
     }
 
     if (
@@ -367,96 +470,120 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
         callee.object.name === 'String' &&
         method === 'fromCharCode'
       ) {
-        const values = evalArgs();
-        // evalArgs returns [] when any argument is not statically evaluable —
-        // treating that as a real call would decrypt to an empty string.
-        if (values.length !== node.arguments.length || values.some((v) => typeof v !== 'number')) {
-          return undefined;
-        }
-        return String.fromCharCode(...(values as number[]));
+        return evalFromCharCode(evalArgs(), argCount) as EvalValue | undefined;
       }
       const obj = evalExpr(callee.object, env, arrays);
-      if (obj === undefined || obj === null) {
+      if (obj === undefined || obj === null || typeof obj !== 'string') {
         return undefined;
       }
-      if (typeof obj === 'string') {
-        const values = evalArgs();
-        switch (method) {
-          case 'charCodeAt': {
-            const idx = values[0];
-            if (typeof idx !== 'number') {
-              return undefined;
-            }
-            return obj.charCodeAt(idx);
-          }
-          case 'charAt': {
-            const idx = values[0];
-            if (typeof idx !== 'number') {
-              return undefined;
-            }
-            return obj.charAt(idx);
-          }
-          case 'split': {
-            const sep = values[0];
-            if (typeof sep !== 'string') {
-              return undefined;
-            }
-            return obj.split(sep);
-          }
-          case 'substr':
-          case 'substring':
-          case 'slice': {
-            const from = values[0];
-            const to = values[1];
-            if (typeof from !== 'number' || (to !== undefined && typeof to !== 'number')) {
-              return undefined;
-            }
-            return method === 'substr'
-              ? obj.substr(from, to as number | undefined)
-              : method === 'substring'
-                ? obj.substring(from, to as number | undefined)
-                : obj.slice(from, to as number | undefined);
-          }
-          case 'concat': {
-            // Same guard as fromCharCode: unresolvable arguments must not
-            // silently collapse the concatenation to the receiver.
-            if (
-              values.length !== node.arguments.length ||
-              values.some((v) => typeof v !== 'string')
-            ) {
-              return undefined;
-            }
-            return obj.concat(...(values as string[]));
-          }
-          case 'indexOf': {
-            const needle = values[0];
-            if (typeof needle !== 'string') {
-              return undefined;
-            }
-            return obj.indexOf(needle, typeof values[1] === 'number' ? values[1] : undefined);
-          }
-          case 'toLowerCase':
-            return values.length === 0 ? obj.toLowerCase() : undefined;
-          case 'toUpperCase':
-            return values.length === 0 ? obj.toUpperCase() : undefined;
-          case 'trim':
-            return values.length === 0 ? obj.trim() : undefined;
-          case 'replace': {
-            if (
-              values.length !== 2 ||
-              typeof values[0] !== 'string' ||
-              typeof values[1] !== 'string'
-            ) {
-              return undefined;
-            }
-            return obj.split(values[0]).join(values[1]);
-          }
-          default:
-            return undefined;
-        }
-      }
+      return evalStringMethod(obj, method, evalArgs(), argCount) as EvalValue | undefined;
     }
     return undefined;
+  }
+
+  /** `x.y` / `x[i]` over a resolved receiver. */
+  function evalMember(
+    node: t.MemberExpression,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    const obj = evalExpr(node.object, env, arrays);
+    if (obj === undefined || obj === null) {
+      return undefined;
+    }
+    if (!node.computed) {
+      return undefined;
+    }
+    const prop = evalExpr(node.property, env, arrays);
+    if (typeof obj === 'string' && typeof prop === 'number') {
+      return obj.charAt(prop);
+    }
+    if (Array.isArray(obj) && typeof prop === 'number') {
+      return (obj[prop] as string | number | boolean | null | undefined) ?? null;
+    }
+    return undefined;
+  }
+
+  /** `a <op> b`, refusing array operands and unknown operators. */
+  function evalBinaryOp(
+    node: t.BinaryExpression,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    const left = evalExpr(node.left, env, arrays);
+    const right = evalExpr(node.right, env, arrays);
+    if (left === undefined || right === undefined || Array.isArray(left) || Array.isArray(right)) {
+      return undefined;
+    }
+    return evalBinary(node.operator, left, right);
+  }
+
+  /** `!x`, `-x`, `+x`, `~x`, `typeof x`. */
+  function evalUnaryOp(
+    node: t.UnaryExpression,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    const value = evalExpr(node.argument, env, arrays);
+    if (value === undefined) {
+      return undefined;
+    }
+    switch (node.operator) {
+      case '!':
+        return !value;
+      case '-':
+        return typeof value === 'number' ? -value : undefined;
+      case '+':
+        return typeof value === 'number' ? value : undefined;
+      case '~':
+        return typeof value === 'number' ? ~value : undefined;
+      case 'typeof':
+        return typeof value;
+      default:
+        return undefined;
+    }
+  }
+
+  /** `a && b` / `a || b` / `a ?? b`, short-circuiting on the resolved left. */
+  function evalLogicalOp(
+    node: t.LogicalExpression,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    const left = evalExpr(node.left, env, arrays);
+    if (left === undefined) {
+      return undefined;
+    }
+    if (node.operator === '&&') {
+      return left ? evalExpr(node.right, env, arrays) : left;
+    }
+    if (node.operator === '||') {
+      return left ? left : evalExpr(node.right, env, arrays);
+    }
+    // '??'
+    return left !== null ? left : evalExpr(node.right, env, arrays);
+  }
+
+  /** A template literal with statically evaluable interpolations. */
+  function evalTemplate(
+    node: t.TemplateLiteral,
+    env: Map<string, EvalValue>,
+    arrays: Map<string, t.ArrayExpression>,
+  ): EvalValue | undefined {
+    let result = '';
+    for (let i = 0; i < node.quasis.length; i += 1) {
+      const q = node.quasis[i]!;
+      result += q.value.cooked ?? q.value.raw;
+      const expr = node.expressions[i];
+      if (expr) {
+        const value = evalExpr(expr, env, arrays);
+        if (value === undefined || value === null) {
+          return undefined;
+        }
+        result += String(value);
+      }
+    }
+    return result;
   }
 
   function evalExpr(
@@ -484,71 +611,19 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
       return arr ? evalArray(arr, env, arrays) : undefined;
     }
     if (types.isMemberExpression(node)) {
-      const obj = evalExpr(node.object, env, arrays);
-      if (obj === undefined || obj === null) {
-        return undefined;
-      }
-      if (!node.computed) {
-        return undefined;
-      }
-      const prop = evalExpr(node.property, env, arrays);
-      if (typeof obj === 'string' && typeof prop === 'number') {
-        return obj.charAt(prop);
-      }
-      if (Array.isArray(obj) && typeof prop === 'number') {
-        return (obj[prop] as string | number | boolean | null | undefined) ?? null;
-      }
-      return undefined;
+      return evalMember(node, env, arrays);
     }
     if (types.isArrayExpression(node)) {
       return evalArray(node, env, arrays);
     }
     if (types.isBinaryExpression(node)) {
-      const left = evalExpr(node.left, env, arrays);
-      const right = evalExpr(node.right, env, arrays);
-      if (
-        left === undefined ||
-        right === undefined ||
-        Array.isArray(left) ||
-        Array.isArray(right)
-      ) {
-        return undefined;
-      }
-      return evalBinary(node.operator, left, right);
+      return evalBinaryOp(node, env, arrays);
     }
     if (types.isUnaryExpression(node)) {
-      const value = evalExpr(node.argument, env, arrays);
-      if (value === undefined) {
-        return undefined;
-      }
-      switch (node.operator) {
-        case '!':
-          return !value;
-        case '-':
-          return typeof value === 'number' ? -value : undefined;
-        case '+':
-          return typeof value === 'number' ? value : undefined;
-        case '~':
-          return typeof value === 'number' ? ~value : undefined;
-        case 'typeof':
-          return typeof value;
-        default:
-          return undefined;
-      }
+      return evalUnaryOp(node, env, arrays);
     }
     if (types.isLogicalExpression(node)) {
-      const left = evalExpr(node.left, env, arrays);
-      if (left === undefined) {
-        return undefined;
-      }
-      if (node.operator === '&&') {
-        return left ? evalExpr(node.right, env, arrays) : left;
-      }
-      if (node.operator === '||') {
-        return left ? left : evalExpr(node.right, env, arrays);
-      }
-      // '??'
-      return left !== null ? left : evalExpr(node.right, env, arrays);
+      return evalLogicalOp(node, env, arrays);
     }
     if (types.isConditionalExpression(node)) {
       const test = evalExpr(node.test, env, arrays);
@@ -558,20 +633,7 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
       return evalExpr(test ? node.consequent : node.alternate, env, arrays);
     }
     if (types.isTemplateLiteral(node)) {
-      let result = '';
-      for (let i = 0; i < node.quasis.length; i += 1) {
-        const q = node.quasis[i]!;
-        result += q.value.cooked ?? q.value.raw;
-        const expr = node.expressions[i];
-        if (expr) {
-          const value = evalExpr(expr, env, arrays);
-          if (value === undefined || value === null) {
-            return undefined;
-          }
-          result += String(value);
-        }
-      }
-      return result;
+      return evalTemplate(node, env, arrays);
     }
     if (types.isCallExpression(node)) {
       return evalCall(node, env, arrays);
