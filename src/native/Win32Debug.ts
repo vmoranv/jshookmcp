@@ -254,6 +254,83 @@ export function parseContext(buf: Buffer, isArm64 = IS_ARM64_WINDOWS): X64Contex
   };
 }
 
+/** A context field written as a 64-bit value at a fixed offset. */
+type QwordField =
+  | 'rax'
+  | 'rcx'
+  | 'rdx'
+  | 'rbx'
+  | 'rsi'
+  | 'rdi'
+  | 'rsp'
+  | 'rbp'
+  | 'r8'
+  | 'r9'
+  | 'r10'
+  | 'r11'
+  | 'r12'
+  | 'r13'
+  | 'r14'
+  | 'r15'
+  | 'rip'
+  | 'lr'
+  | 'dr0'
+  | 'dr1'
+  | 'dr2'
+  | 'dr3'
+  | 'dr6'
+  | 'dr7';
+
+/** A context field written as a 32-bit value at a fixed offset. */
+type DwordField = 'contextFlags' | 'eflags';
+
+/**
+ * ARM64 CONTEXT general-register layout: X0-X15 occupy consecutive slots,
+ * SP/FP/PC/LR have their own offsets, and the debug registers follow.
+ * Encoded as a const table so the offsets stay a single source of truth.
+ */
+const ARM64_QWORD_OFFSETS: ReadonlyArray<readonly [QwordField, number]> = [
+  ['rax', ARM64_X0 + 0 * 8],
+  ['rcx', ARM64_X0 + 1 * 8],
+  ['rdx', ARM64_X0 + 2 * 8],
+  ['rbx', ARM64_X0 + 3 * 8],
+  ['rsi', ARM64_X0 + 4 * 8],
+  ['rdi', ARM64_X0 + 5 * 8],
+  ['rsp', ARM64_SP],
+  ['rbp', ARM64_FP],
+  ['r8', ARM64_X0 + 8 * 8],
+  ['r9', ARM64_X0 + 9 * 8],
+  ['r10', ARM64_X0 + 10 * 8],
+  ['r11', ARM64_X0 + 11 * 8],
+  ['r12', ARM64_X0 + 12 * 8],
+  ['r13', ARM64_X0 + 13 * 8],
+  ['r14', ARM64_X0 + 14 * 8],
+  ['r15', ARM64_X0 + 15 * 8],
+  ['rip', ARM64_PC],
+  ['lr', ARM64_LR],
+];
+
+const ARM64_DWORD_OFFSETS: ReadonlyArray<readonly [DwordField, number]> = [
+  ['contextFlags', 0x00],
+  ['eflags', 0x04],
+];
+
+/** AMD64 CONTEXT layout: debug registers and RIP, plus the two dwords. */
+const X64_QWORD_OFFSETS: ReadonlyArray<readonly [QwordField, number]> = [
+  ['dr0', 0x48],
+  ['dr1', 0x50],
+  ['dr2', 0x58],
+  ['dr3', 0x60],
+  ['dr6', 0x68],
+  ['dr7', 0x70],
+  ['rip', 0xf8],
+];
+
+const X64_DWORD_OFFSETS: ReadonlyArray<readonly [DwordField, number]> = [
+  ['contextFlags', 0x30],
+  ['eflags', 0x44],
+];
+
 /** Write CONTEXT fields into a raw buffer (arch-aware offsets). */
 export function writeContext(
   buf: Buffer,
@@ -261,53 +338,53 @@ export function writeContext(
   isArm64 = IS_ARM64_WINDOWS,
 ): void {
   if (isArm64) {
-    if (ctx.contextFlags !== undefined) buf.writeUInt32LE(ctx.contextFlags, 0x00);
-    if (ctx.eflags !== undefined) buf.writeUInt32LE(ctx.eflags, 0x04);
-    if (ctx.rax !== undefined) buf.writeBigUInt64LE(ctx.rax, ARM64_X0 + 0 * 8);
-    if (ctx.rcx !== undefined) buf.writeBigUInt64LE(ctx.rcx, ARM64_X0 + 1 * 8);
-    if (ctx.rdx !== undefined) buf.writeBigUInt64LE(ctx.rdx, ARM64_X0 + 2 * 8);
-    if (ctx.rbx !== undefined) buf.writeBigUInt64LE(ctx.rbx, ARM64_X0 + 3 * 8);
-    if (ctx.rsi !== undefined) buf.writeBigUInt64LE(ctx.rsi, ARM64_X0 + 4 * 8);
-    if (ctx.rdi !== undefined) buf.writeBigUInt64LE(ctx.rdi, ARM64_X0 + 5 * 8);
-    if (ctx.rsp !== undefined) buf.writeBigUInt64LE(ctx.rsp, ARM64_SP);
-    if (ctx.rbp !== undefined) buf.writeBigUInt64LE(ctx.rbp, ARM64_FP);
-    if (ctx.r8 !== undefined) buf.writeBigUInt64LE(ctx.r8, ARM64_X0 + 8 * 8);
-    if (ctx.r9 !== undefined) buf.writeBigUInt64LE(ctx.r9, ARM64_X0 + 9 * 8);
-    if (ctx.r10 !== undefined) buf.writeBigUInt64LE(ctx.r10, ARM64_X0 + 10 * 8);
-    if (ctx.r11 !== undefined) buf.writeBigUInt64LE(ctx.r11, ARM64_X0 + 11 * 8);
-    if (ctx.r12 !== undefined) buf.writeBigUInt64LE(ctx.r12, ARM64_X0 + 12 * 8);
-    if (ctx.r13 !== undefined) buf.writeBigUInt64LE(ctx.r13, ARM64_X0 + 13 * 8);
-    if (ctx.r14 !== undefined) buf.writeBigUInt64LE(ctx.r14, ARM64_X0 + 14 * 8);
-    if (ctx.r15 !== undefined) buf.writeBigUInt64LE(ctx.r15, ARM64_X0 + 15 * 8);
-    if (ctx.rip !== undefined) buf.writeBigUInt64LE(ctx.rip, ARM64_PC);
-    if (ctx.lr !== undefined) buf.writeBigUInt64LE(ctx.lr, ARM64_LR);
-    if (ctx.bvr !== undefined)
-      ctx.bvr.forEach((v, i) => {
-        if (i < 8) buf.writeBigUInt64LE(v, ARM64_BVR + i * 8);
-      });
-    if (ctx.bcr !== undefined)
-      ctx.bcr.forEach((v, i) => {
-        if (i < 8) buf.writeUInt32LE(v, ARM64_BCR + i * 4);
-      });
-    if (ctx.wvr !== undefined)
-      ctx.wvr.forEach((v, i) => {
-        if (i < 2) buf.writeBigUInt64LE(v, ARM64_WVR + i * 8);
-      });
-    if (ctx.wcr !== undefined)
-      ctx.wcr.forEach((v, i) => {
-        if (i < 2) buf.writeUInt32LE(v, ARM64_WCR + i * 4);
-      });
+    writeContextDwords(buf, ctx, ARM64_DWORD_OFFSETS);
+    writeContextQwords(buf, ctx, ARM64_QWORD_OFFSETS);
+    writeArm64DebugRegisters(buf, ctx);
     return;
   }
-  if (ctx.contextFlags !== undefined) buf.writeUInt32LE(ctx.contextFlags, 0x30);
-  if (ctx.eflags !== undefined) buf.writeUInt32LE(ctx.eflags, 0x44);
-  if (ctx.dr0 !== undefined) buf.writeBigUInt64LE(ctx.dr0, 0x48);
-  if (ctx.dr1 !== undefined) buf.writeBigUInt64LE(ctx.dr1, 0x50);
-  if (ctx.dr2 !== undefined) buf.writeBigUInt64LE(ctx.dr2, 0x58);
-  if (ctx.dr3 !== undefined) buf.writeBigUInt64LE(ctx.dr3, 0x60);
-  if (ctx.dr6 !== undefined) buf.writeBigUInt64LE(ctx.dr6, 0x68);
-  if (ctx.dr7 !== undefined) buf.writeBigUInt64LE(ctx.dr7, 0x70);
-  if (ctx.rip !== undefined) buf.writeBigUInt64LE(ctx.rip, 0xf8);
+  writeContextDwords(buf, ctx, X64_DWORD_OFFSETS);
+  writeContextQwords(buf, ctx, X64_QWORD_OFFSETS);
+}
+
+/** Write the 32-bit fields listed in `table`, skipping absent ones. */
+function writeContextDwords(
+  buf: Buffer,
+  ctx: Partial<X64Context>,
+  table: ReadonlyArray<readonly [DwordField, number]>,
+): void {
+  for (const [field, offset] of table) {
+    const value = ctx[field];
+    if (value !== undefined) buf.writeUInt32LE(value, offset);
+  }
+}
+
+/** Write the 64-bit fields listed in `table`, skipping absent ones. */
+function writeContextQwords(
+  buf: Buffer,
+  ctx: Partial<X64Context>,
+  table: ReadonlyArray<readonly [QwordField, number]>,
+): void {
+  for (const [field, offset] of table) {
+    const value = ctx[field];
+    if (value !== undefined) buf.writeBigUInt64LE(value, offset);
+  }
+}
+
+/** ARM64 debug registers: up to 8 Bvr/Bcr and 2 Wvr/Wcr entries. */
+function writeArm64DebugRegisters(buf: Buffer, ctx: Partial<X64Context>): void {
+  ctx.bvr?.forEach((v, i) => {
+    if (i < 8) buf.writeBigUInt64LE(v, ARM64_BVR + i * 8);
+  });
+  ctx.bcr?.forEach((v, i) => {
+    if (i < 8) buf.writeUInt32LE(v, ARM64_BCR + i * 4);
+  });
+  ctx.wvr?.forEach((v, i) => {
+    if (i < 2) buf.writeBigUInt64LE(v, ARM64_WVR + i * 8);
+  });
+  ctx.wcr?.forEach((v, i) => {
+    if (i < 2) buf.writeUInt32LE(v, ARM64_WCR + i * 4);
+  });
 }
 
 /**
