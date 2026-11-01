@@ -192,51 +192,86 @@ async function checkElf(
   return buf.equals(ELF_MAGIC);
 }
 
-async function resolveSnapshotSymbol(
+/** Parsed subset of the ELF header the symbol lookup needs. */
+interface ElfHeaderInfo {
+  /** 1 = ELF32, 2 = ELF64. */
+  elfClass: number;
+  /** Section header table file offset. */
+  shoff: number;
+  /** Size of one section header entry. */
+  shentsize: number;
+  /** Number of section headers. */
+  shnum: number;
+}
+
+/**
+ * Read the 64-byte ELF header and extract the section-table geometry.
+ *
+ * Returns null for anything this lookups does not handle: too-short files,
+ * big-endian images, unexpected class bytes, or a table that would read past
+ * EOF.
+ */
+async function readElfHeaderInfo(
   fh: import('node:fs/promises').FileHandle,
   fileSize: number,
-): Promise<ResolvedSymbol | null> {
-  // Read the ELF header. We only need enough for class (32/64), endianness,
-  // section header offset (e_shoff), section entry size (e_shentsize),
-  // section count (e_shnum), and string-table index (e_shstrndx).
+): Promise<ElfHeaderInfo | null> {
+  // We only need enough for class (32/64), endianness, section header offset
+  // (e_shoff), section entry size (e_shentsize), and section count (e_shnum).
   if (fileSize < 64) return null;
   const ehdr = Buffer.alloc(64);
   await fh.read(ehdr, 0, 64, 0);
 
-  const ei_class = ehdr.readUInt8(4); // 1 = ELF32, 2 = ELF64
-  const ei_data = ehdr.readUInt8(5); // 1 = little-endian, 2 = big-endian
-  if (ei_data !== 1) return null; // We only support little-endian.
-  if (ei_class !== 1 && ei_class !== 2) return null;
+  const elfClass = ehdr.readUInt8(4); // 1 = ELF32, 2 = ELF64
+  const eiData = ehdr.readUInt8(5); // 1 = little-endian, 2 = big-endian
+  if (eiData !== 1) return null; // We only support little-endian.
+  if (elfClass !== 1 && elfClass !== 2) return null;
 
-  let e_shoff: number;
-  let e_shentsize: number;
-  let e_shnum: number;
-  if (ei_class === 2) {
+  let shoff: number;
+  let shentsize: number;
+  let shnum: number;
+  if (elfClass === 2) {
     // ELF64: e_shoff @ 0x28 (8 bytes), e_shentsize @ 0x3a (2), e_shnum @ 0x3c (2)
-    const shoff = ehdr.readBigUInt64LE(0x28);
-    if (shoff > BigInt(Number.MAX_SAFE_INTEGER)) return null;
-    e_shoff = Number(shoff);
-    e_shentsize = ehdr.readUInt16LE(0x3a);
-    e_shnum = ehdr.readUInt16LE(0x3c);
+    const shoffBig = ehdr.readBigUInt64LE(0x28);
+    if (shoffBig > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+    shoff = Number(shoffBig);
+    shentsize = ehdr.readUInt16LE(0x3a);
+    shnum = ehdr.readUInt16LE(0x3c);
   } else {
     // ELF32: e_shoff @ 0x20 (4), e_shentsize @ 0x2e (2), e_shnum @ 0x30 (2)
-    e_shoff = ehdr.readUInt32LE(0x20);
-    e_shentsize = ehdr.readUInt16LE(0x2e);
-    e_shnum = ehdr.readUInt16LE(0x30);
+    shoff = ehdr.readUInt32LE(0x20);
+    shentsize = ehdr.readUInt16LE(0x2e);
+    shnum = ehdr.readUInt16LE(0x30);
   }
 
-  if (e_shoff === 0 || e_shnum === 0 || e_shentsize === 0) return null;
-  const shTableSize = e_shentsize * e_shnum;
-  if (e_shoff + shTableSize > fileSize) return null;
+  if (shoff === 0 || shnum === 0 || shentsize === 0) return null;
+  const shTableSize = shentsize * shnum;
+  if (shoff + shTableSize > fileSize) return null;
 
-  const shTable = Buffer.alloc(shTableSize);
-  await fh.read(shTable, 0, shTableSize, e_shoff);
+  return { elfClass, shoff, shentsize, shnum };
+}
 
-  // Walk sections, capture .dynsym by sh_type.
-  // sh_type 11 = SHT_DYNSYM, sh_type 3 = SHT_STRTAB
+/** The section headers of `.dynsym` and its linked string table. */
+interface DynamicSymbolTables {
+  dynsym: ElfShdr;
+  /** `.dynstr` — `.dynsym.sh_link` points at its section index. */
+  dynstr: ElfShdr;
+  /** Size of one symbol entry (defaults by ELF class when unset). */
+  symEntSize: number;
+}
+
+/**
+ * Locate `.dynsym` (sh_type 11) and resolve its linked string table
+ * (sh_type 3).
+ */
+function findDynamicSymbolTables(
+  shTable: Buffer,
+  header: ElfHeaderInfo,
+  fileSize: number,
+): DynamicSymbolTables | null {
+  const is64 = header.elfClass === 2;
   let dynsym: ElfShdr | undefined;
-  for (let i = 0; i < e_shnum; i++) {
-    const shdr = readShdr(shTable, i, e_shentsize, ei_class === 2);
+  for (let i = 0; i < header.shnum; i++) {
+    const shdr = readShdr(shTable, i, header.shentsize, is64);
     if (!shdr) continue;
     if (shdr.type === 11) {
       dynsym = shdr;
@@ -244,63 +279,103 @@ async function resolveSnapshotSymbol(
     }
   }
   if (!dynsym) return null;
-  // .dynsym.sh_link points at the section index of the string table.
-  // Look it up directly in the section header table (not in the filtered
-  // dynstrCandidates list, whose indices do not match section indices).
-  const dynstr = readShdr(shTable, dynsym.link, e_shentsize, ei_class === 2);
+
+  // `.dynsym.sh_link` points at the section index of the string table. Look it
+  // up directly in the section header table (not in a filtered candidate list,
+  // whose indices do not match section indices).
+  const dynstr = readShdr(shTable, dynsym.link, header.shentsize, is64);
   if (!dynstr || dynstr.type !== 3) return null;
   if (dynstr.offset + dynstr.size > fileSize) return null;
 
-  const strs = Buffer.alloc(dynstr.size);
-  await fh.read(strs, 0, dynstr.size, dynstr.offset);
+  const symEntSize = dynsym.entsize > 0 ? dynsym.entsize : is64 ? 24 : 16;
+  return { dynsym, dynstr, symEntSize };
+}
 
-  const symEntSize = dynsym.entsize > 0 ? dynsym.entsize : ei_class === 2 ? 24 : 16;
+/**
+ * Walk `.dynsym` looking for the isolate-snapshot symbol and translate its
+ * VMA into a file offset.
+ */
+function findSnapshotSymbolOffset(
+  symBuf: Buffer,
+  strs: Buffer,
+  tables: DynamicSymbolTables,
+  shTable: Buffer,
+  header: ElfHeaderInfo,
+  fileSize: number,
+): number | null {
+  const is64 = header.elfClass === 2;
+  const { dynsym, symEntSize } = tables;
   const symCount = Math.floor(dynsym.size / symEntSize);
-  if (symCount === 0) return null;
-  // Reject malformed/hostile ELFs where dynsym.size would push the read
-  // past EOF or trigger an oversized allocation.
-  if (dynsym.offset + dynsym.size > fileSize) return null;
-  const symBuf = Buffer.alloc(dynsym.size);
-  await fh.read(symBuf, 0, dynsym.size, dynsym.offset);
 
-  // Walk symbols. For each, read st_name (always at offset 0) and look it up
-  // in the string table. ELF64 / ELF32 differ in field order so we branch.
   for (let i = 0; i < symCount; i++) {
     const base = i * symEntSize;
     const stName = symBuf.readUInt32LE(base);
     if (stName === 0 || stName >= strs.length) continue;
     const name = readCString(strs, stName);
     if (name !== SNAPSHOT_SYMBOL && name !== ALT_SNAPSHOT_SYMBOL) continue;
+
     // st_value layout:
     //   ELF64: st_name(4) st_info(1) st_other(1) st_shndx(2) st_value(8) st_size(8)
     //   ELF32: st_name(4) st_value(4) st_size(4) st_info(1) st_other(1) st_shndx(2)
     let stValue: number;
-    if (ei_class === 2) {
+    if (is64) {
       const v = symBuf.readBigUInt64LE(base + 8);
       if (v > BigInt(Number.MAX_SAFE_INTEGER)) continue;
       stValue = Number(v);
     } else {
       stValue = symBuf.readUInt32LE(base + 4);
     }
-    // st_value is a VMA; for our purposes we translate via the section the
-    // symbol belongs to (st_shndx). Simpler: walk sections again and find one
-    // whose [addr, addr+size) contains stValue, then translate.
-    let stShndx: number;
-    if (ei_class === 2) {
-      stShndx = symBuf.readUInt16LE(base + 6);
-    } else {
-      stShndx = symBuf.readUInt16LE(base + 14);
-    }
-    const targetSection = readShdr(shTable, stShndx, e_shentsize, ei_class === 2);
+
+    // st_value is a VMA; translate it via the section the symbol belongs to
+    // (st_shndx).
+    const stShndx = is64 ? symBuf.readUInt16LE(base + 6) : symBuf.readUInt16LE(base + 14);
+    const targetSection = readShdr(shTable, stShndx, header.shentsize, is64);
     if (!targetSection) continue;
-    // We re-read addr (sh_addr) which was skipped in readShdr — recompute here.
-    const sh_addr = readShAddr(shTable, stShndx, e_shentsize, ei_class === 2);
-    if (sh_addr === undefined) continue;
-    const fileOffset = stValue - sh_addr + targetSection.offset;
+    // sh_addr was skipped in readShdr — recompute it here.
+    const shAddr = readShAddr(shTable, stShndx, header.shentsize, is64);
+    if (shAddr === undefined) continue;
+
+    const fileOffset = stValue - shAddr + targetSection.offset;
     if (fileOffset < 0 || fileOffset >= fileSize) continue;
-    return { fileOffset };
+    return fileOffset;
   }
   return null;
+}
+
+async function resolveSnapshotSymbol(
+  fh: import('node:fs/promises').FileHandle,
+  fileSize: number,
+): Promise<ResolvedSymbol | null> {
+  const header = await readElfHeaderInfo(fh, fileSize);
+  if (!header) return null;
+
+  const shTableSize = header.shentsize * header.shnum;
+  const shTable = Buffer.alloc(shTableSize);
+  await fh.read(shTable, 0, shTableSize, header.shoff);
+
+  const tables = findDynamicSymbolTables(shTable, header, fileSize);
+  if (!tables) return null;
+
+  const { dynsym, dynstr } = tables;
+
+  // Read order is observable: the string table is loaded BEFORE the symbol
+  // count is checked, so an ELF with an empty .dynsym still performs the
+  // .dynstr read. Keep that order — a malformed image that fails later must
+  // fail at the same point it used to.
+  const strs = Buffer.alloc(dynstr.size);
+  await fh.read(strs, 0, dynstr.size, dynstr.offset);
+
+  const symCount = Math.floor(dynsym.size / tables.symEntSize);
+  if (symCount === 0) return null;
+  // Reject malformed/hostile ELFs where dynsym.size would push the read past
+  // EOF or trigger an oversized allocation.
+  if (dynsym.offset + dynsym.size > fileSize) return null;
+
+  const symBuf = Buffer.alloc(dynsym.size);
+  await fh.read(symBuf, 0, dynsym.size, dynsym.offset);
+
+  const fileOffset = findSnapshotSymbolOffset(symBuf, strs, tables, shTable, header, fileSize);
+  return fileOffset === null ? null : { fileOffset };
 }
 
 function readShdr(
