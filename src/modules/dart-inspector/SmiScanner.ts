@@ -117,6 +117,162 @@ function decodeSmi64(buf: Buffer, offset: number): number | undefined {
   return Number(decoded);
 }
 
+/** `SmiScanOptions` with every default applied and every bound validated. */
+interface ResolvedSmiScanOptions {
+  width: SmiWidth;
+  stride: number;
+  windowStart: number;
+  windowEnd: number;
+  minValue: number;
+  maxValue: number;
+  includeZero: boolean;
+  includeNegative: boolean;
+  maxResults: number;
+  maxChunkBytes: number;
+}
+
+/** Width, stride and window bounds — the shape of the scan grid. */
+function resolveScanGrid(opts: SmiScanOptions): {
+  width: SmiWidth;
+  stride: number;
+  windowStart: number;
+  windowEnd: number;
+} {
+  const width: SmiWidth = opts.width ?? DEFAULT_WIDTH;
+  if (width !== 4 && width !== 8) {
+    throw new ToolError('VALIDATION', `SmiScanner width must be 4 or 8 (got ${width})`);
+  }
+  const stride = opts.stride ?? width;
+  if (!Number.isInteger(stride) || stride < 1) {
+    throw new ToolError(
+      'VALIDATION',
+      `SmiScanner stride must be a positive integer (got ${stride})`,
+    );
+  }
+  const windowStart = opts.scanWindow?.start ?? 0;
+  const windowEnd = opts.scanWindow?.end ?? Number.POSITIVE_INFINITY;
+  if (windowStart < 0 || windowEnd <= windowStart) {
+    throw new ToolError(
+      'VALIDATION',
+      `SmiScanner scanWindow must satisfy 0 <= start < end (got start=${windowStart}, end=${opts.scanWindow?.end ?? 'Infinity'})`,
+    );
+  }
+  return { width, stride, windowStart, windowEnd };
+}
+
+/** Value filters and result caps. */
+function resolveScanFilters(
+  opts: SmiScanOptions,
+  width: SmiWidth,
+): Pick<
+  ResolvedSmiScanOptions,
+  'minValue' | 'maxValue' | 'includeZero' | 'includeNegative' | 'maxResults' | 'maxChunkBytes'
+> {
+  const minValue = opts.minValue ?? DEFAULT_MIN_VALUE;
+  const maxValue = opts.maxValue ?? DEFAULT_MAX_VALUE;
+  if (minValue > maxValue) {
+    throw new ToolError(
+      'VALIDATION',
+      `SmiScanner minValue (${minValue}) must be <= maxValue (${maxValue})`,
+    );
+  }
+  return {
+    minValue,
+    maxValue,
+    includeZero: opts.includeZero ?? false,
+    includeNegative: opts.includeNegative ?? false,
+    maxResults: opts.maxResults ?? DART_MAX_OFFSETS_PER_STRING,
+    maxChunkBytes: Math.max(opts.maxChunkBytes ?? DART_MAX_CHUNK_BYTES, width * 16),
+  };
+}
+
+function resolveScanOptions(opts: SmiScanOptions): ResolvedSmiScanOptions {
+  const grid = resolveScanGrid(opts);
+  return { ...grid, ...resolveScanFilters(opts, grid.width) };
+}
+
+/** State one chunk sweep needs; `hits` is appended to in place. */
+interface ChunkSweepArgs {
+  baseOffset: number;
+  scanEnd: number;
+  windowStart: number;
+  windowEnd: number;
+  stride: number;
+  width: SmiWidth;
+  decode: (buf: Buffer, offset: number) => number | undefined;
+  includeZero: boolean;
+  includeNegative: boolean;
+  minValue: number;
+  maxValue: number;
+  maxResults: number;
+  hits: SmiHit[];
+  scannedSoFar: number;
+}
+
+/**
+ * Walk one `combined` buffer along the stride grid and append filtered hits.
+ *
+ * Terminates on the window end, on the chunk's scan end, or as soon as the
+ * result cap is reached — the cap is reported back so the stream loop can stop
+ * pulling chunks.
+ */
+function sweepChunk(
+  combined: Buffer,
+  args: ChunkSweepArgs,
+): { scanned: number; truncated: boolean } {
+  const {
+    baseOffset,
+    scanEnd,
+    windowStart,
+    windowEnd,
+    stride,
+    width,
+    decode,
+    includeZero,
+    includeNegative,
+    minValue,
+    maxValue,
+    maxResults,
+    hits,
+  } = args;
+
+  let scanned = args.scannedSoFar;
+  let absOffset = Math.max(baseOffset, windowStart);
+  // Align the first offset up to the next multiple of stride.
+  const misalignment = absOffset % stride;
+  if (misalignment !== 0) absOffset += stride - misalignment;
+
+  while (absOffset < windowEnd) {
+    const localOffset = absOffset - baseOffset;
+    if (localOffset >= scanEnd) break;
+    scanned++;
+    const decoded = decode(combined, localOffset);
+    if (decoded !== undefined) {
+      const inRange =
+        (decoded === 0 ? includeZero : true) &&
+        (decoded < 0 ? includeNegative : true) &&
+        decoded >= minValue &&
+        decoded <= maxValue;
+      if (inRange) {
+        hits.push({
+          offset: absOffset,
+          rawValue:
+            width === 4
+              ? combined.readUInt32LE(localOffset)
+              : Number(combined.readBigUInt64LE(localOffset)),
+          smiValue: decoded,
+          width,
+        });
+        if (hits.length >= maxResults) {
+          return { scanned, truncated: true };
+        }
+      }
+    }
+    absOffset += stride;
+  }
+  return { scanned, truncated: false };
+}
+
 export class SmiScanner {
   async scanFile(filePath: string, opts: SmiScanOptions = {}): Promise<SmiScanResult> {
     if (!filePath || filePath.length === 0) {
@@ -131,37 +287,18 @@ export class SmiScanner {
       });
     }
 
-    const width: SmiWidth = opts.width ?? DEFAULT_WIDTH;
-    if (width !== 4 && width !== 8) {
-      throw new ToolError('VALIDATION', `SmiScanner width must be 4 or 8 (got ${width})`);
-    }
-    const stride = opts.stride ?? width;
-    if (!Number.isInteger(stride) || stride < 1) {
-      throw new ToolError(
-        'VALIDATION',
-        `SmiScanner stride must be a positive integer (got ${stride})`,
-      );
-    }
-    const windowStart = opts.scanWindow?.start ?? 0;
-    const windowEnd = opts.scanWindow?.end ?? Number.POSITIVE_INFINITY;
-    if (windowStart < 0 || windowEnd <= windowStart) {
-      throw new ToolError(
-        'VALIDATION',
-        `SmiScanner scanWindow must satisfy 0 <= start < end (got start=${windowStart}, end=${opts.scanWindow?.end ?? 'Infinity'})`,
-      );
-    }
-    const minValue = opts.minValue ?? DEFAULT_MIN_VALUE;
-    const maxValue = opts.maxValue ?? DEFAULT_MAX_VALUE;
-    if (minValue > maxValue) {
-      throw new ToolError(
-        'VALIDATION',
-        `SmiScanner minValue (${minValue}) must be <= maxValue (${maxValue})`,
-      );
-    }
-    const includeZero = opts.includeZero ?? false;
-    const includeNegative = opts.includeNegative ?? false;
-    const maxResults = opts.maxResults ?? DART_MAX_OFFSETS_PER_STRING;
-    const maxChunkBytes = Math.max(opts.maxChunkBytes ?? DART_MAX_CHUNK_BYTES, width * 16);
+    const {
+      width,
+      stride,
+      windowStart,
+      windowEnd,
+      minValue,
+      maxValue,
+      includeZero,
+      includeNegative,
+      maxResults,
+      maxChunkBytes,
+    } = resolveScanOptions(opts);
 
     const decode = width === 4 ? decodeSmi32 : decodeSmi64;
 
@@ -191,34 +328,26 @@ export class SmiScanner {
       const misalignment = absOffset % stride;
       if (misalignment !== 0) absOffset += stride - misalignment;
 
-      while (absOffset < windowEnd) {
-        const localOffset = absOffset - baseOffset;
-        if (localOffset >= scanEnd) break;
-        scanned++;
-        const decoded = decode(combined, localOffset);
-        if (decoded !== undefined) {
-          const inRange =
-            (decoded === 0 ? includeZero : true) &&
-            (decoded < 0 ? includeNegative : true) &&
-            decoded >= minValue &&
-            decoded <= maxValue;
-          if (inRange) {
-            hits.push({
-              offset: absOffset,
-              rawValue:
-                width === 4
-                  ? combined.readUInt32LE(localOffset)
-                  : Number(combined.readBigUInt64LE(localOffset)),
-              smiValue: decoded,
-              width,
-            });
-            if (hits.length >= maxResults) {
-              truncated = true;
-              break;
-            }
-          }
-        }
-        absOffset += stride;
+      const sweep = sweepChunk(combined, {
+        baseOffset,
+        scanEnd,
+        windowStart,
+        windowEnd,
+        stride,
+        width,
+        decode,
+        includeZero,
+        includeNegative,
+        minValue,
+        maxValue,
+        maxResults,
+        hits,
+        scannedSoFar: scanned,
+      });
+      scanned = sweep.scanned;
+      if (sweep.truncated) {
+        truncated = true;
+        break;
       }
 
       nextAbsolute += chunkBuf.length;
