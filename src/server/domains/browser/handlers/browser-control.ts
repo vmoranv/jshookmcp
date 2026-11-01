@@ -334,23 +334,7 @@ export class BrowserControlHandlers {
         }
 
         // Auto-select the first tab so page_navigate / page_evaluate work immediately after launch.
-        const pages = await this.deps.collector.listPages();
-        if (pages.length > 0) {
-          await this.deps.collector.selectPage(0);
-          await this.syncTabRegistryWithCollectorPages('browser_launch');
-        }
-        const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
-        const currentPage = pages[0];
-        this.deps.onBrowserAttachStateChanged?.({
-          endpoint: null,
-          selectedIndex: pages.length > 0 ? 0 : null,
-          selectedUrl: currentPage?.url ?? null,
-          selectedTitle: currentPage?.title ?? null,
-          selectedTargetId: null,
-          browserPid: this.deps.collector.getChromePid(),
-          rendererPid: null,
-          attachedAt: new Date().toISOString(),
-        });
+        const { pages, claim, currentPage } = await this.finishLaunch('browser_launch', sessionId);
 
         const status = await this.deps.collector.getStatus();
 
@@ -387,23 +371,10 @@ export class BrowserControlHandlers {
           ...launchRequest,
           headless: true,
         });
-        const pages = await this.deps.collector.listPages();
-        if (pages.length > 0) {
-          await this.deps.collector.selectPage(0);
-          await this.syncTabRegistryWithCollectorPages('browser_launch_fallback');
-        }
-        const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
-        const currentPage = pages[0];
-        this.deps.onBrowserAttachStateChanged?.({
-          endpoint: null,
-          selectedIndex: pages.length > 0 ? 0 : null,
-          selectedUrl: currentPage?.url ?? null,
-          selectedTitle: currentPage?.title ?? null,
-          selectedTargetId: null,
-          browserPid: this.deps.collector.getChromePid(),
-          rendererPid: null,
-          attachedAt: new Date().toISOString(),
-        });
+        const { pages, claim, currentPage } = await this.finishLaunch(
+          'browser_launch_fallback',
+          sessionId,
+        );
         const fallbackStatus = await this.deps.collector.getStatus();
 
         this.emitBrowserLaunched('launch');
@@ -720,6 +691,37 @@ export class BrowserControlHandlers {
         .json();
     }
   }
+  /** Post-launch bookkeeping shared by the normal and Linux-fallback paths:
+   * auto-select the first tab, sync the registry, claim the lease and
+   * broadcast the attach state. */
+  private async finishLaunch(
+    registrySyncTag: string,
+    sessionId: string,
+  ): Promise<{
+    pages: Awaited<ReturnType<CodeCollector['listPages']>>;
+    claim: { totalOwners?: number } | null | undefined;
+    currentPage: Awaited<ReturnType<CodeCollector['listPages']>>[number] | undefined;
+  }> {
+    const pages = await this.deps.collector.listPages();
+    if (pages.length > 0) {
+      await this.deps.collector.selectPage(0);
+      await this.syncTabRegistryWithCollectorPages(registrySyncTag);
+    }
+    const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
+    const currentPage = pages[0];
+    this.deps.onBrowserAttachStateChanged?.({
+      endpoint: null,
+      selectedIndex: pages.length > 0 ? 0 : null,
+      selectedUrl: currentPage?.url ?? null,
+      selectedTitle: currentPage?.title ?? null,
+      selectedTargetId: null,
+      browserPid: this.deps.collector.getChromePid(),
+      rendererPid: null,
+      attachedAt: new Date().toISOString(),
+    });
+    return { pages, claim, currentPage };
+  }
+
   /** Chrome connect mode: validate the connect request, attach, claim the
    * lease and describe the attached endpoint. */
   private async connectChromeBrowser(
