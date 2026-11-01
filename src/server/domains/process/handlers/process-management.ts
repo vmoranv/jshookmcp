@@ -36,75 +36,17 @@ export class ProcessManagementHandlers implements MemoryOperationHost {
   // ── Diagnostic helpers (used by other sub-handlers) ──
 
   async buildMemoryDiagnostics(input: MemoryDiagnosticsInput): Promise<MemoryDiagnostics> {
-    const recommendedActions = new Set<string>();
     const permission = await this.memoryManager.checkAvailability();
-
-    if (!permission.available) {
-      recommendedActions.add('Run as administrator');
-    }
-
     const processInfo = await this.resolveProcessInfo(input.pid);
-    if (input.pid !== undefined && input.pid !== null && !processInfo) {
-      recommendedActions.add('Check if process is still running');
-    }
-
     const protectionResult = await this.queryProtection(input);
-    if (protectionResult.queryFailed || protectionResult.info?.success === false) {
-      recommendedActions.add('Verify address is within valid memory region');
-    }
-
-    if (
-      input.size !== undefined &&
-      input.size !== null &&
-      protectionResult.info?.regionSize !== undefined &&
-      protectionResult.info.regionSize !== null &&
-      input.size > protectionResult.info.regionSize
-    ) {
-      recommendedActions.add('Reduce the requested size to fit the target memory region');
-    }
-
-    if (
-      input.operation === 'memory_read' &&
-      protectionResult.info?.success &&
-      protectionResult.info.isReadable === false
-    ) {
-      recommendedActions.add('Ensure target memory region is readable');
-    }
-
-    if (
-      input.operation === 'memory_write' &&
-      protectionResult.info?.success &&
-      protectionResult.info.isWritable === false
-    ) {
-      recommendedActions.add('Ensure target memory region is writable');
-    }
-
     const modulesInfo = await this.enumerateModulesSafe(input.pid);
 
-    if (input.pid !== undefined && input.pid !== null && input.address) {
-      recommendedActions.add(
-        'Re-resolve the address after the process restarts because ASLR can shift module addresses',
-      );
-    }
-
-    const normalizedError = input.error?.toLowerCase() ?? '';
-    if (
-      normalizedError.includes('access denied') ||
-      normalizedError.includes('permission') ||
-      normalizedError.includes('privilege') ||
-      normalizedError.includes('administrator')
-    ) {
-      recommendedActions.add('Run as administrator');
-    }
-
-    const aslrNote = modulesInfo.enumerated
-      ? modulesInfo.count && modulesInfo.count > 0
-        ? `Enumerated ${modulesInfo.count} module(s). Treat absolute addresses as session-specific because ASLR can ` +
-          `shift module bases between launches.`
-        : 'Module enumeration succeeded but returned no modules. Absolute addresses may still change across process' +
-          ' launches because of ASLR.'
-      : 'Module enumeration was unavailable. Assume ASLR may shift absolute addresses between launches and ' +
-        're-resolve addresses after restarts.';
+    const recommendedActions = collectMemoryDiagnosticActions(input, {
+      permission,
+      processInfo,
+      protectionResult,
+    });
+    const aslrNote = describeAslrNote(modulesInfo);
 
     return {
       permission: {
@@ -598,4 +540,96 @@ export class ProcessManagementHandlers implements MemoryOperationHost {
       return { enumerated: false, count: null as number | null };
     }
   }
+}
+
+/** Collect the advisory actions for a memory operation, in the historical
+ * order (a Set preserves first-insertion order in the response). */
+function collectMemoryDiagnosticActions(
+  input: MemoryDiagnosticsInput,
+  ctx: {
+    permission: { available: boolean };
+    processInfo: { name?: string } | null | undefined;
+    protectionResult: {
+      queryFailed?: boolean;
+      info?: {
+        success?: boolean;
+        isReadable?: boolean;
+        isWritable?: boolean;
+        regionSize?: number | null;
+      } | null;
+    };
+  },
+): Set<string> {
+  const recommendedActions = new Set<string>();
+  const { permission, processInfo, protectionResult } = ctx;
+  const hasPid = input.pid !== undefined && input.pid !== null;
+
+  if (!permission.available) {
+    recommendedActions.add('Run as administrator');
+  }
+  if (hasPid && !processInfo) {
+    recommendedActions.add('Check if process is still running');
+  }
+  if (protectionResult.queryFailed || protectionResult.info?.success === false) {
+    recommendedActions.add('Verify address is within valid memory region');
+  }
+  if (
+    input.size !== undefined &&
+    input.size !== null &&
+    protectionResult.info?.regionSize !== undefined &&
+    protectionResult.info.regionSize !== null &&
+    input.size > protectionResult.info.regionSize
+  ) {
+    recommendedActions.add('Reduce the requested size to fit the target memory region');
+  }
+  if (
+    input.operation === 'memory_read' &&
+    protectionResult.info?.success &&
+    protectionResult.info.isReadable === false
+  ) {
+    recommendedActions.add('Ensure target memory region is readable');
+  }
+  if (
+    input.operation === 'memory_write' &&
+    protectionResult.info?.success &&
+    protectionResult.info.isWritable === false
+  ) {
+    recommendedActions.add('Ensure target memory region is writable');
+  }
+  if (hasPid && input.address) {
+    recommendedActions.add(
+      'Re-resolve the address after the process restarts because ASLR can shift module addresses',
+    );
+  }
+
+  const normalizedError = input.error?.toLowerCase() ?? '';
+  if (
+    normalizedError.includes('access denied') ||
+    normalizedError.includes('permission') ||
+    normalizedError.includes('privilege') ||
+    normalizedError.includes('administrator')
+  ) {
+    recommendedActions.add('Run as administrator');
+  }
+  return recommendedActions;
+}
+
+/** Human-readable ASLR caveat keyed off module enumeration success. */
+function describeAslrNote(modulesInfo: { enumerated: boolean; count?: number | null }): string {
+  if (!modulesInfo.enumerated) {
+    return (
+      'Module enumeration was unavailable. Assume ASLR may shift absolute addresses between launches and ' +
+      're-resolve addresses after restarts.'
+    );
+  }
+  if (modulesInfo.count && modulesInfo.count > 0) {
+    return (
+      `Enumerated ${modulesInfo.count} module(s). Treat absolute addresses as session-specific because ASLR can ` +
+      'shift module bases between launches.'
+    );
+  }
+  return (
+    'Module enumeration succeeded but returned no modules. Absolute addresses may still change across process' +
+    ' launches because of ASLR.'
+  );
 }
