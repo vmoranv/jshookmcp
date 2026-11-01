@@ -775,8 +775,7 @@ function decodeScopesField(scopesText: string, names: string[], sources: string[
     };
 
     const subrangeState = new Map<number, { line: number; column: number }>();
-    let previousVariableIndex = 0;
-    let cursorPos = { line, column };
+    const walkState: GeneratedWalkState = { previousVariableIndex: 0, cursorPos: { line, column } };
 
     while (idx.value < items.length) {
       const item = items[idx.value] ?? '';
@@ -787,39 +786,17 @@ function decodeScopesField(scopesText: string, names: string[], sources: string[
       }
       if (item.startsWith('H')) {
         idx.value++;
-        const sub = decodeVlqSegmentUnsigned(item.slice(1));
-        if (!node.bindings) node.bindings = [];
-        let s = 0;
-        previousVariableIndex += sub[s++] ?? 0;
-        const variableIndex = previousVariableIndex;
-        const ranges: BindingRangeNode[] = [];
-        let prev = subrangeState.get(variableIndex) ?? {
-          line: node.start.line,
-          column: node.start.column,
-        };
-        while (s < sub.length) {
-          const expr = readName(sub[s++] ?? 0);
-          const lineDelta = sub[s++] ?? 0;
-          const nextLine = prev.line + lineDelta;
-          const colRaw = sub[s++] ?? 0;
-          const nextColumn = nextLine === prev.line ? prev.column + colRaw : colRaw;
-          ranges.push({ from: { line: nextLine, column: nextColumn }, expression: expr });
-          prev = { line: nextLine, column: nextColumn };
-        }
-        subrangeState.set(variableIndex, prev);
-        while (node.bindings.length <= variableIndex) node.bindings.push(undefined);
-        node.bindings[variableIndex] = ranges;
+        applyBindingRangeItem(item, node, subrangeState, walkState, readName);
         continue;
       }
       if (item.startsWith('I')) {
         idx.value++;
-        const cs = decodeVlqSegmentUnsigned(item.slice(1));
-        node.callsite = { sourceIndex: cs[0] ?? 0, line: cs[1] ?? 0, column: cs[2] ?? 0 };
+        node.callsite = parseCallsiteItem(item);
         continue;
       }
       if (item.startsWith('E')) {
-        const child = parseGeneratedTree(cursorPos);
-        cursorPos = { ...child.end };
+        const child = parseGeneratedTree(walkState.cursorPos);
+        walkState.cursorPos = { ...child.end };
         node.children.push(child);
         continue;
       }
@@ -831,9 +808,12 @@ function decodeScopesField(scopesText: string, names: string[], sources: string[
       throw new Error(`expected generated range end 'F', got "${endItem}"`);
     const endRaw = decodeVlqSegmentUnsigned(endItem.slice(1));
     const endHasLine = endRaw.length === 2;
-    const endLine = cursorPos.line + (endHasLine ? (endRaw[0] ?? 0) : 0);
+    const endLine = walkState.cursorPos.line + (endHasLine ? (endRaw[0] ?? 0) : 0);
     const endColumnRaw = endRaw[endHasLine ? 1 : 0] ?? 0;
-    const endColumn = endLine === cursorPos.line ? cursorPos.column + endColumnRaw : endColumnRaw;
+    const endColumn =
+      endLine === walkState.cursorPos.line
+        ? walkState.cursorPos.column + endColumnRaw
+        : endColumnRaw;
     node.end = { line: endLine, column: endColumn };
     previousGeneratedLine = endLine;
     previousGeneratedColumn = endColumn;
@@ -870,4 +850,48 @@ function decodeScopesField(scopesText: string, names: string[], sources: string[
   }
 
   return { originalScopes, generatedRanges };
+}
+
+/** Mutable cursor state for the generated-range child walk. */
+interface GeneratedWalkState {
+  previousVariableIndex: number;
+  cursorPos: { line: number; column: number };
+}
+
+/** Apply an ECMA-426 `H<vlq>` binding-range item to a generated range node. */
+function applyBindingRangeItem(
+  item: string,
+  node: GeneratedRangeNode,
+  subrangeState: Map<number, { line: number; column: number }>,
+  walkState: GeneratedWalkState,
+  readName: (index: number) => string | undefined,
+): void {
+  const sub = decodeVlqSegmentUnsigned(item.slice(1));
+  if (!node.bindings) node.bindings = [];
+  let s = 0;
+  walkState.previousVariableIndex += sub[s++] ?? 0;
+  const variableIndex = walkState.previousVariableIndex;
+  const ranges: BindingRangeNode[] = [];
+  let prev = subrangeState.get(variableIndex) ?? {
+    line: node.start.line,
+    column: node.start.column,
+  };
+  while (s < sub.length) {
+    const expr = readName(sub[s++] ?? 0);
+    const lineDelta = sub[s++] ?? 0;
+    const nextLine = prev.line + lineDelta;
+    const colRaw = sub[s++] ?? 0;
+    const nextColumn = nextLine === prev.line ? prev.column + colRaw : colRaw;
+    ranges.push({ from: { line: nextLine, column: nextColumn }, expression: expr });
+    prev = { line: nextLine, column: nextColumn };
+  }
+  subrangeState.set(variableIndex, prev);
+  while (node.bindings.length <= variableIndex) node.bindings.push(undefined);
+  node.bindings[variableIndex] = ranges;
+}
+
+/** Parse an ECMA-426 `I<vlq>` callsite item. */
+function parseCallsiteItem(item: string): { sourceIndex: number; line: number; column: number } {
+  const cs = decodeVlqSegmentUnsigned(item.slice(1));
+  return { sourceIndex: cs[0] ?? 0, line: cs[1] ?? 0, column: cs[2] ?? 0 };
 }
