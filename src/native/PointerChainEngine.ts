@@ -452,26 +452,10 @@ export class PointerChainEngine {
     regionIndex: SortedRegionIndex,
   ): Promise<LevelMatch[]> {
     const matches: LevelMatch[] = [];
+    const targetIndex = buildTargetIndex(targetAddresses, maxOffset);
+    if (!targetIndex) return matches;
+
     const chunkSize = POINTER_CHAIN_SCAN_CHUNK_SIZE;
-
-    // Build sorted target list for O(log n) binary search per pointer.
-    // BigInt64Array stores native 8-byte values — ~87.5% smaller than JS BigInt[]
-    const sortedTargets = Array.from(targetAddresses).toSorted((a, b) =>
-      a < b ? -1 : a > b ? 1 : 0,
-    );
-    if (sortedTargets.length === 0) return matches;
-
-    // Copy into TypedArray for cache-friendly binary search
-    const targets = new BigInt64Array(sortedTargets.length);
-    for (let i = 0; i < sortedTargets.length; i++) {
-      targets[i] = sortedTargets[i]!;
-    }
-    const targetCount = targets.length;
-
-    // Compute global target range for fast pre-filter
-    const maxOffsetBig = BigInt(maxOffset);
-    const globalMin = targets[0]! - maxOffsetBig;
-    const globalMax = targets[targetCount - 1]! + maxOffsetBig;
 
     // Iterate pre-built readable regions (no per-region queryRegion syscalls)
     const readableRegions = regionIndex.getReadableRegions();
@@ -495,43 +479,7 @@ export class PointerChainEngine {
           break;
         }
 
-        // Scan for pointer-sized values that fall within target range
-        const scanEnd = chunk.length - 8;
-        for (let i = 0; i <= scanEnd; i += alignment) {
-          const ptrValue = chunk.readBigUInt64LE(i);
-
-          // Fast pre-filter: check global range
-          if (ptrValue < globalMin || ptrValue > globalMax) continue;
-
-          // Binary search on BigInt64Array: find first target >= (ptrValue - maxOffset)
-          const searchMin = ptrValue - maxOffsetBig;
-          const searchMax = ptrValue + maxOffsetBig;
-          let lo = 0;
-          let hi = targetCount;
-          while (lo < hi) {
-            const mid = (lo + hi) >>> 1;
-            if (targets[mid]! < searchMin) lo = mid + 1;
-            else hi = mid;
-          }
-
-          // Check targets in range [searchMin, searchMax]
-          for (let t = lo; t < targetCount && targets[t]! <= searchMax; t++) {
-            const target = targets[t]!;
-            const diff = ptrValue > target ? Number(ptrValue - target) : Number(target - ptrValue);
-
-            if (diff <= maxOffset) {
-              const pointerAddr = chunkAddr + BigInt(i);
-              const matchOffset = Number(target - ptrValue);
-
-              matches.push({
-                pointerAddress: pointerAddr,
-                pointsTo: ptrValue,
-                offset: matchOffset,
-              });
-              break; // One match per pointer address
-            }
-          }
-        }
+        scanPointerChunk(chunk, chunkAddr, alignment, targetIndex, matches);
       }
     }
 
@@ -556,118 +504,23 @@ export class PointerChainEngine {
     if (levelResults.length === 0) return [];
 
     const chains: PointerChain[] = [];
-    const targetAddrStr = formatAddress(targetAddr);
-    const maxOff = BigInt(POINTER_CHAIN_MAX_OFFSET);
-
-    // Pre-index every level by pointerAddress for O(1) backward lookups.
-    const levelIndex = levelResults.map((level) => {
-      const index = new Map<bigint, LevelMatch>();
-      for (const m of level) index.set(m.pointerAddress, m);
-      return index;
-    });
-
-    /** Find the previous level's match whose pointerAddress ≈ pointsTo (±maxOffset). */
-    const findPrevMatch = (levelIdx: number, pointsTo: bigint): LevelMatch | undefined => {
-      const exact = levelIndex[levelIdx]!.get(pointsTo);
-      if (exact) return exact;
-      for (const pm of levelResults[levelIdx]!) {
-        const diff =
-          pointsTo > pm.pointerAddress
-            ? pointsTo - pm.pointerAddress
-            : pm.pointerAddress - pointsTo;
-        if (diff <= maxOff) return pm;
-      }
-      return undefined;
+    const ctx: ChainBuildContext = {
+      targetAddrStr: formatAddress(targetAddr),
+      maxOff: BigInt(POINTER_CHAIN_MAX_OFFSET),
+      modules,
+      maxResults,
+      staticOnly,
+      levelResults,
+      levelIndex: indexLevelsByPointerAddress(levelResults),
     };
 
-    // For each depth, create chains
-    // Single level: direct pointer → target
-    for (let depth = 0; depth < levelResults.length && chains.length < maxResults; depth++) {
-      const level = levelResults[depth]!;
-
+    // For each depth, create chains: depth 0 is the direct-pointer case,
+    // deeper levels walk backward from the root match.
+    for (let depth = 0; depth < levelResults.length && chains.length < ctx.maxResults; depth++) {
       if (depth === 0) {
-        // Direct pointers to target
-        for (const match of level) {
-          if (chains.length >= maxResults) break;
-
-          const baseAddrStr = formatAddress(match.pointerAddress);
-          const modInfo = this.resolveToModule(match.pointerAddress, modules);
-          const isStatic = modInfo !== null;
-
-          if (staticOnly && !isStatic) continue;
-
-          const link: PointerChainLink = {
-            address: baseAddrStr,
-            module: modInfo?.module,
-            moduleOffset: modInfo?.offset,
-            offset: match.offset,
-          };
-
-          chains.push({
-            id: randomUUID(),
-            links: [link],
-            targetAddress: targetAddrStr,
-            baseAddress: baseAddrStr,
-            isStatic,
-            depth: 1,
-            lastValidated: Date.now(),
-            isValid: true,
-          });
-        }
+        this.appendDirectChains(ctx, levelResults[0]!, chains);
       } else {
-        // Multi-level: walk backward from the root match (level `depth`) down
-        // to level 0, emitting one link per level — a depth-3 chain has 3 links.
-        for (const match of level) {
-          if (chains.length >= maxResults) break;
-
-          const modInfo = this.resolveToModule(match.pointerAddress, modules);
-          const isStatic = modInfo !== null;
-
-          if (staticOnly && !isStatic) continue;
-
-          const links: PointerChainLink[] = [];
-          let cur = match;
-          let prev: LevelMatch | undefined;
-          let linked = true;
-
-          for (let lvl = depth; lvl >= 1; lvl--) {
-            prev = findPrevMatch(lvl - 1, cur.pointsTo);
-            if (!prev) {
-              linked = false; // chain broken at this level — drop the candidate
-              break;
-            }
-            const isRoot = lvl === depth;
-            links.push({
-              address: formatAddress(cur.pointerAddress),
-              module: isRoot ? modInfo?.module : undefined,
-              moduleOffset: isRoot ? modInfo?.offset : undefined,
-              // Dereferencing cur yields cur.pointsTo; adding this offset lands
-              // exactly on prev's pointerAddress.
-              offset: Number(prev.pointerAddress - cur.pointsTo),
-            });
-            cur = prev;
-          }
-
-          if (!linked || !prev) continue;
-
-          // Final link: level 0's offset is relative to the target address.
-          links.push({
-            address: formatAddress(prev.pointerAddress),
-            offset: prev.offset,
-          });
-
-          const baseAddrStr = formatAddress(match.pointerAddress);
-          chains.push({
-            id: randomUUID(),
-            links,
-            targetAddress: targetAddrStr,
-            baseAddress: baseAddrStr,
-            isStatic,
-            depth: links.length,
-            lastValidated: Date.now(),
-            isValid: true,
-          });
-        }
+        this.appendBacktrackedChains(ctx, levelResults[depth]!, depth, chains);
       }
     }
 
@@ -679,6 +532,237 @@ export class PointerChainEngine {
 
     return chains.slice(0, maxResults);
   }
+
+  /** Depth 0: a single link straight to the target. */
+  private appendDirectChains(
+    ctx: ChainBuildContext,
+    level: LevelMatch[],
+    chains: PointerChain[],
+  ): void {
+    for (const match of level) {
+      if (chains.length >= ctx.maxResults) break;
+
+      const modInfo = this.resolveToModule(match.pointerAddress, ctx.modules);
+      const isStatic = modInfo !== null;
+      if (ctx.staticOnly && !isStatic) continue;
+
+      const baseAddrStr = formatAddress(match.pointerAddress);
+      chains.push({
+        id: randomUUID(),
+        links: [
+          {
+            address: baseAddrStr,
+            module: modInfo?.module,
+            moduleOffset: modInfo?.offset,
+            offset: match.offset,
+          },
+        ],
+        targetAddress: ctx.targetAddrStr,
+        baseAddress: baseAddrStr,
+        isStatic,
+        depth: 1,
+        lastValidated: Date.now(),
+        isValid: true,
+      });
+    }
+  }
+
+  /** Depth >= 1: walk backward from the root match to level 0, one link per
+   * level — a depth-3 chain has 3 links. */
+  private appendBacktrackedChains(
+    ctx: ChainBuildContext,
+    level: LevelMatch[],
+    depth: number,
+    chains: PointerChain[],
+  ): void {
+    for (const match of level) {
+      if (chains.length >= ctx.maxResults) break;
+
+      const modInfo = this.resolveToModule(match.pointerAddress, ctx.modules);
+      const isStatic = modInfo !== null;
+      if (ctx.staticOnly && !isStatic) continue;
+
+      const links = buildBacktrackedLinks(ctx, match, depth, modInfo);
+      if (!links) continue; // chain broken at some level — drop the candidate
+
+      chains.push({
+        id: randomUUID(),
+        links,
+        targetAddress: ctx.targetAddrStr,
+        baseAddress: formatAddress(match.pointerAddress),
+        isStatic,
+        depth: links.length,
+        lastValidated: Date.now(),
+        isValid: true,
+      });
+    }
+  }
+}
+
+/** State shared by the chain builders. */
+interface ChainBuildContext {
+  targetAddrStr: string;
+  maxOff: bigint;
+  modules: Map<string, ModuleEntry>;
+  maxResults: number;
+  staticOnly: boolean;
+  levelResults: LevelMatch[][];
+  levelIndex: Map<bigint, LevelMatch>[];
+}
+
+/** Pre-index every level by pointerAddress for O(1) backward lookups. */
+function indexLevelsByPointerAddress(levelResults: LevelMatch[][]): Map<bigint, LevelMatch>[] {
+  return levelResults.map((level) => {
+    const index = new Map<bigint, LevelMatch>();
+    for (const m of level) index.set(m.pointerAddress, m);
+    return index;
+  });
+}
+
+/** Find the previous level's match whose pointerAddress is within maxOff. */
+function findPrevMatch(
+  ctx: ChainBuildContext,
+  levelIdx: number,
+  pointsTo: bigint,
+): LevelMatch | undefined {
+  const exact = ctx.levelIndex[levelIdx]!.get(pointsTo);
+  if (exact) return exact;
+  for (const pm of ctx.levelResults[levelIdx]!) {
+    const diff =
+      pointsTo > pm.pointerAddress ? pointsTo - pm.pointerAddress : pm.pointerAddress - pointsTo;
+    if (diff <= ctx.maxOff) return pm;
+  }
+  return undefined;
+}
+
+/** Build the link list for a depth-N chain, or null when any hop is missing. */
+function buildBacktrackedLinks(
+  ctx: ChainBuildContext,
+  match: LevelMatch,
+  depth: number,
+  rootModInfo: { module?: string; offset?: number } | null,
+): PointerChainLink[] | null {
+  const links: PointerChainLink[] = [];
+  let cur = match;
+  let prev: LevelMatch | undefined;
+
+  for (let lvl = depth; lvl >= 1; lvl--) {
+    prev = findPrevMatch(ctx, lvl - 1, cur.pointsTo);
+    if (!prev) return null; // chain broken at this level
+
+    const isRoot = lvl === depth;
+    links.push({
+      address: formatAddress(cur.pointerAddress),
+      module: isRoot ? rootModInfo?.module : undefined,
+      moduleOffset: isRoot ? rootModInfo?.offset : undefined,
+      // Dereferencing cur yields cur.pointsTo; adding this offset lands
+      // exactly on prev's pointerAddress.
+      offset: Number(prev.pointerAddress - cur.pointsTo),
+    });
+    cur = prev;
+  }
+
+  if (!prev) return null;
+
+  // Final link: level 0's offset is relative to the target address.
+  links.push({
+    address: formatAddress(prev.pointerAddress),
+    offset: prev.offset,
+  });
+  return links;
 }
 
 export const pointerChainEngine = new PointerChainEngine();
+
+/** Sorted target list + range bounds for pointer-level scanning. */
+interface TargetIndex {
+  targets: BigInt64Array;
+  targetCount: number;
+  globalMin: bigint;
+  globalMax: bigint;
+  /** Numeric form, for the per-hit distance comparison. */
+  maxOffset: number;
+  /** BigInt form, for the binary-search bounds. */
+  maxOffsetBig: bigint;
+}
+
+/**
+ * Build the O(log n) search structure for one BFS level.
+ *
+ * BigInt64Array stores native 8-byte values — ~87.5% smaller than a JS
+ * BigInt[], which matters because every scanned word binary-searches it.
+ * Returns null when there are no targets to look for.
+ */
+function buildTargetIndex(targetAddresses: Set<bigint>, maxOffset: number): TargetIndex | null {
+  const sortedTargets = Array.from(targetAddresses).toSorted((a, b) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  );
+  if (sortedTargets.length === 0) return null;
+
+  const targets = new BigInt64Array(sortedTargets.length);
+  for (let i = 0; i < sortedTargets.length; i++) {
+    targets[i] = sortedTargets[i]!;
+  }
+  const targetCount = targets.length;
+  const maxOffsetBig = BigInt(maxOffset);
+
+  return {
+    targets,
+    targetCount,
+    maxOffset,
+    // Compute global target range for fast pre-filter
+    globalMin: targets[0]! - maxOffsetBig,
+    globalMax: targets[targetCount - 1]! + maxOffsetBig,
+    maxOffsetBig,
+  };
+}
+
+/**
+ * Scan one chunk for pointer-sized values landing within ±maxOffset of any
+ * target. One match is recorded per pointer address (the first target in
+ * range wins).
+ */
+function scanPointerChunk(
+  chunk: Buffer,
+  chunkAddr: bigint,
+  alignment: number,
+  index: TargetIndex,
+  matches: LevelMatch[],
+): void {
+  const { targets, targetCount, globalMin, globalMax, maxOffsetBig } = index;
+  const maxOffset = index.maxOffset;
+
+  const scanEnd = chunk.length - 8;
+  for (let i = 0; i <= scanEnd; i += alignment) {
+    const ptrValue = chunk.readBigUInt64LE(i);
+
+    // Fast pre-filter: check global range
+    if (ptrValue < globalMin || ptrValue > globalMax) continue;
+
+    // Binary search: find first target >= (ptrValue - maxOffset)
+    const searchMin = ptrValue - maxOffsetBig;
+    const searchMax = ptrValue + maxOffsetBig;
+    let lo = 0;
+    let hi = targetCount;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (targets[mid]! < searchMin) lo = mid + 1;
+      else hi = mid;
+    }
+
+    // Check targets in range [searchMin, searchMax]
+    for (let t = lo; t < targetCount && targets[t]! <= searchMax; t++) {
+      const target = targets[t]!;
+      const diff = ptrValue > target ? Number(ptrValue - target) : Number(target - ptrValue);
+
+      if (diff <= maxOffset) {
+        matches.push({
+          pointerAddress: chunkAddr + BigInt(i),
+          pointsTo: ptrValue,
+          offset: Number(target - ptrValue),
+        });
+        break; // One match per pointer address
+      }
+    }
+  }
+}

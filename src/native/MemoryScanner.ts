@@ -63,6 +63,50 @@ export interface ScanResult {
   deltas?: Record<string, number>;
 }
 
+// System module name prefixes to skip (case-insensitive)
+const SYSTEM_MODULE_PREFIXES = new Set([
+  'ntdll.dll',
+  'ntdll',
+  'kernel32.dll',
+  'kernel32',
+  'kernelbase.dll',
+  'kernelbase',
+  'user32.dll',
+  'user32',
+  'gdi32.dll',
+  'gdi32',
+  'advapi32.dll',
+  'advapi32',
+  'msvcrt.dll',
+  'msvcrt',
+  'combase.dll',
+  'combase',
+  'ole32.dll',
+  'ole32',
+  'shell32.dll',
+  'shell32',
+  'ws2_32.dll',
+  'ws2_32',
+  'bcrypt.dll',
+  'bcrypt',
+  'ucrtbase.dll',
+  'ucrtbase',
+  'vcruntime',
+  'msvcp',
+  'libc.so',
+  'libc-',
+  'libpthread',
+  'ld-linux',
+  'libm.so',
+  'libdl.so',
+  'librt.so',
+  'libc++.so',
+  'libc++abi.so',
+  'libSystem.B.dylib',
+  'libobjc.A.dylib',
+  'libc++.1.dylib',
+]);
+
 export class MemoryScanner {
   private readonly nmm: NativeMemoryManager;
   private providerCache: PlatformMemoryAPI | null = null;
@@ -146,34 +190,17 @@ export class MemoryScanner {
             break; // Skip unreadable chunks
           }
 
-          // Fast path: Buffer.indexOf uses V8's SIMD-optimized native search
-          if (alignment === valueSize && valueSize > 0) {
-            const alignStep = this.getAlignStep(alignment);
-            let searchFrom = this.getAlignedChunkStart(chunkAddr, alignStep);
-            while (searchFrom <= chunk.length - valueSize && addresses.length < maxResults) {
-              const hit = chunk.indexOf(targetBuf, searchFrom);
-              if (hit === -1) break;
-              if (!this.isAlignedAddress(chunkAddr + BigInt(hit), alignStep)) {
-                searchFrom = hit + 1;
-                continue;
-              }
-              const addr = chunkAddr + BigInt(hit);
-              addresses.push(addr);
-              values.set(addr, Buffer.from(chunk.subarray(hit, hit + valueSize)));
-              searchFrom = hit + alignStep;
-            }
-          } else {
-            const alignStep = this.getAlignStep(alignment);
-            const chunkStart = this.getAlignedChunkStart(chunkAddr, alignStep);
-            for (let i = chunkStart; i <= chunk.length - valueSize; i += alignStep) {
-              if (Buffer.compare(chunk.subarray(i, i + valueSize), targetBuf) === 0) {
-                const addr = chunkAddr + BigInt(i);
-                addresses.push(addr);
-                values.set(addr, Buffer.from(chunk.subarray(i, i + valueSize)));
-                if (addresses.length >= maxResults) break;
-              }
-            }
-          }
+          scanChunkForValue(
+            chunk,
+            chunkAddr,
+            targetBuf,
+            valueSize,
+            alignment,
+            maxResults,
+            addresses,
+            values,
+            this.alignHelpers,
+          );
 
           chunksProcessed++;
           if (chunksProcessed % SCAN_YIELD_CHUNK_INTERVAL === 0) {
@@ -522,18 +549,7 @@ export class MemoryScanner {
       );
     }
 
-    // Build composite pattern
-    const compositePattern: number[] = Array.from({ length: maxOffset }, () => 0);
-    const compositeMask: number[] = Array.from({ length: maxOffset }, () => 0);
-
-    for (const entry of pattern) {
-      const effectiveType = entry.type === 'pointer' ? 'uint64' : entry.type;
-      const { patternBytes, mask } = parsePattern(entry.value, effectiveType);
-      for (let i = 0; i < patternBytes.length; i++) {
-        compositePattern[entry.offset + i] = patternBytes[i]!;
-        compositeMask[entry.offset + i] = mask[i]!;
-      }
-    }
+    const { compositePattern, compositeMask } = buildGroupCompositePattern(pattern, maxOffset);
 
     const alignment = options?.alignment ?? 4;
     const maxResults = options?.maxResults ?? SCAN_MAX_RESULTS_PER_SCAN;
@@ -571,22 +587,17 @@ export class MemoryScanner {
             break;
           }
 
-          const alignStep = this.getAlignStep(alignment);
-          const chunkStart = this.getAlignedChunkStart(chunkAddr, alignStep);
-          for (let i = chunkStart; i <= chunk.length - maxOffset; i += alignStep) {
-            let match = true;
-            for (let j = 0; j < maxOffset; j++) {
-              if (compositeMask[j] === 1 && chunk[i + j] !== compositePattern[j]) {
-                match = false;
-                break;
-              }
-            }
-            if (match) {
-              const addr = chunkAddr + BigInt(i);
-              addresses.push(addr);
-              if (addresses.length >= maxResults) break;
-            }
-          }
+          scanChunkForGroupPattern(
+            chunk,
+            chunkAddr,
+            compositePattern,
+            compositeMask,
+            maxOffset,
+            alignment,
+            maxResults,
+            addresses,
+            this.alignHelpers,
+          );
 
           chunksProcessed++;
           if (chunksProcessed % SCAN_YIELD_CHUNK_INTERVAL === 0) {
@@ -636,54 +647,15 @@ export class MemoryScanner {
     const start = performance.now();
     const maxResults = options.maxResults ?? 10000;
 
-    // Parse pattern into (byte | null)[] where null = wildcard
-    const parsed: (number | null)[] = [];
-    const tokens = pattern.trim().split(/\s+/);
-    for (const token of tokens) {
-      if (token === '??' || token === '?' || token === '???') {
-        parsed.push(null);
-      } else {
-        // Strip optional 0x prefix
-        const hex = token.startsWith('0x') || token.startsWith('0X') ? token.slice(2) : token;
-        if (hex.length !== 2 || !/^[0-9a-fA-F]{2}$/.test(hex)) {
-          throw new Error(`Invalid AOB pattern byte: "${token}" (expected 2 hex chars or "??")`);
-        }
-        parsed.push(parseInt(hex, 16));
-      }
-    }
-
-    if (parsed.length === 0) {
-      throw new Error('AOB pattern must contain at least one byte or wildcard');
-    }
-
-    // Build search needle: byte array + mask boolean array
-    const needle = Buffer.from(parsed.map((b) => b ?? 0));
-    const mask: boolean[] = parsed.map((b) => b !== null);
+    const { needle, mask, patternLen } = parseAobPattern(pattern);
 
     const matches: bigint[] = [];
     const handle = this.provider.openProcess(pid, false);
     try {
-      // Build regionFilter for getFilteredRegions
-      const scanFilter: import('./NativeMemoryManager.types').RegionFilter = {
-        ...options.regionFilter,
-      };
-
-      // Legacy moduleName: translate to modulePattern for backward compat
-      if (options.moduleName && !scanFilter.modulePattern) {
-        scanFilter.modulePattern = options.moduleName;
-      }
-
-      // Legacy executableOnly: translate to regionFilter
-      if (options.executableOnly && scanFilter.executable === undefined) {
-        scanFilter.executable = true;
-      }
-
       const regions = this.getFilteredRegions(handle, {
         valueType: 'byte',
-        regionFilter: Object.keys(scanFilter).length > 0 ? scanFilter : undefined,
+        regionFilter: buildAobRegionFilter(options),
       });
-
-      const patternLen = parsed.length;
       let chunksProcessed = 0;
       for (const region of regions) {
         if (matches.length >= maxResults) break;
@@ -704,19 +676,15 @@ export class MemoryScanner {
             break;
           }
 
-          // Scan the chunk byte by byte using mask
-          for (let i = 0; i <= chunk.length - patternLen && matches.length < maxResults; i++) {
-            let matched = true;
-            for (let j = 0; j < patternLen; j++) {
-              if (mask[j] && chunk[i + j] !== needle[j]) {
-                matched = false;
-                break;
-              }
-            }
-            if (matched) {
-              matches.push(chunkAddr + BigInt(i));
-            }
-          }
+          scanChunkForMaskedPattern(
+            chunk,
+            chunkAddr,
+            needle,
+            mask,
+            patternLen,
+            maxResults,
+            matches,
+          );
 
           chunksProcessed++;
           if (chunksProcessed % SCAN_YIELD_CHUNK_INTERVAL === 0) {
@@ -739,6 +707,15 @@ export class MemoryScanner {
   }
 
   // ── Private Helpers ──
+
+  /** Alignment predicates as a plain bundle, for the module-level scanners. */
+  private get alignHelpers(): AlignHelpers {
+    return {
+      getAlignStep: (a) => this.getAlignStep(a),
+      getAlignedChunkStart: (addr, step) => this.getAlignedChunkStart(addr, step),
+      isAlignedAddress: (addr, step) => this.isAlignedAddress(addr, step),
+    };
+  }
 
   private getAlignStep(alignment: number): number {
     return alignment > 0 ? alignment : 1;
@@ -791,50 +768,6 @@ export class MemoryScanner {
     };
   }
 
-  // System module name prefixes to skip (case-insensitive)
-  private static readonly SYSTEM_MODULES = new Set([
-    'ntdll.dll',
-    'ntdll',
-    'kernel32.dll',
-    'kernel32',
-    'kernelbase.dll',
-    'kernelbase',
-    'user32.dll',
-    'user32',
-    'gdi32.dll',
-    'gdi32',
-    'advapi32.dll',
-    'advapi32',
-    'msvcrt.dll',
-    'msvcrt',
-    'combase.dll',
-    'combase',
-    'ole32.dll',
-    'ole32',
-    'shell32.dll',
-    'shell32',
-    'ws2_32.dll',
-    'ws2_32',
-    'bcrypt.dll',
-    'bcrypt',
-    'ucrtbase.dll',
-    'ucrtbase',
-    'vcruntime',
-    'msvcp',
-    'libc.so',
-    'libc-',
-    'libpthread',
-    'ld-linux',
-    'libm.so',
-    'libdl.so',
-    'librt.so',
-    'libc++.so',
-    'libc++abi.so',
-    'libSystem.B.dylib',
-    'libobjc.A.dylib',
-    'libc++.1.dylib',
-  ]);
-
   /**
    * Get readable memory regions, applying region filters.
    * Uses PlatformMemoryAPI.queryRegion() for cross-platform support.
@@ -867,45 +800,7 @@ export class MemoryScanner {
       const regionSize = regionInfo.size;
 
       if (regionInfo.isReadable && regionSize > 0 && regionSize <= Number.MAX_SAFE_INTEGER) {
-        // Apply filters
-        let include = true;
-        if (filter?.writable && !regionInfo.isWritable) include = false;
-        if (filter?.executable && !regionInfo.isExecutable) include = false;
-        if (filter?.moduleOnly && regionInfo.type !== 'image') include = false;
-        if (include && filter?.minSize && regionSize < filter.minSize) include = false;
-
-        // skipSystemModules: filter out system DLL regions
-        if (include && filter?.skipSystemModules && moduleList) {
-          const ownerMod = moduleList.find(
-            (m) =>
-              regionInfo.baseAddress >= m.baseAddress &&
-              regionInfo.baseAddress < m.baseAddress + BigInt(m.size),
-          );
-          if (ownerMod) {
-            const nameLower = ownerMod.name.toLowerCase();
-            for (const sysMod of MemoryScanner.SYSTEM_MODULES) {
-              if (nameLower.includes(sysMod)) {
-                include = false;
-                break;
-              }
-            }
-          }
-        }
-
-        // modulePattern: only include regions whose module name matches
-        if (include && filter?.modulePattern && moduleList) {
-          const patternLower = filter.modulePattern.toLowerCase();
-          const ownerMod = moduleList.find(
-            (m) =>
-              regionInfo.baseAddress >= m.baseAddress &&
-              regionInfo.baseAddress < m.baseAddress + BigInt(m.size),
-          );
-          if (!ownerMod || !ownerMod.name.toLowerCase().includes(patternLower)) {
-            include = false;
-          }
-        }
-
-        if (include) {
+        if (regionPassesFilters(regionInfo, regionSize, filter, moduleList)) {
           regions.push({
             baseAddress: regionInfo.baseAddress,
             size: regionSize,
@@ -921,3 +816,241 @@ export class MemoryScanner {
 }
 
 export const memoryScanner = new MemoryScanner(nativeMemoryManager);
+
+/** Region shape the filters operate on. */
+interface ScanRegionInfo {
+  baseAddress: bigint;
+  size: number;
+  isReadable: boolean;
+  isWritable: boolean;
+  isExecutable: boolean;
+  type: string;
+}
+
+type ScanModuleEntry = { baseAddress: bigint; size: number; name: string };
+
+/** Apply every regionFilter predicate to one region. */
+function regionPassesFilters(
+  regionInfo: ScanRegionInfo,
+  regionSize: number,
+  filter: ScanOptions['regionFilter'],
+  moduleList: ScanModuleEntry[] | null,
+): boolean {
+  if (filter?.writable && !regionInfo.isWritable) return false;
+  if (filter?.executable && !regionInfo.isExecutable) return false;
+  if (filter?.moduleOnly && regionInfo.type !== 'image') return false;
+  if (filter?.minSize && regionSize < filter.minSize) return false;
+  if (filter?.skipSystemModules && moduleList && ownsSystemModule(regionInfo, moduleList)) {
+    return false;
+  }
+  if (filter?.modulePattern && moduleList) {
+    const owner = findOwnerModule(regionInfo, moduleList);
+    const patternLower = filter.modulePattern.toLowerCase();
+    if (!owner || !owner.name.toLowerCase().includes(patternLower)) return false;
+  }
+  return true;
+}
+
+/** The module whose loaded range contains this region, or undefined. */
+function findOwnerModule(
+  regionInfo: ScanRegionInfo,
+  moduleList: ScanModuleEntry[],
+): ScanModuleEntry | undefined {
+  return moduleList.find(
+    (m) =>
+      regionInfo.baseAddress >= m.baseAddress &&
+      regionInfo.baseAddress < m.baseAddress + BigInt(m.size),
+  );
+}
+
+/** True when the region belongs to a known system DLL. */
+function ownsSystemModule(regionInfo: ScanRegionInfo, moduleList: ScanModuleEntry[]): boolean {
+  const owner = findOwnerModule(regionInfo, moduleList);
+  if (!owner) return false;
+  const nameLower = owner.name.toLowerCase();
+  for (const sysMod of SYSTEM_MODULE_PREFIXES) {
+    if (nameLower.includes(sysMod)) return true;
+  }
+  return false;
+}
+
+/** Alignment predicates owned by MemoryScanner, passed to the chunk scanner. */
+interface AlignHelpers {
+  getAlignStep: (alignment: number) => number;
+  getAlignedChunkStart: (chunkAddr: bigint, alignStep: number) => number;
+  isAlignedAddress: (addr: bigint, alignStep: number) => boolean;
+}
+
+/** Find `targetBuf` inside one memory chunk, honouring alignment, and record
+ * hits into `addresses` / `values` until `maxResults` is reached.
+ *
+ * Two strategies: when the value size equals the alignment the search uses
+ * Buffer.indexOf (V8's SIMD-optimized native scan) and re-checks alignment
+ * per hit; otherwise it steps the buffer at `alignStep` and compares. */
+function scanChunkForValue(
+  chunk: Buffer,
+  chunkAddr: bigint,
+  targetBuf: Buffer,
+  valueSize: number,
+  alignment: number,
+  maxResults: number,
+  addresses: bigint[],
+  values: Map<bigint, Buffer>,
+  align: AlignHelpers,
+): void {
+  const alignStep = align.getAlignStep(alignment);
+
+  if (alignment === valueSize && valueSize > 0) {
+    let searchFrom = align.getAlignedChunkStart(chunkAddr, alignStep);
+    while (searchFrom <= chunk.length - valueSize && addresses.length < maxResults) {
+      const hit = chunk.indexOf(targetBuf, searchFrom);
+      if (hit === -1) break;
+      if (!align.isAlignedAddress(chunkAddr + BigInt(hit), alignStep)) {
+        searchFrom = hit + 1;
+        continue;
+      }
+      const addr = chunkAddr + BigInt(hit);
+      addresses.push(addr);
+      values.set(addr, Buffer.from(chunk.subarray(hit, hit + valueSize)));
+      searchFrom = hit + alignStep;
+    }
+    return;
+  }
+
+  const chunkStart = align.getAlignedChunkStart(chunkAddr, alignStep);
+  for (let i = chunkStart; i <= chunk.length - valueSize; i += alignStep) {
+    if (Buffer.compare(chunk.subarray(i, i + valueSize), targetBuf) === 0) {
+      const addr = chunkAddr + BigInt(i);
+      addresses.push(addr);
+      values.set(addr, Buffer.from(chunk.subarray(i, i + valueSize)));
+      if (addresses.length >= maxResults) break;
+    }
+  }
+}
+
+/** Parse an "AA BB ?? CC" pattern into a needle + wildcard mask. */
+function parseAobPattern(pattern: string): {
+  needle: Buffer;
+  mask: boolean[];
+  patternLen: number;
+} {
+  const parsed: (number | null)[] = [];
+  const tokens = pattern.trim().split(/\s+/);
+  for (const token of tokens) {
+    if (token === '??' || token === '?' || token === '???') {
+      parsed.push(null);
+    } else {
+      // Strip optional 0x prefix
+      const hex = token.startsWith('0x') || token.startsWith('0X') ? token.slice(2) : token;
+      if (hex.length !== 2 || !/^[0-9a-fA-F]{2}$/.test(hex)) {
+        throw new Error(`Invalid AOB pattern byte: "${token}" (expected 2 hex chars or "??")`);
+      }
+      parsed.push(parseInt(hex, 16));
+    }
+  }
+
+  if (parsed.length === 0) {
+    throw new Error('AOB pattern must contain at least one byte or wildcard');
+  }
+
+  return {
+    needle: Buffer.from(parsed.map((b) => b ?? 0)),
+    mask: parsed.map((b) => b !== null),
+    patternLen: parsed.length,
+  };
+}
+
+/** Translate aobScan's options (incl. legacy names) into a RegionFilter. */
+function buildAobRegionFilter(options: {
+  moduleName?: string;
+  executableOnly?: boolean;
+  regionFilter?: import('./NativeMemoryManager.types').RegionFilter;
+}): import('./NativeMemoryManager.types').RegionFilter | undefined {
+  const scanFilter: import('./NativeMemoryManager.types').RegionFilter = {
+    ...options.regionFilter,
+  };
+
+  // Legacy moduleName: translate to modulePattern for backward compat
+  if (options.moduleName && !scanFilter.modulePattern) {
+    scanFilter.modulePattern = options.moduleName;
+  }
+
+  // Legacy executableOnly: translate to regionFilter
+  if (options.executableOnly && scanFilter.executable === undefined) {
+    scanFilter.executable = true;
+  }
+
+  return Object.keys(scanFilter).length > 0 ? scanFilter : undefined;
+}
+
+/** Byte-by-byte masked match of `needle` inside one chunk. */
+function scanChunkForMaskedPattern(
+  chunk: Buffer,
+  chunkAddr: bigint,
+  needle: Buffer,
+  mask: boolean[],
+  patternLen: number,
+  maxResults: number,
+  matches: bigint[],
+): void {
+  for (let i = 0; i <= chunk.length - patternLen && matches.length < maxResults; i++) {
+    let matched = true;
+    for (let j = 0; j < patternLen; j++) {
+      if (mask[j] && chunk[i + j] !== needle[j]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) {
+      matches.push(chunkAddr + BigInt(i));
+    }
+  }
+}
+
+/** Compose groupScan's per-entry patterns into one composite needle + mask. */
+function buildGroupCompositePattern(
+  pattern: Array<{ offset: number; value: string; type: ScanValueType }>,
+  maxOffset: number,
+): { compositePattern: number[]; compositeMask: number[] } {
+  const compositePattern: number[] = Array.from({ length: maxOffset }, () => 0);
+  const compositeMask: number[] = Array.from({ length: maxOffset }, () => 0);
+
+  for (const entry of pattern) {
+    const effectiveType = entry.type === 'pointer' ? 'uint64' : entry.type;
+    const { patternBytes, mask } = parsePattern(entry.value, effectiveType);
+    for (let i = 0; i < patternBytes.length; i++) {
+      compositePattern[entry.offset + i] = patternBytes[i]!;
+      compositeMask[entry.offset + i] = mask[i]!;
+    }
+  }
+  return { compositePattern, compositeMask };
+}
+
+/** Match the composite group pattern inside one chunk at `alignment` steps. */
+function scanChunkForGroupPattern(
+  chunk: Buffer,
+  chunkAddr: bigint,
+  compositePattern: number[],
+  compositeMask: number[],
+  maxOffset: number,
+  alignment: number,
+  maxResults: number,
+  addresses: bigint[],
+  align: AlignHelpers,
+): void {
+  const alignStep = align.getAlignStep(alignment);
+  const chunkStart = align.getAlignedChunkStart(chunkAddr, alignStep);
+  for (let i = chunkStart; i <= chunk.length - maxOffset; i += alignStep) {
+    let match = true;
+    for (let j = 0; j < maxOffset; j++) {
+      if (compositeMask[j] === 1 && chunk[i + j] !== compositePattern[j]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      addresses.push(chunkAddr + BigInt(i));
+      if (addresses.length >= maxResults) break;
+    }
+  }
+}

@@ -101,7 +101,44 @@ export function resolveNtdll(ntdllPath?: string): ResolvedNtdll {
     );
   }
 
-  // ── PE parse (lite — no dependency on PEAnalyzer) ─────────────────────
+  const layout = parsePeLayout(fileData);
+  const { syscalls, byName } = collectZwSyscalls(fileData, layout, warnings);
+  const syscallGadgetRva = findSyscallGadget(fileData, layout);
+
+  // Runtime ntoskrnl base (best-effort); SSNs stay static-on-disk above.
+  const kernelImageBase = resolveRuntimeKernelBase();
+
+  _resolved = {
+    path: resolvedPath,
+    syscalls,
+    byName,
+    syscallGadgetRva,
+    warnings,
+    kernelImageBase,
+  };
+
+  return _resolved;
+}
+
+/** Forcibly reset the cache (testing / hot-reload). */
+export function resetNtdllCache(): void {
+  _resolved = null;
+}
+
+/** Section-table geometry needed to map RVAs onto file offsets. */
+interface PeLayout {
+  /** File offset of the section table. */
+  secOff: number;
+  numSections: number;
+}
+
+/**
+ * PE parse (lite -- no dependency on PEAnalyzer).
+ *
+ * Reads just enough of the NT headers to locate the section table and
+ * validates the file is an x64 PE. Every header read is bounds-checked.
+ */
+function parsePeLayout(fileData: Buffer): PeLayout {
   const e_lfanew = fileData.readUInt32LE(60);
   // Bounds-check every header read below (e_lfanew + optional header must fit).
   if (e_lfanew + 256 > fileData.length) {
@@ -118,13 +155,13 @@ export function resolveNtdll(ntdllPath?: string): ResolvedNtdll {
   const sizeOfOptHdr = fileData.readUInt16LE(e_lfanew + 20);
   const secOff = e_lfanew + 24 + sizeOfOptHdr;
 
-  // Optional header fields (PE32+): export directory at offset 112 within
-  // optional header (offset 0 of optional header = offset 24 of NT headers).
-  const exportDirRva = fileData.readUInt32LE(e_lfanew + 24 + 112 + 0 * 8);
-  const exportDirSize = fileData.readUInt32LE(e_lfanew + 24 + 112 + 4);
+  return { secOff, numSections };
+}
 
-  // ── RVA → file-offset helper ───────────────────────────────────────────
-  function rvaToOffset(rva: number): number {
+/** Map an RVA to a file offset via the section table; -1 when unmapped. */
+function makeRvaToOffset(fileData: Buffer, layout: PeLayout): (rva: number) => number {
+  const { secOff, numSections } = layout;
+  return (rva: number): number => {
     for (let i = 0; i < numSections; i++) {
       const off = secOff + i * 40;
       if (off + 40 > fileData.length) break;
@@ -134,9 +171,30 @@ export function resolveNtdll(ntdllPath?: string): ResolvedNtdll {
       if (rva >= vAddr && rva < vAddr + vSize) return rawOff + (rva - vAddr);
     }
     return -1;
-  }
+  };
+}
 
-  // ── Parse export directory ─────────────────────────────────────────────
+/**
+ * Parse export directory.
+ *
+ * Walks the export name table and, for every Zw* export, decodes the
+ * "mov r10, rcx; mov eax, imm32" prologue into its SSN. Exports whose
+ * prologue does not match are reported as warnings instead of being
+ * silently skipped.
+ */
+function collectZwSyscalls(
+  fileData: Buffer,
+  layout: PeLayout,
+  warnings: string[],
+): { syscalls: SyscallEntry[]; byName: Record<string, SyscallEntry> } {
+  const rvaToOffset = makeRvaToOffset(fileData, layout);
+  const e_lfanew = fileData.readUInt32LE(60);
+
+  // Optional header fields (PE32+): export directory at offset 112 within
+  // optional header (offset 0 of optional header = offset 24 of NT headers).
+  const exportDirRva = fileData.readUInt32LE(e_lfanew + 24 + 112 + 0 * 8);
+  const exportDirSize = fileData.readUInt32LE(e_lfanew + 24 + 112 + 4);
+
   const syscalls: SyscallEntry[] = [];
   const byName: Record<string, SyscallEntry> = {};
 
@@ -147,7 +205,7 @@ export function resolveNtdll(ntdllPath?: string): ResolvedNtdll {
   if (expOff < 0) throw new Error('SyscallResolver: cannot resolve export directory RVA');
 
   const numNames = fileData.readUInt32LE(expOff + 24);
-  // A malformed count must not drive the export loop into OOB reads — each
+  // A malformed count must not drive the export loop into OOB reads -- each
   // name consumes 4 (RVA array) + 2 (ordinal array) bytes inside exportDirSize.
   if (numNames > exportDirSize / 4) {
     throw new Error('SyscallResolver: implausible export count');
@@ -169,7 +227,6 @@ export function resolveNtdll(ntdllPath?: string): ResolvedNtdll {
     const ordIndex = fileData.readUInt16LE(ordArrOff + i * 2);
     const funcRva = fileData.readUInt32LE(funcArrOff + ordIndex * 4);
 
-    // Read export name
     const nameOff = rvaToOffset(nameRva);
     if (nameOff < 0) continue;
     const nameEnd = fileData.indexOf(0, nameOff);
@@ -180,85 +237,88 @@ export function resolveNtdll(ntdllPath?: string): ResolvedNtdll {
     // Only track Zw exports (the syscall gateway layer).
     if (!name.startsWith('Zw')) continue;
 
-    // Read first 8 bytes of the function body.
-    const bodyOff = rvaToOffset(funcRva);
-    if (bodyOff < 0 || bodyOff + 8 > fileData.length) {
-      warnings.push(`${name}: cannot map RVA to file offset`);
-      continue;
-    }
+    const entry = decodeZwStub(fileData, rvaToOffset, funcRva, name, warnings);
+    if (!entry) continue;
 
-    const body = fileData.subarray(bodyOff, bodyOff + 8);
-    // Match: 4C 8B D1  B8 XX XX 00 00
-    //   offset 0-2: `mov r10, rcx` (4C 8B D1)
-    //   offset 3  : `mov eax, imm32` opcode (B8)
-    //   offset 4-7: the SSN imm32 (read via readUInt32LE(4) below)
-    // Byte-wise: a 3-byte `readUInt32LE` check would wrongly fold the B8 opcode
-    // into the comparison and never match (pre-runtime-test bug: SSN extraction
-    // silently returned 0 on a real ntdll while mocked tests passed).
-    if (
-      body[0] !== MOV_R10_RCX[0] ||
-      body[1] !== MOV_R10_RCX[1] ||
-      body[2] !== MOV_R10_RCX[2] ||
-      body[3] !== MOV_EAX_IMM
-    ) {
-      warnings.push(
-        `${name}: prologue does not match "mov r10, rcx; mov eax, imm" — ` +
-          `got ${[...body.subarray(0, 8)].map((b) => b.toString(16).padStart(2, '0')).join(' ')}`,
-      );
-      continue;
-    }
-
-    const ssn = body.readUInt32LE(4); // B8 imm32 → SSN in low 32 bits
-    const entry: SyscallEntry = { name, ssn, rva: funcRva };
     syscalls.push(entry);
     byName[name] = entry;
     // Also register under Nt prefix for convenience.
     byName[name.replace(/^Zw/, 'Nt')] = entry;
   }
 
-  // ── Find syscall gadget (0F 05 C3) ────────────────────────────────────
-  let syscallGadgetRva = 0;
+  return { syscalls, byName };
+}
+
+/**
+ * Decode one Zw* export's prologue into a SyscallEntry.
+ *
+ * Match: 4C 8B D1  B8 XX XX 00 00
+ *   offset 0-2: "mov r10, rcx" (4C 8B D1)
+ *   offset 3  : "mov eax, imm32" opcode (B8)
+ *   offset 4-7: the SSN imm32 (read via readUInt32LE(4) below)
+ * Byte-wise: a 3-byte readUInt32LE check would wrongly fold the B8 opcode
+ * into the comparison and never match (pre-runtime-test bug: SSN extraction
+ * silently returned 0 on a real ntdll while mocked tests passed).
+ */
+function decodeZwStub(
+  fileData: Buffer,
+  rvaToOffset: (rva: number) => number,
+  funcRva: number,
+  name: string,
+  warnings: string[],
+): SyscallEntry | null {
+  const bodyOff = rvaToOffset(funcRva);
+  if (bodyOff < 0 || bodyOff + 8 > fileData.length) {
+    warnings.push(`${name}: cannot map RVA to file offset`);
+    return null;
+  }
+
+  const body = fileData.subarray(bodyOff, bodyOff + 8);
+  if (
+    body[0] !== MOV_R10_RCX[0] ||
+    body[1] !== MOV_R10_RCX[1] ||
+    body[2] !== MOV_R10_RCX[2] ||
+    body[3] !== MOV_EAX_IMM
+  ) {
+    warnings.push(
+      `${name}: prologue does not match "mov r10, rcx; mov eax, imm" -- ` +
+        `got ${[...body.subarray(0, 8)].map((b) => b.toString(16).padStart(2, '0')).join(' ')}`,
+    );
+    return null;
+  }
+
+  return { name, ssn: body.readUInt32LE(4), rva: funcRva };
+}
+
+/**
+ * Find syscall gadget (0F 05 C3).
+ *
+ * Scans the whole image for the first "syscall; ret" pair and converts its
+ * file offset back to an RVA. Throws when the gadget is absent -- a ntdll
+ * without it cannot dispatch syscalls at all.
+ */
+function findSyscallGadget(fileData: Buffer, layout: PeLayout): number {
+  const { secOff, numSections } = layout;
+
   for (let i = 0; i < fileData.length - 3; i++) {
     if (
-      fileData[i] === SYSCALL_GADGET_BYTES[0] &&
-      fileData[i + 1] === SYSCALL_GADGET_BYTES[1] &&
-      fileData[i + 2] === SYSCALL_GADGET_BYTES[2]
+      fileData[i] !== SYSCALL_GADGET_BYTES[0] ||
+      fileData[i + 1] !== SYSCALL_GADGET_BYTES[1] ||
+      fileData[i + 2] !== SYSCALL_GADGET_BYTES[2]
     ) {
-      // Convert file offset to RVA.
-      for (let s = 0; s < numSections; s++) {
-        const soff = secOff + s * 40;
-        const vAddr = fileData.readUInt32LE(soff + 12);
-        const vSize = fileData.readUInt32LE(soff + 8);
-        const rawOff = fileData.readUInt32LE(soff + 20);
-        if (i >= rawOff && i < rawOff + vSize) {
-          syscallGadgetRva = vAddr + (i - rawOff);
-          break;
-        }
+      continue;
+    }
+    // Convert file offset to RVA.
+    for (let s = 0; s < numSections; s++) {
+      const soff = secOff + s * 40;
+      const vAddr = fileData.readUInt32LE(soff + 12);
+      const vSize = fileData.readUInt32LE(soff + 8);
+      const rawOff = fileData.readUInt32LE(soff + 20);
+      if (i >= rawOff && i < rawOff + vSize) {
+        return vAddr + (i - rawOff);
       }
-      if (syscallGadgetRva !== 0) break;
     }
   }
 
-  if (syscallGadgetRva === 0) {
-    throw new Error('SyscallResolver: no syscall;ret gadget found in ntdll .text');
-  }
-
-  // Runtime ntoskrnl base (best-effort); SSNs stay static-on-disk above.
-  const kernelImageBase = resolveRuntimeKernelBase();
-
-  _resolved = {
-    path: resolvedPath,
-    syscalls,
-    byName,
-    syscallGadgetRva,
-    warnings,
-    kernelImageBase,
-  };
-
-  return _resolved;
-}
-
-/** Forcibly reset the cache (testing / hot-reload). */
-export function resetNtdllCache(): void {
-  _resolved = null;
+  throw new Error('SyscallResolver: no syscall;ret gadget found in ntdll .text');
 }

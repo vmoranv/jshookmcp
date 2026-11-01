@@ -147,68 +147,7 @@ export class CodeInjector {
         const modBase = BigInt(
           mod.baseAddress.startsWith('0x') ? mod.baseAddress : `0x${mod.baseAddress}`,
         );
-
-        // Scan module memory for executable regions with cave bytes
-        let addr = modBase;
-        const modEnd = modBase + BigInt(mod.size);
-
-        while (addr < modEnd) {
-          const { success, info } = VirtualQueryEx(handle, addr);
-          if (!success || info.RegionSize === 0n) break;
-
-          const regionSize = Number(info.RegionSize);
-          if (isExecutable(info.Protect) && regionSize > 0) {
-            try {
-              const chunk = ReadProcessMemory(
-                handle,
-                info.BaseAddress,
-                Math.min(regionSize, INJECT_CHUNK_SIZE),
-              );
-              let caveStart = -1;
-
-              for (let i = 0; i < chunk.length; i++) {
-                const b = chunk[i]!;
-                if (b === 0x00 || b === 0xcc) {
-                  if (caveStart === -1) caveStart = i;
-                } else {
-                  if (caveStart !== -1) {
-                    const caveSize = i - caveStart;
-                    if (caveSize >= min) {
-                      const caveAddr = info.BaseAddress + BigInt(caveStart);
-                      caves.push({
-                        address: `0x${caveAddr.toString(16).toUpperCase()}`,
-                        size: caveSize,
-                        module: mod.name,
-                        // VirtualQueryEx does not return the section name — the
-                        // label is a placeholder, not a real PE section name.
-                        section: CODE_CAVE_SECTION_LABEL,
-                      });
-                    }
-                    caveStart = -1;
-                  }
-                }
-              }
-
-              // Check trailing cave
-              if (caveStart !== -1) {
-                const caveSize = chunk.length - caveStart;
-                if (caveSize >= min) {
-                  const caveAddr = info.BaseAddress + BigInt(caveStart);
-                  caves.push({
-                    address: `0x${caveAddr.toString(16).toUpperCase()}`,
-                    size: caveSize,
-                    module: mod.name,
-                    section: CODE_CAVE_SECTION_LABEL,
-                  });
-                }
-              }
-            } catch {
-              // Unreadable region
-            }
-          }
-
-          addr = info.BaseAddress + info.RegionSize;
-        }
+        scanModuleForCaves(handle, mod, modBase, min, caves);
       }
     } finally {
       CloseHandle(handle);
@@ -445,3 +384,85 @@ export class CodeInjector {
 }
 
 export const codeInjector = new CodeInjector();
+
+/** Scan a single module's executable regions for cave byte runs, appending
+ * hits to `caves`. A cave is a run of 0x00 / 0xCC at least `min` bytes long. */
+function scanModuleForCaves(
+  handle: bigint,
+  mod: { name: string; size: number },
+  modBase: bigint,
+  min: number,
+  caves: CodeCave[],
+): void {
+  let addr = modBase;
+  const modEnd = modBase + BigInt(mod.size);
+
+  while (addr < modEnd) {
+    const { success, info } = VirtualQueryEx(handle, addr);
+    if (!success || info.RegionSize === 0n) break;
+
+    const regionSize = Number(info.RegionSize);
+    if (isExecutable(info.Protect) && regionSize > 0) {
+      try {
+        const chunk = ReadProcessMemory(
+          handle,
+          info.BaseAddress,
+          Math.min(regionSize, INJECT_CHUNK_SIZE),
+        );
+        collectCaveRuns(chunk, info.BaseAddress, mod.name, min, caves);
+      } catch {
+        // Unreadable region
+      }
+    }
+
+    addr = info.BaseAddress + info.RegionSize;
+  }
+}
+
+/** Walk a memory chunk, recording every qualifying cave run (including one
+ * that runs to the end of the chunk). */
+function collectCaveRuns(
+  chunk: Buffer,
+  baseAddress: bigint,
+  moduleName: string,
+  min: number,
+  caves: CodeCave[],
+): void {
+  let caveStart = -1;
+
+  for (let i = 0; i < chunk.length; i++) {
+    const b = chunk[i]!;
+    if (b === 0x00 || b === 0xcc) {
+      if (caveStart === -1) caveStart = i;
+      continue;
+    }
+    if (caveStart === -1) continue;
+
+    pushCaveIfLargeEnough(caves, baseAddress, moduleName, caveStart, i - caveStart, min);
+    caveStart = -1;
+  }
+
+  // Check trailing cave
+  if (caveStart !== -1) {
+    pushCaveIfLargeEnough(caves, baseAddress, moduleName, caveStart, chunk.length - caveStart, min);
+  }
+}
+
+function pushCaveIfLargeEnough(
+  caves: CodeCave[],
+  baseAddress: bigint,
+  moduleName: string,
+  caveStart: number,
+  caveSize: number,
+  min: number,
+): void {
+  if (caveSize < min) return;
+  caves.push({
+    address: `0x${(baseAddress + BigInt(caveStart)).toString(16).toUpperCase()}`,
+    size: caveSize,
+    module: moduleName,
+    // VirtualQueryEx does not return the section name — the label is a
+    // placeholder, not a real PE section name.
+    section: CODE_CAVE_SECTION_LABEL,
+  });
+}
