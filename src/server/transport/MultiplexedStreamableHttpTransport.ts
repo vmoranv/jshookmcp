@@ -171,148 +171,158 @@ export class MultiplexedStreamableHttpTransport implements Transport {
     parsedBody?: unknown,
   ): Promise<void> {
     const sessionId = getSessionHeader(req);
-
     if (sessionId) {
-      const existing = this.sessions.get(sessionId);
-      if (!existing) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            error: {
-              code: -32000,
-              message: `Unknown MCP session: ${sessionId}`,
-            },
-            id: null,
-          }),
-        );
-        return;
-      }
-      const now = this.getNow();
-      const idleTtlMs = this.options.sessionIdleTtlMs ?? Number.POSITIVE_INFINITY;
-      if (
-        existing.inFlight === 0 &&
-        existing.sseInFlight === 0 &&
-        now - existing.lastTouchedAt >= idleTtlMs
-      ) {
-        this.dropSession(sessionId);
-        await existing.transport.close().catch(() => undefined);
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            error: {
-              code: -32000,
-              message: `Expired MCP session: ${sessionId}`,
-              data: { code: 'MCP_SESSION_EXPIRED' },
-            },
-            id: null,
-          }),
-        );
-        return;
-      }
+      await this.handleExistingSession(sessionId, req, res, parsedBody);
+      return;
+    }
+    await this.handleNewSession(req, res, parsedBody);
+  }
 
-      // SSE GET streams are long-lived and must not count against the POST
-      // in-flight cap (they would self-DoS the session); they get their own
-      // small limit instead.
-      const isGet = (req.method ?? '').toUpperCase() === 'GET';
-      if (isGet) {
-        const maxSseInFlight = this.maxSseInFlight;
-        if (existing.sseInFlight >= maxSseInFlight) {
-          const retryAfterMs = this.options.capacityRetryAfterMs ?? HTTP_CAPACITY_RETRY_AFTER_MS;
-          res.writeHead(503, {
-            'Content-Type': 'application/json',
-            'Retry-After': String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
-          });
-          res.end(
-            JSON.stringify({
-              jsonrpc: '2.0',
-              error: {
-                code: -32001,
-                message: 'MCP session SSE stream capacity reached',
-                data: {
-                  code: 'MCP_SESSION_SSE_CAPACITY',
-                  retryAfterMs,
-                  sseInFlight: existing.sseInFlight,
-                  sseInFlightLimit: maxSseInFlight,
-                  sessionId,
-                },
-              },
-              id: null,
-            }),
-          );
-          return;
-        }
-        existing.sseInFlight += 1;
-      } else {
-        const maxInFlight = this.maxInFlight;
-        if (existing.inFlight >= maxInFlight) {
-          const retryAfterMs = this.options.capacityRetryAfterMs ?? HTTP_CAPACITY_RETRY_AFTER_MS;
-          res.writeHead(503, {
-            'Content-Type': 'application/json',
-            'Retry-After': String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
-          });
-          res.end(
-            JSON.stringify({
-              jsonrpc: '2.0',
-              error: {
-                code: -32001,
-                message: 'MCP session in-flight capacity reached',
-                data: {
-                  code: 'MCP_SESSION_INFLIGHT_CAPACITY',
-                  retryAfterMs,
-                  inFlight: existing.inFlight,
-                  inFlightLimit: maxInFlight,
-                  sessionId,
-                },
-              },
-              id: null,
-            }),
-          );
-          return;
-        }
-        existing.inFlight += 1;
-      }
-      existing.lastTouchedAt = now;
-      try {
-        await existing.transport.handleRequest(req, res, parsedBody);
-      } finally {
-        if (isGet) {
-          existing.sseInFlight = Math.max(0, existing.sseInFlight - 1);
-        } else {
-          existing.inFlight = Math.max(0, existing.inFlight - 1);
-        }
-        existing.lastTouchedAt = this.getNow();
-      }
+  /** Route a request that carries a known session id (404/expiry/capacity
+   * handling included). */
+  private async handleExistingSession(
+    sessionId: string,
+    req: IncomingMessage,
+    res: ServerResponse,
+    parsedBody?: unknown,
+  ): Promise<void> {
+    const existing = this.sessions.get(sessionId);
+    if (!existing) {
+      this.writeJsonRpcError(res, 404, `Unknown MCP session: ${sessionId}`, -32000);
       return;
     }
 
+    const now = this.getNow();
+    const idleTtlMs = this.options.sessionIdleTtlMs ?? Number.POSITIVE_INFINITY;
+    if (
+      existing.inFlight === 0 &&
+      existing.sseInFlight === 0 &&
+      now - existing.lastTouchedAt >= idleTtlMs
+    ) {
+      this.dropSession(sessionId);
+      await existing.transport.close().catch(() => undefined);
+      this.writeJsonRpcError(res, 404, `Expired MCP session: ${sessionId}`, -32000, {
+        code: 'MCP_SESSION_EXPIRED',
+      });
+      return;
+    }
+
+    // SSE GET streams are long-lived and must not count against the POST
+    // in-flight cap (they would self-DoS the session); they get their own
+    // small limit instead.
+    const isGet = (req.method ?? '').toUpperCase() === 'GET';
+    if (!this.admitSessionRequest(existing, isGet, res, sessionId)) return;
+
+    existing.lastTouchedAt = now;
+    try {
+      await existing.transport.handleRequest(req, res, parsedBody);
+    } finally {
+      if (isGet) {
+        existing.sseInFlight = Math.max(0, existing.sseInFlight - 1);
+      } else {
+        existing.inFlight = Math.max(0, existing.inFlight - 1);
+      }
+      existing.lastTouchedAt = this.getNow();
+    }
+  }
+
+  /** Reserve an in-flight slot (SSE vs POST caps). Returns false when the
+   * request was rejected and the 503 response already written. */
+  private admitSessionRequest(
+    session: SessionRecord,
+    isGet: boolean,
+    res: ServerResponse,
+    sessionId: string,
+  ): boolean {
+    const retryAfterMs = this.options.capacityRetryAfterMs ?? HTTP_CAPACITY_RETRY_AFTER_MS;
+    if (isGet) {
+      const maxSseInFlight = this.maxSseInFlight;
+      if (session.sseInFlight >= maxSseInFlight) {
+        this.writeCapacityError(res, retryAfterMs, {
+          message: 'MCP session SSE stream capacity reached',
+          code: 'MCP_SESSION_SSE_CAPACITY',
+          retryAfterMs,
+          sseInFlight: session.sseInFlight,
+          sseInFlightLimit: maxSseInFlight,
+          sessionId,
+        });
+        return false;
+      }
+      session.sseInFlight += 1;
+      return true;
+    }
+
+    const maxInFlight = this.maxInFlight;
+    if (session.inFlight >= maxInFlight) {
+      this.writeCapacityError(res, retryAfterMs, {
+        message: 'MCP session in-flight capacity reached',
+        code: 'MCP_SESSION_INFLIGHT_CAPACITY',
+        retryAfterMs,
+        inFlight: session.inFlight,
+        inFlightLimit: maxInFlight,
+        sessionId,
+      });
+      return false;
+    }
+    session.inFlight += 1;
+    return true;
+  }
+
+  /** Write a 503 capacity rejection with a Retry-After header. */
+  private writeCapacityError(
+    res: ServerResponse,
+    retryAfterMs: number,
+    data: Record<string, unknown>,
+  ): void {
+    res.writeHead(503, {
+      'Content-Type': 'application/json',
+      'Retry-After': String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
+    });
+    res.end(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: { code: -32001, message: data['message'], data },
+        id: null,
+      }),
+    );
+  }
+
+  /** Write a JSON-RPC error body (used for unknown/expired sessions). */
+  private writeJsonRpcError(
+    res: ServerResponse,
+    status: number,
+    message: string,
+    code: number,
+    data?: Record<string, unknown>,
+  ): void {
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: { code, message, ...(data ? { data } : {}) },
+        id: null,
+      }),
+    );
+  }
+
+  /** Admit and register a brand-new session, enforcing the session cap. */
+  private async handleNewSession(
+    req: IncomingMessage,
+    res: ServerResponse,
+    parsedBody?: unknown,
+  ): Promise<void> {
     const maxSessions = this.options.maxSessions ?? Number.MAX_SAFE_INTEGER;
     if (this.getSessionAdmissionUsage() >= maxSessions) await this.evictExpiredSessions();
     if (this.getSessionAdmissionUsage() >= maxSessions) {
       const retryAfterMs = this.options.capacityRetryAfterMs ?? HTTP_CAPACITY_RETRY_AFTER_MS;
-      const admissionUsage = this.getSessionAdmissionUsage();
-      res.writeHead(503, {
-        'Content-Type': 'application/json',
-        'Retry-After': String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
+      this.writeCapacityError(res, retryAfterMs, {
+        message: 'MCP session capacity reached',
+        code: 'MCP_SESSION_CAPACITY',
+        retryAfterMs,
+        sessionCount: this.getSessionAdmissionUsage(),
+        sessionLimit: maxSessions,
+        pendingAdmissions: this.pendingSessionAdmissions,
       });
-      res.end(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          error: {
-            code: -32001,
-            message: 'MCP session capacity reached',
-            data: {
-              code: 'MCP_SESSION_CAPACITY',
-              retryAfterMs,
-              sessionCount: admissionUsage,
-              sessionLimit: maxSessions,
-              pendingAdmissions: this.pendingSessionAdmissions,
-            },
-          },
-          id: null,
-        }),
-      );
       return;
     }
 
