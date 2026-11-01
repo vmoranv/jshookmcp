@@ -63,6 +63,50 @@ export interface ScanResult {
   deltas?: Record<string, number>;
 }
 
+// System module name prefixes to skip (case-insensitive)
+const SYSTEM_MODULE_PREFIXES = new Set([
+  'ntdll.dll',
+  'ntdll',
+  'kernel32.dll',
+  'kernel32',
+  'kernelbase.dll',
+  'kernelbase',
+  'user32.dll',
+  'user32',
+  'gdi32.dll',
+  'gdi32',
+  'advapi32.dll',
+  'advapi32',
+  'msvcrt.dll',
+  'msvcrt',
+  'combase.dll',
+  'combase',
+  'ole32.dll',
+  'ole32',
+  'shell32.dll',
+  'shell32',
+  'ws2_32.dll',
+  'ws2_32',
+  'bcrypt.dll',
+  'bcrypt',
+  'ucrtbase.dll',
+  'ucrtbase',
+  'vcruntime',
+  'msvcp',
+  'libc.so',
+  'libc-',
+  'libpthread',
+  'ld-linux',
+  'libm.so',
+  'libdl.so',
+  'librt.so',
+  'libc++.so',
+  'libc++abi.so',
+  'libSystem.B.dylib',
+  'libobjc.A.dylib',
+  'libc++.1.dylib',
+]);
+
 export class MemoryScanner {
   private readonly nmm: NativeMemoryManager;
   private providerCache: PlatformMemoryAPI | null = null;
@@ -791,50 +835,6 @@ export class MemoryScanner {
     };
   }
 
-  // System module name prefixes to skip (case-insensitive)
-  private static readonly SYSTEM_MODULES = new Set([
-    'ntdll.dll',
-    'ntdll',
-    'kernel32.dll',
-    'kernel32',
-    'kernelbase.dll',
-    'kernelbase',
-    'user32.dll',
-    'user32',
-    'gdi32.dll',
-    'gdi32',
-    'advapi32.dll',
-    'advapi32',
-    'msvcrt.dll',
-    'msvcrt',
-    'combase.dll',
-    'combase',
-    'ole32.dll',
-    'ole32',
-    'shell32.dll',
-    'shell32',
-    'ws2_32.dll',
-    'ws2_32',
-    'bcrypt.dll',
-    'bcrypt',
-    'ucrtbase.dll',
-    'ucrtbase',
-    'vcruntime',
-    'msvcp',
-    'libc.so',
-    'libc-',
-    'libpthread',
-    'ld-linux',
-    'libm.so',
-    'libdl.so',
-    'librt.so',
-    'libc++.so',
-    'libc++abi.so',
-    'libSystem.B.dylib',
-    'libobjc.A.dylib',
-    'libc++.1.dylib',
-  ]);
-
   /**
    * Get readable memory regions, applying region filters.
    * Uses PlatformMemoryAPI.queryRegion() for cross-platform support.
@@ -867,45 +867,7 @@ export class MemoryScanner {
       const regionSize = regionInfo.size;
 
       if (regionInfo.isReadable && regionSize > 0 && regionSize <= Number.MAX_SAFE_INTEGER) {
-        // Apply filters
-        let include = true;
-        if (filter?.writable && !regionInfo.isWritable) include = false;
-        if (filter?.executable && !regionInfo.isExecutable) include = false;
-        if (filter?.moduleOnly && regionInfo.type !== 'image') include = false;
-        if (include && filter?.minSize && regionSize < filter.minSize) include = false;
-
-        // skipSystemModules: filter out system DLL regions
-        if (include && filter?.skipSystemModules && moduleList) {
-          const ownerMod = moduleList.find(
-            (m) =>
-              regionInfo.baseAddress >= m.baseAddress &&
-              regionInfo.baseAddress < m.baseAddress + BigInt(m.size),
-          );
-          if (ownerMod) {
-            const nameLower = ownerMod.name.toLowerCase();
-            for (const sysMod of MemoryScanner.SYSTEM_MODULES) {
-              if (nameLower.includes(sysMod)) {
-                include = false;
-                break;
-              }
-            }
-          }
-        }
-
-        // modulePattern: only include regions whose module name matches
-        if (include && filter?.modulePattern && moduleList) {
-          const patternLower = filter.modulePattern.toLowerCase();
-          const ownerMod = moduleList.find(
-            (m) =>
-              regionInfo.baseAddress >= m.baseAddress &&
-              regionInfo.baseAddress < m.baseAddress + BigInt(m.size),
-          );
-          if (!ownerMod || !ownerMod.name.toLowerCase().includes(patternLower)) {
-            include = false;
-          }
-        }
-
-        if (include) {
+        if (regionPassesFilters(regionInfo, regionSize, filter, moduleList)) {
           regions.push({
             baseAddress: regionInfo.baseAddress,
             size: regionSize,
@@ -921,3 +883,60 @@ export class MemoryScanner {
 }
 
 export const memoryScanner = new MemoryScanner(nativeMemoryManager);
+
+/** Region shape the filters operate on. */
+interface ScanRegionInfo {
+  baseAddress: bigint;
+  size: number;
+  isReadable: boolean;
+  isWritable: boolean;
+  isExecutable: boolean;
+  type: string;
+}
+
+type ScanModuleEntry = { baseAddress: bigint; size: number; name: string };
+
+/** Apply every regionFilter predicate to one region. */
+function regionPassesFilters(
+  regionInfo: ScanRegionInfo,
+  regionSize: number,
+  filter: ScanOptions['regionFilter'],
+  moduleList: ScanModuleEntry[] | null,
+): boolean {
+  if (filter?.writable && !regionInfo.isWritable) return false;
+  if (filter?.executable && !regionInfo.isExecutable) return false;
+  if (filter?.moduleOnly && regionInfo.type !== 'image') return false;
+  if (filter?.minSize && regionSize < filter.minSize) return false;
+  if (filter?.skipSystemModules && moduleList && ownsSystemModule(regionInfo, moduleList)) {
+    return false;
+  }
+  if (filter?.modulePattern && moduleList) {
+    const owner = findOwnerModule(regionInfo, moduleList);
+    const patternLower = filter.modulePattern.toLowerCase();
+    if (!owner || !owner.name.toLowerCase().includes(patternLower)) return false;
+  }
+  return true;
+}
+
+/** The module whose loaded range contains this region, or undefined. */
+function findOwnerModule(
+  regionInfo: ScanRegionInfo,
+  moduleList: ScanModuleEntry[],
+): ScanModuleEntry | undefined {
+  return moduleList.find(
+    (m) =>
+      regionInfo.baseAddress >= m.baseAddress &&
+      regionInfo.baseAddress < m.baseAddress + BigInt(m.size),
+  );
+}
+
+/** True when the region belongs to a known system DLL. */
+function ownsSystemModule(regionInfo: ScanRegionInfo, moduleList: ScanModuleEntry[]): boolean {
+  const owner = findOwnerModule(regionInfo, moduleList);
+  if (!owner) return false;
+  const nameLower = owner.name.toLowerCase();
+  for (const sysMod of SYSTEM_MODULE_PREFIXES) {
+    if (nameLower.includes(sysMod)) return true;
+  }
+  return false;
+}
