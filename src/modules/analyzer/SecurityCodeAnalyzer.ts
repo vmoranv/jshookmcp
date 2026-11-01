@@ -37,6 +37,247 @@ export function checkSanitizer(node: t.CallExpression, sanitizers: Set<string>):
   return false;
 }
 
+/** Calee names treated as recursive merges prone to prototype pollution. */
+const MERGE_CALLEE_NAMES: ReadonlySet<string> = new Set([
+  'merge',
+  'extend',
+  'deepCopy',
+  'deepMerge',
+  'defaults',
+  'assign',
+]);
+
+/** Identifier callees that issue network requests. */
+const SSRF_CALLEE_IDS: ReadonlySet<string> = new Set(['fetch', 'axios', 'request']);
+/** Method names on a network object that issue requests. */
+const SSRF_METHODS: ReadonlySet<string> = new Set([
+  'get',
+  'post',
+  'put',
+  'delete',
+  'request',
+  'open',
+]);
+/** Objects whose methods are network calls. */
+const SSRF_OBJECTS: ReadonlySet<string> = new Set(['http', 'https', 'axios', 'xhr']);
+
+/** Filesystem method names that need a traversal check. */
+const FS_METHODS: ReadonlySet<string> = new Set([
+  'readFile',
+  'writeFile',
+  'readFileSync',
+  'writeFileSync',
+  'createReadStream',
+  'createWriteStream',
+  'unlink',
+  'open',
+]);
+
+/** Argument names that look user-controlled for the traversal heuristic. */
+const USER_INPUT_ARG_RE = /^(path|file|dir|name|filename|userInput|req|query|params|input)/i;
+
+/** SQL sink method names. */
+const SQL_METHODS = ['query', 'execute', 'exec', 'run'];
+/** Timer functions that shell-evaluate a string first argument. */
+const TIMER_CALLEES = ['setTimeout', 'setInterval'];
+
+/** `eval(...)` — arbitrary code execution. */
+function checkEvalCall(callee: t.Identifier, line: number): SecurityRisk | null {
+  if (callee.name !== 'eval') return null;
+  return {
+    type: 'other',
+    severity: 'critical',
+    location: { file: 'current', line },
+    description: 'Critical: Use of eval() allows arbitrary code execution',
+    recommendation: 'Refactor to avoid eval(). Use JSON.parse() for data, or proper function calls',
+  };
+}
+
+/** `Function(...)` — code injection through the constructor. */
+function checkFunctionConstructor(callee: t.Identifier, line: number): SecurityRisk | null {
+  if (callee.name !== 'Function') return null;
+  return {
+    type: 'other',
+    severity: 'critical',
+    location: { file: 'current', line },
+    description: 'Critical: Function constructor allows code injection',
+    recommendation: 'Use regular function declarations or arrow functions',
+  };
+}
+
+/** `setTimeout("code")` / `setInterval("code")` — the string is evaluated. */
+function checkTimerStringArg(
+  node: t.CallExpression,
+  calleeName: string,
+  line: number,
+): SecurityRisk | null {
+  const firstArg = node.arguments[0];
+  const isEvaluated =
+    t.isStringLiteral(firstArg) || (t.isIdentifier(firstArg) && firstArg.name !== 'function');
+  if (!isEvaluated) return null;
+  return {
+    type: 'other',
+    severity: 'medium',
+    location: { file: 'current', line },
+    description: `${calleeName}() with string argument can lead to code injection`,
+    recommendation: `Use ${calleeName}() with function reference instead of string`,
+  };
+}
+
+/** `db.query(<concatenated>)` — SQL built by string concat or template. */
+function checkSqlConcat(
+  node: t.CallExpression,
+  callee: t.MemberExpression,
+  line: number,
+): SecurityRisk | null {
+  if (!t.isIdentifier(callee.property) || !SQL_METHODS.includes(callee.property.name)) {
+    return null;
+  }
+  const firstArg = node.arguments[0];
+  if (!t.isBinaryExpression(firstArg) && !t.isTemplateLiteral(firstArg)) {
+    return null;
+  }
+  return {
+    type: 'sql-injection',
+    severity: 'critical',
+    location: { file: 'current', line },
+    description: 'Potential SQL injection: Query built with string concatenation',
+    recommendation: 'Use parameterized queries or prepared statements',
+  };
+}
+
+/** `merge(a, b)` and `Object.assign({}, untrusted)` — prototype pollution. */
+function checkPrototypePollution(
+  node: t.CallExpression,
+  callee: t.CallExpression['callee'],
+  line: number,
+): SecurityRisk[] {
+  const risks: SecurityRisk[] = [];
+  const argCount = node.arguments.length;
+
+  if (argCount >= 2 && t.isIdentifier(callee) && MERGE_CALLEE_NAMES.has(callee.name)) {
+    risks.push({
+      type: 'prototype-pollution',
+      severity: 'medium',
+      location: { file: 'current', line },
+      description: `Potential prototype pollution: ${callee.name}() merges untrusted data`,
+      recommendation: 'Use a merge that blocks __proto__/constructor keys, or Object.create(null)',
+    });
+  }
+
+  // Object.assign({}, userInput) — empty-target assign with untrusted source
+  if (argCount >= 2 && t.isMemberExpression(callee)) {
+    const calleeFullName = getMemberExpressionName(callee);
+    const target = node.arguments[0];
+    if (
+      calleeFullName === 'Object.assign' &&
+      t.isObjectExpression(target) &&
+      target.properties.length === 0
+    ) {
+      risks.push({
+        type: 'prototype-pollution',
+        severity: 'medium',
+        location: { file: 'current', line },
+        description: 'Potential prototype pollution: Object.assign({}, untrusted) copies __proto__',
+        recommendation: 'Use Object.create(null) as the target or sanitize source keys',
+      });
+    }
+  }
+
+  return risks;
+}
+
+/** `fetch(x)` / `axios.get(x)` with a non-literal URL — SSRF. */
+function checkSsrf(
+  node: t.CallExpression,
+  callee: t.CallExpression['callee'],
+  line: number,
+): SecurityRisk | null {
+  const urlArg = node.arguments[0];
+  const isNonLiteralUrl =
+    urlArg !== undefined && !t.isStringLiteral(urlArg) && !t.isNumericLiteral(urlArg);
+  if (!isNonLiteralUrl) return null;
+
+  const isCalleeRequest =
+    (t.isIdentifier(callee) && SSRF_CALLEE_IDS.has(callee.name)) ||
+    (t.isMemberExpression(callee) &&
+      t.isIdentifier(callee.property) &&
+      SSRF_METHODS.has(callee.property.name) &&
+      t.isIdentifier(callee.object) &&
+      SSRF_OBJECTS.has(callee.object.name));
+  if (!isCalleeRequest) return null;
+
+  return {
+    type: 'ssrf',
+    severity: 'high',
+    location: { file: 'current', line },
+    description: 'Potential SSRF: network request with a non-literal URL argument',
+    recommendation: 'Validate the URL against an allowlist of trusted hosts before requesting',
+  };
+}
+
+/** `fs.readFile(path)` / `path.join(name)` where the arg looks user-controlled. */
+function checkPathTraversal(
+  node: t.CallExpression,
+  callee: t.CallExpression['callee'],
+  line: number,
+): SecurityRisk | null {
+  const isFsCall =
+    (t.isMemberExpression(callee) &&
+      t.isIdentifier(callee.property) &&
+      FS_METHODS.has(callee.property.name)) ||
+    (t.isIdentifier(callee) && (callee.name === 'join' || callee.name === 'resolve'));
+  if (!isFsCall) return null;
+
+  for (const arg of node.arguments) {
+    if (t.isIdentifier(arg) && USER_INPUT_ARG_RE.test(arg.name)) {
+      return {
+        type: 'path-traversal',
+        severity: 'high',
+        location: { file: 'current', line },
+        description: `Potential path traversal: filesystem call with user-input-named arg "${arg.name}"`,
+        recommendation:
+          'Normalize and confine paths to a trusted base directory (path.resolve + prefix check)',
+      };
+    }
+  }
+  return null;
+}
+
+/** Run every CallExpression detector and collect their findings. */
+function analyzeCallExpression(node: t.CallExpression, line: number): SecurityRisk[] {
+  const risks: SecurityRisk[] = [];
+  const callee = node.callee;
+
+  if (t.isIdentifier(callee)) {
+    const evalRisk = checkEvalCall(callee, line);
+    if (evalRisk) risks.push(evalRisk);
+
+    const functionRisk = checkFunctionConstructor(callee, line);
+    if (functionRisk) risks.push(functionRisk);
+
+    if (TIMER_CALLEES.includes(callee.name)) {
+      const timerRisk = checkTimerStringArg(node, callee.name, line);
+      if (timerRisk) risks.push(timerRisk);
+    }
+  }
+
+  if (t.isMemberExpression(callee) && t.isIdentifier(callee.property)) {
+    const sqlRisk = checkSqlConcat(node, callee, line);
+    if (sqlRisk) risks.push(sqlRisk);
+  }
+
+  risks.push(...checkPrototypePollution(node, callee, line));
+
+  const ssrfRisk = checkSsrf(node, callee, line);
+  if (ssrfRisk) risks.push(ssrfRisk);
+
+  const traversalRisk = checkPathTraversal(node, callee, line);
+  if (traversalRisk) risks.push(traversalRisk);
+
+  return risks;
+}
+
 export function identifySecurityRisks(
   code: string,
   aiAnalysis: Record<string, unknown>,
@@ -130,165 +371,8 @@ export function identifySecurityRisks(
       },
 
       CallExpression(path) {
-        const callee = path.node.callee;
         const line = path.node.loc?.start.line || 0;
-
-        if (t.isIdentifier(callee)) {
-          if (callee.name === 'eval') {
-            risks.push({
-              type: 'other',
-              severity: 'critical',
-              location: { file: 'current', line },
-              description: 'Critical: Use of eval() allows arbitrary code execution',
-              recommendation:
-                'Refactor to avoid eval(). Use JSON.parse() for data, or proper function calls',
-            });
-          }
-
-          if (callee.name === 'Function') {
-            risks.push({
-              type: 'other',
-              severity: 'critical',
-              location: { file: 'current', line },
-              description: 'Critical: Function constructor allows code injection',
-              recommendation: 'Use regular function declarations or arrow functions',
-            });
-          }
-
-          if (['setTimeout', 'setInterval'].includes(callee.name)) {
-            const firstArg = path.node.arguments[0];
-            if (
-              t.isStringLiteral(firstArg) ||
-              (t.isIdentifier(firstArg) && firstArg.name !== 'function')
-            ) {
-              risks.push({
-                type: 'other',
-                severity: 'medium',
-                location: { file: 'current', line },
-                description: `${callee.name}() with string argument can lead to code injection`,
-                recommendation: `Use ${callee.name}() with function reference instead of string`,
-              });
-            }
-          }
-        }
-
-        if (t.isMemberExpression(callee) && t.isIdentifier(callee.property)) {
-          const methodName = callee.property.name;
-
-          if (['query', 'execute', 'exec', 'run'].includes(methodName)) {
-            const firstArg = path.node.arguments[0];
-
-            if (t.isBinaryExpression(firstArg) || t.isTemplateLiteral(firstArg)) {
-              risks.push({
-                type: 'sql-injection',
-                severity: 'critical',
-                location: { file: 'current', line },
-                description: 'Potential SQL injection: Query built with string concatenation',
-                recommendation: 'Use parameterized queries or prepared statements',
-              });
-            }
-          }
-        }
-
-        // Prototype pollution: recursive merge/extend/deepCopy/defaults with 2+ args
-        const mergeNames = new Set([
-          'merge',
-          'extend',
-          'deepCopy',
-          'deepMerge',
-          'defaults',
-          'assign',
-        ]);
-        if (
-          t.isIdentifier(callee) &&
-          mergeNames.has(callee.name) &&
-          path.node.arguments.length >= 2
-        ) {
-          risks.push({
-            type: 'prototype-pollution',
-            severity: 'medium',
-            location: { file: 'current', line },
-            description: `Potential prototype pollution: ${callee.name}() merges untrusted data`,
-            recommendation:
-              'Use a merge that blocks __proto__/constructor keys, or Object.create(null)',
-          });
-        }
-        // Object.assign({}, userInput) — empty-target assign with untrusted source
-        if (t.isMemberExpression(callee)) {
-          const calleeFullName = getMemberExpressionName(callee);
-          if (calleeFullName === 'Object.assign' && path.node.arguments.length >= 2) {
-            const target = path.node.arguments[0];
-            if (t.isObjectExpression(target) && target.properties.length === 0) {
-              risks.push({
-                type: 'prototype-pollution',
-                severity: 'medium',
-                location: { file: 'current', line },
-                description:
-                  'Potential prototype pollution: Object.assign({}, untrusted) copies __proto__',
-                recommendation: 'Use Object.create(null) as the target or sanitize source keys',
-              });
-            }
-          }
-        }
-
-        // SSRF: fetch/axios/request or http/https/xhr.<method> with a non-literal URL
-        const ssrfIdCallees = new Set(['fetch', 'axios', 'request']);
-        const ssrfMethods = new Set(['get', 'post', 'put', 'delete', 'request', 'open']);
-        const ssrfObjects = new Set(['http', 'https', 'axios', 'xhr']);
-        const urlArg = path.node.arguments[0];
-        const isNonLiteralUrl =
-          urlArg !== undefined && !t.isStringLiteral(urlArg) && !t.isNumericLiteral(urlArg);
-        if (
-          isNonLiteralUrl &&
-          ((t.isIdentifier(callee) && ssrfIdCallees.has(callee.name)) ||
-            (t.isMemberExpression(callee) &&
-              t.isIdentifier(callee.property) &&
-              ssrfMethods.has(callee.property.name) &&
-              t.isIdentifier(callee.object) &&
-              ssrfObjects.has(callee.object.name)))
-        ) {
-          risks.push({
-            type: 'ssrf',
-            severity: 'high',
-            location: { file: 'current', line },
-            description: 'Potential SSRF: network request with a non-literal URL argument',
-            recommendation:
-              'Validate the URL against an allowlist of trusted hosts before requesting',
-          });
-        }
-
-        // Path traversal: fs.readFile/writeFile/etc or path.join/resolve with a user-input-named arg
-        const fsMethods = new Set([
-          'readFile',
-          'writeFile',
-          'readFileSync',
-          'writeFileSync',
-          'createReadStream',
-          'createWriteStream',
-          'unlink',
-          'open',
-        ]);
-        const userInputRe = /^(path|file|dir|name|filename|userInput|req|query|params|input)/i;
-        const isFsCall =
-          (t.isMemberExpression(callee) &&
-            t.isIdentifier(callee.property) &&
-            fsMethods.has(callee.property.name)) ||
-          (t.isIdentifier(callee) && (callee.name === 'join' || callee.name === 'resolve'));
-        if (isFsCall) {
-          for (const arg of path.node.arguments) {
-            if (t.isIdentifier(arg) && userInputRe.test(arg.name)) {
-              risks.push({
-                type: 'path-traversal',
-                severity: 'high',
-                location: { file: 'current', line },
-                description: `Potential path traversal: filesystem call with user-input-named arg "${arg.name}"`,
-                recommendation:
-                  'Normalize and confine paths to a trusted base directory (path.resolve + prefix check)',
-              });
-              break;
-            }
-          }
-        }
+        risks.push(...analyzeCallExpression(path.node, line));
       },
 
       MemberExpression(path) {
