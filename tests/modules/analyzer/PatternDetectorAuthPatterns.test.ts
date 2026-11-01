@@ -23,8 +23,14 @@ import {
   PATTERN_SIGNATURE_CONFIDENCE_BODY_JWT,
   PATTERN_SIGNATURE_CONFIDENCE_HEADER_HMAC,
   PATTERN_SIGNATURE_CONFIDENCE_HEADER_JWT,
+  PATTERN_TOKEN_CONFIDENCE_BODY_CUSTOM,
+  PATTERN_TOKEN_CONFIDENCE_BODY_FORM,
+  PATTERN_TOKEN_CONFIDENCE_BODY_JWT,
   PATTERN_TOKEN_CONFIDENCE_HEADER_BEARER,
+  PATTERN_TOKEN_CONFIDENCE_HEADER_CUSTOM,
   PATTERN_TOKEN_CONFIDENCE_HEADER_JWT,
+  PATTERN_TOKEN_CONFIDENCE_PARAM_JWT,
+  PATTERN_TOKEN_CONFIDENCE_PARAM_OAUTH,
   PATTERN_TOKEN_MIN_LENGTH,
 } from '@src/constants';
 
@@ -287,5 +293,68 @@ describe('PatternDetectorAuthPatterns confidence constants (FP batch B28)', () =
 
     expect(short).toEqual([]);
     expect(long).toHaveLength(1);
+  });
+
+  // The three token channels (header / URL param / POST body) carry DIFFERENT
+  // confidence constants: header 0.95/0.90/0.75, param 0.92/0.88/0.70,
+  // body 0.93/0.72/0.68. A refactor that collapses them into one shared
+  // classifier keeps every header assertion green while silently reporting
+  // header confidence for body or param tokens. That is exactly the bug the
+  // signature-pattern split hit, so each channel gets its own assertion here.
+  it('uses the BODY confidence constants for POST-body tokens, not the header set', () => {
+    const patterns = detectTokenPatternsInternal([
+      request({ postData: JSON.stringify({ access_token: JWT_FIXTURE }) }),
+      request({ postData: JSON.stringify({ session: 'b'.repeat(PATTERN_TOKEN_MIN_LENGTH + 1) }) }),
+    ]);
+
+    expect(patterns).toHaveLength(2);
+    expect(patterns[0]).toMatchObject({
+      type: 'JWT',
+      confidence: PATTERN_TOKEN_CONFIDENCE_BODY_JWT,
+    });
+    expect(patterns[1]).toMatchObject({
+      type: 'Custom',
+      confidence: PATTERN_TOKEN_CONFIDENCE_BODY_CUSTOM,
+    });
+  });
+
+  it('uses the PARAM confidence constants for URL-param tokens, not the header set', () => {
+    const patterns = detectTokenPatternsInternal([
+      request({ url: rootUrl(`callback?access_token=${JWT_FIXTURE}`) }),
+    ]);
+
+    expect(patterns).toHaveLength(1);
+    expect(patterns[0]).toMatchObject({
+      type: 'JWT',
+      confidence: PATTERN_TOKEN_CONFIDENCE_PARAM_JWT,
+    });
+  });
+
+  it('reports the form-urlencoded fallback with its own confidence, not the JSON one', () => {
+    const patterns = detectTokenPatternsInternal([
+      request({ postData: `token=${'x'.repeat(PATTERN_TOKEN_MIN_LENGTH + 1)}` }),
+    ]);
+
+    expect(patterns).toHaveLength(1);
+    expect(patterns[0]).toMatchObject({
+      type: 'Custom',
+      confidence: PATTERN_TOKEN_CONFIDENCE_BODY_FORM,
+    });
+  });
+
+  it('keeps the three channels distinct when one request carries all three', () => {
+    const token = 'b'.repeat(PATTERN_TOKEN_MIN_LENGTH + 1);
+    const patterns = detectTokenPatternsInternal([
+      request({
+        url: rootUrl(`callback?access_token=${token}`),
+        headers: { authorization: token },
+        postData: JSON.stringify({ access_token: token }),
+      }),
+    ]);
+
+    const confidences = patterns.map((p) => p.confidence);
+    expect(confidences).toContain(PATTERN_TOKEN_CONFIDENCE_HEADER_CUSTOM);
+    expect(confidences).toContain(PATTERN_TOKEN_CONFIDENCE_PARAM_OAUTH);
+    expect(confidences).toContain(PATTERN_TOKEN_CONFIDENCE_BODY_CUSTOM);
   });
 });
