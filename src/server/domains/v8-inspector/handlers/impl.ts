@@ -128,7 +128,9 @@ export class V8InspectorHandlers {
       v8_heap_snapshot_export: (toolArgs) => this.v8_heap_snapshot_export(toolArgs),
     };
 
-    const handler = dispatchTable[toolName];
+    // Own-property guard: an inherited key ('constructor', 'toString', ...)
+    // would resolve to an Object.prototype member instead of a handler.
+    const handler = Object.hasOwn(dispatchTable, toolName) ? dispatchTable[toolName] : undefined;
     if (!handler) {
       throw new Error(`Unknown v8-inspector tool: ${toolName}`);
     }

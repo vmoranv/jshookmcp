@@ -50,7 +50,11 @@ export function resolveAdapter(
   if (adapterRegistry.has(detection.adapterId)) {
     return adapterRegistry.get(detection.adapterId)!;
   }
-  const factory = adapterFactories[detection.adapterId];
+  // Own-property guard: inherited keys would resolve to Object.prototype
+  // members and be invoked as factories.
+  const factory = Object.hasOwn(adapterFactories, detection.adapterId)
+    ? adapterFactories[detection.adapterId]
+    : undefined;
   if (!factory) return null;
 
   const adapter = factory();
