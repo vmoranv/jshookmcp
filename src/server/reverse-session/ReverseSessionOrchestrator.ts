@@ -101,19 +101,7 @@ export class ReverseSessionOrchestrator {
 
     const executableSteps = session.steps.filter(isExecutableStep);
     if (executableSteps.length === 0) {
-      const run = createRunRecord({
-        status: session.steps.some((step) => step.status === 'blocked') ? 'blocked' : 'completed',
-        executedSteps: [],
-        blockedSteps: session.steps.filter((step) => step.status === 'blocked'),
-        evidenceRefs: [],
-        reason: session.steps.some((step) => step.status === 'blocked')
-          ? 'No executable steps are available because remaining steps are blocked.'
-          : 'All executable steps are already completed.',
-      });
-      session.runs.push(run);
-      updateSessionStatus(session);
-      this.store.touch(session);
-      return { success: run.status === 'completed', session, run, reason: run.reason };
+      return this.finishWithoutExecutableSteps(session);
     }
 
     if (!this.toolExecutor) {
@@ -136,60 +124,13 @@ export class ReverseSessionOrchestrator {
       if (executedSteps.length >= maxSteps) break;
       if (!isExecutableStep(step)) continue;
 
-      const stepStartedAt = Date.now();
-      step.status = 'running';
-      step.lastRunAt = new Date().toISOString();
-      step.attempts = (step.attempts ?? 0) + 1;
-      delete step.error;
-      this.store.touch(session);
-
-      try {
-        const rawResult = await this.toolExecutor(step.tool, step.args);
-        const parsedResult = parseToolResult(rawResult);
-        const body = parsedResult.body;
-        const success = isSuccessfulToolResult(parsedResult);
-        const durationMs = Date.now() - stepStartedAt;
-        const evidenceRef = success ? buildEvidenceRef(runId, step, body) : undefined;
-        if (success) {
-          step.status = 'completed';
-          step.completedAt = new Date().toISOString();
-          if (evidenceRef) {
-            step.resultRef = evidenceRef;
-            evidenceRefs.push(evidenceRef);
-            session.evidenceRefs.push(evidenceRef);
-          }
-          await promoteBlockedStepsFromResult(session, body);
-        } else {
-          step.status = 'failed';
-          step.error =
-            extractToolError(body) ?? parsedResult.text ?? 'Tool returned an unsuccessful result.';
-        }
-        executedSteps.push({
-          stepId: step.id,
-          tool: step.tool,
-          success,
-          durationMs,
-          ...(evidenceRef ? { evidenceRef } : {}),
-          ...(step.error ? { error: step.error } : {}),
-          ...(input.includeResults ? { result: body } : {}),
-        });
-        this.store.touch(session);
-        if (!success && stopOnError) break;
-      } catch (error) {
-        const durationMs = Date.now() - stepStartedAt;
-        const message = error instanceof Error ? error.message : String(error);
-        step.status = 'failed';
-        step.error = message;
-        executedSteps.push({
-          stepId: step.id,
-          tool: step.tool,
-          success: false,
-          durationMs,
-          error: message,
-        });
-        this.store.touch(session);
-        if (stopOnError) break;
-      }
+      const outcome = await this.executeOneStep(session, step, {
+        runId,
+        includeResults: input.includeResults === true,
+        evidenceRefs,
+      });
+      executedSteps.push(outcome);
+      if (!outcome.success && stopOnError) break;
     }
 
     const blockedSteps = session.steps.filter((step) => step.status === 'blocked');
@@ -210,6 +151,83 @@ export class ReverseSessionOrchestrator {
       run,
       ...(run.status === 'failed' ? { reason: latestFailure(executedSteps) } : {}),
     };
+  }
+  /** No executable steps remain: record a terminal run and report it. */
+  private finishWithoutExecutableSteps(session: ReverseSessionRecord): ReverseSessionRunResult {
+    const hasBlocked = session.steps.some((step) => step.status === 'blocked');
+    const run = createRunRecord({
+      status: hasBlocked ? 'blocked' : 'completed',
+      executedSteps: [],
+      blockedSteps: session.steps.filter((step) => step.status === 'blocked'),
+      evidenceRefs: [],
+      reason: hasBlocked
+        ? 'No executable steps are available because remaining steps are blocked.'
+        : 'All executable steps are already completed.',
+    });
+    session.runs.push(run);
+    updateSessionStatus(session);
+    this.store.touch(session);
+    return { success: run.status === 'completed', session, run, reason: run.reason };
+  }
+
+  /** Execute one step, updating the step record and collecting evidence. */
+  private async executeOneStep(
+    session: ReverseSessionRecord,
+    step: ReverseSessionStep,
+    ctx: { runId: string; includeResults: boolean; evidenceRefs: string[] },
+  ): Promise<ReverseSessionExecutedStep> {
+    const stepStartedAt = Date.now();
+    step.status = 'running';
+    step.lastRunAt = new Date().toISOString();
+    step.attempts = (step.attempts ?? 0) + 1;
+    delete step.error;
+    this.store.touch(session);
+
+    try {
+      const rawResult = await this.toolExecutor!(step.tool, step.args);
+      const parsedResult = parseToolResult(rawResult);
+      const body = parsedResult.body;
+      const success = isSuccessfulToolResult(parsedResult);
+      const durationMs = Date.now() - stepStartedAt;
+      const evidenceRef = success ? buildEvidenceRef(ctx.runId, step, body) : undefined;
+      if (success) {
+        step.status = 'completed';
+        step.completedAt = new Date().toISOString();
+        if (evidenceRef) {
+          step.resultRef = evidenceRef;
+          ctx.evidenceRefs.push(evidenceRef);
+          session.evidenceRefs.push(evidenceRef);
+        }
+        await promoteBlockedStepsFromResult(session, body);
+      } else {
+        step.status = 'failed';
+        step.error =
+          extractToolError(body) ?? parsedResult.text ?? 'Tool returned an unsuccessful result.';
+      }
+      this.store.touch(session);
+      return {
+        stepId: step.id,
+        tool: step.tool,
+        success,
+        durationMs,
+        ...(evidenceRef ? { evidenceRef } : {}),
+        ...(step.error ? { error: step.error } : {}),
+        ...(ctx.includeResults ? { result: body } : {}),
+      };
+    } catch (error) {
+      const durationMs = Date.now() - stepStartedAt;
+      const message = error instanceof Error ? error.message : String(error);
+      step.status = 'failed';
+      step.error = message;
+      this.store.touch(session);
+      return {
+        stepId: step.id,
+        tool: step.tool,
+        success: false,
+        durationMs,
+        error: message,
+      };
+    }
   }
 }
 
