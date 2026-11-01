@@ -160,6 +160,11 @@ export class MemoryScanner {
 
     const handle = this.provider.openProcess(pid, false);
     try {
+      const alignHelpers: AlignHelpers = {
+        getAlignStep: (a) => this.getAlignStep(a),
+        getAlignedChunkStart: (addr, step) => this.getAlignedChunkStart(addr, step),
+        isAlignedAddress: (addr, step) => this.isAlignedAddress(addr, step),
+      };
       const regions = this.getFilteredRegions(handle, options);
       const totalRegions = regions.length;
       let regionsProcessed = 0;
@@ -190,34 +195,17 @@ export class MemoryScanner {
             break; // Skip unreadable chunks
           }
 
-          // Fast path: Buffer.indexOf uses V8's SIMD-optimized native search
-          if (alignment === valueSize && valueSize > 0) {
-            const alignStep = this.getAlignStep(alignment);
-            let searchFrom = this.getAlignedChunkStart(chunkAddr, alignStep);
-            while (searchFrom <= chunk.length - valueSize && addresses.length < maxResults) {
-              const hit = chunk.indexOf(targetBuf, searchFrom);
-              if (hit === -1) break;
-              if (!this.isAlignedAddress(chunkAddr + BigInt(hit), alignStep)) {
-                searchFrom = hit + 1;
-                continue;
-              }
-              const addr = chunkAddr + BigInt(hit);
-              addresses.push(addr);
-              values.set(addr, Buffer.from(chunk.subarray(hit, hit + valueSize)));
-              searchFrom = hit + alignStep;
-            }
-          } else {
-            const alignStep = this.getAlignStep(alignment);
-            const chunkStart = this.getAlignedChunkStart(chunkAddr, alignStep);
-            for (let i = chunkStart; i <= chunk.length - valueSize; i += alignStep) {
-              if (Buffer.compare(chunk.subarray(i, i + valueSize), targetBuf) === 0) {
-                const addr = chunkAddr + BigInt(i);
-                addresses.push(addr);
-                values.set(addr, Buffer.from(chunk.subarray(i, i + valueSize)));
-                if (addresses.length >= maxResults) break;
-              }
-            }
-          }
+          scanChunkForValue(
+            chunk,
+            chunkAddr,
+            targetBuf,
+            valueSize,
+            alignment,
+            maxResults,
+            addresses,
+            values,
+            alignHelpers,
+          );
 
           chunksProcessed++;
           if (chunksProcessed % SCAN_YIELD_CHUNK_INTERVAL === 0) {
@@ -939,4 +927,58 @@ function ownsSystemModule(regionInfo: ScanRegionInfo, moduleList: ScanModuleEntr
     if (nameLower.includes(sysMod)) return true;
   }
   return false;
+}
+
+/** Alignment predicates owned by MemoryScanner, passed to the chunk scanner. */
+interface AlignHelpers {
+  getAlignStep: (alignment: number) => number;
+  getAlignedChunkStart: (chunkAddr: bigint, alignStep: number) => number;
+  isAlignedAddress: (addr: bigint, alignStep: number) => boolean;
+}
+
+/** Find `targetBuf` inside one memory chunk, honouring alignment, and record
+ * hits into `addresses` / `values` until `maxResults` is reached.
+ *
+ * Two strategies: when the value size equals the alignment the search uses
+ * Buffer.indexOf (V8's SIMD-optimized native scan) and re-checks alignment
+ * per hit; otherwise it steps the buffer at `alignStep` and compares. */
+function scanChunkForValue(
+  chunk: Buffer,
+  chunkAddr: bigint,
+  targetBuf: Buffer,
+  valueSize: number,
+  alignment: number,
+  maxResults: number,
+  addresses: bigint[],
+  values: Map<bigint, Buffer>,
+  align: AlignHelpers,
+): void {
+  const alignStep = align.getAlignStep(alignment);
+
+  if (alignment === valueSize && valueSize > 0) {
+    let searchFrom = align.getAlignedChunkStart(chunkAddr, alignStep);
+    while (searchFrom <= chunk.length - valueSize && addresses.length < maxResults) {
+      const hit = chunk.indexOf(targetBuf, searchFrom);
+      if (hit === -1) break;
+      if (!align.isAlignedAddress(chunkAddr + BigInt(hit), alignStep)) {
+        searchFrom = hit + 1;
+        continue;
+      }
+      const addr = chunkAddr + BigInt(hit);
+      addresses.push(addr);
+      values.set(addr, Buffer.from(chunk.subarray(hit, hit + valueSize)));
+      searchFrom = hit + alignStep;
+    }
+    return;
+  }
+
+  const chunkStart = align.getAlignedChunkStart(chunkAddr, alignStep);
+  for (let i = chunkStart; i <= chunk.length - valueSize; i += alignStep) {
+    if (Buffer.compare(chunk.subarray(i, i + valueSize), targetBuf) === 0) {
+      const addr = chunkAddr + BigInt(i);
+      addresses.push(addr);
+      values.set(addr, Buffer.from(chunk.subarray(i, i + valueSize)));
+      if (addresses.length >= maxResults) break;
+    }
+  }
 }
