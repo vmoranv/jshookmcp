@@ -57,7 +57,7 @@ importers:
         version: 2.3.1
       '@modelcontextprotocol/core':
         specifier: ^2.3.1
-        version: 2.3.1
+        version: 2.4.0
       '@modelcontextprotocol/node':
         specifier: ^2.1.1
         version: 2.1.1(@modelcontextprotocol/server@2.4.0)
