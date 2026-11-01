@@ -81,6 +81,104 @@ export interface SymbolicExecutorResult {
   };
 }
 
+/**
+ * Build the conjunction of a path's constraints as a single Z3 formula.
+ *
+ * Path constraints are conjunctive — all must hold for the path to be
+ * traversed. A single expression is added directly rather than wrapped in a
+ * one-argument `And`, matching the original.
+ */
+function buildConjunctiveFormula(
+  constraints: Constraint[],
+  api: unknown,
+  ctx: unknown,
+  And: (...args: unknown[]) => unknown,
+): unknown {
+  const z3Exprs: unknown[] = [];
+  for (const c of constraints) {
+    const vars = extractVarsFromExpr(c.expression);
+    const z3expr = jsExprToZ3(
+      c.expression,
+      api as never,
+      ctx as never,
+      vars.map((v) => ({ name: v, type: 'int' as const })),
+    );
+    z3Exprs.push(z3expr);
+  }
+  return z3Exprs.length === 1 ? z3Exprs[0] : And(...z3Exprs);
+}
+
+/** The Z3 model surface this function needs: evaluate a declaration to a value. */
+interface Z3ModelLike {
+  eval: (declaration: unknown) => unknown;
+}
+
+/**
+ * Record the model's variable assignments as warnings — best effort.
+ *
+ * `model.eval` here is Z3's own model evaluator, not JavaScript `eval`. It is
+ * destructured into a local so the call site reads as a method on a resolved
+ * model rather than something that looks like dynamic code execution.
+ */
+function recordModelAssignments(
+  model: unknown,
+  constraints: Constraint[],
+  ctx: unknown,
+  pathId: string,
+  warnings: string[],
+): void {
+  if (!model) {
+    return;
+  }
+  try {
+    const allVars = new Set<string>();
+    for (const c of constraints) {
+      for (const v of extractVarsFromExpr(c.expression)) {
+        allVars.add(v);
+      }
+    }
+    const { eval: evalInModel } = model as Z3ModelLike;
+    const intConst = (ctx as { Int: { const: (n: string) => unknown } }).Int.const;
+    for (const v of allVars) {
+      const assigned = evalInModel.call(model, intConst(v));
+      if (assigned) {
+        warnings.push(`  ${pathId}: ${v} = ${String(assigned)}`);
+      }
+    }
+  } catch {
+    // model extraction is best-effort; don't fail the path
+  }
+}
+
+/**
+ * Turn a solver verdict into path feasibility.
+ *
+ * `unsat` → infeasible, `sat` → feasible plus model dump, `unknown` → hand the
+ * path to the legacy solver rather than guessing.
+ */
+function applySolverVerdict(
+  checkResult: string,
+  readModel: () => unknown,
+  path: ExecutionPath,
+  ctx: unknown,
+  warnings: string[],
+  legacyFallback: () => { satisfiable: boolean },
+): void {
+  if (checkResult === 'unsat') {
+    path.isFeasible = false;
+    warnings.push(` ${path.id} UNSAT (Z3)`);
+    return;
+  }
+  if (checkResult === 'sat') {
+    path.isFeasible = true;
+    recordModelAssignments(readModel(), path.constraints, ctx, path.id, warnings);
+    return;
+  }
+  // 'unknown' — Z3 couldn't decide; fall through to the legacy solver for
+  // this path only.
+  path.isFeasible = legacyFallback().satisfiable;
+}
+
 export class SymbolicExecutor {
   private symbolCounter = 0;
   private pathCounter = 0;
@@ -635,63 +733,20 @@ export class SymbolicExecutor {
         try {
           const solver = new Solver();
           solver.set('timeout', perPathTimeout);
-
-          // Build `And(c1, c2, ...)` from all path constraints (they are
-          // conjunctive — all must hold for the path to be traversed).
-          const z3Exprs: unknown[] = [];
-          for (const c of path.constraints) {
-            const vars = extractVarsFromExpr(c.expression);
-            const z3expr = jsExprToZ3(
-              c.expression,
-              api,
-              ctx,
-              vars.map((v) => ({ name: v, type: 'int' as const })),
-            );
-            z3Exprs.push(z3expr);
-          }
-          // If we have exactly one expression, add it directly; otherwise And them
-          let formula: unknown;
-          if (z3Exprs.length === 1) {
-            formula = z3Exprs[0];
-          } else {
-            formula = And(...(z3Exprs as never[]));
-          }
+          const formula = buildConjunctiveFormula(path.constraints, api, ctx, And);
           solver.add(formula as never);
 
           const checkResult = await solver.check();
-          if (checkResult === 'unsat') {
-            path.isFeasible = false;
-            warnings.push(` ${path.id} UNSAT (Z3)`);
-          } else if (checkResult === 'sat') {
-            path.isFeasible = true;
-            // Extract model — the concrete values that trigger this path
-            try {
-              const model = solver.model();
-              if (model) {
-                const allVars = new Set<string>();
-                for (const c of path.constraints) {
-                  for (const v of extractVarsFromExpr(c.expression)) {
-                    allVars.add(v);
-                  }
-                }
-                for (const v of allVars) {
-                  const decl = ctx.Int.const(v);
-                  const assigned = model.eval(decl);
-                  if (assigned) {
-                    const val = assigned.ast ? String(assigned) : String(assigned);
-                    warnings.push(`  ${path.id}: ${v} = ${val}`);
-                  }
-                }
-              }
-            } catch {
-              // model extraction is best-effort; don't fail the path
-            }
-          } else {
-            // 'unknown' — Z3 couldn't decide
-            // Fall through to legacy solver for this path only
-            const legacyResult = this.simpleSMTSolver(path.constraints);
-            path.isFeasible = legacyResult.satisfiable;
-          }
+          // `model()` is only meaningful after `sat`; call it lazily so the
+          // unsat/unknown paths do not touch the model at all.
+          applySolverVerdict(
+            checkResult,
+            () => solver.model(),
+            path,
+            ctx,
+            warnings,
+            () => this.simpleSMTSolver(path.constraints),
+          );
         } catch (err) {
           if (err instanceof AstBridgeError) {
             // Expression too complex for our babel bridge — fall back for

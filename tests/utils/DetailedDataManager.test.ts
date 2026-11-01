@@ -7,8 +7,8 @@ describe('DetailedDataManager', () => {
     vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
   });
 
-  afterEach(() => {
-    DetailedDataManager.getInstance().shutdown();
+  afterEach(async () => {
+    await DetailedDataManager.getInstance().shutdownAsync();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -87,7 +87,7 @@ describe('DetailedDataManager', () => {
     expect(manager.retrieve(result.detailId)).toEqual(large);
   });
 
-  it('cleanup interval is unref()d so it does not prevent process exit', () => {
+  it('cleanup interval is unref()d so it does not prevent process exit', async () => {
     const manager = new DetailedDataManager();
     const interval = (manager as any).cleanupInterval;
     expect(interval).toBeDefined();
@@ -95,7 +95,7 @@ describe('DetailedDataManager', () => {
     if (typeof interval === 'object' && typeof interval.hasRef === 'function') {
       expect(interval.hasRef()).toBe(false);
     }
-    manager.shutdown();
+    await manager.shutdownAsync();
   });
 
   it('returns primitives directly from smartHandle', async () => {

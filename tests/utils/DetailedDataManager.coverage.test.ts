@@ -15,8 +15,10 @@ describe('DetailedDataManager – v8 ignore branch coverage', () => {
     manager = new DetailedDataManager();
   });
 
-  afterEach(() => {
-    manager.shutdown();
+  afterEach(async () => {
+    // Await the constructor's init() before tearing down fake timers: without
+    // this the background chain can still be logging when the worker closes.
+    await manager.shutdownAsync();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
