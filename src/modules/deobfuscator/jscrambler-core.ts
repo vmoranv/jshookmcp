@@ -261,19 +261,27 @@ export function createJscramblerCore(babel: JscramblerCoreBabel): JscramblerCore
         : (left as number) + (right as number);
     }
 
-    const numeric = NUMERIC_BINARY_OPS[operator];
+    // Own-property guards: a bare lookup resolves inherited keys ('constructor',
+    // 'toString', ...) to Object.prototype members and would call those.
+    const numeric = Object.hasOwn(NUMERIC_BINARY_OPS, operator)
+      ? NUMERIC_BINARY_OPS[operator]
+      : undefined;
     if (numeric) {
       return typeof left === 'number' && typeof right === 'number'
         ? numeric(left, right)
         : undefined;
     }
 
-    const comparison = COMPARISON_BINARY_OPS[operator];
+    const comparison = Object.hasOwn(COMPARISON_BINARY_OPS, operator)
+      ? COMPARISON_BINARY_OPS[operator]
+      : undefined;
     if (comparison) {
       return comparison(comparable(left), comparable(right));
     }
 
-    const equality = EQUALITY_BINARY_OPS[operator];
+    const equality = Object.hasOwn(EQUALITY_BINARY_OPS, operator)
+      ? EQUALITY_BINARY_OPS[operator]
+      : undefined;
     if (equality) {
       return equality(left, right);
     }
