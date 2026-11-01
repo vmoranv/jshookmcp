@@ -64,6 +64,14 @@ const PE32PLUS_DATA_DIRECTORIES_OFFSET = 136;
 const MAX_DATA_DIRECTORIES = 16;
 
 /** IMAGE_ORDINAL_FLAG: the high bit of a thunk value marks an import by ordinal. */
+/** Parsed PE core headers (DOS/NT/optional-header summary). */
+interface PeCoreHeaders {
+  numSections: number;
+  isPE32Plus: boolean;
+  firstSectionOffset: number;
+  dataDirectories: { rva: number; size: number }[];
+}
+
 function ordinalFlag(isPE32Plus: boolean): bigint {
   return isPE32Plus ? 0x8000000000000000n : 0x80000000n;
 }
@@ -422,123 +430,15 @@ export class PEAnalyzer {
           const importDir = headers.dataDirectories[IMAGE_DIRECTORY_ENTRY.IMPORT];
           if (!importDir || importDir.rva === 0) continue;
 
-          const thunkSize = headers.isPE32Plus ? 8 : 4;
-          const ordinal = ordinalFlag(headers.isPE32Plus);
-          let descOffset = importDir.rva;
-
-          // Walk IMAGE_IMPORT_DESCRIPTOR chain (20 bytes each).
-          for (let i = 0; i < MAX_IMPORT_DESCRIPTORS; i++) {
-            const desc = ReadProcessMemory(
-              hProcess,
-              base + BigInt(descOffset),
-              IMPORT_DESCRIPTOR_SIZE,
-            );
-            const nameRva = desc.readUInt32LE(12);
-            if (nameRva === 0) break; // Terminator
-
-            const firstThunkRva = desc.readUInt32LE(16); // IAT (loader-filled)
-            const originalFirstThunkRva = desc.readUInt32LE(0); // INT (hint/name)
-
-            // Read DLL name.
-            const nameData = ReadProcessMemory(
-              hProcess,
-              base + BigInt(nameRva),
-              MAX_DLL_NAME_BYTES,
-            );
-            const nullIdx = nameData.indexOf(0);
-            const dllName = nameData
-              .subarray(0, nullIdx > 0 ? nullIdx : MAX_DLL_NAME_BYTES)
-              .toString('ascii');
-
-            // Resolve the declared source module's loaded range.
-            const dllStem = dllName.toLowerCase().replace(/\.dll$/i, '');
-            const sourceMod =
-              modules.find((m) => m.name.toLowerCase() === dllName.toLowerCase()) ??
-              modules.find((m) => m.name.toLowerCase().replace(/\.dll$/i, '') === dllStem);
-            const srcBase = sourceMod ? BigInt(sourceMod.base) : 0n;
-            const srcEnd = sourceMod ? srcBase + BigInt(sourceMod.size) : 0n;
-
-            // Forwarded exports legitimately resolve OUTSIDE the source module:
-            // the loader follows the forward chain (e.g. kernel32 → api-ms-win-*
-            // → KernelBase) and writes the FINAL address into the IAT. Reading the
-            // source module's export table once lets us skip such entries — only
-            // genuinely redirected IAT entries are hooks. Ordinal-only forwards
-            // (no name in the export table) cannot be detected here.
-            if (sourceMod && !srcForwardCache.has(sourceMod.name)) {
-              const srcExports = await this.parseExportsInternal(hProcess, srcBase);
-              const forwarded = new Set<string>();
-              for (const e of srcExports) {
-                if (e.forwardedTo) {
-                  forwarded.add(e.name);
-                  forwarded.add(`Ordinal#${e.ordinal}`);
-                }
-              }
-              srcForwardCache.set(sourceMod.name, forwarded);
-            }
-
-            // Walk IAT thunks.
-            for (let j = 0; j < MAX_THUNK_ENTRIES; j++) {
-              const iatAbs = base + BigInt(firstThunkRva + j * thunkSize);
-              const thunkData = ReadProcessMemory(hProcess, iatAbs, thunkSize);
-              const funcAddr = headers.isPE32Plus
-                ? thunkData.readBigUInt64LE(0)
-                : BigInt(thunkData.readUInt32LE(0));
-              if (funcAddr === 0n) break; // End of IAT
-
-              // Resolve function name from INT (OriginalFirstThunk) if present.
-              let funcName = `Ordinal#0`;
-              const intRva = originalFirstThunkRva || firstThunkRva;
-              if (intRva) {
-                const intData = ReadProcessMemory(
-                  hProcess,
-                  base + BigInt(intRva + j * thunkSize),
-                  thunkSize,
-                );
-                const intValue = headers.isPE32Plus
-                  ? intData.readBigUInt64LE(0)
-                  : BigInt(intData.readUInt32LE(0));
-                if ((intValue & ordinal) !== 0n) {
-                  funcName = `Ordinal#${Number(intValue & 0xffffn)}`;
-                } else if (intValue !== 0n) {
-                  const hintNameData = ReadProcessMemory(
-                    hProcess,
-                    base + BigInt(Number(intValue)),
-                    MAX_HINT_NAME_BYTES,
-                  );
-                  const ni = hintNameData.indexOf(0, 2);
-                  funcName = hintNameData
-                    .subarray(2, ni > 2 ? ni : MAX_HINT_NAME_BYTES)
-                    .toString('ascii');
-                }
-              }
-
-              // Flag if the resolved address is outside the source module range.
-              if (sourceMod && (funcAddr < srcBase || funcAddr >= srcEnd)) {
-                // Skip forwarded exports — the loader wrote the final target,
-                // so an outside-module address is expected, not a hook.
-                if (srcForwardCache.get(sourceMod.name)?.has(funcName)) continue;
-
-                let actualModule: string | null = null;
-                for (const m of modules) {
-                  const mb = BigInt(m.base);
-                  if (funcAddr >= mb && funcAddr < mb + BigInt(m.size)) {
-                    actualModule = m.name;
-                    break;
-                  }
-                }
-                detections.push({
-                  moduleName: mod.name,
-                  importDll: dllName,
-                  functionName: funcName,
-                  iatAddress: `0x${iatAbs.toString(16)}`,
-                  expectedModule: sourceMod.name,
-                  actualTarget: `0x${funcAddr.toString(16)}`,
-                  actualModule,
-                });
-              }
-            }
-            descOffset += IMPORT_DESCRIPTOR_SIZE;
-          }
+          await this.walkImportDescriptors(
+            hProcess,
+            mod,
+            base,
+            headers,
+            modules,
+            srcForwardCache,
+            detections,
+          );
         } catch (e) {
           logger.debug(`IAT hook check skipped for ${mod.name}: ${e}`);
         }
@@ -548,6 +448,127 @@ export class PEAnalyzer {
     }
 
     return detections;
+  }
+
+  /** Walk the module's IMAGE_IMPORT_DESCRIPTOR chain, delegating each
+   * descriptor to walkImportThunks. */
+  private async walkImportDescriptors(
+    hProcess: bigint,
+    mod: PeModuleEntry,
+    base: bigint,
+    headers: Awaited<ReturnType<PEAnalyzer['readCoreHeaders']>>,
+    modules: PeModuleEntry[],
+    srcForwardCache: Map<string, Set<string>>,
+    detections: IATHookDetection[],
+  ): Promise<void> {
+    const importDir = headers.dataDirectories[IMAGE_DIRECTORY_ENTRY.IMPORT]!;
+    const thunkSize = headers.isPE32Plus ? 8 : 4;
+    let descOffset = importDir.rva;
+
+    // Walk IMAGE_IMPORT_DESCRIPTOR chain (20 bytes each).
+    for (let i = 0; i < MAX_IMPORT_DESCRIPTORS; i++) {
+      const desc = ReadProcessMemory(hProcess, base + BigInt(descOffset), IMPORT_DESCRIPTOR_SIZE);
+      const nameRva = desc.readUInt32LE(12);
+      if (nameRva === 0) break; // Terminator
+
+      const firstThunkRva = desc.readUInt32LE(16); // IAT (loader-filled)
+      const originalFirstThunkRva = desc.readUInt32LE(0); // INT (hint/name)
+
+      const dllName = readImportDllName(hProcess, base, nameRva);
+      const sourceMod = resolveSourceModule(modules, dllName);
+      const srcBase = sourceMod ? BigInt(sourceMod.base) : 0n;
+      const srcEnd = sourceMod ? srcBase + BigInt(sourceMod.size) : 0n;
+
+      // Forwarded exports legitimately resolve OUTSIDE the source module:
+      // the loader follows the forward chain (e.g. kernel32 → api-ms-win-*
+      // → KernelBase) and writes the FINAL address into the IAT. Reading the
+      // source module's export table once lets us skip such entries — only
+      // genuinely redirected IAT entries are hooks. Ordinal-only forwards
+      // (no name in the export table) cannot be detected here.
+      if (sourceMod && !srcForwardCache.has(sourceMod.name)) {
+        srcForwardCache.set(
+          sourceMod.name,
+          await this.collectForwardedExportNames(hProcess, srcBase),
+        );
+      }
+
+      this.walkIatThunks(hProcess, {
+        mod,
+        base,
+        headers,
+        modules,
+        sourceMod,
+        srcBase,
+        srcEnd,
+        dllName,
+        firstThunkRva,
+        originalFirstThunkRva,
+        thunkSize,
+        forwarded: sourceMod ? srcForwardCache.get(sourceMod.name) : undefined,
+        detections,
+      });
+
+      descOffset += IMPORT_DESCRIPTOR_SIZE;
+    }
+  }
+
+  /** Parse the source module's export table into the set of names (and
+   * ordinal markers) that are forwarded elsewhere. */
+  private async collectForwardedExportNames(
+    hProcess: bigint,
+    srcBase: bigint,
+  ): Promise<Set<string>> {
+    const srcExports = await this.parseExportsInternal(hProcess, srcBase);
+    const forwarded = new Set<string>();
+    for (const e of srcExports) {
+      if (e.forwardedTo) {
+        forwarded.add(e.name);
+        forwarded.add(`Ordinal#${e.ordinal}`);
+      }
+    }
+    return forwarded;
+  }
+
+  /** Walk one descriptor's IAT thunk array, collecting out-of-module targets. */
+  private walkIatThunks(hProcess: bigint, ctx: IatWalkContext): void {
+    const { base, headers, modules, sourceMod, srcBase, srcEnd, dllName, thunkSize } = ctx;
+    const ordinal = ordinalFlag(headers.isPE32Plus);
+
+    for (let j = 0; j < MAX_THUNK_ENTRIES; j++) {
+      const iatAbs = base + BigInt(ctx.firstThunkRva + j * thunkSize);
+      const thunkData = ReadProcessMemory(hProcess, iatAbs, thunkSize);
+      const funcAddr = headers.isPE32Plus
+        ? thunkData.readBigUInt64LE(0)
+        : BigInt(thunkData.readUInt32LE(0));
+      if (funcAddr === 0n) break; // End of IAT
+
+      const funcName = readImportedFunctionName(hProcess, {
+        base,
+        headers,
+        originalFirstThunkRva: ctx.originalFirstThunkRva,
+        firstThunkRva: ctx.firstThunkRva,
+        index: j,
+        thunkSize,
+        ordinal,
+      });
+
+      // Flag if the resolved address is outside the source module range.
+      if (sourceMod && (funcAddr < srcBase || funcAddr >= srcEnd)) {
+        // Skip forwarded exports — the loader wrote the final target,
+        // so an outside-module address is expected, not a hook.
+        if (ctx.forwarded?.has(funcName)) continue;
+
+        ctx.detections.push({
+          moduleName: ctx.mod.name,
+          importDll: dllName,
+          functionName: funcName,
+          iatAddress: `0x${iatAbs.toString(16)}`,
+          expectedModule: sourceMod.name,
+          actualTarget: `0x${funcAddr.toString(16)}`,
+          actualModule: findOwningModule(modules, funcAddr),
+        });
+      }
+    }
   }
 
   /**
@@ -597,7 +618,7 @@ export class PEAnalyzer {
 
   // ── Private Helpers ──
 
-  private async readCoreHeaders(hProcess: bigint, base: bigint) {
+  private async readCoreHeaders(hProcess: bigint, base: bigint): Promise<PeCoreHeaders> {
     const dosData = ReadProcessMemory(hProcess, base, DOS_HEADER_SIZE);
     const e_lfanew = dosData.readUInt32LE(E_LFANEW_OFFSET);
     if (e_lfanew < DOS_HEADER_SIZE) {
@@ -992,3 +1013,88 @@ export class PEAnalyzer {
 }
 
 export const peAnalyzer = new PEAnalyzer();
+
+/** One loaded module as returned by enumerateModulesInternal. */
+type PeModuleEntry = { name: string; base: string; path: string; size: number };
+
+/** Context for walking a single import descriptor's IAT. */
+interface IatWalkContext {
+  mod: PeModuleEntry;
+  base: bigint;
+  headers: PeCoreHeaders;
+  modules: PeModuleEntry[];
+  sourceMod: PeModuleEntry | undefined;
+  srcBase: bigint;
+  srcEnd: bigint;
+  dllName: string;
+  firstThunkRva: number;
+  originalFirstThunkRva: number;
+  thunkSize: number;
+  forwarded: Set<string> | undefined;
+  detections: IATHookDetection[];
+}
+
+/** Read the imported DLL's name from its RVA. */
+function readImportDllName(hProcess: bigint, base: bigint, nameRva: number): string {
+  const nameData = ReadProcessMemory(hProcess, base + BigInt(nameRva), MAX_DLL_NAME_BYTES);
+  const nullIdx = nameData.indexOf(0);
+  return nameData.subarray(0, nullIdx > 0 ? nullIdx : MAX_DLL_NAME_BYTES).toString('ascii');
+}
+
+/** Resolve the loaded module that a DLL name refers to (exact, then stem). */
+function resolveSourceModule(modules: PeModuleEntry[], dllName: string): PeModuleEntry | undefined {
+  const dllStem = dllName.toLowerCase().replace(/\.dll$/i, '');
+  return (
+    modules.find((m) => m.name.toLowerCase() === dllName.toLowerCase()) ??
+    modules.find((m) => m.name.toLowerCase().replace(/\.dll$/i, '') === dllStem)
+  );
+}
+
+/** Find which loaded module owns an address, or null when unowned. */
+function findOwningModule(modules: PeModuleEntry[], funcAddr: bigint): string | null {
+  for (const m of modules) {
+    const mb = BigInt(m.base);
+    if (funcAddr >= mb && funcAddr < mb + BigInt(m.size)) {
+      return m.name;
+    }
+  }
+  return null;
+}
+
+/** Resolve the imported function's name from the INT (hint/name table),
+ * falling back to `Ordinal#0` when the entry is unusable. */
+function readImportedFunctionName(
+  hProcess: bigint,
+  ctx: {
+    base: bigint;
+    headers: PeCoreHeaders;
+    originalFirstThunkRva: number;
+    firstThunkRva: number;
+    index: number;
+    thunkSize: number;
+    ordinal: bigint;
+  },
+): string {
+  const { base, headers, originalFirstThunkRva, firstThunkRva, index, thunkSize, ordinal } = ctx;
+  let funcName = `Ordinal#0`;
+  const intRva = originalFirstThunkRva || firstThunkRva;
+  if (!intRva) return funcName;
+
+  const intData = ReadProcessMemory(hProcess, base + BigInt(intRva + index * thunkSize), thunkSize);
+  const intValue = headers.isPE32Plus
+    ? intData.readBigUInt64LE(0)
+    : BigInt(intData.readUInt32LE(0));
+
+  if ((intValue & ordinal) !== 0n) {
+    funcName = `Ordinal#${Number(intValue & 0xffffn)}`;
+  } else if (intValue !== 0n) {
+    const hintNameData = ReadProcessMemory(
+      hProcess,
+      base + BigInt(Number(intValue)),
+      MAX_HINT_NAME_BYTES,
+    );
+    const ni = hintNameData.indexOf(0, 2);
+    funcName = hintNameData.subarray(2, ni > 2 ? ni : MAX_HINT_NAME_BYTES).toString('ascii');
+  }
+  return funcName;
+}
