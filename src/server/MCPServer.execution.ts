@@ -323,7 +323,6 @@ export async function executeToolWithTracking(ctx: MCPServerContext, name: strin
     emitToolCallTelemetry(ctx, instrumentation, name, args, enriched, {
       toolResultSuccess,
       toolDurationMs,
-      executionStartTime,
     });
     // Commit pending resource updates to prevent stream flooding
     ctx
@@ -540,11 +539,10 @@ function emitToolCallTelemetry(
   name: string,
   args: ToolArgs,
   enriched: unknown,
-  timing: { toolResultSuccess: boolean; toolDurationMs: number; executionStartTime: number },
+  timing: { toolResultSuccess: boolean; toolDurationMs: number },
 ): void {
   const toolResultSuccess = timing.toolResultSuccess;
   const toolDurationMs = timing.toolDurationMs;
-  void timing.executionStartTime;
   // Circuit breaker: record success or failure
   if (toolResultSuccess) {
     ctx.circuitBreaker.recordSuccess(name);

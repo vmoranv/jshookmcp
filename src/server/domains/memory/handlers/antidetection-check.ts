@@ -134,7 +134,7 @@ export class AntiDetectionCheckHandlers {
     const acProcesses = checkAcProcesses(recommendations, penaltyPerFail, penaltyPerWarn);
     score -= acProcesses.penalty;
     score = Math.max(0, score);
-    checkEnvGates(recommendations, penaltyPerWarn);
+    checkEnvGates(recommendations);
 
     // ── Verdict ────────────────────────────────────────────────────────────
     let verdict: 'pass' | 'warn' | 'fail';
@@ -368,8 +368,7 @@ function checkAcProcesses(
 }
 
 /** Environment gate visibility (penalises active self-defense only). */
-function checkEnvGates(recommendations: string[], penaltyPerWarn: number): void {
-  void penaltyPerWarn;
+function checkEnvGates(recommendations: string[]): void {
   const gateVars = ['JSHOOK_INJECTION_ENABLE', 'JSHOOK_BYOVD_ENABLE', 'JSHOOK_SELFDEFENSE'];
   for (const v of gateVars) {
     if (readEnvBoolean(v, false)) {

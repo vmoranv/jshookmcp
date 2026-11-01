@@ -135,7 +135,7 @@ export class TraceCodeHandlers {
       const memHandle = openProcessForMemory(pid, true);
 
       try {
-        const outcome = runTraceLoop(pid, memHandle, entryAddrs, savedBytes, opts);
+        const outcome = runTraceLoop(memHandle, savedBytes, opts);
         return buildTraceResult(outcome, entryAddrs.length, opts.timeoutMs);
       } finally {
         restoreBreakpoints(memHandle, savedBytes);
@@ -372,13 +372,10 @@ function handleSingleStep(evt: DebugEventInfo, st: TraceLoopState, memHandle: bi
 
 /** Run the INT3 trace loop until maxHits or the deadline. */
 function runTraceLoop(
-  pid: number,
   memHandle: bigint,
-  entryAddrs: bigint[],
   savedBytes: Map<string, number>,
   opts: TraceCodeOptions,
 ): TraceLoopState & { elapsed: number } {
-  void pid;
   const st: TraceLoopState = {
     hitMap: new Map(),
     totalHits: 0,
@@ -386,7 +383,6 @@ function runTraceLoop(
     pendingSingleStep: new Map(),
     stoppedBy: 'timeout',
   };
-  void entryAddrs;
   const startTime = Date.now();
   const deadline = startTime + opts.timeoutMs;
 
