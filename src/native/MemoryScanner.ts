@@ -160,11 +160,6 @@ export class MemoryScanner {
 
     const handle = this.provider.openProcess(pid, false);
     try {
-      const alignHelpers: AlignHelpers = {
-        getAlignStep: (a) => this.getAlignStep(a),
-        getAlignedChunkStart: (addr, step) => this.getAlignedChunkStart(addr, step),
-        isAlignedAddress: (addr, step) => this.isAlignedAddress(addr, step),
-      };
       const regions = this.getFilteredRegions(handle, options);
       const totalRegions = regions.length;
       let regionsProcessed = 0;
@@ -204,7 +199,7 @@ export class MemoryScanner {
             maxResults,
             addresses,
             values,
-            alignHelpers,
+            this.alignHelpers,
           );
 
           chunksProcessed++;
@@ -554,18 +549,7 @@ export class MemoryScanner {
       );
     }
 
-    // Build composite pattern
-    const compositePattern: number[] = Array.from({ length: maxOffset }, () => 0);
-    const compositeMask: number[] = Array.from({ length: maxOffset }, () => 0);
-
-    for (const entry of pattern) {
-      const effectiveType = entry.type === 'pointer' ? 'uint64' : entry.type;
-      const { patternBytes, mask } = parsePattern(entry.value, effectiveType);
-      for (let i = 0; i < patternBytes.length; i++) {
-        compositePattern[entry.offset + i] = patternBytes[i]!;
-        compositeMask[entry.offset + i] = mask[i]!;
-      }
-    }
+    const { compositePattern, compositeMask } = buildGroupCompositePattern(pattern, maxOffset);
 
     const alignment = options?.alignment ?? 4;
     const maxResults = options?.maxResults ?? SCAN_MAX_RESULTS_PER_SCAN;
@@ -603,22 +587,17 @@ export class MemoryScanner {
             break;
           }
 
-          const alignStep = this.getAlignStep(alignment);
-          const chunkStart = this.getAlignedChunkStart(chunkAddr, alignStep);
-          for (let i = chunkStart; i <= chunk.length - maxOffset; i += alignStep) {
-            let match = true;
-            for (let j = 0; j < maxOffset; j++) {
-              if (compositeMask[j] === 1 && chunk[i + j] !== compositePattern[j]) {
-                match = false;
-                break;
-              }
-            }
-            if (match) {
-              const addr = chunkAddr + BigInt(i);
-              addresses.push(addr);
-              if (addresses.length >= maxResults) break;
-            }
-          }
+          scanChunkForGroupPattern(
+            chunk,
+            chunkAddr,
+            compositePattern,
+            compositeMask,
+            maxOffset,
+            alignment,
+            maxResults,
+            addresses,
+            this.alignHelpers,
+          );
 
           chunksProcessed++;
           if (chunksProcessed % SCAN_YIELD_CHUNK_INTERVAL === 0) {
@@ -728,6 +707,15 @@ export class MemoryScanner {
   }
 
   // ── Private Helpers ──
+
+  /** Alignment predicates as a plain bundle, for the module-level scanners. */
+  private get alignHelpers(): AlignHelpers {
+    return {
+      getAlignStep: (a) => this.getAlignStep(a),
+      getAlignedChunkStart: (addr, step) => this.getAlignedChunkStart(addr, step),
+      isAlignedAddress: (addr, step) => this.isAlignedAddress(addr, step),
+    };
+  }
 
   private getAlignStep(alignment: number): number {
     return alignment > 0 ? alignment : 1;
@@ -1015,6 +1003,54 @@ function scanChunkForMaskedPattern(
     }
     if (matched) {
       matches.push(chunkAddr + BigInt(i));
+    }
+  }
+}
+
+/** Compose groupScan's per-entry patterns into one composite needle + mask. */
+function buildGroupCompositePattern(
+  pattern: Array<{ offset: number; value: string; type: ScanValueType }>,
+  maxOffset: number,
+): { compositePattern: number[]; compositeMask: number[] } {
+  const compositePattern: number[] = Array.from({ length: maxOffset }, () => 0);
+  const compositeMask: number[] = Array.from({ length: maxOffset }, () => 0);
+
+  for (const entry of pattern) {
+    const effectiveType = entry.type === 'pointer' ? 'uint64' : entry.type;
+    const { patternBytes, mask } = parsePattern(entry.value, effectiveType);
+    for (let i = 0; i < patternBytes.length; i++) {
+      compositePattern[entry.offset + i] = patternBytes[i]!;
+      compositeMask[entry.offset + i] = mask[i]!;
+    }
+  }
+  return { compositePattern, compositeMask };
+}
+
+/** Match the composite group pattern inside one chunk at `alignment` steps. */
+function scanChunkForGroupPattern(
+  chunk: Buffer,
+  chunkAddr: bigint,
+  compositePattern: number[],
+  compositeMask: number[],
+  maxOffset: number,
+  alignment: number,
+  maxResults: number,
+  addresses: bigint[],
+  align: AlignHelpers,
+): void {
+  const alignStep = align.getAlignStep(alignment);
+  const chunkStart = align.getAlignedChunkStart(chunkAddr, alignStep);
+  for (let i = chunkStart; i <= chunk.length - maxOffset; i += alignStep) {
+    let match = true;
+    for (let j = 0; j < maxOffset; j++) {
+      if (compositeMask[j] === 1 && chunk[i + j] !== compositePattern[j]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      addresses.push(chunkAddr + BigInt(i));
+      if (addresses.length >= maxResults) break;
     }
   }
 }
