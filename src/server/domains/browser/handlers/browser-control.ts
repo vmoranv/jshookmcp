@@ -312,7 +312,7 @@ export class BrowserControlHandlers {
     try {
       const driver = this.parseBrowserDriver(args);
       const mode = this.parseBrowserLaunchMode(args);
-      const sessionId = this.getCurrentSessionId();
+      const sessionId = this.getCurrentSessionId() ?? '';
       const lease = this.deps.sessionCoordinator?.getBrowserLease(sessionId);
 
       const leaseBlock = browserLaunchLeaseBlock(mode, lease);
@@ -323,35 +323,7 @@ export class BrowserControlHandlers {
       }
 
       if (mode === 'connect') {
-        const connectRequest = this.parseChromeConnectRequest(args);
-
-        if (!this.hasChromeConnectRequest(connectRequest)) {
-          return R.fail(
-            'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
-          ).json();
-        }
-
-        await this.deps.collector.connect(connectRequest);
-        const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
-        const status = await this.deps.collector.getStatus();
-
-        this.emitBrowserLaunched('connect');
-
-        return R.ok()
-          .merge({
-            driver: 'chrome',
-            mode: 'connect',
-            endpoint: this.describeChromeConnectRequest(connectRequest),
-            autoConnect: this.isAutoConnectRequest(connectRequest),
-            channel: connectRequest.channel ?? null,
-            userDataDir: connectRequest.userDataDir ?? null,
-            manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
-            approvalHint: this.getAutoConnectApprovalHint(connectRequest),
-            message: 'Connected to existing Chrome browser successfully',
-            browserSessionOwners: claim?.totalOwners ?? 1,
-            status,
-          })
-          .json();
+        return this.connectChromeBrowser(args, sessionId);
       }
 
       const launchRequest = this.parseChromeLaunchRequest(args);
@@ -748,6 +720,48 @@ export class BrowserControlHandlers {
         .json();
     }
   }
+  /** Chrome connect mode: validate the connect request, attach, claim the
+   * lease and describe the attached endpoint. */
+  private async connectChromeBrowser(
+    args: Record<string, unknown>,
+    sessionId: string,
+  ): Promise<ToolResponse> {
+    let connectRequest: ChromeConnectRequest;
+    try {
+      connectRequest = this.parseChromeConnectRequest(args);
+    } catch (error) {
+      return R.fail(error).json();
+    }
+
+    if (!this.hasChromeConnectRequest(connectRequest)) {
+      return R.fail(
+        'browserURL, wsEndpoint, autoConnect, userDataDir, or channel is required for chrome connect mode.',
+      ).json();
+    }
+
+    await this.deps.collector.connect(connectRequest);
+    const claim = this.deps.sessionCoordinator?.claimBrowserLease(sessionId);
+    const status = await this.deps.collector.getStatus();
+
+    this.emitBrowserLaunched('connect');
+
+    return R.ok()
+      .merge({
+        driver: 'chrome',
+        mode: 'connect',
+        endpoint: this.describeChromeConnectRequest(connectRequest),
+        autoConnect: this.isAutoConnectRequest(connectRequest),
+        channel: connectRequest.channel ?? null,
+        userDataDir: connectRequest.userDataDir ?? null,
+        manualApprovalMayBeRequired: this.isAutoConnectRequest(connectRequest),
+        approvalHint: this.getAutoConnectApprovalHint(connectRequest),
+        message: 'Connected to existing Chrome browser successfully',
+        browserSessionOwners: claim?.totalOwners ?? 1,
+        status,
+      })
+      .json();
+  }
+
   /** Attach target selection: isolated tab when joining a shared browser, else
    * the preferred page. Returns the fresh page list plus the selected index. */
   private async selectAttachPage(
