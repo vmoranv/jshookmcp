@@ -489,102 +489,12 @@ export async function handleCaptchaVisionSolve(
   }
 
   if (mode === 'manual') {
-    // ── Resume path (MRTR round-trip): the client re-calls this tool with the
-    // requestState token returned by a previous suspension + user responses.
-    const resumeToken = argString(args, 'resumeToken');
-    if (resumeToken && elicitationBridge) {
-      const decoded = elicitationBridge.resumeFromState<{
-        pageUrl?: string;
-        challengeType?: string;
-      }>(resumeToken, 'captcha_manual');
-      if (!decoded) {
-        return R.fail(
-          'resumeToken is invalid, expired or from a different flow. Restart with a fresh captcha_vision_solve call.',
-        ).build();
-      }
-      const responses = (args.resumeResponses ?? {}) as Record<string, unknown>;
-      if (responses.solved !== true) {
-        return R.fail('User indicated the CAPTCHA is not solved.')
-          .set('inputResult', responses.solved === false ? 'declined' : 'incomplete')
-          .build();
-      }
-      return R.ok().build({
-        mode: 'manual',
-        resumed: true,
-        solved: true,
-        token: typeof responses.token === 'string' ? responses.token : undefined,
-        challengeType: decoded.state.data.challengeType ?? challengeType,
-        pageUrl: decoded.state.data.pageUrl ?? pageUrl,
-      });
-    }
-
-    // ── Suspend path: interactive elicitation when the client supports it,
-    // otherwise an InputRequiredResult suspension with an encrypted
-    // requestState (plan Task 3.2 — CAPTCHA ↔ ElicitationBridge linkage).
-    if (elicitationBridge) {
-      const manualForm: ElicitRequestFormParams = {
-        message: [
-          `🛡️ CAPTCHA detected: **${challengeType}**`,
-          '',
-          `Page: ${pageUrl}`,
-          '',
-          'Please solve the CAPTCHA in your browser, then confirm below.',
-          'If a response token was generated, paste it in the token field.',
-        ].join('\n'),
-        requestedSchema: {
-          type: 'object',
-          properties: {
-            solved: {
-              type: 'boolean',
-              description: 'Have you solved the CAPTCHA?',
-              title: 'CAPTCHA Solved',
-              default: false,
-            } satisfies PrimitiveSchemaDefinition,
-            token: {
-              type: 'string',
-              description: 'CAPTCHA response token (if available)',
-              title: 'Response Token',
-            } satisfies PrimitiveSchemaDefinition,
-          },
-          required: ['solved'],
-        },
-      };
-
-      return elicitationBridge.requestInputAndAwait(
-        manualForm,
-        async (responses) => {
-          if (responses.solved !== true) {
-            return R.fail('User indicated the CAPTCHA is not solved.')
-              .set('inputResult', 'declined')
-              .build();
-          }
-          return R.ok().build({
-            mode: 'manual',
-            resumed: true,
-            solved: true,
-            token: typeof responses.token === 'string' ? responses.token : undefined,
-            challengeType,
-            pageUrl,
-          });
-        },
-        {
-          stateKind: 'captcha_manual',
-          stateTtlMs: 10 * 60_000,
-          state: { challengeType, pageUrl },
-          instruction:
-            'Re-call captcha_vision_solve with mode=manual, resumeToken=<requestState> and ' +
-            'resumeResponses={ solved: true, token? } after the user solves the CAPTCHA.',
-        },
-      );
-    }
-
-    // Legacy behavior — no elicitation bridge available (e.g. unit tests).
-    return R.ok().build({
-      mode: 'manual',
+    return resolveManualCaptchaFlow({
+      args,
+      pageUrl,
       challengeType,
-      siteKey: siteKey ?? null,
-      instruction: 'Please solve the CAPTCHA manually in the browser, then continue.',
-      hint: 'Configure an external solver service and CAPTCHA_API_KEY to automate this flow.',
+      siteKey,
+      elicitationBridge,
     });
   }
 
@@ -804,4 +714,114 @@ export async function handleWidgetChallengeSolve(
       })
       .build();
   }
+}
+
+/** Manual-mode CAPTCHA flow: MRTR resume, elicitation suspension, or the
+ * legacy instruction-only response when no bridge is available. */
+async function resolveManualCaptchaFlow(ctx: {
+  args: Record<string, unknown>;
+  pageUrl: string;
+  challengeType: string;
+  siteKey: string | undefined;
+  elicitationBridge?: ElicitationBridge;
+}): Promise<ToolResponse> {
+  const { args, pageUrl, challengeType, siteKey, elicitationBridge } = ctx;
+
+  // ── Resume path (MRTR round-trip): the client re-calls this tool with the
+  // requestState token returned by a previous suspension + user responses.
+  const resumeToken = argString(args, 'resumeToken');
+  if (resumeToken && elicitationBridge) {
+    const decoded = elicitationBridge.resumeFromState<{
+      pageUrl?: string;
+      challengeType?: string;
+    }>(resumeToken, 'captcha_manual');
+    if (!decoded) {
+      return R.fail(
+        'resumeToken is invalid, expired or from a different flow. Restart with a fresh captcha_vision_solve call.',
+      ).build();
+    }
+    const responses = (args.resumeResponses ?? {}) as Record<string, unknown>;
+    if (responses.solved !== true) {
+      return R.fail('User indicated the CAPTCHA is not solved.')
+        .set('inputResult', responses.solved === false ? 'declined' : 'incomplete')
+        .build();
+    }
+    return R.ok().build({
+      mode: 'manual',
+      resumed: true,
+      solved: true,
+      token: typeof responses.token === 'string' ? responses.token : undefined,
+      challengeType: decoded.state.data.challengeType ?? challengeType,
+      pageUrl: decoded.state.data.pageUrl ?? pageUrl,
+    });
+  }
+
+  // ── Suspend path: interactive elicitation when the client supports it,
+  // otherwise an InputRequiredResult suspension with an encrypted
+  // requestState (plan Task 3.2 — CAPTCHA ↔ ElicitationBridge linkage).
+  if (elicitationBridge) {
+    const manualForm: ElicitRequestFormParams = {
+      message: [
+        `🛡️ CAPTCHA detected: **${challengeType}**`,
+        '',
+        `Page: ${pageUrl}`,
+        '',
+        'Please solve the CAPTCHA in your browser, then confirm below.',
+        'If a response token was generated, paste it in the token field.',
+      ].join('\n'),
+      requestedSchema: {
+        type: 'object',
+        properties: {
+          solved: {
+            type: 'boolean',
+            description: 'Have you solved the CAPTCHA?',
+            title: 'CAPTCHA Solved',
+            default: false,
+          } satisfies PrimitiveSchemaDefinition,
+          token: {
+            type: 'string',
+            description: 'CAPTCHA response token (if available)',
+            title: 'Response Token',
+          } satisfies PrimitiveSchemaDefinition,
+        },
+        required: ['solved'],
+      },
+    };
+
+    return elicitationBridge.requestInputAndAwait(
+      manualForm,
+      async (responses) => {
+        if (responses.solved !== true) {
+          return R.fail('User indicated the CAPTCHA is not solved.')
+            .set('inputResult', 'declined')
+            .build();
+        }
+        return R.ok().build({
+          mode: 'manual',
+          resumed: true,
+          solved: true,
+          token: typeof responses.token === 'string' ? responses.token : undefined,
+          challengeType,
+          pageUrl,
+        });
+      },
+      {
+        stateKind: 'captcha_manual',
+        stateTtlMs: 10 * 60_000,
+        state: { challengeType, pageUrl },
+        instruction:
+          'Re-call captcha_vision_solve with mode=manual, resumeToken=<requestState> and ' +
+          'resumeResponses={ solved: true, token? } after the user solves the CAPTCHA.',
+      },
+    );
+  }
+
+  // Legacy behavior — no elicitation bridge available (e.g. unit tests).
+  return R.ok().build({
+    mode: 'manual',
+    challengeType,
+    siteKey: siteKey ?? null,
+    instruction: 'Please solve the CAPTCHA manually in the browser, then continue.',
+    hint: 'Configure an external solver service and CAPTCHA_API_KEY to automate this flow.',
+  });
 }
