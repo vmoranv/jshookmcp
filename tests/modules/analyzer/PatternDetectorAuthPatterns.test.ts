@@ -19,6 +19,8 @@ import {
   detectTokenPatternsInternal,
 } from '@modules/analyzer/PatternDetectorAuthPatterns';
 import {
+  PATTERN_SIGNATURE_CONFIDENCE_BODY_HMAC,
+  PATTERN_SIGNATURE_CONFIDENCE_BODY_JWT,
   PATTERN_SIGNATURE_CONFIDENCE_HEADER_HMAC,
   PATTERN_SIGNATURE_CONFIDENCE_HEADER_JWT,
   PATTERN_TOKEN_CONFIDENCE_HEADER_BEARER,
@@ -208,6 +210,30 @@ describe('PatternDetectorAuthPatterns confidence constants (FP batch B28)', () =
     expect(patterns[1]).toMatchObject({
       type: 'JWT',
       confidence: PATTERN_SIGNATURE_CONFIDENCE_HEADER_JWT,
+    });
+  });
+
+  it('uses the BODY confidence constants for POST-body signatures, not the header set', () => {
+    // Header and body confidence values differ (0.88/0.92 vs 0.85/0.90). A
+    // refactor that collapses the two channels passes every header assertion
+    // while silently reporting header confidence for body signatures.
+    const patterns = detectSignaturePatternsInternal([
+      request({
+        postData: JSON.stringify({ signature: 'a'.repeat(64) }),
+      }),
+      request({
+        postData: JSON.stringify({ signature: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.sig' }),
+      }),
+    ]);
+
+    expect(patterns).toHaveLength(2);
+    expect(patterns[0]).toMatchObject({
+      type: 'HMAC',
+      confidence: PATTERN_SIGNATURE_CONFIDENCE_BODY_HMAC,
+    });
+    expect(patterns[1]).toMatchObject({
+      type: 'JWT',
+      confidence: PATTERN_SIGNATURE_CONFIDENCE_BODY_JWT,
     });
   });
 
