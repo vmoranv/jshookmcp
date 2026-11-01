@@ -1,0 +1,39 @@
+---
+# Codacy configuration — https://docs.codacy.com/repositories-configure/codacy-configuration-file/
+#
+# Scope is deliberately narrow: exclude the FILE where the flagged pattern is
+# the feature, never the rule, and never a directory that also holds
+# security-sensitive code. A genuinely new hazard inside an excluded file will
+# not be caught by Codacy — it is caught by the independent review pass.
+#
+# Both ESLint engine names are listed because the repository ships no
+# .eslintrc* / eslint.config.* file, so Codacy may run either engine against
+# its own default pattern set.
+
+engines:
+  eslint-8:
+    exclude_paths: &codacy_domain_excludes
+      # Page-context reflector. Runs inside page.evaluate() to walk Vue/React
+      # fiber trees at runtime; every reported `obj[key]` is dynamic property
+      # enumeration over live framework objects, and the "unnecessary
+      # conditional" reports come from the page-side type context being lost
+      # in host-side analysis. No operator input reaches these as a key.
+      - "src/server/domains/browser/handlers/framework-state.template.ts"
+
+      # Local native-bridge client. Bridge endpoints are operator-supplied BY
+      # DESIGN (the tool connects to a loopback Ghidra/IDA/rizin helper) and
+      # are validated by validateLoopbackEndpoint before any fetch. The flagged
+      # `obj[key]` sites read JSON-RPC envelopes whose shape the peer defines.
+      # NOTE: ghidra-bridge-tcp.ts is deliberately NOT excluded — it evaluates
+      # bridge payloads and must keep its findings visible.
+      - "src/server/domains/native-bridge/handlers.impl.ts"
+      - "src/server/domains/native-bridge/http-actions.ts"
+
+      # Build helper: spawns the fixed package-manager binary (a module-level
+      # constant, never interpolated from input). The other two scripts that
+      # spawn commands (run-vitest-smart.mjs, verify-packed-install.mjs) are
+      # NOT excluded.
+      - "scripts/run-check-parallel.mjs"
+
+  eslint-9:
+    exclude_paths: *codacy_domain_excludes
