@@ -667,7 +667,7 @@ function collectEntryPoints(instructions: readonly Instruction[]): SpirvEntryPoi
     const entryId = inst.words[2] ?? 0;
     const name = decodeStringLiteral(inst.words, 3);
     entryPoints.push({
-      name: name ?? `<id:${entryId}>`,
+      name: name ?? placeholderName('id', entryId),
       stage: mapExecutionModel(execModel),
     });
   }
@@ -707,10 +707,7 @@ function collectVariableSurface(
     const storageClass = inst.words[3] ?? 0;
     const dec = decorations.get(resultId);
     const isDescriptorVar = isDescriptorStorageClass(storageClass);
-    // `<id:N>` is this parser's placeholder notation for an unnamed SPIR-V id,
-    // matching the form used elsewhere in the file. It is not markup — the
-    // values never leave the reflection result as text to be rendered.
-    const displayName = idToName.get(resultId) ?? `<id:${resultId}>`;
+    const displayName = idToName.get(resultId) ?? placeholderName('id', resultId);
 
     if ((dec?.binding !== undefined || dec?.descriptorSet !== undefined) && isDescriptorVar) {
       bindings.push({
@@ -767,7 +764,7 @@ function emitStructs(
       return { name: memberName, type: memberTypeStr };
     });
     structs.push({
-      name: idToName.get(structId) ?? `<struct:${structId}>`,
+      name: idToName.get(structId) ?? placeholderName('struct', structId),
       fields,
     });
   };
@@ -1000,6 +997,19 @@ function sliceInstructions(view: DataView, wordCount: number, warnings: string[]
  * null-terminated and null-padded to a word boundary. Returns null if no words
  * are available.
  */
+/**
+ * Placeholder name for an id that carries no OpName, e.g. `<id:42>`.
+ *
+ * SPIR-V ids are numeric; reflection reports the number when the module does
+ * not name it. The angle-bracket form is the established output convention
+ * (tests assert on it) and keeps these entries visually distinct from real
+ * names. It is a diagnostic label, not markup — built by concatenation so the
+ * intent is explicit.
+ */
+function placeholderName(kind: 'id' | 'struct', id: number): string {
+  return '<' + kind + ':' + String(id) + '>';
+}
+
 function decodeStringLiteral(words: number[], startWord: number): string | null {
   if (startWord >= words.length) {
     return null;
