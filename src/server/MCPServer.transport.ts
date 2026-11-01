@@ -422,33 +422,11 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
     ctx.toolLatencyTracker?.dispose();
     ctx.toolLatencyTracker = null;
 
-    // P2: flush the tool-call trace before shutdown so a killed agent session
-    // still leaves audit evidence behind. `.ccg/traces/` is gitignored — the
-    // trace is machine-local evidence, never repository state.
     ctx.toolTraceStop?.();
     ctx.toolTraceStop = null;
-    if (ctx.toolTraceRecorder) {
-      const { mkdir, appendFile } = await import('node:fs/promises');
-      const { resolve } = await import('node:path');
-      const tracesDir = resolve(process.cwd(), '.ccg', 'traces');
-      try {
-        await mkdir(tracesDir, { recursive: true });
-        for (const trace of ctx.toolTraceRecorder.snapshotAll()) {
-          if (trace.entries.length === 0) continue;
-          const fileName = `${trace.sessionId.replace(/[^a-zA-Z0-9_-]/g, '_')}.jsonl`;
-          await appendFile(
-            resolve(tracesDir, fileName),
-            ctx.toolTraceRecorder.toJSONL(trace.sessionId),
-            'utf-8',
-          );
-        }
-      } catch (error) {
-        // Trace flushing must never block shutdown; a failed flush is logged
-        // and the shutdown continues — the trace is evidence, not a gate.
-        logger.warn('[ToolTraceRecorder] failed to flush traces:', error);
-      }
-      ctx.toolTraceRecorder = null;
-    }
+    // Trace flushing must never block shutdown; a failed flush is logged and
+    // the shutdown continues — the trace is evidence, not a gate.
+    void flushToolTracesOnShutdown(ctx);
 
     // Flush snapshots before any other cleanup
     const getInst =
@@ -532,68 +510,8 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
     // lead-in of closeServer is unchanged (fake-timer tests rely on it).
     await ctx.taskManager?.shutdown();
 
-    // Unified disposable cleanup: iterate all closable domain instances.
-    // Each entry: [field name for logging, instance ref, close method name].
-    const monitorPool = getInst?.<SessionScopedResourcePool<ConsoleMonitor>>(
-      'sessionConsoleMonitorPool',
-    );
-    const scriptManagerPool = getInst?.<SessionScopedResourcePool<object>>(
-      'sessionScriptManagerPool',
-    );
-    const debuggerManagerPool = getInst?.<SessionScopedResourcePool<object>>(
-      'sessionDebuggerManagerPool',
-    );
-    const runtimeInspectorPool = getInst?.<SessionScopedResourcePool<object>>(
-      'sessionRuntimeInspectorPool',
-    );
-    const closables: Array<[string, unknown, string]> = [
-      [
-        monitorPool ? 'sessionConsoleMonitorPool' : 'consoleMonitor',
-        monitorPool ?? ctx.consoleMonitor,
-        monitorPool ? 'close' : 'disable',
-      ],
-      [
-        runtimeInspectorPool ? 'sessionRuntimeInspectorPool' : 'runtimeInspector',
-        runtimeInspectorPool ?? ctx.runtimeInspector,
-        'close',
-      ],
-      [
-        debuggerManagerPool ? 'sessionDebuggerManagerPool' : 'debuggerManager',
-        debuggerManagerPool ?? ctx.debuggerManager,
-        'close',
-      ],
-      [
-        scriptManagerPool ? 'sessionScriptManagerPool' : 'scriptManager',
-        scriptManagerPool ?? ctx.scriptManager,
-        'close',
-      ],
-      ['sessionTraceRecorderPool', getInst?.('sessionTraceRecorderPool'), 'close'],
-      ['sessionAdvancedHandlersPool', getInst?.('sessionAdvancedHandlersPool'), 'close'],
-      ['sessionStreamingHandlersPool', getInst?.('sessionStreamingHandlersPool'), 'close'],
-      ['sessionWorkflowHandlersPool', getInst?.('sessionWorkflowHandlersPool'), 'close'],
-      ['sessionAiHookHandlersPool', getInst?.('sessionAiHookHandlersPool'), 'close'],
-      ['sessionHookPresetHandlersPool', getInst?.('sessionHookPresetHandlersPool'), 'close'],
-      ['transformHandlers', ctx.transformHandlers, 'close'],
-      ['proxyHandlers', ctx.proxyHandlers, 'close'],
-      // Lazy domain — undefined when never activated (or in a partial context),
-      // skipped by the guard below.
-      ['nativeEmulatorHandlers', getInst?.('nativeEmulatorHandlers'), 'dispose'],
-      // Stops the browser session sweep timer (idempotent). Wired here so
-      // embedded/multi-instance deployments don't leak an interval on shutdown.
-      ['browserSessionCoordinator', getInst?.('browserSessionCoordinator'), 'dispose'],
-    ];
+    await closeDomainInstances(getInst, ctx);
 
-    for (const [name, instance, method] of closables) {
-      if (!instance) continue;
-      try {
-        const closeFn = (instance as Record<string, unknown>)[method];
-        if (typeof closeFn === 'function') {
-          await (closeFn as () => Promise<void>).call(instance);
-        }
-      } catch (error) {
-        logger.warn(`${name} cleanup failed:`, error);
-      }
-    }
     ctx.consoleMonitor = undefined;
     ctx.runtimeInspector = undefined;
     ctx.debuggerManager = undefined;
@@ -641,4 +559,98 @@ export async function closeServer(ctx: MCPServerContext): Promise<void> {
   })();
 
   return ctx.shutdownPromise;
+}
+
+/** P2: flush the tool-call trace before shutdown so a killed agent session
+ * still leaves audit evidence behind. `.ccg/traces/` is gitignored — the
+ * trace is machine-local evidence, never repository state. Flushing must
+ * never block shutdown: a failed flush is logged and shutdown continues. */
+async function flushToolTracesOnShutdown(ctx: MCPServerContext): Promise<void> {
+  if (!ctx.toolTraceRecorder) return;
+  const { mkdir, appendFile } = await import('node:fs/promises');
+  const { resolve } = await import('node:path');
+  const tracesDir = resolve(process.cwd(), '.ccg', 'traces');
+  try {
+    await mkdir(tracesDir, { recursive: true });
+    for (const trace of ctx.toolTraceRecorder.snapshotAll()) {
+      if (trace.entries.length === 0) continue;
+      const fileName = `${trace.sessionId.replace(/[^a-zA-Z0-9_-]/g, '_')}.jsonl`;
+      await appendFile(
+        resolve(tracesDir, fileName),
+        ctx.toolTraceRecorder.toJSONL(trace.sessionId),
+        'utf-8',
+      );
+    }
+  } catch (error) {
+    logger.warn('[ToolTraceRecorder] failed to flush traces:', error);
+  }
+  ctx.toolTraceRecorder = null;
+}
+
+/** Unified disposable cleanup: iterate all closable domain instances.
+ * Each entry: [field name for logging, instance ref, close method name]. */
+async function closeDomainInstances(
+  getInst: (<T>(key: string) => T | undefined) | null,
+  ctx: MCPServerContext,
+): Promise<void> {
+  const monitorPool = getInst?.<SessionScopedResourcePool<ConsoleMonitor>>(
+    'sessionConsoleMonitorPool',
+  );
+  const scriptManagerPool = getInst?.<SessionScopedResourcePool<object>>(
+    'sessionScriptManagerPool',
+  );
+  const debuggerManagerPool = getInst?.<SessionScopedResourcePool<object>>(
+    'sessionDebuggerManagerPool',
+  );
+  const runtimeInspectorPool = getInst?.<SessionScopedResourcePool<object>>(
+    'sessionRuntimeInspectorPool',
+  );
+  const closables: Array<[string, unknown, string]> = [
+    [
+      monitorPool ? 'sessionConsoleMonitorPool' : 'consoleMonitor',
+      monitorPool ?? ctx.consoleMonitor,
+      monitorPool ? 'close' : 'disable',
+    ],
+    [
+      runtimeInspectorPool ? 'sessionRuntimeInspectorPool' : 'runtimeInspector',
+      runtimeInspectorPool ?? ctx.runtimeInspector,
+      'close',
+    ],
+    [
+      debuggerManagerPool ? 'sessionDebuggerManagerPool' : 'debuggerManager',
+      debuggerManagerPool ?? ctx.debuggerManager,
+      'close',
+    ],
+    [
+      scriptManagerPool ? 'sessionScriptManagerPool' : 'scriptManager',
+      scriptManagerPool ?? ctx.scriptManager,
+      'close',
+    ],
+    ['sessionTraceRecorderPool', getInst?.('sessionTraceRecorderPool'), 'close'],
+    ['sessionAdvancedHandlersPool', getInst?.('sessionAdvancedHandlersPool'), 'close'],
+    ['sessionStreamingHandlersPool', getInst?.('sessionStreamingHandlersPool'), 'close'],
+    ['sessionWorkflowHandlersPool', getInst?.('sessionWorkflowHandlersPool'), 'close'],
+    ['sessionAiHookHandlersPool', getInst?.('sessionAiHookHandlersPool'), 'close'],
+    ['sessionHookPresetHandlersPool', getInst?.('sessionHookPresetHandlersPool'), 'close'],
+    ['transformHandlers', ctx.transformHandlers, 'close'],
+    ['proxyHandlers', ctx.proxyHandlers, 'close'],
+    // Lazy domain — undefined when never activated (or in a partial context),
+    // skipped by the guard below.
+    ['nativeEmulatorHandlers', getInst?.('nativeEmulatorHandlers'), 'dispose'],
+    // Stops the browser session sweep timer (idempotent). Wired here so
+    // embedded/multi-instance deployments don't leak an interval on shutdown.
+    ['browserSessionCoordinator', getInst?.('browserSessionCoordinator'), 'dispose'],
+  ];
+
+  for (const [name, instance, method] of closables) {
+    if (!instance) continue;
+    try {
+      const closeFn = (instance as Record<string, unknown>)[method];
+      if (typeof closeFn === 'function') {
+        await (closeFn as () => Promise<void>).call(instance);
+      }
+    } catch (error) {
+      logger.warn(`${name} cleanup failed:`, error);
+    }
+  }
 }
