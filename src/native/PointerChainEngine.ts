@@ -556,118 +556,23 @@ export class PointerChainEngine {
     if (levelResults.length === 0) return [];
 
     const chains: PointerChain[] = [];
-    const targetAddrStr = formatAddress(targetAddr);
-    const maxOff = BigInt(POINTER_CHAIN_MAX_OFFSET);
-
-    // Pre-index every level by pointerAddress for O(1) backward lookups.
-    const levelIndex = levelResults.map((level) => {
-      const index = new Map<bigint, LevelMatch>();
-      for (const m of level) index.set(m.pointerAddress, m);
-      return index;
-    });
-
-    /** Find the previous level's match whose pointerAddress ≈ pointsTo (±maxOffset). */
-    const findPrevMatch = (levelIdx: number, pointsTo: bigint): LevelMatch | undefined => {
-      const exact = levelIndex[levelIdx]!.get(pointsTo);
-      if (exact) return exact;
-      for (const pm of levelResults[levelIdx]!) {
-        const diff =
-          pointsTo > pm.pointerAddress
-            ? pointsTo - pm.pointerAddress
-            : pm.pointerAddress - pointsTo;
-        if (diff <= maxOff) return pm;
-      }
-      return undefined;
+    const ctx: ChainBuildContext = {
+      targetAddrStr: formatAddress(targetAddr),
+      maxOff: BigInt(POINTER_CHAIN_MAX_OFFSET),
+      modules,
+      maxResults,
+      staticOnly,
+      levelResults,
+      levelIndex: indexLevelsByPointerAddress(levelResults),
     };
 
-    // For each depth, create chains
-    // Single level: direct pointer → target
-    for (let depth = 0; depth < levelResults.length && chains.length < maxResults; depth++) {
-      const level = levelResults[depth]!;
-
+    // For each depth, create chains: depth 0 is the direct-pointer case,
+    // deeper levels walk backward from the root match.
+    for (let depth = 0; depth < levelResults.length && chains.length < ctx.maxResults; depth++) {
       if (depth === 0) {
-        // Direct pointers to target
-        for (const match of level) {
-          if (chains.length >= maxResults) break;
-
-          const baseAddrStr = formatAddress(match.pointerAddress);
-          const modInfo = this.resolveToModule(match.pointerAddress, modules);
-          const isStatic = modInfo !== null;
-
-          if (staticOnly && !isStatic) continue;
-
-          const link: PointerChainLink = {
-            address: baseAddrStr,
-            module: modInfo?.module,
-            moduleOffset: modInfo?.offset,
-            offset: match.offset,
-          };
-
-          chains.push({
-            id: randomUUID(),
-            links: [link],
-            targetAddress: targetAddrStr,
-            baseAddress: baseAddrStr,
-            isStatic,
-            depth: 1,
-            lastValidated: Date.now(),
-            isValid: true,
-          });
-        }
+        this.appendDirectChains(ctx, levelResults[0]!, chains);
       } else {
-        // Multi-level: walk backward from the root match (level `depth`) down
-        // to level 0, emitting one link per level — a depth-3 chain has 3 links.
-        for (const match of level) {
-          if (chains.length >= maxResults) break;
-
-          const modInfo = this.resolveToModule(match.pointerAddress, modules);
-          const isStatic = modInfo !== null;
-
-          if (staticOnly && !isStatic) continue;
-
-          const links: PointerChainLink[] = [];
-          let cur = match;
-          let prev: LevelMatch | undefined;
-          let linked = true;
-
-          for (let lvl = depth; lvl >= 1; lvl--) {
-            prev = findPrevMatch(lvl - 1, cur.pointsTo);
-            if (!prev) {
-              linked = false; // chain broken at this level — drop the candidate
-              break;
-            }
-            const isRoot = lvl === depth;
-            links.push({
-              address: formatAddress(cur.pointerAddress),
-              module: isRoot ? modInfo?.module : undefined,
-              moduleOffset: isRoot ? modInfo?.offset : undefined,
-              // Dereferencing cur yields cur.pointsTo; adding this offset lands
-              // exactly on prev's pointerAddress.
-              offset: Number(prev.pointerAddress - cur.pointsTo),
-            });
-            cur = prev;
-          }
-
-          if (!linked || !prev) continue;
-
-          // Final link: level 0's offset is relative to the target address.
-          links.push({
-            address: formatAddress(prev.pointerAddress),
-            offset: prev.offset,
-          });
-
-          const baseAddrStr = formatAddress(match.pointerAddress);
-          chains.push({
-            id: randomUUID(),
-            links,
-            targetAddress: targetAddrStr,
-            baseAddress: baseAddrStr,
-            isStatic,
-            depth: links.length,
-            lastValidated: Date.now(),
-            isValid: true,
-          });
-        }
+        this.appendBacktrackedChains(ctx, levelResults[depth]!, depth, chains);
       }
     }
 
@@ -679,6 +584,144 @@ export class PointerChainEngine {
 
     return chains.slice(0, maxResults);
   }
+
+  /** Depth 0: a single link straight to the target. */
+  private appendDirectChains(
+    ctx: ChainBuildContext,
+    level: LevelMatch[],
+    chains: PointerChain[],
+  ): void {
+    for (const match of level) {
+      if (chains.length >= ctx.maxResults) break;
+
+      const modInfo = this.resolveToModule(match.pointerAddress, ctx.modules);
+      const isStatic = modInfo !== null;
+      if (ctx.staticOnly && !isStatic) continue;
+
+      const baseAddrStr = formatAddress(match.pointerAddress);
+      chains.push({
+        id: randomUUID(),
+        links: [
+          {
+            address: baseAddrStr,
+            module: modInfo?.module,
+            moduleOffset: modInfo?.offset,
+            offset: match.offset,
+          },
+        ],
+        targetAddress: ctx.targetAddrStr,
+        baseAddress: baseAddrStr,
+        isStatic,
+        depth: 1,
+        lastValidated: Date.now(),
+        isValid: true,
+      });
+    }
+  }
+
+  /** Depth >= 1: walk backward from the root match to level 0, one link per
+   * level — a depth-3 chain has 3 links. */
+  private appendBacktrackedChains(
+    ctx: ChainBuildContext,
+    level: LevelMatch[],
+    depth: number,
+    chains: PointerChain[],
+  ): void {
+    for (const match of level) {
+      if (chains.length >= ctx.maxResults) break;
+
+      const modInfo = this.resolveToModule(match.pointerAddress, ctx.modules);
+      const isStatic = modInfo !== null;
+      if (ctx.staticOnly && !isStatic) continue;
+
+      const links = buildBacktrackedLinks(ctx, match, depth, modInfo);
+      if (!links) continue; // chain broken at some level — drop the candidate
+
+      chains.push({
+        id: randomUUID(),
+        links,
+        targetAddress: ctx.targetAddrStr,
+        baseAddress: formatAddress(match.pointerAddress),
+        isStatic,
+        depth: links.length,
+        lastValidated: Date.now(),
+        isValid: true,
+      });
+    }
+  }
+}
+
+/** State shared by the chain builders. */
+interface ChainBuildContext {
+  targetAddrStr: string;
+  maxOff: bigint;
+  modules: Map<string, ModuleEntry>;
+  maxResults: number;
+  staticOnly: boolean;
+  levelResults: LevelMatch[][];
+  levelIndex: Map<bigint, LevelMatch>[];
+}
+
+/** Pre-index every level by pointerAddress for O(1) backward lookups. */
+function indexLevelsByPointerAddress(levelResults: LevelMatch[][]): Map<bigint, LevelMatch>[] {
+  return levelResults.map((level) => {
+    const index = new Map<bigint, LevelMatch>();
+    for (const m of level) index.set(m.pointerAddress, m);
+    return index;
+  });
+}
+
+/** Find the previous level's match whose pointerAddress is within maxOff. */
+function findPrevMatch(
+  ctx: ChainBuildContext,
+  levelIdx: number,
+  pointsTo: bigint,
+): LevelMatch | undefined {
+  const exact = ctx.levelIndex[levelIdx]!.get(pointsTo);
+  if (exact) return exact;
+  for (const pm of ctx.levelResults[levelIdx]!) {
+    const diff =
+      pointsTo > pm.pointerAddress ? pointsTo - pm.pointerAddress : pm.pointerAddress - pointsTo;
+    if (diff <= ctx.maxOff) return pm;
+  }
+  return undefined;
+}
+
+/** Build the link list for a depth-N chain, or null when any hop is missing. */
+function buildBacktrackedLinks(
+  ctx: ChainBuildContext,
+  match: LevelMatch,
+  depth: number,
+  rootModInfo: { module?: string; offset?: number } | null,
+): PointerChainLink[] | null {
+  const links: PointerChainLink[] = [];
+  let cur = match;
+  let prev: LevelMatch | undefined;
+
+  for (let lvl = depth; lvl >= 1; lvl--) {
+    prev = findPrevMatch(ctx, lvl - 1, cur.pointsTo);
+    if (!prev) return null; // chain broken at this level
+
+    const isRoot = lvl === depth;
+    links.push({
+      address: formatAddress(cur.pointerAddress),
+      module: isRoot ? rootModInfo?.module : undefined,
+      moduleOffset: isRoot ? rootModInfo?.offset : undefined,
+      // Dereferencing cur yields cur.pointsTo; adding this offset lands
+      // exactly on prev's pointerAddress.
+      offset: Number(prev.pointerAddress - cur.pointsTo),
+    });
+    cur = prev;
+  }
+
+  if (!prev) return null;
+
+  // Final link: level 0's offset is relative to the target address.
+  links.push({
+    address: formatAddress(prev.pointerAddress),
+    offset: prev.offset,
+  });
+  return links;
 }
 
 export const pointerChainEngine = new PointerChainEngine();
