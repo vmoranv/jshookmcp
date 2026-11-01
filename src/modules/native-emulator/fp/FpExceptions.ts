@@ -81,7 +81,9 @@ const IOC_BY_OP: Record<string, (result: number, a: number, b?: number) => boole
 };
 
 export function detectInvalidOperation(result: number, op: string, a: number, b?: number): boolean {
-  const predicate = IOC_BY_OP[op];
+  // Own-property check: a bare lookup would resolve inherited keys such as
+  // "constructor"/"toString" to Object.prototype members and call those.
+  const predicate = Object.hasOwn(IOC_BY_OP, op) ? IOC_BY_OP[op] : undefined;
   if (predicate) {
     return predicate(result, a, b);
   }
