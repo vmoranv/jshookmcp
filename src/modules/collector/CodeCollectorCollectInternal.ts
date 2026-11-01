@@ -177,6 +177,440 @@ function assertCollectorInternals(value: unknown): asserts value is CollectorInt
   }
 }
 
+/**
+ * Resolve the page to collect from, plus the bookkeeping needed to put the
+ * browser back the way it was: an existing active page is reused, otherwise a
+ * throwaway context is created, otherwise the browser gets a fresh page.
+ */
+interface CollectionPageSetup {
+  page: Page;
+  temporaryContext: TemporaryBrowserContext | null;
+  previousActivePageIndex: number | null;
+}
+
+async function resolveCollectionPage(self: CollectorInternals): Promise<CollectionPageSetup> {
+  // The caller has already rejected a null browser; bind it once so the
+  // narrowing survives into the closures below.
+  const browser = self.browser;
+  if (!browser) {
+    throw new Error('Browser not initialized');
+  }
+  const activePages =
+    typeof self.listPages === 'function'
+      ? await self
+          .listPages()
+          .catch(() => [] as Array<{ index: number; url: string; title: string }>)
+      : [];
+  const activePageContext =
+    activePages.length > 0 && typeof self.getActivePage === 'function'
+      ? await self
+          .getActivePage()
+          .then((page) => page.browserContext())
+          .catch((error) => {
+            logger.debug('Failed to resolve active browser context before code collection:', error);
+            return null;
+          })
+      : null;
+
+  const temporaryContext =
+    activePageContext === null && typeof browser.createBrowserContext === 'function'
+      ? await browser.createBrowserContext()
+      : null;
+
+  let previousActivePageIndex: number | null = null;
+  if (
+    (activePageContext !== null || !temporaryContext) &&
+    typeof self.getActivePageIndex === 'function'
+  ) {
+    try {
+      previousActivePageIndex = await self.getActivePageIndex();
+    } catch (error) {
+      logger.debug('Failed to capture active page index before code collection:', error);
+    }
+  }
+
+  const page =
+    activePageContext !== null
+      ? await activePageContext.newPage()
+      : temporaryContext
+        ? await temporaryContext.newPage()
+        : await browser.newPage();
+
+  return { page, temporaryContext, previousActivePageIndex };
+}
+
+/** Resolve the effective timeout: options → instance config → collector config → fallback. */
+function resolveCollectionTimeout(self: CollectorInternals, options: CollectCodeOptions): number {
+  const collectorConfig = getReverseEngineeringConfig().collector;
+  return (
+    options.timeout ??
+    self.config.timeout ??
+    collectorConfig.defaultTimeoutMs ??
+    DEFAULT_COLLECTION_TIMEOUT_MS
+  );
+}
+
+/** Append files without exceeding the per-collection cap, logging any truncation. */
+function makeFileAppender(self: CollectorInternals, files: CodeFile[]) {
+  return function appendFilesWithinLimit(incoming: CodeFile[], label: string): void {
+    const remaining = self.MAX_FILES_PER_COLLECT - files.length;
+
+    if (remaining <= 0) {
+      logger.warn(`Reached max files limit (${self.MAX_FILES_PER_COLLECT}), skipping ${label}`);
+      return;
+    }
+
+    if (incoming.length > remaining) {
+      logger.warn(
+        `Collected ${incoming.length} ${label}, limiting to remaining ${remaining} files`,
+      );
+    }
+
+    files.push(...incoming.slice(0, remaining));
+  };
+}
+
+/**
+ * Handle one `Network.responseReceived` event: fetch the body and record the
+ * script as a collected file.
+ *
+ * The quota is re-checked after awaiting the body because concurrent responses
+ * can fill it while this one is in flight.
+ */
+async function handleResponseReceived(
+  self: CollectorInternals,
+  options: CollectCodeOptions,
+  files: CodeFile[],
+  appendFilesWithinLimit: (incoming: CodeFile[], label: string) => void,
+  params: unknown,
+): Promise<void> {
+  if (!isCDPResponseReceivedParams(params)) {
+    return;
+  }
+
+  const { response, requestId, type } = params;
+  const url = response.url;
+
+  if (files.length >= self.MAX_FILES_PER_COLLECT) {
+    if (files.length === self.MAX_FILES_PER_COLLECT) {
+      logger.warn(
+        `Reached max files limit (${self.MAX_FILES_PER_COLLECT}), will skip remaining files`,
+      );
+    }
+    return;
+  }
+
+  self.cleanupCollectedUrls();
+
+  if (!(type === 'Script' || response.mimeType?.includes('javascript') || url.endsWith('.js'))) {
+    return;
+  }
+  if (options.includeExternal === false) {
+    return;
+  }
+  if (!self.shouldCollectUrl(url, options.filterRules)) {
+    return;
+  }
+  if (self.collectedUrls.has(url)) {
+    return;
+  }
+
+  try {
+    const responseBody = (await self.cdpSession!.send('Network.getResponseBody', {
+      requestId,
+    })) as CDPResponseBody;
+
+    if (typeof responseBody.body !== 'string') {
+      return;
+    }
+
+    // Concurrent responses may have filled the quota while we awaited the
+    // body — re-check before accepting this file.
+    if (files.length >= self.MAX_FILES_PER_COLLECT) {
+      return;
+    }
+
+    const content = responseBody.base64Encoded
+      ? Buffer.from(responseBody.body, 'base64').toString('utf-8')
+      : responseBody.body;
+
+    const contentSize = content.length;
+
+    let finalContent = content;
+    let truncated = false;
+
+    if (contentSize > self.MAX_SINGLE_FILE_SIZE) {
+      finalContent = content.substring(0, self.MAX_SINGLE_FILE_SIZE);
+      truncated = true;
+      logger.warn(
+        `[CDP] Large file truncated: ${url} (${(contentSize / 1024).toFixed(2)} KB -> ` +
+          `${(self.MAX_SINGLE_FILE_SIZE / 1024).toFixed(2)} KB)`,
+      );
+    }
+
+    const file: CodeFile = {
+      url,
+      content: finalContent,
+      size: finalContent.length,
+      type: 'external',
+      metadata: truncated
+        ? {
+            truncated: true,
+            originalSize: contentSize,
+            truncatedSize: finalContent.length,
+          }
+        : undefined,
+    };
+    const fileCountBeforeAppend = files.length;
+    appendFilesWithinLimit([file], 'external scripts');
+
+    // Only mark the URL as collected once it was actually accepted —
+    // otherwise files dropped by the limit would be skipped forever in
+    // later collections.
+    if (files.length > fileCountBeforeAppend) {
+      self.collectedUrls.add(url);
+      self.collectedFilesCache.set(url, file);
+
+      logger.debug(
+        `[CDP] Collected (${files.length}/${self.MAX_FILES_PER_COLLECT}): ${url} (` +
+          `${(finalContent.length / 1024).toFixed(2)} KB)${truncated ? ' [TRUNCATED]' : ''}`,
+      );
+    }
+  } catch (error) {
+    logger.warn(`[CDP] Failed to get response body for: ${url}`, error);
+  }
+}
+
+/** Attach the CDP session and register the response listener that fills `files`. */
+async function startCdpCapture(
+  self: CollectorInternals,
+  options: CollectCodeOptions,
+  page: Page,
+  files: CodeFile[],
+  appendFilesWithinLimit: (incoming: CodeFile[], label: string) => void,
+): Promise<void> {
+  self.cdpSession = await page.createCDPSession();
+  await self.cdpSession.send('Network.enable');
+  await self.cdpSession.send('Runtime.enable');
+
+  self.cdpListeners.responseReceived = async (params: unknown) => {
+    await handleResponseReceived(self, options, files, appendFilesWithinLimit, params);
+  };
+
+  self.cdpSession.on('Network.responseReceived', self.cdpListeners.responseReceived);
+}
+
+/** Collect inline scripts, Service Workers and Web Workers according to options. */
+async function collectSupplementaryScripts(
+  self: CollectorInternals,
+  options: CollectCodeOptions,
+  page: Page,
+  appendFilesWithinLimit: (incoming: CodeFile[], label: string) => void,
+): Promise<void> {
+  if (options.includeInline !== false) {
+    logger.info('Collecting inline scripts...');
+    const inlineScripts = await collectInlineScripts(
+      page,
+      self.MAX_SINGLE_FILE_SIZE,
+      self.MAX_FILES_PER_COLLECT,
+    );
+    appendFilesWithinLimit(inlineScripts, 'inline scripts');
+  }
+
+  if (options.includeServiceWorker !== false) {
+    logger.info('Collecting Service Workers...');
+    const serviceWorkerFiles = await collectServiceWorkers(page, (url) =>
+      self.shouldCollectUrl(url, options.filterRules),
+    );
+    appendFilesWithinLimit(serviceWorkerFiles, 'service workers');
+  }
+
+  if (options.includeWebWorker !== false) {
+    logger.info('Collecting Web Workers...');
+    const webWorkerFiles = await collectWebWorkers(page, (url) =>
+      self.shouldCollectUrl(url, options.filterRules),
+    );
+    appendFilesWithinLimit(webWorkerFiles, 'web workers');
+  }
+}
+
+/** Detach the CDP session and drop its listener registrations. */
+async function stopCdpCapture(self: CollectorInternals): Promise<void> {
+  if (!self.cdpSession) {
+    return;
+  }
+  if (self.cdpListeners.responseReceived) {
+    self.cdpSession.off('Network.responseReceived', self.cdpListeners.responseReceived);
+  }
+  await self.cdpSession.detach();
+  self.cdpSession = null;
+  self.cdpListeners = {};
+}
+
+/** Log every file that had to be truncated at collection time. */
+function reportTruncatedFiles(files: CodeFile[]): void {
+  const truncatedFiles = files.filter((f) => f.metadata?.truncated);
+  if (truncatedFiles.length === 0) {
+    return;
+  }
+  logger.warn(`${truncatedFiles.length} files were truncated due to size limits`);
+  truncatedFiles.forEach((f) => {
+    const originalSize =
+      typeof f.metadata?.originalSize === 'number' ? f.metadata.originalSize : f.size;
+    logger.warn(
+      `  - ${f.url}: ${(originalSize / 1024).toFixed(2)} KB -> ${(f.size / 1024).toFixed(2)} KB`,
+    );
+  });
+}
+
+/**
+ * Apply a smart collection mode. Returns the summary result when the mode is
+ * `summary` and the collector produced summaries, otherwise the files to carry
+ * forward. Every unexpected shape falls back to the original file list.
+ */
+async function applySmartMode(
+  self: CollectorInternals,
+  options: CollectCodeOptions,
+  page: Page,
+  files: CodeFile[],
+  startTime: number,
+): Promise<{ summary: CollectCodeResult | null; files: CodeFile[] }> {
+  if (!options.smartMode || options.smartMode === 'full') {
+    return { summary: null, files };
+  }
+
+  try {
+    logger.info(` Applying smart collection mode: ${options.smartMode}`);
+
+    const smartOptions: SmartCollectOptions = {
+      mode: options.smartMode,
+      maxTotalSize: options.maxTotalSize,
+      maxFileSize: options.maxFileSize,
+      priorities: options.priorities,
+    };
+
+    const smartResult = await self.smartCollector.smartCollect(page, files, smartOptions);
+
+    if (options.smartMode === 'summary') {
+      logger.info(` Returning ${smartResult.length} code summaries`);
+
+      if (Array.isArray(smartResult) && smartResult.every((item) => isCodeSummary(item))) {
+        return {
+          summary: {
+            files: [],
+            summaries: smartResult,
+            dependencies: { nodes: [], edges: [] },
+            totalSize: 0,
+            collectTime: Date.now() - startTime,
+          },
+          files,
+        };
+      }
+    }
+
+    if (Array.isArray(smartResult) && smartResult.every((item) => isCodeFile(item))) {
+      return { summary: null, files: smartResult };
+    }
+    logger.warn('Smart collection returned unexpected type, using original files');
+    return { summary: null, files };
+  } catch (error) {
+    logger.error('Smart collection failed, using original files:', error);
+    return { summary: null, files };
+  }
+}
+
+/** Compress the collected files in place and log the resulting statistics. */
+async function applyCompression(self: CollectorInternals, files: CodeFile[]): Promise<void> {
+  try {
+    logger.info(`Compressing ${files.length} files with enhanced compressor...`);
+
+    const filesToCompress = files
+      .filter((file) => self.compressor.shouldCompress(file.content))
+      .map((file) => ({
+        url: file.url,
+        content: file.content,
+      }));
+
+    if (filesToCompress.length === 0) {
+      logger.info('No files need compression (all below threshold)');
+      return;
+    }
+
+    const compressedResults = await self.compressor.compressBatch(filesToCompress, {
+      level: undefined,
+      useCache: true,
+      maxRetries: COMPRESS_MAX_RETRIES,
+      concurrency: COMPRESS_CONCURRENCY,
+      onProgress: (progress: number) => {
+        if (progress % COMPRESS_PROGRESS_LOG_INTERVAL === 0) {
+          logger.debug(`Compression progress: ${progress.toFixed(0)}%`);
+        }
+      },
+    });
+
+    const compressedMap = new Map<string, CompressionResultItem>(
+      compressedResults.map((r) => [r.url, r] as [string, CompressionResultItem]),
+    );
+
+    for (const file of files) {
+      const compressed = compressedMap.get(file.url);
+      if (compressed) {
+        file.metadata = {
+          ...file.metadata,
+          compressed: true,
+          originalSize: compressed.originalSize,
+          compressedSize: compressed.compressedSize,
+          compressionRatio: compressed.compressionRatio,
+        };
+      }
+    }
+
+    const stats = self.compressor.getStats();
+    logger.info(` Compressed ${compressedResults.length}/${files.length} files`);
+    logger.info(
+      ` Compression stats: ${(stats.totalOriginalSize / 1024).toFixed(2)} KB -> ` +
+        `${(stats.totalCompressedSize / 1024).toFixed(2)} KB (${stats.averageRatio.toFixed(1)}% reduction)`,
+    );
+    logger.info(
+      ` Cache: ${stats.cacheHits} hits, ${stats.cacheMisses} misses (${stats.cacheHits > 0 ? ((stats.cacheHits / (stats.cacheHits + stats.cacheMisses)) * 100).toFixed(1) : 0}% hit rate)`,
+    );
+  } catch (error) {
+    logger.error('Compression failed:', error);
+  }
+}
+
+/** Detach CDP and restore the page/context the collector borrowed. */
+async function releaseCollectionPage(
+  self: CollectorInternals,
+  setup: CollectionPageSetup,
+): Promise<void> {
+  if (self.cdpSession) {
+    try {
+      await stopCdpCapture(self);
+    } catch {
+      // CDP session may already be disconnected
+    }
+    self.cdpSession = null;
+    self.cdpListeners = {};
+  }
+  if (setup.temporaryContext) {
+    try {
+      await setup.temporaryContext.close();
+    } catch (error) {
+      logger.debug('Failed to close temporary browser context after code collection:', error);
+    }
+    return;
+  }
+  await setup.page.close();
+  if (setup.previousActivePageIndex !== null && typeof self.selectPage === 'function') {
+    try {
+      await self.selectPage(setup.previousActivePageIndex);
+    } catch (error) {
+      logger.debug('Failed to restore active page after code collection:', error);
+    }
+  }
+}
+
 export async function collectInnerImpl(
   self: unknown,
   options: CollectCodeOptions,
@@ -201,58 +635,15 @@ export async function collectInnerImpl(
     throw new Error('Browser not initialized');
   }
 
-  let previousActivePageIndex: number | null = null;
-  const activePages =
-    typeof self.listPages === 'function'
-      ? await self
-          .listPages()
-          .catch(() => [] as Array<{ index: number; url: string; title: string }>)
-      : [];
-  const activePageContext =
-    activePages.length > 0 && typeof self.getActivePage === 'function'
-      ? await self
-          .getActivePage()
-          .then((page) => page.browserContext())
-          .catch((error) => {
-            logger.debug('Failed to resolve active browser context before code collection:', error);
-            return null;
-          })
-      : null;
-
-  const temporaryContext =
-    activePageContext === null && typeof self.browser.createBrowserContext === 'function'
-      ? await self.browser.createBrowserContext()
-      : null;
-
-  if (
-    (activePageContext !== null || !temporaryContext) &&
-    typeof self.getActivePageIndex === 'function'
-  ) {
-    try {
-      previousActivePageIndex = await self.getActivePageIndex();
-    } catch (error) {
-      logger.debug('Failed to capture active page index before code collection:', error);
-    }
-  }
-
-  const page =
-    activePageContext !== null
-      ? await activePageContext.newPage()
-      : temporaryContext
-        ? await temporaryContext.newPage()
-        : await self.browser.newPage();
+  const setup = await resolveCollectionPage(self);
+  const { page } = setup;
 
   try {
     const collectorConfig = getReverseEngineeringConfig().collector;
-    const timeoutMs =
-      options.timeout ??
-      self.config.timeout ??
-      collectorConfig.defaultTimeoutMs ??
-      DEFAULT_COLLECTION_TIMEOUT_MS;
+    const timeoutMs = resolveCollectionTimeout(self, options);
     page.setDefaultTimeout(timeoutMs);
 
     await page.setUserAgent(self.userAgent);
-
     await self.applyAntiDetection(page);
 
     if (options.includeWebWorker !== false) {
@@ -260,128 +651,9 @@ export async function collectInnerImpl(
     }
 
     const files: CodeFile[] = [];
+    const appendFilesWithinLimit = makeFileAppender(self, files);
 
-    const appendFilesWithinLimit = (incoming: CodeFile[], label: string): void => {
-      const remaining = self.MAX_FILES_PER_COLLECT - files.length;
-
-      if (remaining <= 0) {
-        logger.warn(`Reached max files limit (${self.MAX_FILES_PER_COLLECT}), skipping ${label}`);
-        return;
-      }
-
-      if (incoming.length > remaining) {
-        logger.warn(
-          `Collected ${incoming.length} ${label}, limiting to remaining ${remaining} files`,
-        );
-      }
-
-      files.push(...incoming.slice(0, remaining));
-    };
-
-    self.cdpSession = await page.createCDPSession();
-    await self.cdpSession.send('Network.enable');
-    await self.cdpSession.send('Runtime.enable');
-
-    self.cdpListeners.responseReceived = async (params: unknown) => {
-      if (!isCDPResponseReceivedParams(params)) {
-        return;
-      }
-
-      const { response, requestId, type } = params;
-      const url = response.url;
-
-      if (files.length >= self.MAX_FILES_PER_COLLECT) {
-        if (files.length === self.MAX_FILES_PER_COLLECT) {
-          logger.warn(
-            `Reached max files limit (${self.MAX_FILES_PER_COLLECT}), will skip remaining files`,
-          );
-        }
-        return;
-      }
-
-      self.cleanupCollectedUrls();
-
-      if (type === 'Script' || response.mimeType?.includes('javascript') || url.endsWith('.js')) {
-        if (options.includeExternal === false) {
-          return;
-        }
-
-        if (!self.shouldCollectUrl(url, options.filterRules)) {
-          return;
-        }
-
-        if (self.collectedUrls.has(url)) {
-          return;
-        }
-
-        try {
-          const responseBody = (await self.cdpSession!.send('Network.getResponseBody', {
-            requestId,
-          })) as CDPResponseBody;
-
-          if (typeof responseBody.body !== 'string') {
-            return;
-          }
-
-          // Concurrent responses may have filled the quota while we awaited
-          // the body — re-check before accepting this file.
-          if (files.length >= self.MAX_FILES_PER_COLLECT) {
-            return;
-          }
-
-          const content = responseBody.base64Encoded
-            ? Buffer.from(responseBody.body, 'base64').toString('utf-8')
-            : responseBody.body;
-
-          const contentSize = content.length;
-
-          let finalContent = content;
-          let truncated = false;
-
-          if (contentSize > self.MAX_SINGLE_FILE_SIZE) {
-            finalContent = content.substring(0, self.MAX_SINGLE_FILE_SIZE);
-            truncated = true;
-            logger.warn(
-              `[CDP] Large file truncated: ${url} (${(contentSize / 1024).toFixed(2)} KB -> ` +
-                `${(self.MAX_SINGLE_FILE_SIZE / 1024).toFixed(2)} KB)`,
-            );
-          }
-
-          const file: CodeFile = {
-            url,
-            content: finalContent,
-            size: finalContent.length,
-            type: 'external',
-            metadata: truncated
-              ? {
-                  truncated: true,
-                  originalSize: contentSize,
-                  truncatedSize: finalContent.length,
-                }
-              : undefined,
-          };
-          const fileCountBeforeAppend = files.length;
-          appendFilesWithinLimit([file], 'external scripts');
-
-          // Only mark the URL as collected once it was actually accepted —
-          // otherwise files dropped by the limit would be skipped forever in
-          // later collections.
-          if (files.length > fileCountBeforeAppend) {
-            self.collectedUrls.add(url);
-            self.collectedFilesCache.set(url, file);
-
-            logger.debug(
-              `[CDP] Collected (${files.length}/${self.MAX_FILES_PER_COLLECT}): ${url} (` +
-                `${(finalContent.length / 1024).toFixed(2)} KB)${truncated ? ' [TRUNCATED]' : ''}`,
-            );
-          }
-        } catch (error) {
-          logger.warn(`[CDP] Failed to get response body for: ${url}`, error);
-        }
-      }
-    };
-
-    self.cdpSession.on('Network.responseReceived', self.cdpListeners.responseReceived);
+    await startCdpCapture(self, options, page, files, appendFilesWithinLimit);
 
     logger.info(`Navigating to: ${options.url}`);
     await page.goto(options.url, {
@@ -393,31 +665,7 @@ export async function collectInnerImpl(
       timeout: timeoutMs,
     });
 
-    if (options.includeInline !== false) {
-      logger.info('Collecting inline scripts...');
-      const inlineScripts = await collectInlineScripts(
-        page,
-        self.MAX_SINGLE_FILE_SIZE,
-        self.MAX_FILES_PER_COLLECT,
-      );
-      appendFilesWithinLimit(inlineScripts, 'inline scripts');
-    }
-
-    if (options.includeServiceWorker !== false) {
-      logger.info('Collecting Service Workers...');
-      const serviceWorkerFiles = await collectServiceWorkers(page, (url) =>
-        self.shouldCollectUrl(url, options.filterRules),
-      );
-      appendFilesWithinLimit(serviceWorkerFiles, 'service workers');
-    }
-
-    if (options.includeWebWorker !== false) {
-      logger.info('Collecting Web Workers...');
-      const webWorkerFiles = await collectWebWorkers(page, (url) =>
-        self.shouldCollectUrl(url, options.filterRules),
-      );
-      appendFilesWithinLimit(webWorkerFiles, 'web workers');
-    }
+    await collectSupplementaryScripts(self, options, page, appendFilesWithinLimit);
 
     if (options.includeDynamic) {
       logger.info('Waiting for dynamic scripts...');
@@ -426,126 +674,19 @@ export async function collectInnerImpl(
       );
     }
 
-    if (self.cdpSession) {
-      if (self.cdpListeners.responseReceived) {
-        self.cdpSession.off('Network.responseReceived', self.cdpListeners.responseReceived);
-      }
-      await self.cdpSession.detach();
-      self.cdpSession = null;
-      self.cdpListeners = {};
-    }
+    await stopCdpCapture(self);
 
     const collectTime = Date.now() - startTime;
+    reportTruncatedFiles(files);
 
-    const truncatedFiles = files.filter((f) => f.metadata?.truncated);
-    if (truncatedFiles.length > 0) {
-      logger.warn(`${truncatedFiles.length} files were truncated due to size limits`);
-      truncatedFiles.forEach((f) => {
-        const originalSize =
-          typeof f.metadata?.originalSize === 'number' ? f.metadata.originalSize : f.size;
-        logger.warn(
-          `  - ${f.url}: ${(originalSize / 1024).toFixed(2)} KB -> ${(f.size / 1024).toFixed(2)} KB`,
-        );
-      });
+    const smart = await applySmartMode(self, options, page, files, startTime);
+    if (smart.summary) {
+      return smart.summary;
     }
-
-    let processedFiles = files;
-
-    if (options.smartMode && options.smartMode !== 'full') {
-      try {
-        logger.info(` Applying smart collection mode: ${options.smartMode}`);
-
-        const smartOptions: SmartCollectOptions = {
-          mode: options.smartMode,
-          maxTotalSize: options.maxTotalSize,
-          maxFileSize: options.maxFileSize,
-          priorities: options.priorities,
-        };
-
-        const smartResult = await self.smartCollector.smartCollect(page, files, smartOptions);
-
-        if (options.smartMode === 'summary') {
-          logger.info(` Returning ${smartResult.length} code summaries`);
-
-          if (Array.isArray(smartResult) && smartResult.every((item) => isCodeSummary(item))) {
-            return {
-              files: [],
-              summaries: smartResult,
-              dependencies: { nodes: [], edges: [] },
-              totalSize: 0,
-              collectTime: Date.now() - startTime,
-            };
-          }
-        }
-
-        if (Array.isArray(smartResult) && smartResult.every((item) => isCodeFile(item))) {
-          processedFiles = smartResult;
-        } else {
-          logger.warn('Smart collection returned unexpected type, using original files');
-          processedFiles = files;
-        }
-      } catch (error) {
-        logger.error('Smart collection failed, using original files:', error);
-        processedFiles = files;
-      }
-    }
+    const processedFiles = smart.files;
 
     if (options.compress) {
-      try {
-        logger.info(`Compressing ${processedFiles.length} files with enhanced compressor...`);
-
-        const filesToCompress = processedFiles
-          .filter((file) => self.compressor.shouldCompress(file.content))
-          .map((file) => ({
-            url: file.url,
-            content: file.content,
-          }));
-
-        if (filesToCompress.length === 0) {
-          logger.info('No files need compression (all below threshold)');
-        } else {
-          const compressedResults = await self.compressor.compressBatch(filesToCompress, {
-            level: undefined,
-            useCache: true,
-            maxRetries: COMPRESS_MAX_RETRIES,
-            concurrency: COMPRESS_CONCURRENCY,
-            onProgress: (progress: number) => {
-              if (progress % COMPRESS_PROGRESS_LOG_INTERVAL === 0) {
-                logger.debug(`Compression progress: ${progress.toFixed(0)}%`);
-              }
-            },
-          });
-
-          const compressedMap = new Map<string, CompressionResultItem>(
-            compressedResults.map((r) => [r.url, r] as [string, CompressionResultItem]),
-          );
-
-          for (const file of processedFiles) {
-            const compressed = compressedMap.get(file.url);
-            if (compressed) {
-              file.metadata = {
-                ...file.metadata,
-                compressed: true,
-                originalSize: compressed.originalSize,
-                compressedSize: compressed.compressedSize,
-                compressionRatio: compressed.compressionRatio,
-              };
-            }
-          }
-
-          const stats = self.compressor.getStats();
-          logger.info(` Compressed ${compressedResults.length}/${processedFiles.length} files`);
-          logger.info(
-            ` Compression stats: ${(stats.totalOriginalSize / 1024).toFixed(2)} KB -> ` +
-              `${(stats.totalCompressedSize / 1024).toFixed(2)} KB (${stats.averageRatio.toFixed(1)}% reduction)`,
-          );
-          logger.info(
-            ` Cache: ${stats.cacheHits} hits, ${stats.cacheMisses} misses (${stats.cacheHits > 0 ? ((stats.cacheHits / (stats.cacheHits + stats.cacheMisses)) * 100).toFixed(1) : 0}% hit rate)`,
-          );
-        }
-      } catch (error) {
-        logger.error('Compression failed:', error);
-      }
+      await applyCompression(self, processedFiles);
     }
 
     const dependencies = analyzeDependencies(processedFiles);
@@ -572,33 +713,6 @@ export async function collectInnerImpl(
     logger.error('Code collection failed', error);
     throw error;
   } finally {
-    if (self.cdpSession) {
-      try {
-        if (self.cdpListeners.responseReceived) {
-          self.cdpSession.off('Network.responseReceived', self.cdpListeners.responseReceived);
-        }
-        await self.cdpSession.detach();
-      } catch {
-        // CDP session may already be disconnected
-      }
-      self.cdpSession = null;
-      self.cdpListeners = {};
-    }
-    if (temporaryContext) {
-      try {
-        await temporaryContext.close();
-      } catch (error) {
-        logger.debug('Failed to close temporary browser context after code collection:', error);
-      }
-    } else {
-      await page.close();
-      if (previousActivePageIndex !== null && typeof self.selectPage === 'function') {
-        try {
-          await self.selectPage(previousActivePageIndex);
-        } catch (error) {
-          logger.debug('Failed to restore active page after code collection:', error);
-        }
-      }
-    }
+    await releaseCollectionPage(self, setup);
   }
 }
